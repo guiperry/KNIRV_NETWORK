@@ -1,0 +1,24 @@
+[package]
+name = "knirvchain"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix-web = "4"
+serde = { version = "1.0", features = ["derive"] }
+sha2 = "0.10"
+rand = "0.8"
+dotenv = "0.15"
+serde_json = "1.0"
+sled = "0.34"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+futures = "0.3"
+tokio = { version = "1", features = ["full"] }
+anyhow = "1.0"
+k256 = "0.13"
+num-bigint = { version = "0.4", features = ["serde"] }
+sha3 = "0.10"
+hex = "0.4"

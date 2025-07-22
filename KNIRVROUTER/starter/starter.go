@@ -1,0 +1,369 @@
+// /home/gperry/Documents/GitHub/KNIRVCHAIN_GO_Verifyer/starter/starter.go
+
+package starter
+
+import (
+	"flag"
+	"fmt"
+	"log"
+	"net"
+	"os"
+
+	// "os/exec" // No longer needed in this file
+	"os/signal"
+
+	"strconv"
+	"strings"
+	"syscall"
+
+	// "time" // Removed unused import
+
+	"github.com/joho/godotenv"
+
+	"KNIRVCHAIN_GO_Verifyer/blockchain"
+	"KNIRVCHAIN_GO_Verifyer/blockchainserver"
+	constants "KNIRVCHAIN_GO_Verifyer/constants"
+	"KNIRVCHAIN_GO_Verifyer/p2p"
+	"KNIRVCHAIN_GO_Verifyer/utils"
+	"KNIRVCHAIN_GO_Verifyer/walletserver"
+)
+
+// ... (Config struct, loadConfig, init remain the same) ...
+type Config struct {
+	Port                   uint64
+	MinersAddress          string
+	DatabasePath           string
+	BlockchainName         string
+	HexPrefix              string
+	Success                bool
+	Failed                 bool
+	Pending                string
+	MiningDifficulty       int
+	MiningReward           int64
+	CurrencyName           string
+	Decimal                int
+	BlockchainAddress      string
+	BlockchainDbPath       string
+	BlockchainKey          string
+	AddressPrefix          string
+	TxnVerificationSuccess string
+	TxnVerificationFailure string
+	BlockchainStatus       string
+	PeerBroadcastPauseTime int
+	PeerPingPauseTime      int
+	TxnBroadcastPauseTime  int
+	FetchLastNBlocks       int
+	ConsensusPauseTime     int
+	PeerAddresses          []string
+	// NOTE: WalletPort is NOT defined here
+}
+
+func loadConfig() (*Config, error) {
+	// Load .env file
+	err := godotenv.Load("test.env")
+	if err != nil {
+		log.Printf("Warning: Error loading .env file: %v", err)
+		log.Println("Will use default or environment values")
+	}
+
+	// Set default values for required environment variables if not set
+	if os.Getenv("MINING_DIFFICULTY") == "" {
+		os.Setenv("MINING_DIFFICULTY", "3")
+	}
+	if os.Getenv("MINING_REWARD") == "" {
+		os.Setenv("MINING_REWARD", "100")
+	}
+	if os.Getenv("DECIMAL") == "" {
+		os.Setenv("DECIMAL", "8")
+	}
+	if os.Getenv("CONSENSUS_PAUSE_TIME") == "" {
+		os.Setenv("CONSENSUS_PAUSE_TIME", "60")
+	}
+	if os.Getenv("PORT") == "" {
+		os.Setenv("PORT", "5000")
+	}
+	if os.Getenv("MINERS_ADDRESS") == "" {
+		os.Setenv("MINERS_ADDRESS", "KNIRVCHAIN-3dd025e8fec7eda7cdd012ddde9c8e978ee7fa33")
+	}
+	dbPath := os.Getenv("BLOCKCHAIN_DB_PATH")
+	if dbPath == "" {
+		// If Env Var not set, use the standard default for the root node
+		dbPath = utils.GetDefaultRootDBPath() // Use helper function
+		log.Printf("BLOCKCHAIN_DB_PATH not set, using default root path: %s", dbPath)
+	} else {
+		log.Printf("Using BLOCKCHAIN_DB_PATH from environment: %s", dbPath)
+	}
+	// NOTE: This dbPath is primarily used for the baseCfg defaults below.
+	// The actual path used by 'chain' or 'webgui' is set later.
+
+	// ... rest of loadConfig, parsing other env vars ...
+	cfg := &Config{
+		// ... other fields ...
+		BlockchainDbPath: dbPath, // Store the determined path (might be overridden by flag)
+	}
+
+	// ... parse numeric values ...
+
+	// DO NOT set constants.BLOCKCHAIN_DB_PATH here globally yet.
+
+	var err1 error
+	cfg.Port, err1 = strconv.ParseUint(os.Getenv("PORT"), 10, 64)
+	if err1 != nil {
+		return nil, fmt.Errorf("error parsing PORT: %w", err1)
+	}
+	cfg.MinersAddress = os.Getenv("MINERS_ADDRESS")
+	cfg.BlockchainName = os.Getenv("BLOCKCHAIN_NAME")
+	cfg.HexPrefix = os.Getenv("HEX_PREFIX")
+	cfg.Success = os.Getenv("SUCCESS") == "true"
+	cfg.Failed = os.Getenv("FAILED") == "true"
+	cfg.Pending = os.Getenv("PENDING")
+	cfg.MiningDifficulty, err1 = strconv.Atoi(os.Getenv("MINING_DIFFICULTY"))
+	if err1 != nil {
+		return nil, fmt.Errorf("error parsing MINING_DIFFICULTY: %w", err1)
+	}
+	cfg.MiningReward, err1 = strconv.ParseInt(os.Getenv("MINING_REWARD"), 10, 64)
+	if err1 != nil {
+		return nil, fmt.Errorf("error parsing MINING_REWARD: %w", err1)
+	}
+	cfg.CurrencyName = os.Getenv("CURRENCY_NAME")
+	cfg.Decimal, err1 = strconv.Atoi(os.Getenv("DECIMAL"))
+	if err1 != nil {
+		return nil, fmt.Errorf("error parsing DECIMAL: %w", err1)
+	}
+	cfg.BlockchainAddress = os.Getenv("BLOCKCHAIN_ADDRESS") // This seems unused
+	//cfg.BlockchainDbPath = os.Getenv("BLOCKCHAIN_DB_PATH")
+	cfg.BlockchainKey = os.Getenv("BLOCKCHAIN_KEY") // This seems unused
+	cfg.AddressPrefix = os.Getenv("ADDRESS_PREFIX")
+	cfg.TxnVerificationSuccess = os.Getenv("TXN_VERIFICATION_SUCCESS")
+	cfg.TxnVerificationFailure = os.Getenv("TXN_VERIFICATION_FAILURE")
+	cfg.BlockchainStatus = os.Getenv("BLOCKCHAIN_STATUS")
+	cfg.ConsensusPauseTime, err1 = strconv.Atoi(os.Getenv("CONSENSUS_PAUSE_TIME"))
+	if err1 != nil {
+		return nil, fmt.Errorf("error parsing CONSENSUS_PAUSE_TIME: %w", err1)
+	}
+
+	peerString := os.Getenv("PEER_ADDRESSES")
+	if peerString != "" {
+		cfg.PeerAddresses = strings.Split(peerString, ",")
+	}
+
+	// Ensure the database directory exists - Moved to where it's needed
+
+	return cfg, nil
+}
+
+func init() {
+	log.SetPrefix("KNIRVCHAIN: ")
+}
+
+// StartWallet initializes and starts the wallet server
+func StartWallet(port uint64, nodeAddress string) {
+	// Ensure wallet port is available or find a new one if needed
+	actualPort := port
+	if !isPortAvailable(actualPort) {
+		log.Printf("Wallet port %d in use, finding available port...", actualPort)
+		actualPort = findAvailablePort(actualPort + 1) // Start searching from next port
+		log.Printf("Using available wallet port %d", actualPort)
+	}
+
+	// Use the actual port found
+	ws := walletserver.NewWalletServer(actualPort, nodeAddress)
+	ws.Start() // This function likely blocks or starts its own goroutines
+}
+
+// --- REMOVED openBrowser function from starter.go ---
+// func openBrowser(url string) { ... }
+
+// StartCommandLine is the exported function that will be called from main.go
+func StartCommandLine() {
+	// Load configuration first to get defaults and env vars
+	// This cfg is mostly for default flag values now
+	baseCfg, err := loadConfig()
+	if err != nil {
+		log.Println("Error loading base configuration:", err)
+		os.Exit(1)
+	}
+
+	// Define command-line flags for subcommands
+	chainCmdSet := flag.NewFlagSet("chain", flag.ExitOnError)
+	walletCmdSet := flag.NewFlagSet("wallet", flag.ExitOnError)
+
+	// Chain command flags
+	chainPort := chainCmdSet.Uint64("port", baseCfg.Port, "HTTP port for blockchain server")
+	chainMiner := chainCmdSet.String("miners_address", baseCfg.MinersAddress, "Miner's address")
+	// Use the standard default path as the flag's default value
+	chainDbPath := chainCmdSet.String("dbpath", utils.GetDefaultRootDBPath(), "Database path") // Updated default
+
+	// Wallet command flags
+	defaultWalletPort := uint64(8080)
+	walletPort := walletCmdSet.Uint64("port", defaultWalletPort, "HTTP port for wallet server")
+	defaultNodeAddress := fmt.Sprintf("http://127.0.0.1:%d", baseCfg.Port)
+	blockchainNodeAddress := walletCmdSet.String("node_address", defaultNodeAddress, "Blockchain node address")
+
+	// Check for subcommand
+	if len(os.Args) < 2 {
+		fmt.Println("Error: Expected 'chain', 'wallet', or 'webgui' subcommand")
+		fmt.Println("Usage:")
+		fmt.Println("  KNIRVCHAIN chain [--port=<port>] [--miners_address=<address>] [--dbpath=<path>]")
+		fmt.Println("  KNIRVCHAIN wallet [--port=<port>] [--node_address=<url>]")
+		fmt.Println("  KNIRVCHAIN webgui [--port=<port>]") // <<< NEW Usage
+		os.Exit(1)
+	}
+
+	switch os.Args[1] {
+	case "chain", "-chain":
+		chainCmdSet.Parse(os.Args[2:])
+
+		// Validate miner address
+		if *chainMiner == "" {
+			fmt.Println("Error: Miner's address is required for the chain node")
+			chainCmdSet.PrintDefaults()
+			os.Exit(1)
+		}
+
+		// --- Set constants.BLOCKCHAIN_DB_PATH specifically for 'chain' command ---
+		// Priority: Flag > Env Var > Default
+		finalDbPath := *chainDbPath // Start with flag value (which defaults to standard path)
+		envDbPath := os.Getenv("BLOCKCHAIN_DB_PATH")
+		if envDbPath != "" && *chainDbPath == utils.GetDefaultRootDBPath() {
+			// If flag wasn't explicitly set (still default) but env var exists, use env var
+			finalDbPath = envDbPath
+			log.Printf("Overriding default DB path with environment variable: %s", finalDbPath)
+		}
+		constants.BLOCKCHAIN_DB_PATH = finalDbPath // Set the constant for this process run
+
+		if err := os.MkdirAll(constants.BLOCKCHAIN_DB_PATH, 0755); err != nil {
+			log.Fatalf("Error creating database directory '%s': %v", constants.BLOCKCHAIN_DB_PATH, err)
+		}
+		log.Printf("Chain command using final database path: %s", constants.BLOCKCHAIN_DB_PATH)
+
+		// Start the blockchain logic (which now decides between root and peer/webgui)
+		// startVerifyerBlockchain should now ONLY handle the root node case.
+		// The peer case is handled by the 'webgui' command.
+		StartRootBlockchain(*chainPort, *chainMiner) // Renamed for clarity
+
+	case "wallet", "-wallet":
+		walletCmdSet.Parse(os.Args[2:])
+		StartWallet(*walletPort, *blockchainNodeAddress)
+
+	default:
+		fmt.Println("Error: Expected 'chain', or 'wallet', subcommand")
+		os.Exit(1)
+	}
+}
+
+// isPortAvailable checks if a TCP port is free.
+func isPortAvailable(port uint64) bool {
+	address := fmt.Sprintf(":%d", port)
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		return false
+	}
+	listener.Close()
+	return true
+}
+
+// findAvailablePort starts searching from startPort and finds the next available TCP port.
+func findAvailablePort(startPort uint64) uint64 {
+	port := startPort
+	for {
+		if isPortAvailable(port) {
+			log.Printf("Found available port: %d", port)
+			return port
+		}
+		port++
+		if port > startPort+1000 {
+			log.Fatalf("Could not find an available port between %d and %d", startPort, port-1)
+		}
+	}
+}
+
+// StartRootBlockchain handles the ROOT blockchain initialization and startup
+// Renamed from startVerifyerBlockchain
+func StartRootBlockchain(port uint64, minerAddress string) {
+	// --- Root Node Logic ---
+	// Check if the specified port is available. If not, FATAL error for root node.
+	if !isPortAvailable(port) {
+		log.Fatalf("FATAL: Root node port %d is already in use. Cannot start.", port)
+	}
+
+	log.Printf("Starting Root blockchain node on port %d", port)
+	// Constants (like DB path) should have been set by the 'chain' command handler
+
+	stopMining := make(chan bool)
+	miningStopped := make(chan bool)
+
+	var bcs *blockchainserver.BlockchainServer
+
+	// Initialize core components for the root node
+	genesisBlock := blockchain.NewBlock("0x0", 0, 0)
+
+	// Get the LevelDB instance
+	db := blockchain.GetLevelDBInstance()
+
+	// Create the blockchain instance
+	blockchain1 := blockchain.NewBlockchain(*genesisBlock, minerAddress)
+	if blockchain1 == nil {
+		log.Fatalf("FATAL: Failed to initialize blockchain instance.") // Handle potential nil return
+	}
+
+	// Initialize P2P manager with bootstrap nodes
+	bootstrapAddrs := []string{
+		"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
+		"/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
+		"/dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb",
+	}
+
+	log.Printf("Initializing P2P manager")
+	p2pManager, err := p2p.NewP2PManager(blockchain1, db, bootstrapAddrs)
+	if err != nil {
+		log.Fatalf("Failed to initialize P2P manager: %v", err)
+	}
+
+	// Create the blockchain server
+	bcs = blockchainserver.NewBlockchainServer(port, blockchain1)
+
+	// Connect blockchain to P2P manager
+	log.Printf("Connecting blockchain to P2P manager")
+	p2p.ConnectBlockchainToP2P(blockchain1, p2pManager)
+
+	// Start the P2P manager
+	log.Printf("Starting P2P manager")
+	if err := p2pManager.Start(); err != nil {
+		log.Fatalf("Failed to start P2P manager: %v", err)
+	}
+
+	// Start the blockchain server
+	log.Printf("Starting blockchain server on port %d", port)
+	go bcs.Start()
+
+	// Start mining
+	log.Printf("Starting mining with miner address: %s", minerAddress)
+	go blockchain1.ProofOfWorkMining(minerAddress, stopMining, miningStopped)
+
+	// Consensus is now handled by the P2P manager
+
+	// Setup interrupt handler
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
+
+	log.Println("Root node running. Press Ctrl+C to shut down.")
+	<-interrupt
+
+	// --- Graceful Shutdown Logic ---
+	log.Println("Shutdown signal received. Stopping components...")
+	log.Println("Stopping mining...")
+	stopMining <- true
+	<-miningStopped
+	log.Println("Mining stopped.")
+
+	// Consensus is handled by P2P manager, no separate stop needed
+
+	log.Println("Stopping P2P manager...")
+	p2pManager.Stop()
+	log.Println("P2P manager stopped.")
+
+	// Add bcs.Stop() if implemented
+	log.Println("Shutdown complete.")
+	os.Exit(0)
+}

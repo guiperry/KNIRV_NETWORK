@@ -1,0 +1,4 @@
+ ./target/debug/knirvchain
+
+
+ cargo test --test integration_test
