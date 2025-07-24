@@ -1,0 +1,65 @@
+# System Tray Icon Implementation
+
+This document describes the implementation of the system tray icon functionality for the KNIRVROOT application.
+
+## Overview
+
+The system tray icon provides the following features:
+- Allows the application to run in the background when the main window is closed
+- Provides a menu to show/hide the application window
+- Provides a menu to quit the application
+- Shows a confirmation dialog when the user tries to close the application
+
+## Implementation Details
+
+### Files Modified/Created
+
+1. **systray.go** - New file that implements the system tray functionality
+2. **altgui.go** - Modified to integrate the system tray functionality
+3. **main.go** - Modified to store the context cancel function and wait group for access by the GUI
+
+### Dependencies
+
+The implementation uses the following external dependencies:
+- `github.com/getlantern/systray` - For system tray functionality
+- `github.com/webview/webview_go` - Already used for the GUI
+
+### Key Components
+
+#### SystrayManager
+
+The `SystrayManager` struct manages the system tray functionality:
+- Handles showing/hiding the webview window
+- Handles the confirmation dialog when the user tries to close the application
+- Manages the system tray icon and menu
+- Provides a clean shutdown mechanism for the application
+
+#### Icon Loading
+
+The system tray icon is loaded from the Next.js build output directory (`altgui/out`). The implementation:
+1. Tries to load the icon from common paths in the Next.js output
+2. Falls back to searching for any .ico or .png file in the directory
+3. Logs the path of the icon that was loaded
+
+#### Window Close Handling
+
+When the user tries to close the application window:
+1. A confirmation dialog is shown asking if they want to keep the application running in the background
+2. If they choose "OK", the window is hidden but the application continues running
+3. If they choose "Cancel", the application is shut down
+
+## Usage
+
+The system tray icon is automatically initialized when the GUI is started. Users can:
+- Click the system tray icon to access the menu
+- Use the menu to show/hide the application window
+- Use the menu to quit the application
+- Close the application window to be prompted about keeping it running in the background
+
+## Future Improvements
+
+Potential future improvements include:
+- Adding more menu options for common actions
+- Showing notifications via the system tray
+- Customizing the icon based on application state
+- Adding keyboard shortcuts for showing/hiding the window

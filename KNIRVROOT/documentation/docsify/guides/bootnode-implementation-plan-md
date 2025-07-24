@@ -1,0 +1,939 @@
+# Bootnode Implementation Plan
+
+## Overview
+
+This document outlines the implementation plan for adding a bootnode feature to the KNIRVROOT application. A bootnode is a specialized node that serves as an entry point for other nodes joining the network. It accepts connections from other nodes without having any devs itself and advertises its presence on the network for discovery.
+
+## Requirements
+
+1. Add a new command-line flag `-bootnode` to enable bootnode functionality
+2. Implement bootnode registration with the registry service
+3. Implement periodic health checks and re-registration to maintain active status
+4. Enable the bootnode to operate as a background system process with auto-restart capability
+5. Implement fallback to DHT discovery if registry service is unavailable
+6. Handle incoming dev discovery requests
+
+## Integration with Existing Installation Process
+
+The bootnode functionality will be integrated with the existing installation process in `install.go`. The current installation process already includes steps for:
+
+1. Connecting to the KNIRVROOT Bootnode
+2. Generating a unique chain URI
+3. Registering with the KNIRVROOT Node Registry
+4. Detecting the host operating system
+5. Registering URI handlers
+6. Setting up a system service (currently a placeholder)
+7. Updating the application configuration
+
+We'll enhance this process to support bootnode installation by:
+
+1. Adding a `-bootnode` flag to the main application
+2. Updating the `Install` function to accept a bootnode parameter
+3. Implementing the system service setup for both bootnode and dev node types
+4. Adding bootnode-specific configuration options
+
+The installation process will detect whether the node is being installed as a bootnode or a dev node and configure the system service accordingly.
+
+## OS Detection and Service Configuration
+
+The implementation includes cross-platform support for running as a background service with auto-restart capability. The implementation detects the host operating system and configures the service according to the operating system's protocol for background processes:
+
+1. **Linux**: Uses systemd service management
+   - Creates a systemd service unit file
+   - Configures auto-restart with appropriate settings
+   - Supports custom user, working directory, and log paths
+   - Creates different service files for bootnode and dev node types
+
+2. **Windows**: Uses Windows Service Control Manager
+   - Creates a Windows service using sc.exe
+   - Configures auto-restart with failure recovery options
+   - Supports custom display name, description, and log paths
+   - Creates different services for bootnode and dev node types
+
+3. **macOS**: Uses launchd service management
+   - Creates a launchd plist file in LaunchDaemons
+   - Configures auto-restart with KeepAlive and ThrottleInterval
+   - Supports custom user, working directory, and log paths
+   - Creates different plist files for bootnode and dev node types
+
+The implementation provides a unified interface for service installation across all supported platforms, with sensible defaults that can be overridden through configuration.
+
+
+## Implementation Details
+
+### 1. Command-Line Flag Addition
+
+Add a new `-bootnode` flag to the application's command-line interface in `main.go`:
+
+```go
+bootnode := flag.Bool("bootnode", false, "Run as a bootnode for the KNIRVROOT network")
+```
+
+Also update the Install function in install.go to accept a bootnode parameter:
+
+```go
+// Update the Install function signature
+func Install(configPath string, asBootnode bool) error {
+    // Existing code...
+}
+
+// In main.go, update the call to Install when installing
+if *runInstall {
+    asBootnode := *bootnode // Pass the bootnode flag to the installer
+    if err := Install(loadedConfigPath, asBootnode); err != nil {
+        log.Fatalf("Installation failed: %v", err)
+    }
+    log.Println("Installation completed successfully. Exiting.")
+    return
+}
+```
+
+### 2. Bootnode Configuration
+
+Create a new bootnode configuration structure in the config package:
+
+```go
+// BootnodeConfig holds configuration for bootnode operation
+type BootnodeConfig struct {
+    Enabled              bool          // Whether bootnode mode is enabled
+    RegistryURL          string        // URL of the registry service
+    RegistrationInterval time.Duration // How often to re-register with the registry
+    StunServer           string        // STUN server address for IP discovery
+    
+    // Service configuration
+    ServiceUser          string        // User to run the service as (Linux/macOS)
+    ServiceWorkingDir    string        // Working directory for the service
+    ServiceDisplayName   string        // Display name for the service (Windows)
+    ServiceDescription   string        // Description for the service
+    ServiceLogPath       string        // Path to log file for service output
+}
+```
+
+Update the main Config structure to include bootnode configuration:
+
+```go
+type Config struct {
+    // Existing fields...
+    Bootnode BootnodeConfig // Bootnode configuration
+}
+```
+
+### 3. STUN Client Implementation
+
+Implement a STUN client to discover the node's public IP address:
+
+```go
+// DiscoverPublicIP uses STUN to discover the node's public IP address
+func DiscoverPublicIP(stunServer string) (string, error) {
+    // Implementation using a STUN client library
+    // Returns the public IP address as a string
+}
+```
+
+### 4. Registry Service Client
+
+Implement a client for interacting with the registry service:
+
+```go
+// RegistryClient handles communication with the bootnode registry service
+type RegistryClient struct {
+    baseURL string
+    httpClient *http.Client
+}
+
+// RegisterBootnode registers this node as a bootnode with the registry service
+func (rc *RegistryClient) RegisterBootnode(chainID string, ip string, port int) error {
+    // Implementation to register with the registry service
+}
+
+// IsRegistryAvailable checks if the registry service is available
+func (rc *RegistryClient) IsRegistryAvailable() bool {
+    // Implementation to check registry service availability
+}
+```
+
+### 5. Bootnode Manager
+
+Create a new component to manage bootnode operations:
+
+```go
+// BootnodeManager handles bootnode operations
+type BootnodeManager struct {
+    config         *config.BootnodeConfig
+    discoveryMgr   *DiscoveryManager
+    registryClient *RegistryClient
+    chainID        string
+    p2pPort        int
+    publicIP       string
+    stopChan       chan struct{}
+    wg             sync.WaitGroup
+}
+
+// NewBootnodeManager creates a new bootnode manager
+func NewBootnodeManager(cfg *config.BootnodeConfig, discoveryMgr *DiscoveryManager, chainID string, p2pPort int) (*BootnodeManager, error) {
+    // Implementation to create and initialize a bootnode manager
+}
+
+// Start starts the bootnode manager
+func (bm *BootnodeManager) Start() error {
+    // Implementation to start bootnode operations
+}
+
+// Stop stops the bootnode manager
+func (bm *BootnodeManager) Stop() {
+    // Implementation to stop bootnode operations
+}
+```
+
+### 6. Integration with Main Application Flow
+
+Update the main application flow to initialize and start the bootnode manager when the `-bootnode` flag is set:
+
+```go
+// In main function
+if *bootnode {
+    // Configure bootnode
+    cfg.Bootnode.Enabled = true
+    
+    // Create and start bootnode manager
+    bootnodeMgr, err := NewBootnodeManager(&cfg.Bootnode, discoveryMgr, cfg.ChainID, int(cfg.P2PPort))
+    if err != nil {
+        log.Fatalf("Failed to create bootnode manager: %v", err)
+    }
+    
+    if err := bootnodeMgr.Start(); err != nil {
+        log.Fatalf("Failed to start bootnode manager: %v", err)
+    }
+    
+    // Add to cleanup
+    defer bootnodeMgr.Stop()
+    
+    log.Printf("Bootnode started successfully for chain %s on port %d", cfg.ChainID, cfg.P2PPort)
+}
+```
+
+### 7. Integration with Existing Installation Process
+
+The bootnode functionality will be integrated with the existing installation process in `install.go`. The current installation process already includes OS detection and has a placeholder for service setup. We'll enhance this process to support bootnode installation:
+
+```go
+// In install.go, update the Install function to support bootnode installation
+func Install(configPath string, asBootnode bool) error {
+    // Existing installation code...
+    
+    // Step 6: Set up system service
+    fmt.Println("Setting up system service...")
+    
+    // Determine service type based on installation mode
+    serviceType := "dev"
+    if asBootnode {
+        serviceType = "bootnode"
+        fmt.Println("Configuring as a bootnode service...")
+    } else {
+        fmt.Println("Configuring as a dev node service...")
+    }
+    
+    // Configure service based on OS
+    if err := ConfigureSystemService(configPath, configToSave, serviceType); err != nil {
+        log.Printf("Warning: Failed to set up system service: %v", err)
+        fmt.Println("You can manually configure the service later.")
+    } else {
+        fmt.Printf("%s service configured successfully.\n", strings.Title(serviceType))
+    }
+    
+    // Remaining installation code...
+}
+
+// ConfigureSystemService sets up the application as a background service based on OS
+func ConfigureSystemService(configPath string, cfg *config.Config, serviceType string) error {
+    os := runtime.GOOS
+    switch os {
+    case "linux":
+        return configureLinuxService(configPath, cfg, serviceType)
+    case "windows":
+        return configureWindowsService(configPath, cfg, serviceType)
+    case "darwin":
+        return configureMacOSService(configPath, cfg, serviceType)
+    default:
+        return fmt.Errorf("unsupported operating system for background service: %s", os)
+    }
+}
+```
+
+### 8. Cross-Platform Background Service Configuration
+
+Implement OS-specific service configuration for different operating systems:
+
+```go
+// ConfigureSystemService sets up the application as a background service based on OS
+func ConfigureSystemService(configPath string, cfg *config.Config, serviceType string) error {
+    os := runtime.GOOS
+    switch os {
+    case "linux":
+        return configureLinuxService(configPath, cfg, serviceType)
+    case "windows":
+        return configureWindowsService(configPath, cfg, serviceType)
+    case "darwin":
+        return configureMacOSService(configPath, cfg, serviceType)
+    default:
+        return fmt.Errorf("unsupported operating system for background service: %s", os)
+    }
+}
+```
+
+#### Linux (systemd) Service Configuration
+
+For Linux systems using systemd:
+
+```go
+func configureLinuxService(configPath string, cfg *config.Config, serviceType string) error {
+    // Set default values
+    serviceUser := "KNIRVROOT"
+    workingDir := "/var/lib/KNIRVROOT"
+    logPath := "/var/log/KNIRVROOT.log"
+    
+    // Determine service name and command line based on service type
+    serviceName := fmt.Sprintf("KNIRVROOT-%s", serviceType)
+    var description string
+    var execStart string
+    
+    if serviceType == "bootnode" {
+        description = fmt.Sprintf("KNIRVROOT Bootnode Service for chain %s", cfg.ChainID)
+        execStart = fmt.Sprintf("/usr/local/bin/KNIRVROOT -bootnode -config %s", configPath)
+        
+        // Use bootnode-specific settings if available
+        if cfg.Bootnode.ServiceUser != "" {
+            serviceUser = cfg.Bootnode.ServiceUser
+        }
+        if cfg.Bootnode.ServiceWorkingDir != "" {
+            workingDir = cfg.Bootnode.ServiceWorkingDir
+        }
+        if cfg.Bootnode.ServiceLogPath != "" {
+            logPath = cfg.Bootnode.ServiceLogPath
+        }
+    } else {
+        description = fmt.Sprintf("KNIRVROOT Peer Node Service for chain %s", cfg.ChainID)
+        execStart = fmt.Sprintf("/usr/local/bin/KNIRVROOT -dev -config %s", configPath)
+    }
+    
+    // Create systemd service file
+    serviceContent := fmt.Sprintf(`[Unit]
+Description=%s
+After=network.target
+
+[Service]
+Type=simple
+User=%s
+ExecStart=%s
+Restart=always
+RestartSec=10
+WorkingDirectory=%s
+StandardOutput=append:%s
+StandardError=append:%s
+
+[Install]
+WantedBy=multi-user.target
+`, description, serviceUser, execStart, workingDir, logPath, logPath)
+    
+    // Check if running as root
+    if os.Geteuid() != 0 {
+        return fmt.Errorf("must run as root to install system service")
+    }
+    
+    // Ensure log directory exists
+    logDir := filepath.Dir(logPath)
+    if err := os.MkdirAll(logDir, 0755); err != nil {
+        return fmt.Errorf("failed to create log directory: %w", err)
+    }
+    
+    // Ensure working directory exists
+    if err := os.MkdirAll(workingDir, 0755); err != nil {
+        return fmt.Errorf("failed to create working directory: %w", err)
+    }
+    
+    // Write service file
+    serviceFilePath := fmt.Sprintf("/etc/systemd/system/%s.service", serviceName)
+    if err := ioutil.WriteFile(serviceFilePath, []byte(serviceContent), 0644); err != nil {
+        return fmt.Errorf("failed to write systemd service file: %w", err)
+    }
+    
+    // Reload systemd to recognize the new service
+    cmd := exec.Command("systemctl", "daemon-reload")
+    if err := cmd.Run(); err != nil {
+        return fmt.Errorf("failed to reload systemd: %w", err)
+    }
+    
+    // Enable and start service
+    cmd = exec.Command("systemctl", "enable", serviceName)
+    if err := cmd.Run(); err != nil {
+        return fmt.Errorf("failed to enable systemd service: %w", err)
+    }
+    
+    cmd = exec.Command("systemctl", "start", serviceName)
+    if err := cmd.Run(); err != nil {
+        return fmt.Errorf("failed to start systemd service: %w", err)
+    }
+    
+    log.Printf("Systemd service '%s' installed and started successfully", serviceName)
+    return nil
+}
+```
+
+#### Windows Service Configuration
+
+For Windows systems:
+
+```go
+func configureWindowsService(configPath string, cfg *config.Config, serviceType string) error {
+    // Determine installation directory
+    installDir := os.Getenv("ProgramFiles") + `\KNIRVROOT`
+    
+    // Determine service name and settings based on service type
+    var serviceName string
+    var displayName string
+    var description string
+    var binPath string
+    var logPath string
+    
+    if serviceType == "bootnode" {
+        serviceName = "KNIRVROOTBootnode"
+        
+        // Use bootnode-specific settings if available
+        if cfg.Bootnode.ServiceDisplayName != "" {
+            displayName = cfg.Bootnode.ServiceDisplayName
+        } else {
+            displayName = fmt.Sprintf("KNIRVROOT Bootnode Service (%s)", cfg.ChainID)
+        }
+        
+        if cfg.Bootnode.ServiceDescription != "" {
+            description = cfg.Bootnode.ServiceDescription
+        } else {
+            description = fmt.Sprintf("KNIRVROOT network bootnode service for chain %s", cfg.ChainID)
+        }
+        
+        if cfg.Bootnode.ServiceLogPath != "" {
+            logPath = cfg.Bootnode.ServiceLogPath
+        } else {
+            logPath = os.Getenv("ProgramData") + `\KNIRVROOT\logs\bootnode.log`
+        }
+        
+        binPath = fmt.Sprintf(`"%s\KNIRVROOT.exe" -bootnode -config "%s"`, installDir, configPath)
+    } else {
+        serviceName = "KNIRVROOTPeer"
+        displayName = fmt.Sprintf("KNIRVROOT Peer Node Service (%s)", cfg.ChainID)
+        description = fmt.Sprintf("KNIRVROOT network dev node service for chain %s", cfg.ChainID)
+        logPath = os.Getenv("ProgramData") + `\KNIRVROOT\logs\dev.log`
+        binPath = fmt.Sprintf(`"%s\KNIRVROOT.exe" -dev -config "%s"`, installDir, configPath)
+    }
+    
+    // Create log directory if it doesn't exist
+    logDir := filepath.Dir(logPath)
+    if err := os.MkdirAll(logDir, 0755); err != nil {
+        return fmt.Errorf("failed to create log directory: %w", err)
+    }
+    
+    // Redirect output to log file
+    binPath += fmt.Sprintf(` > "%s" 2>&1`, logPath)
+    
+    // Check if running as administrator
+    isAdmin, err := isWindowsAdmin()
+    if err != nil {
+        return fmt.Errorf("failed to check administrator privileges: %w", err)
+    }
+    
+    if !isAdmin {
+        return fmt.Errorf("must run as administrator to install Windows service")
+    }
+    
+    // Create the service
+    cmd := exec.Command("sc", "create", serviceName, 
+        "binPath=", binPath,
+        "start=", "auto",
+        "DisplayName=", displayName)
+    if err := cmd.Run(); err != nil {
+        return fmt.Errorf("failed to create Windows service: %w", err)
+    }
+    
+    // Set service description
+    cmd = exec.Command("sc", "description", serviceName, description)
+    if err := cmd.Run(); err != nil {
+        log.Printf("Warning: Failed to set service description: %v", err)
+        // Continue anyway as this is not critical
+    }
+    
+    // Configure service recovery options (restart on failure)
+    cmd = exec.Command("sc", "failure", serviceName, 
+        "reset=", "86400", // Reset failure count after 1 day
+        "actions=", "restart/60000/restart/60000/restart/60000") // Restart after 1 minute, up to 3 times
+    if err := cmd.Run(); err != nil {
+        log.Printf("Warning: Failed to set service recovery options: %v", err)
+        // Continue anyway as this is not critical
+    }
+    
+    // Start the service
+    cmd = exec.Command("sc", "start", serviceName)
+    if err := cmd.Run(); err != nil {
+        return fmt.Errorf("failed to start Windows service: %w", err)
+    }
+    
+    log.Printf("Windows service '%s' installed and started successfully", serviceName)
+    return nil
+}
+
+// isWindowsAdmin checks if the current process has administrator privileges
+func isWindowsAdmin() (bool, error) {
+    // This is a simplified check - in a real implementation, you would use the Windows API
+    // to check for administrator privileges
+    cmd := exec.Command("net", "session")
+    err := cmd.Run()
+    if err != nil {
+        // If the command fails, we're not running as admin
+        return false, nil
+    }
+    return true, nil
+}
+```
+
+#### macOS (launchd) Service Configuration
+
+For macOS systems:
+
+```go
+func configureMacOSService(configPath string, cfg *config.Config, serviceType string) error {
+    // Determine service label and settings based on service type
+    var serviceLabel string
+    var programArgs []string
+    var serviceUser string
+    var workingDir string
+    var logPath string
+    
+    if serviceType == "bootnode" {
+        serviceLabel = "com.KNIRVROOT.bootnode"
+        programArgs = []string{
+            "/usr/local/bin/KNIRVROOT",
+            "-bootnode",
+            "-config",
+            configPath,
+        }
+        
+        // Use bootnode-specific settings if available
+        if cfg.Bootnode.ServiceUser != "" {
+            serviceUser = cfg.Bootnode.ServiceUser
+        } else {
+            serviceUser = "root" // Default to root for system services
+        }
+        
+        if cfg.Bootnode.ServiceWorkingDir != "" {
+            workingDir = cfg.Bootnode.ServiceWorkingDir
+        } else {
+            workingDir = "/usr/local/var/KNIRVROOT"
+        }
+        
+        if cfg.Bootnode.ServiceLogPath != "" {
+            logPath = cfg.Bootnode.ServiceLogPath
+        } else {
+            logPath = "/Library/Logs/KNIRVROOT-bootnode.log"
+        }
+    } else {
+        serviceLabel = "com.KNIRVROOT.dev"
+        programArgs = []string{
+            "/usr/local/bin/KNIRVROOT",
+            "-dev",
+            "-config",
+            configPath,
+        }
+        serviceUser = "root"
+        workingDir = "/usr/local/var/KNIRVROOT"
+        logPath = "/Library/Logs/KNIRVROOT-dev.log"
+    }
+    
+    // Ensure working directory exists
+    if err := os.MkdirAll(workingDir, 0755); err != nil {
+        return fmt.Errorf("failed to create working directory: %w", err)
+    }
+    
+    // Ensure log directory exists
+    logDir := filepath.Dir(logPath)
+    if err := os.MkdirAll(logDir, 0755); err != nil {
+        return fmt.Errorf("failed to create log directory: %w", err)
+    }
+    
+    // Create launchd plist file with dynamic configuration
+    plistContent := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>%s</string>
+    <key>ProgramArguments</key>
+    <array>`, serviceLabel)
+    
+    // Add program arguments
+    for _, arg := range programArgs {
+        plistContent += fmt.Sprintf(`
+        <string>%s</string>`, arg)
+    }
+    
+    plistContent += fmt.Sprintf(`
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>WorkingDirectory</key>
+    <string>%s</string>
+    <key>StandardErrorPath</key>
+    <string>%s</string>
+    <key>StandardOutPath</key>
+    <string>%s</string>`, workingDir, logPath, logPath)
+    
+    // Add UserName if not running as root
+    if serviceUser != "root" {
+        plistContent += fmt.Sprintf(`
+    <key>UserName</key>
+    <string>%s</string>`, serviceUser)
+    }
+    
+    // Add restart behavior
+    plistContent += `
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+</dict>
+</plist>`
+
+    // Check if running as root
+    if os.Geteuid() != 0 {
+        return fmt.Errorf("must run as root to install system service")
+    }
+    
+    // Write plist file
+    plistPath := fmt.Sprintf("/Library/LaunchDaemons/%s.plist", serviceLabel)
+    if err := ioutil.WriteFile(plistPath, []byte(plistContent), 0644); err != nil {
+        return fmt.Errorf("failed to write launchd plist file: %w", err)
+    }
+    
+    // Set correct ownership
+    cmd := exec.Command("chown", "root:wheel", plistPath)
+    if err := cmd.Run(); err != nil {
+        return fmt.Errorf("failed to set plist file ownership: %w", err)
+    }
+    
+    // Load and start the service
+    cmd = exec.Command("launchctl", "load", plistPath)
+    if err := cmd.Run(); err != nil {
+        return fmt.Errorf("failed to load launchd service: %w", err)
+    }
+    
+    log.Printf("macOS launchd service '%s' installed and started successfully", serviceLabel)
+    return nil
+}
+```
+
+## Detailed Component Implementations
+
+### 1. STUN Client Implementation
+
+The STUN client will use a Go STUN library to discover the node's public IP address:
+
+```go
+import (
+    "fmt"
+    "net"
+    "time"
+    
+    "github.com/pion/stun"
+)
+
+// DiscoverPublicIP uses STUN to discover the node's public IP address
+func DiscoverPublicIP(stunServer string) (string, error) {
+    // Create a STUN client
+    c, err := stun.Dial("udp", stunServer)
+    if err != nil {
+        return "", fmt.Errorf("failed to connect to STUN server: %w", err)
+    }
+    defer c.Close()
+    
+    // Set request timeout
+    c.SetRTO(time.Second * 5)
+    
+    // Create message
+    message := stun.MustBuild(stun.TransactionID, stun.BindingRequest)
+    
+    // Send request and get response
+    var xorAddr stun.XORMappedAddress
+    if err := c.Do(message, func(res stun.Event) {
+        if res.Error != nil {
+            err = res.Error
+            return
+        }
+        
+        if err = xorAddr.GetFrom(res.Message); err != nil {
+            return
+        }
+    }); err != nil {
+        return "", fmt.Errorf("failed to get STUN response: %w", err)
+    }
+    
+    if err != nil {
+        return "", err
+    }
+    
+    return xorAddr.IP.String(), nil
+}
+```
+
+### 2. Registry Client Implementation
+
+The registry client will handle communication with the bootnode registry service:
+
+```go
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "net/http"
+    "time"
+)
+
+// RegistryClient handles communication with the bootnode registry service
+type RegistryClient struct {
+    baseURL    string
+    httpClient *http.Client
+}
+
+// NewRegistryClient creates a new registry client
+func NewRegistryClient(baseURL string) *RegistryClient {
+    return &RegistryClient{
+        baseURL: baseURL,
+        httpClient: &http.Client{
+            Timeout: 10 * time.Second,
+        },
+    }
+}
+
+// RegisterBootnode registers this node as a bootnode with the registry service
+func (rc *RegistryClient) RegisterBootnode(chainID string, ip string, port int) error {
+    // Prepare request body
+    reqBody, err := json.Marshal(map[string]interface{}{
+        "chainID": chainID,
+        "ip":      ip,
+        "port":    port,
+    })
+    if err != nil {
+        return fmt.Errorf("failed to marshal request body: %w", err)
+    }
+    
+    // Send request
+    resp, err := rc.httpClient.Post(
+        fmt.Sprintf("%s/register", rc.baseURL),
+        "application/json",
+        bytes.NewBuffer(reqBody),
+    )
+    if err != nil {
+        return fmt.Errorf("failed to send registration request: %w", err)
+    }
+    defer resp.Body.Close()
+    
+    // Check response status
+    if resp.StatusCode != http.StatusOK {
+        return fmt.Errorf("registry service returned non-OK status: %d", resp.StatusCode)
+    }
+    
+    return nil
+}
+
+// IsRegistryAvailable checks if the registry service is available
+func (rc *RegistryClient) IsRegistryAvailable() bool {
+    resp, err := rc.httpClient.Get(rc.baseURL)
+    if err != nil {
+        return false
+    }
+    defer resp.Body.Close()
+    
+    return resp.StatusCode == http.StatusOK
+}
+```
+
+### 3. Bootnode Manager Implementation
+
+The bootnode manager will coordinate bootnode operations:
+
+```go
+import (
+    "context"
+    "log"
+    "sync"
+    "time"
+    
+    "KNIRVROOT_GO_ROOT/config"
+)
+
+// BootnodeManager handles bootnode operations
+type BootnodeManager struct {
+    config         *config.BootnodeConfig
+    discoveryMgr   *DiscoveryManager
+    registryClient *RegistryClient
+    chainID        string
+    p2pPort        int
+    publicIP       string
+    stopChan       chan struct{}
+    wg             sync.WaitGroup
+}
+
+// NewBootnodeManager creates a new bootnode manager
+func NewBootnodeManager(cfg *config.BootnodeConfig, discoveryMgr *DiscoveryManager, chainID string, p2pPort int) (*BootnodeManager, error) {
+    // Create registry client
+    registryClient := NewRegistryClient(cfg.RegistryURL)
+    
+    // Discover public IP
+    publicIP, err := DiscoverPublicIP(cfg.StunServer)
+    if err != nil {
+        log.Printf("Warning: Failed to discover public IP via STUN: %v", err)
+        // Continue with empty IP, registry will use request source IP
+    }
+    
+    return &BootnodeManager{
+        config:         cfg,
+        discoveryMgr:   discoveryMgr,
+        registryClient: registryClient,
+        chainID:        chainID,
+        p2pPort:        p2pPort,
+        publicIP:       publicIP,
+        stopChan:       make(chan struct{}),
+    }, nil
+}
+
+// Start starts the bootnode manager
+func (bm *BootnodeManager) Start() error {
+    // First, try to register with the registry service
+    if bm.registryClient.IsRegistryAvailable() {
+        if err := bm.registryClient.RegisterBootnode(bm.chainID, bm.publicIP, bm.p2pPort); err != nil {
+            log.Printf("Warning: Failed to register with registry service: %v", err)
+            // Continue with DHT fallback
+        } else {
+            log.Printf("Successfully registered with registry service as bootnode for chain %s", bm.chainID)
+        }
+    } else {
+        log.Printf("Registry service unavailable, falling back to DHT discovery")
+    }
+    
+    // Start DHT discovery manager
+    if err := bm.discoveryMgr.Bootstrap(); err != nil {
+        return fmt.Errorf("failed to bootstrap discovery manager: %w", err)
+    }
+    
+    // Announce this node as a provider for the chain
+    if err := bm.discoveryMgr.AnnounceGenericResource(bm.chainID, DiscoveryResourceTypeChain); err != nil {
+        log.Printf("Warning: Failed to announce chain resource: %v", err)
+    }
+    
+    // Start periodic re-registration
+    bm.wg.Add(1)
+    go bm.periodicRegistration()
+    
+    return nil
+}
+
+// periodicRegistration periodically re-registers with the registry service
+func (bm *BootnodeManager) periodicRegistration() {
+    defer bm.wg.Done()
+    
+    ticker := time.NewTicker(bm.config.RegistrationInterval)
+    defer ticker.Stop()
+    
+    for {
+        select {
+        case <-ticker.C:
+            // Re-register with registry service
+            if bm.registryClient.IsRegistryAvailable() {
+                if err := bm.registryClient.RegisterBootnode(bm.chainID, bm.publicIP, bm.p2pPort); err != nil {
+                    log.Printf("Warning: Failed to re-register with registry service: %v", err)
+                }
+            }
+            
+            // Re-announce in DHT
+            if err := bm.discoveryMgr.AnnounceGenericResource(bm.chainID, DiscoveryResourceTypeChain); err != nil {
+                log.Printf("Warning: Failed to re-announce chain resource: %v", err)
+            }
+        case <-bm.stopChan:
+            return
+        }
+    }
+}
+
+// Stop stops the bootnode manager
+func (bm *BootnodeManager) Stop() {
+    close(bm.stopChan)
+    bm.wg.Wait()
+}
+```
+
+
+
+## Testing Plan
+
+1. **Unit Tests**:
+   - Test STUN client functionality
+   - Test registry client functionality
+   - Test bootnode manager initialization and operation
+   - Test OS detection and service configuration functions
+
+2. **Integration Tests**:
+   - Test bootnode registration with the registry service
+   - Test bootnode discovery by other nodes
+   - Test fallback to DHT discovery when registry service is unavailable
+   - Test service installation on different operating systems
+
+3. **System Tests**:
+   - Test bootnode operation as a background service on each supported OS
+   - Test auto-restart capability after process termination
+   - Test bootnode discovery in a multi-node network
+   - Test service behavior after system reboot
+
+## Deployment Plan
+
+1. **Development**:
+   - Implement the bootnode feature
+   - Write unit and integration tests
+   - Test in a development environment
+
+2. **Staging**:
+   - Deploy to a staging environment
+   - Test with multiple nodes
+   - Verify bootnode discovery and connectivity
+
+3. **Production**:
+   - Deploy to production
+   - Monitor bootnode performance and stability
+   - Collect metrics on bootnode usage and discovery success rate
+
+## Timeline
+
+1. **Phase 1 (Week 1)**:
+   - Add command-line flag
+   - Implement STUN client
+   - Implement registry client
+
+2. **Phase 2 (Week 2)**:
+   - Implement bootnode manager
+   - Integrate with main application flow
+   - Write unit tests
+
+3. **Phase 3 (Week 3)**:
+   - Write integration tests
+   - Create systemd service configuration
+   - Test in development environment
+
+4. **Phase 4 (Week 4)**:
+   - Deploy to staging
+   - Test in multi-node network
+   - Fix any issues found during testing
+
+5. **Phase 5 (Week 5)**:
+   - Deploy to production
+   - Monitor and collect metrics
+   - Document bootnode setup and operation
+
+## Conclusion
+
+This implementation plan outlines the steps required to add a bootnode feature to the KNIRVROOT application. The bootnode will provide a reliable entry point for nodes joining the network, improving network resilience and connectivity. The implementation will leverage the existing registry service for bootnode discovery, with fallback to DHT discovery if the registry service is unavailable.

@@ -1,0 +1,1399 @@
+```markdown
+## Protobuf Implementation Plan for Capability Resources
+
+This plan outlines the steps to integrate Protocol Buffers for serializing and deserializing `CapabilityDescriptor` and related data structures within the KNIRVROOT application.
+
+**Target Areas for Protobuf Integration:**
+
+*   API Communication: Between clients/tests (`mcp_api_test.go`) and the server (`blockchain_server.go`) for MCP endpoints.
+*   Transaction Data: The `Data` field of `Transaction` structs, particularly for MCP-related transaction types.
+*   Database Storage: Storing `CapabilityDescriptor` and `ContextRecord` objects in LevelDB (`leveldb_mcp.go`).
+
+**Goals:**
+
+*   Improve serialization/deserialization performance.
+*   Reduce data payload sizes.
+*   Enhance type safety and reduce manual JSON parsing/validation boilerplate.
+*   Maintain canonical JSON serialization for cryptographic hashing where necessary.
+
+**Phase 1: Schema Definition (.proto files)**
+
+Create `.proto` files to define the structure of your capability resources.
+
+**File: `mcp_descriptors.proto`**
+
+```protobuf
+syntax = "proto3";
+
+package KNIRVROOT;
+
+option go_package = "./;main"; // Adjust go_package to your project structure
+
+import "google/protobuf/struct.proto"; // For map<string, interface{}> equivalent
+import "google/protobuf/timestamp.proto";
+
+// Enum for CapabilityType
+enum CapabilityTypeProto {
+  CAPABILITY_TYPE_PROTO_UNSPECIFIED = 0;
+  CAPABILITY_TYPE_PROTO_RESOURCE = 1;
+  CAPABILITY_TYPE_PROTO_TOOL = 2;
+  CAPABILITY_TYPE_PROTO_PROMPT = 3;
+  CAPABILITY_TYPE_PROTO_MEMORY_SERVICE = 4;
+}
+
+// Enum for DiscoveryResourceType (used within ResourceDescriptor)
+enum DiscoveryResourceTypeProto {
+  DISCOVERY_RESOURCE_TYPE_PROTO_UNSPECIFIED = 0;
+  DISCOVERY_RESOURCE_TYPE_PROTO_FILE = 1;
+  DISCOVERY_RESOURCE_TYPE_PROTO_API = 2;
+  DISCOVERY_RESOURCE_TYPE_PROTO_PLUGIN = 3;
+  DISCOVERY_RESOURCE_TYPE_PROTO_GENERATED_DOCUMENT = 4;
+  DISCOVERY_RESOURCE_TYPE_PROTO_DATASET = 5;
+  DISCOVERY_RESOURCE_TYPE_PROTO_MODEL_ARTIFACT = 6;
+  DISCOVERY_RESOURCE_TYPE_PROTO_SERVICE = 7;
+}
+
+// BaseDescriptorProto corresponds to BaseDescriptor
+message BaseDescriptorProto {
+  string id = 1;
+  CapabilityTypeProto capability_type = 2;
+  string name = 3;
+  string owner = 4;
+  string version = 5;
+  string description = 6;
+  uint64 gas_fee_nrn = 7;
+  google.protobuf.Timestamp timestamp = 8; // Using Timestamp for better type safety
+  google.protobuf.Struct custom_metadata = 9; // Maps to map[string]interface{}
+}
+
+// PluginSchemaDetailProto corresponds to PluginSchemaDetail
+message PluginSchemaDetailProto {
+  string summary = 1;
+  google.protobuf.Struct access_info = 2; // Maps to map[string]interface{}
+  repeated string location_hints = 3;
+  string manifest_file = 4;
+  string executable_file = 5;
+  string output_directory_hint = 6;
+}
+
+// ResourceDescriptorProto corresponds to ResourceDescriptor
+message ResourceDescriptorProto {
+  BaseDescriptorProto base_descriptor = 1;
+  DiscoveryResourceTypeProto resource_type = 2;
+  string content_hash = 3;
+  PluginSchemaDetailProto schema = 4;
+}
+
+// ToolDescriptorProto corresponds to ToolDescriptor
+message ToolDescriptorProto {
+  BaseDescriptorProto base_descriptor = 1;
+  string input_schema_json = 2;  // Keeping as JSON string as schema can be complex
+  string output_schema_json = 3; // Keeping as JSON string
+  string execution_pointer = 4;
+}
+
+// PromptDescriptorProto corresponds to PromptDescriptor
+message PromptDescriptorProto {
+  BaseDescriptorProto base_descriptor = 1;
+  string template = 2;
+  string parameters_schema_json = 3; // Keeping as JSON string
+}
+
+// MemoryServiceDescriptorProto corresponds to MemoryServiceDescriptor
+message MemoryServiceDescriptorProto {
+  BaseDescriptorProto base_descriptor = 1;
+  string graph_schema = 2; // Could be a JSON string or a more structured proto
+}
+
+// Main CapabilityDescriptorProto using oneof
+message CapabilityDescriptorContainerProto {
+  oneof descriptor {
+    ResourceDescriptorProto resource = 1;
+    ToolDescriptorProto tool = 2;
+    PromptDescriptorProto prompt = 3;
+    MemoryServiceDescriptorProto memory_service = 4;
+  }
+}
+```
+
+**File: `mcp_context.proto`**
+
+```protobuf
+syntax = "proto3";
+
+package KNIRVROOT;
+
+option go_package = "./;main"; // Adjust go_package
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "mcp_descriptors.proto"; // If CapabilityTypeProto is needed here
+
+// Enum for InteractionType
+enum InteractionTypeProto {
+  INTERACTION_TYPE_PROTO_UNSPECIFIED = 0;
+  INTERACTION_TYPE_PROTO_TOOL_INVOCATION = 1;
+  INTERACTION_TYPE_PROTO_PROMPT_USAGE = 2;
+  INTERACTION_TYPE_PROTO_RESOURCE_ACCESS = 3;
+  INTERACTION_TYPE_PROTO_PLUGIN_EXECUTION = 4;
+  INTERACTION_TYPE_PROTO_SAMPLING_REQUEST_SENT = 5;
+  INTERACTION_TYPE_PROTO_SAMPLING_RESPONSE_RECEIVED = 6;
+  INTERACTION_TYPE_PROTO_MEMORY_WRITE = 7;
+  INTERACTION_TYPE_PROTO_CAPABILITY_REGISTRATION = 8;
+}
+
+// ContextRecordProto corresponds to ContextRecord
+message ContextRecordProto {
+  string id = 1;
+  string capability_id = 2;
+  InteractionTypeProto interaction_type = 3;
+  string initiator = 4;
+  google.protobuf.Timestamp timestamp = 5;
+  string input_hash = 6;
+  string output_hash = 7;
+  google.protobuf.Struct details = 8; // Maps to map[string]interface{}
+  bytes signature = 9; // Keep as bytes for signature
+}
+```
+
+**Phase 2: Code Generation**
+
+1.  Install `protoc` compiler: Follow official Google documentation.
+2.  Install Go protobuf plugins:
+
+```bash
+go get -u google.golang.org/protobuf/cmd/protoc-gen-go
+go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc # If gRPC is planned, otherwise optional
+```
+
+3.  Generate Go code: Navigate to the directory containing your `.proto` files (or a parent directory) and run:
+
+```bash
+protoc --go_out=. --go_opt=paths=source_relative \
+       mcp_descriptors.proto mcp_context.proto
+```
+
+This will generate `mcp_descriptors.pb.go` and `mcp_context.pb.go` in the same directory (or as specified by `go_package`).
+
+**Phase 3: Integration**
+
+1.  **Transaction Data**
+
+    *   Modify `Transaction.Data`:
+
+        *   The `Data` `[]byte` field in the `Transaction` struct will now store marshaled protobuf binary data for MCP-related transactions.
+    *   Update `MCPRegisterCapabilityData` and `MCPInvokeCapabilityData` (in `mcp_types.go`):
+
+        *   These structs might no longer be needed if the transaction `Data` field directly stores the marshaled `CapabilityDescriptorContainerProto` or `ContextRecordProto`.
+        *   Alternatively, they could be modified to hold the protobuf message types:
+
+```go
+// Example for MCPRegisterCapabilityData
+type MCPRegisterCapabilityData struct {
+    CapabilityDescriptor *CapabilityDescriptorContainerProto `protobuf:"bytes,1,opt,name=capability_descriptor,json=capabilityDescriptor"` // Keep protobuf messages
+}
+```
+
+*   Update Transaction Creation (`mcp_transaction_test.go`, `mcp_blockchain_test.go`, API handlers):
+
+    *   When creating MCP transactions, marshal the corresponding protobuf message (`CapabilityDescriptorContainerProto` or `ContextRecordProto`) into `Transaction.Data`.
+
+```go
+// Example:
+// capContainer := &CapabilityDescriptorContainerProto{Descriptor: &CapabilityDescriptorContainerProto_Resource{Resource: myResourceProto}}
+// dataBytes, err := proto.Marshal(capContainer)
+// txn.Data = dataBytes
+
+
+*   Update Transaction Validation (`blockchain_struct.go` - `validateMCPTransaction` and sub-functions):
+
+    *   Instead of `json.Unmarshal(transaction.Data, ...)` into `map[string]interface{}` and then into specific Go structs, you will now `proto.Unmarshal(transaction.Data, ...)` directly into the generated protobuf Go structs (e.g., `CapabilityDescriptorContainerProto`, `ContextRecordProto`).
+    *   The logic to access fields will change from map access to using the generated getters on the protobuf structs.
+
+
+The code change produced by Gemini could not be fully parsed. Cant automatically accept changes.
+// validateMCPTransaction validates MCP-specific transactions
+func (bc *BlockchainStruct) validateMCPTransaction(transaction *Transaction) bool {
+	// Validate based on transaction type
+leveldb_mcp.go
+  // With protobuf, transaction.Data will be unmarshaled into proto messages
+  switch transaction.Type {
+  case TransactionTypeMCPRegisterCapability:
+  	// Validate capability registration
+@@ -479,45 +480,48 @@
+
+// validateCapabilityRegistration validates a capability registration transaction func (bc *BlockchainStruct) validateCapabilityRegistration(transaction *Transaction) bool {
+
+
+  // Parse the capability descriptor from transaction data
+
+  var capabilityData map[string]interface{}
+
+  if err := json.Unmarshal(transaction.Data, &capabilityData); err != nil {
+
+  	agentlog.LogError("Failed to unmarshal capability data:", err)
+
+  	return false
+
+  }
+
+  // Check if the descriptor has the required fields
+
+  descriptorData, ok := capabilityData["capabilityDescriptor"]
+
+  if !ok {
+
+  	agentlog.LogError("Missing capabilityDescriptor in transaction data", errors.New("invalid transaction data"))
+
+  	return false
+
+  }
+
+  // Convert to JSON for further processing
+
+  descriptorJSON, err := json.Marshal(descriptorData)
+
+  if err != nil {
+
+  	agentlog.LogError("Failed to marshal descriptor data:", err)
+
+  	return false
+
+  }
+
+  // Get capability type from descriptor's BaseDescriptor
+
+  var baseDesc BaseDescriptor
+
+  if err := json.Unmarshal(descriptorJSON, &baseDesc); err != nil {
+
+  	agentlog.LogError("Failed to unmarshal BaseDescriptor:", err)
+
+  	return false
+
+  }
+
+  if baseDesc.CapabilityType == "" {
+
+  	agentlog.LogError("Missing CapabilityType in BaseDescriptor", errors.New("invalid capability type"))
+
+  	return false
+
+  }
+
+  switch baseDesc.CapabilityType {
+
+  case CapabilityTypeResource:
+
+  	var descriptor ResourceDescriptor
+
+  	if err := json.Unmarshal(descriptorJSON, &descriptor); err != nil {
+
+  		agentlog.LogError("Failed to unmarshal ResourceDescriptor:", err)
+
+  // With Protobuf:
+
+  var regData CapabilityDescriptorContainerProto // Assuming this is the top-level message for registration
+
+  if err := proto.Unmarshal(transaction.Data, &regData); err != nil {
+
+  	agentlog.LogError("Failed to unmarshal protobuf capability registration data:", err)
+
+  	return false
+
+  }
+
+  var baseDescProto *BaseDescriptorProto
+
+  var specificDescProto interface{} // To hold the specific descriptor
+
+  switch d := regData.Descriptor.(type) {
+
+  case *CapabilityDescriptorContainerProto_Resource:
+
+  	if d.Resource == nil || d.Resource.BaseDescriptor == nil {
+
+  		agentlog.LogError("Resource descriptor or its base is nil in proto", errors.New("invalid proto data"))
+
+  		return false
+
+  	}
+
+  	baseDescProto = d.Resource.BaseDescriptor
+
+  	specificDescProto = d.Resource
+
+  	if !bc.validateResourceDescriptorProto(d.Resource) { // New validation function for proto
+  		return false
+  	}
+
+  	// Validate resource descriptor
+
+  	return bc.validateResourceDescriptor(descriptor)
+
+  case CapabilityTypeTool:
+
+  	var descriptor ToolDescriptor
+
+  	if err := json.Unmarshal(descriptorJSON, &descriptor); err != nil {
+
+  		agentlog.LogError("Failed to unmarshal ToolDescriptor:", err)
+
+  case *CapabilityDescriptorContainerProto_Tool:
+
+  	if d.Tool == nil || d.Tool.BaseDescriptor == nil {
+
+  		agentlog.LogError("Tool descriptor or its base is nil in proto", errors.New("invalid proto data"))
+
+  		return false
+
+  	}
+
+  	baseDescProto = d.Tool.BaseDescriptor
+
+  	specificDescProto = d.Tool
+
+  	if !bc.validateToolDescriptorProto(d.Tool) { // New validation function for proto
+  		return false
+  	}
+
+  	// Validate tool descriptor
+
+  	return bc.validateToolDescriptor(descriptor)
+
+  case CapabilityTypePrompt:
+
+  	var descriptor PromptDescriptor
+
+  	if err := json.Unmarshal(descriptorJSON, &descriptor); err != nil {
+
+  		agentlog.LogError("Failed to unmarshal PromptDescriptor:", err)
+
+  case *CapabilityDescriptorContainerProto_Prompt:
+
+  	if d.Prompt == nil || d.Prompt.BaseDescriptor == nil {
+
+  		agentlog.LogError("Prompt descriptor or its base is nil in proto", errors.New("invalid proto data"))
+
+  		return false
+
+  	}
+
+  	baseDescProto = d.Prompt.BaseDescriptor
+
+  	specificDescProto = d.Prompt
+
+  	if !bc.validatePromptDescriptorProto(d.Prompt) { // New validation function for proto
+  		return false
+  	}
+
+  	// Validate prompt descriptor
+
+  	return bc.validatePromptDescriptor(descriptor)
+
+  case CapabilityTypeMemoryService:
+
+  	var descriptor MemoryServiceDescriptor
+
+  	if err := json.Unmarshal(descriptorJSON, &descriptor); err != nil {
+
+  		agentlog.LogError("Failed to unmarshal MemoryServiceDescriptor:", err)
+
+  case *CapabilityDescriptorContainerProto_MemoryService:
+
+  	if d.MemoryService == nil || d.MemoryService.BaseDescriptor == nil {
+
+  		agentlog.LogError("MemoryService descriptor or its base is nil in proto", errors.New("invalid proto data"))
+  		return false
+  	}
+
+  	// Validate memory service descriptor
+
+  	return bc.validateMemoryServiceDescriptor(descriptor)
+
+  	baseDescProto = d.MemoryService.BaseDescriptor
+
+  	specificDescProto = d.MemoryService
+
+  	if !bc.validateMemoryServiceDescriptorProto(d.MemoryService) { // New validation function for proto
+
+  		return false
+
+  	}
+  default:
+
+  	agentlog.LogError("Unknown capability type", fmt.Errorf("invalid type: %v", baseDesc.CapabilityType))
+
+  	return false
+
+  }
+
+  	agentlog.LogError("Unknown capability descriptor type in protobuf 'oneof'", fmt.Errorf("invalid type: %T", d))
+
+  	return false
+
+  }
+
+  if baseDescProto == nil {
+
+  	agentlog.LogError("BaseDescriptorProto is nil after switch", errors.New("invalid proto structure"))
+
+  	return false
+
+  }
+
+  // Validate common base descriptor fields (using a new proto-specific validator)
+
+  if !bc.validateBaseDescriptorProto(baseDescProto, specificDescProto) { // Pass specificDescProto for context if needed
+
+  	return false
+
+  }
+
+  return true
+}
+
+// validateCapabilityInvocation validates a capability invocation transaction func (bc *BlockchainStruct) validateCapabilityInvocation(transaction *Transaction) bool {
+
+
+  // Parse the context record from transaction data
+
+  var contextData map[string]interface{}
+
+  if err := json.Unmarshal(transaction.Data, &contextData); err != nil {
+
+  	agentlog.LogError("Failed to unmarshal context data:", err)
+
+  	return false
+
+  }
+
+  // Check if the context record has the required fields
+
+  contextRecord, ok := contextData["contextRecord"]
+
+  if !ok {
+
+  	agentlog.LogError("Missing contextRecord in transaction data", errors.New("invalid transaction data"))
+
+  	return false
+
+  }
+
+  // Convert to JSON for further processing
+
+  contextJSON, err := json.Marshal(contextRecord)
+
+  if err != nil {
+
+  	agentlog.LogError("Failed to marshal context record:", err)
+
+  	return false
+
+  }
+
+  // Unmarshal into ContextRecord struct
+
+  var record ContextRecord
+
+  if err := json.Unmarshal(contextJSON, &record); err != nil {
+
+  	agentlog.LogError("Failed to unmarshal ContextRecord:", err)
+
+  // With Protobuf:
+
+  var record ContextRecordProto // Assuming ContextRecordProto is the message for invocation data
+
+  if err := proto.Unmarshal(transaction.Data, &record); err != nil {
+
+  	agentlog.LogError("Failed to unmarshal protobuf ContextRecord:", err)
+  	return false
+  }
+
+  // Validate context record
+
+  if record.CapabilityID == "" {
+
+  if record.CapabilityId == "" { // Note: field name might change based on protoc generation (e.g. CapabilityId)
+  	agentlog.LogError("Missing CapabilityID in context record", errors.New("invalid context record"))
+  	return false
+  }
+
+  if record.InteractionType == "" {
+
+  if record.InteractionType == InteractionTypeProto_INTERACTION_TYPE_PROTO_UNSPECIFIED {
+  	agentlog.LogError("Missing InteractionType in context record", errors.New("invalid context record"))
+  	return false
+  }
+@@ -528,8 +532,10 @@ return false }
+
+
+  // Verify that the capability exists
+
+  capability, err := bc.getCapabilityByID(record.CapabilityID)
+
+  // Verify that the capability exists.
+
+  // getCapabilityByID will need to be adapted if it previously relied on JSON from DB.
+
+  // For now, assume it returns a BaseDescriptor (Go struct) or similar.
+
+  capabilityBase, err := bc.getCapabilityByID(record.CapabilityId) // Use the proto field name
+  if err != nil {
+  	agentlog.LogError("Failed to get capability:", err)
+  	return false
+@@ -537,8 +543,8 @@ }
+
+
+ 	// Verify that the transaction fee is sufficient
+
+  if transaction.Fee < capability.GasFeeNRN {
+
+  	agentlog.LogError("Insufficient fee", fmt.Errorf("provided: %d < required: %d", transaction.Fee, capability.GasFeeNRN))
+
+  if transaction.Fee < capabilityBase.GasFeeNRN { // Access GasFeeNRN from the Go struct
+
+  	agentlog.LogError("Insufficient fee", fmt.Errorf("provided: %d < required: %d", transaction.Fee, capabilityBase.GasFeeNRN))
+  	return false
+  }
+@@ -547,16 +553,16 @@
+
+// validateCapabilityUpdate validates a capability update transaction func (bc *BlockchainStruct) validateCapabilityUpdate(transaction *Transaction) bool {
+
+
+  // Parse the capability descriptor from transaction data
+
+  var updateData map[string]interface{}
+
+  if err := json.Unmarshal(transaction.Data, &updateData); err != nil {
+
+  	agentlog.LogError("Failed to unmarshal update data:", err)
+
+  	return false
+
+  }
+
+  // Check if the update data has the required fields
+
+  capabilityID, ok := updateData["capabilityID"].(string)
+
+  if !ok || capabilityID == "" {
+
+  // With Protobuf:
+
+  // Assume transaction.Data contains a message that wraps the ID and the new descriptor.
+
+  // For example, an UpdateCapabilityRequestProto message.
+
+  // For simplicity, let's assume it's just the CapabilityDescriptorContainerProto for the new state,
+
+  // and the ID is implicitly the one in the descriptor.
+
+  var updatedCapData CapabilityDescriptorContainerProto
+
+  if err := proto.Unmarshal(transaction.Data, &updatedCapData); err != nil {
+
+  	agentlog.LogError("Failed to unmarshal protobuf capability update data:", err)
+
+  	return false
+
+  }
+
+  var capabilityID string
+
+  // Extract ID from the updated descriptor
+
+  switch d := updatedCapData.Descriptor.(type) {
+
+  case *CapabilityDescriptorContainerProto_Resource: capabilityID = d.Resource.GetBaseDescriptor().GetId()
+
+  case *CapabilityDescriptorContainerProto_Tool: capabilityID = d.Tool.GetBaseDescriptor().GetId()
+
+  // ... other types
+
+  default: agentlog.LogError("Unknown descriptor type in update", nil); return false
+
+  }
+
+  if capabilityID == "" {
+  	agentlog.LogError("Missing or invalid capabilityID in update data", errors.New("invalid update data"))
+  	return false
+  }
+@@ -575,7 +581,7 @@ return true }
+
+// Helper functions for descriptor validation
+func (bc *BlockchainStruct) validateResourceDescriptor(descriptor ResourceDescriptor) bool {
+
+  // Validate base descriptor fields
+
+  if !bc.validateBaseDescriptor(descriptor.BaseDescriptor) {
+
+  	return false
+
+  }
+// --- NEW Protobuf-specific validation helpers ---
+// These would replace the old JSON-based ones like validateResourceDescriptor, etc.
+func (bc *BlockchainStruct) validateBaseDescriptorProto(base *BaseDescriptorProto, specificDesc interface{}) bool {
+
+  if base.GetId() == "" {
+
+  	agentlog.LogError("Missing ID in proto BaseDescriptor", errors.New("invalid descriptor"))
+
+  	return false
+
+  }
+
+  if base.GetName() == "" {
+
+  	agentlog.LogError("Missing Name in proto BaseDescriptor", errors.New("invalid descriptor"))
+
+  	return false
+
+  }
+
+  if base.GetOwner() == "" {
+
+  	agentlog.LogError("Missing Owner in proto BaseDescriptor", errors.New("invalid descriptor"))
+
+  	return false
+
+  }
+
+  if base.GetVersion() == "" {
+
+  	agentlog.LogError("Missing Version in proto BaseDescriptor", errors.New("invalid descriptor"))
+
+  	return false
+
+  }
+
+  // Check if the ID is already in use (getCapabilityByID needs to work with proto if DB stores proto)
+
+  _, err := bc.getCapabilityByID(base.GetId()) // getCapabilityByID might need adjustment
+
+  if err == nil { // If no error, capability exists
+
+  	agentlog.LogError("Capability ID already exists (proto check)", errors.New("duplicate capability ID"))
+
+  	return false
+
+  }
+
+  // Ensure the error is specifically "not found" for a new registration
+
+  if !strings.Contains(err.Error(), "not found") && !strings.Contains(err.Error(), "no such file or directory") { // Adjust error check for LevelDB
+
+  	agentlog.LogError(fmt.Sprintf("Unexpected error checking capability ID %s existence: %v", base.GetId(), err), err)
+
+  	return false
+
+  }
+
+  return true
+}
+func (bc *BlockchainStruct) validateResourceDescriptorProto(descriptor *ResourceDescriptorProto) bool { // Validate resource-specific fields
+
+  if descriptor.BaseDescriptor.CapabilityType != CapabilityTypeResource {
+
+  if descriptor.GetBaseDescriptor().GetCapabilityType() != CapabilityTypeProto_CAPABILITY_TYPE_PROTO_RESOURCE {
+  	agentlog.LogError("Invalid CapabilityType for ResourceDescriptorProto", errors.New("invalid descriptor type"))
+  	return false
+  }
+
+  if descriptor.ResourceType == "" {
+
+  	agentlog.LogError("Missing ResourceType", errors.New("invalid resource descriptor"))
+
+  	return false
+
+  }
+
+  return true
+}
+func (bc *BlockchainStruct) validateToolDescriptor(descriptor ToolDescriptor) bool {
+
+  // Validate base descriptor fields
+
+  if !bc.validateBaseDescriptor(descriptor.BaseDescriptor) {
+
+  	return false
+
+  }
+
+  if descriptor.GetResourceType() == DiscoveryResourceTypeProto_DISCOVERY_RESOURCE_TYPE_PROTO_UNSPECIFIED {
+
+  	agentlog.LogError("Missing ResourceType in ResourceDescriptorProto", errors.New("invalid resource descriptor"))
+
+  	return false
+
+  }
+
+  // Add more specific validations for PluginSchemaDetailProto if needed
+
+  return true
+}
+func (bc *BlockchainStruct) validateToolDescriptorProto(descriptor *ToolDescriptorProto) bool { // Validate tool-specific fields
+
+  if descriptor.BaseDescriptor.CapabilityType != CapabilityTypeTool {
+
+  if descriptor.GetBaseDescriptor().GetCapabilityType() != CapabilityTypeProto_CAPABILITY_TYPE_PROTO_TOOL {
+  	agentlog.LogError("Invalid CapabilityType for ToolDescriptorProto", errors.New("invalid descriptor type"))
+  	return false
+  }
+
+  if descriptor.InputSchemaJSON == "" {
+
+  	agentlog.LogError("Missing InputSchemaJSON", errors.New("invalid tool descriptor"))
+
+  	return false
+
+  }
+
+  if descriptor.OutputSchemaJSON == "" {
+
+  	agentlog.LogError("Missing OutputSchemaJSON", errors.New("invalid tool descriptor"))
+
+  	return false
+
+  }
+
+  return true
+}
+func (bc *BlockchainStruct) validatePromptDescriptor(descriptor PromptDescriptor) bool {
+
+  // Validate base descriptor fields
+
+  if !bc.validateBaseDescriptor(descriptor.BaseDescriptor) {
+
+  	return false
+
+  }
+
+  if descriptor.GetInputSchemaJson() == "" { // Note: Protoc generates GetInputSchemaJson
+
+  	agentlog.LogError("Missing InputSchemaJSON in ToolDescriptorProto", errors.New("invalid tool descriptor"))
+
+  	return false
+
+  }
+
+  if descriptor.GetOutputSchemaJson() == "" {
+
+  	agentlog.LogError("Missing OutputSchemaJSON in ToolDescriptorProto", errors.New("invalid tool descriptor"))
+
+  	return false
+
+  }
+
+  return true
+}
+func (bc *BlockchainStruct) validatePromptDescriptorProto(descriptor *PromptDescriptorProto) bool { // Validate prompt-specific fields
+
+  if descriptor.BaseDescriptor.CapabilityType != CapabilityTypePrompt {
+
+  if descriptor.GetBaseDescriptor().GetCapabilityType() != CapabilityTypeProto_CAPABILITY_TYPE_PROTO_PROMPT {
+  	agentlog.LogError("Invalid CapabilityType for PromptDescriptorProto", errors.New("invalid descriptor type"))
+  	return false
+  }
+
+  if descriptor.Template == "" {
+
+  	agentlog.LogError("Missing Template", errors.New("invalid prompt descriptor"))
+
+  	return false
+
+  }
+
+  if descriptor.ParametersSchemaJSON == "" {
+
+  	agentlog.LogError("Missing ParametersSchemaJSON", errors.New("invalid prompt descriptor"))
+
+  	return false
+
+  }
+
+  return true
+}
+func (bc *BlockchainStruct) validateMemoryServiceDescriptor(descriptor MemoryServiceDescriptor) bool {
+
+  // Validate base descriptor fields
+
+  if !bc.validateBaseDescriptor(descriptor.BaseDescriptor) {
+
+  	return false
+
+  }
+
+  if descriptor.GetTemplate() == "" {
+
+  	agentlog.LogError("Missing Template in PromptDescriptorProto", errors.New("invalid prompt descriptor"))
+
+  	return false
+
+  }
+
+  if descriptor.GetParametersSchemaJson() == "" {
+
+  	agentlog.LogError("Missing ParametersSchemaJSON in PromptDescriptorProto", errors.New("invalid prompt descriptor"))
+
+  	return false
+
+  }
+
+  return true
+}
+func (bc *BlockchainStruct) validateMemoryServiceDescriptorProto(descriptor *MemoryServiceDescriptorProto) bool { // Validate memory service-specific fields
+
+  if descriptor.BaseDescriptor.CapabilityType != CapabilityTypeMemoryService {
+
+  if descriptor.GetBaseDescriptor().GetCapabilityType() != CapabilityTypeProto_CAPABILITY_TYPE_PROTO_MEMORY_SERVICE {
+  	agentlog.LogError("Invalid CapabilityType for MemoryServiceDescriptorProto", errors.New("invalid descriptor type"))
+  	return false
+  }
+
+  return true
+}
+func (bc *BlockchainStruct) validateBaseDescriptor(descriptor BaseDescriptor) bool {
+
+  if descriptor.ID == "" {
+
+  	agentlog.LogError("Missing ID", errors.New("invalid descriptor"))
+
+  	return false
+
+  }
+
+  if descriptor.Name == "" {
+
+  	agentlog.LogError("Missing Name", errors.New("invalid descriptor"))
+
+  	return false
+
+  }
+
+  if descriptor.Owner == "" {
+
+  	agentlog.LogError("Missing Owner", errors.New("invalid descriptor"))
+
+  	return false
+
+  }
+
+  if descriptor.Version == "" {
+
+  	agentlog.LogError("Missing Version", errors.New("invalid descriptor"))
+
+  	return false
+
+  }
+
+  // Check if the ID is already in use
+
+  _, err := bc.getCapabilityByID(descriptor.ID)
+
+  if err == nil {
+
+  	agentlog.LogError("Capability ID already exists", errors.New("duplicate capability ID"))
+
+  	return false
+
+  }
+
+  // Add specific validations for MemoryServiceDescriptorProto if needed
+  return true
+}
+
+// getCapabilityByID retrieves a capability descriptor by its ID
+
+// This function will need to be updated if the DB stores protobuf messages.
+
+// For now, it's assumed to return the Go struct version for other parts of the code.
+
+// If DB stores proto, this function would fetch proto bytes, unmarshal to proto struct,
+
+// then potentially convert to the Go struct if needed by callers, or callers adapt to proto structs. func (bc *BlockchainStruct) getCapabilityByID(id string) (BaseDescriptor, error) { // Check if we have a database connection if bc.db == nil { @@ -679,18 +699,23 @@ }
+
+// Get the capability from the database
+
+
+  // db.GetCapabilityByID will also need to be updated for protobuf
+  capability, err := bc.db.GetCapabilityByID(id)
+  if err != nil {
+  	return BaseDescriptor{}, fmt.Errorf("failed to get capability: %w", err)
+  }
+
+  // Extract the BaseDescriptor from the capability
+
+  // This part remains the same if db.GetCapabilityByID returns the Go structs
+  switch c := capability.(type) {
+  case ResourceDescriptor:
+  	return c.BaseDescriptor, nil
+  case ToolDescriptor:
+  	return c.BaseDescriptor, nil
+  case PromptDescriptor:
+  	return c.BaseDescriptor, nil
+  case MemoryServiceDescriptor:
+  	return c.BaseDescriptor, nil
+
+  // If db.GetCapabilityByID returns proto messages, this switch would handle proto types
+
+  // and convert to BaseDescriptor (Go struct) if necessary.
+  default:
+  	return BaseDescriptor{}, fmt.Errorf("unsupported capability type")
+  }
+```
+
+3.2.  **Database Storage (leveldb_mcp.go)**
+    *   Modify `SaveCapability`:
+        *   Instead of `json.Marshal(capability)`, use `proto.Marshal(capabilityProto)` where `capabilityProto` is the protobuf message equivalent of the input `interface{}`. You'll need to convert the input Go struct to its protobuf counterpart before marshaling.
+    *   Modify `GetCapabilityByID`:
+        *   Instead of `json.Unmarshal` into `BaseDescriptor` and then specific types, `proto.Unmarshal(capabilityBytes, &container)` to get the type from `CapabilityDescriptorContainerProto`.
+        *   Then, access the specific descriptor from the `oneof` field.
+        *   Convert the retrieved protobuf message back to the Go struct version if the rest of the application expects Go structs. Alternatively, update callers to use protobuf structs.
+    *   `SaveContextRecord` / `LoadContextRecord`: Similar changes, using `proto.Marshal` and `proto.Unmarshal` with `ContextRecordProto`.
+
+```diff
+--- a/home/gperry/Documents/GitHub/cloud-equities/KNIRVROOT_GO_ROOT_MCP/leveldb_mcp.go
++++ b/home/gperry/Documents/GitHub/cloud-equities/KNIRVROOT_GO_ROOT_MCP/leveldb_mcp.go
+@@ -6,6 +6,7 @@
+ 	"log"
+ 	"strings"
+ 
++	"google.golang.org/protobuf/proto"
+ 	"github.com/syndtr/goleveldb/leveldb"
+ 	"github.com/syndtr/goleveldb/leveldb/opt"
+ )
+@@ -22,50 +23,62 @@
+ 
+ // SaveCapability saves a capability descriptor to the database
+ func (db *LevelDB) SaveCapability(capability interface{}) error {
+-	log.Printf("[DEBUG] SaveCapability: received capability of type %T: %+v", capability, capability)
+-	// Get the capability ID and type
++	// Convert Go struct to Protobuf message
++	// This requires a helper function or manual conversion logic
++	// For example: capabilityProto, err := convertToCapabilityProto(capability)
++	// if err != nil { return err }
++
++	var capabilityProto proto.Message
+ 	var id, owner string
+ 	var capabilityType CapabilityType
++
+ 	switch c := capability.(type) {
+ 	case ResourceDescriptor:
+ 		id = c.ID
+ 		capabilityType = c.CapabilityType
+ 		owner = c.Owner
+-		log.Printf("[DEBUG] SaveCapability: Matched ResourceDescriptor. ID: %s, Type: %s, Owner: %s", id, capabilityType, owner)
++		// Convert c (ResourceDescriptor) to ResourceDescriptorProto
++		// capabilityProto = ... (conversion logic)
++		// For brevity, assuming direct use or a helper function exists
++		// This part needs actual conversion logic from Go struct to Proto struct.
++		// As a placeholder, we'll marshal the Go struct if direct proto isn't ready.
++		// In a real implementation, you'd convert to the proto struct first.
++		capabilityProto = ConvertResourceDescriptorToProto(c) // Placeholder for actual conversion
+ 	case ToolDescriptor:
+ 		id = c.ID
+ 		capabilityType = c.CapabilityType
+ 		owner = c.Owner
+-		log.Printf("[DEBUG] SaveCapability: Matched ToolDescriptor. ID: %s, Type: %s, Owner: %s", id, capabilityType, owner)
++		capabilityProto = ConvertToolDescriptorToProto(c) // Placeholder
+ 	case PromptDescriptor:
+ 		id = c.ID
+ 		capabilityType = c.CapabilityType
+ 		owner = c.Owner
+-		log.Printf("[DEBUG] SaveCapability: Matched PromptDescriptor. ID: %s, Type: %s, Owner: %s", id, capabilityType, owner)
++		capabilityProto = ConvertPromptDescriptorToProto(c) // Placeholder
+ 	case MemoryServiceDescriptor:
+ 		id = c.ID
+ 		capabilityType = c.CapabilityType
+ 		owner = c.Owner
+-		log.Printf("[DEBUG] SaveCapability: Matched MemoryServiceDescriptor. ID: %s, Type: %s, Owner: %s", id, capabilityType, owner)
++		capabilityProto = ConvertMemoryServiceDescriptorToProto(c) // Placeholder
+ 	default:
+ 		log.Printf("[ERROR] SaveCapability: Unsupported capability type %T received. Capability: %+v", capability, capability)
+ 		return fmt.Errorf("unsupported capability type %T", capability)
+ 	}
+ 
+ 	if id == "" {
+-		log.Printf("[ERROR] SaveCapability: Capability ID is empty after type switch. Capability: %+v, Extracted Type: %s", capability, capabilityType)
+ 		return fmt.Errorf("capability ID is empty after type switch for type %s", capabilityType)
+ 	}
+-
+-	// Marshal the capability
+-	capabilityJSON, err := json.Marshal(capability)
+-	if err != nil {
+-		log.Printf("[ERROR] SaveCapability: Failed to marshal capability ID %s: %v", id, err)
+-		return fmt.Errorf("failed to marshal capability: %w", err)
++	if capabilityProto == nil {
++		return fmt.Errorf("failed to convert capability to protobuf message for ID %s", id)
++	}
++
++	// Marshal the protobuf message
++	capabilityBytes, err := proto.Marshal(capabilityProto)
++	if err != nil {
++		return fmt.Errorf("failed to marshal protobuf capability: %w", err)
+ 	}
+ 
+ 	// Save the capability
+ 	dbKey := KeyPrefixCapability + id
+-	log.Printf("[DEBUG] SaveCapability: Attempting to save capability with key: %s", dbKey)
+-	err = db.PutBytes(dbKey, capabilityJSON)
++	err = db.PutBytes(dbKey, capabilityBytes)
+ 	if err != nil {
+ 		log.Printf("[ERROR] SaveCapability: Failed to save capability ID %s with key %s: %v", id, dbKey, err)
+ 		return fmt.Errorf("failed to save capability: %w", err)
+@@ -95,44 +108,57 @@
+ 	log.Printf("[DEBUG] GetCapabilityByID: Attempting to get capability with key: %s", dbKey)
+ 
+ 	// Get the capability JSON
+-	capabilityJSON, err := db.GetBytes(dbKey)
++	capabilityBytes, err := db.GetBytes(dbKey)
+ 	if err != nil {
+ 		// Log the specific error, especially if it's "not found"
+ 		if err == leveldb.ErrNotFound || strings.Contains(err.Error(), "not found") {
+ 			log.Printf("[DEBUG] GetCapabilityByID: Key %s not found in DB.", dbKey)
+ 		} else {
+ 			log.Printf("[ERROR] GetCapabilityByID: Error getting bytes for key %s: %v", dbKey, err)
+ 		}
+ 		return nil, fmt.Errorf("failed to get capability: %w", err)
+ 	}
+-	log.Printf("[DEBUG] GetCapabilityByID: Successfully retrieved data for key %s. Length: %d", dbKey, len(capabilityJSON))
+-
+-	// First unmarshal into BaseDescriptor to get the type
+-	var base BaseDescriptor
+-	if err := json.Unmarshal(capabilityJSON, &base); err != nil {
+-		return nil, fmt.Errorf("failed to unmarshal BaseDescriptor: %w", err)
+-	}
+-
+-	// Then unmarshal into the specific descriptor type
+-	switch base.CapabilityType {
+-	case CapabilityTypeResource:
++	log.Printf("[DEBUG] GetCapabilityByID: Successfully retrieved data for key %s. Length: %d", dbKey, len(capabilityBytes))
++
++	// Unmarshal into the container proto to determine the type
++	var container CapabilityDescriptorContainerProto
++	if err := proto.Unmarshal(capabilityBytes, &container); err != nil {
++		// Fallback for old JSON data if migration is staged
++		// For now, assume direct proto unmarshal
++		return nil, fmt.Errorf("failed to unmarshal CapabilityDescriptorContainerProto: %w", err)
++	}
++
++	// Convert protobuf message back to Go struct
++	// This requires helper functions or manual conversion logic
++	// For example: goStruct, err := convertProtoToCapabilityGoStruct(&container)
++	// if err != nil { return nil, err }
++	// return goStruct, nil
++
++	// Simplified conversion for example:
++	switch d := container.Descriptor.(type) {
++	case *CapabilityDescriptorContainerProto_Resource:
++		// Convert d.Resource (ResourceDescriptorProto) to ResourceDescriptor (Go struct)
+ 		var resourceDesc ResourceDescriptor
+-		if err := json.Unmarshal(capabilityJSON, &resourceDesc); err != nil {
+-			return nil, fmt.Errorf("failed to unmarshal ResourceDescriptor: %w", err)
+-		}
++		// resourceDesc = ConvertResourceProtoToResource(d.Resource) // Placeholder
++		// For now, to make it compile, we'll unmarshal the original bytes if it was JSON
++		// This is NOT the final protobuf approach but a step.
++		_ = json.Unmarshal(capabilityBytes, &resourceDesc) // This line is for temporary compilation
+ 		return resourceDesc, nil
+-	case CapabilityTypeTool:
++	case *CapabilityDescriptorContainerProto_Tool:
+ 		var toolDesc ToolDescriptor
+-		if err := json.Unmarshal(capabilityJSON, &toolDesc); err != nil {
+-			return nil, fmt.Errorf("failed to unmarshal ToolDescriptor: %w", err)
+-		}
++		// toolDesc = ConvertToolProtoToTool(d.Tool) // Placeholder
++		_ = json.Unmarshal(capabilityBytes, &toolDesc)
+ 		return toolDesc, nil
+-	case CapabilityTypePrompt:
++	case *CapabilityDescriptorContainerProto_Prompt:
+ 		var promptDesc PromptDescriptor
+-		if err := json.Unmarshal(capabilityJSON, &promptDesc); err != nil {
+-			return nil, fmt.Errorf("failed to unmarshal PromptDescriptor: %w", err)
+-		}
++		// promptDesc = ConvertPromptProtoToPrompt(d.Prompt) // Placeholder
++		_ = json.Unmarshal(capabilityBytes, &promptDesc)
+ 		return promptDesc, nil
+-	case CapabilityTypeMemoryService:
++	case *CapabilityDescriptorContainerProto_MemoryService:
+ 		var memoryDesc MemoryServiceDescriptor
+-		if err := json.Unmarshal(capabilityJSON, &memoryDesc); err != nil {
+-			return nil, fmt.Errorf("failed to unmarshal MemoryServiceDescriptor: %w", err)
+-		}
++		// memoryDesc = ConvertMemoryProtoToMemory(d.MemoryService) // Placeholder
++		_ = json.Unmarshal(capabilityBytes, &memoryDesc)
+ 		return memoryDesc, nil
+ 	default:
+-		return nil, fmt.Errorf("unsupported capability type: %s", base.CapabilityType)
++		return nil, fmt.Errorf("unsupported capability type in protobuf oneof: %T", d)
+ 	}
+ }
+ 
+@@ -140,16 +166,21 @@
+ 
+ // GetContextRecord retrieves a context record by its ID
+ func (db *LevelDB) GetContextRecord(id string) (*ContextRecord, error) {
+-	// Get the context record JSON
+-	contextRecordJSON, err := db.GetBytes(KeyPrefixContext + id)
++	// Get the context record bytes (protobuf)
++	contextRecordBytes, err := db.GetBytes(KeyPrefixContext + id)
+ 	if err != nil {
+ 		return nil, fmt.Errorf("failed to get context record: %w", err)
+ 	}
+ 
+-	// Unmarshal the context record
+-	var contextRecord ContextRecord
+-	err = json.Unmarshal(contextRecordJSON, &contextRecord)
+-	if err != nil {
+-		return nil, fmt.Errorf("failed to unmarshal context record: %w", err)
+-	}
+-
+-	return &contextRecord, nil
++	// Unmarshal the protobuf message
++	var recordProto ContextRecordProto
++	if err := proto.Unmarshal(contextRecordBytes, &recordProto); err != nil {
++		return nil, fmt.Errorf("failed to unmarshal protobuf context record: %w", err)
++	}
++
++	// Convert recordProto (ContextRecordProto) to ContextRecord (Go struct)
++	// goRecord := ConvertContextProtoToContext(&recordProto) // Placeholder
++	// For now, to make it compile:
++	var goRecord ContextRecord
++	_ = json.Unmarshal(contextRecordBytes, &goRecord) // Temporary for compilation
++	return &goRecord, nil
+ }
+ 
+ // GetContextRecordsForCapability retrieves all context records for a capability
+@@ -240,40 +271,49 @@
+ 	// Get from database
+ 	data, err := db.Client.Get([]byte(key), &opt.ReadOptions{})
+ 	if err != nil {
+-		if err == leveldb.ErrNotFound {
++		if errors.Is(err, leveldb.ErrNotFound) {
+ 			return nil, fmt.Errorf("capability not found: %w", err)
+ 		}
+ 		return nil, fmt.Errorf("failed to get capability from database: %w", err)
+ 	}
+ 
+-	// Unmarshal based on capability type
++	// Unmarshal into the container proto to determine the type
++	var container CapabilityDescriptorContainerProto
++	if err := proto.Unmarshal(data, &container); err != nil {
++		return nil, fmt.Errorf("failed to unmarshal CapabilityDescriptorContainerProto: %w", err)
++	}
++
++	// Convert based on the actual type in the oneof field and the requested capType
+ 	switch capType {
+ 	case string(CapabilityTypeResource):
+-		var descriptor ResourceDescriptor
+-		err = json.Unmarshal(data, &descriptor)
+-		if err != nil {
+-			return nil, fmt.Errorf("failed to unmarshal ResourceDescriptor: %w", err)
+-		}
+-		return descriptor, nil
++		if resProto := container.GetResource(); resProto != nil {
++			// Convert resProto (ResourceDescriptorProto) to ResourceDescriptor (Go struct)
++			// return ConvertResourceProtoToResource(resProto), nil // Placeholder
++			var goDesc ResourceDescriptor; _ = json.Unmarshal(data, &goDesc); return goDesc, nil // Temp
++		}
+ 	case string(CapabilityTypeTool):
+-		var descriptor ToolDescriptor
+-		err = json.Unmarshal(data, &descriptor)
+-		if err != nil {
+-			return nil, fmt.Errorf("failed to unmarshal ToolDescriptor: %w", err)
+-		}
+-		return descriptor, nil
++		if toolProto := container.GetTool(); toolProto != nil {
++			// Convert toolProto to ToolDescriptor (Go struct)
++			// return ConvertToolProtoToTool(toolProto), nil // Placeholder
++			var goDesc ToolDescriptor; _ = json.Unmarshal(data, &goDesc); return goDesc, nil // Temp
++		}
+ 	case string(CapabilityTypePrompt):
+-		var descriptor PromptDescriptor
+-		err = json.Unmarshal(data, &descriptor)
+-		if err != nil {
+-			return nil, fmt.Errorf("failed to unmarshal PromptDescriptor: %w", err)
+-		}
+-		return descriptor, nil
++		if promptProto := container.GetPrompt(); promptProto != nil {
++			// Convert promptProto to PromptDescriptor (Go struct)
++			// return ConvertPromptProtoToPrompt(promptProto), nil // Placeholder
++			var goDesc PromptDescriptor; _ = json.Unmarshal(data, &goDesc); return goDesc, nil // Temp
++		}
+ 	case string(CapabilityTypeMemoryService):
+-		var descriptor MemoryServiceDescriptor
+-		err = json.Unmarshal(data, &descriptor)
+-		if err != nil {
+-			return nil, fmt.Errorf("failed to unmarshal MemoryServiceDescriptor: %w", err)
+-		}
+-		return descriptor, nil
++		if memProto := container.GetMemoryService(); memProto != nil {
++			// Convert memProto to MemoryServiceDescriptor (Go struct)
++			// return ConvertMemoryProtoToMemory(memProto), nil // Placeholder
++			var goDesc MemoryServiceDescriptor; _ = json.Unmarshal(data, &goDesc); return goDesc, nil // Temp
++		}
+ 	default:
+ 		return nil, fmt.Errorf("unsupported capability type: %s", capType)
+ 	}
++	return nil, fmt.Errorf("capability ID %s found, but type mismatch or oneof field not set for expected type %s", id, capType)
+ }
+ 
+ // DeleteCapability deletes a capability descriptor from the database
+@@ -298,8 +338,13 @@
+ 
+ // SaveContextRecord persists a context record to the database
+ func (db *LevelDB) SaveContextRecord(record ContextRecord) error {
+-	// Marshal the record
+-	data, err := json.Marshal(record)
++	// Convert record (Go struct) to recordProto (Protobuf message)
++	// recordProto := ConvertContextToContextProto(record) // Placeholder
++	// For now, to make it compile:
++	var recordProto ContextRecordProto // This should be the actual proto message
++	tempBytes, _ := json.Marshal(record); _ = json.Unmarshal(tempBytes, &recordProto) // BAD: placeholder
++
++	data, err := proto.Marshal(&recordProto)
+ 	if err != nil {
+ 		return fmt.Errorf("failed to marshal context record: %w", err)
+ 	}
+@@ -325,21 +370,23 @@
+ 	// Get from database
+ 	data, err := db.Client.Get([]byte(key), &opt.ReadOptions{})
+ 	if err != nil {
+-		if err == leveldb.ErrNotFound {
++		if errors.Is(err, leveldb.ErrNotFound) {
+ 			return ContextRecord{}, fmt.Errorf("context record not found: %w", err)
+ 		}
+ 		return ContextRecord{}, fmt.Errorf("failed to get context record from database: %w", err)
+ 	}
+ 
+ 	// Unmarshal
+-	var record ContextRecord
+-	err = json.Unmarshal(data, &record)
+-	if err != nil {
+-		return ContextRecord{}, fmt.Errorf("failed to unmarshal context record: %w", err)
+-	}
+-
+-	return record, nil
++	var recordProto ContextRecordProto
++	if err := proto.Unmarshal(data, &recordProto); err != nil {
++		return ContextRecord{}, fmt.Errorf("failed to unmarshal protobuf context record: %w", err)
++	}
++
++	// Convert recordProto to ContextRecord (Go struct)
++	// goRecord := ConvertContextProtoToContext(&recordProto) // Placeholder
++	var goRecord ContextRecord; _ = json.Unmarshal(data, &goRecord) // Temp
++
++	return goRecord, nil
+ }
+ 
+ // Index management methods
+@@ -425,3 +472,23 @@
+ 	key := fmt.Sprintf("mcp:idx:capability_owner:%s:%s", owner, capabilityID)
+ 	return db.PutBytes(key, []byte{}) // Empty value, just need key existence
+ }
++
++// Placeholder conversion functions (implement these based on your Go struct and Proto message fields)
++func ConvertResourceDescriptorToProto(goDesc ResourceDescriptor) *ResourceDescriptorProto {
++	// TODO: Implement actual conversion
++	return &ResourceDescriptorProto{BaseDescriptor: &BaseDescriptorProto{Id: goDesc.ID, Name: goDesc.Name /* ... other fields ... */}}
++}
++func ConvertToolDescriptorToProto(goDesc ToolDescriptor) *ToolDescriptorProto {
++	// TODO: Implement actual conversion
++	return &ToolDescriptorProto{BaseDescriptor: &BaseDescriptorProto{Id: goDesc.ID, Name: goDesc.Name /* ... */}}
++}
++func ConvertPromptDescriptorToProto(goDesc PromptDescriptor) *PromptDescriptorProto {
++	// TODO: Implement actual conversion
++	return &PromptDescriptorProto{BaseDescriptor: &BaseDescriptorProto{Id: goDesc.ID, Name: goDesc.Name /* ... */}}
++}
++func ConvertMemoryServiceDescriptorToProto(goDesc MemoryServiceDescriptor) *MemoryServiceDescriptorProto {
++	// TODO: Implement actual conversion
++	return &MemoryServiceDescriptorProto{BaseDescriptor: &BaseDescriptorProto{Id: goDesc.ID, Name: goDesc.Name /* ... */}}
++}
++
++// Add similar Convert<Proto>To<GoStruct> functions
+
+```
+
+3.3. API Handlers (blockchain_server.go)
+
+*   **Request Handling:**
+
+    *   Change request body parsing from `json.NewDecoder(r.Body).Decode(...)` to `proto.Unmarshal(bodyBytes, ...)` for protobuf payloads. The `Content-Type` header should be `application/protobuf` or similar.
+    *   The `requestData` structs (e.g., in `handleMCPRegisterCapabilityInitiate`) will directly contain protobuf message types instead of `json.RawMessage`.
+
+*   **Response Handling:**
+
+    *   Change response marshaling from `json.NewEncoder(w).Encode(...)` to `proto.Marshal(...)` and then `w.Write(protoBytes)`. Set `Content-Type` to `application/protobuf`.
+
+*   **`handleMCPRegisterCapabilityInitiate`:**
+
+    *   The input descriptor will be part of a protobuf message.
+    *   `finalDescriptorForHashing` will be a protobuf message.
+    *   `txnData` will be `proto.Marshal` of `finalDescriptorForHashing`.
+    *   The response `fullDescriptor` will be the protobuf message.
+
+*   **`handleMCPGetCapability`, `handleMCPListCapabilities`:**
+
+    *   Will retrieve protobuf messages from the DB (via updated `leveldb_mcp.go` methods).
+    *   Will marshal these protobuf messages for the API response.
+
+3.4. Hashing (Critical Consideration)
+
+*   **Canonical Representation for Hashing:**
+
+    *   When `Transaction.Hash()` is called, if `Transaction.Data` contains protobuf binary, you cannot hash these bytes directly if you need deterministic hashes across different systems or protobuf library versions.
+*   **Solution:** Before hashing a transaction, if its `Data` field is relevant to the hash:
+    1.  Unmarshal the protobuf message from `Transaction.Data`.
+    2.  Convert this protobuf message into a canonical JSON representation. This means sorting map keys and adhering to a strict JSON structure.
+    3.  Use this canonical JSON string (as bytes) as part of the data fed into the hash function.
+*   The `block.go Hash()` method currently includes `tx.TransactionHash`. If `Transaction.Hash()` itself relies on `Transaction.Data`, this indirect dependency needs to be handled.
+
+3.5. Testing (mcp_api_test.go, etc.)
+
+*   Update all tests that interact with MCP API endpoints to send and expect protobuf binary data instead of JSON.
+*   Helper functions for creating test `CapabilityDescriptors` should now produce protobuf messages.
+*   The complex unmarshaling logic in `TestMCPRegisterCapabilityAPI` for `initiateResponse.FullDescriptor` will be simplified, as the response will directly be a known protobuf message type.
+
+**Phase 4: Helper Functions and Utilities**
+
+*   **Conversion Functions:**
+
+    *   Create helper functions to convert between your existing Go structs (`ResourceDescriptor`, etc.) and their generated protobuf counterparts (`ResourceDescriptorProto`, etc.). This is crucial for a smooth transition and for parts of the code that might still operate on Go structs internally before API boundaries or DB storage.
+    *   Example:
+
+```go
+func ConvertResourceDescriptorToProto(goDesc ResourceDescriptor) (*ResourceDescriptorProto, error) { ... }
+func ConvertProtoToResourceDescriptor(protoDesc *ResourceDescriptorProto) (*ResourceDescriptor, error) { ... }
+// And similar for Timestamp, Struct, etc.
+```
+
+*   **Canonical JSON Generation:**
+
+    *   Implement a reliable way to generate canonical JSON from your protobuf messages if they are part of the data being cryptographically hashed. Libraries might exist for this, or you might need custom logic (e.g., unmarshal proto to a Go struct, then marshal that Go struct to JSON with sorted keys).
+
+**Phase 5: Rollout and Migration**
+
+*   **Internal First:** Start by changing internal representations and database storage.
+*   **API Layer:** Update API handlers and tests. This might require versioning your API if you need to support old JSON clients temporarily.
+*   **Data Migration (If applicable):** If you have existing JSON data in LevelDB for capabilities, write a migration script to read the JSON, convert it to the corresponding protobuf message, and save it back as protobuf binary.
+
+**Benefits Review**
+
+*   **Performance:** Binary serialization is faster and produces smaller payloads than JSON.
+*   **Type Safety:** Generated Go code from `.proto` files provides compile-time type checking.
+*   **Reduced Boilerplate:** No more manual `json.Unmarshal` into `map[string]interface{}` and then type assertions or further unmarshaling.
+*   **Clear Schemas:** `.proto` files serve as a canonical schema for your data structures.
+
+**Challenges and Considerations**
+
+*   **Canonical Hashing:** This is the main point you already raised. Protobuf itself isn't canonical. You must generate a canonical form (e.g., specific JSON) from the protobuf message before hashing.
+*   **Human Readability:** Data in LevelDB will be binary, making direct inspection harder. You might need tools or utilities to decode and display it if needed for debugging.
+*   **Migration Effort:** Converting existing code and potentially data requires careful planning and testing.
+*   **`google.protobuf.Struct` and `google.protobuf.Timestamp`:**
+    *   Using these adds a dependency on Google's well-known types.
+    *   `Timestamp` is generally good.
+    *   `Struct` for `map[string]interface{}` is flexible but can be a bit more verbose to work with than native Go maps. Helper functions for conversion will be important. An alternative for simple string-to-string maps is `map<string, string>`. If values are complex JSON, `string custom_metadata_json = X;` might be simpler than `Struct` if you just store the JSON string.
+
+This plan provides a roadmap. Start with defining the `.proto` files and generating the code. Then, tackle one area at a time, like database storage, followed by API handlers, ensuring thorough testing at each step. Remember the critical distinction for hashing: always convert to a canonical form first.
+```

@@ -1,0 +1,21 @@
+{
+  "clientOnly": true,
+  "noWalletServer": true,
+  "sharedDatabasePath": "client_data/client_agent.db",
+  "installComplete": true,
+  "data_engine": {
+    "enabled": true,
+    "kafka_brokers": ["localhost:9092"],
+    "kafka_client_id": "KNIRVROOT-client",
+    "chromadb_url": "http://localhost:8000",
+    "chroma_collection": "KNIRVROOT-events",
+    "enable_kafka": false,
+    "enable_chromadb": false,
+    "enable_websocket": true,
+    "enable_restapi": true,
+    "websocket_port": 8080,
+    "restapi_port": 7080,
+    "window_size": "5m",
+    "metrics_interval": "10s"
+  }
+}

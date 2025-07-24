@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+package KNIRVROOT;
+
+option go_package = "./;proto"; // Adjust go_package to your project structure
+
+import "google/protobuf/struct.proto"; // For map<string, interface{}> equivalent
+import "google/protobuf/timestamp.proto";
+
+// Enum for CapabilityType
+enum CapabilityTypeProto {
+  CAPABILITY_TYPE_PROTO_UNSPECIFIED = 0;
+  CAPABILITY_TYPE_PROTO_RESOURCE = 1;
+  CAPABILITY_TYPE_PROTO_TOOL = 2;
+  CAPABILITY_TYPE_PROTO_PROMPT = 3;
+  CAPABILITY_TYPE_PROTO_MEMORY_SERVICE = 4;
+}
+
+// Enum for DiscoveryResourceType (used within ResourceDescriptor)
+enum DiscoveryResourceTypeProto {
+  DISCOVERY_RESOURCE_TYPE_PROTO_UNSPECIFIED = 0;
+  DISCOVERY_RESOURCE_TYPE_PROTO_FILE = 1;
+  DISCOVERY_RESOURCE_TYPE_PROTO_API = 2;
+  DISCOVERY_RESOURCE_TYPE_PROTO_PLUGIN = 3;
+  DISCOVERY_RESOURCE_TYPE_PROTO_GENERATED_DOCUMENT = 4;
+  DISCOVERY_RESOURCE_TYPE_PROTO_DATASET = 5;
+  DISCOVERY_RESOURCE_TYPE_PROTO_MODEL_ARTIFACT = 6;
+  DISCOVERY_RESOURCE_TYPE_PROTO_SERVICE = 7;
+}
+
+// BaseDescriptorProto corresponds to BaseDescriptor
+message BaseDescriptorProto {
+  string id = 1;
+  CapabilityTypeProto capability_type = 2;
+  string name = 3;
+  string owner = 4;
+  string version = 5;
+  string description = 6;
+  uint64 gas_fee_nrn = 7;
+  google.protobuf.Timestamp timestamp = 8; // Using Timestamp for better type safety
+  google.protobuf.Struct custom_metadata = 9; // Maps to map[string]interface{}
+}
+
+// PluginSchemaDetailProto corresponds to PluginSchemaDetail
+message PluginSchemaDetailProto {
+  string summary = 1;
+  google.protobuf.Struct access_info = 2; // Maps to map[string]interface{}
+  repeated string location_hints = 3;
+  string manifest_file = 4;
+  string executable_file = 5;
+  string output_directory_hint = 6;
+}
+
+// ResourceDescriptorProto corresponds to ResourceDescriptor
+message ResourceDescriptorProto {
+  BaseDescriptorProto base_descriptor = 1;
+  DiscoveryResourceTypeProto resource_type = 2;
+  string content_hash = 3;
+  PluginSchemaDetailProto schema = 4;
+}
+
+// ToolDescriptorProto corresponds to ToolDescriptor
+message ToolDescriptorProto {
+  BaseDescriptorProto base_descriptor = 1;
+  string input_schema_json = 2;  // Keeping as JSON string as schema can be complex
+  string output_schema_json = 3; // Keeping as JSON string
+  string execution_pointer = 4;
+}
+
+// PromptDescriptorProto corresponds to PromptDescriptor
+message PromptDescriptorProto {
+  BaseDescriptorProto base_descriptor = 1;
+  string template = 2;
+  string parameters_schema_json = 3; // Keeping as JSON string
+}
+
+// MemoryServiceDescriptorProto corresponds to MemoryServiceDescriptor
+message MemoryServiceDescriptorProto {
+  BaseDescriptorProto base_descriptor = 1;
+  string graph_schema = 2; // Could be a JSON string or a more structured proto
+}
+
+// Main CapabilityDescriptorProto using oneof
+message CapabilityDescriptorContainerProto {
+  oneof descriptor {
+    ResourceDescriptorProto resource = 1;
+    ToolDescriptorProto tool = 2;
+    PromptDescriptorProto prompt = 3;
+    MemoryServiceDescriptorProto memory_service = 4;
+  }
+}
+
+// For transaction data
+message MCPRegisterCapabilityDataProto {
+  string capability_id = 1;
+  string capability_type = 2;
+  //bytes descriptor_bytes = 3; // Or use the specific CapabilityDescriptorContainerProto
+  CapabilityDescriptorContainerProto capability_descriptor = 3; // If you prefer structured proto
+  string owner_address = 4;
+  uint64 fee = 5;
+  // Add any other fields that are part of this transaction's data
+}
+
+// For transaction data update
+message MCPUpdateCapabilityDataProto {
+  CapabilityDescriptorContainerProto capability_descriptor = 1;
+}

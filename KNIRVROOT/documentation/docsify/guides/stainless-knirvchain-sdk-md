@@ -1,0 +1,203 @@
+The Stainless tool is typically used for generating SDKs from OpenAPI specifications of REST APIs. While KNIRVROOT's core strength lies in its P2P interactions and DHT, the agent_Client_SDK_Implementation.md and other documents clearly state that a client SDK would also interact with the HTTP APIs exposed by the KNIRVROOT nodes (and potentially Wallet Servers) for certain operations.
+
+This YAML configuration will therefore focus on generating an SDK for the HTTP API of a KNIRVROOT node. The P2P/DHT aspects of the full "agent Client SDK" would be custom logic built around or alongside this Stainless-generated HTTP client.
+
+Here's a tailored YAML file based on your application's documented HTTP endpoints and the Stainless schema. I've made inferences about request/response models where explicit OpenAPI schemas are not provided in your context.
+
+yaml
+# yaml-language-server: $schema=https://app.stainless.com/config.schema.json
+organization:
+  name: KNIRVROOT
+  docs: 'https://github.com/gperry/Documents/GitHub/cloud-equities/KNIRVROOT_GO_ROOT_MCP/tree/main/docs'
+  contact: 'support@KNIRVROOT.example.com' # Placeholder
+
+targets:
+  go:
+    package_name: KNIRVROOT
+    # production_repo: github.com/KNIRVROOT/agent-sdk-go # Example if you had one
+    options:
+      enable_v2: true
+  python:
+    package_name: KNIRVROOT
+    # production_repo: github.com/KNIRVROOT/agent-sdk-py
+    client_class_name: KNIRVROOT
+  typescript:
+    package_name: KNIRVROOT
+    # production_repo: github.com/KNIRVROOT/agent-sdk-ts
+    npm_name: KNIRVROOT-sdk # Example npm package name
+
+environments:
+  # This would be the base URL for a KNIRVROOT node's HTTP API
+  # For local development, it might be http://localhost:5000 (default root node port)
+  # For a deployed scenario, it would be the public address of a node.
+  production: http://localhost:5000 # Placeholder, adjust to your primary node API endpoint
+
+# `resources` define the structure and organization for your API.
+# Model names (e.g., 'ChainState', 'Transaction') are placeholders
+# and would typically refer to definitions in an OpenAPI schema
+# (e.g., '#/components/schemas/ChainState').
+resources:
+  chain:
+    models:
+      ChainState: ChainState # Placeholder for the structure returned by /chain
+      Block: Block           # Placeholder for Block structure
+      Transaction: Transaction # Placeholder for Transaction structure
+      TransactionPool: TransactionPool # Placeholder
+    methods:
+      retrieve_state: get /chain
+      get_transaction_pool: get /txn_pool
+      # submit_block: post /block # Assumes request body is a 'Block' model
+      # submit_transaction: post /transaction # Assumes request body is a 'Transaction' model
+
+  node:
+    models:
+      NodeInfo: NodeInfo # Placeholder
+      HealthStatus: HealthStatus # Placeholder
+      PeerInfo: PeerInfo # Placeholder for individual dev data
+      PeerList: PeerList # Placeholder for a list of PeerInfo
+    methods:
+      get_info: get /info
+      get_health: get /health
+      ping: get /ping
+      list_devs: get /devs # This queries the node's DHT knowledge
+
+  uri:
+    models:
+      URIGenerationRequest: URIGenerationRequest # Placeholder for POST /uriGenerator body
+      URIGenerationResponse: URIGenerationResponse # Placeholder for POST /uriGenerator response
+    methods:
+      generate_and_announce: post /uriGenerator
+
+  mcp: # Meta-Capability Protocol
+    models:
+      # Assuming a generic CapabilityDescriptor model for list/get,
+      # and specific request models for register/invoke if needed.
+      # Or, the API might use a container like CapabilityDescriptorContainerProto.
+      # For simplicity, using generic placeholders.
+      CapabilityDescriptor: CapabilityDescriptor
+      ContextRecord: ContextRecord
+      MCPTransaction: MCPTransaction # Placeholder for the transaction body for MCP ops
+    subresources:
+      capabilities:
+        methods:
+          # POST /mcp/capability/register (Two-step process)
+          initiate_registration:
+            endpoint: post /mcp/capability/register/initiate
+            # body_param_name: registration_initiation_request # If body is specific model
+          finalize_registration:
+            endpoint: post /mcp/capability/register/finalize
+            # body_param_name: registration_finalization_request
+          invoke:
+            endpoint: post /mcp/capability/invoke
+            # body_param_name: capability_invocation_request
+          retrieve:
+            endpoint: get /mcp/capability/{capability_id}
+            path_params:
+              capability_id: string
+          list:
+            endpoint: get /mcp/capabilities
+            # query_params: type, owner, etc.
+          list_invocations:
+            endpoint: get /mcp/capability/{capability_id}/invocations
+            path_params:
+              capability_id: string
+      contexts:
+        methods:
+          retrieve:
+            endpoint: get /mcp/context/{context_id}
+            path_params:
+              context_id: string
+          list:
+            endpoint: get /mcp/contexts
+            # query_params: capabilityId, interactionType, etc.
+
+  # Wallet Server Endpoints (If this SDK were to also target the Wallet Server)
+  # This would ideally be a separate Stainless configuration or a more complex setup
+  # if Stainless supports multiple base URLs within one SDK generation process.
+  # For now, commenting out as we're focusing on the Node API.
+  # wallet:
+  #   base_url: http://localhost:6001 # Example different base URL
+  #   models:
+  #     WalletInfo: WalletInfo
+  #     SignedTransaction: SignedTransaction
+  #   methods:
+  #     generate: get /wallet/generate_wallet
+  #     mcp_create_register_capability: post /wallet/mcp/create_register_capability
+  #     mcp_create_invoke_capability: post /wallet/mcp/create_invoke_capability
+  #     ping: get /wallet/ping
+
+  # Shared models that might be used across different resources
+  $shared:
+    models:
+      # These would be defined in your OpenAPI spec's #/components/schemas/
+      # For now, these are just named placeholders.
+      Block: Block
+      Transaction: Transaction
+      # MCP Models (assuming JSON representation for the API)
+      BaseDescriptor: BaseDescriptor
+      ResourceDescriptor: ResourceDescriptor
+      ToolDescriptor: ToolDescriptor
+      PromptDescriptor: PromptDescriptor
+      MemoryServiceDescriptor: MemoryServiceDescriptor
+      CapabilityDescriptorContainer: CapabilityDescriptorContainer # If using a container
+      ContextRecord: ContextRecord
+      # Request/Response for specific MCP operations if not just Transaction
+      MCPRegisterInitiateRequest: MCPRegisterInitiateRequest
+      MCPRegisterInitiateResponse: MCPRegisterInitiateResponse
+      MCPRegisterFinalizeRequest: MCPRegisterFinalizeRequest
+      MCPRegisterFinalizeResponse: MCPRegisterFinalizeResponse
+      MCPInvokeRequest: MCPInvokeRequest
+      MCPInvokeResponse: MCPInvokeResponse
+
+
+settings:
+  disable_mock_tests: true
+  license: "GNU General Public License v3.0" # From your main README.md
+
+# client_settings: # KNIRVROOT node APIs don't use a simple API key header for auth.
+# opts:
+# api_key:
+# type: string
+# auth:
+# security_scheme: api_key # This would be defined in OpenAPI securitySchemes
+# read_env: KNIRVROOT_API_KEY # Example
+
+query_settings:
+  nested_format: brackets
+  array_format: comma
+
+readme:
+  example_requests:
+    default:
+      type: request
+      endpoint: get /chain # General chain info
+      params: {}
+    headline:
+      type: request
+      # Using initiate_registration as a key MCP operation
+      endpoint: post /mcp/capability/register/initiate
+      params: # Example params, would match MCPRegisterInitiateRequest model
+        desiredName: "MyAwesomeTool"
+        capabilityType: "TOOL"
+        descriptor: {
+          # "name": "MyAwesomeTool", # Name might be part of descriptor or from desiredName
+          # "owner": "KNIRVROOT_address_of_owner",
+          # "version": "1.0.0",
+          # "capabilityType": "TOOL",
+          # "description": "A very awesome tool.",
+          # "gasFeeNRN": 10,
+          # "inputSchemaJson": "{}",
+          # "outputSchemaJson": "{}"
+        }
+        from: "KNIRVROOT_address_of_sender"
+        fee: 100
+Key Considerations and Assumptions Made:
+
+Target API: This configuration primarily targets the Blockchain Node's HTTP API (e.g., running on port 5000). While the Wallet Server has its own API, Stainless typically generates an SDK for a single API base URL. Combining them would require a more advanced Stainless setup or separate SDKs.
+JSON API: It's assumed that your HTTP API endpoints consume and produce JSON. If they use Protobuf directly over HTTP (application/protobuf), the Stainless configuration and the underlying OpenAPI spec would need to reflect that, which is a different setup.
+Model Definitions: The models entries are placeholders (e.g., ChainState, TransactionProto). In a real Stainless setup, these would refer to schema definitions in an OpenAPI document (e.g., #/components/schemas/ChainState). You would need to define what these JSON structures look like.
+Authentication: The example api_key authentication from the template has been removed as your documented KNIRVROOT node APIs don't seem to use a simple API key header for authentication. Transactional security is handled by cryptographic signatures within the transaction data itself.
+P2P Functionality: This YAML does not cover the direct P2P/DHT interactions (URI resolution, resource fetching over libp2p streams) that are central to the agent:// scheme. The SDK generated by Stainless from this YAML would provide client libraries for the HTTP API calls that your broader agent Client SDK might make (e.g., for submitting transactions, querying MCP data). The libp2p parts of your SDK would be custom Go/Python/JS code.
+Two-Step Registration: I've represented the two-step MCP capability registration (/initiate and /finalize) as separate methods.
+body_param_name: I've omitted body_param_name for most POST requests, assuming the body is a structured JSON object corresponding to a model, rather than a raw array or primitive.
+This YAML file should give Stainless a good starting point to generate an SDK for the HTTP API aspects of your KNIRVROOT node. You would then integrate this generated HTTP client into your broader agent Client SDK that also handles the P2P and DHT logic.

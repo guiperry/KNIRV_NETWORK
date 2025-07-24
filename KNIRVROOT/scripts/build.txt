@@ -1,0 +1,27 @@
+
+Now you have several options to release your code to the public repository without WebView dependencies:
+
+1. For a complete one-step release to the public repo without WebView:
+make force-release-micro-nowebview-public
+
+
+This will create a tag, build the release without WebView, and publish it to the public repo in one step.
+
+
+
+
+
+
+2. For a two-step process:
+
+# First create the release without WebView
+make force-release-micro-nowebview
+
+# Then upload to the public repo
+make upload-release-public VERSION=0.1.0  # Replace with your version
+
+
+
+3. To build your application with these changes, you can use the existing Makefile targets:
+
+make force-release-micro-public

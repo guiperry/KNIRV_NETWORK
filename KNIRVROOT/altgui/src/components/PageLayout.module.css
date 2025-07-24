@@ -1,0 +1,58 @@
+.dashboardContainer {
+  background-color: var(--dark-blue);
+  color: white;
+  min-height: 100vh;
+  display: flex;
+  position: relative;
+}
+
+.mainContent {
+  flex: 1;
+  padding: 20px;
+}
+
+.topNav {
+  padding: 15px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pageTitle {
+  color: var(--bright-blue);
+  margin: 0;
+}
+
+.userControls {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.roleDisplay {
+  padding: 6px 12px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+}
+
+.roleBadge {
+  font-weight: bold;
+  color: var(--bright-blue);
+  margin-left: 5px;
+}
+
+.controlIcon {
+  cursor: pointer;
+}
+
+.glassyContainer {
+  background-color: var(--transparent-white-05);
+  backdrop-filter: blur(8px);
+  border-radius: 15px;
+  border: 1px solid var(--transparent-white-1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+}

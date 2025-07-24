@@ -1,0 +1,454 @@
+```markdown
+Here's a breakdown of the status of these API refactoring tasks for your BlockchainServer. I'll outline what the implementation should look like based on the plan you wil need to follow.
+
+**A. BlockchainServer (blockchain_server.go) Modifications:**
+
+1.  **Implement New Endpoint: POST `/mcp/capability/prepare_registration`**
+
+    *   This endpoint is crucial for allowing clients to get the necessary data to sign for a capability registration. If this isn't implemented yet, here's how it would look based on your plan:
+
+    *   **Purpose:** As you've outlined, it prepares the data for a client to sign.
+
+    *   **Logic Steps & Implementation Sketch:**
+
+```go
+	"github.com/gorilla/mux"
+	"github.com/libp2p/go-libp2p/core/dev"
+	"github.com/multiformats/go-multiaddr"
+	"github.com/google/uuid" // For generating capability_id
+
+	pb "KNIRVROOT/proto" // Assuming your proto definitions
+	"google.golang.org/protobuf/proto"
+Unchanged lines
+	s.router.HandleFunc("/mcp/capability/{id}/invocations", s.handleGetCapabilityInvocations).Methods("GET")
+	s.router.HandleFunc("/mcp/contexts", s.handleQueryContextRecords).Methods("GET")
+	s.router.HandleFunc("/mcp/context/{id}", s.handleGetContextRecord).Methods("GET")
+	s.router.HandleFunc("/mcp/capability/prepare_registration", s.handleMCPPrepareCapabilityRegistration).Methods("POST")
+
+	// Wallet Server proxy/interaction (if any direct ones remain or are needed internally)
+	// s.router.HandleFunc("/wallet/mcp/create_register_capability", s.handleWalletCreateRegisterCapability).Methods("POST")
+Unchanged lines
+	json.NewEncoder(w).Encode(response)
+}
+
+// MCPPrepareCapabilityRegistrationRequest mirrors openapi.yaml
+type MCPPrepareCapabilityRegistrationRequest struct {
+	FromAddress     string          `json:"from_address"`
+	CapabilityType  string          `json:"capability_type"`
+	Descriptor      json.RawMessage `json:"descriptor"` // Keep as RawMessage to handle different descriptor types
+	Fee             uint64          `json:"fee"`
+	// Add other fields like DesiredName if they are part of the request per openapi.yaml
+}
+
+// UnsignedTransactionDetails mirrors openapi.yaml
+type UnsignedTransactionDetails struct {
+	From      string `json:"from"`
+	To        string `json:"to,omitempty"` // Typically nil for registrations
+	Value     uint64 `json:"value"`
+	Data      string `json:"data"` // base64 encoded proto bytes
+	Timestamp int64  `json:"timestamp"`
+	Fee       uint64 `json:"fee"`
+	Type      string `json:"type"`
+}
+
+// MCPPrepareCapabilityRegistrationResponse mirrors openapi.yaml
+type MCPPrepareCapabilityRegistrationResponse struct {
+	CapabilityID                   string                     `json:"capability_id"`
+	UnsignedTransactionPayloadHash string                     `json:"unsigned_transaction_payload_hash"` // hex encoded
+	TransactionDetailsForSigning   UnsignedTransactionDetails `json:"transaction_details_for_signing"`
+}
+
+func (s *BlockchainServer) handleMCPPrepareCapabilityRegistration(w http.ResponseWriter, r *http.Request) {
+	log.Println("Received request for /mcp/capability/prepare_registration")
+	var requestData MCPPrepareCapabilityRegistrationRequest
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, fmt.Sprintf("Invalid request payload: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// 1. Decode MCPPrepareCapabilityRegistrationRequest - Done by json.NewDecoder
+
+	// 2. Validate input
+	if requestData.FromAddress == "" { // Add more robust address validation
+		http.Error(w, "Missing from_address", http.StatusBadRequest)
+		return
+	}
+	// Validate CapabilityType (e.g., against known types)
+	capType := mcp_types.CapabilityType(requestData.CapabilityType)
+	if !isValidCapabilityType(capType) { // Implement isValidCapabilityType
+		http.Error(w, fmt.Sprintf("Invalid capability_type: %s", requestData.CapabilityType), http.StatusBadRequest)
+		return
+	}
+	// Validate descriptor structure based on capability_type (this is complex)
+	// For now, we'll assume the descriptor JSON is structurally sound for the client to use.
+	// A more robust validation would unmarshal requestData.Descriptor into the specific Go struct.
+	if len(requestData.Descriptor) == 0 {
+		http.Error(w, "Missing descriptor", http.StatusBadRequest)
+		return
+	}
+
+	// 3. Generate a unique capability_id
+	// Option: UUID based
+	capabilityID := uuid.New().String()
+	// Option: Hash-based (e.g., hash of descriptor + from_address + timestamp) - ensure uniqueness
+	// For now, let's use UUID as it's simpler for this stage.
+	// The final on-chain ID might be generated differently (e.g. from your uri_generation.GenerateCapabilityID)
+	// but this `capabilityID` is what goes into the signed payload.
+
+	// 4. Construct the core data payload for the registration transaction (MCPRegisterCapabilityDataProto)
+	// The descriptor from the request is JSON. It needs to be converted to the appropriate Protobuf Descriptor.
+	// This is a placeholder for the actual conversion logic.
+	// For example, if it's a ResourceDescriptor:
+	// var rd mcp_types.ResourceDescriptor
+	// if err := json.Unmarshal(requestData.Descriptor, &rd); err != nil { ... }
+	// baseDescProto, err := mcp_types.ConvertBaseDescriptorToProto(&rd.BaseDescriptor) ...
+	// specificDescProto, err := mcp_types.ConvertResourceSpecificToProto(&rd.ResourceSpecific) ...
+
+	// For now, we'll assume the client will handle the full descriptor.
+	// The MCPRegisterCapabilityDataProto should contain the generated capabilityID and the descriptor.
+	mcpRegDataProto := &pb.MCPRegisterCapabilityDataProto{
+		CapabilityId:   capabilityID,
+		CapabilityType: requestData.CapabilityType,
+		// Descriptor: descriptorProto, // This would be the fully converted proto descriptor
+		// For now, let's assume the client will embed the JSON descriptor bytes if that's how it's handled
+		// or the server provides the structure the client needs to build.
+		// Let's assume DescriptorBytes will hold the raw JSON descriptor for now,
+		// to be included in the signed payload.
+		DescriptorBytes: []byte(requestData.Descriptor),
+		OwnerAddress:    requestData.FromAddress,
+		Fee:             requestData.Fee,
+	}
+	mcpPayloadBytes, err := proto.Marshal(mcpRegDataProto)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to marshal MCPRegisterCapabilityDataProto: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// 5. Create an UnsignedTransactionDetails object
+	unsignedTxDetails := UnsignedTransactionDetails{
+		From:      requestData.FromAddress,
+		To:        "", // System address or empty for registration
+		Value:     0,
+		Data:      base64.StdEncoding.EncodeToString(mcpPayloadBytes), // Base64 encode for JSON
+		Timestamp: time.Now().Unix(),
+		Fee:       requestData.Fee,
+		Type:      string(transaction.TransactionTypeMCPRegisterCapability),
+	}
+
+	// 6. Generate the unsigned_transaction_payload_hash
+	// This step requires the canonical hashing mechanism for transactions.
+	// For now, let's create a placeholder. The actual implementation would involve
+	// creating a transaction.Transaction object (or its proto equivalent) from unsignedTxDetails,
+	// then calling its Hash() method (which should use Protobuf canonical serialization).
+	tempTxForHashing := transaction.NewTransaction(
+		unsignedTxDetails.From,
+		unsignedTxDetails.To,
+		unsignedTxDetails.Value,
+		mcpPayloadBytes, // Raw bytes here
+		unsignedTxDetails.Fee,
+		nil, // No public key yet for this temp object
+		transaction.TransactionTypeMCPRegisterCapability,
+	)
+	tempTxForHashing.Timestamp = unsignedTxDetails.Timestamp
+	// IMPORTANT: This hash MUST match what the client will compute and sign,
+	// and what the server will verify in handleWriteTransaction.
+	// This assumes transaction.Hash() is (or will be) Protobuf-based.
+	payloadHashBytes, err := tempTxForHashing.Hash()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to compute transaction payload hash: %v", err), http.StatusInternalServerError)
+		return
+	}
+	unsignedPayloadHashHex := hex.EncodeToString(payloadHashBytes)
+
+	// 7. Respond
+	response := MCPPrepareCapabilityRegistrationResponse{
+		CapabilityID:                   capabilityID,
+		UnsignedTransactionPayloadHash: unsignedPayloadHashHex,
+		TransactionDetailsForSigning:   unsignedTxDetails,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// handleGetBlock handles requests for a specific block by its hash or number
+func (s *BlockchainServer) handleGetBlock(w http.ResponseWriter, r *http.Request) {
+	// ... (existing code)
+Unchanged lines
+	return nil
+}
+
+func isValidCapabilityType(capType mcp_types.CapabilityType) bool {
+	switch capType {
+	case mcp_types.CapabilityTypeResource, mcp_types.CapabilityTypeTool, mcp_types.CapabilityTypePrompt, mcp_types.CapabilityTypeMemoryService, mcp_types.CapabilityTypePlugin:
+		return true
+	default:
+		return false
+	}
+}
+
+// handleWriteBlock handles POST requests to add a new block to the blockchain.
+// It expects a JSON representation of the block in the request body.
+func (s *BlockchainServer) handleWriteBlock(w http.ResponseWriter, r *http.Request) {
+
+```
+
+*   **Status:** If this handler and its associated structs (`MCPPrepareCapabilityRegistrationRequest`, `MCPPrepareCapabilityRegistrationResponse`, `UnsignedTransactionDetails`) are not present in your `blockchain_server.go`, then this part of the plan is not yet implemented. The diff above shows how it could be added.
+
+*   **Key Considerations during implementation:**
+
+    *   **Capability ID Generation:** The plan mentions "e.g., based on a hash of the descriptor or a UUID". The example uses UUID. Ensure the chosen method for `capability_id` here is consistent with how it will be used and potentially reconciled with the final on-chain ID generated by `uri_generation.GenerateCapabilityID`. The ID returned here is what gets embedded in the signed payload.
+
+    *   **Descriptor Handling:** The `MCPRegisterCapabilityDataProto` should ideally contain the descriptor in its Protobuf format, not just raw JSON bytes. This requires robust conversion logic (JSON from request -> Go struct -> Protobuf struct). The example above takes a shortcut by putting raw JSON bytes into `DescriptorBytes` for simplicity, but for true Protobuf integration, this should be refined.
+
+    *   **Payload Hash:** The `unsigned_transaction_payload_hash` calculation is critical. It *must* precisely match the hashing process the client will use before signing, and the server will use for verification in `handleWriteTransaction`. This typically involves serializing the transaction components (`From`, `To`, `Value`, `Data`, `Fee`, `Timestamp`, `Type`) in a canonical way (Protobuf is good for this) and then hashing.
+
+2.  **Enhance `/transaction` Endpoint Handler (`handleWriteTransaction`)**
+
+    *   This endpoint becomes the single point of entry for all signed transactions.
+
+    *   **Purpose:** To receive, validate, and process fully signed transactions.
+
+    *   **Logic Steps & Implementation Sketch:**
+
+```go
+	// For simplicity, this example decodes directly into the blockchain's Transaction struct.
+	var tx transaction.Transaction
+	if err := json.NewDecoder(r.Body).Decode(&tx); err != nil {
+		http.Error(w, fmt.Sprintf("Invalid transaction payload: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// 1. Validate Origin headers - This is more for SSE. For a POST endpoint, standard CORS might apply.
+	//    If you have specific origin restrictions, implement them here.
+
+	// 2. Decode incoming Transaction object - Done by json.NewDecoder above.
+
+	// 3. Perform initial validation (Signature Verification)
+	// The client computes the hash of the transaction (using the same canonical Protobuf method),
+	// signs that hash, and puts the signature and public key in the Transaction object.
+	// The server re-computes the hash and verifies.
+	if tx.Signature == nil || tx.PublicKey == nil {
+		http.Error(w, "Transaction is missing signature or public key", http.StatusBadRequest)
+		return
+	}
+
+	// The tx.TransactionHash should ideally be set by the client after computing it for signing.
+	// Or, the server recalculates it here. For verification, recalculation is necessary.
+	// This assumes tx.Hash(false) will give the hash of the signed payload.
+	// The 'false' argument to Hash might mean "hash of already signed/finalized transaction".
+	// This part needs to be perfectly aligned with how the client hashes and signs.
+	isVerified, err := tx.VerifySignature()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error verifying signature: %v", err), http.StatusInternalServerError)
+		return
+	}
+	if !isVerified {
+		http.Error(w, "Invalid transaction signature", http.StatusUnauthorized)
+		return
+	}
+
+	// 4. Dispatch based on transaction.Type
+	switch tx.Type {
+	case transaction.TransactionTypeMCPRegisterCapability:
+		log.Printf("Processing MCP_REGISTER_CAPABILITY transaction: %s", tx.TransactionHash)
+		// Deserialize tx.Data into MCPRegisterCapabilityDataProto
+		var mcpRegData pb.MCPRegisterCapabilityDataProto
+		if err := proto.Unmarshal(tx.Data, &mcpRegData); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to unmarshal MCPRegisterCapabilityDataProto from transaction data: %v", err), http.StatusBadRequest)
+			return
+		}
+		// Perform specific business logic for capability registration:
+		// - Use mcpRegData.CapabilityId, mcpRegData.DescriptorBytes (or parsed descriptor), mcpRegData.OwnerAddress
+		// - Store the descriptor in DB/DHT, link to capability_id.
+		// - Deduct mcpRegData.Fee from mcpRegData.OwnerAddress.
+		// - This logic would be similar to what was in the old /finalize endpoint but now operates on verified, signed data.
+		// Example placeholder:
+		if err := s.blockchain.ProcessMCPRegisterCapability(mcpRegData.CapabilityId, mcpRegData.CapabilityType, mcpRegData.DescriptorBytes, mcpRegData.OwnerAddress, mcpRegData.Fee, tx.TransactionHash); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to process MCP capability registration: %v", err), http.StatusInternalServerError)
+			return
+		}
+		log.Printf("Successfully processed MCP_REGISTER_CAPABILITY for ID: %s", mcpRegData.CapabilityId)
+
+	case transaction.TransactionTypeMCPInvokeCapability:
+		log.Printf("Processing MCP_INVOKE_CAPABILITY transaction: %s", tx.TransactionHash)
+		// Deserialize tx.Data (e.g., into MCPInvokeCapabilityDataProto)
+		// Perform invocation logic, create ContextRecord.
+		// This logic would be similar to the existing /mcp/capability/invoke but now operates on a generic, signed transaction.
+		if err := s.blockchain.ProcessMCPInvokeCapability(&tx); err != nil { // ProcessMCPInvokeCapability would handle data deserialization
+			http.Error(w, fmt.Sprintf("Failed to process MCP capability invocation: %v", err), http.StatusInternalServerError)
+			return
+		}
+		log.Printf("Successfully processed MCP_INVOKE_CAPABILITY for Tx: %s", tx.TransactionHash)
+
+	case transaction.TransactionTypeStandard: // Assuming "STANDARD_TRANSFER" is represented by TransactionTypeStandard
+		log.Printf("Processing STANDARD_TRANSFER transaction: %s", tx.TransactionHash)
+		// Handle standard value transfers, fee deductions.
+		if err := s.blockchain.ProcessStandardTransfer(&tx); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to process standard transfer: %v", err), http.StatusInternalServerError)
+			return
+		}
+		log.Printf("Successfully processed STANDARD_TRANSFER for Tx: %s", tx.TransactionHash)
+
+	default:
+		http.Error(w, fmt.Sprintf("Unsupported transaction type: %s", tx.Type), http.StatusBadRequest)
+		return
+	}
+
+	// Add the validated transaction to the pool
+	if err := s.blockchain.AddTransactionToTransactionPool(&tx); err != nil {
+```
+
+And you would need corresponding methods in `blockchain_struct.go`:
+
+```go
+
+	"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/util"
+
+	pb "KNIRVROOT/proto"
+	"google.golang.org/protobuf/proto"
+
+	"KNIRVROOT/config"
+	agenterrors "KNIRVROOT/errors"
+	agentlog "KNIRVROOT/log"
+Unchanged lines
+	// For now, return true, assuming the transaction is valid if it reaches this point.
+	return true, nil
+}
+
+// ProcessMCPRegisterCapability handles the business logic for a verified MCPRegisterCapability transaction.
+func (bc *BlockchainStruct) ProcessMCPRegisterCapability(capabilityID, capabilityType string, descriptorBytes []byte, ownerAddress string, fee uint64, txHash string) error {
+	bc.Lock()
+	defer bc.Unlock()
+
+	log.Printf("[ProcessMCPRegisterCapability] Processing registration for ID: %s, Type: %s, Owner: %s, Fee: %d", capabilityID, capabilityType, ownerAddress, fee)
+
+	// 1. Deduct fee from ownerAddress
+	// This requires a robust balance management system.
+	// For now, let's assume a function like DeductBalance exists.
+	/*
+		if err := bc.DeductBalance(ownerAddress, fee); err != nil {
+			return fmt.Errorf("failed to deduct fee for capability registration from %s: %w", ownerAddress, err)
+		}
+		log.Printf("[ProcessMCPRegisterCapability] Deducted fee %d from %s", fee, ownerAddress)
+	*/
+
+	// 2. Deserialize descriptorBytes into the appropriate Go struct based on capabilityType
+	//    Then convert to mcp_types.CapabilityDescriptor for storage.
+	//    This is a simplified placeholder.
+	var baseDesc mcp_types.BaseDescriptor
+	// Example: if capabilityType is Resource
+	if mcp_types.CapabilityType(capabilityType) == mcp_types.CapabilityTypeResource {
+		var rd mcp_types.ResourceDescriptor
+		if err := json.Unmarshal(descriptorBytes, &rd); err != nil {
+			return fmt.Errorf("failed to unmarshal ResourceDescriptor: %w", err)
+		}
+		baseDesc = rd.BaseDescriptor
+		// You would store the full 'rd' or its protobuf equivalent.
+	} else {
+		// Handle other types or a generic unmarshal if BaseDescriptor is sufficient for now
+		if err := json.Unmarshal(descriptorBytes, &baseDesc); err != nil {
+			return fmt.Errorf("failed to unmarshal BaseDescriptor: %w", err)
+		}
+	}
+	// Ensure the Owner in the descriptor matches the transaction sender if needed
+	if baseDesc.Owner != "" && baseDesc.Owner != ownerAddress {
+		// This check depends on your rules: should descriptor owner match tx signer?
+		log.Printf("Warning: Descriptor owner (%s) does not match transaction signer (%s)", baseDesc.Owner, ownerAddress)
+		// return fmt.Errorf("descriptor owner (%s) does not match transaction signer (%s)", baseDesc.Owner, ownerAddress)
+	}
+	baseDesc.Owner = ownerAddress // Ensure owner is set from the signed transaction
+	baseDesc.ID = capabilityID     // Ensure ID is set from the signed transaction data
+
+	// 3. Store the CapabilityDescriptor
+	//    The key for storage should be derived from capabilityID.
+	//    The actual storage would involve converting to proto and saving.
+	//    For now, let's assume a direct save of the Go struct (though proto is better).
+	finalDescriptor := mcp_types.CapabilityDescriptor{BaseDescriptor: baseDesc} // This is simplified
+
+	// Use the existing SaveCapability function which should handle proto conversion
+	if err := bc.db.SaveCapability(capabilityID, &finalDescriptor); err != nil {
+		// TODO: Rollback fee deduction if storage fails
+		return fmt.Errorf("failed to save capability descriptor %s: %w", capabilityID, err)
+	}
+	log.Printf("[ProcessMCPRegisterCapability] Successfully saved capability descriptor for ID: %s", capabilityID)
+
+	// 4. Optionally, create a ContextRecord for the registration itself
+	contextRecord := &mcp_types.ContextRecord{
+		ID:              txHash, // Use transaction hash as context record ID
+		CapabilityID:    capabilityID,
+		InteractionType: mcp_types.InteractionTypeCapabilityRegistration,
+		Initiator:       ownerAddress,
+		Timestamp:       time.Now().Unix(), // Or use transaction timestamp
+		FeeNRN:          fee,
+		// InputHash, OutputHash might not be relevant for registration or could be hash of descriptor
+	}
+	if err := bc.db.SaveContextRecord(txHash, contextRecord); err != nil {
+		log.Printf("Warning: Failed to save context record for capability registration %s: %v", capabilityID, err)
+		// Non-fatal for the registration itself, but log it.
+	}
+
+	// 5. Announce on DHT (if applicable for new capabilities)
+	// bc.DiscoveryManager.Provide(...)
+
+	log.Printf("Successfully processed and stored capability registration for ID: %s", capabilityID)
+	return nil
+}
+
+// ProcessMCPInvokeCapability handles the business logic for a verified MCPInvokeCapability transaction.
+func (bc *BlockchainStruct) ProcessMCPInvokeCapability(tx *transaction.Transaction) error {
+	bc.Lock()
+	defer bc.Unlock()
+	log.Printf("[ProcessMCPInvokeCapability] Processing invocation tx: %s", tx.TransactionHash)
+
+	// 1. Deserialize tx.Data into MCPInvokeCapabilityDataProto (or similar)
+	// 2. Validate capability exists, initiator has rights/funds.
+	// 3. Deduct fee.
+	// 4. Create and store ContextRecord.
+	// This is a placeholder for the full logic.
+	// Refer to your existing /mcp/capability/invoke logic and adapt it here.
+	log.Printf("Placeholder for ProcessMCPInvokeCapability logic for tx: %s", tx.TransactionHash)
+	return nil
+}
+
+// ProcessStandardTransfer handles standard NRN token transfers.
+func (bc *BlockchainStruct) ProcessStandardTransfer(tx *transaction.Transaction) error {
+	bc.Lock()
+	defer bc.Unlock()
+	log.Printf("[ProcessStandardTransfer] Processing standard transfer tx: %s", tx.TransactionHash)
+	// 1. Check sender balance.
+	// 2. Deduct from sender, add to receiver.
+	// 3. Deduct fee.
+	log.Printf("Placeholder for ProcessStandardTransfer logic for tx: %s", tx.TransactionHash)
+	return nil
+}
+```
+
+*   **Status:** If your `handleWriteTransaction` does not include robust signature verification and the dispatch logic based on `transaction.Type` (especially for `MCP_REGISTER_CAPABILITY` and `MCP_INVOKE_CAPABILITY`), then this part is partially implemented or needs enhancement.
+
+*   **Key Correction from Plan:** The plan mentioned for `MCP_REGISTER_CAPABILITY`: "...send transaction to `/mcp/capability/prepare_registration` for full processing if it has not been fully signed yet." This is incorrect. The `/transaction` endpoint should *only* receive fully signed transactions. The `prepare_registration` step is done by the client *before* signing and submitting to `/transaction`. The `handleWriteTransaction` should verify the signature and then directly process the registration data contained within `tx.Data`.
+
+*   **Business Logic:** The actual business logic (storing descriptors, creating context records, deducting fees) needs to be robustly implemented within helper methods called by the `switch` statement (e.g., `ProcessMCPRegisterCapability`, `ProcessMCPInvokeCapability`). The diff includes placeholders for these.
+
+**B. Go Struct Modifications:** (block.go, transaction.go)
+
+The key modifications are to remove the `SmartContract` from the `Block` struct and to ensure hash methods use Protobuf serialization (ToProto and the canonicalization function). The diffs in the linked documents cover that well.
+
+**C. `openapi.yaml` Update:**
+
+The primary goal is to remove the deprecated /register and /finalize endpoints and add the prepare_registration request/response schemas. The diffs you provided have that in mind.
+
+**Overall Status and Next Steps:**
+
+You are on the right track! The core hashing and signing mechanisms are sound.
+
+The most pressing issues are:
+
+1. Ensuring **canonical Protobuf usage** in the two-step registration flow. The server must provide the *exact* bytes to be signed.
+2. Completing the **`handleWriteTransaction`** logic to handle different transaction types correctly.
+3. Removing the deprecated endpoints and cleaning up the `openapi.yaml`.
+4. Ensuring full test coverage, paying particular attention to signature verification and the new registration flow.
+
+By focusing on these areas, you can create a much more robust and consistent API for your KNIRVROOT SDK.
+```

@@ -1,0 +1,43 @@
+{
+  "httpPort": 5000,
+  "p2pPort": 5050,
+  "walletPort": 6050,
+  "noWalletServer": false,
+  "clientOnly": false,
+  "useGUI": false,
+  "reflectionURLs": [],
+  "chainID": "agent-network-main",
+  "installComplete": false,
+  "paymentProcessor": {
+    "enabled": false,
+    "nodeRPC": "http://localhost:5000",
+    "webhookPort": 8088,
+    "tokenSymbol": "NRN",
+    "tokenDecimals": 2,
+    "usdPerToken": 0.01,
+    "ethPerToken": 0.00001
+  },
+  "bootnodeSettings": {
+    "enabled": false,
+    "serviceUser": "KNIRVROOT",
+    "serviceWorkingDir": "/var/lib/KNIRVROOT",
+    "serviceLogPath": "/var/log/KNIRVROOT.log",
+    "serviceDisplayName": "KNIRVROOT Bootnode",
+    "serviceDescription": "KNIRVROOT Network Bootnode"
+  },
+  "data_engine": {
+    "enabled": true,
+    "kafka_brokers": ["localhost:9092"],
+    "kafka_client_id": "KNIRVROOT-client",
+    "chromadb_url": "http://localhost:8000",
+    "chroma_collection": "KNIRVROOT-events",
+    "enable_kafka": false,
+    "enable_chromadb": false,
+    "enable_websocket": true,
+    "enable_restapi": true,
+    "websocket_port": 8080,
+    "restapi_port": 7080,
+    "window_size": "5m",
+    "metrics_interval": "10s"
+  }
+}

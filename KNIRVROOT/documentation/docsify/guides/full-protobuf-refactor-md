@@ -1,0 +1,238 @@
+```markdown
+KNIRVROOT API Refactoring & SDK Tool Implementation Plan
+
+Here are a few areas and potential considerations that you might want to double-check or think about, building upon what you've already designed:
+
+**I. Key Findings & Recommendations:**
+
+*   **Hashing and Signatures (Core Logic - Good):**
+
+    *   Blocks and Transactions: Your `Block.Hash()` and `Transaction.Hash()` methods correctly convert the Go structs to their Protobuf representations (`BlockProto`, `TransactionProto`) using `ToProto()` / `ToProtoForHashing()` and then use `GetCanonicalBytesForHashing()` before SHA256 hashing. This is a solid approach for consistent hash generation.
+    *   Signature Verification: The `Transaction.VerifySignature()` method correctly reconstructs the transaction data that would have been signed (using `ToProtoForHashing()` to get the Protobuf representation), calculates its hash, and then verifies the signature against this hash. This is the correct way to do it.
+
+*   **`Transaction.Data` Inconsistency (Critical for Two-Step Registration):**
+
+    *   **The Problem:** There's a significant inconsistency in how `Transaction.Data` is populated and used, especially in the two-step capability registration flow (`/mcp/capability/register/initiate` and `/mcp/capability/register/finalize`).
+        *   **Server-side (Initiate):** In `handleMCPRegisterCapabilityInitiate`, when the server creates the `pendingTxn`, its `Data` field is populated with `proto.Marshal(registerData)`, where `registerData` is `pb.MCPRegisterCapabilityDataProto`. The `pendingTxn.TransactionHash` (returned to the client) is based on this Protobuf Data.
+        *   **Client-side (Test - `TestMCPRegisterCapabilityAPI`):** The test client receives `initiateResponse.FullDescriptor` (as JSON), reconstructs a Go struct, and then creates `clientTxnDataToSign` by JSON marshaling `map[string]interface{}{"capabilityDescriptor": concreteDescriptorForSigning}`. This JSON byte slice becomes `Transaction.Data` in the transaction object that is signed by `wallet.SignTransaction()`.
+        *   **Server-side (Finalize):** In `handleMCPRegisterCapabilityFinalize`, the server retrieves the `pendingTxn` (where `Data` is Protobuf). When `pendingTxn.VerifySignature()` is called, it re-hashes based on this Protobuf Data.
+        *   **The Mismatch:** The client signs a hash derived from JSON data in `Transaction.Data`, while the server attempts to verify this signature against a hash derived from Protobuf data in `Transaction.Data`. This will lead to signature verification failures.
+    *   **Recommendation:**
+        *   Standardize `Transaction.Data` to *always* contain Protobuf marshaled bytes when it represents structured MCP data like `MCPRegisterCapabilityDataProto` or `MCPInvokeCapabilityDataProto`.
+        *   The `handleMCPRegisterCapabilityInitiate` endpoint should ideally return the *exact* `txnData` (Protobuf bytes of `MCPRegisterCapabilityDataProto`) that the client needs to put into its `Transaction.Data` field for signing. Alternatively, the client must reconstruct these Protobuf bytes identically.
+        *   Update client-side logic (like in `TestMCPRegisterCapabilityAPI`) to ensure `Transaction.Data` is populated with the correct Protobuf bytes *before* signing.
+
+*   **Database Storage:**
+
+    *   **`CapabilityDescriptor` and `ContextRecord` (`leveldb_mcp.go`):**
+
+        *   `SaveCapability` and `SaveContextRecord` correctly convert Go structs to their Protobuf representations and then marshal them for storage.
+        *   `GetCapabilityByID` and `GetContextRecord` attempt to unmarshal as Protobuf first, falling back to JSON. This is a good strategy for migrating existing JSON data or handling mixed formats temporarily.
+
+    *   **`BlockchainStruct` (`blockchain_struct.go`, `leveldb.go`):**
+
+        *   The entire `BlockchainStruct` (which includes slices of `Block` and `Transaction` Go structs) is saved to LevelDB by JSON marshaling it (`db.PutIntoDb`).
+        *   This means individual `Block` and `Transaction` objects within the main chain data are stored as JSON representations of the Go structs, not as distinct Protobuf byte strings.
+        *   **Consideration:** If the goal is to have all core data types stored as Protobuf for maximum interoperability or potential space/performance benefits, you might consider serializing each `Block` and `Transaction` to its Protobuf byte representation before adding it to the slices that get persisted as part of `BlockchainStruct`. This would add complexity to loading and accessing these objects. However, since `BlockHash` and `TransactionHash` are derived from Protobuf, the current approach maintains data integrity from a hashing perspective.
+
+*   **API Endpoints (`blockchain_server.go`):**
+
+    *   Most API endpoints currently use JSON for request and response bodies (e.g., `/mcp/capability/invoke`, `/mcp/capability/get`, `/mcp/capability/list`, `/block`, `/transaction`).
+    *   `handleMCPRegisterCapabilityInitiate` has a check for `Content-Type: application/protobuf` but the primary flow and response seem JSON-oriented.
+    *   **Recommendation:** If Protobuf is the target for network communication, these handlers will need to be updated to accept and/or respond with Protobuf messages. This often involves using `proto.Unmarshal` for requests and `proto.Marshal` for responses, and setting the `Content-Type` header appropriately (e.g., `application/protobuf`).
+
+*   **P2P Communication (`p2p_consensus.go`):**
+
+    *   Block and transaction broadcasts via PubSub currently marshal messages to JSON.
+    *   The chain sync protocol also uses JSON.
+    *   **Recommendation:** Similar to API endpoints, if Protobuf is desired for P2P messages, these parts of the `P2PConsensusManager` would need to be updated to use `proto.Marshal` and `proto.Unmarshal`.
+
+*   **Proto Converters (`proto_converters.go`):**
+
+    *   The conversion functions generally look correct in mapping Go struct fields to their Protobuf counterparts, including handling of timestamps (`timestamppb`) and `map[string]interface{}` to `structpb.Struct`.
+    *   `ConvertBaseDescriptorToProto`: The error handling for `customMetadataProto` conversion logs the error and proceeds with nil. Ensure this is the desired behavior (it might be preferable to return the error if `customMetadata` is critical and fails to convert).
+    *   `GetCanonicalBytesForHashing(msg proto.Message)` uses `proto.Marshal(msg)`. This is generally deterministic for a given `protoc` version and language. For absolute canonical hashing across different Protobuf library versions or languages, some specialized canonical marshallers exist, but `proto.Marshal` is a common and often sufficient approach.
+
+**II. Specific Code Suggestions:**
+
+1.  **Align `Transaction.Data` for Two-Step Registration:**
+
+    *   **`blockchain_server.go` - `handleMCPRegisterCapabilityInitiate`:** Modify the response to include the Protobuf marshaled `txnData` that the client should use.
+
+```go
+blockchain_server.go
+-0
++1
+		"pendingTransactionHash": pendingTxn.TransactionHash,
+		"canonicalCapabilityID":  generatedCapabilityID,
+		"fullDescriptor":         finalDescriptorForHashing,
+		"transactionDataForSigning": base64.StdEncoding.EncodeToString(txnData), // Add this
+	})
+}
+```
+
+*   **`mcp_api_test.go` - `TestMCPRegisterCapabilityAPI`:** Modify the client to use the `transactionDataForSigning` from the server.
+
+```go
+mcp_api_test.go
+-34
++6
+	var initiateResponse struct {
+		Status                 string      `json:"status"`
+		PendingTransactionHash string      `json:"pendingTransactionHash"`
+		CanonicalCapabilityID  string      `json:"canonicalCapabilityID"`
+		FullDescriptor         interface{} `json:"fullDescriptor"`
+		CanonicalCapabilityID  string `json:"canonicalCapabilityID"`
+		FullDescriptor         interface{} `json:"fullDescriptor"`
+		TransactionDataForSigning string `json:"transactionDataForSigning"` // Expect this
+	}
+	if err := json.Unmarshal(initiateRR.Body.Bytes(), &initiateResponse); err != nil {
+		t.Fatalf("Failed to parse initiate response: %v", err)
+Unchanged lines
+		t.Error("Server should return non-empty capability ID")
+	}
+
+	// The server sent initiateResponse.FullDescriptor as a concrete struct,
+	// but json.Unmarshal into an interface{} field makes it a map[string]interface{}.
+	// We need to marshal it back to bytes and then unmarshal into the correct concrete struct
+	// to ensure the client signs data derived from the same struct type the server used.
+	rawFullDescriptorBytes, err := json.Marshal(initiateResponse.FullDescriptor)
+	if err != nil {
+		t.Fatalf("Failed to re-marshal FullDescriptor from initiateResponse: %v", err)
+	}
+
+	var concreteDescriptorForSigning interface{}
+	switch capType { // capType is defined at the top of the test function
+	case CapabilityTypeTool:
+		var td ToolDescriptor
+		if err := json.Unmarshal(rawFullDescriptorBytes, &td); err != nil {
+			t.Fatalf("Failed to unmarshal FullDescriptor into ToolDescriptor: %v", err)
+		}
+		concreteDescriptorForSigning = td
+	case CapabilityTypeResource:
+		var rd ResourceDescriptor
+		if err := json.Unmarshal(rawFullDescriptorBytes, &rd); err != nil {
+			t.Fatalf("Failed to unmarshal FullDescriptor into ResourceDescriptor: %v", err)
+		}
+		concreteDescriptorForSigning = rd
+	// Add other cases for PromptDescriptor, MemoryServiceDescriptor if tested similarly
+	default:
+		t.Fatalf("Unsupported capability type in test: %s", capType)
+	}
+
+	// Create transaction data with the server-generated descriptor
+	// This data must exactly match what the server used to generate the pendingTransactionHash,
+	// and what the server will use for verification.
+	clientTxnDataToSign, err := json.Marshal(map[string]interface{}{
+		"capabilityDescriptor": concreteDescriptorForSigning, // Use the concrete struct
+	})
+	// Use the Protobuf bytes provided by the server for Transaction.Data
+	clientTxnDataToSign, err := base64.StdEncoding.DecodeString(initiateResponse.TransactionDataForSigning)
+	if err != nil {
+		t.Fatalf("Failed to marshal client transaction data for signing: %v", err)
+		t.Fatalf("Failed to decode base64 transaction data for signing: %v", err)
+ 	}
+
+ 	// Create the transaction object that the client will sign.
+```
+
+2.  **Standardize `Transaction.Data` for MCP Invoke:**
+
+    *   **`blockchain_server.go` - `handleMCPInvokeCapability`:** Currently, `txnData` is `json.Marshal(map[string]interface{}{"contextRecord": contextRecord})`. This should be changed to marshal a `pb.MCPInvokeCapabilityDataProto` (you'll need to define this in your `.proto` file and generate Go code for it) using `proto.Marshal`.
+
+```protobuf
+// In your .proto file (e.g., mcp.proto)
+message MCPInvokeCapabilityDataProto {
+  ContextRecordProto context_record = 1;
+}
+```
+
+Then in `handleMCPInvokeCapability`:
+
+```diff
+blockchain_server.go
+-4
++0
+		contextRecord.CapabilityID = resolvedCapabilityID // Update contextRecord with the raw ID
+	}
+
+	// Create a transaction for the capability invocation
+	txnData, err := json.Marshal(map[string]interface{}{
+		"contextRecord": contextRecord,
+	})
+plaintext
+  // Convert Go ContextRecord to Protobuf ContextRecordProto
+contextRecordProto, err := ConvertContextRecordToProto(contextRecord) // Assuming you have this converter if err != nil {
+plaintext
+  http.Error(w, fmt.Sprintf("Failed to marshal transaction data: %v", err), http.StatusInternalServerError)
+plaintext
+  http.Error(w, fmt.Sprintf("Failed to convert context record to proto: %v", err), http.StatusInternalServerError)
+plaintext
+  return
+}
+// Create MCPInvokeCapabilityDataProto
+invokeDataProto := &pb.MCPInvokeCapabilityDataProto{ // Use your actual proto message name
+plaintext
+  ContextRecord: contextRecordProto,
+}
+txnData, err := proto.Marshal(invokeDataProto)
+if err != nil {
+plaintext
+  http.Error(w, fmt.Sprintf("Failed to marshal protobuf transaction data: %v", err), http.StatusInternalServerError)
+  return
+}
+plaintext
+```
+
+3.  **BlockchainStruct Storage (Optional Enhancement):** If you decide to store individual blocks and transactions as Protobuf within BlockchainStruct:
+
+    *   In `BlockchainStruct`, change `Blocks []*Block` to `Blocks [][]byte` and `TransactionPool []*Transaction` to `TransactionPool [][]byte`.
+    *   When adding a block/transaction, marshal it to Protobuf bytes before appending.
+    *   When retrieving, unmarshal from Protobuf bytes.
+    *   This would require significant changes to how `BlockchainStruct` is loaded and accessed. For now, the current method (JSON of Go structs, with Protobuf-derived hashes) is acceptable for integrity.
+
+4.  **API and P2P Communication with Protobuf (General Guidance):** For handlers like `handleReceiveBlock`, `HandleReceiveTransaction`, and P2P message handlers:
+
+    *   **Receiving Protobuf:**
+
+```go
+// Example for an API handler
+bodyBytes, err := io.ReadAll(r.Body)
+if err != nil {
+    http.Error(w, "Failed to read request body", http.StatusBadRequest)
+    return
+}
+var blockProto pb.BlockProto // Your generated Protobuf type
+if err := proto.Unmarshal(bodyBytes, &blockProto); err != nil {
+    http.Error(w, "Failed to unmarshal protobuf block", http.StatusBadRequest)
+    return
+}
+// Convert blockProto to your Go Block struct if needed
+// block, err := ConvertProtoToBlock(&blockProto) // You'd need this converter
+// ... process block ...
+```
+
+*   **Sending Protobuf:**
+
+```go
+// Example for an API handler
+// goBlock := ... your Go Block struct ...
+// blockProto, err := goBlock.ToProto() // Convert to Protobuf
+// if err != nil { ... handle error ... }
+// responseBytes, err := proto.Marshal(blockProto)
+// if err != nil { ... handle error ... }
+// w.Header().Set("Content-Type", "application/protobuf")
+// w.WriteHeader(http.StatusOK)
+// w.Write(responseBytes)
+```
+
+**III. Summary of Protobuf Usage Status:**
+
+*   `CapabilityDescriptors`: Good for DB (Protobuf primary), inconsistent in `Transaction.Data`.
+*   `ContextRecords`: Good for DB (Protobuf primary), `Transaction.Data` for invoke is JSON.
+*   `Blocks`: Hashing is Protobuf-based (Good). Storage in `BlockchainStruct` is JSON of Go struct. Network transmission is JSON.
+*   `Transactions`: Hashing and Signature Verification are Protobuf-based (Good). Storage in `BlockchainStruct` is JSON of Go struct. Network transmission is JSON. `Transaction.Data` is inconsistent.
+*   Signatures: Verification logic correctly uses Protobuf representation of the signed data (Good).
+
+The most pressing issue is the `Transaction.Data` inconsistency, as it directly impacts the correctness of signature verification in your two-step registration flow. Standardizing `Transaction.Data` to use Protobuf for structured MCP payloads and adjusting the client-server interaction for registration will be key. After that, you can incrementally update API and P2P layers to use Protobuf if that aligns with your project goals.
+```

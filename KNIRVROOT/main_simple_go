@@ -1,0 +1,753 @@
+package main
+
+import (
+	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	"flag"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
+	"os/exec"
+	"os/signal"
+	"path/filepath" // Ensure filepath is imported
+	"runtime"
+	"strings"
+	"sync"
+	"syscall"
+	"time"
+
+	//"fyne.io/fyne/v2/data/binding" // Import Fyne binding
+
+	"KNIRVROOT/enum/StatusType"
+
+	provider "github.com/mouuff/go-rocket-update/pkg/provider"
+	updater "github.com/mouuff/go-rocket-update/pkg/updater"
+
+	"KNIRVROOT/config" // Use your actual module path
+	// Local package imports for types used in the code
+)
+
+var nodeRole config.Role
+var goProxy *GoReverseProxy
+
+
+
+// AppVersion is the current version of the application.
+// This should be set at build time using ldflags:
+// go build -ldflags="-X main.AppVersion=v1.0.1"
+var AppVersion = "dev" // Default if not set by ldflags
+
+// Constants for go-rocket-update
+const (
+	GitHubRepoOwner = "guiperry"               // Replace with your GitHub username or organization
+	GitHubRepoName  = "KNIRVROOT" // Replace with your GitHub repository name
+)
+
+// UpdateManifest structure (example from your server) - This might not be directly used by go-rocket-update if fetching from GitHub releases
+type UpdateManifest struct { // This struct might be deprecated or adapted if go-rocket-update fetches directly from GitHub releases
+	Version string `json:"version"`
+	Sha256  string `json:"sha256"` // Hex encoded SHA256 checksum
+	// You'd typically have URLs per platform, or your server logic figures it out
+	Platforms map[string]PlatformAsset `json:"platforms"`
+}
+
+type PlatformAsset struct {
+	URL string `json:"url"` // URL to the binary for a specific OS/ARCH
+}
+
+// This function would fetch and parse your update manifest
+// This function might be simplified or removed if go-rocket-update handles GitHub release fetching directly.
+func fetchUpdateManifestFromServer() (*updater.UpdateStatus, error) {
+	log.Printf("Updater: Checking for updates (current version: %s)", AppVersion)
+
+	// Get GitHub token from environment variable
+	githubToken := os.Getenv("DEFAULT_GITHUB_TOKEN") // Fetching the token
+
+	// Get GitHub public key from environment variable
+	publicKeyStr := os.Getenv("DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES")
+	if publicKeyStr == "" {
+		return nil, fmt.Errorf("DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES environment variable is required for secure updates")
+	}
+
+	// Parse public key from string
+	block, _ := pem.Decode([]byte(publicKeyStr))
+	if block == nil {
+		return nil, fmt.Errorf("failed to parse PEM block containing public key")
+	}
+	pubKey, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse public key: %w", err)
+	}
+	rsaPubKey, ok := pubKey.(*rsa.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("expected RSA public key but got %T", pubKey)
+	}
+
+	// Initialize secure GitHub provider
+	ghProvider := &provider.Github{
+		RepositoryURL: "https://github.com/" + GitHubRepoOwner + "/" + GitHubRepoName,
+		ArchiveName:   "{{bin_name}}_{{tag}}_{{os}}_{{arch}}",
+	}
+	// The underlying go-github-selfupdate library will pick up DEFAULT_GITHUB_TOKEN env var if set.
+
+	secureProvider := &provider.Secure{
+		BackendProvider: ghProvider, // Use the ghProvider that might now have a token
+		PublicKey:       rsaPubKey,
+	}
+	// Add context about missing GitHub token if needed
+	if githubToken == "" {
+		err = fmt.Errorf("DEFAULT_GITHUB_TOKEN environment variable is not set. This can lead to GitHub API rate limiting or issues accessing private repositories")
+		if err != nil {
+			err = fmt.Errorf("%w. Note: DEFAULT_GITHUB_TOKEN environment variable is not set. This can lead to GitHub API rate limiting or issues accessing private repositories", err)
+		}
+		return nil, err
+	}
+
+	// Create updater instance
+	u := &updater.Updater{
+		Provider:       secureProvider,
+		ExecutableName: filepath.Base(os.Args[0]),
+		Version:        AppVersion,
+	}
+
+	// Check for updates
+	canUpdate, err := u.CanUpdate()
+	if err != nil {
+		// Add more context to the error
+		return nil, fmt.Errorf("failed to check for updates: %w", err)
+	}
+	if !canUpdate {
+		log.Println("Updater: No new update available.")
+		return nil, nil
+	}
+
+	// Get update status
+	status, err := u.Update()
+	if err != nil {
+		return nil, fmt.Errorf("failed to update: %w", err)
+	}
+
+	log.Printf("Updater: Update status: %v", status)
+	return &status, nil
+}
+
+func applyUpdateAndRestart(status *updater.UpdateStatus) {
+	if status == nil {
+		log.Println("Updater: No update status provided")
+		return
+
+	}
+	if !StatusType.IsValid(int(*status)) || *status != updater.UpdateStatus(StatusType.Success) {
+		log.Printf("Updater: Update failed with status: %v", status)
+		return
+	}
+
+	log.Println("Updater: Update applied successfully! Preparing to restart application...")
+
+	executablePath, err := os.Executable()
+	if err != nil {
+		log.Printf("Updater: Could not get executable path: %v. Please restart manually.", err)
+		os.Exit(1) // Critical error, exit
+		return
+	}
+
+	var scriptContent, scriptName, shellCmd, shellArg string
+
+	if runtime.GOOS == "windows" {
+		scriptName = "restart_wrapper.bat"
+		scriptContent = fmt.Sprintf(`
+@echo off
+echo Restarting application shortly...
+timeout /t 2 /nobreak > nul
+start "" /B "%s" %s
+(goto) 2>nul & del "%%~f0"
+`, executablePath, strings.Join(os.Args[1:], " "))
+		shellCmd = "cmd.exe"
+		shellArg = "/C"
+	} else { // Linux & macOS
+		scriptName = "restart_wrapper.sh"
+		argsString := ""
+		for _, arg := range os.Args[1:] {
+			argsString += fmt.Sprintf(" '%s'", strings.ReplaceAll(arg, "'", "'\\''"))
+		}
+		scriptContent = fmt.Sprintf(`#!/bin/sh
+echo "Restarting application shortly..."
+sleep 2
+nohup "%s"%s > /dev/null 2>&1 &
+rm -- "$0"
+`, executablePath, argsString)
+		shellCmd = "/bin/sh"
+	}
+
+	tempDir := os.TempDir()
+	scriptPath := filepath.Join(tempDir, scriptName)
+
+	err = ioutil.WriteFile(scriptPath, []byte(scriptContent), 0755) // rwxr-xr-x
+	if err != nil {
+		log.Printf("Updater: Failed to write temporary restart script: %v. Please restart manually.", err)
+		os.Exit(1)
+		return
+	}
+	log.Printf("Updater: Temporary restart script written to: %s", scriptPath)
+
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command(shellCmd, shellArg, scriptPath)
+	} else {
+		cmd = exec.Command(scriptPath)
+	}
+
+	err = cmd.Start()
+	if err != nil {
+		log.Printf("Updater: Failed to start restart wrapper: %v. Please restart manually.", err)
+		_ = os.Remove(scriptPath)
+		os.Exit(1)
+		return
+	}
+
+	log.Printf("Updater: Restart wrapper (%s) started with PID %d. Old application exiting.", scriptPath, cmd.Process.Pid)
+	os.Exit(0) // Exit the current (old) process
+}
+
+// Define a global log file variable
+var appLogFile *os.File
+
+func main() {
+	// --- Check for updates first ---
+	updateStatus, err := fetchUpdateManifestFromServer()
+	if err != nil {
+		log.Printf("Warning: Failed to check for updates: %v", err)
+	} else if updateStatus != nil {
+		applyUpdateAndRestart(updateStatus)
+	}
+
+	// --- Setup Application Logging to File and Console ---
+
+	var logFilePath = "KNIRVROOT.log" // You can make this configurable
+	var errOpenLog error
+	appLogFile, errOpenLog = os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0660)
+	if errOpenLog != nil {
+		log.Fatalf("Failed to open log file %s: %v", logFilePath, errOpenLog)
+	}
+	// We will close appLogFile at the end of main
+
+	// Keep the Fyne binding for potential future use or if another part of GUI needs it,
+	// but for the tail -f terminal, file logging is key.
+	//logOutputBinding := binding.NewString() // This is for the Fyne-based log capture, not tail -f
+
+	// Initial log before setting multiwriter
+	log.Printf("KNIRVROOT Node starting. Version: %s, OS: %s, Arch: %s. Log file: %s", AppVersion, runtime.GOOS, runtime.GOARCH, logFilePath)
+	// Log to both Stderr (console) and the application log file
+	//log.SetOutput(io.MultiWriter(os.Stderr, appLogFile, newBoundWriter(logOutputBinding, 200))) // newBoundWriter is for a different terminal approach
+
+	// --- Define Flags ---
+	// Viper will handle config file paths, but we can allow an override.
+	cliConfigPath := flag.String("config", "", "Path to config file (e.g., config.json, config.yaml)")
+	var loadedConfigPath string // Track where config was loaded from
+
+	// Define ALL flags with default values first
+	// These flags can override Viper-loaded values.
+	httpPortFlag := flag.Uint("port", 0, "HTTP port (overrides config if set, 0 means use config)")
+	p2pPortFlag := flag.Uint("p2p.port", 0, "Libp2p host port (overrides config if set, 0 means use config)")
+	walletPortFlag := flag.Uint("wallet_port", 0, "HTTP port for the wallet server (overrides config if set, 0 means use config)")
+	dbPathFlag := flag.String("shared_database_path", "", "Filepath for the chain's shared database (overrides config if set)")
+	minerAddressFlag := flag.String("miners_address", "", "Miner's address for rewards (overrides config if set)")
+	noWalletServer := flag.Bool("no-wallet-server", false, "Disable wallet server startup")
+	clientOnly := flag.Bool("client-only", false, "Run as a client-only node (reduced resource usage)")
+	useGUI := flag.Bool("gui", false, "Run with graphical user interface")
+	runPeerMode := flag.Bool("dev", false, "Run as a dev reflection node (requires install_complete in config)")
+	bootnode := flag.Bool("bootnode", false, "Run as a bootnode for the KNIRVROOT network")
+	root := flag.Bool("root", false, "") // Hidden backdoor flag
+	nonInteractive := flag.Bool("non-interactive", false, "Automatically accept all default and randomly created values for installation")
+	skipInstall := flag.Bool("skip-install", false, "Skip installation process even if InstallComplete is false")
+
+	// The -role flag helps determine which section of the config to load if other role flags aren't set.
+	roleFlag := flag.String("role", "", "Node role (Root, Bootnode, Peer, Client) - overrides auto-detection if other role flags are absent.")
+
+	// var reflectFlags []string // Viper can load string slices from config.
+	// flag.Func("reflect", "Add a reflection URL (can be specified multiple times)", func(url string) error {
+	// reflectFlags = append(reflectFlags, url)
+	// return nil
+	// })
+
+	// Parse ALL flags ONCE
+	flag.Parse()
+
+	// --- Determine Node Role based on flags ---
+	// Priority: explicit role flags > -role flag > default from config/Viper
+	if *root {
+		nodeRole = config.Root
+	} else if *bootnode {
+		nodeRole = config.RoleBootnode
+	} else if *runPeerMode {
+		nodeRole = config.RolePeer
+	} else if *clientOnly {
+		nodeRole = config.RoleClient
+	} else if *roleFlag != "" {
+		// Validate the role from -role flag
+		validRole := config.Role(*roleFlag)
+		if validRole == config.Root || validRole == config.RoleBootnode || validRole == config.RolePeer || validRole == config.RoleClient {
+			nodeRole = validRole
+		} else {
+			log.Printf("Warning: Invalid role '%s' provided via -role flag. Defaulting to Client.", *roleFlag)
+			nodeRole = config.RoleClient // Fallback to a safe default
+		}
+	} else {
+		// If no specific role flags and no -role flag, viper_loader will use its default or what's in config.
+		// For now, let's default to Client if nothing is specified.
+		nodeRole = config.RoleClient
+	}
+	log.Printf("Determined node role: %s", nodeRole.String())
+
+	// --- Load Configuration using Viper ---
+	var cfg *config.Config
+	var viperErr error
+	cfg, loadedConfigPath, viperErr = config.LoadConfigurationViper(nodeRole, *cliConfigPath)
+	if viperErr != nil {
+		log.Fatalf("Error loading configuration via Viper: %v", viperErr)
+	}
+	if cfg == nil {
+		log.Fatalf("Configuration could not be loaded or initialized.")
+	}
+
+	if loadedConfigPath != "" {
+		log.Printf("Successfully loaded config from: %s", loadedConfigPath)
+	} else if nodeRole == config.Root {
+		log.Println("[INFO] Root role using default in-memory configuration as no file was loaded.")
+		// cfg.MinersAddress for Root is typically BLOCKCHAIN_ADDRESS, set by DefaultRootConfig in viper_loader
+	} else {
+		log.Printf("No config file found for role %s. Proceeding with default config (installer will run if InstallComplete is false).", nodeRole)
+	}
+
+	// Create wallet manager with secure encryption key
+	var encKey []byte
+	if nodeRole == config.Root {
+		// For Root role, generate secure random key if not set in env
+		if envKey := os.Getenv("WALLET_ENCRYPTION_KEY"); envKey != "" {
+			encKey = []byte(envKey)
+			if len(encKey) != 32 {
+				log.Fatalf("WALLET_ENCRYPTION_KEY must be exactly 32 bytes")
+			}
+		} else {
+			encKey = make([]byte, 32)
+			if _, err := rand.Read(encKey); err != nil {
+				log.Fatalf("Failed to generate random encryption key: %v", err)
+			}
+			log.Printf("Generated encryption key length: %d bytes", len(encKey))
+		}
+	} else {
+		// For other roles, generate secure random key if not set in env
+		if envKey := os.Getenv("WALLET_ENCRYPTION_KEY"); envKey != "" {
+			encKey = []byte(envKey)
+			if len(encKey) != 32 {
+				log.Fatalf("WALLET_ENCRYPTION_KEY must be exactly 32 bytes")
+			}
+		} else {
+			encKey = make([]byte, 32)
+			if _, err := rand.Read(encKey); err != nil {
+				log.Fatalf("Failed to generate random encryption key: %v", err)
+			}
+			log.Printf("Generated encryption key length: %d bytes", len(encKey))
+		}
+	}
+	
+	// Create a defensive copy of the key to prevent any potential corruption
+	keyCopy := make([]byte, len(encKey))
+	copy(keyCopy, encKey)
+	log.Printf("Passing encryption key to NewWalletManager, length: %d bytes", len(keyCopy))
+	
+	wm, err := NewWalletManager(keyCopy)
+	if err != nil {
+		log.Fatalf("Failed to initialize wallet manager: %v", err)
+	}
+
+	// Declare wallet variables
+	var wallet *Wallet
+	var masterWallet *Wallet
+	
+	// Log wallet status to prevent unused variable warning
+	defer func() {
+		if wallet != nil {
+			log.Printf("Node wallet initialized with address: %s", wallet.GetAddress())
+		}
+	}()
+
+	// Implement consistency checks for non-Root roles
+	if nodeRole != config.Root {
+		// Check MinersAddress and wallet.dat consistency
+		if cfg.MinersAddress != "" {
+			// Try to load wallet using wallet_manager
+			wallet, err = wm.LoadWallet(cfg.MinersAddress, nodeRole)
+			if err != nil {
+				if os.IsNotExist(err) || strings.Contains(err.Error(), "wallet address mismatch") { // Catch mismatch too
+					log.Printf("WARNING: MinersAddress '%s' is configured but wallet file not found or mismatched.", cfg.MinersAddress)
+					// Try to load any wallet instead of forcing reinstallation
+					walletPath, _ := config.GetWalletPath(nodeRole)
+					if _, statErr := os.Stat(walletPath); statErr == nil {
+						// Wallet file exists, try to load it
+						loadedWallet, loadErr := wm.LoadWallet("", nodeRole)
+						if loadErr != nil {
+							log.Printf("ERROR: Found wallet file but failed to load: %v", loadErr)
+							log.Println("This node requires reinstallation. Forcing installer.")
+							cfg.InstallComplete = false // Force installer
+						} else {
+							// Update config with the loaded wallet address
+							cfg.MinersAddress = loadedWallet.GetAddress()
+							wallet = loadedWallet // Assign to the main wallet variable
+							log.Printf("Loaded wallet with address '%s', updating config", cfg.MinersAddress)
+							config.SaveConfigToUserDir(cfg, nodeRole)
+						}
+					} else {
+						log.Println("This node requires reinstallation. Forcing installer.")
+						cfg.InstallComplete = false // Force installer
+					}
+				} else {
+					log.Printf("ERROR: Failed to load wallet for address '%s': %v. This is a non-fatal error, attempting to continue.", cfg.MinersAddress, err)
+					// Try to continue instead of fatal exit
+				}
+			} else {
+				log.Printf("Successfully validated wallet for address '%s'", cfg.MinersAddress)
+			}
+		} else {
+			// MinersAddress is empty, try to load any wallet
+			walletPath, _ := config.GetWalletPath(nodeRole) // Assuming GetWalletPath is appropriate for non-root here
+			if _, statErr := os.Stat(walletPath); statErr == nil {
+				// Wallet file exists, try to load it
+				loadedWallet, loadErr := wm.LoadWallet("", nodeRole) // Use temp var
+				if loadErr != nil {
+					log.Printf("ERROR: Found wallet file but failed to load: %v", loadErr)
+					log.Println("This node requires reinstallation. Forcing installer.")
+					cfg.InstallComplete = false // Force installer
+				} else {
+					// Update config with the loaded wallet address
+					cfg.MinersAddress = loadedWallet.GetAddress()
+					wallet = loadedWallet // Assign to the main wallet variable
+					log.Printf("Loaded wallet with address '%s', updating config", cfg.MinersAddress)
+					config.SaveConfigToUserDir(cfg, nodeRole)
+				}
+			} else {
+				log.Println("WARNING: No wallet file found and MinersAddress not configured.")
+				log.Println("This node requires reinstallation. Forcing installer.")
+				cfg.InstallComplete = false // Force installer
+			}
+		}
+
+		// For bootnode role, also check master wallet
+		if nodeRole == config.RoleBootnode {
+			if cfg.MasterAddress != "" {
+				// Try to load master wallet using wallet_manager
+				if _, err := wm.LoadMasterWallet(cfg.MasterAddress, nodeRole); err != nil {
+					if os.IsNotExist(err) {
+						log.Printf("WARNING: MasterAddress '%s' is configured but master wallet file not found.", cfg.MasterAddress)
+						log.Println("This node requires reinstallation. Forcing installer.")
+						cfg.InstallComplete = false // Force installer instead of exiting
+					} else if strings.Contains(err.Error(), "master wallet address mismatch") {
+						log.Printf("WARNING: %v", err)
+						log.Println("This node requires reinstallation. Forcing installer.")
+						cfg.InstallComplete = false // Force installer instead of exiting
+					} else {
+						log.Printf("WARNING: Failed to load master wallet for address '%s': %v", cfg.MasterAddress, err)
+						log.Println("This node requires reinstallation. Forcing installer.")
+						cfg.InstallComplete = false // Force installer instead of exiting
+					}
+				} else {
+					log.Printf("Successfully validated master wallet for address '%s'", cfg.MasterAddress)
+				}
+			} else {
+				// MasterAddress is empty, try to load any master wallet
+				masterWalletPath, _ := config.GetMasterWalletPath(nodeRole)
+				if _, statErr := os.Stat(masterWalletPath); statErr == nil {
+					// Master wallet file exists, try to load it
+					masterWallet, err = wm.LoadMasterWallet("", nodeRole)
+					if err != nil {
+						log.Printf("WARNING: Found master wallet file but failed to load: %v", err)
+						log.Println("This node requires reinstallation. Forcing installer.")
+						cfg.InstallComplete = false // Force installer instead of exiting
+					} else {
+						// Update config with the loaded master wallet address
+						cfg.MasterAddress = masterWallet.GetAddress()
+						log.Printf("Loaded master wallet with address '%s', updating config", cfg.MasterAddress)
+						config.SaveConfigToUserDir(cfg, nodeRole)
+					}
+				} else if os.IsNotExist(statErr) {
+					log.Println("WARNING: No master wallet file found and MasterAddress not configured for bootnode.")
+					log.Println("This node requires reinstallation. Forcing installer.")
+					cfg.InstallComplete = false // Force installer instead of exiting
+				}
+			}
+		}
+	}
+
+	// Track which flags were explicitly set
+	flagsSet := make(map[string]bool)
+	flag.Visit(func(f *flag.Flag) {
+		flagsSet[f.Name] = true
+	})
+
+	// Apply flag overrides to config
+	if flagsSet["port"] && *httpPortFlag > 0 {
+		cfg.Port = uint64(*httpPortFlag)
+	}
+	if flagsSet["p2p.port"] && *p2pPortFlag > 0 {
+		cfg.P2PPort = uint64(*p2pPortFlag)
+	}
+	if flagsSet["wallet_port"] && *walletPortFlag > 0 {
+		cfg.WalletPort = uint64(*walletPortFlag)
+	}
+	if flagsSet["database_path"] && *dbPathFlag != "" {
+		cfg.BlockchainDatabasePath = *dbPathFlag
+	}
+	if flagsSet["miners_address"] && *minerAddressFlag != "" {
+		cfg.MinersAddress = *minerAddressFlag
+	}
+	if flagsSet["no-wallet-server"] {
+		cfg.NoWalletServer = *noWalletServer
+	}
+	if flagsSet["client-only"] {
+		cfg.ClientOnly = *clientOnly
+	}
+	if flagsSet["gui"] {
+		cfg.UseGUI = *useGUI
+	}
+
+	// Set bootnode flag in config if -bootnode flag was used
+	if flagsSet["bootnode"] && *bootnode {
+		cfg.IsBootnode = true
+		cfg.Bootnode.Enabled = true
+		log.Println("Running in bootnode mode")
+	}
+
+	// --- Initialize Go Reverse Proxy if enabled ---
+	if cfg.ReverseProxy.Enabled {
+		// Determine target URLs for frontend and backend
+		// These will listen on localhost when the proxy is active.
+		frontendTargetPort := cfg.AltGUIPort // Assuming AltGUIPort is where Next.js will run
+		if frontendTargetPort == 0 {
+			frontendTargetPort = 3000 // Default Next.js port
+		}
+		backendTargetPort := cfg.Port // The Go API port
+
+		frontendURL := fmt.Sprintf("http://127.0.0.1:%d", frontendTargetPort)
+		backendURL := fmt.Sprintf("http://127.0.0.1:%d", backendTargetPort)
+
+		var errProxy error
+		goProxy, errProxy = NewGoReverseProxy(&cfg.ReverseProxy, frontendURL, backendURL, nil) // TODO: Add proper DataEngine
+		if errProxy != nil {
+			log.Fatalf("Failed to initialize Go Reverse Proxy: %v", errProxy)
+		}
+	}
+
+	// Check if installation is needed
+	if !cfg.InstallComplete && !*skipInstall {
+		log.Println("Installation not complete - running installer...")
+		// Pass the current cfg, which might have come from default_config.json or be a fresh default
+		updatedCfg, err := Install(loadedConfigPath, *bootnode, nodeRole, *nonInteractive, "") // Pass empty wallet path
+		if err != nil {
+			log.Fatalf("Failed to run installer: %v", err)
+		}
+		cfg = updatedCfg // Use the config potentially modified and saved by the installer
+		log.Printf("Installer finished. Using updated configuration for ChainID: %s", cfg.ChainID)
+
+		// Re-apply GUI flag override after reload
+		if flagsSet["gui"] {
+			cfg.UseGUI = *useGUI
+		}
+	} else {
+		// If installation is complete or skip-install flag is set, ensure we continue with node initialization
+		if *skipInstall {
+			log.Printf("Skipping installation due to --skip-install flag. Continuing with node initialization...")
+		} else {
+			log.Printf("Installation is complete. Continuing with node initialization...")
+		}
+	}
+	// --- Context and WaitGroup ---
+	mainCtx := context.Background()
+
+	_, cancel := context.WithCancel(mainCtx)
+	var wg sync.WaitGroup
+
+
+	// --- Start the Go Reverse Proxy if it was initialized ---
+	if goProxy != nil {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := goProxy.Start(); err != nil {
+				log.Printf("Go Reverse Proxy failed: %v", err)
+				// Optionally, call cancel() here if proxy failure is critical
+			}
+		}()
+	}
+
+	// --- Initialize BlockchainDatabase ---
+	// Ensure database path is set
+	if cfg.BlockchainDatabasePath == "" {
+		// Get role-specific database path
+		dbPath, err := config.GetBlockchainDatabasePath(nil, string(nodeRole))
+		if err != nil {
+			log.Fatalf("Failed to determine database path: %v", err)
+		}
+		cfg.BlockchainDatabasePath = dbPath
+	}
+	log.Printf("Final Shared DatabasePath after Viper and flag processing: %s", cfg.BlockchainDatabasePath)
+
+	// Ensure dev database path is set
+	if cfg.SearchableDatabasePath == "" {
+		// Get role-specific dev database path
+		devDBPath, err := config.GetSearchableDatabasePath(nil, string(nodeRole))
+		if err != nil {
+			log.Fatalf("Failed to determine dev database path: %v", err)
+		}
+		cfg.SearchableDatabasePath = devDBPath
+	}
+	log.Printf("Final Local DatabasePath: %s", cfg.SearchableDatabasePath)
+
+	// Initialize the database
+	db, err := NewLevelDB(cfg.BlockchainDatabasePath)
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+	defer db.Close()
+
+	// Initialize the dev database
+	devDB, err := NewLevelDB(cfg.SearchableDatabasePath)
+	if err != nil {
+		log.Fatalf("Failed to initialize dev database: %v", err)
+	}
+	defer devDB.Close()
+
+	// Initialize payment processor if enabled (now with valid db instance)
+	paymentProcessor, err := initPaymentProcessor(cfg, db, nodeRole)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize payment processor: %v", err)
+	} else if paymentProcessor != nil {
+		defer paymentProcessor.Stop()
+	}
+
+	// --- Initialize Blockchain ---
+	// Create a new blockchain with the database
+	// Initialize ChromemDB configuration
+	chromemConfig := &config.ChromemConfig{
+		Path: cfg.SearchableDatabasePath,
+		CerebrasConfig: cfg.Chromem.CerebrasConfig,
+	}
+
+	// Initialize ChromemManager
+	chromemManager, err := NewChromemManager(chromemConfig)
+	if err != nil {
+		log.Fatalf("Failed to initialize ChromemDB manager: %v", err)
+	}
+	defer chromemManager.Close()
+
+	// Initialize ChromemSyncManager
+	chromemSyncManager, err := NewChromemSyncManager(chromemManager.client, cfg.Chromem.CerebrasConfig, db)
+	if err != nil {
+		log.Fatalf("Failed to initialize ChromemDB sync manager: %v", err)
+	}
+	defer chromemSyncManager.Close()
+
+	// Create blockchain with Chromem managers
+	bc, err := NewBlockchain(trueGenesisBlock, cfg.ChainID, cfg.MinersAddress, db, chromemManager, cfg.SearchableDatabasePath, cfg.Chromem.CerebrasConfig)
+	if err != nil {
+		log.Fatalf("Failed to initialize blockchain: %v", err)
+	}
+
+	// ChromemSyncManager will handle synchronization via OnNewBlockConfirmed callbacks
+
+	// --- Initialize Discovery Manager ---
+	// Create a new discovery manager
+	discoveryMgr, err := NewDiscoveryManager(cfg.ChainID, int(cfg.P2PPort), cfg.ClientOnly, cfg.IsBootnode, nodeRole, cfg)
+	if err != nil {
+		log.Fatalf("Failed to initialize discovery manager: %v", err)
+	}
+
+	// Initialize Node.js services if enabled (now with valid discoveryMgr)
+	nodejsManager, err := initNodeJSServices(cfg, discoveryMgr)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize Node.js services: %v", err)
+	} else if nodejsManager != nil {
+		defer nodejsManager.StopAllServices()
+	}
+
+	// --- Initialize Consensus Engine ---
+	// Create a new consensus engine
+	consensusEngine, err := NewP2PConsensusManager(bc, db, discoveryMgr, nodeRole)
+	if err != nil {
+		log.Fatalf("Failed to initialize consensus engine: %v", err)
+	}
+
+	// --- Initialize HTTP Server ---
+	// Create and configure the blockchain server
+	blockchainSrv := NewBlockchainServer(cfg.Port, bc, db, discoveryMgr, int(cfg.P2PPort))
+
+	// Set the listen address for BlockchainServer
+	if cfg.ReverseProxy.Enabled {
+		blockchainSrv.server.Addr = fmt.Sprintf("127.0.0.1:%d", cfg.Port) // Listen on localhost if proxy is active
+	} else {
+		blockchainSrv.server.Addr = fmt.Sprintf(":%d", cfg.Port) // Listen on all interfaces otherwise
+	}
+	log.Printf("[%s] Blockchain Server initialized to listen on %s.", cfg.ChainID, blockchainSrv.server.Addr)
+	// --- Initialize Wallet Server (if enabled) ---
+	var walletServer *WalletServer
+	if !cfg.NoWalletServer {
+		// Create a new wallet server
+		walletServer = NewWalletServer(cfg.WalletPort, fmt.Sprintf("http://localhost:%d", cfg.Port))
+	}
+
+	// --- Initialize GUI (if enabled) ---
+	if cfg.UseGUI {
+		// Set the GUI node config
+		// GUI initialization commented out
+
+		// GUI initialization commented out
+		// InitializeGUI(bc, guiDB, guiDiscoveryMgr, consensusEngine, guiNodeConfig, paymentProcessor, nodeRole, wallet)
+		log.Println("GUI initialization skipped - InitializeGUI not implemented")
+	}
+
+	// --- Start Services ---
+	// Start the HTTP server
+	go func() {
+		if err := blockchainSrv.StartListenAndServe(); err != nil {
+			log.Fatalf("HTTP server failed: %v", err)
+		}
+	}()
+
+	// Start the wallet server (if enabled)
+	if !cfg.NoWalletServer && walletServer != nil {
+		go walletServer.Start()
+	}
+
+	// Start the discovery manager
+	go discoveryMgr.Run(60 * time.Second)
+
+	// Start the consensus engine (if not client-only)
+	if !cfg.ClientOnly {
+		go consensusEngine.Start()
+	}
+
+	// --- Handle Graceful Shutdown ---
+	// Set up signal handling for graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	// Wait for termination signal
+	<-sigChan
+	log.Println("Received termination signal. Shutting down...")
+
+	// Cancel the context to signal all goroutines to stop
+	cancel()
+
+	// Wait for all goroutines to finish
+	wg.Wait()
+
+	// Close the log file
+	if appLogFile != nil {
+		appLogFile.Close()
+	}
+
+	log.Println("Shutdown complete.")
+}

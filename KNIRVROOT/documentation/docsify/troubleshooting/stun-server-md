@@ -1,0 +1,114 @@
+# STUN Server Troubleshooting Guide
+
+It's a common challenge to get STUN/TURN servers working perfectly, as their functionality is heavily dependent on the network environment they're deployed in. Based on your registry-service.js code, here's an analysis of why your STUN server might not be working as expected from a client's perspective, even if the /stun API endpoint is responsive:
+
+The node-turn server configuration in your registry-service.js looks like a reasonable starting point. The /stun endpoint correctly attempts to report the status based on turnServer.listeningAddresses. However, the client log `WARN[0010] All STUN discovery methods failed or were not available` strongly suggests that while the client can fetch the STUN server details via HTTP, it cannot successfully communicate with the STUN service itself over UDP/TCP for discovery.
+
+## Common Issues and Solutions
+
+### 1. Server Behind NAT without Public IP Configuration
+
+**Issue:** If your server running registry-service.js is behind a NAT (e.g., on a cloud VM, home network, or corporate network), node-turn needs to know its public IP address(es) to function correctly for external clients. By default, it might bind to an internal IP (e.g., 0.0.0.0 or a private IP like 192.168.x.x). While it listens locally, external clients won't be able to reach it on those internal IPs.
+
+**Code Reference:**
+```javascript
+// registry-service.js (lines 537-557)
+const turnServer = new Turn({
+  // For STUN only, auth is not strictly needed.
+  // For TURN relay, you MUST enable authentication in production.
+  // Example (commented out, enable and configure for production relay):
+  // authMech: 'long-term',
+  // credentials: {
+  //   'user1': 'pass1', // Static credentials
+  //   'agent': Turn.generateLongTermCredentials("KNIRVROOT_secure_password", "agent.com") // Long-term
+  // },
+  // realm: 'agent.com',
+  // UDP primary with TCP fallback
+  // UDP primary with TCP fallback
+  listeningPort: stunPort, // UDP port (3478)
+  tcpListeningPort: stunPort + 1, // TCP fallback port (3479)
+  transportProtocols: ['udp', 'tcp'], // Enable both protocols
+  // If your server is behind NAT, specify its public IP(s) here
+  // listeningIps: ['your_server_public_ip1', 'your_server_public_ip2_if_any'],
+  // relayIps: ['your_server_public_ip1', 'your_server_public_ip2_if_any'],
+  // Or let node-turn try to find it (might require specific network setup)
+  // By default, it tries to use the first non-internal IPv4 address.
+  software: 'KNIRVROOT Registry TURN/STUN Server',
+```
+
+**Solution:** Uncomment and correctly configure `listeningIps` (and `relayIps` if you intend to use TURN relay capabilities) with the actual public IP address(es) of your server. If your server has multiple public IPs or specific network interfaces you want it to use, specify them. node-turn's auto-detection can be unreliable in complex network setups.
+
+### 2. Firewall Restrictions / Port Forwarding
+
+**Issue:** Firewalls (on the server itself, like ufw or firewalld, or network firewalls, or cloud provider security groups) might be blocking incoming traffic on the STUN/TURN ports.
+- Default STUN UDP port: 3478 (your stunPort)
+- Configured TCP port: 3479 (your stunPort + 1)
+
+If behind NAT, you also need to ensure that your router/firewall is configured to forward these external ports to the internal IP address and ports where node-turn is listening on your server.
+
+**Solution:**
+- Ensure your server's firewall allows incoming UDP traffic on port 3478 and incoming TCP traffic on port 3479 (or whatever tcpListeningPort is set to).
+- If applicable, configure port forwarding rules on your NAT device.
+
+### 3. node-turn Binding Issues
+
+**Issue:** Although less common for non-privileged ports, node-turn might fail to bind to the specified ports or IP addresses due to conflicts (another service using the port) or permissions.
+
+**Solution:** Check the console output when registry-service.js starts. node-turn is configured with `verbose: true` and has event listeners that log listening status and errors:
+
+```javascript
+// registry-service.js (lines 566-572)
+turnServer.on('listening', (address, port, protocol) => {
+  console.log(`[TURN/${protocol.toUpperCase()}] Server listening on ${address}:${port}`);
+});
+
+turnServer.on('error', (code, message) => {
+  console.error(`[TURN] Server error ${code}: ${message}`);
+});
+```
+
+These logs will tell you if node-turn successfully started listening and on which IP addresses/ports it thinks it's listening. If it reports listening on 0.0.0.0 or an internal IP, that reinforces the need for proper public IP configuration (point 1) and port forwarding (point 2).
+
+### 4. /stun Endpoint Reporting vs. Actual Reachability
+
+The /stun endpoint reports connection strings like `stun:registry.knirv.com:3478`. This hostname (registry.knirv.com) must resolve to the public IP address where the STUN service is accessible.
+
+The `udpAddress` and `tcpAddress` fetched from `turnServer.listeningAddresses` in your /stun endpoint (lines 42-62) reflect the IP node-turn bound to. If this is an internal IP, it doesn't mean clients can reach it externally. The critical part is that the public IP associated with `req.hostname` (e.g., registry.knirv.com) has ports 3478/udp and 3479/tcp open and correctly routed to the machine running node-turn.
+
+## Troubleshooting Steps
+
+1. **Verify node-turn Logs**: When you start registry-service.js, carefully examine the console output for messages from node-turn like:
+   - `[TURN/UDP] Server listening on <ip>:<port>`
+   - `[TURN/TCP] Server listening on <ip>:<port>`
+   - Any error messages from `[TURN] Server error ....`
+
+2. **Configure Public IPs**: If your server is behind NAT, the most crucial step is to set `listeningIps` in the Turn constructor.
+
+3. **Check Firewalls**:
+   - On your server: `sudo ufw status` (for Ubuntu), `sudo firewall-cmd --list-all` (for CentOS/RHEL).
+   - Cloud provider: Check security group inbound rules.
+   - Network router: Check port forwarding settings.
+
+4. **External STUN Test**: Use an online STUN client or a tool (like stunclient on Linux, or various web-based testers) to directly test your STUN server from an external network.
+   - Test UDP: `stunclient registry.knirv.com 3478`
+   - Test TCP: (TCP STUN is less common for discovery but good to check if you rely on it)
+   
+   This will help determine if the STUN protocol itself is working, independent of your Go client.
+
+5. **Simplify node-turn Config (for STUN-only testing)**: If your primary goal is STUN and not TURN relay, you could temporarily simplify the config to rule out TURN-specific issues, though your current config should provide STUN:
+
+```javascript
+// For STUN-only testing, you could try:
+// const turnServer = new Turn({
+//   listeningPort: stunPort,
+//   transportProtocols: ['udp'], // Focus on UDP for STUN
+//   listeningIps: ['your_server_public_ip1'],
+//   disallowRelay: true, // Explicitly disable TURN relay
+//   software: 'KNIRVROOT Registry STUN Server (Test)',
+//   verbose: true,
+// });
+```
+
+Remember to revert if you need TURN.
+
+The client log `All STUN discovery methods failed` is the key indicator. It means the fundamental UDP/TCP communication with the STUN service is failing, most likely due to network configuration (NAT, firewalls, public IP) rather than a logic error within the /stun HTTP endpoint itself.
