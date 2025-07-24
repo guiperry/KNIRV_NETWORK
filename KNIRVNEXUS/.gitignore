@@ -1,0 +1,91 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Legacy data directory (now using system-specific directories)
+/data
+# MCP configs and servers (now using system-specific directories)
+/mcp_configs
+/mcp_servers
+# Plugins directory (now using system-specific directories)
+/plugins
+
+# dependencies
+*/node_modules
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# testing
+/coverage
+testdb_*
+
+/wallets
+
+# next.js
+/.next/
+/out/
+
+# production
+dist
+/dist
+/build
+*/dist
+*/build
+/electron/dist
+/electron/temp-extract
+
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+.env
+*.env
+*/.env.local
+*/.env
+*/*.env
+*/**/*.env
+*/*/*.env
+*/*/*/*.env
+
+# keys
+.key
+*.key
+*/*.key
+
+# log files
+*.log
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+
+#go work
+.go.work
+go.sum
+
+package-lock.json
+
+*package-lock.json
+
+release_assets/*
+
+agentic-engine
+Agentic_Engine
+/dist
+.aider*
+
+.zencoder
+.vscode
+.bolt
+

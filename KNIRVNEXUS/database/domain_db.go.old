@@ -1,0 +1,721 @@
+package database
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/philippgille/chromem-go"
+)
+
+// DomainDB manages the domain entity database using chromem-go
+type DomainDB struct {
+	db          *chromem.DB
+	collections map[string]*chromem.Collection
+}
+
+// NewDomainDB creates a new chromem-go database for domain entities
+func NewDomainDB(persistencePath string) (*DomainDB, error) {
+	// Ensure directory exists
+	if persistencePath != "" {
+		if err := os.MkdirAll(filepath.Dir(persistencePath), 0755); err != nil {
+			return nil, fmt.Errorf("failed to create persistence directory: %w", err)
+		}
+	}
+
+	// Configure chromem-go with optional persistence
+	opts := &chromem.DBOpts{
+		PersistencePath: persistencePath,
+	}
+
+	// Create new database
+	db := chromem.NewDBWithOpts(opts)
+
+	domainDB := &DomainDB{
+		db:          db,
+		collections: make(map[string]*chromem.Collection),
+	}
+
+	// Initialize collections if needed
+	if err := domainDB.initCollections(); err != nil {
+		return nil, err
+	}
+
+	return domainDB, nil
+}
+
+// initCollections ensures all required collections exist
+func (db *DomainDB) initCollections() error {
+	// Define collection names and their metadata
+	collections := map[string]map[string]string{
+		"agents": {
+			"description": "Collection for agent entities",
+		},
+		"targets": {
+			"description": "Collection for target system entities",
+		},
+		"capabilities": {
+			"description": "Collection for capability entities",
+		},
+		"workflows": {
+			"description": "Collection for workflow entities",
+		},
+		"analytics": {
+			"description": "Collection for analytics data",
+		},
+	}
+
+	// Create or get collections
+	for name, metadata := range collections {
+		collection, err := db.db.GetOrCreateCollection(name, metadata, nil)
+		if err != nil {
+			return fmt.Errorf("failed to create collection %s: %w", name, err)
+		}
+
+		db.collections[name] = collection
+	}
+
+	return nil
+}
+
+// GetCollection returns a collection by name
+func (db *DomainDB) GetCollection(name string) (*chromem.Collection, error) {
+	collection, ok := db.collections[name]
+	if !ok {
+		return nil, fmt.Errorf("collection not found: %s", name)
+	}
+	return collection, nil
+}
+
+// Close closes the database
+func (db *DomainDB) Close() error {
+	// No explicit close method in chromem-go, but we can clear references
+	db.collections = nil
+	db.db = nil
+	return nil
+}
+
+// Agent represents an NFT-Agent
+type Agent struct {
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	Collection   string    `json:"collection"`
+	ImageURL     string    `json:"image_url"`
+	Status       string    `json:"status"`
+	Capabilities []string  `json:"capabilities"`
+	TokenID      string    `json:"token_id"`
+	ContractAddr string    `json:"contract_addr"`
+	OwnerID      int64     `json:"owner_id"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+// AgentRepository handles agent persistence in chromem-go
+type AgentRepository struct {
+	collection *chromem.Collection
+}
+
+// NewAgentRepository creates a new agent repository
+func NewAgentRepository(collection *chromem.Collection) *AgentRepository {
+	return &AgentRepository{
+		collection: collection,
+	}
+}
+
+// CreateAgent adds a new agent to the database
+func (r *AgentRepository) CreateAgent(ctx context.Context, agent *Agent) error {
+	// Generate ID if not provided
+	if agent.ID == "" {
+		agent.ID = uuid.New().String()
+	}
+
+	// Set creation time if not provided
+	if agent.CreatedAt.IsZero() {
+		agent.CreatedAt = time.Now()
+	}
+
+	// Convert agent to metadata
+	metadata := map[string]string{
+		"name":          agent.Name,
+		"collection":    agent.Collection,
+		"image_url":     agent.ImageURL,
+		"status":        agent.Status,
+		"token_id":      agent.TokenID,
+		"contract_addr": agent.ContractAddr,
+		"owner_id":      fmt.Sprintf("%d", agent.OwnerID),
+		"created_at":    agent.CreatedAt.Format(time.RFC3339),
+		"capabilities":  strings.Join(agent.Capabilities, ","),
+	}
+
+	// Create document for chromem-go
+	doc := chromem.Document{
+		ID:       agent.ID,
+		Content:  fmt.Sprintf("%s is a %s agent with capabilities for %s", agent.Name, agent.Collection, strings.Join(agent.Capabilities, ", ")),
+		Metadata: metadata,
+	}
+
+	// Store agent in chromem-go
+	return r.collection.AddDocuments(ctx, []chromem.Document{doc}, runtime.NumCPU())
+}
+
+// GetAgentByID retrieves an agent by ID
+func (r *AgentRepository) GetAgentByID(ctx context.Context, id string) (*Agent, error) {
+	// Get document by ID
+	docs, err := r.collection.Get(ctx, []string{id})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(docs) == 0 {
+		return nil, fmt.Errorf("agent not found: %s", id)
+	}
+
+	// Convert document to Agent
+	return documentToAgent(docs[0])
+}
+
+// UpdateAgent updates an existing agent
+func (r *AgentRepository) UpdateAgent(ctx context.Context, agent *Agent) error {
+	// Check if agent exists
+	_, err := r.GetAgentByID(ctx, agent.ID)
+	if err != nil {
+		return err
+	}
+
+	// Convert agent to metadata
+	metadata := map[string]string{
+		"name":          agent.Name,
+		"collection":    agent.Collection,
+		"image_url":     agent.ImageURL,
+		"status":        agent.Status,
+		"token_id":      agent.TokenID,
+		"contract_addr": agent.ContractAddr,
+		"owner_id":      fmt.Sprintf("%d", agent.OwnerID),
+		"created_at":    agent.CreatedAt.Format(time.RFC3339),
+		"capabilities":  strings.Join(agent.Capabilities, ","),
+	}
+
+	// Create document for chromem-go
+	doc := chromem.Document{
+		ID:       agent.ID,
+		Content:  fmt.Sprintf("%s is a %s agent with capabilities for %s", agent.Name, agent.Collection, strings.Join(agent.Capabilities, ", ")),
+		Metadata: metadata,
+	}
+
+	// Update agent in chromem-go
+	return r.collection.UpdateDocument(ctx, doc)
+}
+
+// DeleteAgent deletes an agent
+func (r *AgentRepository) DeleteAgent(ctx context.Context, id string) error {
+	return r.collection.DeleteDocuments(ctx, []string{id})
+}
+
+// GetAgentsByOwner retrieves all agents for a user
+func (r *AgentRepository) GetAgentsByOwner(ctx context.Context, ownerID int64) ([]*Agent, error) {
+	// Query for agents with matching owner ID
+	filter := map[string]string{
+		"owner_id": fmt.Sprintf("%d", ownerID),
+	}
+
+	docs, err := r.collection.GetByMetadata(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert documents to Agents
+	agents := make([]*Agent, len(docs))
+	for i, doc := range docs {
+		agent, err := documentToAgent(doc)
+		if err != nil {
+			return nil, err
+		}
+		agents[i] = agent
+	}
+
+	return agents, nil
+}
+
+// FindSimilarAgents finds agents similar to the given query
+func (r *AgentRepository) FindSimilarAgents(ctx context.Context, query string, limit int) ([]*Agent, error) {
+	// Query chromem-go for similar agents
+	results, err := r.collection.Query(ctx, query, limit, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert results to Agents
+	agents := make([]*Agent, len(results))
+	for i, result := range results {
+		agent, err := documentToAgent(result)
+		if err != nil {
+			return nil, err
+		}
+		agents[i] = agent
+	}
+
+	return agents, nil
+}
+
+// Helper function to convert a document to an Agent
+func documentToAgent(doc chromem.Document) (*Agent, error) {
+	createdAt, err := time.Parse(time.RFC3339, doc.Metadata["created_at"])
+	if err != nil {
+		return nil, fmt.Errorf("invalid created_at timestamp: %w", err)
+	}
+
+	ownerID, err := strconv.ParseInt(doc.Metadata["owner_id"], 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid owner_id: %w", err)
+	}
+
+	capabilities := []string{}
+	if capStr := doc.Metadata["capabilities"]; capStr != "" {
+		capabilities = strings.Split(capStr, ",")
+	}
+
+	agent := &Agent{
+		ID:           doc.ID,
+		Name:         doc.Metadata["name"],
+		Collection:   doc.Metadata["collection"],
+		ImageURL:     doc.Metadata["image_url"],
+		Status:       doc.Metadata["status"],
+		Capabilities: capabilities,
+		TokenID:      doc.Metadata["token_id"],
+		ContractAddr: doc.Metadata["contract_addr"],
+		OwnerID:      ownerID,
+		CreatedAt:    createdAt,
+	}
+
+	return agent, nil
+}
+
+// TargetSystem represents a system that agents can interact with
+type TargetSystem struct {
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	Type         string    `json:"type"`
+	Status       string    `json:"status"`
+	Capabilities []string  `json:"capabilities"`
+	LastActivity time.Time `json:"last_activity"`
+	OwnerID      int64     `json:"owner_id"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+// TargetRepository handles target system persistence
+type TargetRepository struct {
+	collection *chromem.Collection
+}
+
+// NewTargetRepository creates a new target repository
+func NewTargetRepository(collection *chromem.Collection) *TargetRepository {
+	return &TargetRepository{
+		collection: collection,
+	}
+}
+
+// CreateTarget adds a new target to the database
+func (r *TargetRepository) CreateTarget(ctx context.Context, target *TargetSystem) error {
+	// Generate ID if not provided
+	if target.ID == "" {
+		target.ID = uuid.New().String()
+	}
+
+	// Set creation time if not provided
+	if target.CreatedAt.IsZero() {
+		target.CreatedAt = time.Now()
+	}
+
+	// Set last activity if not provided
+	if target.LastActivity.IsZero() {
+		target.LastActivity = time.Now()
+	}
+
+	// Convert target to metadata
+	metadata := map[string]string{
+		"name":          target.Name,
+		"type":          target.Type,
+		"status":        target.Status,
+		"owner_id":      fmt.Sprintf("%d", target.OwnerID),
+		"created_at":    target.CreatedAt.Format(time.RFC3339),
+		"last_activity": target.LastActivity.Format(time.RFC3339),
+		"capabilities":  strings.Join(target.Capabilities, ","),
+	}
+
+	// Create document for chromem-go
+	doc := chromem.Document{
+		ID:       target.ID,
+		Content:  fmt.Sprintf("%s is a %s target system with capabilities for %s", target.Name, target.Type, strings.Join(target.Capabilities, ", ")),
+		Metadata: metadata,
+	}
+
+	// Store target in chromem-go
+	return r.collection.AddDocuments(ctx, []chromem.Document{doc}, runtime.NumCPU())
+}
+
+// GetTargetByID retrieves a target by ID
+func (r *TargetRepository) GetTargetByID(ctx context.Context, id string) (*TargetSystem, error) {
+	// Get document by ID
+	docs, err := r.collection.Get(ctx, []string{id})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(docs) == 0 {
+		return nil, fmt.Errorf("target not found: %s", id)
+	}
+
+	// Convert document to TargetSystem
+	return documentToTarget(docs[0])
+}
+
+// UpdateTarget updates an existing target
+func (r *TargetRepository) UpdateTarget(ctx context.Context, target *TargetSystem) error {
+	// Check if target exists
+	_, err := r.GetTargetByID(ctx, target.ID)
+	if err != nil {
+		return err
+	}
+
+	// Convert target to metadata
+	metadata := map[string]string{
+		"name":          target.Name,
+		"type":          target.Type,
+		"status":        target.Status,
+		"owner_id":      fmt.Sprintf("%d", target.OwnerID),
+		"created_at":    target.CreatedAt.Format(time.RFC3339),
+		"last_activity": target.LastActivity.Format(time.RFC3339),
+		"capabilities":  strings.Join(target.Capabilities, ","),
+	}
+
+	// Create document for chromem-go
+	doc := chromem.Document{
+		ID:       target.ID,
+		Content:  fmt.Sprintf("%s is a %s target system with capabilities for %s", target.Name, target.Type, strings.Join(target.Capabilities, ", ")),
+		Metadata: metadata,
+	}
+
+	// Update target in chromem-go
+	return r.collection.UpdateDocument(ctx, doc)
+}
+
+// DeleteTarget deletes a target
+func (r *TargetRepository) DeleteTarget(ctx context.Context, id string) error {
+	return r.collection.DeleteDocuments(ctx, []string{id})
+}
+
+// GetTargetsByOwner retrieves all targets for a user
+func (r *TargetRepository) GetTargetsByOwner(ctx context.Context, ownerID int64) ([]*TargetSystem, error) {
+	// Query for targets with matching owner ID
+	filter := map[string]string{
+		"owner_id": fmt.Sprintf("%d", ownerID),
+	}
+
+	docs, err := r.collection.GetByMetadata(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert documents to TargetSystems
+	targets := make([]*TargetSystem, len(docs))
+	for i, doc := range docs {
+		target, err := documentToTarget(doc)
+		if err != nil {
+			return nil, err
+		}
+		targets[i] = target
+	}
+
+	return targets, nil
+}
+
+// Helper function to convert a document to a TargetSystem
+func documentToTarget(doc chromem.Document) (*TargetSystem, error) {
+	createdAt, err := time.Parse(time.RFC3339, doc.Metadata["created_at"])
+	if err != nil {
+		return nil, fmt.Errorf("invalid created_at timestamp: %w", err)
+	}
+
+	lastActivity, err := time.Parse(time.RFC3339, doc.Metadata["last_activity"])
+	if err != nil {
+		return nil, fmt.Errorf("invalid last_activity timestamp: %w", err)
+	}
+
+	ownerID, err := strconv.ParseInt(doc.Metadata["owner_id"], 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid owner_id: %w", err)
+	}
+
+	capabilities := []string{}
+	if capStr := doc.Metadata["capabilities"]; capStr != "" {
+		capabilities = strings.Split(capStr, ",")
+	}
+
+	target := &TargetSystem{
+		ID:           doc.ID,
+		Name:         doc.Metadata["name"],
+		Type:         doc.Metadata["type"],
+		Status:       doc.Metadata["status"],
+		Capabilities: capabilities,
+		LastActivity: lastActivity,
+		OwnerID:      ownerID,
+		CreatedAt:    createdAt,
+	}
+
+	return target, nil
+}
+
+// Capability represents a function that agents can perform
+type Capability struct {
+	ID            string    `json:"id"`
+	Name          string    `json:"name"`
+	Provider      string    `json:"provider"`
+	Type          string    `json:"type"`
+	EstimatedTime string    `json:"estimated_time"`
+	Description   string    `json:"description"`
+	System        bool      `json:"system"`
+	OwnerID       *int64    `json:"owner_id"`
+	CreatedAt     time.Time `json:"created_at"`
+}
+
+// CapabilityRepository handles capability persistence
+type CapabilityRepository struct {
+	collection *chromem.Collection
+}
+
+// NewCapabilityRepository creates a new capability repository
+func NewCapabilityRepository(collection *chromem.Collection) *CapabilityRepository {
+	return &CapabilityRepository{
+		collection: collection,
+	}
+}
+
+// CreateCapability adds a new capability to the database
+func (r *CapabilityRepository) CreateCapability(ctx context.Context, capability *Capability) error {
+	// Generate ID if not provided
+	if capability.ID == "" {
+		capability.ID = uuid.New().String()
+	}
+
+	// Set creation time if not provided
+	if capability.CreatedAt.IsZero() {
+		capability.CreatedAt = time.Now()
+	}
+
+	// Convert capability to metadata
+	metadata := map[string]string{
+		"name":           capability.Name,
+		"provider":       capability.Provider,
+		"type":           capability.Type,
+		"estimated_time": capability.EstimatedTime,
+		"description":    capability.Description,
+		"system":         strconv.FormatBool(capability.System),
+		"created_at":     capability.CreatedAt.Format(time.RFC3339),
+	}
+
+	// Add owner ID if present
+	if capability.OwnerID != nil {
+		metadata["owner_id"] = fmt.Sprintf("%d", *capability.OwnerID)
+	}
+
+	// Create document for chromem-go
+	doc := chromem.Document{
+		ID:       capability.ID,
+		Content:  fmt.Sprintf("%s is a %s capability provided by %s: %s", capability.Name, capability.Type, capability.Provider, capability.Description),
+		Metadata: metadata,
+	}
+
+	// Store capability in chromem-go
+	return r.collection.AddDocuments(ctx, []chromem.Document{doc}, runtime.NumCPU())
+}
+
+// GetCapabilityByID retrieves a capability by ID
+func (r *CapabilityRepository) GetCapabilityByID(ctx context.Context, id string) (*Capability, error) {
+	// Get document by ID
+	docs, err := r.collection.Get(ctx, []string{id})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(docs) == 0 {
+		return nil, fmt.Errorf("capability not found: %s", id)
+	}
+
+	// Convert document to Capability
+	return documentToCapability(docs[0])
+}
+
+// UpdateCapability updates an existing capability
+func (r *CapabilityRepository) UpdateCapability(ctx context.Context, capability *Capability) error {
+	// Check if capability exists
+	_, err := r.GetCapabilityByID(ctx, capability.ID)
+	if err != nil {
+		return err
+	}
+
+	// Convert capability to metadata
+	metadata := map[string]string{
+		"name":           capability.Name,
+		"provider":       capability.Provider,
+		"type":           capability.Type,
+		"estimated_time": capability.EstimatedTime,
+		"description":    capability.Description,
+		"system":         strconv.FormatBool(capability.System),
+		"created_at":     capability.CreatedAt.Format(time.RFC3339),
+	}
+
+	// Add owner ID if present
+	if capability.OwnerID != nil {
+		metadata["owner_id"] = fmt.Sprintf("%d", *capability.OwnerID)
+	}
+
+	// Create document for chromem-go
+	doc := chromem.Document{
+		ID:       capability.ID,
+		Content:  fmt.Sprintf("%s is a %s capability provided by %s: %s", capability.Name, capability.Type, capability.Provider, capability.Description),
+		Metadata: metadata,
+	}
+
+	// Update capability in chromem-go
+	return r.collection.UpdateDocument(ctx, doc)
+}
+
+// DeleteCapability deletes a capability
+func (r *CapabilityRepository) DeleteCapability(ctx context.Context, id string) error {
+	return r.collection.DeleteDocuments(ctx, []string{id})
+}
+
+// GetCapabilitiesForUser retrieves all capabilities available to a user
+func (r *CapabilityRepository) GetCapabilitiesForUser(ctx context.Context, userID int64) ([]*Capability, error) {
+	// Get system capabilities
+	systemFilter := map[string]string{
+		"system": "true",
+	}
+
+	systemDocs, err := r.collection.GetByMetadata(ctx, systemFilter)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get user-specific capabilities
+	userFilter := map[string]string{
+		"owner_id": fmt.Sprintf("%d", userID),
+	}
+
+	userDocs, err := r.collection.GetByMetadata(ctx, userFilter)
+	if err != nil {
+		return nil, err
+	}
+
+	// Combine results
+	allDocs := append(systemDocs, userDocs...)
+
+	// Convert documents to Capabilities
+	capabilities := make([]*Capability, len(allDocs))
+	for i, doc := range allDocs {
+		capability, err := documentToCapability(doc)
+		if err != nil {
+			return nil, err
+		}
+		capabilities[i] = capability
+	}
+
+	return capabilities, nil
+}
+
+// Helper function to convert a document to a Capability
+func documentToCapability(doc chromem.Document) (*Capability, error) {
+	createdAt, err := time.Parse(time.RFC3339, doc.Metadata["created_at"])
+	if err != nil {
+		return nil, fmt.Errorf("invalid created_at timestamp: %w", err)
+	}
+
+	system, err := strconv.ParseBool(doc.Metadata["system"])
+	if err != nil {
+		return nil, fmt.Errorf("invalid system flag: %w", err)
+	}
+
+	var ownerID *int64
+	if ownerIDStr, ok := doc.Metadata["owner_id"]; ok && ownerIDStr != "" {
+		id, err := strconv.ParseInt(ownerIDStr, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid owner_id: %w", err)
+		}
+		ownerID = &id
+	}
+
+	capability := &Capability{
+		ID:            doc.ID,
+		Name:          doc.Metadata["name"],
+		Provider:      doc.Metadata["provider"],
+		Type:          doc.Metadata["type"],
+		EstimatedTime: doc.Metadata["estimated_time"],
+		Description:   doc.Metadata["description"],
+		System:        system,
+		OwnerID:       ownerID,
+		CreatedAt:     createdAt,
+	}
+
+	return capability, nil
+}
+
+// ChromemManager handles chromem-go database management
+type ChromemManager struct {
+	db *chromem.DB
+}
+
+// NewChromemManager creates a new chromem-go manager
+func NewChromemManager(db *chromem.DB) *ChromemManager {
+	return &ChromemManager{
+		db: db,
+	}
+}
+
+// SyncCollections ensures all collections exist with proper settings
+func (m *ChromemManager) SyncCollections(collections map[string]map[string]string) error {
+	for name, metadata := range collections {
+		_, err := m.db.GetOrCreateCollection(name, metadata, nil)
+		if err != nil {
+			return fmt.Errorf("failed to sync collection %s: %w", name, err)
+		}
+	}
+
+	return nil
+}
+
+// BackupDatabase creates a backup of the entire database
+func (m *ChromemManager) BackupDatabase(ctx context.Context, backupPath string) error {
+	// Open file for writing
+	file, err := os.Create(backupPath)
+	if err != nil {
+		return fmt.Errorf("failed to create backup file: %w", err)
+	}
+	defer file.Close()
+
+	// Export database to file
+	return m.db.Export(ctx, file, &chromem.ExportOpts{
+		Compress: true,  // Use gzip compression
+		Encrypt:  false, // No encryption for simplicity
+	})
+}
+
+// RestoreDatabase restores the database from a backup
+func (m *ChromemManager) RestoreDatabase(ctx context.Context, backupPath string) error {
+	// Open file for reading
+	file, err := os.Open(backupPath)
+	if err != nil {
+		return fmt.Errorf("failed to open backup file: %w", err)
+	}
+	defer file.Close()
+
+	// Import database from file
+	return m.db.Import(ctx, file, &chromem.ImportOpts{
+		Compressed: true,  // File is gzip compressed
+		Encrypted:  false, // File is not encrypted
+	})
+}

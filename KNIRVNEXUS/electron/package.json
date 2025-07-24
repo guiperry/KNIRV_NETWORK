@@ -1,0 +1,170 @@
+{
+  "name": "agentic-engine-desktop",
+  "version": "1.0.0",
+  "description": "Agentic Engine - NFT-Agent Platform Desktop Application",
+  "main": "main.js",
+  "author": "Agentic Engine Team",
+  "license": "MIT",
+  "homepage": "https://github.com/your-repo/agentic-engine",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-repo/agentic-engine.git"
+  },
+  "scripts": {
+    "start": "electron .",
+    "dev": "cross-env NODE_ENV=development electron .",
+    "prebuild": "node scripts/sync-templates.js",
+    "build": "npm run prebuild && electron-builder",
+    "build:win": "npm run prebuild && electron-builder --win",
+    "build:mac": "npm run prebuild && electron-builder --mac",
+    "build:linux": "npm run prebuild && electron-builder --linux",
+    "build:all": "npm run prebuild && electron-builder --win --mac --linux",
+    "dist": "npm run build",
+    "dist:win": "npm run build:win",
+    "dist:mac": "npm run build:mac",
+    "dist:linux": "npm run build:linux",
+    "pack": "npm run prebuild && electron-builder --dir",
+    "pack:win": "npm run prebuild && electron-builder --dir --win",
+    "pack:mac": "npm run prebuild && electron-builder --dir --mac",
+    "pack:linux": "npm run prebuild && electron-builder --dir --linux",
+    "postinstall": "electron-builder install-app-deps",
+    "release": "electron-builder --publish=always",
+    "release:win": "electron-builder --win --publish=always",
+    "release:mac": "electron-builder --mac --publish=always",
+    "release:linux": "electron-builder --linux --publish=always"
+  },
+  "dependencies": {
+    "electron-updater": "^6.1.7"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "cross-env": "^7.0.3"
+  },
+  "build": {
+    "appId": "com.agenticengine.desktop",
+    "productName": "Agentic Engine",
+    "copyright": "Copyright © 2024 Agentic Engine Team",
+    "asar": true,
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "assets/**/*",
+      "agent/**/*"
+    ],
+    "extraFiles": [
+      {
+        "from": "../gui/dist",
+        "to": "gui/dist",
+        "filter": ["**/*"]
+      }
+    ],
+    "extraResources": [
+      {
+        "from": "../agentic-engine",
+        "to": "backend/agentic-engine",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "../agentic-engine.exe",
+        "to": "backend/agentic-engine.exe",
+        "filter": ["**/*"]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "assets/icon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64", "ia32"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64", "ia32"]
+        }
+      ],
+      "publisherName": "Agentic Engine Team",
+      "verifyUpdateCodeSignature": false
+    },
+    "linux": {
+      "icon": "assets/icon.png",
+      "category": "Development",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        }
+      ],
+      "desktop": {
+        "Name": "Agentic Engine",
+        "Comment": "NFT-Agent Platform",
+        "Categories": "Development;IDE;",
+        "Keywords": "agent;ai;automation;nft;"
+      }
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Agentic Engine"
+    },
+    "dmg": {
+      "title": "Agentic Engine ${version}",
+      "icon": "assets/icon.icns",
+      "background": "assets/dmg-background.png",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ],
+      "window": {
+        "width": 540,
+        "height": 380
+      }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "your-username",
+        "repo": "agentic-engine",
+        "releaseType": "release"
+      },
+      {
+        "provider": "generic",
+        "url": "https://releases.your-domain.com/agentic-engine/"
+      }
+    ],
+    "afterSign": "scripts/notarize.js",
+    "afterAllArtifactBuild": "scripts/after-build.js"
+  }
+}
