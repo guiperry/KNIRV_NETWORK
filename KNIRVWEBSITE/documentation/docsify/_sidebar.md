@@ -2,8 +2,8 @@
 
 ## 🏠 Navigation
 
-* [🏠 Back to Main Site](/index.html ':target=_self')
-* [🌐 KNIRV D-TEN Homepage](/index.html#d-ten ':target=_self')
+* [🏠 Back to Main Site](https://knirv.netlify.app/index.html)
+* [🌐 KNIRV D-TEN Homepage](https://knirv.netlify.app/index.html#d-ten)
 
 ## 📄 Whitepapers
 
@@ -14,11 +14,11 @@
 ---
 
 **Quick Links:**
-* [Main Website](/index.html ':target=_self')
-* [D-TEN Overview](/index.html#d-ten ':target=_self')
-* [Ecosystem](/index.html#ecosystem ':target=_self')
-* [NRN Economics](/index.html#token ':target=_self')
-* [Team](/index.html#team ':target=_self')
+* [Main Website](https://knirv.netlify.app/index.html)
+* [D-TEN Overview](https://knirv.netlify.app/index.html#d-ten)
+* [Ecosystem](https://knirv.netlify.app/index.html#ecosystem)
+* [NRN Economics](https://knirv.netlify.app/index.html#token)
+* [Team](https://knirv.netlify.app/index.html#team)
 
 © 2025 KNIRV Network
 </div>
