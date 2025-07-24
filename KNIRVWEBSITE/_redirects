@@ -1,0 +1,9 @@
+# Documentation redirects
+/docs/* /documentation/docsify/:splat 200
+/documentation/* /documentation/docsify/:splat 200
+
+# Handle SPA routing for docsify documentation
+/documentation/docsify/* /documentation/docsify/index.html 200
+
+# Main site fallback
+/* /index.html 200

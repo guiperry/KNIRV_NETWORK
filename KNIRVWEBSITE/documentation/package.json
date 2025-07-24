@@ -1,0 +1,16 @@
+{
+  "name": "knirv-network-docs",
+  "version": "1.0.0",
+  "description": "KNIRV Network Documentation",
+  "scripts": {
+    "serve": "docsify serve docsify",
+    "start": "docsify serve docsify",
+    "build": "echo 'Docsify is static - no build needed. Files are ready for deployment.'"
+  },
+  "dependencies": {
+    "docsify": "^4.13.1"
+  },
+  "devDependencies": {
+    "docsify-cli": "^4.4.4"
+  }
+}

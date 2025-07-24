@@ -1,0 +1,71 @@
+[build]
+  # Main site doesn't need build process - it's static HTML
+  publish = "."
+  command = "echo 'Main site is static - no build needed'"
+
+# Documentation build context
+[context.docs]
+  base = "documentation/"
+  publish = "documentation/docsify/"
+  command = "npm install && npm run build"
+
+# Production build settings
+[build.environment]
+  NODE_VERSION = "18"
+
+# Redirect rules for documentation
+[[redirects]]
+  from = "/docs/*"
+  to = "/documentation/docsify/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/documentation/*"
+  to = "/documentation/docsify/:splat"
+  status = 200
+
+# Handle SPA routing for docsify
+[[redirects]]
+  from = "/documentation/docsify/*"
+  to = "/documentation/docsify/index.html"
+  status = 200
+
+# Default fallback for main site
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers for security and performance
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/images/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Form handling (if needed)
+[build.processing]
+  skip_processing = false
+
+[build.processing.css]
+  bundle = false
+  minify = false
+
+[build.processing.js]
+  bundle = false
+  minify = false
+
+[build.processing.html]
+  pretty_urls = true
