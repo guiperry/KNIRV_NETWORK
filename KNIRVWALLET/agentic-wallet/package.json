@@ -9,8 +9,11 @@
     "lint": "expo lint"
   },
   "dependencies": {
-    "@expo/vector-icons": "^14.1.0",
+    "@cosmjs/cosmwasm-stargate": "^0.34.0",
+    "@cosmjs/proto-signing": "^0.34.0",
+    "@cosmjs/stargate": "^0.34.0",
     "@expo-google-fonts/inter": "^0.2.3",
+    "@expo/vector-icons": "^14.1.0",
     "@lucide/lab": "^0.1.2",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",

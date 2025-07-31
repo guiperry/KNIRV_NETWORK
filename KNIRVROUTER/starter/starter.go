@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 
 	// "os/exec" // No longer needed in this file
 	"os/signal"
@@ -16,14 +17,14 @@ import (
 	"strings"
 	"syscall"
 
-	// "time" // Removed unused import
-
 	"github.com/joho/godotenv"
 
 	"KNIRVCHAIN_GO_Verifyer/blockchain"
 	"KNIRVCHAIN_GO_Verifyer/blockchainserver"
+	"KNIRVCHAIN_GO_Verifyer/connectivity"
 	constants "KNIRVCHAIN_GO_Verifyer/constants"
 	"KNIRVCHAIN_GO_Verifyer/p2p"
+	"KNIRVCHAIN_GO_Verifyer/transaction_turnserver"
 	"KNIRVCHAIN_GO_Verifyer/utils"
 	"KNIRVCHAIN_GO_Verifyer/walletserver"
 )
@@ -320,6 +321,37 @@ func StartRootBlockchain(port uint64, minerAddress string) {
 		log.Fatalf("Failed to initialize P2P manager: %v", err)
 	}
 
+	// Initialize connectivity proof engine
+	log.Printf("Initializing connectivity proof engine")
+	proofEngineConfig := connectivity.ProofEngineConfig{
+		NRNMintingEnabled: true,
+		FaucetEndpoint:    "http://localhost:8080/api/mint/nrn",
+		MinConnectivity:   70.0, // Minimum connectivity score for rewards
+		MeasurementWindow: time.Minute * 5,
+		RewardMultiplier:  1.0,
+	}
+
+	// Get the host from P2P manager (assuming it has a GetHost method)
+	// In a real implementation, you'd need to expose the host from P2PManager
+	// For now, we'll create a placeholder
+	proofEngine := connectivity.NewConnectivityProofEngine(nil, proofEngineConfig)
+
+	// Initialize TURN server with blockchain adapter
+	log.Printf("Initializing TURN server with blockchain adapter")
+	blockchainAdapter := transaction_turnserver.NewBlockchainAdapter(
+		func(from, to string, data []byte) error {
+			// This would integrate with the actual blockchain transaction pool
+			log.Printf("Blockchain transaction: from=%s, to=%s, data=%s", from, to, string(data))
+			return nil
+		},
+		minerAddress,
+	)
+
+	turnServer, err := transaction_turnserver.NewServer(3478, 3479, 8080, blockchainAdapter)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize TURN server: %v", err)
+	}
+
 	// Create the blockchain server
 	bcs = blockchainserver.NewBlockchainServer(port, blockchain1)
 
@@ -331,6 +363,20 @@ func StartRootBlockchain(port uint64, minerAddress string) {
 	log.Printf("Starting P2P manager")
 	if err := p2pManager.Start(); err != nil {
 		log.Fatalf("Failed to start P2P manager: %v", err)
+	}
+
+	// Start connectivity proof engine
+	if proofEngine != nil {
+		log.Printf("Starting connectivity proof engine")
+		if err := proofEngine.Start(); err != nil {
+			log.Printf("Warning: Failed to start proof engine: %v", err)
+		}
+	}
+
+	// Start TURN server
+	if turnServer != nil {
+		log.Printf("Starting TURN server")
+		go turnServer.Start()
 	}
 
 	// Start the blockchain server
@@ -362,6 +408,22 @@ func StartRootBlockchain(port uint64, minerAddress string) {
 	log.Println("Stopping P2P manager...")
 	p2pManager.Stop()
 	log.Println("P2P manager stopped.")
+
+	// Stop connectivity proof engine
+	if proofEngine != nil {
+		log.Println("Stopping connectivity proof engine...")
+		proofEngine.Stop()
+		log.Println("Connectivity proof engine stopped.")
+	}
+
+	// Stop TURN server
+	if turnServer != nil {
+		log.Println("Stopping TURN server...")
+		if err := turnServer.Stop(); err != nil {
+			log.Printf("Error stopping TURN server: %v", err)
+		}
+		log.Println("TURN server stopped.")
+	}
 
 	// Add bcs.Stop() if implemented
 	log.Println("Shutdown complete.")

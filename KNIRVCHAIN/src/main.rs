@@ -1,4 +1,7 @@
 use crate::nrn_token::*;
+use crate::smart_contracts::*;
+use crate::blockchain_adapter::*;
+use crate::config::Config;
 use actix_web::rt::spawn;
 use actix_web::{get, post, web, App, Error, HttpResponse, HttpServer, Responder};
 use dotenv::dotenv;
@@ -17,6 +20,9 @@ use tracing::{error, info, subscriber::set_global_default};
 use tracing_subscriber::fmt;
 
 mod nrn_token;
+mod smart_contracts;
+mod blockchain_adapter;
+mod config;
 
 // Custom error wrapper for anyhow::Error to implement ResponseError
 #[derive(Debug)]
@@ -63,6 +69,8 @@ struct SharedState {
     blockchain: Mutex<Vec<Block>>,
     sled_db: Mutex<Db>,
     nrn: Mutex<NRN>,
+    smart_contracts: Mutex<SmartContractEngine>,
+    blockchain_adapter: Arc<BlockchainAdapter>,
 }
 
 // Helper function to convert byte array to hex string
@@ -459,6 +467,126 @@ async fn get_blocks(state: web::Data<Arc<SharedState>>) -> Result<impl Responder
     Ok(HttpResponse::Ok().json(blockchain.clone()))
 }
 
+// Handler for LLM registration
+#[post("/llm/register")]
+async fn register_llm(
+    state: web::Data<Arc<SharedState>>,
+    llm_request: web::Json<HashMap<String, serde_json::Value>>,
+) -> Result<impl Responder, Error> {
+    let mut smart_contracts = state.smart_contracts.lock().await;
+
+    let contract_call = ContractCall {
+        contract: "llm_registry".to_string(),
+        method: "register".to_string(),
+        params: serde_json::Value::Object(llm_request.into_inner().into_iter().collect()),
+    };
+
+    let response = smart_contracts.execute_contract_call(contract_call);
+
+    if response.success {
+        Ok(HttpResponse::Ok().json(response))
+    } else {
+        Ok(HttpResponse::BadRequest().json(response))
+    }
+}
+
+// Handler for skill registration
+#[post("/skill/register")]
+async fn register_skill(
+    state: web::Data<Arc<SharedState>>,
+    skill_request: web::Json<HashMap<String, serde_json::Value>>,
+) -> Result<impl Responder, Error> {
+    let mut smart_contracts = state.smart_contracts.lock().await;
+
+    let contract_call = ContractCall {
+        contract: "skill_registry".to_string(),
+        method: "register".to_string(),
+        params: serde_json::Value::Object(skill_request.into_inner().into_iter().collect()),
+    };
+
+    let response = smart_contracts.execute_contract_call(contract_call);
+
+    if response.success {
+        Ok(HttpResponse::Ok().json(response))
+    } else {
+        Ok(HttpResponse::BadRequest().json(response))
+    }
+}
+
+// Handler for skill invocation (burns NRN)
+#[post("/skill/invoke")]
+async fn invoke_skill(
+    state: web::Data<Arc<SharedState>>,
+    invoke_request: web::Json<HashMap<String, String>>,
+) -> Result<impl Responder, Error> {
+    let mut smart_contracts = state.smart_contracts.lock().await;
+
+    let params = serde_json::Value::Object(
+        invoke_request.into_inner().into_iter()
+            .map(|(k, v)| (k, serde_json::Value::String(v)))
+            .collect()
+    );
+
+    let contract_call = ContractCall {
+        contract: "nrn_token".to_string(),
+        method: "burn_for_skill".to_string(),
+        params,
+    };
+
+    let response = smart_contracts.execute_contract_call(contract_call);
+
+    if response.success {
+        Ok(HttpResponse::Ok().json(response))
+    } else {
+        Ok(HttpResponse::BadRequest().json(response))
+    }
+}
+
+// Enhanced LLM registration using blockchain adapter
+#[post("/v2/llm/register")]
+async fn register_llm_v2(
+    state: web::Data<Arc<SharedState>>,
+    llm_request: web::Json<LLMRegistrationRequest>,
+) -> Result<impl Responder, Error> {
+    match state.blockchain_adapter.register_llm(llm_request.into_inner()).await {
+        Ok(result) => Ok(HttpResponse::Ok().json(result)),
+        Err(e) => Ok(HttpResponse::BadRequest().json(serde_json::json!({
+            "success": false,
+            "error": e.to_string()
+        }))),
+    }
+}
+
+// Enhanced skill registration using blockchain adapter
+#[post("/v2/skill/register")]
+async fn register_skill_v2(
+    state: web::Data<Arc<SharedState>>,
+    skill_request: web::Json<SkillRegistrationRequest>,
+) -> Result<impl Responder, Error> {
+    match state.blockchain_adapter.register_skill(skill_request.into_inner()).await {
+        Ok(result) => Ok(HttpResponse::Ok().json(result)),
+        Err(e) => Ok(HttpResponse::BadRequest().json(serde_json::json!({
+            "success": false,
+            "error": e.to_string()
+        }))),
+    }
+}
+
+// Enhanced skill invocation using blockchain adapter
+#[post("/v2/skill/invoke")]
+async fn invoke_skill_v2(
+    state: web::Data<Arc<SharedState>>,
+    invoke_request: web::Json<SkillInvocationRequest>,
+) -> Result<impl Responder, Error> {
+    match state.blockchain_adapter.invoke_skill(invoke_request.into_inner()).await {
+        Ok(result) => Ok(HttpResponse::Ok().json(result)),
+        Err(e) => Ok(HttpResponse::BadRequest().json(serde_json::json!({
+            "success": false,
+            "error": e.to_string()
+        }))),
+    }
+}
+
 fn setup_logging() {
     let subscriber = fmt::Subscriber::builder()
         .with_max_level(tracing::Level::INFO)
@@ -499,11 +627,33 @@ async fn main() -> std::io::Result<()> {
     let nrn = NRN::new("MyNewToken".to_string(), "MNT".to_string(), initial_supply, max_supply, &owner_private_key)
       .expect("Error when creating token, please check the configurations are valid, specifically the private keys, or the data passed for initial and max supply");
 
+    // Initialize smart contract engine
+    let smart_contracts = SmartContractEngine::new(&owner_private_key)
+        .expect("Failed to initialize smart contract engine");
+    let smart_contracts_arc = Arc::new(Mutex::new(smart_contracts));
+
+    // Load configuration
+    let config = Config::load_from_file("config/blockchain.toml")
+        .unwrap_or_else(|_| {
+            println!("Warning: Could not load config file, using defaults");
+            Config::load_default()
+        });
+
+    let blockchain_config = config.to_blockchain_config()
+        .expect("Failed to convert config to blockchain config");
+
+    let blockchain_adapter = Arc::new(
+        BlockchainAdapter::new(blockchain_config, smart_contracts_arc.clone())
+            .expect("Failed to initialize blockchain adapter")
+    );
+
     let shared_state = Arc::new(SharedState {
         transaction_pool: Mutex::new(Vec::new()),
         blockchain: Mutex::new(chain),
         sled_db: shared_db,
         nrn: Mutex::new(nrn),
+        smart_contracts: Mutex::new(SmartContractEngine::new(&owner_private_key).expect("Failed to create smart contracts")),
+        blockchain_adapter,
     });
 
     println!("[INFO] Starting server at http://{}", rpc_endpoint);
@@ -565,6 +715,12 @@ async fn main() -> std::io::Result<()> {
             .service(nrn_transfer)
             .service(nrn_balance)
             .service(nrn_info)
+            .service(register_llm)
+            .service(register_skill)
+            .service(invoke_skill)
+            .service(register_llm_v2)
+            .service(register_skill_v2)
+            .service(invoke_skill_v2)
     })
     .bind(rpc_endpoint)?
     .run()

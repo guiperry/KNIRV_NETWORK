@@ -36,7 +36,8 @@ type BlockchainServer struct {
 	db               *LevelDB
 	discoveryManager DiscoveryService
 	p2pPort          int
-	testMode         bool // Flag indicating if running in test mode
+	testMode         bool        // Flag indicating if running in test mode
+	xionBridge       *XionBridge // XION bridge integration
 }
 
 var pendingRegistrations = struct {
@@ -236,6 +237,21 @@ func NewBlockchainServer(port uint64, blockchain *BlockchainStruct, db *LevelDB,
 	// Set the server port globally so it can be accessed from other parts of the code
 	utils.SetServerPort(port) // Keep this if needed elsewhere
 
+	// Initialize XION bridge
+	bridgeConfig := BridgeConfig{
+		XionRPC:       "https://rpc.xion-testnet-1.burnt.com:443",
+		XionChainID:   "xion-testnet-1",
+		NRNContract:   "xion1nrn_contract_address", // Would be set from config
+		BridgeKeyName: "bridge_key",
+		KeyringDir:    "./keyring",
+	}
+
+	xionBridge, err := NewXionBridge(bridgeConfig, db)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize XION bridge: %v", err)
+		xionBridge = nil
+	}
+
 	return &BlockchainServer{
 		port:             port,
 		BlockchainPtr:    blockchain,
@@ -243,6 +259,7 @@ func NewBlockchainServer(port uint64, blockchain *BlockchainStruct, db *LevelDB,
 		discoveryManager: discoveryMgr,   // Store the passed-in manager
 		p2pPort:          p2pPort,        // Store the correct P2P port
 		server:           &http.Server{}, // Initialize empty server to prevent nil dereference
+		xionBridge:       xionBridge,
 	}
 }
 
@@ -316,6 +333,11 @@ func (bcs *BlockchainServer) Prepare() (uint64, error) {
 	mux.HandleFunc("/internal/dht/announceResource", bcs.handleInternalDHTAnnounceResource)
 	mux.HandleFunc("/internal/db/getCapability", bcs.handleInternalDBGetCapability)
 	mux.HandleFunc("/internal/db/idExists", bcs.handleInternalDBIDExists)
+
+	// Add XION bridge endpoints if bridge is available
+	if bcs.xionBridge != nil {
+		bcs.xionBridge.IntegrateWithKNIRVROOT(mux)
+	}
 
 	// Find available port
 	actualPort := bcs.port
@@ -525,6 +547,17 @@ func (bcs *BlockchainServer) StartListenAndServe() error {
 	bcs.server.IdleTimeout = 120 * time.Second
 
 	log.Printf("Starting HTTP server listener for chain %s on port: %d", bcs.BlockchainPtr.ChainID, bcs.port)
+
+	// Start XION bridge service if available
+	if bcs.xionBridge != nil {
+		ctx := context.Background()
+		go func() {
+			if err := bcs.xionBridge.StartBridgeService(ctx); err != nil {
+				log.Printf("Error starting XION bridge service: %v", err)
+			}
+		}()
+		log.Printf("XION bridge service started for chain %s", bcs.BlockchainPtr.ChainID)
+	}
 
 	// Start the server
 	err := bcs.server.ListenAndServe()

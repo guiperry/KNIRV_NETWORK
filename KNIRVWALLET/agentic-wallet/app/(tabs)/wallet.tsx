@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Send, Download, ArrowUpDown, Filter, Search } from 'lucide-react-native';
+import { Send, Download, ArrowUpDown, Filter, Search, Zap } from 'lucide-react-native';
 import GlassCard from '@/components/GlassCard';
 import CryptoCard from '@/components/CryptoCard';
+import { MetaAccountDashboard } from '../../src/components/MetaAccountDashboard';
+import { getXionConfig } from '../../src/config/xion-config';
 
 export default function WalletScreen() {
-  const [activeTab, setActiveTab] = useState<'all' | 'crypto' | 'nft' | 'defi'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'crypto' | 'nft' | 'defi' | 'xion'>('all');
 
   const cryptoAssets = [
     {
@@ -89,6 +91,7 @@ export default function WalletScreen() {
     { key: 'crypto', label: 'Crypto' },
     { key: 'nft', label: 'NFTs' },
     { key: 'defi', label: 'DeFi' },
+    { key: 'xion', label: 'XION Meta' },
   ];
 
   return (
@@ -156,24 +159,32 @@ export default function WalletScreen() {
             ))}
           </View>
 
-          {/* Assets List */}
-          <View style={styles.assetsList}>
-            {cryptoAssets.map((asset, index) => (
-              <CryptoCard
-                key={index}
-                symbol={asset.symbol}
-                name={asset.name}
-                price={asset.price}
-                change={asset.change}
-                amount={asset.amount}
-                value={asset.value}
-                icon={asset.icon}
-              />
-            ))}
-          </View>
+          {/* Content based on active tab */}
+          {activeTab === 'xion' ? (
+            <MetaAccountDashboard config={getXionConfig('testnet')} />
+          ) : (
+            <>
+              {/* Assets List */}
+              <View style={styles.assetsList}>
+                {cryptoAssets.map((asset, index) => (
+                  <CryptoCard
+                    key={index}
+                    symbol={asset.symbol}
+                    name={asset.name}
+                    price={asset.price}
+                    change={asset.change}
+                    amount={asset.amount}
+                    value={asset.value}
+                    icon={asset.icon}
+                  />
+                ))}
+              </View>
+            </>
+          )}
 
-          {/* Recent Transactions */}
-          <View style={styles.transactions}>
+          {/* Recent Transactions - only show for non-XION tabs */}
+          {activeTab !== 'xion' && (
+            <View style={styles.transactions}>
             <Text style={styles.sectionTitle}>Recent Transactions</Text>
             {transactions.map((tx, index) => (
               <GlassCard key={index} style={styles.transactionCard}>
@@ -202,7 +213,8 @@ export default function WalletScreen() {
                 </View>
               </GlassCard>
             ))}
-          </View>
+            </View>
+          )}
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>

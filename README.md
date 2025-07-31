@@ -398,7 +398,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔗 Links
 
-- **Website**: [KNIRV Network](https://knirvnetwork.netlify.app)
+- **Website**: [KNIRV Network](https://knirv.netlify.app)
 - **Documentation**: [Technical Docs](docs/)
 - **Community**: [Discord](https://discord.gg/knirv) | [Telegram](https://t.me/knirvnetwork)
 - **Development**: [GitHub Issues](https://github.com/guiperry/KNIRV_NETWORK/issues)

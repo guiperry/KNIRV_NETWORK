@@ -2,6 +2,7 @@
 package p2p
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"fmt"
@@ -296,5 +297,181 @@ func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
 	err := n.dm.host.Connect(n.dm.ctx, pi)
 	if err != nil {
 		log.Printf("Error connecting to mDNS peer %s: %v", pi.ID.String(), err)
+	}
+}
+
+// ConnectivityMeasurement represents connectivity metrics for DHT integration
+type DHTConnectivityMeasurement struct {
+	PeerID            peer.ID       `json:"peer_id"`
+	Latency           time.Duration `json:"latency"`
+	LastSeen          time.Time     `json:"last_seen"`
+	ConnectionCount   int           `json:"connection_count"`
+	SuccessfulQueries int           `json:"successful_queries"`
+	FailedQueries     int           `json:"failed_queries"`
+	IsBootstrap       bool          `json:"is_bootstrap"`
+}
+
+// MeasurePeerConnectivity measures connectivity to a specific peer through DHT
+func (dm *DHTManager) MeasurePeerConnectivity(peerID peer.ID) (*DHTConnectivityMeasurement, error) {
+	dm.mutex.RLock()
+	defer dm.mutex.RUnlock()
+
+	// Check if peer is connected
+	connectedness := dm.host.Network().Connectedness(peerID)
+	if connectedness != 1 { // Not connected
+		return nil, fmt.Errorf("peer %s is not connected", peerID.String())
+	}
+
+	// Measure latency using DHT ping
+	start := time.Now()
+	err := dm.kadDHT.Ping(dm.ctx, peerID)
+	latency := time.Since(start)
+
+	if err != nil {
+		log.Printf("Failed to ping peer %s: %v", peerID.String(), err)
+		return &DHTConnectivityMeasurement{
+			PeerID:            peerID,
+			Latency:           0,
+			LastSeen:          time.Now(),
+			ConnectionCount:   0,
+			SuccessfulQueries: 0,
+			FailedQueries:     1,
+			IsBootstrap:       dm.isBootstrapPeer(peerID),
+		}, nil
+	}
+
+	// Create measurement
+	measurement := &DHTConnectivityMeasurement{
+		PeerID:            peerID,
+		Latency:           latency,
+		LastSeen:          time.Now(),
+		ConnectionCount:   1,
+		SuccessfulQueries: 1,
+		FailedQueries:     0,
+		IsBootstrap:       dm.isBootstrapPeer(peerID),
+	}
+
+	log.Printf("DHT connectivity measured for peer %s: latency=%v", peerID.String()[:8], latency)
+	return measurement, nil
+}
+
+// isBootstrapPeer checks if a peer is a bootstrap peer
+func (dm *DHTManager) isBootstrapPeer(peerID peer.ID) bool {
+	for _, bootstrapPeer := range dm.bootstrapPeers {
+		if bootstrapPeer.ID == peerID {
+			return true
+		}
+	}
+	return false
+}
+
+// GetConnectedPeers returns all currently connected peers
+func (dm *DHTManager) GetConnectedPeers() []peer.ID {
+	return dm.host.Network().Peers()
+}
+
+// MeasureAllPeerConnectivity measures connectivity to all connected peers
+func (dm *DHTManager) MeasureAllPeerConnectivity() map[peer.ID]*DHTConnectivityMeasurement {
+	peers := dm.GetConnectedPeers()
+	measurements := make(map[peer.ID]*DHTConnectivityMeasurement)
+
+	var wg sync.WaitGroup
+	var measurementsMutex sync.Mutex
+
+	for _, peerID := range peers {
+		wg.Add(1)
+		go func(pid peer.ID) {
+			defer wg.Done()
+
+			measurement, err := dm.MeasurePeerConnectivity(pid)
+			if err != nil {
+				log.Printf("Failed to measure connectivity to peer %s: %v", pid.String(), err)
+				return
+			}
+
+			measurementsMutex.Lock()
+			measurements[pid] = measurement
+			measurementsMutex.Unlock()
+		}(peerID)
+	}
+
+	wg.Wait()
+	return measurements
+}
+
+// GetDHTStats returns DHT statistics including connectivity metrics
+func (dm *DHTManager) GetDHTStats() map[string]interface{} {
+	peers := dm.GetConnectedPeers()
+	measurements := dm.MeasureAllPeerConnectivity()
+
+	totalLatency := time.Duration(0)
+	successfulMeasurements := 0
+	bootstrapPeers := 0
+
+	for _, measurement := range measurements {
+		if measurement.Latency > 0 {
+			totalLatency += measurement.Latency
+			successfulMeasurements++
+		}
+		if measurement.IsBootstrap {
+			bootstrapPeers++
+		}
+	}
+
+	avgLatency := time.Duration(0)
+	if successfulMeasurements > 0 {
+		avgLatency = totalLatency / time.Duration(successfulMeasurements)
+	}
+
+	return map[string]interface{}{
+		"total_peers":             len(peers),
+		"measured_peers":          len(measurements),
+		"successful_measurements": successfulMeasurements,
+		"bootstrap_peers":         bootstrapPeers,
+		"average_latency":         avgLatency.String(),
+		"dht_mode":                "server",
+		"host_id":                 dm.host.ID().String(),
+	}
+}
+
+// TestDHTConnectivity performs a comprehensive connectivity test
+func (dm *DHTManager) TestDHTConnectivity() map[string]interface{} {
+	log.Println("Starting DHT connectivity test...")
+
+	// Test bootstrap peer connectivity
+	bootstrapResults := make(map[string]bool)
+	for _, bootstrapPeer := range dm.bootstrapPeers {
+		err := dm.host.Connect(dm.ctx, bootstrapPeer)
+		bootstrapResults[bootstrapPeer.ID.String()] = err == nil
+	}
+
+	// Test DHT functionality
+	testKey := fmt.Sprintf("test_key_%d", time.Now().UnixNano())
+	testValue := []byte(fmt.Sprintf("test_value_%d", time.Now().UnixNano()))
+
+	// Test DHT put
+	putStart := time.Now()
+	putErr := dm.kadDHT.PutValue(dm.ctx, testKey, testValue)
+	putLatency := time.Since(putStart)
+
+	// Test DHT get
+	getStart := time.Now()
+	retrievedValue, getErr := dm.kadDHT.GetValue(dm.ctx, testKey)
+	getLatency := time.Since(getStart)
+
+	// Verify value
+	valueMatch := false
+	if getErr == nil && bytes.Equal(retrievedValue, testValue) {
+		valueMatch = true
+	}
+
+	return map[string]interface{}{
+		"bootstrap_connectivity": bootstrapResults,
+		"dht_put_success":        putErr == nil,
+		"dht_put_latency":        putLatency.String(),
+		"dht_get_success":        getErr == nil,
+		"dht_get_latency":        getLatency.String(),
+		"value_integrity":        valueMatch,
+		"test_timestamp":         time.Now(),
 	}
 }
