@@ -76,7 +76,7 @@ var AppVersion = "dev" // Default if not set by ldflags
 
 // Constants for go-rocket-update
 const (
-	GitHubRepoOwner = "guiperry"   // Replace with your GitHub username or organization
+	GitHubRepoOwner = "guiperry"  // Replace with your GitHub username or organization
 	GitHubRepoName  = "KNIRVROOT" // Replace with your GitHub repository name
 )
 
@@ -2093,7 +2093,7 @@ func (adapter *LevelDBAdapter) SetValue(key, value string) error {
 }
 
 // initializeInferenceServiceWithDB initializes the inference service with the database
-func initializeInferenceServiceWithDB(db *LevelDB, cfg *config.Config) error {
+func initializeInferenceServiceWithDB(db *LevelDB, _ *config.Config) error {
 	// Create an adapter to make LevelDB compatible with DatabaseAccessor interface
 	dbAdapter := &LevelDBAdapter{db: db}
 

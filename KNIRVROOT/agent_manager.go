@@ -1276,7 +1276,7 @@ func (am *AgentManager) summarizeOutput(output map[string]interface{}) string {
 }
 
 // executeCapability executes a capability based on its type
-func (am *AgentManager) executeCapability(capabilityType string, schema map[string]interface{}, locationHints []string, input map[string]interface{}) (map[string]interface{}, error) {
+func (am *AgentManager) executeCapability(capabilityType string, _ map[string]interface{}, _ []string, input map[string]interface{}) (map[string]interface{}, error) {
 	// This is a placeholder implementation
 	// In a real system, this would:
 	// 1. Download the capability from locationHints
@@ -1576,7 +1576,7 @@ func (nm *NFTManager) SetDiscoveryManager(discoveryManager *DiscoveryManager) {
 // ===== RESOURCE CAPABILITY METHODS (Phase 3) =====
 
 // validateResourceCapabilityInput validates the input parameters for resource capability creation
-func (am *AgentManager) validateResourceCapabilityInput(agentId, name, description, resourceType string, metadata map[string]interface{}) error {
+func (am *AgentManager) validateResourceCapabilityInput(agentId, name, _ string, resourceType string, metadata map[string]interface{}) error {
 	// Validate required fields
 	if agentId == "" {
 		return fmt.Errorf("agent ID is required")
@@ -1656,7 +1656,7 @@ func (am *AgentManager) AddResourceCapabilityToAgent(agentId, name, description,
 	}
 
 	// Verify the Agent exists
-	agent, err := am.GetAgent(agentId)
+	_, err := am.GetAgent(agentId)
 	if err != nil {
 		return nil, fmt.Errorf("agent not found: %v", err)
 	}
@@ -1710,7 +1710,7 @@ func (am *AgentManager) AddResourceCapabilityToAgent(agentId, name, description,
 	}
 
 	// Get the agent to retrieve the added capability with its generated ID
-	agent, err = am.GetAgent(agentId)
+	agent, err := am.GetAgent(agentId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get agent after adding capability: %v", err)
 	}
@@ -1737,9 +1737,10 @@ func (am *AgentManager) LinkResourceToCapability(agentId, resourceCapabilityId, 
 	var functionalCapability *Capability
 
 	for i, cap := range agent.Capabilities {
-		if cap.ID == resourceCapabilityId {
+		switch cap.ID {
+		case resourceCapabilityId:
 			resourceCapability = &agent.Capabilities[i]
-		} else if cap.ID == functionalCapabilityId {
+		case functionalCapabilityId:
 			functionalCapability = &agent.Capabilities[i]
 		}
 	}
@@ -2099,7 +2100,7 @@ func (am *AgentManager) InvokeResourceCapability(agentId, capabilityId string, p
 }
 
 // validateResourceAccess validates if the initiator has access to the resource capability
-func (am *AgentManager) validateResourceAccess(agentId, capabilityId, initiator string) error {
+func (am *AgentManager) validateResourceAccess(agentId, _ string, initiator string) error {
 	// Get the agent
 	agent, err := am.GetAgent(agentId)
 	if err != nil {
@@ -2127,7 +2128,7 @@ func (am *AgentManager) validateResourceAccess(agentId, capabilityId, initiator 
 }
 
 // invokeFileResource handles file resource invocation
-func (am *AgentManager) invokeFileResource(capability *Capability, parameters map[string]interface{}) (map[string]interface{}, error) {
+func (am *AgentManager) invokeFileResource(capability *Capability, _ map[string]interface{}) (map[string]interface{}, error) {
 	// Get file path from metadata
 	filePath, ok := capability.Metadata["file_path"].(string)
 	if !ok {

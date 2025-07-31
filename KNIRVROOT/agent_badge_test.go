@@ -908,25 +908,23 @@ func TestBadgeAttachmentConcurrency(t *testing.T) {
 	// Wait for all goroutines to complete
 	successCount := 0
 	for i := 0; i < numGoroutines; i++ {
+		<-done
+		// Check if we got an attachment or error
 		select {
-		case <-done:
-			// Check if we got an attachment or error
-			select {
-			case attachment := <-attachments:
-				successCount++
-				// Verify attachment properties
-				if attachment.AgentId != agent.ID {
-					t.Errorf("Concurrent attachment has wrong agent ID: expected %s, got %s", agent.ID, attachment.AgentId)
-				}
-				if attachment.Signature == "" {
-					t.Error("Concurrent attachment should have a signature")
-				}
-			case err := <-errors:
-				t.Errorf("Concurrent badge attachment failed: %v", err)
-			default:
-				// This shouldn't happen
-				t.Error("Goroutine completed but no attachment or error received")
+		case attachment := <-attachments:
+			successCount++
+			// Verify attachment properties
+			if attachment.AgentId != agent.ID {
+				t.Errorf("Concurrent attachment has wrong agent ID: expected %s, got %s", agent.ID, attachment.AgentId)
 			}
+			if attachment.Signature == "" {
+				t.Error("Concurrent attachment should have a signature")
+			}
+		case err := <-errors:
+			t.Errorf("Concurrent badge attachment failed: %v", err)
+		default:
+			// This shouldn't happen
+			t.Error("Goroutine completed but no attachment or error received")
 		}
 	}
 

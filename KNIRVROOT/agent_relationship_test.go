@@ -831,7 +831,6 @@ func TestAgentRelationshipPersistence(t *testing.T) {
 
 	newAgentManager := &AgentManager{
 		chromeManager: newChromemManager,
-		wallet:        wallet,
 	}
 
 	// Retrieve the relationship with the new manager

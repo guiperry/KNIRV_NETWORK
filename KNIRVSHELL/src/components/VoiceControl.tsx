@@ -1,20 +1,86 @@
-import React, { useState, useEffect } from 'react';
-import { Mic, MicOff, Volume2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Mic, MicOff, Volume2, Brain } from 'lucide-react';
+import { VoiceProcessor, VoiceConfig } from '../cognitive-shell/VoiceProcessor';
 
 interface VoiceControlProps {
   isActive: boolean;
   onVoiceCommand: (command: string) => void;
   onToggle: (active: boolean) => void;
+  cognitiveMode?: boolean;
 }
 
 export const VoiceControl: React.FC<VoiceControlProps> = ({
   isActive,
   onVoiceCommand,
-  onToggle
+  onToggle,
+  cognitiveMode = false
 }) => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [confidence, setConfidence] = useState(0);
+  const [voiceProcessor, setVoiceProcessor] = useState<VoiceProcessor | null>(null);
+  const [isSupported, setIsSupported] = useState(false);
+  const processorRef = useRef<VoiceProcessor | null>(null);
+
+  // Initialize voice processor when cognitive mode is enabled
+  useEffect(() => {
+    if (cognitiveMode && !voiceProcessor) {
+      initializeVoiceProcessor();
+    }
+
+    return () => {
+      if (processorRef.current) {
+        processorRef.current.stop();
+      }
+    };
+  }, [cognitiveMode]);
+
+  const initializeVoiceProcessor = async () => {
+    try {
+      const config: VoiceConfig = {
+        sampleRate: 16000,
+        channels: 1,
+        language: 'en-US',
+        enableWakeWord: true,
+        wakeWord: 'knirv',
+        noiseReduction: true,
+      };
+
+      const processor = new VoiceProcessor(config);
+      processorRef.current = processor;
+      setVoiceProcessor(processor);
+      setIsSupported(processor.isSupported());
+
+      // Set up event listeners
+      processor.on('speechDetected', (speech) => {
+        setTranscript(speech.text);
+        setConfidence(speech.confidence);
+        onVoiceCommand(speech.text);
+      });
+
+      processor.on('commandRecognized', (command) => {
+        console.log('Voice command recognized:', command);
+        onVoiceCommand(command.originalText);
+      });
+
+      processor.on('recognitionStarted', () => {
+        setIsListening(true);
+      });
+
+      processor.on('recognitionEnded', () => {
+        setIsListening(false);
+      });
+
+      processor.on('recognitionError', (error) => {
+        console.error('Voice recognition error:', error);
+        setIsListening(false);
+      });
+
+    } catch (error) {
+      console.error('Failed to initialize voice processor:', error);
+      setIsSupported(false);
+    }
+  };
 
   const simulateVoiceRecognition = () => {
     if (!isActive) return;
@@ -30,12 +96,16 @@ export const VoiceControl: React.FC<VoiceControlProps> = ({
       'Assign agents to fix this',
       'Capture screenshot and analyze',
       'Map NRV to graph',
-      'Check system performance'
+      'Check system performance',
+      'Start learning mode',
+      'Save current adaptation',
+      'Invoke skill analysis',
+      'Toggle visual processing'
     ];
 
     let currentText = '';
     const targetPhrase = phrases[Math.floor(Math.random() * phrases.length)];
-    
+
     const words = targetPhrase.split(' ');
     let wordIndex = 0;
 
@@ -61,15 +131,37 @@ export const VoiceControl: React.FC<VoiceControlProps> = ({
 
   useEffect(() => {
     if (isActive) {
-      const interval = setInterval(() => {
-        if (Math.random() < 0.3) { // 30% chance to trigger voice recognition
-          simulateVoiceRecognition();
-        }
-      }, 3000);
+      if (cognitiveMode && voiceProcessor) {
+        // Use real voice processor
+        handleRealVoiceToggle(true);
+      } else {
+        // Use simulation
+        const interval = setInterval(() => {
+          if (Math.random() < 0.3) { // 30% chance to trigger voice recognition
+            simulateVoiceRecognition();
+          }
+        }, 3000);
 
-      return () => clearInterval(interval);
+        return () => clearInterval(interval);
+      }
+    } else if (voiceProcessor) {
+      handleRealVoiceToggle(false);
     }
-  }, [isActive]);
+  }, [isActive, cognitiveMode, voiceProcessor]);
+
+  const handleRealVoiceToggle = async (active: boolean) => {
+    if (!voiceProcessor) return;
+
+    try {
+      if (active) {
+        await voiceProcessor.start();
+      } else {
+        await voiceProcessor.stop();
+      }
+    } catch (error) {
+      console.error('Voice processor toggle error:', error);
+    }
+  };
 
   return (
     <div className="absolute bottom-4 right-4 z-40">
@@ -97,9 +189,9 @@ export const VoiceControl: React.FC<VoiceControlProps> = ({
         {/* Voice Toggle Button */}
         <button
           onClick={() => onToggle(!isActive)}
-          className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 ${
-            isActive 
-              ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/30' 
+          className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 relative ${
+            isActive
+              ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/30'
               : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
           }`}
         >
@@ -107,6 +199,18 @@ export const VoiceControl: React.FC<VoiceControlProps> = ({
             <Mic className="w-6 h-6" />
           ) : (
             <MicOff className="w-6 h-6" />
+          )}
+
+          {/* Cognitive Mode Indicator */}
+          {cognitiveMode && (
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
+              <Brain className="w-2 h-2 text-white" />
+            </div>
+          )}
+
+          {/* Unsupported Indicator */}
+          {cognitiveMode && !isSupported && (
+            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
           )}
         </button>
       </div>

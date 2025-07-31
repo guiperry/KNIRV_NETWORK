@@ -1,0 +1,66 @@
+
+
+---
+
+**Source**: KNIRVROOT/docs/completedImplementations/tunnel_relay_implementation_plan_worklog.md
+
+# Tunnel Relay Implementation Worklog
+
+## Overview
+This document tracks the progress of implementing the tunnel relay system as detailed in the `tunnel_relay_implementation_plan.md` file. The implementation follows the phased approach outlined in the plan.
+
+## Phase 1: Implement Internal API Endpoints in Go Components
+- [x] Add handlers for DHT queries, capability lookups, and ID existence checks
+- [x] Update BlockchainServer to expose these endpoints
+
+## Phase 2: Update Node.js Components to Use Internal APIs
+- [x] Modify registryManager.js to communicate with Go process
+- [x] Update URI routes to leverage the shared registry
+
+## Phase 3: Implement URI Resolution and Generation Logic
+- [x] Complete the URI parsing and resolution flow
+- [x] Implement the resource ID generation and verification
+
+## Phase 4: Implement Node Registration and Tunneling
+- [x] Finalize the control socket connection handling
+- [x] Complete the public node registration process
+
+## Phase 5: Testing and Optimization
+- [ ] Test URI resolution across multiple bootnodes
+- [ ] Verify DHT announcements and lookups
+- [ ] Optimize performance of inter-process communication
+
+## Implementation Notes
+
+### Phase 1: Internal API Endpoints
+- Added four new endpoints to the BlockchainServer:
+  - `/internal/dht/findResource`: Finds resources on the DHT
+  - `/internal/dht/announceResource`: Announces resources on the DHT
+  - `/internal/db/getCapability`: Gets capability records from the blockchain
+  - `/internal/db/idExists`: Checks if an ID exists in the blockchain
+
+### Phase 2: Node.js Integration
+- Updated NodeJSManager to pass the DiscoveryManager and Blockchain to it
+- Added Go internal API port configuration to the tunnel registry
+- Modified registryManager.js to use the Go internal API for DHT operations
+
+### Phase 3: URI Resolution and Generation
+- Updated the URI resolver to include the Authority field
+- Implemented comprehensive URI resolution that checks:
+  1. Local registry for tunneled resources
+  2. Local registry for direct nodes
+  3. Global DHT for resources
+  4. Blockchain for capability records
+- Implemented URI generation with unique ID verification against the blockchain
+
+### Phase 4: Node Registration
+- Enhanced node registration to announce nodes on the DHT
+- Implemented tunneled resource mapping for URI resolution
+
+---
+
+<div class="footer-links">
+
+
+© 2025 KNIRV Network
+</div>

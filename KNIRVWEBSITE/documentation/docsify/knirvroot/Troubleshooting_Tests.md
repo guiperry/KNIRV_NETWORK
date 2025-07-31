@@ -1,0 +1,140 @@
+
+
+---
+
+**Source**: KNIRVROOT/docs/Troubleshooting/Troubleshooting_Tests.md
+
+# Troubleshooting Tests
+*   Here are the most likely reasons why your tests might be stalling and how to investigate:
+
+**Infinite Loop in a Goroutine (Most Common for Stalls):**
+
+*   **Background Goroutines:** Your application starts several background goroutines:
+    *   `StartTransactionDelegator` (from `1_PoAu-D_Protocol_Implementation.md`)
+    *   `StartStatusAdvertising` (from `1_PoAu-D_Protocol_Implementation.md`)
+    *   P2P networking listeners (libp2p host, stream handlers).
+    *   Consensus mechanisms (even if PoW is being replaced, the new PoAu-D logic might have loops).
+*   **Cause:** If any of these goroutines enter an infinite loop without a proper exit condition or without yielding, the test process might hang. This is especially true if the main test goroutine is waiting for something that will never happen due to the stuck background goroutine.
+*   **Example in TDL:**
+
+```go
+// In StartTransactionDelegator
+for range ticker.C { // This loop is fine
+    mainPoolTxs := tpm.GetMainPoolTxs()
+    for _, tx := range mainPoolTxs { // This loop is also fine
+        // If DelegateTransaction or some internal logic within it
+        // has a loop that doesn't terminate (e.g., waiting for a P2P ack
+        // that never comes in a test setup, or a DHT lookup that hangs),
+        // the whole TDL goroutine can stall, and if tests depend on TDL
+        // processing, they might appear to hang.
+    }
+}
+```
+
+**Deadlocks:**
+
+*   **Cause:** If your tests involve concurrent operations accessing shared resources (like `BlockchainStruct`, `TransactionPoolManager`, LevelDB instances) and the locking mechanisms (`sync.Mutex`, `sync.RWMutex`) are not correctly managed, a deadlock can occur. Two or more goroutines could be waiting for each other to release locks.
+*   **Example:**
+    *   Goroutine A locks Mutex M1, then tries to lock Mutex M2.
+    *   Goroutine B locks Mutex M2, then tries to lock Mutex M1.
+    *   Both are stuck waiting.
+*   Your `BlockchainStruct.ProposeBlock` uses `bc.Lock()`. If other parts of the code called during a test (e.g., from the TDL or a P2P handler) also try to acquire this lock without a clear order or if they hold other locks, deadlocks are possible.
+
+**Blocking Network Calls in Tests without Timeouts:**
+
+*   **Cause:** If your tests initiate P2P operations (DHT lookups, stream opening, sending data) and the test environment isn't set up for these to succeed quickly (e.g., no dev to connect to, no DHT bootstrap nodes available for the test instance), these calls might block indefinitely if they don't have timeouts.
+*   **Example in TDL's `DelegateTransaction`:**
+    *   `PingPAPStatus` (which you noted would use Client SDK logic)
+    *   `discoveryMgr.FindPeer`
+    *   `SendDelegatedTransaction`
+    *   If these are making actual network calls in a test without a fully functional mock P2P environment or proper timeouts, they can hang.
+
+**Long-Running Operations in Test Setup or Teardown:**
+
+*   **Cause:** Sometimes, the setup for a test (e.g., initializing a complex P2P host, bootstrapping a DHT, creating a large blockchain state) or the teardown (e.g., closing many network connections, cleaning up large databases) can take a very long time, making it seem like the test is stuck.
+
+**Channel Misuse (Blocking Sends/Receives):**
+
+*   **Cause:** If you're using channels for communication between goroutines in your tests or core logic, an unbuffered channel send will block until there's a receiver, and a receive will block until there's a sender. If one side isn't ready, it can cause a hang.
+
+**Resource Exhaustion (Less Likely for a simple stall, but possible):**
+
+*   If tests are creating many goroutines or allocating large amounts of memory without proper cleanup, it could lead to performance degradation that looks like a stall.
+
+**How to Diagnose the Stalling:**
+
+*   **Run Tests Individually and with More Verbosity:**
+    *   Instead of `go test -v ./...`, try to pinpoint which package or even which test file is causing the hang.
+    *   `go test -v ./path/to/package_with_tests`
+    *   If you can narrow it down to a file, run tests in that file one by one: `go test -v -run ^TestSpecificFunction$ ./path/to/package_with_tests/your_test_file.go`
+
+*   **Add Timeouts to Tests:**
+
+    *   Use the `-timeout` flag with `go test` to force tests to fail if they run too long. This won't fix the underlying issue but will prevent indefinite hangs during CI or local runs and will tell you which test is timing out. `go test -v -timeout 30s ./...` (e.g., 30-second timeout)
+
+*   **Use pprof for Goroutine Dumps (Most Powerful):**
+
+    *   When the test is "stuck," you can get a goroutine dump to see what each goroutine is doing.
+    *   **Method 1: Signal the test process.**
+        *   Run your test: `go test -v ./...`
+        *   When it hangs, find the process ID (PID) of the test executable.
+        *   Send a SIGQUIT signal to it: `kill -QUIT <PID>`
+        *   This will print a full goroutine stack trace to the standard error of the test process. Analyze these traces to see where goroutines are blocked (e.g., chan receive, sync.Mutex.Lock, network calls).
+    *   **Method 2: Import `net/http/pprof` (for longer-running test setups where you can access it).** If you can modify your test setup to start an HTTP server for pprof (usually for more complex integration tests, not simple unit tests):
+
+```go
+import _ "net/http/pprof"
+import "net/http"
+import "log"
+import "os"
+import "testing"
+
+func TestMain(m *testing.M) {
+    go func() {
+        log.Println(http.ListenAndServe("localhost:6060", nil))
+    }()
+    os.Exit(m.Run())
+}
+```
+
+*   Then, when it hangs, you can access `http://localhost:6060/debug/pprof/goroutine?debug=2` in your browser or via curl to get the stack dump.
+
+*   **Strategic Logging:**
+
+    *   Sprinkle `log.Printf` statements (or use a more structured logger) at the beginning and end of potentially blocking operations, in loops, and before/after lock acquisitions. This can help you trace how far the execution gets before stalling.
+    *   Include goroutine IDs in your logs if possible (`runtime.GoID()` - though be aware it's not guaranteed to be stable or unique in all Go versions for all purposes, it can be useful for debugging).
+
+*   **Simplify Test Cases:**
+
+    *   If a complex test is hanging, try to break it down into smaller pieces or comment out parts of the test to isolate the problematic section.
+    *   Disable P2P interactions temporarily in a test to see if the core logic runs, then re-enable them.
+
+*   **Review Recent Changes:**
+
+    *   Think about what code related to concurrency, networking, or complex loops was recently added or modified. The stall is often related to new or changed code.
+
+**Focusing on Your PoAu-D Implementation:**
+
+Given the `1_PoAu-D_Protocol_Implementation.md`, areas to scrutinize for potential hangs include:
+
+*   **The `StartTransactionDelegator` goroutine:**
+    *   The `DelegateTransaction` function involves DHT lookups (`getChainIDForAddress`, `discoveryMgr.FindPeer`), P2P pings (`PingPAPStatus`), and P2P sends (`SendDelegatedTransaction`). If these are not mocked or properly handled in a test environment, they are prime candidates for hangs.
+    *   The loop itself might get stuck if `tpm.GetMainPoolTxs()` blocks or if the removal logic (`tpm.RemoveFromMainPool`) has issues.
+*   **The `StartStatusAdvertising` goroutine:**
+    *   `discoveryMgr.Host().Routing().Provide()` can be a blocking call or might have retry logic that hangs if the DHT isn't behaving as expected in the test.
+*   **Block Proposal Logic (`ProposeBlock`):**
+    *   Locking (`bc.Lock()`).
+    *   Interactions with `TransactionPoolManager`.
+*   **P2P Stream Handlers (`handleDelegatedTransactionStream`, `handleStatusStream`):**
+    *   Blocking reads/writes on streams if the other side isn't responding as expected in the test.
+
+Start by trying to run tests for a specific package that you suspect might contain the issue, and then use `kill -QUIT <PID>` to get a goroutine dump when it hangs. This will give you the most direct insight into where the code is stuck.
+```
+
+---
+
+<div class="footer-links">
+
+
+© 2025 KNIRV Network
+</div>

@@ -7,6 +7,8 @@ import { SlidingPanel } from './components/SlidingPanel';
 import { EdgeColoring } from './components/EdgeColoring';
 import { AgentManager } from './components/AgentManager';
 import { FabricAlgorithm } from './components/FabricAlgorithm';
+import { CognitiveShellInterface } from './components/CognitiveShellInterface';
+import { CognitiveState } from './cognitive-shell/CognitiveEngine';
 
 export interface NRV {
   id: string;
@@ -42,9 +44,11 @@ function App() {
   const [availableAgents, setAvailableAgents] = useState<Agent[]>([]);
   const [activePanels, setActivePanels] = useState<string[]>([]);
   const [nrnBalance, setNrnBalance] = useState(1250);
+  const [cognitiveMode, setCognitiveMode] = useState(false);
+  const [cognitiveState, setCognitiveState] = useState<CognitiveState | null>(null);
   const [networkConnections, setNetworkConnections] = useState({
     knirvChain: 'connected',
-    knirvGraph: 'connected', 
+    knirvGraph: 'connected',
     knirvWallet: 'connected',
     knirvRouters: 'connected',
     knirvana: 'connected',
@@ -86,10 +90,12 @@ function App() {
 
   const handleVoiceCommand = (command: string) => {
     setShellStatus('processing');
-    
-    // Simulate voice command processing
+
+    // Enhanced voice command processing with cognitive mode support
     setTimeout(() => {
-      if (command.toLowerCase().includes('identify problems')) {
+      const lowerCommand = command.toLowerCase();
+
+      if (lowerCommand.includes('identify problems')) {
         const newNRV: NRV = {
           id: `nrv-${Date.now()}`,
           problemDescription: `User reported issue: ${command}`,
@@ -102,11 +108,24 @@ function App() {
         };
         setCurrentNRVs(prev => [...prev, newNRV]);
         setShellStatus('idle');
-      } else if (command.toLowerCase().includes('show network')) {
+      } else if (lowerCommand.includes('show network')) {
         setActivePanels(['network-status']);
         setShellStatus('idle');
-      } else if (command.toLowerCase().includes('assign agents')) {
+      } else if (lowerCommand.includes('assign agents')) {
         setActivePanels(['agent-manager']);
+        setShellStatus('idle');
+      } else if (lowerCommand.includes('cognitive mode') || lowerCommand.includes('enable cognitive')) {
+        setCognitiveMode(true);
+        setActivePanels(prev => [...prev, 'cognitive-shell']);
+        setShellStatus('idle');
+      } else if (lowerCommand.includes('start learning')) {
+        setActivePanels(prev => [...prev, 'cognitive-shell']);
+        setShellStatus('idle');
+      } else if (lowerCommand.includes('capture screen')) {
+        handleScreenshotCapture();
+        return;
+      } else if (lowerCommand.includes('toggle network')) {
+        handleNetworkToggle();
         setShellStatus('idle');
       } else {
         setShellStatus('idle');
@@ -226,6 +245,36 @@ function App() {
     setActivePanels(prev => prev.filter(id => id !== panelId));
   };
 
+  const handleCognitiveStateChange = (state: CognitiveState) => {
+    setCognitiveState(state);
+  };
+
+  const handleSkillInvoked = (skillId: string, result: any) => {
+    console.log('Skill invoked:', skillId, result);
+
+    // Create NRV for skill invocation
+    const newNRV: NRV = {
+      id: `nrv-skill-${Date.now()}`,
+      problemDescription: `Skill invoked: ${skillId}`,
+      sourceID: 'cognitive-shell',
+      inputType: 'Voice',
+      temporalContext: new Date(),
+      severity: 'Low',
+      suggestedSolutionType: 'skill-execution',
+      status: 'Resolved'
+    };
+    setCurrentNRVs(prev => [...prev, newNRV]);
+  };
+
+  const handleAdaptationTriggered = (adaptation: any) => {
+    console.log('Adaptation triggered:', adaptation);
+    setShellStatus('processing');
+
+    setTimeout(() => {
+      setShellStatus('idle');
+    }, 2000);
+  };
+
   const getEdgeColor = () => {
     switch (shellStatus) {
       case 'processing': return '#3B82F6';
@@ -252,6 +301,7 @@ function App() {
           isActive={isVoiceActive}
           onVoiceCommand={handleVoiceCommand}
           onToggle={setIsVoiceActive}
+          cognitiveMode={cognitiveMode}
         />
         
         <NRVVisualization
@@ -292,6 +342,20 @@ function App() {
             nrnBalance={nrnBalance}
           />
         </SlidingPanel>
+
+        <SlidingPanel
+          id="cognitive-shell"
+          isOpen={activePanels.includes('cognitive-shell')}
+          onClose={() => closePanel('cognitive-shell')}
+          title="Cognitive Shell"
+          side="right"
+        >
+          <CognitiveShellInterface
+            onStateChange={handleCognitiveStateChange}
+            onSkillInvoked={handleSkillInvoked}
+            onAdaptationTriggered={handleAdaptationTriggered}
+          />
+        </SlidingPanel>
         
         {/* Voice Status Indicator */}
         {isVoiceActive && (
@@ -300,6 +364,19 @@ function App() {
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
                 <span>Voice Active</span>
+                {cognitiveMode && <span className="text-xs opacity-75">(Cognitive)</span>}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Cognitive Mode Indicator */}
+        {cognitiveMode && (
+          <div className="absolute top-4 right-4 z-50">
+            <div className="bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-medium shadow-lg">
+              <div className="flex items-center space-x-1">
+                <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                <span>Cognitive Mode</span>
               </div>
             </div>
           </div>

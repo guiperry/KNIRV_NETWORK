@@ -1,0 +1,598 @@
+
+
+---
+
+**Source**: KNIRVROOT/docs/Troubleshooting/test_troubleshooting_log.md
+
+# KNIRVCHAIN Test Troubleshooting Log
+
+## Updated Analysis (2025-05-21)
+
+Based on the detailed analysis of test_errors.md, the following issues have been identified:
+
+## Failing Tests Summary
+
+1. **TestPeerLifecycle_Integration Failure**
+   - Error: `Timeout waiting for node at http://localhost:5050 to become healthy`
+   - Line: 102-106
+   - Root cause: Node is not becoming healthy within the expected timeout period
+
+2. **TestRoleBasedWalletConsistency Failures**
+   - Error: `LoadMasterWallet succeeded unexpectedly` in Bootnode_WrongMinerAddress test
+   - Line: 151
+   - Error: `LoadWallet succeeded unexpectedly` in Bootnode_WrongMasterAddress test
+   - Line: 153
+   - Root cause: Wallet validation is not properly rejecting invalid wallet configurations
+
+3. **TestGUIRoleBasedFeatures Failure**
+   - Error: `Expected showRootSettings to be true, got false` in Root_WithWallet_PaymentDisabled test
+   - Line: 168
+   - Root cause: Root settings are not being properly displayed when payments are disabled
+
+4. **TestTransactionFlow Failure**
+   - Error: `Transaction 0x57afbc66bf4fe85bcb5e0d0c44d1fb4e68d34c0382e51c885228473f5d52d997 not marked as verified in pool`
+   - Line: 568
+   - Root cause: Transaction verification process is failing or not being triggered properly
+
+5. **TestURIGeneratorHandler_Integration Failure**
+   - Error: `Handler returned wrong status code for conflict: got 201 want 409, body: {"txn_hash":"0xb68ae29cce41415197e593fdda4b0b86ef17f5b16989255c0064f77113a914f3","uri":"agent://taken-id-456.chain/"}`
+   - Line: 816-822
+   - Root cause: URI Generator is not correctly detecting ID conflicts and returning the appropriate status code
+
+6. **TestWalletManager Failure**
+   - Error: `Expected os.ErrNotExist, got failed to load wallet from file: file does not exist`
+   - Line: 900-908
+   - Root cause: Error wrapping is changing the error type, making it not directly comparable to os.ErrNotExist
+
+7. **mDNS Connection Issues**
+   - Error: Multiple "Error connecting to local dev" messages with "connection refused" errors
+   - Lines: 1-68
+   - Root cause: Local dev discovery is failing due to connection issues on various ports
+
+8. **Bootstrap Connection Issues**
+   - Error: `Error connecting to bootstrap node` with timeout errors
+   - Lines: 75-92
+   - Root cause: Unable to connect to some bootstrap nodes, possibly due to network configuration or timeouts
+
+9. **Update Check Failure**
+   - Error: `Error checking for updates: DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES environment variable is required for secure updates`
+   - Line: 99
+   - Root cause: Missing required environment variable for secure update checks
+
+## Root Causes and Solutions
+
+### 1. TestPeerLifecycle_Integration Failure
+
+**Issue:** Node is not becoming healthy within the expected timeout period.
+
+**Root Cause:** The node at http://localhost:5050 is failing to initialize properly or respond to health checks.
+
+**Solution:**
+```go
+// Increase timeout for health checks in tests
+func WaitForNodeHealth(t *testing.T, url string) {
+    t.Logf("Waiting for node at %s to become healthy...", url)
+    
+    // Increase timeout from 30s to 60s
+    client := &http.Client{Timeout: 10 * time.Second}
+    deadline := time.Now().Add(60 * time.Second)
+    
+    for time.Now().Before(deadline) {
+        resp, err := client.Get(fmt.Sprintf("%s/health", url))
+        if err == nil && resp.StatusCode == http.StatusOK {
+            t.Logf("Node at %s is healthy", url)
+            resp.Body.Close()
+            return
+        }
+        if resp != nil {
+            resp.Body.Close()
+        }
+        time.Sleep(1 * time.Second)
+    }
+    
+    t.Fatalf("Timeout waiting for node at %s to become healthy", url)
+}
+
+// Add more detailed logging during node startup
+func (node *Node) Start() error {
+    log.Printf("[INFO] Starting node with PeerID: %s", node.nodeID)
+    log.Printf("[INFO] Node listening on ports: HTTP=%d, P2P=%d", node.config.Port, node.config.P2PPort)
+    
+    // Log each major initialization step
+    if err := node.initializeNetworking(); err != nil {
+        log.Printf("[ERROR] Failed to initialize networking: %v", err)
+        return fmt.Errorf("failed to initialize networking: %w", err)
+    }
+    log.Printf("[INFO] Network initialization complete")
+    
+    // Continue with other initialization steps...
+    
+    return nil
+}
+```
+
+### 2. TestRoleBasedWalletConsistency Failures
+
+**Issue:** Wallet validation is not properly rejecting invalid wallet configurations.
+
+**Root Cause:** The wallet consistency checks are not strict enough when validating wallet addresses for specific node roles.
+
+**Solution:**
+```go
+// Improve wallet validation for different node roles
+func ValidateWalletForRole(wallet *Wallet, masterWallet *Wallet, role NodeRole) error {
+    switch role {
+    case RoleBootnode:
+        // Bootnode requires both wallets to be valid and matching the config
+        if wallet == nil || wallet.Address == "" {
+            return errors.New("bootnode requires a valid miner wallet")
+        }
+        if masterWallet == nil || masterWallet.Address == "" {
+            return errors.New("bootnode requires a valid master wallet")
+        }
+        if wallet.Address != config.MinersAddress {
+            return fmt.Errorf("miner wallet address (%s) does not match configured address (%s)", 
+                wallet.Address, config.MinersAddress)
+        }
+        if masterWallet.Address != config.MasterAddress {
+            return fmt.Errorf("master wallet address (%s) does not match configured address (%s)", 
+                masterWallet.Address, config.MasterAddress)
+        }
+    case RolePeer:
+        // Peer only needs a valid miner wallet
+        if wallet == nil || wallet.Address == "" {
+            return errors.New("dev requires a valid miner wallet")
+        }
+        if wallet.Address != config.MinersAddress {
+            return fmt.Errorf("miner wallet address (%s) does not match configured address (%s)", 
+                wallet.Address, config.MinersAddress)
+        }
+    case Root:
+        // Root can use any valid wallet
+        if wallet == nil || wallet.Address == "" {
+            return errors.New("root requires a valid wallet")
+        }
+    }
+    
+    return nil
+}
+```
+
+### 3. TestGUIRoleBasedFeatures Failure
+
+**Issue:** Root settings are not being properly displayed when payments are disabled.
+
+**Root Cause:** The role-based feature flag `showRootSettings` is not being set correctly for Root roles when payments are disabled.
+
+**Solution:**
+```go
+// Fix the role-based feature configuration
+func configureGUIFeatures(role NodeRole, config *GUIConfig) {
+    // Base features for all roles
+    config.ShowBasicFeatures = true
+    
+    // Role-specific features
+    switch role {
+    case Root:
+        // Always show root settings for Root role, regardless of payment status
+        config.ShowRootSettings = true
+        config.ShowAdvancedFeatures = true
+        
+        // Log the configuration decision
+        if !config.EnablePayments {
+            log.Printf("[INFO] Payments disabled, but keeping root settings visible for Root role")
+        }
+    case RoleBootnode:
+        config.ShowBootnodeSettings = true
+        config.ShowAdvancedFeatures = true
+    // Other roles...
+    }
+}
+```
+
+### 4. TestTransactionFlow Failure
+
+**Issue:** Transactions are not being marked as verified in the transaction pool.
+
+**Root Cause:** The verification process is failing or not being triggered properly.
+
+**Solution:**
+```go
+// Improve transaction verification and add better logging
+func (pool *TransactionPool) AddTransaction(tx *Transaction) error {
+    // Verify the transaction before adding
+    verified, err := pool.VerifyTransaction(tx)
+    if err != nil {
+        log.Printf("[ERROR] Transaction %s verification failed: %v", tx.Hash, err)
+        return fmt.Errorf("transaction verification failed: %w", err)
+    }
+    
+    // Mark as verified and add to pool
+    tx.Verified = verified
+    
+    if verified {
+        pool.verifiedTxs[tx.Hash] = tx
+        log.Printf("[INFO] Transaction %s verified and added to pool", tx.Hash)
+    } else {
+        pool.pendingTxs[tx.Hash] = tx
+        log.Printf("[WARNING] Transaction %s added to pending pool (not verified)", tx.Hash)
+    }
+    
+    // Notify listeners
+    pool.notifyNewTransaction()
+    
+    return nil
+}
+
+// Add explicit verification check in tests
+func TestTransactionFlow(t *testing.T) {
+    // ... existing test code ...
+    
+    // Add transaction to pool
+    err := txPool.AddTransaction(tx)
+    require.NoError(t, err, "Failed to add transaction to pool")
+    
+    // Explicitly check verification status
+    isVerified := txPool.IsTransactionVerified(tx.Hash)
+    require.True(t, isVerified, "Transaction %s not marked as verified in pool", tx.Hash)
+    
+    // ... rest of test ...
+}
+```
+
+### 5. TestURIGeneratorHandler_Integration Failure
+
+**Issue:** URI Generator is not correctly detecting ID conflicts and returning the appropriate status code.
+
+**Root Cause:** The conflict detection logic in the URI Generator is not working correctly, possibly due to issues with the DHT lookup or caching of previously minted URIs.
+
+**Solution:**
+```go
+// Improve conflict detection in URI Generator
+func (h *URIGeneratorHandler) HandleMintRequest(w http.ResponseWriter, r *http.Request) {
+    // ... existing code ...
+    
+    // Check if ID is already taken (improved conflict detection)
+    if req.DesiredID != "" {
+        taken, err := h.isIDTaken(req.DesiredID)
+        if err != nil {
+            log.Printf("[ERROR] Error checking if ID is taken: %v", err)
+            http.Error(w, "Internal server error checking ID availability", http.StatusInternalServerError)
+            return
+        }
+        
+        if taken {
+            log.Printf("[INFO] URI Generator: Desired ID '%s' is already taken", req.DesiredID)
+            w.WriteHeader(http.StatusConflict)
+            json.NewEncoder(w).Encode(map[string]string{
+                "error": fmt.Sprintf("Desired ID '%s' is already taken", req.DesiredID),
+            })
+            return
+        }
+    }
+    
+    // ... continue with minting ...
+}
+
+// Improved ID availability check
+func (h *URIGeneratorHandler) isIDTaken(id string) (bool, error) {
+    // Check local cache first
+    if _, exists := h.mintedURIs[id]; exists {
+        return true, nil
+    }
+    
+    // Check DHT
+    log.Printf("URI Generator: Checking DHT availability for desired ID: %s", id)
+    resourceID := fmt.Sprintf("%s.chain", id)
+    
+    // Use a context with timeout for DHT lookup
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+    
+    providers, err := h.dht.FindProviders(ctx, resourceID)
+    if err != nil {
+        // Only return error for non-"not found" errors
+        if !strings.Contains(err.Error(), "no providers found") {
+            return false, fmt.Errorf("DHT lookup error: %w", err)
+        }
+    }
+    
+    // If we found providers, the ID is taken
+    return len(providers) > 0, nil
+}
+
+// Add test-specific mock for DHT in tests
+func TestURIGeneratorHandler_Integration(t *testing.T) {
+    // ... existing test setup ...
+    
+    // Mock DHT for conflict scenario
+    mockDHT := &MockDHT{
+        FindProvidersFunc: func(ctx context.Context, id string) ([]dev.AddrInfo, error) {
+            if strings.Contains(id, "taken-id-456") {
+                // Return mock providers to simulate ID already taken
+                return []dev.AddrInfo{
+                    {ID: "mock-dev-id"},
+                }, nil
+            }
+            return nil, errors.New("no providers found")
+        },
+    }
+    
+    // Use mock DHT for conflict test
+    handler.dht = mockDHT
+    
+    // ... continue with test ...
+}
+```
+
+### 6. TestWalletManager Failure
+
+**Issue:** Error wrapping is changing the error type, making it not directly comparable to os.ErrNotExist.
+
+**Root Cause:** The wallet manager is wrapping the original error, which changes its type.
+
+**Solution:**
+```go
+// Update the wallet manager to preserve the original error
+func (wm *WalletManager) LoadWallet(path string) (*Wallet, error) {
+    _, err := os.Stat(path)
+    if os.IsNotExist(err) {
+        // Return the original error without wrapping
+        return nil, os.ErrNotExist
+    }
+    
+    data, err := os.ReadFile(path)
+    if err != nil {
+        return nil, fmt.Errorf("failed to read wallet file: %w", err)
+    }
+    
+    // Continue with loading...
+}
+
+// Alternatively, update the test to use errors.Is() for checking
+func TestWalletManagerErrorHandling(t *testing.T) {
+    // ...
+    _, err := manager.LoadWallet(nonExistentPath)
+    if !errors.Is(err, os.ErrNotExist) {
+        t.Errorf("Expected error to wrap os.ErrNotExist, got %v", err)
+    }
+}
+```
+
+### 7. mDNS Connection Issues
+
+**Issue:** Local dev discovery is failing due to connection issues on various ports.
+
+**Root Cause:** The mDNS service is trying to connect to devs on ports that are not open or are being used by other services.
+
+**Solution:**
+```go
+// Improve mDNS discovery with better error handling and port configuration
+func (dm *DiscoveryManager) setupMDNS() error {
+    // Configure mDNS service with specific port range
+    options := []discovery.Option{
+        discovery.TTL(time.Minute * 10),
+        discovery.Advertise(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", dm.config.P2PPort)),
+    }
+    
+    // Create mDNS service with improved error handling
+    service, err := discovery.NewMdnsService(
+        context.Background(),
+        dm.host,
+        dm.config.DiscoveryInterval,
+        dm.config.ServiceTag,
+        options...,
+    )
+    if err != nil {
+        return fmt.Errorf("failed to create mDNS service: %w", err)
+    }
+    
+    // Register notifier with better connection handling
+    service.RegisterNotifee(&mdnsNotifee{
+        dm:      dm,
+        devCh:  make(chan dev.AddrInfo),
+        closeCh: make(chan struct{}),
+    })
+    
+    dm.mdnsService = service
+    log.Printf("[INFO] mDNS discovery service started with service tag: %s", dm.config.ServiceTag)
+    
+    return nil
+}
+
+// Improve dev connection handling
+func (n *mdnsNotifee) HandlePeerFound(pi dev.AddrInfo) {
+    // Skip self-connections
+    if pi.ID == n.dm.host.ID() {
+        return
+    }
+    
+    log.Printf("mDNS: Found local dev: %s, attempting connection", pi.ID.Pretty())
+    
+    // Use context with timeout for connection attempts
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+    
+    // Try to connect with retry logic
+    var lastErr error
+    for i := 0; i < 3; i++ {
+        if err := n.dm.host.Connect(ctx, pi); err != nil {
+            lastErr = err
+            log.Printf("mDNS: Attempt %d - Error connecting to local dev %s: %v", i+1, pi.ID.Pretty(), err)
+            time.Sleep(time.Second)
+            continue
+        }
+        log.Printf("mDNS: Successfully connected to local dev %s", pi.ID.Pretty())
+        return
+    }
+    
+    // Log detailed error after all retries failed
+    log.Printf("mDNS: Error connecting to local dev %s after 3 attempts: %v", pi.ID.Pretty(), lastErr)
+}
+```
+
+### 8. Bootstrap Connection Issues
+
+**Issue:** Unable to connect to some bootstrap nodes, possibly due to network configuration or timeouts.
+
+**Root Cause:** The bootstrap connection process is timing out or failing due to network issues.
+
+**Solution:**
+```go
+// Improve bootstrap connection process
+func (dm *DiscoveryManager) connectToBootstrapPeers() error {
+    if len(dm.config.BootstrapPeers) == 0 {
+        log.Printf("[INFO] No bootstrap devs configured, skipping bootstrap")
+        return nil
+    }
+    
+    log.Printf("[INFO] Attempting to connect to %d bootstrap devs...", len(dm.config.BootstrapPeers))
+    
+    // Use a WaitGroup to track connection attempts
+    var wg sync.WaitGroup
+    results := make(chan string, len(dm.config.BootstrapPeers))
+    
+    for _, devAddr := range dm.config.BootstrapPeers {
+        wg.Add(1)
+        go func(addr dev.AddrInfo) {
+            defer wg.Done()
+            
+            // Use context with timeout for connection
+            ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+            defer cancel()
+            
+            if err := dm.host.Connect(ctx, addr); err != nil {
+                log.Printf("[INFO] Error connecting to bootstrap node %s: %v", addr.ID.Pretty(), err)
+                results <- fmt.Sprintf("failed:%s", addr.ID.Pretty())
+                return
+            }
+            
+            log.Printf("[INFO] Connected to bootstrap node: %s", addr.ID.Pretty())
+            results <- fmt.Sprintf("success:%s", addr.ID.Pretty())
+        }(devAddr)
+    }
+    
+    // Wait for all connection attempts to complete
+    wg.Wait()
+    close(results)
+    
+    // Count successes and failures
+    successes := 0
+    for result := range results {
+        if strings.HasPrefix(result, "success:") {
+            successes++
+        }
+    }
+    
+    log.Printf("[INFO] Bootstrap connections completed. Connected to %d/%d devs.", 
+        successes, len(dm.config.BootstrapPeers))
+    
+    // Bootstrap is considered successful if we connect to at least one dev
+    if successes == 0 && len(dm.config.BootstrapPeers) > 0 {
+        return errors.New("failed to connect to any bootstrap devs")
+    }
+    
+    return nil
+}
+```
+
+### 9. Update Check Failure
+
+**Issue:** Missing required environment variable for secure update checks.
+
+**Root Cause:** The `DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES` environment variable is not set, which is required for secure update verification.
+
+**Solution:**
+```go
+// Improve update checker with better error handling and fallback options
+func (u *Updater) CheckForUpdates() error {
+    log.Printf("Updater: Checking for updates (current version: %s)", u.currentVersion)
+    
+    // Check for required environment variables
+    publicKeyEnv := os.Getenv("DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES")
+    if publicKeyEnv == "" {
+        // In test environments, use a mock or skip
+        if os.Getenv("TEST_MODE") == "true" {
+            log.Printf("Updater: Skipping update check in test mode")
+            return nil
+        }
+        
+        // In development mode, warn but don't fail
+        if u.currentVersion == "dev" {
+            log.Printf("Updater: Warning - DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES not set, skipping secure update check in dev mode")
+            return nil
+        }
+        
+        // In production, this is a real error
+        return errors.New("DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES environment variable is required for secure updates")
+    }
+    
+    // Continue with update check...
+    
+    return nil
+}
+
+// Add environment variable setup in tests
+func TestUpdater(t *testing.T) {
+    // Set test mode to avoid errors
+    os.Setenv("TEST_MODE", "true")
+    defer os.Unsetenv("TEST_MODE")
+    
+    // Or set a mock public key for testing
+    os.Setenv("DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES", "test-public-key")
+    defer os.Unsetenv("DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES")
+    
+    // Continue with test...
+}
+```
+
+## Next Steps
+
+1. **Implement Fixes**: Apply the solutions above to address each identified issue:
+   - Fix node health check timeouts in TestPeerLifecycle_Integration
+   - Improve wallet validation for different node roles
+   - Fix GUI role-based features for Root role with payments disabled
+   - Fix transaction verification in transaction pool
+   - Implement proper conflict detection in URI Generator
+   - Fix error handling in WalletManager
+   - Improve mDNS discovery and connection handling
+   - Enhance bootstrap connection process
+   - Add proper environment variable handling for update checks
+
+2. **Improve Network Configuration**:
+   - Configure consistent port usage across tests to avoid conflicts
+   - Implement better port selection for tests (use random available ports)
+   - Add network isolation between test instances
+   - Improve timeout handling for network operations
+
+3. **Enhance Error Handling**:
+   - Add more descriptive error messages
+   - Implement proper error wrapping with `fmt.Errorf("...%w", err)`
+   - Use structured logging for better error tracking
+   - Add retry mechanisms for transient network failures
+
+4. **Improve Test Environment**:
+   - Set up consistent test data directories
+   - Use environment variables for configurable paths
+   - Create helper functions for common test setup tasks
+   - Implement proper cleanup of test resources
+
+5. **Improve Test Isolation**:
+   - Create more isolated unit tests to pinpoint issues faster
+   - Implement better mocking for external dependencies
+   - Use test containers for integration tests
+   - Add test fixtures that are more reliable
+
+6. **Documentation**:
+   - Document common error scenarios and their solutions
+   - Create troubleshooting guides for developers
+   - Update API documentation with error handling expectations
+   - Add network configuration guidelines
+
+---
+
+<div class="footer-links">
+
+
+© 2025 KNIRV Network
+</div>

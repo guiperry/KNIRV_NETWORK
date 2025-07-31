@@ -1,21 +1,50 @@
-# KNIRVCHAIN Client SDKs
+# KNIRV SDK
 
-This directory contains client SDKs for interacting with the KNIRVCHAIN network in various programming languages. These SDKs provide a high-level interface for resolving `knirv://` URIs, discovering peers on the private DHT, connecting to them, and fetching the underlying resources.
+Software Development Kits for the KNIRV Network ecosystem, including complete KNIRVGATEWAY integration.
 
 ## Available SDKs
 
-- [Go SDK](go/README.md) - For Go applications
-- [Python SDK](python/README.md) - For Python applications
-- [JavaScript/TypeScript SDK](js/README.md) - For Node.js and browser applications
+### Gateway SDKs ⭐ NEW
+- **[Go Gateway SDK](go/gateway/README.md)** - Complete KNIRVGATEWAY integration for Go
+- **[TypeScript Gateway SDK](ts/gateway/README.md)** - Complete KNIRVGATEWAY integration for TypeScript/JavaScript
 
-## Common Features
+### Core KNIRV SDKs
+- [Go Transaction SDK](go/transaction/README.md) - KNIRVCHAIN transaction management
+- [Go Transmission SDK](go/transmission/README.md) - Network transmission and communication
+- [TypeScript Transmission SDK](ts/transmission/README.md) - Web transmission libraries
 
-All SDKs provide the following core functionality:
+## Gateway SDK Features ⭐ NEW
 
-1. **URI Parsing**: Parse `knirv://` URIs into their components (ID, ResourceType, Path, Query)
-2. **Peer Discovery**: Find peers on the KNIRVCHAIN DHT that provide specific resources
-3. **Resource Fetching**: Connect to peers and fetch resources using libp2p streams
-4. **Error Handling**: Handle errors and retries gracefully
+The new Gateway SDKs provide complete integration with KNIRVGATEWAY services:
+
+### Economics Service
+- **Skill Invocation**: Process skill invocations with economic transactions
+- **LLM Registration**: Handle LLM registration and fees
+- **Validation Rewards**: Process validation rewards for network participants
+- **Fee Calculation**: Calculate network fees for transactions
+- **Metrics & Analytics**: Economic metrics, burn tracking, and network statistics
+- **Transaction Management**: Economic transaction processing and history
+
+### API Gateway
+- **Service Routing**: Route requests to appropriate KNIRV components
+- **Health Monitoring**: Comprehensive service health checks
+- **Status Management**: Service status and configuration management
+
+### Integration Management
+- **Component Connectivity**: Test and monitor KNIRV component connections
+- **Cross-Service Communication**: Manage communication between services
+- **Real-time Monitoring**: Live system health and performance monitoring
+
+## Core SDK Features
+
+The existing SDKs provide fundamental KNIRV network functionality:
+
+1. **Transaction Management**: Complete blockchain transaction handling
+2. **Network Communication**: Transmission protocols and client-server interactions
+3. **URI Resolution**: Parse and resolve `knirv://` URIs
+4. **Peer Discovery**: Find peers on the KNIRVCHAIN DHT
+5. **Resource Fetching**: Connect to peers and fetch resources
+6. **Error Handling**: Handle errors and retries gracefully
 
 ## KNIRV URI Structure
 
@@ -32,9 +61,55 @@ knirv://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
 
 For a detailed specification, please refer to the [KNIRVCHAIN URI Scheme Design Document](../docs/URI_Generation_GO.md).
 
-## Usage Examples
+## Quick Start
 
-### Go
+### KNIRVGATEWAY Integration
+
+#### Go Gateway SDK
+```go
+import "github.com/cloud-equities/KNIRVGATEWAY/sdk/go/gateway"
+
+// Create client
+client := gateway.NewClient()
+
+// Process skill invocation
+skillResp, err := client.Economics.Skills.Invoke(ctx, gateway.SkillInvocationRequest{
+    UserID:  "user123",
+    SkillID: "skill456",
+    Amount:  "100000", // 0.1 NRN
+})
+
+// Get economic metrics
+metrics, err := client.Economics.Metrics.Get(ctx)
+
+// Check health
+isHealthy, err := client.Health.Check(ctx)
+```
+
+#### TypeScript Gateway SDK
+```typescript
+import { KNIRVGatewayClient } from '@knirv/gateway-sdk';
+
+// Create client
+const client = new KNIRVGatewayClient();
+
+// Process skill invocation
+const skillResp = await client.economics.invokeSkill({
+  user_id: 'user123',
+  skill_id: 'skill456',
+  amount: '100000', // 0.1 NRN
+});
+
+// Get economic metrics
+const metrics = await client.economics.getMetrics();
+
+// Check health
+const health = await client.health.checkEconomicsHealth();
+```
+
+## Legacy Examples
+
+### Go Transaction SDK
 
 ```go
 package main

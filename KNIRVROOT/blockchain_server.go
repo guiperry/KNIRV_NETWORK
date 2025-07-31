@@ -3149,10 +3149,10 @@ func (bcs *BlockchainServer) handleInvokeAgentCapability(w http.ResponseWriter, 
 	// Create a context record for the invocation
 	contextRecord := &types.ContextRecord{
 		ID:              fmt.Sprintf("ctx:%s", generateUniqueID()),
-		CapabilityID:    request.CapabilityID,
-		InteractionType: "TOOL_INVOCATION", // Use a valid InteractionType
-		Initiator:       "api_user",        // Could be extracted from auth headers
-		Timestamp:       time.Now().Unix(),
+		CapabilityID:    request.CapabilityID, // Used in JSON response
+		InteractionType: "TOOL_INVOCATION",    // Used in JSON response
+		Initiator:       "api_user",           // Used in JSON response
+		Timestamp:       time.Now().Unix(),    // Used in JSON response
 		Status:          "completed",
 		Details: map[string]interface{}{
 			"agent_id":        request.AgentID,
@@ -3173,6 +3173,10 @@ func (bcs *BlockchainServer) handleInvokeAgentCapability(w http.ResponseWriter, 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"context_record_id": contextRecord.ID,
+		"capability_id":     contextRecord.CapabilityID,
+		"interaction_type":  contextRecord.InteractionType,
+		"initiator":         contextRecord.Initiator,
+		"timestamp":         contextRecord.Timestamp,
 		"status":            contextRecord.Status,
 		"details":           contextRecord.Details,
 		"output":            contextRecord.Details["output"],

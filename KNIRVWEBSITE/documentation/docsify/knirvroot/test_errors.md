@@ -1,0 +1,926 @@
+
+
+---
+
+**Source**: KNIRVROOT/docs/Troubleshooting/test_errors.md
+
+2025/05/21 06:23:47 mDNS: Error connecting to local dev 12D3KooWDpqn99xVZhiPYnrmSBUAZWNw5uRmduYDLdeD9acqVNUo: failed to dial: failed to dial 12D3KooWDpqn99xVZhiPYnrmSBUAZWNw5uRmduYDLdeD9acqVNUo: all dials failed
+  * [/ip6/2607:fb91:2837:4588::126a/tcp/5060] dial tcp6 [2607:fb91:2837:4588::126a]:5060: connect: connection refused
+  * [/ip6/::1/tcp/5060] dial tcp6 [::1]:5060: connect: connection refused
+  * [/ip4/10.1.131.128/tcp/5060] dial tcp4 10.1.131.128:5060: connect: connection refused
+  * [/ip4/192.168.12.122/tcp/5060] dial tcp4 192.168.12.122:5060: connect: connection refused
+  * [/ip4/172.17.0.1/tcp/5060] dial tcp4 172.17.0.1:5060: connect: connection refused
+  * [/ip4/127.0.0.1/tcp/5060] dial tcp4 127.0.0.1:5060: connect: connection refused
+  * [/ip4/192.168.124.1/tcp/5060] dial tcp4 192.168.124.1:5060: connect: connection refused
+  * [/ip6/2607:fb91:2837:4588:e269:95ff:feec:2329/tcp/5060] dial tcp6 [2607:fb91:2837:4588:e269:95ff:feec:2329]:5060: connect: connection refused
+2025/05/21 06:23:47 mDNS: Error connecting to local dev 12D3KooWNkrNgyAByT2Pvg3gCdWBBGCRYZN5RPAzhYqdWwcnqAbq: failed to dial: failed to dial 12D3KooWNkrNgyAByT2Pvg3gCdWBBGCRYZN5RPAzhYqdWwcnqAbq: all dials failed
+  * [/ip6/2607:fb91:2837:4588::126a/tcp/5050] dial tcp6 [2607:fb91:2837:4588::126a]:5050: connect: connection refused
+  * [/ip6/::1/tcp/5050] dial tcp6 [::1]:5050: connect: connection refused
+  * [/ip4/10.1.131.128/tcp/5050] dial tcp4 10.1.131.128:5050: connect: connection refused
+  * [/ip4/192.168.12.122/tcp/5050] dial tcp4 192.168.12.122:5050: connect: connection refused
+  * [/ip4/127.0.0.1/tcp/5050] dial tcp4 127.0.0.1:5050: connect: connection refused
+  * [/ip4/192.168.124.1/tcp/5050] dial tcp4 192.168.124.1:5050: connect: connection refused
+  * [/ip4/172.17.0.1/tcp/5050] dial tcp4 172.17.0.1:5050: connect: connection refused
+  * [/ip6/2607:fb91:2837:4588:e269:95ff:feec:2329/tcp/5050] dial tcp6 [2607:fb91:2837:4588:e269:95ff:feec:2329]:5050: connect: connection refused
+2025/05/21 06:23:47 [Client][KNIRVCHAIN-5050] Discovery Manager initialized. PeerID: 12D3KooWPe34n6jHAKmxRQ6WvSpbmUziNsrPnWWQfTBLNXRfUTz5 (ClientOnly: false)
+2025/05/21 06:23:47 [Client][KNIRVCHAIN-5050] Listening on: /ip4/127.0.0.1/tcp/4050/p2p/12D3KooWPe34n6jHAKmxRQ6WvSpbmUziNsrPnWWQfTBLNXRfUTz5
+2025/05/21 06:23:47 [Client][KNIRVCHAIN-5050] Listening on: /ip4/192.168.12.122/tcp/4050/p2p/12D3KooWPe34n6jHAKmxRQ6WvSpbmUziNsrPnWWQfTBLNXRfUTz5
+2025/05/21 06:23:47 [Client][KNIRVCHAIN-5050] Listening on: /ip6/::1/tcp/4050/p2p/12D3KooWPe34n6jHAKmxRQ6WvSpbmUziNsrPnWWQfTBLNXRfUTz5
+2025/05/21 06:23:47 [Client][KNIRVCHAIN-5050] Listening on: /ip6/2607:fb91:2837:4588::126a/tcp/4050/p2p/12D3KooWPe34n6jHAKmxRQ6WvSpbmUziNsrPnWWQfTBLNXRfUTz5
+2025/05/21 06:23:47 [Client][KNIRVCHAIN-5050] Connecting to bootstrap nodes...
+2025/05/21 06:23:47 [Client][KNIRVCHAIN-5050] Fetching bootnodes from registry: https://registry.knirv.com/nodes
+2025/05/21 06:23:47 [Client][KNIRVCHAIN-5050] P2P consensus manager subscribed to topics: KNIRVCHAIN-5050.blocks, KNIRVCHAIN-5050.transactions
+2025/05/21 06:23:47 [Client][KNIRVCHAIN-5050] Registered chain sync handler for protocol /agent/chain-sync/1.0.0
+2025/05/21 06:23:47 [Client][KNIRVCHAIN-5050] Starting P2P consensus manager...
+2025/05/21 06:23:47 [Client][KNIRVCHAIN-5050] P2P consensus manager started successfully.
+2025/05/21 06:23:47 [Client][KNIRVCHAIN-5050] Starting blockchain HTTP server on port 5052...
+2025/05/21 06:23:47 Starting HTTP server listener for chain KNIRVCHAIN-5050 on port: 5052
+2025/05/21 06:23:47 mDNS: Found local dev: 12D3KooWPe34n6jHAKmxRQ6WvSpbmUziNsrPnWWQfTBLNXRfUTz5, attempting connection
+2025/05/21 06:23:47 mDNS: Found local dev: 12D3KooWDpqn99xVZhiPYnrmSBUAZWNw5uRmduYDLdeD9acqVNUo, attempting connection
+2025/05/21 06:23:47 mDNS: Found local dev: 12D3KooWPe34n6jHAKmxRQ6WvSpbmUziNsrPnWWQfTBLNXRfUTz5, attempting connection
+2025/05/21 06:23:47 mDNS: Found local dev: 12D3KooWQVaQJhmWQ4K6cKAr9CSkGfXuusrmv3KnieWsPgyG8xgw, attempting connection
+2025/05/21 06:23:47 mDNS: Error connecting to local dev 12D3KooWPe34n6jHAKmxRQ6WvSpbmUziNsrPnWWQfTBLNXRfUTz5: failed to dial: swarm closed
+2025/05/21 06:23:47 mDNS: Found local dev: 12D3KooWJGLVweVXQqyP2b5NW5AeHzsNyg9fpdDqbi17nxS4RYBF, attempting connection
+2025/05/21 06:23:47 mDNS: Found local dev: 12D3KooWPe34n6jHAKmxRQ6WvSpbmUziNsrPnWWQfTBLNXRfUTz5, attempting connection
+2025/05/21 06:23:47 mDNS: Error connecting to local dev 12D3KooWPe34n6jHAKmxRQ6WvSpbmUziNsrPnWWQfTBLNXRfUTz5: failed to dial: swarm closed
+2025/05/21 06:23:47 mDNS: Found local dev: 12D3KooWNkrNgyAByT2Pvg3gCdWBBGCRYZN5RPAzhYqdWwcnqAbq, attempting connection
+2025/05/21 06:23:47 mDNS: Error connecting to local dev 12D3KooWDpqn99xVZhiPYnrmSBUAZWNw5uRmduYDLdeD9acqVNUo: failed to dial: failed to dial 12D3KooWDpqn99xVZhiPYnrmSBUAZWNw5uRmduYDLdeD9acqVNUo: all dials failed
+  * [/ip6/2607:fb91:2837:4588::126a/tcp/5060] dial tcp6 [2607:fb91:2837:4588::126a]:5060: connect: connection refused
+  * [/ip6/::1/tcp/5060] dial tcp6 [::1]:5060: connect: connection refused
+  * [/ip4/10.1.131.128/tcp/5060] dial tcp4 10.1.131.128:5060: connect: connection refused
+  * [/ip4/127.0.0.1/tcp/5060] dial tcp4 127.0.0.1:5060: connect: connection refused
+  * [/ip4/192.168.124.1/tcp/5060] dial tcp4 192.168.124.1:5060: connect: connection refused
+  * [/ip4/172.17.0.1/tcp/5060] dial tcp4 172.17.0.1:5060: connect: connection refused
+  * [/ip4/192.168.12.122/tcp/5060] dial tcp4 192.168.12.122:5060: connect: connection refused
+  * [/ip6/2607:fb91:2837:4588:e269:95ff:feec:2329/tcp/5060] dial tcp6 [2607:fb91:2837:4588:e269:95ff:feec:2329]:5060: connect: connection refused
+2025/05/21 06:23:47 mDNS: Error connecting to local dev 12D3KooWJGLVweVXQqyP2b5NW5AeHzsNyg9fpdDqbi17nxS4RYBF: failed to dial: failed to dial 12D3KooWJGLVweVXQqyP2b5NW5AeHzsNyg9fpdDqbi17nxS4RYBF: all dials failed
+  * [/ip6/2607:fb91:2837:4588::126a/tcp/5061] dial tcp6 [2607:fb91:2837:4588::126a]:5061: connect: connection refused
+  * [/ip6/::1/tcp/5061] dial tcp6 [::1]:5061: connect: connection refused
+  * [/ip4/10.1.131.128/tcp/5061] dial tcp4 10.1.131.128:5061: connect: connection refused
+  * [/ip4/192.168.124.1/tcp/5061] dial tcp4 192.168.124.1:5061: connect: connection refused
+  * [/ip4/172.17.0.1/tcp/5061] dial tcp4 172.17.0.1:5061: connect: connection refused
+  * [/ip4/127.0.0.1/tcp/5061] dial tcp4 127.0.0.1:5061: connect: connection refused
+  * [/ip4/192.168.12.122/tcp/5061] dial tcp4 192.168.12.122:5061: connect: connection refused
+  * [/ip6/2607:fb91:2837:4588:e269:95ff:feec:2329/tcp/5061] dial tcp6 [2607:fb91:2837:4588:e269:95ff:feec:2329]:5061: connect: connection refused
+2025/05/21 06:23:47 mDNS: Found local dev: 12D3KooWPe34n6jHAKmxRQ6WvSpbmUziNsrPnWWQfTBLNXRfUTz5, attempting connection
+2025/05/21 06:23:47 mDNS: Error connecting to local dev 12D3KooWNkrNgyAByT2Pvg3gCdWBBGCRYZN5RPAzhYqdWwcnqAbq: failed to dial: failed to dial 12D3KooWNkrNgyAByT2Pvg3gCdWBBGCRYZN5RPAzhYqdWwcnqAbq: all dials failed
+  * [/ip6/2607:fb91:2837:4588::126a/tcp/5050] dial tcp6 [2607:fb91:2837:4588::126a]:5050: connect: connection refused
+  * [/ip6/::1/tcp/5050] dial tcp6 [::1]:5050: connect: connection refused
+  * [/ip4/10.1.131.128/tcp/5050] dial tcp4 10.1.131.128:5050: connect: connection refused
+  * [/ip4/192.168.12.122/tcp/5050] dial tcp4 192.168.12.122:5050: connect: connection refused
+  * [/ip4/127.0.0.1/tcp/5050] dial tcp4 127.0.0.1:5050: connect: connection refused
+  * [/ip4/192.168.124.1/tcp/5050] dial tcp4 192.168.124.1:5050: connect: connection refused
+  * [/ip4/172.17.0.1/tcp/5050] dial tcp4 172.17.0.1:5050: connect: connection refused
+  * [/ip6/2607:fb91:2837:4588:e269:95ff:feec:2329/tcp/5050] dial tcp6 [2607:fb91:2837:4588:e269:95ff:feec:2329]:5050: connect: connection refused
+2025/05/21 06:23:47 mDNS: Error connecting to local dev 12D3KooWPe34n6jHAKmxRQ6WvSpbmUziNsrPnWWQfTBLNXRfUTz5: failed to dial: swarm closed
+2025/05/21 06:23:53 No valid bootnodes found in registry, falling back to default bootstrap devs
+2025/05/21 06:23:53 No valid bootnodes found in registry, falling back to default bootstrap devs
+2025/05/21 06:23:53 [Client][KNIRVCHAIN-5050] Attempting to connect to 4 bootstrap devs...
+2025/05/21 06:23:53 [Client][agent-reflection-5051] Attempting to connect to 4 bootstrap devs...
+2025/05/21 06:23:53 [Client][KNIRVCHAIN-5050] Connected to bootstrap node: QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
+2025/05/21 06:23:53 [Client][KNIRVCHAIN-5050] Error connecting to bootstrap node QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM: failed to dial: failed to dial QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM: all dials failed
+  * [/ip4/104.236.179.241/tcp/4001] dial backoff
+2025/05/21 06:23:53 [Client][agent-reflection-5051] Connected to bootstrap node: QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
+2025/05/21 06:23:53 [Client][agent-reflection-5051] Error connecting to bootstrap node QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64: failed to dial: failed to dial QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64: all dials failed
+  * [/ip4/104.236.76.40/tcp/4001] dial backoff
+2025/05/21 06:23:53 [Client][agent-reflection-5051] Error connecting to bootstrap node QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM: failed to dial: failed to dial QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM: all dials failed
+  * [/ip4/104.236.179.241/tcp/4001] dial tcp4 0.0.0.0:4051->104.236.179.241:4001: i/o timeout
+2025/05/21 06:23:57 [Client][agent-reflection-5051] Error connecting to bootstrap node QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu: failed to dial: failed to dial QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu: all dials failed
+  * [/ip4/128.199.219.111/tcp/4001] dial tcp4 0.0.0.0:4051->128.199.219.111:4001: i/o timeout
+2025/05/21 06:23:57 [Client][agent-reflection-5051] Bootstrap connections completed.
+2025/05/21 06:23:57 [Client][agent-reflection-5051] DHT bootstrapped successfully.
+2025/05/21 06:23:57 [Client][agent-reflection-5051] DiscoveryManager running in full participant mode.
+2025/05/21 06:23:57 [Client][agent-reflection-5051] Announcing resource: agent-reflection-5051.chain (CID: bafkreighwozloyhdcyojp3ceorcnh7f7l2b5qwutf6cmlrj7i3s2fcpuda)
+2025/05/21 06:23:57 failed to sufficiently increase receive buffer size (was: 208 kiB, wanted: 7168 kiB, got: 416 kiB). See https://github.com/quic-go/quic-go/wiki/UDP-Buffer-Sizes for details.
+2025/05/21 06:23:58 [Client][KNIRVCHAIN-5050] Error connecting to bootstrap node QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64: failed to dial: failed to dial QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64: all dials failed
+  * [/ip4/104.236.76.40/tcp/4001] dial tcp4 0.0.0.0:4050->104.236.76.40:4001: i/o timeout
+2025/05/21 06:23:58 [Client][KNIRVCHAIN-5050] Error connecting to bootstrap node QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu: failed to dial: failed to dial QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu: all dials failed
+  * [/ip4/128.199.219.111/tcp/4001] dial tcp4 0.0.0.0:4050->128.199.219.111:4001: i/o timeout
+2025/05/21 06:23:58 [Client][KNIRVCHAIN-5050] Bootstrap connections completed.
+2025/05/21 06:23:58 [Client][KNIRVCHAIN-5050] DHT bootstrapped successfully.
+2025/05/21 06:23:58 [Client][KNIRVCHAIN-5050] DiscoveryManager running in full participant mode.
+2025/05/21 06:23:58 [Client][KNIRVCHAIN-5050] Announcing resource: KNIRVCHAIN-5050.chain (CID: bafkreic4ogmmwipsyazkdd22yjrcejoucyk3eyiijkcxucdx4fzkanu2cu)
+2025/05/21 06:24:02 Updater: Checking for application updates...
+2025/05/21 06:24:02 Updater: Checking for updates (current version: dev)
+2025/05/21 06:24:02 Updater: Error checking for updates: DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES environment variable is required for secure updates
+2025/05/21 06:24:07 [Client][agent-reflection-5051] Successfully announced resource: agent-reflection-5051.chain
+2025/05/21 06:24:11 [Client][KNIRVCHAIN-5050] Successfully announced resource: KNIRVCHAIN-5050.chain
+    dev_lifecycle_test.go:280: Timeout waiting for node at http://localhost:5050 to become healthy
+    dev_lifecycle_test.go:90: Cleaning up node process group (mode: network, pid: 2915773)...
+    dev_lifecycle_test.go:98: Sent SIGKILL to process group -2915773.
+    dev_lifecycle_test.go:104: Node process group cleanup attempt complete for pid 2915773.
+--- FAIL: TestPeerLifecycle_Integration (30.01s)
+=== RUN   TestRoleBasedConfigPaths
+=== RUN   TestRoleBasedConfigPaths/Root
+2025/05/21 06:24:14 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/root_data for role Root
+2025/05/21 06:24:14 Config path for role Root: /home/gperry/.config/KNIRVCHAIN/root_data/config.json
+2025/05/21 06:24:14 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/root_data for role Root
+2025/05/21 06:24:14 Config path for role Root: /home/gperry/.config/KNIRVCHAIN/root_data/config.json
+2025/05/21 06:24:14 Checking config path: /home/gperry/.config/KNIRVCHAIN/root_data/config.json for role Root
+2025/05/21 06:24:14 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/root_data for role Root
+2025/05/21 06:24:14 DEBUG: GetBlockchainDatabasePath - Constructed finalPath: '/home/gperry/.config/KNIRVCHAIN/root_data/agent_root.db' for role Root
+2025/05/21 06:24:14 Loading config from: /home/gperry/.config/KNIRVCHAIN/root_data/config.json
+=== RUN   TestRoleBasedConfigPaths/Bootnode
+2025/05/21 06:24:14 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
+2025/05/21 06:24:14 Config path for role Bootnode: /home/gperry/.config/KNIRVCHAIN/bootnode_data/config.json
+2025/05/21 06:24:14 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
+2025/05/21 06:24:14 Config path for role Bootnode: /home/gperry/.config/KNIRVCHAIN/bootnode_data/config.json
+2025/05/21 06:24:14 Checking config path: /home/gperry/.config/KNIRVCHAIN/bootnode_data/config.json for role Bootnode
+2025/05/21 06:24:14 Loading config from: /home/gperry/.config/KNIRVCHAIN/bootnode_data/config.json
+=== RUN   TestRoleBasedConfigPaths/Peer
+2025/05/21 06:24:14 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/dev_data for role Peer
+2025/05/21 06:24:14 Config path for role Peer: /home/gperry/.config/KNIRVCHAIN/dev_data/config.json
+2025/05/21 06:24:14 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/dev_data for role Peer
+2025/05/21 06:24:14 Config path for role Peer: /home/gperry/.config/KNIRVCHAIN/dev_data/config.json
+2025/05/21 06:24:14 Checking config path: /home/gperry/.config/KNIRVCHAIN/dev_data/config.json for role Peer
+2025/05/21 06:24:14 Loading config from: /home/gperry/.config/KNIRVCHAIN/dev_data/config.json
+=== RUN   TestRoleBasedConfigPaths/Client
+2025/05/21 06:24:14 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/client_data for role Client
+2025/05/21 06:24:14 Config path for role Client: /home/gperry/.config/KNIRVCHAIN/client_data/config.json
+2025/05/21 06:24:14 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/client_data for role Client
+2025/05/21 06:24:14 Config path for role Client: /home/gperry/.config/KNIRVCHAIN/client_data/config.json
+2025/05/21 06:24:14 Checking config path: /home/gperry/.config/KNIRVCHAIN/client_data/config.json for role Client
+2025/05/21 06:24:14 Loading config from: /home/gperry/.config/KNIRVCHAIN/client_data/config.json
+--- PASS: TestRoleBasedConfigPaths (0.00s)
+    --- PASS: TestRoleBasedConfigPaths/Root (0.00s)
+    --- PASS: TestRoleBasedConfigPaths/Bootnode (0.00s)
+    --- PASS: TestRoleBasedConfigPaths/Peer (0.00s)
+    --- PASS: TestRoleBasedConfigPaths/Client (0.00s)
+=== RUN   TestRoleBasedWalletConsistency
+2025/05/21 06:24:14 Wallet saved successfully to /tmp/KNIRVCHAIN-wallet-consistency-test4215206392/wallet.dat
+2025/05/21 06:24:14 Wallet saved successfully to /tmp/KNIRVCHAIN-wallet-consistency-test4215206392/master_wallet.dat
+=== RUN   TestRoleBasedWalletConsistency/Peer_CorrectAddress
+=== RUN   TestRoleBasedWalletConsistency/Peer_WrongAddress
+=== RUN   TestRoleBasedWalletConsistency/Peer_EmptyAddress
+=== RUN   TestRoleBasedWalletConsistency/Bootnode_CorrectAddresses
+=== RUN   TestRoleBasedWalletConsistency/Bootnode_WrongMinerAddress
+    role_integration_test.go:216: LoadMasterWallet succeeded unexpectedly
+=== RUN   TestRoleBasedWalletConsistency/Bootnode_WrongMasterAddress
+    role_integration_test.go:189: LoadWallet succeeded unexpectedly
+=== RUN   TestRoleBasedWalletConsistency/Bootnode_EmptyAddresses
+=== RUN   TestRoleBasedWalletConsistency/Root_AnyAddress
+--- FAIL: TestRoleBasedWalletConsistency (0.00s)
+    --- PASS: TestRoleBasedWalletConsistency/Peer_CorrectAddress (0.00s)
+    --- PASS: TestRoleBasedWalletConsistency/Peer_WrongAddress (0.00s)
+    --- PASS: TestRoleBasedWalletConsistency/Peer_EmptyAddress (0.00s)
+    --- PASS: TestRoleBasedWalletConsistency/Bootnode_CorrectAddresses (0.00s)
+    --- FAIL: TestRoleBasedWalletConsistency/Bootnode_WrongMinerAddress (0.00s)
+    --- FAIL: TestRoleBasedWalletConsistency/Bootnode_WrongMasterAddress (0.00s)
+    --- PASS: TestRoleBasedWalletConsistency/Bootnode_EmptyAddresses (0.00s)
+    --- PASS: TestRoleBasedWalletConsistency/Root_AnyAddress (0.00s)
+=== RUN   TestGUIRoleBasedFeatures
+=== RUN   TestGUIRoleBasedFeatures/Root_WithWallet_PaymentEnabled
+=== RUN   TestGUIRoleBasedFeatures/Root_WithWallet_PaymentDisabled
+    role_integration_test.go:318: Expected showRootSettings to be true, got false
+=== RUN   TestGUIRoleBasedFeatures/Root_NoWallet_PaymentEnabled
+=== RUN   TestGUIRoleBasedFeatures/Bootnode_WithWallet_PaymentEnabled
+=== RUN   TestGUIRoleBasedFeatures/Bootnode_WithWallet_PaymentDisabled
+=== RUN   TestGUIRoleBasedFeatures/Bootnode_NoWallet_PaymentEnabled
+=== RUN   TestGUIRoleBasedFeatures/Peer_WithWallet
+=== RUN   TestGUIRoleBasedFeatures/Peer_NoWallet
+=== RUN   TestGUIRoleBasedFeatures/Client_WithWallet
+=== RUN   TestGUIRoleBasedFeatures/Client_NoWallet
+--- FAIL: TestGUIRoleBasedFeatures (0.00s)
+    --- PASS: TestGUIRoleBasedFeatures/Root_WithWallet_PaymentEnabled (0.00s)
+    --- FAIL: TestGUIRoleBasedFeatures/Root_WithWallet_PaymentDisabled (0.00s)
+    --- PASS: TestGUIRoleBasedFeatures/Root_NoWallet_PaymentEnabled (0.00s)
+    --- PASS: TestGUIRoleBasedFeatures/Bootnode_WithWallet_PaymentEnabled (0.00s)
+    --- PASS: TestGUIRoleBasedFeatures/Bootnode_WithWallet_PaymentDisabled (0.00s)
+    --- PASS: TestGUIRoleBasedFeatures/Bootnode_NoWallet_PaymentEnabled (0.00s)
+    --- PASS: TestGUIRoleBasedFeatures/Peer_WithWallet (0.00s)
+    --- PASS: TestGUIRoleBasedFeatures/Peer_NoWallet (0.00s)
+    --- PASS: TestGUIRoleBasedFeatures/Client_WithWallet (0.00s)
+    --- PASS: TestGUIRoleBasedFeatures/Client_NoWallet (0.00s)
+=== RUN   TestTransactionFlow
+2025/05/21 06:24:14 [INFO] No existing blockchain data found for key 'test_chain_1747823054623423381'. Creating new blockchain.
+2025/05/21 06:24:14 [INFO] Creating new blockchain for test_chain_1747823054623423381 using provided Genesis block.
+2025/05/21 06:24:14 [INFO] Successfully created and stored new blockchain for key 'test_chain_1747823054623423381'.
+2025/05/21 06:24:14 [WARNING] Failed to initialize test accounts: failed to initialize test account KNIRVCHAIN0ad62e0365cf9b2716bb0d7f7ce6226005d4e33d: failed to update balance for KNIRVCHAIN0ad62e0365cf9b2716bb0d7f7ce6226005d4e33d: failed to get balance: failed to get balance: key not found: leveldb: not found
+    transaction_test.go:69: Added initial funding transaction 0x7cc26ff333ad8ac586e4b2c1377fbf104a03ed155c7186e8d9974e0fda5bd275 for sender KNIRVCHAIN40c34cf819331965f994b139caea2a2837c16285
+    transaction_test.go:81: Waiting for initial funding transaction to be mined...
+2025/05/21 06:24:14 [INFO] Starting to Mine...
+2025/05/21 06:24:14 [INFO] New transaction signal received, checking pool...
+2025/05/21 06:24:14 [INFO] Found 1 verified transactions in pool. Preparing to mine.
+2025/05/21 06:24:14 [INFO] Attempting to mine block with 1 verified transactions (sorted)...
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #0 being converted to proto. Timestamp: 1747823054, Nonce: 0, NumTx: 0
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #0:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 0
+2025/05/21 06:24:14 [INFO] - PrevHash: 
+2025/05/21 06:24:14 [INFO] - Nonce: 0
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 0
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 0, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 0
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 1, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 1
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 2, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 2
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 3, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 3
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 4, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 4
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 5, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 5
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 6, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 6
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 7, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 7
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 8, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 8
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 9, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 9
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 10, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 10
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 11, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 11
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 12, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 12
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 13, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 13
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 14, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 14
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 15, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 15
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 16, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 16
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 17, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 17
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 18, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 18
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 19, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 19
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 20, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 20
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 21, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 21
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 22, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 22
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 23, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 23
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 24, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 24
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 25, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 25
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 26, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 26
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 27, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 27
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 28, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 28
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 29, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 29
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 30, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 30
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 31, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 31
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 32, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 32
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 33, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 33
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 34, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 34
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 35, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 35
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 36, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 36
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 36, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 36
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Attempting to add block number 1 (Hash: 00029c2a453bef6ad1f6d6f7c5da87957e38b11fc47630e4b85762cc3d8637c2)
+2025/05/21 06:24:14 [INFO] AddBlock: Current chain length before add: 1
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #1 being converted to proto. Timestamp: 1747823054, Nonce: 36, NumTx: 2
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #1:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 1
+2025/05/21 06:24:14 [INFO] - PrevHash: 51bc5dbc5d70a1282b606ebeba716087771efd33ffd7307e6e815a6e96a089f1
+2025/05/21 06:24:14 [INFO] - Nonce: 36
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 2
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Block.Hash: Block #0 being converted to proto. Timestamp: 1747823054, Nonce: 0, NumTx: 0
+2025/05/21 06:24:14 [INFO] ProtoBlock fields for block #0:
+2025/05/21 06:24:14 [INFO] - BlockNumber: 0
+2025/05/21 06:24:14 [INFO] - PrevHash: 
+2025/05/21 06:24:14 [INFO] - Nonce: 0
+2025/05/21 06:24:14 [INFO] - Timestamp: 2025-05-21 10:24:14 +0000 UTC
+2025/05/21 06:24:14 [INFO] - Transactions count: 0
+2025/05/21 06:24:14 [INFO] - ProposerAddress: 
+2025/05/21 06:24:14 [INFO] Checks passed for block 1. Proceeding to process transactions and update state.
+2025/05/21 06:24:14 [INFO] Pre-loaded balances for 3 affected accounts for block 1.
+2025/05/21 06:24:14 [INFO] Processing tx 1/2 (Hash: 0x7cc26ff333ad8ac586e4b2c1377fbf104a03ed155c7186e8d9974e0fda5bd275) in block 1
+2025/05/21 06:24:14 [INFO] Processing tx 2/2 (Hash: 0xf6eb31a048f4ea9f30566c2309da3efdca47515f1051576ee66bb49b852db397) in block 1
+2025/05/21 06:24:14 [INFO] Successfully updated account balances in DB for block 1.
+2025/05/21 06:24:14 [INFO] Removed 1 transactions from pool found in block 1.
+2025/05/21 06:24:14 [INFO] Block 1 appended to in-memory chain.
+2025/05/21 06:24:14 [INFO] Successfully added block number 1 to the blockchain and DB. New total blocks: 2
+2025/05/21 06:24:14 [INFO] Successfully Mined block #1 with 2 transactions (incl. reward). Hash: 00029c2a453bef6ad1f6d6f7c5da87957e38b11fc47630e4b85762cc3d8637c2
+2025/05/21 06:24:14 [INFO] Broadcasting block #1
+2025/05/21 06:24:14 [INFO] ProofOfWorkMining: Successfully mined block #1. Hash: 00029c2a453bef6ad1f6d6f7c5da87957e38b11fc47630e4b85762cc3d8637c2. Calling AddBlock.
+    transaction_test.go:96: Funding transaction 0x7cc26ff333ad8ac586e4b2c1377fbf104a03ed155c7186e8d9974e0fda5bd275 mined in block 1
+    transaction_test.go:111: Creating and signing the main test transaction...
+    transaction_test.go:128: Adding main test transaction 0x57afbc66bf4fe85bcb5e0d0c44d1fb4e68d34c0382e51c885228473f5d52d997 to pool...
+2025/05/21 06:24:15 Verification hash input: 
+2KNIRVCHAIN40c34cf819331965f994b139caea2a2837c162852KNIRVCHAIN6d88c22250511e68ad39af4a9dc0cef2cad77bc6�"test transaction�Ӷ�
+2025/05/21 06:24:15 Verification hash bytes (hex): 0a326b6e697276636861696e3430633334636638313933333139363566393934623133396361656132613238333763313632383512326b6e697276636861696e3664383863323232353035313165363861643339616634613964633063656632636164373762633618e807221074657374207472616e73616374696f6e2a0608cfd3b6c106
+2025/05/21 06:24:15 Signature bytes (hex): 304502200ac77c68e719ca2eedd8b4d3eff6aa101b253db54e2c07455f8e135e8b4bcb87022100bcef4216b2429e56d0556ec75a642bfc894955d5e3813d77bb7db42934046abe
+2025/05/21 06:24:15 Verification hash input: 
+2KNIRVCHAIN40c34cf819331965f994b139caea2a2837c162852KNIRVCHAIN6d88c22250511e68ad39af4a9dc0cef2cad77bc6�"test transaction�Ӷ�
+2025/05/21 06:24:15 Verification hash bytes (hex): 0a326b6e697276636861696e3430633334636638313933333139363566393934623133396361656132613238333763313632383512326b6e697276636861696e3664383863323232353035313165363861643339616634613964633063656632636164373762633618e807221074657374207472616e73616374696f6e2a0608cfd3b6c106
+2025/05/21 06:24:15 Signature bytes (hex): 304502200ac77c68e719ca2eedd8b4d3eff6aa101b253db54e2c07455f8e135e8b4bcb87022100bcef4216b2429e56d0556ec75a642bfc894955d5e3813d77bb7db42934046abe
+2025/05/21 06:24:15 [INFO] Transaction 0x57afbc66bf4fe85bcb5e0d0c44d1fb4e68d34c0382e51c885228473f5d52d997 successfully verified
+2025/05/21 06:24:15 [INFO] calculateTotalCryptoLocked for KNIRVCHAIN40c34cf819331965f994b139caea2a2837c16285: Iterating 2 blocks...
+2025/05/21 06:24:15 [INFO]   Block 0: Processing...
+2025/05/21 06:24:15 [INFO]   Block 0: Contains 0 transactions.
+2025/05/21 06:24:15 [INFO]   Block 1: Processing...
+2025/05/21 06:24:15 [INFO]   Block 1: Contains 2 transactions.
+2025/05/21 06:24:15 [INFO]     Txn 0 (Hash: 0x7cc26f): Status='SUCCESS', From='KNIRVCHAINb53c1e30b8a578c091dd40612bfd1433991b4e09', To='KNIRVCHAIN40c34cf819331965f994b139caea2a2837c16285', Value=1000000
+2025/05/21 06:24:15 [INFO]       Txn Status is SUCCESS. Checking addresses...
+2025/05/21 06:24:15 [INFO]       MATCHED 'To': Added 1000000. New sum: 1000000
+2025/05/21 06:24:15 [INFO]     Txn 1 (Hash: 0xf6eb31): Status='SUCCESS', From='KNIRVCHAINb53c1e30b8a578c091dd40612bfd1433991b4e09', To='KNIRVCHAIN6d88c22250511e68ad39af4a9dc0cef2cad77bc6', Value=120000
+2025/05/21 06:24:15 [INFO]       Txn Status is SUCCESS. Checking addresses...
+2025/05/21 06:24:15 [INFO]       Txn does not involve address KNIRVCHAIN40c34cf819331965f994b139caea2a2837c16285
+2025/05/21 06:24:15 [INFO] calculateTotalCryptoLocked for KNIRVCHAIN40c34cf819331965f994b139caea2a2837c16285 finished. Final calculated balance: 1000000
+2025/05/21 06:24:15 [INFO] Simulated Balance Check for KNIRVCHAIN40c34cf819331965f994b139caea2a2837c16285 -> KNIRVCHAIN6d88c22250511e68ad39af4a9dc0cef2cad77bc6 (Value: 1000, Fee: 0): Initial on-chain balance for KNIRVCHAIN40c34cf819331965f994b139caea2a2837c16285 = 1000000
+2025/05/21 06:24:15 [INFO]   = Final Check: Final Simulated Balance (1000000) >= New Txn Total Cost (Value: 1000 + Fee: 0 = 1000) -> true
+2025/05/21 06:24:15 [INFO] Added transaction 0x57afbc66bf4fe85bcb5e0d0c44d1fb4e68d34c0382e51c885228473f5d52d997 to pool (verified: true)
+2025/05/21 06:24:15 [INFO] Mining stopped gracefully
+    transaction_test.go:141: Transaction 0x57afbc66bf4fe85bcb5e0d0c44d1fb4e68d34c0382e51c885228473f5d52d997 not marked as verified in pool
+--- FAIL: TestTransactionFlow (0.84s)
+=== RUN   TestURIGeneratorHandler_Integration
+    uri_generator_test.go:37: Waiting for node at http://localhost:9090 to become healthy...
+2025/05/21 06:24:18 [INFO] Block.Hash: Block #0 being converted to proto. Timestamp: 1678886400, Nonce: 0, NumTx: 0
+2025/05/21 06:24:18 [INFO] ProtoBlock fields for block #0:
+2025/05/21 06:24:18 [INFO] - BlockNumber: 0
+2025/05/21 06:24:18 [INFO] - PrevHash: 
+2025/05/21 06:24:18 [INFO] - Nonce: 0
+2025/05/21 06:24:18 [INFO] - Timestamp: 2023-03-15 13:20:00 +0000 UTC
+2025/05/21 06:24:18 [INFO] - Transactions count: 0
+2025/05/21 06:24:18 [INFO] - ProposerAddress: KNIRVCHAINb53c1e30b8a578c091dd40612bfd1433991b4e09
+2025/05/21 06:24:18 [INFO] Initialized deterministic Genesis Block. Hash: c3a7b1ecbfa373db8a37da060e1f2f8927ed5d09d2e4b1bc11d53797d0bd4d3a
+2025/05/21 06:24:18 KNIRVCHAIN Node starting. Version: dev, OS: linux, Arch: amd64. Log file: KNIRVCHAIN.log
+2025/05/21 06:24:18 Determined node role: Client
+2025/05/21 06:24:18 No -config flag provided, searching default locations...
+2025/05/21 06:24:18 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/client_data for role Client
+2025/05/21 06:24:18 Config path for role Client: /home/gperry/.config/KNIRVCHAIN/client_data/config.json
+2025/05/21 06:24:18 Checking config path: /home/gperry/.config/KNIRVCHAIN/client_data/config.json for role Client
+2025/05/21 06:24:18 Loading config from: /home/gperry/.config/KNIRVCHAIN/client_data/config.json
+2025/05/21 06:24:18 Successfully loaded config from: /home/gperry/.config/KNIRVCHAIN/client_data/config.json
+2025/05/21 06:24:18 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/client_data for role Client
+2025/05/21 06:24:18 Wallet path for role Client: /home/gperry/.config/KNIRVCHAIN/client_data/wallet.dat
+2025/05/21 06:24:18 WARNING: MinersAddress 'test-miner-address-Client' is configured but wallet file not found or mismatched.
+2025/05/21 06:24:18 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/client_data for role Client
+2025/05/21 06:24:18 Wallet path for role Client: /home/gperry/.config/KNIRVCHAIN/client_data/wallet.dat
+2025/05/21 06:24:18 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/client_data for role Client
+2025/05/21 06:24:18 Wallet path for role Client: /home/gperry/.config/KNIRVCHAIN/client_data/wallet.dat
+2025/05/21 06:24:18 Loaded wallet with address 'KNIRVCHAIN9a1b14328e41e867f7e2e34bddd43e3b7a8d0dc0', updating config
+2025/05/21 06:24:18 Installation not complete - running installer...
+
+=== Node Role Selection ===
+Please select the role for this node:
+1. Root - A root node that initializes a new chain
+2. Bootnode - A bootnode that helps with dev discovery
+3. Peer - A dev node that participates in the network
+4. Client - A client-only node with reduced functionality
+Enter your choice [1-4] (default: 4): 2025/05/21 06:24:18 Checking config path: /home/gperry/.config/KNIRVCHAIN/client_data/config.json for role Client
+2025/05/21 06:24:18 Loading config from: /home/gperry/.config/KNIRVCHAIN/client_data/config.json
+=== KNIRVCHAIN Node Installation ===
+Installing as a Client node
+
+This installer will:
+1. Connect to the KNIRVCHAIN Bootnode
+2. Generate a unique chain URI for this node
+5. Detect host operating system
+6. Register URI handler for agent:// protocol
+7. Find next available ports for node
+8. Update the application configuration
+9. Start the node
+
+Using Root Node URI: agent://KNIRVCHAIN-ROOT9999.chain/
+Client Node: ChainID will be derived from the generated wallet address.
+Generating wallet for this node...
+2025/05/21 06:24:18 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/client_data for role Client
+2025/05/21 06:24:18 Wallet path for role Client: /home/gperry/.config/KNIRVCHAIN/client_data/wallet.dat
+2025/05/21 06:24:18 Wallet saved successfully to /home/gperry/.config/KNIRVCHAIN/client_data/wallet.dat
+Client node: Using Wallet Address as ChainID: KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d
+Generated Wallet Address: KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d
+2025/05/21 06:24:18 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/client_data for role Client
+2025/05/21 06:24:18 Wallet path for role Client: /home/gperry/.config/KNIRVCHAIN/client_data/wallet.dat
+IMPORTANT: Securely back up the wallet file: /home/gperry/.config/KNIRVCHAIN/client_data/wallet.dat
+Skipping registry registration (only required for bootnodes)
+Detected operating system: linux
+URI scheme 'agent://' definition files created successfully on Linux.
+Updating MIME database...
+MIME database updated successfully.
+Updating desktop database...
+Desktop database updated successfully.
+URI handlers registered successfully.
+Setting up system service...
+Configuring as a Client service...
+2025/05/21 06:24:19 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/client_data for role Client
+
+=== Manual Service Installation Instructions ===
+A service file template has been created at: /home/gperry/.config/KNIRVCHAIN/client_data/services/KNIRVCHAIN-client.service
+
+To install the service manually, run the following commands as root:
+  sudo cp /home/gperry/.config/KNIRVCHAIN/client_data/services/KNIRVCHAIN-client.service /etc/systemd/system/
+  sudo systemctl daemon-reload
+  sudo systemctl enable KNIRVCHAIN-client
+  sudo systemctl start KNIRVCHAIN-client
+
+To check the service status:
+  sudo systemctl status KNIRVCHAIN-client
+
+2025/05/21 06:24:19 Warning: Failed to set up system service: must run as root to install system service
+You can manually configure the service later.
+2025/05/21 06:24:19 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/client_data for role Client
+2025/05/21 06:24:19 DEBUG: GetBlockchainDatabasePath - Constructed finalPath: '/home/gperry/.config/KNIRVCHAIN/client_data/client.db' for role Client
+2025/05/21 06:24:19 Saving configuration for Client node with ChainID: KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d, InstallComplete: true
+Configuration updated successfully.
+
+=== Installation Complete ===
+Your KNIRVCHAIN Client Node is now configured.
+This node will connect to the network with reduced resource usage.
+Launching the KNIRVCHAIN Node Manager...
+2025/05/21 06:24:19 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/client_data for role Client
+2025/05/21 06:24:19 Config path for role Client: /home/gperry/.config/KNIRVCHAIN/client_data/config.json
+2025/05/21 06:24:19 Checking config path: /home/gperry/.config/KNIRVCHAIN/client_data/config.json for role Client
+2025/05/21 06:24:19 Loading config from: /home/gperry/.config/KNIRVCHAIN/client_data/config.json
+2025/05/21 06:24:19 Configuring Single-Node Mode...
+2025/05/21 06:24:19 GUI is disabled for Single Node.
+2025/05/21 06:24:19 Starting in single-node mode...
+2025/05/21 06:24:19 Starting Main Node (HTTP: 9999, P2P: 5050, GUI: false, DB: /home/gperry/.config/KNIRVCHAIN/client_data/client.db)
+2025/05/21 06:24:19 [Client][KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d] Initializing node with role Client...
+2025/05/21 06:24:19 [Client][KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d] Initializing database at: /home/gperry/.config/KNIRVCHAIN/client_data/client.db
+2025/05/21 06:24:19 [INFO] Block.Hash: Block #0 being converted to proto. Timestamp: 1678886400, Nonce: 0, NumTx: 0
+2025/05/21 06:24:19 [INFO] ProtoBlock fields for block #0:
+2025/05/21 06:24:19 [INFO] - BlockNumber: 0
+2025/05/21 06:24:19 [INFO] - PrevHash: 
+2025/05/21 06:24:19 [INFO] - Nonce: 0
+2025/05/21 06:24:19 [INFO] - Timestamp: 2023-03-15 13:20:00 +0000 UTC
+2025/05/21 06:24:19 [INFO] - Transactions count: 0
+2025/05/21 06:24:19 [INFO] - ProposerAddress: KNIRVCHAINb53c1e30b8a578c091dd40612bfd1433991b4e09
+2025/05/21 06:24:19 [INFO] Initialized deterministic Genesis Block. Hash: c3a7b1ecbfa373db8a37da060e1f2f8927ed5d09d2e4b1bc11d53797d0bd4d3a
+2025/05/21 06:24:19 KNIRVCHAIN Node starting. Version: dev, OS: linux, Arch: amd64. Log file: KNIRVCHAIN.log
+2025/05/21 06:24:19 Determined node role: Client
+2025/05/21 06:24:19 No -config flag provided, searching default locations...
+2025/05/21 06:24:19 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/client_data for role Client
+2025/05/21 06:24:19 Config path for role Client: /home/gperry/.config/KNIRVCHAIN/client_data/config.json
+2025/05/21 06:24:19 Checking config path: /home/gperry/.config/KNIRVCHAIN/client_data/config.json for role Client
+2025/05/21 06:24:19 Loading config from: /home/gperry/.config/KNIRVCHAIN/client_data/config.json
+2025/05/21 06:24:19 Successfully loaded config from: /home/gperry/.config/KNIRVCHAIN/client_data/config.json
+2025/05/21 06:24:19 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/client_data for role Client
+2025/05/21 06:24:19 Wallet path for role Client: /home/gperry/.config/KNIRVCHAIN/client_data/wallet.dat
+2025/05/21 06:24:19 Successfully validated wallet for address 'KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d'
+2025/05/21 06:24:19 Installation is complete. Continuing with node initialization...
+2025/05/21 06:24:19 Configuring Single-Node Mode...
+2025/05/21 06:24:19 GUI is disabled for Single Node.
+2025/05/21 06:24:19 Starting in single-node mode...
+2025/05/21 06:24:19 Starting Main Node (HTTP: 9090, P2P: 5050, GUI: false, DB: /tmp/uri-test-node-1671193722/test_uri_gen_node.db)
+2025/05/21 06:24:19 [Client][KNIRVCHAIN-9090] Initializing node with role Client...
+2025/05/21 06:24:19 [Client][KNIRVCHAIN-9090] Initializing database at: /tmp/uri-test-node-1671193722/test_uri_gen_node.db
+2025/05/21 06:24:19 [INFO] No existing blockchain data found for key 'KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d'. Creating new blockchain.
+2025/05/21 06:24:19 [INFO] Creating new blockchain for KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d using provided Genesis block.
+2025/05/21 06:24:19 [INFO] No existing blockchain data found for key 'KNIRVCHAIN-9090'. Creating new blockchain.
+2025/05/21 06:24:19 [INFO] Creating new blockchain for KNIRVCHAIN-9090 using provided Genesis block.
+2025/05/21 06:24:19 [INFO] Successfully created and stored new blockchain for key 'KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d'.
+2025/05/21 06:24:19 BlockchainServer for chain KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d prepared for port 9999
+2025/05/21 06:24:19 [Client][KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d] Discovery Manager initialized. PeerID: 12D3KooWMh1gUnH8NHAZt4iTqTCntXGrkwM2jidBE5VGLgJQJ9hf (ClientOnly: true)
+2025/05/21 06:24:19 [Client][KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d] Listening on: /ip4/127.0.0.1/tcp/5050/p2p/12D3KooWMh1gUnH8NHAZt4iTqTCntXGrkwM2jidBE5VGLgJQJ9hf
+2025/05/21 06:24:19 [Client][KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d] Listening on: /ip4/192.168.12.122/tcp/5050/p2p/12D3KooWMh1gUnH8NHAZt4iTqTCntXGrkwM2jidBE5VGLgJQJ9hf
+2025/05/21 06:24:19 [Client][KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d] Listening on: /ip6/::1/tcp/5050/p2p/12D3KooWMh1gUnH8NHAZt4iTqTCntXGrkwM2jidBE5VGLgJQJ9hf
+2025/05/21 06:24:19 [Client][KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d] Listening on: /ip6/2607:fb91:2837:4588::126a/tcp/5050/p2p/12D3KooWMh1gUnH8NHAZt4iTqTCntXGrkwM2jidBE5VGLgJQJ9hf
+2025/05/21 06:24:19 [Client][KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d] P2P consensus manager subscribed to topics: KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d.blocks, KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d.transactions
+2025/05/21 06:24:19 [Client][KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d] Registered chain sync handler for protocol /agent/chain-sync/1.0.0
+2025/05/21 06:24:19 [Client][KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d] Starting P2P consensus manager...
+2025/05/21 06:24:19 [Client][KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d] P2P consensus manager started successfully.
+2025/05/21 06:24:19 [Client][KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d] Starting blockchain HTTP server on port 9999...
+2025/05/21 06:24:19 Starting HTTP server listener for chain KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d on port: 9999
+2025/05/21 06:24:19 [Client][KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d] Connecting to bootstrap nodes...
+2025/05/21 06:24:19 [Client][KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d] Fetching bootnodes from registry: https://registry.knirv.com/nodes
+2025/05/21 06:24:19 [INFO] Successfully created and stored new blockchain for key 'KNIRVCHAIN-9090'.
+2025/05/21 06:24:19 [Client][KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d] Starting wallet server on port 6050...
+2025/05/21 06:24:19 Wallet server will listen on port 6050
+2025/05/21 06:24:19 [Client][KNIRVCHAINf10788f503f413984f5f0a226c7233c268bc6b5d] Wallet server stopped
+2025/05/21 06:24:19 BlockchainServer for chain KNIRVCHAIN-9090 prepared for port 9090
+2025/05/21 06:24:19 Starting wallet server on [::]:6050...
+2025/05/21 06:24:19 [Client][KNIRVCHAIN-9090] Discovery Manager initialized. PeerID: 12D3KooWPMm2h9m7Nk61bMChxJPqbZqKEc8Xn9XyXLc5Cq5vTbHQ (ClientOnly: false)
+2025/05/21 06:24:19 [Client][KNIRVCHAIN-9090] Listening on: /ip4/127.0.0.1/tcp/5050/p2p/12D3KooWPMm2h9m7Nk61bMChxJPqbZqKEc8Xn9XyXLc5Cq5vTbHQ
+2025/05/21 06:24:19 [Client][KNIRVCHAIN-9090] Listening on: /ip4/192.168.12.122/tcp/5050/p2p/12D3KooWPMm2h9m7Nk61bMChxJPqbZqKEc8Xn9XyXLc5Cq5vTbHQ
+2025/05/21 06:24:19 [Client][KNIRVCHAIN-9090] Listening on: /ip6/::1/tcp/5050/p2p/12D3KooWPMm2h9m7Nk61bMChxJPqbZqKEc8Xn9XyXLc5Cq5vTbHQ
+2025/05/21 06:24:19 [Client][KNIRVCHAIN-9090] Listening on: /ip6/2607:fb91:2837:4588::126a/tcp/5050/p2p/12D3KooWPMm2h9m7Nk61bMChxJPqbZqKEc8Xn9XyXLc5Cq5vTbHQ
+2025/05/21 06:24:19 [Client][KNIRVCHAIN-9090] P2P consensus manager subscribed to topics: KNIRVCHAIN-9090.blocks, KNIRVCHAIN-9090.transactions
+2025/05/21 06:24:19 [Client][KNIRVCHAIN-9090] Registered chain sync handler for protocol /agent/chain-sync/1.0.0
+2025/05/21 06:24:19 [Client][KNIRVCHAIN-9090] Starting P2P consensus manager...
+2025/05/21 06:24:19 [Client][KNIRVCHAIN-9090] P2P consensus manager started successfully.
+2025/05/21 06:24:19 [Client][KNIRVCHAIN-9090] Starting blockchain HTTP server on port 9090...
+2025/05/21 06:24:19 Starting HTTP server listener for chain KNIRVCHAIN-9090 on port: 9090
+2025/05/21 06:24:19 [Client][KNIRVCHAIN-9090] Connecting to bootstrap nodes...
+2025/05/21 06:24:19 [Client][KNIRVCHAIN-9090] Fetching bootnodes from registry: https://registry.knirv.com/nodes
+2025/05/21 06:24:19 mDNS: Found local dev: 12D3KooWPMm2h9m7Nk61bMChxJPqbZqKEc8Xn9XyXLc5Cq5vTbHQ, attempting connection
+2025/05/21 06:24:19 mDNS: Error connecting to local dev 12D3KooWPMm2h9m7Nk61bMChxJPqbZqKEc8Xn9XyXLc5Cq5vTbHQ: failed to dial: swarm closed
+2025/05/21 06:24:19 mDNS: Found local dev: 12D3KooWDpqn99xVZhiPYnrmSBUAZWNw5uRmduYDLdeD9acqVNUo, attempting connection
+2025/05/21 06:24:19 mDNS: Found local dev: 12D3KooWNkrNgyAByT2Pvg3gCdWBBGCRYZN5RPAzhYqdWwcnqAbq, attempting connection
+2025/05/21 06:24:19 mDNS: Found local dev: 12D3KooWPMm2h9m7Nk61bMChxJPqbZqKEc8Xn9XyXLc5Cq5vTbHQ, attempting connection
+2025/05/21 06:24:19 mDNS: Found local dev: 12D3KooWJGLVweVXQqyP2b5NW5AeHzsNyg9fpdDqbi17nxS4RYBF, attempting connection
+2025/05/21 06:24:19 mDNS: Error connecting to local dev 12D3KooWPMm2h9m7Nk61bMChxJPqbZqKEc8Xn9XyXLc5Cq5vTbHQ: failed to dial: swarm closed
+2025/05/21 06:24:19 mDNS: Found local dev: 12D3KooWPMm2h9m7Nk61bMChxJPqbZqKEc8Xn9XyXLc5Cq5vTbHQ, attempting connection
+2025/05/21 06:24:19 mDNS: Error connecting to local dev 12D3KooWNkrNgyAByT2Pvg3gCdWBBGCRYZN5RPAzhYqdWwcnqAbq: failed to dial: failed to dial 12D3KooWNkrNgyAByT2Pvg3gCdWBBGCRYZN5RPAzhYqdWwcnqAbq: no good addresses
+  * [/ip4/10.1.131.128/tcp/5050] dial to self attempted
+  * [/ip4/127.0.0.1/tcp/5050] dial to self attempted
+  * [/ip4/172.17.0.1/tcp/5050] dial to self attempted
+  * [/ip4/192.168.12.122/tcp/5050] dial to self attempted
+  * [/ip4/192.168.124.1/tcp/5050] dial to self attempted
+  * [/ip6/::1/tcp/5050] dial to self attempted
+  * [/ip6/2607:fb91:2837:4588::126a/tcp/5050] dial to self attempted
+  * [/ip6/2607:fb91:2837:4588:e269:95ff:feec:2329/tcp/5050] dial to self attempted
+2025/05/21 06:24:19 mDNS: Error connecting to local dev 12D3KooWPMm2h9m7Nk61bMChxJPqbZqKEc8Xn9XyXLc5Cq5vTbHQ: failed to dial: swarm closed
+2025/05/21 06:24:19 mDNS: Error connecting to local dev 12D3KooWJGLVweVXQqyP2b5NW5AeHzsNyg9fpdDqbi17nxS4RYBF: failed to dial: failed to dial 12D3KooWJGLVweVXQqyP2b5NW5AeHzsNyg9fpdDqbi17nxS4RYBF: all dials failed
+  * [/ip6/2607:fb91:2837:4588::126a/tcp/5061] dial tcp6 [2607:fb91:2837:4588::126a]:5061: connect: connection refused
+  * [/ip6/::1/tcp/5061] dial tcp6 [::1]:5061: connect: connection refused
+  * [/ip4/10.1.131.128/tcp/5061] dial tcp4 10.1.131.128:5061: connect: connection refused
+  * [/ip4/192.168.124.1/tcp/5061] dial tcp4 192.168.124.1:5061: connect: connection refused
+  * [/ip4/127.0.0.1/tcp/5061] dial tcp4 127.0.0.1:5061: connect: connection refused
+  * [/ip4/172.17.0.1/tcp/5061] dial tcp4 172.17.0.1:5061: connect: connection refused
+  * [/ip4/192.168.12.122/tcp/5061] dial tcp4 192.168.12.122:5061: connect: connection refused
+  * [/ip6/2607:fb91:2837:4588:e269:95ff:feec:2329/tcp/5061] dial tcp6 [2607:fb91:2837:4588:e269:95ff:feec:2329]:5061: connect: connection refused
+2025/05/21 06:24:19 mDNS: Error connecting to local dev 12D3KooWDpqn99xVZhiPYnrmSBUAZWNw5uRmduYDLdeD9acqVNUo: failed to dial: failed to dial 12D3KooWDpqn99xVZhiPYnrmSBUAZWNw5uRmduYDLdeD9acqVNUo: all dials failed
+  * [/ip6/2607:fb91:2837:4588::126a/tcp/5060] dial tcp6 [2607:fb91:2837:4588::126a]:5060: connect: connection refused
+  * [/ip6/::1/tcp/5060] dial tcp6 [::1]:5060: connect: connection refused
+  * [/ip4/10.1.131.128/tcp/5060] dial tcp4 10.1.131.128:5060: connect: connection refused
+  * [/ip4/192.168.124.1/tcp/5060] dial tcp4 192.168.124.1:5060: connect: connection refused
+  * [/ip4/192.168.12.122/tcp/5060] dial tcp4 192.168.12.122:5060: connect: connection refused
+  * [/ip4/127.0.0.1/tcp/5060] dial tcp4 127.0.0.1:5060: connect: connection refused
+  * [/ip4/172.17.0.1/tcp/5060] dial tcp4 172.17.0.1:5060: connect: connection refused
+  * [/ip6/2607:fb91:2837:4588:e269:95ff:feec:2329/tcp/5060] dial tcp6 [2607:fb91:2837:4588:e269:95ff:feec:2329]:5060: connect: connection refused
+    uri_generator_test.go:37: Node at http://localhost:9090 is healthy
+    uri_generator_test.go:38: Test node started and healthy
+=== RUN   TestURIGeneratorHandler_Integration/Default_UUID_Generation
+2025/05/21 06:24:20 Health check request from 127.0.0.1:54368
+    uri_generator_test.go:66: Generated URI: agent://a4ed0243-f3dd-43ef-ba53-9d162f6e95cf.chain/
+    uri_generator_test.go:67: Generated Txn Hash: 0x71f01e5987ee021674ab8b414ca55cfd8d2c826c3cc6d70ba71d73130906462d
+    uri_generator_test.go:88: Parsed URI - ID: a4ed0243-f3dd-43ef-ba53-9d162f6e95cf, ResourceType: chain, Path: /, Params: map[]
+=== RUN   TestURIGeneratorHandler_Integration/With_Available_Desired_ID
+2025/05/21 06:24:20 URI Generator: No desired ID, generated UUID: a4ed0243-f3dd-43ef-ba53-9d162f6e95cf
+2025/05/21 06:24:20 Generated URI: agent://a4ed0243-f3dd-43ef-ba53-9d162f6e95cf.chain/ (Using ID: a4ed0243-f3dd-43ef-ba53-9d162f6e95cf)
+2025/05/21 06:24:20 URI Mint Transaction Hash: 0x71f01e5987ee021674ab8b414ca55cfd8d2c826c3cc6d70ba71d73130906462d
+2025/05/21 06:24:20 [Client][KNIRVCHAIN-9090] Announcing resource: a4ed0243-f3dd-43ef-ba53-9d162f6e95cf.chain (CID: bafkreiambjsgoeyuwf4adm3jf4sbajaduhtcbzvwbgktajqx7upqgzgtzm)
+2025/05/21 06:24:20 [KNIRVCHAIN-9090] WARNING: Failed to announce newly minted resource a4ed0243-f3dd-43ef-ba53-9d162f6e95cf on DHT: [Client][KNIRVCHAIN-9090] failed to announce resource a4ed0243-f3dd-43ef-ba53-9d162f6e95cf.chain: failed to find any dev in table
+    uri_generator_test.go:127: Generated URI with desired ID: agent://my-test-id-123.chain/
+=== RUN   TestURIGeneratorHandler_Integration/Conflict_Scenario
+2025/05/21 06:24:20 URI Generator: Checking DHT availability for desired ID: my-test-id-123
+2025/05/21 06:24:20 [Client][KNIRVCHAIN-9090] Looking for providers of resource: my-test-id-123.chain (CID: bafkreibjl7w2fvprldpckxr4wcvch32cbgps2bguafvpmgh4mvz5754ypu)
+2025/05/21 06:24:20 URI Generator: DHT lookup confirmed no providers for 'my-test-id-123'. ID is available. (Error: [Client][KNIRVCHAIN-9090] no providers found for resource: my-test-id-123.chain)
+2025/05/21 06:24:20 URI Generator: Desired ID 'my-test-id-123' is available.
+2025/05/21 06:24:20 Generated URI: agent://my-test-id-123.chain/ (Using ID: my-test-id-123)
+2025/05/21 06:24:20 URI Mint Transaction Hash: 0x6a9a1b707287967ca65ff8dacfcfd4e9e79439d50b4ecba800bc98b0b11e5f76
+2025/05/21 06:24:20 [Client][KNIRVCHAIN-9090] Announcing resource: my-test-id-123.chain (CID: bafkreibjl7w2fvprldpckxr4wcvch32cbgps2bguafvpmgh4mvz5754ypu)
+2025/05/21 06:24:20 [KNIRVCHAIN-9090] WARNING: Failed to announce newly minted resource my-test-id-123 on DHT: [Client][KNIRVCHAIN-9090] failed to announce resource my-test-id-123.chain: failed to find any dev in table
+    uri_generator_test.go:146: Successfully registered ID 'taken-id-456' for conflict test.
+2025/05/21 06:24:20 URI Generator: Checking DHT availability for desired ID: taken-id-456
+2025/05/21 06:24:20 [Client][KNIRVCHAIN-9090] Looking for providers of resource: taken-id-456.chain (CID: bafkreiahyd3h2khehz2jynvstkbvop6ppbapc4k7m2quji53tdzkirkbh4)
+2025/05/21 06:24:20 URI Generator: DHT lookup confirmed no providers for 'taken-id-456'. ID is available. (Error: [Client][KNIRVCHAIN-9090] no providers found for resource: taken-id-456.chain)
+2025/05/21 06:24:20 URI Generator: Desired ID 'taken-id-456' is available.
+2025/05/21 06:24:20 Generated URI: agent://taken-id-456.chain/ (Using ID: taken-id-456)
+2025/05/21 06:24:20 URI Mint Transaction Hash: 0xb68ae29cce41415197e593fdda4b0b86ef17f5b16989255c0064f77113a914f3
+2025/05/21 06:24:20 [Client][KNIRVCHAIN-9090] Announcing resource: taken-id-456.chain (CID: bafkreiahyd3h2khehz2jynvstkbvop6ppbapc4k7m2quji53tdzkirkbh4)
+2025/05/21 06:24:20 [KNIRVCHAIN-9090] WARNING: Failed to announce newly minted resource taken-id-456 on DHT: [Client][KNIRVCHAIN-9090] failed to announce resource taken-id-456.chain: failed to find any dev in table
+2025/05/21 06:24:20 URI Generator: Checking DHT availability for desired ID: taken-id-456
+2025/05/21 06:24:20 [Client][KNIRVCHAIN-9090] Looking for providers of resource: taken-id-456.chain (CID: bafkreiahyd3h2khehz2jynvstkbvop6ppbapc4k7m2quji53tdzkirkbh4)
+2025/05/21 06:24:20 URI Generator: DHT lookup confirmed no providers for 'taken-id-456'. ID is available. (Error: [Client][KNIRVCHAIN-9090] no providers found for resource: taken-id-456.chain)
+2025/05/21 06:24:20 URI Generator: Desired ID 'taken-id-456' is available.
+2025/05/21 06:24:20 Generated URI: agent://taken-id-456.chain/ (Using ID: taken-id-456)
+2025/05/21 06:24:20 URI Mint Transaction Hash: 0xb68ae29cce41415197e593fdda4b0b86ef17f5b16989255c0064f77113a914f3
+2025/05/21 06:24:20 [Client][KNIRVCHAIN-9090] Announcing resource: taken-id-456.chain (CID: bafkreiahyd3h2khehz2jynvstkbvop6ppbapc4k7m2quji53tdzkirkbh4)
+2025/05/21 06:24:20 [KNIRVCHAIN-9090] WARNING: Failed to announce newly minted resource taken-id-456 on DHT: [Client][KNIRVCHAIN-9090] failed to announce resource taken-id-456.chain: failed to find any dev in table
+    uri_generator_test.go:161: Handler returned wrong status code for conflict: got 201 want 409, body: {"txn_hash":"0xb68ae29cce41415197e593fdda4b0b86ef17f5b16989255c0064f77113a914f3","uri":"agent://taken-id-456.chain/"}
+Error copying stdout: read |0: file already closed
+Error copying stderr: read |0: file already closed
+--- FAIL: TestURIGeneratorHandler_Integration (5.53s)
+    --- PASS: TestURIGeneratorHandler_Integration/Default_UUID_Generation (0.00s)
+    --- PASS: TestURIGeneratorHandler_Integration/With_Available_Desired_ID (0.00s)
+    --- FAIL: TestURIGeneratorHandler_Integration/Conflict_Scenario (0.51s)
+=== RUN   TestParseResourceURI
+=== RUN   TestParseResourceURI/Valid_Chain_URI
+    uri_generator_test.go:255: Params: map[]
+=== RUN   TestParseResourceURI/Valid_Chain_URI_with_Path
+    uri_generator_test.go:255: Params: map[]
+=== RUN   TestParseResourceURI/Valid_Chain_URI_with_Query
+    uri_generator_test.go:255: Params: map[hash:xyz789]
+=== RUN   TestParseResourceURI/Valid_NRN_URI
+    uri_generator_test.go:255: Params: map[]
+=== RUN   TestParseResourceURI/Invalid_Scheme
+=== RUN   TestParseResourceURI/Invalid_Authority_Format
+=== RUN   TestParseResourceURI/Invalid_Resource_Type
+    uri_generator_test.go:255: Params: map[]
+--- PASS: TestParseResourceURI (0.00s)
+    --- PASS: TestParseResourceURI/Valid_Chain_URI (0.00s)
+    --- PASS: TestParseResourceURI/Valid_Chain_URI_with_Path (0.00s)
+    --- PASS: TestParseResourceURI/Valid_Chain_URI_with_Query (0.00s)
+    --- PASS: TestParseResourceURI/Valid_NRN_URI (0.00s)
+    --- PASS: TestParseResourceURI/Invalid_Scheme (0.00s)
+    --- PASS: TestParseResourceURI/Invalid_Authority_Format (0.00s)
+    --- PASS: TestParseResourceURI/Invalid_Resource_Type (0.00s)
+=== RUN   TestGenerateResourceURI
+=== RUN   TestGenerateResourceURI/Chain_URI
+    uri_generator_test.go:311: Generated URI: agent://abc123.chain/
+=== RUN   TestGenerateResourceURI/Chain_URI_with_Path
+    uri_generator_test.go:311: Generated URI: agent://abc123.chain/block
+=== RUN   TestGenerateResourceURI/Chain_URI_with_Path_and_Params
+    uri_generator_test.go:311: Generated URI: agent://abc123.chain/block?hash=xyz789
+=== RUN   TestGenerateResourceURI/NRN_URI
+    uri_generator_test.go:311: Generated URI: agent://content123.nrn/
+--- PASS: TestGenerateResourceURI (0.00s)
+    --- PASS: TestGenerateResourceURI/Chain_URI (0.00s)
+    --- PASS: TestGenerateResourceURI/Chain_URI_with_Path (0.00s)
+    --- PASS: TestGenerateResourceURI/Chain_URI_with_Path_and_Params (0.00s)
+    --- PASS: TestGenerateResourceURI/NRN_URI (0.00s)
+=== RUN   TestParseURI
+=== RUN   TestParseURI/Valid_URI_with_subpath
+=== RUN   TestParseURI/Valid_URI_without_subpath
+=== RUN   TestParseURI/Valid_URI_with_chainID
+=== RUN   TestParseURI/Invalid_scheme
+=== RUN   TestParseURI/Missing_path
+=== RUN   TestParseURI/Missing_resource_type
+=== RUN   TestParseURI/Invalid_Resource_Type
+--- PASS: TestParseURI (0.00s)
+    --- PASS: TestParseURI/Valid_URI_with_subpath (0.00s)
+    --- PASS: TestParseURI/Valid_URI_without_subpath (0.00s)
+    --- PASS: TestParseURI/Valid_URI_with_chainID (0.00s)
+    --- PASS: TestParseURI/Invalid_scheme (0.00s)
+    --- PASS: TestParseURI/Missing_path (0.00s)
+    --- PASS: TestParseURI/Missing_resource_type (0.00s)
+    --- PASS: TestParseURI/Invalid_Resource_Type (0.00s)
+=== RUN   TestWalletConsistencyChecks
+2025/05/21 06:24:20 Wallet saved successfully to /tmp/KNIRVCHAIN-wallet-consistency-test1010061947/wallet.dat
+2025/05/21 06:24:20 Wallet saved successfully to /tmp/KNIRVCHAIN-wallet-consistency-test1010061947/master_wallet.dat
+=== RUN   TestWalletConsistencyChecks/Peer_CorrectAddress
+=== RUN   TestWalletConsistencyChecks/Peer_WrongAddress
+=== RUN   TestWalletConsistencyChecks/Peer_EmptyAddress
+=== RUN   TestWalletConsistencyChecks/Bootnode_CorrectAddresses
+=== RUN   TestWalletConsistencyChecks/Bootnode_WrongMinerAddress
+=== RUN   TestWalletConsistencyChecks/Bootnode_WrongMasterAddress
+=== RUN   TestWalletConsistencyChecks/Bootnode_EmptyAddresses
+=== RUN   TestWalletConsistencyChecks/Root_AnyAddress
+--- PASS: TestWalletConsistencyChecks (0.00s)
+    --- PASS: TestWalletConsistencyChecks/Peer_CorrectAddress (0.00s)
+    --- PASS: TestWalletConsistencyChecks/Peer_WrongAddress (0.00s)
+    --- PASS: TestWalletConsistencyChecks/Peer_EmptyAddress (0.00s)
+    --- PASS: TestWalletConsistencyChecks/Bootnode_CorrectAddresses (0.00s)
+    --- PASS: TestWalletConsistencyChecks/Bootnode_WrongMinerAddress (0.00s)
+    --- PASS: TestWalletConsistencyChecks/Bootnode_WrongMasterAddress (0.00s)
+    --- PASS: TestWalletConsistencyChecks/Bootnode_EmptyAddresses (0.00s)
+    --- PASS: TestWalletConsistencyChecks/Root_AnyAddress (0.00s)
+=== RUN   TestWalletManager
+=== RUN   TestWalletManager/SaveLoadWallet
+2025/05/21 06:24:20 Wallet saved successfully to /tmp/KNIRVCHAIN-wallet-test978810683/test_wallet.dat
+=== RUN   TestWalletManager/SaveLoadMasterWallet
+2025/05/21 06:24:20 Wallet saved successfully to /tmp/KNIRVCHAIN-wallet-test978810683/test_master_wallet.dat
+=== RUN   TestWalletManager/ErrorHandling
+    wallet_manager_test.go:151: Expected os.ErrNotExist, got failed to load wallet from file: file does not exist
+=== RUN   TestWalletManager/WalletConsistencyChecks
+2025/05/21 06:24:20 Wallet saved successfully to /tmp/KNIRVCHAIN-wallet-test978810683/dev_wallet.dat
+2025/05/21 06:24:20 Wallet saved successfully to /tmp/KNIRVCHAIN-wallet-test978810683/master_wallet.dat
+--- FAIL: TestWalletManager (0.00s)
+    --- PASS: TestWalletManager/SaveLoadWallet (0.00s)
+    --- PASS: TestWalletManager/SaveLoadMasterWallet (0.00s)
+    --- FAIL: TestWalletManager/ErrorHandling (0.00s)
+    --- PASS: TestWalletManager/WalletConsistencyChecks (0.00s)
+FAIL
+FAIL    KNIRVCHAIN      81.048s
+FAIL
+gperry@cloud-eq:~/Documents/GitHub/cloud-equities/KNIRVCHAIN_GO_ROOT_MCP_PROTO$ 
+
+---
+
+<div class="footer-links">
+
+
+© 2025 KNIRV Network
+</div>

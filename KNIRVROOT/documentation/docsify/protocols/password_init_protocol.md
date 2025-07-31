@@ -922,7 +922,7 @@ func main() {
 
     // Create default content
     content := &pb.RootKeyFileContentProto{
-        StripeSecretKey:       "sk_test_default",
+        StripeSecretKey:       os.Getenv("STRIPE_SECRET_KEY"), // Load from environment variable or .env file
         StripeWebhookSecret:   "whsec_default",
         CoinbaseApiKey:        "coinbase_api_default",
         CoinbaseWebhookSecret: "coinbase_webhook_default",

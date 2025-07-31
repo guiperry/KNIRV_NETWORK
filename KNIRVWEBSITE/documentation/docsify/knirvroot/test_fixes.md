@@ -1,0 +1,162 @@
+
+
+---
+
+**Source**: KNIRVROOT/docs/Troubleshooting/test_fixes.md
+
+Okay, I've analyzed the test_log.md file. It seems there are several test failures related to database access, configuration loading, transaction processing, and dev-to-dev interactions.
+
+Here's a list of the failed tests with an analysis of their potential causes based on the logs and the provided context documents, along with proposed fixes:
+
+1. TestMCPTransactionProcessing
+Failure Log Snippet:
+plaintext
+mcp_blockchain_test.go:133: Failed to get capability from database after retries: capability with ID resource-test-1748835298604138755 not found in database
+--- FAIL: TestMCPTransactionProcessing (6.95s)
+Analysis: The test registers an MCP capability, which involves creating a transaction, adding it to a block, and then adding that block to the blockchain. The subsequent attempt to retrieve this capability from the database fails. The logs show the transaction 0x9a15c... (for capability resource-test-1748835298604138755) is added to the pool and a block containing it is reportedly added to the chain (Successfully added block number 1 to the blockchain and DB). However, the repeated GetCapabilityByID calls for this ID fail. This strongly suggests that the logic within AddBlock (specifically ProcessTransactionsForBlock or ApplyMCPTransactionEffects) is not correctly saving the CapabilityDescriptor to LevelDB when processing a TransactionTypeMCPRegisterCapability transaction. While test_fixes_worklog.md mentions a fix for key formats, the capability is still not found. The issue might be that the save operation itself is skipped or fails silently within the block processing logic.
+Proposed Fix (referencing test_fixes.md and test_fixes_worklog.md):
+Verify ApplyMCPTransactionEffects (or equivalent):
+Ensure that for TransactionTypeMCPRegisterCapability, the function responsible for saving the capability (e.g., bc.SaveCapabilityDescriptor or bc.SaveCapability) is explicitly called within the transaction processing loop of AddBlock.
+Confirm that the CapabilityDescriptor is correctly extracted from the transaction data and passed to the save function.
+Error Handling in AddBlock:
+Ensure that any errors returned by SaveCapabilityDescriptor during block processing are not suppressed and would cause AddBlock to fail or clearly log the specific persistence error. The test_fixes_worklog.md mentioned removing an empty if lastErr != nil {} block; ensure similar issues aren't present.
+Database Commits/Flushing: If LevelDB writes are batched, ensure the batch is committed before AddBlock returns successfully and the test attempts retrieval. However, the immediate failure suggests a more fundamental issue like the save call not happening.
+2. TestCapabilityInvocation
+Failure Log Snippet:
+plaintext
+mcp_blockchain_test.go:423: Failed to get context record: failed to get context record with key ctx:0x39b8e95569d2140fbdc790400fab5b3bbedc067af847959e07585944873dd486: leveldb: not found
+--- FAIL: TestCapabilityInvocation (1.29s)
+Analysis: An MCPInvokeCapabilityTransaction is created and included in a block. The test expects a ContextRecord to be saved to LevelDB with a key derived from the transaction hash (ctx:<tx_hash>). The failure to retrieve this record indicates it wasn't saved. The test_fixes.md suggests that the SaveContextRecord call might be missing or failing silently in ProcessTransactionsForBlock for TransactionTypeMCPInvokeCapability. The test_log.md shows successful SaveContextRecord calls in TestMCPAPI, indicating the save function itself can work.
+Proposed Fix (referencing test_fixes.md):
+Ensure SaveContextRecord Call:
+In the part of AddBlock (or its sub-functions like ApplyMCPTransactionEffects) that processes transactions, verify that for TransactionTypeMCPInvokeCapability, bc.SaveContextRecord() is called.
+Ensure the ContextRecord's ID field is correctly set (e.g., to the transaction hash 0x39b8e...) before SaveContextRecord is called. The log Context record to be stored: {ID:0x39b8e...} shows the ID is being set correctly in the struct passed to AddBlock, but this needs to translate to the actual save operation.
+Error Propagation: Ensure that if SaveContextRecord fails during block processing, the error is propagated and causes AddBlock to fail or log the specific error.
+3. TestMCPCapabilityUpdate
+Failure Log Snippet:
+plaintext
+mcp_blockchain_test.go:686: Initial capability not found in database: capability with ID resource-test-update-1748835307025163597 not found in database
+--- FAIL: TestMCPCapabilityUpdate (2.11s)
+Analysis: This test first registers a capability and then attempts to update it. The failure occurs when the test (or the update validation logic) tries to retrieve the initially registered capability, and it's not found. This is fundamentally the same issue as in TestMCPTransactionProcessing: the initial capability registration isn't being persisted to the database correctly when its block is processed by AddBlock.
+Proposed Fix: The fix is the same as for TestMCPTransactionProcessing. The ApplyMCPTransactionEffects (or equivalent logic in AddBlock) must correctly save the CapabilityDescriptor when processing the TransactionTypeMCPRegisterCapability transaction for the initial capability.
+4. TestChromemDBSkipsInvalidTransactions
+Failure Log Snippet:
+plaintext
+mcp_blockchain_test.go:1082: Failed to query ChromemDB: queryText is empty
+--- FAIL: TestChromemDBSkipsInvalidTransactions (0.49s)
+Analysis: The test aims to verify that invalid transactions are not synced to ChromemDB. The logs show AddBlock correctly identifies an invalid transaction (insufficient balance for network fee). The test_fixes_worklog.md describes a fix where ChromemSyncManager skips transactions marked in Block.InvalidTxHashes. The current failure Failed to query ChromemDB: queryText is empty indicates an issue with the test's verification step. The test should attempt to query ChromemDB for the specific invalid transaction's data and assert that it's not found. Providing an empty queryText to the ChromemDB query function is likely causing the error, not necessarily indicating the invalid transaction was synced.
+Proposed Fix:
+Modify Test Query Logic:
+Update the test to construct a specific query for ChromemDB that would find the data related to the invalid transaction if it had been synced (e.g., query by transaction hash or a unique identifier within the transaction data).
+Assert that this query returns no results or an error indicating "not found."
+The queryText is empty error suggests the QueryCollection (or similar method in chromem.Client) is being called without a valid query string.
+5. TestNewMCPTransaction_InvalidCapability
+Failure Log Snippet:
+plaintext
+mcp_transaction_test.go:244: Expected error for invalid capability ID, got nil
+mcp_transaction_test.go:247: Expected nil transaction for invalid capability ID, got &{...sender-address-123...}
+--- FAIL: TestNewMCPTransaction_InvalidCapability (0.00s)
+Analysis: The test expects NewMCPTransaction to return (nil, error) when an empty CapabilityDescriptor.ID is provided for a registration transaction. The log [ERROR] NewMCPTransaction: empty capability ID in registration transaction data shows the condition is detected, but the function still returns a non-nil transaction object and a nil error.
+Proposed Fix (from test_fixes.md and test_fixes_worklog.md): Modify NewMCPTransaction to return nil, errors.New("empty capability ID in registration transaction data") (or a similar error) when this validation fails.
+diff
+-7
++6
+The code change produced by Gemini could not be fully parsed. Can't automatically accept changes.
+			if regData.CapabilityDescriptor.ID == "" {
+				log.Error("NewMCPTransaction: empty capability ID in registration transaction data")
+				// Fall through, allowing transaction creation but it should fail validation later
+			}
+			if regData.CapabilityDescriptor == nil || regData.CapabilityDescriptor.ID == "" {
+				log.Error("NewMCPTransaction: empty or nil capability ID/descriptor in registration transaction data")
+				return nil, errors.New("empty or nil capability ID/descriptor in registration transaction data")
+			}
+		} else {
+			// This case should ideally not happen if called correctly,
+			// but good to log if it does.
+			log.Error("NewMCPTransaction: mcpData is not MCPRegisterCapabilityData for TransactionTypeMCPRegisterCapability")
+			log.Error("NewMCPTransaction: mcpData is not MCPRegisterCapabilityData for TransactionTypeMCPRegisterCapability")
+			return nil, errors.New("mcpData is not MCPRegisterCapabilityData for TransactionTypeMCPRegisterCapability")
+		}
+	}
+
+6. TestNetworkTransactionFlow_MultiNode
+Failure Log Snippet:
+plaintext
+FATAL: Failed to initialize components for GUI node KNIRVCHAIN: failed to open LevelDB: resource temporarily unavailable
+...
+network_transaction_test.go:244: Timeout waiting for node at http://localhost:5000 to become healthy
+--- FAIL: TestNetworkTransactionFlow_MultiNode (34.02s)
+Analysis: Both Node 1 and Node 2 in this multi-node test fail to initialize their LevelDB databases, reporting "resource temporarily unavailable." The logs show that despite the test attempting to use temporary config files (/tmp/agent-multinode-test-.../config1/config.json), both nodes resolve their BlockchainDatabasePath to the default client path (/home/gperry/.config/KNIRVCHAIN/client_data/client_KNIRVCHAIN.db). This causes a lock conflict as both try to use the same database file. The issue is that the BlockchainDatabasePath (and likely SearchableDatabasePath) specified in the temporary config files are not being correctly used by the node startup logic.
+Proposed Fix:
+Ensure Configurable Paths are Used:
+Verify that the temporary config files generated by setupTestNode in network_transaction_test.go correctly set BlockchainDatabasePath and SearchableDatabasePath to unique paths within the node's temporary directory (e.g., cfg.BlockchainDatabasePath = filepath.Join(tempDir, "blockchain.db")).
+Critically, review the config.LoadConfig and subsequent node initialization logic in main.go. Ensure that paths loaded from the specified config file (via -config flag) take absolute precedence over any default path resolution logic, especially for BlockchainDatabasePath and SearchableDatabasePath. The StartTestNodeWithDB function from config/test_config.go (mentioned in test_fixes_worklog.md) should correctly pass the --config flag, and the main application logic must honor the paths within that config file.
+7. TestPeerLifecycle_Integration
+Failure Log Snippet:
+plaintext
+dev_lifecycle_test.go:326: Timeout waiting to find dev test-dev-3583 in DHT via root node http://localhost:5050
+dev_lifecycle_test.go:328: Failed to find dev 'test-dev-3583' with P2P port 7050 announced in DHT
+--- FAIL: TestPeerLifecycle_Integration (139.15s)
+Analysis: The dev node (test-dev-3583) starts, but the root node cannot find it in the DHT. Several issues are apparent from the logs:
+Incorrect Role Determination:
+The "Root Node" logs Determined node role: Client. This is incorrect; it should be a network-participating role.
+The "Peer Node" logs Updating node role from Peer to Client based on installed config. This is also incorrect and indicates the dev's config might be flawed or misinterpreted.
+Default Paths Used: Similar to TestNetworkTransactionFlow_MultiNode, both the root and dev nodes seem to be resolving some of their paths (e.g., Final BlockchainDatabasePath) to default locations instead of the temporary test-specific paths. For the dev, it logs DB: /tmp/TestPeerLifecycle_Integration.../blockchain.db which is good, but earlier path resolutions for BlockchainDatabasePath point to default dev_data. This inconsistency needs to be resolved. The root node also uses default client paths.
+DHT Issues: The inability to find the dev in DHT is likely a consequence of the nodes not initializing with their correct identities, configurations (affecting P2P IDs and advertised addresses), or bootstrap procedures due to the config/path issues.
+Proposed Fix:
+Correct Role and Config Loading:
+Ensure the StartTestNodeWithDB (or StartNodeProcess in dev_lifecycle_test.go) correctly sets up and uses role-specific temporary config files.
+The config files must explicitly set the Role, ChainID, HTTPPort, P2PPort, BlockchainDatabasePath, and SearchableDatabasePath to the test-specific temporary values.
+The main application logic (main.go, config.LoadConfig) must prioritize these values from the config file passed via the --config flag over any defaults. The -network flag for the root node should ensure it doesn't default to a Client role.
+Installer Logic: The log Configuration already marked as complete - skipping installation is good, but the subsequent Updating node role from Peer to Client based on installed config is problematic. The "installed config" (the temporary one) should correctly reflect the Peer role.
+DHT Bootstrap: Ensure that if the test relies on DHT discovery between test-spawned nodes, they are configured to bootstrap off each other or a common (test-controlled) bootstrap node if necessary, and that their P2P addresses are correctly advertised and reachable within the test environment.
+8. TestRoleBasedWalletConsistency (Sub-test Failures)
+Sub-Test Failures:
+--- FAIL: TestRoleBasedWalletConsistency/Bootnode_CorrectAddresses (0.00s)
+--- FAIL: TestRoleBasedWalletConsistency/Bootnode_EmptyAddresses (0.00s)
+Failure Log Snippet (for Bootnode_CorrectAddresses):
+plaintext
+role_integration_test.go:210: LoadWallet failed unexpectedly: master address mismatch: config has test-master-address-Client, wallet has KNIRVCHAINb70b...
+role_integration_test.go:241: LoadMasterWallet failed unexpectedly: miner address mismatch: config has test-miner-address-Client, wallet has KNIRVCHAIN8e7c...
+Analysis: The Bootnode_CorrectAddresses and Bootnode_EmptyAddresses sub-tests are failing because they seem to be loading a default "Client" configuration (evidenced by config has test-master-address-Client) instead of a "Bootnode" specific configuration. This causes address mismatches when LoadWallet and LoadMasterWallet compare the addresses in the loaded wallet files against the (incorrectly client-role-derived) addresses in the configuration. The test creates temporary config files (dev_config.json, bootnode_config.json), but the config.LoadConfig calls within the test cases are defaulting to loading the global client config.
+Proposed Fix:
+Use Role-Specific Temporary Configs: Modify the test logic within TestRoleBasedWalletConsistency to ensure that config.LoadConfigForRole (or a similar mechanism) is used, and it correctly loads the temporary, role-specific config file that was created for that sub-test (e.g., bootnode_config.json for bootnode tests).
+The tc.cfg in the test cases should be populated from these temporary, role-specific config files, not a global default. The MinersAddress and MasterAddress in these temporary configs should match the addresses of the wallets being tested for the "correct address" scenarios.
+9. TestTransactionFlow
+Failure Log Snippet:
+plaintext
+transaction_test.go:112: Timeout waiting for initial funding transaction 0x16f4152775c9bee8ac0f3f4398cd36ad9cd30a9a1d4515c268649e263d8d0a91 to be mined
+...
+[ERROR] Invalid transaction 0x16f4152775c9bee8ac0f3f4398cd36ad9cd30a9a1d4515c268649e263d8d0a91 in block 1 during AddBlock: transaction ... failed basic validation: signature is nil or empty: <nil>
+Analysis: The initial funding transaction is created, but when it's included in a block and AddBlock is called, it's rejected because its signature is nil or empty. This means the transaction was either not signed correctly initially, or its signature was lost/corrupted before block processing. The test times out because this invalid transaction will never be confirmed.
+Proposed Fix (referencing test_fixes.md):
+Verify Transaction Signing:
+In transaction_test.go, ensure initialFundingTx.SignTransaction(senderPrivKey) is called correctly and that the signature is properly set on the initialFundingTx object.
+Trace the initialFundingTx object from its creation, through the transaction pool, into block creation, and finally into AddBlock to ensure the Signature field is not being cleared or overwritten.
+Strengthen ValidateBasic: Ensure the Transaction.ValidateBasic() method (or equivalent validation called early in AddBlock or by the transaction pool) robustly checks for the presence of a signature.
+10. TestWalletManager_SaveLoadMasterWallet
+Failure Log Snippet:
+plaintext
+wallet_manager_test.go:60: LoadMasterWallet failed with correct address: wallet file not found at /tmp/wallet-test271284772/wallet.dat for bootnode role
+--- FAIL: TestWalletManager_SaveLoadMasterWallet (0.00s)
+Analysis: The test saves a master_wallet.dat. However, when LoadMasterWallet is called (likely with a Bootnode role context), the underlying validation logic (e.g., ValidateWalletForRole) for a bootnode expects both a miner wallet (wallet.dat) and a master wallet (master_wallet.dat) to be present. The test setup only explicitly creates the master wallet file for this specific test.
+Proposed Fix:
+Adjust Test Setup: For tests involving LoadMasterWallet in a Bootnode context where a successful load is expected, ensure that a dummy wallet.dat (miner wallet) is also created in the temporary directory, even if its contents are not strictly relevant to LoadMasterWallet itself, to satisfy the role-based validation prerequisites.
+Alternatively, if a bootnode can legitimately operate with only a master wallet under certain conditions, the ValidateWalletForRole logic for RoleBootnode needs to be adjusted to reflect that. However, current logs and consistency checks imply both are usually expected.
+11. TestWalletManager_WalletConsistencyChecks
+Failure Log Snippet:
+plaintext
+wallet_manager_test.go:111: Consistency check failed: wallet file not found at /tmp/wallet-test3910367267/wallet.dat for bootnode role
+--- FAIL: TestWalletManager_WalletConsistencyChecks (0.00s)
+Analysis: This is very similar to TestWalletManager_SaveLoadMasterWallet. The WalletConsistencyChecks subtest for the Bootnode role is failing because it expects wallet.dat (miner wallet) to exist, but the test setup likely only created master_wallet.dat or didn't ensure both were present for this specific check.
+Proposed Fix:
+Ensure Both Wallets for Bootnode Checks: In the setup for TestWalletManager_WalletConsistencyChecks, when testing scenarios for the Bootnode role that expect success (e.g., correct addresses), ensure both a wallet.dat and a master_wallet.dat are created in the temporary directory with matching addresses in the config.
+These fixes should address the observed failures. The recurring themes are issues with configuration loading (especially paths not being overridden by test-specific configs), correct transaction processing within AddBlock (ensuring data is saved), and thorough test setups that match the expectations of the functions being tested (e.g., wallet file presence for different roles).
+
+---
+
+<div class="footer-links">
+
+
+© 2025 KNIRV Network
+</div>

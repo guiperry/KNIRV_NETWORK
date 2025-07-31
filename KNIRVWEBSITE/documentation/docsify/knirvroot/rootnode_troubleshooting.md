@@ -1,0 +1,157 @@
+
+
+---
+
+**Source**: KNIRVROOT/docs/Troubleshooting/rootnode_troubleshooting.md
+
+# KNIRVCHAIN Root Node Troubleshooting Guide
+
+## Issue Analysis
+
+Based on the log file `rootnode_log.md`, the following critical issues were identified:
+
+### 1. Database Initialization Failure
+```
+[Root][agent-root-9999] FATAL: Failed to initialize database: failed to open leveldb at /home/gperry/.config/KNIRVCHAIN/root_data/agent_root.db: resource temporarily unavailable
+```
+
+This is the most critical error. The root node cannot initialize its database because the resource is temporarily unavailable. This typically happens when:
+- Another process is already using the database
+- Insufficient permissions to access the database directory
+- Corrupted database files
+
+### 2. Next.js GUI Server Failure
+```
+Error starting Next.js: chdir /tmp/go-build4026241122/b001/exe/altgui: no such file or directory
+```
+
+The Next.js server that provides the GUI interface failed to start because it couldn't find the required directory.
+
+### 3. Update Check Failure
+```
+Updater: Error checking for updates: DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES environment variable is required for secure updates
+```
+
+The system cannot check for updates because the DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES environment variable is not set.
+
+### 4. P2P Connection Issues
+```
+[Root][agent-root-9999] Failed to connect to dev [...]: failed to dial: failed to dial [...]: no addresses
+```
+
+The node found devs via DHT but failed to connect to any of them due to missing address information.
+
+## Troubleshooting Steps
+
+### 1. Database Initialization Issue
+
+**Problem**: The LevelDB database is locked or inaccessible.
+
+**Solutions**:
+
+1. **Check for running instances**:
+   - Ensure no other KNIRVCHAIN instances are running that might be using the database
+   - Use `ps aux | grep KNIRVCHAIN` to identify any running processes
+
+2. **Fix database lock**:
+   - If no other instances are running but the database is still locked, remove the lock file:
+   ```
+   rm /home/gperry/.config/KNIRVCHAIN/root_data/LOCK
+   ```
+
+3. **Check permissions**:
+   - Ensure proper ownership and permissions on the database directory:
+   ```
+   sudo chown -R $USER:$USER /home/gperry/.config/KNIRVCHAIN/
+   chmod -R 755 /home/gperry/.config/KNIRVCHAIN/
+   ```
+
+4. **Database backup and reset** (if database is corrupted):
+   - Backup the current database:
+   ```
+   cp -r /home/gperry/.config/KNIRVCHAIN/root_data /home/gperry/.config/KNIRVCHAIN/root_data_backup_$(date +%Y%m%d)
+   ```
+   - Remove and reinitialize the database:
+   ```
+   rm -rf /home/gperry/.config/KNIRVCHAIN/root_data/agent_root.db
+   ```
+
+### 2. Next.js GUI Server Issue
+
+**Problem**: The Next.js server cannot find the required directory.
+
+**Solutions**:
+
+1. **Check build configuration**:
+   - Ensure the Next.js application is properly built and the path in the configuration is correct
+   - The error suggests the application is looking for `/tmp/go-build4026241122/b001/exe/altgui` which is a temporary build directory
+
+2. **Update GUI path configuration**:
+   - Modify the configuration to point to the correct Next.js application directory
+   - Check for environment variables or configuration files that specify the GUI path
+
+3. **Rebuild the GUI component**:
+   - Rebuild the Next.js application to ensure all files are properly generated
+
+### 3. Update Check Issue
+
+**Problem**: Missing DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES environment variable.
+
+**Solution**:
+
+1. **Set the required environment variable**:
+   - Add the following to your shell profile (e.g., ~/.bashrc or ~/.profile):
+   ```
+   export DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES="your-github-public-key-here"
+   ```
+   - Obtain the correct public key from your project documentation or repository settings
+
+### 4. P2P Connection Issues
+
+**Problem**: The node cannot connect to devs because address information is missing.
+
+**Solutions**:
+
+1. **Check network configuration**:
+   - Ensure your firewall allows incoming and outgoing connections on the P2P port (19999)
+   - Verify that your router has proper port forwarding configured if behind NAT
+
+2. **Update bootstrap devs**:
+   - Ensure the node has a list of reliable bootstrap devs with known addresses
+   - Check the configuration for bootstrap devs and update if necessary
+
+3. **Check DHT configuration**:
+   - Verify that the DHT is properly configured and can provide complete dev information
+   - Consider adding more bootstrap nodes to improve DHT reliability
+
+## Prevention Measures
+
+1. **Implement proper shutdown procedures**:
+   - Ensure the application properly closes database connections before shutting down
+   - Add signal handlers to catch interrupts and perform clean shutdowns
+
+2. **Add database recovery mechanisms**:
+   - Implement automatic database recovery procedures in case of corruption
+   - Consider using database journaling or transaction logs
+
+3. **Improve error handling**:
+   - Add more detailed error messages and recovery procedures
+   - Implement automatic retry mechanisms for temporary failures
+
+4. **Enhance logging**:
+   - Add more detailed logging for critical operations
+   - Implement log rotation to prevent log files from growing too large
+
+## Conclusion
+
+The most critical issue is the database initialization failure, which is preventing the root node from starting properly. Addressing this issue should be the top priority, followed by fixing the Next.js GUI server and P2P connection issues.
+
+If the suggested solutions don't resolve the issues, consider checking the application's source code for potential bugs or inconsistencies in the database initialization, GUI server startup, or P2P connection handling logic.
+
+---
+
+<div class="footer-links">
+
+
+© 2025 KNIRV Network
+</div>
