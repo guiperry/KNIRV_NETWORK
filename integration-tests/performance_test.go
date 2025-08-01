@@ -437,6 +437,199 @@ func (pt *PerformanceTester) resetMetrics() {
 	}
 }
 
+// Month 12 Additional Performance Tests
+
+// Test Gateway Performance under Load
+func (pt *PerformanceTester) TestGatewayPerformance(t *testing.T) {
+	config := LoadTestConfig{
+		ConcurrentUsers: 20,
+		TestDuration:    45 * time.Second,
+		RequestsPerUser: 100,
+		RampUpTime:      5 * time.Second,
+	}
+
+	t.Run("GatewayRoutingLoad", func(t *testing.T) {
+		pt.resetMetrics()
+
+		ctx, cancel := context.WithTimeout(context.Background(), config.TestDuration)
+		defer cancel()
+
+		var wg sync.WaitGroup
+		startTime := time.Now()
+
+		services := []string{"knirvchain", "knirvgraph", "knirvnexus", "knirvroot", "knirvrouter"}
+
+		for i := 0; i < config.ConcurrentUsers; i++ {
+			wg.Add(1)
+			go func(userID int) {
+				defer wg.Done()
+
+				for j := 0; j < config.RequestsPerUser; j++ {
+					select {
+					case <-ctx.Done():
+						return
+					default:
+						service := services[j%len(services)]
+						pt.testGatewayRouting(t, service, userID, j)
+					}
+				}
+			}(i)
+		}
+
+		wg.Wait()
+		testDuration := time.Since(startTime)
+		pt.calculateFinalMetrics(testDuration)
+
+		assert.Greater(t, pt.metrics.SuccessfulRequests, int64(0))
+		assert.Less(t, pt.metrics.ErrorRate, 5.0, "Gateway routing error rate should be less than 5%")
+		assert.Greater(t, pt.metrics.RequestsPerSecond, 10.0, "Gateway should handle at least 10 requests per second")
+
+		t.Logf("Gateway Performance Metrics: %+v", pt.metrics)
+	})
+}
+
+// Test Cross-Chain Bridge Performance
+func (pt *PerformanceTester) TestBridgePerformance(t *testing.T) {
+	config := LoadTestConfig{
+		ConcurrentUsers: 5, // Lower concurrency for bridge operations
+		TestDuration:    60 * time.Second,
+		RequestsPerUser: 10,
+		RampUpTime:      10 * time.Second,
+	}
+
+	t.Run("BridgeTransferLoad", func(t *testing.T) {
+		pt.resetMetrics()
+
+		ctx, cancel := context.WithTimeout(context.Background(), config.TestDuration)
+		defer cancel()
+
+		var wg sync.WaitGroup
+		startTime := time.Now()
+
+		for i := 0; i < config.ConcurrentUsers; i++ {
+			wg.Add(1)
+			go func(userID int) {
+				defer wg.Done()
+
+				for j := 0; j < config.RequestsPerUser; j++ {
+					select {
+					case <-ctx.Done():
+						return
+					default:
+						pt.testBridgeTransfer(t, userID, j)
+						time.Sleep(2 * time.Second) // Space out bridge operations
+					}
+				}
+			}(i)
+		}
+
+		wg.Wait()
+		testDuration := time.Since(startTime)
+		pt.calculateFinalMetrics(testDuration)
+
+		assert.Greater(t, pt.metrics.SuccessfulRequests, int64(0))
+		assert.Less(t, pt.metrics.ErrorRate, 15.0, "Bridge transfer error rate should be less than 15%")
+
+		t.Logf("Bridge Performance Metrics: %+v", pt.metrics)
+	})
+}
+
+// Test KNIRV-ROUTER Connectivity Performance
+func (pt *PerformanceTester) TestKNIRVROUTERPerformance(t *testing.T) {
+	config := LoadTestConfig{
+		ConcurrentUsers: 12,
+		TestDuration:    30 * time.Second,
+		RequestsPerUser: 25,
+		RampUpTime:      3 * time.Second,
+	}
+
+	t.Run("ConnectivityProofLoad", func(t *testing.T) {
+		pt.resetMetrics()
+
+		ctx, cancel := context.WithTimeout(context.Background(), config.TestDuration)
+		defer cancel()
+
+		var wg sync.WaitGroup
+		startTime := time.Now()
+
+		for i := 0; i < config.ConcurrentUsers; i++ {
+			wg.Add(1)
+			go func(userID int) {
+				defer wg.Done()
+
+				for j := 0; j < config.RequestsPerUser; j++ {
+					select {
+					case <-ctx.Done():
+						return
+					default:
+						if j%5 == 0 {
+							pt.testConnectivityProof(t, userID, j)
+						} else {
+							pt.testConnectivityStatus(t)
+						}
+					}
+				}
+			}(i)
+		}
+
+		wg.Wait()
+		testDuration := time.Since(startTime)
+		pt.calculateFinalMetrics(testDuration)
+
+		assert.Greater(t, pt.metrics.SuccessfulRequests, int64(0))
+		assert.Less(t, pt.metrics.ErrorRate, 10.0, "KNIRV-ROUTER error rate should be less than 10%")
+
+		t.Logf("KNIRV-ROUTER Performance Metrics: %+v", pt.metrics)
+	})
+}
+
+// Helper methods for Month 12 performance tests
+func (pt *PerformanceTester) testGatewayRouting(_ *testing.T, service string, userID, requestID int) {
+	start := time.Now()
+
+	endpoint := fmt.Sprintf("/%s/health", service)
+	_, err := pt.suite.makeRequest("GET", endpoint, nil)
+
+	latency := time.Since(start)
+	pt.recordRequest(latency, err == nil)
+}
+
+func (pt *PerformanceTester) testBridgeTransfer(_ *testing.T, userID, requestID int) {
+	start := time.Now()
+
+	bridgeData := map[string]interface{}{
+		"target_chain": "xion",
+		"amount":       "100000", // Small amount for load testing
+		"recipient":    fmt.Sprintf("test_recipient_%d_%d", userID, requestID),
+		"source":       "KNIRVROOT",
+	}
+
+	_, err := pt.suite.makeRequest("POST", "/knirvroot/bridge/transfer", bridgeData)
+
+	latency := time.Since(start)
+	pt.recordRequest(latency, err == nil)
+}
+
+func (pt *PerformanceTester) testConnectivityProof(_ *testing.T, userID, requestID int) {
+	start := time.Now()
+
+	_, err := pt.suite.makeRequest("POST", "/knirvrouter/api/connectivity/proofs", map[string]interface{}{
+		"test_id": fmt.Sprintf("perf_test_%d_%d", userID, requestID),
+	})
+
+	latency := time.Since(start)
+	pt.recordRequest(latency, err == nil)
+}
+
+func (pt *PerformanceTester) testConnectivityStatus(_ *testing.T) {
+	start := time.Now()
+
+	_, err := pt.suite.makeRequest("GET", "/knirvrouter/api/connectivity/status", nil)
+
+	latency := time.Since(start)
+	pt.recordRequest(latency, err == nil)
+}
+
 func TestPerformanceAndLoad(t *testing.T) {
 	suite := NewIntegrationTestSuite()
 	suite.SetupTest(t)
@@ -446,4 +639,9 @@ func TestPerformanceAndLoad(t *testing.T) {
 	t.Run("KNIRVCHAINPerformance", tester.TestKNIRVCHAINPerformance)
 	t.Run("KNIRVGRAPHPerformance", tester.TestKNIRVGRAPHPerformance)
 	t.Run("KNIRVNEXUSPerformance", tester.TestKNIRVNEXUSPerformance)
+
+	// Month 12 Additional Performance Tests
+	t.Run("GatewayPerformance", tester.TestGatewayPerformance)
+	t.Run("BridgePerformance", tester.TestBridgePerformance)
+	t.Run("KNIRVROUTERPerformance", tester.TestKNIRVROUTERPerformance)
 }

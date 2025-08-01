@@ -174,8 +174,8 @@ func (sm *SecurityMiddleware) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// Input validation (skip for WebSocket upgrades)
-		if !sm.isWebSocketUpgrade(r) {
+		// Input validation (skip for WebSocket upgrades and health endpoints)
+		if !sm.isWebSocketUpgrade(r) && !sm.isExemptFromInputValidation(r.URL.Path) {
 			if err := sm.inputValidator.ValidateRequest(r); err != nil {
 				sm.logSecurityEvent("input_validation_failed", "high", clientIP, userAgent, userID, r.Method, r.URL.Path, map[string]interface{}{
 					"validation_error": err.Error(),
@@ -351,6 +351,40 @@ func (sm *SecurityMiddleware) isExemptFromCSRF(path string) bool {
 
 	for _, prefix := range exemptPrefixes {
 		if strings.HasPrefix(path, prefix) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// isExemptFromInputValidation checks if a path is exempt from input validation
+func (sm *SecurityMiddleware) isExemptFromInputValidation(path string) bool {
+	exemptPaths := []string{
+		// Health and status endpoints
+		"/health",
+		"/status",
+		"/api/v1/health",
+		"/api/v1/status",
+
+		// Authentication endpoints (need to allow login requests)
+		"/api/v1/auth/login",
+		"/api/v1/auth/logout",
+		"/api/v1/auth/register",
+		"/api/v1/auth/refresh",
+		"/api/v1/auth/verify",
+
+		// WebSocket endpoints (already handled separately)
+		"/api/v1/ws",
+		"/api/v1/desktop/secure-ws",
+
+		// System endpoints that need minimal validation
+		"/api/shutdown",
+	}
+
+	// Check for exact matches
+	for _, exemptPath := range exemptPaths {
+		if path == exemptPath {
 			return true
 		}
 	}

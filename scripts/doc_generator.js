@@ -526,133 +526,29 @@ function parseMarkdownFile(filePath, citations, subproductInfo = null) {
   };
 }
 
-// Process all markdown files
+// Process all markdown files (now only whitepapers)
 function processMarkdownFiles() {
-  const files = getMarkdownFiles(CONFIG.sourceDir);
-  const docs = [];
-
-  // Parse BibTeX file if it exists
-  const bibPath = path.join(CONFIG.sourceDir, 'references.bib');
-  const citations = parseBibTeX(bibPath);
-
-  if (Object.keys(citations).length > 0) {
-    console.log(`Loaded ${Object.keys(citations).length} citations from references.bib`);
-  }
-
-  // Process main docs directory files
-  files.forEach(filePath => {
-    const doc = parseMarkdownFile(filePath, citations);
-    docs.push(doc);
-    console.log(`Processed: ${path.basename(filePath)} (Category: ${doc.category})`);
-  });
-
-  // Process subproduct files
-  const subproductFiles = getSubproductMarkdownFiles();
-  subproductFiles.forEach(fileInfo => {
-    const doc = parseMarkdownFile(fileInfo.fullPath, citations, fileInfo);
-    docs.push(doc);
-    console.log(`Processed: ${fileInfo.subproductName}/${fileInfo.relativePath} (Category: ${doc.category})`);
-  });
-
-  return docs;
+  // Only return empty array since we're only processing whitepapers now
+  console.log('Skipping main docs and subproduct files - only processing whitepapers');
+  return [];
 }
 
-// Generate sidebar content for Docsify
+// Generate sidebar content for Docsify (whitepapers only)
 function generateSidebar(docs) {
   let sidebar = `# ${CONFIG.projectName}\n\n`;
 
-  // Add whitepapers section at the top
+  // Add whitepapers section
   sidebar += `## 📄 Whitepapers\n\n`;
   sidebar += `* [📚 View All Whitepapers](whitepapers/)\n\n`;
 
-  // Group docs by category
-  const categories = {};
-  docs.forEach(doc => {
-    if (!categories[doc.category]) {
-      categories[doc.category] = [];
-    }
-    categories[doc.category].push(doc);
-  });
-
-  // Generate sidebar content for main categories (excluding legal and subproducts)
-  const mainCategories = ['guides', 'deployment', 'development', 'api', 'security', 'architecture', 'contribute'];
-  mainCategories.forEach(category => {
-    if (categories[category] && categories[category].length > 0) {
-      sidebar += `## ${CONFIG.categories[category]}\n\n`;
-
-      categories[category].forEach(doc => {
-        const link = `${category}/${doc.filename}`;
-        sidebar += `* [${doc.title}](${link})\n`;
-      });
-
-      sidebar += '\n';
-    }
-  });
-
-  // Generate sidebar content for subproduct categories
-  const subproductCategories = CONFIG.subproductDirs.map(dir => dir.toLowerCase());
-  subproductCategories.forEach(category => {
-    if (categories[category] && categories[category].length > 0) {
-      sidebar += `## ${CONFIG.categories[category]}\n\n`;
-
-      // Group files by subdirectory for better organization
-      const filesBySubdir = {};
-      categories[category].forEach(doc => {
-        if (doc.subproductInfo && doc.subproductInfo.relativePath) {
-          const subdir = path.dirname(doc.subproductInfo.relativePath);
-          if (subdir === '.') {
-            // Root level files
-            if (!filesBySubdir['root']) filesBySubdir['root'] = [];
-            filesBySubdir['root'].push(doc);
-          } else {
-            // Files in subdirectories
-            if (!filesBySubdir[subdir]) filesBySubdir[subdir] = [];
-            filesBySubdir[subdir].push(doc);
-          }
-        } else {
-          // Fallback for files without subproduct info
-          if (!filesBySubdir['root']) filesBySubdir['root'] = [];
-          filesBySubdir['root'].push(doc);
-        }
-      });
-
-      // Output organized by subdirectory
-      Object.keys(filesBySubdir).sort().forEach(subdir => {
-        if (subdir !== 'root' && filesBySubdir[subdir].length > 0) {
-          sidebar += `### ${subdir}\n\n`;
-        }
-
-        filesBySubdir[subdir].forEach(doc => {
-          const link = `${category}/${doc.filename}`;
-          sidebar += `* [${doc.title}](${link})\n`;
-        });
-
-        if (subdir !== 'root') {
-          sidebar += '\n';
-        }
-      });
-
-      sidebar += '\n';
-    }
-  });
-
-  // Add footer with legal links
+  // Add footer
   sidebar += `<div class="sidebar-footer">\n\n---\n\n`;
-
-  // Add legal documents if they exist
-  if (categories['legal'] && categories['legal'].length > 0) {
-    categories['legal'].forEach(doc => {
-      const link = `legal/${doc.filename}`;
-      sidebar += `* [${doc.title}](${link})\n`;
-    });
-  }
-
   sidebar += `\n© ${new Date().getFullYear()} ${CONFIG.projectName}\n</div>\n`;
 
   return sidebar;
 }
 
-// Generate index content for Docsify
+// Generate index content for Docsify (whitepapers only)
 function generateIndex(docs) {
   let index = `# ${CONFIG.projectName} Documentation\n\n`;
 
@@ -669,54 +565,8 @@ function generateIndex(docs) {
   index += `## 🚀 Developer Community\n\n`;
   index += `We're building an open source developer community around the KNIRV Network. If you're interested in contributing, please check out our contribution guidelines.\n\n`;
 
-  // Add quick links
-  index += `## 📖 Documentation Sections\n\n`;
-
-  // Group docs by category
-  const categories = {};
-  docs.forEach(doc => {
-    if (!categories[doc.category]) {
-      categories[doc.category] = [];
-    }
-    categories[doc.category].push(doc);
-  });
-
-  // Generate quick links by category (excluding legal and subproducts)
-  const mainCategories = ['guides', 'deployment', 'development', 'api', 'security', 'architecture', 'contribute'];
-  mainCategories.forEach(category => {
-    if (categories[category] && categories[category].length > 0) {
-      index += `### ${CONFIG.categories[category]}\n\n`;
-
-      categories[category].forEach(doc => {
-        index += `* [${doc.title}](${category}/${doc.filename}) - ${doc.description}\n`;
-      });
-
-      index += '\n';
-    }
-  });
-
-  // Generate quick links for subproduct categories
-  const subproductCategories = CONFIG.subproductDirs.map(dir => dir.toLowerCase());
-  subproductCategories.forEach(category => {
-    if (categories[category] && categories[category].length > 0) {
-      index += `### ${CONFIG.categories[category]}\n\n`;
-
-      // Show a summary and link to key documents
-      const keyDocs = categories[category].slice(0, 5); // Show first 5 docs
-      keyDocs.forEach(doc => {
-        index += `* [${doc.title}](${category}/${doc.filename}) - ${doc.description}\n`;
-      });
-
-      if (categories[category].length > 5) {
-        index += `* ... and ${categories[category].length - 5} more documents\n`;
-      }
-
-      index += '\n';
-    }
-  });
-
-  // Add footer with legal links
-  index += generateLegalFooter(categories);
+  // Add footer
+  index += `---\n\n© ${new Date().getFullYear()} ${CONFIG.projectName}\n`;
 
   return index;
 }
@@ -903,7 +753,7 @@ function writeFileIfChanged(filePath, content, hashes) {
   return false;
 }
 
-// Create Docsify structure
+// Create Docsify structure (whitepapers only)
 function createDocsifyStructure(docs, hashes) {
   ensureDirectoryExists(CONFIG.docsifyDir);
   let filesChanged = 0;
@@ -934,42 +784,7 @@ function createDocsifyStructure(docs, hashes) {
   if (writeFileIfChanged(sidebarPath, sidebarContent, hashes)) {
     filesChanged++;
   }
-  
-  // Create category directories and copy files
-  const categories = {};
-  docs.forEach(doc => {
-    if (!categories[doc.category]) {
-      categories[doc.category] = [];
-      ensureDirectoryExists(path.join(CONFIG.docsifyDir, doc.category));
-    }
-    categories[doc.category].push(doc);
-  });
-  
-  // Generate the legal footer once
-  const legalFooter = generateLegalFooter(categories);
-  
-  // Process each document and add the footer if it's not a legal document
-  docs.forEach(doc => {
-    let content = doc.content;
 
-    // Add subproduct context if this is a subproduct file
-    if (doc.subproductInfo) {
-      const subproductHeader = `\n\n---\n\n**Source**: ${doc.subproductInfo.subproductName}/${doc.subproductInfo.relativePath}\n\n`;
-      content = subproductHeader + content;
-    }
-
-    // Add the legal footer to all non-legal documents
-    if (doc.category !== 'legal') {
-      content += legalFooter;
-    }
-
-    // Write file to category directory
-    const docPath = path.join(CONFIG.docsifyDir, doc.category, doc.filename);
-    if (writeFileIfChanged(docPath, content, hashes)) {
-      filesChanged++;
-    }
-  });
-  
   console.log(`Docsify documentation structure: ${filesChanged} files updated`);
 }
 
@@ -1086,17 +901,6 @@ function main() {
   // Ensure output directory exists
   ensureDirectoryExists(CONFIG.outputDir);
   
-  // Check if source files have changed
-  const sourceFiles = getMarkdownFiles(CONFIG.sourceDir);
-
-  // Check if any source files have changed
-  for (const filePath of sourceFiles) {
-    if (hasFileChanged(filePath, hashes)) {
-      updateFileHash(filePath, hashes);
-      console.log(`Source file changed: ${path.basename(filePath)}`);
-    }
-  }
-
   // Check if whitepaper files have changed
   const whitepaperFiles = getWhitepaperFiles();
   for (const filePath of whitepaperFiles) {
@@ -1106,33 +910,14 @@ function main() {
     }
   }
 
-  // Check if subproduct files have changed
-  const subproductFiles = getSubproductMarkdownFiles();
-  for (const fileInfo of subproductFiles) {
-    if (hasFileChanged(fileInfo.fullPath, hashes)) {
-      updateFileHash(fileInfo.fullPath, hashes);
-      console.log(`Subproduct file changed: ${fileInfo.subproductName}/${fileInfo.relativePath}`);
-    }
-  }
-
-  // Check if references.bib has changed
-  const bibPath = path.join(CONFIG.sourceDir, 'references.bib');
-  if (fs.existsSync(bibPath) && hasFileChanged(bibPath, hashes)) {
-    updateFileHash(bibPath, hashes);
-    console.log('References file changed: references.bib');
-  }
-  
-  // Process markdown files (excluding whitepapers)
+  // Process markdown files (now only returns empty array)
   const docs = processMarkdownFiles();
 
-  // Create Docsify structure
+  // Create Docsify structure (whitepapers only)
   createDocsifyStructure(docs, hashes);
 
   // Process whitepapers separately
   processWhitepapers(hashes);
-
-  // Process references
-  processReferences(hashes);
 
   // Save updated hashes
   saveHashes(hashes);

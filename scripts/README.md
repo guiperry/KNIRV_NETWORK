@@ -46,6 +46,22 @@ This directory contains utility scripts for managing the KNIRV D-TEN ecosystem.
 - ✅ HTML report generation
 - ✅ Integration with existing test framework
 
+### `kill_knirv.sh` ⭐ ENHANCED
+
+**Purpose**: Comprehensive network-wide termination of all KNIRV-related processes with advanced management features.
+
+**Location**: `./scripts/kill_knirv.sh`
+
+**Features**:
+- ✅ **Complete Network Coverage**: Terminates all KNIRV services (KNIRVCHAIN, KNIRVNEXUS, KNIRVGRAPH, KNIRVROOT, KNIRVROUTER, KNIRVGATEWAY)
+- ✅ **Multi-Service Detection**: Economics Service, API Gateway, frontend processes (Node.js/Vite)
+- ✅ **Advanced Process Discovery**: By name, port, working directory, and child processes
+- ✅ **Graceful Shutdown**: SIGTERM first, then SIGKILL if needed with configurable timeouts
+- ✅ **Multiple Operation Modes**: Normal, force, dry-run, verbose, emergency
+- ✅ **Comprehensive Cleanup**: Temp files, logs, databases, Node.js artifacts, Docker resources
+- ✅ **Network Status Monitoring**: Real-time service status and port monitoring
+- ✅ **Safety Features**: Root warnings, confirmation prompts, final verification
+
 ### `run-integration-tests.sh`
 
 **Purpose**: Complete integration test lifecycle management script that handles setup, execution, and teardown of the KNIRV integration test suite.
@@ -87,6 +103,27 @@ This directory contains utility scripts for managing the KNIRV D-TEN ecosystem.
 
 # Check gateway services specifically
 ./scripts/run-gateway.sh status
+
+# Check current KNIRV network status
+./scripts/kill_knirv.sh --status
+```
+
+#### Stop All KNIRV Services
+```bash
+# Graceful shutdown of all KNIRV network processes
+./scripts/kill_knirv.sh
+
+# Force kill all KNIRV processes immediately
+./scripts/kill_knirv.sh --force
+
+# Preview what would be terminated (dry run)
+./scripts/kill_knirv.sh --dry-run
+
+# Verbose output with detailed process information
+./scripts/kill_knirv.sh --verbose
+
+# Emergency kill mode for stubborn processes
+./scripts/kill_knirv.sh --emergency
 ```
 
 ### Gateway Testing
@@ -127,7 +164,36 @@ cd integration-tests
 ./config/run-tests.sh gateway
 ```
 
-### Common Usage Examples
+### KNIRV Network Process Management
+
+#### Kill Script Usage Examples
+```bash
+# Normal graceful shutdown of all KNIRV services
+./scripts/kill_knirv.sh
+
+# Force kill immediately (skip graceful shutdown)
+./scripts/kill_knirv.sh --force
+
+# Preview what would be killed without actually killing
+./scripts/kill_knirv.sh --dry-run
+
+# Detailed verbose output showing all processes
+./scripts/kill_knirv.sh --verbose
+
+# Check current network status without killing
+./scripts/kill_knirv.sh --status
+
+# Emergency kill mode for stubborn processes (with confirmation)
+./scripts/kill_knirv.sh --emergency
+
+# Skip cleanup of temp files and logs
+./scripts/kill_knirv.sh --no-cleanup
+
+# Show help and usage information
+./scripts/kill_knirv.sh --help
+```
+
+### Common Integration Test Usage Examples
 ```bash
 # Run with verbose output
 ./scripts/run-integration-tests.sh --verbose
@@ -147,21 +213,51 @@ cd integration-tests
 
 ## Script Options
 
-### Basic Options
+### Kill Script Options (`kill_knirv.sh`)
+
+#### Basic Options
+- `-h, --help`: Show comprehensive help message and usage examples
+- `-v, --verbose`: Show detailed process information and termination progress
+- `-n, --dry-run`: Preview what would be killed without actually terminating processes
+- `-f, --force`: Skip graceful shutdown, force kill immediately with SIGKILL
+
+#### Advanced Options
+- `--emergency`: Emergency kill mode for stubborn processes (requires confirmation)
+- `--status`: Check and display current KNIRV network status
+- `--no-cleanup`: Skip cleanup of temporary files, logs, and build artifacts
+
+#### Process Detection Features
+- **Service Pattern Matching**: Detects KNIRVCHAIN, KNIRVNEXUS, KNIRVGRAPH, KNIRVROOT, KNIRVROUTER, KNIRVGATEWAY
+- **Port-based Detection**: Monitors ports 8000-8091 and legacy ports (5000-6001)
+- **Directory-based Search**: Finds Go processes in KNIRV directories
+- **Child Process Detection**: Automatically finds and terminates child processes
+- **Frontend Process Detection**: Detects Node.js, Vite, npm development servers
+
+#### Cleanup Features
+- **Temporary Files**: Go build cache, KNIRV-specific temp files
+- **Lock/PID Files**: Service lock files, PID files, gateway.pid, economics.pid
+- **Database Files**: Service databases (knirvnexus.db, knirvchain.db, etc.)
+- **Log Files**: Large log files (>100MB), service logs
+- **Node.js Artifacts**: node_modules/.cache, dist/, .vite/ directories
+- **Docker Resources**: KNIRV-related containers and volumes
+
+### Integration Test Options (`run-integration-tests.sh`)
+
+#### Basic Options
 - `--verbose`: Enable detailed output during execution
 - `--parallel`: Run tests in parallel for faster execution
 - `--timeout DURATION`: Set test timeout (default: 600s)
 
-### Environment Control
+#### Environment Control
 - `--skip-setup`: Skip test environment setup (use existing environment)
 - `--no-teardown`: Skip automatic teardown after tests
 - `--force-cleanup`: Force kill existing processes during setup
 
-### Output Control
+#### Output Control
 - `--no-report`: Skip generating test reports
 - `--no-preserve-logs`: Remove logs during teardown
 
-### Test Selection
+#### Test Selection
 - `TEST_PATTERN`: Regex pattern to match specific tests (e.g., `TestLLM`, `TestPerformance`)
 
 ## Environment Variables
@@ -235,30 +331,67 @@ cd integration-tests && ./config/run-tests.sh gateway
 ./scripts/run-integration-tests.sh TestE2EWorkflows
 ```
 
-## Script Workflow
+## Script Workflows
 
-### 1. Prerequisites Check
+### Kill Script Workflow (`kill_knirv.sh`)
+
+#### 1. Process Discovery Phase
+- **Pattern Matching**: Searches for processes by KNIRV service names
+- **Port Scanning**: Checks all KNIRV service ports (8000-8091, legacy ports)
+- **Directory Search**: Finds Go processes in KNIRV directories
+- **Child Process Detection**: Identifies child processes of found parents
+- **Frontend Detection**: Locates Node.js/Vite development servers
+
+#### 2. Safety Checks
+- **Root Warning**: Warns if running as root user
+- **Process Validation**: Verifies found processes are actually KNIRV-related
+- **Confirmation Prompts**: Requires confirmation for emergency operations
+- **Dry Run Support**: Shows what would be killed without actually doing it
+
+#### 3. Termination Phase
+- **Graceful Shutdown**: Sends SIGTERM signal first (configurable timeout: 15s)
+- **Progress Monitoring**: Tracks which processes shut down gracefully
+- **Force Kill**: Sends SIGKILL to remaining processes if needed
+- **Final Verification**: Confirms all processes are terminated
+
+#### 4. Cleanup Phase
+- **Temporary Files**: Removes Go build cache and KNIRV temp files
+- **Lock/PID Files**: Cleans service lock and PID files
+- **Database Files**: Removes service-specific database files
+- **Log Cleanup**: Removes large log files (>100MB)
+- **Node.js Artifacts**: Cleans frontend build artifacts and cache
+- **Docker Resources**: Removes KNIRV-related containers and volumes
+
+#### 5. Status Reporting
+- **Process Summary**: Shows what was terminated
+- **Cleanup Summary**: Reports what was cleaned up
+- **Final Status**: Confirms successful termination or reports remaining issues
+- **Exit Codes**: Returns 0 for success, 1 for partial failure
+
+### Integration Test Workflow (`run-integration-tests.sh`)
+
+#### 1. Prerequisites Check
 - Verifies integration test directory exists
 - Checks required scripts are present and executable
 - Validates Go installation
 
-### 2. Environment Setup
+#### 2. Environment Setup
 - Calls `integration-tests/config/setup.sh`
 - Starts all KNIRV services
 - Waits for service health confirmation
 
-### 3. Test Execution
+#### 3. Test Execution
 - Calls `integration-tests/config/run-tests.sh`
 - Runs tests with specified parameters
 - Collects test results and metrics
 
-### 4. Teardown and Cleanup
+#### 4. Teardown and Cleanup
 - Calls `integration-tests/config/teardown.sh`
 - Stops all services gracefully
 - Cleans up test data (optional)
 - Preserves logs and reports
 
-### 5. Summary Report
+#### 5. Summary Report
 - Displays test configuration
 - Lists generated reports
 - Shows available logs
@@ -281,6 +414,48 @@ tail -f integration-tests/logs/*.log
 ```
 
 ### Common Issues
+
+#### KNIRV Process Management Issues
+
+1. **Processes Won't Terminate**
+   ```bash
+   # Try force kill mode
+   ./scripts/kill_knirv.sh --force
+
+   # Use emergency mode for stubborn processes
+   ./scripts/kill_knirv.sh --emergency
+
+   # Check what's still running
+   ./scripts/kill_knirv.sh --status
+   ```
+
+2. **Permission Issues**
+   ```bash
+   # If running as root (not recommended)
+   sudo ./scripts/kill_knirv.sh --verbose
+
+   # Check process ownership
+   ps aux | grep -E "(knirv|economics|gateway)"
+   ```
+
+3. **Incomplete Cleanup**
+   ```bash
+   # Run cleanup manually
+   ./scripts/kill_knirv.sh --no-cleanup  # Kill processes only
+   # Then clean manually or run again without --no-cleanup
+   ./scripts/kill_knirv.sh --dry-run     # Check what would be cleaned
+   ```
+
+4. **Service Detection Issues**
+   ```bash
+   # Use verbose mode to see detection process
+   ./scripts/kill_knirv.sh --verbose --dry-run
+
+   # Check specific ports manually
+   lsof -i :8000 -i :8081 -i :8090
+   ```
+
+#### Integration Test Issues
 
 1. **Port Conflicts**
    ```bash
@@ -361,6 +536,36 @@ pipeline {
 - **Service Logs**: `integration-tests/logs/` directory
 - **Test Output**: Captured in JSON and HTML reports
 
+## Quick Reference
+
+### Kill Script Quick Commands
+```bash
+# Most common usage patterns
+./scripts/kill_knirv.sh                    # Normal graceful shutdown
+./scripts/kill_knirv.sh --status           # Check what's running
+./scripts/kill_knirv.sh --dry-run          # Preview without killing
+./scripts/kill_knirv.sh --force            # Immediate force kill
+./scripts/kill_knirv.sh --help             # Show all options
+```
+
+### Detected Services and Ports
+| Service | Port | Description |
+|---------|------|-------------|
+| KNIRVGATEWAY | 8000 | API Gateway |
+| KNIRVCHAIN | 8080 | Blockchain Frontend |
+| KNIRVNEXUS | 8081 | Inference Engine API |
+| KNIRVROOT | 8082 | Root Service |
+| KNIRVGRAPH | 8083 | Graph Service |
+| Economics | 8090 | Economics Service |
+| KNIRVROUTER | 8091 | Router Service |
+| Legacy Ports | 5000-6001 | Legacy KNIRVROOT |
+| Dev Servers | 3000-4001 | Development |
+
+### Exit Codes
+- `0`: All processes terminated successfully
+- `1`: Some processes could not be terminated
+- `2`: Script error or invalid arguments
+
 ## Contributing
 
 ### Adding New Scripts
@@ -379,5 +584,22 @@ pipeline {
 
 ---
 
-**Last Updated**: Month 6 Implementation (July 2025)
+## Recent Updates
+
+### Month 12 Enhancements (August 2025)
+- ✅ **Enhanced `kill_knirv.sh`**: Complete network-wide process termination with advanced features
+- ✅ **Comprehensive Process Detection**: Multi-method process discovery across all KNIRV services
+- ✅ **Advanced Operation Modes**: Dry-run, verbose, force, emergency modes
+- ✅ **Safety Features**: Root warnings, confirmation prompts, graceful shutdown
+- ✅ **Complete Cleanup**: Temp files, databases, logs, Node.js artifacts, Docker resources
+- ✅ **Network Status Monitoring**: Real-time service status and port monitoring
+
+### Month 11 Enhancements (July 2025)
+- ✅ **KNIRVGATEWAY Integration**: Economics Service and API Gateway management
+- ✅ **Gateway Testing Framework**: Comprehensive integration testing
+- ✅ **Enhanced Service Management**: Unified management across all components
+
+---
+
+**Last Updated**: Month 12 Implementation (August 2025)
 **Maintained By**: KNIRV Development Team

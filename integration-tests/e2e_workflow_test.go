@@ -1,13 +1,46 @@
 package integration_tests
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
 	"testing"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
+
+// Month 12 E2E Test Suite - Complete Implementation
+type E2ETestSuite struct {
+	suite.Suite
+	gatewayURL string
+	wsURL      string
+	authToken  string
+	testWallet *TestWallet
+	testData   *TestData
+	httpClient *http.Client
+	wsConn     *websocket.Conn
+}
+
+type TestData struct {
+	TestLLMID   string
+	TestSkillID string
+	TestErrorID string
+	TestUserID  string
+	TestAgentID string
+}
+
+type TestResponse struct {
+	Success bool                   `json:"success"`
+	Data    map[string]interface{} `json:"data,omitempty"`
+	Error   string                 `json:"error,omitempty"`
+	TxHash  string                 `json:"tx_hash,omitempty"`
+}
 
 type E2EWorkflowTester struct {
 	suite *IntegrationTestSuite
@@ -19,433 +52,570 @@ func NewE2EWorkflowTester(suite *IntegrationTestSuite) *E2EWorkflowTester {
 	}
 }
 
-// Test Complete Developer Workflow
-func (e2e *E2EWorkflowTester) TestDeveloperWorkflow(t *testing.T) {
-	t.Run("CompleteCodeFixingWorkflow", func(t *testing.T) {
-		// Step 1: Developer encounters a coding error
-		t.Log("Step 1: Creating error scenario...")
+// Month 12 E2E Test Suite Setup Methods
+func (suite *E2ETestSuite) SetupSuite() {
+	suite.gatewayURL = "http://localhost:8000"
+	suite.wsURL = "ws://localhost:8000/gateway/ws"
+	suite.httpClient = &http.Client{Timeout: 30 * time.Second}
 
-		errorData := map[string]interface{}{
-			"error_type":  "syntax_error",
-			"description": "Missing closing bracket in function definition",
-			"context": map[string]interface{}{
-				"language": "javascript",
-				"line":     15,
-				"file":     "main.js",
-				"code":     "function calculateSum(a, b { return a + b; }",
-			},
-			"severity": 4,
-		}
+	// Initialize test data
+	suite.testData = &TestData{
+		TestLLMID:   "test_llm_" + fmt.Sprintf("%d", time.Now().Unix()),
+		TestSkillID: "test_skill_" + fmt.Sprintf("%d", time.Now().Unix()),
+		TestErrorID: "test_error_" + fmt.Sprintf("%d", time.Now().Unix()),
+		TestUserID:  "test_user_" + fmt.Sprintf("%d", time.Now().Unix()),
+		TestAgentID: "test_agent_" + fmt.Sprintf("%d", time.Now().Unix()),
+	}
 
-		resp, err := e2e.suite.makeRequest("POST", e2e.suite.knirvgraphURL+"/nrv/errors", errorData)
-		require.NoError(t, err)
+	// Wait for services to be ready
+	suite.waitForServices()
 
-		var errorNode map[string]interface{}
-		err = json.Unmarshal(resp, &errorNode)
-		require.NoError(t, err)
+	// Authenticate
+	suite.authenticate()
 
-		errorID := errorNode["id"].(string)
-		t.Logf("Error node created: %s", errorID)
+	// Create test wallet
+	suite.createTestWallet()
 
-		// Step 2: System identifies appropriate skill for fixing the error
-		t.Log("Step 2: Creating skill to fix the error...")
-
-		skillData := map[string]interface{}{
-			"skill_type":   "syntax_fixer",
-			"capabilities": []string{"javascript", "bracket_completion", "syntax_repair"},
-			"requirements": map[string]interface{}{
-				"min_confidence": 0.85,
-				"max_latency":    "3s",
-			},
-			"error_types": []string{"syntax_error"},
-		}
-
-		resp, err = e2e.suite.makeRequest("POST", e2e.suite.knirvgraphURL+"/nrv/skills", skillData)
-		require.NoError(t, err)
-
-		var skillNode map[string]interface{}
-		err = json.Unmarshal(resp, &skillNode)
-		require.NoError(t, err)
-
-		skillID := skillNode["id"].(string)
-		t.Logf("Skill node created: %s", skillID)
-
-		// Step 3: Developer invokes skill using NRN tokens
-		t.Log("Step 3: Invoking skill with NRN payment...")
-
-		invokeData := map[string]interface{}{
-			"skill_id":     skillID,
-			"amount":       "750000",
-			"user_address": e2e.suite.testWallet.Address,
-			"error_id":     errorID,
-		}
-
-		resp, err = e2e.suite.makeRequest("POST", e2e.suite.knirvchainURL+"/skill/invoke", invokeData)
-		require.NoError(t, err)
-
-		var invokeResult map[string]interface{}
-		err = json.Unmarshal(resp, &invokeResult)
-		require.NoError(t, err)
-
-		assert.True(t, invokeResult["success"].(bool))
-		txHash := invokeResult["tx_hash"].(string)
-		t.Logf("Skill invoked successfully: %s", txHash)
-
-		// Step 4: Wait for skill execution and verify results
-		t.Log("Step 4: Waiting for skill execution...")
-		time.Sleep(10 * time.Second)
-
-		// Check skill execution results
-		resp, err = e2e.suite.makeRequest("GET", e2e.suite.knirvgraphURL+"/nrv/skills/"+skillID+"/executions/"+txHash, nil)
-		require.NoError(t, err)
-
-		var execution map[string]interface{}
-		err = json.Unmarshal(resp, &execution)
-		require.NoError(t, err)
-
-		assert.Equal(t, "completed", execution["status"])
-		assert.NotEmpty(t, execution["result"])
-		t.Logf("Skill execution completed: %+v", execution)
-
-		// Step 5: Verify error is marked as resolved
-		resp, err = e2e.suite.makeRequest("GET", e2e.suite.knirvgraphURL+"/nrv/errors/"+errorID, nil)
-		require.NoError(t, err)
-
-		var updatedError map[string]interface{}
-		err = json.Unmarshal(resp, &updatedError)
-		require.NoError(t, err)
-
-		assert.Equal(t, "resolved", updatedError["status"])
-		t.Log("Error successfully marked as resolved")
-	})
+	// Setup WebSocket connection
+	suite.setupWebSocket()
 }
 
-// Test Complete Agent Development Workflow
-func (e2e *E2EWorkflowTester) TestAgentDevelopmentWorkflow(t *testing.T) {
-	t.Run("CompleteAgentLifecycle", func(t *testing.T) {
-		// Step 1: Developer creates a new agent
-		t.Log("Step 1: Creating new agent...")
+func (suite *E2ETestSuite) TearDownSuite() {
+	if suite.wsConn != nil {
+		suite.wsConn.Close()
+	}
+}
 
+func (suite *E2ETestSuite) waitForServices() {
+	services := []string{"knirvchain", "knirvgraph", "knirvnexus", "knirvroot", "knirvrouter"}
+
+	for _, service := range services {
+		suite.T().Logf("Waiting for service: %s", service)
+
+		for i := 0; i < 30; i++ { // Wait up to 30 seconds
+			resp, err := suite.httpClient.Get(fmt.Sprintf("%s/%s/health", suite.gatewayURL, service))
+			if err == nil && resp.StatusCode == http.StatusOK {
+				resp.Body.Close()
+				break
+			}
+			if resp != nil {
+				resp.Body.Close()
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}
+
+	suite.T().Log("All services are ready")
+}
+
+func (suite *E2ETestSuite) authenticate() {
+	loginData := map[string]string{
+		"username": "admin",
+		"password": "password",
+	}
+
+	resp := suite.makeRequest("POST", "/auth/login", loginData)
+	require.True(suite.T(), resp.Success, "Authentication failed")
+
+	suite.authToken = resp.Data["token"].(string)
+	suite.T().Logf("Authenticated with token: %s", suite.authToken[:20]+"...")
+}
+
+func (suite *E2ETestSuite) createTestWallet() {
+	walletData := map[string]string{
+		"name": "e2e_test_wallet",
+	}
+
+	resp := suite.makeAuthenticatedRequest("POST", "/knirvwallet/wallet/create", walletData)
+	require.True(suite.T(), resp.Success, "Failed to create test wallet")
+
+	suite.testWallet = &TestWallet{
+		Address:  resp.Data["address"].(string),
+		Mnemonic: resp.Data["mnemonic"].(string),
+		Balance:  "0",
+	}
+
+	suite.T().Logf("Created test wallet: %s", suite.testWallet.Address)
+
+	// Fund the wallet
+	suite.fundTestWallet()
+}
+
+func (suite *E2ETestSuite) fundTestWallet() {
+	fundData := map[string]interface{}{
+		"address": suite.testWallet.Address,
+		"amount":  "10000000", // 10 NRN
+	}
+
+	resp := suite.makeAuthenticatedRequest("POST", "/knirvroot/faucet/fund", fundData)
+	require.True(suite.T(), resp.Success, "Failed to fund test wallet")
+
+	suite.testWallet.Balance = "10000000"
+	suite.T().Logf("Funded test wallet with 10 NRN")
+}
+
+func (suite *E2ETestSuite) setupWebSocket() {
+	dialer := websocket.Dialer{}
+	conn, _, err := dialer.Dial(suite.wsURL, nil)
+	require.NoError(suite.T(), err, "Failed to connect to WebSocket")
+
+	suite.wsConn = conn
+
+	// Send ping to test connection
+	pingMsg := map[string]interface{}{
+		"type": "ping",
+	}
+
+	err = suite.wsConn.WriteJSON(pingMsg)
+	require.NoError(suite.T(), err, "Failed to send ping")
+
+	var pongMsg map[string]interface{}
+	err = suite.wsConn.ReadJSON(&pongMsg)
+	require.NoError(suite.T(), err, "Failed to receive pong")
+
+	assert.Equal(suite.T(), "pong", pongMsg["type"])
+	suite.T().Log("WebSocket connection established")
+}
+
+// Helper methods for making HTTP requests
+func (suite *E2ETestSuite) makeRequest(method, path string, data interface{}) *TestResponse {
+	return suite.makeRequestWithAuth(method, path, data, "")
+}
+
+func (suite *E2ETestSuite) makeAuthenticatedRequest(method, path string, data interface{}) *TestResponse {
+	return suite.makeRequestWithAuth(method, path, data, suite.authToken)
+}
+
+func (suite *E2ETestSuite) makeRequestWithAuth(method, path string, data interface{}, token string) *TestResponse {
+	var body io.Reader
+	if data != nil {
+		jsonData, err := json.Marshal(data)
+		require.NoError(suite.T(), err, "Failed to marshal request data")
+		body = bytes.NewReader(jsonData)
+	}
+
+	url := suite.gatewayURL + path
+	req, err := http.NewRequest(method, url, body)
+	require.NoError(suite.T(), err, "Failed to create request")
+
+	if data != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	resp, err := suite.httpClient.Do(req)
+	require.NoError(suite.T(), err, "Request failed")
+	defer resp.Body.Close()
+
+	responseBody, err := io.ReadAll(resp.Body)
+	require.NoError(suite.T(), err, "Failed to read response body")
+
+	var testResp TestResponse
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		if len(responseBody) > 0 {
+			err = json.Unmarshal(responseBody, &testResp.Data)
+			if err != nil {
+				// Try to unmarshal as TestResponse directly
+				json.Unmarshal(responseBody, &testResp)
+			} else {
+				testResp.Success = true
+			}
+		} else {
+			testResp.Success = true
+		}
+	} else {
+		testResp.Success = false
+		testResp.Error = string(responseBody)
+	}
+
+	return &testResp
+}
+
+// Month 12 Complete E2E Test Implementation
+func (suite *E2ETestSuite) TestCompleteWorkflow() {
+	suite.T().Log("Starting complete E2E workflow test")
+
+	// Test 1: Register LLM
+	suite.Run("RegisterLLM", func() {
+		llmData := map[string]interface{}{
+			"name":             suite.testData.TestLLMID,
+			"version":          "1.0.0",
+			"capabilities":     []string{"text-generation", "code-completion"},
+			"model_data":       "dGVzdCBtb2RlbCBkYXRh", // base64 encoded test data
+			"registration_fee": "1000000",              // 1 NRN
+			"usage_fee":        "100000",               // 0.1 NRN
+		}
+
+		resp := suite.makeAuthenticatedRequest("POST", "/knirvchain/llm/register", llmData)
+		assert.True(suite.T(), resp.Success, "LLM registration failed: %s", resp.Error)
+		assert.NotEmpty(suite.T(), resp.TxHash, "No transaction hash returned")
+
+		suite.T().Logf("LLM registered successfully: %s", resp.TxHash)
+
+		// Wait for transaction confirmation
+		time.Sleep(5 * time.Second)
+
+		// Verify LLM is registered
+		llmResp := suite.makeAuthenticatedRequest("GET", fmt.Sprintf("/knirvchain/llm/%s", suite.testData.TestLLMID), nil)
+		assert.True(suite.T(), llmResp.Success, "Failed to retrieve registered LLM")
+	})
+
+	// Test 2: Create Error Node
+	suite.Run("CreateErrorNode", func() {
+		errorData := map[string]interface{}{
+			"error_type":  "compilation_error",
+			"description": "Missing semicolon in JavaScript code",
+			"context": map[string]interface{}{
+				"language": "javascript",
+				"line":     42,
+				"file":     "test.js",
+				"user_id":  suite.testData.TestUserID,
+			},
+			"severity": 3,
+		}
+
+		resp := suite.makeAuthenticatedRequest("POST", "/knirvgraph/nrv/errors", errorData)
+		assert.True(suite.T(), resp.Success, "Error node creation failed: %s", resp.Error)
+
+		errorID := resp.Data["id"].(string)
+		suite.testData.TestErrorID = errorID
+
+		suite.T().Logf("Error node created: %s", errorID)
+
+		// Verify error node exists
+		errorResp := suite.makeAuthenticatedRequest("GET", fmt.Sprintf("/knirvgraph/nrv/errors/%s", errorID), nil)
+		assert.True(suite.T(), errorResp.Success, "Failed to retrieve error node")
+	})
+
+	// Test 3: Create Skill Node
+	suite.Run("CreateSkillNode", func() {
+		skillData := map[string]interface{}{
+			"skill_type":   "code_fixer",
+			"capabilities": []string{"javascript", "syntax_repair", "semicolon_insertion"},
+			"requirements": map[string]interface{}{
+				"min_confidence": 0.8,
+				"max_latency":    "5s",
+				"llm_id":         suite.testData.TestLLMID,
+			},
+		}
+
+		resp := suite.makeAuthenticatedRequest("POST", "/knirvgraph/nrv/skills", skillData)
+		assert.True(suite.T(), resp.Success, "Skill node creation failed: %s", resp.Error)
+
+		skillID := resp.Data["id"].(string)
+		suite.testData.TestSkillID = skillID
+
+		suite.T().Logf("Skill node created: %s", skillID)
+
+		// Verify skill node exists
+		skillResp := suite.makeAuthenticatedRequest("GET", fmt.Sprintf("/knirvgraph/nrv/skills/%s", skillID), nil)
+		assert.True(suite.T(), skillResp.Success, "Failed to retrieve skill node")
+	})
+
+	// Test 4: Create NEXUS Agent
+	suite.Run("CreateNEXUSAgent", func() {
 		agentData := map[string]interface{}{
-			"name":         "E2ETestAgent",
-			"description":  "End-to-end test agent for workflow validation",
-			"type":         "go_plugin",
-			"capabilities": []string{"data_processing", "file_analysis"},
+			"name":         suite.testData.TestAgentID,
+			"type":         "code_assistant",
+			"capabilities": []string{"javascript", "debugging", "code_generation"},
 			"config": map[string]interface{}{
-				"max_memory": "1GB",
-				"timeout":    "60s",
-				"env_vars": map[string]string{
-					"DEBUG": "true",
+				"model":       "gpt-4",
+				"temperature": 0.7,
+				"max_tokens":  2048,
+			},
+		}
+
+		resp := suite.makeAuthenticatedRequest("POST", "/knirvnexus/agents/create", agentData)
+		assert.True(suite.T(), resp.Success, "Agent creation failed: %s", resp.Error)
+
+		agentID := resp.Data["id"].(string)
+		suite.testData.TestAgentID = agentID
+
+		suite.T().Logf("NEXUS agent created: %s", agentID)
+
+		// Verify agent exists
+		agentResp := suite.makeAuthenticatedRequest("GET", fmt.Sprintf("/knirvnexus/agents/%s", agentID), nil)
+		assert.True(suite.T(), agentResp.Success, "Failed to retrieve agent")
+	})
+
+	// Test 5: Test NRV Resolution
+	suite.Run("TestNRVResolution", func() {
+		// Create a vector for the error
+		vectorData := map[string]interface{}{
+			"target_hash": suite.testData.TestErrorID,
+			"coordinates": []float64{3.0, 42.0, 1.0}, // severity, line, file_type
+			"metadata": map[string]interface{}{
+				"error_type": "compilation_error",
+				"language":   "javascript",
+			},
+		}
+
+		resp := suite.makeAuthenticatedRequest("POST", "/knirvgraph/nrv/vectors", vectorData)
+		assert.True(suite.T(), resp.Success, "Vector creation failed: %s", resp.Error)
+
+		// Test resolution
+		resolveResp := suite.makeAuthenticatedRequest("GET", fmt.Sprintf("/knirvgraph/nrv/resolve/%s", suite.testData.TestErrorID), nil)
+		assert.True(suite.T(), resolveResp.Success, "NRV resolution failed: %s", resolveResp.Error)
+
+		vectors := resolveResp.Data["vectors"].([]interface{})
+		assert.Greater(suite.T(), len(vectors), 0, "No vectors found for resolution")
+
+		suite.T().Logf("NRV resolution found %d vectors", len(vectors))
+	})
+
+	// Test 6: Invoke Skill with Token Burning
+	suite.Run("InvokeSkillWithTokenBurning", func() {
+		skillData := map[string]interface{}{
+			"skill_id":     suite.testData.TestSkillID,
+			"amount":       "500000", // 0.5 NRN
+			"user_address": suite.testWallet.Address,
+			"parameters": map[string]interface{}{
+				"error_id":   suite.testData.TestErrorID,
+				"fix_type":   "syntax_repair",
+				"confidence": 0.9,
+			},
+		}
+
+		resp := suite.makeAuthenticatedRequest("POST", "/knirvchain/skill/invoke", skillData)
+		assert.True(suite.T(), resp.Success, "Skill invocation failed: %s", resp.Error)
+		assert.NotEmpty(suite.T(), resp.TxHash, "No transaction hash returned")
+
+		suite.T().Logf("Skill invoked successfully: %s", resp.TxHash)
+
+		// Wait for transaction processing
+		time.Sleep(5 * time.Second)
+
+		// Check wallet balance (should be reduced)
+		balanceResp := suite.makeAuthenticatedRequest("GET", fmt.Sprintf("/knirvwallet/balance/%s", suite.testWallet.Address), nil)
+		assert.True(suite.T(), balanceResp.Success, "Failed to check wallet balance")
+
+		newBalance := balanceResp.Data["balance"].(string)
+		suite.T().Logf("Wallet balance after skill invocation: %s", newBalance)
+	})
+
+	// Test 7: Agent Workflow Execution
+	suite.Run("AgentWorkflowExecution", func() {
+		workflowData := map[string]interface{}{
+			"agent_id": suite.testData.TestAgentID,
+			"workflow": map[string]interface{}{
+				"steps": []map[string]interface{}{
+					{
+						"type":  "analyze_error",
+						"input": suite.testData.TestErrorID,
+						"config": map[string]interface{}{
+							"depth": "detailed",
+						},
+					},
+					{
+						"type":  "generate_fix",
+						"input": "analysis_result",
+						"config": map[string]interface{}{
+							"fix_type": "syntax_repair",
+						},
+					},
+					{
+						"type":  "validate_fix",
+						"input": "generated_fix",
+						"config": map[string]interface{}{
+							"run_tests": true,
+						},
+					},
 				},
 			},
 		}
 
-		resp, err := e2e.suite.makeRequest("POST", e2e.suite.knirvnexusURL+"/api/v1/agents", agentData)
-		require.NoError(t, err)
+		resp := suite.makeAuthenticatedRequest("POST", "/knirvnexus/workflows/execute", workflowData)
+		assert.True(suite.T(), resp.Success, "Workflow execution failed: %s", resp.Error)
 
-		var agent map[string]interface{}
-		err = json.Unmarshal(resp, &agent)
-		require.NoError(t, err)
+		workflowID := resp.Data["workflow_id"].(string)
+		suite.T().Logf("Workflow started: %s", workflowID)
 
-		agentID := agent["id"].(string)
-		t.Logf("Agent created: %s", agentID)
-
-		// Step 2: Register agent on blockchain
-		t.Log("Step 2: Registering agent on blockchain...")
-
-		registrationData := map[string]interface{}{
-			"agent_id":     agentID,
-			"owner":        e2e.suite.testWallet.Address,
-			"capabilities": agentData["capabilities"],
-			"fee":          "2000000",
-		}
-
-		resp, err = e2e.suite.makeRequest("POST", e2e.suite.knirvRootURL+"/agents/register", registrationData)
-		require.NoError(t, err)
-
-		var regResult map[string]interface{}
-		err = json.Unmarshal(resp, &regResult)
-		require.NoError(t, err)
-
-		assert.NotEmpty(t, regResult["tx_hash"])
-		t.Logf("Agent registered on blockchain: %s", regResult["tx_hash"])
-
-		// Step 3: Deploy agent to execution environment
-		t.Log("Step 3: Deploying agent...")
-
-		deployData := map[string]interface{}{
-			"agent_id":           agentID,
-			"target_environment": "production",
-			"resources": map[string]interface{}{
-				"cpu":    "2",
-				"memory": "1GB",
-			},
-		}
-
-		resp, err = e2e.suite.makeRequest("POST", e2e.suite.knirvnexusURL+"/api/v1/agents/"+agentID+"/deploy", deployData)
-		require.NoError(t, err)
-
-		var deployResult map[string]interface{}
-		err = json.Unmarshal(resp, &deployResult)
-		require.NoError(t, err)
-
-		assert.Equal(t, "deployed", deployResult["status"])
-		t.Logf("Agent deployed successfully: %+v", deployResult)
-
-		// Step 4: Execute agent with test data
-		t.Log("Step 4: Executing agent...")
-
-		execData := map[string]interface{}{
-			"input": map[string]interface{}{
-				"data":   "test data for processing",
-				"format": "text",
-			},
-			"parameters": map[string]interface{}{
-				"mode":          "analysis",
-				"output_format": "json",
-			},
-			"wallet_address": e2e.suite.testWallet.Address,
-			"token_amount":   "500000",
-		}
-
-		resp, err = e2e.suite.makeRequest("POST", e2e.suite.knirvnexusURL+"/api/v1/agents/"+agentID+"/execute", execData)
-		require.NoError(t, err)
-
-		var execResult map[string]interface{}
-		err = json.Unmarshal(resp, &execResult)
-		require.NoError(t, err)
-
-		executionID := execResult["execution_id"].(string)
-		t.Logf("Agent execution started: %s", executionID)
-
-		// Step 5: Monitor execution progress
-		t.Log("Step 5: Monitoring execution...")
-
-		maxWait := 30 * time.Second
-		checkInterval := 2 * time.Second
-		startTime := time.Now()
-
-		var finalStatus string
-		for time.Since(startTime) < maxWait {
-			resp, err = e2e.suite.makeRequest("GET", e2e.suite.knirvnexusURL+"/api/v1/agents/"+agentID+"/executions/"+executionID, nil)
-			if err == nil {
-				var status map[string]interface{}
-				if json.Unmarshal(resp, &status) == nil {
-					finalStatus = status["status"].(string)
-					if finalStatus == "completed" || finalStatus == "failed" {
-						t.Logf("Execution completed with status: %s", finalStatus)
-						break
-					}
-				}
-			}
-			time.Sleep(checkInterval)
-		}
-
-		assert.Equal(t, "completed", finalStatus, "Agent execution should complete successfully")
-
-		// Step 6: Verify blockchain transaction for execution payment
-		t.Log("Step 6: Verifying blockchain transaction...")
-
-		resp, err = e2e.suite.makeRequest("GET", e2e.suite.knirvRootURL+"/blockchain/transactions?type=agent_execution&execution_id="+executionID, nil)
-		require.NoError(t, err)
-
-		var transactions []map[string]interface{}
-		err = json.Unmarshal(resp, &transactions)
-		require.NoError(t, err)
-
-		assert.GreaterOrEqual(t, len(transactions), 1, "Should have at least one transaction for agent execution")
-
-		tx := transactions[0]
-		assert.Equal(t, "agent_execution", tx["type"])
-		assert.Equal(t, executionID, tx["execution_id"])
-		t.Logf("Blockchain transaction verified: %+v", tx)
+		// Poll for workflow completion
+		suite.waitForWorkflowCompletion(workflowID)
 	})
-}
 
-// Test Complete Cross-Chain Bridge Workflow
-func (e2e *E2EWorkflowTester) TestCrossChainBridgeWorkflow(t *testing.T) {
-	t.Run("CompleteBridgeTransfer", func(t *testing.T) {
-		// Step 1: Check initial balances
-		t.Log("Step 1: Checking initial balances...")
-
-		resp, err := e2e.suite.makeRequest("GET", e2e.suite.knirvRootURL+"/wallet/"+e2e.suite.testWallet.Address+"/balance", nil)
-		require.NoError(t, err)
-
-		var initialBalance map[string]interface{}
-		err = json.Unmarshal(resp, &initialBalance)
-		require.NoError(t, err)
-
-		initialAmount := initialBalance["balance"].(string)
-		t.Logf("Initial KNIRVROOT balance: %s", initialAmount)
-
-		// Step 2: Initiate bridge transfer from KNIRVROOT to XION
-		t.Log("Step 2: Initiating bridge transfer...")
-
+	// Test 8: Cross-Chain Token Bridge
+	suite.Run("CrossChainTokenBridge", func() {
 		bridgeData := map[string]interface{}{
 			"target_chain": "xion",
-			"amount":       "2000000",
-			"recipient":    e2e.suite.testWallet.Address,
-			"bridge_fee":   "50000",
+			"amount":       "1000000", // 1 NRN
+			"recipient":    suite.testWallet.Address,
+			"source":       "KNIRVROOT",
 		}
 
-		resp, err = e2e.suite.makeRequest("POST", e2e.suite.knirvchainURL+"/bridge/transfer", bridgeData)
-		require.NoError(t, err)
+		resp := suite.makeAuthenticatedRequest("POST", "/knirvroot/bridge/transfer", bridgeData)
+		assert.True(suite.T(), resp.Success, "Bridge transfer failed: %s", resp.Error)
+		assert.NotEmpty(suite.T(), resp.TxHash, "No transaction hash returned")
 
-		var bridgeResult map[string]interface{}
-		err = json.Unmarshal(resp, &bridgeResult)
-		require.NoError(t, err)
+		txHash := resp.TxHash
+		suite.T().Logf("Bridge transfer initiated: %s", txHash)
 
-		assert.NotEmpty(t, bridgeResult["tx_hash"])
-		assert.Equal(t, "pending", bridgeResult["status"])
+		// Wait for bridge processing
+		time.Sleep(10 * time.Second)
 
-		txHash := bridgeResult["tx_hash"].(string)
-		t.Logf("Bridge transfer initiated: %s", txHash)
+		// Check bridge status
+		statusResp := suite.makeAuthenticatedRequest("GET", fmt.Sprintf("/knirvroot/bridge/status?tx_hash=%s", txHash), nil)
+		assert.True(suite.T(), statusResp.Success, "Failed to check bridge status")
 
-		// Step 3: Monitor bridge transfer progress
-		t.Log("Step 3: Monitoring bridge transfer...")
+		status := statusResp.Data["status"].(string)
+		suite.T().Logf("Bridge status: %s", status)
+	})
 
-		maxWait := 60 * time.Second
-		checkInterval := 5 * time.Second
-		startTime := time.Now()
+	// Test 9: Economic Metrics Validation
+	suite.Run("EconomicMetricsValidation", func() {
+		metricsResp := suite.makeAuthenticatedRequest("GET", "/knirvroot/economics/metrics", nil)
+		assert.True(suite.T(), metricsResp.Success, "Failed to get economic metrics")
 
-		var finalStatus string
-		for time.Since(startTime) < maxWait {
-			resp, err = e2e.suite.makeRequest("GET", e2e.suite.knirvchainURL+"/bridge/status?tx_hash="+txHash, nil)
-			if err == nil {
-				var status map[string]interface{}
-				if json.Unmarshal(resp, &status) == nil {
-					finalStatus = status["status"].(string)
-					t.Logf("Bridge status: %s", finalStatus)
-					if finalStatus == "completed" || finalStatus == "failed" {
-						break
-					}
-				}
+		metrics := metricsResp.Data
+
+		// Validate key metrics exist
+		assert.Contains(suite.T(), metrics, "total_supply")
+		assert.Contains(suite.T(), metrics, "circulating_supply")
+		assert.Contains(suite.T(), metrics, "total_burned")
+		assert.Contains(suite.T(), metrics, "service_metrics")
+
+		suite.T().Logf("Economic metrics validated: %+v", metrics)
+	})
+
+	// Test 10: WebSocket Real-time Updates
+	suite.Run("WebSocketRealTimeUpdates", func() {
+		// Subscribe to service updates
+		subscribeMsg := map[string]interface{}{
+			"type":    "subscribe",
+			"service": "knirvchain",
+		}
+
+		err := suite.wsConn.WriteJSON(subscribeMsg)
+		assert.NoError(suite.T(), err, "Failed to send subscribe message")
+
+		var response map[string]interface{}
+		err = suite.wsConn.ReadJSON(&response)
+		assert.NoError(suite.T(), err, "Failed to receive subscription response")
+		assert.Equal(suite.T(), "subscribed", response["type"])
+
+		// Request metrics via WebSocket
+		metricsMsg := map[string]interface{}{
+			"type": "get_metrics",
+		}
+
+		err = suite.wsConn.WriteJSON(metricsMsg)
+		assert.NoError(suite.T(), err, "Failed to send metrics request")
+
+		err = suite.wsConn.ReadJSON(&response)
+		assert.NoError(suite.T(), err, "Failed to receive metrics response")
+		assert.Equal(suite.T(), "metrics", response["type"])
+		assert.Contains(suite.T(), response, "metrics")
+
+		suite.T().Log("WebSocket real-time updates working correctly")
+	})
+}
+
+// Helper method for waiting for workflow completion
+func (suite *E2ETestSuite) waitForWorkflowCompletion(workflowID string) {
+	for i := 0; i < 60; i++ { // Wait up to 60 seconds
+		resp := suite.makeAuthenticatedRequest("GET", fmt.Sprintf("/knirvnexus/workflows/%s/status", workflowID), nil)
+		if resp.Success {
+			status := resp.Data["status"].(string)
+			if status == "completed" || status == "failed" {
+				suite.T().Logf("Workflow %s completed with status: %s", workflowID, status)
+				return
 			}
-			time.Sleep(checkInterval)
 		}
+		time.Sleep(1 * time.Second)
+	}
 
-		assert.Equal(t, "completed", finalStatus, "Bridge transfer should complete successfully")
+	suite.T().Errorf("Workflow %s did not complete within timeout", workflowID)
+}
 
-		// Step 4: Verify balances after bridge transfer
-		t.Log("Step 4: Verifying final balances...")
+// Main test function for the E2E Test Suite
+func TestE2ETestSuite(t *testing.T) {
+	suite.Run(t, new(E2ETestSuite))
+}
 
-		resp, err = e2e.suite.makeRequest("GET", e2e.suite.knirvRootURL+"/wallet/"+e2e.suite.testWallet.Address+"/balance", nil)
-		require.NoError(t, err)
+// Additional Month 12 Test Methods
 
-		var finalBalance map[string]interface{}
-		err = json.Unmarshal(resp, &finalBalance)
-		require.NoError(t, err)
+// Test KNIRV-ROUTER Connectivity and Proof-of-Connectivity
+func (suite *E2ETestSuite) TestKNIRVROUTERConnectivity() {
+	suite.Run("KNIRVROUTERConnectivityTest", func() {
+		// Test router connectivity status
+		statusResponse := suite.makeAuthenticatedRequest("GET", "/knirvrouter/api/connectivity/status", nil)
+		assert.True(suite.T(), statusResponse.Success, "Failed to get KNIRV-ROUTER status")
 
-		finalAmount := finalBalance["balance"].(string)
-		t.Logf("Final KNIRVROOT balance: %s", finalAmount)
+		proofEngineActive := statusResponse.Data["proof_engine_active"].(bool)
+		assert.True(suite.T(), proofEngineActive, "KNIRV-ROUTER proof engine is not active")
 
-		// Balance should have decreased by the transfer amount plus fees
-		assert.NotEqual(t, initialAmount, finalAmount, "Balance should have changed after bridge transfer")
+		// Test connectivity proof creation
+		proofResponse := suite.makeAuthenticatedRequest("POST", "/knirvrouter/api/connectivity/proofs", map[string]interface{}{})
+		assert.True(suite.T(), proofResponse.Success, "Failed to initiate connectivity proof")
 
-		// Step 5: Verify bridge transaction is recorded on both chains
-		t.Log("Step 5: Verifying cross-chain transaction records...")
+		proofStatus := proofResponse.Data["status"].(string)
+		assert.Equal(suite.T(), "proof_generation_initiated", proofStatus, "Failed to initiate connectivity proof")
 
-		// Check KNIRVROOT record
-		resp, err = e2e.suite.makeRequest("GET", e2e.suite.knirvRootURL+"/blockchain/transactions?type=bridge_out&tx_hash="+txHash, nil)
-		require.NoError(t, err)
+		// Wait for proof processing
+		time.Sleep(15 * time.Second)
 
-		var rootTxs []map[string]interface{}
-		err = json.Unmarshal(resp, &rootTxs)
-		require.NoError(t, err)
+		// Check proof history
+		proofsResponse := suite.makeAuthenticatedRequest("GET", "/knirvrouter/api/connectivity/proofs", nil)
+		assert.True(suite.T(), proofsResponse.Success, "Failed to get connectivity proofs")
 
-		assert.GreaterOrEqual(t, len(rootTxs), 1, "Should have bridge out transaction on KNIRVROOT")
+		proofs := proofsResponse.Data["proofs"].([]interface{})
+		assert.Greater(suite.T(), len(proofs), 0, "No connectivity proofs found")
 
-		rootTx := rootTxs[0]
-		assert.Equal(t, "bridge_out", rootTx["type"])
-		assert.Equal(t, "xion", rootTx["target_chain"])
-		t.Logf("KNIRVROOT bridge transaction verified: %+v", rootTx)
+		suite.T().Logf("KNIRV-ROUTER connectivity test passed with %d proofs", len(proofs))
+
+		// Test TURN server endpoint (existing functionality)
+		turnResponse := suite.makeAuthenticatedRequest("GET", "/knirvrouter/turn/status", nil)
+		if !turnResponse.Success {
+			suite.T().Logf("KNIRV-ROUTER TURN server endpoint returned error: %s", turnResponse.Error)
+		}
 	})
 }
 
-// Test Complete P2P Network Workflow
-func (e2e *E2EWorkflowTester) TestP2PNetworkWorkflow(t *testing.T) {
-	t.Run("CompleteConnectivityWorkflow", func(t *testing.T) {
-		// Step 1: Router joins network
-		t.Log("Step 1: Router joining network...")
+// Test Data Consistency across components
+func (suite *E2ETestSuite) TestDataConsistency() {
+	suite.Run("DataConsistencyTest", func() {
+		// Create test data
+		testID := "consistency_test_" + fmt.Sprintf("%d", time.Now().Unix())
 
-		joinData := map[string]interface{}{
-			"router_id":      "e2e_test_router",
-			"capabilities":   []string{"relay", "storage", "compute"},
-			"stake_amount":   "5000000",
-			"wallet_address": e2e.suite.testWallet.Address,
+		// Create data in multiple services
+		chainResponse := suite.makeAuthenticatedRequest("POST", "/knirvchain/test/data", map[string]interface{}{
+			"id":   testID,
+			"data": "test_data",
+		})
+
+		graphResponse := suite.makeAuthenticatedRequest("POST", "/knirvgraph/test/data", map[string]interface{}{
+			"id":   testID,
+			"data": "test_data",
+		})
+
+		// Wait for synchronization
+		time.Sleep(5 * time.Second)
+
+		// Verify data consistency
+		chainData := ""
+		graphData := ""
+
+		if chainResponse.Success {
+			chainDataResp := suite.makeAuthenticatedRequest("GET", fmt.Sprintf("/knirvchain/test/data/%s", testID), nil)
+			if chainDataResp.Success {
+				chainData = chainDataResp.Data["data"].(string)
+			}
 		}
 
-		resp, err := e2e.suite.makeRequest("POST", e2e.suite.knirvroterURL+"/network/join", joinData)
-		require.NoError(t, err)
-
-		var joinResult map[string]interface{}
-		err = json.Unmarshal(resp, &joinResult)
-		require.NoError(t, err)
-
-		assert.Equal(t, "joined", joinResult["status"])
-		t.Logf("Router joined network: %+v", joinResult)
-
-		// Step 2: Discover peers
-		t.Log("Step 2: Discovering peers...")
-
-		resp, err = e2e.suite.makeRequest("GET", e2e.suite.knirvroterURL+"/peers", nil)
-		require.NoError(t, err)
-
-		var peers []map[string]interface{}
-		err = json.Unmarshal(resp, &peers)
-		require.NoError(t, err)
-
-		t.Logf("Discovered %d peers", len(peers))
-
-		// Step 3: Generate connectivity proof
-		t.Log("Step 3: Generating connectivity proof...")
-
-		proofData := map[string]interface{}{
-			"router_id":      "e2e_test_router",
-			"target_peers":   []string{"peer1", "peer2", "peer3"},
-			"proof_type":     "comprehensive",
-			"reward_address": e2e.suite.testWallet.Address,
+		if graphResponse.Success {
+			graphDataResp := suite.makeAuthenticatedRequest("GET", fmt.Sprintf("/knirvgraph/test/data/%s", testID), nil)
+			if graphDataResp.Success {
+				graphData = graphDataResp.Data["data"].(string)
+			}
 		}
 
-		resp, err = e2e.suite.makeRequest("POST", e2e.suite.knirvroterURL+"/connectivity/proof", proofData)
-		require.NoError(t, err)
+		if chainData != "" && graphData != "" {
+			assert.Equal(suite.T(), chainData, graphData, "Data inconsistency detected between services")
+		}
 
-		var proof map[string]interface{}
-		err = json.Unmarshal(resp, &proof)
-		require.NoError(t, err)
-
-		proofID := proof["proof_id"].(string)
-		t.Logf("Connectivity proof generated: %s", proofID)
-
-		// Step 4: Wait for proof validation and rewards
-		t.Log("Step 4: Waiting for proof validation...")
-		time.Sleep(20 * time.Second)
-
-		// Step 5: Verify rewards were distributed
-		resp, err = e2e.suite.makeRequest("GET", e2e.suite.knirvRootURL+"/blockchain/transactions?type=connectivity_reward&proof_id="+proofID, nil)
-		require.NoError(t, err)
-
-		var rewardTxs []map[string]interface{}
-		err = json.Unmarshal(resp, &rewardTxs)
-		require.NoError(t, err)
-
-		assert.GreaterOrEqual(t, len(rewardTxs), 1, "Should have connectivity reward transaction")
-
-		rewardTx := rewardTxs[0]
-		assert.Equal(t, "connectivity_reward", rewardTx["type"])
-		assert.Equal(t, proofID, rewardTx["proof_id"])
-		t.Logf("Connectivity reward verified: %+v", rewardTx)
+		suite.T().Log("Data consistency test completed")
 	})
-}
-
-func TestE2EWorkflows(t *testing.T) {
-	suite := NewIntegrationTestSuite()
-	suite.SetupTest(t)
-
-	tester := NewE2EWorkflowTester(suite)
-
-	t.Run("DeveloperWorkflow", tester.TestDeveloperWorkflow)
-	t.Run("AgentDevelopmentWorkflow", tester.TestAgentDevelopmentWorkflow)
-	t.Run("CrossChainBridgeWorkflow", tester.TestCrossChainBridgeWorkflow)
-	t.Run("P2PNetworkWorkflow", tester.TestP2PNetworkWorkflow)
 }

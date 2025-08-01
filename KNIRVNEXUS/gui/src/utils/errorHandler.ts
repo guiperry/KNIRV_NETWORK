@@ -483,7 +483,7 @@ class ErrorHandler {
               url: window.location.pathname,
               userAgent: navigator.userAgent,
               timestamp: new Date().toISOString(),
-              buildVersion: process.env.REACT_APP_VERSION || 'unknown',
+              buildVersion: import.meta.env.VITE_APP_VERSION || 'unknown',
             },
             context: errorInfo.context,
             symptoms: symptoms
@@ -646,7 +646,7 @@ Format your response as JSON with the following structure:
       timestamp: new Date().toISOString(),
       userId: localStorage.getItem('userId') || 'anonymous',
       sessionId: localStorage.getItem('sessionId') || 'unknown',
-      buildVersion: process.env.REACT_APP_VERSION || 'unknown',
+      buildVersion: import.meta.env.VITE_APP_VERSION || 'unknown',
     };
   }
 
