@@ -78,6 +78,8 @@ show_usage() {
     echo "  clean                    Clean build artifacts"
     echo "  deploy                   Deploy components"
     echo "  health                   Check health of all services"
+    echo "  production-test          Run production test suite"
+    echo "  deploy-test              Deploy and run comprehensive tests"
     echo ""
     echo "Components:"
     echo "  all                      All KNIRV components (default)"
@@ -331,7 +333,7 @@ TIMEOUT=300
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        start|stop|restart|status|build|test|logs|clean|deploy|health)
+        start|stop|restart|status|build|test|logs|clean|deploy|health|production-test|deploy-test)
             COMMAND="$1"
             shift
             ;;
@@ -452,10 +454,63 @@ case $COMMAND in
     health)
         check_all_health
         ;;
+    production-test)
+        print_header "Running Production Test Suite"
+        if [ -f "$SCRIPT_DIR/deploy-and-test.sh" ]; then
+            local test_args="--test-only --production-tests"
+            if [ "$VERBOSE" = true ]; then
+                test_args="$test_args --verbose"
+            fi
+            "$SCRIPT_DIR/deploy-and-test.sh" $test_args
+        else
+            print_error "Production deployment script not found"
+            exit 1
+        fi
+        ;;
+    deploy-test)
+        print_header "Deploy and Run Comprehensive Tests"
+        if [ -f "$SCRIPT_DIR/deploy-and-test.sh" ]; then
+            local deploy_test_args="--comprehensive"
+            if [ "$DEV_MODE" = true ]; then
+                deploy_test_args="$deploy_test_args --env development"
+            else
+                deploy_test_args="$deploy_test_args --env production"
+            fi
+            if [ "$VERBOSE" = true ]; then
+                deploy_test_args="$deploy_test_args --verbose"
+            fi
+            "$SCRIPT_DIR/deploy-and-test.sh" $deploy_test_args
+        else
+            print_error "Production deployment script not found"
+            exit 1
+        fi
+        ;;
     deploy)
         print_header "Deploying KNIRV Network"
         print_info "Development mode: $DEV_MODE"
-        # Add deployment logic here
+
+        # Use the new production deployment script
+        local deploy_args=""
+        if [ "$DEV_MODE" = true ]; then
+            deploy_args="--env development"
+        else
+            deploy_args="--env production"
+        fi
+
+        if [ "$VERBOSE" = true ]; then
+            deploy_args="$deploy_args --verbose"
+        fi
+
+        # Check if production deployment script exists
+        if [ -f "$SCRIPT_DIR/deploy-and-test.sh" ]; then
+            print_info "Using production deployment script..."
+            "$SCRIPT_DIR/deploy-and-test.sh" --deploy-only $deploy_args
+        else
+            print_warning "Production deployment script not found, using legacy deployment"
+            # Legacy deployment logic
+            $0 start all
+        fi
+
         print_success "Deployment completed"
         ;;
     *)

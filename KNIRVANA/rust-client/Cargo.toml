@@ -1,0 +1,57 @@
+[package]
+name = "knirvana-game-client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Core game engine
+bevy = { version = "0.12", features = ["dynamic_linking"] }
+bevy_rapier3d = "0.23"
+bevy_kira_audio = "0.18"
+
+# Networking and async
+tokio = { version = "1.0", features = ["full"] }
+reqwest = { version = "0.11", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Blockchain integration
+cosmwasm-std = "1.5"
+cosmwasm-schema = "1.5"
+# xion-sdk = "0.1"  # Commented out as it may not exist yet
+
+# Additional dependencies
+chrono = { version = "0.4", features = ["serde"] }
+log = "0.4"
+
+# Mobile support
+winit = "0.28"
+
+# Cross-platform
+cfg-if = "1.0"
+
+[target.'cfg(target_os = "android")'.dependencies]
+android_logger = "0.13"
+jni = "0.21"
+
+[target.'cfg(target_os = "ios")'.dependencies]
+objc = "0.2"
+
+[features]
+default = ["desktop"]
+desktop = []
+mobile = ["bevy/bevy_winit"]
+android = ["mobile"]
+ios = ["mobile"]
+
+[lib]
+name = "knirvana_game_client"
+path = "src/lib.rs"
+
+[[bin]]
+name = "knirvana_game"
+path = "src/main.rs"
+
+[[example]]
+name = "basic_game"
+path = "examples/basic_game.rs"

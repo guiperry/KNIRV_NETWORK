@@ -35,6 +35,14 @@ The new Gateway SDKs provide complete integration with KNIRVGATEWAY services:
 - **Cross-Service Communication**: Manage communication between services
 - **Real-time Monitoring**: Live system health and performance monitoring
 
+### PoAu-D Consensus Management ⭐ NEW
+- **Consensus Control**: Enable/disable PoAu-D consensus mechanism
+- **Network Authors**: Manage Network Author Peers (NAPs) for block proposal
+- **Plugin Author Peers**: Handle PAP registration and delegation
+- **Status Monitoring**: Real-time PoAu-D status and delegation statistics
+- **Transaction Delegation**: Automatic routing of MCP transactions to capability owners
+- **Hybrid Mining**: PoAu-D with PoW fallback for maximum reliability
+
 ## Core SDK Features
 
 The existing SDKs provide fundamental KNIRV network functionality:
@@ -105,6 +113,75 @@ const metrics = await client.economics.getMetrics();
 
 // Check health
 const health = await client.health.checkEconomicsHealth();
+```
+
+### PoAu-D Consensus Management
+
+#### Go Example
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+
+    "github.com/cloud-equities/KNIRVGATEWAY/sdk/go/gateway"
+)
+
+func main() {
+    // Create PoAu-D client
+    client := gateway.NewPoAuDClient()
+    ctx := context.Background()
+
+    // Enable PoAu-D consensus
+    resp, err := client.EnableConsensus(ctx)
+    if err != nil {
+        log.Fatalf("Failed to enable PoAu-D: %v", err)
+    }
+    fmt.Printf("PoAu-D enabled: %s\n", resp.Message)
+
+    // Add Network Author
+    addResp, err := client.AddNetworkAuthor(ctx, "knirv1abc123def456")
+    if err != nil {
+        log.Fatalf("Failed to add network author: %v", err)
+    }
+    fmt.Printf("Added Network Author: %s\n", addResp.Message)
+
+    // Get status
+    status, err := client.GetConsensusStatus(ctx)
+    if err != nil {
+        log.Fatalf("Failed to get status: %v", err)
+    }
+    fmt.Printf("PoAu-D Status: enabled=%t, authors=%d\n",
+        status.Enabled, status.NetworkAuthorsCount)
+}
+```
+
+#### TypeScript Example
+
+```typescript
+import { PoAuDClient } from '@knirv/gateway-sdk';
+
+async function main() {
+    // Create PoAu-D client
+    const client = new PoAuDClient();
+
+    // Enable PoAu-D consensus
+    const resp = await client.enableConsensus();
+    console.log(`PoAu-D enabled: ${resp.message}`);
+
+    // Add Network Author
+    const addResp = await client.addNetworkAuthor('knirv1abc123def456');
+    console.log(`Added Network Author: ${addResp.message}`);
+
+    // Get status
+    const status = await client.getConsensusStatus();
+    console.log(`PoAu-D Status: enabled=${status.enabled}, authors=${status.network_authors_count}`);
+}
+
+main().catch(console.error);
 ```
 
 ## Legacy Examples

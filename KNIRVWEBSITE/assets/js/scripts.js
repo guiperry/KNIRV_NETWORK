@@ -338,9 +338,10 @@ NioApp = function (NioApp, $, window, document) {
 	
 	// accordionActive @v1.0
     NioApp.Util.accordionActive = function() {
-        var $accordion_item = $('.accordion-item'),
-            $accordion_title = $('.accordion-title');
-        
+        // Skip all accordion functionality for FAQ sections with Bootstrap data attributes
+        var $accordion_item = $('.accordion-item').not('.accordion-faq .accordion-item'),
+            $accordion_title = $('.accordion-title').not('.accordion-faq .accordion-title');
+
         if($accordion_item.exists()){
             $accordion_item.each(function() {
                 var $self = $(this), $that = $self.find('.accordion-title');
@@ -351,7 +352,8 @@ NioApp = function (NioApp, $, window, document) {
                 }
             });
         }
-        
+
+        // Only add click handlers for non-FAQ accordions
         if($accordion_title.exists()){
             $accordion_title.on('click',function() {
                 var $self = $(this);

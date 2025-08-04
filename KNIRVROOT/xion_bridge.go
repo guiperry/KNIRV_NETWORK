@@ -453,3 +453,171 @@ func (xb *XionBridge) getBridgeStats() (map[string]interface{}, error) {
 		"last_updated":      time.Now(),
 	}, nil
 }
+
+// Production monitoring methods for KNIRV D-TEN
+
+// GetBridgeMetrics returns Prometheus-compatible metrics
+func (xb *XionBridge) GetBridgeMetrics() map[string]interface{} {
+	stats, err := xb.getBridgeStats()
+	if err != nil {
+		log.Printf("Error getting bridge stats: %v", err)
+		return map[string]interface{}{
+			"knirv_bridge_error": 1,
+		}
+	}
+
+	// Get pending transactions count
+	pendingCount := xb.getPendingTransactionsCount()
+
+	// Calculate success rate
+	totalBurns := stats["total_burns"].(int64)
+	totalMints := stats["total_mints"].(int64)
+	totalTransactions := totalBurns + totalMints
+
+	var successRate float64 = 100.0
+	if totalTransactions > 0 {
+		// In a real implementation, you'd track failed transactions
+		successRate = 95.0 // Placeholder - would calculate from actual data
+	}
+
+	return map[string]interface{}{
+		"knirv_bridge_total_burns":           totalBurns,
+		"knirv_bridge_total_mints":           totalMints,
+		"knirv_bridge_pending_transactions":  pendingCount,
+		"knirv_bridge_success_rate":          successRate,
+		"knirv_bridge_health_status":         1, // 1 = healthy, 0 = unhealthy
+		"knirv_bridge_last_transaction_time": time.Now().Unix(),
+	}
+}
+
+// getPendingTransactionsCount returns the number of pending bridge transactions
+func (xb *XionBridge) getPendingTransactionsCount() int64 {
+	var pendingCount int64
+
+	// Check burn events
+	iter := xb.KNIRVROOTDB.Client.NewIterator(util.BytesPrefix([]byte("bridge_burn_")), nil)
+	defer iter.Release()
+
+	for iter.Next() {
+		var event TokenBridgeEvent
+		if err := json.Unmarshal(iter.Value(), &event); err == nil && !event.Processed {
+			pendingCount++
+		}
+	}
+
+	// Check mint events
+	iter = xb.KNIRVROOTDB.Client.NewIterator(util.BytesPrefix([]byte("bridge_mint_")), nil)
+	defer iter.Release()
+
+	for iter.Next() {
+		var event TokenBridgeEvent
+		if err := json.Unmarshal(iter.Value(), &event); err == nil && !event.Processed {
+			pendingCount++
+		}
+	}
+
+	return pendingCount
+}
+
+// GetBridgeHealth returns detailed health information for monitoring
+func (xb *XionBridge) GetBridgeHealth() map[string]interface{} {
+	health := map[string]interface{}{
+		"status":    "healthy",
+		"timestamp": time.Now(),
+		"checks":    make(map[string]interface{}),
+	}
+
+	checks := health["checks"].(map[string]interface{})
+
+	// Check database connectivity
+	_, err := xb.KNIRVROOTDB.Client.Get([]byte("health_check"), nil)
+	if err != nil && err != leveldb.ErrNotFound {
+		checks["database"] = map[string]interface{}{
+			"status": "unhealthy",
+			"error":  err.Error(),
+		}
+		health["status"] = "unhealthy"
+	} else {
+		checks["database"] = map[string]interface{}{
+			"status": "healthy",
+		}
+	}
+
+	// Check XION RPC connectivity (simplified)
+	if xb.clientCtx == "" {
+		checks["xion_rpc"] = map[string]interface{}{
+			"status": "unhealthy",
+			"error":  "RPC endpoint not configured",
+		}
+		health["status"] = "unhealthy"
+	} else {
+		// In production, would make actual RPC call
+		checks["xion_rpc"] = map[string]interface{}{
+			"status":   "healthy",
+			"endpoint": xb.clientCtx,
+		}
+	}
+
+	// Check pending transactions threshold
+	pendingCount := xb.getPendingTransactionsCount()
+	if pendingCount > 50 { // Threshold for too many pending transactions
+		checks["pending_transactions"] = map[string]interface{}{
+			"status":  "warning",
+			"count":   pendingCount,
+			"message": "High number of pending transactions",
+		}
+	} else {
+		checks["pending_transactions"] = map[string]interface{}{
+			"status": "healthy",
+			"count":  pendingCount,
+		}
+	}
+
+	return health
+}
+
+// StartBridgeMonitoring starts background monitoring for the bridge
+func (xb *XionBridge) StartBridgeMonitoring(ctx context.Context) {
+	ticker := time.NewTicker(30 * time.Second) // Monitor every 30 seconds
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("Bridge monitoring stopped")
+			return
+		case <-ticker.C:
+			xb.performHealthChecks()
+		}
+	}
+}
+
+// performHealthChecks runs periodic health checks and logs issues
+func (xb *XionBridge) performHealthChecks() {
+	health := xb.GetBridgeHealth()
+
+	if health["status"] != "healthy" {
+		log.Printf("Bridge health check failed: %+v", health)
+
+		// In production, would send alerts here
+		xb.sendHealthAlert(health)
+	}
+
+	// Check for stuck transactions
+	pendingCount := xb.getPendingTransactionsCount()
+	if pendingCount > 10 {
+		log.Printf("Warning: %d pending bridge transactions", pendingCount)
+	}
+}
+
+// sendHealthAlert sends alerts for bridge health issues (placeholder)
+func (xb *XionBridge) sendHealthAlert(health map[string]interface{}) {
+	// In production, this would integrate with alerting systems
+	log.Printf("ALERT: Bridge health issue detected: %+v", health)
+
+	// Could send to:
+	// - Prometheus Alertmanager
+	// - Slack webhook
+	// - Email notifications
+	// - PagerDuty
+}

@@ -350,6 +350,15 @@ type TerminalIntegration struct {
 	Theme             string `json:"theme"`
 }
 
+// PoAuDConfig holds configuration for PoAu-D consensus mechanism
+type PoAuDConfig struct {
+	Enabled                 bool          `json:"enabled" mapstructure:"enabled"`
+	DelegationInterval      time.Duration `json:"delegation_interval" mapstructure:"delegation_interval"`
+	MaxSubpoolStaleTime     time.Duration `json:"max_subpool_stale_time" mapstructure:"max_subpool_stale_time"`
+	MaxPapSubpoolQueue      int           `json:"max_pap_subpool_queue" mapstructure:"max_pap_subpool_queue"`
+	StatusAdvertiseInterval time.Duration `json:"status_advertise_interval" mapstructure:"status_advertise_interval"`
+}
+
 // Config holds the application configuration
 type Config struct {
 	NodeName               string                     `json:"node_name,omitempty" mapstructure:"node_name,nodeName"` // Node name for identification
@@ -391,6 +400,9 @@ type Config struct {
 		RootNodeURI string `json:"root_node_uri" mapstructure:"rootNodeURI"`
 	} `json:"p2p" mapstructure:"p2p"`
 	TerminalIntegration *TerminalIntegration `json:"terminal_integration"`
+
+	// PoAu-D specific configuration
+	PoAuD PoAuDConfig `json:"poaud" mapstructure:"poaud"`
 }
 
 // Add a struct to hold Chromem-specific configuration within the main config
@@ -535,6 +547,15 @@ func DefaultConfig() *Config {
 		},
 		PublicIPInfo:        nil, // Default to nil
 		TerminalIntegration: DefaultTerminalIntegration(),
+
+		// PoAu-D configuration defaults
+		PoAuD: PoAuDConfig{
+			Enabled:                 false,            // Disabled by default for backward compatibility
+			DelegationInterval:      10 * time.Second, // 10 seconds between delegation scans
+			MaxSubpoolStaleTime:     5 * time.Minute,  // 5 minutes before reclaiming stale transactions
+			MaxPapSubpoolQueue:      100,              // Maximum 100 transactions in PAP subpool
+			StatusAdvertiseInterval: 30 * time.Minute, // 30 minutes between status advertisements
+		},
 	}
 }
 

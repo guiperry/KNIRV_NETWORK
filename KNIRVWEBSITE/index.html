@@ -11,6 +11,8 @@
     <link rel="shortcut icon" href="images/favicon.png">
     <!-- Site Title  -->
     <title>KNIRV D-TEN | Decentralized Trusted Execution Network for Self-Improving AI</title>
+    <!-- Bootstrap CSS for accordion functionality -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bundle and Base CSS -->
     <link rel="stylesheet" href="assets/css/vendor.bundle.css?ver=210">
     <link rel="stylesheet" href="assets/css/style-dark.css?ver=210">
@@ -19,8 +21,51 @@
     <link rel="stylesheet" href="assets/css/rtl.css?ver=210">
     <!-- Tailwind CSS for animated logo -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Custom styles for animated logo -->
+    <!-- Custom styles for animated logo and FAQ fixes -->
     <style>
+        /* Fix for Bootstrap accordion functionality */
+        .accordion-faq .collapse {
+            transition: height 0.35s ease !important;
+            overflow: hidden;
+        }
+
+        .accordion-faq .collapse.show {
+            height: auto !important;
+            overflow: visible !important;
+        }
+
+        .accordion-faq .collapsing {
+            height: 0 !important;
+            overflow: hidden !important;
+            transition: height 0.35s ease !important;
+        }
+
+        /* Ensure accordion titles work properly with Bootstrap */
+        .accordion-faq .accordion-title[data-bs-toggle="collapse"] {
+            cursor: pointer !important;
+        }
+
+        /* Prevent custom accordion styles from interfering */
+        .accordion-faq .accordion-item {
+            transition: none !important;
+        }
+
+        /* Ensure proper display */
+        .accordion-faq .accordion-content {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        /* Fix accordion icon behavior for Bootstrap accordions */
+        .accordion-faq .accordion-title:not(.collapsed) .accordion-icon-s2:after {
+            transform: rotate(0deg) !important;
+        }
+
+        .accordion-faq .accordion-title.collapsed .accordion-icon-s2:after {
+            transform: rotate(-180deg) !important;
+        }
+
         .animated-logo-container {
             width: 200px;
             height: 60px;
@@ -188,7 +233,7 @@
                             <div class="col-sm-10 col-md-6 text-center text-md-start">
                                 <!-- Section Head @s -->
                                 <div class="nk-block-text">
-                                    <h4 class="title title-lg animated" data-animate="fadeInUp" data-delay=".2">What is the KNIRV D-TEN?</h4>
+                                    <h4 class="title title-lg animated" data-animate="fadeInUp" data-delay=".2">? What is the KNIRV D-TEN</h4>
                                     <p class="lead animated" data-animate="fadeInUp" data-delay=".3">The KNIRV Decentralized Trusted Execution Network (D-TEN) is a revolutionary framework that transforms AI failures into collective knowledge, creating a self-healing, continuously evolving intelligence ecosystem.</p>
                                     <p class="animated" data-animate="fadeInUp" data-delay=".4">Through seven sovereign layers working in harmony, the D-TEN enables AI systems to learn from every mistake collectively and autonomously. When an AI fails, that failure becomes a structured ErrorNode within our global knowledge graph, incentivizing solutions that become composable, monetizable Skills.</p>
                                     <p class="animated" data-animate="fadeInUp" data-delay=".5">Powered by the NRN token and secured through cryptographic proofs, the D-TEN creates a permissionless, transparent, and incentivized network where intelligence compounds exponentially through verified, collaborative problem-solving.</p>
@@ -894,7 +939,7 @@
                                     <div class="tab-pane fade show active" id="general-questions-19">
                                         <div class="accordion accordion-s1 accordion-faq" id="faq-67">
                                             <div class="accordion-item accordion-item-s4 bg-theme-alt">
-                                                <h5 class="accordion-title" data-bs-toggle="collapse" data-bs-target="#faq-67-1"> What is KNIRV D-TEN? <span class="accordion-icon accordion-icon-s2"></span>
+                                                <h5 class="accordion-title" data-bs-toggle="collapse" data-bs-target="#faq-67-1">? What is KNIRV D-TEN<span class="accordion-icon accordion-icon-s2"></span>
                                                 </h5>
                                                 <div id="faq-67-1" class="collapse show" data-bs-parent="#faq-67">
                                                     <div class="accordion-content">
@@ -903,7 +948,7 @@
                                                 </div>
                                             </div>
                                             <div class="accordion-item accordion-item-s4 bg-theme-alt">
-                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-67-2"> How do I access NRN tokens? <span class="accordion-icon accordion-icon-s2"></span>
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-67-2">? How do I access NRN tokens<span class="accordion-icon accordion-icon-s2"></span>
                                                 </h5>
                                                 <div id="faq-67-2" class="collapse" data-bs-parent="#faq-67">
                                                     <div class="accordion-content">
@@ -912,7 +957,7 @@
                                                 </div>
                                             </div>
                                             <div class="accordion-item accordion-item-s4 bg-theme-alt">
-                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-67-3"> How can I participate in the KNIRV D-TEN network? <span class="accordion-icon accordion-icon-s2"></span>
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-67-3">? How can I participate in the KNIRV D-TEN network<span class="accordion-icon accordion-icon-s2"></span>
                                                 </h5>
                                                 <div id="faq-67-3" class="collapse" data-bs-parent="#faq-67">
                                                     <div class="accordion-content">
@@ -921,7 +966,7 @@
                                                 </div>
                                             </div>
                                             <div class="accordion-item accordion-item-s4 bg-theme-alt">
-                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-67-4"> How do I benefit from NRN tokens? <span class="accordion-icon accordion-icon-s2"></span>
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-67-4">? How do I benefit from NRN tokens<span class="accordion-icon accordion-icon-s2"></span>
                                                 </h5>
                                                 <div id="faq-67-4" class="collapse" data-bs-parent="#faq-67">
                                                     <div class="accordion-content">
@@ -934,7 +979,7 @@
                                     <div class="tab-pane fade" id="ico-questions-19">
                                         <div class="accordion accordion-s1 accordion-faq" id="faq-68">
                                             <div class="accordion-item accordion-item-s4 bg-theme-alt">
-                                                <h5 class="accordion-title" data-bs-toggle="collapse" data-bs-target="#faq-68-1"> What makes the D-TEN self-healing? <span class="accordion-icon accordion-icon-s2"></span>
+                                                <h5 class="accordion-title" data-bs-toggle="collapse" data-bs-target="#faq-68-1">? What makes the D-TEN self-healing<span class="accordion-icon accordion-icon-s2"></span>
                                                 </h5>
                                                 <div id="faq-68-1" class="collapse show" data-bs-parent="#faq-68">
                                                     <div class="accordion-content">
@@ -943,7 +988,7 @@
                                                 </div>
                                             </div>
                                             <div class="accordion-item accordion-item-s4 bg-theme-alt">
-                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-68-2"> How do KNIRV-SHELL agents learn and improve? <span class="accordion-icon accordion-icon-s2"></span>
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-68-2">? How do KNIRV-SHELL agents learn and improve<span class="accordion-icon accordion-icon-s2"></span>
                                                 </h5>
                                                 <div id="faq-68-2" class="collapse" data-bs-parent="#faq-68">
                                                     <div class="accordion-content">
@@ -952,7 +997,7 @@
                                                 </div>
                                             </div>
                                             <div class="accordion-item accordion-item-s4 bg-theme-alt">
-                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-68-3"> What are the seven sovereign layers? <span class="accordion-icon accordion-icon-s2"></span>
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-68-3">? What are the seven sovereign layers<span class="accordion-icon accordion-icon-s2"></span>
                                                 </h5>
                                                 <div id="faq-68-3" class="collapse" data-bs-parent="#faq-68">
                                                     <div class="accordion-content">
@@ -961,7 +1006,7 @@
                                                 </div>
                                             </div>
                                             <div class="accordion-item accordion-item-s4 bg-theme-alt">
-                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-68-4"> How does the NRN economic model work? <span class="accordion-icon accordion-icon-s2"></span>
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-68-4">? How does the NRN economic model work<span class="accordion-icon accordion-icon-s2"></span>
                                                 </h5>
                                                 <div id="faq-68-4" class="collapse" data-bs-parent="#faq-68">
                                                     <div class="accordion-content">
@@ -974,7 +1019,7 @@
                                     <div class="tab-pane fade" id="tokens-sales-19">
                                         <div class="accordion accordion-s1 accordion-faq" id="faq-69">
                                             <div class="accordion-item accordion-item-s4 bg-theme-alt">
-                                                <h5 class="accordion-title" data-bs-toggle="collapse" data-bs-target="#faq-69-1"> What is KNIRV-NEXUS DVE? <span class="accordion-icon accordion-icon-s2"></span>
+                                                <h5 class="accordion-title" data-bs-toggle="collapse" data-bs-target="#faq-69-1">? What is KNIRV-NEXUS DVE<span class="accordion-icon accordion-icon-s2"></span>
                                                 </h5>
                                                 <div id="faq-69-1" class="collapse show" data-bs-parent="#faq-69">
                                                     <div class="accordion-content">
@@ -983,7 +1028,7 @@
                                                 </div>
                                             </div>
                                             <div class="accordion-item accordion-item-s4 bg-theme-alt">
-                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-69-2"> How does KNIRVGRAPH store knowledge? <span class="accordion-icon accordion-icon-s2"></span>
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-69-2">? How does KNIRVGRAPH store knowledge<span class="accordion-icon accordion-icon-s2"></span>
                                                 </h5>
                                                 <div id="faq-69-2" class="collapse" data-bs-parent="#faq-69">
                                                     <div class="accordion-content">
@@ -992,7 +1037,7 @@
                                                 </div>
                                             </div>
                                             <div class="accordion-item accordion-item-s4 bg-theme-alt">
-                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-69-3"> What is the role of KNIRVCHAIN? <span class="accordion-icon accordion-icon-s2"></span>
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-69-3">? What is the role of KNIRVCHAIN<span class="accordion-icon accordion-icon-s2"></span>
                                                 </h5>
                                                 <div id="faq-69-3" class="collapse" data-bs-parent="#faq-69">
                                                     <div class="accordion-content">
@@ -1001,7 +1046,7 @@
                                                 </div>
                                             </div>
                                             <div class="accordion-item accordion-item-s4 bg-theme-alt">
-                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-69-4"> How does KNIRV-WALLET simplify access? <span class="accordion-icon accordion-icon-s2"></span>
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-69-4">? How does KNIRV-WALLET simplify access<span class="accordion-icon accordion-icon-s2"></span>
                                                 </h5>
                                                 <div id="faq-69-4" class="collapse" data-bs-parent="#faq-69">
                                                     <div class="accordion-content">
@@ -1014,7 +1059,7 @@
                                     <div class="tab-pane fade" id="client-19">
                                         <div class="accordion accordion-s1 accordion-faq" id="faq-70">
                                             <div class="accordion-item accordion-item-s4 bg-theme-alt">
-                                                <h5 class="accordion-title" data-bs-toggle="collapse" data-bs-target="#faq-70-1"> What is Proof-of-Connectivity? <span class="accordion-icon accordion-icon-s2"></span>
+                                                <h5 class="accordion-title" data-bs-toggle="collapse" data-bs-target="#faq-70-1">? What is Proof-of-Connectivity<span class="accordion-icon accordion-icon-s2"></span>
                                                 </h5>
                                                 <div id="faq-70-1" class="collapse show" data-bs-parent="#faq-70">
                                                     <div class="accordion-content">
@@ -1023,7 +1068,7 @@
                                                 </div>
                                             </div>
                                             <div class="accordion-item accordion-item-s4 bg-theme-alt">
-                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-70-2"> How do Skills become monetizable? <span class="accordion-icon accordion-icon-s2"></span>
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-70-2">? How do Skills become monetizable<span class="accordion-icon accordion-icon-s2"></span>
                                                 </h5>
                                                 <div id="faq-70-2" class="collapse" data-bs-parent="#faq-70">
                                                     <div class="accordion-content">
@@ -1032,7 +1077,7 @@
                                                 </div>
                                             </div>
                                             <div class="accordion-item accordion-item-s4 bg-theme-alt">
-                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-70-3"> What is the CLEAN paradigm? <span class="accordion-icon accordion-icon-s2"></span>
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-70-3">? What is the CLEAN paradigm<span class="accordion-icon accordion-icon-s2"></span>
                                                 </h5>
                                                 <div id="faq-70-3" class="collapse" data-bs-parent="#faq-70">
                                                     <div class="accordion-content">
@@ -1041,7 +1086,7 @@
                                                 </div>
                                             </div>
                                             <div class="accordion-item accordion-item-s4 bg-theme-alt">
-                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-70-4"> How does KNIRVANA enhance the experience? <span class="accordion-icon accordion-icon-s2"></span>
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-70-4">? How does KNIRVANA enhance the experience<span class="accordion-icon accordion-icon-s2"></span>
                                                 </h5>
                                                 <div id="faq-70-4" class="collapse" data-bs-parent="#faq-70">
                                                     <div class="accordion-content">
@@ -1054,7 +1099,7 @@
                                     <div class="tab-pane fade" id="legal-19">
                                         <div class="accordion accordion-s1 accordion-faq" id="faq-71">
                                             <div class="accordion-item accordion-item-s4 bg-theme-alt">
-                                                <h5 class="accordion-title" data-bs-toggle="collapse" data-bs-target="#faq-71-1"> What are the technical requirements? <span class="accordion-icon accordion-icon-s2"></span>
+                                                <h5 class="accordion-title" data-bs-toggle="collapse" data-bs-target="#faq-71-1">? What are the technical requirements<span class="accordion-icon accordion-icon-s2"></span>
                                                 </h5>
                                                 <div id="faq-71-1" class="collapse show" data-bs-parent="#faq-71">
                                                     <div class="accordion-content">
@@ -1063,7 +1108,7 @@
                                                 </div>
                                             </div>
                                             <div class="accordion-item accordion-item-s4 bg-theme-alt">
-                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-71-2"> How is data privacy maintained? <span class="accordion-icon accordion-icon-s2"></span>
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-71-2">? How is data privacy maintained<span class="accordion-icon accordion-icon-s2"></span>
                                                 </h5>
                                                 <div id="faq-71-2" class="collapse" data-bs-parent="#faq-71">
                                                     <div class="accordion-content">
@@ -1072,7 +1117,7 @@
                                                 </div>
                                             </div>
                                             <div class="accordion-item accordion-item-s4 bg-theme-alt">
-                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-71-3"> What is the development roadmap? <span class="accordion-icon accordion-icon-s2"></span>
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-71-3">? What is the development roadmap<span class="accordion-icon accordion-icon-s2"></span>
                                                 </h5>
                                                 <div id="faq-71-3" class="collapse" data-bs-parent="#faq-71">
                                                     <div class="accordion-content">
@@ -1081,7 +1126,7 @@
                                                 </div>
                                             </div>
                                             <div class="accordion-item accordion-item-s4 bg-theme-alt">
-                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-71-4"> How can developers get started? <span class="accordion-icon accordion-icon-s2"></span>
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-71-4">? How can developers get started<span class="accordion-icon accordion-icon-s2"></span>
                                                 </h5>
                                                 <div id="faq-71-4" class="collapse" data-bs-parent="#faq-71">
                                                     <div class="accordion-content">
@@ -1217,9 +1262,36 @@
     <div class="preloader"><span class="spinner spinner-round"></span></div>
     <!-- JavaScript -->
     <script src="assets/js/jquery.bundle.js?ver=210"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="assets/js/scripts.js?ver=210"></script>
     <script src="assets/js/charts.js?ver=210"></script>
     <script src="assets/js/charts.js?ver=210"></script>
+
+    <!-- Bootstrap accordion fix -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Ensure Bootstrap accordion works properly
+            const accordionElements = document.querySelectorAll('.accordion-faq [data-bs-toggle="collapse"]');
+
+            accordionElements.forEach(function(element) {
+                element.addEventListener('click', function(e) {
+                    // Let Bootstrap handle the accordion
+                    console.log('Accordion clicked:', this.getAttribute('data-bs-target'));
+                });
+            });
+
+            // Listen for Bootstrap collapse events
+            document.querySelectorAll('.accordion-faq .collapse').forEach(function(collapseElement) {
+                collapseElement.addEventListener('show.bs.collapse', function() {
+                    console.log('Accordion showing:', this.id);
+                });
+
+                collapseElement.addEventListener('hide.bs.collapse', function() {
+                    console.log('Accordion hiding:', this.id);
+                });
+            });
+        });
+    </script>
 
     <!-- React and Animated Logo -->
     <script type="module">

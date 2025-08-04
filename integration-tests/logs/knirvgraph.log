@@ -1,0 +1,15 @@
+{"level":"info","ts":1754287891.654541,"caller":"app/app.go:53","msg":"Starting GraphChain application with NRV system"}
+2025/08/04 02:11:31 Starting NRV System...
+{"level":"info","ts":1754287891.6546679,"caller":"network/rpc.go:98","msg":"Starting RPC server","addr":":8081"}
+2025/08/04 02:14:09 Warning: Could not find resolution path for error 52fe9dc9972175a3a33679e3b3e21742b724e1a2a5c04f8a6ad5995e90b5340b: no skills found for error type: compilation_error
+2025/08/04 02:14:09 Processing vector creation: 3c0209b3ad940d130a4d3648164b4dd2d7916f1f8577fcc8e4c60e68ac045429
+2025/08/04 02:14:09 Processing vector creation: e3a1bf63952df4abd6ca677934b5439fb3c6684a7993b524812331d552bad86d
+2025/08/04 02:14:09 Processing vector creation: 78f1abde2927c4fe6a3977224dfe355c58f863cf518fafa8d74bc87da86770ac
+2025/08/04 02:14:50 Warning: Could not find resolution path for error 9bfca58d4b082ddcc9fc7830d5667c3fae5b624f272ae59eca6455f1a295689a: no skills found for error type: compilation_error
+2025/08/04 02:14:50 Processing vector creation: c9b938c1125bcbba749deab9d8c421b00496a20b8bed869fe3ed170fbf27b10f
+2025/08/04 02:14:50 Processing vector creation: 1b6eb6b35cee9dc4bd2f707cc0d9a83eb4edb3a21393f150799207adb7d0f88e
+2025/08/04 02:14:50 Processing vector creation: f3982235c65656f43a18f994bede566ae7dc19c84a513add662fe46a1bdf97ee
+2025/08/04 02:15:32 Warning: Could not find resolution path for error 5b9f70f6a9e7ec6c6a2f1572c9b090617042a1d74f6244c94dafd2838758027a: no skills found for error type: compilation_error
+2025/08/04 02:15:32 Processing vector creation: ad31642870519f6d7b92bfa8e4e2ee0ca6ab1ab1b6d69b17436c54c0ea09b166
+2025/08/04 02:15:32 Processing vector creation: 274fa859edc58f7ce46fcc27c81f2afe8ae45fd0413d5320336532e02c078dc4
+2025/08/04 02:15:32 Processing vector creation: 6d8325d72df3ceed42055f1813b36eae093cb9321b8c1502c4b57c2aecd3130f

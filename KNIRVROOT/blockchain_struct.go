@@ -24,6 +24,7 @@ import (
 	"KNIRVROOT/utils"
 
 	chromem "github.com/philippgille/chromem-go"
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 // Define the one true Genesis Block globally
@@ -79,6 +80,11 @@ type BlockchainStruct struct {
 	ChromemDBSyncManager *ChromemSyncManager  `json:"-"` // Manager for detailed sync logic
 	nftManager           *NFTManager
 	agentManager         *AgentManager `json:"-"` // Agent manager for Phase 3 resource integration
+
+	// PoAu-D specific fields
+	NetworkAuthors         map[string]bool         `json:"-"`             // Map of NAP addresses (PublicKeyString) to true
+	PoAuDEnabled           bool                    `json:"poaud_enabled"` // Flag to enable/disable PoAu-D (fallback to PoW if false)
+	TransactionPoolManager *TransactionPoolManager `json:"-"`             // Manager for different transaction pools
 }
 
 // GetWallet returns a Wallet instance initialized with the blockchain's wallet address
@@ -114,7 +120,14 @@ func (bc *BlockchainStruct) StartMining() {
 	// Create a new context for mining operations
 	bc.miningCtx, bc.miningCancel = context.WithCancel(context.Background())
 
-	go bc.ProofOfWorkMining(bc.miningCtx, bc.WalletAddress, bc.ConsensusManager)
+	// Start mining based on consensus mechanism
+	if bc.PoAuDEnabled {
+		agentlog.LogInfo("Starting Hybrid Mining (PoAu-D with PoW fallback)")
+		go bc.HybridMining(bc.miningCtx, bc.WalletAddress, bc.ConsensusManager)
+	} else {
+		agentlog.LogInfo("Starting Proof-of-Work Mining")
+		go bc.ProofOfWorkMining(bc.miningCtx, bc.WalletAddress, bc.ConsensusManager)
+	}
 }
 
 // StopMiningGracefully stops mining by cancelling the mining context
@@ -176,6 +189,82 @@ func (bc *BlockchainStruct) IsActivelyMining() bool {
 	bc.Lock()
 	defer bc.Unlock()
 	return bc.isActivelyMining
+}
+
+// PoAu-D Network Authors Management Methods
+
+// loadNetworkAuthors loads the NetworkAuthors from LevelDB
+func (bc *BlockchainStruct) loadNetworkAuthors() error {
+	if bc.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+
+	authors, err := bc.db.GetNetworkAuthors()
+	if err != nil {
+		// If not found, initialize with empty map
+		if err == leveldb.ErrNotFound {
+			bc.NetworkAuthors = make(map[string]bool)
+			return nil
+		}
+		return fmt.Errorf("failed to load network authors: %w", err)
+	}
+
+	bc.NetworkAuthors = authors
+	return nil
+}
+
+// saveNetworkAuthors saves the NetworkAuthors to LevelDB
+func (bc *BlockchainStruct) saveNetworkAuthors() error {
+	if bc.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+
+	return bc.db.PutNetworkAuthors(bc.NetworkAuthors)
+}
+
+// IsNetworkAuthor checks if a given address is a current NAP
+func (bc *BlockchainStruct) IsNetworkAuthor(address string) bool {
+	bc.Lock()
+	defer bc.Unlock()
+	return bc.NetworkAuthors[address]
+}
+
+// AddNetworkAuthor adds an address to the NetworkAuthors set
+func (bc *BlockchainStruct) AddNetworkAuthor(address string) error {
+	bc.Lock()
+	defer bc.Unlock()
+
+	if bc.NetworkAuthors == nil {
+		bc.NetworkAuthors = make(map[string]bool)
+	}
+
+	bc.NetworkAuthors[address] = true
+	return bc.saveNetworkAuthors()
+}
+
+// RemoveNetworkAuthor removes an address from the NetworkAuthors set
+func (bc *BlockchainStruct) RemoveNetworkAuthor(address string) error {
+	bc.Lock()
+	defer bc.Unlock()
+
+	if bc.NetworkAuthors == nil {
+		return nil
+	}
+
+	delete(bc.NetworkAuthors, address)
+	return bc.saveNetworkAuthors()
+}
+
+// GetNetworkAuthors returns a copy of the current NetworkAuthors map
+func (bc *BlockchainStruct) GetNetworkAuthors() map[string]bool {
+	bc.Lock()
+	defer bc.Unlock()
+
+	result := make(map[string]bool)
+	for addr, val := range bc.NetworkAuthors {
+		result[addr] = val
+	}
+	return result
 }
 
 type BlockchainOptions struct {
@@ -400,6 +489,23 @@ func CreateNewBlockchain(genesisBlock *Block, dbKeyForChain string, nodeMinersAd
 		blockchainStruct.miningCtx = nil
 		blockchainStruct.miningCancel = nil
 
+		// Initialize PoAu-D fields
+		blockchainStruct.NetworkAuthors = make(map[string]bool)
+		blockchainStruct.PoAuDEnabled = false // Default to disabled
+		blockchainStruct.TransactionPoolManager = NewTransactionPoolManager(blockchainStruct)
+
+		// Load PoAu-D settings from database
+		if err := blockchainStruct.loadNetworkAuthors(); err != nil {
+			agentlog.LogError("Failed to load network authors, using empty set:", err)
+		}
+
+		// Load PoAu-D enabled flag from database
+		if enabled, err := db.GetPoAuDEnabled(); err != nil {
+			agentlog.LogError("Failed to load PoAu-D enabled flag, using default (false):", err)
+		} else {
+			blockchainStruct.PoAuDEnabled = enabled
+		}
+
 		err := db.PutIntoDb(blockchainStruct, dbKeyForChain)
 		if err != nil {
 			return nil, fmt.Errorf("unable to put new blockchain to DB for key '%s': %w", dbKeyForChain, err)
@@ -455,6 +561,18 @@ func NewBlockchainFromSync(bc1 *BlockchainStruct, chainAddress string, db *Level
 	} else {
 		bc2.Reflections = make(map[string]bool)
 	}
+
+	// Initialize PoAu-D fields for synced blockchain
+	bc2.NetworkAuthors = make(map[string]bool)
+	if bc1.NetworkAuthors != nil {
+		for addr, val := range bc1.NetworkAuthors {
+			bc2.NetworkAuthors[addr] = val
+		}
+	}
+	bc2.PoAuDEnabled = bc1.PoAuDEnabled
+	bc2.db = db
+	bc2.mcpProcessor = NewMCPProcessor(db)
+	bc2.TransactionPoolManager = NewTransactionPoolManager(bc2)
 
 	err := db.PutIntoDb(bc2, bc2.ChainAddress)
 	if err != nil {
@@ -1234,6 +1352,164 @@ func (bc *BlockchainStruct) ProofOfWorkMining(ctx context.Context, minersAddress
 		continue // Restart main mining loop
 
 	} // End of main mining loop
+}
+
+// HybridMining implements the PoAu-D consensus with PoW fallback
+func (bc *BlockchainStruct) HybridMining(ctx context.Context, minersAddress string, cm *ConsensusManager) {
+	agentlog.LogInfo("Starting Hybrid Mining (PoAu-D with PoW fallback)...")
+
+	// Set mining flag
+	bc.setIsActivelyMining(true)
+	defer bc.setIsActivelyMining(false)
+
+	idleCheckInterval := 500 * time.Millisecond
+	timer := time.NewTimer(idleCheckInterval)
+	defer timer.Stop()
+
+	for { // Main mining loop
+		// Check for context cancellation
+		select {
+		case <-ctx.Done():
+			agentlog.LogInfo("Mining context cancelled, stopping mining...")
+			return
+		default:
+			// Continue with normal mining cycle
+		}
+
+		// Wait for signal or timer
+		if !timer.Stop() {
+			select {
+			case <-timer.C:
+			default:
+			}
+		}
+		timer.Reset(idleCheckInterval)
+
+		select {
+		case <-bc.txnSignal:
+			agentlog.LogInfo("New transaction signal received, checking pool...")
+		case <-timer.C:
+			// Timer fired, proceed normally
+		case <-ctx.Done():
+			agentlog.LogInfo("Mining context cancelled during wait, stopping mining...")
+			return
+		}
+
+		// Check for stop signal
+		if bc.StopMining {
+			agentlog.LogInfo("Mining stopped gracefully")
+			return
+		}
+
+		// Check if mining is locked or an update is required by consensus
+		if cm.getMiningLockState() || cm.getUpdateRequired() {
+			continue
+		}
+
+		// Try PoAu-D block proposal first
+		proposedBlock, err := bc.ProposePoAuDBlock(minersAddress)
+		if err != nil {
+			agentlog.LogError(fmt.Sprintf("PoAu-D block proposal failed: %v", err), nil)
+			// Fall back to PoW for this cycle
+			agentlog.LogInfo("Falling back to PoW mining for this cycle")
+			bc.ProofOfWorkMining(ctx, minersAddress, cm)
+			return
+		}
+
+		if proposedBlock != nil {
+			// Successfully proposed a PoAu-D block
+			agentlog.LogInfo(fmt.Sprintf("Successfully proposed PoAu-D block #%d", proposedBlock.BlockNumber))
+
+			// Add the block to the chain
+			if err := bc.AddBlock(proposedBlock); err != nil {
+				agentlog.LogError(fmt.Sprintf("Failed to add PoAu-D block: %v", err), nil)
+				continue
+			}
+
+			// Broadcast the block
+			bc.BroadcastBlock(proposedBlock)
+		} else {
+			// No PoAu-D block proposed, fall back to PoW for this cycle
+			agentlog.LogInfo("No PoAu-D block proposed, falling back to PoW")
+			bc.ProofOfWorkMining(ctx, minersAddress, cm)
+			return
+		}
+	}
+}
+
+// ProposePoAuDBlock attempts to propose a block using PoAu-D rules
+func (bc *BlockchainStruct) ProposePoAuDBlock(proposerAddress string) (*Block, error) {
+	// Check if this node is authorized to propose blocks
+	if !bc.IsNetworkAuthor(proposerAddress) {
+		// Check if this node is a PAP with transactions to process
+		if bc.TransactionPoolManager == nil {
+			return nil, fmt.Errorf("node is not a Network Author and has no transaction pool manager")
+		}
+
+		pasPoolTxs := bc.TransactionPoolManager.GetPASPoolTxs()
+		if len(pasPoolTxs) == 0 {
+			return nil, fmt.Errorf("node is not a Network Author and has no transactions in PAS pool")
+		}
+
+		// PAP can propose a block with their delegated transactions
+		return bc.createPoAuDBlock(proposerAddress, pasPoolTxs)
+	}
+
+	// NAP can propose blocks with any available transactions
+	bc.Lock()
+	poolCopy := make([]*Transaction, 0, len(bc.TransactionPool))
+	for _, txn := range bc.TransactionPool {
+		if txn.Status == TXN_VERIFICATION_SUCCESS {
+			poolCopy = append(poolCopy, txn)
+		}
+	}
+	bc.Unlock()
+
+	// Include PAS pool transactions if available
+	if bc.TransactionPoolManager != nil {
+		pasPoolTxs := bc.TransactionPoolManager.GetPASPoolTxs()
+		poolCopy = append(poolCopy, pasPoolTxs...)
+	}
+
+	if len(poolCopy) == 0 {
+		return nil, nil // No transactions to process
+	}
+
+	return bc.createPoAuDBlock(proposerAddress, poolCopy)
+}
+
+// createPoAuDBlock creates a new block using PoAu-D consensus rules
+func (bc *BlockchainStruct) createPoAuDBlock(proposerAddress string, transactions []*Transaction) (*Block, error) {
+	bc.Lock()
+	defer bc.Unlock()
+
+	if len(bc.Blocks) == 0 {
+		return nil, fmt.Errorf("no genesis block found")
+	}
+
+	lastBlock := bc.Blocks[len(bc.Blocks)-1]
+	newBlockNumber := lastBlock.BlockNumber + 1
+
+	// Create mining reward transaction
+	rewardTx := NewTransaction(utils.BLOCKCHAIN_ADDRESS, proposerAddress, utils.MINING_REWARD, []byte{})
+	rewardTx.Status = TXN_VERIFICATION_SUCCESS
+	rewardTx.TransactionHash = rewardTx.Hash()
+
+	// Combine reward with other transactions
+	allTransactions := append([]*Transaction{rewardTx}, transactions...)
+
+	// Create the block (PoAu-D blocks don't need nonce, so use 0)
+	newBlock := NewBlock(lastBlock.BlockHash, 0, newBlockNumber)
+	newBlock.Transactions = allTransactions
+	newBlock.ProposerAddress = proposerAddress
+
+	// For PoAu-D, we don't need to find a nonce (no PoW)
+	// The block is valid if the proposer is authorized
+	newBlock.BlockHash = newBlock.Hash()
+
+	agentlog.LogInfo(fmt.Sprintf("Created PoAu-D block #%d with %d transactions", newBlockNumber, len(allTransactions)))
+
+	return newBlock, nil
 }
 
 func (bc *BlockchainStruct) calculateTotalCryptoLocked(address string) uint64 {

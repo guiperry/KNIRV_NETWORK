@@ -36,6 +36,10 @@ const (
 	KeyPrefixContextCapabilityIdx      = "idx:ctx_capability:"
 	KeyPrefixContextInteractionTypeIdx = "idx:ctx_interaction_type:"
 	KeyPrefixContextInitiatorIdx       = "idx:ctx_initiator:"
+
+	// PoAu-D specific keys
+	NetworkAuthorsKey = "config:network_authors"
+	PoAuDEnabledKey   = "config:poaud_enabled"
 )
 
 // NewDBClient creates a new LevelDB instance (alias for NewLevelDB)
@@ -927,4 +931,62 @@ func mergeCapabilityDescriptors(existing, updates *pb.CapabilityDescriptorContai
 
 	log.Printf("[mergeCapabilityDescriptors] Merge completed successfully")
 	return merged, nil
+}
+
+// PoAu-D Network Authors Management
+
+// GetNetworkAuthors retrieves the NetworkAuthors map from the database
+func (db *LevelDB) GetNetworkAuthors() (map[string]bool, error) {
+	data, err := db.GetBytes(NetworkAuthorsKey)
+	if err != nil {
+		return nil, err
+	}
+
+	var authors map[string]bool
+	if err := json.Unmarshal(data, &authors); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal network authors: %w", err)
+	}
+
+	return authors, nil
+}
+
+// PutNetworkAuthors saves the NetworkAuthors map to the database
+func (db *LevelDB) PutNetworkAuthors(authors map[string]bool) error {
+	data, err := json.Marshal(authors)
+	if err != nil {
+		return fmt.Errorf("failed to marshal network authors: %w", err)
+	}
+
+	return db.PutBytes(NetworkAuthorsKey, data)
+}
+
+// PoAu-D Configuration Management
+
+// GetPoAuDEnabled retrieves the PoAu-D enabled flag from the database
+func (db *LevelDB) GetPoAuDEnabled() (bool, error) {
+	data, err := db.GetBytes(PoAuDEnabledKey)
+	if err != nil {
+		if err == leveldb.ErrNotFound {
+			// Default to false if not set
+			return false, nil
+		}
+		return false, err
+	}
+
+	var enabled bool
+	if err := json.Unmarshal(data, &enabled); err != nil {
+		return false, fmt.Errorf("failed to unmarshal PoAu-D enabled flag: %w", err)
+	}
+
+	return enabled, nil
+}
+
+// PutPoAuDEnabled saves the PoAu-D enabled flag to the database
+func (db *LevelDB) PutPoAuDEnabled(enabled bool) error {
+	data, err := json.Marshal(enabled)
+	if err != nil {
+		return fmt.Errorf("failed to marshal PoAu-D enabled flag: %w", err)
+	}
+
+	return db.PutBytes(PoAuDEnabledKey, data)
 }

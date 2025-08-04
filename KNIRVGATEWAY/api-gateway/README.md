@@ -84,10 +84,21 @@ curl http://localhost:8000/gateway/metrics
 All requests to `/{service}/*` are proxied to the corresponding KNIRV component:
 
 - `/knirvchain/*` → KNIRVCHAIN service
-- `/knirvgraph/*` → KNIRVGRAPH service  
+- `/knirvgraph/*` → KNIRVGRAPH service
 - `/knirvnexus/*` → KNIRVNEXUS service
 - `/knirvroot/*` → KNIRVROOT service
 - `/knirvrouter/*` → KNIRVROUTER service
+
+### PoAu-D Consensus Management
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/poaud/enable` | Enable PoAu-D consensus mechanism | Yes |
+| POST | `/poaud/disable` | Disable PoAu-D (fallback to PoW) | Yes |
+| GET | `/poaud/status` | Get PoAu-D status and statistics | No |
+| POST | `/poaud/network-authors/add` | Add Network Author Peer | Yes |
+| POST | `/poaud/network-authors/remove` | Remove Network Author Peer | Yes |
+| GET | `/poaud/network-authors` | List all Network Author Peers | No |
 
 ### WebSocket
 
@@ -141,6 +152,52 @@ curl -H "Authorization: Bearer token_admin_1234567890" \
 
 # Query parameter method
 curl "http://localhost:8000/knirvchain/nrn/balance/address123?token=token_admin_1234567890"
+```
+
+## PoAu-D Consensus Management
+
+### Enable PoAu-D Consensus
+
+```bash
+curl -X POST http://localhost:8000/poaud/enable \
+  -H "Authorization: Bearer token_admin_1234567890"
+```
+
+### Check PoAu-D Status
+
+```bash
+curl http://localhost:8000/poaud/status
+```
+
+### Add Network Author
+
+```bash
+curl -X POST http://localhost:8000/poaud/network-authors/add \
+  -H "Authorization: Bearer token_admin_1234567890" \
+  -H "Content-Type: application/json" \
+  -d '{"address": "knirv1abc123def456ghi789"}'
+```
+
+### List Network Authors
+
+```bash
+curl http://localhost:8000/poaud/network-authors
+```
+
+### Remove Network Author
+
+```bash
+curl -X POST http://localhost:8000/poaud/network-authors/remove \
+  -H "Authorization: Bearer token_admin_1234567890" \
+  -H "Content-Type: application/json" \
+  -d '{"address": "knirv1abc123def456ghi789"}'
+```
+
+### Disable PoAu-D Consensus
+
+```bash
+curl -X POST http://localhost:8000/poaud/disable \
+  -H "Authorization: Bearer token_admin_1234567890"
 ```
 
 ## WebSocket Communication

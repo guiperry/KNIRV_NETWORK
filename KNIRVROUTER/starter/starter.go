@@ -366,11 +366,22 @@ func StartRootBlockchain(port uint64, minerAddress string) {
 	}
 
 	// Start connectivity proof engine
+	var connectivityAPI *connectivity.APIServer
 	if proofEngine != nil {
 		log.Printf("Starting connectivity proof engine")
 		if err := proofEngine.Start(); err != nil {
 			log.Printf("Warning: Failed to start proof engine: %v", err)
 		}
+
+		// Start connectivity API server
+		apiPort := 9090 // Default API port for connectivity endpoints
+		connectivityAPI = connectivity.NewAPIServer(proofEngine, apiPort)
+		go func() {
+			log.Printf("Starting connectivity API server on port %d", apiPort)
+			if err := connectivityAPI.Start(); err != nil {
+				log.Printf("Warning: Failed to start connectivity API server: %v", err)
+			}
+		}()
 	}
 
 	// Start TURN server
@@ -409,11 +420,20 @@ func StartRootBlockchain(port uint64, minerAddress string) {
 	p2pManager.Stop()
 	log.Println("P2P manager stopped.")
 
-	// Stop connectivity proof engine
+	// Stop connectivity proof engine and API server
 	if proofEngine != nil {
 		log.Println("Stopping connectivity proof engine...")
 		proofEngine.Stop()
 		log.Println("Connectivity proof engine stopped.")
+	}
+
+	// Stop connectivity API server
+	if connectivityAPI != nil {
+		log.Println("Stopping connectivity API server...")
+		if err := connectivityAPI.Stop(); err != nil {
+			log.Printf("Error stopping connectivity API server: %v", err)
+		}
+		log.Println("Connectivity API server stopped.")
 	}
 
 	// Stop TURN server

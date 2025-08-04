@@ -148,6 +148,8 @@ func (cpe *ConnectivityProofEngine) measureSinglePeer(peerID peer.ID) *Connectiv
 	// Calculate connectivity score
 	score := cpe.calculateConnectivityScore(latency, bandwidth, packetLoss, uptime)
 
+	measurementDuration := time.Since(start)
+
 	measurement := &ConnectivityMeasurement{
 		PeerID:            peerID,
 		Latency:           latency,
@@ -159,8 +161,8 @@ func (cpe *ConnectivityProofEngine) measureSinglePeer(peerID peer.ID) *Connectiv
 		IsReliable:        score >= cpe.minConnectivity,
 	}
 
-	log.Printf("Measured connectivity to peer %s: score=%.2f, latency=%v, bandwidth=%.2f MB/s",
-		peerID.String()[:8], score, latency, bandwidth)
+	log.Printf("Measured connectivity to peer %s: score=%.2f, latency=%v, bandwidth=%.2f MB/s, measurement_time=%v",
+		peerID.String()[:8], score, latency, bandwidth, measurementDuration)
 
 	return measurement
 }

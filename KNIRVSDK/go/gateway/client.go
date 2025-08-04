@@ -22,25 +22,26 @@ type Client struct {
 	Gateway     GatewayService
 	Health      HealthService
 	Integration IntegrationService
+	PoAuD       PoAuDService
 }
 
 // EconomicsService provides access to the Economics API
 type EconomicsService struct {
-	Skills      SkillsService
-	LLM         LLMService
-	Validation  ValidationService
-	Fees        FeesService
-	Metrics     MetricsService
+	Skills       SkillsService
+	LLM          LLMService
+	Validation   ValidationService
+	Fees         FeesService
+	Metrics      MetricsService
 	Transactions TransactionsService
-	Burn        BurnService
-	Rules       RulesService
+	Burn         BurnService
+	Rules        RulesService
 }
 
 // GatewayService provides access to the API Gateway functionality
 type GatewayService struct {
-	Routes  RoutesService
-	Health  HealthService
-	Status  StatusService
+	Routes RoutesService
+	Health HealthService
+	Status StatusService
 }
 
 // HealthService provides health check functionality
@@ -53,12 +54,23 @@ type IntegrationService struct {
 	client *Client
 }
 
+// PoAuDService provides access to the PoAu-D consensus management API
+type PoAuDService struct {
+	client         *Client
+	NetworkAuthors NetworkAuthorsService
+}
+
+// NetworkAuthorsService provides Network Authors management
+type NetworkAuthorsService struct {
+	client *Client
+}
+
 // DefaultClientOptions read from the environment
 // (KNIRVGATEWAY_API_KEY, KNIRVGATEWAY_BASE_URL). This
 // should be used to initialize new clients.
 func DefaultClientOptions() []option.RequestOption {
 	defaults := []option.RequestOption{option.WithEnvironmentProduction()}
-	
+
 	// Gateway base URL
 	if o, ok := os.LookupEnv("KNIRVGATEWAY_BASE_URL"); ok {
 		defaults = append(defaults, option.WithBaseURL(o))
@@ -67,24 +79,24 @@ func DefaultClientOptions() []option.RequestOption {
 	} else {
 		defaults = append(defaults, option.WithBaseURL("http://localhost:8000"))
 	}
-	
+
 	// Economics service URL
 	if o, ok := os.LookupEnv("ECONOMICS_SERVICE_URL"); ok {
 		defaults = append(defaults, option.WithEconomicsURL(o))
 	} else {
 		defaults = append(defaults, option.WithEconomicsURL("http://localhost:8090"))
 	}
-	
+
 	// API Key
 	if o, ok := os.LookupEnv("KNIRVGATEWAY_API_KEY"); ok {
 		defaults = append(defaults, option.WithAPIKey(o))
 	}
-	
+
 	// NRN Contract
 	if o, ok := os.LookupEnv("NRN_CONTRACT"); ok {
 		defaults = append(defaults, option.WithNRNContract(o))
 	}
-	
+
 	return defaults
 }
 
@@ -95,11 +107,11 @@ func DefaultClientOptions() []option.RequestOption {
 func NewClient(opts ...option.RequestOption) *Client {
 	options := DefaultClientOptions()
 	options = append(options, opts...)
-	
+
 	client := &Client{
 		Options: options,
 	}
-	
+
 	// Initialize services
 	client.Economics = EconomicsService{
 		Skills:       SkillsService{client: client},
@@ -111,16 +123,21 @@ func NewClient(opts ...option.RequestOption) *Client {
 		Burn:         BurnService{client: client},
 		Rules:        RulesService{client: client},
 	}
-	
+
 	client.Gateway = GatewayService{
 		Routes: RoutesService{client: client},
 		Health: HealthService{client: client},
 		Status: StatusService{client: client},
 	}
-	
+
 	client.Health = HealthService{client: client}
 	client.Integration = IntegrationService{client: client}
-	
+
+	client.PoAuD = PoAuDService{
+		client:         client,
+		NetworkAuthors: NetworkAuthorsService{client: client},
+	}
+
 	return client
 }
 
@@ -133,7 +150,7 @@ func NewEconomicsClient(opts ...option.RequestOption) *Client {
 	if economicsOpts[0] == nil {
 		economicsOpts[0] = option.WithBaseURL("http://localhost:8090")
 	}
-	
+
 	economicsOpts = append(economicsOpts, opts...)
 	return NewClient(economicsOpts...)
 }
@@ -147,7 +164,7 @@ func NewGatewayClient(opts ...option.RequestOption) *Client {
 	if gatewayOpts[0] == nil {
 		gatewayOpts[0] = option.WithBaseURL("http://localhost:8000")
 	}
-	
+
 	gatewayOpts = append(gatewayOpts, opts...)
 	return NewClient(gatewayOpts...)
 }
@@ -158,11 +175,11 @@ func (c *Client) Execute(ctx context.Context, cfg requestconfig.RequestConfig) (
 	if err != nil {
 		return nil, err
 	}
-	
+
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 	}
-	
+
 	return client.Do(req)
 }
 
@@ -172,11 +189,11 @@ func (c *Client) Get(ctx context.Context, path string, opts ...option.RequestOpt
 		Method: http.MethodGet,
 		Path:   path,
 	}
-	
+
 	for _, opt := range append(c.Options, opts...) {
 		opt.Apply(&cfg)
 	}
-	
+
 	return c.Execute(ctx, cfg)
 }
 
@@ -187,11 +204,11 @@ func (c *Client) Post(ctx context.Context, path string, body interface{}, opts .
 		Path:   path,
 		Body:   body,
 	}
-	
+
 	for _, opt := range append(c.Options, opts...) {
 		opt.Apply(&cfg)
 	}
-	
+
 	return c.Execute(ctx, cfg)
 }
 
@@ -202,11 +219,11 @@ func (c *Client) Put(ctx context.Context, path string, body interface{}, opts ..
 		Path:   path,
 		Body:   body,
 	}
-	
+
 	for _, opt := range append(c.Options, opts...) {
 		opt.Apply(&cfg)
 	}
-	
+
 	return c.Execute(ctx, cfg)
 }
 
@@ -216,10 +233,10 @@ func (c *Client) Delete(ctx context.Context, path string, opts ...option.Request
 		Method: http.MethodDelete,
 		Path:   path,
 	}
-	
+
 	for _, opt := range append(c.Options, opts...) {
 		opt.Apply(&cfg)
 	}
-	
+
 	return c.Execute(ctx, cfg)
 }

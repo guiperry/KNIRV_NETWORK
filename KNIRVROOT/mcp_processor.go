@@ -416,6 +416,22 @@ func (mcp *MCPProcessor) validateBaseDescriptor(descriptor types.BaseDescriptor)
 	return true
 }
 
+// GetCapabilityDescriptor retrieves a full capability descriptor by its ID (public method)
+func (mcp *MCPProcessor) GetCapabilityDescriptor(id string) (interface{}, error) {
+	// Check if we have a database connection
+	if mcp.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	// Get the capability from the database
+	capability, err := mcp.db.GetCapabilityByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get capability %s: %w", id, err)
+	}
+
+	return capability, nil
+}
+
 // getCapabilityByID retrieves a capability descriptor by its ID with retry logic
 func (mcp *MCPProcessor) getCapabilityByID(id string) (types.BaseDescriptor, error) {
 	// Check if we have a database connection

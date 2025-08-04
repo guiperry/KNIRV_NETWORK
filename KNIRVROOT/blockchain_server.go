@@ -334,6 +334,14 @@ func (bcs *BlockchainServer) Prepare() (uint64, error) {
 	mux.HandleFunc("/internal/db/getCapability", bcs.handleInternalDBGetCapability)
 	mux.HandleFunc("/internal/db/idExists", bcs.handleInternalDBIDExists)
 
+	// Add PoAu-D consensus API endpoints
+	mux.HandleFunc("/poaud/enable", bcs.EnablePoAuD)
+	mux.HandleFunc("/poaud/disable", bcs.DisablePoAuD)
+	mux.HandleFunc("/poaud/status", bcs.GetPoAuDStatus)
+	mux.HandleFunc("/poaud/network-authors/add", bcs.AddNetworkAuthor)
+	mux.HandleFunc("/poaud/network-authors/remove", bcs.RemoveNetworkAuthor)
+	mux.HandleFunc("/poaud/network-authors", bcs.GetNetworkAuthors)
+
 	// Add XION bridge endpoints if bridge is available
 	if bcs.xionBridge != nil {
 		bcs.xionBridge.IntegrateWithKNIRVROOT(mux)
@@ -3180,5 +3188,193 @@ func (bcs *BlockchainServer) handleInvokeAgentCapability(w http.ResponseWriter, 
 		"status":            contextRecord.Status,
 		"details":           contextRecord.Details,
 		"output":            contextRecord.Details["output"],
+	})
+}
+
+// ===== PoAu-D CONSENSUS API HANDLERS =====
+
+// EnablePoAuD enables the PoAu-D consensus mechanism
+func (bcs *BlockchainServer) EnablePoAuD(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	bcs.BlockchainPtr.Lock()
+	defer bcs.BlockchainPtr.Unlock()
+
+	bcs.BlockchainPtr.PoAuDEnabled = true
+
+	// Save the setting to LevelDB
+	if bcs.BlockchainPtr.db != nil {
+		if err := bcs.BlockchainPtr.db.PutPoAuDEnabled(true); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to save PoAu-D setting: %v", err), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Restart mining to use the new consensus mechanism
+	bcs.BlockchainPtr.StopMiningGracefully()
+	bcs.BlockchainPtr.StartMining()
+
+	w.Header().Add("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"enabled": true,
+		"message": "PoAu-D consensus mechanism enabled",
+	})
+}
+
+// DisablePoAuD disables the PoAu-D consensus mechanism and falls back to PoW
+func (bcs *BlockchainServer) DisablePoAuD(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	bcs.BlockchainPtr.Lock()
+	defer bcs.BlockchainPtr.Unlock()
+
+	bcs.BlockchainPtr.PoAuDEnabled = false
+
+	// Save the setting to LevelDB
+	if bcs.BlockchainPtr.db != nil {
+		if err := bcs.BlockchainPtr.db.PutPoAuDEnabled(false); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to save PoAu-D setting: %v", err), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Restart mining to use PoW
+	bcs.BlockchainPtr.StopMiningGracefully()
+	bcs.BlockchainPtr.StartMining()
+
+	w.Header().Add("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"enabled": false,
+		"message": "PoAu-D consensus mechanism disabled, using PoW",
+	})
+}
+
+// GetPoAuDStatus returns the current status of PoAu-D
+func (bcs *BlockchainServer) GetPoAuDStatus(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	bcs.BlockchainPtr.Lock()
+	defer bcs.BlockchainPtr.Unlock()
+
+	status := map[string]interface{}{
+		"enabled": bcs.BlockchainPtr.PoAuDEnabled,
+	}
+
+	if bcs.BlockchainPtr.PoAuDEnabled {
+		// Add additional status information if PoAu-D is enabled
+		status["network_authors_count"] = len(bcs.BlockchainPtr.NetworkAuthors)
+
+		// If this node has a transaction pool manager
+		if bcs.BlockchainPtr.TransactionPoolManager != nil {
+			poolStats := bcs.BlockchainPtr.TransactionPoolManager.GetPoolStats()
+			for k, v := range poolStats {
+				status[k] = v
+			}
+		}
+
+		// Add delegation statistics
+		status["delegation_stats"] = GetDelegationStats(bcs.BlockchainPtr.TransactionPoolManager)
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(status)
+}
+
+// AddNetworkAuthor adds an address to the Network Authors set
+func (bcs *BlockchainServer) AddNetworkAuthor(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var requestBody struct {
+		Address string `json:"address"`
+	}
+
+	if err := json.NewDecoder(req.Body).Decode(&requestBody); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if requestBody.Address == "" {
+		http.Error(w, "Address is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := bcs.BlockchainPtr.AddNetworkAuthor(requestBody.Address); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to add network author: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": fmt.Sprintf("Added %s as Network Author", requestBody.Address),
+		"address": requestBody.Address,
+	})
+}
+
+// RemoveNetworkAuthor removes an address from the Network Authors set
+func (bcs *BlockchainServer) RemoveNetworkAuthor(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var requestBody struct {
+		Address string `json:"address"`
+	}
+
+	if err := json.NewDecoder(req.Body).Decode(&requestBody); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if requestBody.Address == "" {
+		http.Error(w, "Address is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := bcs.BlockchainPtr.RemoveNetworkAuthor(requestBody.Address); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to remove network author: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": fmt.Sprintf("Removed %s from Network Authors", requestBody.Address),
+		"address": requestBody.Address,
+	})
+}
+
+// GetNetworkAuthors returns the list of current Network Authors
+func (bcs *BlockchainServer) GetNetworkAuthors(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	authors := bcs.BlockchainPtr.GetNetworkAuthors()
+
+	// Convert map to slice for easier consumption
+	authorsList := make([]string, 0, len(authors))
+	for addr := range authors {
+		authorsList = append(authorsList, addr)
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"network_authors": authorsList,
+		"count":           len(authorsList),
 	})
 }

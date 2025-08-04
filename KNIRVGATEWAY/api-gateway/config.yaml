@@ -145,6 +145,25 @@ services:
       - path: "/ping"
         methods: ["GET"]
         auth_required: false
+      # PoAu-D Consensus Management Routes
+      - path: "/poaud/enable"
+        methods: ["POST"]
+        auth_required: true
+      - path: "/poaud/disable"
+        methods: ["POST"]
+        auth_required: true
+      - path: "/poaud/status"
+        methods: ["GET"]
+        auth_required: false
+      - path: "/poaud/network-authors/add"
+        methods: ["POST"]
+        auth_required: true
+      - path: "/poaud/network-authors/remove"
+        methods: ["POST"]
+        auth_required: true
+      - path: "/poaud/network-authors"
+        methods: ["GET"]
+        auth_required: false
 
   knirvrouter:
     name: "knirvrouter"

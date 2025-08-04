@@ -157,3 +157,79 @@ cleanup:
   cleanup_timeout: "60s"
   preserve_logs: true
   preserve_test_data: false
+
+# Production Deployment Integration Configuration
+production_deployment:
+  enabled: true
+  deployment_modes:
+    local:
+      enabled: true
+      gateway_url: "http://localhost:8000"
+      monitoring_url: "http://localhost:3000"
+      services:
+        knirvchain: "http://localhost:8080"
+        knirvgraph: "http://localhost:8081"
+        knirvnexus: "http://localhost:8082"
+        knirvroot: "http://localhost:8083"
+        knirvrouter: "http://localhost:8084"
+        knirvrouter_api: "http://localhost:9090"
+
+    kubernetes:
+      enabled: false
+      namespace: "knirv-production"
+      gateway_url: "https://api.knirv.com"
+      monitoring_url: "https://monitoring.knirv.com"
+      ingress_host: "api.knirv.com"
+
+    docker_compose:
+      enabled: false
+      compose_file: "../deployment/docker-compose.monitoring.yml"
+      network: "knirv-monitoring"
+      gateway_url: "http://localhost:8000"
+
+  # Integration with deployment scripts
+  deployment_scripts:
+    deploy_script: "../scripts/deploy-and-test.sh"
+    manage_script: "../scripts/manage-knirv.sh"
+    production_test_suite: "../deployment/testing/final-test-suite.sh"
+
+  # Production-specific test configuration
+  production_tests:
+    enabled: true
+    timeout: "1800s"  # 30 minutes
+    load_test_duration: "300s"  # 5 minutes
+    concurrent_users: 100
+    connectivity_tests: true
+    bridge_tests: true
+    monitoring_tests: true
+    real_network_tests: false  # Enable for real network testing
+
+  # Real network configuration
+  real_network:
+    xion:
+      mainnet_rpc: "https://rpc.xion.burnt.com:443"
+      testnet_rpc: "https://rpc.xion-testnet-1.burnt.com:443"
+      chain_id: "xion-testnet-1"
+      use_testnet: true
+
+    ethereum:
+      mainnet_rpc: "https://mainnet.infura.io/v3/YOUR_PROJECT_ID"
+      testnet_rpc: "https://goerli.infura.io/v3/YOUR_PROJECT_ID"
+      chain_id: 5  # Goerli testnet
+      use_testnet: true
+
+  # Monitoring integration
+  monitoring:
+    prometheus_url: "http://localhost:9090"
+    grafana_url: "http://localhost:3000"
+    alertmanager_url: "http://localhost:9093"
+    collect_metrics: true
+    create_snapshots: false
+
+  # Test orchestration
+  orchestration:
+    pre_test_deployment: false  # Set to true to deploy before testing
+    post_test_cleanup: false    # Set to true to cleanup after testing
+    wait_for_services: true
+    service_ready_timeout: "300s"
+    health_check_interval: "10s"

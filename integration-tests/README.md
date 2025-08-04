@@ -23,8 +23,18 @@ This directory contains the complete integration testing suite for the KNIRV D-T
 # Setup test environment
 ./config/setup.sh
 
-# Run tests
+# Run all tests
 go test -v ./...
+
+# Run specific test suites
+go test -v -run TestBasicIntegration
+go test -v -run TestCrossComponentValidation
+go test -v -run TestPerformance
+go test -v -run TestE2EWorkflow
+go test -v -run TestPoAuDIntegrationSuite  # ⭐ NEW PoAu-D tests
+
+# Run PoAu-D tests only
+go test -v -run TestPoAuD
 
 # Cleanup
 ./config/teardown.sh
@@ -51,6 +61,12 @@ go test -v ./...
 - **Purpose**: Test complete user workflows and scenarios
 - **Coverage**: Developer workflows, agent lifecycle, bridge transfers, P2P networking
 - **Validation**: Real-world usage patterns and user journeys
+
+### 5. PoAu-D Consensus Testing (`poaud_integration_test.go`) ⭐ NEW
+- **Purpose**: Validate PoAu-D consensus mechanism and delegation functionality
+- **Coverage**: Consensus control, Network Authors management, transaction delegation
+- **Key Tests**: Enable/disable PoAu-D, NAP management, PAP delegation, gateway integration
+- **Validation**: Hybrid mining, delegation statistics, error handling
 
 ## Architecture
 

@@ -1,0 +1,15 @@
+panic: runtime error: slice bounds out of range [-5:]
+
+goroutine 1 [running, locked to thread]:
+google.golang.org/protobuf/internal/filedesc.(*File).unmarshalSeed(0xc00025fc20, {0x2857d48, 0xf7, 0xf7})
+	/home/gperry/go/pkg/mod/google.golang.org/protobuf@v1.36.6/internal/filedesc/desc_init.go:174 +0x16d9
+google.golang.org/protobuf/internal/filedesc.newRawFile({{0x2267b08, 0xf}, {0x2857d48, 0xf7, 0xf7}, 0x0, 0x2, 0x0, 0x0, {0x2efe168, ...}, ...})
+	/home/gperry/go/pkg/mod/google.golang.org/protobuf@v1.36.6/internal/filedesc/desc_init.go:30 +0x1f7
+google.golang.org/protobuf/internal/filedesc.Builder.Build({{0x2267b08, 0xf}, {0x2857d48, 0xf7, 0xf7}, 0x0, 0x2, 0x0, 0x0, {0x2efe168, ...}, ...})
+	/home/gperry/go/pkg/mod/google.golang.org/protobuf@v1.36.6/internal/filedesc/build.go:105 +0xf8
+google.golang.org/protobuf/internal/filetype.Builder.Build({{{0x2267b08, 0xf}, {0x2857d48, 0xf7, 0xf7}, 0x0, 0x2, 0x0, 0x0, {0x0, ...}, ...}, ...})
+	/home/gperry/go/pkg/mod/google.golang.org/protobuf@v1.36.6/internal/filetype/build.go:138 +0x17d
+KNIRVROOT/proto.file_proto_bootnode_key_proto_init()
+	/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVROOT/proto/bootnode_key.pb.go:185 +0x198
+KNIRVROOT/proto.init.0()
+	/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVROOT/proto/bootnode_key.pb.go:167 +0xf

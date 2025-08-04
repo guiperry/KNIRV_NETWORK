@@ -1,0 +1,203 @@
+# KNIRV D-TEN Production Alert Rules
+groups:
+  - name: knirv.rules
+    rules:
+      # Service availability alerts
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} has been down for more than 1 minute."
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is above 80% for more than 5 minutes on {{ $labels.instance }}."
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 85% for more than 5 minutes on {{ $labels.instance }}."
+
+      # High disk usage
+      - alert: HighDiskUsage
+        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High disk usage on {{ $labels.instance }}"
+          description: "Disk usage is above 90% for more than 5 minutes on {{ $labels.instance }}."
+
+      # High API response time
+      - alert: HighAPIResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API response time for {{ $labels.job }}"
+          description: "95th percentile response time is above 5 seconds for {{ $labels.job }}."
+
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) * 100 > 5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate for {{ $labels.job }}"
+          description: "Error rate is above 5% for {{ $labels.job }}."
+
+      # KNIRV-specific alerts
+      - alert: KNIRVChainBlockProductionSlow
+        expr: increase(blockchain_blocks_total[10m]) < 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "KNIRVCHAIN block production is slow"
+          description: "No new blocks have been produced in the last 10 minutes."
+
+      - alert: KNIRVRouterConnectivityLow
+        expr: knirv_router_connectivity_score < 70
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "KNIRV-ROUTER connectivity score is low"
+          description: "Connectivity score is below 70 for more than 5 minutes."
+
+      - alert: KNIRVRouterProofGenerationFailed
+        expr: increase(knirv_router_proof_failures_total[5m]) > 3
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "KNIRV-ROUTER proof generation failures"
+          description: "More than 3 proof generation failures in the last 5 minutes."
+
+      - alert: KNIRVBridgeTransactionStuck
+        expr: knirv_bridge_pending_transactions > 10
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "KNIRV bridge has stuck transactions"
+          description: "More than 10 bridge transactions have been pending for over 15 minutes."
+
+      - alert: KNIRVNexusInferenceQueueHigh
+        expr: knirv_nexus_inference_queue_size > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "KNIRVNEXUS inference queue is high"
+          description: "Inference queue size is above 100 for more than 5 minutes."
+
+      # Database alerts
+      - alert: DatabaseConnectionsHigh
+        expr: pg_stat_activity_count > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High database connections"
+          description: "Database connection count is above 80 for more than 5 minutes."
+
+      - alert: DatabaseSlowQueries
+        expr: pg_stat_activity_max_tx_duration > 300
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow database queries detected"
+          description: "Database queries taking longer than 5 minutes detected."
+
+      # Container alerts
+      - alert: ContainerHighCPU
+        expr: rate(container_cpu_usage_seconds_total[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.name }} high CPU usage"
+          description: "Container {{ $labels.name }} CPU usage is above 80% for more than 5 minutes."
+
+      - alert: ContainerHighMemory
+        expr: container_memory_usage_bytes / container_spec_memory_limit_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.name }} high memory usage"
+          description: "Container {{ $labels.name }} memory usage is above 85% for more than 5 minutes."
+
+      - alert: ContainerRestartLoop
+        expr: increase(kube_pod_container_status_restarts_total[1h]) > 5
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container {{ $labels.container }} in restart loop"
+          description: "Container {{ $labels.container }} has restarted more than 5 times in the last hour."
+
+      # Kubernetes alerts
+      - alert: KubernetesPodCrashLooping
+        expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pod {{ $labels.pod }} is crash looping"
+          description: "Pod {{ $labels.pod }} is restarting frequently."
+
+      - alert: KubernetesNodeNotReady
+        expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kubernetes node {{ $labels.node }} not ready"
+          description: "Kubernetes node {{ $labels.node }} has been not ready for more than 5 minutes."
+
+      - alert: KubernetesPodNotReady
+        expr: kube_pod_status_ready{condition="true"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pod {{ $labels.pod }} not ready"
+          description: "Pod {{ $labels.pod }} has been not ready for more than 5 minutes."
+
+      # Network alerts
+      - alert: HighNetworkTraffic
+        expr: rate(node_network_receive_bytes_total[5m]) > 100000000  # 100MB/s
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High network traffic on {{ $labels.instance }}"
+          description: "Network receive traffic is above 100MB/s for more than 5 minutes."
+
+      - alert: NetworkPacketLoss
+        expr: rate(node_network_receive_drop_total[5m]) > 1000
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Network packet loss on {{ $labels.instance }}"
+          description: "Network packet drops detected on {{ $labels.instance }}."

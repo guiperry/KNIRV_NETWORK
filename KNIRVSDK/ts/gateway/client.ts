@@ -7,6 +7,7 @@ import { EconomicsService } from './economics';
 import { GatewayService } from './gateway';
 import { HealthService } from './health';
 import { IntegrationService } from './integration';
+import { PoAuDService } from './poaud';
 import { RequestConfig, ClientOptions, defaultClientOptions } from './types';
 
 export class KNIRVGatewayClient {
@@ -16,6 +17,7 @@ export class KNIRVGatewayClient {
   public readonly gateway: GatewayService;
   public readonly health: HealthService;
   public readonly integration: IntegrationService;
+  public readonly poaud: PoAuDService;
 
   constructor(options: Partial<ClientOptions> = {}) {
     this.config = { ...defaultClientOptions(), ...options };
@@ -25,6 +27,7 @@ export class KNIRVGatewayClient {
     this.gateway = new GatewayService(this.config);
     this.health = new HealthService(this.config);
     this.integration = new IntegrationService(this.config);
+    this.poaud = new PoAuDService(this.config);
   }
 
   /**
