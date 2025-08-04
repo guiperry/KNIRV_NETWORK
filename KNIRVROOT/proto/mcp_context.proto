@@ -6,7 +6,6 @@ option go_package = "./;proto"; // Adjust go_package
 
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
-import "proto/mcp_descriptors.proto"; // If CapabilityTypeProto is needed here
 
 // Enum for InteractionType
 enum InteractionTypeProto {

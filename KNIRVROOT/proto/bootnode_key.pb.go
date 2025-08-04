@@ -129,8 +129,7 @@ var File_proto_bootnode_key_proto protoreflect.FileDescriptor
 
 const file_proto_bootnode_key_proto_rawDesc = "" +
 	"\n" +
-	"\x18proto/bootnode_key.proto\x12\n" +
-	"KNIRVROOT\"I\n" +
+	"\x18proto/bootnode_key.proto\x12\tKNIRVROOT\"I\n" +
 	"\x1bBootnodeKeyFileContentProto\x12*\n" +
 	"\x11master_wallet_key\x18\x01 \x01(\tR\x0fmasterWalletKey\"q\n" +
 	"\x18EncryptedBootnodeKeyFile\x12+\n" +

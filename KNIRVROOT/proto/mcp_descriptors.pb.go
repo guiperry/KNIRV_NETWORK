@@ -835,11 +835,10 @@ var File_proto_mcp_descriptors_proto protoreflect.FileDescriptor
 
 const file_proto_mcp_descriptors_proto_rawDesc = "" +
 	"\n" +
-	"\x1bproto/mcp_descriptors.proto\x12\n" +
-	"KNIRVROOT\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf1\x02\n" +
+	"\x1bproto/mcp_descriptors.proto\x12\tKNIRVROOT\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf0\x02\n" +
 	"\x13BaseDescriptorProto\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12H\n" +
-	"\x0fcapability_type\x18\x02 \x01(\x0e2\x1f.KNIRVROOT.CapabilityTypeProtoR\x0ecapabilityType\x12\x12\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12G\n" +
+	"\x0fcapability_type\x18\x02 \x01(\x0e2\x1e.KNIRVROOT.CapabilityTypeProtoR\x0ecapabilityType\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x14\n" +
 	"\x05owner\x18\x04 \x01(\tR\x05owner\x12\x18\n" +
 	"\aversion\x18\x05 \x01(\tR\aversion\x12 \n" +
@@ -854,39 +853,39 @@ const file_proto_mcp_descriptors_proto_rawDesc = "" +
 	"\x0elocation_hints\x18\x03 \x03(\tR\rlocationHints\x12#\n" +
 	"\rmanifest_file\x18\x04 \x01(\tR\fmanifestFile\x12'\n" +
 	"\x0fexecutable_file\x18\x05 \x01(\tR\x0eexecutableFile\x122\n" +
-	"\x15output_directory_hint\x18\x06 \x01(\tR\x13outputDirectoryHint\"\x90\x02\n" +
-	"\x17ResourceDescriptorProto\x12H\n" +
-	"\x0fbase_descriptor\x18\x01 \x01(\v2\x1f.KNIRVROOT.BaseDescriptorProtoR\x0ebaseDescriptor\x12K\n" +
-	"\rresource_type\x18\x02 \x01(\x0e2&.KNIRVROOT.DiscoveryResourceTypeProtoR\fresourceType\x12!\n" +
-	"\fcontent_hash\x18\x03 \x01(\tR\vcontentHash\x12;\n" +
-	"\x06schema\x18\x04 \x01(\v2#.KNIRVROOT.PluginSchemaDetailProtoR\x06schema\"\xe6\x01\n" +
-	"\x13ToolDescriptorProto\x12H\n" +
-	"\x0fbase_descriptor\x18\x01 \x01(\v2\x1f.KNIRVROOT.BaseDescriptorProtoR\x0ebaseDescriptor\x12*\n" +
+	"\x15output_directory_hint\x18\x06 \x01(\tR\x13outputDirectoryHint\"\x8d\x02\n" +
+	"\x17ResourceDescriptorProto\x12G\n" +
+	"\x0fbase_descriptor\x18\x01 \x01(\v2\x1e.KNIRVROOT.BaseDescriptorProtoR\x0ebaseDescriptor\x12J\n" +
+	"\rresource_type\x18\x02 \x01(\x0e2%.KNIRVROOT.DiscoveryResourceTypeProtoR\fresourceType\x12!\n" +
+	"\fcontent_hash\x18\x03 \x01(\tR\vcontentHash\x12:\n" +
+	"\x06schema\x18\x04 \x01(\v2\".KNIRVROOT.PluginSchemaDetailProtoR\x06schema\"\xe5\x01\n" +
+	"\x13ToolDescriptorProto\x12G\n" +
+	"\x0fbase_descriptor\x18\x01 \x01(\v2\x1e.KNIRVROOT.BaseDescriptorProtoR\x0ebaseDescriptor\x12*\n" +
 	"\x11input_schema_json\x18\x02 \x01(\tR\x0finputSchemaJson\x12,\n" +
 	"\x12output_schema_json\x18\x03 \x01(\tR\x10outputSchemaJson\x12+\n" +
-	"\x11execution_pointer\x18\x04 \x01(\tR\x10executionPointer\"\xb3\x01\n" +
-	"\x15PromptDescriptorProto\x12H\n" +
-	"\x0fbase_descriptor\x18\x01 \x01(\v2\x1f.KNIRVROOT.BaseDescriptorProtoR\x0ebaseDescriptor\x12\x1a\n" +
+	"\x11execution_pointer\x18\x04 \x01(\tR\x10executionPointer\"\xb2\x01\n" +
+	"\x15PromptDescriptorProto\x12G\n" +
+	"\x0fbase_descriptor\x18\x01 \x01(\v2\x1e.KNIRVROOT.BaseDescriptorProtoR\x0ebaseDescriptor\x12\x1a\n" +
 	"\btemplate\x18\x02 \x01(\tR\btemplate\x124\n" +
-	"\x16parameters_schema_json\x18\x03 \x01(\tR\x14parametersSchemaJson\"\x8b\x01\n" +
-	"\x1cMemoryServiceDescriptorProto\x12H\n" +
-	"\x0fbase_descriptor\x18\x01 \x01(\v2\x1f.KNIRVROOT.BaseDescriptorProtoR\x0ebaseDescriptor\x12!\n" +
-	"\fgraph_schema\x18\x02 \x01(\tR\vgraphSchema\"\xbc\x02\n" +
-	"\"CapabilityDescriptorContainerProto\x12A\n" +
-	"\bresource\x18\x01 \x01(\v2#.KNIRVROOT.ResourceDescriptorProtoH\x00R\bresource\x125\n" +
-	"\x04tool\x18\x02 \x01(\v2\x1f.KNIRVROOT.ToolDescriptorProtoH\x00R\x04tool\x12;\n" +
-	"\x06prompt\x18\x03 \x01(\v2!.KNIRVROOT.PromptDescriptorProtoH\x00R\x06prompt\x12Q\n" +
-	"\x0ememory_service\x18\x04 \x01(\v2(.KNIRVROOT.MemoryServiceDescriptorProtoH\x00R\rmemoryServiceB\f\n" +
+	"\x16parameters_schema_json\x18\x03 \x01(\tR\x14parametersSchemaJson\"\x8a\x01\n" +
+	"\x1cMemoryServiceDescriptorProto\x12G\n" +
+	"\x0fbase_descriptor\x18\x01 \x01(\v2\x1e.KNIRVROOT.BaseDescriptorProtoR\x0ebaseDescriptor\x12!\n" +
+	"\fgraph_schema\x18\x02 \x01(\tR\vgraphSchema\"\xb8\x02\n" +
+	"\"CapabilityDescriptorContainerProto\x12@\n" +
+	"\bresource\x18\x01 \x01(\v2\".KNIRVROOT.ResourceDescriptorProtoH\x00R\bresource\x124\n" +
+	"\x04tool\x18\x02 \x01(\v2\x1e.KNIRVROOT.ToolDescriptorProtoH\x00R\x04tool\x12:\n" +
+	"\x06prompt\x18\x03 \x01(\v2 .KNIRVROOT.PromptDescriptorProtoH\x00R\x06prompt\x12P\n" +
+	"\x0ememory_service\x18\x04 \x01(\v2'.KNIRVROOT.MemoryServiceDescriptorProtoH\x00R\rmemoryServiceB\f\n" +
 	"\n" +
-	"descriptor\"\x8a\x02\n" +
+	"descriptor\"\x89\x02\n" +
 	"\x1eMCPRegisterCapabilityDataProto\x12#\n" +
 	"\rcapability_id\x18\x01 \x01(\tR\fcapabilityId\x12'\n" +
-	"\x0fcapability_type\x18\x02 \x01(\tR\x0ecapabilityType\x12c\n" +
-	"\x15capability_descriptor\x18\x03 \x01(\v2..KNIRVROOT.CapabilityDescriptorContainerProtoR\x14capabilityDescriptor\x12#\n" +
+	"\x0fcapability_type\x18\x02 \x01(\tR\x0ecapabilityType\x12b\n" +
+	"\x15capability_descriptor\x18\x03 \x01(\v2-.KNIRVROOT.CapabilityDescriptorContainerProtoR\x14capabilityDescriptor\x12#\n" +
 	"\rowner_address\x18\x04 \x01(\tR\fownerAddress\x12\x10\n" +
-	"\x03fee\x18\x05 \x01(\x04R\x03fee\"\x83\x01\n" +
-	"\x1cMCPUpdateCapabilityDataProto\x12c\n" +
-	"\x15capability_descriptor\x18\x01 \x01(\v2..KNIRVROOT.CapabilityDescriptorContainerProtoR\x14capabilityDescriptor*\xcc\x01\n" +
+	"\x03fee\x18\x05 \x01(\x04R\x03fee\"\x82\x01\n" +
+	"\x1cMCPUpdateCapabilityDataProto\x12b\n" +
+	"\x15capability_descriptor\x18\x01 \x01(\v2-.KNIRVROOT.CapabilityDescriptorContainerProtoR\x14capabilityDescriptor*\xcc\x01\n" +
 	"\x13CapabilityTypeProto\x12%\n" +
 	"!CAPABILITY_TYPE_PROTO_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eCAPABILITY_TYPE_PROTO_RESOURCE\x10\x01\x12\x1e\n" +

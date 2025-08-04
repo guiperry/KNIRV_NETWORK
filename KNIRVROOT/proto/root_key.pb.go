@@ -161,8 +161,7 @@ var File_proto_root_key_proto protoreflect.FileDescriptor
 
 const file_proto_root_key_proto_rawDesc = "" +
 	"\n" +
-	"\x14proto/root_key.proto\x12\n" +
-	"KNIRVROOT\"\x8c\x02\n" +
+	"\x14proto/root_key.proto\x12\tKNIRVROOT\"\x8c\x02\n" +
 	"\x17RootKeyFileContentProto\x12*\n" +
 	"\x11stripe_secret_key\x18\x01 \x01(\tR\x0fstripeSecretKey\x122\n" +
 	"\x15stripe_webhook_secret\x18\x02 \x01(\tR\x13stripeWebhookSecret\x12(\n" +

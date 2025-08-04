@@ -7,11 +7,21 @@ Software Development Kits for the KNIRV Network ecosystem, including complete KN
 ### Gateway SDKs ⭐ NEW
 - **[Go Gateway SDK](go/gateway/README.md)** - Complete KNIRVGATEWAY integration for Go
 - **[TypeScript Gateway SDK](ts/gateway/README.md)** - Complete KNIRVGATEWAY integration for TypeScript/JavaScript
+- **[Python Gateway SDK](py/gateway/README.md)** - ✅ **NEW!** Complete KNIRVGATEWAY integration for Python
 
 ### Core KNIRV SDKs
 - [Go Transaction SDK](go/transaction/README.md) - KNIRVCHAIN transaction management
 - [Go Transmission SDK](go/transmission/README.md) - Network transmission and communication
 - [TypeScript Transmission SDK](ts/transmission/README.md) - Web transmission libraries
+- [Python Transaction SDK](py/transaction/README.md) - KNIRVCHAIN transaction management for Python
+- [Python Transmission SDK](py/transmission/README.md) - Network transmission for Python
+
+### Unified SDKs 🚧 In Development
+- **[TypeScript Unified SDK](ts/unified/README.md)** - 🚧 Combined access to all KNIRV services
+- **Python Unified SDK** - 🚧 *Planned* - Combined access to all KNIRV services
+- **Go Unified SDK** - 🚧 *Planned* - Combined access to all KNIRV services
+
+> **Note**: See [UNIFIED_SDK_IMPLEMENTATION_PLAN.md](UNIFIED_SDK_IMPLEMENTATION_PLAN.md) for detailed implementation roadmap.
 
 ## Gateway SDK Features ⭐ NEW
 

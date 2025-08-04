@@ -1,0 +1,146 @@
+[project]
+name = "knirv_gateway_sdk"
+version = "0.0.1-alpha.0"
+description = "The official Python library for the KNIRV Gateway API"
+dynamic = ["readme"]
+license = "Apache-2.0"
+authors = [
+{ name = "KNIRV Gateway SDK", email = "support@knirv.com" },
+]
+dependencies = [
+    "httpx>=0.23.0, <1",
+    "pydantic>=1.9.0, <3",
+    "typing-extensions>=4.10, <5",
+    "anyio>=3.5.0, <5",
+    "distro>=1.7.0, <2",
+    "sniffio",
+]
+requires-python = ">= 3.8"
+classifiers = [
+  "Typing :: Typed",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Operating System :: OS Independent",
+  "Operating System :: POSIX",
+  "Operating System :: MacOS",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: Microsoft :: Windows",
+  "Topic :: Internet :: WWW/HTTP",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+keywords = [
+  "knirv",
+  "gateway",
+  "economics",
+  "poaud",
+  "api",
+  "client",
+  "sdk",
+]
+
+[project.urls]
+Homepage = "https://github.com/knirv-network/knirv-sdk"
+Repository = "https://github.com/knirv-network/knirv-sdk.git"
+Documentation = "https://docs.knirv.com"
+
+[project.optional-dependencies]
+dev = [
+    "black>=23.0.0",
+    "mypy>=1.0.0",
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.10.0",
+    "respx>=0.20.0",
+    "ruff>=0.0.243",
+    "types-requests",
+]
+
+[build-system]
+requires = ["hatchling", "hatch-fancy-pypi-readme"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/knirv_gateway_sdk/_version.py"
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "/.github",
+  "/docs",
+  "/tests",
+  "/scripts",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/knirv_gateway_sdk"]
+
+[tool.hatch.metadata.hooks.fancy-pypi-readme]
+content-type = "text/markdown"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+path = "README.md"
+
+[tool.black]
+line-length = 120
+target-version = ["py38"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--tb=short"
+xfail_strict = true
+asyncio_mode = "auto"
+filterwarnings = [
+  "error",
+  "ignore::DeprecationWarning:httpx.*:",
+]
+
+[tool.mypy]
+strict = true
+show_error_codes = true
+python_version = "3.8"
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+strict = false
+disallow_untyped_defs = false
+
+[tool.ruff]
+line-length = 120
+format = "grouped"
+target-version = "py38"
+select = [
+  # isort
+  "I",
+  # bugbear rules
+  "B",
+  # remove unused imports
+  "F401",
+  # bare except statements
+  "E722",
+  # unused arguments
+  "ARG",
+  # print statements
+  "T201",
+]
+ignore = [
+  # mutable defaults
+  "B006",
+]
+unfixable = [
+  # disable auto-fix for print statements
+  "T201",
+]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint.isort]
+required-imports = ["from __future__ import annotations"]
+
+[tool.ruff.lint.per-file-ignores]
+"bin/**.py" = ["T201"]
+"scripts/**.py" = ["T201"]
+"tests/**.py" = ["T201"]

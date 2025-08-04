@@ -1,8 +1,8 @@
-# Knirvchain Transaction SDK Go API Library
+# KNIRV Network Transaction SDK Go API Library
 
 <a href="https://pkg.go.dev/github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction"><img src="https://pkg.go.dev/badge/github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction.svg" alt="Go Reference"></a>
 
-The Knirvchain Transaction SDK Go library provides convenient access to the [Knirvchain Transaction SDK REST API](https://github.com/cloud-equities/KNIRVCHAIN/tree/main/docs)
+The KNIRV Network Transaction SDK Go library provides convenient access to the [KNIRV Network Transaction SDK REST API](https://github.com/cloud-equities/KNIRVCHAIN/tree/main/docs)
 from applications written in Go.
 
 It is generated with [Stainless](https://www.stainless.com/).

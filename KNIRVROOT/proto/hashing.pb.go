@@ -226,8 +226,7 @@ var File_proto_hashing_proto protoreflect.FileDescriptor
 
 const file_proto_hashing_proto_rawDesc = "" +
 	"\n" +
-	"\x13proto/hashing.proto\x12\n" +
-	"KNIRVROOT\x1a\x1fgoogle/protobuf/timestamp.proto\"\xfd\x01\n" +
+	"\x13proto/hashing.proto\x12\tKNIRVROOT\x1a\x1fgoogle/protobuf/timestamp.proto\"\xfd\x01\n" +
 	"\x10TransactionProto\x12\x12\n" +
 	"\x04from\x18\x01 \x01(\tR\x04from\x12\x0e\n" +
 	"\x02to\x18\x02 \x01(\tR\x02to\x12\x14\n" +
@@ -238,14 +237,14 @@ const file_proto_hashing_proto_rawDesc = "" +
 	"\x04type\x18\a \x01(\tR\x04type\x12\x1c\n" +
 	"\tsignature\x18\b \x01(\fR\tsignature\x12\x1d\n" +
 	"\n" +
-	"public_key\x18\t \x01(\fR\tpublicKey\"\x89\x02\n" +
+	"public_key\x18\t \x01(\fR\tpublicKey\"\x88\x02\n" +
 	"\n" +
 	"BlockProto\x12!\n" +
 	"\fblock_number\x18\x01 \x01(\x04R\vblockNumber\x12\x1b\n" +
 	"\tprev_hash\x18\x02 \x01(\fR\bprevHash\x128\n" +
 	"\ttimestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12\x14\n" +
-	"\x05nonce\x18\x04 \x01(\x05R\x05nonce\x12@\n" +
-	"\ftransactions\x18\x05 \x03(\v2\x1c.KNIRVROOT.TransactionProtoR\ftransactions\x12)\n" +
+	"\x05nonce\x18\x04 \x01(\x05R\x05nonce\x12?\n" +
+	"\ftransactions\x18\x05 \x03(\v2\x1b.KNIRVROOT.TransactionProtoR\ftransactions\x12)\n" +
 	"\x10proposer_address\x18\x06 \x01(\tR\x0fproposerAddressB\n" +
 	"Z\b./;protob\x06proto3"
 

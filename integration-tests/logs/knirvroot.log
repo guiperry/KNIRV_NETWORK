@@ -1,15 +1,20 @@
-panic: runtime error: slice bounds out of range [-5:]
+2025/08/04 05:05:47 ***********STARTING KNIRVROOT***********
+2025/08/04 05:05:47 VERSION: dev
+2025/08/04 05:05:47 OS: linux
+2025/08/04 05:05:47 Arch: amd64
+2025/08/04 05:05:47 LOGFILE: KNIRVROOT.log
+2025/08/04 05:05:47 Setting log level to: info
+2025/08/04 05:05:47 Using node role: Client
+2025/08/04 05:05:47 Successfully loaded config from:
+2025/08/04 05:05:47 Attempting to fetch and store public IP information...
+2025/08/04 05:05:53 Successfully parsed IPInfo response: IP=172.58.134.32, Country=US, ASN=
+2025/08/04 05:05:53 ChromemDB Manager: Initializing persistent client at path: /home/gperry/.config/KNIRVROOT/client_data/chromem_data_store
+2025/08/04 05:05:53 ChromemDB Manager: Using deterministic Cerebras embedding client.
+2025/08/04 05:05:53 ChromemDB Manager: transactions collection ready.
+2025/08/04 05:05:53 ChromemDB Manager: capability_descriptors collection ready.
 
-goroutine 1 [running, locked to thread]:
-google.golang.org/protobuf/internal/filedesc.(*File).unmarshalSeed(0xc00025fc20, {0x2857d48, 0xf7, 0xf7})
-	/home/gperry/go/pkg/mod/google.golang.org/protobuf@v1.36.6/internal/filedesc/desc_init.go:174 +0x16d9
-google.golang.org/protobuf/internal/filedesc.newRawFile({{0x2267b08, 0xf}, {0x2857d48, 0xf7, 0xf7}, 0x0, 0x2, 0x0, 0x0, {0x2efe168, ...}, ...})
-	/home/gperry/go/pkg/mod/google.golang.org/protobuf@v1.36.6/internal/filedesc/desc_init.go:30 +0x1f7
-google.golang.org/protobuf/internal/filedesc.Builder.Build({{0x2267b08, 0xf}, {0x2857d48, 0xf7, 0xf7}, 0x0, 0x2, 0x0, 0x0, {0x2efe168, ...}, ...})
-	/home/gperry/go/pkg/mod/google.golang.org/protobuf@v1.36.6/internal/filedesc/build.go:105 +0xf8
-google.golang.org/protobuf/internal/filetype.Builder.Build({{{0x2267b08, 0xf}, {0x2857d48, 0xf7, 0xf7}, 0x0, 0x2, 0x0, 0x0, {0x0, ...}, ...}, ...})
-	/home/gperry/go/pkg/mod/google.golang.org/protobuf@v1.36.6/internal/filetype/build.go:138 +0x17d
-KNIRVROOT/proto.file_proto_bootnode_key_proto_init()
-	/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVROOT/proto/bootnode_key.pb.go:185 +0x198
-KNIRVROOT/proto.init.0()
-	/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVROOT/proto/bootnode_key.pb.go:167 +0xf
+ISSUE RESOLVED: Protobuf slice bounds error fixed by regenerating .pb.go files
+- Removed corrupted protobuf generated files
+- Regenerated using protoc v25.7 with protoc-gen-go v1.36.6
+- Fixed unused import warning in mcp_context.proto
+- KNIRVROOT now starts successfully without panic errors

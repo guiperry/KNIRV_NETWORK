@@ -13,3 +13,6 @@
 2025/08/04 02:15:32 Processing vector creation: ad31642870519f6d7b92bfa8e4e2ee0ca6ab1ab1b6d69b17436c54c0ea09b166
 2025/08/04 02:15:32 Processing vector creation: 274fa859edc58f7ce46fcc27c81f2afe8ae45fd0413d5320336532e02c078dc4
 2025/08/04 02:15:32 Processing vector creation: 6d8325d72df3ceed42055f1813b36eae093cb9321b8c1502c4b57c2aecd3130f
+{"level":"info","ts":1754298772.386084,"caller":"app/app.go:71","msg":"Received interrupt signal, shutting down..."}
+{"level":"info","ts":1754298772.386222,"caller":"app/app.go:79","msg":"Stopping GraphChain application"}
+2025/08/04 05:12:52 Stopping NRV System...

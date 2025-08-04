@@ -249,12 +249,11 @@ var File_proto_mcp_context_proto protoreflect.FileDescriptor
 
 const file_proto_mcp_context_proto_rawDesc = "" +
 	"\n" +
-	"\x17proto/mcp_context.proto\x12\n" +
-	"KNIRVROOT\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bproto/mcp_descriptors.proto\"\xff\x02\n" +
+	"\x17proto/mcp_context.proto\x12\tKNIRVROOT\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xfe\x02\n" +
 	"\x12ContextRecordProto\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12#\n" +
-	"\rcapability_id\x18\x02 \x01(\tR\fcapabilityId\x12K\n" +
-	"\x10interaction_type\x18\x03 \x01(\x0e2 .KNIRVROOT.InteractionTypeProtoR\x0finteractionType\x12\x1c\n" +
+	"\rcapability_id\x18\x02 \x01(\tR\fcapabilityId\x12J\n" +
+	"\x10interaction_type\x18\x03 \x01(\x0e2\x1f.KNIRVROOT.InteractionTypeProtoR\x0finteractionType\x12\x1c\n" +
 	"\tinitiator\x18\x04 \x01(\tR\tinitiator\x128\n" +
 	"\ttimestamp\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12\x1d\n" +
 	"\n" +
@@ -262,9 +261,9 @@ const file_proto_mcp_context_proto_rawDesc = "" +
 	"\voutput_hash\x18\a \x01(\tR\n" +
 	"outputHash\x121\n" +
 	"\adetails\x18\b \x01(\v2\x17.google.protobuf.StructR\adetails\x12\x1c\n" +
-	"\tsignature\x18\t \x01(\fR\tsignature\"e\n" +
-	"\x1cMCPInvokeCapabilityDataProto\x12E\n" +
-	"\x0econtext_record\x18\x01 \x01(\v2\x1e.KNIRVROOT.ContextRecordProtoR\rcontextRecord*\xb2\x03\n" +
+	"\tsignature\x18\t \x01(\fR\tsignature\"d\n" +
+	"\x1cMCPInvokeCapabilityDataProto\x12D\n" +
+	"\x0econtext_record\x18\x01 \x01(\v2\x1d.KNIRVROOT.ContextRecordProtoR\rcontextRecord*\xb2\x03\n" +
 	"\x14InteractionTypeProto\x12&\n" +
 	"\"INTERACTION_TYPE_PROTO_UNSPECIFIED\x10\x00\x12*\n" +
 	"&INTERACTION_TYPE_PROTO_TOOL_INVOCATION\x10\x01\x12'\n" +
@@ -315,7 +314,6 @@ func file_proto_mcp_context_proto_init() {
 	if File_proto_mcp_context_proto != nil {
 		return
 	}
-	file_proto_mcp_descriptors_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

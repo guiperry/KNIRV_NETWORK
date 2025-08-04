@@ -29,6 +29,7 @@ type TestWallet struct {
 	Address  string `json:"address"`
 	Mnemonic string `json:"mnemonic"`
 	Balance  string `json:"balance"`
+	Type     string `json:"type,omitempty"`
 }
 
 func NewIntegrationTestSuite() *IntegrationTestSuite {

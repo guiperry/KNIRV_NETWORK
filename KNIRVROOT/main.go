@@ -294,61 +294,14 @@ rm -- "$0"
 // Define a global log file variable
 var appLogFile *os.File
 
-// setupDirectBootnodeSignalHandler sets up a direct signal handler for bootnode mode
-// that will immediately exit the application when receiving SIGINT or SIGTERM
-func setupDirectBootnodeSignalHandler() {
-	// This function is now less critical as waitForShutdownSignal will be used by all roles.
-	// It can be kept for potential future use or specific scenarios if a hard exit is needed.
-	log.Println("Setting up a direct OS signal handler for immediate exit (if called).")
-	sigChan := make(chan os.Signal, 1)
-	signal.Reset(syscall.SIGINT, syscall.SIGTERM)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		sig := <-sigChan
-		log.Printf("EMERGENCY HANDLER: Bootnode received %s signal. IMMEDIATE EXIT.", sig)
-		log.Println("This is the backup emergency handler. Forcing exit.")
-		os.Exit(0) // Exit immediately with success code
-	}()
-}
+// Removed setupDirectBootnodeSignalHandler to prevent signal handling conflicts
+// All roles now use the unified waitForShutdownSignal() function
 
-// isBootnodeMode checks if the application is running in bootnode mode
-// by examining command line arguments
-func isBootnodeMode() bool {
-	if len(os.Args) <= 1 {
-		return false
-	}
-
-	// Check for direct bootnode flag
-	for _, arg := range os.Args {
-		if arg == "-bootnode" || arg == "--bootnode" {
-			return true
-		}
-	}
-
-	// Check for -role=bootnode format
-	for i, arg := range os.Args {
-		if (arg == "-role" || arg == "--role") && i+1 < len(os.Args) && os.Args[i+1] == "bootnode" {
-			return true
-		}
-		// Also check for -role=bootnode format
-		if strings.HasPrefix(arg, "-role=") || strings.HasPrefix(arg, "--role=") {
-			if strings.HasSuffix(arg, "=bootnode") {
-				return true
-			}
-		}
-	}
-
-	return false
-}
+// Removed isBootnodeMode() function - no longer needed since signal handling is unified
 
 func main() {
-	// CRITICAL FIX: Set up a direct OS-level signal handler for bootnode mode
-	// This is a drastic approach that bypasses all graceful shutdown logic
-	bootNodeMode := isBootnodeMode()
-	if bootNodeMode {
-		log.Println("Bootnode mode detected: Setting up direct OS-level signal handler")
-		setupDirectBootnodeSignalHandler()
-	}
+	// Signal handling will be unified for all roles using waitForShutdownSignal()
+	// No need for separate bootnode signal handler that conflicts with the main one
 
 	err := godotenv.Load(".key") // Loads .key file from the current directory
 	if err != nil {
@@ -1938,16 +1891,16 @@ func loadRootNodeParameters(cfg *config.Config) error {
 // waitForShutdownSignal waits for SIGINT or SIGTERM and initiates shutdown
 func waitForShutdownSignal(cancel context.CancelFunc, wg *sync.WaitGroup) {
 	// This function is now used by all roles for graceful shutdown.
-	// The isBootnodeMode() check is removed.
 
 	// Create a buffered channel to avoid signal loss
-	signalChan := make(chan os.Signal, 1) // Buffer of 1 is sufficient for the first signal
+	signalChan := make(chan os.Signal, 2) // Buffer of 2 to handle multiple signals
 
 	// Register for SIGINT (Ctrl+C) and SIGTERM to be sent to signalChan
-	// First, stop the default signal handling
-	signal.Reset(syscall.SIGINT, syscall.SIGTERM)
-	// Then register our channel to receive these signals
+	// Note: We don't call signal.Reset() here to avoid conflicts with other handlers
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+
+	// Ensure we clean up signal handling when this function exits
+	defer signal.Stop(signalChan)
 
 	// Wait for first signal
 	sig := <-signalChan
@@ -1967,17 +1920,16 @@ func waitForShutdownSignal(cancel context.CancelFunc, wg *sync.WaitGroup) {
 		close(waitDone)
 	}()
 
-	// Set up a timeout for graceful shutdown - longer for bootnode mode
-	shutdownTimeout := 20 * time.Second // Unified timeout for all roles.
-	// If specific roles still need longer, this could be adjusted, but for unification, keep it same.
+	// Set up a timeout for graceful shutdown
+	shutdownTimeout := 15 * time.Second // Reduced timeout for faster response
 
 	// Start a watchdog goroutine to log waiting goroutines if shutdown takes too long
 	go func() {
 		select {
 		case <-waitDone:
 			return // Normal shutdown, exit this goroutine
-		case <-time.After(shutdownTimeout / 2):
-			// If we're halfway through the timeout and still waiting, log more details
+		case <-time.After(shutdownTimeout / 3):
+			// If we're 1/3 through the timeout and still waiting, log more details
 			log.Println("WARNING: Shutdown taking longer than expected. Waiting for remaining components...")
 		}
 	}()
@@ -1995,9 +1947,6 @@ func waitForShutdownSignal(cancel context.CancelFunc, wg *sync.WaitGroup) {
 		log.Println("WARNING: Some resources may not be properly cleaned up.")
 		os.Exit(1)
 	}
-
-	// Stop receiving signals on this channel before exiting
-	signal.Stop(signalChan)
 
 	log.Println("All shutdown procedures completed. Exiting normally.")
 }

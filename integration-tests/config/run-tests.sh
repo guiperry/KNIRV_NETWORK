@@ -145,6 +145,9 @@ run_test_suite() {
         "gateway")
             go test -v -run "TestGateway" ./...
             ;;
+        "wallet")
+            go test -v -run "TestKNIRVWalletIntegration" ./...
+            ;;
         *)
             print_error "Unknown test suite: $suite"
             return 1
@@ -241,6 +244,7 @@ usage() {
     echo "  e2e                 Run end-to-end workflow tests only"
     echo "  economics           Run economics integration tests only"
     echo "  gateway             Run gateway integration tests only"
+    echo "  wallet              Run KNIRVWALLET integration tests only"
     echo ""
     echo "Options:"
     echo "  --no-setup          Skip test environment setup"
