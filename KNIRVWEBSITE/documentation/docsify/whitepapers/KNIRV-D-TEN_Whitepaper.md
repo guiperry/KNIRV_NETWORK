@@ -206,21 +206,21 @@ The `NRN` token, native to **KNIRV-ROOT**, is the economic lifeblood of the enti
 >     subgraph KNIRV D-TEN Economic Loop
 >         direction LR
 >         A[KNIRV-ROUTERS] -- "1. Proof-of-Connectivity" --> B(KNIRV-ROOT: NRN Minting)
->         B -- 2. USDC Payment --> A
->         B -- 3. NRN Supply --> C[KNIRV-WALLET]
+>         B -- "2. USDC Payment" --> A
+>         B -- "3. NRN Supply" --> C[KNIRV-WALLET]
 >         
->         C -- 4. NRN for Skill Invocation --> D[KNIRV-SHELL Agents]
->         D -- 5. Invoke Skill (on KNIRVCHAIN) --> E[KNIRVCHAIN: Skill Registry]
->         E -- 6. Trigger NRN Burn (via IBC) --> B
+>         C -- "4. NRN for Skill Invocation" --> D[KNIRV-SHELL Agents]
+>         D -- "5. Invoke Skill (on KNIRVCHAIN)" --> E[KNIRVCHAIN: Skill Registry]
+>         E -- "6. Trigger NRN Burn (via IBC)" --> B
 >         
->         D -- 7. Detect Failure / Propose Solution --> F[KNIRVGRAPH: NRV/SkillNode Fabric]
->         F -- 8. Request DVE Validation --> G[KNIRV-NEXUS DVEs]
->         G -- 9. Generate Validation Proof --> D
->         D -- 10. Submit Mint Resolution --> F
->         F -- 11. Notify KNIRV-ROOT of Verified SkillNode --> B
->         B -- 12. Orchestrate Canonical SkillNode Minting --> E
+>         D -- "7. Detect Failure / Propose Solution" --> F[KNIRVGRAPH: NRV/SkillNode Fabric]
+>         F -- "8. Request DVE Validation" --> G[KNIRV-NEXUS DVEs]
+>         G -- "9. Generate Validation Proof" --> D
+>         D -- "10. Submit Mint Resolution" --> F
+>         F -- "11. Notify KNIRV-ROOT of Verified SkillNode" --> B
+>         B -- "12. Orchestrate Canonical SkillNode Minting" --> E
 >         
->         B -- 13. NRN Rewards (Solvers, DVEs, Observers) --> D
+>         B -- "13. NRN Rewards (Solvers, DVEs, Observers)" --> D
 >         B -- 14. NRN Rewards (Solvers, DVEs, Observers) --> G
 >         B -- 15. NRN Rewards (Solvers, DVEs, Observers) --> F
 >         

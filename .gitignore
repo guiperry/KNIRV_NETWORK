@@ -1,1 +1,5 @@
 /docs
+.log
+*.log
+*~
+integration-tests/logs/knirvchain.log
