@@ -36,6 +36,10 @@ go test -v -run TestPoAuDIntegrationSuite  # ⭐ NEW PoAu-D tests
 # Run PoAu-D tests only
 go test -v -run TestPoAuD
 
+# Run Developer Portal tests
+node portal-integration.test.js
+node validate-portal.js
+
 # Cleanup
 ./config/teardown.sh
 ```
@@ -68,6 +72,12 @@ go test -v -run TestPoAuD
 - **Key Tests**: Enable/disable PoAu-D, NAP management, PAP delegation, gateway integration
 - **Validation**: Hybrid mining, delegation statistics, error handling
 
+### 6. Developer Portal Integration Testing (`portal-integration.test.js`) ⭐ NEW
+- **Purpose**: Validate KNIRV Developer Portal functionality and integration
+- **Coverage**: Portal structure, navigation, branding, website integration
+- **Key Tests**: File structure, HTML validation, responsive design, accessibility
+- **Validation**: Portal readiness, user experience, deployment configuration
+
 ## Architecture
 
 ### Component Integration
@@ -85,7 +95,7 @@ go test -v -run TestPoAuD
        │
        ▼
 ┌─────────────┐
-│ KNIRVSHELL  │
+│ KNIRVAGENTIFIER  │
 │   (8084)    │
 └─────────────┘
 ```
@@ -148,6 +158,14 @@ KNIRV_TEST_LOGS_DIR=./logs             # Test logs directory
 - ✅ Agent development lifecycle
 - ✅ Cross-chain token transfers
 - ✅ P2P network participation
+
+### Developer Portal Coverage
+- ✅ Portal file structure and assets
+- ✅ HTML structure and navigation consistency
+- ✅ Responsive design and accessibility
+- ✅ KNIRV branding and terminology
+- ✅ Main website integration
+- ✅ Netlify deployment configuration
 
 ## Reports and Documentation
 

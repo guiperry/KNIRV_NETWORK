@@ -50,7 +50,7 @@ const CONFIG = {
     'knirvroot': 'KNIRVROOT Documentation',
     'knirvrouter': 'KNIRVROUTER Documentation',
     'knirvsdk': 'KNIRVSDK Documentation',
-    'knirvshell': 'KNIRVSHELL Documentation',
+    'knirvshell': 'KNIRVAGENTIFIER Documentation',
     'knirvwallet': 'KNIRVWALLET Documentation'
   },
   // Special files that should be processed differently
@@ -69,7 +69,7 @@ const CONFIG = {
     'KNIRVROOT',
     'KNIRVROUTER',
     'KNIRVSDK',
-    'KNIRVSHELL',
+    'KNIRVAGENTIFIER',
     'KNIRVWALLET'
   ],
   // Subdirectories to exclude when scanning subproducts

@@ -47,7 +47,7 @@ The integration testing suite validates the complete KNIRV ecosystem according t
 - ✅ **KNIRVROOT**: Blockchain state, wallet operations, transaction processing
 - ✅ **KNIRVROUTER**: P2P networking, connectivity proofs, peer discovery
 - ✅ **KNIRVWALLET**: Meta accounts, token management (planned)
-- ✅ **KNIRVSHELL**: Cognitive engine integration (planned)
+- ✅ **KNIRVAGENTIFIER**: Cognitive engine integration (planned)
 
 ### Integration Points Tested
 1. **KNIRVCHAIN ↔ KNIRVGRAPH**: LLM registration propagation, skill invocation recording

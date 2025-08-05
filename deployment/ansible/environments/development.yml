@@ -1,0 +1,208 @@
+# KNIRV Network Development Environment Configuration
+
+# =============================================================================
+# DEVELOPMENT ENVIRONMENT SETTINGS
+# =============================================================================
+
+environment: development
+debug_mode: true
+
+# =============================================================================
+# INFRASTRUCTURE CONFIGURATION
+# =============================================================================
+
+# Development instance sizing (cost-optimized)
+instance_type: t3.small
+region: us-east-1
+
+# Single instance for development
+enable_ha: false
+min_instances: 1
+max_instances: 1
+
+# =============================================================================
+# DOMAIN CONFIGURATION
+# =============================================================================
+
+domain_name: knirv.com
+subdomain_prefix: "dev"
+
+# Development subdomains with dev prefix
+knirv_subdomains:
+  - dev-chain      # dev-chain.knirv.com
+  - dev-graph      # dev-graph.knirv.com
+  - dev-nexus      # dev-nexus.knirv.com
+  - dev-root       # dev-root.knirv.com
+  - dev-wallet     # dev-wallet.knirv.com
+  - dev-shell      # dev-shell.knirv.com
+  - dev-router     # dev-router.knirv.com
+  - dev-gateway    # dev-gateway.knirv.com
+  - dev-api        # dev-api.knirv.com
+
+# Enable wildcard for development
+enable_wildcard_dns: true
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+
+# Relaxed security for development
+firewall_enabled: true
+fail2ban_enabled: false
+enable_intrusion_detection: false
+
+# SSL/TLS configuration (self-signed OK for dev)
+ssl_config:
+  enable_letsencrypt: false
+  cert_email: dev@knirv.com
+  force_https: false
+  allow_self_signed: true
+
+# SSH configuration (more permissive for dev)
+ssh_hardening:
+  disable_root_login: false
+  disable_password_auth: false
+  max_auth_tries: 5
+  client_alive_interval: 600
+  client_alive_count_max: 3
+
+# =============================================================================
+# RESOURCE CONFIGURATION
+# =============================================================================
+
+# Development resource limits (minimal)
+resource_limits:
+  cpu_limit: "1000m"
+  memory_limit: "2Gi"
+  cpu_request: "250m"
+  memory_request: "512Mi"
+
+# Storage configuration (minimal)
+storage_config:
+  data_volume_size: "20Gi"
+  backup_volume_size: "40Gi"
+  storage_class: "gp2"
+
+# =============================================================================
+# MONITORING AND ALERTING
+# =============================================================================
+
+# Basic monitoring for development
+monitoring:
+  enabled: true
+  prometheus_port: 9090
+  grafana_port: 3000
+  alertmanager_port: 9093
+  retention_days: 7
+
+# Minimal alerting for development
+alerting:
+  enabled: false
+  slack_webhook: ""
+  email_alerts: "dev@knirv.com"
+
+# Relaxed health checks
+health_check:
+  interval: 60
+  timeout: 10
+  retries: 5
+  critical_threshold: 95
+
+# =============================================================================
+# BACKUP CONFIGURATION
+# =============================================================================
+
+backup_config:
+  enabled: false  # Disabled for development
+  retention_days: 7
+  schedule: "0 4 * * 0"  # Weekly on Sunday at 4 AM
+  s3_bucket: "knirv-dev-backups"
+  encryption_enabled: false
+
+# =============================================================================
+# PERFORMANCE OPTIMIZATION
+# =============================================================================
+
+# Development performance settings (minimal)
+performance:
+  enable_caching: false
+  cache_size: "256Mi"
+  connection_pooling: false
+  max_connections: 100
+  worker_processes: 1
+
+# Database configuration (lightweight)
+database:
+  type: postgresql
+  host: postgres-dev
+  port: 5432
+  name: knirv_development
+  user: knirv_dev
+  max_connections: 50
+  shared_buffers: "256MB"
+  effective_cache_size: "1GB"
+
+# =============================================================================
+# DEVELOPMENT FEATURES
+# =============================================================================
+
+# Development-specific features
+development_features:
+  enable_hot_reload: true
+  enable_debug_endpoints: true
+  enable_test_data: true
+  enable_mock_services: true
+  verbose_logging: true
+
+# Testing configuration
+testing:
+  enable_integration_tests: true
+  enable_load_tests: false
+  test_data_reset: true
+  mock_external_services: true
+
+# =============================================================================
+# CLOUDFLARE CONFIGURATION
+# =============================================================================
+
+# Development Cloudflare settings (minimal)
+cloudflare:
+  proxy_enabled: false
+  ssl_mode: "flexible"
+  security_level: "low"
+  cache_level: "basic"
+  minify_enabled: false
+  brotli_enabled: false
+
+# No WAF rules for development
+waf_rules: []
+
+# =============================================================================
+# INTEGRATION SETTINGS
+# =============================================================================
+
+# Development integrations (mocked where possible)
+integrations:
+  xion_rpc: "https://testnet.xion.burnt.com:443"
+  enable_blockchain_bridge: false
+  enable_ai_services: true
+  enable_analytics: false
+  enable_error_tracking: false
+
+# Mock external services for development
+external_services:
+  use_mock_services: true
+  sentry_dsn: ""
+  datadog_api_key: ""
+  newrelic_license_key: ""
+
+# =============================================================================
+# COST OPTIMIZATION
+# =============================================================================
+
+# Cost-saving measures for development
+cost_optimization:
+  auto_shutdown_enabled: true
+  shutdown_schedule: "0 20 * * 1-5"  # Shutdown at 8 PM on weekdays
+  startup_schedule: "0 8 * * 1-5"    # Start at 8 AM on weekdays
+  weekend_shutdown: true

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skill Registry & Marketplace - KNIRV Developer Portal</title>
+    <meta name="description" content="Browse, publish, and manage skills on the KNIRV-GRAPH skill registry">
+    <link rel="shortcut icon" href="favicon.png">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS with original design system -->
+    <link rel="stylesheet" href="css/portal.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="dashboard-title">
+                <h1>KNIRV Developer Portal</h1>
+                <p style="color: var(--transparent-white-7); font-size: 0.9rem;">D-TEN Network</p>
+            </div>
+
+            <!-- Navigation Items -->
+            <a href="index.html" class="nav-item">
+                <i class="fas fa-home"></i>
+                <span>Home Dashboard</span>
+            </a>
+            <a href="core-concepts.html" class="nav-item">
+                <i class="fas fa-brain"></i>
+                <span>Core Concepts</span>
+            </a>
+            <a href="getting-started.html" class="nav-item">
+                <i class="fas fa-rocket"></i>
+                <span>Getting Started</span>
+            </a>
+            <a href="agent-management.html" class="nav-item">
+                <i class="fas fa-robot"></i>
+                <span>Agent Management</span>
+            </a>
+            <a href="skill-registry.html" class="nav-item active">
+                <i class="fas fa-cogs"></i>
+                <span>Skill Registry</span>
+            </a>
+            <a href="udc-management.html" class="nav-item">
+                <i class="fas fa-certificate"></i>
+                <span>UDC Management</span>
+            </a>
+            <a href="agent-skill-exchange.html" class="nav-item">
+                <i class="fas fa-exchange-alt"></i>
+                <span>Agent/Skill Exchange</span>
+            </a>
+            <a href="error-node-explorer.html" class="nav-item">
+                <i class="fas fa-search"></i>
+                <span>ErrorNode Explorer</span>
+            </a>
+            <a href="api-sdk.html" class="nav-item">
+                <i class="fas fa-code"></i>
+                <span>API & SDK</span>
+            </a>
+            <a href="wallet-management.html" class="nav-item">
+                <i class="fas fa-wallet"></i>
+                <span>KNIRV Wallets</span>
+            </a>
+            <a href="tesnet-sandbox.html" class="nav-item">
+                <i class="fas fa-flask"></i>
+                <span>TESNET & Sandbox</span>
+            </a>
+            <a href="community-support.html" class="nav-item">
+                <i class="fas fa-users"></i>
+                <span>Community & Support</span>
+            </a>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Navigation -->
+            <div class="top-nav">
+                <div>
+                    <h1 class="page-title">Skill Registry</h1>
+                </div>
+                <div class="user-controls">
+                    <i class="control-icon fas fa-bell" title="Notifications"></i>
+                    <i class="control-icon fas fa-cog" title="Settings"></i>
+                    <i class="control-icon fas fa-user-circle" title="Profile"></i>
+                </div>
+            </div>
+
+            <!-- Page Header -->
+            <div class="glass-card">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--knirv-purple) 0%, var(--knirv-purple-light) 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 2.5em;">
+                        <i class="fas fa-cogs" style="color: var(--white);"></i>
+                    </div>
+                    <h1 style="color: var(--knirv-purple); margin-bottom: 10px; font-size: 2rem;">KNIRV-GRAPH Skill Registry</h1>
+                    <p style="color: var(--transparent-white-7); max-width: 600px; margin: 0 auto;">
+                        Discover, publish, and trade AI capabilities in the decentralized skill marketplace. Transform your expertise into reusable components.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="glass-card">
+                <h2 style="color: var(--knirv-purple); margin-bottom: 20px; font-size: 1.3rem;">Quick Actions</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <button class="btn-primary" onclick="showPublishModal()" style="padding: 20px; text-align: center;">
+                        <i class="fas fa-upload" style="font-size: 1.5em; margin-bottom: 10px; display: block;"></i>
+                        <h4 style="margin-bottom: 5px;">Publish Skill</h4>
+                        <p style="font-size: 0.9em; opacity: 0.8;">Share your AI capability</p>
+                    </button>
+                    <button class="btn-secondary" onclick="browseSkills()" style="padding: 20px; text-align: center;">
+                        <i class="fas fa-search" style="font-size: 1.5em; margin-bottom: 10px; display: block;"></i>
+                        <h4 style="margin-bottom: 5px;">Browse Skills</h4>
+                        <p style="font-size: 0.9em; opacity: 0.8;">Explore available capabilities</p>
+                    </button>
+                    <button class="btn-outline" onclick="mySkills()" style="padding: 20px; text-align: center;">
+                        <i class="fas fa-user-cog" style="font-size: 1.5em; margin-bottom: 10px; display: block;"></i>
+                        <h4 style="margin-bottom: 5px;">My Skills</h4>
+                        <p style="font-size: 0.9em; opacity: 0.8;">Manage your published skills</p>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Featured Skills -->
+            <div class="glass-card">
+                <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">
+                    <i class="fas fa-star" style="margin-right: 10px;"></i>Featured Skills
+                </h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <!-- Sample Skill 1 -->
+                    <div class="glass-card hover-lift" style="background: linear-gradient(135deg, rgba(43, 86, 245, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                            <div>
+                                <h3 style="color: var(--knirv-purple); margin: 0 0 5px 0;">Natural Language Processing</h3>
+                                <p style="color: var(--transparent-white-7); font-size: 0.9rem; margin: 0;">by @ai_researcher</p>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <i class="fas fa-star" style="color: #fbbf24; font-size: 0.8rem;"></i>
+                                <span style="color: var(--transparent-white-7); font-size: 0.9rem;">4.8</span>
+                            </div>
+                        </div>
+                        <p style="color: var(--white); margin-bottom: 15px; font-size: 0.9rem;">
+                            Advanced text analysis and generation capabilities with support for multiple languages and sentiment analysis.
+                        </p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px;">
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">NLP</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Text Analysis</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Multi-language</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: var(--bright-blue); font-weight: 600;">50 NRN</span>
+                            <button class="btn-outline" style="padding: 8px 16px; font-size: 0.9rem;">View Details</button>
+                        </div>
+                    </div>
+
+                    <!-- Sample Skill 2 -->
+                    <div class="glass-card hover-lift" style="background: linear-gradient(135deg, rgba(0, 192, 250, 0.1) 0%, rgba(43, 86, 245, 0.1) 100%);">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                            <div>
+                                <h3 style="color: var(--bright-blue); margin: 0 0 5px 0;">Computer Vision</h3>
+                                <p style="color: var(--transparent-white-7); font-size: 0.9rem; margin: 0;">by @vision_expert</p>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <i class="fas fa-star" style="color: #fbbf24; font-size: 0.8rem;"></i>
+                                <span style="color: var(--transparent-white-7); font-size: 0.9rem;">4.9</span>
+                            </div>
+                        </div>
+                        <p style="color: var(--white); margin-bottom: 15px; font-size: 0.9rem;">
+                            Real-time object detection and image classification with support for custom model training.
+                        </p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px;">
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Computer Vision</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Object Detection</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Real-time</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: var(--bright-blue); font-weight: 600;">75 NRN</span>
+                            <button class="btn-outline" style="padding: 8px 16px; font-size: 0.9rem;">View Details</button>
+                        </div>
+                    </div>
+
+                    <!-- Sample Skill 3 -->
+                    <div class="glass-card hover-lift" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(0, 192, 250, 0.1) 100%);">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                            <div>
+                                <h3 style="color: var(--knirv-purple-light); margin: 0 0 5px 0;">Data Analytics</h3>
+                                <p style="color: var(--transparent-white-7); font-size: 0.9rem; margin: 0;">by @data_scientist</p>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <i class="fas fa-star" style="color: #fbbf24; font-size: 0.8rem;"></i>
+                                <span style="color: var(--transparent-white-7); font-size: 0.9rem;">4.7</span>
+                            </div>
+                        </div>
+                        <p style="color: var(--white); margin-bottom: 15px; font-size: 0.9rem;">
+                            Advanced statistical analysis and predictive modeling with automated insight generation.
+                        </p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px;">
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Analytics</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Predictive</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Statistics</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: var(--bright-blue); font-weight: 600;">40 NRN</span>
+                            <button class="btn-outline" style="padding: 8px 16px; font-size: 0.9rem;">View Details</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Skill Categories -->
+            <div class="glass-card">
+                <h2 style="color: var(--knirv-purple); margin-bottom: 20px; font-size: 1.3rem;">
+                    <i class="fas fa-th-large" style="margin-right: 10px;"></i>Browse by Category
+                </h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div class="hover-lift" style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; text-align: center; cursor: pointer;">
+                        <i class="fas fa-language" style="font-size: 2em; color: var(--bright-blue); margin-bottom: 10px;"></i>
+                        <h4 style="margin-bottom: 5px;">Natural Language</h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">127 skills</p>
+                    </div>
+                    <div class="hover-lift" style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; text-align: center; cursor: pointer;">
+                        <i class="fas fa-eye" style="font-size: 2em; color: var(--knirv-purple); margin-bottom: 10px;"></i>
+                        <h4 style="margin-bottom: 5px;">Computer Vision</h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">89 skills</p>
+                    </div>
+                    <div class="hover-lift" style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; text-align: center; cursor: pointer;">
+                        <i class="fas fa-chart-line" style="font-size: 2em; color: var(--knirv-purple-light); margin-bottom: 10px;"></i>
+                        <h4 style="margin-bottom: 5px;">Data Analytics</h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">156 skills</p>
+                    </div>
+                    <div class="hover-lift" style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; text-align: center; cursor: pointer;">
+                        <i class="fas fa-robot" style="font-size: 2em; color: var(--bright-blue); margin-bottom: 10px;"></i>
+                        <h4 style="margin-bottom: 5px;">Automation</h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">203 skills</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="js/portal.js"></script>
+    <script>
+        function showPublishModal() {
+            window.knirvPortal.showNotification('Skill publishing modal would open here', 'info');
+        }
+
+        function browseSkills() {
+            window.knirvPortal.showNotification('Skill browser functionality coming soon', 'info');
+        }
+
+        function mySkills() {
+            window.knirvPortal.showNotification('My skills management coming soon', 'info');
+        }
+    </script>
+</body>
+</html>

@@ -10,13 +10,17 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"KNIRVROOT/economics"
 )
 
 // EconomicsIntegration handles integration with the economics service
 type EconomicsIntegration struct {
-	economicsURL string
-	httpClient   *http.Client
-	enabled      bool
+	economicsURL     string
+	httpClient       *http.Client
+	enabled          bool
+	economicsService *economics.EconomicsService
+	localMode        bool
 }
 
 // EconomicsRequest represents a request to the economics service
@@ -58,17 +62,65 @@ type WalletActivityEvent struct {
 // NewEconomicsIntegration creates a new economics integration instance
 func NewEconomicsIntegration() *EconomicsIntegration {
 	economicsURL := os.Getenv("ECONOMICS_SERVICE_URL")
+	localMode := os.Getenv("ECONOMICS_LOCAL_MODE") == "true"
+
 	if economicsURL == "" {
 		economicsURL = "http://localhost:8090"
 	}
 
-	return &EconomicsIntegration{
+	ei := &EconomicsIntegration{
 		economicsURL: economicsURL,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
-		enabled: true,
+		enabled:   true,
+		localMode: localMode,
 	}
+
+	// If local mode is enabled, initialize the economics service directly
+	if localMode {
+		if err := ei.initializeLocalEconomicsService(); err != nil {
+			log.Printf("Failed to initialize local economics service: %v", err)
+			ei.localMode = false // Fall back to remote mode
+		}
+	}
+
+	return ei
+}
+
+// initializeLocalEconomicsService initializes the local economics service
+func (ei *EconomicsIntegration) initializeLocalEconomicsService() error {
+	config := &economics.ServiceConfig{
+		Port:        "8090",
+		NRNContract: "nrn_contract_address_placeholder",
+		XionRPC:     "https://rpc.xion-testnet-1.burnt.com:443",
+		ComponentConfig: economics.ComponentConfig{
+			KNIRVChainURL: "https://chain.knirv.com",
+			KNIRVNexusURL: "https://nexus.knirv.com",
+			KNIRVRootURL:  "https://root.knirv.com",
+			KNIRVGraphURL: "https://graph.knirv.com",
+		},
+		DatabasePath: "./economics.db",
+		EnableCORS:   true,
+		LogLevel:     "info",
+	}
+
+	economicsService, err := economics.NewEconomicsService(config)
+	if err != nil {
+		return fmt.Errorf("failed to create economics service: %w", err)
+	}
+
+	ei.economicsService = economicsService
+
+	// Start the service in a goroutine
+	go func() {
+		if err := ei.economicsService.Start(); err != nil {
+			log.Printf("Economics service error: %v", err)
+		}
+	}()
+
+	log.Println("Local economics service initialized and started")
+	return nil
 }
 
 // ProcessPayment processes a payment through the economics service
@@ -209,6 +261,30 @@ func (ei *EconomicsIntegration) Disable() {
 // IsEnabled returns whether the economics integration is enabled
 func (ei *EconomicsIntegration) IsEnabled() bool {
 	return ei.enabled
+}
+
+// IsLocalMode returns whether the economics service is running locally
+func (ei *EconomicsIntegration) IsLocalMode() bool {
+	return ei.localMode
+}
+
+// GetLocalEconomicsService returns the local economics service instance
+func (ei *EconomicsIntegration) GetLocalEconomicsService() *economics.EconomicsService {
+	if ei.localMode {
+		return ei.economicsService
+	}
+	return nil
+}
+
+// StopLocalEconomicsService stops the local economics service
+func (ei *EconomicsIntegration) StopLocalEconomicsService() error {
+	if !ei.localMode || ei.economicsService == nil {
+		return fmt.Errorf("local economics service is not running")
+	}
+
+	ei.economicsService.Stop()
+	log.Println("Local economics service stopped")
+	return nil
 }
 
 // StartBackgroundSync starts a background goroutine to sync with the economics service

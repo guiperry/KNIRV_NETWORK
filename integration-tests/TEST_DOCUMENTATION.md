@@ -84,7 +84,7 @@ KNIRVROOT (8086) ←→ KNIRVNEXUS (8082)
      ↓                      ↓
 KNIRVROUTER (8085) ←→ KNIRVWALLET (8083)
      ↓
-KNIRVSHELL (8084)
+KNIRVAGENTIFIER (8084)
 ```
 
 ## Test Coverage

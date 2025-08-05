@@ -1,6 +1,6 @@
 {
   "name": "KNIRVWALLET",
-  "description": "KNIRVWALLET is a powerful browser extension wallet for the KNIRV ecosystem, featuring NRN token management and KNIRV-SHELL agent control.",
+  "description": "KNIRVWALLET is a powerful browser extension wallet for the KNIRV ecosystem, featuring NRN token management and KNIRV-AGENTIFIER agent control.",
   "manifest_version": 3,
   "version": "1.16.5",
   "action": {

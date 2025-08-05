@@ -1,0 +1,128 @@
+[build]
+  # Static site with Netlify Functions - install dependencies for functions
+  publish = "."
+  command = "npm run build"
+  functions = "netlify/functions"
+
+# Documentation build context
+[context.docs]
+  base = "documentation/"
+  publish = "documentation/docsify/"
+  command = "npm install && npm run build"
+
+# Agent Developer Portal build context
+[context.portal]
+  base = "agent-developer-portal/"
+  publish = "agent-developer-portal/"
+  command = "npm install"
+
+# Gateway Functions build context
+[context.gateway-functions]
+  base = "gateway-functions/"
+  publish = "gateway-functions/"
+  command = "npm install"
+
+# Production build settings
+[build.environment]
+  NODE_VERSION = "18"
+
+# Redirect rules for documentation
+[[redirects]]
+  from = "/docs/*"
+  to = "/documentation/docsify/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/documentation/*"
+  to = "/documentation/docsify/:splat"
+  status = 200
+
+# Handle SPA routing for docsify
+[[redirects]]
+  from = "/documentation/docsify/*"
+  to = "/documentation/docsify/index.html"
+  status = 200
+
+# API Gateway redirects
+[[redirects]]
+  from = "/gateway/*"
+  to = "/.netlify/functions/gateway-sse"
+  status = 200
+
+[[redirects]]
+  from = "/auth/*"
+  to = "/.netlify/functions/gateway-sse"
+  status = 200
+
+[[redirects]]
+  from = "/health-monitor/*"
+  to = "/.netlify/functions/health-monitor"
+  status = 200
+
+# Service proxy redirects (for KNIRV services)
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/gateway-sse"
+  status = 200
+
+# Redirect rules for agent developer portal
+[[redirects]]
+  from = "/portal/*"
+  to = "/agent-developer-portal/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/developer/*"
+  to = "/agent-developer-portal/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/dev-portal/*"
+  to = "/agent-developer-portal/:splat"
+  status = 200
+
+# Handle SPA routing for developer portal
+[[redirects]]
+  from = "/agent-developer-portal/*"
+  to = "/agent-developer-portal/index.html"
+  status = 200
+
+# Default fallback for main site (must be last)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers for security and performance
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/images/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Form handling (if needed)
+[build.processing]
+  skip_processing = false
+
+[build.processing.css]
+  bundle = false
+  minify = false
+
+[build.processing.js]
+  bundle = false
+  minify = false
+
+[build.processing.html]
+  pretty_urls = true

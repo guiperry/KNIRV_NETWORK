@@ -49,7 +49,7 @@ graph TB
     subgraph "User Interface Layer"
         KW[KNIRV-WALLET<br/>User Gateway]
         KN[KNIRVANA<br/>RTS Game]
-        KS[KNIRV-SHELL<br/>AI Agents]
+        KS[KNIRV-AGENTIFIER<br/>AI Agents]
     end
     
     subgraph "API & Integration Layer"
@@ -139,26 +139,32 @@ graph TB
   - RESTful API for connectivity status and metrics
   - Production monitoring integration with Prometheus metrics
 
-### 🤖 KNIRV-SHELL: The Autonomous Agents
+### 🤖 KNIRV-AGENTIFIER: The User's Autonomous Gateway
 **Technology**: Rust WASM-powered AI agents with SEAL loop
-- **Purpose**: Self-improving AI agents driving the learning cycle
+- **Purpose**: A mobile-native adapter that empowers existing AI assistants with autonomous agentic abilities, acting as the primary user gateway to the D-TEN.
 - **Key Features**:
   - CodeT5 Base LLM + personalized LoRA adapters
   - Continuous failure detection and solution proposal
   - User Delegation Certificate (UDC) orchestration
   - Skill invocation and NRN consumption
 
-### 💼 KNIRV-WALLET: The User Gateway
+### 💼 KNIRV-WALLET: The Agent's Treasury
 **Technology**: Multi-platform wallet with XION Meta Accounts
-- **Purpose**: Seamless user interface to the entire D-TEN
+- **Purpose**: A secure, non-custodial wallet that allows agents to autonomously manage user assets and permissions on their behalf. Users will not interact directly with the wallet.
 - **Key Features**:
+  - Multiplatform support: Desktop, Mobile, Web
+  - XION Meta Account integration for seamless asset management
+  - Secure key storage and encryption
+  - User-friendly UI for managing assets and delegating authority to KNIRV-AGENTIFIER's Key Features:
   - Web2-like authentication (email, social, biometrics)
-  - Gasless transactions via XION
-  - NRN management and agent control
+  - Secure Gasless transactions via XION
+  - NRN management and autonomous agent control
   - UDC issuance for agent delegation
 
+Clarification: An AI assistant is typically a tool that responds to user commands or queries within a confined scope, performing tasks or providing information based on direct input. In contrast, an AI agent is an autonomous entity that can understand high-level goals and initiate actions to achieve them without constant user intervention. It can proactively manage resources, interact with other systems, and make decisions on behalf of the user, such as a KNIRV-AGENTIFIER, which will use the KNIRV-WALLET to perform transactions and manage assets autonomously.
+
 ### 🎮 KNIRVANA: The Experiential Gateway
-**Technology**: Real-Time Strategy game with direct KNIRV-SHELL integration
+**Technology**: Real-Time Strategy game with direct KNIRV-AGENTIFIER integration
 - **Purpose**: Gamified interaction with the D-TEN ecosystem
 - **Key Features**:
   - Agent unit management and task assignment
@@ -238,7 +244,7 @@ GET  /knirvrouter/*          # KNIRV-ROUTER connectivity
 
 ### Prerequisites
 - **Go**: 1.21+ for blockchain components
-- **Rust**: 1.70+ for KNIRVCHAIN and KNIRV-SHELL
+- **Rust**: 1.70+ for KNIRVCHAIN and KNIRV-AGENTIFIER
 - **Node.js**: 18+ for frontend components
 - **Docker**: 24+ for containerized deployment
 - **Kubernetes**: 1.20+ for production deployment (optional)
@@ -322,13 +328,19 @@ cd KNIRVROUTER && go run main.go --port 3478
 - **[Component Whitepapers](docs/whitepapers/)**: Individual component specifications
 - **[API Documentation](docs/api/)**: Comprehensive API reference
 
+### Developer Resources
+- **[KNIRV Developer Portal](KNIRVWEBSITE/agent-developer-portal/)**: Complete developer experience with tutorials, API docs, and tools
+- **[Portal Documentation](KNIRVWEBSITE/agent-developer-portal/README.md)**: Developer portal setup and usage guide
+- **[Getting Started Guide](https://knirv.netlify.app/agent-developer-portal/)**: Interactive tutorial for new developers
+
 ### Deployment & Operations
 - **[Production Deployment Guide](deployment/README.md)**: Kubernetes and Docker deployment
 - **[Deployment Integration Guide](docs/DEPLOYMENT_TESTING_INTEGRATION.md)**: Testing and monitoring integration
 - **[Month 14-18 Implementation Summary](docs/MONTH_14-18_IMPLEMENTATION_SUMMARY.md)**: Latest production features
 - **[Integration Summary](docs/INTEGRATION_SUMMARY.md)**: Complete integration overview
 
-### Legacy Deployment
+### Web Interface
+- **[KNIRV Website](KNIRVWEBSITE/)**: Main website with integrated developer portal
 - **[Netlify Deployment Guide](docs/NETLIFY_DEPLOYMENT.md)**: Web interface deployment
 
 ## 🧪 Testing
@@ -468,7 +480,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - ✅ Advanced KNIRVGRAPH querying capabilities
 - ✅ KNIRV-NEXUS DVE specialization
 - 🔄 Skill licensing and royalty systems
-- 🔄 Enhanced KNIRV-SHELL SDK
+- 🔄 Enhanced KNIRV-AGENTIFIER SDK
 - ✅ Production monitoring integration
 - ✅ Load testing and performance optimization
 
@@ -659,7 +671,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### ✅ Fully Implemented & Production Ready
 
 #### Core Infrastructure
-- **All 7 Sovereign Layers**: KNIRV-ROOT, KNIRVCHAIN, KNIRVGRAPH, KNIRV-NEXUS, KNIRV-ROUTER, KNIRV-SHELL, KNIRV-WALLET
+- **All 7 Sovereign Layers**: KNIRV-ROOT, KNIRVCHAIN, KNIRVGRAPH, KNIRV-NEXUS, KNIRV-ROUTER, KNIRV-AGENTIFIER, KNIRV-WALLET
 - **Unified API Gateway**: Complete service orchestration with load balancing and authentication
 - **Cross-Chain Bridge**: XION integration with Meta Accounts and USDC faucet
 - **Economic Model**: NRN token minting, burning, and circulation

@@ -2,6 +2,7 @@ package main
 
 import (
 	"KNIRVROOT/config"
+	"context"
 	"log"
 	"os"
 )
@@ -91,4 +92,29 @@ func initNodeJSServices(cfg *config.Config, discoveryMgr *DiscoveryManager) (*No
 	log.Printf("[%s] Node.js services started successfully", cfg.ChainID)
 
 	return nodejsManager, nil
+}
+
+// initEconomicsIntegration initializes the economics integration service
+func initEconomicsIntegration(cfg *config.Config) (*EconomicsIntegration, error) {
+	log.Printf("[%s] Initializing economics integration...", cfg.ChainID)
+
+	// Create economics integration instance
+	economicsIntegration := NewEconomicsIntegration()
+
+	// Enable local mode for root nodes by default
+	if cfg.IsRoot {
+		os.Setenv("ECONOMICS_LOCAL_MODE", "true")
+		log.Printf("[%s] Economics service running in local mode (integrated)", cfg.ChainID)
+	} else {
+		log.Printf("[%s] Economics service running in remote mode", cfg.ChainID)
+	}
+
+	// Start background sync
+	economicsIntegration.StartBackgroundSync(context.Background())
+
+	// Add economics endpoints to HTTP server
+	economicsIntegration.AddEconomicsEndpoints()
+
+	log.Printf("[%s] Economics integration initialized successfully", cfg.ChainID)
+	return economicsIntegration, nil
 }

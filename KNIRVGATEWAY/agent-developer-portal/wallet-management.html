@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRV Wallets - KNIRV Developer Portal</title>
+    <meta name="description" content="Manage NRN tokens and autonomous transactions on the KNIRV network">
+    <link rel="shortcut icon" href="favicon.png">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS with original design system -->
+    <link rel="stylesheet" href="css/portal.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="dashboard-title">
+                <h1>KNIRV Developer Portal</h1>
+                <p style="color: var(--transparent-white-7); font-size: 0.9rem;">D-TEN Network</p>
+            </div>
+
+            <!-- Navigation Items -->
+            <a href="index.html" class="nav-item">
+                <i class="fas fa-home"></i>
+                <span>Home Dashboard</span>
+            </a>
+            <a href="core-concepts.html" class="nav-item">
+                <i class="fas fa-brain"></i>
+                <span>Core Concepts</span>
+            </a>
+            <a href="getting-started.html" class="nav-item">
+                <i class="fas fa-rocket"></i>
+                <span>Getting Started</span>
+            </a>
+            <a href="agent-management.html" class="nav-item">
+                <i class="fas fa-robot"></i>
+                <span>Agent Management</span>
+            </a>
+            <a href="skill-registry.html" class="nav-item">
+                <i class="fas fa-cogs"></i>
+                <span>Skill Registry</span>
+            </a>
+            <a href="udc-management.html" class="nav-item">
+                <i class="fas fa-certificate"></i>
+                <span>UDC Management</span>
+            </a>
+            <a href="agent-skill-exchange.html" class="nav-item">
+                <i class="fas fa-exchange-alt"></i>
+                <span>Agent/Skill Exchange</span>
+            </a>
+            <a href="error-node-explorer.html" class="nav-item">
+                <i class="fas fa-search"></i>
+                <span>ErrorNode Explorer</span>
+            </a>
+            <a href="api-sdk.html" class="nav-item">
+                <i class="fas fa-code"></i>
+                <span>API & SDK</span>
+            </a>
+            <a href="wallet-management.html" class="nav-item active">
+                <i class="fas fa-wallet"></i>
+                <span>KNIRV Wallets</span>
+            </a>
+            <a href="tesnet-sandbox.html" class="nav-item">
+                <i class="fas fa-flask"></i>
+                <span>TESNET & Sandbox</span>
+            </a>
+            <a href="community-support.html" class="nav-item">
+                <i class="fas fa-users"></i>
+                <span>Community & Support</span>
+            </a>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Navigation -->
+            <div class="top-nav">
+                <div>
+                    <h1 class="page-title">KNIRV Wallets</h1>
+                </div>
+                <div class="user-controls">
+                    <i class="control-icon fas fa-bell" title="Notifications"></i>
+                    <i class="control-icon fas fa-cog" title="Settings"></i>
+                    <i class="control-icon fas fa-user-circle" title="Profile"></i>
+                </div>
+            </div>
+
+            <!-- Page Header -->
+            <div class="glass-card">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--knirv-purple-light) 0%, var(--bright-blue) 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 2.5em;">
+                        <i class="fas fa-wallet" style="color: var(--white);"></i>
+                    </div>
+                    <h1 style="color: var(--knirv-purple-light); margin-bottom: 10px; font-size: 2rem;">KNIRV Wallet Management</h1>
+                    <p style="color: var(--transparent-white-7); max-width: 600px; margin: 0 auto;">
+                        Manage your NRN tokens, autonomous transactions, and wallet security for seamless KNIRV network operations.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Wallet Balance -->
+            <div class="glass-card" style="background: linear-gradient(135deg, rgba(0, 192, 250, 0.1) 0%, rgba(43, 86, 245, 0.1) 100%);">
+                <div style="text-align: center; padding: 20px;">
+                    <h2 style="color: var(--bright-blue); margin-bottom: 10px; font-size: 1.5rem;">NRN Balance</h2>
+                    <div style="font-size: 3em; font-weight: 700; color: var(--white); margin: 20px 0;">0.00</div>
+                    <p style="color: var(--transparent-white-7); margin-bottom: 20px;">Network Resolution Notices</p>
+                    <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                        <button class="btn-primary">
+                            <i class="fas fa-plus" style="margin-right: 8px;"></i>Add Funds
+                        </button>
+                        <button class="btn-secondary">
+                            <i class="fas fa-paper-plane" style="margin-right: 8px;"></i>Send NRN
+                        </button>
+                        <button class="btn-outline">
+                            <i class="fas fa-history" style="margin-right: 8px;"></i>Transaction History
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="glass-card">
+                <h2 style="color: var(--knirv-purple); margin-bottom: 20px; font-size: 1.3rem;">Quick Actions</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <button class="btn-primary" onclick="createWallet()" style="padding: 20px; text-align: center;">
+                        <i class="fas fa-plus-circle" style="font-size: 1.5em; margin-bottom: 10px; display: block;"></i>
+                        <h4 style="margin-bottom: 5px;">Create Wallet</h4>
+                        <p style="font-size: 0.9em; opacity: 0.8;">Generate new wallet</p>
+                    </button>
+                    <button class="btn-secondary" onclick="importWallet()" style="padding: 20px; text-align: center;">
+                        <i class="fas fa-download" style="font-size: 1.5em; margin-bottom: 10px; display: block;"></i>
+                        <h4 style="margin-bottom: 5px;">Import Wallet</h4>
+                        <p style="font-size: 0.9em; opacity: 0.8;">Import existing wallet</p>
+                    </button>
+                    <button class="btn-outline" onclick="connectWallet()" style="padding: 20px; text-align: center;">
+                        <i class="fas fa-link" style="font-size: 1.5em; margin-bottom: 10px; display: block;"></i>
+                        <h4 style="margin-bottom: 5px;">Connect Wallet</h4>
+                        <p style="font-size: 0.9em; opacity: 0.8;">Connect external wallet</p>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Wallet Statistics -->
+            <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px;">
+                <div class="glass-card" style="flex: 1; min-width: 200px; text-align: center; background: linear-gradient(135deg, rgba(43, 86, 245, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);">
+                    <div style="color: var(--knirv-purple); font-size: 2em; margin-bottom: 10px;">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+                    <div style="color: var(--knirv-purple); font-weight: 600;">Total Transactions</div>
+                    <div style="font-size: 1.5em; font-weight: 700; margin: 10px 0;">0</div>
+                    <div style="color: var(--transparent-white-7); font-size: 0.9em;">All time</div>
+                </div>
+                <div class="glass-card" style="flex: 1; min-width: 200px; text-align: center; background: linear-gradient(135deg, rgba(0, 192, 250, 0.1) 0%, rgba(43, 86, 245, 0.1) 100%);">
+                    <div style="color: var(--bright-blue); font-size: 2em; margin-bottom: 10px;">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div style="color: var(--bright-blue); font-weight: 600;">Autonomous Txns</div>
+                    <div style="font-size: 1.5em; font-weight: 700; margin: 10px 0;">0</div>
+                    <div style="color: var(--transparent-white-7); font-size: 0.9em;">Agent-initiated</div>
+                </div>
+                <div class="glass-card" style="flex: 1; min-width: 200px; text-align: center; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(0, 192, 250, 0.1) 100%);">
+                    <div style="color: var(--knirv-purple-light); font-size: 2em; margin-bottom: 10px;">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div style="color: var(--knirv-purple-light); font-weight: 600;">Security Score</div>
+                    <div style="font-size: 1.5em; font-weight: 700; margin: 10px 0;">A+</div>
+                    <div style="color: var(--transparent-white-7); font-size: 0.9em;">Excellent</div>
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="glass-card">
+                <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">
+                    <i class="fas fa-history" style="margin-right: 10px;"></i>Recent Transactions
+                </h2>
+                <div id="transactionsList">
+                    <div style="text-align: center; padding: 40px; color: var(--transparent-white-7);">
+                        <i class="fas fa-receipt" style="font-size: 3em; margin-bottom: 20px; opacity: 0.3;"></i>
+                        <h3>No transactions yet</h3>
+                        <p>Your transaction history will appear here once you start using your wallet.</p>
+                        <button class="btn-primary" onclick="createWallet()" style="margin-top: 20px;">
+                            <i class="fas fa-plus-circle" style="margin-right: 8px;"></i>Create Your First Wallet
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Features -->
+            <div class="glass-card">
+                <h2 style="color: var(--knirv-purple); margin-bottom: 20px; font-size: 1.3rem;">
+                    <i class="fas fa-shield-alt" style="margin-right: 10px;"></i>Security Features
+                </h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--bright-blue);">
+                        <h3 style="color: var(--bright-blue); margin-bottom: 10px;">
+                            <i class="fas fa-lock" style="margin-right: 8px;"></i>Multi-Signature
+                        </h3>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9rem;">
+                            Require multiple signatures for high-value transactions and autonomous agent operations.
+                        </p>
+                    </div>
+                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--knirv-purple);">
+                        <h3 style="color: var(--knirv-purple); margin-bottom: 10px;">
+                            <i class="fas fa-key" style="margin-right: 8px;"></i>Hardware Security
+                        </h3>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9rem;">
+                            Support for hardware wallets and secure key storage for maximum protection.
+                        </p>
+                    </div>
+                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--knirv-purple-light);">
+                        <h3 style="color: var(--knirv-purple-light); margin-bottom: 10px;">
+                            <i class="fas fa-clock" style="margin-right: 8px;"></i>Time Locks
+                        </h3>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9rem;">
+                            Set time-based restrictions on transactions and autonomous agent spending limits.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="js/portal.js"></script>
+    <script>
+        function createWallet() {
+            window.knirvPortal.showNotification('Wallet creation wizard would open here', 'info');
+        }
+        
+        function importWallet() {
+            window.knirvPortal.showNotification('Wallet import functionality coming soon', 'info');
+        }
+        
+        function connectWallet() {
+            window.knirvPortal.showNotification('External wallet connection coming soon', 'info');
+        }
+    </script>
+</body>
+</html>

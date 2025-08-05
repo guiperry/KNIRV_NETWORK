@@ -38,7 +38,7 @@ func NewIntegrationTestSuite() *IntegrationTestSuite {
 		knirvgraphURL:  "http://localhost:8081",
 		knirvnexusURL:  "http://localhost:8083", // KNIRVNEXUS API port
 		knirvwalletURL: "http://localhost:8084", // KNIRVWALLET (not implemented yet)
-		knirvshellURL:  "http://localhost:8085", // KNIRVSHELL (not implemented yet)
+		knirvshellURL:  "http://localhost:8085", // KNIRVAGENTIFIER (not implemented yet)
 		knirvroterURL:  "http://localhost:8086", // KNIRVROUTER (mocked)
 		knirvRootURL:   "http://localhost:8087", // KNIRVROOT
 		xionRPC:        "https://rpc.xion-testnet-1.burnt.com:443",

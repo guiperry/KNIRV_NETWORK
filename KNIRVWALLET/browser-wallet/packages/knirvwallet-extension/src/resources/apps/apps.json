@@ -9,10 +9,10 @@
     "order": 1
   },
   {
-    "symbol": "KNIRVSHELL",
-    "name": "KNIRV-SHELL",
+    "symbol": "KNIRVAGENTIFIER",
+    "name": "KNIRV-AGENTIFIER",
     "description": "Control and manage your AI agents.",
-    "logo": "/resources/apps/images/knirv-shell.svg",
+    "logo": "/resources/apps/images/KNIRV-AGENTIFIER.svg",
     "link": "https://shell.knirv.network/",
     "display": true,
     "order": 2

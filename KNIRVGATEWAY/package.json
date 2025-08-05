@@ -1,0 +1,32 @@
+{
+  "name": "knirvwebsite-gateway",
+  "version": "1.0.0",
+  "description": "KNIRV Website with integrated API Gateway functions",
+  "main": "index.html",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "npm install && echo 'Static site built with Netlify Functions support'",
+    "test": "echo 'No tests configured'",
+    "deploy": "netlify deploy --prod",
+    "functions:test": "node netlify/functions/gateway-sse.js --test",
+    "validate": "echo 'Validating Netlify Functions...' && npm run functions:test"
+  },
+  "dependencies": {
+    "http-proxy-middleware": "^2.0.6"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "knirv",
+    "api-gateway",
+    "netlify",
+    "serverless",
+    "sse"
+  ],
+  "author": "KNIRV Team",
+  "license": "MIT"
+}

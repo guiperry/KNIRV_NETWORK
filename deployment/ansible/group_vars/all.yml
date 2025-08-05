@@ -1,0 +1,209 @@
+# KNIRV Network Global Variables
+# These variables apply to all hosts and can be overridden per environment
+
+# =============================================================================
+# CLOUD PROVIDER CONFIGURATION
+# =============================================================================
+
+# Supported providers: aws, gcp, azure, digitalocean
+cloud_provider: aws
+region: us-east-1
+
+# =============================================================================
+# INSTANCE CONFIGURATION
+# =============================================================================
+
+# AWS Instance Configuration
+instance_type: t3.medium
+ami_id: ami-0c7217cdde317cfec  # Ubuntu 22.04 LTS (us-east-1)
+key_pair_name: knirv-network-key
+
+# Instance sizing by environment
+instance_types:
+  development: t3.small
+  staging: t3.medium
+  production: t3.large
+
+# =============================================================================
+# NETWORK CONFIGURATION
+# =============================================================================
+
+vpc_cidr: 10.0.0.0/16
+subnet_cidr: 10.0.1.0/24
+
+# KNIRV Service Port Configuration
+knirv_services:
+  chain:
+    port: 8080
+    health_endpoint: /health
+    description: "KNIRV Blockchain Service"
+  graph:
+    port: 8081
+    health_endpoint: /health
+    description: "KNIRV Graph Processing Service"
+  nexus:
+    port: 8082
+    health_endpoint: /health
+    description: "KNIRV LLM Inference Engine"
+  root:
+    port: 8083
+    health_endpoint: /health
+    description: "KNIRV Core Orchestration Service"
+  wallet:
+    port: 8084
+    health_endpoint: /health
+    description: "KNIRV Wallet Service"
+  shell:
+    port: 8085
+    health_endpoint: /health
+    description: "KNIRV Shell Interface"
+  router:
+    port: 8086
+    health_endpoint: /health
+    description: "KNIRV Router Service"
+  gateway:
+    port: 8087
+    health_endpoint: /health
+    description: "KNIRV API Gateway"
+
+# Additional ports for infrastructure services
+infrastructure_ports:
+  - 22    # SSH
+  - 80    # HTTP
+  - 443   # HTTPS
+  - 3478  # STUN/TURN UDP
+  - 5349  # TURN TLS
+  - 9090  # Prometheus metrics
+  - 6443  # Kubernetes API
+
+# =============================================================================
+# DNS CONFIGURATION
+# =============================================================================
+
+# Domain configuration
+domain_name: knirv.com
+subdomain_prefix: ""  # Empty for direct subdomains, or set to environment name
+
+# KNIRV service subdomains
+knirv_subdomains:
+  - chain
+  - graph
+  - nexus
+  - root
+  - wallet
+  - shell
+  - router
+  - gateway
+  - api
+  - www
+
+# Environment-specific subdomain patterns
+subdomain_patterns:
+  development: "dev-{{ service }}"
+  staging: "staging-{{ service }}"
+  production: "{{ service }}"
+
+# =============================================================================
+# SOFTWARE VERSIONS
+# =============================================================================
+
+# Container runtime versions
+docker_version: "24.0"
+docker_compose_version: "2.21.0"
+
+# Kubernetes versions
+kubectl_version: "1.28.0"
+k3s_version: latest
+
+# Monitoring versions
+prometheus_version: "2.45.0"
+grafana_version: "10.0.0"
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+
+# Firewall configuration
+firewall_enabled: true
+fail2ban_enabled: true
+
+# SSH hardening
+ssh_hardening:
+  disable_root_login: true
+  disable_password_auth: true
+  max_auth_tries: 3
+  client_alive_interval: 300
+  client_alive_count_max: 2
+
+# SSL/TLS configuration
+ssl_config:
+  enable_letsencrypt: true
+  cert_email: admin@knirv.com
+  force_https: true
+
+# =============================================================================
+# MONITORING AND LOGGING
+# =============================================================================
+
+# Log retention
+log_retention_days: 7
+log_max_size: "10m"
+log_max_files: 3
+
+# Health check configuration
+health_check:
+  interval: 30
+  timeout: 10
+  retries: 3
+
+# Monitoring endpoints
+monitoring:
+  prometheus_port: 9090
+  grafana_port: 3000
+  alertmanager_port: 9093
+
+# =============================================================================
+# BACKUP CONFIGURATION
+# =============================================================================
+
+backup_config:
+  enabled: true
+  retention_days: 30
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  s3_bucket: "knirv-backups"
+
+# =============================================================================
+# ENVIRONMENT-SPECIFIC OVERRIDES
+# =============================================================================
+
+# These can be overridden in environment-specific files
+environment: production
+debug_mode: false
+enable_metrics: true
+enable_tracing: true
+
+# Resource limits
+resource_limits:
+  cpu_limit: "2000m"
+  memory_limit: "4Gi"
+  cpu_request: "500m"
+  memory_request: "1Gi"
+
+# =============================================================================
+# INTEGRATION SETTINGS
+# =============================================================================
+
+# External service integrations
+integrations:
+  xion_rpc: "https://rpc.xion.burnt.com:443"
+  enable_blockchain_bridge: true
+  enable_ai_services: true
+
+# Database configuration
+database:
+  type: postgresql
+  host: postgres
+  port: 5432
+  name: knirv
+  user: knirv
+  # Password should be set via environment variable or vault

@@ -22,7 +22,7 @@ declare -A SERVICES=(
     ["KNIRVGRAPH"]="8081"
     ["KNIRVNEXUS"]="8082"
     ["KNIRVWALLET"]="8083"
-    ["KNIRVSHELL"]="8084"
+    ["KNIRVAGENTIFIER"]="8084"
     ["KNIRVROUTER"]="8085"
     ["KNIRVROOT"]="8086"
 )

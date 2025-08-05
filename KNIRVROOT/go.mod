@@ -14,6 +14,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.14.0
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/pion/stun v0.6.1
+	github.com/rs/cors v1.11.1
 	github.com/stretchr/testify v1.10.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/webview/webview_go v0.0.0-20240831120633-6173450d4dd6
@@ -23,7 +24,6 @@ require (
 require (
 	github.com/google/generative-ai-go v0.19.0
 	github.com/gorilla/mux v1.8.1
-	github.com/guiperry/chroma-go_cerebras v0.2.5
 	github.com/guiperry/gollm_cerebras v0.2.1
 	github.com/invopop/jsonschema v0.13.0
 	github.com/mouuff/go-rocket-update v1.5.4

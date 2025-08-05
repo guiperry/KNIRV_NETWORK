@@ -1743,6 +1743,24 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 				}()
 			}
 		}
+
+		// 7.2. Economics integration service
+		var economicsIntegration *EconomicsIntegration
+		economicsIntegration, err = initEconomicsIntegration(&cfg)
+		if err != nil {
+			log.Printf("[%s][%s] ERROR: Failed to initialize economics integration: %v", role.String(), cfg.ChainID, err)
+			// Continue execution even if economics integration fails to start
+		}
+		if economicsIntegration != nil {
+			defer func() {
+				log.Printf("[%s][%s] Stopping economics integration...", role.String(), cfg.ChainID)
+				if economicsIntegration.IsLocalMode() {
+					economicsIntegration.StopLocalEconomicsService()
+				}
+				log.Printf("[%s][%s] Economics integration stopped", role.String(), cfg.ChainID)
+			}()
+		}
+
 		// 8. Start blockchain HTTP server
 		serverStopped := make(chan struct{})
 		go func() {
