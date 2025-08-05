@@ -12,11 +12,12 @@ ENVIRONMENT ?= production
 CLOUD_PROVIDER ?= aws
 
 # Project directories
-PROJECT_ROOT := $(shell cd ../.. && pwd)
-ANSIBLE_DIR := $(shell pwd)
+PROJECT_ROOT := $(shell pwd)
+ANSIBLE_DIR := $(PROJECT_ROOT)/deployment/ansible
 SCRIPTS_DIR := $(PROJECT_ROOT)/scripts
 KNIRVWEBSITE_DIR := $(PROJECT_ROOT)/KNIRVWEBSITE
 DOCS_DIR := $(PROJECT_ROOT)/KNIRVWEBSITE/documentation
+DEPLOYMENT_DIR := $(PROJECT_ROOT)/deployment
 
 # Colors for output
 RED := \033[0;31m
@@ -28,7 +29,7 @@ NC := \033[0m # No Color
 # Check if .env file exists
 ENV_FILE := $(ANSIBLE_DIR)/.env
 ifeq ($(wildcard $(ENV_FILE)),)
-    $(warning Warning: .env file not found. Copy .env.example to .env and configure your settings)
+    $(warning Warning: .env file not found. Copy deployment/ansible/.env.example to deployment/ansible/.env and configure your settings)
 endif
 
 # =============================================================================
@@ -60,7 +61,7 @@ help: ## Show this help message
 check-env: ## Check if .env file exists and is configured
 	@if [ ! -f "$(ENV_FILE)" ]; then \
 		echo "$(RED)Error: .env file not found$(NC)"; \
-		echo "$(YELLOW)Please copy .env.example to .env and configure your settings$(NC)"; \
+		echo "$(YELLOW)Please copy deployment/ansible/.env.example to deployment/ansible/.env and configure your settings$(NC)"; \
 		exit 1; \
 	fi
 	@echo "$(GREEN)✓ Environment file found$(NC)"
@@ -69,7 +70,7 @@ check-env: ## Check if .env file exists and is configured
 install-deps: ## Install Ansible and required dependencies
 	@echo "$(BLUE)Installing Ansible dependencies...$(NC)"
 	@pip install ansible
-	@ansible-galaxy collection install -r requirements.yml
+	@cd $(ANSIBLE_DIR) && ansible-galaxy collection install -r requirements.yml
 	@echo "$(GREEN)✓ Dependencies installed$(NC)"
 
 .PHONY: check-prereqs
@@ -127,23 +128,23 @@ docs-clean: ## Clean generated documentation
 .PHONY: deploy-infrastructure
 deploy-infrastructure: check-prereqs ## Deploy infrastructure only
 	@echo "$(BLUE)Deploying infrastructure for $(ENVIRONMENT) environment...$(NC)"
-	@./deploy-infrastructure.sh $(ENVIRONMENT) --cloud-provider $(CLOUD_PROVIDER)
+	@cd $(ANSIBLE_DIR) && ./deploy-infrastructure.sh $(ENVIRONMENT) --cloud-provider $(CLOUD_PROVIDER)
 	@echo "$(GREEN)✓ Infrastructure deployment completed$(NC)"
 
 .PHONY: deploy-infrastructure-dry-run
 deploy-infrastructure-dry-run: check-prereqs ## Preview infrastructure deployment (dry run)
 	@echo "$(BLUE)Previewing infrastructure deployment for $(ENVIRONMENT) environment...$(NC)"
-	@./deploy-infrastructure.sh $(ENVIRONMENT) --cloud-provider $(CLOUD_PROVIDER) --dry-run
+	@cd $(ANSIBLE_DIR) && ./deploy-infrastructure.sh $(ENVIRONMENT) --cloud-provider $(CLOUD_PROVIDER) --dry-run
 
 .PHONY: deploy-infrastructure-force
 deploy-infrastructure-force: check-prereqs ## Deploy infrastructure without confirmation
 	@echo "$(BLUE)Force deploying infrastructure for $(ENVIRONMENT) environment...$(NC)"
-	@./deploy-infrastructure.sh $(ENVIRONMENT) --cloud-provider $(CLOUD_PROVIDER) --force
+	@cd $(ANSIBLE_DIR) && ./deploy-infrastructure.sh $(ENVIRONMENT) --cloud-provider $(CLOUD_PROVIDER) --force
 
 .PHONY: deploy-infrastructure-skip-dns
 deploy-infrastructure-skip-dns: check-prereqs ## Deploy infrastructure without DNS updates
 	@echo "$(BLUE)Deploying infrastructure (skip DNS) for $(ENVIRONMENT) environment...$(NC)"
-	@./deploy-infrastructure.sh $(ENVIRONMENT) --cloud-provider $(CLOUD_PROVIDER) --skip-dns
+	@cd $(ANSIBLE_DIR) && ./deploy-infrastructure.sh $(ENVIRONMENT) --cloud-provider $(CLOUD_PROVIDER) --skip-dns
 
 # =============================================================================
 # APPLICATION DEPLOYMENT
@@ -152,13 +153,13 @@ deploy-infrastructure-skip-dns: check-prereqs ## Deploy infrastructure without D
 .PHONY: deploy-apps
 deploy-apps: ## Deploy KNIRV applications using existing Docker/K8s infrastructure
 	@echo "$(BLUE)Deploying KNIRV applications...$(NC)"
-	@cd $(PROJECT_ROOT) && ./deployment/deploy.sh deploy
+	@cd $(DEPLOYMENT_DIR) && ./deploy.sh deploy
 	@echo "$(GREEN)✓ Applications deployed$(NC)"
 
 .PHONY: deploy-monitoring
 deploy-monitoring: ## Deploy monitoring stack only
 	@echo "$(BLUE)Deploying monitoring stack...$(NC)"
-	@cd $(PROJECT_ROOT) && ./deployment/deploy.sh monitoring
+	@cd $(DEPLOYMENT_DIR) && ./deploy.sh monitoring
 	@echo "$(GREEN)✓ Monitoring stack deployed$(NC)"
 
 .PHONY: deploy-website
@@ -208,7 +209,7 @@ deploy-staging: ## Staging deployment
 .PHONY: test-infrastructure
 test-infrastructure: ## Test infrastructure deployment
 	@echo "$(BLUE)Testing infrastructure...$(NC)"
-	@cd $(PROJECT_ROOT) && ./deployment/testing/final-test-suite.sh
+	@cd $(DEPLOYMENT_DIR) && ./testing/final-test-suite.sh
 	@echo "$(GREEN)✓ Infrastructure tests completed$(NC)"
 
 .PHONY: health-check
@@ -231,7 +232,7 @@ health-check: ## Check health of all KNIRV services
 .PHONY: validate-config
 validate-config: check-env ## Validate Ansible configuration
 	@echo "$(BLUE)Validating Ansible configuration...$(NC)"
-	@ansible-playbook infrastructure-playbook.yml --syntax-check
+	@cd $(ANSIBLE_DIR) && ansible-playbook infrastructure-playbook.yml --syntax-check
 	@echo "$(GREEN)✓ Configuration is valid$(NC)"
 
 # =============================================================================
@@ -240,8 +241,8 @@ validate-config: check-env ## Validate Ansible configuration
 
 .PHONY: logs
 logs: ## Show Ansible deployment logs
-	@if [ -f "ansible.log" ]; then \
-		tail -f ansible.log; \
+	@if [ -f "$(ANSIBLE_DIR)/ansible.log" ]; then \
+		tail -f $(ANSIBLE_DIR)/ansible.log; \
 	else \
 		echo "$(YELLOW)No Ansible logs found$(NC)"; \
 	fi
@@ -249,8 +250,8 @@ logs: ## Show Ansible deployment logs
 .PHONY: clean
 clean: docs-clean ## Clean generated files and logs
 	@echo "$(BLUE)Cleaning up...$(NC)"
-	@rm -f ansible.log
-	@rm -f *.retry
+	@rm -f $(ANSIBLE_DIR)/ansible.log
+	@rm -f $(ANSIBLE_DIR)/*.retry
 	@echo "$(GREEN)✓ Cleanup completed$(NC)"
 
 .PHONY: clean-all
@@ -266,7 +267,7 @@ clean-all: clean ## Clean everything including dependencies
 .PHONY: env-example
 env-example: ## Show environment variables example
 	@echo "$(BLUE)Environment Variables Example:$(NC)"
-	@cat .env.example
+	@cat $(ANSIBLE_DIR)/.env.example
 
 .PHONY: status
 status: ## Show deployment status and configuration
@@ -278,15 +279,15 @@ status: ## Show deployment status and configuration
 	@echo "Ansible Dir: $(ANSIBLE_DIR)"
 	@echo ""
 	@echo "$(YELLOW)Configuration Files:$(NC)"
-	@ls -la .env* 2>/dev/null || echo "No .env files found"
+	@ls -la $(ANSIBLE_DIR)/.env* 2>/dev/null || echo "No .env files found"
 	@echo ""
 	@echo "$(YELLOW)Available Environments:$(NC)"
-	@ls -1 environments/*.yml 2>/dev/null | sed 's/environments\///g' | sed 's/\.yml//g' || echo "No environment files found"
+	@ls -1 $(ANSIBLE_DIR)/environments/*.yml 2>/dev/null | sed 's|$(ANSIBLE_DIR)/environments/||g' | sed 's/\.yml//g' || echo "No environment files found"
 
 .PHONY: update-deps
 update-deps: ## Update Ansible collections and documentation dependencies
 	@echo "$(BLUE)Updating dependencies...$(NC)"
-	@ansible-galaxy collection install -r requirements.yml --force
+	@cd $(ANSIBLE_DIR) && ansible-galaxy collection install -r requirements.yml --force
 	@if [ -f "$(DOCS_DIR)/package.json" ]; then \
 		cd $(DOCS_DIR) && npm update; \
 	fi

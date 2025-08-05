@@ -1,6 +1,6 @@
-# AGENTCHAIN CLI
+# KNIRVSHELL
 
-A comprehensive command-line interface for interacting with the AGENTCHAIN distributed ledger system.
+A comprehensive command-line interface for interacting with the KNIRV Network distributed ledger system.
 
 ## Features
 
@@ -17,7 +17,7 @@ A comprehensive command-line interface for interacting with the AGENTCHAIN distr
 
 ### Option 1: Download Pre-built Binaries (Recommended)
 
-1. **Download the appropriate binary** for your operating system and architecture from the [GitHub Releases page](https://github.com/guiperry/AGENTCHAIN-CLI/releases).
+1. **Download the appropriate binary** for your operating system and architecture from the [GitHub Releases page](https://github.com/guiperry/KNIRV_Network/releases).
 
    ```
    # Example filenames
@@ -115,7 +115,7 @@ tar -xzf knirv_VERSION_YOUR_OS_YOUR_ARCH.tar.gz
 
 ### Option 3: Package Managers
 
-For a smoother installation experience, AGENTCHAIN CLI is also available through popular package managers:
+For a smoother installation experience, KNIRVSHELL is also available through popular package managers:
 
 **macOS (Homebrew)**:
 ```sh
@@ -160,8 +160,8 @@ If you prefer to build from source or are contributing to the project:
 
 ```sh
 # Clone the repository
-git clone https://github.com/guiperry/AGENTCHAIN-CLI.git
-cd AGENTCHAIN-CLI
+git clone https://github.com/guiperry/KNIRV_Network.git
+cd KNIRVSHELL
 
 # Build the binary
 go build -o knirv
@@ -172,7 +172,7 @@ go install
 
 ## Usage
 
-AGENTCHAIN CLI can be used in two modes:
+KNIRVSHELL can be used in two modes:
 
 ### Command Mode
 
@@ -183,10 +183,10 @@ knirv [command]
 
 Available Commands:
   help        Help about any command
-  init        Initialize AGENTCHAIN CLI configuration
+  init        Initialize KNIRVSHELL configuration
   mcp         Manage MCP capabilities and servers
   version     Display version information
-  wallet      Manage AGENTCHAIN wallets
+  wallet      Manage KNIRV wallets
 
 Flags:
       --ai-model string       AI model to use for generation
@@ -197,7 +197,7 @@ Flags:
       --log-format string     set logging format (text, json) (default "text")
       --log-level string      set logging level (debug, info, warn, error) (default "info")
       --no-animations         disable UI animations
-      --node-url string       URL of the AGENTCHAIN node
+      --node-url string       URL of the KNIRV node
       --theme string          set UI theme (default, dark, light, high-contrast) (default "default")
       --tui                   enable terminal UI mode with bubbletea
   -v, --verbose               enable verbose logging
@@ -222,7 +222,7 @@ This opens an interactive shell with command history, tab completion, and more:
 Example session:
 ```
 ╔════════════════════════════════════════════════════════════╗
-║                AGENTCHAIN CLI Interactive Mode             ║
+║                KNIRVSHELL Interactive Mode             ║
 ╠════════════════════════════════════════════════════════════╣
 ║ • Type 'help' for a list of available commands             ║
 ║ • Use <tab> for command completion                         ║
@@ -237,7 +237,7 @@ knirv> mcp capability list
 [capability list output]
 
 knirv> exit
-Exiting AGENTCHAIN CLI.
+Exiting KNIRVSHELL.
 ```
 
 ### Initialize Configuration
@@ -248,7 +248,7 @@ knirv init [flags]
 Flags:
       --config string       Configuration file path
       --log-level string    Logging level (debug, info, warn, error)
-      --node-url string     AGENTCHAIN node URL
+      --node-url string     KNIRV-ROOT node URL
       --overwrite           Overwrite existing configuration
       --wallet-dir string   Wallet directory path
 ```
