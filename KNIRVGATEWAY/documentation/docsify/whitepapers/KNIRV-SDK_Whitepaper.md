@@ -10,13 +10,13 @@
 
 ## Abstract
 
-Building decentralized applications and integrating with complex multi-chain AI ecosystems presents significant development challenges. This whitepaper introduces the **KNIRV Software Development Kit (SDK)**, a comprehensive suite of tools, libraries, and APIs designed to provide a high-level, unified interface for developers to interact with the entire **KNIRV Decentralized Trusted Execution Network (D-TEN)**. Leveraging an integrated **API Gateway** and existing client libraries for `knirv://` URI resolution, the **KNIRV SDK** abstracts away the underlying blockchain and P2P complexities. It empowers developers to seamlessly manage **NRN** tokens, orchestrate **KNIRV-AGENTIFIER** agents, interact with the **KNIRVGRAPH** knowledge Graphchain, submit Skill updates to **KNIRVCHAIN**, and integrate with **KNIRV-NEXUS** DVEs. Available in Go, Python, and JavaScript/TypeScript, the **KNIRV SDK** is the essential toolkit for building the next generation of intelligent, decentralized applications.
+Building decentralized applications and integrating with complex multi-chain AI ecosystems presents significant development challenges. This whitepaper introduces the **KNIRV Software Development Kit (SDK)**, a comprehensive suite of tools, libraries, and APIs designed to provide a high-level, unified interface for developers to interact with the entire **KNIRV Decentralized Trusted Execution Network (D-TEN)**. Leveraging an integrated **API Gateway** and existing client libraries for `knirv://` URI resolution, the **KNIRV SDK** abstracts away the underlying blockchain and P2P complexities. It empowers developers to seamlessly manage **NRN** tokens, orchestrate **KNIRV-SHELL** agents, interact with the **KNIRVGRAPH** knowledge Graphchain, submit Skill updates to **KNIRVCHAIN**, and integrate with **KNIRV-NEXUS** DVEs. Available in Go, Python, and JavaScript/TypeScript, the **KNIRV SDK** is the essential toolkit for building the next generation of intelligent, decentralized applications.
 
 ---
 
 ## 1. Introduction
 
-The **KNIRV D-TEN** represents a paradigm shift in decentralized AI, with its sovereign Graphchains (**KNIRVGRAPH**), blockchains (**KNIRV-ROOT**, **KNIRVCHAIN**), and intelligent agents (**KNIRV-AGENTIFIER**). However, the power of such a sophisticated ecosystem can only be fully realized if it is easily accessible to developers. Direct interaction with multiple blockchain RPCs, complex P2P protocols, and specialized data structures can be a significant barrier to entry.
+The **KNIRV D-TEN** represents a paradigm shift in decentralized AI, with its sovereign Graphchains (**KNIRVGRAPH**), blockchains (**KNIRV-ROOT**, **KNIRVCHAIN**), and intelligent agents (**KNIRV-SHELL**). However, the power of such a sophisticated ecosystem can only be fully realized if it is easily accessible to developers. Direct interaction with multiple blockchain RPCs, complex P2P protocols, and specialized data structures can be a significant barrier to entry.
 
 The **KNIRV SDK** is engineered to bridge this gap. It provides a unified, high-level abstraction layer that simplifies programmatic interaction with all components of the **KNIRV D-TEN**. By centralizing access through a robust **API Gateway** and building upon existing `knirv://` URI resolution capabilities, the SDK empowers developers to focus on building innovative applications rather than grappling with low-level network intricacies.
 
@@ -38,7 +38,7 @@ The **KNIRV SDK's** primary interaction model is through a Unified **API Gateway
 >     -   **Authentication & Authorization:** Managing API tokens and verifying access rights for different services and routes.
 >     -   **Rate Limiting:** Protecting backend services from abuse and ensuring fair resource allocation.
 >     -   **Health Checks & Metrics:** Monitoring the health and performance of all integrated KNIRV services, providing developers with real-time insights.
->     -   **WebSocket Support:** Enabling real-time communication for dynamic updates (e.g., NRV status, **KNIRV-AGENTIFIER** activity).
+>     -   **WebSocket Support:** Enabling real-time communication for dynamic updates (e.g., NRV status, **KNIRV-SHELL** activity).
 > -   **Simplified Deployment:** Developers can deploy the APIGateway as a single component, simplifying infrastructure management for their applications.
 
 ### 2.2. High-Level Abstraction for D-TEN Interactions
@@ -49,7 +49,7 @@ The SDK provides intuitive, high-level functions that abstract away the complexi
 >
 > -   **Blockchain Interaction Abstraction:** Instead of raw RPC calls to **KNIRV-ROOT**, **KNIRVCHAIN**, or **KNIRVGRAPH**, developers use simple SDK methods like `knirv.nrn.transfer(amount, recipient)` or `knirv.skill.invoke(skillId, data)`. The SDK handles the underlying transaction construction, signing (via **KNIRV-WALLET** integration), and submission.
 > -   **P2P & DHT Abstraction:** Building upon existing `knirv://` URI resolution capabilities, the SDK simplifies peer discovery and resource fetching within the D-TEN's private DHT. Developers can simply request a resource via its `knirv://` URI, and the SDK handles the complex libp2p streams and peer connections.
-> -   **Cryptographic Simplification:** The SDK simplifies cryptographic operations, such as generating User Delegation Certificates (UDCs) for **KNIRV-AGENTIFIER** agents or verifying ValidationProofs from **KNIRV-NEXUS** DVEs. Developers interact with clear method calls, not raw cryptographic primitives.
+> -   **Cryptographic Simplification:** The SDK simplifies cryptographic operations, such as generating User Delegation Certificates (UDCs) for **KNIRV-SHELL** agents or verifying ValidationProofs from **KNIRV-NEXUS** DVEs. Developers interact with clear method calls, not raw cryptographic primitives.
 
 ### 2.3. Multi-Language Support
 
@@ -92,7 +92,7 @@ The SDK includes a client for the **API Gateway**, providing structured access t
 >     -   `knirv.root.mintNRN(proof)` (proxied to `knirvroot` service)
 >     -   `knirv.nexus.submitValidationTask(task)` (proxied to `knirvnexus` service)
 > -   **Authentication & Authorization:** The SDK handles token management (e.g., acquiring and attaching authentication tokens from the APIGateway's AuthenticationService) for routes requiring authorization.
-> -   **WebSocket Integration:** The SDK provides client-side WebSocket capabilities to subscribe to real-time updates from the APIGateway (e.g., service health changes, NRV status updates, **KNIRV-AGENTIFIER** activity).
+> -   **WebSocket Integration:** The SDK provides client-side WebSocket capabilities to subscribe to real-time updates from the APIGateway (e.g., service health changes, NRV status updates, **KNIRV-SHELL** activity).
 
 ### 3.3. NRN Token & Economic Operations
 
@@ -103,19 +103,19 @@ The SDK provides comprehensive functionalities for interacting with the **NRN** 
 > -   **NRN Balance & History:** Methods to query a user's **NRN** balance (from **KNIRV-ROOT**) and retrieve transaction history.
 > -   **NRN Transfer:** Simple methods to transfer **NRN** tokens between accounts (orchestrated by **KNIRV-ROOT** via the **API Gateway**).
 > -   **NRN Acquisition:** Direct interface to acquire **NRN** from the **KNIRV-ROOT** Faucet (via the **API Gateway**), abstracting the USDC exchange process.
-> -   **Skill Invocation:** A core function allowing **KNIRV-AGENTIFIER** agents (or dApps) to invoke Skills from **KNIRVCHAIN**, which triggers **NRN** burning on **KNIRV-ROOT**. The SDK handles the underlying transaction construction and submission.
+> -   **Skill Invocation:** A core function allowing **KNIRV-SHELL** agents (or dApps) to invoke Skills from **KNIRVCHAIN**, which triggers **NRN** burning on **KNIRV-ROOT**. The SDK handles the underlying transaction construction and submission.
 > -   **LLM/Skill Registration:** Methods to submit Base LLM update proposals to **KNIRVCHAIN** (orchestrated by **KNIRV-ROOT**) and SkillNode proposals to **KNIRVGRAPH** (which then triggers canonical minting on **KNIRVCHAIN** via **KNIRV-ROOT**).
 > -   **Reward Claiming:** Interface for Solvers, DVE operators, and Observers to claim their **NRN** rewards (from **KNIRV-ROOT**).
 
-### 3.4. KNIRV-AGENTIFIER Management & User Delegation Certificates (UDCs)
+### 3.4. KNIRV-SHELL Management & User Delegation Certificates (UDCs)
 
-The SDK provides tools for developers to integrate **KNIRV-AGENTIFIER** agent control into their applications.
+The SDK provides tools for developers to integrate **KNIRV-SHELL** agent control into their applications.
 
 > **Expanded Information:**
 >
-> -   **KNIRV-AGENTIFIER Pairing:** Secure methods for pairing a dApp or user account with a **KNIRV-AGENTIFIER** agent.
-> -   **UDC Generation & Signing:** SDK functions to generate User Delegation Certificates (UDCs) with granular permissions, cryptographically signed by the user's **KNIRV-WALLET** (leveraging XION's Meta Accounts). These UDCs can then be passed to **KNIRV-AGENTIFIER** agents to authorize their actions.
-> -   **Agent Command & Monitoring:** Methods to send commands to **KNIRV-AGENTIFIER** agents and receive real-time updates on their status, task execution, and **NRN** consumption.
+> -   **KNIRV-SHELL Pairing:** Secure methods for pairing a dApp or user account with a **KNIRV-SHELL** agent.
+> -   **UDC Generation & Signing:** SDK functions to generate User Delegation Certificates (UDCs) with granular permissions, cryptographically signed by the user's **KNIRV-WALLET** (leveraging XION's Meta Accounts). These UDCs can then be passed to **KNIRV-SHELL** agents to authorize their actions.
+> -   **Agent Command & Monitoring:** Methods to send commands to **KNIRV-SHELL** agents and receive real-time updates on their status, task execution, and **NRN** consumption.
 
 ### 3.5. KNIRVGRAPH Interaction
 
@@ -304,14 +304,14 @@ async function main() {
         console.log(`User logged in. Token: ${userToken}`);
         apiClient.setAuthToken(userToken); // Set token for subsequent API calls
 
-        // --- Example 2: Issue a UDC for a KNIRV-AGENTIFIER agent ---
-        console.log('\n--- Issuing UDC for KNIRV-AGENTIFIER ---');
+        // --- Example 2: Issue a UDC for a KNIRV-SHELL agent ---
+        console.log('\n--- Issuing UDC for KNIRV-SHELL ---');
         const agentId = 'agent_epsilon';
         const permissions = ['skill_invoke:travel', 'nrn_transfer:limit:100'];
         const expiry = Date.now() + 3600 * 1000; // 1 hour
         const udc = await walletClient.issueUDC(agentId, permissions, expiry);
         console.log(`Issued UDC for ${agentId}: ${JSON.stringify(udc)}`);
-        // This UDC would then be passed to the KNIRV-AGENTIFIER agent
+        // This UDC would then be passed to the KNIRV-SHELL agent
 
         // --- Example 3: Get current NRN balance ---
         console.log('\n--- Getting NRN Balance ---');
@@ -351,9 +351,9 @@ The **KNIRV SDK** provides the programmatic glue that connects external applicat
 > -   **KNIRV-ROOT (NRN Oracle & Orchestrator):** The SDK provides direct access to **KNIRV-ROOT's** functionalities via the APIGateway, enabling **NRN** balance queries, faucet interactions, and the orchestration of **NRN** burning for Skill invocation. The TokenEconomics service, managed by **KNIRV-ROOT's** backend, is exposed through the **API Gateway**, allowing the SDK to interact with its logic for Skill invocation, LLM registration, and reward processing.
 > -   **KNIRVCHAIN (Base LLM & Skill Certification):** Developers can use the SDK to query the canonical Base LLM (CodeT5) versions, retrieve SkillNode metadata from the SkillRegistry, and submit Base LLM update proposals or SkillNode minting requests (orchestrated by **KNIRV-ROOT**). The `knirv://` URI resolution is key for fetching the actual model and skill binaries.
 > -   **KNIRVGRAPH (Knowledge Graphchain):** The SDK offers comprehensive methods to interact with **KNIRVGRAPH**, including announcing NRVs to the DHT, querying the knowledge graph for ErrorNodes and SkillNodes, and submitting `ProposeSolution` and `MintResolution` transactions. This allows developers to build applications that contribute to and leverage the network's collective intelligence.
-> -   **KNIRV-NEXUS DVEs (Verifiable Execution):** The SDK provides interfaces to submit validation tasks to **KNIRV-NEXUS** DVEs (via the **API Gateway**), retrieve ValidationProofs, and integrate with secure backup functionalities for **KNIRV-AGENTIFIERs**.
+> -   **KNIRV-NEXUS DVEs (Verifiable Execution):** The SDK provides interfaces to submit validation tasks to **KNIRV-NEXUS** DVEs (via the **API Gateway**), retrieve ValidationProofs, and integrate with secure backup functionalities for **KNIRV-SHELLs**.
 > -   **KNIRV-ROUTERS (Network Connectivity):** While not directly exposed for configuration, the SDK implicitly relies on **KNIRV-ROUTERS** for `knirv://` URI resolution and underlying network connectivity, facilitating peer discovery and resource fetching.
-> -   **KNIRV-AGENTIFIER (Autonomous Agents):** The SDK is crucial for developers building applications that manage or interact with **KNIRV-AGENTIFIER** agents, particularly through User Delegation Certificates (UDCs) and command/monitoring interfaces.
+> -   **KNIRV-SHELL (Autonomous Agents):** The SDK is crucial for developers building applications that manage or interact with **KNIRV-SHELL** agents, particularly through User Delegation Certificates (UDCs) and command/monitoring interfaces.
 > -   **XION (UX & Liquidity Layer):** The SDK's integration with XION's Meta Accounts and gasless transactions provides a superior user experience for dApps built with the SDK, abstracting away blockchain complexities.
 
 ## 6. Security & Trust Model
@@ -365,7 +365,7 @@ The **KNIRV SDK** inherits and enhances the security of the underlying **KNIRV D
 > -   **API Gateway Security:** The APIGateway implements robust security measures including authentication, authorization, rate limiting, and secure communication (HTTPS/WSS), protecting backend services from direct exposure and common attack vectors.
 > -   **Cryptographic Libraries:** The SDK utilizes battle-tested cryptographic libraries for secure communication, data hashing, and signature verification, ensuring the integrity of data exchanged with the D-TEN.
 > -   **`knirv://` URI Verification:** The `knirv://` URI resolution mechanism inherently relies on content addressing and cryptographic verification (e.g., CIDs for IPFS resources), ensuring that fetched resources are authentic and untampered.
-> -   **User Delegation Certificates (UDCs):** The SDK facilitates the secure generation and management of UDCs, enforcing the principle of least privilege for **KNIRV-AGENTIFIER** agents and providing an auditable trail of authorized actions.
+> -   **User Delegation Certificates (UDCs):** The SDK facilitates the secure generation and management of UDCs, enforcing the principle of least privilege for **KNIRV-SHELL** agents and providing an auditable trail of authorized actions.
 > -   **Secure Coding Practices:** The SDK is developed with a strong emphasis on secure coding practices, undergoing regular security audits and adhering to industry best standards to minimize vulnerabilities.
 > -   **Open Source:** The open-source nature of the SDK allows for community review and contributions, enhancing transparency and security through collective scrutiny.
 
@@ -376,7 +376,7 @@ The **KNIRV SDK** will continuously evolve to meet the growing needs of the deve
 > **Expanded Information:**
 >
 > -   **Phase 1 (Initial Mainnet Deployment - Q2 2026):**
->     -   **Focus:** Core SDK functionalities for **NRN** management, Skill invocation, Base LLM querying, and **KNIRV-AGENTIFIER** UDC issuance.
+>     -   **Focus:** Core SDK functionalities for **NRN** management, Skill invocation, Base LLM querying, and **KNIRV-SHELL** UDC issuance.
 >     -   **API Gateway:** Robust APIGateway with initial service integrations and security features.
 >     -   **Goal:** Provide a stable and comprehensive toolkit for developers to build foundational D-TEN applications.
 > -   **Phase 2 (Advanced KNIRVGRAPH & KNIRV-NEXUS Integrations - Q4 2026):**
@@ -388,10 +388,10 @@ The **KNIRV SDK** will continuously evolve to meet the growing needs of the deve
 >     -   **Developer IDE Plugins:** Develop plugins for popular IDEs (e.g., VS Code) to streamline **KNIRV SDK** development.
 >     -   **Goal:** Reduce the complexity of building decentralized AI applications through intelligent tooling.
 > -   **Phase 4 (Cross-Ecosystem Interoperability - 2028+):**
->     -   **Focus:** Expand SDK capabilities to facilitate seamless interaction with other blockchain ecosystems (via IBC) and traditional Web2 services, enabling broader utility for **KNIRV-AGENTIFIER** agents.
+>     -   **Focus:** Expand SDK capabilities to facilitate seamless interaction with other blockchain ecosystems (via IBC) and traditional Web2 services, enabling broader utility for **KNIRV-SHELL** agents.
 >     -   **Decentralized Identity (DID) Integration:** Integrate DID standards to enhance user and agent identity management within applications built with the SDK.
 >     -   **Goal:** Position the **KNIRV SDK** as a universal standard for decentralized AI development across the digital landscape.
 
 ## 8. Conclusion
 
-The **KNIRV SDK** is the essential bridge for developers to unlock the full potential of the **KNIRV Decentralized Trusted Execution Network**. By providing a unified, high-level interface through a robust **API Gateway** and building upon existing `knirv://` URI resolution, the SDK abstracts away the inherent complexities of a multi-chain, decentralized AI ecosystem. Available across multiple programming languages, it empowers builders to seamlessly manage **NRN** tokens, orchestrate **KNIRV-AGENTIFIER** agents, interact with the **KNIRVGRAPH** knowledge Graphchain, contribute to the Base LLM's evolution on **KNIRVCHAIN**, and leverage the verifiable computation of **KNIRV-NEXUS** DVEs. The **KNIRV SDK** is fundamental to accelerating the development of innovative, intelligent, and decentralized applications, fostering a vibrant ecosystem around compounding intelligence.
+The **KNIRV SDK** is the essential bridge for developers to unlock the full potential of the **KNIRV Decentralized Trusted Execution Network**. By providing a unified, high-level interface through a robust **API Gateway** and building upon existing `knirv://` URI resolution, the SDK abstracts away the inherent complexities of a multi-chain, decentralized AI ecosystem. Available across multiple programming languages, it empowers builders to seamlessly manage **NRN** tokens, orchestrate **KNIRV-SHELL** agents, interact with the **KNIRVGRAPH** knowledge Graphchain, contribute to the Base LLM's evolution on **KNIRVCHAIN**, and leverage the verifiable computation of **KNIRV-NEXUS** DVEs. The **KNIRV SDK** is fundamental to accelerating the development of innovative, intelligent, and decentralized applications, fostering a vibrant ecosystem around compounding intelligence.

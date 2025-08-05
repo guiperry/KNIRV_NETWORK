@@ -13,7 +13,7 @@ The KNIRV Decentralized Trusted Execution Network (D-TEN) relies on robust, veri
 ### 1. Introduction
 In a decentralized network designed for trusted execution and continuous AI learning, the reliability and integrity of communication pathways are paramount. Traditional routing mechanisms, while efficient, often lack inherent transparency or economic incentives for verifying the physical health of the network. The KNIRV-ROUTER addresses this critical gap, transforming network routing from a passive function into an active, incentivized component of the D-TEN's core economic and operational loops.
 
-The KNIRV-ROUTER is positioned as a vital intermediary, facilitating communication between KNIRV-AGENTIFIER agents, KNIRV-NEXUS DVEs, KNIRVANA clients, and the broader internet. Its innovative design ensures that network connectivity is not merely assumed but actively validated and economically rewarded, directly supporting the KNIRVCHAIN's Skill invocation mechanism and the KNIRV-GRAPH's learning processes.
+The KNIRV-ROUTER is positioned as a vital intermediary, facilitating communication between KNIRV-SHELL agents, KNIRV-NEXUS DVEs, KNIRVANA clients, and the broader internet. Its innovative design ensures that network connectivity is not merely assumed but actively validated and economically rewarded, directly supporting the KNIRVCHAIN's Skill invocation mechanism and the KNIRV-GRAPH's learning processes.
 
 ### 2. Core Responsibilities
 The KNIRV-ROUTER fulfills several critical responsibilities within the KNIRV D-TEN:
@@ -28,12 +28,12 @@ A core innovation of the KNIRV-ROUTER is its active role in validating the physi
 
 #### 2.3. NRN Token URI Path Certificates: Enabling Skill Invocation
 Each NRN token minted by a KNIRV-ROUTER carries an embedded URI path certificate. This certificate is a cryptographically signed data structure that contains:
-*   **A unique, verified network pathway:** A sequence of hops or cryptographic route identifiers from the KNIRV-ROUTER to a specific network endpoint (e.g., a KNIRVCHAIN node, a DVE, or a KNIRV-AGENTIFIER).
+*   **A unique, verified network pathway:** A sequence of hops or cryptographic route identifiers from the KNIRV-ROUTER to a specific network endpoint (e.g., a KNIRVCHAIN node, a DVE, or a KNIRV-SHELL).
 *   **Timestamp and Validity Period:** Ensuring the path's recency and relevance.
 *   **Router Signature:** Cryptographic attestation by the KNIRV-ROUTER that validated the path.
 
 **How it Works & Its Value:**
-When a KNIRV-AGENTIFIER agent needs to invoke a Skill on KNIRVCHAIN, it must present an NRN token. The KNIRVCHAIN then sends a cross-chain message to KNIRV-ROOT to burn this NRN. The embedded URI path certificate within the NRN serves as:
+When a KNIRV-SHELL agent needs to invoke a Skill on KNIRVCHAIN, it must present an NRN token. The KNIRVCHAIN then sends a cross-chain message to KNIRV-ROOT to burn this NRN. The embedded URI path certificate within the NRN serves as:
 *   **Proof of Network Reachability:** It attests that a valid, recent pathway through the network existed at the time of the NRN's minting.
 *   **Verifiable Execution Context:** It provides a unique, non-reusable "ticket" for Skill invocation, ensuring that each execution is tied to a verified network route.
 *   **Security & Anti-Spam:** By requiring a fresh NRN (and thus a recently validated path) for each Skill invocation, the system inherently prevents spamming of Skills and ensures that network resources are used for genuinely routed operations.
@@ -42,16 +42,16 @@ When a KNIRV-AGENTIFIER agent needs to invoke a Skill on KNIRVCHAIN, it must pre
 
 #### 2.4. Traffic Routing and P2P Facilitation
 Beyond NRN production, the KNIRV-ROUTER performs traditional routing functions, facilitating secure peer-to-peer (P2P) communication between various KNIRV components:
-*   **Agent-to-Agent Communication:** Enabling KNIRV-AGENTIFIER instances to communicate directly or via relays.
-*   **KNIRVANA Client Connectivity:** Supporting real-time multiplayer gameplay by routing traffic between KNIRVANA clients and their associated KNIRV-AGENTIFIER agent units.
-*   **DVE Access:** Routing requests from KNIRV-AGENTIFIERs to KNIRV-NEXUS DVEs for secure execution and validation.
-*   **General Network Access:** Providing robust connectivity for KNIRV-AGENTIFIERs to access the KNIRVCHAIN, KNIRV-GRAPH, and other external services.
+*   **Agent-to-Agent Communication:** Enabling KNIRV-SHELL instances to communicate directly or via relays.
+*   **KNIRVANA Client Connectivity:** Supporting real-time multiplayer gameplay by routing traffic between KNIRVANA clients and their associated KNIRV-SHELL agent units.
+*   **DVE Access:** Routing requests from KNIRV-SHELLs to KNIRV-NEXUS DVEs for secure execution and validation.
+*   **General Network Access:** Providing robust connectivity for KNIRV-SHELLs to access the KNIRVCHAIN, KNIRV-GRAPH, and other external services.
 
 #### 2.5. Interaction with KNIRV-ROOT Faucet
 The KNIRV-ROUTER interacts directly with the KNIRV-ROOT's USDC Faucet. It presents proofs of NRN production (derived from its physical network validation activities) to the KNIRV-ROOT in exchange for USDC, which covers its operational costs and provides an economic incentive for its continued operation.
 
 ### 3. Architecture & Technical Implementation
-The KNIRV-ROUTER is implemented as a dedicated network node, designed for high performance and reliability. It integrates seamlessly with the KNIRV-ROOT for economic orchestration and with KNIRV-AGENTIFIERs for service provision. It is primarily developed in GoLang, leveraging its strong concurrency primitives and network capabilities for high performance and scalability, building upon its existing robust codebase.
+The KNIRV-ROUTER is implemented as a dedicated network node, designed for high performance and reliability. It integrates seamlessly with the KNIRV-ROOT for economic orchestration and with KNIRV-SHELLs for service provision. It is primarily developed in GoLang, leveraging its strong concurrency primitives and network capabilities for high performance and scalability, building upon its existing robust codebase.
 
 ```mermaid
 graph TD
@@ -68,7 +68,7 @@ graph TD
         KRC -- "Interacts with Faucet" --> KRF["KNIRV-ROOT Faucet (on KNIRV-ROOT Blockchain)"]
     end
 
-    OtherNodes -- "Traffic to/from" --> KNIRV_SHELL[KNIRV-AGENTIFIER]
+    OtherNodes -- "Traffic to/from" --> KNIRV_SHELL[KNIRV-SHELL]
     OtherNodes -- "Traffic to/from" --> KNIRV_NEXUS[KNIRV-NEXUS DVEs]
     OtherNodes -- "Traffic to/from" --> KNIRVANA[KNIRVANA Clients]
     KRF -- "Orchestrates NRN" --> KNIRV_ROOT[KNIRV-ROOT Blockchain]
@@ -93,7 +93,7 @@ The NRN minting process within the KNIRV-ROUTER builds upon its existing GoLang 
 
 #### 3.2. Network Discovery and Routing Protocols
 The KNIRV-ROUTER utilizes a combination of standard and custom protocols, building on its existing implementations:
-*   **Kademlia-based DHT:** The existing DHT implementation (`p2p/dht.go`, `p2p/p2p_manager.go`) is used for decentralized discovery of other KNIRV-ROUTERs, KNIRV-AGENTIFIERs, and DVEs within the network, as outlined in the `ROOT_tunnel_relay_implementation_plan.md`. The DHT Manager has been enhanced with connectivity measurement methods.
+*   **Kademlia-based DHT:** The existing DHT implementation (`p2p/dht.go`, `p2p/p2p_manager.go`) is used for decentralized discovery of other KNIRV-ROUTERs, KNIRV-SHELLs, and DVEs within the network, as outlined in the `ROOT_tunnel_relay_implementation_plan.md`. The DHT Manager has been enhanced with connectivity measurement methods.
 *   **Custom Routing Algorithms:** Optimized for low-latency, secure, and verifiable path selection, incorporating NRN certificate data.
 *   **P2P Connectivity:** Supports direct P2P connections between nodes where possible, and utilizes relay mechanisms (e.g., TURN/STUN-like services) via the existing TURN server (`transaction_turnserver/server.go`) for NAT traversal. Existing port configurations (3478 for TURN, 5349 for TURN TLS) are preserved.
 
@@ -109,7 +109,7 @@ The KNIRV-ROUTER's architecture is designed for modularity and seamless integrat
 ### 4. Economic Model: NRN Supply & Router Incentives
 The KNIRV-ROUTER is a crucial participant in the NRN economic loop, directly influencing the supply of NRN tokens.
 *   **Incentivized Supply:** KNIRV-ROUTERs are incentivized to continuously perform "Proof-of-Connectivity" and mint NRNs because they receive USDC from the KNIRV-ROOT Faucet for each validated NRN. This covers operational costs and provides a profit margin.
-*   **Balancing Demand & Supply:** The NRNs produced by KNIRV-ROUTERs directly meet the demand generated by KNIRV-AGENTIFIERs burning NRNs for Skill invocation. This creates a self-regulating economic mechanism.
+*   **Balancing Demand & Supply:** The NRNs produced by KNIRV-ROUTERs directly meet the demand generated by KNIRV-SHELLs burning NRNs for Skill invocation. This creates a self-regulating economic mechanism.
 *   **Value Accrual:** The value of NRNs is intrinsically linked to the utility derived from Skill invocation and the underlying validated network integrity provided by KNIRV-ROUTERs. As the network grows and more Skills are available, demand for NRNs increases, incentivizing more router activity.
 
 ### 5. Security & Trust Model
@@ -128,4 +128,4 @@ The KNIRV-ROUTER is designed with robust security measures to ensure network int
 *   **Advanced Network Monitoring:** Integrate sophisticated network monitoring tools to provide real-time insights into network health and router performance.
 
 ### 7. Conclusion
-The KNIRV-ROUTER is a pivotal layer within the KNIRV D-TEN, transcending traditional routing to become an active participant in the network's economic and intelligence loops. By linking NRN token production to verifiable "Proof-of-Connectivity" and embedding URI path certificates that enable Skill routine invocation, it ensures the physical integrity of the network, fuels the NRN economy, and provides the essential communication backbone for KNIRV-AGENTIFIER agents, KNIRVANA clients, and the evolving Base LLM. The KNIRV-ROUTER is fundamental to realizing the vision of a truly resilient, self-sustaining, and intelligent decentralized network.
+The KNIRV-ROUTER is a pivotal layer within the KNIRV D-TEN, transcending traditional routing to become an active participant in the network's economic and intelligence loops. By linking NRN token production to verifiable "Proof-of-Connectivity" and embedding URI path certificates that enable Skill routine invocation, it ensures the physical integrity of the network, fuels the NRN economy, and provides the essential communication backbone for KNIRV-SHELL agents, KNIRVANA clients, and the evolving Base LLM. The KNIRV-ROUTER is fundamental to realizing the vision of a truly resilient, self-sustaining, and intelligent decentralized network.

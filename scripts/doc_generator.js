@@ -29,9 +29,9 @@ const { execSync } = require('child_process');
 const rootDir = path.dirname(__dirname); // Go up one level from scripts directory
 const CONFIG = {
   sourceDir: path.join(rootDir, 'docs'),
-  outputDir: path.join(rootDir, 'KNIRVWEBSITE', 'documentation'),
-  docsifyDir: path.join(rootDir, 'KNIRVWEBSITE', 'documentation', 'docsify'),
-  hashFile: path.join(rootDir, 'KNIRVWEBSITE', 'documentation', '.doc_hashes.json'),
+  outputDir: path.join(rootDir, 'KNIRVGATEWAY', 'documentation'),
+  docsifyDir: path.join(rootDir, 'KNIRVGATEWAY', 'documentation', 'docsify'),
+  hashFile: path.join(rootDir, 'KNIRVGATEWAY', 'documentation', '.doc_hashes.json'),
   projectName: 'KNIRV Network',
   projectRepo: 'https://github.com/guiperry/KNIRV_NETWORK',
   categories: {
