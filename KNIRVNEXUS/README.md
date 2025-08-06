@@ -1,8 +1,8 @@
-# Agentic Engine
+# KNIRV-NEXUS
 
 ## Overview
 
-The Agentic Engine is a comprehensive platform for designing, deploying, and managing autonomous AI agents through an intuitive no-code interface. Built with a powerful Go backend and a modern React/TypeScript frontend, it empowers users to define complex goals, equip agents with diverse capabilities, and orchestrate their operations to achieve sophisticated outcomes. The engine supports multiple AI language models (including Cerebras, Gemini, and DeepSeek) with intelligent fallback mechanisms to ensure reliable operation.
+KNIRV-NEXUS is a comprehensive platform for designing, deploying, and managing autonomous AI agents through an intuitive no-code interface. Built with a powerful Go backend and a modern React/TypeScript frontend, it empowers users to define complex goals, equip agents with diverse capabilities, and orchestrate their operations to achieve sophisticated outcomes within Trusted Execution Environments (TEE). The platform supports multiple AI language models (including Cerebras, Gemini, and DeepSeek) with intelligent fallback mechanisms to ensure reliable operation.
 
 ## Key Features
 

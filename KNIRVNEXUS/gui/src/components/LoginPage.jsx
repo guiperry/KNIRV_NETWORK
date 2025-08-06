@@ -106,7 +106,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-knirv-gradient flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl border border-slate-700/50 shadow-xl overflow-hidden">
           {/* Header */}
@@ -114,14 +114,14 @@ const LoginPage = () => {
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-white rounded-lg">
                 <img
-                  src={logoPath}
-                  alt="Agentic Engine Logo"
+                  src="/favicon.png"
+                  alt="KNIRV-NEXUS Logo"
                   className="w-6 h-6 object-contain"
                 />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white">Agentic Engine</h1>
-                <p className="text-sm text-slate-400">NFT-Agent Platform</p>
+                <h1 className="text-xl font-bold text-white">KNIRV-NEXUS</h1>
+                <p className="text-sm text-slate-400">TEE-Enabled Agent Platform</p>
               </div>
             </div>
           </div>
@@ -154,7 +154,7 @@ const LoginPage = () => {
                     type="text"
                     value={formData.username}
                     onChange={handleChange}
-                    className={`w-full bg-slate-700/50 border ${errors.username ? 'border-red-500/50' : 'border-slate-600/50'} rounded-lg pl-10 pr-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500`}
+                    className={`w-full bg-slate-700/50 border ${errors.username ? 'border-red-500/50' : 'border-slate-600/50'} rounded-lg pl-10 pr-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-knirv-primary`}
                     placeholder="Enter your username"
                   />
                 </div>
@@ -178,7 +178,7 @@ const LoginPage = () => {
                       type="email"
                       value={formData.email}
                       onChange={handleChange}
-                      className={`w-full bg-slate-700/50 border ${errors.email ? 'border-red-500/50' : 'border-slate-600/50'} rounded-lg pl-10 pr-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500`}
+                      className={`w-full bg-slate-700/50 border ${errors.email ? 'border-red-500/50' : 'border-slate-600/50'} rounded-lg pl-10 pr-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-knirv-primary`}
                       placeholder="Enter your email"
                     />
                   </div>
@@ -202,7 +202,7 @@ const LoginPage = () => {
                     type="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className={`w-full bg-slate-700/50 border ${errors.password ? 'border-red-500/50' : 'border-slate-600/50'} rounded-lg pl-10 pr-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500`}
+                    className={`w-full bg-slate-700/50 border ${errors.password ? 'border-red-500/50' : 'border-slate-600/50'} rounded-lg pl-10 pr-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-knirv-primary`}
                     placeholder={isLogin ? "Enter your password" : "Create a password"}
                   />
                 </div>
@@ -213,7 +213,7 @@ const LoginPage = () => {
               
               {isLogin && (
                 <div className="flex items-center justify-end">
-                  <button type="button" className="text-sm text-purple-400 hover:text-purple-300">
+                  <button type="button" className="text-sm text-knirv-primary hover:text-knirv-secondary">
                     Forgot password?
                   </button>
                 </div>
@@ -222,7 +222,7 @@ const LoginPage = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-gradient-to-r from-purple-500 to-blue-500 text-white py-2 px-4 rounded-lg font-medium hover:from-purple-600 hover:to-blue-600 transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-70"
+                className="w-full bg-knirv-primary-gradient text-white py-2 px-4 rounded-lg font-medium hover:opacity-90 transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-70"
               >
                 {isLoading ? (
                   <>
@@ -242,7 +242,7 @@ const LoginPage = () => {
               {isLogin ? "Don't have an account?" : "Already have an account?"}
               <button
                 onClick={toggleAuthMode}
-                className="ml-2 text-purple-400 hover:text-purple-300 font-medium"
+                className="ml-2 text-knirv-primary hover:text-knirv-secondary font-medium"
               >
                 {isLogin ? 'Sign Up' : 'Sign In'}
               </button>

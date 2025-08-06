@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Menu, X, Activity, Blocks, Users, CreditCard, Home } from 'lucide-react';
+import { Search, Menu, X, Network, Brain, AlertTriangle, Home } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -22,9 +22,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
-    { name: 'Blocks', href: '/blocks', icon: Blocks },
-    { name: 'Transactions', href: '/transactions', icon: CreditCard },
-    { name: 'Accounts', href: '/accounts', icon: Users },
+    { name: 'SkillNodes', href: '/skills', icon: Brain },
+    { name: 'ErrorNodes', href: '/errors', icon: AlertTriangle },
+    { name: 'Graph View', href: '/graph', icon: Network },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -39,10 +39,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <div className="flex items-center space-x-4">
               <Link to="/" className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <Activity className="w-5 h-5 text-white" />
+                  <Network className="w-5 h-5 text-white" />
                 </div>
                 <span className="text-xl font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  BlockExplorer
+                  GraphChain Explorer
                 </span>
               </Link>
             </div>
@@ -58,7 +58,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="block w-full pl-10 pr-3 py-2 border border-gray-600 rounded-lg bg-gray-800/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  placeholder="Search blocks, transactions, addresses..."
+                  placeholder="Search SkillNodes, ErrorNodes, capabilities..."
                 />
               </form>
             </div>
@@ -106,7 +106,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="block w-full pl-10 pr-3 py-2 border border-gray-600 rounded-lg bg-gray-800/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Search blocks, transactions, addresses..."
+                placeholder="Search SkillNodes, ErrorNodes, capabilities..."
               />
             </form>
           </div>

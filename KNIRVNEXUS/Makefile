@@ -2,7 +2,7 @@
 # mv -f makefile{,.old} && sed -E 's/^ {3,}/\t/' makefile.old >makefile
 
 # Application and Version Configuration
-APP_NAME := AgenticInferenceEngine
+APP_NAME := KNIRV-NEXUS
 # Determine version: Use git tag, or fallback to dev-commit_hash
 VERSION ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo "dev-$(shell git rev-parse --short HEAD)")
 VERSION := $(shell echo $(VERSION) | xargs) # Trim whitespace
@@ -254,6 +254,18 @@ frontend/install:
 	@cd $(GUI_DIR) && npm install
 	@echo "Frontend dependencies installed."
 
+## frontend/clean: clean frontend dependencies and build artifacts
+.PHONY: frontend/clean
+frontend/clean:
+	@echo "Cleaning frontend dependencies and build artifacts..."
+	@cd $(GUI_DIR) && rm -rf node_modules dist .vite
+	@echo "Frontend cleaned."
+
+## frontend/reinstall: clean and reinstall frontend dependencies
+.PHONY: frontend/reinstall
+frontend/reinstall: frontend/clean frontend/install
+	@echo "Frontend dependencies reinstalled."
+
 ## frontend/dev: run frontend development server
 .PHONY: frontend/dev
 frontend/dev:
@@ -264,6 +276,16 @@ frontend/dev:
 .PHONY: frontend/build
 frontend/build:
 	@echo "Building frontend for production..."
+	@echo "Checking if node_modules exists..."
+	@if [ ! -d "$(GUI_DIR)/node_modules" ]; then \
+		echo "node_modules not found, installing dependencies..."; \
+		cd $(GUI_DIR) && npm install; \
+	fi
+	@echo "Verifying Vite installation..."
+	@if [ ! -f "$(GUI_DIR)/node_modules/vite/dist/node/cli.js" ]; then \
+		echo "Vite installation corrupted, reinstalling..."; \
+		cd $(GUI_DIR) && rm -rf node_modules package-lock.json && npm install; \
+	fi
 	@cd $(GUI_DIR) && npm run build
 	@echo "Frontend production build complete."
 
@@ -374,6 +396,69 @@ dev:
 	@echo "Run these commands in separate terminals:"
 	@echo "1. Backend: make run/live"
 	@echo "2. Frontend: make frontend/dev"
+
+## dev-start: start KNIRV-NEXUS in development mode (single command)
+.PHONY: dev-start
+dev-start: build
+	@echo "Starting KNIRV-NEXUS in development mode..."
+	@echo "Main application will be available at: http://localhost:8080"
+	@echo "Plugin server will be available at: http://localhost:8082"
+	@echo ""
+	@echo "Building plugin server if needed..."
+	@cd plugin-server && go build -o plugin-server . 2>/dev/null || true
+	@echo "Starting plugin server in background..."
+	@cd plugin-server && ./plugin-server --port 8082 --agents ./agents --cors > /tmp/plugin-server.log 2>&1 &
+	@sleep 2
+	@echo "Plugin server started (logs: /tmp/plugin-server.log)"
+	@echo "Starting main application..."
+	@echo "Press Ctrl+C to stop both services"
+	@$(OUTPUT_DIR)/$(BINARY_NAME)
+
+## dev-stop: stop development services
+.PHONY: dev-stop
+dev-stop:
+	@echo "Stopping development services..."
+	@pkill -f "plugin-server" || echo "Plugin server not running"
+	@pkill -f "$(BINARY_NAME)" || echo "Main application not running"
+	@echo "Development services stopped"
+
+## dev-setup-local: setup for local development without system installation
+.PHONY: dev-setup-local
+dev-setup-local:
+	@echo "Setting up local development environment..."
+
+	# Check if Go is available
+	@which go >/dev/null || (echo "Go not found. Install with: sudo apt install golang-1.21" && exit 1)
+
+	# Check if Node.js is available
+	@which node >/dev/null || (echo "Node.js not found. Install with: sudo apt install nodejs npm" && exit 1)
+
+	# Install frontend dependencies
+	@echo "Installing frontend dependencies..."
+	@cd $(GUI_DIR) && npm install
+
+	# Build frontend
+	@echo "Building frontend..."
+	@cd $(GUI_DIR) && npm run build
+
+	# Build backend
+	@echo "Building backend..."
+	@make build
+
+	# Build plugin server
+	@echo "Building plugin server..."
+	@cd plugin-server && go build -o plugin-server .
+
+	# Create agents directory
+	@mkdir -p plugin-server/agents
+
+	@echo "✓ Local development setup complete!"
+	@echo ""
+	@echo "To start KNIRV-NEXUS:"
+	@echo "  make dev-start"
+	@echo ""
+	@echo "To stop:"
+	@echo "  make dev-stop"
 
 # ==================================================================================== #
 # DESKTOP APPLICATION
@@ -694,3 +779,382 @@ force-release-micro-public:
 	@echo "--------------------------------------------------"
 	@echo "Release $$(_NEW_VERSION) has been built and uploaded to the public repository."
 	@echo "Public repo: /home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN_PUBLIC"
+
+# ==================================================================================== #
+# KALI LINUX FOUNDATION TARGETS
+# ==================================================================================== #
+
+# Kali Linux specific directories
+KALI_INSTALL_DIR := /opt/knirv-nexus
+KALI_SERVICE_DIR := /etc/systemd/system
+KALI_LOG_DIR := /var/log/knirv-nexus
+KALI_CONFIG_DIR := /etc/knirv-nexus
+
+## kali/check-deps: Check if running on Kali Linux and verify dependencies
+.PHONY: kali/check-deps
+kali/check-deps:
+	@echo "Checking Kali Linux environment..."
+	@if [ ! -f /etc/os-release ] || ! grep -q "ID=kali" /etc/os-release; then \
+		echo "WARNING: This doesn't appear to be Kali Linux"; \
+		echo "KNIRV-NEXUS is optimized for Kali Linux 2024.3 with kernel 6.6.x LTS"; \
+	else \
+		echo "✓ Kali Linux detected"; \
+	fi
+	@echo "Checking kernel version..."
+	@uname -r | grep -q "^6\.6\." && echo "✓ Kernel 6.6.x LTS detected" || echo "⚠ Kernel 6.6.x LTS recommended"
+	@echo "Checking TEE support..."
+	@lsmod | grep -q intel_sgx && echo "✓ Intel SGX module loaded" || echo "⚠ Intel SGX module not loaded"
+	@lsmod | grep -q ccp && echo "✓ AMD CCP module loaded" || echo "⚠ AMD CCP module not loaded"
+
+## kali/install-deps: Install Kali Linux dependencies for KNIRV-NEXUS
+.PHONY: kali/install-deps
+kali/install-deps:
+	@echo "Installing Kali Linux dependencies..."
+	sudo apt update
+
+	# Remove conflicting packages first
+	@echo "Resolving container runtime conflicts..."
+	sudo apt remove -y containerd.io containerd runc docker-ce docker-ce-cli 2>/dev/null || true
+	sudo apt autoremove -y
+
+	# Install core dependencies
+	@echo "Installing core dependencies..."
+	sudo apt install -y \
+		golang-1.21 \
+		nodejs \
+		npm \
+		build-essential \
+		git \
+		curl \
+		wget \
+		htop \
+		iotop \
+		strace \
+		gdb \
+		valgrind \
+		tpm2-tools
+
+	# Verify Node.js and npm versions
+	@echo "Verifying Node.js and npm installation..."
+	@node --version || echo "Node.js installation may have issues"
+	@npm --version || echo "npm installation may have issues"
+
+	# Update npm to latest version
+	@echo "Updating npm to latest version..."
+	sudo npm install -g npm@latest || echo "npm update failed"
+
+	# Install container runtime (prefer podman for better security)
+	@echo "Installing container runtime..."
+	sudo apt install -y podman || echo "Podman installation failed, trying docker.io..."
+
+	# Try docker.io if podman failed
+	@if ! command -v podman >/dev/null 2>&1; then \
+		echo "Installing docker.io as fallback..."; \
+		sudo apt install -y docker.io || echo "Docker installation failed"; \
+	fi
+
+	# Verify Go installation and set up PATH
+	@echo "Setting up Go environment..."
+	@if [ -d "/usr/lib/go-1.21" ]; then \
+		echo 'export PATH=/usr/lib/go-1.21/bin:$$PATH' | sudo tee -a /etc/environment; \
+		echo "Go 1.21 path added to /etc/environment"; \
+	fi
+
+	@echo "✓ Dependencies installed"
+
+## kali/install-docker: Install Docker CE from official repository (alternative to docker.io)
+.PHONY: kali/install-docker
+kali/install-docker:
+	@echo "Installing Docker CE from official repository..."
+
+	# Remove old versions
+	sudo apt remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
+
+	# Install prerequisites
+	sudo apt update
+	sudo apt install -y \
+		ca-certificates \
+		curl \
+		gnupg \
+		lsb-release
+
+	# Add Docker's official GPG key
+	sudo mkdir -p /etc/apt/keyrings
+	curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+	# Set up the repository (using Debian repos for Kali)
+	echo "deb [arch=$$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian bullseye stable" | \
+		sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+	# Install Docker Engine
+	sudo apt update
+	sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+	# Add current user to docker group
+	sudo usermod -aG docker $$USER || true
+
+	@echo "✓ Docker CE installed"
+	@echo "Note: You may need to log out and back in for group changes to take effect"
+
+## kali/fix-container-deps: Fix container runtime dependency issues
+.PHONY: kali/fix-container-deps
+kali/fix-container-deps:
+	@echo "Fixing container runtime dependency conflicts..."
+
+	# Clean up conflicting packages
+	sudo apt remove -y containerd.io containerd runc docker-ce docker-ce-cli docker.io 2>/dev/null || true
+	sudo apt autoremove -y
+	sudo apt autoclean
+
+	# Clear package cache
+	sudo apt clean
+
+	# Update package lists
+	sudo apt update
+
+	# Install podman as the preferred container runtime
+	sudo apt install -y podman
+
+	@echo "✓ Container runtime conflicts resolved"
+
+## kali/fix-frontend: Fix frontend dependency issues
+.PHONY: kali/fix-frontend
+kali/fix-frontend:
+	@echo "Fixing frontend dependency issues..."
+
+	# Check Node.js version
+	@echo "Current Node.js version:"
+	@node --version || echo "Node.js not found"
+
+	# Check npm version
+	@echo "Current npm version:"
+	@npm --version || echo "npm not found"
+
+	# Clean and reinstall frontend dependencies
+	@echo "Cleaning frontend dependencies..."
+	@cd $(GUI_DIR) && rm -rf node_modules package-lock.json .vite dist 2>/dev/null || true
+
+	# Clear npm cache
+	@echo "Clearing npm cache..."
+	@npm cache clean --force
+
+	# Reinstall dependencies
+	@echo "Reinstalling frontend dependencies..."
+	@cd $(GUI_DIR) && npm install
+
+	# Verify Vite installation
+	@echo "Verifying Vite installation..."
+	@if [ -f "$(GUI_DIR)/node_modules/vite/dist/node/cli.js" ]; then \
+		echo "✓ Vite installation verified"; \
+	else \
+		echo "✗ Vite installation failed"; \
+		exit 1; \
+	fi
+
+	@echo "✓ Frontend dependencies fixed"
+
+## kali/setup-tee: Setup TEE (Trusted Execution Environment) support
+.PHONY: kali/setup-tee
+kali/setup-tee:
+	@echo "Setting up TEE support..."
+	# Enable Intel SGX
+	sudo modprobe intel_sgx || echo "Intel SGX module not available"
+	echo 'intel_sgx' | sudo tee -a /etc/modules || true
+	# Configure AMD SEV-SNP
+	sudo modprobe ccp || echo "AMD CCP module not available"
+	sudo modprobe sev-guest || echo "AMD SEV-guest module not available"
+	# Setup TPM for attestation
+	sudo systemctl enable tpm2-abrmd || echo "TPM2 ABRMD not available"
+	sudo systemctl start tpm2-abrmd || echo "TPM2 ABRMD failed to start"
+	@echo "✓ TEE setup completed"
+
+## kali/install: Install KNIRV-NEXUS on Kali Linux with proper permissions
+.PHONY: kali/install
+kali/install: build kali/check-deps
+	@echo "Installing KNIRV-NEXUS on Kali Linux..."
+	# Create directories
+	sudo mkdir -p $(KALI_INSTALL_DIR)/bin
+	sudo mkdir -p $(KALI_INSTALL_DIR)/gui
+	sudo mkdir -p $(KALI_INSTALL_DIR)/plugin-server/agents
+	sudo mkdir -p $(KALI_LOG_DIR)
+	sudo mkdir -p $(KALI_CONFIG_DIR)
+
+	# Install binaries
+	sudo cp $(OUTPUT_DIR)/$(BINARY_NAME) $(KALI_INSTALL_DIR)/bin/knirv-nexus
+	sudo cp plugin-server/plugin-server $(KALI_INSTALL_DIR)/bin/knirv-plugin-server || echo "Plugin server binary not found"
+
+	# Install GUI
+	sudo cp -r gui/dist/* $(KALI_INSTALL_DIR)/gui/ || echo "GUI dist not found, run 'make frontend/build' first"
+
+	# Create user if it doesn't exist
+	sudo useradd -r -s /bin/false -d $(KALI_INSTALL_DIR) knirv-nexus 2>/dev/null || true
+
+	# Set permissions
+	sudo chown -R root:root $(KALI_INSTALL_DIR)
+	sudo chmod +x $(KALI_INSTALL_DIR)/bin/*
+	sudo chown -R knirv-nexus:knirv-nexus $(KALI_LOG_DIR) 2>/dev/null || true
+	sudo chown -R knirv-nexus:knirv-nexus $(KALI_CONFIG_DIR) 2>/dev/null || true
+
+	@echo "✓ KNIRV-NEXUS installed to $(KALI_INSTALL_DIR)"
+
+## kali/install-services: Install systemd services for KNIRV-NEXUS
+.PHONY: kali/install-services
+kali/install-services: kali/install
+	@echo "Installing systemd services..."
+	# Create service files if they don't exist
+	sudo mkdir -p systemd
+	@echo "Creating knirv-nexus.service..."
+	@echo '[Unit]' | sudo tee $(KALI_SERVICE_DIR)/knirv-nexus.service
+	@echo 'Description=KNIRV-NEXUS TEE Agent Platform' | sudo tee -a $(KALI_SERVICE_DIR)/knirv-nexus.service
+	@echo 'After=network.target' | sudo tee -a $(KALI_SERVICE_DIR)/knirv-nexus.service
+	@echo '' | sudo tee -a $(KALI_SERVICE_DIR)/knirv-nexus.service
+	@echo '[Service]' | sudo tee -a $(KALI_SERVICE_DIR)/knirv-nexus.service
+	@echo 'Type=simple' | sudo tee -a $(KALI_SERVICE_DIR)/knirv-nexus.service
+	@echo 'User=knirv-nexus' | sudo tee -a $(KALI_SERVICE_DIR)/knirv-nexus.service
+	@echo 'WorkingDirectory=$(KALI_INSTALL_DIR)' | sudo tee -a $(KALI_SERVICE_DIR)/knirv-nexus.service
+	@echo 'ExecStart=$(KALI_INSTALL_DIR)/bin/knirv-nexus' | sudo tee -a $(KALI_SERVICE_DIR)/knirv-nexus.service
+	@echo 'Restart=always' | sudo tee -a $(KALI_SERVICE_DIR)/knirv-nexus.service
+	@echo 'RestartSec=10' | sudo tee -a $(KALI_SERVICE_DIR)/knirv-nexus.service
+	@echo '' | sudo tee -a $(KALI_SERVICE_DIR)/knirv-nexus.service
+	@echo '[Install]' | sudo tee -a $(KALI_SERVICE_DIR)/knirv-nexus.service
+	@echo 'WantedBy=multi-user.target' | sudo tee -a $(KALI_SERVICE_DIR)/knirv-nexus.service
+
+	# Reload systemd and enable services
+	sudo systemctl daemon-reload
+	sudo systemctl enable knirv-nexus.service
+
+	@echo "✓ Services installed and enabled"
+
+## kali/start: Start KNIRV-NEXUS services
+.PHONY: kali/start
+kali/start:
+	@echo "Starting KNIRV-NEXUS services..."
+	sudo systemctl start knirv-nexus.service
+	@echo "✓ Services started"
+
+## kali/stop: Stop KNIRV-NEXUS services
+.PHONY: kali/stop
+kali/stop:
+	@echo "Stopping KNIRV-NEXUS services..."
+	sudo systemctl stop knirv-nexus.service
+	@echo "✓ Services stopped"
+
+## kali/status: Show KNIRV-NEXUS service status
+.PHONY: kali/status
+kali/status:
+	@echo "KNIRV-NEXUS Service Status:"
+	@echo "=========================="
+	@systemctl is-active knirv-nexus.service 2>/dev/null && echo "Main Service: ACTIVE" || echo "Main Service: INACTIVE"
+	@echo ""
+	@echo "Recent logs:"
+	@sudo journalctl -u knirv-nexus.service --no-pager -n 10 || echo "No logs available"
+
+## kali/logs: Show KNIRV-NEXUS logs
+.PHONY: kali/logs
+kali/logs:
+	@echo "KNIRV-NEXUS Logs:"
+	@echo "================"
+	sudo journalctl -u knirv-nexus.service -f
+
+## kali/uninstall: Uninstall KNIRV-NEXUS from Kali Linux
+.PHONY: kali/uninstall
+kali/uninstall:
+	@echo "Uninstalling KNIRV-NEXUS..."
+	# Stop and disable services
+	sudo systemctl stop knirv-nexus.service 2>/dev/null || true
+	sudo systemctl disable knirv-nexus.service 2>/dev/null || true
+
+	# Remove service files
+	sudo rm -f $(KALI_SERVICE_DIR)/knirv-nexus.service
+
+	# Remove installation directory
+	sudo rm -rf $(KALI_INSTALL_DIR)
+
+	# Remove user (optional, commented for safety)
+	# sudo userdel knirv-nexus 2>/dev/null || true
+
+	sudo systemctl daemon-reload
+	@echo "✓ KNIRV-NEXUS uninstalled"
+
+## kali/security-setup: Setup security hardening for Kali Linux
+.PHONY: kali/security-setup
+kali/security-setup:
+	@echo "Setting up security hardening..."
+	# Configure UFW firewall
+	sudo ufw --force reset
+	sudo ufw default deny incoming
+	sudo ufw default allow outgoing
+	sudo ufw allow 8080/tcp comment 'KNIRV-NEXUS Main'
+	sudo ufw allow 8082/tcp comment 'KNIRV-NEXUS Plugin Server'
+	sudo ufw --force enable
+
+	# Setup audit rules
+	echo '-w $(KALI_INSTALL_DIR) -p rwxa -k knirv-access' | sudo tee -a /etc/audit/rules.d/knirv-nexus.rules
+	echo '-w $(KALI_LOG_DIR) -p rwxa -k knirv-logs' | sudo tee -a /etc/audit/rules.d/knirv-nexus.rules
+	sudo systemctl restart auditd || echo "Auditd not available"
+
+	@echo "✓ Security hardening completed"
+
+## kali/full-setup: Complete Kali Linux setup for KNIRV-NEXUS
+.PHONY: kali/full-setup
+kali/full-setup: kali/check-deps kali/install-deps kali/setup-tee frontend/build kali/install kali/install-services kali/security-setup
+	@echo "=========================================="
+	@echo "KNIRV-NEXUS Kali Linux Setup Complete!"
+	@echo "=========================================="
+	@echo "Installation directory: $(KALI_INSTALL_DIR)"
+	@echo "Log directory: $(KALI_LOG_DIR)"
+	@echo "Config directory: $(KALI_CONFIG_DIR)"
+	@echo ""
+	@echo "To start KNIRV-NEXUS:"
+	@echo "  make kali/start"
+	@echo ""
+	@echo "To check status:"
+	@echo "  make kali/status"
+	@echo ""
+	@echo "To view logs:"
+	@echo "  make kali/logs"
+	@echo ""
+	@echo "Access the web interface at: http://localhost:8080"
+
+## kali/help: Show Kali Linux specific help and troubleshooting
+.PHONY: kali/help
+kali/help:
+	@echo "KNIRV-NEXUS Kali Linux Commands:"
+	@echo "================================"
+	@echo ""
+	@echo "Setup Commands:"
+	@echo "  kali/check-deps      - Check Kali Linux environment and dependencies"
+	@echo "  kali/install-deps    - Install required dependencies (uses podman by default)"
+	@echo "  kali/install-docker  - Install Docker CE from official repository"
+	@echo "  kali/fix-container-deps - Fix container runtime conflicts"
+	@echo "  kali/setup-tee       - Setup TEE (Trusted Execution Environment) support"
+	@echo "  kali/security-setup  - Configure security hardening"
+	@echo "  kali/full-setup      - Complete automated setup"
+	@echo ""
+	@echo "Installation Commands:"
+	@echo "  kali/install         - Install KNIRV-NEXUS binaries and files"
+	@echo "  kali/install-services - Install and enable systemd services"
+	@echo ""
+	@echo "Service Management:"
+	@echo "  kali/start           - Start KNIRV-NEXUS services"
+	@echo "  kali/stop            - Stop KNIRV-NEXUS services"
+	@echo "  kali/status          - Show service status and recent logs"
+	@echo "  kali/logs            - Follow live logs"
+	@echo ""
+	@echo "Maintenance:"
+	@echo "  kali/uninstall       - Uninstall KNIRV-NEXUS"
+	@echo "  kali/help            - Show this help message"
+	@echo ""
+	@echo "Troubleshooting:"
+	@echo "  If you encounter container runtime conflicts:"
+	@echo "    make kali/fix-container-deps"
+	@echo ""
+	@echo "  If you encounter frontend build issues:"
+	@echo "    make kali/fix-frontend"
+	@echo ""
+	@echo "  If you need Docker instead of Podman:"
+	@echo "    make kali/install-docker"
+	@echo ""
+	@echo "  For TEE support issues, ensure your hardware supports:"
+	@echo "    - Intel SGX, AMD SEV-SNP, or Intel TDX"
+	@echo "    - BIOS/UEFI settings are properly configured"

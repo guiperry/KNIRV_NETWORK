@@ -1,47 +1,79 @@
-// Blockchain API Types
-export interface Block {
-  header: {
-    height: number;
-    previous_hash: string;
-    timestamp: string;
-    merkle_root: string;
-    validator_set: string[];
-    proposer: string;
-    state_root: string;
-  };
-  transactions: Transaction[];
-  hash: string;
+// GraphChain API Types
+export interface GraphNode {
+  id: string;
+  node_type: string;
+  data: any;
+  parents: string[];
+  children: string[];
+  weight: number;
+  timestamp: string;
+  metadata: Record<string, any>;
 }
 
-export interface Transaction {
+export interface GraphEdge {
   id: string;
   from: string;
   to: string;
-  amount: number;
-  fee: number;
-  data: string;
+  weight: number;
+  edge_type: string;
+  metadata: Record<string, any>;
   timestamp: string;
-  signature: string;
-  nonce: number;
 }
 
-export interface Account {
-  address: string;
-  balance: number;
-  nonce: number;
+export interface SkillNode {
+  id: string;
+  skill_type: string;
+  capabilities: string[];
+  requirements: Record<string, any>;
+  performance?: {
+    success_rate: number;
+    avg_resolution_time: number;
+    total_resolutions: number;
+  };
+  validation?: {
+    is_validated: boolean;
+    validated_by: string[];
+    validation_score: number;
+    last_validated: string;
+  };
+  timestamp: string;
 }
 
-export interface BlockchainStats {
+export interface ErrorNode {
+  id: string;
+  error_type: string;
+  description: string;
+  context: Record<string, any>;
+  severity: number;
+  timestamp: string;
+  resolution_status?: 'pending' | 'resolved' | 'failed';
+  resolved_by?: string[];
+}
+
+export interface NRVVector {
+  id: string;
+  source_peer: string;
+  target_hash: string;
+  coordinates: number[];
+  confidence: number;
+  timestamp: string;
+  metadata: Record<string, any>;
+}
+
+export interface GraphChainStats {
   height: number;
-  totalTransactions: number;
-  totalAccounts: number;
-  avgBlockTime: number;
+  totalNodes: number;
+  totalEdges: number;
+  totalSkillNodes: number;
+  totalErrorNodes: number;
+  totalVectors: number;
+  avgResolutionTime: number;
 }
 
 // API Configuration
 const API_BASE_URL = 'http://localhost:8080';
 
-class BlockchainAPI {
+class GraphChainAPI {
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     try {
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -70,65 +102,103 @@ class BlockchainAPI {
     return response.height;
   }
 
-  async getBlock(height: number): Promise<Block> {
-    return await this.request<Block>(`/block/${height}`);
+  async getNode(nodeId: string): Promise<GraphNode> {
+    return await this.request<GraphNode>(`/node/${nodeId}`);
   }
 
-  async getAccount(address: string): Promise<Account> {
-    return await this.request<Account>(`/account/${address}`);
+  async getEdge(edgeId: string): Promise<GraphEdge> {
+    return await this.request<GraphEdge>(`/edge/${edgeId}`);
   }
 
-  async submitTransaction(transaction: Transaction): Promise<{ status: string; tx_id: string }> {
-    return await this.request<{ status: string; tx_id: string }>('/transaction', {
+  async getGraphHeads(): Promise<string[]> {
+    const response = await this.request<{ heads: string[] }>('/graph/heads');
+    return response.heads;
+  }
+
+  async getNodeNeighbors(nodeId: string): Promise<string[]> {
+    return await this.request<string[]>(`/graph/neighbors/${nodeId}`);
+  }
+
+  async findPath(fromId: string, toId: string, maxDepth: number = 50): Promise<string[]> {
+    const response = await this.request<{ path: string[] }>(`/graph/path/${fromId}/${toId}?max_depth=${maxDepth}`);
+    return response.path;
+  }
+
+  // NRV System APIs
+  async getAllSkills(): Promise<SkillNode[]> {
+    return await this.request<SkillNode[]>('/nrv/skills');
+  }
+
+  async getAllErrors(): Promise<ErrorNode[]> {
+    return await this.request<ErrorNode[]>('/nrv/errors');
+  }
+
+  async getAllVectors(): Promise<NRVVector[]> {
+    return await this.request<NRVVector[]>('/nrv/vectors');
+  }
+
+  async getSkillsForError(errorType: string): Promise<SkillNode[]> {
+    return await this.request<SkillNode[]>(`/nrv/skills/for-error/${errorType}`);
+  }
+
+  async createSkill(skill: Partial<SkillNode>): Promise<{ status: string; skill_id: string }> {
+    return await this.request<{ status: string; skill_id: string }>('/nrv/skills', {
       method: 'POST',
-      body: JSON.stringify(transaction),
+      body: JSON.stringify(skill),
     });
   }
 
-  async getRecentBlocks(count: number = 10): Promise<Block[]> {
-    const height = await this.getCurrentHeight();
-    const promises = [];
-    
-    for (let i = Math.max(0, height - count + 1); i <= height; i++) {
-      promises.push(this.getBlock(i));
-    }
-    
-    const blocks = await Promise.allSettled(promises);
-    return blocks
-      .filter((result): result is PromiseFulfilledResult<Block> => result.status === 'fulfilled')
-      .map(result => result.value)
-      .reverse(); // Most recent first
+  async createError(error: Partial<ErrorNode>): Promise<{ status: string; error_id: string }> {
+    return await this.request<{ status: string; error_id: string }>('/nrv/errors', {
+      method: 'POST',
+      body: JSON.stringify(error),
+    });
   }
 
-  async getBlockchainStats(): Promise<BlockchainStats> {
+  async getGraphChainStats(): Promise<GraphChainStats> {
     try {
-      const height = await this.getCurrentHeight();
-      const recentBlocks = await this.getRecentBlocks(10);
-      
-      let totalTransactions = 0;
-      let totalTime = 0;
-      
-      recentBlocks.forEach((block, index) => {
-        totalTransactions += block.transactions.length;
-        if (index > 0) {
-          const currentTime = new Date(block.header.timestamp).getTime();
-          const prevTime = new Date(recentBlocks[index - 1].header.timestamp).getTime();
-          totalTime += currentTime - prevTime;
-        }
-      });
-      
-      const avgBlockTime = recentBlocks.length > 1 ? totalTime / (recentBlocks.length - 1) / 1000 : 0;
-      
+      const [height, skills, errors, vectors] = await Promise.all([
+        this.getCurrentHeight(),
+        this.getAllSkills(),
+        this.getAllErrors(),
+        this.getAllVectors(),
+      ]);
+
+      // Calculate average resolution time from skill performance data
+      const skillsWithPerformance = skills.filter(skill => skill.performance);
+      const avgResolutionTime = skillsWithPerformance.length > 0
+        ? skillsWithPerformance.reduce((sum, skill) => sum + (skill.performance?.avg_resolution_time || 0), 0) / skillsWithPerformance.length
+        : 0;
+
       return {
         height,
-        totalTransactions,
-        totalAccounts: 0, // This would require additional API endpoint
-        avgBlockTime,
+        totalNodes: 0, // Would need additional endpoint to get total graph nodes
+        totalEdges: 0, // Would need additional endpoint to get total graph edges
+        totalSkillNodes: skills.length,
+        totalErrorNodes: errors.length,
+        totalVectors: vectors.length,
+        avgResolutionTime,
       };
     } catch (error) {
-      throw new Error('Failed to fetch blockchain stats');
+      throw new Error('Failed to fetch GraphChain stats');
     }
+  }
+
+  // Helper method to get recent skills (most recently created)
+  async getRecentSkills(count: number = 10): Promise<SkillNode[]> {
+    const skills = await this.getAllSkills();
+    return skills
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, count);
+  }
+
+  // Helper method to get recent errors (most recently created)
+  async getRecentErrors(count: number = 10): Promise<ErrorNode[]> {
+    const errors = await this.getAllErrors();
+    return errors
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, count);
   }
 }
 
-export const blockchainApi = new BlockchainAPI();
+export const graphChainApi = new GraphChainAPI();

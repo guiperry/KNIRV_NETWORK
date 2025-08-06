@@ -39,7 +39,7 @@ describe('LoginPage', () => {
   test('should render login form', () => {
     renderLoginPage();
 
-    expect(screen.getByText('Agentic Engine')).toBeInTheDocument();
+    expect(screen.getByText('KNIRV-NEXUS')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();

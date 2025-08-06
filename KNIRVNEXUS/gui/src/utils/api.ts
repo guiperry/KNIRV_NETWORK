@@ -4,7 +4,11 @@
 const getApiBaseUrl = () => {
   // Check if running in Electron (file:// protocol)
   if (window.location.protocol === 'file:') {
-    return 'http://localhost:8081'; // Backend server port in Electron
+    return 'http://localhost:8083'; // Backend server port in Electron
+  }
+  // For development mode, use the correct API port
+  if (window.location.hostname === 'localhost' && window.location.port === '8080') {
+    return 'http://localhost:8083'; // Development API server port
   }
   return ''; // Use relative URLs for web version
 };

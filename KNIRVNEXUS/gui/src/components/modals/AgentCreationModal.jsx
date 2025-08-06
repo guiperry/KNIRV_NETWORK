@@ -16,6 +16,7 @@ import { sampleAgentImages, getDefaultAgentImage } from '../../utils/imageUrls';
 import { useDefaultAgentImage } from '../../hooks/useAssetPath';
 import AgentImage from '../common/AgentImage';
 import { handleApiError } from '../../utils/errorHandler';
+import PluginServerManager from '../PluginServerManager';
 
 const AgentCreationModal = ({ isOpen, onClose, onAgentCreated }) => {
   const defaultAgentImage = useDefaultAgentImage();
@@ -41,11 +42,12 @@ const AgentCreationModal = ({ isOpen, onClose, onAgentCreated }) => {
   const [availableCapabilities, setAvailableCapabilities] = useState([]);
   const [availableTargetTypes, setAvailableTargetTypes] = useState([]);
 
-  // Agent creation mode: 'select' (choose existing) or 'create' (build new)
+  // Agent creation mode: 'select' (choose existing), 'create' (build new), or 'plugin' (from plugin server)
   const [creationMode, setCreationMode] = useState('select');
   const [availableAgents, setAvailableAgents] = useState([]);
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [loadingAgents, setLoadingAgents] = useState(false);
+  const [selectedPluginAgent, setSelectedPluginAgent] = useState(null);
 
   // Agent creation progress state
   const [creationProgress, setCreationProgress] = useState(0);
@@ -350,6 +352,11 @@ const AgentCreationModal = ({ isOpen, onClose, onAgentCreated }) => {
       newErrors.selectedAgent = 'Please select an existing agent';
     }
 
+    // For 'plugin' mode, require a plugin agent selection
+    if (creationMode === 'plugin' && !selectedPluginAgent) {
+      newErrors.selectedPluginAgent = 'Please select a plugin agent from the server';
+    }
+
     // For 'create' mode, require capabilities and target types
     if (creationMode === 'create') {
       if (formData.capabilities.length === 0) {
@@ -409,6 +416,40 @@ const AgentCreationModal = ({ isOpen, onClose, onAgentCreated }) => {
         setCreationProgress(100);
         setCreationStatus('Agent created successfully!');
 
+      } else if (creationMode === 'plugin') {
+        // Use plugin from plugin server
+        setCreationStatus('Setting up plugin agent...');
+        setCreationProgress(50);
+
+        const configObj = {
+          name: formData.name,
+          collection: formData.collection,
+          image_url: formData.imageURL,
+          capabilities: formData.capabilities,
+          target_types: formData.targetTypes,
+          api_keys: formData.apiKeys,
+          status: 'idle',
+          plugin_info: {
+            name: selectedPluginAgent.name,
+            url: selectedPluginAgent.url,
+            size: selectedPluginAgent.size,
+            type: selectedPluginAgent.type,
+            last_modified: selectedPluginAgent.lastModified
+          },
+          build_target: 'plugin-server',
+          source_plugin_url: selectedPluginAgent.url
+        };
+
+        const agentData = {
+          name: formData.name,
+          type: 'plugin-server',
+          config: JSON.stringify(configObj)
+        };
+
+        createdAgent = await createAgent(agentData);
+        setCreationProgress(100);
+        setCreationStatus('Plugin agent created successfully!');
+
       } else {
         // Create new agent with automatic plugin building
         createdAgent = await createAgentWithPlugin();
@@ -438,6 +479,7 @@ const AgentCreationModal = ({ isOpen, onClose, onAgentCreated }) => {
           }
         });
         setSelectedAgent(null);
+        setSelectedPluginAgent(null);
         setCreationMode('select');
         setSubmitStatus(null);
         setCreationProgress(0);
@@ -540,36 +582,52 @@ const AgentCreationModal = ({ isOpen, onClose, onAgentCreated }) => {
                 </label>
 
                 {/* Mode Selection */}
-                <div className="flex space-x-3 mb-4">
+                <div className="grid grid-cols-3 gap-3 mb-4">
                   <button
                     type="button"
                     onClick={() => setCreationMode('select')}
-                    className={`flex-1 p-3 rounded-lg border transition-colors ${
+                    className={`p-3 rounded-lg border transition-colors ${
                       creationMode === 'select'
-                        ? 'border-purple-500 bg-purple-500/20 text-white'
+                        ? 'border-knirv-primary bg-knirv-primary/20 text-white'
                         : 'border-slate-600 bg-slate-700/50 text-slate-300 hover:border-slate-500'
                     }`}
                   >
                     <div className="text-center">
                       <Bot className="w-6 h-6 mx-auto mb-2" />
-                      <p className="font-medium">Use Existing Agent</p>
-                      <p className="text-xs opacity-75">Choose from pre-built agents</p>
+                      <p className="font-medium text-sm">Use Existing</p>
+                      <p className="text-xs opacity-75">Pre-built agents</p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCreationMode('plugin')}
+                    className={`p-3 rounded-lg border transition-colors ${
+                      creationMode === 'plugin'
+                        ? 'border-knirv-primary bg-knirv-primary/20 text-white'
+                        : 'border-slate-600 bg-slate-700/50 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <Upload className="w-6 h-6 mx-auto mb-2" />
+                      <p className="font-medium text-sm">Plugin Server</p>
+                      <p className="text-xs opacity-75">WASM/Binary files</p>
                     </div>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setCreationMode('create')}
-                    className={`flex-1 p-3 rounded-lg border transition-colors ${
+                    className={`p-3 rounded-lg border transition-colors ${
                       creationMode === 'create'
-                        ? 'border-purple-500 bg-purple-500/20 text-white'
+                        ? 'border-knirv-primary bg-knirv-primary/20 text-white'
                         : 'border-slate-600 bg-slate-700/50 text-slate-300 hover:border-slate-500'
                     }`}
                   >
                     <div className="text-center">
                       <Plus className="w-6 h-6 mx-auto mb-2" />
-                      <p className="font-medium">Create New Agent</p>
-                      <p className="text-xs opacity-75">Build a custom agent</p>
+                      <p className="font-medium text-sm">Create New</p>
+                      <p className="text-xs opacity-75">Build custom</p>
                     </div>
                   </button>
                 </div>
@@ -691,6 +749,19 @@ const AgentCreationModal = ({ isOpen, onClose, onAgentCreated }) => {
 
                     {errors.selectedAgent && (
                       <p className="mt-2 text-sm text-red-400">{errors.selectedAgent}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Plugin Server Manager (for 'plugin' mode) */}
+                {creationMode === 'plugin' && (
+                  <div>
+                    <PluginServerManager
+                      onAgentSelect={setSelectedPluginAgent}
+                      selectedAgent={selectedPluginAgent}
+                    />
+                    {errors.selectedPluginAgent && (
+                      <p className="mt-2 text-sm text-red-400">{errors.selectedPluginAgent}</p>
                     )}
                   </div>
                 )}
@@ -958,7 +1029,11 @@ const AgentCreationModal = ({ isOpen, onClose, onAgentCreated }) => {
                 ) : (
                   <>
                     <Bot className="w-4 h-4" />
-                    <span>{creationMode === 'create' ? 'Create New Agent' : 'Use Selected Agent'}</span>
+                    <span>
+                      {creationMode === 'create' ? 'Create New Agent' :
+                       creationMode === 'plugin' ? 'Use Plugin Agent' :
+                       'Use Selected Agent'}
+                    </span>
                   </>
                 )}
               </button>

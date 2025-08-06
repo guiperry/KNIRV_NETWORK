@@ -2,8 +2,8 @@
 export const onboardingSteps = [
   {
     stepNumber: 1,
-    title: "Welcome to Agentic Engine!",
-    description: "Welcome to your AI-powered agent management platform! This tour will guide you through all the major features. You can switch between auto-play and manual mode at any time.",
+    title: "Welcome to KNIRV-NEXUS!",
+    description: "Welcome to your TEE-enabled AI agent management platform! This tour will guide you through all the major features. You can switch between auto-play and manual mode at any time.",
     target: ".main-header", // Main header/logo area - simplified to match actual class
     features: [
       "Complete AI agent lifecycle management",

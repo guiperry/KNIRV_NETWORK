@@ -9,14 +9,17 @@ import {
   X,
   GitMerge,
   LogOut,
-  Globe
+  Globe,
+  Shield,
+  Activity,
+  DollarSign
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { useAppLogo } from '../hooks/useAssetPath';
 import { ErrorNotificationBell } from './ErrorInferenceNotification';
 
-type ActiveView = 'dashboard' | 'agents' | 'capabilities' | 'targets' | 'workflows' | 'analytics' | 'settings' | 'web-connections';
+type ActiveView = 'dashboard' | 'agents' | 'capabilities' | 'targets' | 'workflows' | 'analytics' | 'settings' | 'web-connections' | 'tee-attestation' | 'performance' | 'network-explorer' | 'billing';
 
 interface SidebarProps {
   activeView: ActiveView;
@@ -33,11 +36,15 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
 
     const navigation = [
       { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-      { id: 'agents', name: 'NFT-Agents', icon: Bot, path: '/agents' },
+      { id: 'workflows', name: 'Task & Workflow Management', icon: GitMerge, path: '/workflows' },
+      { id: 'tee-attestation', name: 'TEE Attestation & Security', icon: Shield, path: '/tee-attestation' },
+      { id: 'performance', name: 'Performance & Observability', icon: Activity, path: '/performance' },
+      { id: 'network-explorer', name: 'Network & Resource Explorer', icon: Globe, path: '/network-explorer' },
+      { id: 'billing', name: 'Billing & Usage Reports', icon: DollarSign, path: '/billing' },
+      { id: 'agents', name: 'Agent Management', icon: Bot, path: '/agents' },
       { id: 'capabilities', name: 'Capabilities', icon: Zap, path: '/capabilities' },
       { id: 'targets', name: 'Target Systems', icon: Target, path: '/targets' },
       { id: 'web-connections', name: 'Web Connections', icon: Globe, path: '/web-connections' },
-      { id: 'workflows', name: 'Workflows', icon: GitMerge, path: '/workflows' },
       { id: 'analytics', name: 'Analytics', icon: BarChart3, path: '/analytics' },
       { id: 'settings', name: 'Settings', icon: Settings, path: '/settings' },
     ];
@@ -79,8 +86,8 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
                 />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white">Agentify</h1>
-                <p className="text-sm text-slate-400">Agentic Engine</p>
+                <h1 className="text-xl font-bold text-white">KNIRV-NEXUS</h1>
+                <p className="text-sm text-slate-400">TEE Agent Platform</p>
               </div>
             </div>
             <div className="flex items-center space-x-2">

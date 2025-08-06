@@ -62,28 +62,28 @@ func NewRPCServerWithNRV(gc GraphChainInterface, nrvSys *nrv.NRVSystem, logger *
 	})
 
 	// Register graph routes
-	router.HandleFunc("/node/{nodeID}", rpc.getNode).Methods("GET")
-	router.HandleFunc("/edge/{edgeID}", rpc.getEdge).Methods("GET")
-	router.HandleFunc("/graph/heads", rpc.getHeads).Methods("GET")
-	router.HandleFunc("/graph/neighbors/{nodeID}", rpc.getNeighbors).Methods("GET")
-	router.HandleFunc("/graph/path/{from}/{to}", rpc.getPath).Methods("GET")
-	router.HandleFunc("/graph/traverse", rpc.traverseGraph).Methods("POST")
-	router.HandleFunc("/height", rpc.getHeight).Methods("GET")
-	router.HandleFunc("/account/{address}", rpc.getAccount).Methods("GET")
-	router.HandleFunc("/transaction", rpc.submitGraphTransaction).Methods("POST")
-	router.HandleFunc("/node", rpc.createNode).Methods("POST")
-	router.HandleFunc("/edge", rpc.createEdge).Methods("POST")
+	router.HandleFunc("/node/{nodeID}", rpc.getNode).Methods("GET", "OPTIONS")
+	router.HandleFunc("/edge/{edgeID}", rpc.getEdge).Methods("GET", "OPTIONS")
+	router.HandleFunc("/graph/heads", rpc.getHeads).Methods("GET", "OPTIONS")
+	router.HandleFunc("/graph/neighbors/{nodeID}", rpc.getNeighbors).Methods("GET", "OPTIONS")
+	router.HandleFunc("/graph/path/{from}/{to}", rpc.getPath).Methods("GET", "OPTIONS")
+	router.HandleFunc("/graph/traverse", rpc.traverseGraph).Methods("POST", "OPTIONS")
+	router.HandleFunc("/height", rpc.getHeight).Methods("GET", "OPTIONS")
+	router.HandleFunc("/account/{address}", rpc.getAccount).Methods("GET", "OPTIONS")
+	router.HandleFunc("/transaction", rpc.submitGraphTransaction).Methods("POST", "OPTIONS")
+	router.HandleFunc("/node", rpc.createNode).Methods("POST", "OPTIONS")
+	router.HandleFunc("/edge", rpc.createEdge).Methods("POST", "OPTIONS")
 
 	// Register NRV routes
 	if rpc.nrvSystem != nil {
-		router.HandleFunc("/nrv/vectors", rpc.getAllVectors).Methods("GET")
-		router.HandleFunc("/nrv/vectors", rpc.createVector).Methods("POST")
-		router.HandleFunc("/nrv/vectors/resolve/{targetHash}", rpc.resolveTarget).Methods("GET")
-		router.HandleFunc("/nrv/errors", rpc.getAllErrors).Methods("GET")
-		router.HandleFunc("/nrv/errors", rpc.createError).Methods("POST")
-		router.HandleFunc("/nrv/skills", rpc.getAllSkills).Methods("GET")
-		router.HandleFunc("/nrv/skills", rpc.createSkill).Methods("POST")
-		router.HandleFunc("/nrv/skills/for-error/{errorType}", rpc.getSkillsForError).Methods("GET")
+		router.HandleFunc("/nrv/vectors", rpc.getAllVectors).Methods("GET", "OPTIONS")
+		router.HandleFunc("/nrv/vectors", rpc.createVector).Methods("POST", "OPTIONS")
+		router.HandleFunc("/nrv/vectors/resolve/{targetHash}", rpc.resolveTarget).Methods("GET", "OPTIONS")
+		router.HandleFunc("/nrv/errors", rpc.getAllErrors).Methods("GET", "OPTIONS")
+		router.HandleFunc("/nrv/errors", rpc.createError).Methods("POST", "OPTIONS")
+		router.HandleFunc("/nrv/skills", rpc.getAllSkills).Methods("GET", "OPTIONS")
+		router.HandleFunc("/nrv/skills", rpc.createSkill).Methods("POST", "OPTIONS")
+		router.HandleFunc("/nrv/skills/for-error/{errorType}", rpc.getSkillsForError).Methods("GET", "OPTIONS")
 	}
 
 	rpc.server = &http.Server{

@@ -10,6 +10,10 @@ import { WorkflowOrchestrator } from './components/WorkflowOrchestrator';
 import { Analytics } from './components/Analytics';
 import { Settings } from './components/Settings';
 import { WebConnections } from './components/WebConnections';
+import TEEAttestationLogs from './components/TEEAttestationLogs';
+import PerformanceObservability from './components/PerformanceObservability';
+import NetworkResourceExplorer from './components/NetworkResourceExplorer';
+import BillingUsageReports from './components/BillingUsageReports';
 import { AuthProvider } from './components/AuthContext';
 import LoginPage from './components/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -24,7 +28,7 @@ import OnboardingSequence from './components/onboarding/OnboardingSequence';
 import LoadingScreen from './components/LoadingScreen';
 import './components/onboarding/onboarding.css';
 
-type ActiveView = 'dashboard' | 'agents' | 'capabilities' | 'targets' | 'workflows' | 'analytics' | 'settings' | 'web-connections';
+type ActiveView = 'dashboard' | 'agents' | 'capabilities' | 'targets' | 'workflows' | 'analytics' | 'settings' | 'web-connections' | 'tee-attestation' | 'performance' | 'network-explorer' | 'billing';
 
 // Detect if we're running in Electron or web browser
 const isElectron = () => {
@@ -58,7 +62,7 @@ function App() {
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [loadingMessage, setLoadingMessage] = useState('Starting Agentic Engine...');
+  const [loadingMessage, setLoadingMessage] = useState('Starting KNIRV-NEXUS...');
   const [loadingProgress, setLoadingProgress] = useState(0);
 
   // Application initialization with loading screen
@@ -303,7 +307,7 @@ function App() {
           {/* Protected routes */}
           <Route path="/" element={
             <ProtectedRoute>
-              <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+              <div className="min-h-screen bg-knirv-gradient">
                 <div className="flex">
                   <Sidebar 
                     activeView={activeView} 
@@ -338,7 +342,7 @@ function App() {
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <ErrorBoundary componentName="Dashboard">
-                <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+                <div className="min-h-screen bg-knirv-gradient">
                   <div className="flex">
                     <Sidebar
                       activeView={activeView}
@@ -368,7 +372,7 @@ function App() {
           <Route path="/agents" element={
             <ProtectedRoute>
               <ErrorBoundary componentName="AgentManager">
-                <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+                <div className="min-h-screen bg-knirv-gradient">
                   <div className="flex">
                     <Sidebar
                       activeView={activeView}
@@ -397,7 +401,7 @@ function App() {
           
           <Route path="/capabilities" element={
             <ProtectedRoute>
-              <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+              <div className="min-h-screen bg-knirv-gradient">
                 <div className="flex">
                   <Sidebar 
                     activeView={activeView} 
@@ -426,7 +430,7 @@ function App() {
           <Route path="/targets" element={
             <ProtectedRoute>
               <ErrorBoundary componentName="TargetManager">
-                <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+                <div className="min-h-screen bg-knirv-gradient">
                   <div className="flex">
                     <Sidebar
                       activeView={activeView}
@@ -457,7 +461,7 @@ function App() {
           
           <Route path="/workflows" element={
             <ProtectedRoute>
-              <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+              <div className="min-h-screen bg-knirv-gradient">
                 <div className="flex">
                   <Sidebar 
                     activeView={activeView} 
@@ -485,7 +489,7 @@ function App() {
           
           <Route path="/analytics" element={
             <ProtectedRoute>
-              <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+              <div className="min-h-screen bg-knirv-gradient">
                 <div className="flex">
                   <Sidebar 
                     activeView={activeView} 
@@ -513,7 +517,7 @@ function App() {
 
           <Route path="/web-connections" element={
             <ProtectedRoute>
-              <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+              <div className="min-h-screen bg-knirv-gradient">
                 <div className="flex">
                   <Sidebar
                     activeView={activeView}
@@ -542,7 +546,7 @@ function App() {
           <Route path="/settings" element={
             <ProtectedRoute>
               <ErrorBoundary componentName="Settings">
-                <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+                <div className="min-h-screen bg-knirv-gradient">
                   <div className="flex">
                     <Sidebar
                       activeView={activeView}
@@ -568,7 +572,31 @@ function App() {
               </ErrorBoundary>
             </ProtectedRoute>
           } />
-          
+
+          <Route path="/tee-attestation" element={
+            <ProtectedRoute>
+              <TEEAttestationLogs />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/performance" element={
+            <ProtectedRoute>
+              <PerformanceObservability />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/network-explorer" element={
+            <ProtectedRoute>
+              <NetworkResourceExplorer />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/billing" element={
+            <ProtectedRoute>
+              <BillingUsageReports />
+            </ProtectedRoute>
+          } />
+
           {/* Redirect any other path to dashboard */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

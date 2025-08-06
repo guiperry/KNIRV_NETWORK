@@ -3,7 +3,7 @@ import { useAppLogo } from '../hooks/useAssetPath';
 
 const LoadingScreen = ({ 
   isVisible = true, 
-  message = "Starting Agentic Engine...",
+  message = "Starting KNIRV-NEXUS...",
   progress = null,
   onComplete = null 
 }) => {
@@ -76,20 +76,20 @@ const LoadingScreen = ({
           </div>
           
           {/* Animated ring around logo */}
-          <div className="absolute inset-0 w-32 h-32 border-4 border-purple-500/30 rounded-2xl animate-pulse"></div>
-          <div className="absolute inset-0 w-32 h-32 border-4 border-transparent border-t-purple-500 rounded-2xl animate-spin"></div>
+          <div className="absolute inset-0 w-32 h-32 border-4 border-knirv-primary/30 rounded-2xl animate-pulse"></div>
+          <div className="absolute inset-0 w-32 h-32 border-4 border-transparent border-t-knirv-primary rounded-2xl animate-spin"></div>
         </div>
 
         {/* App title */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-white mb-2">Agentic Engine</h1>
-          <p className="text-slate-300 text-lg">NFT-Agent Platform</p>
+          <h1 className="text-3xl font-bold text-white mb-2">KNIRV-NEXUS</h1>
+          <p className="text-slate-300 text-lg">TEE-Enabled Agent Platform</p>
         </div>
 
         {/* Loading message and spinner */}
         <div className="text-center space-y-4">
           <div className="flex items-center justify-center space-x-2">
-            <div className="w-6 h-6 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"></div>
+            <div className="w-6 h-6 border-2 border-knirv-primary/30 border-t-knirv-primary rounded-full animate-spin"></div>
             <span className="text-white font-medium">{currentMessage}{dots}</span>
           </div>
 
@@ -97,7 +97,7 @@ const LoadingScreen = ({
           {progress !== null && (
             <div className="w-64 bg-slate-700 rounded-full h-2">
               <div 
-                className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all duration-500 ease-out"
+                className="bg-knirv-primary-gradient h-2 rounded-full transition-all duration-500 ease-out"
                 style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
               ></div>
             </div>

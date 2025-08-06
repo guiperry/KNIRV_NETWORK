@@ -1,6 +1,6 @@
 
 
-I've moved the plugin server into the KNIRVNEXUS. I need you to ensure the KNIRVNEXUS utilizes the plugin server for serving agent WASM files exclusively. This will be the main static repository for all agents on the NEXUS. We need to rebrand the KNIRVNEXUS so that it actually says KNIRV-NEXUS and not Agentic Engine. Change the primary colors from the purple gradient to a cobalt-blue to black gradient throughout the site for custom CSS with KNIRV brand colors (--knirv-primary: #00c0fa, --knirv-secondary: #2b56f5). Refactor the pages to match the following, keep all other functionality the same:
+I've moved the plugin server into the KNIRVNEXUS. I need you to ensure the KNIRVNEXUS utilizes the plugin server for serving agent WASM(or any other compiled binaries) files exclusively. This will be the main static repository for all agents on the NEXUS. Make the static storage available on the frontend when creating new agents manually. We need to rebrand the KNIRVNEXUS so that it actually says KNIRV-NEXUS and not Agentic Engine. Change the primary colors from the purple gradient to a dark-cobalt-blue to black gradient throughout the site for custom CSS with KNIRV brand colors (--knirv-primary: #00c0fa, --knirv-secondary: #2b56f5). Refactor the pages to match the following, keep all other functionality the same:
 
 
 Here are the essential pages and their objectives for the KNIRV-NEXUS portal:

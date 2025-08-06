@@ -27,37 +27,37 @@ export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
 
   const stats = [
-    { label: 'Active Agents', value: '47', change: '+12%', icon: Bot, color: 'from-blue-500 to-cyan-500' },
-    { label: 'Target Systems', value: '23', change: '+8%', icon: Target, color: 'from-purple-500 to-pink-500' },
+    { label: 'Active TEE Tasks', value: '47', change: '+12%', icon: Bot, color: 'from-knirv-primary to-knirv-secondary' },
+    { label: 'TEE Nodes', value: '23', change: '+8%', icon: Target, color: 'from-blue-500 to-cyan-500' },
     { label: 'Inferences Today', value: '1,847', change: '+34%', icon: Activity, color: 'from-green-500 to-emerald-500' },
-    { label: 'Success Rate', value: '97.2%', change: '+1.8%', icon: TrendingUp, color: 'from-orange-500 to-red-500' },
+    { label: 'Security Attestations', value: '97.2%', change: '+1.8%', icon: CheckCircle, color: 'from-emerald-500 to-green-500' },
   ];
 
   const recentActivity = [
-    { 
-      id: 1, 
-      type: 'inference', 
-      agent: 'CyberPunk Agent #7804', 
-      target: 'Chrome Browser', 
-      capability: 'Web Scraping Analysis', 
-      status: 'completed', 
+    {
+      id: 1,
+      type: 'tee-task',
+      agent: 'AI Inference Task #7804',
+      target: 'Intel SGX Enclave',
+      capability: 'Secure Data Processing',
+      status: 'completed',
       time: '2 minutes ago',
-      result: 'Extracted 247 data points from target website'
+      result: 'Processed 247 data points in TEE with attestation verified'
     },
-    { 
-      id: 2, 
-      type: 'deployment', 
-      agent: 'Data Miner #3749', 
-      target: 'Local File System', 
-      capability: 'Document Classification', 
-      status: 'running', 
+    {
+      id: 2,
+      type: 'deployment',
+      agent: 'ML Model Task #3749',
+      target: 'AMD SEV-SNP Node',
+      capability: 'Confidential Inference',
+      status: 'running',
       time: '5 minutes ago',
       result: null
     },
-    { 
-      id: 3, 
-      type: 'monitoring', 
-      agent: 'Security Guardian #182', 
+    {
+      id: 3,
+      type: 'security',
+      agent: 'Security Attestation #182',
       target: 'Network Interface', 
       capability: 'Threat Detection', 
       status: 'completed', 

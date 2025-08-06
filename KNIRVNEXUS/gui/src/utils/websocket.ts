@@ -85,13 +85,18 @@ export class WebSocketManager {
     if (baseUrl) {
       this.baseUrl = baseUrl;
     } else if (this.isElectron) {
-      // In Electron, always use localhost:8081
-      this.baseUrl = 'ws://localhost:8081';
+      // In Electron, always use localhost:8083
+      this.baseUrl = 'ws://localhost:8083';
     } else {
-      // In web/cloud mode, connect to API server on port 8081
+      // In web/cloud mode, connect to API server on port 8083
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const hostname = window.location.hostname;
-      this.baseUrl = `${protocol}//${hostname}:8081`;
+      // For development mode, use the correct API port
+      if (hostname === 'localhost' && window.location.port === '8080') {
+        this.baseUrl = 'ws://localhost:8083';
+      } else {
+        this.baseUrl = `${protocol}//${hostname}:8083`;
+      }
     }
 
     console.log(`WebSocket Manager initialized - Electron: ${this.isElectron}, Base URL: ${this.baseUrl}`);

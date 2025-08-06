@@ -28,6 +28,7 @@ import (
 )
 
 var staticGUIServer *http.Server // To manage the static GUI server's lifecycle
+var pluginServerCmd *exec.Cmd    // To manage the plugin server process
 
 // InferenceServiceAdapter adapts the inference service to the Agent Inferencer interface
 type InferenceServiceAdapter struct {
@@ -51,6 +52,50 @@ func (a *InferenceServiceAdapter) GenerateStructuredOutput(content string, schem
 
 func (a *InferenceServiceAdapter) IsRunning() bool {
 	return a.service.IsRunning()
+}
+
+// startPluginServer starts the plugin server as a separate process
+func startPluginServer(port int) error {
+	// Get the plugin server binary path
+	pluginServerPath := filepath.Join("plugin-server", "plugin-server")
+	if runtime.GOOS == "windows" {
+		pluginServerPath += ".exe"
+	}
+
+	// Check if plugin server binary exists
+	if _, err := os.Stat(pluginServerPath); os.IsNotExist(err) {
+		// Try to build the plugin server
+		log.Println("Plugin server binary not found, attempting to build...")
+		buildCmd := exec.Command("go", "build", "-o", pluginServerPath, "./plugin-server")
+		if err := buildCmd.Run(); err != nil {
+			return fmt.Errorf("failed to build plugin server: %v", err)
+		}
+		log.Println("Plugin server built successfully")
+	}
+
+	// Create agents directory if it doesn't exist
+	agentsDir := filepath.Join("plugin-server", "agents")
+	if err := os.MkdirAll(agentsDir, 0755); err != nil {
+		return fmt.Errorf("failed to create agents directory: %v", err)
+	}
+
+	// Start the plugin server
+	pluginServerCmd = exec.Command(pluginServerPath,
+		"--port", fmt.Sprintf("%d", port),
+		"--agents", agentsDir,
+		"--name", "KNIRV-NEXUS Plugin Server",
+		"--cors")
+
+	// Set up logging for plugin server
+	pluginServerCmd.Stdout = os.Stdout
+	pluginServerCmd.Stderr = os.Stderr
+
+	if err := pluginServerCmd.Start(); err != nil {
+		return fmt.Errorf("failed to start plugin server: %v", err)
+	}
+
+	log.Printf("🔌 Plugin server started on port %d", port)
+	return nil
 }
 
 func main() {
@@ -309,6 +354,13 @@ func main() {
 		}
 	}()
 
+	// Start the plugin server
+	pluginServerPort := 8082 // Use a different port from API server
+	if err := startPluginServer(pluginServerPort); err != nil {
+		log.Printf("⚠️  Warning: Failed to start plugin server: %v", err)
+		log.Printf("   Plugin server functionality will be limited")
+	}
+
 	// Start the React GUI server
 	go func() {
 		if *production {
@@ -368,6 +420,12 @@ func main() {
 		log.Println("Shutting down static GUI server...")
 		if err := staticGUIServer.Shutdown(ctx); err != nil {
 			log.Printf("Error stopping static GUI server: %v", err)
+		}
+	}
+	if pluginServerCmd != nil && pluginServerCmd.Process != nil {
+		log.Println("Shutting down plugin server...")
+		if err := pluginServerCmd.Process.Kill(); err != nil {
+			log.Printf("Error stopping plugin server: %v", err)
 		}
 	}
 	if err := apiServer.Stop(ctx); err != nil {
