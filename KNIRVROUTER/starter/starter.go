@@ -57,6 +57,15 @@ type Config struct {
 	ConsensusPauseTime     int
 	PeerAddresses          []string
 	// NOTE: WalletPort is NOT defined here
+	// Testnet-specific configuration
+	TestnetMode         bool
+	LocalNetworkMode    bool
+	MockNRNMinting      bool
+	TestnetChainID      string
+	TestnetValidators   int
+	TestnetInitialNRN   int64
+	SimplifiedConsensus bool
+	DisableXIONBridge   bool
 }
 
 func loadConfig() (*Config, error) {
@@ -148,6 +157,25 @@ func loadConfig() (*Config, error) {
 		cfg.PeerAddresses = strings.Split(peerString, ",")
 	}
 
+	// Load testnet configuration
+	cfg.TestnetMode = os.Getenv("TESTNET_MODE") == "true"
+	cfg.LocalNetworkMode = os.Getenv("LOCAL_NETWORK_MODE") == "true"
+	cfg.MockNRNMinting = os.Getenv("MOCK_NRN_MINTING") == "true"
+	cfg.TestnetChainID = os.Getenv("TESTNET_CHAIN_ID")
+	if cfg.TestnetChainID == "" {
+		cfg.TestnetChainID = "knirvrouter-testnet-1"
+	}
+	cfg.TestnetValidators, err1 = strconv.Atoi(os.Getenv("TESTNET_VALIDATORS"))
+	if err1 != nil || cfg.TestnetValidators == 0 {
+		cfg.TestnetValidators = 3
+	}
+	cfg.TestnetInitialNRN, err1 = strconv.ParseInt(os.Getenv("TESTNET_INITIAL_NRN"), 10, 64)
+	if err1 != nil || cfg.TestnetInitialNRN == 0 {
+		cfg.TestnetInitialNRN = 1000000000000
+	}
+	cfg.SimplifiedConsensus = os.Getenv("SIMPLIFIED_CONSENSUS") == "true"
+	cfg.DisableXIONBridge = os.Getenv("DISABLE_XION_BRIDGE") == "true"
+
 	// Ensure the database directory exists - Moved to where it's needed
 
 	return cfg, nil
@@ -183,6 +211,18 @@ func StartCommandLine() {
 	if err != nil {
 		log.Println("Error loading base configuration:", err)
 		os.Exit(1)
+	}
+
+	// Log testnet configuration if enabled
+	if baseCfg.TestnetMode {
+		log.Println("🧪 TESTNET MODE ENABLED")
+		log.Printf("   - Chain ID: %s", baseCfg.TestnetChainID)
+		log.Printf("   - Validators: %d", baseCfg.TestnetValidators)
+		log.Printf("   - Initial NRN: %d", baseCfg.TestnetInitialNRN)
+		log.Printf("   - Local Network: %v", baseCfg.LocalNetworkMode)
+		log.Printf("   - Mock NRN Minting: %v", baseCfg.MockNRNMinting)
+		log.Printf("   - Simplified Consensus: %v", baseCfg.SimplifiedConsensus)
+		log.Printf("   - Disable XION Bridge: %v", baseCfg.DisableXIONBridge)
 	}
 
 	// Define command-line flags for subcommands

@@ -1,0 +1,12 @@
+/docs
+.log
+*.log
+*~
+.zencoder
+
+node_modules
+*/node_modules
+# Local Netlify folder
+.netlify
+
+*data

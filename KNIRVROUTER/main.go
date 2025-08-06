@@ -1,3 +1,6 @@
+//go:build !headless
+// +build !headless
+
 package main
 
 import (
@@ -50,6 +53,9 @@ func main() {
 	chainFlag := flag.Bool("chain", false, "Start blockchain node instead of GUI")
 	walletFlag := flag.Bool("wallet", false, "Start wallet server instead of GUI")
 	installCompleteFlag := flag.Bool("install-complete", false, "Flag indicating installation just completed")
+	testnetFlag := flag.Bool("testnet", false, "Run in testnet mode with local network")
+	localNetworkFlag := flag.Bool("local-network", false, "Enable local network mode")
+	mockNRNFlag := flag.Bool("mock-nrn", false, "Enable mock NRN minting")
 
 	// Parse flags
 	flag.Parse()
@@ -64,6 +70,24 @@ func main() {
 			defer f.Close()
 			f.WriteString("INSTALL_COMPLETE=true\n")
 		}
+	}
+
+	// Set testnet environment variables if flags are set
+	if *testnetFlag {
+		os.Setenv("TESTNET_MODE", "true")
+		os.Setenv("LOCAL_NETWORK_MODE", "true")
+		os.Setenv("MOCK_NRN_MINTING", "true")
+		os.Setenv("SIMPLIFIED_CONSENSUS", "true")
+		os.Setenv("DISABLE_XION_BRIDGE", "true")
+		fmt.Println("🧪 Testnet mode enabled with local network and mock NRN minting")
+	}
+	if *localNetworkFlag {
+		os.Setenv("LOCAL_NETWORK_MODE", "true")
+		fmt.Println("🌐 Local network mode enabled")
+	}
+	if *mockNRNFlag {
+		os.Setenv("MOCK_NRN_MINTING", "true")
+		fmt.Println("💰 Mock NRN minting enabled")
 	}
 
 	// Check if chain or wallet flags are set, or if subcommands are used

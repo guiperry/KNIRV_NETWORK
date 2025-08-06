@@ -23,6 +23,7 @@ mod nrn_token;
 mod smart_contracts;
 mod blockchain_adapter;
 mod config;
+mod testnet;
 
 // Custom error wrapper for anyhow::Error to implement ResponseError
 #[derive(Debug)]
@@ -721,6 +722,10 @@ async fn main() -> std::io::Result<()> {
             .service(register_llm_v2)
             .service(register_skill_v2)
             .service(invoke_skill_v2)
+            .route("/testnet/llm/validate", web::post().to(testnet::mock_llm_validate))
+            .route("/testnet/skill/validate", web::post().to(testnet::mock_skill_validate))
+            .route("/testnet/status", web::get().to(testnet::testnet_status))
+            .route("/health", web::get().to(testnet::health_check))
     })
     .bind(rpc_endpoint)?
     .run()

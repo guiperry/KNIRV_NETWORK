@@ -22,6 +22,7 @@ import (
 	"Agentic_Engine/api"
 	"Agentic_Engine/database"
 	"Agentic_Engine/inference"
+	"Agentic_Engine/testnet"
 	"Agentic_Engine/utils"
 
 	"github.com/joho/godotenv"
@@ -104,6 +105,9 @@ func main() {
 	var guiPort = flag.Int("gui-port", 8080, "Port for GUI server")
 	var cleanDB = flag.Bool("clean-db", false, "Clean the database directory before starting")
 	var migrateDB = flag.Bool("migrate", false, "Run agent data migration")
+	var testnetMode = flag.Bool("testnet", false, "Run in testnet mode with TEE simulation")
+	var teeSimulation = flag.Bool("tee-simulation", false, "Enable TEE simulation mode")
+	var mockValidation = flag.Bool("mock-validation", false, "Enable mock validation responses")
 	flag.Parse()
 
 	// Handle migration command
@@ -322,6 +326,32 @@ func main() {
 	apiServer, err := api.NewSimpleAPIServer(apiPort, domainDBPath, apiShutdownChan, inferenceService, agentInferencer, authService, userService, analyticsService, webConnectionsService)
 	if err != nil {
 		log.Fatalf("Failed to create API server: %v", err)
+	}
+
+	// Initialize testnet TEE simulator if enabled
+	if *testnetMode || *teeSimulation {
+		log.Println("🧪 Initializing TEE Simulator for testnet...")
+
+		testnetConfig := testnet.GetDefaultConfig()
+		testnetConfig.TEE.SimulationMode = *teeSimulation || *testnetMode
+		testnetConfig.TEE.MockValidation = *mockValidation || *testnetMode
+		testnetConfig.Enabled = true
+
+		teeSimulator := testnet.NewTEESimulator(testnetConfig)
+
+		// Start TEE simulator API on a different port
+		teePort := *guiPort + 100 // Use GUI port + 100 for TEE simulator
+		go func() {
+			log.Printf("🔧 Starting TEE Simulator API on port %d", teePort)
+			if err := teeSimulator.StartTestnetAPI(teePort); err != nil {
+				log.Printf("⚠️  TEE Simulator API failed: %v", err)
+			}
+		}()
+
+		log.Printf("✅ TEE Simulator initialized on port %d", teePort)
+		log.Printf("   - Simulation mode: %v", testnetConfig.TEE.SimulationMode)
+		log.Printf("   - Mock validation: %v", testnetConfig.TEE.MockValidation)
+		log.Printf("   - Endpoints: http://localhost:%d/testnet/status", teePort)
 	}
 
 	// Create sample data for testing (only in development mode)

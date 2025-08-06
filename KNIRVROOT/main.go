@@ -354,6 +354,7 @@ func main() {
 	agent := flag.Bool("agent", false, "Run in agent mode with inference engine and data engine sharing DHT resources")
 	nonInteractive := flag.Bool("non-interactive", false, "Automatically accept all default and randomly created values for installation")
 	skipInstall := flag.Bool("skip-install", false, "Skip installation process even if InstallComplete is false")
+	testnetMode := flag.Bool("testnet", false, "Run in testnet mode with simplified configuration")
 
 	// The -role flag helps determine which section of the config to load if other role flags aren't set.
 	roleFlag := flag.String("role", "", "Node role (Root, Bootnode, Peer, Client) - overrides auto-detection if other role flags are absent.")
@@ -669,6 +670,13 @@ func main() {
 			cfg.DataEngine.Enabled = true
 			cfg.InferenceEngine.ShareDHTMetrics = true
 			log.Println("Running in agent mode with inference engine and data engine enabled")
+		}
+
+		// Set testnet flag in config if -testnet flag was used
+		if flagsSet["testnet"] && *testnetMode {
+			cfg.Testnet.Enabled = true
+			config.ApplyTestnetDefaults(cfg)
+			log.Println("Running in testnet mode with simplified configuration")
 		}
 
 		// If root flag is set, enable payment processor

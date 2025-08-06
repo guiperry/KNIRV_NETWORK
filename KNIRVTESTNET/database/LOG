@@ -1,0 +1,8 @@
+=============== Aug 6, 2025 (EDT) ===============
+19:14:36.581383 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+19:14:36.651563 db@open opening
+19:14:36.652105 version@stat F·[] S·0B[] Sc·[]
+19:14:36.712117 db@janitor F·2 G·0
+19:14:36.712188 db@open done T·60.580984ms
+19:14:36.752359 transaction@flush created L0@2 N·2 S·244B "block:0,v1":"cha..ght,v2"
+19:14:36.752411 version@stat F·[1] S·244B[244B] Sc·[0.25]

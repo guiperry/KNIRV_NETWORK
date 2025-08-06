@@ -118,6 +118,44 @@ func SetRootConstants(constants RootConstants) {
 		constants.BlockchainName, constants.CurrencyName)
 }
 
+// ApplyTestnetDefaults applies testnet-specific configuration defaults
+func ApplyTestnetDefaults(cfg *Config) {
+	if cfg.Testnet.Enabled {
+		// Set testnet-specific defaults
+		if cfg.Testnet.ChainID == "" {
+			cfg.Testnet.ChainID = "knirv-testnet-1"
+		}
+		if cfg.Testnet.APIPort == 0 {
+			cfg.Testnet.APIPort = 1317
+		}
+		if cfg.Testnet.RPCPort == 0 {
+			cfg.Testnet.RPCPort = 26657
+		}
+		if cfg.Testnet.P2PPort == 0 {
+			cfg.Testnet.P2PPort = 26656
+		}
+		if cfg.Testnet.Validators == 0 {
+			cfg.Testnet.Validators = 3
+		}
+		if cfg.Testnet.InitialNRN == 0 {
+			cfg.Testnet.InitialNRN = 1000000000000
+		}
+		if cfg.Testnet.LogLevel == "" {
+			cfg.Testnet.LogLevel = "debug"
+		}
+
+		// Apply testnet overrides to main config
+		cfg.ChainID = cfg.Testnet.ChainID
+		cfg.Port = uint64(cfg.Testnet.APIPort)
+		cfg.P2PPort = uint64(cfg.Testnet.P2PPort)
+		cfg.Testnet.DisableXIONBridge = true
+		cfg.Testnet.SimplifiedConsensus = true
+
+		log.Printf("Applied testnet defaults: ChainID=%s, APIPort=%d, RPCPort=%d, P2PPort=%d",
+			cfg.Testnet.ChainID, cfg.Testnet.APIPort, cfg.Testnet.RPCPort, cfg.Testnet.P2PPort)
+	}
+}
+
 // MergeConfigs merges two configs, with src values overriding dst where set
 func MergeConfigs(dst, src *Config) *Config {
 	if dst == nil {
@@ -286,6 +324,20 @@ type AgentModeConfig struct {
 	Enabled bool `mapstructure:"enabled" json:"enabled"`
 }
 
+// TestnetConfig defines settings for testnet mode operation
+type TestnetConfig struct {
+	Enabled             bool   `mapstructure:"enabled" json:"enabled"`
+	ChainID             string `mapstructure:"chain_id" json:"chain_id"`
+	APIPort             int    `mapstructure:"api_port" json:"api_port"`
+	RPCPort             int    `mapstructure:"rpc_port" json:"rpc_port"`
+	P2PPort             int    `mapstructure:"p2p_port" json:"p2p_port"`
+	Validators          int    `mapstructure:"validators" json:"validators"`
+	InitialNRN          int64  `mapstructure:"initial_nrn" json:"initial_nrn"`
+	DisableXIONBridge   bool   `mapstructure:"disable_xion_bridge" json:"disable_xion_bridge"`
+	SimplifiedConsensus bool   `mapstructure:"simplified_consensus" json:"simplified_consensus"`
+	LogLevel            string `mapstructure:"log_level" json:"log_level"`
+}
+
 // ReverseProxyConfig defines settings for the built-in Go reverse proxy
 type ReverseProxyConfig struct {
 	Enabled         bool   `mapstructure:"enabled" json:"enabled"`
@@ -394,6 +446,7 @@ type Config struct {
 	DataEngine             DataEngineConfig           `json:"data_engine" mapstructure:"data_engine"`               // Data engine configuration
 	InferenceEngine        InferenceEngineConfig      `json:"inference_engine" mapstructure:"inference_engine"`     // Inference engine configuration
 	AgentMode              AgentModeConfig            `json:"agent_mode" mapstructure:"agent_mode"`                 // Agent mode configuration
+	Testnet                TestnetConfig              `json:"testnet" mapstructure:"testnet"`                       // Testnet configuration
 	PublicIPInfo           map[string]interface{}     `json:"public_ip_info,omitempty" mapstructure:"publicIPInfo"` // Stores the full JSON response from IPinfo.io
 	Chromem                ChromemConfig              `json:"chromem_config" mapstructure:"chromem"`                // Add Chromem config struct
 	P2P                    struct {
