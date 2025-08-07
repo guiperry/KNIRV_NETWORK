@@ -69,12 +69,52 @@ run_teardown() {
     fi
 }
 
+# Function to run JavaScript tests
+run_javascript_tests() {
+    print_status "Running JavaScript integration tests..."
+
+    cd "$TEST_DIR"
+
+    # Set test environment variables
+    export KNIRV_TEST_MODE=true
+    export KNIRV_TEST_CONFIG="$SCRIPT_DIR/test-config.yaml"
+    export KNIRV_TEST_DATA_DIR="$TEST_DIR/data"
+    export KNIRV_TEST_LOGS_DIR="$TEST_DIR/logs"
+    export GATEWAY_SERVICE_URL=${GATEWAY_SERVICE_URL:-"http://localhost:8888"}
+
+    local js_test_result=0
+
+    # Run KNIRV GraphChain Explorer tests
+    if [ -f "knirv-graphchain-explorer.test.js" ]; then
+        print_status "Running KNIRV GraphChain Explorer tests..."
+        if node knirv-graphchain-explorer.test.js; then
+            print_success "KNIRV GraphChain Explorer tests passed"
+        else
+            print_error "KNIRV GraphChain Explorer tests failed"
+            js_test_result=1
+        fi
+    fi
+
+    # Run Portal Integration tests
+    if [ -f "portal-integration.test.js" ]; then
+        print_status "Running Portal Integration tests..."
+        if node portal-integration.test.js; then
+            print_success "Portal Integration tests passed"
+        else
+            print_error "Portal Integration tests failed"
+            js_test_result=1
+        fi
+    fi
+
+    return $js_test_result
+}
+
 # Function to run integration tests
 run_integration_tests() {
     print_status "Running integration tests..."
-    
+
     cd "$TEST_DIR"
-    
+
     # Set test environment variables
     export KNIRV_TEST_MODE=true
     export KNIRV_TEST_CONFIG="$SCRIPT_DIR/test-config.yaml"
@@ -108,8 +148,22 @@ run_integration_tests() {
     
     print_status "Executing: $test_cmd"
     
-    # Run tests
+    # Run Go tests
+    local go_test_result=0
     if eval "$test_cmd"; then
+        print_success "Go integration tests passed!"
+    else
+        print_error "Some Go integration tests failed"
+        go_test_result=1
+    fi
+
+    # Run JavaScript tests
+    local js_test_result=0
+    run_javascript_tests
+    js_test_result=$?
+
+    # Combine results
+    if [ $go_test_result -eq 0 ] && [ $js_test_result -eq 0 ]; then
         print_success "All integration tests passed!"
         return 0
     else
@@ -147,6 +201,28 @@ run_test_suite() {
             ;;
         "wallet")
             go test -v -run "TestKNIRVWalletIntegration" ./...
+            ;;
+        "knirvnexus-backend")
+            go test -v -run "TestKNIRVNEXUSBackendIntegration" ./...
+            ;;
+        "knirvnexus-frontend")
+            node knirvnexus_frontend_integration_test.js
+            ;;
+        "knirvnexus")
+            go test -v -run "TestKNIRVNEXUSBackendIntegration" ./...
+            node knirvnexus_frontend_integration_test.js
+            ;;
+        "graphchain-explorer")
+            node knirv-graphchain-explorer.test.js
+            ;;
+        "portal")
+            node portal-integration.test.js
+            ;;
+        "gateway-nexus")
+            ./gateway_nexus_integration_test.sh
+            ;;
+        "javascript")
+            run_javascript_tests
             ;;
         *)
             print_error "Unknown test suite: $suite"
@@ -202,7 +278,8 @@ generate_test_report() {
             <h3>Components Tested</h3>
             <p>KNIRVCHAIN: ✓</p>
             <p>KNIRVGRAPH: ✓</p>
-            <p>KNIRVNEXUS: ✓</p>
+            <p>KNIRVNEXUS Frontend: ✓</p>
+            <p>KNIRVNEXUS Backend: ✓</p>
             <p>KNIRVROOT: ✓</p>
             <p>KNIRVROUTER: ✓</p>
         </div>
@@ -245,6 +322,9 @@ usage() {
     echo "  economics           Run economics integration tests only"
     echo "  gateway             Run gateway integration tests only"
     echo "  wallet              Run KNIRVWALLET integration tests only"
+    echo "  graphchain-explorer Run KNIRV GraphChain Explorer tests only"
+    echo "  portal              Run Portal integration tests only"
+    echo "  javascript          Run all JavaScript tests only"
     echo ""
     echo "Options:"
     echo "  --no-setup          Skip test environment setup"
@@ -300,13 +380,13 @@ while [[ $# -gt 0 ]]; do
             usage
             exit 0
             ;;
-        all|basic|cross-component|performance|e2e|economics|gateway)
+        all|basic|cross-component|performance|e2e|economics|gateway|wallet|graphchain-explorer|portal|javascript|gateway-nexus|knirvnexus|knirvnexus-backend|knirvnexus-frontend)
             COMMAND="$1"
             shift
             ;;
         *)
             print_error "Unknown option: $1"
-            usage
+            print_error "Available test suites: all, basic, cross-component, performance, e2e, economics, gateway, wallet, graphchain-explorer, portal, javascript, gateway-nexus, knirvnexus, knirvnexus-backend, knirvnexus-frontend"
             exit 1
             ;;
     esac
@@ -341,7 +421,7 @@ main() {
             run_integration_tests
             test_result=$?
             ;;
-        "basic"|"cross-component"|"performance"|"e2e"|"economics"|"gateway")
+        "basic"|"cross-component"|"performance"|"e2e"|"economics"|"gateway"|"wallet"|"graphchain-explorer"|"portal"|"javascript"|"gateway-nexus"|"knirvnexus"|"knirvnexus-backend"|"knirvnexus-frontend")
             run_test_suite "$COMMAND"
             test_result=$?
             ;;

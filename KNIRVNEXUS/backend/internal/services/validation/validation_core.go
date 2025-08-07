@@ -22,6 +22,7 @@ type ValidationCore struct {
 	config     *config.Config
 	taskQueue  *TaskQueue
 	executor   *ValidationExecutor
+	apiServer  *APIServer
 	ctx        context.Context
 	cancel     context.CancelFunc
 	mu         sync.RWMutex
@@ -66,6 +67,9 @@ func NewValidationCore(db *buntdb.DB, p2pManager *p2p.DVEP2PManager, cfg *config
 		cancel: cancel,
 	}
 
+	// Initialize API server
+	core.apiServer = NewAPIServer(core, cfg)
+
 	// Register P2P message handlers
 	p2pManager.RegisterMessageHandler(p2p.MessageTypeValidationRequest, core)
 	p2pManager.RegisterMessageHandler(p2p.MessageTypeTaskAssignment, core)
@@ -76,6 +80,11 @@ func NewValidationCore(db *buntdb.DB, p2pManager *p2p.DVEP2PManager, cfg *config
 // Start starts the Validation Core service
 func (vc *ValidationCore) Start(ctx context.Context) error {
 	log.Println("Starting Validation Core service...")
+
+	// Start API server
+	if err := vc.apiServer.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start API server: %w", err)
+	}
 
 	// Start task processing
 	go vc.processTaskQueue()
@@ -94,6 +103,14 @@ func (vc *ValidationCore) Start(ctx context.Context) error {
 // Stop stops the Validation Core service
 func (vc *ValidationCore) Stop(ctx context.Context) error {
 	log.Println("Stopping Validation Core service...")
+
+	// Stop API server
+	if vc.apiServer != nil {
+		if err := vc.apiServer.Stop(ctx); err != nil {
+			log.Printf("Error stopping API server: %v", err)
+		}
+	}
+
 	vc.cancel()
 
 	// Cancel all running executions

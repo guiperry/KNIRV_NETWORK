@@ -30,15 +30,23 @@ if (isTestnet) {
     },
     knirvgraph: {
       name: "knirvgraph",
-      url: process.env.KNIRVGRAPH_URL || "http://localhost:8081",
+      url: process.env.KNIRVGRAPH_URL || "http://localhost:8080",
+      healthPath: "/height",
+      isHealthy: true,
+      lastCheck: new Date(),
+      testnet: true
+    },
+    knirvnexus_dve: {
+      name: "knirvnexus_dve",
+      url: process.env.KNIRVNEXUS_DVE_URL || "http://localhost:8080",
       healthPath: "/health",
       isHealthy: true,
       lastCheck: new Date(),
       testnet: true
     },
-    knirvnexus: {
-      name: "knirvnexus",
-      url: process.env.KNIRVNEXUS_URL || "http://localhost:8082",
+    knirvnexus_validation: {
+      name: "knirvnexus_validation",
+      url: process.env.KNIRVNEXUS_VALIDATION_URL || "http://localhost:8081",
       healthPath: "/health",
       isHealthy: true,
       lastCheck: new Date(),
@@ -66,13 +74,20 @@ if (isTestnet) {
     knirvgraph: {
       name: "knirvgraph",
       url: process.env.KNIRVGRAPH_URL || "https://graph.knirv.com",
+      healthPath: "/height",
+      isHealthy: true,
+      lastCheck: new Date()
+    },
+    knirvnexus_dve: {
+      name: "knirvnexus_dve",
+      url: process.env.KNIRVNEXUS_DVE_URL || "https://nexus-dve.knirv.com",
       healthPath: "/health",
       isHealthy: true,
       lastCheck: new Date()
     },
-    knirvnexus: {
-      name: "knirvnexus",
-      url: process.env.KNIRVNEXUS_URL || "https://nexus.knirv.com",
+    knirvnexus_validation: {
+      name: "knirvnexus_validation",
+      url: process.env.KNIRVNEXUS_VALIDATION_URL || "https://nexus-validation.knirv.com",
       healthPath: "/health",
       isHealthy: true,
       lastCheck: new Date()
@@ -90,43 +105,107 @@ if (isTestnet) {
 // Authentication configuration
 const validTokens = new Map();
 
+// Role-based authentication configuration
+const roles = {
+  admin: {
+    permissions: ['*:*'], // Full access to all services and operations
+    nexus_access: ['dve:*', 'validation:*', 'system:*'],
+    description: 'Full administrative access'
+  },
+  validator: {
+    permissions: ['nexus:read', 'nexus:validate', 'nexus:update_assigned'],
+    nexus_access: ['dve:read', 'validation:read', 'validation:execute', 'system:read'],
+    description: 'Validator node operator with scoped access'
+  },
+  observer: {
+    permissions: ['*:read'],
+    nexus_access: ['dve:read', 'validation:read', 'system:read'],
+    description: 'Read-only access to all services'
+  }
+};
+
 // Testnet simplified authentication
 if (isTestnet) {
   // Pre-populate with testnet tokens for easy testing
+  validTokens.set('testnet-admin-123', {
+    user: 'testnet-admin',
+    role: 'admin',
+    permissions: roles.admin.permissions,
+    nexus_access: roles.admin.nexus_access,
+    expires: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+  });
+  validTokens.set('testnet-validator-456', {
+    user: 'testnet-validator',
+    role: 'validator',
+    permissions: roles.validator.permissions,
+    nexus_access: roles.validator.nexus_access,
+    node_id: 'validator-node-001', // Scoped to specific node
+    expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
+  });
+  validTokens.set('testnet-observer-789', {
+    user: 'testnet-observer',
+    role: 'observer',
+    permissions: roles.observer.permissions,
+    nexus_access: roles.observer.nexus_access,
+    expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
+  });
+  // Legacy tokens for backward compatibility
   validTokens.set('testnet-token-123', {
     user: 'testnet-user',
+    role: 'admin',
     permissions: ['read', 'write', 'admin'],
-    expires: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+    expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
   });
   validTokens.set('dev-token-456', {
     user: 'developer',
+    role: 'observer',
     permissions: ['read', 'write'],
     expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
   });
   validTokens.set('guest-token-789', {
     user: 'guest',
+    role: 'observer',
     permissions: ['read'],
     expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
   });
 }
 
-// Simplified auth check for testnet
+// Role-based authentication check
 function isAuthenticated(headers) {
   if (isTestnet) {
     // In testnet mode, allow requests without auth or with any of the test tokens
     const authHeader = headers.authorization || headers.Authorization;
     if (!authHeader) {
-      return { authenticated: true, user: 'testnet-anonymous', permissions: ['read'] };
+      return {
+        authenticated: true,
+        user: 'testnet-anonymous',
+        role: 'observer',
+        permissions: ['read'],
+        nexus_access: roles.observer.nexus_access
+      };
     }
 
     const token = authHeader.replace('Bearer ', '');
     const tokenData = validTokens.get(token);
     if (tokenData && tokenData.expires > new Date()) {
-      return { authenticated: true, user: tokenData.user, permissions: tokenData.permissions };
+      return {
+        authenticated: true,
+        user: tokenData.user,
+        role: tokenData.role || 'observer',
+        permissions: tokenData.permissions,
+        nexus_access: tokenData.nexus_access || roles.observer.nexus_access,
+        node_id: tokenData.node_id
+      };
     }
 
     // Even invalid tokens are accepted in testnet mode
-    return { authenticated: true, user: 'testnet-fallback', permissions: ['read'] };
+    return {
+      authenticated: true,
+      user: 'testnet-fallback',
+      role: 'observer',
+      permissions: ['read'],
+      nexus_access: roles.observer.nexus_access
+    };
   }
 
   // Production auth logic
@@ -140,8 +219,49 @@ function isAuthenticated(headers) {
   return {
     authenticated: tokenData && tokenData.expires > new Date(),
     user: tokenData?.user,
-    permissions: tokenData?.permissions || []
+    role: tokenData?.role || 'observer',
+    permissions: tokenData?.permissions || [],
+    nexus_access: tokenData?.nexus_access || roles.observer.nexus_access,
+    node_id: tokenData?.node_id
   };
+}
+
+// Check if user has permission for specific NEXUS operations
+function hasNexusPermission(authData, service, operation) {
+  if (!authData.authenticated) {
+    return false;
+  }
+
+  // Admin role has full access
+  if (authData.role === 'admin') {
+    return true;
+  }
+
+  // Check nexus-specific permissions
+  const requiredPermission = `${service}:${operation}`;
+  const hasWildcard = authData.nexus_access.includes(`${service}:*`);
+  const hasSpecific = authData.nexus_access.includes(requiredPermission);
+
+  return hasWildcard || hasSpecific;
+}
+
+// Check if validator has access to specific node (for scoped access)
+function hasNodeAccess(authData, nodeId) {
+  if (!authData.authenticated) {
+    return false;
+  }
+
+  // Admin and observer roles have access to all nodes
+  if (authData.role === 'admin' || authData.role === 'observer') {
+    return true;
+  }
+
+  // Validator role is scoped to specific nodes
+  if (authData.role === 'validator') {
+    return !authData.node_id || authData.node_id === nodeId;
+  }
+
+  return false;
 }
 
 // Rate limiting (simple in-memory, could use external store)
@@ -165,6 +285,15 @@ exports.handler = async (event, context) => {
   try {
     // Route handling
     if (path === '/gateway/events') {
+      return await handleSSEConnection(headers);
+    } else if (path === '/gateway/events/nexus-dve') {
+      headers['x-sse-channel'] = 'nexus-dve';
+      return await handleSSEConnection(headers);
+    } else if (path === '/gateway/events/nexus-validation') {
+      headers['x-sse-channel'] = 'nexus-validation';
+      return await handleSSEConnection(headers);
+    } else if (path === '/gateway/events/nexus-system') {
+      headers['x-sse-channel'] = 'nexus-system';
       return await handleSSEConnection(headers);
     } else if (path.startsWith('/gateway/')) {
       return await handleGatewayRoutes(path, httpMethod, headers, body);
@@ -289,6 +418,89 @@ async function handleGatewayRoutes(path, method, headers, body) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: 'Reset endpoint not available' })
       };
+
+    // NEXUS-specific routes with role-based access control
+    case 'nexus/dve-nodes':
+      const authData1 = isAuthenticated(headers);
+      if (!hasNexusPermission(authData1, 'dve', method === 'GET' ? 'read' : 'write')) {
+        return {
+          statusCode: 403,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'Insufficient permissions for DVE nodes access' })
+        };
+      }
+      return await proxyToService('knirvnexus_dve', '/api/dve-nodes', method, headers, body);
+
+    case 'nexus/validation-tasks':
+      const authData2 = isAuthenticated(headers);
+      const operation = method === 'GET' ? 'read' : (method === 'POST' ? 'execute' : 'write');
+      if (!hasNexusPermission(authData2, 'validation', operation)) {
+        return {
+          statusCode: 403,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'Insufficient permissions for validation tasks access' })
+        };
+      }
+      return await proxyToService('knirvnexus_validation', '/api/validation-tasks', method, headers, body);
+
+    case 'nexus/validation-results':
+      const authData3 = isAuthenticated(headers);
+      if (!hasNexusPermission(authData3, 'validation', 'read')) {
+        return {
+          statusCode: 403,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'Insufficient permissions for validation results access' })
+        };
+      }
+      return await proxyToService('knirvnexus_validation', '/api/validation-results', method, headers, body);
+
+    case 'nexus/system/status':
+      const authData4 = isAuthenticated(headers);
+      if (!hasNexusPermission(authData4, 'system', 'read')) {
+        return {
+          statusCode: 403,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'Insufficient permissions for system status access' })
+        };
+      }
+      // Aggregate status from both services
+      const dveStatus = await proxyToService('knirvnexus_dve', '/api/system/status', 'GET', headers);
+      const validationStatus = await proxyToService('knirvnexus_validation', '/api/system/status', 'GET', headers);
+
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dve_manager: dveStatus ? JSON.parse(dveStatus.body) : { status: 'unavailable' },
+          validation_core: validationStatus ? JSON.parse(validationStatus.body) : { status: 'unavailable' },
+          user_role: authData4.role,
+          timestamp: Date.now()
+        })
+      };
+
+    case 'nexus/system/metrics':
+      const authData5 = isAuthenticated(headers);
+      if (!hasNexusPermission(authData5, 'system', 'read')) {
+        return {
+          statusCode: 403,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'Insufficient permissions for system metrics access' })
+        };
+      }
+      // Aggregate metrics from both services
+      const dveMetrics = await proxyToService('knirvnexus_dve', '/api/system/metrics', 'GET', headers);
+      const validationMetrics = await proxyToService('knirvnexus_validation', '/api/system/metrics', 'GET', headers);
+
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dve_manager: dveMetrics ? JSON.parse(dveMetrics.body) : { status: 'unavailable' },
+          validation_core: validationMetrics ? JSON.parse(validationMetrics.body) : { status: 'unavailable' },
+          user_role: authData5.role,
+          timestamp: Date.now()
+        })
+      };
   }
 
   return {
@@ -400,7 +612,50 @@ async function handleAuthRoutes(path, method, headers, body) {
 async function handleSSEConnection(headers) {
   // SSE endpoint for real-time updates
   // This replaces WebSocket functionality
-  
+
+  // Extract channel from query parameters or headers
+  const channel = headers['x-sse-channel'] || 'general';
+
+  // Generate initial connection message based on channel
+  let initialData = {
+    type: 'connected',
+    timestamp: Date.now(),
+    channel: channel,
+    message: 'SSE connection established'
+  };
+
+  // Add channel-specific initial data
+  if (channel === 'nexus-dve') {
+    initialData.data = {
+      service: 'dve-manager',
+      endpoints: ['/api/dve-nodes', '/api/tasks', '/api/system/status'],
+      features: ['node_monitoring', 'task_assignment', 'load_balancing']
+    };
+  } else if (channel === 'nexus-validation') {
+    initialData.data = {
+      service: 'validation-core',
+      endpoints: ['/api/validation-tasks', '/api/validation-results'],
+      features: ['task_validation', 'result_processing', 'tee_attestation']
+    };
+  } else if (channel === 'nexus-system') {
+    initialData.data = {
+      services: ['dve-manager', 'validation-core'],
+      monitoring: ['health', 'metrics', 'performance'],
+      features: ['real_time_updates', 'aggregated_status']
+    };
+  }
+
+  // Start periodic updates for NEXUS channels
+  if (channel.startsWith('nexus-')) {
+    // In a real implementation, this would set up periodic polling
+    // For now, we'll just send the initial connection message
+    setTimeout(() => {
+      // This would send periodic updates in a real SSE implementation
+      // Since Netlify Functions are stateless, real-time updates would need
+      // to be implemented using external services like Pusher or WebSockets
+    }, 1000);
+  }
+
   return {
     statusCode: 200,
     headers: {
@@ -408,13 +663,9 @@ async function handleSSEConnection(headers) {
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Cache-Control'
+      'Access-Control-Allow-Headers': 'Cache-Control, X-SSE-Channel'
     },
-    body: `data: ${JSON.stringify({
-      type: 'connected',
-      timestamp: Date.now(),
-      message: 'SSE connection established'
-    })}\n\n`
+    body: `data: ${JSON.stringify(initialData)}\n\n`
   };
 }
 
@@ -468,13 +719,66 @@ async function handleServiceProxy(path, method, headers, body) {
   }
 }
 
+// Helper function to proxy requests to specific services
+async function proxyToService(serviceName, path, method, headers, body) {
+  const service = services[serviceName];
+  if (!service || !service.isHealthy) {
+    return {
+      statusCode: 503,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: `Service ${serviceName} unavailable` })
+    };
+  }
+
+  try {
+    const url = `${service.url}${path}`;
+    const response = await fetch(url, {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers
+      },
+      body: method !== 'GET' ? body : undefined
+    });
+
+    const responseBody = await response.text();
+
+    return {
+      statusCode: response.status,
+      headers: { 'Content-Type': 'application/json' },
+      body: responseBody
+    };
+  } catch (error) {
+    return {
+      statusCode: 502,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: 'Service proxy error', details: error.message })
+    };
+  }
+}
+
 function determineServiceFromPath(path) {
   if (path.startsWith('/wallets') || path.startsWith('/nrn') || path.startsWith('/skill') || path.startsWith('/llm')) {
     return 'knirvchain';
-  } else if (path.startsWith('/height') || path.startsWith('/node') || path.startsWith('/edge') || path.startsWith('/graph')) {
+  } else if (path.startsWith('/api/graphchain/') ||
+             path.startsWith('/height') ||
+             path.startsWith('/nrv/') ||
+             path.startsWith('/node/') ||
+             path.startsWith('/edge/') ||
+             path.startsWith('/graph/') ||
+             path.startsWith('/search')) {
     return 'knirvgraph';
+  } else if (path.startsWith('/api/dve-nodes') ||
+             path.startsWith('/api/tasks') ||
+             path.startsWith('/api/system/status') ||
+             path.startsWith('/api/system/metrics')) {
+    return 'knirvnexus_dve';
+  } else if (path.startsWith('/api/validation-tasks') ||
+             path.startsWith('/api/validation-results') ||
+             path.startsWith('/api/validation/')) {
+    return 'knirvnexus_validation';
   } else if (path.startsWith('/api/v1/agents') || path.startsWith('/api/v1/workflows') || path.startsWith('/api/v1/mcp')) {
-    return 'knirvnexus';
+    return 'knirvnexus_dve'; // Legacy NEXUS routes go to DVE manager
   } else if (path.startsWith('/api/registry') || path.startsWith('/api/uri') || path.startsWith('/api/economics') || path.startsWith('/economics')) {
     return 'knirvroot';
   }

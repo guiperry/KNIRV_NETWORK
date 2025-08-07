@@ -22,6 +22,7 @@ type DVEManager struct {
 	config       *config.Config
 	nodeTracker  *NodeTracker
 	loadBalancer *LoadBalancer
+	apiServer    *APIServer
 	ctx          context.Context
 	cancel       context.CancelFunc
 	mu           sync.RWMutex
@@ -57,6 +58,9 @@ func NewDVEManager(db *buntdb.DB, p2pManager *p2p.DVEP2PManager, cfg *config.Con
 		cancel: cancel,
 	}
 
+	// Initialize API server
+	manager.apiServer = NewAPIServer(manager, cfg)
+
 	// Register P2P message handlers
 	p2pManager.RegisterMessageHandler(p2p.MessageTypeNodeAnnouncement, manager)
 	p2pManager.RegisterMessageHandler(p2p.MessageTypeNodeHeartbeat, manager)
@@ -67,6 +71,11 @@ func NewDVEManager(db *buntdb.DB, p2pManager *p2p.DVEP2PManager, cfg *config.Con
 // Start starts the DVE Manager service
 func (dm *DVEManager) Start(ctx context.Context) error {
 	log.Println("Starting DVE Manager service...")
+
+	// Start API server
+	if err := dm.apiServer.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start API server: %w", err)
+	}
 
 	// Start periodic tasks
 	go dm.monitorNodes()
@@ -85,6 +94,14 @@ func (dm *DVEManager) Start(ctx context.Context) error {
 // Stop stops the DVE Manager service
 func (dm *DVEManager) Stop(ctx context.Context) error {
 	log.Println("Stopping DVE Manager service...")
+
+	// Stop API server
+	if dm.apiServer != nil {
+		if err := dm.apiServer.Stop(ctx); err != nil {
+			log.Printf("Error stopping API server: %v", err)
+		}
+	}
+
 	dm.cancel()
 	log.Println("DVE Manager service stopped")
 	return nil

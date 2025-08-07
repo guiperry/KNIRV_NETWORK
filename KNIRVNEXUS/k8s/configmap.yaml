@@ -4,36 +4,98 @@ metadata:
   name: knirv-nexus-config
   namespace: knirv-nexus
 data:
-  config.yaml: |
+  knirv-nexus.yaml: |
+    # KNIRV-NEXUS Production Configuration
+    mode: headless  # headless | gui
     environment: production
     chain_id: knirv-nexus-mainnet
+    node_role: dve-manager
+
+    # Service configuration
+    api:
+      port: 8080
+      bind_address: "0.0.0.0"
+      address: "0.0.0.0"
+
+    # GUI mode configuration (disabled in production)
+    gui:
+      enabled: false
+      port: 9080
+      frontend_path: "./dist"
+      bind_address: "127.0.0.1"
+
+    # Security configuration
+    security:
+      auth_required: true
+      tls_enabled: true
+      audit_logging: true
+      jwt_secret: "${KNIRV_JWT_SECRET}"
+
+    # Database configuration
     database:
       path: /app/data/nexus.db
-    api:
-      address: ":8080"
+
+    # User roles and permissions
+    roles:
+      validator:
+        permissions:
+          - "node:read"
+          - "node:update"
+          - "tasks:read"
+          - "results:read"
+        scoped_access: true
+
+      admin:
+        permissions:
+          - "*:*"
+        scoped_access: false
+
+      observer:
+        permissions:
+          - "*:read"
+        scoped_access: false
+
+    # Network configuration
+    network:
+      chain_id: "knirv-nexus-mainnet"
+      p2p_port: 4001
+      discovery_enabled: true
+
+    # P2P configuration
     p2p:
       port: 4001
       bootstraps:
         - "/ip4/127.0.0.1/tcp/4001/p2p/12D3KooWExample"
+
+    # Authentication configuration
     auth:
-      jwt_secret: "${JWT_SECRET}"
+      jwt_secret: "${KNIRV_JWT_SECRET}"
       token_expiry: "24h"
       enable_oauth: false
+      oauth_providers: []
+
+    # Validation configuration
     validation:
       timeout: "300s"
       max_concurrent: 10
       enable_tee: true
+
+    # TEE configuration
     tee:
       type: "software"
       software:
         enable_attestation: true
         key_file: "/app/keys/tee.key"
+
+    # Reports configuration
     reports:
       storage_path: "/app/reports"
       max_file_size: 104857600  # 100MB
       retention_days: 30
       enable_sharing: true
       enable_scheduling: true
+
+    # Logging configuration
     log:
       level: "info"
       format: "json"

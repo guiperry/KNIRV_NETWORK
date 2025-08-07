@@ -10,17 +10,38 @@ KNIRV-NEXUS implements a microservices architecture running on Kubernetes with t
 
 - **DVE Manager**: Orchestrates DVE nodes, manages task allocation, and monitors system health
 - **Validation Core**: Executes validation tasks with TEE support and cryptographic proofs
-- **API Gateway**: Provides RESTful APIs and Server-Sent Events for real-time updates
 
-### Infrastructure
+> **Note**: KNIRV-NEXUS integrates with the primary KNIRVGATEWAY for API routing and frontend hosting. See `NEXUS_GATEWAY_MIGRATION.md` for integration details.
+
+### Frontend Technology Stack
+
+- **Framework**: Next.js 15 with App Router
+- **UI Components**: shadcn/ui built on Radix UI primitives
+- **Styling**: Tailwind CSS 4 with custom KNIRV theme
+- **Real-time**: Socket.io for live updates and notifications
+- **State Management**: React hooks and context
+- **Type Safety**: TypeScript with strict configuration
+- **Database**: Prisma ORM for data modeling
+- **Authentication**: NextAuth.js integration ready
+
+### Backend Infrastructure
 
 - **Base OS**: Kali Linux (as specified in KALI_LINUX_FOUNDATION.md)
 - **Container Runtime**: Podman (rootless containers)
 - **Orchestration**: Kubernetes with production-ready configurations
 - **Database**: BuntDB (embedded key-value store with custom indexes)
 - **Networking**: libp2p (aligned with KNIRV-ROOT protocols)
+- **Configuration**: Viper for professional configuration management
 
 ## 🚀 Features
+
+### Frontend (Next.js with shadcn/ui)
+- **Modern UI Framework**: Next.js 15 with App Router
+- **Component Library**: shadcn/ui components built on Radix UI
+- **Real-time Updates**: Socket.io integration for live data
+- **Responsive Design**: Mobile-first design with Tailwind CSS
+- **Type Safety**: Full TypeScript implementation
+- **Role-based Access**: Dynamic UI based on user permissions
 
 ### DVE Node Management
 - Node registration with TEE type and capabilities
@@ -51,6 +72,12 @@ KNIRV-NEXUS implements a microservices architecture running on Kubernetes with t
 - Server-Sent Events for real-time updates
 - Role-based access control
 - Report generation and sharing
+
+### Operational Modes
+- **Headless Mode**: Production deployment without GUI (default)
+- **GUI Mode**: Local admin interface with built-in web dashboard (`-gui` flag)
+- **Configuration Management**: Viper-based configuration with YAML files
+- **Role-based Permissions**: Configurable user roles and access control
 ## � Quick Start
 
 ### Prerequisites
@@ -87,7 +114,29 @@ KNIRV-NEXUS implements a microservices architecture running on Kubernetes with t
 
 ### Development Setup
 
-1. **Install dependencies**:
+#### Frontend Development
+1. **Install frontend dependencies**:
+   ```bash
+   npm install
+   ```
+
+2. **Start development server**:
+   ```bash
+   npm run dev
+   ```
+
+3. **Build frontend**:
+   ```bash
+   npm run build
+   ```
+
+4. **Start custom server with Socket.io**:
+   ```bash
+   npm run start
+   ```
+
+#### Backend Development
+1. **Install backend dependencies**:
    ```bash
    cd backend
    go mod tidy
@@ -98,22 +147,54 @@ KNIRV-NEXUS implements a microservices architecture running on Kubernetes with t
    go test ./tests/... -v
    ```
 
-3. **Build locally**:
+3. **Build backend services**:
    ```bash
    go build -o bin/dve-manager ./cmd/dve-manager/
    go build -o bin/validation-core ./cmd/validation-core/
-   go build -o bin/api-gateway ./cmd/api-gateway/
    ```
+
+#### Full Stack Development
+1. **Build frontend first**:
+   ```bash
+   npm run build
+   ```
+
+2. **Start backend with GUI mode**:
+   ```bash
+   cd backend
+   ./dve-manager -gui
+   ./validation-core -gui
+   ```
+
+3. **Access the application**:
+   - Frontend: http://localhost:3000 (development)
+   - GUI Mode: http://localhost:9080 (DVE Manager), http://localhost:9081 (Validation Core)
+   - API: http://localhost:8080 (DVE Manager), http://localhost:8081 (Validation Core)
 
 ## 📁 Project Structure
 
 ```
 KNIRVNEXUS/
+├── src/                        # Next.js Frontend
+│   ├── app/                   # Next.js App Router
+│   │   ├── layout.tsx         # Root layout
+│   │   ├── page.tsx           # Home page
+│   │   ├── globals.css        # Global styles
+│   │   └── api/               # API routes
+│   ├── components/            # React components
+│   │   └── ui/                # shadcn/ui components
+│   ├── hooks/                 # Custom React hooks
+│   │   ├── use-knirv-socket.ts # Socket.io integration
+│   │   ├── use-mobile.ts      # Mobile detection
+│   │   └── use-toast.ts       # Toast notifications
+│   └── lib/                   # Utility libraries
+│       ├── db.ts              # Database utilities
+│       ├── socket.ts          # Socket.io client
+│       └── utils.ts           # General utilities
 ├── backend/                    # Go backend services
 │   ├── cmd/                   # Service entry points
 │   │   ├── dve-manager/       # DVE Manager service
-│   │   ├── validation-core/   # Validation Core service
-│   │   └── api-gateway/       # API Gateway service
+│   │   └── validation-core/   # Validation Core service
 │   ├── internal/              # Internal packages
 │   │   ├── config/           # Configuration management
 │   │   ├── database/         # BuntDB wrapper
@@ -132,28 +213,40 @@ KNIRVNEXUS/
 ├── scripts/                 # Automation scripts
 │   ├── build.sh            # Build automation
 │   └── deploy.sh           # Deployment automation
-└── README.md                # This file
+├── public/                  # Static assets
+│   ├── logo.svg            # KNIRV logo
+│   └── robots.txt          # SEO configuration
+├── prisma/                  # Database schema
+│   └── schema.prisma       # Prisma schema definition
+├── config/                  # Configuration files
+│   ├── knirv-nexus.yaml    # Main configuration
+│   ├── development.yaml    # Development config
+│   └── production.yaml     # Production config
+├── package.json            # Frontend dependencies
+├── next.config.ts          # Next.js configuration
+├── tailwind.config.ts      # Tailwind CSS configuration
+├── components.json         # shadcn/ui configuration
+├── server.ts              # Custom server with Socket.io
+├── tsconfig.json          # TypeScript configuration
+└── README.md              # This file
 ```
 
 ## 🔧 API Documentation
 
-### Authentication
+> **Note**: KNIRV-NEXUS APIs are accessed through the primary KNIRVGATEWAY at `/api/nexus/*` endpoints. Direct service access is available for development and internal communication.
 
-All API endpoints (except `/health`) require authentication via JWT tokens.
+### Direct Service APIs
 
-```bash
-# Login
-curl -X POST http://api.knirv-nexus.local/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"password"}'
-```
+KNIRV-NEXUS exposes two main services with direct API access:
 
-### DVE Node Management
+#### DVE Manager Service (Port 8080)
 
 ```bash
+# Health check
+curl -X GET http://dve-manager:8080/health
+
 # Register a new DVE node
-curl -X POST http://api.knirv-nexus.local/api/v1/dve-nodes \
-  -H "Authorization: Bearer $TOKEN" \
+curl -X POST http://dve-manager:8080/api/v1/nodes \
   -H "Content-Type: application/json" \
   -d '{
     "name": "validator-1",
@@ -166,16 +259,20 @@ curl -X POST http://api.knirv-nexus.local/api/v1/dve-nodes \
   }'
 
 # List DVE nodes
-curl -X GET http://api.knirv-nexus.local/api/v1/dve-nodes \
-  -H "Authorization: Bearer $TOKEN"
+curl -X GET http://dve-manager:8080/api/v1/nodes
+
+# System health
+curl -X GET http://dve-manager:8080/api/v1/system/health
 ```
 
-### Validation Tasks
+#### Validation Core Service (Port 8081)
 
 ```bash
+# Health check
+curl -X GET http://validation-core:8081/health
+
 # Create validation task
-curl -X POST http://api.knirv-nexus.local/api/v1/validation-tasks \
-  -H "Authorization: Bearer $TOKEN" \
+curl -X POST http://validation-core:8081/api/v1/tasks \
   -H "Content-Type: application/json" \
   -d '{
     "type": "skillnode",
@@ -185,33 +282,155 @@ curl -X POST http://api.knirv-nexus.local/api/v1/validation-tasks \
     "required_tee_type": "sgx"
   }'
 
-# Get task status
-curl -X GET http://api.knirv-nexus.local/api/v1/validation-tasks/{id} \
-  -H "Authorization: Bearer $TOKEN"
+# List validation tasks
+curl -X GET http://validation-core:8081/api/v1/tasks
+
+# Get validation results
+curl -X GET http://validation-core:8081/api/v1/results
 ```
 
-### Real-time Updates
+### Gateway Integration
 
-Connect to Server-Sent Events for real-time updates:
+For production use, access KNIRV-NEXUS through KNIRVGATEWAY:
 
-```javascript
-const eventSource = new EventSource('http://api.knirv-nexus.local/api/v1/sse?user_id=123');
-eventSource.onmessage = function(event) {
+```bash
+# Via KNIRVGATEWAY (Production)
+curl -X GET https://gateway.knirv.network/api/nexus/nodes
+curl -X POST https://gateway.knirv.network/api/nexus/tasks
+
+# Real-time updates via SSE
+const eventSource = new EventSource('https://gateway.knirv.network/api/nexus/sse');
+eventSource.addEventListener('nexus-nodes', function(event) {
   const data = JSON.parse(event.data);
-  console.log('Update:', data);
-};
+  console.log('Node update:', data);
+});
 ```
+
+## 🔧 Operational Modes
+
+KNIRV-NEXUS supports two operational modes for different deployment scenarios:
+
+### Headless Mode (Default - Production)
+
+**Use Case**: Production deployments, Kubernetes clusters, cloud environments
+
+```bash
+# Default headless mode
+./dve-manager
+./validation-core
+
+# With configuration file
+./dve-manager --config ./config/production.yaml
+```
+
+**Characteristics**:
+- API-only access (no web interface)
+- Full JWT authentication required
+- Binds to all network interfaces (0.0.0.0)
+- Production-optimized resource usage
+- Comprehensive audit logging
+- Kubernetes-ready with health checks
+
+### GUI Mode (Local Administration)
+
+**Use Case**: Local development, system administration, debugging
+
+```bash
+# Enable GUI mode
+./dve-manager -gui
+./validation-core -gui
+
+# With custom configuration
+./dve-manager -gui --config ./config/development.yaml
+```
+
+**Characteristics**:
+- Built-in web interface using existing Next.js frontend
+- No authentication required (admin environment assumed)
+- Localhost-only access (127.0.0.1)
+- Real-time updates via WebSocket
+- Extended debugging and diagnostic tools
+- Direct access to configuration management
+
+**GUI Access**:
+- DVE Manager GUI: http://localhost:9080
+- Validation Core GUI: http://localhost:9081
+- API Access: http://localhost:8080, http://localhost:8081
+
+### Mode Comparison
+
+| Feature | Headless Mode | GUI Mode |
+|---------|---------------|----------|
+| **Target Use** | Production | Local admin |
+| **Authentication** | JWT required | None |
+| **Web Interface** | None | Built-in Next.js frontend |
+| **Network Access** | All interfaces | Localhost only |
+| **Resource Usage** | Minimal | Higher (includes web server) |
+| **Security** | Full RBAC + audit | Local access only |
 
 ## ⚙️ Configuration
+
+### Configuration Management (Viper)
+
+KNIRV-NEXUS uses [Viper](https://github.com/spf13/viper) for professional configuration management with the following hierarchy (highest to lowest precedence):
+
+1. **CLI Flags**: `--gui`, `--port`, `--config`
+2. **Environment Variables**: `KNIRV_GUI_ENABLED`, `KNIRV_SERVICE_PORT`
+3. **Configuration File**: `config/knirv-nexus.yaml`
+4. **Default Values**: Hardcoded sensible defaults
+
+### Configuration File Structure
+
+```yaml
+# config/knirv-nexus.yaml
+mode: headless  # headless | gui
+
+service:
+  port: 8080
+  bind_address: "0.0.0.0"
+  name: "dve-manager"
+
+gui:
+  enabled: false
+  port: 9080
+  frontend_path: "./dist"
+
+security:
+  auth_required: true
+  tls_enabled: true
+  audit_logging: true
+  jwt_secret: "${KNIRV_JWT_SECRET}"
+
+roles:
+  validator:
+    permissions: ["node:read", "node:update", "tasks:read", "results:read"]
+    scoped_access: true
+  admin:
+    permissions: ["*:*"]
+    scoped_access: false
+  observer:
+    permissions: ["*:read"]
+    scoped_access: false
+
+database:
+  type: "buntdb"
+  path: "./data/nexus.db"
+
+network:
+  chain_id: "knirv-nexus-mainnet"
+  p2p_port: 4001
+```
 
 ### Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
+| `KNIRV_MODE` | Operational mode | `headless` |
+| `KNIRV_GUI_ENABLED` | Enable GUI mode | `false` |
+| `KNIRV_SERVICE_PORT` | API server port | `8080` |
+| `KNIRV_GUI_PORT` | GUI server port | `9080` |
 | `KNIRV_CHAIN_ID` | Blockchain network ID | `knirv-nexus-mainnet` |
-| `KNIRV_NODE_ROLE` | Node role (dve-manager, dve-validator) | `dve-manager` |
-| `KNIRV_DATABASE_PATH` | Database file path | `/app/data/nexus.db` |
-| `KNIRV_API_PORT` | API server port | `8080` |
+| `KNIRV_DATABASE_PATH` | Database file path | `./data/nexus.db` |
 | `KNIRV_P2P_PORT` | P2P networking port | `4001` |
 | `KNIRV_LOG_LEVEL` | Logging level | `info` |
 | `KNIRV_JWT_SECRET` | JWT signing secret | Required |

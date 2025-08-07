@@ -138,7 +138,7 @@ func (v *CrossComponentValidator) TestKNIRVNEXUSRootIntegration(t *testing.T) {
 			"capabilities": []string{"blockchain_integration"},
 		}
 
-		resp, err := v.suite.makeRequest("POST", v.suite.knirvnexusURL+"/api/v1/agents", agentData)
+		resp, err := v.suite.makeRequest("POST", v.suite.knirvnexusAPIGatewayURL+"/api/v1/agents", agentData)
 		require.NoError(t, err)
 
 		var agent map[string]interface{}
@@ -182,7 +182,7 @@ func (v *CrossComponentValidator) TestKNIRVNEXUSRootIntegration(t *testing.T) {
 		t.Logf("Initial wallet balance: %s", initialAmount)
 
 		// Get an agent to execute
-		resp, err = v.suite.makeRequest("GET", v.suite.knirvnexusURL+"/api/v1/agents", nil)
+		resp, err = v.suite.makeRequest("GET", v.suite.knirvnexusAPIGatewayURL+"/api/v1/agents", nil)
 		require.NoError(t, err)
 
 		var agents []map[string]interface{}
@@ -199,7 +199,7 @@ func (v *CrossComponentValidator) TestKNIRVNEXUSRootIntegration(t *testing.T) {
 			"token_amount":   "500000",
 		}
 
-		resp, err = v.suite.makeRequest("POST", v.suite.knirvnexusURL+"/api/v1/agents/"+agentID+"/execute", execData)
+		resp, err = v.suite.makeRequest("POST", v.suite.knirvnexusAPIGatewayURL+"/api/v1/agents/"+agentID+"/execute", execData)
 		require.NoError(t, err)
 
 		var execResult map[string]interface{}

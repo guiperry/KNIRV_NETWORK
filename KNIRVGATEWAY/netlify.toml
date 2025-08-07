@@ -22,6 +22,18 @@
   publish = "gateway-functions/"
   command = "npm install"
 
+# GraphChain Explorer build context
+[context.graphchain-explorer]
+  base = "graphchain-explorer/"
+  publish = "graphchain-explorer/"
+  command = "echo 'Static GraphChain Explorer - no build needed'"
+
+# NEXUS Portal build context
+[context.nexus]
+  base = "nexus-portal/"
+  publish = "nexus-portal/dist/"
+  command = "npm install && npm run build"
+
 # Production build settings
 [build.environment]
   NODE_VERSION = "18"
@@ -59,6 +71,28 @@
   to = "/.netlify/functions/health-monitor"
   status = 200
 
+# GraphChain Explorer redirects
+[[redirects]]
+  from = "/graphchain-explorer/*"
+  to = "/graphchain-explorer/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/graphchain/*"
+  to = "/graphchain-explorer/:splat"
+  status = 200
+
+# GraphChain API redirects
+[[redirects]]
+  from = "/api/graphchain/events"
+  to = "/.netlify/functions/graphchain-events"
+  status = 200
+
+[[redirects]]
+  from = "/api/graphchain/*"
+  to = "/.netlify/functions/graphchain-events"
+  status = 200
+
 # Service proxy redirects (for KNIRV services)
 [[redirects]]
   from = "/api/*"
@@ -85,6 +119,29 @@
 [[redirects]]
   from = "/agent-developer-portal/*"
   to = "/agent-developer-portal/index.html"
+  status = 200
+
+# NEXUS Portal redirects
+[[redirects]]
+  from = "/nexus/*"
+  to = "/nexus-portal/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/nexus-portal/*"
+  to = "/nexus-portal/:splat"
+  status = 200
+
+# Handle SPA routing for NEXUS Portal
+[[redirects]]
+  from = "/nexus-portal/*"
+  to = "/nexus-portal/index.html"
+  status = 200
+
+# Handle SPA routing for GraphChain Explorer
+[[redirects]]
+  from = "/graphchain-explorer/*"
+  to = "/graphchain-explorer/index.html"
   status = 200
 
 # Default fallback for main site (must be last)

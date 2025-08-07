@@ -117,7 +117,7 @@ stop_services() {
     print_status "Stopping KNIRV services..."
     
     # Stop services by PID files
-    local services=("knirvchain" "knirvgraph" "knirvnexus" "knirvroot" "knirvrouter")
+    local services=("knirvchain" "knirvgraph" "knirvnexus-frontend" "knirvnexus-api-gateway" "knirvnexus-dve-manager" "knirvnexus-validation-core" "knirvroot" "knirvrouter")
     
     for service in "${services[@]}"; do
         stop_service "$service"
@@ -156,7 +156,9 @@ cleanup_test_data() {
     # Clean up component-specific data
     rm -rf "$PROJECT_ROOT/KNIRVCHAIN/sledchain.db" 2>/dev/null || true
     rm -rf "$PROJECT_ROOT/KNIRVGRAPH/data" 2>/dev/null || true
-    rm -rf "$PROJECT_ROOT/KNIRVNEXUS/data" 2>/dev/null || true
+    rm -rf "$PROJECT_ROOT/KNIRVNEXUS/db" 2>/dev/null || true
+    rm -rf "$PROJECT_ROOT/KNIRVNEXUS/.next" 2>/dev/null || true
+    rm -rf "$PROJECT_ROOT/KNIRVNEXUS/node_modules/.cache" 2>/dev/null || true
     rm -rf "$PROJECT_ROOT/KNIRVROOT/data" 2>/dev/null || true
     rm -rf "$PROJECT_ROOT/KNIRVROUTER/data" 2>/dev/null || true
 }
@@ -221,7 +223,10 @@ generate_cleanup_report() {
         echo "Services stopped:"
         echo "- KNIRVCHAIN (port 8080)"
         echo "- KNIRVGRAPH (port 8081)"
-        echo "- KNIRVNEXUS (port 8082)"
+        echo "- KNIRVNEXUS Frontend (port 3000)"
+        echo "- KNIRVNEXUS API Gateway (port 8080)"
+        echo "- KNIRVNEXUS DVE Manager (port 8081)"
+        echo "- KNIRVNEXUS Validation Core (port 8082)"
         echo "- KNIRVROOT (port 8086)"
         echo "- KNIRVROUTER (port 8085)"
         echo ""

@@ -9,17 +9,22 @@ import (
 
 // Config represents the application configuration
 type Config struct {
-	Environment string       `mapstructure:"environment"`
-	ChainID     string       `mapstructure:"chain_id"`
-	NodeRole    string       `mapstructure:"node_role"`
-	Database    DatabaseConfig `mapstructure:"database"`
-	API         APIConfig      `mapstructure:"api"`
-	P2P         P2PConfig      `mapstructure:"p2p"`
-	Auth        AuthConfig     `mapstructure:"auth"`
+	Environment string           `mapstructure:"environment"`
+	ChainID     string           `mapstructure:"chain_id"`
+	NodeRole    string           `mapstructure:"node_role"`
+	Mode        string           `mapstructure:"mode"` // "headless" or "gui"
+	Database    DatabaseConfig   `mapstructure:"database"`
+	API         APIConfig        `mapstructure:"api"`
+	GUI         GUIConfig        `mapstructure:"gui"`
+	P2P         P2PConfig        `mapstructure:"p2p"`
+	Auth        AuthConfig       `mapstructure:"auth"`
+	Security    SecurityConfig   `mapstructure:"security"`
+	Roles       RolesConfig      `mapstructure:"roles"`
+	Network     NetworkConfig    `mapstructure:"network"`
 	Validation  ValidationConfig `mapstructure:"validation"`
-	TEE         TEEConfig      `mapstructure:"tee"`
-	Reports     ReportsConfig  `mapstructure:"reports"`
-	Log         LogConfig      `mapstructure:"log"`
+	TEE         TEEConfig        `mapstructure:"tee"`
+	Reports     ReportsConfig    `mapstructure:"reports"`
+	Log         LogConfig        `mapstructure:"log"`
 }
 
 // DatabaseConfig represents database configuration
@@ -29,8 +34,57 @@ type DatabaseConfig struct {
 
 // APIConfig represents API server configuration
 type APIConfig struct {
-	Address string `mapstructure:"address"`
-	Port    int    `mapstructure:"port"`
+	Address     string `mapstructure:"address"`
+	Port        int    `mapstructure:"port"`
+	BindAddress string `mapstructure:"bind_address"`
+}
+
+// GUIConfig represents GUI mode configuration
+type GUIConfig struct {
+	Enabled      bool   `mapstructure:"enabled"`
+	Port         int    `mapstructure:"port"`
+	FrontendPath string `mapstructure:"frontend_path"`
+	BindAddress  string `mapstructure:"bind_address"`
+}
+
+// SecurityConfig represents security configuration
+type SecurityConfig struct {
+	AuthRequired bool   `mapstructure:"auth_required"`
+	TLSEnabled   bool   `mapstructure:"tls_enabled"`
+	AuditLogging bool   `mapstructure:"audit_logging"`
+	JWTSecret    string `mapstructure:"jwt_secret"`
+}
+
+// RolesConfig represents user roles and permissions configuration
+type RolesConfig struct {
+	Validator ValidatorRole `mapstructure:"validator"`
+	Admin     AdminRole     `mapstructure:"admin"`
+	Observer  ObserverRole  `mapstructure:"observer"`
+}
+
+// ValidatorRole represents validator role configuration
+type ValidatorRole struct {
+	Permissions  []string `mapstructure:"permissions"`
+	ScopedAccess bool     `mapstructure:"scoped_access"`
+}
+
+// AdminRole represents admin role configuration
+type AdminRole struct {
+	Permissions  []string `mapstructure:"permissions"`
+	ScopedAccess bool     `mapstructure:"scoped_access"`
+}
+
+// ObserverRole represents observer role configuration
+type ObserverRole struct {
+	Permissions  []string `mapstructure:"permissions"`
+	ScopedAccess bool     `mapstructure:"scoped_access"`
+}
+
+// NetworkConfig represents network configuration
+type NetworkConfig struct {
+	ChainID          string `mapstructure:"chain_id"`
+	P2PPort          int    `mapstructure:"p2p_port"`
+	DiscoveryEnabled bool   `mapstructure:"discovery_enabled"`
 }
 
 // P2PConfig represents P2P networking configuration
@@ -41,10 +95,10 @@ type P2PConfig struct {
 
 // AuthConfig represents authentication configuration
 type AuthConfig struct {
-	JWTSecret    string        `mapstructure:"jwt_secret"`
-	TokenExpiry  time.Duration `mapstructure:"token_expiry"`
-	EnableOAuth  bool          `mapstructure:"enable_oauth"`
-	OAuthProviders []string    `mapstructure:"oauth_providers"`
+	JWTSecret      string        `mapstructure:"jwt_secret"`
+	TokenExpiry    time.Duration `mapstructure:"token_expiry"`
+	EnableOAuth    bool          `mapstructure:"enable_oauth"`
+	OAuthProviders []string      `mapstructure:"oauth_providers"`
 }
 
 // ValidationConfig represents validation engine configuration
@@ -56,10 +110,10 @@ type ValidationConfig struct {
 
 // TEEConfig represents TEE (Trusted Execution Environment) configuration
 type TEEConfig struct {
-	Type           string `mapstructure:"type"` // "sgx", "sev-snp", "tdx", "software"
-	SGXConfig      SGXConfig `mapstructure:"sgx"`
-	SEVConfig      SEVConfig `mapstructure:"sev"`
-	TDXConfig      TDXConfig `mapstructure:"tdx"`
+	Type           string         `mapstructure:"type"` // "sgx", "sev-snp", "tdx", "software"
+	SGXConfig      SGXConfig      `mapstructure:"sgx"`
+	SEVConfig      SEVConfig      `mapstructure:"sev"`
+	TDXConfig      TDXConfig      `mapstructure:"tdx"`
 	SoftwareConfig SoftwareConfig `mapstructure:"software"`
 }
 
@@ -85,16 +139,16 @@ type TDXConfig struct {
 // SoftwareConfig represents software-based TEE simulation
 type SoftwareConfig struct {
 	EnableAttestation bool   `mapstructure:"enable_attestation"`
-	KeyFile          string `mapstructure:"key_file"`
+	KeyFile           string `mapstructure:"key_file"`
 }
 
 // ReportsConfig represents report generation configuration
 type ReportsConfig struct {
-	StoragePath    string        `mapstructure:"storage_path"`
-	MaxFileSize    int64         `mapstructure:"max_file_size"`
-	RetentionDays  int           `mapstructure:"retention_days"`
-	EnableSharing  bool          `mapstructure:"enable_sharing"`
-	EnableScheduling bool        `mapstructure:"enable_scheduling"`
+	StoragePath      string `mapstructure:"storage_path"`
+	MaxFileSize      int64  `mapstructure:"max_file_size"`
+	RetentionDays    int    `mapstructure:"retention_days"`
+	EnableSharing    bool   `mapstructure:"enable_sharing"`
+	EnableScheduling bool   `mapstructure:"enable_scheduling"`
 }
 
 // LogConfig represents logging configuration
@@ -106,14 +160,22 @@ type LogConfig struct {
 
 // Load loads configuration from environment variables and config files
 func Load() (*Config, error) {
+	return LoadWithDefaults()
+}
+
+// LoadWithDefaults loads configuration with default values
+func LoadWithDefaults() (*Config, error) {
+	// Set default values
+	setDefaults()
+
 	// Set configuration file name and paths
-	viper.SetConfigName("config")
+	viper.SetConfigName("knirv-nexus")
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath("/app/config")
 	viper.AddConfigPath("./config")
 	viper.AddConfigPath(".")
 
-	// Enable environment variable reading
+	// Environment variable support
+	viper.SetEnvPrefix("KNIRV")
 	viper.AutomaticEnv()
 
 	// Read configuration file (optional)
@@ -137,9 +199,66 @@ func Load() (*Config, error) {
 	return &config, nil
 }
 
+// setDefaults sets default configuration values
+func setDefaults() {
+	// Operational mode defaults
+	viper.SetDefault("mode", "headless")
+	viper.SetDefault("gui.enabled", false)
+	viper.SetDefault("gui.port", 9080)
+	viper.SetDefault("gui.frontend_path", "./dist")
+	viper.SetDefault("gui.bind_address", "127.0.0.1")
+
+	// Service defaults
+	viper.SetDefault("api.port", 8080)
+	viper.SetDefault("api.bind_address", "0.0.0.0")
+	viper.SetDefault("api.address", "0.0.0.0")
+
+	// Security defaults
+	viper.SetDefault("security.auth_required", true)
+	viper.SetDefault("security.tls_enabled", true)
+	viper.SetDefault("security.audit_logging", true)
+
+	// User roles configuration
+	viper.SetDefault("roles.validator.permissions", []string{"node:read", "node:update", "tasks:read", "results:read"})
+	viper.SetDefault("roles.validator.scoped_access", true)
+	viper.SetDefault("roles.admin.permissions", []string{"*:*"})
+	viper.SetDefault("roles.admin.scoped_access", false)
+	viper.SetDefault("roles.observer.permissions", []string{"*:read"})
+	viper.SetDefault("roles.observer.scoped_access", false)
+
+	// Database defaults
+	viper.SetDefault("database.path", "./data/nexus.db")
+
+	// Network configuration
+	viper.SetDefault("network.chain_id", "knirv-nexus-mainnet")
+	viper.SetDefault("network.p2p_port", 4001)
+	viper.SetDefault("network.discovery_enabled", true)
+
+	// Logging configuration
+	viper.SetDefault("log.level", "info")
+	viper.SetDefault("log.format", "json")
+	viper.SetDefault("log.output", "./logs/nexus.log")
+
+	// Legacy defaults for backward compatibility
+	viper.SetDefault("chain_id", "knirv-nexus-mainnet")
+	viper.SetDefault("node_role", "dve-manager")
+	viper.SetDefault("p2p.port", 4001)
+	viper.SetDefault("auth.jwt_secret", "")
+}
+
 // validateConfig validates the loaded configuration
 func validateConfig(cfg *Config) error {
-	if cfg.ChainID == "" {
+	// Validate mode
+	if cfg.Mode != "headless" && cfg.Mode != "gui" {
+		return fmt.Errorf("mode must be 'headless' or 'gui', got: %s", cfg.Mode)
+	}
+
+	// Validate chain ID (use Network.ChainID if available, fallback to ChainID)
+	chainID := cfg.Network.ChainID
+	if chainID == "" {
+		chainID = cfg.ChainID
+	}
+	if chainID == "" {
 		return fmt.Errorf("chain_id is required")
 	}
 
@@ -151,8 +270,23 @@ func validateConfig(cfg *Config) error {
 		return fmt.Errorf("database.path is required")
 	}
 
-	if cfg.Auth.JWTSecret == "" {
-		return fmt.Errorf("auth.jwt_secret is required")
+	// JWT secret validation - only required in headless mode or when auth is required
+	jwtSecret := cfg.Security.JWTSecret
+	if jwtSecret == "" {
+		jwtSecret = cfg.Auth.JWTSecret
+	}
+	if cfg.Mode == "headless" && cfg.Security.AuthRequired && jwtSecret == "" {
+		return fmt.Errorf("security.jwt_secret is required in headless mode with authentication")
+	}
+
+	// GUI mode specific validation
+	if cfg.Mode == "gui" && cfg.GUI.Enabled {
+		if cfg.GUI.Port <= 0 {
+			return fmt.Errorf("gui.port must be positive")
+		}
+		if cfg.GUI.FrontendPath == "" {
+			return fmt.Errorf("gui.frontend_path is required when GUI is enabled")
+		}
 	}
 
 	return nil

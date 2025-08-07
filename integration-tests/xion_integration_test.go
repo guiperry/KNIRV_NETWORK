@@ -14,15 +14,18 @@ import (
 )
 
 type IntegrationTestSuite struct {
-	knirvchainURL  string
-	knirvgraphURL  string
-	knirvnexusURL  string
-	knirvwalletURL string
-	knirvshellURL  string
-	knirvroterURL  string
-	knirvRootURL   string
-	xionRPC        string
-	testWallet     *TestWallet
+	knirvchainURL           string
+	knirvgraphURL           string
+	knirvnexusFrontendURL   string
+	knirvnexusAPIGatewayURL string
+	knirvnexusDVEManagerURL string
+	knirvnexusValidationURL string
+	knirvwalletURL          string
+	knirvshellURL           string
+	knirvroterURL           string
+	knirvRootURL            string
+	xionRPC                 string
+	testWallet              *TestWallet
 }
 
 type TestWallet struct {
@@ -34,14 +37,17 @@ type TestWallet struct {
 
 func NewIntegrationTestSuite() *IntegrationTestSuite {
 	return &IntegrationTestSuite{
-		knirvchainURL:  "http://localhost:8080",
-		knirvgraphURL:  "http://localhost:8081",
-		knirvnexusURL:  "http://localhost:8083", // KNIRVNEXUS API port
-		knirvwalletURL: "http://localhost:8084", // KNIRVWALLET (not implemented yet)
-		knirvshellURL:  "http://localhost:8085", // KNIRVAGENTIFIER (not implemented yet)
-		knirvroterURL:  "http://localhost:8086", // KNIRVROUTER (mocked)
-		knirvRootURL:   "http://localhost:8087", // KNIRVROOT
-		xionRPC:        "https://rpc.xion-testnet-1.burnt.com:443",
+		knirvchainURL:           "http://localhost:8080",
+		knirvgraphURL:           "http://localhost:8081",
+		knirvnexusFrontendURL:   "http://localhost:3000", // KNIRVNEXUS Frontend (Next.js)
+		knirvnexusAPIGatewayURL: "http://localhost:8080", // KNIRVNEXUS API Gateway
+		knirvnexusDVEManagerURL: "http://localhost:8081", // KNIRVNEXUS DVE Manager
+		knirvnexusValidationURL: "http://localhost:8082", // KNIRVNEXUS Validation Core
+		knirvwalletURL:          "http://localhost:8083", // KNIRVWALLET
+		knirvshellURL:           "http://localhost:8084", // KNIRVAGENTIFIER
+		knirvroterURL:           "http://localhost:8085", // KNIRVROUTER
+		knirvRootURL:            "http://localhost:8086", // KNIRVROOT
+		xionRPC:                 "https://rpc.xion-testnet-1.burnt.com:443",
 	}
 }
 
@@ -319,7 +325,7 @@ func (suite *IntegrationTestSuite) TestKNIRVNEXUSAgentManagement(t *testing.T) {
 			},
 		}
 
-		resp, err := suite.makeRequest("POST", suite.knirvnexusURL+"/api/v1/agents", agentData)
+		resp, err := suite.makeRequest("POST", suite.knirvnexusAPIGatewayURL+"/api/v1/agents", agentData)
 		require.NoError(t, err)
 
 		var response map[string]interface{}
@@ -336,7 +342,7 @@ func (suite *IntegrationTestSuite) TestKNIRVNEXUSAgentManagement(t *testing.T) {
 
 	// Test 2: List Agents
 	t.Run("ListAgents", func(t *testing.T) {
-		resp, err := suite.makeRequest("GET", suite.knirvnexusURL+"/api/v1/agents?owner_id=1", nil)
+		resp, err := suite.makeRequest("GET", suite.knirvnexusAPIGatewayURL+"/api/v1/agents?owner_id=1", nil)
 		require.NoError(t, err)
 
 		var response map[string]interface{}
@@ -351,7 +357,7 @@ func (suite *IntegrationTestSuite) TestKNIRVNEXUSAgentManagement(t *testing.T) {
 	// Test 3: Agent Execution
 	t.Run("ExecuteAgent", func(t *testing.T) {
 		// First get an agent ID
-		resp, err := suite.makeRequest("GET", suite.knirvnexusURL+"/api/v1/agents?owner_id=1", nil)
+		resp, err := suite.makeRequest("GET", suite.knirvnexusAPIGatewayURL+"/api/v1/agents?owner_id=1", nil)
 		require.NoError(t, err)
 
 		var response map[string]interface{}
@@ -372,7 +378,7 @@ func (suite *IntegrationTestSuite) TestKNIRVNEXUSAgentManagement(t *testing.T) {
 			},
 		}
 
-		resp, err = suite.makeRequest("POST", suite.knirvnexusURL+"/api/v1/agents/"+agentID+"/execute", execData)
+		resp, err = suite.makeRequest("POST", suite.knirvnexusAPIGatewayURL+"/api/v1/agents/"+agentID+"/execute", execData)
 		require.NoError(t, err)
 
 		var result map[string]interface{}

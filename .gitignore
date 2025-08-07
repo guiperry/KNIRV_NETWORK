@@ -8,3 +8,11 @@ node_modules
 */node_modules
 # Local Netlify folder
 .netlify
+
+*/reports/
+*/reports/*
+*/logs/
+*/logs/*
+*/coverage/
+*/coverage/*
+

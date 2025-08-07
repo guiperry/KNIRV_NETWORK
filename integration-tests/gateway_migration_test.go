@@ -3,8 +3,6 @@ package integration_tests
 import (
 	"bufio"
 	"context"
-	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"os"

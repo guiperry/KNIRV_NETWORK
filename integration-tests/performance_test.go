@@ -404,7 +404,7 @@ func (pt *PerformanceTester) createAgent(_ *testing.T, userID, requestID int) {
 		"capabilities": []string{"load-testing"},
 	}
 
-	_, err := pt.suite.makeRequest("POST", pt.suite.knirvnexusURL+"/api/v1/agents", agentData)
+	_, err := pt.suite.makeRequest("POST", pt.suite.knirvnexusAPIGatewayURL+"/api/v1/agents", agentData)
 
 	latency := time.Since(start)
 	pt.recordRequest(latency, err == nil)
@@ -413,7 +413,7 @@ func (pt *PerformanceTester) createAgent(_ *testing.T, userID, requestID int) {
 func (pt *PerformanceTester) listAgents(_ *testing.T) {
 	start := time.Now()
 
-	_, err := pt.suite.makeRequest("GET", pt.suite.knirvnexusURL+"/api/v1/agents", nil)
+	_, err := pt.suite.makeRequest("GET", pt.suite.knirvnexusAPIGatewayURL+"/api/v1/agents", nil)
 
 	latency := time.Since(start)
 	pt.recordRequest(latency, err == nil)
@@ -422,7 +422,7 @@ func (pt *PerformanceTester) listAgents(_ *testing.T) {
 func (pt *PerformanceTester) getAgentStatus(_ *testing.T, userID int) {
 	start := time.Now()
 
-	_, err := pt.suite.makeRequest("GET", pt.suite.knirvnexusURL+fmt.Sprintf("/api/v1/agents/status?user_id=%d", userID), nil)
+	_, err := pt.suite.makeRequest("GET", pt.suite.knirvnexusAPIGatewayURL+fmt.Sprintf("/api/v1/agents/status?user_id=%d", userID), nil)
 
 	latency := time.Since(start)
 	pt.recordRequest(latency, err == nil)

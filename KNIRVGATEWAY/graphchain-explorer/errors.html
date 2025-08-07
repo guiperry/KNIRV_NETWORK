@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ErrorNodes - KNIRV GraphChain Explorer</title>
+    <meta name="description" content="Browse and explore ErrorNodes in the KNIRV GraphChain network">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="../images/favicon.png" type="image/png">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="../assets/css/vendor.bundle.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="css/graphchain.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body class="nk-body bg-theme-dark tc-light">
+    <!-- Header -->
+    <header class="header-main header-menu-s2 is-transparent" id="header">
+        <div class="header-wrap">
+            <div class="container">
+                <div class="header-logo">
+                    <a href="../index.html" class="logo-link">
+                        <div id="animated-logo-container"></div>
+                    </a>
+                </div>
+                
+                <!-- GraphChain Explorer Navigation -->
+                <nav class="header-menu" id="header-menu">
+                    <ul class="menu">
+                        <li class="menu-item">
+                            <a href="index.html" class="menu-link">Dashboard</a>
+                        </li>
+                        <li class="menu-item">
+                            <a href="skills.html" class="menu-link">SkillNodes</a>
+                        </li>
+                        <li class="menu-item">
+                            <a href="errors.html" class="menu-link active">ErrorNodes</a>
+                        </li>
+                        <li class="menu-item">
+                            <a href="graph.html" class="menu-link">Graph View</a>
+                        </li>
+                        <li class="menu-item">
+                            <a href="search.html" class="menu-link">Search</a>
+                        </li>
+                    </ul>
+                    
+                    <!-- Search -->
+                    <div class="header-search">
+                        <input type="text" placeholder="Search errors..." id="global-search" class="form-control">
+                        <button type="button" id="search-button" class="btn btn-icon">
+                            <em class="icon ni ni-search"></em>
+                        </button>
+                    </div>
+                    
+                    <!-- Back to Main Site -->
+                    <div class="header-action">
+                        <a href="../index.html" class="btn btn-outline btn-light">
+                            <em class="icon ni ni-arrow-left"></em>
+                            <span>Back to KNIRV</span>
+                        </a>
+                    </div>
+                </nav>
+                
+                <!-- Mobile Menu Toggle -->
+                <div class="header-nav-toggle">
+                    <a href="#" class="navbar-toggle" data-menu-toggle="header-menu">
+                        <div class="toggle-line">
+                            <span></span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="nk-pages">
+        <!-- Page Header -->
+        <section class="section section-hero bg-theme-grad tc-light">
+            <div class="container">
+                <div class="nk-block nk-block-lg">
+                    <div class="row align-items-center">
+                        <div class="col-lg-8">
+                            <div class="hero-content">
+                                <h1 class="hero-title">
+                                    <em class="icon ni ni-alert-triangle"></em>
+                                    ErrorNodes
+                                </h1>
+                                <p class="hero-subtitle lead">
+                                    Monitor and analyze ErrorNodes in the KNIRV GraphChain network
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="hero-stats">
+                                <div class="stats-card stats-card-orange">
+                                    <div class="stats-icon">
+                                        <em class="icon ni ni-alert-triangle"></em>
+                                    </div>
+                                    <div class="stats-content">
+                                        <div class="stats-value" id="total-errors">0</div>
+                                        <div class="stats-label">Total ErrorNodes</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Errors Content -->
+        <section class="section section-errors bg-theme-dark tc-light">
+            <div class="container">
+                <div class="nk-block">
+                    <!-- Search and Filters -->
+                    <div class="search-filters-section">
+                        <div class="row g-4 mb-4">
+                            <div class="col-lg-6">
+                                <div class="search-container">
+                                    <em class="icon ni ni-search search-icon"></em>
+                                    <input type="text" 
+                                           placeholder="Search ErrorNodes by type or description..." 
+                                           id="errors-search" 
+                                           class="search-input">
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="filter-group">
+                                    <button class="filter-button active" data-filter="all">All</button>
+                                    <button class="filter-button" data-filter="resolved">Resolved</button>
+                                    <button class="filter-button" data-filter="pending">Pending</button>
+                                    <button class="filter-button" data-filter="critical">Critical</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div id="loading-state" class="loading-state">
+                        <div class="loading-spinner"></div>
+                        <p>Loading ErrorNodes...</p>
+                    </div>
+
+                    <!-- Error State -->
+                    <div id="error-state" class="error-state" style="display: none;">
+                        <div class="error-icon">
+                            <em class="icon ni ni-alert-circle"></em>
+                        </div>
+                        <h3>Failed to Load ErrorNodes</h3>
+                        <p id="error-message"></p>
+                        <button onclick="location.reload()" class="btn btn-primary">
+                            <em class="icon ni ni-reload"></em>
+                            <span>Retry</span>
+                        </button>
+                    </div>
+
+                    <!-- Errors Grid -->
+                    <div id="errors-content" style="display: none;">
+                        <div class="errors-grid" id="errors-container">
+                            <!-- ErrorNode cards will be populated here -->
+                        </div>
+
+                        <!-- Empty State -->
+                        <div id="empty-state" class="empty-state" style="display: none;">
+                            <em class="icon ni ni-alert-triangle"></em>
+                            <h3>No ErrorNodes Found</h3>
+                            <p>No ErrorNodes match your current search and filter criteria.</p>
+                            <button onclick="clearFilters()" class="btn btn-primary">
+                                <em class="icon ni ni-refresh"></em>
+                                <span>Clear Filters</span>
+                            </button>
+                        </div>
+
+                        <!-- Load More -->
+                        <div class="load-more-section" id="load-more-section" style="display: none;">
+                            <button id="load-more-button" class="btn btn-outline btn-primary">
+                                <em class="icon ni ni-plus"></em>
+                                <span>Load More ErrorNodes</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer-section bg-theme tc-light">
+        <div class="container">
+            <div class="footer-bottom">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <p class="copyright-text">
+                            &copy; 2024 KNIRV Network. GraphChain Explorer.
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="footer-nav">
+                            <ul>
+                                <li><a href="../index.html">Home</a></li>
+                                <li><a href="../documentation/">Docs</a></li>
+                                <li><a href="../agent-developer-portal/">Developer Portal</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="../assets/js/jquery.bundle.js"></script>
+    <script src="../assets/js/scripts.js"></script>
+    <script src="../assets/js/gateway-sse-client.js"></script>
+    <script src="js/graphchain-core.js"></script>
+    <script src="js/graphchain-api.js"></script>
+    <script src="js/graphchain-sse.js"></script>
+    <script src="test-data.js"></script>
+    <script src="js/components/animated-logo.js"></script>
+    <script src="js/components/error-card.js"></script>
+    <script src="js/pages/errors.js"></script>
+
+    <script>
+        // Initialize animated logo
+        document.addEventListener('DOMContentLoaded', () => {
+            const logoContainer = document.getElementById('animated-logo-container');
+            if (logoContainer) {
+                const logo = new AnimatedKNIRVLogo(logoContainer, {
+                    width: 40,
+                    height: 40,
+                    showText: true,
+                    textSize: 'small'
+                });
+                const logoElement = logo.render();
+                logoContainer.appendChild(logoElement);
+            }
+        });
+    </script>
+
+    <script>
+        // Clear filters function
+        function clearFilters() {
+            document.getElementById('errors-search').value = '';
+            document.querySelectorAll('.filter-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('.filter-button[data-filter="all"]').classList.add('active');
+            
+            if (window.errorsController) {
+                window.errorsController.applyFilters();
+            }
+        }
+    </script>
+</body>
+</html>

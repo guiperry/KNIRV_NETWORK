@@ -75,7 +75,7 @@ func (suite *CrossComponentTestSuite) SetupSuite() {
 }
 
 func (suite *CrossComponentTestSuite) waitForAllServices() {
-	services := []string{"knirvchain", "knirvgraph", "knirvnexus", "knirvroot", "knirvrouter"}
+	services := []string{"knirvchain", "knirvgraph", "knirvnexus-frontend", "knirvnexus-api-gateway", "knirvroot", "knirvrouter"}
 
 	suite.T().Log("Waiting for all KNIRV services to be ready...")
 
@@ -151,7 +151,7 @@ func (suite *CrossComponentTestSuite) TestCompleteDataFlowIntegration() {
 		var dataFlow []DataFlowStep
 		var issues []string
 
-		componentsUsed := []string{"KNIRVGATEWAY", "KNIRVCHAIN", "KNIRVGRAPH", "KNIRVNEXUS", "KNIRVROOT"}
+		componentsUsed := []string{"KNIRVGATEWAY", "KNIRVCHAIN", "KNIRVGRAPH", "KNIRVNEXUS-FRONTEND", "KNIRVNEXUS-API-GATEWAY", "KNIRVROOT"}
 
 		// Step 1: Register LLM via KNIRVCHAIN
 		suite.T().Log("Step 1: Registering LLM via KNIRVCHAIN...")
@@ -262,7 +262,7 @@ func (suite *CrossComponentTestSuite) TestCompleteDataFlowIntegration() {
 			},
 		}
 
-		agentResp := suite.makeAuthenticatedRequest("POST", "/knirvnexus/agents/create", agentData)
+		agentResp := suite.makeAuthenticatedRequest("POST", "/knirvnexus-api-gateway/api/v1/agents", agentData)
 		stepDuration = time.Since(stepStart)
 
 		dataFlow = append(dataFlow, DataFlowStep{
@@ -365,7 +365,7 @@ func (suite *CrossComponentTestSuite) TestCompleteDataFlowIntegration() {
 // Test 2: Service Communication Validation
 func (suite *CrossComponentTestSuite) TestServiceCommunication() {
 	suite.Run("ServiceCommunicationTest", func() {
-		services := []string{"knirvchain", "knirvgraph", "knirvnexus", "knirvroot", "knirvrouter"}
+		services := []string{"knirvchain", "knirvgraph", "knirvnexus-frontend", "knirvnexus-api-gateway", "knirvroot", "knirvrouter"}
 
 		// Test health endpoints for all services
 		for _, service := range services {
@@ -441,7 +441,7 @@ func (suite *CrossComponentTestSuite) TestDataConsistency() {
 func (suite *CrossComponentTestSuite) TestKNIRVGATEWAYIntegration() {
 	suite.Run("KNIRVGATEWAYIntegrationTest", func() {
 		// Test gateway routing capabilities
-		services := []string{"knirvchain", "knirvgraph", "knirvnexus", "knirvroot", "knirvrouter"}
+		services := []string{"knirvchain", "knirvgraph", "knirvnexus-frontend", "knirvnexus-api-gateway", "knirvroot", "knirvrouter"}
 
 		for _, service := range services {
 			suite.T().Logf("Testing KNIRVGATEWAY routing to %s...", service)

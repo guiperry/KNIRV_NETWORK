@@ -9,14 +9,15 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useKnirvSocket } from "@/hooks/use-knirv-socket";
-import { 
-  Activity, 
-  Shield, 
-  Brain, 
-  Coins, 
-  Server, 
-  CheckCircle, 
-  AlertTriangle, 
+import { DashboardWrapper } from "@/components/dashboard/dashboard-wrapper";
+import {
+  Activity,
+  Shield,
+  Brain,
+  Coins,
+  Server,
+  CheckCircle,
+  AlertTriangle,
   Clock,
   Zap,
   Network,
@@ -304,26 +305,27 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen p-4 space-y-6">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <div className="flex items-center justify-center gap-2">
-          <h1 className="text-4xl font-bold knirv-gradient-text">KNIRV-NEXUS DVE</h1>
-          <div className="flex items-center gap-2">
-            {isConnected ? (
-              <Badge className="bg-green-500"><Wifi className="w-3 h-3 mr-1" /> Live</Badge>
-            ) : (
-              <Badge className="bg-red-500"><WifiOff className="w-3 h-3 mr-1" /> Offline</Badge>
-            )}
-            {securityAlerts.length > 0 && (
-              <Badge className="bg-red-500"><Bell className="w-3 h-3 mr-1" /> {securityAlerts.length}</Badge>
-            )}
+    <DashboardWrapper>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <div className="flex items-center justify-center gap-2">
+            <h1 className="text-4xl font-bold knirv-gradient-text">KNIRV-NEXUS DVE</h1>
+            <div className="flex items-center gap-2">
+              {isConnected ? (
+                <Badge className="bg-green-500"><Wifi className="w-3 h-3 mr-1" /> Live</Badge>
+              ) : (
+                <Badge className="bg-red-500"><WifiOff className="w-3 h-3 mr-1" /> Offline</Badge>
+              )}
+              {securityAlerts.length > 0 && (
+                <Badge className="bg-red-500"><Bell className="w-3 h-3 mr-1" /> {securityAlerts.length}</Badge>
+              )}
+            </div>
           </div>
+          <p className="text-lg text-muted-foreground">
+            The Crucible of Verifiable AI Intelligence
+          </p>
         </div>
-        <p className="text-lg text-muted-foreground">
-          Decentralized Validation Environment - The Crucible of Verifiable AI Intelligence
-        </p>
-      </div>
 
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -636,6 +638,7 @@ export default function Dashboard() {
           )}
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </DashboardWrapper>
   );
 }

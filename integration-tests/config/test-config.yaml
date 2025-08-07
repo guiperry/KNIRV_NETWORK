@@ -21,9 +21,23 @@ endpoints:
     timeout: "30s"
   
   knirvnexus:
-    url: "http://localhost:8082"
-    health_endpoint: "/api/v1/health"
-    timeout: "30s"
+    frontend:
+      url: "http://localhost:3000"
+      health_endpoint: "/api/health"
+      timeout: "30s"
+    backend:
+      api_gateway:
+        url: "http://localhost:8080"
+        health_endpoint: "/health"
+        timeout: "30s"
+      dve_manager:
+        url: "http://localhost:8081"
+        health_endpoint: "/health"
+        timeout: "30s"
+      validation_core:
+        url: "http://localhost:8082"
+        health_endpoint: "/health"
+        timeout: "30s"
   
   knirvwallet:
     url: "http://localhost:8083"
@@ -169,7 +183,10 @@ production_deployment:
       services:
         knirvchain: "http://localhost:8080"
         knirvgraph: "http://localhost:8081"
-        knirvnexus: "http://localhost:8082"
+        knirvnexus_frontend: "http://localhost:3000"
+        knirvnexus_api_gateway: "http://localhost:8080"
+        knirvnexus_dve_manager: "http://localhost:8081"
+        knirvnexus_validation_core: "http://localhost:8082"
         knirvroot: "http://localhost:8083"
         knirvrouter: "http://localhost:8084"
         knirvrouter_api: "http://localhost:9090"
