@@ -15,4 +15,21 @@ node_modules
 */logs/*
 */coverage/
 */coverage/*
+*mock_logs/*    
+*mock_logs
+*mock_pids/*    
+*mock_pids
 
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.example
+.env.template
+.env.default
+.env.dev
+.env.prod
+.env.staging
+.env.testing
+.env.ci
