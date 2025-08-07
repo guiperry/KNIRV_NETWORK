@@ -1,0 +1,87 @@
+# Multi-stage build for KNIRV-NEXUS API Gateway
+# Based on Kali Linux for consistency
+
+# Build stage
+FROM kalilinux/kali-rolling:latest AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    golang-1.21 \
+    git \
+    ca-certificates \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Go environment
+ENV PATH="/usr/lib/go-1.21/bin:${PATH}"
+ENV GOPATH="/go"
+ENV GOCACHE="/tmp/go-cache"
+
+# Create app directory
+WORKDIR /app
+
+# Copy go mod files
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo \
+    -ldflags '-extldflags "-static" -s -w' \
+    -o api-gateway ./cmd/api-gateway/
+
+# Runtime stage
+FROM kalilinux/kali-rolling:latest
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    netcat-traditional \
+    procps \
+    net-tools \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user for security
+RUN groupadd -r knirv && useradd -r -g knirv -u 1000 knirv
+
+# Create necessary directories
+RUN mkdir -p /app/data /app/config /app/certs /app/logs && \
+    chown -R knirv:knirv /app
+
+# Copy binary from builder stage
+COPY --from=builder /app/api-gateway /app/api-gateway
+
+# Copy configuration files
+COPY --chown=knirv:knirv config/ /app/config/
+
+# Set executable permissions
+RUN chmod +x /app/api-gateway
+
+# Switch to non-root user
+USER knirv
+
+# Set working directory
+WORKDIR /app
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Set default environment variables
+ENV KNIRV_API_ADDRESS=:8080
+ENV KNIRV_ENVIRONMENT=production
+ENV KNIRV_DATABASE_PATH=/app/data/api-gateway.db
+ENV KNIRV_TOKEN_EXPIRY=24h
+
+# Run the application
+CMD ["./api-gateway"]

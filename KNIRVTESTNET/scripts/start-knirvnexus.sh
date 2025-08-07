@@ -19,19 +19,22 @@ export RUST_LOG="info"
 # Copy port configuration to working directory
 cp ./data/knirvnexus/ports.config ./ports.config
 
-# Start KNIRV-NEXUS in testnet mode
-echo "Starting KNIRV-NEXUS with TEE simulation..."
+# Start KNIRV-NEXUS in headless testnet mode
+echo "Starting KNIRV-NEXUS with TEE simulation (headless mode)..."
 ./bin/knirvnexus \
-    -gui-port 8083 \
+    -api-port 8084 \
     -clean-db \
+    -testnet \
+    -tee-simulation \
     > ./logs/knirvnexus.log 2>&1 &
 
 echo $! > ./data/knirvnexus.pid
 echo "KNIRV-NEXUS testnet started with PID $(cat ./data/knirvnexus.pid)"
-echo "GUI endpoint: http://localhost:8083"
 echo "API endpoint: http://localhost:8084"
-echo "TEE Simulator: http://localhost:8183"
+echo "TEE Simulator: http://localhost:8184"
+echo "Plugin Server: http://localhost:8082"
 echo "Testnet features:"
+echo "  - Headless mode enabled"
 echo "  - TEE simulation enabled"
 echo "  - Mock validation responses"
 echo "  - Simplified validation proofs"

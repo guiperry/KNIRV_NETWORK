@@ -1,302 +1,347 @@
-# KNIRV-NEXUS
+# KNIRV-NEXUS: Decentralized Validation Environment
 
-## Overview
+KNIRV-NEXUS is a production-ready implementation of the Decentralized Validation Environment (DVE) for the KNIRV Network. It provides a secure, scalable, and distributed platform for validating SkillNodes and Base LLMs using Trusted Execution Environments (TEE) and P2P networking.
 
-KNIRV-NEXUS is a comprehensive platform for designing, deploying, and managing autonomous AI agents through an intuitive no-code interface. Built with a powerful Go backend and a modern React/TypeScript frontend, it empowers users to define complex goals, equip agents with diverse capabilities, and orchestrate their operations to achieve sophisticated outcomes within Trusted Execution Environments (TEE). The platform supports multiple AI language models (including Cerebras, Gemini, and DeepSeek) with intelligent fallback mechanisms to ensure reliable operation.
+## 🏗️ Architecture Overview
 
-## Key Features
+KNIRV-NEXUS implements a microservices architecture running on Kubernetes with the following core components:
 
-### Agent Management
-* **NFT-Agents:** Create, configure, and manage AI agents with unique identities
-* **Agent Builder:** Generate custom agents from templates with specific capabilities
-* **Agent Inferencer:** Process inference requests through appropriate agent plugins
-* **Plugin System:** Extensible architecture for adding custom agent capabilities
-* **Terminal Integration:** Interact with agents through terminal sessions
+### Core Services
 
-### Built-in Sub-Agent Infrastructure
-* **Autonomous Sub-Agent Spawning:** Main agents can independently spawn sub-agents based on task requirements without external API calls
-* **SubagentManager:** Complete sub-agent lifecycle management (create, start, stop, delete) with resource limits and TEE isolation
-* **8 Orchestration Patterns:** Support for Sequential Agents, Parallel Processing, Hierarchical Delegation, and Collaborative Problem Solving
-* **Dedicated Terminal Sessions:** Each sub-agent gets its own terminal for independent operation and logging
-* **Communication Hub:** Structured parent-sub-agent messaging with peer communication and error escalation
-* **Multi-Language Support:** Python and JavaScript sub-agent templates with specialized prompt generation
-* **Resource Management:** Memory, CPU, and timeout limits for sub-agents with monitoring and performance tracking
-* **TEE Security:** Sub-agents run within the main agent's Trusted Execution Environment for secure isolation
+- **DVE Manager**: Orchestrates DVE nodes, manages task allocation, and monitors system health
+- **Validation Core**: Executes validation tasks with TEE support and cryptographic proofs
+- **API Gateway**: Provides RESTful APIs and Server-Sent Events for real-time updates
 
-### AI Model Integration
-* **Multi-Provider Support:** Seamlessly integrate with Cerebras, Gemini, and DeepSeek models
-* **Intelligent Fallback:** Automatically switch to backup providers if primary ones fail
-* **Mixture of Agents (MOA):** Combine multiple AI models for enhanced capabilities
-* **Context Management:** Process large inputs exceeding token limits with intelligent chunking strategies
+### Infrastructure
 
-### Workflow Orchestration
-* **Target Systems:** Define and manage objectives for agents to pursue
-* **Inference Orchestration:** Coordinate complex workflows involving multiple agents
-* **Workflow Repository:** Track and manage workflow execution and results
-* **Analytics Dashboard:** Monitor agent performance and system metrics
+- **Base OS**: Kali Linux (as specified in KALI_LINUX_FOUNDATION.md)
+- **Container Runtime**: Podman (rootless containers)
+- **Orchestration**: Kubernetes with production-ready configurations
+- **Database**: BuntDB (embedded key-value store with custom indexes)
+- **Networking**: libp2p (aligned with KNIRV-ROOT protocols)
 
-### Security & Authentication
-* **User Management:** Secure authentication with role-based access control
-* **JWT Authentication:** Token-based security for API access
-* **Permission System:** Granular control over user capabilities
-* **Trusted Execution Environment (TEE):** Secure environment for sensitive operations
+## 🚀 Features
 
-### Web & System Integration
-* **Web Connections:** Integrate with external web services and APIs
-* **System Connections:** Interface with local system resources
-* **Database Integration:** Persistent storage for agents, workflows, and user data
-* **WebSocket Support:** Real-time communication for terminal sessions and monitoring
+### DVE Node Management
+- Node registration with TEE type and capabilities
+- Health monitoring with heartbeat tracking
+- Load balancing with multiple algorithms (reputation, resource, geographic)
+- Geographic distribution support
 
-## 🚀 Key Innovation: AI Error Inference Engine
+### Validation Engine
+- SkillNode validation with test case execution
+- Base LLM validation framework
+- Custom validation types support
+- Cryptographic proof generation
 
-The Agentic Engine features a groundbreaking **AI Error Inference Engine** that transforms error handling from reactive debugging to proactive intelligent assistance:
+### P2P Networking
+- KNIRV-ROOT aligned libp2p implementation
+- DHT-based node discovery
+- GossipSub message distribution
+- Network topology monitoring
 
-### 🤖 **Intelligent Error Analysis**
-* **LLM-Powered Diagnosis:** Automatically analyzes system errors using advanced language models
-* **Smart Categorization:** Classifies errors by type, severity, and root cause
-* **Confidence Scoring:** Provides confidence levels for suggested solutions
-* **Context-Aware Analysis:** Collects comprehensive system information for accurate diagnosis
+### Security & TEE
+- Software TEE simulation for development
+- Hardware TEE support framework (SGX, SEV-SNP, TDX)
+- Attestation and proof verification
+- Secure key management
 
-### 🔔 **Real-Time Error Notifications**
-* **Smart Notification Bell:** Header-mounted indicator with error count badges and severity alerts
-* **Automatic Triggering:** Auto-analyzes critical and high-severity errors immediately
-* **Priority-Based Alerts:** Different notification styles based on error severity
-* **Unread Indicators:** Visual cues for new errors requiring attention
-
-### 💬 **Interactive Error Assistant**
-* **Chat Modal Interface:** Conversational AI assistant for error troubleshooting
-* **Follow-Up Questions:** Ask detailed questions about specific errors
-* **Step-by-Step Guidance:** Detailed resolution instructions with estimated time
-* **Recovery Strategies:** Automatic retry logic and intelligent recovery actions
-
-### 🔄 **Self-Healing Capabilities**
-* **Automated Recovery:** Intelligent retry strategies with exponential backoff
-* **Fallback Analysis:** Rule-based analysis when LLM inference is unavailable
-* **System Context Collection:** Captures user agent, URL, session info, and stack traces
-* **Error History Tracking:** Maintains error patterns for improved future analysis
-
-### 📊 **Production-Ready Features**
-* **Error Statistics Dashboard:** Real-time metrics and error trend analysis
-* **Severity Thresholds:** Configurable auto-analysis triggers
-* **React Hook Integration:** Seamless integration with frontend components
-* **Performance Monitoring:** Tracks error resolution success rates and response times
-
-This innovation creates a **self-healing system** where the inference engine detects, analyzes, and often suggests automated fixes for system errors, significantly reducing debugging time and improving system reliability.
-
-## Architecture
-
-The Agentic Engine employs a modular, service-oriented architecture:
-
-### Backend Components
-* **API Server:** RESTful API built with Go's HTTP package and Gorilla Mux router
-* **Inference Services:** Manages interactions with LLM providers
-* **Agent Services:** Handles agent lifecycle, capabilities, and inference
-* **Database Services:** SQLite-based persistence for domain objects and authentication
-* **Workflow Services:** Orchestrates complex agent workflows and tracks execution
-
-### Frontend Components
-* **React/TypeScript SPA:** Modern single-page application with TypeScript
-* **Tailwind CSS:** Utility-first styling for responsive design
-* **Component Architecture:** Modular UI components for each functional area
-* **WebSocket Integration:** Real-time updates and terminal sessions
-* **Authentication Flow:** Secure login and session management
-
-### Deployment Options
-* **Development Mode:** Integrated development server with hot reloading
-* **Production Mode:** Static file serving with embedded assets
-* **Desktop Application:** Electron-based desktop version available
-* **Cross-Platform Support:** Runs on Linux, macOS, and Windows
-
-## Setup and Installation
+### API & Real-time Updates
+- RESTful API with JWT authentication
+- Server-Sent Events for real-time updates
+- Role-based access control
+- Report generation and sharing
+## � Quick Start
 
 ### Prerequisites
 
-* **Go:** Version 1.21 or later for the backend. [https://go.dev/doc/install](https://go.dev/doc/install)
-* **Node.js and npm:** Version 16+ for frontend development. [https://nodejs.org/](https://nodejs.org/)
-* **AI Provider Accounts:** API keys from Cerebras, Google (for Gemini), or DeepSeek
+- Kubernetes cluster (v1.25+)
+- kubectl configured
+- Docker or Podman
+- Go 1.21+ (for development)
 
-### Installation
+### Deployment
 
-1. **Clone the Repository:**
+1. **Clone the repository**:
    ```bash
-   git clone https://github.com/guiperry/Agentic-Engine.git
-   cd Agentic-Engine
+   git clone https://github.com/knirv/KNIRV_NETWORK.git
+   cd KNIRV_NETWORK/KNIRVNEXUS
    ```
 
-2. **Configure Environment Variables:**
-   * Create a `.env` file in the project root:
-     ```dotenv
-     # API Keys
-     CEREBRAS_API_KEY=your_cerebras_api_key_here
-     GEMINI_API_KEY=your_gemini_api_key_here
-     DEEPSEEK_API_KEY=your_deepseek_api_key_here
-     
-     # Security
-     JWT_SECRET=your_jwt_secret_key_here
-     
-     # Server Configuration
-     API_PORT=8081
-     GUI_PORT=8080
-     ```
+2. **Build the components**:
+   ```bash
+   chmod +x scripts/build.sh
+   ./scripts/build.sh
+   ```
 
-3. **Build and Run:**
-   * **Quick Start:**
-     ```bash
-     # Build the backend
-     go build -o agentic-engine
-     
-     # Sync environment variables
-     ./sync-env.sh
-     
-     # Start the application
-     ./agentic-engine
-     ```
-   
-   * **Development Mode:**
-     ```bash
-     # Start backend
-     go run main.go
-     
-     # In another terminal, start frontend
-     cd gui
-     npm install
-     npm run dev
-     ```
-   
-   * **Production Mode:**
-     ```bash
-     # Build backend with production flag
-     go build -o agentic-engine
-     
-     # Build frontend
-     cd gui
-     npm install
-     npm run build
-     
-     # Run in production mode
-     cd ..
-     ./agentic-engine --production
-     ```
+3. **Deploy to Kubernetes**:
+   ```bash
+   chmod +x scripts/deploy.sh
+   ./scripts/deploy.sh
+   ```
 
-### Port Configuration
+4. **Verify deployment**:
+   ```bash
+   kubectl get pods -n knirv-nexus
+   ```
 
-The application uses configurable ports via the `ports.config` file:
-- **API_PORT:** Backend server port (default: 8081)
-- **GUI_PORT:** Frontend server port (default: 8080)
+### Development Setup
 
-To change ports:
-1. Edit `ports.config` file with your desired ports
-2. Run `./sync-env.sh` to update frontend configuration
-3. Restart the application
+1. **Install dependencies**:
+   ```bash
+   cd backend
+   go mod tidy
+   ```
 
-See [docs/PORT_CONFIGURATION.md](docs/PORT_CONFIGURATION.md) for detailed port configuration guide.
+2. **Run tests**:
+   ```bash
+   go test ./tests/... -v
+   ```
 
-## Usage Guide
+3. **Build locally**:
+   ```bash
+   go build -o bin/dve-manager ./cmd/dve-manager/
+   go build -o bin/validation-core ./cmd/validation-core/
+   go build -o bin/api-gateway ./cmd/api-gateway/
+   ```
+
+## 📁 Project Structure
+
+```
+KNIRVNEXUS/
+├── backend/                    # Go backend services
+│   ├── cmd/                   # Service entry points
+│   │   ├── dve-manager/       # DVE Manager service
+│   │   ├── validation-core/   # Validation Core service
+│   │   └── api-gateway/       # API Gateway service
+│   ├── internal/              # Internal packages
+│   │   ├── config/           # Configuration management
+│   │   ├── database/         # BuntDB wrapper
+│   │   ├── models/           # Data models
+│   │   └── services/         # Business logic services
+│   ├── pkg/                  # Public packages
+│   │   ├── p2p/             # P2P networking
+│   │   └── sse/             # Server-Sent Events
+│   ├── tests/               # Test suites
+│   └── Dockerfile.*         # Container definitions
+├── k8s/                     # Kubernetes manifests
+│   ├── namespace.yaml       # Namespace and quotas
+│   ├── configmap.yaml       # Configuration
+│   ├── secrets.yaml         # Secrets management
+│   └── *-deployment.yaml    # Service deployments
+├── scripts/                 # Automation scripts
+│   ├── build.sh            # Build automation
+│   └── deploy.sh           # Deployment automation
+└── README.md                # This file
+```
+
+## 🔧 API Documentation
 
 ### Authentication
-1. Access the application through your web browser at `http://localhost:8080` (or your configured port)
-2. Log in with your credentials (default admin user is created on first run)
-3. For first-time setup, navigate to Settings to configure API keys
 
-### Creating and Managing Agents
-1. Navigate to the "NFT-Agents" section
-2. Click "Create New Agent" to define a new agent
-3. Configure the agent's profile, base instructions, and capabilities
-4. Select the AI model(s) the agent should use
-5. Save and activate the agent
+All API endpoints (except `/health`) require authentication via JWT tokens.
 
-### Defining Capabilities and Targets
-1. Visit the "Capabilities" section to enable tools for your agents
-2. In "Target Systems," define objectives for agents to pursue
-3. Assign agents to specific targets and configure parameters
+```bash
+# Login
+curl -X POST http://api.knirv-nexus.local/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"password"}'
+```
 
-### Orchestrating Workflows
-1. Use the "Inference" section to design complex workflows
-2. Configure sequential or parallel execution of agent tasks
-3. Monitor workflow execution in real-time
-4. View results and analytics in the Dashboard
+### DVE Node Management
 
-### Advanced Features
-1. Terminal Integration: Interact with agents through command-line interfaces
-2. Context Management: Configure chunking strategies for large inputs
-3. LLM Provider Settings: Set primary and fallback models
-4. Workflow Analytics: Track performance metrics and success rates
+```bash
+# Register a new DVE node
+curl -X POST http://api.knirv-nexus.local/api/v1/dve-nodes \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "validator-1",
+    "tee_type": "sgx",
+    "stake_amount": 1000000,
+    "location": "us-east-1",
+    "ip_address": "192.168.1.100",
+    "public_key": "...",
+    "capabilities": ["skillnode", "base_llm"]
+  }'
 
-## API Reference
+# List DVE nodes
+curl -X GET http://api.knirv-nexus.local/api/v1/dve-nodes \
+  -H "Authorization: Bearer $TOKEN"
+```
 
-The Agentic Engine provides a comprehensive RESTful API:
+### Validation Tasks
 
-### Authentication Endpoints
-- `POST /api/auth/login`: Authenticate and receive JWT token
-- `POST /api/auth/refresh`: Refresh an existing JWT token
-- `POST /api/auth/logout`: Invalidate current token
+```bash
+# Create validation task
+curl -X POST http://api.knirv-nexus.local/api/v1/validation-tasks \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "skillnode",
+    "priority": 5,
+    "skill_code": "def hello(): return \"Hello, World!\"",
+    "test_cases": [...],
+    "required_tee_type": "sgx"
+  }'
 
-### Agent Endpoints
-- `GET /api/v1/agents`: List all agents
-- `POST /api/v1/agents`: Create a new agent
-- `GET /api/v1/agents/{id}`: Get agent details
-- `PUT /api/v1/agents/{id}`: Update agent configuration
-- `POST /api/v1/agents/{id}/build`: Build agent from template
+# Get task status
+curl -X GET http://api.knirv-nexus.local/api/v1/validation-tasks/{id} \
+  -H "Authorization: Bearer $TOKEN"
+```
 
-### Inference Endpoints
-- `POST /api/v1/adk/agents/inference`: Process inference request
-- `GET /api/v1/inference/models`: List available LLM models
+### Real-time Updates
 
-### Workflow Endpoints
-- `POST /api/v1/workflows`: Create a new workflow
-- `GET /api/v1/workflows`: List all workflows
-- `GET /api/v1/workflows/{id}`: Get workflow details
-- `PUT /api/v1/workflows/{id}`: Update workflow status
+Connect to Server-Sent Events for real-time updates:
 
-### Terminal Endpoints
-- `POST /api/v1/terminal/create`: Create a terminal session
-- `GET /api/v1/terminal/ws`: WebSocket for terminal I/O
+```javascript
+const eventSource = new EventSource('http://api.knirv-nexus.local/api/v1/sse?user_id=123');
+eventSource.onmessage = function(event) {
+  const data = JSON.parse(event.data);
+  console.log('Update:', data);
+};
+```
 
-## System Requirements
+## ⚙️ Configuration
 
-### Minimum Requirements
-- **CPU:** 2+ cores
-- **RAM:** 4GB+
-- **Disk:** 1GB free space
-- **OS:** Linux, macOS, or Windows 10+
-- **Browser:** Chrome, Firefox, Safari, or Edge (latest versions)
+### Environment Variables
 
-### Recommended Requirements
-- **CPU:** 4+ cores
-- **RAM:** 8GB+
-- **Disk:** 5GB+ free space
-- **Network:** Stable internet connection for API access
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `KNIRV_CHAIN_ID` | Blockchain network ID | `knirv-nexus-mainnet` |
+| `KNIRV_NODE_ROLE` | Node role (dve-manager, dve-validator) | `dve-manager` |
+| `KNIRV_DATABASE_PATH` | Database file path | `/app/data/nexus.db` |
+| `KNIRV_API_PORT` | API server port | `8080` |
+| `KNIRV_P2P_PORT` | P2P networking port | `4001` |
+| `KNIRV_LOG_LEVEL` | Logging level | `info` |
+| `KNIRV_JWT_SECRET` | JWT signing secret | Required |
 
-## Development and Extension
+### Kubernetes Configuration
 
-### Plugin Development
-The Agentic Engine supports custom plugins for extending agent capabilities:
-1. Use the plugin development templates in `agentify/examples/`
-2. Implement the `AgentPluginInterface` for custom functionality
-3. Build and import plugins through the UI or API
+Key configuration files:
 
-### Frontend Customization
-1. The React frontend can be customized by modifying components in `gui/src/components/`
-2. Styling uses Tailwind CSS for easy customization
-3. New views can be added by extending the routing in `App.tsx`
+- `k8s/namespace.yaml`: Namespace and resource quotas
+- `k8s/configmap.yaml`: Application configuration
+- `k8s/secrets.yaml`: Sensitive configuration (JWT secrets, TLS certs)
+- `k8s/*-deployment.yaml`: Service deployments
 
-### Backend Extension
-1. Add new services by implementing appropriate interfaces
-2. Register new API endpoints in `api/simple_server.go`
-3. Extend database models in `database/models/`
+## 🔒 Security
 
-## License
+### TEE Support
 
-*MIT, Apache 2.0*
+KNIRV-NEXUS supports multiple TEE technologies:
 
-## Contributing
+- **Intel SGX**: Hardware-based secure enclaves
+- **AMD SEV-SNP**: Secure encrypted virtualization
+- **Intel TDX**: Trust domain extensions
+- **Software TEE**: Simulation for development/testing
 
-We welcome contributions! Please read our [contributing guidelines](CONTRIBUTING.md) before submitting pull requests.
+### Network Security
 
-## Documentation
+- **P2P Encryption**: All P2P communications are encrypted
+- **TLS Termination**: HTTPS/TLS for all API endpoints
+- **JWT Authentication**: Secure token-based authentication
+- **RBAC**: Role-based access control
 
-Additional documentation is available in the `docs/` directory:
-- [PORT_CONFIGURATION.md](docs/PORT_CONFIGURATION.md): Detailed port configuration guide
-- [AGENT_BUILDER_IMPLEMENTATION_SUMMARY.md](docs/AGENT_BUILDER_IMPLEMENTATION_SUMMARY.md): Agent builder details
-- [MCP_INTEGRATION.md](docs/MCP_INTEGRATION.md): MCP integration documentation
-- [Testing.md](docs/Testing.md): Testing strategies and procedures
+### Container Security
+
+- **Rootless Containers**: Podman-based rootless execution
+- **Minimal Base Images**: Hardened Kali Linux base
+- **Security Scanning**: Automated vulnerability scanning
+- **Network Policies**: Kubernetes network isolation
+
+## 📊 Monitoring and Observability
+
+### Metrics
+
+KNIRV-NEXUS exposes Prometheus metrics on `/metrics` endpoints:
+
+- System health and performance metrics
+- DVE node status and resource utilization
+- Validation task throughput and success rates
+- P2P network topology and latency
+
+### Logging
+
+Structured JSON logging with configurable levels:
+
+```bash
+# View logs
+kubectl logs -f deployment/api-gateway -n knirv-nexus
+kubectl logs -f deployment/dve-manager -n knirv-nexus
+kubectl logs -f deployment/validation-core -n knirv-nexus
+```
+
+### Health Checks
+
+All services provide health check endpoints:
+
+- `GET /health`: Basic health status
+- Kubernetes liveness and readiness probes
+- Automatic service recovery and scaling
+
+## 🧪 Testing
+
+The implementation includes comprehensive testing:
+
+- **Unit Tests**: Individual component testing
+- **Integration Tests**: End-to-end service testing
+- **Performance Tests**: Validation throughput benchmarks
+- **Security Tests**: Vulnerability scanning
+
+Run tests with:
+```bash
+cd backend
+go test ./tests/... -v
+```
+
+## 🛠️ Troubleshooting
+
+### Common Issues
+
+1. **Pod startup failures**: Check resource limits and node capacity
+2. **P2P connectivity issues**: Verify firewall rules and port accessibility
+3. **Database errors**: Check persistent volume availability
+4. **Authentication failures**: Verify JWT secret configuration
+
+### Debug Commands
+
+```bash
+# Check pod status
+kubectl get pods -n knirv-nexus -o wide
+
+# View pod logs
+kubectl logs -f pod/<pod-name> -n knirv-nexus
+
+# Execute into pod
+kubectl exec -it pod/<pod-name> -n knirv-nexus -- /bin/bash
+
+# Check service endpoints
+kubectl get endpoints -n knirv-nexus
+
+# View events
+kubectl get events -n knirv-nexus --sort-by='.lastTimestamp'
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Run the test suite: `go test ./tests/... -v`
+6. Submit a pull request
+
+## 📄 License
+
+This project is part of the KNIRV Network and follows the project's licensing terms.
+
+## 🆘 Support
+
+For support and questions:
+
+- Create an issue in the GitHub repository
+- Join the KNIRV Network community discussions
+- Review the technical documentation in the codebase
+
+Built with ❤️ for the developer community. Supercharged by [Z.ai](https://chat.z.ai) 🚀

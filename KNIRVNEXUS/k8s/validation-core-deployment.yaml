@@ -1,0 +1,238 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: validation-core
+  namespace: knirv-nexus
+  labels:
+    app: validation-core
+    component: validation
+    version: v1.0.0
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: validation-core
+  template:
+    metadata:
+      labels:
+        app: validation-core
+        component: validation
+        version: v1.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: knirv-nexus-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: validation-core
+        image: knirv/nexus-validation-core:latest
+        imagePullPolicy: Always
+        ports:
+        - name: api
+          containerPort: 8081
+          protocol: TCP
+        - name: p2p
+          containerPort: 4001
+          protocol: TCP
+        env:
+        - name: KNIRV_NODE_ROLE
+          value: "dve-validator"
+        - name: KNIRV_CHAIN_ID
+          value: "knirv-nexus-mainnet"
+        - name: KNIRV_DATABASE_PATH
+          value: "/app/data/validation-core.db"
+        - name: KNIRV_API_PORT
+          value: "8081"
+        - name: KNIRV_P2P_PORT
+          value: "4001"
+        - name: KNIRV_LOG_LEVEL
+          value: "info"
+        - name: KNIRV_VALIDATION_TIMEOUT
+          value: "300s"
+        - name: KNIRV_VALIDATION_MAX_CONCURRENT
+          value: "10"
+        - name: KNIRV_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: knirv-nexus-secrets
+              key: jwt-secret
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        - name: config
+          mountPath: /app/config
+          readOnly: true
+        - name: scripts
+          mountPath: /app/scripts
+          readOnly: true
+        - name: tee-keys
+          mountPath: /app/keys
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: api
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: api
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 15"]
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: validation-core-data
+      - name: config
+        configMap:
+          name: knirv-nexus-config
+          defaultMode: 0644
+      - name: scripts
+        configMap:
+          name: knirv-nexus-scripts
+          defaultMode: 0755
+      - name: tee-keys
+        secret:
+          secretName: knirv-nexus-secrets
+          defaultMode: 0600
+          items:
+          - key: tee-private-key
+            path: tee.key
+      - name: tmp
+        emptyDir: {}
+      imagePullSecrets:
+      - name: knirv-nexus-registry
+      nodeSelector:
+        kubernetes.io/os: linux
+        knirv.io/tee-enabled: "true"
+      tolerations:
+      - key: "knirv.io/tee-enabled"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - validation-core
+              topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: validation-core-service
+  namespace: knirv-nexus
+  labels:
+    app: validation-core
+spec:
+  type: ClusterIP
+  ports:
+  - name: api
+    port: 8081
+    targetPort: api
+    protocol: TCP
+  - name: p2p
+    port: 4001
+    targetPort: p2p
+    protocol: TCP
+  selector:
+    app: validation-core
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: validation-core-data
+  namespace: knirv-nexus
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: fast-ssd
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: validation-core-hpa
+  namespace: knirv-nexus
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: validation-core
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60

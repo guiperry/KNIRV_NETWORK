@@ -1069,7 +1069,7 @@ Enter your choice [1-4] (default: 4): Configuration already marked as complete -
 2025/06/01 23:35:52 [Client][KNIRVCHAIN] Fetching bootnodes from registry: https://registry.knirv.com/nodes
 2025/06/01 23:35:52 [Client][KNIRVCHAIN] Using default topic validation settings
 2025/06/01 23:35:52 [Client][KNIRVCHAIN] P2P consensus manager subscribed to topics: KNIRVCHAIN.blocks, KNIRVCHAIN.transactions
-2025/06/01 23:35:52 [Client][KNIRVCHAIN] Registered chain sync handler for protocol /agent/chain-sync/1.0.0
+2025/06/01 23:35:52 [Client][KNIRVCHAIN] Registered chain sync handler for protocol /knirv/chain-sync/1.0.0
 2025/06/01 23:35:52 [Client][KNIRVCHAIN] Starting P2P consensus manager...
 2025/06/01 23:35:52 [Client][KNIRVCHAIN] P2P consensus manager started successfully.
 2025/06/01 23:35:52 [Client][KNIRVCHAIN] Starting blockchain HTTP server on port 5050...
@@ -1227,7 +1227,7 @@ Enter your choice [1-4] (default: 3): Configuration already marked as complete -
 2025/06/01 23:36:01 [Client][test-dev-3583] Using default topic validation settings
 2025/06/01 23:36:01 [Client][test-dev-3583] Fetching bootnodes from registry: https://registry.knirv.com/nodes
 2025/06/01 23:36:01 [Client][test-dev-3583] P2P consensus manager subscribed to topics: test-dev-3583.blocks, test-dev-3583.transactions
-2025/06/01 23:36:01 [Client][test-dev-3583] Registered chain sync handler for protocol /agent/chain-sync/1.0.0
+2025/06/01 23:36:01 [Client][test-dev-3583] Registered chain sync handler for protocol /knirv/chain-sync/1.0.0
 2025/06/01 23:36:01 [Client][test-dev-3583] Starting P2P consensus manager...
 2025/06/01 23:36:01 [Client][test-dev-3583] P2P consensus manager started successfully.
 2025/06/01 23:36:01 [Client][test-dev-3583] Starting blockchain HTTP server on port 6050...

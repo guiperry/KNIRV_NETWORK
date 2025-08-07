@@ -89,7 +89,7 @@ No new REST API endpoints are needed on the `BlockchainServer` for this data fet
 *   **DHT Participation:** Your nodes are already designed to participate in the private DHT (announcing their own resources like `myPeer.chain` and finding others). The Client SDK will act as another DHT client.
 *   **libp2p Host:** Your nodes run a `libp2p` host capable of accepting incoming P2P connections and streams.
 *   **Stream Handling Logic (Needs to be robustly implemented/exposed):**
-    *   While `SYNC_Protocol.md` defines one such stream protocol (`/agent/chain-sync/1.0.0`), you'll need to define and implement similar stream handlers on your KNIRVCHAIN nodes for serving data based on the `Path` and `Query` of a `agent://` URI.
+    *   While `SYNC_Protocol.md` defines one such stream protocol (`/knirv/chain-sync/1.0.0`), you'll need to define and implement similar stream handlers on your KNIRVCHAIN nodes for serving data based on the `Path` and `Query` of a `agent://` URI.
     *   For example, if a Client SDK resolves `agent://mychain.chain/block?number=123` to PeerA, it will connect to PeerA and open a stream using a protocol like `/agent/resource-fetch/1.0.0`. It will send `Path: /block`, `Query: number=123` over this stream. PeerA's handler for `/agent/resource-fetch/1.0.0` will then look up block 123 and send it back.
 
 **When would you still use the existing REST API?**

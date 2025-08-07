@@ -232,7 +232,7 @@ gperry@cloud-eq:~/Documents/GitHub/cloud-equities/KNIRVROOT_GO_ROOT_MCP_PROTO$ 2
 2025/05/23 11:42:17 [KNIRVROOT] Waiting for P2P Consensus Manager initialization...
 2025/05/23 11:42:17 mDNS: Found local dev: 12D3KooWDWKQwJZhNNSyoiuq2FgpcdAiemA48wdAHDks6V2EAXtM, attempting connection
 2025/05/23 11:42:17 [Bootnode][KNIRVROOT] P2P consensus manager subscribed to topics: KNIRVROOT.blocks, KNIRVROOT.transactions
-2025/05/23 11:42:17 [Bootnode][KNIRVROOT] Registered chain sync handler for protocol /agent/chain-sync/1.0.0
+2025/05/23 11:42:17 [Bootnode][KNIRVROOT] Registered chain sync handler for protocol /knirv/chain-sync/1.0.0
 2025/05/23 11:42:17 [KNIRVROOT] P2P Consensus Manager initialized successfully.
 2025/05/23 11:42:17 [KNIRVROOT] Starting GUI on main goroutine...
 2025/05/23 11:42:17 Warning: Could not get cancel function from main, creating a new one

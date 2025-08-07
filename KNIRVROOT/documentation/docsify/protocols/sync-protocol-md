@@ -6,7 +6,7 @@ This document specifies the protocol used by KNIRVROOT nodes to synchronize thei
 
 **2. Protocol Details**
 
-*   **Protocol ID:** `/agent/chain-sync/1.0.0`
+*   **Protocol ID:** `/knirv/chain-sync/1.0.0`
 *   **Transport:** Libp2p Streams (`network.Stream`)
 *   **Message Encoding:** JSON (Newline-delimited JSON objects sent over the stream)
 
@@ -173,7 +173,7 @@ Your verifier devs simply need to run the same KNIRVROOT node software as your r
 *   **Discovery:** The `DiscoveryManager` (running in the background via `go discoveryMgr.Run(...)`) will connect to bootstrap devs and use the DHT to find other nodes announcing the same `ChainID`.
 *   **Synchronization:** The `P2PConsensusManager`'s `runForkResolution` goroutine periodically calls `requestChainFromPeers`. This function will:
     *   Find other KNIRVROOT devs via the `DiscoveryManager`.
-    *   Attempt to open streams to those devs using `/agent/chain-sync/1.0.0`.
+    *   Attempt to open streams to those devs using `/knirv/chain-sync/1.0.0`.
     *   If a dev responds (because it also has the `handleSyncStream` handler registered), the protocol described above is executed.
 *   The verifier node acts as both an Initiator (when `requestChainFromPeers` runs) and a Responder (when `handleSyncStream` is invoked by another dev).
 

@@ -25,7 +25,7 @@ const (
 	TransactionTopic = "transactions"
 
 	// Chain sync protocol
-	ChainSyncProtocolID = "/agent/chain-sync/1.0.0"
+	ChainSyncProtocolID = "/knirv/chain-sync/1.0.0"
 
 	// Validation parameters
 	BlockValidationTimeout  = 10 * time.Second

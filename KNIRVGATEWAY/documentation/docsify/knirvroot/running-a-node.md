@@ -18,7 +18,7 @@
     *   **Private DHT Discovery:** Employs a Kademlia DHT configured with custom bootstrap devs to create an isolated network. Used for discovering devs providing specific chain resources (e.g., `myPeer.chain`) and MCP capabilities.
     *   **mDNS Discovery:** Uses mDNS for discovering devs on the local network.
     *   **NAT Traversal:** Includes AutoRelay, NATPortMap, and Hole Punching support to facilitate connections between nodes behind NATs.
-    *   **P2P Chain Synchronization:** Implements a `/agent/chain-sync/1.0.0` protocol for nodes to directly exchange status and blocks to synchronize their chain state.
+    *   **P2P Chain Synchronization:** Implements a `/knirv/chain-sync/1.0.0` protocol for nodes to directly exchange status and blocks to synchronize their chain state.
 *   **Consensus (Current):** Implements a basic longest-chain consensus rule by polling configured reflection nodes via HTTP (intended for root node coordination). Peer nodes rely on the P2P sync protocol.
 *   **Wallet:** ECDSA key pairs, address generation (using Base58Check encoding for public keys), transaction signing.
 *   **URI Scheme:** Defines and utilizes a `agent://<ID>.<ResourceType>/...` scheme for identifying resources on the network. Includes URI minting via transactions and announcement on the private DHT.
@@ -69,7 +69,7 @@
 *   **`WalletServer` (`wallet_server.go`):** A separate HTTP server dedicated to wallet operations (generation, signing). Communicates with a specified `BlockchainServer`.
 *   **`DiscoveryManager` (`discovery_manager.go`):** Encapsulates libp2p host setup, connection to the private DHT via custom bootstrap devs, resource announcement (`Provide` for chain URIs and potentially MCP capabilities), dev discovery (`FindProviders`), mDNS, and dev connection logic.
 *   **`SelfConsensusManager` (`self_consensus_manager.go`):** Implements the HTTP-based longest-chain polling mechanism used primarily for root/reflection node confirmation & coordination.
-*   **`P2PConsensusManager` (`p2p_consensus.go`):** Implements the `/agent/chain-sync/1.0.0` protocol for direct dev-to-dev blockchain synchronization, including status exchange, block requests, and validation.
+*   **`P2PConsensusManager` (`p2p_consensus.go`):** Implements the `/knirv/chain-sync/1.0.0` protocol for direct dev-to-dev blockchain synchronization, including status exchange, block requests, and validation.
 *   **`BlockchainStruct` (`blockchain_struct.go`):** Represents the blockchain, holding blocks, transaction pool, metadata, and methods for adding blocks/transactions, mining, balance calculation, etc. **It also handles validation and processing of MCP transactions (capability registration, invocation), including NRN fee deductions and state updates for MCP descriptors and context records.**
 *   **`Block` (`block.go`) & `Transaction` (`transaction.go`):** Core data structures with hashing and verification methods.
 *   **`Wallet` (`wallet.go`):** Handles ECDSA key generation, storage, address derivation, and transaction signing.

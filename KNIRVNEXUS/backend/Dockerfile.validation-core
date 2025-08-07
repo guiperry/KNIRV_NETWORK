@@ -1,0 +1,103 @@
+# Multi-stage build for KNIRV-NEXUS Validation Core
+# Based on Kali Linux with TEE support
+
+# Build stage
+FROM kalilinux/kali-rolling:latest AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    golang-1.21 \
+    git \
+    ca-certificates \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Go environment
+ENV PATH="/usr/lib/go-1.21/bin:${PATH}"
+ENV GOPATH="/go"
+ENV GOCACHE="/tmp/go-cache"
+
+# Create app directory
+WORKDIR /app
+
+# Copy go mod files
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo \
+    -ldflags '-extldflags "-static" -s -w' \
+    -o validation-core ./cmd/validation-core/
+
+# Runtime stage
+FROM kalilinux/kali-rolling:latest
+
+# Install runtime dependencies, security tools, and TEE support
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    netcat-traditional \
+    procps \
+    net-tools \
+    tcpdump \
+    nmap \
+    wireshark-common \
+    python3 \
+    python3-pip \
+    nodejs \
+    npm \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Intel SGX SDK (if available)
+# Note: This would require actual SGX drivers and SDK in production
+RUN curl -fsSL https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | apt-key add - && \
+    echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu focal main' > /etc/apt/sources.list.d/intel-sgx.list || true
+
+# Create non-root user for security
+RUN groupadd -r knirv && useradd -r -g knirv -u 1000 knirv
+
+# Create necessary directories
+RUN mkdir -p /app/data /app/config /app/scripts /app/keys /app/logs /app/backups /app/validation /tmp/validation && \
+    chown -R knirv:knirv /app /tmp/validation
+
+# Copy binary from builder stage
+COPY --from=builder /app/validation-core /app/validation-core
+
+# Copy configuration files
+COPY --chown=knirv:knirv config/ /app/config/
+
+# Set executable permissions
+RUN chmod +x /app/validation-core
+
+# Switch to non-root user
+USER knirv
+
+# Set working directory
+WORKDIR /app
+
+# Expose ports
+EXPOSE 8081 4001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8081/health || exit 1
+
+# Set default environment variables
+ENV KNIRV_NODE_ROLE=dve-validator
+ENV KNIRV_CHAIN_ID=knirv-nexus-mainnet
+ENV KNIRV_DATABASE_PATH=/app/data/validation-core.db
+ENV KNIRV_API_PORT=8081
+ENV KNIRV_P2P_PORT=4001
+ENV KNIRV_LOG_LEVEL=info
+ENV KNIRV_VALIDATION_TIMEOUT=300s
+ENV KNIRV_VALIDATION_MAX_CONCURRENT=10
+
+# Run the application
+CMD ["./validation-core"]
