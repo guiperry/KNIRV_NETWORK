@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRV Network: Investment Opportunity</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Montserrat', sans-serif;
+            color: #ffffff;
+            overflow: hidden;
+            background-color: #0a192f;
+        }
+        .slide {
+            width: 1280px;
+            min-height: 720px;
+            max-height: 720px;
+            position: relative;
+            background: linear-gradient(135deg, rgba(10, 25, 47, 0.95), rgba(10, 25, 47, 0.85)), 
+                        url('https://picsum.photos/seed/blockchain-ai-network/1280/720.jpg');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            overflow: hidden;
+        }
+        .left-content {
+            width: 55%;
+            padding-left: 70px;
+            padding-right: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            z-index: 10;
+        }
+        .right-content {
+            width: 45%;
+            padding-left: 20px;
+            padding-right: 70px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            z-index: 10;
+        }
+        .title {
+            font-size: 72px;
+            font-weight: 900;
+            margin-bottom: 20px;
+            color: #ffffff;
+            line-height: 1.1;
+            letter-spacing: -1px;
+        }
+        .tagline {
+            font-size: 32px;
+            font-weight: 700;
+            color: #7c3aed;
+            margin-bottom: 30px;
+            letter-spacing: -0.5px;
+        }
+        .subtitle {
+            font-size: 20px;
+            font-weight: 400;
+            margin-bottom: 30px;
+            color: #e0e0e0;
+            line-height: 1.5;
+        }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 20px;
+        }
+        .bento-item {
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            border-left: 4px solid #7c3aed;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .bento-item:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-5px);
+        }
+        .bento-title {
+            font-size: 16px;
+            color: #7c3aed;
+            margin-bottom: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .bento-value {
+            font-size: 36px;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+        .logo-placeholder {
+            position: absolute;
+            top: 30px;
+            left: 70px;
+            font-size: 24px;
+            font-weight: 700;
+            color: #7c3aed;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+        }
+        .logo-placeholder i {
+            margin-right: 10px;
+        }
+        .accent-circle {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(124, 58, 237, 0.2) 0%, rgba(124, 58, 237, 0) 70%);
+            z-index: 1;
+        }
+        .accent-circle-1 {
+            width: 400px;
+            height: 400px;
+            top: -100px;
+            right: -100px;
+        }
+        .accent-circle-2 {
+            width: 300px;
+            height: 300px;
+            bottom: -50px;
+            left: 200px;
+        }
+        /* Mobile responsive breakpoints */
+        @media (max-width: 768px) {
+            .slide {
+                padding: 3vh 4vw;
+            }
+            .content {
+                flex-direction: column;
+                gap: clamp(1.5rem, 3vh, 2rem);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .slide {
+                padding: 2vh 3vw;
+            }
+            .title {
+                font-size: clamp(1.8rem, 6vw, 2.2rem);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="slide">
+        <div class="accent-circle accent-circle-1"></div>
+        <div class="accent-circle accent-circle-2"></div>
+        
+        <div class="logo-placeholder">
+            <i class="fas fa-cube"></i>
+            KNIRV
+        </div>
+        
+        <div class="left-content">
+            <h1 class="title">KNIRV NETWORK</h1>
+            <div class="tagline">The Infrastructure Layer for Autonomous AI</div>
+            <p class="subtitle">Decentralized Trusted Execution Network for Self-Improving AI Agents</p>
+        </div>
+        
+        <div class="right-content">
+            <div class="bento-grid">
+                <div class="bento-item">
+                    <div class="bento-title">Market Size</div>
+                    <div class="bento-value">$335.8B</div>
+                </div>
+                <div class="bento-item">
+                    <div class="bento-title">Growth Rate</div>
+                    <div class="bento-value">58.9% CAGR</div>
+                </div>
+                <div class="bento-item">
+                    <div class="bento-title">5-Year Revenue</div>
+                    <div class="bento-value">$550M</div>
+                </div>
+                <div class="bento-item">
+                    <div class="bento-title">Token Economy</div>
+                    <div class="bento-value">$10B+ TVL</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

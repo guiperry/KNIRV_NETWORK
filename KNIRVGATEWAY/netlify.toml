@@ -34,6 +34,20 @@
   publish = "nexus-portal/dist/"
   command = "npm install && npm run build"
 
+  [context.nexus.environment]
+    NODE_ENV = "production"
+    VITE_API_BASE_URL = "/.netlify/functions"
+    VITE_SSE_BASE_URL = "/.netlify/functions/gateway-sse"
+    VITE_NEXUS_API_URL = "/.netlify/functions/gateway-sse"
+    VITE_ENABLE_REAL_TIME = "true"
+    VITE_TESTNET_MODE = "true"
+
+# Presenter build context
+[context.presenter]
+  base = "presenter/"
+  publish = "presenter/"
+  command = "npm install"
+
 # Production build settings
 [build.environment]
   NODE_VERSION = "18"
@@ -127,21 +141,51 @@
   to = "/nexus-portal/:splat"
   status = 200
 
+# Redirect nexus-portal root to landing page
+[[redirects]]
+  from = "/nexus-portal"
+  to = "/nexus-portal/landing.html"
+  status = 200
+
+# Redirect nexus-portal/ to landing page
+[[redirects]]
+  from = "/nexus-portal/"
+  to = "/nexus-portal/landing.html"
+  status = 200
+
+# Serve nexus-portal assets directly (CSS, JS, etc.)
+[[redirects]]
+  from = "/nexus-portal/assets/*"
+  to = "/nexus-portal/dist/assets/:splat"
+  status = 200
+
+# Handle static files in nexus-portal
 [[redirects]]
   from = "/nexus-portal/*"
   to = "/nexus-portal/:splat"
   status = 200
 
-# Handle SPA routing for NEXUS Portal
+# Handle SPA routing for NEXUS Portal React app (only for non-static files)
 [[redirects]]
-  from = "/nexus-portal/*"
-  to = "/nexus-portal/index.html"
+  from = "/nexus-portal/dashboard/*"
+  to = "/nexus-portal/dist/index.html"
   status = 200
 
 # Handle SPA routing for GraphChain Explorer
 [[redirects]]
   from = "/graphchain-explorer/*"
   to = "/graphchain-explorer/index.html"
+  status = 200
+
+# Presenter redirects
+[[redirects]]
+  from = "/presentations/*"
+  to = "/presenter/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/presenter/*"
+  to = "/presenter/:splat"
   status = 200
 
 # Default fallback for main site (must be last)

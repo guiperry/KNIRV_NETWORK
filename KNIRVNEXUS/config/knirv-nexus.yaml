@@ -2,6 +2,12 @@
 mode: headless  # headless | gui
 
 # Service configuration
+service:
+  port: 8080
+  bind_address: "0.0.0.0"
+  name: "dve-manager"
+
+# API configuration (for backward compatibility)
 api:
   port: 8080
   bind_address: "0.0.0.0"
@@ -11,7 +17,7 @@ api:
 gui:
   enabled: false
   port: 9080
-  frontend_path: "./.next"  # Path to built Next.js frontend
+  frontend_path: "./dist"  # Path to built Next.js frontend
   bind_address: "127.0.0.1"
 
 # Security configuration

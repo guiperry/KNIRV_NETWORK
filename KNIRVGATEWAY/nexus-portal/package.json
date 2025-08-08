@@ -5,15 +5,19 @@
   "main": "index.html",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && npm run post-build",
+    "post-build": "cd dist && mv dashboard.html index.html",
+    "build-only": "vite build",
     "preview": "vite preview",
     "deploy": "npm run build && netlify deploy --prod"
   },
   "dependencies": {
+    "@radix-ui/react-slot": "^1.2.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.0.0",
+    "lucide-react": "^0.263.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "lucide-react": "^0.263.1",
-    "clsx": "^2.0.0",
     "tailwind-merge": "^1.14.0"
   },
   "devDependencies": {

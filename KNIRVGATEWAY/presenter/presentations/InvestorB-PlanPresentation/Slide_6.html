@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRV Network: Technology Architecture</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: 'Montserrat', sans-serif;
+            color: #ffffff;
+            overflow: hidden;
+            background-color: #0a192f;
+            margin: 0;
+            padding: 0;
+        }
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, rgba(10, 25, 47, 0.95), rgba(10, 25, 47, 0.9));
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+
+        /* Ensure proper scaling for different screen sizes */
+        @media (max-aspect-ratio: 16/9) {
+            .slide {
+                width: calc(100vh * 16/9);
+                height: 100vh;
+                margin: 0 auto;
+                max-width: 100vw;
+            }
+        }
+
+        @media (min-aspect-ratio: 16/9) {
+            .slide {
+                width: 100vw;
+                height: calc(100vw * 9/16);
+                margin: auto 0;
+                min-height: calc(100vw * 9/16);
+            }
+        }
+        
+            .slide {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, rgba(10, 25, 47, 0.95), rgba(10, 25, 47, 0.9));
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+        }
+
+        @media (min-aspect-ratio: 16/9) {
+            .slide {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, rgba(10, 25, 47, 0.95), rgba(10, 25, 47, 0.9));
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+        }
+        .header {
+            padding: 2vh 5vw 1vh;
+            flex-shrink: 0;
+        }
+        .title {
+            font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 10px;
+            position: relative;
+            letter-spacing: -1px;
+        }
+        .title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 80px;
+            height: 4px;
+            background-color: #7c3aed;
+        }
+        .content {
+            flex: 1;
+            display: flex;
+            padding: 1vh 5vw 2vh;
+            min-height: 0;
+            overflow: hidden;
+        }
+        .left-section {
+            width: 60%;
+            padding-right: 30px;
+            display: flex;
+            flex-direction: column;
+        }
+        .right-section {
+            width: 40%;
+            display: flex;
+            flex-direction: column;
+        }
+        .architecture-box {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: clamp(15px, 2vh, 20px);
+            backdrop-filter: blur(5px);
+            flex-grow: 1;
+            border-left: 4px solid #7c3aed;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .architecture-box:hover {
+            background-color: rgba(124, 58, 237, 0.1);
+            transform: translateY(-3px);
+        }
+        .section-title {
+            font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+            font-weight: 700;
+            color: #7c3aed;
+            margin-bottom: clamp(0.5rem, 1vh, 1rem);
+            display: flex;
+            align-items: center;
+        }
+        .section-title i {
+            margin-right: 12px;
+            font-size: 28px;
+        }
+        .layers-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            flex-grow: 1;
+        }
+        .layer-item {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        .layer-item:hover {
+            background-color: rgba(124, 58, 237, 0.15);
+            transform: translateY(-5px);
+        }
+        .layer-icon {
+            background-color: rgba(124, 58, 237, 0.2);
+            color: #7c3aed;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 22px;
+        }
+        .layer-name {
+            font-size: clamp(0.9rem, 1.8vw, 1.3rem);
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .layer-desc {
+            font-size: 14px;
+            color: #e0e0e0;
+            line-height: 1.3;
+            flex-grow: 1;
+        }
+        .highlights-box {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: clamp(15px, 2vh, 20px);
+            backdrop-filter: blur(5px);
+            margin-bottom: clamp(0.5rem, 1vh, 1rem);
+            border-left: 4px solid #7c3aed;
+            transition: all 0.3s ease;
+        }
+        .highlights-box:hover {
+            background-color: rgba(124, 58, 237, 0.1);
+            transform: translateY(-3px);
+        }
+        .highlight-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+        .highlight-item:hover {
+            background-color: rgba(124, 58, 237, 0.15);
+            transform: translateX(5px);
+        }
+        .highlight-item:last-child {
+            margin-bottom: 0;
+        }
+        .highlight-icon {
+            background-color: rgba(124, 58, 237, 0.2);
+            color: #7c3aed;
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 16px;
+            flex-shrink: 0;
+            font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+        }
+        .highlight-content {
+            flex-grow: 1;
+        }
+        .highlight-title {
+            font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: #7c3aed;
+        }
+        .highlight-desc {
+            font-size: 16px;
+            color: #e0e0e0;
+            line-height: 1.4;
+        }
+        .visual-box {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: clamp(15px, 2vh, 20px);
+            backdrop-filter: blur(5px);
+            flex-grow: 1;
+            border-left: 4px solid #7c3aed;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .visual-box:hover {
+            background-color: rgba(124, 58, 237, 0.1);
+            transform: translateY(-3px);
+        }
+        .architecture-visual {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        .arch-center {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            margin-bottom: clamp(0.5rem, 1vh, 1rem);
+        }
+        .arch-center-icon {
+            font-size: 64px;
+            color: #7c3aed;
+            margin-bottom: 10px;
+        }
+        .arch-center-text {
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .arch-layers {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            width: 100%;
+        }
+        .arch-layer {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 12px;
+            width: calc(33.33% - 10px);
+            min-width: 120px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .arch-layer:hover {
+            background-color: rgba(124, 58, 237, 0.15);
+            transform: translateY(-5px);
+        }
+        .arch-layer-icon {
+            color: #7c3aed;
+            font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+            margin-bottom: 8px;
+        }
+        .arch-layer-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .logo-placeholder {
+            position: absolute;
+            top: 30px;
+            right: 70px;
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            font-weight: 700;
+            color: #7c3aed;
+            display: flex;
+            align-items: center;
+        }
+        .logo-placeholder i {
+            margin-right: 8px;
+        }
+        .accent-circle {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, rgba(124, 58, 237, 0) 70%);
+            z-index: 0;
+        }
+        .accent-circle-1 {
+            width: 400px;
+            height: 400px;
+            top: -150px;
+            right: -100px;
+        }
+        .accent-circle-2 {
+            width: 300px;
+            height: 300px;
+            bottom: -100px;
+            left: -100px;
+        }
+        /* Mobile responsive breakpoints */
+        @media (max-width: 768px) {
+            .slide {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, rgba(10, 25, 47, 0.95), rgba(10, 25, 47, 0.9));
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+            .content {
+            flex: 1;
+            display: flex;
+            padding: 1vh 5vw 2vh;
+            min-height: 0;
+            overflow: hidden;
+        }
+        }
+
+        @media (max-width: 480px) {
+            .slide {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, rgba(10, 25, 47, 0.95), rgba(10, 25, 47, 0.9));
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+            .title {
+            font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 10px;
+            position: relative;
+            letter-spacing: -1px;
+        }
+        }
+        /* Mobile responsive breakpoints */
+        @media (max-width: 768px) {
+            .slide {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, rgba(10, 25, 47, 0.95), rgba(10, 25, 47, 0.9));
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+            .left-content, .right-content {
+                width: 100% !important;
+            }
+            .slide {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, rgba(10, 25, 47, 0.95), rgba(10, 25, 47, 0.9));
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+            .header {
+            padding: 2vh 5vw 1vh;
+            flex-shrink: 0;
+        }
+        }
+
+        @media (max-width: 480px) {
+            .slide {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, rgba(10, 25, 47, 0.95), rgba(10, 25, 47, 0.9));
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+            .header {
+            padding: 2vh 5vw 1vh;
+            flex-shrink: 0;
+        }
+        }
+    
+        /* Mobile Responsive Design */
+        @media (max-width: 768px) {
+            .slide {
+                width: 100vw !important;
+                height: 100vh !important;
+                margin: 0 !important;
+                padding: 2vh 4vw !important;
+                aspect-ratio: unset !important;
+            }
+            
+            .header {
+                padding: 2vh 4vw 1vh !important;
+                text-align: center;
+            }
+            
+            .title {
+                font-size: clamp(2rem, 8vw, 3rem) !important;
+                text-align: center;
+                margin-bottom: 1vh !important;
+            }
+            
+            .content {
+                flex-direction: column !important;
+                padding: 1vh 4vw 2vh !important;
+                gap: 2vh !important;
+                overflow-y: auto !important;
+                overflow-x: hidden !important;
+            }
+            
+            .left-section, .right-section {
+                width: 100% !important;
+                padding-right: 0 !important;
+                margin-bottom: 2vh !important;
+            }
+            
+            .section-title {
+                font-size: clamp(1.5rem, 6vw, 2rem) !important;
+                text-align: center;
+                margin-bottom: 1vh !important;
+            }
+            
+            .section-content {
+                font-size: clamp(1rem, 4vw, 1.3rem) !important;
+                text-align: center;
+                line-height: 1.4 !important;
+            }
+            
+            .vision-box, .mission-box, .description-box, .features-box, .value-props, .diagram-container {
+                padding: 2vh 3vw !important;
+                margin-bottom: 2vh !important;
+            }
+            
+            .feature-grid {
+                grid-template-columns: 1fr !important;
+                gap: 1.5vh !important;
+            }
+            
+            .feature-item {
+                padding: 2vh 3vw !important;
+                text-align: center;
+            }
+            
+            .feature-title {
+                font-size: clamp(1.2rem, 5vw, 1.5rem) !important;
+            }
+            
+            .feature-desc {
+                font-size: clamp(1rem, 4vw, 1.2rem) !important;
+            }
+            
+            .value-prop-item {
+                flex-direction: column !important;
+                text-align: center !important;
+                padding: 1.5vh 2vw !important;
+                margin-bottom: 1.5vh !important;
+            }
+            
+            .value-prop-icon {
+                margin-right: 0 !important;
+                margin-bottom: 1vh !important;
+                width: clamp(3rem, 8vw, 4rem) !important;
+                height: clamp(3rem, 8vw, 4rem) !important;
+                font-size: clamp(1.5rem, 4vw, 2rem) !important;
+            }
+            
+            .value-prop-text {
+                font-size: clamp(1rem, 4vw, 1.3rem) !important;
+            }
+            
+            .diagram-layers {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 1vh !important;
+            }
+            
+            .diagram-layer {
+                width: 100% !important;
+                min-width: unset !important;
+                padding: 1.5vh 2vw !important;
+            }
+            
+            .layer-title {
+                font-size: clamp(1rem, 4vw, 1.2rem) !important;
+            }
+            
+            .layer-desc {
+                font-size: clamp(0.9rem, 3.5vw, 1rem) !important;
+            }
+            
+            .keyword {
+                font-size: clamp(0.8rem, 3vw, 1rem) !important;
+                padding: 2px 6px !important;
+                margin: 1px !important;
+            }
+            
+            .logo-placeholder {
+                top: 1vh !important;
+                right: 4vw !important;
+                font-size: clamp(0.8rem, 3vw, 1rem) !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .slide {
+                padding: 1vh 3vw !important;
+            }
+            
+            .header {
+                padding: 1vh 3vw 0.5vh !important;
+            }
+            
+            .title {
+                font-size: clamp(1.5rem, 7vw, 2.5rem) !important;
+            }
+            
+            .content {
+                padding: 0.5vh 3vw 1vh !important;
+                gap: 1.5vh !important;
+            }
+            
+            .section-title {
+                font-size: clamp(1.2rem, 5vw, 1.8rem) !important;
+            }
+            
+            .section-content {
+                font-size: clamp(0.9rem, 3.5vw, 1.1rem) !important;
+            }
+            
+            .vision-box, .mission-box, .description-box, .features-box, .value-props, .diagram-container {
+                padding: 1.5vh 2vw !important;
+                margin-bottom: 1.5vh !important;
+            }
+            
+            .diagram-layers {
+                grid-template-columns: 1fr !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="slide">
+        <div class="accent-circle accent-circle-1"></div>
+        <div class="accent-circle accent-circle-2"></div>
+        
+        <div class="logo-placeholder">
+            <i class="fas fa-cube"></i>
+            KNIRV
+        </div>
+        
+        <div class="header">
+            <h1 class="title">Technology Architecture</h1>
+        </div>
+        
+        <div class="content">
+            <div class="left-section">
+                <div class="architecture-box">
+                    <div class="section-title">
+                        <i class="fas fa-layer-group"></i>
+                        12 Sovereign Layers
+                    </div>
+                    <div class="layers-grid">
+                        <div class="layer-item">
+                            <div class="layer-icon">
+                                <i class="fas fa-cube"></i>
+                            </div>
+                            <div class="layer-name">KNIRV-ROOT</div>
+                            <div class="layer-desc">Foundational blockchain & NRN token ledger</div>
+                        </div>
+                        <div class="layer-item">
+                            <div class="layer-icon">
+                                <i class="fas fa-network-wired"></i>
+                            </div>
+                            <div class="layer-name">KNIRV-ROUTER</div>
+                            <div class="layer-desc">Network integrity & connectivity proofs</div>
+                        </div>
+                        <div class="layer-item">
+                            <div class="layer-icon">
+                                <i class="fas fa-project-diagram"></i>
+                            </div>
+                            <div class="layer-name">KNIRVGRAPH</div>
+                            <div class="layer-desc">Knowledge fabric for ErrorNodes & SkillNodes</div>
+                        </div>
+                        <div class="layer-item">
+                            <div class="layer-icon">
+                                <i class="fas fa-link"></i>
+                            </div>
+                            <div class="layer-name">KNIRVCHAIN</div>
+                            <div class="layer-desc">Canonical LLM & SkillRegistry</div>
+                        </div>
+                        <div class="layer-item">
+                            <div class="layer-icon">
+                                <i class="fas fa-user-shield"></i>
+                            </div>
+                            <div class="layer-name">KNIRV-NEXUS</div>
+                            <div class="layer-desc">Decentralized Validation Environments</div>
+                        </div>
+                        <div class="layer-item">
+                            <div class="layer-icon">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div class="layer-name">KNIRV-AGENTIFIER</div>
+                            <div class="layer-desc">Self-improving AI agents</div>
+                        </div>
+                        <div class="layer-item">
+                            <div class="layer-icon">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                            <div class="layer-name">KNIRV-WALLET</div>
+                            <div class="layer-desc">User gateway with XION integration</div>
+                        </div>
+                        <div class="layer-item">
+                            <div class="layer-icon">
+                                <i class="fas fa-door-open"></i>
+                            </div>
+                            <div class="layer-name">KNIRV-GATEWAY</div>
+                            <div class="layer-desc">Unified web portal & API</div>
+                        </div>
+                        <div class="layer-item">
+                            <div class="layer-icon">
+                                <i class="fas fa-terminal"></i>
+                            </div>
+                            <div class="layer-name">KNIRV-SHELL</div>
+                            <div class="layer-desc">Command-line interface</div>
+                        </div>
+                        <div class="layer-item">
+                            <div class="layer-icon">
+                                <i class="fas fa-code"></i>
+                            </div>
+                            <div class="layer-name">KNIRV-SDK</div>
+                            <div class="layer-desc">Multi-language development kit</div>
+                        </div>
+                        <div class="layer-item">
+                            <div class="layer-icon">
+                                <i class="fas fa-bug"></i>
+                            </div>
+                            <div class="layer-name">KNIRV-TESTNET</div>
+                            <div class="layer-desc">High-fidelity testing environment</div>
+                        </div>
+                        <div class="layer-item">
+                            <div class="layer-icon">
+                                <i class="fas fa-gamepad"></i>
+                            </div>
+                            <div class="layer-name">KNIRVANA</div>
+                            <div class="layer-desc">Cross-platform strategy game</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="right-section">
+                <div class="highlights-box">
+                    <div class="section-title">
+                        <i class="fas fa-star"></i>
+                        Technical Highlights
+                    </div>
+                    <div class="highlight-item">
+                        <div class="highlight-icon">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <div class="highlight-content">
+                            <div class="highlight-title">50,000 TPS</div>
+                            <div class="highlight-desc">High throughput with parallel processing</div>
+                        </div>
+                    </div>
+                    <div class="highlight-item">
+                        <div class="highlight-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div class="highlight-content">
+                            <div class="highlight-title">TEE-based Security</div>
+                            <div class="highlight-desc">Intel SGX, AMD SEV, ARM TrustZone support</div>
+                        </div>
+                    </div>
+                    <div class="highlight-item">
+                        <div class="highlight-icon">
+                            <i class="fas fa-user-secret"></i>
+                        </div>
+                        <div class="highlight-content">
+                            <div class="highlight-title">Zero-Knowledge Proofs</div>
+                            <div class="highlight-desc">Cryptographic state verification</div>
+                        </div>
+                    </div>
+                    <div class="highlight-item">
+                        <div class="highlight-icon">
+                            <i class="fas fa-certificate"></i>
+                        </div>
+                        <div class="highlight-content">
+                            <div class="highlight-title">Formal Verification</div>
+                            <div class="highlight-desc">Rust-based smart contracts with proofs</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="visual-box">
+                    <div class="section-title">
+                        <i class="fas fa-sitemap"></i>
+                        Architecture Overview
+                    </div>
+                    <div class="architecture-visual">
+                        <div class="arch-center">
+                            <i class="fas fa-project-diagram arch-center-icon"></i>
+                            <div class="arch-center-text">D-TEN</div>
+                        </div>
+                        <div class="arch-layers">
+                            <div class="arch-layer">
+                                <i class="fas fa-cube arch-layer-icon"></i>
+                                <div class="arch-layer-title">ROOT</div>
+                            </div>
+                            <div class="arch-layer">
+                                <i class="fas fa-network-wired arch-layer-icon"></i>
+                                <div class="arch-layer-title">ROUTER</div>
+                            </div>
+                            <div class="arch-layer">
+                                <i class="fas fa-project-diagram arch-layer-icon"></i>
+                                <div class="arch-layer-title">GRAPH</div>
+                            </div>
+                            <div class="arch-layer">
+                                <i class="fas fa-link arch-layer-icon"></i>
+                                <div class="arch-layer-title">CHAIN</div>
+                            </div>
+                            <div class="arch-layer">
+                                <i class="fas fa-user-shield arch-layer-icon"></i>
+                                <div class="arch-layer-title">NEXUS</div>
+                            </div>
+                            <div class="arch-layer">
+                                <i class="fas fa-robot arch-layer-icon"></i>
+                                <div class="arch-layer-title">AGENTIFIER</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

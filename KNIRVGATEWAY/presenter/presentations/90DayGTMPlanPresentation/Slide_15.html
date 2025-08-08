@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Next Steps (This Week)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: 'Source Sans Pro', sans-serif;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            aspect-ratio: 16/9;
+            max-width: 100vw;
+            max-height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, rgba(25, 25, 112, 0.9), rgba(102, 51, 153, 0.9));
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 4vh 5vw;
+            overflow: hidden;
+        }
+
+        /* Ensure 16:9 aspect ratio on all screen sizes */
+        @media (max-aspect-ratio: 16/9) {
+            .slide {
+                width: calc(100vh * 16/9);
+                height: 100vh;
+                margin: 0 auto;
+            }
+        }
+
+        @media (min-aspect-ratio: 16/9) {
+            .slide {
+                width: 100vw;
+                height: calc(100vw * 9/16);
+                margin: auto 0;
+            }
+        }
+        .header {
+            margin-bottom: clamp(2vh, 4vh, 6vh);
+        }
+        .title {
+            font-size: clamp(2.5rem, 4vw, 3.5rem);
+            font-weight: 700;
+            margin-bottom: clamp(0.8rem, 1.5vh, 1.2rem);
+        }
+        .content {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            gap: 30px;
+        }
+        .steps-row {
+            display: flex;
+            gap: 30px;
+            flex-grow: 1;
+        }
+        .step-box {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 24px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .step-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .step-icon {
+            background-color: rgba(167, 139, 250, 0.3);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            flex-shrink: 0;
+        }
+        .step-icon i {
+            font-size: 24px;
+            color: #a78bfa;
+        }
+        .step-title {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .step-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            flex-grow: 1;
+        }
+        .step-item {
+            display: flex;
+            align-items: flex-start;
+        }
+        .step-bullet {
+            color: #a78bfa;
+            margin-right: 12px;
+            font-size: 20px;
+            line-height: 1.4;
+            flex-shrink: 0;
+        }
+        .step-text {
+            font-size: 20px;
+            line-height: 1.4;
+        }
+        .conclusion {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: auto;
+        }
+        .conclusion-text {
+            font-size: 22px;
+            line-height: 1.5;
+            text-align: center;
+        }
+        .highlight {
+            color: #a78bfa;
+            font-weight: 600;
+        }
+        /* Mobile responsive breakpoints */
+        @media (max-width: 768px) {
+            .slide {
+                padding: 3vh 4vw;
+            }
+            .content {
+                flex-direction: column;
+                gap: clamp(1.5rem, 3vh, 2rem);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .slide {
+                padding: 2vh 3vw;
+            }
+            .title {
+                font-size: clamp(1.8rem, 6vw, 2.2rem);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="slide">
+        <div class="header">
+            <h1 class="title">Next Steps (This Week)</h1>
+        </div>
+        <div class="content">
+            <div class="steps-row">
+                <div class="step-box">
+                    <div class="step-header">
+                        <div class="step-icon">
+                            <i class="material-icons">calendar_today</i>
+                        </div>
+                        <h3 class="step-title">Day 1-2: Strategic Planning</h3>
+                    </div>
+                    <div class="step-list">
+                        <div class="step-item">
+                            <span class="step-bullet">•</span>
+                            <p class="step-text"><span class="highlight">Executive Team Alignment</span>: Kickoff meeting for full buy-in</p>
+                        </div>
+                        <div class="step-item">
+                            <span class="step-bullet">•</span>
+                            <p class="step-text"><span class="highlight">Resource Allocation</span>: Assign 2-3 core engineers</p>
+                        </div>
+                        <div class="step-item">
+                            <span class="step-bullet">•</span>
+                            <p class="step-text"><span class="highlight">Finalize Pricing & Positioning</span>: Based on market feedback</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="step-box">
+                    <div class="step-header">
+                        <div class="step-icon">
+                            <i class="material-icons">build</i>
+                        </div>
+                        <h3 class="step-title">Day 3-5: Service Development</h3>
+                    </div>
+                    <div class="step-list">
+                        <div class="step-item">
+                            <span class="step-bullet">•</span>
+                            <p class="step-text"><span class="highlight">Create Service Descriptions</span>: One-page datasheets</p>
+                        </div>
+                        <div class="step-item">
+                            <span class="step-bullet">•</span>
+                            <p class="step-text"><span class="highlight">Develop Demo Environment</span>: Polished <20 min script</p>
+                        </div>
+                        <div class="step-item">
+                            <span class="step-bullet">•</span>
+                            <p class="step-text"><span class="highlight">Build Sales Deck</span>: V1 presentation for prospects</p>
+                        </div>
+                        <div class="step-item">
+                            <span class="step-bullet">•</span>
+                            <p class="step-text"><span class="highlight">Set Up CRM</span>: Configure lead tracking system</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="step-box">
+                    <div class="step-header">
+                        <div class="step-icon">
+                            <i class="material-icons">search</i>
+                        </div>
+                        <h3 class="step-title">Day 6-7: Market Testing</h3>
+                    </div>
+                    <div class="step-list">
+                        <div class="step-item">
+                            <span class="step-bullet">•</span>
+                            <p class="step-text"><span class="highlight">Identify 50 Targets</span>: Build initial prospect list</p>
+                        </div>
+                        <div class="step-item">
+                            <span class="step-bullet">•</span>
+                            <p class="step-text"><span class="highlight">Conduct Validation Calls</span>: Test messaging</p>
+                        </div>
+                        <div class="step-item">
+                            <span class="step-bullet">•</span>
+                            <p class="step-text"><span class="highlight">Schedule First Demos</span>: Book for Week 2</p>
+                        </div>
+                        <div class="step-item">
+                            <span class="step-bullet">•</span>
+                            <p class="step-text"><span class="highlight">Begin Content Creation</span>: Start blog pipeline</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="conclusion">
+                <p class="conclusion-text">
+                    Executing this 90-day plan will establish <span class="highlight">KNIRV</span> as a leader in the decentralized AI infrastructure market, generating <span class="highlight">$890,000</span> in revenue while building the foundation for long-term growth.
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

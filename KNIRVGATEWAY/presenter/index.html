@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRV Presentation Viewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        :root {
+            --primary-purple: #7c3aed;
+            --secondary-blue: #3b82f6;
+            --dark-bg: #0a0e27;
+            --glass-bg: rgba(124, 58, 237, 0.1);
+            --glass-border: rgba(124, 58, 237, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Source Sans Pro', sans-serif;
+            background: linear-gradient(135deg, var(--dark-bg) 0%, #1a1f3a 100%);
+            color: white;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .presentation-selector {
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, var(--primary-purple), var(--secondary-blue));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 20px;
+            opacity: 0.8;
+            margin-bottom: 50px;
+        }
+
+        .presentation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .presentation-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .presentation-card:hover {
+            background: rgba(124, 58, 237, 0.2);
+            border-color: var(--primary-purple);
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(124, 58, 237, 0.3);
+        }
+
+        .card-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--primary-purple);
+        }
+
+        .card-description {
+            font-size: 16px;
+            opacity: 0.8;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .card-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        .view-btn {
+            background: var(--primary-purple);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .view-btn:hover {
+            background: var(--secondary-blue);
+            transform: translateY(-2px);
+        }
+
+        .password-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .password-modal.hidden {
+            display: none;
+        }
+
+        .password-form {
+            background: var(--dark-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .password-form h3 {
+            margin-bottom: 20px;
+            color: var(--primary-purple);
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--glass-border);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .password-button {
+            background: var(--primary-purple);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .password-button:hover {
+            background: var(--secondary-blue);
+        }
+
+        .current-slide-info {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .navigation-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .nav-btn {
+            background: var(--primary-purple);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: var(--secondary-blue);
+        }
+
+        .nav-btn:disabled {
+            background: rgba(255, 255, 255, 0.2);
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            font-size: 18px;
+            color: var(--primary-purple);
+        }
+
+        .error {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            font-size: 18px;
+            color: #ef4444;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 25px;
+            padding: 10px 20px;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .back-btn:hover {
+            background: var(--primary-purple);
+            transform: translateY(-2px);
+            color: white;
+            text-decoration: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: auto;
+                max-height: 40vh;
+            }
+            
+            .slide-viewer {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="../index.html" class="back-btn">
+        <i class="material-icons">arrow_back</i>
+        Back to KNIRV Gateway
+    </a>
+
+    <div class="container">
+        <div class="presentation-selector">
+            <div class="logo">KNIRV Presentations</div>
+            <div class="subtitle">Select a presentation to view</div>
+
+            <div class="presentation-grid" id="presentationGrid">
+                <div class="loading">Loading presentations...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Modal -->
+    <div class="password-modal hidden" id="passwordModal">
+        <div class="password-form">
+            <h3 id="passwordTitle">Enter Password</h3>
+            <input type="password" class="password-input" id="passwordInput" placeholder="Enter presentation password">
+            <div>
+                <button class="password-button" id="passwordSubmit">Access</button>
+                <button class="password-button" id="passwordCancel" style="background: #666;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class PresentationSelector {
+            constructor() {
+                this.presentations = {};
+                this.authenticatedPresentations = new Set();
+
+                this.initializeElements();
+                this.bindEvents();
+                this.loadPresentations();
+            }
+
+            initializeElements() {
+                this.presentationGrid = document.getElementById('presentationGrid');
+                this.passwordModal = document.getElementById('passwordModal');
+                this.passwordInput = document.getElementById('passwordInput');
+                this.passwordSubmit = document.getElementById('passwordSubmit');
+                this.passwordCancel = document.getElementById('passwordCancel');
+                this.passwordTitle = document.getElementById('passwordTitle');
+            }
+
+            bindEvents() {
+                this.passwordSubmit.addEventListener('click', () => this.submitPassword());
+                this.passwordCancel.addEventListener('click', () => this.hidePasswordModal());
+
+                this.passwordInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.submitPassword();
+                });
+            }
+
+            async loadPresentations() {
+                try {
+                    // Auto-detect presentations by checking for auth.json files
+                    const presentationDirs = ['90DayGTMPlanPresentation', 'InvestorB-PlanPresentation'];
+
+                    for (const dir of presentationDirs) {
+                        try {
+                            const authResponse = await fetch(`presentations/${dir}/auth.json`);
+                            if (authResponse.ok) {
+                                const authData = await authResponse.json();
+
+                                // Count slides
+                                let slideCount = 0;
+                                for (let i = 1; i <= 20; i++) {
+                                    try {
+                                        const slideResponse = await fetch(`presentations/${dir}/Slide_${i}.html`, { method: 'HEAD' });
+                                        if (slideResponse.ok) {
+                                            slideCount = i;
+                                        } else {
+                                            break;
+                                        }
+                                    } catch (e) {
+                                        break;
+                                    }
+                                }
+
+                                this.presentations[dir] = {
+                                    name: authData.presentationName,
+                                    description: authData.description,
+                                    slides: slideCount,
+                                    password: authData.password
+                                };
+                            }
+                        } catch (e) {
+                            console.log(`Could not load ${dir}:`, e);
+                        }
+                    }
+
+                    this.renderPresentationGrid();
+                } catch (error) {
+                    console.error('Error loading presentations:', error);
+                    this.presentationGrid.innerHTML = '<div class="error">Failed to load presentations</div>';
+                }
+            }
+
+            renderPresentationGrid() {
+                if (Object.keys(this.presentations).length === 0) {
+                    this.presentationGrid.innerHTML = '<div class="error">No presentations found</div>';
+                    return;
+                }
+
+                this.presentationGrid.innerHTML = '';
+
+                Object.entries(this.presentations).forEach(([key, presentation]) => {
+                    const card = document.createElement('div');
+                    card.className = 'presentation-card';
+                    card.dataset.presentation = key;
+
+                    card.innerHTML = `
+                        <div class="card-title">${presentation.name}</div>
+                        <div class="card-description">${presentation.description}</div>
+                        <div class="card-stats">
+                            <span>${presentation.slides} slides</span>
+                            <span>🔒 Password protected</span>
+                        </div>
+                        <button class="view-btn">View Presentation</button>
+                    `;
+
+                    card.addEventListener('click', () => this.selectPresentation(key));
+                    this.presentationGrid.appendChild(card);
+                });
+            }
+
+            async selectPresentation(presentationKey) {
+                if (!this.authenticatedPresentations.has(presentationKey)) {
+                    this.showPasswordModal(presentationKey);
+                    return;
+                }
+
+                // Redirect to slide viewer with first slide
+                const presentation = this.presentations[presentationKey];
+                const url = `slide-viewer.html?presentation=${presentationKey}&slide=1&total=${presentation.slides}`;
+                window.location.href = url;
+            }
+
+
+
+            showPasswordModal(presentationKey) {
+                this.pendingPresentation = presentationKey;
+                this.passwordTitle.textContent = `Enter password for ${this.presentations[presentationKey].name}`;
+                this.passwordInput.value = '';
+                this.passwordModal.classList.remove('hidden');
+                this.passwordInput.focus();
+            }
+
+            hidePasswordModal() {
+                this.passwordModal.classList.add('hidden');
+                this.pendingPresentation = null;
+            }
+
+            async submitPassword() {
+                const password = this.passwordInput.value;
+                const presentation = this.presentations[this.pendingPresentation];
+
+                if (!presentation) {
+                    alert('Presentation data not found. Please try again.');
+                    return;
+                }
+
+                if (password === presentation.password) {
+                    this.authenticatedPresentations.add(this.pendingPresentation);
+
+                    // Store the presentation key before hiding modal (which sets pendingPresentation to null)
+                    const presentationKey = this.pendingPresentation;
+                    this.hidePasswordModal();
+
+                    // Automatically navigate to the presentation
+                    const url = `slide-viewer.html?presentation=${presentationKey}&slide=1&total=${presentation.slides}`;
+                    console.log('Navigating to:', url);
+                    window.location.href = url;
+                } else {
+                    alert('Incorrect password. Please try again.');
+                    this.passwordInput.value = '';
+                    this.passwordInput.focus();
+                }
+            }
+
+        }
+
+        // Initialize the selector when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new PresentationSelector();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRV Network: Financial Projections</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Montserrat', sans-serif;
+            color: #ffffff;
+            overflow: hidden;
+            background-color: #0a192f;
+        }
+        .slide {
+            width: 1280px;
+            min-height: 720px;
+            max-height: 720px;
+            position: relative;
+            background: linear-gradient(135deg, rgba(10, 25, 47, 0.95), rgba(10, 25, 47, 0.9));
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            padding: 40px 70px 20px;
+        }
+        .title {
+            font-size: 56px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 10px;
+            position: relative;
+            letter-spacing: -1px;
+        }
+        .title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 80px;
+            height: 4px;
+            background-color: #7c3aed;
+        }
+        .content {
+            flex-grow: 1;
+            display: flex;
+            padding: 20px 70px 40px;
+        }
+        .left-section {
+            width: 60%;
+            padding-right: 30px;
+            display: flex;
+            flex-direction: column;
+        }
+        .right-section {
+            width: 40%;
+            display: flex;
+            flex-direction: column;
+        }
+        .chart-box {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 25px;
+            backdrop-filter: blur(5px);
+            margin-bottom: 20px;
+            flex-grow: 1;
+            border-left: 4px solid #7c3aed;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .chart-box:hover {
+            background-color: rgba(124, 58, 237, 0.1);
+            transform: translateY(-3px);
+        }
+        .section-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #7c3aed;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .section-title i {
+            margin-right: 12px;
+            font-size: 28px;
+        }
+        .chart-container {
+            height: 280px;
+            margin-bottom: 15px;
+        }
+        .revenue-highlight {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        .revenue-year {
+            font-size: 18px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+        .revenue-amount {
+            font-size: 24px;
+            font-weight: 700;
+            color: #7c3aed;
+        }
+        .metrics-box {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 25px;
+            backdrop-filter: blur(5px);
+            margin-bottom: 20px;
+            border-left: 4px solid #7c3aed;
+            transition: all 0.3s ease;
+        }
+        .metrics-box:hover {
+            background-color: rgba(124, 58, 237, 0.1);
+            transform: translateY(-3px);
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .metric-item {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .metric-item:hover {
+            background-color: rgba(124, 58, 237, 0.15);
+            transform: translateY(-3px);
+        }
+        .metric-icon {
+            color: #7c3aed;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        .metric-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: #7c3aed;
+            margin-bottom: 5px;
+        }
+        .metric-label {
+            font-size: 16px;
+            color: #e0e0e0;
+            line-height: 1.3;
+        }
+        .funding-box {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 25px;
+            backdrop-filter: blur(5px);
+            flex-grow: 1;
+            border-left: 4px solid #7c3aed;
+            transition: all 0.3s ease;
+        }
+        .funding-box:hover {
+            background-color: rgba(124, 58, 237, 0.1);
+            transform: translateY(-3px);
+        }
+        .funding-timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        .funding-item {
+            display: flex;
+            align-items: center;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+        .funding-item:hover {
+            background-color: rgba(124, 58, 237, 0.15);
+            transform: translateX(5px);
+        }
+        .funding-icon {
+            background-color: rgba(124, 58, 237, 0.2);
+            color: #7c3aed;
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 15px;
+            flex-shrink: 0;
+            font-size: 24px;
+        }
+        .funding-content {
+            flex-grow: 1;
+        }
+        .funding-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .funding-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .funding-amount {
+            font-size: 24px;
+            font-weight: 800;
+            color: #7c3aed;
+        }
+        .funding-date {
+            font-size: 16px;
+            color: #e0e0e0;
+        }
+        .logo-placeholder {
+            position: absolute;
+            top: 30px;
+            right: 70px;
+            font-size: 20px;
+            font-weight: 700;
+            color: #7c3aed;
+            display: flex;
+            align-items: center;
+        }
+        .logo-placeholder i {
+            margin-right: 8px;
+        }
+        .keyword {
+            display: inline-block;
+            background-color: rgba(124, 58, 237, 0.15);
+            padding: 3px 8px;
+            border-radius: 6px;
+            margin: 2px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        .accent-circle {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, rgba(124, 58, 237, 0) 70%);
+            z-index: 0;
+        }
+        .accent-circle-1 {
+            width: 400px;
+            height: 400px;
+            top: -150px;
+            right: -100px;
+        }
+        .accent-circle-2 {
+            width: 300px;
+            height: 300px;
+            bottom: -100px;
+            left: -100px;
+        }
+        /* Mobile responsive breakpoints */
+        @media (max-width: 768px) {
+            .slide {
+                padding: 3vh 4vw;
+            }
+            .content {
+                flex-direction: column;
+                gap: clamp(1.5rem, 3vh, 2rem);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .slide {
+                padding: 2vh 3vw;
+            }
+            .title {
+                font-size: clamp(1.8rem, 6vw, 2.2rem);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="slide">
+        <div class="accent-circle accent-circle-1"></div>
+        <div class="accent-circle accent-circle-2"></div>
+        
+        <div class="logo-placeholder">
+            <i class="fas fa-cube"></i>
+            KNIRV
+        </div>
+        
+        <div class="header">
+            <h1 class="title">Financial Projections</h1>
+        </div>
+        
+        <div class="content">
+            <div class="left-section">
+                <div class="chart-box">
+                    <div class="section-title">
+                        <i class="fas fa-chart-line"></i>
+                        Five-Year Revenue Forecast
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                    <div class="revenue-highlight">
+                        <div class="revenue-year">Year 1</div>
+                        <div class="revenue-amount">$5.0M</div>
+                        <div class="revenue-year">Year 2</div>
+                        <div class="revenue-amount">$26.0M</div>
+                        <div class="revenue-year">Year 3</div>
+                        <div class="revenue-amount">$100.0M</div>
+                        <div class="revenue-year">Year 4</div>
+                        <div class="revenue-amount">$275.0M</div>
+                        <div class="revenue-year">Year 5</div>
+                        <div class="revenue-amount">$550.0M</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="right-section">
+                <div class="metrics-box">
+                    <div class="section-title">
+                        <i class="fas fa-analytics"></i>
+                        Key Financial Metrics
+                    </div>
+                    <div class="metrics-grid">
+                        <div class="metric-item">
+                            <i class="fas fa-balance-scale metric-icon"></i>
+                            <div class="metric-value">Year 3</div>
+                            <div class="metric-label">Break-even Point</div>
+                        </div>
+                        <div class="metric-item">
+                            <i class="fas fa-percentage metric-icon"></i>
+                            <div class="metric-value">25-35%</div>
+                            <div class="metric-label">Profit Margin (Y4-5)</div>
+                        </div>
+                        <div class="metric-item">
+                            <i class="fas fa-chart-pie metric-icon"></i>
+                            <div class="metric-value">15%</div>
+                            <div class="metric-label">Market Share Target</div>
+                        </div>
+                        <div class="metric-item">
+                            <i class="fas fa-lock metric-icon"></i>
+                            <div class="metric-value">$10B+</div>
+                            <div class="metric-label">Total Value Locked</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="funding-box">
+                    <div class="section-title">
+                        <i class="fas fa-university"></i>
+                        Funding Requirements
+                    </div>
+                    <div class="funding-timeline">
+                        <div class="funding-item">
+                            <div class="funding-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="funding-content">
+                                <div class="funding-title">Series A</div>
+                                <div class="funding-details">
+                                    <div class="funding-amount">$25M</div>
+                                    <div class="funding-date">Completed</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="funding-item">
+                            <div class="funding-icon">
+                                <i class="fas fa-hourglass-half"></i>
+                            </div>
+                            <div class="funding-content">
+                                <div class="funding-title">Series B</div>
+                                <div class="funding-details">
+                                    <div class="funding-amount">$75M</div>
+                                    <div class="funding-date">Q2 2025</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="funding-item">
+                            <div class="funding-icon">
+                                <i class="fas fa-hourglass-half"></i>
+                            </div>
+                            <div class="funding-content">
+                                <div class="funding-title">Token Sale</div>
+                                <div class="funding-details">
+                                    <div class="funding-amount">$100M</div>
+                                    <div class="funding-date">Q4 2025</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            
+            const revenueChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'],
+                    datasets: [
+                        {
+                            label: 'Transaction Fees',
+                            data: [2.5, 12.0, 45.0, 120.0, 240.0],
+                            borderColor: '#7c3aed',
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#7c3aed',
+                            pointRadius: 4,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'API Licensing',
+                            data: [1.2, 6.8, 22.5, 62.5, 125.0],
+                            borderColor: '#6d28d9',
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#6d28d9',
+                            pointRadius: 4,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Token Economy',
+                            data: [0.8, 4.2, 18.0, 50.0, 100.0],
+                            borderColor: '#5b21b6',
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#5b21b6',
+                            pointRadius: 4,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Enterprise',
+                            data: [0.5, 3.0, 14.5, 42.5, 85.0],
+                            borderColor: '#4c1d95',
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#4c1d95',
+                            pointRadius: 4,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#e0e0e0',
+                                font: {
+                                    size: 14,
+                                    family: "'Montserrat', sans-serif"
+                                },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(10, 25, 47, 0.8)',
+                            titleColor: '#7c3aed',
+                            bodyColor: '#ffffff',
+                            titleFont: {
+                                size: 16,
+                                family: "'Montserrat', sans-serif"
+                            },
+                            bodyFont: {
+                                size: 14,
+                                family: "'Montserrat', sans-serif"
+                            },
+                            padding: 12,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': $' + context.parsed.y + 'M';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#e0e0e0',
+                                font: {
+                                    family: "'Montserrat', sans-serif"
+                                }
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#e0e0e0',
+                                font: {
+                                    family: "'Montserrat', sans-serif"
+                                },
+                                callback: function(value) {
+                                    return '$' + value + 'M';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
