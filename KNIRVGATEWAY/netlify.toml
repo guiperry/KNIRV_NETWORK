@@ -107,6 +107,22 @@
   to = "/.netlify/functions/graphchain-events"
   status = 200
 
+# Presenter API redirects (specific routes first)
+[[redirects]]
+  from = "/api/import-presentation"
+  to = "/.netlify/functions/presenter-import"
+  status = 200
+
+[[redirects]]
+  from = "/api/presentations-with-auth"
+  to = "/.netlify/functions/presenter-presentations"
+  status = 200
+
+[[redirects]]
+  from = "/api/delete-presentation/*"
+  to = "/.netlify/functions/presenter-delete"
+  status = 200
+
 # Service proxy redirects (for KNIRV services)
 [[redirects]]
   from = "/api/*"

@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRV Presentation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        :root {
+            --primary-purple: #6633cc;
+            --secondary-blue: #4a90e2;
+            --dark-bg: #0a0e27;
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Source Sans Pro', sans-serif;
+            background: linear-gradient(135deg, var(--dark-bg), #1a1a3a);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-purple), var(--secondary-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 30px;
+        }
+
+        .presentation-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+            margin-bottom: 30px;
+        }
+
+        .presentation-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--primary-purple);
+        }
+
+        .presentation-description {
+            opacity: 0.8;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .presentation-stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 30px;
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .access-btn {
+            background: var(--primary-purple);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .access-btn:hover {
+            background: var(--secondary-blue);
+            transform: translateY(-2px);
+        }
+
+        .password-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .password-modal.hidden {
+            display: none;
+        }
+
+        .password-form {
+            background: var(--dark-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 40px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .password-form h3 {
+            margin-bottom: 20px;
+            color: var(--primary-purple);
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            margin-bottom: 20px;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .password-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .password-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .password-button {
+            background: var(--primary-purple);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .password-button:hover {
+            background: var(--secondary-blue);
+        }
+
+        .password-button.cancel {
+            background: #666;
+        }
+
+        .password-button.cancel:hover {
+            background: #777;
+        }
+
+        .error-message {
+            color: #ef4444;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            opacity: 0.7;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid var(--primary-purple);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-card {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .error-icon {
+            font-size: 48px;
+            color: #ef4444;
+            margin-bottom: 15px;
+        }
+
+        .slide-thumbnail {
+            width: 100%;
+            max-width: 400px;
+            height: 225px; /* 16:9 aspect ratio */
+            border: 2px solid var(--glass-border);
+            border-radius: 10px;
+            margin: 20px auto;
+            overflow: hidden;
+            background: var(--glass-bg);
+            position: relative;
+        }
+
+        .slide-thumbnail iframe {
+            width: 125%; /* Scale up to compensate for scale down */
+            height: 125%;
+            border: none;
+            transform: scale(0.8);
+            transform-origin: top left;
+            pointer-events: none;
+        }
+
+        .thumbnail-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .slide-thumbnail:hover .thumbnail-overlay {
+            opacity: 1;
+        }
+
+        .preview-text {
+            color: white;
+            font-size: 14px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+
+        @media (max-width: 480px) {
+            .presentation-stats {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .password-form {
+                padding: 30px 20px;
+            }
+            
+            .password-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">KNIRV</div>
+        
+        <div id="loadingSection" class="loading">
+            <div class="spinner"></div>
+            <span>Loading presentation...</span>
+        </div>
+
+        <div id="presentationSection" class="hidden">
+            <div class="presentation-card">
+                <div class="presentation-title" id="presentationTitle">Loading...</div>
+                <div class="presentation-description" id="presentationDescription">Loading...</div>
+
+                <!-- Slide Thumbnail -->
+                <div class="slide-thumbnail" id="slideThumbnail">
+                    <iframe id="thumbnailFrame" src=""></iframe>
+                    <div class="thumbnail-overlay">
+                        <div class="preview-text">Preview of Slide 1</div>
+                    </div>
+                </div>
+
+                <div class="presentation-stats">
+                    <div class="stat-item">
+                        <i class="material-icons">slideshow</i>
+                        <span id="slideCount">0 slides</span>
+                    </div>
+                    <div class="stat-item">
+                        <i class="material-icons">lock</i>
+                        <span>Password protected</span>
+                    </div>
+                </div>
+
+                <button class="access-btn" id="accessBtn">
+                    <i class="material-icons">play_arrow</i>
+                    Access Presentation
+                </button>
+            </div>
+        </div>
+
+        <div id="errorSection" class="hidden" style="display: none;">
+            <div class="error-card">
+                <div class="error-icon">
+                    <i class="material-icons">error_outline</i>
+                </div>
+                <h3>Presentation Not Found</h3>
+                <p>The requested presentation could not be found or is not available.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Modal -->
+    <div class="password-modal hidden" id="passwordModal">
+        <div class="password-form">
+            <h3>Enter Password</h3>
+            <p style="opacity: 0.8; margin-bottom: 20px;">This presentation is password protected</p>
+            <input type="password" class="password-input" id="passwordInput" placeholder="Enter password">
+            <div class="password-buttons">
+                <button class="password-button" id="passwordSubmit">Access</button>
+                <button class="password-button cancel" id="passwordCancel">Cancel</button>
+            </div>
+            <div class="error-message hidden" id="errorMessage"></div>
+        </div>
+    </div>
+
+    <script>
+        class SharedPresentation {
+            constructor() {
+                this.presentationKey = null;
+                this.presentationData = null;
+                this.initializeElements();
+                this.bindEvents();
+                this.loadPresentation();
+            }
+
+            initializeElements() {
+                this.loadingSection = document.getElementById('loadingSection');
+                this.presentationSection = document.getElementById('presentationSection');
+                this.errorSection = document.getElementById('errorSection');
+                this.passwordModal = document.getElementById('passwordModal');
+                this.passwordInput = document.getElementById('passwordInput');
+                this.passwordSubmit = document.getElementById('passwordSubmit');
+                this.passwordCancel = document.getElementById('passwordCancel');
+                this.errorMessage = document.getElementById('errorMessage');
+                this.accessBtn = document.getElementById('accessBtn');
+
+                // Presentation info elements
+                this.presentationTitle = document.getElementById('presentationTitle');
+                this.presentationDescription = document.getElementById('presentationDescription');
+                this.slideCount = document.getElementById('slideCount');
+                this.thumbnailFrame = document.getElementById('thumbnailFrame');
+            }
+
+            bindEvents() {
+                this.accessBtn.addEventListener('click', () => this.showPasswordModal());
+                this.passwordSubmit.addEventListener('click', () => this.submitPassword());
+                this.passwordCancel.addEventListener('click', () => this.hidePasswordModal());
+                
+                this.passwordInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.submitPassword();
+                });
+            }
+
+            async loadPresentation() {
+                const urlParams = new URLSearchParams(window.location.search);
+                this.presentationKey = urlParams.get('p');
+
+                if (!this.presentationKey) {
+                    this.showError();
+                    return;
+                }
+
+                try {
+                    // Load presentation auth data
+                    const authResponse = await fetch(`presentations/${this.presentationKey}/auth.json`);
+                    if (!authResponse.ok) {
+                        throw new Error('Presentation not found');
+                    }
+
+                    const authData = await authResponse.json();
+
+                    // Count slides
+                    let slideCount = 0;
+                    for (let i = 1; i <= 50; i++) {
+                        try {
+                            const slideResponse = await fetch(`presentations/${this.presentationKey}/Slide_${i}.html`, { method: 'HEAD' });
+                            if (slideResponse.ok) {
+                                slideCount = i;
+                            } else {
+                                break;
+                            }
+                        } catch (e) {
+                            break;
+                        }
+                    }
+
+                    this.presentationData = {
+                        ...authData,
+                        slides: slideCount
+                    };
+
+                    this.displayPresentation();
+
+                } catch (error) {
+                    console.error('Error loading presentation:', error);
+                    this.showError();
+                }
+            }
+
+            displayPresentation() {
+                this.presentationTitle.textContent = this.presentationData.presentationName;
+                this.presentationDescription.textContent = this.presentationData.description;
+                this.slideCount.textContent = `${this.presentationData.slides} slides`;
+
+                // Load thumbnail of slide 1
+                const thumbnailUrl = `presentations/${this.presentationKey}/Slide_1.html`;
+                this.thumbnailFrame.src = thumbnailUrl;
+
+                this.loadingSection.classList.add('hidden');
+                this.presentationSection.classList.remove('hidden');
+            }
+
+            showError() {
+                this.loadingSection.classList.add('hidden');
+                this.errorSection.classList.remove('hidden');
+                this.errorSection.style.display = 'block';
+            }
+
+            showPasswordModal() {
+                this.passwordModal.classList.remove('hidden');
+                this.passwordInput.focus();
+                this.errorMessage.classList.add('hidden');
+            }
+
+            hidePasswordModal() {
+                this.passwordModal.classList.add('hidden');
+                this.passwordInput.value = '';
+                this.errorMessage.classList.add('hidden');
+            }
+
+            submitPassword() {
+                const password = this.passwordInput.value;
+                
+                if (password === this.presentationData.password) {
+                    // Redirect to slide viewer
+                    const basePath = this.getBasePath();
+                    const url = `${basePath}slide-viewer.html?presentation=${this.presentationKey}&slide=1&total=${this.presentationData.slides}&shared=true`;
+                    window.location.href = url;
+                } else {
+                    this.errorMessage.textContent = 'Incorrect password. Please try again.';
+                    this.errorMessage.classList.remove('hidden');
+                    this.passwordInput.value = '';
+                    this.passwordInput.focus();
+                }
+            }
+
+            getBasePath() {
+                // Detect if we're running in KNIRVGATEWAY context
+                const currentPath = window.location.pathname;
+                if (currentPath.includes('/presenter')) {
+                    // We're in KNIRVGATEWAY, maintain the presenter path
+                    return '/presenter/';
+                } else {
+                    // We're in standalone presenter mode
+                    return '';
+                }
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new SharedPresentation();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technical Implementation Examples</title>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Source Sans Pro', sans-serif;
+            overflow: hidden;
+        }
+        .slide {
+            width: 1280px;
+            min-height: 720px;
+            position: relative;
+            background: linear-gradient(135deg, #006064 0%, #00838f 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+        }
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://picsum.photos/seed/code-programming-technology/1280/720.jpg');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.15;
+            z-index: 0;
+        }
+        .header {
+            position: relative;
+            z-index: 1;
+            padding: 60px 70px 30px;
+        }
+        .title {
+            font-size: 40px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: white;
+        }
+        .decorative-element {
+            width: 120px;
+            height: 4px;
+            background: linear-gradient(90deg, #9c27b0 0%, #4ecdc4 100%);
+            margin-bottom: 40px;
+        }
+        .content {
+            position: relative;
+            z-index: 1;
+            padding: 0 70px 60px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .implementation-container {
+            display: flex;
+            gap: 30px;
+            flex-grow: 1;
+        }
+        .code-section {
+            flex: 3;
+            background-color: rgba(26, 26, 46, 0.7);
+            border-radius: 12px;
+            padding: 30px;
+            border-left: 4px solid #9c27b0;
+            display: flex;
+            flex-direction: column;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        .section-icon {
+            font-size: 36px;
+            color: #4ecdc4;
+            margin-right: 15px;
+        }
+        .section-title {
+            font-size: 26px;
+            font-weight: 600;
+            color: white;
+        }
+        .code-block {
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            line-height: 1.5;
+            color: #e0e0e0;
+            overflow: auto;
+            flex-grow: 1;
+        }
+        .code-comment {
+            color: #9c27b0;
+        }
+        .code-keyword {
+            color: #4ecdc4;
+            font-weight: 600;
+        }
+        .code-string {
+            color: #ff9800;
+        }
+        .code-function {
+            color: #81c784;
+        }
+        .aspects-section {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .aspect-card {
+            background-color: rgba(26, 26, 46, 0.7);
+            border-radius: 12px;
+            padding: 25px;
+            border-top: 4px solid #4ecdc4;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+        .aspect-icon {
+            color: #4ecdc4;
+            font-size: 32px;
+            margin-bottom: 15px;
+        }
+        .aspect-title {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: white;
+        }
+        .aspect-description {
+            font-size: 20px;
+            color: rgba(255, 255, 255, 0.85);
+            line-height: 1.4;
+        }
+        .highlight {
+            color: #9c27b0;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide">
+        <div class="header">
+            <h1 class="title">Technical Implementation Examples</h1>
+            <div class="decorative-element"></div>
+        </div>
+        <div class="content">
+            <div class="implementation-container">
+                <div class="code-section">
+                    <div class="section-header">
+                        <i class="material-icons section-icon">code</i>
+                        <h2 class="section-title">KNIRV-SDK Integration</h2>
+                    </div>
+                    <div class="code-block">
+                        <span class="code-comment"># Python SDK Example</span><br>
+                        <span class="code-keyword">from</span> knirv_sdk <span class="code-keyword">import</span> KnirvClient, Agent<br><br>
+                        <br>
+                        client = <span class="code-function">KnirvClient</span>(gateway_url=<span class="code-string">"https://testnet-gateway.knirv.com"</span>)<br>
+                        agent = client.<span class="code-function">create_agent</span>(<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;name=<span class="code-string">"fraud_detector"</span>,<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;skills=[<span class="code-string">"fraud_detection_v1"</span>, <span class="code-string">"transaction_analysis_v2"</span>]<br>
+                        )<br><br>
+                        <br>
+                        <span class="code-comment"># Process transaction</span><br>
+                        result = agent.<span class="code-function">invoke_skill</span>(<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;skill_name=<span class="code-string">"fraud_detection_v1"</span>,<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;data=transaction_data,<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;nrn_budget=10<br>
+                        )<br><br>
+                        <br>
+                        <span class="code-keyword">if</span> result.confidence < 0.8:<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-comment"># Generate ErrorNode for improvement</span><br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;agent.<span class="code-function">report_error</span>(<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;context=result.context,<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;expected_outcome=<span class="code-string">"high_confidence_detection"</span><br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;)
+                    </div>
+                </div>
+                
+                <div class="aspects-section">
+                    <div class="aspect-card">
+                        <i class="material-icons aspect-icon">settings_ethernet</i>
+                        <h3 class="aspect-title">Gateway Configuration</h3>
+                        <p class="aspect-description">
+                            Connect to <span class="highlight">testnet or production</span> environments through configurable gateway URLs with authentication
+                        </p>
+                    </div>
+                    
+                    <div class="aspect-card">
+                        <i class="material-icons aspect-icon">psychology</i>
+                        <h3 class="aspect-title">Skill Specification</h3>
+                        <p class="aspect-description">
+                            Define agent capabilities by selecting from <span class="highlight">registry of Skills</span> or creating custom ones
+                        </p>
+                    </div>
+                    
+                    <div class="aspect-card">
+                        <i class="material-icons aspect-icon">account_balance_wallet</i>
+                        <h3 class="aspect-title">NRN Budget Management</h3>
+                        <p class="aspect-description">
+                            Control resource consumption with <span class="highlight">transparent cost accounting</span> for each operation
+                        </p>
+                    </div>
+                    
+                    <div class="aspect-card">
+                        <i class="material-icons aspect-icon">bug_report</i>
+                        <h3 class="aspect-title">Error Reporting</h3>
+                        <p class="aspect-description">
+                            Provide context and expected outcomes to drive <span class="highlight">continuous improvement</span> through ErrorNodes
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

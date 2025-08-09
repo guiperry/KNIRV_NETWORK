@@ -15,6 +15,8 @@ This section contains the technical whitepapers for the KNIRV Network components
 * [KNIRV-SDK Whitepaper](whitepapers/KNIRV-SDK_Whitepaper)
 * [KNIRV-SHELL Whitepapers](whitepapers/KNIRV-SHELL_Whitepapers)
 * [KNIRV-WALLET Whitepaper](whitepapers/KNIRV-WALLET_Whitepaper)
+* [KNIRVANA Whitepaper](whitepapers/KNIRVANA_Whitepaper)
+* [KNIRVCHAIN Gap Analysis](whitepapers/KNIRVCHAIN_Gap_Analysis)
 
 ---
 

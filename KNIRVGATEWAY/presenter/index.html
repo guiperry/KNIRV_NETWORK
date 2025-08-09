@@ -84,6 +84,124 @@
             box-shadow: 0 20px 40px rgba(124, 58, 237, 0.3);
         }
 
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .card-menu {
+            position: relative;
+        }
+
+        .menu-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .menu-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .menu-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: #1a1a3a;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            width: 200px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+        }
+
+        .menu-dropdown.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .menu-item {
+            width: 100%;
+            background: none;
+            border: none;
+            padding: 12px 16px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            text-align: left;
+            justify-content: flex-start;
+            box-sizing: border-box;
+            white-space: nowrap;
+            min-height: 44px;
+        }
+
+        .menu-item:first-child {
+            border-radius: 12px 12px 0 0;
+        }
+
+        .menu-item:last-child {
+            border-radius: 0 0 12px 12px;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-item.delete-btn:hover {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+        }
+
+        /* Mobile responsive adjustments */
+        @media (max-width: 768px) {
+            .menu-dropdown {
+                right: 0;
+                width: 180px;
+            }
+
+            .menu-item {
+                padding: 10px 14px;
+                font-size: 13px;
+                gap: 8px;
+                min-height: 40px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .menu-dropdown {
+                right: 0;
+                width: 160px;
+            }
+
+            .menu-item {
+                padding: 8px 12px;
+                font-size: 12px;
+                gap: 6px;
+                min-height: 36px;
+            }
+        }
+
         .card-title {
             font-size: 24px;
             font-weight: 700;
@@ -107,6 +225,13 @@
             opacity: 0.7;
         }
 
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            align-items: center;
+        }
+
         .view-btn {
             background: var(--primary-purple);
             color: white;
@@ -116,13 +241,17 @@
             cursor: pointer;
             font-weight: 600;
             transition: all 0.3s ease;
-            width: 100%;
+            flex: 1;
         }
 
         .view-btn:hover {
             background: var(--secondary-blue);
             transform: translateY(-2px);
         }
+
+
+
+
 
         .password-modal {
             position: fixed;
@@ -286,6 +415,13 @@
             <div class="logo">KNIRV Presentations</div>
             <div class="subtitle">Select a presentation to view</div>
 
+            <div style="text-align: center; margin-bottom: 30px;">
+                <button id="importBtn" style="background: var(--glass-bg); border: 1px solid var(--glass-border); color: white; padding: 10px 20px; border-radius: 25px; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s ease; backdrop-filter: blur(10px); cursor: pointer;" onmouseover="this.style.background='var(--primary-purple)'" onmouseout="this.style.background='var(--glass-bg)'">
+                    <i class="material-icons">add</i>
+                    Import Presentations
+                </button>
+            </div>
+
             <div class="presentation-grid" id="presentationGrid">
                 <div class="loading">Loading presentations...</div>
             </div>
@@ -304,6 +440,20 @@
         </div>
     </div>
 
+    <!-- Import Password Modal -->
+    <div class="password-modal hidden" id="importPasswordModal">
+        <div class="password-form">
+            <h3>Import Access Required</h3>
+            <p style="opacity: 0.8; margin-bottom: 20px; font-size: 14px;">Enter the import password to access presentation management</p>
+            <input type="password" class="password-input" id="importPasswordInput" placeholder="Enter import password">
+            <div>
+                <button class="password-button" id="importPasswordSubmit">Access Import</button>
+                <button class="password-button" id="importPasswordCancel" style="background: #666;">Cancel</button>
+            </div>
+            <div class="error-message hidden" id="importErrorMessage" style="color: #ef4444; margin-top: 10px; font-size: 14px;"></div>
+        </div>
+    </div>
+
     <script>
         class PresentationSelector {
             constructor() {
@@ -312,6 +462,7 @@
 
                 this.initializeElements();
                 this.bindEvents();
+                this.setupGlobalListeners();
                 this.loadPresentations();
             }
 
@@ -322,6 +473,14 @@
                 this.passwordSubmit = document.getElementById('passwordSubmit');
                 this.passwordCancel = document.getElementById('passwordCancel');
                 this.passwordTitle = document.getElementById('passwordTitle');
+
+                // Import password elements
+                this.importBtn = document.getElementById('importBtn');
+                this.importPasswordModal = document.getElementById('importPasswordModal');
+                this.importPasswordInput = document.getElementById('importPasswordInput');
+                this.importPasswordSubmit = document.getElementById('importPasswordSubmit');
+                this.importPasswordCancel = document.getElementById('importPasswordCancel');
+                this.importErrorMessage = document.getElementById('importErrorMessage');
             }
 
             bindEvents() {
@@ -331,50 +490,75 @@
                 this.passwordInput.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter') this.submitPassword();
                 });
+
+                // Import password events
+                this.importBtn.addEventListener('click', () => this.showImportPasswordModal());
+                this.importPasswordSubmit.addEventListener('click', () => this.submitImportPassword());
+                this.importPasswordCancel.addEventListener('click', () => this.hideImportPasswordModal());
+
+                this.importPasswordInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.submitImportPassword();
+                });
             }
 
             async loadPresentations() {
                 try {
-                    // Auto-detect presentations by checking for auth.json files
-                    const presentationDirs = ['90DayGTMPlanPresentation', 'InvestorB-PlanPresentation'];
-
-                    for (const dir of presentationDirs) {
-                        try {
-                            const authResponse = await fetch(`presentations/${dir}/auth.json`);
-                            if (authResponse.ok) {
-                                const authData = await authResponse.json();
-
-                                // Count slides
-                                let slideCount = 0;
-                                for (let i = 1; i <= 20; i++) {
-                                    try {
-                                        const slideResponse = await fetch(`presentations/${dir}/Slide_${i}.html`, { method: 'HEAD' });
-                                        if (slideResponse.ok) {
-                                            slideCount = i;
-                                        } else {
-                                            break;
-                                        }
-                                    } catch (e) {
-                                        break;
-                                    }
-                                }
-
-                                this.presentations[dir] = {
-                                    name: authData.presentationName,
-                                    description: authData.description,
-                                    slides: slideCount,
-                                    password: authData.password
-                                };
-                            }
-                        } catch (e) {
-                            console.log(`Could not load ${dir}:`, e);
+                    // Try the API first, but fallback to manual detection
+                    try {
+                        const response = await fetch('/api/presentations-with-auth');
+                        if (response.ok) {
+                            const data = await response.json();
+                            this.presentations = data.presentations;
+                        } else {
+                            throw new Error('API not available');
                         }
+                    } catch (apiError) {
+                        console.log('API not available, using manual detection');
+                        await this.loadPresentationsManually();
                     }
 
                     this.renderPresentationGrid();
                 } catch (error) {
                     console.error('Error loading presentations:', error);
                     this.presentationGrid.innerHTML = '<div class="error">Failed to load presentations</div>';
+                }
+            }
+
+            async loadPresentationsManually() {
+                // Fallback method - manually check known presentations
+                const presentationDirs = ['90DayGTMPlanPresentation', 'InvestorB-PlanPresentation', 'TestPresentation', 'Use-Cases'];
+
+                for (const dir of presentationDirs) {
+                    try {
+                        const authResponse = await fetch(`presentations/${dir}/auth.json`);
+                        if (authResponse.ok) {
+                            const authData = await authResponse.json();
+
+                            // Count slides
+                            let slideCount = 0;
+                            for (let i = 1; i <= 50; i++) {
+                                try {
+                                    const slideResponse = await fetch(`presentations/${dir}/Slide_${i}.html`, { method: 'HEAD' });
+                                    if (slideResponse.ok) {
+                                        slideCount = i;
+                                    } else {
+                                        break;
+                                    }
+                                } catch (e) {
+                                    break;
+                                }
+                            }
+
+                            this.presentations[dir] = {
+                                name: authData.presentationName,
+                                description: authData.description,
+                                slides: slideCount,
+                                password: authData.password
+                            };
+                        }
+                    } catch (e) {
+                        console.log(`Could not load ${dir}:`, e);
+                    }
                 }
             }
 
@@ -392,16 +576,64 @@
                     card.dataset.presentation = key;
 
                     card.innerHTML = `
-                        <div class="card-title">${presentation.name}</div>
+                        <div class="card-header">
+                            <div class="card-title">${presentation.name}</div>
+                            <div class="card-menu">
+                                <button class="menu-btn" data-presentation="${key}">
+                                    <i class="material-icons">more_horiz</i>
+                                </button>
+                                <div class="menu-dropdown" id="menu-${key}">
+                                    <button class="menu-item share-btn" data-presentation="${key}">
+                                        <i class="material-icons">share</i>
+                                        Share Presentation
+                                    </button>
+                                    <button class="menu-item delete-btn" data-presentation="${key}">
+                                        <i class="material-icons">delete</i>
+                                        Delete Presentation
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                         <div class="card-description">${presentation.description}</div>
                         <div class="card-stats">
                             <span>${presentation.slides} slides</span>
                             <span>🔒 Password protected</span>
                         </div>
-                        <button class="view-btn">View Presentation</button>
+                        <div class="card-actions">
+                            <button class="view-btn" data-presentation="${key}">View Presentation</button>
+                        </div>
                     `;
 
-                    card.addEventListener('click', () => this.selectPresentation(key));
+                    // Add event listeners to the buttons
+                    const viewBtn = card.querySelector('.view-btn');
+                    const menuBtn = card.querySelector('.menu-btn');
+                    const menuDropdown = card.querySelector('.menu-dropdown');
+                    const shareBtn = card.querySelector('.share-btn');
+                    const deleteBtn = card.querySelector('.delete-btn');
+
+                    viewBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.selectPresentation(key);
+                    });
+
+                    // Menu dropdown toggle
+                    menuBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.toggleMenu(key);
+                    });
+
+                    shareBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.hideAllMenus();
+                        this.sharePresentation(key);
+                    });
+
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.hideAllMenus();
+                        this.deletePresentation(key, presentation.name);
+                    });
+
                     this.presentationGrid.appendChild(card);
                 });
             }
@@ -414,7 +646,8 @@
 
                 // Redirect to slide viewer with first slide
                 const presentation = this.presentations[presentationKey];
-                const url = `slide-viewer.html?presentation=${presentationKey}&slide=1&total=${presentation.slides}`;
+                const basePath = this.getBasePath();
+                const url = `${basePath}slide-viewer.html?presentation=${presentationKey}&slide=1&total=${presentation.slides}`;
                 window.location.href = url;
             }
 
@@ -450,8 +683,12 @@
                     this.hidePasswordModal();
 
                     // Automatically navigate to the presentation
-                    const url = `slide-viewer.html?presentation=${presentationKey}&slide=1&total=${presentation.slides}`;
+                    const basePath = this.getBasePath();
+                    const url = `${basePath}slide-viewer.html?presentation=${presentationKey}&slide=1&total=${presentation.slides}`;
+                    console.log('Authentication successful for:', presentationKey);
+                    console.log('Base path:', basePath);
                     console.log('Navigating to:', url);
+                    console.log('Current location:', window.location.href);
                     window.location.href = url;
                 } else {
                     alert('Incorrect password. Please try again.');
@@ -460,11 +697,217 @@
                 }
             }
 
+            sharePresentation(presentationKey) {
+                console.log('Share button clicked for:', presentationKey);
+                const basePath = this.getBasePath();
+                const shareUrl = `${window.location.origin}${basePath}share.html?p=${presentationKey}`;
+                console.log('Generated share URL:', shareUrl);
+
+                // Try to use the modern clipboard API
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(shareUrl).then(() => {
+                        console.log('Clipboard write successful');
+                        this.showShareSuccess(shareUrl);
+                    }).catch((error) => {
+                        console.log('Clipboard write failed:', error);
+                        this.showShareFallback(shareUrl);
+                    });
+                } else {
+                    console.log('Using fallback share method');
+                    this.showShareFallback(shareUrl);
+                }
+            }
+
+            showShareSuccess(url) {
+                const message = `Share link copied to clipboard!\n\n${url}`;
+                alert(message);
+            }
+
+            showShareFallback(url) {
+                const message = `Copy this link to share the presentation:\n\n${url}`;
+                prompt('Share Link:', url);
+            }
+
+            toggleMenu(presentationKey) {
+                // Hide all other menus first
+                this.hideAllMenus();
+
+                // Toggle the clicked menu
+                const menu = document.getElementById(`menu-${presentationKey}`);
+                if (menu) {
+                    menu.classList.toggle('show');
+                }
+            }
+
+            hideAllMenus() {
+                const allMenus = document.querySelectorAll('.menu-dropdown');
+                allMenus.forEach(menu => menu.classList.remove('show'));
+            }
+
+            setupGlobalListeners() {
+                // Close menus when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.card-menu')) {
+                        this.hideAllMenus();
+                    }
+                });
+
+                // Close menus on escape key
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        this.hideAllMenus();
+                    }
+                });
+            }
+
+            async deletePresentation(presentationKey, presentationName) {
+                console.log('Delete button clicked for:', presentationKey);
+
+                // First: Password protection
+                try {
+                    const deleteConfigResponse = await fetch('delete-config.json');
+                    if (!deleteConfigResponse.ok) {
+                        throw new Error('Delete configuration not found');
+                    }
+                    const deleteConfig = await deleteConfigResponse.json();
+
+                    const enteredPassword = prompt(
+                        `🔒 ADMIN ACCESS REQUIRED\n\n` +
+                        `Enter the delete password to proceed with deletion of "${presentationName}":`
+                    );
+
+                    if (enteredPassword !== deleteConfig.deletePassword) {
+                        if (enteredPassword !== null) { // null means user cancelled
+                            alert('❌ Incorrect password. Deletion access denied.');
+                        }
+                        console.log('Deletion cancelled - incorrect password');
+                        return;
+                    }
+
+                } catch (error) {
+                    console.error('Error loading delete configuration:', error);
+                    alert('❌ Unable to verify delete permissions. Deletion cancelled.');
+                    return;
+                }
+
+                // Second: Confirmation dialog
+                const firstConfirmed = confirm(
+                    `⚠️ DANGER ZONE ⚠️\n\n` +
+                    `Are you sure you want to delete "${presentationName}"?\n\n` +
+                    `This action cannot be undone. All slides and presentation data will be permanently removed.`
+                );
+
+                if (!firstConfirmed) {
+                    console.log('Deletion cancelled by user (first confirmation)');
+                    return;
+                }
+
+                // Third: Name typing requirement
+                const typedName = prompt(
+                    `🔐 FINAL CONFIRMATION\n\n` +
+                    `To confirm deletion, please type the presentation name exactly:\n\n"${presentationName}"\n\n` +
+                    `Type the name to confirm deletion:`
+                );
+
+                if (typedName !== presentationName) {
+                    if (typedName !== null) { // null means user cancelled
+                        alert('❌ Presentation name does not match. Deletion cancelled for safety.');
+                    }
+                    console.log('Deletion cancelled by user (name mismatch or cancelled)');
+                    return;
+                }
+
+                try {
+                    // Call the delete API
+                    const response = await fetch(`/api/delete-presentation/${presentationKey}`, {
+                        method: 'DELETE'
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        console.log('Presentation deleted successfully:', presentationKey);
+                        alert(`"${presentationName}" has been deleted successfully.`);
+
+                        // Remove from authenticated presentations
+                        this.authenticatedPresentations.delete(presentationKey);
+
+                        // Reload presentations to update the UI
+                        await this.loadPresentations();
+                    } else {
+                        console.error('Delete failed:', result.error);
+                        alert(`Failed to delete "${presentationName}": ${result.error}`);
+                    }
+                } catch (error) {
+                    console.error('Delete error:', error);
+                    alert(`Error deleting "${presentationName}": ${error.message}`);
+                }
+            }
+
+            // Import password methods
+            showImportPasswordModal() {
+                this.importPasswordModal.classList.remove('hidden');
+                this.importPasswordInput.focus();
+                this.importErrorMessage.classList.add('hidden');
+            }
+
+            hideImportPasswordModal() {
+                this.importPasswordModal.classList.add('hidden');
+                this.importPasswordInput.value = '';
+                this.importErrorMessage.classList.add('hidden');
+            }
+
+            async submitImportPassword() {
+                const password = this.importPasswordInput.value;
+
+                try {
+                    // Load import config
+                    const response = await fetch('import-config.json');
+                    if (!response.ok) {
+                        throw new Error('Import configuration not found');
+                    }
+
+                    const config = await response.json();
+
+                    if (password === config.importPassword) {
+                        this.hideImportPasswordModal();
+                        // Set session access and redirect to import page
+                        sessionStorage.setItem('knirv_import_access', 'true');
+                        window.location.href = 'import.html?authorized=true';
+                    } else {
+                        this.importErrorMessage.textContent = 'Incorrect import password. Please try again.';
+                        this.importErrorMessage.classList.remove('hidden');
+                        this.importPasswordInput.value = '';
+                        this.importPasswordInput.focus();
+                    }
+                } catch (error) {
+                    console.error('Error loading import config:', error);
+                    this.importErrorMessage.textContent = 'Error accessing import configuration.';
+                    this.importErrorMessage.classList.remove('hidden');
+                }
+            }
+
+            getBasePath() {
+                // Detect if we're running in KNIRVGATEWAY context
+                const currentPath = window.location.pathname;
+                console.log('Current pathname:', currentPath);
+                if (currentPath.includes('/presenter')) {
+                    // We're in KNIRVGATEWAY, maintain the presenter path
+                    console.log('Detected KNIRVGATEWAY context, using /presenter/ base path');
+                    return '/presenter/';
+                } else {
+                    // We're in standalone presenter mode
+                    console.log('Detected standalone context, using empty base path');
+                    return '';
+                }
+            }
+
         }
 
         // Initialize the selector when the page loads
+        let selector;
         document.addEventListener('DOMContentLoaded', () => {
-            new PresentationSelector();
+            selector = new PresentationSelector();
         });
     </script>
 </body>

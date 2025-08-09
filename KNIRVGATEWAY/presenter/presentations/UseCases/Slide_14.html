@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRV-TESTNET Sandbox Environment</title>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Source Sans Pro', sans-serif;
+            overflow: hidden;
+        }
+        .slide {
+            width: 1280px;
+            min-height: 720px;
+            position: relative;
+            background-color: #121212;
+            color: white;
+            display: flex;
+            flex-direction: column;
+        }
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://picsum.photos/seed/sandbox-environment-development/1280/720.jpg');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.1;
+            z-index: 0;
+        }
+        .header {
+            position: relative;
+            z-index: 1;
+            padding: 60px 70px 30px;
+        }
+        .title {
+            font-size: 40px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: white;
+        }
+        .decorative-element {
+            width: 120px;
+            height: 4px;
+            background: linear-gradient(90deg, #9c27b0 0%, #4ecdc4 100%);
+            margin-bottom: 40px;
+        }
+        .content {
+            position: relative;
+            z-index: 1;
+            padding: 0 70px 60px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            gap: 30px;
+        }
+        .architecture-section {
+            background-color: rgba(26, 26, 46, 0.7);
+            border-radius: 12px;
+            padding: 30px;
+            border-left: 4px solid #9c27b0;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        .section-icon {
+            font-size: 36px;
+            color: #4ecdc4;
+            margin-right: 15px;
+        }
+        .section-title {
+            font-size: 26px;
+            font-weight: 600;
+            color: white;
+        }
+        .components-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .component-item {
+            background-color: rgba(76, 29, 149, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            align-items: flex-start;
+        }
+        .component-icon {
+            color: #4ecdc4;
+            font-size: 24px;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        .component-text {
+            font-size: 20px;
+            line-height: 1.4;
+        }
+        .demos-section {
+            display: flex;
+            gap: 30px;
+            flex-grow: 1;
+        }
+        .demo-card {
+            flex: 1;
+            background-color: rgba(26, 26, 46, 0.7);
+            border-radius: 12px;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            border-top: 4px solid #4ecdc4;
+        }
+        .demo-icon {
+            color: #4ecdc4;
+            font-size: 36px;
+            margin-bottom: 15px;
+        }
+        .demo-title {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: white;
+        }
+        .demo-description {
+            font-size: 20px;
+            color: rgba(255, 255, 255, 0.85);
+            line-height: 1.4;
+            flex-grow: 1;
+        }
+        .highlight {
+            color: #9c27b0;
+            font-weight: 600;
+        }
+        .metrics-section {
+            background-color: rgba(78, 205, 196, 0.2);
+            border-radius: 12px;
+            padding: 25px;
+            display: flex;
+            align-items: center;
+        }
+        .metrics-icon {
+            color: #4ecdc4;
+            font-size: 40px;
+            margin-right: 25px;
+        }
+        .metrics-content {
+            flex: 1;
+        }
+        .metrics-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: white;
+        }
+        .metrics-grid {
+            display: flex;
+            gap: 20px;
+        }
+        .metric-item {
+            flex: 1;
+            background-color: rgba(26, 26, 46, 0.5);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #4ecdc4;
+            margin-bottom: 5px;
+        }
+        .metric-label {
+            font-size: 18px;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide">
+        <div class="header">
+            <h1 class="title">KNIRV-TESTNET Sandbox Environment</h1>
+            <div class="decorative-element"></div>
+        </div>
+        <div class="content">
+            <div class="main-container">
+                <div class="architecture-section">
+                    <div class="section-header">
+                        <i class="material-icons section-icon">architecture</i>
+                        <h2 class="section-title">Sandbox Architecture Components</h2>
+                    </div>
+                    <div class="components-grid">
+                        <div class="component-item">
+                            <i class="material-icons component-icon">dns</i>
+                            <div class="component-text">Simplified <span class="highlight">KNIRV-ROOT</span> with minimal validators</div>
+                        </div>
+                        <div class="component-item">
+                            <i class="material-icons component-icon">link</i>
+                            <div class="component-text">Single-shard <span class="highlight">KNIRVCHAIN</span> with pre-loaded Skills</div>
+                        </div>
+                        <div class="component-item">
+                            <i class="material-icons component-icon">share</i>
+                            <div class="component-text">Emulated <span class="highlight">KNIRVGRAPH</span> with sample ErrorNodes</div>
+                        </div>
+                        <div class="component-item">
+                            <i class="material-icons component-icon">security</i>
+                            <div class="component-text">Small cluster of <span class="highlight">KNIRV-NEXUS DVEs</span></div>
+                        </div>
+                        <div class="component-item">
+                            <i class="material-icons component-icon">code</i>
+                            <div class="component-text">Complete <span class="highlight">KNIRV-SDK</span> access for development</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="demos-section">
+                    <div class="demo-card">
+                        <i class="material-icons demo-icon">account_balance</i>
+                        <h3 class="demo-title">Financial Risk Assessment</h3>
+                        <div class="demo-description">
+                            Deploy agents to process synthetic loan applications, introduce edge cases to trigger ErrorNodes, demonstrate Skill creation and validation process
+                        </div>
+                    </div>
+                    <div class="demo-card">
+                        <i class="material-icons demo-icon">medical_services</i>
+                        <h3 class="demo-title">Healthcare Diagnostic Support</h3>
+                        <div class="demo-description">
+                            Load anonymized medical case data, process cases with known outcomes, show learning from misdiagnoses with cryptographic audit trail
+                        </div>
+                    </div>
+                    <div class="demo-card">
+                        <i class="material-icons demo-icon">local_shipping</i>
+                        <h3 class="demo-title">Supply Chain Optimization</h3>
+                        <div class="demo-description">
+                            Simulate supply chain network, introduce disruptions and demand spikes, show agent adaptation and knowledge sharing
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="metrics-section">
+                    <i class="material-icons metrics-icon">analytics</i>
+                    <div class="metrics-content">
+                        <h3 class="metrics-title">Key Performance Metrics</h3>
+                        <div class="metrics-grid">
+                            <div class="metric-item">
+                                <div class="metric-value">Accuracy</div>
+                                <div class="metric-label">Before/After Comparison</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-value">Response Time</div>
+                                <div class="metric-label">Processing Efficiency</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-value">Cost</div>
+                                <div class="metric-label">Per Assessment</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

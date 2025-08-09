@@ -51,7 +51,7 @@ help: ## Show this help message
 	@echo "$(YELLOW)Examples:$(NC)"
 	@echo "  make deploy-infrastructure ENVIRONMENT=production"
 	@echo "  make deploy-full ENVIRONMENT=development CLOUD_PROVIDER=aws"
-	@echo "  make docs-generate && make deploy-website"
+	@echo "  make docs && make deploy-website"
 
 # =============================================================================
 # PREREQUISITES AND SETUP
@@ -94,8 +94,8 @@ docs-deps: ## Install documentation dependencies
 	fi
 	@echo "$(GREEN)✓ Documentation dependencies installed$(NC)"
 
-.PHONY: docs-generate
-docs-generate: docs-deps ## Generate documentation from docs/ folder
+.PHONY: docs
+docs: docs-deps ## Generate documentation from docs/ folder
 	@echo "$(BLUE)Generating documentation...$(NC)"
 	@if [ -f "$(SCRIPTS_DIR)/doc_generator.js" ]; then \
 		cd $(PROJECT_ROOT) && node $(SCRIPTS_DIR)/doc_generator.js; \
@@ -106,7 +106,7 @@ docs-generate: docs-deps ## Generate documentation from docs/ folder
 	fi
 
 .PHONY: docs-serve
-docs-serve: docs-generate ## Serve documentation locally for development
+docs-serve: docs ## Serve documentation locally for development
 	@echo "$(BLUE)Starting documentation server...$(NC)"
 	@if [ -f "$(DOCS_DIR)/package.json" ]; then \
 		cd $(DOCS_DIR) && npm run serve; \
@@ -163,7 +163,7 @@ deploy-monitoring: ## Deploy monitoring stack only
 	@echo "$(GREEN)✓ Monitoring stack deployed$(NC)"
 
 .PHONY: deploy-website
-deploy-website: docs-generate ## Deploy KNIRVWEBSITE (with fresh documentation)
+deploy-website: docs ## Deploy KNIRVWEBSITE (with fresh documentation)
 	@echo "$(BLUE)Deploying KNIRVWEBSITE with updated documentation...$(NC)"
 	@if [ -d "$(KNIRVWEBSITE_DIR)" ]; then \
 		echo "$(YELLOW)Note: KNIRVWEBSITE deployment method depends on your hosting setup$(NC)"; \
@@ -180,7 +180,7 @@ deploy-website: docs-generate ## Deploy KNIRVWEBSITE (with fresh documentation)
 # =============================================================================
 
 .PHONY: deploy-full
-deploy-full: docs-generate deploy-infrastructure deploy-apps deploy-monitoring ## Full deployment: docs + infrastructure + apps + monitoring
+deploy-full: docs deploy-infrastructure deploy-apps deploy-monitoring ## Full deployment: docs + infrastructure + apps + monitoring
 	@echo "$(GREEN)✓ Full KNIRV Network deployment completed!$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Next steps:$(NC)"
@@ -304,7 +304,7 @@ infra: deploy-infrastructure ## Shortcut for deploy-infrastructure
 apps: deploy-apps ## Shortcut for deploy-apps
 
 .PHONY: docs
-docs: docs-generate ## Shortcut for docs-generate
+docs: docs ## Shortcut for docs
 
 .PHONY: website
 website: deploy-website ## Shortcut for deploy-website

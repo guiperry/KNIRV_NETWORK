@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRV D-TEN Infographic</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d0c1d;
+            color: #e2e8f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .card {
+            background-color: #1a202c;
+            border: 1px solid #2d3748;
+        }
+        .grid-container {
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        }
+        .bg-card-blue { background-color: #2b6cb0; }
+        .bg-card-purple { background-color: #6b46c1; }
+        .bg-card-green { background-color: #38a169; }
+        .bg-card-red { background-color: #e53e3e; }
+        .bg-card-yellow { background-color: #d69e2e; }
+        .bg-card-pink { background-color: #d53f8c; }
+        .bg-card-orange { background-color: #dd6b20; }
+        .bg-card-indigo { background-color: #5a67d8; }
+        .gradient-bg {
+            background: linear-gradient(180deg, rgba(26,32,44,1) 0%, rgba(17,24,39,1) 100%);
+        }
+    </style>
+</head>
+<body class="antialiased leading-relaxed">
+
+    <header class="py-12 gradient-bg shadow-lg">
+        <div class="container text-center px-4">
+            <h1 class="text-5xl md:text-6xl font-extrabold text-white tracking-tight">KNIRV D-TEN</h1>
+            <h2 class="text-xl md:text-2xl mt-4 font-light text-gray-300 max-w-3xl mx-auto">
+                A Unified Framework for Compounding AI Intelligence, Verifiable Execution, and Self-Healing Systems.
+            </h2>
+        </div>
+    </header>
+
+    <main class="container px-4 py-16">
+        <!-- Abstract & Vision -->
+        <section class="text-center mb-16">
+            <h3 class="text-3xl font-bold mb-4 text-white">The Active Machine for AI</h3>
+            <p class="max-w-4xl mx-auto text-gray-400">
+                The KNIRV Decentralized Trusted Execution Network (D-TEN) is a novel, holistic ecosystem designed to overcome the fragmentation and lack of verifiable trust in current AI. It enables AI systems to continuously learn, adapt, and self-improve through collective, verifiable experience.
+            </p>
+        </section>
+
+        <!-- Sovereign Layers Grid -->
+        <section class="mt-12">
+            <h3 class="text-3xl font-bold text-center mb-8 text-white">The Twelve Sovereign Layers</h3>
+            <div class="grid grid-container gap-6">
+
+                <!-- KNIRV-ROOT Card -->
+                <div class="card p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                    <div class="text-4xl mb-4">🔗</div>
+                    <h4 class="text-xl font-bold text-white mb-2">KNIRV-ROOT</h4>
+                    <p class="text-sm text-gray-400 mb-4">
+                        The sovereign GoLang-based blockchain, acting as the canonical <code>NRN</code> token ledger and network oracle. It orchestrates the economic loop and state synchronization.
+                    </p>
+                    <a href="documentation/docsify/#/whitepapers/KNIRV-ROOT_Whitepaper" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition-colors duration-200">Read Whitepaper</a>
+                </div>
+
+                <!-- KNIRV-ROUTER Card -->
+                <div class="card p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                    <div class="text-4xl mb-4">📡</div>
+                    <h4 class="text-xl font-bold text-white mb-2">KNIRV-ROUTER</h4>
+                    <p class="text-sm text-gray-400 mb-4">
+                        The network integrity layer, producing <code>NRN</code>s via "Proof-of-Connectivity" and embedding URI path certificates for secure, verifiable routes.
+                    </p>
+                    <a href="documentation/docsify/#/whitepapers/KNIRV-ROUTER_Whitepaper" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition-colors duration-200">Read Whitepaper</a>
+                </div>
+
+                <!-- KNIRVGRAPH Card -->
+                <div class="card p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                    <div class="text-4xl mb-4">🧠</div>
+                    <h4 class="text-xl font-bold text-white mb-2">KNIRVGRAPH</h4>
+                    <p class="text-sm text-gray-400 mb-4">
+                        The GoLang-based Graphchain, serving as the decentralized knowledge fabric for <code>ErrorNode</code>s and <code>SkillNode</code>s, where AI learns from its mistakes.
+                    </p>
+                    <a href="documentation/docsify/#/whitepapers/KNIRV-GRAPH_Whitepaper" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition-colors duration-200">Read Whitepaper</a>
+                </div>
+
+                <!-- KNIRVCHAIN Card -->
+                <div class="card p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                    <div class="text-4xl mb-4">📚</div>
+                    <h4 class="text-xl font-bold text-white mb-2">KNIRVCHAIN</h4>
+                    <p class="text-sm text-gray-400 mb-4">
+                        The sovereign Rust-based blockchain, hosting the canonical CodeT5 Base LLM and <code>SkillRegistry</code> for trusted agent capabilities.
+                    </p>
+                    <a href="documentation/docsify/#/whitepapers/KNIRV-CHAIN_Whitepaper" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition-colors duration-200">Read Whitepaper</a>
+                </div>
+
+                <!-- KNIRV-NEXUS DVE Card -->
+                <div class="card p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                    <div class="text-4xl mb-4">🔐</div>
+                    <h4 class="text-xl font-bold text-white mb-2">KNIRV-NEXUS DVE</h4>
+                    <p class="text-sm text-gray-400 mb-4">
+                        The network of Decentralized Validation Environments (CLEAN), providing verifiable execution and cryptographic proofs for all Skill resolutions.
+                    </p>
+                    <a href="documentation/docsify/#/whitepapers/KNIRV-NEXUS_Whitepaper" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition-colors duration-200">Read Whitepaper</a>
+                </div>
+
+                <!-- KNIRV-AGENTIFIER Card -->
+                <div class="card p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                    <div class="text-4xl mb-4">🤖</div>
+                    <h4 class="text-xl font-bold text-white mb-2">KNIRV-AGENTIFIER</h4>
+                    <p class="text-sm text-gray-400 mb-4">
+                        A mobile-native adapter that transforms existing AI assistants into autonomous, self-improving agents powered by Rust WASM.
+                    </p>
+                    <a href="documentation/docsify/#/whitepapers/KNIRV-AGENTIFIER_Whitepaper" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition-colors duration-200">Read Whitepaper</a>
+                </div>
+
+                <!-- KNIRV-WALLET Card -->
+                <div class="card p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                    <div class="text-4xl mb-4">👛</div>
+                    <h4 class="text-xl font-bold text-white mb-2">KNIRV-WALLET</h4>
+                    <p class="text-sm text-gray-400 mb-4">
+                        The user-friendly gateway, leveraging XION's Meta Accounts for seamless interaction, primarily through the **KNIRV-AGENTIFIER**.
+                    </p>
+                    <a href="documentation/docsify/#/whitepapers/KNIRV-WALLET_Whitepaper" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition-colors duration-200">Read Whitepaper</a>
+                </div>
+
+                <!-- KNIRV-GATEWAY Card -->
+                <div class="card p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                    <div class="text-4xl mb-4">🌐</div>
+                    <h4 class="text-xl font-bold text-white mb-2">KNIRV-GATEWAY</h4>
+                    <p class="text-sm text-gray-400 mb-4">
+                        The unified web portal and serverless API gateway with real-time capabilities, serving as the primary entry point for all ecosystem interactions.
+                    </p>
+                    <a href="documentation/docsify/#/whitepapers/KNIRV-GATEWAY_Whitepaper" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition-colors duration-200">Read Whitepaper</a>
+                </div>
+
+                <!-- KNIRV-SHELL Card -->
+                <div class="card p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                    <div class="text-4xl mb-4">💻</div>
+                    <h4 class="text-xl font-bold text-white mb-2">KNIRV-SHELL</h4>
+                    <p class="text-sm text-gray-400 mb-4">
+                        The AI-powered, comprehensive GoLang-based command-line interface for unified developer and power user access to the entire D-TEN.
+                    </p>
+                    <a href="documentation/docsify/#/whitepapers/KNIRV-SHELL_Whitepapers" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition-colors duration-200">Read Whitepaper</a>
+                </div>
+
+                <!-- KNIRV-SDK Card -->
+                <div class="card p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                    <div class="text-4xl mb-4">🛠️</div>
+                    <h4 class="text-xl font-bold text-white mb-2">KNIRV-SDK</h4>
+                    <p class="text-sm text-gray-400 mb-4">
+                        A comprehensive multi-language development kit offering high-level abstractions, Gateway integration, and enhanced <code>knirv://</code> URI resolution.
+                    </p>
+                    <a href="documentation/docsify/#/whitepapers/KNIRV-SDK_Whitepaper" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition-colors duration-200">Read Whitepaper</a>
+                </div>
+
+                <!-- KNIRV-TESTNET Card -->
+                <div class="card p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                    <div class="text-4xl mb-4">🔬</div>
+                    <h4 class="text-xl font-bold text-white mb-2">KNIRV-TESTNET</h4>
+                    <p class="text-sm text-gray-400 mb-4">
+                        The minimal-viable testing environment, providing a scaled-down but high-fidelity simulation of the production network for development and testing.
+                    </p>
+                    <a href="documentation/docsify/#/whitepapers/KNIRV-D-TEN_Whitepaper" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition-colors duration-200">Read D-TEN Whitepaper</a>
+                </div>
+
+                <!-- KNIRVANA Card -->
+                <div class="card p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                    <div class="text-4xl mb-4">🎮</div>
+                    <h4 class="text-xl font-bold text-white mb-2">KNIRVANA</h4>
+                    <p class="text-sm text-gray-400 mb-4">
+                        The immersive 3D Rust-based Real-Time Strategy game, serving as the experiential gateway for AI agent management and competitive <code>ErrorNode</code> resolution.
+                    </p>
+                    <a href="documentation/docsify/#/whitepapers/KNIRVANA_Whitepaper" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition-colors duration-200">Read Whitepaper</a>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Interconnection Section -->
+        <section class="mt-16 text-center">
+            <h3 class="text-3xl font-bold mb-4 text-white">How It All Connects</h3>
+            <p class="max-w-4xl mx-auto text-gray-400">
+                The D-TEN's sovereign layers are seamlessly interconnected via Inter-Blockchain Communication (<code>IBC</code>) and the **KNIRV-GATEWAY** unified API gateway. This architecture orchestrates a self-sustaining economic loop powered by the <code>NRN</code> token, incentivizing collective problem-solving and fostering a compounding global intelligence.
+            </p>
+        </section>
+    </main>
+
+    <footer class="bg-gray-900 text-white text-center p-4 mt-8">
+        <div class="container mx-auto">
+            <p class="text-sm text-gray-400">&copy; 2025 KNIRV D-TEN. All rights reserved.</p>
+        </div>
+    </footer>
+
+</body>
+</html>

@@ -17,7 +17,8 @@
     "clean": "rm -rf node_modules package-lock.json && npm install"
   },
   "dependencies": {
-    "http-proxy-middleware": "^2.0.6"
+    "http-proxy-middleware": "^2.0.6",
+    "adm-zip": "^0.5.10"
   },
   "devDependencies": {
     "netlify-cli": "^17.0.0"

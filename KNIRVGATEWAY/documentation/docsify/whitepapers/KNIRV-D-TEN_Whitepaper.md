@@ -1,9 +1,9 @@
 # Whitepaper: The KNIRV Decentralized Trusted Execution Network (D-TEN)
 ## A Unified Framework for Compounding AI Intelligence, Verifiable Execution, and Self-Healing Systems
 
-**Version:** 4.0
+**Version:** 4.1
 **Status:** DRAFT
-**Date:** July 19, 2025
+**Date:** August 9, 2025
 
 ## Abstract
 The current landscape of Artificial Intelligence is characterized by fragmented knowledge, isolated learning, and a fundamental lack of verifiable trust in autonomous operations. The KNIRV Decentralized Trusted Execution Network (D-TEN) is a novel, holistic ecosystem designed to overcome these limitations. It is an "active machine" that enables AI systems to continuously learn, adapt, and self-improve through collective, verifiable experience.
@@ -15,13 +15,13 @@ The D-TEN unifies twelve sovereign layers, each operating as a specialized, inte
 *   **KNIRVGRAPH:** The `GoLang`-based Graphchain, serving as the decentralized knowledge fabric for `ErrorNode`s and `SkillNode`s.
 *   **KNIRVCHAIN:** The sovereign `Rust`-based blockchain, hosting the canonical CodeT5 Base LLM and `SkillRegistry`.
 *   **KNIRV-NEXUS DVE:** The `GoLang`-based network of Decentralized Validation Environments (CLEAN), providing verifiable execution and cryptographic proofs.
-*   **KNIRV-AGENTIFIER:** The autonomous, `Rust` `WASM`-powered AI agents, capable of self-improving through SEAL (Self-Adapting Language Models).
-*   **KNIRV-WALLET:** The user-friendly gateway, leveraging XION's Meta Accounts for seamless interaction.
-*   **KNIRV-GATEWAY:** The unified web portal and serverless API gateway, serving as the primary entry point for all ecosystem interactions.
-*   **KNIRV-SHELL:** The comprehensive `GoLang`-based command-line interface, providing developer and power user access to the entire D-TEN.
-*   **KNIRV-SDK:** The multi-language software development kit, offering unified developer access through high-level abstractions and `knirv://` URI resolution.
+*   **KNIRV-AGENTIFIER:** The mobile-native adapter that transforms existing AI assistants into autonomous agents, powered by `Rust` `WASM` and operating through sophisticated User Delegation Certificate (UDC) governance.
+*   **KNIRV-WALLET:** The user-friendly gateway, leveraging XION's Meta Accounts for seamless interaction, primarily accessed through **KNIRV-AGENTIFIER** rather than direct user interaction.
+*   **KNIRV-GATEWAY:** The unified web portal and serverless API gateway with real-time capabilities, serving as the primary entry point for all ecosystem interactions.
+*   **KNIRV-SHELL:** The AI-powered, comprehensive `GoLang`-based command-line interface with MCP management, providing unified developer and power user access to the entire D-TEN.
+*   **KNIRV-SDK:** The comprehensive multi-language software development kit, offering unified developer access through high-level abstractions, complete Gateway integration, and enhanced `knirv://` URI resolution.
 *   **KNIRV-TESTNET:** The minimal-viable testing environment, providing a scaled-down but high-fidelity simulation of the production network.
-*   **KNIRVANA:** The immersive `Rust`-based Real-Time Strategy game, serving as the experiential gateway and primary user interface for AI agent management.
+*   **KNIRVANA:** The immersive 3D `Rust`-based Real-Time Strategy game with TRON-style environment, serving as the experiential gateway for competitive **ErrorNode** resolution and AI agent management.
 
 Interconnected via Inter-Blockchain Communication (`IBC`) and the **KNIRV-GATEWAY** unified API gateway, the D-TEN orchestrates a self-sustaining economic loop powered by the `NRN` token, incentivizing collective problem-solving and fostering a compounding global intelligence. This whitepaper provides a comprehensive overview of the KNIRV D-TEN's architecture, its symbiotic interactions, and its transformative potential for the future of AI.
 
@@ -31,6 +31,8 @@ The rapid evolution of Artificial Intelligence presents both unprecedented oppor
 The **KNIRV Decentralized Trusted Execution Network (D-TEN)** is proposed as the foundational solution to this paradigm. It is not merely a collection of decentralized technologies; it is a meticulously engineered "active machine" designed to facilitate a continuous, verifiable cycle of AI learning and self-improvement. The D-TEN transforms individual failures into collective knowledge, fostering a global intelligence that grows exponentially by systematically resolving its own shortcomings.
 
 This whitepaper serves as the definitive overview of the KNIRV D-TEN. It synthesizes the intricate details of its twelve sovereign layers, demonstrating how they synergistically interact to create a secure, economically self-sustaining, and continuously evolving ecosystem for decentralized AI. We will explore the unique responsibilities of each component, their precise interconnections, the flow of value and information, and the overarching security and governance models that underpin this ambitious vision.
+
+**Note:** This document reflects the current state of all component whitepapers as of their latest revisions, incorporating significant architectural evolutions in **KNIRV-AGENTIFIER** (mobile-native adapter model), **KNIRV-SHELL** (AI-powered unified interface), **KNIRVCHAIN** (multi-model architecture with local execution), and other components that have advanced beyond their initial specifications.
 
 # 2. The KNIRV D-TEN Vision: Compounding Intelligence through Collective Resolution
 The core vision of the KNIRV D-TEN is to create a permissionless, transparent, and incentivized network where AI systems learn from every mistake, collectively and autonomously. This is achieved by transforming ephemeral errors into permanent, verifiable knowledge, and effective solutions into composable, monetizable Skills.
@@ -108,17 +110,21 @@ The KNIRV D-TEN is comprised of twelve distinct, yet deeply interconnected, sove
 > *   **Dedicated Whitepaper:** For a comprehensive understanding, refer to the *KNIRVGRAPH Whitepaper (Version 5.2)*.
 
 ## 3.4. KNIRVCHAIN: The Living Base LLM & Skill Certification Blockchain
-**KNIRVCHAIN** is a sovereign `Rust`-based Layer 1 blockchain that serves as the immutable, consensus-validated ledger for the network's evolving Base Large Language Model (LLM) and the authoritative `SkillRegistry`.
+**KNIRVCHAIN** is a sovereign `Rust`-based Layer 1 blockchain that serves as the immutable, consensus-validated ledger for the network's evolving Base Large Language Model (LLM) and the authoritative `SkillRegistry`, featuring multi-model architecture and local execution capabilities.
 
 > **Expanded Information:**
 >
-> *   **Living Base LLM Ledger:** **KNIRVCHAIN** stores the cryptographic hashes (`CID`s) and metadata of the current, consensus-validated Base LLM model files. The foundational model is CodeT5, chosen for its robust performance in code-related AI tasks. Actual CodeT5 binaries are stored off-chain (e.g., IPFS) with on-chain hashes ensuring integrity.
+> *   **Multi-Model Architecture with CodeT5 Foundation:** **KNIRVCHAIN** launches with `CodeT5` as its foundational model, chosen for its robust performance in code-related AI tasks. The system supports governance-driven evolution to more advanced models, ensuring the Base LLM remains cutting-edge. Cloud model integration (Deepseek, Gemini) enables rapid prototyping and testing during development phases.
+>
+> *   **Local Execution Model:** While **KNIRVCHAIN** maintains the canonical `SkillRegistry`, actual skill execution occurs locally in the requestor's Trusted Execution Environment (TEE). When a skill is invoked, **KNIRVCHAIN** burns the required `NRN` tokens and provides skill metadata, allowing secure local execution in the requestor's own TEE environment.
+>
+> *   **Governance-Driven Model Evolution:** The network can democratically transition between model architectures through validator consensus. Model transitions require network-wide voting, performance evaluation, and compatibility assessment, ensuring changes to foundational intelligence are community-approved.
+>
+> *   **NRN Economy Enforcer (Consumption):** **KNIRVCHAIN** enforces the consumption of `NRN`s for Skill invocation. When a Skill is invoked, **KNIRVCHAIN** sends an `IBC` message to **KNIRV-ROOT** to trigger the burning of the `NRN`, creating direct economic utility.
 >
 > *   **Canonical SkillRegistry:** It provides the authoritative and tamper-proof registry for all canonically certified AI agent skills. `SkillNode`s are registered here after their initial minting on **KNIRVGRAPH** and subsequent verification/orchestration by **KNIRV-ROOT**.
 >
-> *   **NRN Economy Enforcer (Consumption):** **KNIRVCHAIN** enforces the consumption of `NRN`s for Skill invocation. When a Skill is invoked, **KNIRVCHAIN** sends an `IBC` message to **KNIRV-ROOT** to trigger the burning of the `NRN`.
->
-> *   **Base LLM Evolution:** **KNIRVCHAIN** is the ultimate arbiter of the Base LLM's evolution. Validated `SkillNode`s and resolved `ErrorNode`s from **KNIRVGRAPH** are aggregated to generate new training data or fine-tuning instructions for CodeT5. New Base LLM versions are proposed (with DVE proofs), and accepted by **KNIRVCHAIN**'s consensus, ensuring continuous improvement.
+> *   **Base LLM Evolution:** **KNIRVCHAIN** is the ultimate arbiter of the Base LLM's evolution. Validated `SkillNode`s and resolved `ErrorNode`s from **KNIRVGRAPH** are aggregated to generate new training data or fine-tuning instructions. New Base LLM versions are proposed (with DVE proofs), and accepted by **KNIRVCHAIN**'s consensus, ensuring continuous improvement across multiple model architectures.
 >
 > *   **Dedicated Whitepaper:** For a comprehensive understanding, refer to the *KNIRVCHAIN Whitepaper (Version 4.0)*.
 
@@ -139,22 +145,26 @@ The KNIRV D-TEN is comprised of twelve distinct, yet deeply interconnected, sove
 >
 > *   **Dedicated Whitepaper:** For a comprehensive understanding, refer to the *KNIRV-NEXUS DVE Whitepaper (Version 2.0)*.
 
-## 3.6. KNIRV-AGENTIFIER: The Autonomous Self-Improving AI Agent
-**KNIRV-AGENTIFIER** is the autonomous, self-improving AI agent that serves as the primary actor within the KNIRV D-TEN, embodying the SEAL (Self-Adapting Language Models) loop and acting as a mobile-native adapter for existing AI assistants.
+## 3.6. KNIRV-AGENTIFIER: The Mobile-Native AI Assistant Adapter
+**KNIRV-AGENTIFIER** is a sophisticated mobile-native adapter that transforms existing AI assistants into autonomous agents with advanced agentic capabilities, operating as a background enhancement layer that bridges conventional AI assistants with the KNIRV D-TEN ecosystem.
 
 > **Expanded Information:**
 >
-> *   **Core Intelligence:** Each **KNIRV-AGENTIFIER** operates with a personalized intelligence built upon the canonical CodeT5 Base LLM (from **KNIRVCHAIN**) augmented by its own unique, locally refined `Rust` `WASM` LoRA adapters. These LoRAs allow for specialized behaviors and continuous individual learning.
+> *   **Mobile-Native Adapter Architecture:** **KNIRV-AGENTIFIER** operates as a `Rust WASM`-powered enhancement layer that runs in the background on user devices, transforming reactive AI assistants into proactive, goal-oriented agents without replacing the user's primary interface.
 >
-> *   **SEAL Loop:** **KNIRV-AGENTIFIERs** continuously monitor their performance, detect failures, generate `FailureContext` for `NRV`s (on **KNIRVGRAPH**), and propose Skills (solutions). They rent **KNIRV-NEXUS DVEs** for validation and contribute to the collective intelligence.
+> *   **SEAL Loop Implementation:** The agent implements the SEAL (Sense, Evaluate, Act, Learn) decision-making process, continuously monitoring the environment, assessing goals, executing delegated actions, and updating its knowledge base based on results.
 >
-> *   **Agent Orchestration:** **KNIRV-AGENTIFIERs** can be orchestrated by users via the **KNIRV-WALLET** using User Delegation Certificates (`UDC`s), granting them specific, time-bound permissions to act on the user's behalf (e.g., invoke Skills, make `NRN` payments).
+> *   **User Delegation Certificate (UDC) System:** **KNIRV-AGENTIFIERs** operate through a sophisticated UDC governance model, where users grant specific, time-bound permissions for autonomous actions. The **KNIRV-AGENTIFIER** manages the entire UDC lifecycle, from generation to execution.
 >
-> *   **Skill Invocation:** **KNIRV-AGENTIFIERs** invoke Skills from the **KNIRVCHAIN**'s `SkillRegistry`, consuming `NRN`s for each invocation.
+> *   **Primary KNIRV-WALLET Interface:** Users do not interact directly with **KNIRV-WALLET**. Instead, the **KNIRV-AGENTIFIER** serves as the designated interface, autonomously managing gasless transactions, `NRN` consumption, and asset security on the user's behalf through delegated authority.
 >
-> *   **Mobile-Native Adapter:** The **KNIRV-AGENTIFIER** serves as a foundational layer that transforms existing mobile AI assistants into autonomous agents with advanced agentic abilities, operating as a background enhancement layer on the user's device.
+> *   **Cognitive Core with LoRA Adapters:** Each **KNIRV-AGENTIFIER** incorporates the canonical CodeT5 Base LLM as its reasoning engine, augmented by personalized `Rust WASM LoRA` adapters that enable continuous self-improvement and user-specific behavioral adaptation.
 >
-> *   **Dedicated Whitepaper:** For a comprehensive understanding, refer to the *KNIRV-AGENTIFIER Whitepaper (Version 3.0)*.
+> *   **Autonomous Failure Detection and Resolution:** The agent continuously monitors task execution, autonomously analyzes failures, proposes solutions, and can communicate back to the user's assistant for approval when necessary, contributing to the network's collective intelligence.
+>
+> *   **Skill Invocation and Economic Integration:** **KNIRV-AGENTIFIERs** autonomously invoke Skills from **KNIRVCHAIN**'s `SkillRegistry` and manage `NRN` consumption, directly driving economic activity within the D-TEN through seamless background operations.
+>
+> *   **Dedicated Whitepaper:** For a comprehensive understanding, refer to the *KNIRV-AGENTIFIER Whitepaper (Current Version)*.
 
 ## 3.7. KNIRV-WALLET: The Seamless User Gateway
 The **KNIRV-WALLET** is the intuitive and secure digital wallet that serves as the user's primary interface to the entire KNIRV D-TEN.
@@ -171,60 +181,70 @@ The **KNIRV-WALLET** is the intuitive and secure digital wallet that serves as t
 >
 > *   **Dedicated Whitepaper:** For a comprehensive understanding, refer to the *KNIRV-WALLET Whitepaper (Version 1.0)*.
 
-## 3.8. KNIRV-GATEWAY: The Unified Portal & API Gateway
-The **KNIRV-GATEWAY** serves as the primary and unified web portal and API gateway for the KNIRV Decentralized Trusted Execution Network (D-TEN), providing a single entry point for all users, developers, and services within the ecosystem.
+## 3.8. KNIRV-GATEWAY: The Unified Portal & Serverless API Gateway
+The **KNIRV-GATEWAY** serves as the primary and unified web portal and serverless API gateway for the KNIRV Decentralized Trusted Execution Network (D-TEN), providing a single, secure entry point for all users, developers, and services within the ecosystem.
 
 > **Expanded Information:**
 >
-> *   **Unified Web Portal:** A modern, responsive website that showcases the D-TEN's capabilities and value proposition, featuring a glass morphism UI design with a balanced blue/purple color scheme.
+> *   **Modern Web Portal with Glass Morphism UI:** A responsive, modern website that showcases the D-TEN's capabilities and value proposition, featuring an elegant glass morphism UI design with a balanced blue/purple color scheme for optimal user experience.
 >
-> *   **Serverless API Gateway:** Built with Netlify Functions, providing a robust serverless architecture with Server-Sent Events (SSE) support for real-time data streaming and live updates.
+> *   **Serverless Architecture with Real-Time Capabilities:** Built with Netlify Functions, providing a robust serverless architecture with Server-Sent Events (SSE) support for real-time data streaming, live updates, and event-driven operations across the network.
 >
-> *   **Developer Portal & Documentation Hub:** An integrated portal offering comprehensive documentation, tools, and tutorials for developers, powered by Docsify for easy navigation.
+> *   **Integrated Developer Portal & Documentation Hub:** Comprehensive developer resources including documentation, tools, and tutorials powered by Docsify, creating an easily navigable knowledge hub for builders and integrators.
 >
-> *   **Service Proxy & Integration:** Acts as a front-facing proxy that streamlines communication with all sovereign layers (**KNIRV-ROOT**, **KNIRVCHAIN**, **KNIRVGRAPH**, **KNIRV-NEXUS**), providing a single, secure entry point to the entire network.
+> *   **Unified Service Proxy & Integration Layer:** Acts as a sophisticated front-facing proxy that streamlines communication with all sovereign layers (**KNIRV-ROOT**, **KNIRVCHAIN**, **KNIRVGRAPH**, **KNIRV-NEXUS**), providing a single, secure, and standardized entry point to the entire network.
 >
-> *   **Authentication & Security:** Handles secure API access and user management through dedicated authentication endpoints, with health monitoring and performance metrics.
+> *   **Advanced Authentication & Security Management:** Handles secure API access, user management, and session control through dedicated authentication endpoints, complemented by comprehensive health monitoring and real-time performance metrics.
 >
-> *   **Dedicated Whitepaper:** For a comprehensive understanding, refer to the *KNIRV-GATEWAY Whitepaper (Version 1.0)*.
+> *   **Health Monitoring & Service Management:** Real-time service health monitoring, performance analytics, and gateway management capabilities ensuring optimal network operation and transparency.
+>
+> *   **Dedicated Whitepaper:** For a comprehensive understanding, refer to the *KNIRV-GATEWAY Whitepaper (Current Version)*.
 
-## 3.9. KNIRV-SDK: The Unified Developer Gateway
-The **KNIRV-SDK** is a comprehensive suite of tools, libraries, and APIs designed to provide a high-level, unified interface for developers to interact with the entire KNIRV D-TEN, featuring complete **KNIRV-GATEWAY** integration and multi-language support.
-
-> **Expanded Information:**
->
-> *   **Gateway SDK Integration:** Features complete integration with **KNIRV-GATEWAY** services including economics management, skill invocation processing, LLM registration, validation rewards, and PoAu-D consensus management across `Go`, `TypeScript`, and `Python`.
->
-> *   **Unified Access via API Gateway:** The SDK's primary interaction model is through the **KNIRV-GATEWAY** unified API gateway, which acts as a single entry point for all client-side and external interactions with **KNIRV-ROOT**, **KNIRVCHAIN**, **KNIRVGRAPH**, **KNIRV-NEXUS DVE**, and **KNIRV-ROUTER** services.
->
-> *   **High-Level Abstraction:** Provides intuitive, high-level functions that abstract away blockchain transactions, cryptographic operations, and `P2P` communication, allowing developers to focus on application logic.
->
-> *   **Multi-Language Support:** Available in `Go`, `Python`, and `JavaScript`/`TypeScript`, with specialized Gateway SDKs, Core KNIRV SDKs for transaction and transmission management, and planned Unified SDKs for combined access to all services.
->
-> *   **`knirv://` URI Resolution:** Extends existing `knirv-uri-sdk` capabilities for decentralized resource discovery and fetching across the D-TEN's private `DHT`, enabling seamless peer discovery and resource access.
->
-> *   **Economic Integration:** Comprehensive support for NRN token management, skill invocation economics, fee calculation, metrics and analytics, and transaction processing across the entire ecosystem.
->
-> *   **Dedicated Whitepaper:** For a comprehensive understanding, refer to the *KNIRV-SDK Whitepaper (Version 1.0)*.
-
-## 3.10. KNIRV-SHELL: The Comprehensive Command-Line Interface
-The **KNIRV-SHELL** is a sophisticated, AI-powered command-line interface (CLI) that serves as the primary developer and power user interface for the KNIRV D-TEN.
+## 3.9. KNIRV-SDK: The Comprehensive Multi-Language Developer Gateway
+The **KNIRV-SDK** is a comprehensive suite of tools, libraries, and APIs designed to provide a high-level, unified interface for developers to interact with the entire KNIRV D-TEN, featuring complete **KNIRV-GATEWAY** integration, multi-language support, and advanced abstraction capabilities.
 
 > **Expanded Information:**
 >
-> *   **Go-Native Implementation:** Built entirely in Go using the Cobra framework, providing a robust and modular CLI structure with high performance and direct control.
+> *   **Complete Gateway SDK Integration:** Features comprehensive integration with **KNIRV-GATEWAY** services including economics management, skill invocation processing, LLM registration, validation rewards, consensus management, and real-time event streaming across `Go`, `TypeScript`, and `Python` implementations.
 >
-> *   **Wallet Management:** Provides full lifecycle management of digital wallets, including secure generation, import, export, and listing using ECDSA key generation and AES-256-GCM encryption.
+> *   **Unified API Gateway Access Model:** The SDK's primary interaction paradigm operates through the **KNIRV-GATEWAY** unified API gateway, serving as the single, standardized entry point for all client-side and external interactions with **KNIRV-ROOT**, **KNIRVCHAIN**, **KNIRVGRAPH**, **KNIRV-NEXUS DVE**, and **KNIRV-ROUTER** services.
 >
-> *   **MCP Management:** Allows for registration and management of AI plugin capabilities, operational procedures, and server registrations central to the network's AI functionality.
+> *   **Advanced High-Level Abstraction Layer:** Provides intuitive, developer-friendly functions that completely abstract away blockchain transactions, cryptographic operations, `P2P` communication complexities, and network topology management, enabling developers to focus purely on application logic and innovation.
 >
-> *   **Interactive Terminal UI:** Features an interactive shell (REPL) with command history and tab completion using the Bubbletea framework for enhanced user experience.
+> *   **Comprehensive Multi-Language Support:** Available across `Go`, `Python`, and `JavaScript`/`TypeScript` with specialized Gateway SDKs, Core KNIRV SDKs for transaction and transmission management, and planned Unified SDKs for seamless combined access to all network services.
 >
-> *   **AI-Powered Features:** Includes advanced functionalities such as AI-powered plugin generation, intelligent command suggestion, and automatic error resolution capabilities.
+> *   **Enhanced `knirv://` URI Resolution:** Extends and enhances existing `knirv-uri-sdk` capabilities for sophisticated decentralized resource discovery and fetching across the D-TEN's private `DHT`, enabling seamless peer discovery, resource access, and content addressing.
 >
-> *   **Dynamic Service Discovery:** Implements dynamic service registry for automatic discovery and resolution of network services, ensuring adaptability to the decentralized network's topology.
+> *   **Complete Economic Integration:** Comprehensive support for NRN token management, skill invocation economics, fee calculation, real-time metrics and analytics, transaction processing, and economic flow monitoring across the entire ecosystem.
 >
-> *   **Dedicated Whitepaper:** For a comprehensive understanding, refer to the *KNIRV-SHELL Whitepaper (Version 1.0)*.
+> *   **Developer Experience Optimization:** Includes advanced tooling for debugging, monitoring, testing, and deployment, with planned IDE integrations and AI-assisted development capabilities for enhanced productivity.
+>
+> *   **Dedicated Whitepaper:** For a comprehensive understanding, refer to the *KNIRV-SDK Whitepaper (Current Version)*.
+
+## 3.10. KNIRV-SHELL: The AI-Powered Unified Command-Line Interface
+The **KNIRV-SHELL** is a sophisticated, AI-powered command-line interface (CLI) that serves as the unified access point and primary developer interface for the entire KNIRV D-TEN, featuring advanced automation, intelligent assistance, and comprehensive network management capabilities.
+
+> **Expanded Information:**
+>
+> *   **Go-Native Implementation with Cobra Framework:** Built entirely in Go using the Cobra framework, providing a robust, modular CLI structure with high performance, direct control, and enterprise-grade reliability for mission-critical operations.
+>
+> *   **Comprehensive Wallet Management:** Provides full lifecycle management of digital wallets with secure generation, import, export, and listing capabilities using ECDSA key generation and AES-256-GCM encryption, ensuring cryptographic security for all user assets.
+>
+> *   **Model Context Protocol (MCP) Management:** Advanced management of AI plugin capabilities, operational procedures (interpolation), and server registrations (extrapolation), serving as the central hub for the network's AI functionality and plugin ecosystem.
+>
+> *   **Interactive Terminal UI with Bubbletea:** Features a sophisticated interactive shell (REPL) with command history, tab completion, and rich terminal user interface powered by the Bubbletea framework, providing an intuitive and responsive developer experience.
+>
+> *   **AI-Powered Intelligence Features:** Includes cutting-edge functionalities such as AI-powered plugin generation, intelligent command suggestion, automatic error resolution, and planned natural language command interface for simplified complex task execution.
+>
+> *   **Dynamic Service Discovery and Registry:** Implements advanced dynamic service registry for automatic discovery and resolution of network services, ensuring seamless adaptability to the decentralized network's fluid topology and eliminating static configuration limitations.
+>
+> *   **Resilient API Client Architecture:** Features circuit breaker and retry logic for fault-tolerant communication with distributed network services, ensuring reliable operation even in challenging network conditions.
+>
+> *   **Real-Time Connectivity and Updates:** Integrates WebSockets and Server-Sent Events (SSE) for live updates and event-driven operations, keeping users synchronized with real-time network state changes and service health.
+>
+> *   **Unified Ecosystem Access:** Acts as the single-pane-of-glass interface for the entire KNIRV ecosystem, providing unified API access to **KNIRV-ROOT**, **KNIRV-NEXUS**, **KNIRV-GATEWAY**, and all other sovereign layers through streamlined command structures.
+>
+> *   **Dedicated Whitepaper:** For a comprehensive understanding, refer to the *KNIRV-SHELL Whitepaper (Current Version)*.
 
 ## 3.11. KNIRV-TESTNET: The High-Fidelity Testing Environment
 The **KNIRV-TESTNET** is a carefully constructed, minimal-viable representation of the full KNIRV D-TEN, designed to provide comprehensive testing capabilities without the resource overhead of a full-scale production deployment.
@@ -243,28 +263,34 @@ The **KNIRV-TESTNET** is a carefully constructed, minimal-viable representation 
 >
 > *   **Rapid Iteration Support:** Designed for fast deployment, easy configuration changes, and quick resets, making it ideal for continuous integration, automated testing, and iterative development workflows.
 
-## 3.12. KNIRVANA: The Immersive Experiential Gateway
-**KNIRVANA** is the culminating layer of the D-TEN, a high-performance, cross-platform Real-Time Strategy (RTS) game built with `Rust` and `Bevy` that serves as the primary experiential gateway for users to interact with and contribute to the self-improving AI ecosystem.
+## 3.12. KNIRVANA: The Immersive 3D Experiential Gateway
+**KNIRVANA** is the culminating layer of the D-TEN, a high-performance, cross-platform Real-Time Strategy (RTS) game built with `Rust` and `Bevy` that serves as the primary experiential gateway for users to interact with and contribute to the self-improving AI ecosystem through immersive 3D gameplay.
 
 > **Expanded Information:**
 >
-> *   **Cross-Platform Excellence:** Built with `Rust` and `Bevy` engine, **KNIRVANA** supports Desktop (Windows, macOS, Linux), Android, and iOS with mobile-optimized features including adaptive graphics quality, battery optimization, touch controls, and simplified physics for optimal performance across all platforms.
+> *   **3D Tron-Style Environment:** **KNIRVANA** features a fully immersive 3D real-time strategy experience where the playing field is a dynamic, living representation of the **KNIRVGRAPH**. Players navigate a dark, TRON-style environment filled with glowing lines and dots that symbolize the intricate connections and data points within the knowledge graph.
 >
-> *   **User-Driven AI Management:** The core gameplay revolves around players assigning high-level tasks to their "agent units," which are pre-trained **KNIRV-AGENTIFIER** instances. This abstracts away micro-management, allowing players to focus purely on strategy while experiencing the power of autonomous AI agents.
+> *   **Competitive ErrorNode Resolution:** The central gameplay objective involves players competing in races to find and resolve "ErrorNodes" - points of failure or unresolved problems within the **KNIRVGRAPH** that manifest as corrupted or unstable nodes in the 3D environment.
 >
-> *   **Direct KNIRV-AGENTIFIER Integration:** **KNIRVANA** serves as a direct, intuitive interface for players to configure, deploy, and observe their **KNIRV-AGENTIFIERs** in action, providing real-time feedback on agent performance and learning progress.
+> *   **Cross-Platform Excellence with Mobile Optimization:** Built with `Rust` and `Bevy` engine, **KNIRVANA** supports Desktop (Windows, macOS, Linux), Android, and iOS with mobile-optimized features including adaptive graphics quality, battery optimization, touch controls, and simplified physics for optimal performance across all platforms.
 >
-> *   **Blockchain-Native Gaming:** Features native integration with **XION** blockchain and `NRN` token, enabling gasless transactions, smart contract interactions, and seamless economic integration without traditional blockchain complexity barriers.
+> *   **Strategic Agent Pretraining and Deployment:** Players must first pretrain their **KNIRV-AGENTIFIER** agents, equipping them with necessary skills to tackle different types of **ErrorNodes**. Once deployed, players can observe their agent units "hammering away" at problems while providing strategic assistance and redirection.
 >
-> *   **Tangible NRN Consumption:** Gameplay in **KNIRVANA** directly consumes `NRN` tokens. Every invocation of a complex Skill by an agent unit within the game, for path resolution and task execution, triggers an `NRN` burn on the **KNIRV-ROOT** blockchain. This makes the economic utility of `NRN`s immediately tangible and understandable to players.
+> *   **Real-Time Agent Thought Process Visualization:** **KNIRVANA** provides unique insight into agent logic by allowing players to view their agent's thought process in real-time, gaining understanding of AI reasoning and progress while maintaining strategic oversight.
 >
-> *   **Live Learning Feedback Loop:** **KNIRVANA** gameplay becomes a rich source of real-world data for the **KNIRVGRAPH**. Successful task completions by agent units lead to new `SkillNode`s, while failures generate `ErrorNode`s. This means playing **KNIRVANA** directly contributes to the evolution and improvement of the Base LLM and the collective intelligence of the entire KNIRV network.
+> *   **Competitive Skill Ownership Model:** Multiple players can deploy agents on the same **ErrorNode**, but the first player whose agent successfully resolves the problem wins sole ownership of the newly minted `Skill` and receives the `NRN` bounty associated with that **ErrorNode**.
 >
-> *   **Advanced Multiplayer Architecture:** The game's multiplayer support leverages **KNIRV-ROUTERs** to facilitate robust, decentralized peer-to-peer connections between players and their **KNIRV-AGENTIFIER** units during gameplay, enabling synchronized real-time strategy experiences across the decentralized network.
+> *   **Blockchain-Native Gaming with XION Integration:** Features native integration with **XION** blockchain and `NRN` token, enabling gasless transactions, smart contract interactions, and seamless economic integration without traditional blockchain complexity barriers.
 >
-> *   **Performance Optimization:** The `Rust` implementation provides significant performance benefits including memory safety with zero-cost abstractions, efficient multithreading with Bevy's ECS, minimal garbage collection overhead, and optimized battery efficiency for mobile gaming.
+> *   **Tangible NRN Consumption and Economic Loop:** Gameplay directly consumes `NRN` tokens through skill invocations by agent units. Every complex skill execution triggers an `NRN` burn on **KNIRV-ROOT**, making the economic utility immediately tangible while contributing to network economics.
 >
-> *   **Dedicated Whitepaper:** For a comprehensive understanding, a dedicated *KNIRVANA Whitepaper* will detail its specific gameplay mechanics, economic integration, technical architecture, and contribution to the D-TEN's learning loop.
+> *   **Live Learning Feedback Loop:** **KNIRVANA** gameplay generates rich real-world data for **KNIRVGRAPH**. Successful task completions create new `SkillNode`s, while failures generate `ErrorNode`s, directly contributing to Base LLM evolution and collective intelligence improvement.
+>
+> *   **Decentralized Multiplayer via KNIRV-ROUTERs:** Advanced multiplayer architecture leverages **KNIRV-ROUTERs** for robust, decentralized peer-to-peer connections, enabling synchronized real-time strategy experiences without centralized servers.
+>
+> *   **Performance Optimization:** The `Rust` implementation provides memory safety with zero-cost abstractions, efficient multithreading with Bevy's ECS, minimal garbage collection overhead, and optimized battery efficiency for extended mobile gaming sessions.
+>
+> *   **Dedicated Whitepaper:** For a comprehensive understanding, refer to the *KNIRVANA Whitepaper (Version 2.0)* which details specific gameplay mechanics, 3D environment design, economic integration, and technical architecture.
 
 # 4. The Interconnected Economic Loop: NRN Flow within the D-TEN
 The `NRN` token, native to **KNIRV-ROOT**, is the economic lifeblood of the entire KNIRV D-TEN, orchestrating a continuous, self-sustaining loop that incentivizes all participants and fuels the compounding intelligence.
@@ -524,4 +550,4 @@ The KNIRV D-TEN's development will proceed in phases, focusing on establishing a
 # 9. Conclusion
 The KNIRV Decentralized Trusted Execution Network (D-TEN) represents a monumental leap towards a future where Artificial Intelligence is not only powerful but also transparent, verifiable, and collectively intelligent. By meticulously designing and integrating twelve sovereign layers—**KNIRV-ROOT**, **KNIRV-ROUTER**, **KNIRVGRAPH**, **KNIRVCHAIN**, **KNIRV-NEXUS DVE**, **KNIRV-AGENTIFIER**, **KNIRV-WALLET**, **KNIRV-GATEWAY**, **KNIRV-SHELL**, **KNIRV-SDK**, **KNIRV-TESTNET**, and **KNIRVANA**—interconnected by the **KNIRV-GATEWAY** unified portal and API gateway and `IBC`, the D-TEN creates a robust, self-healing ecosystem.
 
-This network transforms the challenge of AI failure into an engine for compounding knowledge, driven by a self-sustaining `NRN` token economy. From the physical validation of **KNIRV-ROUTERs** to the verifiable computation of **KNIRV-NEXUS DVEs**, from the knowledge fabric of **KNIRVGRAPH** to the living intelligence of **KNIRVCHAIN**, through the autonomous capabilities of **KNIRV-AGENTIFIERs**, the intuitive user experience of **KNIRV-WALLET**, the unified access of **KNIRV-GATEWAY**, the comprehensive developer tools of **KNIRV-SHELL**, the multi-language development support of **KNIRV-SDK**, the high-fidelity testing environment of **KNIRV-TESTNET**, and culminating in the immersive cross-platform gameplay of **KNIRVANA**, the KNIRV D-TEN is poised to redefine the landscape of decentralized AI. We are building the economic and coordination backbone for a new era of secure, intelligent, and autonomously evolving systems that spans from enterprise development to consumer gaming experiences.
+This network transforms the challenge of AI failure into an engine for compounding knowledge, driven by a self-sustaining `NRN` token economy. From the physical validation of **KNIRV-ROUTERs** to the verifiable computation of **KNIRV-NEXUS DVEs**, from the knowledge fabric of **KNIRVGRAPH** to the multi-model living intelligence of **KNIRVCHAIN** with local execution capabilities, through the mobile-native adapter capabilities of **KNIRV-AGENTIFIERs**, the seamless user experience of **KNIRV-WALLET**, the serverless unified access of **KNIRV-GATEWAY**, the AI-powered comprehensive developer tools of **KNIRV-SHELL**, the multi-language development support of **KNIRV-SDK**, the high-fidelity testing environment of **KNIRV-TESTNET**, and culminating in the immersive 3D competitive gameplay of **KNIRVANA**, the KNIRV D-TEN is poised to redefine the landscape of decentralized AI. We are building the economic and coordination backbone for a new era of secure, intelligent, and autonomously evolving systems that spans from enterprise development to consumer gaming experiences, with sophisticated governance frameworks and cutting-edge architectural innovations.
