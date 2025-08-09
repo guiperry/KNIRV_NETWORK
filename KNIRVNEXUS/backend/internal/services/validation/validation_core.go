@@ -8,10 +8,11 @@ import (
 	"sync"
 	"time"
 
+	"nexus-backend/internal/config"
+	"nexus-backend/internal/models"
+	"nexus-backend/pkg/p2p"
+
 	"github.com/google/uuid"
-	"github.com/knirv/nexus-backend/internal/config"
-	"github.com/knirv/nexus-backend/internal/models"
-	"github.com/knirv/nexus-backend/pkg/p2p"
 	"github.com/tidwall/buntdb"
 )
 

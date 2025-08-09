@@ -9,8 +9,8 @@ import (
 	"log"
 	"os"
 
-	"KNIRVCHAIN_GO_Verifyer/gui"
-	"KNIRVCHAIN_GO_Verifyer/starter"
+	"KNIRVROUTER_GO_Verifyer/gui"
+	"KNIRVROUTER_GO_Verifyer/starter"
 
 	"github.com/joho/godotenv"
 )
@@ -93,13 +93,13 @@ func main() {
 	// Check if chain or wallet flags are set, or if subcommands are used
 	if *chainFlag || *walletFlag || (len(os.Args) > 1 && (os.Args[1] == "chain" || os.Args[1] == "wallet")) {
 		// If chain or wallet flags are set, proceed with normal startup
-		fmt.Println("Starting KNIRVCHAIN in command-line mode...")
+		fmt.Println("Starting KNIRVROUTER in command-line mode...")
 		starter.StartCommandLine() // Call the exported function from the starter package
 		return
 	}
 
 	// Start the desktop GUI by default
-	fmt.Println("Starting KNIRVCHAIN Desktop GUI...")
+	fmt.Println("Starting KNIRVROUTER Desktop GUI...")
 	// Use the updated GUI implementation
 	gui.StartFyneGUI()
 }

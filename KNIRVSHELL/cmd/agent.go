@@ -196,10 +196,7 @@ func createAgent(cmd *cobra.Command, args []string) error {
 	}
 
 	// Create wallet manager
-	walletManager, err := core.NewWalletManager(filepath.Dir(walletPath))
-	if err != nil {
-		return fmt.Errorf("failed to create wallet manager: %w", err)
-	}
+	walletManager := core.NewWalletManager(filepath.Dir(walletPath), log)
 
 	// Load wallet
 	agentLog.Info("Loading wallet...")
@@ -309,10 +306,7 @@ func registerAgentPlugin(cmd *cobra.Command, args []string) error {
 	hash := fmt.Sprintf("%x", core.CalculateHash(pluginFileData))
 
 	// Create wallet manager
-	walletManager, err := core.NewWalletManager(filepath.Dir(walletPath))
-	if err != nil {
-		return fmt.Errorf("failed to create wallet manager: %w", err)
-	}
+	walletManager := core.NewWalletManager(filepath.Dir(walletPath), log)
 
 	// Load wallet
 	agentLog.Info("Loading wallet...")

@@ -8,7 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/knirv/nexus-backend/internal/models"
+	"nexus-backend/internal/models"
+
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"

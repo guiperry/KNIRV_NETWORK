@@ -7,7 +7,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/knirv/nexus-backend/internal/models"
+	"nexus-backend/internal/models"
 )
 
 // SelectNode selects the optimal node for a given task
@@ -116,7 +116,7 @@ func (lb *LoadBalancer) selectByReputation(nodes []*models.DVENode) *models.DVEN
 	// Add some randomness among top nodes to avoid always selecting the same node
 	topCount := int(math.Min(3, float64(len(nodes))))
 	selectedIndex := rand.Intn(topCount)
-	
+
 	return nodes[selectedIndex]
 }
 
@@ -137,10 +137,10 @@ func (lb *LoadBalancer) selectByResources(nodes []*models.DVENode) *models.DVENo
 		// Resource score based on available CPU and memory
 		cpuScore := (100 - node.CPUUsage) / 100
 		memoryScore := (100 - node.MemoryUsage) / 100
-		
+
 		// Combine scores with weights
 		resourceScore := (cpuScore * 0.6) + (memoryScore * 0.4)
-		
+
 		scores = append(scores, nodeScore{
 			node:  node,
 			score: resourceScore,
@@ -307,12 +307,12 @@ func (lb *LoadBalancer) GetLoadBalancingStats(nodes []*models.DVENode) map[strin
 	defer lb.mu.RUnlock()
 
 	stats := map[string]interface{}{
-		"algorithm":      lb.algorithm,
-		"total_nodes":    len(nodes),
-		"eligible_nodes": 0,
-		"avg_cpu_usage":  0.0,
+		"algorithm":        lb.algorithm,
+		"total_nodes":      len(nodes),
+		"eligible_nodes":   0,
+		"avg_cpu_usage":    0.0,
 		"avg_memory_usage": 0.0,
-		"avg_reputation": 0.0,
+		"avg_reputation":   0.0,
 	}
 
 	if len(nodes) == 0 {

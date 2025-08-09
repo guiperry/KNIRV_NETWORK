@@ -6,9 +6,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/knirv/nexus-backend/internal/models"
-	"github.com/knirv/nexus-backend/internal/services/dvemanager"
-	"github.com/knirv/nexus-backend/internal/services/validation"
+	"nexus-backend/internal/models"
+	"nexus-backend/internal/services/dvemanager"
+	"nexus-backend/internal/services/validation"
 )
 
 // TestNodeFilter tests the NodeFilter functionality

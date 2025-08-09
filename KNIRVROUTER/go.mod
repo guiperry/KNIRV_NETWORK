@@ -1,4 +1,4 @@
-module KNIRVCHAIN_GO_Verifyer
+module KNIRVROUTER_GO_Verifyer
 
 go 1.23
 

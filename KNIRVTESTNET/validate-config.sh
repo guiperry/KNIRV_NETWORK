@@ -245,7 +245,13 @@ perform_validation() {
     print_status "Validating KNIRVCHAIN configuration..."
     check_file_exists "config/knirvchain-testnet-config.toml" "KNIRVCHAIN testnet config"
     if [ -f "config/knirvchain-testnet-config.toml" ]; then
-        check_env_var "config/knirvchain-testnet-config.toml" "enabled" "true" "KNIRVCHAIN testnet mode"
+        # Check TOML format for testnet.enabled = true
+        local toml_enabled=$(grep -A 10 "^\[testnet\]" "config/knirvchain-testnet-config.toml" | grep "enabled" | cut -d'=' -f2 | tr -d ' ')
+        if [ "$toml_enabled" = "true" ]; then
+            check_passed "KNIRVCHAIN testnet mode: enabled=true"
+        else
+            check_failed "KNIRVCHAIN testnet mode: enabled expected 'true', got '$toml_enabled'"
+        fi
     fi
     echo ""
     

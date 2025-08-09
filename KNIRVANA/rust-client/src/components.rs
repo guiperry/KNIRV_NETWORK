@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy_rapier3d::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Component)]
@@ -84,4 +83,172 @@ pub struct MobileOptimized {
     pub lod_level: u32,
     pub simplified_physics: bool,
     pub reduced_particles: bool,
+}
+
+// ============================================================================
+// KNIRVANA-SPECIFIC GAME COMPONENTS
+// ============================================================================
+
+/// ErrorNode component representing problems to be solved in the KNIRV-GRAPH
+#[derive(Component, Serialize, Deserialize, Clone)]
+pub struct ErrorNode {
+    pub id: String,
+    pub node_type: ErrorNodeType,
+    pub difficulty: f32,           // 0.0 to 1.0
+    pub bounty: f64,              // NRN reward for solving
+    pub progress: f32,            // 0.0 to 1.0 completion
+    pub is_being_solved: bool,
+    pub solver_agent_id: Option<String>,
+    pub description: String,
+    pub created_at: f64,
+    pub estimated_time: f32,      // Estimated time to solve in seconds
+}
+
+/// Types of ErrorNodes that can appear in the game
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum ErrorNodeType {
+    LogicError,
+    DataInconsistency,
+    NetworkFailure,
+    SecurityVulnerability,
+    PerformanceBottleneck,
+    IntegrationIssue,
+}
+
+/// SkillNode component representing learned capabilities in the KNIRV-GRAPH
+#[derive(Component, Serialize, Deserialize, Clone)]
+pub struct SkillNode {
+    pub id: String,
+    pub name: String,
+    pub category: SkillCategory,
+    pub created_by: String,       // Player ID who created this skill
+    pub usage_count: u32,
+    pub value: f64,               // NRN value of this skill
+    pub created_at: f64,
+    pub effectiveness: f32,       // 0.0 to 1.0 how effective this skill is
+}
+
+/// Categories of skills that can be learned
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum SkillCategory {
+    Debugging,
+    Optimization,
+    Security,
+    Integration,
+    Analysis,
+    Automation,
+}
+
+/// AIAgent component representing player-controlled agent units
+#[derive(Component, Serialize, Deserialize, Clone)]
+pub struct AIAgent {
+    pub id: String,
+    pub owner_id: String,         // Player who owns this agent
+    pub agent_type: AgentType,
+    pub specialization: SkillCategory,
+    pub efficiency: f32,          // 0.0 to 1.0 how fast this agent works
+    pub energy: f32,              // Current energy level
+    pub max_energy: f32,          // Maximum energy capacity
+    pub experience: u32,          // Experience points gained
+    pub skills: Vec<String>,      // List of skill IDs this agent knows
+    pub current_task: Option<String>, // ErrorNode ID currently working on
+    pub status: AgentStatus,
+    pub thought_process: Vec<String>, // Real-time thoughts for display
+    pub last_action_time: f64,
+}
+
+/// Types of AI agents with different capabilities
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum AgentType {
+    Resolver,    // Specialized in solving ErrorNodes
+    Observer,    // Gathers information and provides insights
+    Helper,      // Assists other agents
+    Specialist,  // Expert in specific skill categories
+}
+
+/// Current status of an AI agent
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub enum AgentStatus {
+    Idle,
+    Moving,
+    Working,
+    Upgrading,
+    Resting,     // Recovering energy
+    Thinking,    // Processing a problem
+}
+
+/// Component for visual effects and animations
+#[derive(Component)]
+pub struct TronEffect {
+    pub glow_intensity: f32,
+    pub pulse_speed: f32,
+    pub color: Color,
+    pub is_pulsing: bool,
+    pub animation_time: f32,
+}
+
+/// Component for connection lines between nodes in the KNIRV-GRAPH
+#[derive(Component)]
+pub struct GraphConnection {
+    pub from_node: Entity,
+    pub to_node: Entity,
+    pub connection_type: ConnectionType,
+    pub data_flow_speed: f32,
+    pub is_active: bool,
+}
+
+/// Types of connections in the KNIRV-GRAPH
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum ConnectionType {
+    DataFlow,
+    SkillDependency,
+    ErrorPropagation,
+    AgentPath,
+}
+
+/// Component for selectable game objects
+#[derive(Component)]
+pub struct Selectable {
+    pub is_selected: bool,
+    pub is_hovered: bool,
+    pub selection_radius: f32,
+}
+
+/// Component for objects that can be interacted with
+#[derive(Component)]
+pub struct Interactable {
+    pub interaction_type: InteractionType,
+    pub interaction_range: f32,
+    pub is_available: bool,
+    pub cooldown_remaining: f32,
+}
+
+/// Types of interactions available in the game
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum InteractionType {
+    DeployAgent,
+    ViewProgress,
+    UpgradeAgent,
+    InvokeSkill,
+    InspectNode,
+}
+
+/// Component for progress tracking and visualization
+#[derive(Component)]
+pub struct ProgressIndicator {
+    pub current_progress: f32,    // 0.0 to 1.0
+    pub target_progress: f32,
+    pub animation_speed: f32,
+    pub show_percentage: bool,
+}
+
+/// Component for floating text and UI elements in 3D space
+#[derive(Component)]
+pub struct FloatingUI {
+    pub text: String,
+    pub font_size: f32,
+    pub color: Color,
+    pub lifetime: f32,
+    pub fade_speed: f32,
+    pub billboard: bool,          // Always face camera
 }

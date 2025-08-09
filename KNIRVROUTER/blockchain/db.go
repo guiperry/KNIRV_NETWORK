@@ -1,4 +1,4 @@
-// /home/gperry/Documents/GitHub/KNIRVCHAIN_GO_Verifyer/blockchain/db.go
+// /home/gperry/Documents/GitHub/KNIRVROUTER_GO_Verifyer/blockchain/db.go
 package blockchain
 
 import (
@@ -14,8 +14,8 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
-	constants "KNIRVCHAIN_GO_Verifyer/constants" // Ensure constants is imported
-	"KNIRVCHAIN_GO_Verifyer/types"
+	constants "KNIRVROUTER_GO_Verifyer/constants" // Ensure constants is imported
+	"KNIRVROUTER_GO_Verifyer/types"
 )
 
 const (
@@ -82,13 +82,12 @@ func openDB() (*leveldb.DB, error) {
 
 // --- Functions below use openDB() ---
 
-// PutBlock stores a single block in the database
+// PutBlock stores a single block in the database using the singleton instance
 func PutBlock(block *Block) error {
-	db, err := openDB()
-	if err != nil {
-		return err
+	ldb := GetLevelDBInstance()
+	if ldb == nil {
+		return fmt.Errorf("failed to get LevelDB instance")
 	}
-	defer db.Close()
 
 	key := []byte(fmt.Sprintf("%s%d", blockPrefix, block.BlockNumber()))
 	value, err := json.Marshal(block)
@@ -97,19 +96,23 @@ func PutBlock(block *Block) error {
 	}
 
 	log.Printf("Putting block %d into DB", block.BlockNumber())
-	return db.Put(key, value, nil)
+	ldb.mu.Lock()
+	defer ldb.mu.Unlock()
+	return ldb.db.Put(key, value, nil)
 }
 
-// GetBlock retrieves a single block by height
+// GetBlock retrieves a single block by height using the singleton instance
 func GetBlock(height uint64) (*Block, error) {
-	db, err := openDB()
-	if err != nil {
-		return nil, err
+	ldb := GetLevelDBInstance()
+	if ldb == nil {
+		return nil, fmt.Errorf("failed to get LevelDB instance")
 	}
-	defer db.Close()
+
+	ldb.mu.Lock()
+	defer ldb.mu.Unlock()
 
 	key := []byte(fmt.Sprintf("%s%d", blockPrefix, height))
-	data, err := db.Get(key, nil)
+	data, err := ldb.db.Get(key, nil)
 	if err != nil {
 		// Don't log ErrNotFound as an error here, let caller handle it
 		if !errors.Is(err, leveldb.ErrNotFound) {
@@ -157,28 +160,32 @@ func GetLatestBlock() (*Block, error) {
 	return latestBlock, nil
 }
 
-// UpdateChainTipHeight updates the chain tip height reference
+// UpdateChainTipHeight updates the chain tip height reference using the singleton instance
 func UpdateChainTipHeight(height uint64) error {
-	db, err := openDB()
-	if err != nil {
-		return err
+	ldb := GetLevelDBInstance()
+	if ldb == nil {
+		return fmt.Errorf("failed to get LevelDB instance")
 	}
-	defer db.Close()
+
+	ldb.mu.Lock()
+	defer ldb.mu.Unlock()
 
 	heightBytes := []byte(fmt.Sprintf("%d", height))
 	log.Printf("Updating chain tip height to: %d", height)
-	return db.Put([]byte(chainTipHeightKey), heightBytes, nil)
+	return ldb.db.Put([]byte(chainTipHeightKey), heightBytes, nil)
 }
 
-// GetChainTipHeight retrieves the current chain tip height
+// GetChainTipHeight retrieves the current chain tip height using the singleton instance
 func GetChainTipHeight() (uint64, error) {
-	db, err := openDB()
-	if err != nil {
-		return 0, err
+	ldb := GetLevelDBInstance()
+	if ldb == nil {
+		return 0, fmt.Errorf("failed to get LevelDB instance")
 	}
-	defer db.Close()
 
-	data, err := db.Get([]byte(chainTipHeightKey), nil)
+	ldb.mu.Lock()
+	defer ldb.mu.Unlock()
+
+	data, err := ldb.db.Get([]byte(chainTipHeightKey), nil)
 	if err != nil {
 		// Return ErrNotFound explicitly if that's the error
 		if errors.Is(err, leveldb.ErrNotFound) {
@@ -202,13 +209,12 @@ func GetChainTipHeight() (uint64, error) {
 // --- Rest of db.go ---
 // ... (PutTransaction, GetTransaction, PutTransactionPool, GetTransactionPool, AtomicPutBlockAndUpdateTip remain the same) ...
 
-// PutTransaction stores a single transaction in the database
+// PutTransaction stores a single transaction in the database using the singleton instance
 func PutTransaction(txn *types.Transaction) error {
-	db, err := openDB()
-	if err != nil {
-		return err
+	ldb := GetLevelDBInstance()
+	if ldb == nil {
+		return fmt.Errorf("failed to get LevelDB instance")
 	}
-	defer db.Close()
 
 	// Use transaction hash as key (ensure txn.Hash() is reliable)
 	txnHash := txn.Hash() // Assuming txn.Hash() returns a unique string hash
@@ -219,19 +225,23 @@ func PutTransaction(txn *types.Transaction) error {
 	}
 
 	log.Printf("Putting transaction %s into DB", txnHash)
-	return db.Put(key, value, nil)
+	ldb.mu.Lock()
+	defer ldb.mu.Unlock()
+	return ldb.db.Put(key, value, nil)
 }
 
-// GetTransaction retrieves a transaction by hash
+// GetTransaction retrieves a transaction by hash using the singleton instance
 func GetTransaction(hash string) (*types.Transaction, error) {
-	db, err := openDB()
-	if err != nil {
-		return nil, err
+	ldb := GetLevelDBInstance()
+	if ldb == nil {
+		return nil, fmt.Errorf("failed to get LevelDB instance")
 	}
-	defer db.Close()
+
+	ldb.mu.Lock()
+	defer ldb.mu.Unlock()
 
 	key := []byte(fmt.Sprintf("%s%s", txnPrefix, hash))
-	data, err := db.Get(key, nil)
+	data, err := ldb.db.Get(key, nil)
 	if err != nil {
 		if !errors.Is(err, leveldb.ErrNotFound) {
 			log.Printf("Error getting transaction %s from DB: %v", hash, err)
@@ -248,13 +258,12 @@ func GetTransaction(hash string) (*types.Transaction, error) {
 	return &txn, nil
 }
 
-// PutTransactionPool stores the current transaction pool
+// PutTransactionPool stores the current transaction pool using the singleton instance
 func PutTransactionPool(pool []*types.Transaction) error {
-	db, err := openDB()
-	if err != nil {
-		return err
+	ldb := GetLevelDBInstance()
+	if ldb == nil {
+		return fmt.Errorf("failed to get LevelDB instance")
 	}
-	defer db.Close()
 
 	value, err := json.Marshal(pool)
 	if err != nil {
@@ -262,18 +271,22 @@ func PutTransactionPool(pool []*types.Transaction) error {
 	}
 
 	log.Printf("Putting transaction pool (%d txns) into DB", len(pool))
-	return db.Put([]byte(transactionPoolKey), value, nil)
+	ldb.mu.Lock()
+	defer ldb.mu.Unlock()
+	return ldb.db.Put([]byte(transactionPoolKey), value, nil)
 }
 
-// GetTransactionPool retrieves the current transaction pool
+// GetTransactionPool retrieves the current transaction pool using the singleton instance
 func GetTransactionPool() ([]*types.Transaction, error) {
-	db, err := openDB()
-	if err != nil {
-		return nil, err
+	ldb := GetLevelDBInstance()
+	if ldb == nil {
+		return nil, fmt.Errorf("failed to get LevelDB instance")
 	}
-	defer db.Close()
 
-	data, err := db.Get([]byte(transactionPoolKey), nil)
+	ldb.mu.Lock()
+	defer ldb.mu.Unlock()
+
+	data, err := ldb.db.Get([]byte(transactionPoolKey), nil)
 	if err != nil {
 		if errors.Is(err, leveldb.ErrNotFound) {
 			log.Println("Transaction pool not found in DB, returning empty pool")
@@ -292,48 +305,5 @@ func GetTransactionPool() ([]*types.Transaction, error) {
 	return pool, nil
 }
 
-// AtomicPutBlockAndUpdateTip atomically stores a block and updates the chain tip height
-func AtomicPutBlockAndUpdateTip(block *Block) error {
-	db, err := openDB()
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	// Start a transaction
-	txn, err := db.OpenTransaction()
-	if err != nil {
-		return fmt.Errorf("failed to start DB transaction: %w", err)
-	}
-	defer txn.Discard() // Ensure transaction is discarded if not committed
-
-	// Prepare block data
-	blockKey := []byte(fmt.Sprintf("%s%d", blockPrefix, block.BlockNumber()))
-	blockValue, err := json.Marshal(block)
-	if err != nil {
-		// No need to discard here, defer handles it
-		return fmt.Errorf("failed to marshal block %d: %w", block.BlockNumber(), err)
-	}
-
-	// Put block
-	log.Printf("Atomically putting block %d into DB", block.BlockNumber())
-	if err := txn.Put(blockKey, blockValue, nil); err != nil {
-		return fmt.Errorf("failed to put block %d in transaction: %w", block.BlockNumber(), err)
-	}
-
-	// Update chain tip height
-	heightBytes := []byte(fmt.Sprintf("%d", block.BlockNumber()))
-	log.Printf("Atomically updating chain tip height to: %d", block.BlockNumber())
-	if err := txn.Put([]byte(chainTipHeightKey), heightBytes, nil); err != nil {
-		return fmt.Errorf("failed to update chain tip height in transaction: %w", err)
-	}
-
-	// Commit the transaction
-	if err := txn.Commit(); err != nil {
-		log.Printf("ERROR committing DB transaction for block %d: %v", block.BlockNumber(), err)
-		return fmt.Errorf("failed to commit DB transaction: %w", err)
-	}
-
-	log.Printf("Successfully committed block %d and tip height to DB", block.BlockNumber())
-	return nil
-}
+// Note: AtomicPutBlockAndUpdateTip is implemented in db_instance.go as a method on LevelDB
+// This ensures proper singleton usage and avoids database locking issues

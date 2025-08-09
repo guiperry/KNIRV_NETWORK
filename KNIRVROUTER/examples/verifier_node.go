@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	"KNIRVCHAIN_GO_Verifyer/blockchain"
+	"KNIRVROUTER_GO_Verifyer/blockchain"
 )
 
 func verifyerNodeMain() {
@@ -12,7 +12,7 @@ func verifyerNodeMain() {
 	genesisBlock := blockchain.NewBlock("", 0, 0)
 	
 	// Create a new blockchain instance with the genesis block
-	bc := blockchain.NewBlockchain(*genesisBlock, "KNIRVCHAIN-example-address")
+	bc := blockchain.NewBlockchain(*genesisBlock, "KNIRVROUTER-example-address")
 
 	// In the real application, transactions would be created through the P2P network
 	log.Printf("Current blockchain height: %d", len(bc.GetBlocks()))

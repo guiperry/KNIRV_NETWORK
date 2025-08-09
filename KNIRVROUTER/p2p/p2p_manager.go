@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"KNIRVCHAIN_GO_Verifyer/blockchain"
-	"KNIRVCHAIN_GO_Verifyer/types"
+	"KNIRVROUTER_GO_Verifyer/blockchain"
+	"KNIRVROUTER_GO_Verifyer/types"
 
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
@@ -83,7 +83,8 @@ func NewP2PManager(blockchain *blockchain.BlockchainStruct, db *blockchain.Level
 			"/ip6/::/tcp/9000",
 		),
 		libp2p.EnableNATService(),
-		libp2p.EnableAutoRelay(),
+		// Disable auto relay for testnet mode to avoid relay finder issues
+		// libp2p.EnableAutoRelay(),
 		libp2p.EnableHolePunching(),
 	)
 	if err != nil {

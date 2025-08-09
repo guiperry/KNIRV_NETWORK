@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-const AppName = "KNIRVCHAIN" // Or your desired app name
+const AppName = "KNIRVROUTER" // Or your desired app name
 
 // GetDefaultDataDir returns the default base directory for application data.
 // It uses OS-specific standard locations.
@@ -21,7 +21,7 @@ func GetDefaultDataDir() string {
 		log.Printf("Using fallback data directory: %s", fallbackPath)
 		return fallbackPath
 	}
-	// Construct path like ~/.config/KNIRVCHAIN/data or %APPDATA%/KNIRVCHAIN/data
+	// Construct path like ~/.config/KNIRVROUTER/data or %APPDATA%/KNIRVROUTER/data
 	defaultPath := filepath.Join(configDir, AppName, "data")
 	log.Printf("Using default data directory: %s", defaultPath)
 	return defaultPath

@@ -1,7 +1,7 @@
 package interfaces
 
 import (
-	"KNIRVCHAIN_GO_Verifyer/types"
+	"KNIRVROUTER_GO_Verifyer/types"
 )
 
 // TransactionEvent represents an event containing a transaction and optionally a block

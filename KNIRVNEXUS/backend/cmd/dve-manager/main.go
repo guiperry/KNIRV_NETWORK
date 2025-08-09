@@ -9,11 +9,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/knirv/nexus-backend/internal/config"
-	"github.com/knirv/nexus-backend/internal/database"
-	"github.com/knirv/nexus-backend/internal/services/dvemanager"
-	"github.com/knirv/nexus-backend/pkg/gui"
-	"github.com/knirv/nexus-backend/pkg/p2p"
+	"nexus-backend/internal/config"
+	"nexus-backend/internal/database"
+	"nexus-backend/internal/services/dvemanager"
+	"nexus-backend/pkg/gui"
+	"nexus-backend/pkg/p2p"
+
 	"github.com/spf13/viper"
 )
 
@@ -24,13 +25,36 @@ func main() {
 		configFile = flag.String("config", "", "Configuration file path")
 		port       = flag.Int("port", 0, "Service port (overrides config)")
 		guiPort    = flag.Int("gui-port", 0, "GUI port (overrides config)")
+		testnet    = flag.Bool("testnet", false, "Enable testnet mode")
 	)
 	flag.Parse()
 
 	// Initialize configuration with viper
-	cfg, err := config.LoadWithDefaults()
-	if err != nil {
-		log.Fatalf("Failed to load configuration: %v", err)
+	var cfg *config.Config
+	var err error
+
+	if *configFile != "" {
+		// Load specific config file
+		viper.SetConfigFile(*configFile)
+		if err := viper.ReadInConfig(); err != nil {
+			log.Fatalf("Failed to read config file %s: %v", *configFile, err)
+		}
+		cfg = &config.Config{}
+		if err := viper.Unmarshal(cfg); err != nil {
+			log.Fatalf("Failed to unmarshal config: %v", err)
+		}
+	} else {
+		// Load with defaults
+		cfg, err = config.LoadWithDefaults()
+		if err != nil {
+			log.Fatalf("Failed to load configuration: %v", err)
+		}
+	}
+
+	// Handle testnet mode
+	if *testnet {
+		log.Println("Starting DVE Manager in testnet mode")
+		cfg.Testnet = true
 	}
 
 	// Load configuration file if specified

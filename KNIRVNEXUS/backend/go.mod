@@ -1,4 +1,4 @@
-module github.com/knirv/nexus-backend
+module nexus-backend
 
 go 1.21
 

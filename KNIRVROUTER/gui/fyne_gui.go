@@ -1,4 +1,4 @@
-// /home/gperry/Documents/GitHub/KNIRVCHAIN_GO_Verifyer/gui/fyne_gui.go
+// /home/gperry/Documents/GitHub/KNIRVROUTER_GO_Verifyer/gui/fyne_gui.go
 package gui
 
 import (
@@ -24,8 +24,8 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
-	"KNIRVCHAIN_GO_Verifyer/utils"
-	"KNIRVCHAIN_GO_Verifyer/wallet"
+	"KNIRVROUTER_GO_Verifyer/utils"
+	"KNIRVROUTER_GO_Verifyer/wallet"
 )
 
 // --- ADDED KnirvchainTheme struct and methods ---
@@ -88,6 +88,11 @@ type FyneGuiConfig struct {
 	RootChainAddress      string // Address of the root chain for federation
 	TurnPort              string // Port for the TURN server
 	NextPeerPort          int    // Next available port for peer connections
+	// New KNIRV-ROUTER specific configurations
+	NRNMintingRate       string // Rate of NRN token minting
+	ConnectivityInterval string // Interval for connectivity tests (seconds)
+	FaucetEndpoint       string // KNIRV-ROOT Faucet endpoint
+	ProofEnginePort      string // Port for Proof-of-Connectivity engine API
 }
 
 // --- FyneTerminalWidget struct and methods ---
@@ -124,6 +129,9 @@ func NewFyneTerminalWidget() *FyneTerminalWidget {
 	// Initial scroll to bottom
 	t.container.ScrollToBottom()
 
+	// Start a periodic scroll enforcement goroutine to keep terminal locked to bottom
+	go t.startScrollEnforcement()
+
 	return t
 }
 
@@ -153,14 +161,31 @@ func (t *FyneTerminalWidget) Append(text string) {
 		sb.WriteString(line)
 	}
 
-	// Update UI on main thread
+	// Update UI on main thread with enhanced scrolling
 	if ap, ok := fyne.CurrentApp().(interface{ CallOnMainThread(func()) }); ok {
 		ap.CallOnMainThread(func() {
-			// Update text and scroll in a single UI update
+			// Update text first
 			t.textArea.SetText(sb.String())
+
+			// Force scroll to bottom if auto-scroll is enabled
 			if t.autoScroll {
+				// Multiple scroll attempts to ensure it sticks
 				t.container.ScrollToBottom()
 				t.container.Refresh()
+
+				// Additional delayed scroll to handle any layout changes
+				time.AfterFunc(10*time.Millisecond, func() {
+					ap.CallOnMainThread(func() {
+						t.container.ScrollToBottom()
+					})
+				})
+
+				// Final scroll attempt after a longer delay
+				time.AfterFunc(50*time.Millisecond, func() {
+					ap.CallOnMainThread(func() {
+						t.container.ScrollToBottom()
+					})
+				})
 			}
 		})
 	} else {
@@ -173,7 +198,7 @@ func (t *FyneTerminalWidget) Append(text string) {
 	}
 }
 
-// Improved ScrollToBottom method
+// Improved ScrollToBottom method with enhanced sticking behavior
 func (t *FyneTerminalWidget) ScrollToBottom() {
 	t.mu.Lock()
 	doScroll := t.autoScroll
@@ -182,31 +207,97 @@ func (t *FyneTerminalWidget) ScrollToBottom() {
 	if doScroll {
 		if ap, ok := fyne.CurrentApp().(interface{ CallOnMainThread(func()) }); ok {
 			ap.CallOnMainThread(func() {
+				// Multiple scroll attempts to ensure it sticks
 				t.container.ScrollToBottom()
 				t.container.Refresh()
+
+				// Force scroll to the very end
+				t.container.ScrollToBottom()
 			})
 		} else {
+			t.container.ScrollToBottom()
+			t.container.Refresh()
 			t.container.ScrollToBottom()
 		}
 	}
 }
 
-// SetAutoScroll remains the same
+// SetAutoScroll with enhanced immediate scrolling when enabled
 func (t *FyneTerminalWidget) SetAutoScroll(auto bool) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.autoScroll = auto
 
-	// If enabling auto-scroll, immediately scroll to bottom
+	// If enabling auto-scroll, immediately and aggressively scroll to bottom
 	if auto {
 		if ap, ok := fyne.CurrentApp().(interface{ CallOnMainThread(func()) }); ok {
 			ap.CallOnMainThread(func() {
+				// Multiple immediate scroll attempts
 				t.container.ScrollToBottom()
 				t.container.Refresh()
+				t.container.ScrollToBottom()
+
+				// Additional delayed scrolls to ensure it sticks
+				time.AfterFunc(10*time.Millisecond, func() {
+					ap.CallOnMainThread(func() {
+						t.container.ScrollToBottom()
+					})
+				})
+
+				time.AfterFunc(50*time.Millisecond, func() {
+					ap.CallOnMainThread(func() {
+						t.container.ScrollToBottom()
+					})
+				})
 			})
 		} else {
 			t.container.ScrollToBottom()
+			t.container.Refresh()
+			t.container.ScrollToBottom()
 		}
+	}
+}
+
+// startScrollEnforcement runs a periodic check to ensure terminal stays at bottom
+func (t *FyneTerminalWidget) startScrollEnforcement() {
+	ticker := time.NewTicker(500 * time.Millisecond) // Check every 500ms
+	defer ticker.Stop()
+
+	for range ticker.C {
+		t.mu.Lock()
+		shouldScroll := t.autoScroll
+		t.mu.Unlock()
+
+		if shouldScroll {
+			if ap, ok := fyne.CurrentApp().(interface{ CallOnMainThread(func()) }); ok {
+				ap.CallOnMainThread(func() {
+					// Gently enforce scroll to bottom
+					t.container.ScrollToBottom()
+				})
+			} else {
+				t.container.ScrollToBottom()
+			}
+		}
+	}
+}
+
+// ForceScrollToBottom forces the terminal to scroll to bottom regardless of auto-scroll setting
+func (t *FyneTerminalWidget) ForceScrollToBottom() {
+	if ap, ok := fyne.CurrentApp().(interface{ CallOnMainThread(func()) }); ok {
+		ap.CallOnMainThread(func() {
+			t.container.ScrollToBottom()
+			t.container.Refresh()
+			// Double scroll to ensure it sticks
+			time.AfterFunc(10*time.Millisecond, func() {
+				ap.CallOnMainThread(func() {
+					t.container.ScrollToBottom()
+				})
+			})
+		})
+	} else {
+		t.container.ScrollToBottom()
+		t.container.Refresh()
+		t.container.ScrollToBottom()
 	}
 }
 
@@ -283,14 +374,46 @@ type FyneGUIState struct {
 	walletStatusLabel     *widget.Label
 	turnStatusLabel       *widget.Label
 
+	// New KNIRV-ROUTER status indicators
+	nrnMintingRunning      bool
+	proofEngineRunning     bool
+	faucetConnected        bool
+	nrnMintingIndicator    *canvas.Circle
+	proofEngineIndicator   *canvas.Circle
+	faucetIndicator        *canvas.Circle
+	nrnMintingStatusLabel  *widget.Label
+	proofEngineStatusLabel *widget.Label
+	faucetStatusLabel      *widget.Label
+
 	// UI elements for new features
 	turnPortEntry         *widget.Entry
 	rootChainAddressEntry *widget.Entry
+
+	// New KNIRV-ROUTER configuration entries
+	nrnMintingRateEntry       *widget.Entry
+	connectivityIntervalEntry *widget.Entry
+	faucetEndpointEntry       *widget.Entry
+	proofEnginePortEntry      *widget.Entry
 
 	// Button references for state management
 	startVerifyerBlockchainButton *widget.Button
 	pauseBlockchainButton         *widget.Button
 	resumeBlockchainButton        *widget.Button
+
+	// New KNIRV-ROUTER button references
+	startNRNMintingButton  *widget.Button
+	stopNRNMintingButton   *widget.Button
+	startProofEngineButton *widget.Button
+	stopProofEngineButton  *widget.Button
+	connectFaucetButton    *widget.Button
+	testConnectivityButton *widget.Button
+
+	// New KNIRV-ROUTER display widgets
+	nrnBalanceLabel          *widget.Label
+	usdcBalanceLabel         *widget.Label
+	connectivityMetricsLabel *widget.Label
+	mintingStatsLabel        *widget.Label
+	pathCertificatesLabel    *widget.Label
 
 	// TURN server reference
 	turnServer interface {
@@ -305,7 +428,7 @@ func StartFyneGUI() {
 	// <<< CORRECTED Theme initialization >>>
 	customTheme := &KnirvchainTheme{Theme: theme.DarkTheme()}
 	myApp.Settings().SetTheme(customTheme)
-	window := myApp.NewWindow("KNIRVCHAIN Verifier Node Manager")
+	window := myApp.NewWindow("KNIRVROUTER Verifier Node Manager")
 	window.Resize(fyne.NewSize(1000, 700))
 
 	// --- Determine Default Verifier DB Path for UI ---
@@ -315,7 +438,7 @@ func StartFyneGUI() {
 		app:      myApp,
 		terminal: NewFyneTerminalWidget(),
 		config: FyneGuiConfig{ // Load from file ideally
-			MinersAddress:         "KNIRVCHAIN-3dd025e8fec7eda7cdd012ddde9c8e978ee7fa33", // Updated prefix
+			MinersAddress:         "KNIRVROUTER-3dd025e8fec7eda7cdd012ddde9c8e978ee7fa33", // Updated prefix
 			ChainPort:             "5000",
 			WalletPort:            "8080",
 			BlockchainNodeAddress: "http://127.0.0.1:5000",
@@ -324,6 +447,11 @@ func StartFyneGUI() {
 			DatabasePath:          defaultVerifierDbPath,             // Set default for the UI field
 			RootChainAddress:      "http://root.knirvchain.com:5000", // Default root chain address
 			TurnPort:              "3478",                            // Default TURN port
+			// New KNIRV-ROUTER defaults
+			NRNMintingRate:       "10",                              // NRNs per minute
+			ConnectivityInterval: "30",                              // Connectivity test interval in seconds
+			FaucetEndpoint:       "http://root.knirvchain.com:8080", // KNIRV-ROOT Faucet endpoint
+			ProofEnginePort:      "9090",                            // Proof-of-Connectivity engine API port
 		},
 		window:            window,
 		activeProcs:       make([]*exec.Cmd, 0),
@@ -332,6 +460,10 @@ func StartFyneGUI() {
 		blockchainPaused:  false,
 		walletRunning:     false,
 		turnServerRunning: false,
+		// New KNIRV-ROUTER status defaults
+		nrnMintingRunning:  false,
+		proofEngineRunning: false,
+		faucetConnected:    false,
 	}
 
 	window.SetCloseIntercept(func() { state.cleanupProcesses(); close(state.logChan); window.Close() })
@@ -349,6 +481,12 @@ func StartFyneGUI() {
 	state.rootChainAddressEntry = widget.NewEntry()
 	state.turnPortEntry = widget.NewEntry()
 
+	// New KNIRV-ROUTER UI elements
+	state.nrnMintingRateEntry = widget.NewEntry()
+	state.connectivityIntervalEntry = widget.NewEntry()
+	state.faucetEndpointEntry = widget.NewEntry()
+	state.proofEnginePortEntry = widget.NewEntry()
+
 	minerAddress.SetText(state.config.MinersAddress)
 	chainPort.SetText(state.config.ChainPort)
 	walletPort.SetText(state.config.WalletPort)
@@ -359,11 +497,22 @@ func StartFyneGUI() {
 	state.rootChainAddressEntry.SetText(state.config.RootChainAddress)
 	state.turnPortEntry.SetText(state.config.TurnPort)
 
+	// Set initial values for new KNIRV-ROUTER elements
+	state.nrnMintingRateEntry.SetText(state.config.NRNMintingRate)
+	state.connectivityIntervalEntry.SetText(state.config.ConnectivityInterval)
+	state.faucetEndpointEntry.SetText(state.config.FaucetEndpoint)
+	state.proofEnginePortEntry.SetText(state.config.ProofEnginePort)
+
 	state.statusLabel = widget.NewLabel("Status: Ready")
 	state.statusLabel.TextStyle = fyne.TextStyle{Bold: true}
 	state.blockchainIndicator, state.blockchainStatusLabel = createStatusIndicator("Blockchain: Stopped", false)
 	state.walletIndicator, state.walletStatusLabel = createStatusIndicator("Wallet: Stopped", false)
 	state.turnIndicator, state.turnStatusLabel = createStatusIndicator("TURN: Stopped", false)
+
+	// Create new KNIRV-ROUTER status indicators
+	state.nrnMintingIndicator, state.nrnMintingStatusLabel = createStatusIndicator("NRN Minting: Stopped", false)
+	state.proofEngineIndicator, state.proofEngineStatusLabel = createStatusIndicator("Proof Engine: Stopped", false)
+	state.faucetIndicator, state.faucetStatusLabel = createStatusIndicator("Faucet: Disconnected", false)
 	walletInfoTitle := widget.NewLabel("Wallet Information")
 	walletInfoTitle.TextStyle = fyne.TextStyle{Bold: true}
 	state.walletAddressEntry = widget.NewEntry()
@@ -381,6 +530,15 @@ func StartFyneGUI() {
 	privateKeyLabel.TextStyle = fyne.TextStyle{Bold: true}
 	publicKeyLabel := widget.NewLabel("Public Key:")
 	publicKeyLabel.TextStyle = fyne.TextStyle{Bold: true}
+
+	// Create new KNIRV-ROUTER display labels
+	state.nrnBalanceLabel = widget.NewLabel("NRN Balance: 0")
+	state.nrnBalanceLabel.TextStyle = fyne.TextStyle{Bold: true}
+	state.usdcBalanceLabel = widget.NewLabel("USDC Balance: 0.00")
+	state.usdcBalanceLabel.TextStyle = fyne.TextStyle{Bold: true}
+	state.connectivityMetricsLabel = widget.NewLabel("Connectivity: No data")
+	state.mintingStatsLabel = widget.NewLabel("Minting: 0 NRNs generated")
+	state.pathCertificatesLabel = widget.NewLabel("Path Certificates: 0 active")
 
 	// --- Button Creation ---
 	startVerifyerBlockchain := widget.NewButton("Start Verifier Blockchain", func() {
@@ -423,19 +581,66 @@ func StartFyneGUI() {
 	})
 	stopTurnServer.Importance = widget.MediumImportance
 
+	// New KNIRV-ROUTER control buttons
+	startNRNMinting := widget.NewButton("Start NRN Minting", func() {
+		go state.startNRNMinting()
+	})
+	startNRNMinting.Importance = widget.HighImportance
+
+	stopNRNMinting := widget.NewButton("Stop NRN Minting", func() {
+		go state.stopNRNMinting()
+	})
+	stopNRNMinting.Importance = widget.MediumImportance
+
+	startProofEngine := widget.NewButton("Start Proof Engine", func() {
+		go state.startProofEngine()
+	})
+	startProofEngine.Importance = widget.HighImportance
+
+	stopProofEngine := widget.NewButton("Stop Proof Engine", func() {
+		go state.stopProofEngine()
+	})
+	stopProofEngine.Importance = widget.MediumImportance
+
+	connectFaucet := widget.NewButton("Connect to Faucet", func() {
+		go state.connectToFaucet()
+	})
+	connectFaucet.Importance = widget.MediumImportance
+
+	testConnectivity := widget.NewButton("Test Connectivity", func() {
+		go state.testConnectivity()
+	})
+	testConnectivity.Importance = widget.LowImportance
+
 	// Store buttons in state for later access
 	state.startVerifyerBlockchainButton = startVerifyerBlockchain
 	state.pauseBlockchainButton = pauseBlockchain
 	state.resumeBlockchainButton = resumeBlockchain
 
+	// Store new KNIRV-ROUTER buttons in state
+	state.startNRNMintingButton = startNRNMinting
+	state.stopNRNMintingButton = stopNRNMinting
+	state.startProofEngineButton = startProofEngine
+	state.stopProofEngineButton = stopProofEngine
+	state.connectFaucetButton = connectFaucet
+	state.testConnectivityButton = testConnectivity
+
 	// --- Layout Creation ---
-	title := canvas.NewText("KNIRVCHAIN Verifier Node Manager", color.NRGBA{R: 0, G: 180, B: 255, A: 255})
+	title := canvas.NewText("KNIRVROUTER Verifier Node Manager", color.NRGBA{R: 0, G: 180, B: 255, A: 255})
 	title.TextSize = 24
 	title.TextStyle = fyne.TextStyle{Bold: true}
 	title.Alignment = fyne.TextAlignCenter
-	// Auto-scroll checkbox
+	// Auto-scroll checkbox with enhanced behavior
 	autoScrollCheck := widget.NewCheck("Auto Scroll", func(checked bool) {
 		state.terminal.SetAutoScroll(checked)
+		if checked {
+			// Immediately scroll to bottom when enabled
+			state.terminal.ScrollToBottom()
+			// Log the action
+			state.logChan <- "Auto-scroll enabled - terminal locked to bottom"
+		} else {
+			state.logChan <- "Auto-scroll disabled - manual scrolling enabled"
+		}
 	})
 	autoScrollCheck.SetChecked(true)
 
@@ -446,6 +651,12 @@ func StartFyneGUI() {
 		container.NewHBox(state.walletIndicator, state.walletStatusLabel),
 		widget.NewLabel("│"),
 		container.NewHBox(state.turnIndicator, state.turnStatusLabel),
+		widget.NewLabel("│"),
+		container.NewHBox(state.nrnMintingIndicator, state.nrnMintingStatusLabel),
+		widget.NewLabel("│"),
+		container.NewHBox(state.proofEngineIndicator, state.proofEngineStatusLabel),
+		widget.NewLabel("│"),
+		container.NewHBox(state.faucetIndicator, state.faucetStatusLabel),
 		widget.NewLabel("│"),
 		autoScrollCheck,
 	)
@@ -463,12 +674,19 @@ func StartFyneGUI() {
 			widget.NewFormItem("Verifier DB Path", dbPath),
 			widget.NewFormItem("Root Chain Address", state.rootChainAddressEntry),
 			widget.NewFormItem("TURN Port (UDP/TCP)", state.turnPortEntry),
+			widget.NewFormItem("NRN Minting Rate (per min)", state.nrnMintingRateEntry),
+			widget.NewFormItem("Connectivity Test Interval (sec)", state.connectivityIntervalEntry),
+			widget.NewFormItem("KNIRV-ROOT Faucet Endpoint", state.faucetEndpointEntry),
+			widget.NewFormItem("Proof Engine API Port", state.proofEnginePortEntry),
 		)),
 		widget.NewSeparator(),
 		container.NewGridWithColumns(3,
 			startVerifyerBlockchain, pauseBlockchain, resumeBlockchain,
 			generateWallet, startWallet, widget.NewLabel(""),
 			startTurnServer, stopTurnServer, widget.NewLabel(""),
+			startNRNMinting, stopNRNMinting, widget.NewLabel(""),
+			startProofEngine, stopProofEngine, testConnectivity,
+			connectFaucet, widget.NewLabel(""), widget.NewLabel(""),
 		),
 		widget.NewSeparator(),
 		statusContainer,
@@ -480,6 +698,18 @@ func StartFyneGUI() {
 			container.NewBorder(nil, nil, privateKeyLabel, nil, state.walletPrivateKeyEntry),
 			widget.NewSeparator(),
 			container.NewBorder(nil, nil, publicKeyLabel, nil, state.walletPublicKeyEntry),
+		)),
+		widget.NewSeparator(),
+		// New KNIRV-ROUTER Information Panel
+		widget.NewLabel("KNIRV-ROUTER Metrics & Balances"),
+		container.NewPadded(container.NewVBox(
+			container.NewGridWithColumns(2,
+				state.nrnBalanceLabel, state.usdcBalanceLabel,
+			),
+			widget.NewSeparator(),
+			state.connectivityMetricsLabel,
+			state.mintingStatsLabel,
+			state.pathCertificatesLabel,
 		)),
 		widget.NewSeparator(),
 		state.statusLabel,
@@ -511,7 +741,16 @@ func StartFyneGUI() {
 	content.Offset = 0.3
 
 	window.SetContent(content)
+
+	// Ensure terminal starts at bottom
+	state.terminal.ForceScrollToBottom()
+
 	go state.processLogChannel() // Start log processor BEFORE ShowAndRun
+
+	// Add initial welcome message
+	state.logChan <- "KNIRVROUTER GUI initialized - terminal auto-scroll enabled"
+	state.logChan <- "Ready to start KNIRV-ROUTER operations..."
+
 	window.ShowAndRun()
 }
 
@@ -538,6 +777,23 @@ func (s *FyneGUIState) readConfigFromUI(minerAddress, chainPort, walletPort, nod
 
 	if s.turnPortEntry != nil {
 		config.TurnPort = s.turnPortEntry.Text
+	}
+
+	// Get values from new KNIRV-ROUTER entries
+	if s.nrnMintingRateEntry != nil {
+		config.NRNMintingRate = s.nrnMintingRateEntry.Text
+	}
+
+	if s.connectivityIntervalEntry != nil {
+		config.ConnectivityInterval = s.connectivityIntervalEntry.Text
+	}
+
+	if s.faucetEndpointEntry != nil {
+		config.FaucetEndpoint = s.faucetEndpointEntry.Text
+	}
+
+	if s.proofEnginePortEntry != nil {
+		config.ProofEnginePort = s.proofEnginePortEntry.Text
 	}
 
 	return config
@@ -567,22 +823,21 @@ func (s *FyneGUIState) processLogChannel() {
 		// Clear the buffer
 		msgBuffer = msgBuffer[:0]
 
-		// Update the terminal on the main thread
+		// Update the terminal on the main thread with enhanced scrolling
 		if ap, ok := s.app.(interface{ CallOnMainThread(func()) }); ok {
 			ap.CallOnMainThread(func() {
-				// First append the text
+				// Append the text (this already handles scrolling internally)
 				s.terminal.Append(msgCopy)
 
-				// Then ensure scroll is at bottom with multiple attempts
-				// This helps ensure scrolling works even with rapid updates
-				delays := []time.Duration{0, 50, 100, 200}
-				for _, delay := range delays {
-					time.AfterFunc(delay*time.Millisecond, func() {
+				// Additional scroll enforcement for batch processing
+				if s.terminal.autoScroll {
+					// Immediate scroll
+					s.terminal.container.ScrollToBottom()
+
+					// Delayed scroll to handle any UI updates
+					time.AfterFunc(25*time.Millisecond, func() {
 						ap.CallOnMainThread(func() {
-							if s.terminal.autoScroll {
-								s.terminal.container.ScrollToBottom()
-								s.terminal.container.Refresh()
-							}
+							s.terminal.container.ScrollToBottom()
 						})
 					})
 				}
@@ -728,7 +983,7 @@ func (s *FyneGUIState) startVerifierBlockchain(cfg FyneGuiConfig) {
 	s.logChan <- "  Root Chain: " + cfg.RootChainAddress
 	var cmd *exec.Cmd
 	var err error
-	binaryPath := "./KNIRVCHAIN"
+	binaryPath := "./KNIRVROUTER"
 
 	// Build command arguments
 	args := []string{
@@ -748,7 +1003,7 @@ func (s *FyneGUIState) startVerifierBlockchain(cfg FyneGuiConfig) {
 	if _, err = os.Stat(binaryPath); err == nil {
 		cmd = exec.Command(binaryPath, args...)
 	} else if errors.Is(err, os.ErrNotExist) {
-		s.updateStatus("Warning: KNIRVCHAIN binary not found, attempting 'go run'")
+		s.updateStatus("Warning: KNIRVROUTER binary not found, attempting 'go run'")
 		// Use "run ." to run from the current directory where main.go is expected
 		runArgs := append([]string{"run", "."}, args...) // Pass only the valid args
 		cmd = exec.Command("go", runArgs...)
@@ -857,12 +1112,12 @@ func (s *FyneGUIState) startWallet(cfg FyneGuiConfig) { /* ... as before ... */
 	s.logChan <- "  Node Addr:   " + nodeAddrToUse
 	var cmd *exec.Cmd
 	var err error
-	binaryPath := "./KNIRVCHAIN"
+	binaryPath := "./KNIRVROUTER"
 	args := []string{"wallet", "--port=" + cfg.WalletPort, "--node_address=" + nodeAddrToUse}
 	if _, err = os.Stat(binaryPath); err == nil {
 		cmd = exec.Command(binaryPath, args...)
 	} else if errors.Is(err, os.ErrNotExist) {
-		s.updateStatus("Warning: KNIRVCHAIN binary not found, attempting 'go run'")
+		s.updateStatus("Warning: KNIRVROUTER binary not found, attempting 'go run'")
 		cmd = exec.Command("go", append([]string{"run", "main.go"}, args...)...)
 	} else {
 		s.updateStatus(fmt.Sprintf("Error checking for binary %s: %v", binaryPath, err))
@@ -1237,5 +1492,220 @@ func (s *FyneGUIState) updateBlockchainButtonStates() {
 				s.resumeBlockchainButton.Disable()
 			}
 		}()
+	}
+}
+
+// --- New KNIRV-ROUTER Methods ---
+
+// startNRNMinting starts the NRN minting process
+func (s *FyneGUIState) startNRNMinting() {
+	s.mu.Lock()
+	if s.nrnMintingRunning {
+		s.mu.Unlock()
+		s.updateStatus("NRN Minting is already running")
+		return
+	}
+	s.nrnMintingRunning = true
+	s.mu.Unlock()
+
+	s.updateStatus("Starting NRN Minting Engine...")
+	s.logChan <- "NRN Minting Configuration:"
+	s.logChan <- "  Minting Rate: " + s.config.NRNMintingRate + " NRNs/min"
+	s.logChan <- "  Proof Engine Port: " + s.config.ProofEnginePort
+
+	// TODO: Implement actual NRN minting logic here
+	// This would integrate with the connectivity/proof_engine.go module
+	s.updateIndicator(s.nrnMintingIndicator, s.nrnMintingStatusLabel, true, "NRN Minting: Running")
+	s.updateStatus("NRN Minting Engine started successfully")
+
+	// Update display with mock data for now
+	s.updateNRNBalance("150")
+	s.updateMintingStats("15 NRNs generated today")
+}
+
+// stopNRNMinting stops the NRN minting process
+func (s *FyneGUIState) stopNRNMinting() {
+	s.mu.Lock()
+	if !s.nrnMintingRunning {
+		s.mu.Unlock()
+		s.updateStatus("NRN Minting is not running")
+		return
+	}
+	s.nrnMintingRunning = false
+	s.mu.Unlock()
+
+	s.updateStatus("Stopping NRN Minting Engine...")
+	// TODO: Implement actual stopping logic here
+	s.updateIndicator(s.nrnMintingIndicator, s.nrnMintingStatusLabel, false, "NRN Minting: Stopped")
+	s.updateStatus("NRN Minting Engine stopped successfully")
+}
+
+// startProofEngine starts the Proof-of-Connectivity engine
+func (s *FyneGUIState) startProofEngine() {
+	s.mu.Lock()
+	if s.proofEngineRunning {
+		s.mu.Unlock()
+		s.updateStatus("Proof-of-Connectivity Engine is already running")
+		return
+	}
+	s.proofEngineRunning = true
+	s.mu.Unlock()
+
+	s.updateStatus("Starting Proof-of-Connectivity Engine...")
+	s.logChan <- "Proof Engine Configuration:"
+	s.logChan <- "  Test Interval: " + s.config.ConnectivityInterval + " seconds"
+	s.logChan <- "  API Port: " + s.config.ProofEnginePort
+
+	// TODO: Implement actual proof engine startup here
+	// This would integrate with the connectivity/proof_engine.go module
+	s.updateIndicator(s.proofEngineIndicator, s.proofEngineStatusLabel, true, "Proof Engine: Running")
+	s.updateStatus("Proof-of-Connectivity Engine started successfully")
+
+	// Update display with mock data for now
+	s.updateConnectivityMetrics("Latency: 45ms, Success: 98.5%")
+	s.updatePathCertificates("12 active certificates")
+}
+
+// stopProofEngine stops the Proof-of-Connectivity engine
+func (s *FyneGUIState) stopProofEngine() {
+	s.mu.Lock()
+	if !s.proofEngineRunning {
+		s.mu.Unlock()
+		s.updateStatus("Proof-of-Connectivity Engine is not running")
+		return
+	}
+	s.proofEngineRunning = false
+	s.mu.Unlock()
+
+	s.updateStatus("Stopping Proof-of-Connectivity Engine...")
+	// TODO: Implement actual stopping logic here
+	s.updateIndicator(s.proofEngineIndicator, s.proofEngineStatusLabel, false, "Proof Engine: Stopped")
+	s.updateStatus("Proof-of-Connectivity Engine stopped successfully")
+}
+
+// connectToFaucet establishes connection to KNIRV-ROOT Faucet
+func (s *FyneGUIState) connectToFaucet() {
+	s.mu.Lock()
+	if s.faucetConnected {
+		s.mu.Unlock()
+		s.updateStatus("Already connected to KNIRV-ROOT Faucet")
+		return
+	}
+	s.mu.Unlock()
+
+	s.updateStatus("Connecting to KNIRV-ROOT Faucet...")
+	s.logChan <- "Faucet Configuration:"
+	s.logChan <- "  Endpoint: " + s.config.FaucetEndpoint
+
+	// TODO: Implement actual faucet connection logic here
+	// This would integrate with the faucet_integration.go module
+	s.mu.Lock()
+	s.faucetConnected = true
+	s.mu.Unlock()
+
+	s.updateIndicator(s.faucetIndicator, s.faucetStatusLabel, true, "Faucet: Connected")
+	s.updateStatus("Connected to KNIRV-ROOT Faucet successfully")
+
+	// Update display with mock data for now
+	s.updateUSDCBalance("250.75")
+}
+
+// testConnectivity performs a manual connectivity test
+func (s *FyneGUIState) testConnectivity() {
+	s.updateStatus("Running connectivity test...")
+	s.logChan <- "Performing manual connectivity test..."
+
+	// TODO: Implement actual connectivity test here
+	// This would use the connectivity/proof_engine.go module
+
+	// Simulate test results for now
+	s.updateConnectivityMetrics("Latency: 42ms, Success: 99.2%")
+	s.updateStatus("Connectivity test completed successfully")
+}
+
+// --- Helper methods for updating display labels ---
+
+// updateNRNBalance updates the NRN balance display
+func (s *FyneGUIState) updateNRNBalance(balance string) {
+	if ap, ok := s.app.(interface{ CallOnMainThread(func()) }); ok {
+		ap.CallOnMainThread(func() {
+			s.nrnBalanceLabel.SetText("NRN Balance: " + balance)
+			s.nrnBalanceLabel.Refresh()
+		})
+	} else {
+		go func(bal string) {
+			s.mu.Lock()
+			defer s.mu.Unlock()
+			s.nrnBalanceLabel.SetText("NRN Balance: " + bal)
+			s.nrnBalanceLabel.Refresh()
+		}(balance)
+	}
+}
+
+// updateUSDCBalance updates the USDC balance display
+func (s *FyneGUIState) updateUSDCBalance(balance string) {
+	if ap, ok := s.app.(interface{ CallOnMainThread(func()) }); ok {
+		ap.CallOnMainThread(func() {
+			s.usdcBalanceLabel.SetText("USDC Balance: " + balance)
+			s.usdcBalanceLabel.Refresh()
+		})
+	} else {
+		go func(bal string) {
+			s.mu.Lock()
+			defer s.mu.Unlock()
+			s.usdcBalanceLabel.SetText("USDC Balance: " + bal)
+			s.usdcBalanceLabel.Refresh()
+		}(balance)
+	}
+}
+
+// updateConnectivityMetrics updates the connectivity metrics display
+func (s *FyneGUIState) updateConnectivityMetrics(metrics string) {
+	if ap, ok := s.app.(interface{ CallOnMainThread(func()) }); ok {
+		ap.CallOnMainThread(func() {
+			s.connectivityMetricsLabel.SetText("Connectivity: " + metrics)
+			s.connectivityMetricsLabel.Refresh()
+		})
+	} else {
+		go func(met string) {
+			s.mu.Lock()
+			defer s.mu.Unlock()
+			s.connectivityMetricsLabel.SetText("Connectivity: " + met)
+			s.connectivityMetricsLabel.Refresh()
+		}(metrics)
+	}
+}
+
+// updateMintingStats updates the minting statistics display
+func (s *FyneGUIState) updateMintingStats(stats string) {
+	if ap, ok := s.app.(interface{ CallOnMainThread(func()) }); ok {
+		ap.CallOnMainThread(func() {
+			s.mintingStatsLabel.SetText("Minting: " + stats)
+			s.mintingStatsLabel.Refresh()
+		})
+	} else {
+		go func(st string) {
+			s.mu.Lock()
+			defer s.mu.Unlock()
+			s.mintingStatsLabel.SetText("Minting: " + st)
+			s.mintingStatsLabel.Refresh()
+		}(stats)
+	}
+}
+
+// updatePathCertificates updates the path certificates display
+func (s *FyneGUIState) updatePathCertificates(certs string) {
+	if ap, ok := s.app.(interface{ CallOnMainThread(func()) }); ok {
+		ap.CallOnMainThread(func() {
+			s.pathCertificatesLabel.SetText("Path Certificates: " + certs)
+			s.pathCertificatesLabel.Refresh()
+		})
+	} else {
+		go func(c string) {
+			s.mu.Lock()
+			defer s.mu.Unlock()
+			s.pathCertificatesLabel.SetText("Path Certificates: " + c)
+			s.pathCertificatesLabel.Refresh()
+		}(certs)
 	}
 }

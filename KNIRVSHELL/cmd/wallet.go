@@ -34,10 +34,7 @@ The private key is encrypted with a password using AES-256-GCM.`,
 		}
 
 		// Create wallet manager
-		walletManager, err := core.NewWalletManager(walletDir)
-		if err != nil {
-			log.Fatalf("Failed to create wallet manager: %v", err)
-		}
+		walletManager := core.NewWalletManager(walletDir, log)
 
 		// Generate new key pair
 		log.Info("Generating new ECDSA key pair...")
@@ -103,10 +100,7 @@ The private key is encrypted with a password using AES-256-GCM.`,
 		}
 
 		// Create wallet manager
-		walletManager, err := core.NewWalletManager(walletDir)
-		if err != nil {
-			log.Fatalf("Failed to create wallet manager: %v", err)
-		}
+		walletManager := core.NewWalletManager(walletDir, log)
 
 		// Get private key
 		privateKeyHex, _ := cmd.Flags().GetString("private-key")
@@ -184,10 +178,7 @@ Displays wallet addresses and file paths.`,
 		}
 
 		// Create wallet manager
-		walletManager, err := core.NewWalletManager(walletDir)
-		if err != nil {
-			log.Fatalf("Failed to create wallet manager: %v", err)
-		}
+		walletManager := core.NewWalletManager(walletDir, log)
 
 		// List wallets
 		wallets, err := walletManager.ListWallets()
@@ -263,10 +254,7 @@ Requires password confirmation.`,
 		}
 
 		// Create wallet manager
-		walletManager, err := core.NewWalletManager(walletDir)
-		if err != nil {
-			log.Fatalf("Failed to create wallet manager: %v", err)
-		}
+		walletManager := core.NewWalletManager(walletDir, log)
 
 		// Get wallet file
 		address, _ := cmd.Flags().GetString("address")

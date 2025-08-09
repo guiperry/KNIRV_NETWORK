@@ -30,15 +30,25 @@ type FaucetIntegration struct {
 
 // FaucetRequest represents a request to the faucet
 type FaucetRequest struct {
-	RequestID     string    `json:"request_id"`
-	NodeID        peer.ID   `json:"node_id"`
-	Amount        *big.Int  `json:"amount"`
-	Reason        string    `json:"reason"`
-	Timestamp     time.Time `json:"timestamp"`
-	Status        string    `json:"status"` // "pending", "completed", "failed"
-	TxHash        string    `json:"tx_hash,omitempty"`
-	ErrorMessage  string    `json:"error_message,omitempty"`
+	RequestID    string    `json:"request_id"`
+	NodeID       peer.ID   `json:"node_id"`
+	Amount       *big.Int  `json:"amount"`
+	Reason       string    `json:"reason"`
+	Timestamp    time.Time `json:"timestamp"`
+	Status       string    `json:"status"` // "pending", "completed", "failed"
+	TxHash       string    `json:"tx_hash,omitempty"`
+	ErrorMessage string    `json:"error_message,omitempty"`
 }
+
+// Getter methods for FaucetRequest to implement the interface
+func (fr *FaucetRequest) GetRequestID() string    { return fr.RequestID }
+func (fr *FaucetRequest) GetNodeID() peer.ID      { return fr.NodeID }
+func (fr *FaucetRequest) GetAmount() *big.Int     { return fr.Amount }
+func (fr *FaucetRequest) GetReason() string       { return fr.Reason }
+func (fr *FaucetRequest) GetTimestamp() time.Time { return fr.Timestamp }
+func (fr *FaucetRequest) GetStatus() string       { return fr.Status }
+func (fr *FaucetRequest) GetTxHash() string       { return fr.TxHash }
+func (fr *FaucetRequest) GetErrorMessage() string { return fr.ErrorMessage }
 
 // FaucetResponse represents the response from the faucet
 type FaucetResponse struct {
@@ -100,7 +110,7 @@ func (fi *FaucetIntegration) RequestNRNTokens(nodeID peer.ID, amount *big.Int, r
 	// Submit request to faucet
 	go fi.submitFaucetRequest(request)
 
-	log.Printf("NRN faucet request created: ID=%s, NodeID=%s, Amount=%s, Reason=%s", 
+	log.Printf("NRN faucet request created: ID=%s, NodeID=%s, Amount=%s, Reason=%s",
 		request.RequestID, nodeID.String()[:8], amount.String(), reason)
 
 	return request, nil
@@ -124,7 +134,7 @@ func (fi *FaucetIntegration) checkRateLimit(nodeID peer.ID) bool {
 	// Check daily limit
 	dayStart := time.Now().Truncate(24 * time.Hour)
 	requestsToday := fi.countRequestsSince(nodeID, dayStart)
-	
+
 	return requestsToday < fi.maxRequestsPerDay
 }
 
@@ -260,13 +270,13 @@ func (fi *FaucetIntegration) GetFaucetStats() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"total_requests":     totalRequests,
-		"completed_requests": completedRequests,
-		"failed_requests":    failedRequests,
-		"pending_requests":   pendingRequests,
+		"total_requests":      totalRequests,
+		"completed_requests":  completedRequests,
+		"failed_requests":     failedRequests,
+		"pending_requests":    pendingRequests,
 		"total_amount_minted": totalAmount.String(),
-		"success_rate":       float64(completedRequests) / float64(totalRequests) * 100,
-		"faucet_endpoint":    fi.faucetEndpoint,
+		"success_rate":        float64(completedRequests) / float64(totalRequests) * 100,
+		"faucet_endpoint":     fi.faucetEndpoint,
 	}
 }
 

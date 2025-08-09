@@ -1,4 +1,4 @@
-# KNIRVCHAIN Decentralized Discovery Implementation Plan (DHT)
+# KNIRVROUTER Decentralized Discovery Implementation Plan (DHT)
 
 ## 1. Goal
 
@@ -11,12 +11,12 @@ To replace the current centralized Node.js registry and STUN service with a dece
 
 ## 3. Key Components & Concepts
 
-*   **DHT Integration:** Each participating KNIRVCHAIN node will run a Kademlia DHT client/server instance.
+*   **DHT Integration:** Each participating KNIRVROUTER node will run a Kademlia DHT client/server instance.
 *   **Peer Identity:** Nodes will use their `libp2p` PeerID (derived from cryptographic keys) as their fundamental network identifier.
 *   **Content Routing:** The DHT will be used to map a discoverable identifier (e.g., the `chainID` or the PeerID) to the node's current reachable network address (multiaddr).
 *   **Bootstrap Nodes:** A small set of stable, publicly reachable nodes will serve as initial entry points for new nodes joining the DHT network.
 *   **Multiaddresses:** Standard `libp2p` multiaddrs (e.g., `/ip4/1.2.3.4/tcp/5001`) will represent node connection endpoints.
-*   **Chain Identifier:** For simplicity, we'll assume the `chainID` serves as both the primary identifier for a KNIRVCHAIN instance and the key under which it registers its multiaddress(es) in the DHT.
+*   **Chain Identifier:** For simplicity, we'll assume the `chainID` serves as both the primary identifier for a KNIRVROUTER instance and the key under which it registers its multiaddress(es) in the DHT.
 *   **Node Discovery:** Nodes will periodically refresh their DHT records and query the DHT to discover other nodes.
 *   **Connection Establishment:** After discovering another node's multiaddress through the DHT, establish a direct P2P connection using `libp2p`'s built-in networking capabilities.
 *   **NAT Traversal:** Utilize `libp2p`'s AutoNAT service to assist nodes behind NATs in establishing connections.
@@ -27,7 +27,7 @@ To replace the current centralized Node.js registry and STUN service with a dece
 
 **URI Scheme**:
 
-The URI scheme for KNIRVCHAIN will be updated to reflect the decentralized nature of the network and provide a clear structure resembling familiar domain patterns. The general format will be:
+The URI scheme for KNIRVROUTER will be updated to reflect the decentralized nature of the network and provide a clear structure resembling familiar domain patterns. The general format will be:
 
 ```plaintext
 knirv://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
@@ -35,7 +35,7 @@ knirv://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
 
 Where:
 
-*   **`knirv://`**: Protocol prefix indicating a KNIRVCHAIN-specific URI.
+*   **`knirv://`**: Protocol prefix indicating a KNIRVROUTER-specific URI.
 *   **`<ID>.<ResourceType>`**: The authority/host part, combining the unique identifier and the resource type.
     *   **`<ID>`**: Unique identifier for the chain, content, or node (e.g., `chainID`, `contentID`).
     *   **`<ResourceType>`**: Specifies the type of resource, acting like an internal TLD.
@@ -77,7 +77,7 @@ Where:
 
 **Node Identity & libp2p Host:**
 
-1.  Ensure each KNIRVCHAIN node generates or loads a persistent cryptographic key pair (e.g., Ed25519) on startup.
+1.  Ensure each KNIRVROUTER node generates or loads a persistent cryptographic key pair (e.g., Ed25519) on startup.
 2.  Derive the libp2p PeerID from the public key.
 3.  Initialize a libp2p Host instance (`libp2p.New`) configured with the node's identity and listening multiaddrs (e.g., `/ip4/0.0.0.0/tcp/YOUR_P2P_PORT`, `/ip6/::/tcp/YOUR_P2P_PORT`).
 

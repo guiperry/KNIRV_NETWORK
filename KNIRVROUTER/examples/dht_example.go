@@ -8,8 +8,8 @@ import (
 	"syscall"
 	"time"
 
-	"KNIRVCHAIN_GO_Verifyer/p2p"
-	"KNIRVCHAIN_GO_Verifyer/types"
+	"KNIRVROUTER_GO_Verifyer/p2p"
+	"KNIRVROUTER_GO_Verifyer/types"
 )
 
 func dht_example_main() {

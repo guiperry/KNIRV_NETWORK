@@ -147,45 +147,303 @@ start_component() {
             print_component "Starting KNIRVCHAIN..."
             if check_component_dir "KNIRVCHAIN" "$KNIRVCHAIN_DIR"; then
                 cd "$KNIRVCHAIN_DIR"
-                # Add KNIRVCHAIN start logic here
-                print_success "KNIRVCHAIN started"
+
+                # Check if Rust/Cargo is available
+                if ! command -v cargo &> /dev/null; then
+                    print_error "Rust/Cargo is required but not installed"
+                    return 1
+                fi
+
+                # Create necessary directories
+                mkdir -p logs data/knirvchain
+
+                # Check if binary exists, build if needed
+                if [ ! -f "./target/release/knirvchain" ] && [ ! -f "./knirvchain" ]; then
+                    print_info "Building KNIRVCHAIN..."
+                    cargo build --release --features testnet
+                fi
+
+                # Set environment variables for testnet
+                export KNIRVCHAIN_RPC_ENDPOINT="127.0.0.1:8090"
+                export BLOCK_DIFFICULTY="1"
+                export KNIRVCHAIN_ID="1"
+                export BLOCK_TIME="5"
+                export RUST_LOG="info"
+
+                # Start KNIRVCHAIN in testnet mode
+                print_info "Starting KNIRVCHAIN with testnet features on port 8090..."
+                if [ -f "./target/release/knirvchain" ]; then
+                    ./target/release/knirvchain > ./logs/knirvchain.log 2>&1 &
+                elif [ -f "./knirvchain" ]; then
+                    ./knirvchain > ./logs/knirvchain.log 2>&1 &
+                else
+                    print_error "KNIRVCHAIN binary not found after build"
+                    return 1
+                fi
+
+                CHAIN_PID=$!
+                echo $CHAIN_PID > ./data/knirvchain.pid
+                print_success "KNIRVCHAIN started with PID $CHAIN_PID on port 8090"
+
+                # Wait a moment and check if process is still running
+                sleep 3
+                if ! kill -0 $CHAIN_PID 2>/dev/null; then
+                    print_error "KNIRVCHAIN failed to start. Check logs: ./logs/knirvchain.log"
+                    return 1
+                fi
             fi
             ;;
         "knirvnexus")
             print_component "Starting KNIRVNEXUS..."
             if check_component_dir "KNIRVNEXUS" "$KNIRVNEXUS_DIR"; then
                 cd "$KNIRVNEXUS_DIR"
-                # Add KNIRVNEXUS start logic here
-                print_success "KNIRVNEXUS started"
+
+                # Check if Go is available
+                if ! command -v go &> /dev/null; then
+                    print_error "Go is required but not installed"
+                    return 1
+                fi
+
+                # Create necessary directories
+                mkdir -p logs data reports
+                touch data/nexus.db
+
+                # Check if backend binary exists
+                if [ ! -f "./backend/bin/dve-manager" ]; then
+                    print_info "Building KNIRVNEXUS backend..."
+                    cd backend
+                    go build -o bin/dve-manager cmd/dve-manager/main.go
+                    cd ..
+                fi
+
+                # Start KNIRVNEXUS backend in testnet mode
+                print_info "Starting KNIRVNEXUS backend on port 8083..."
+                # Run from KNIRVNEXUS directory to ensure proper working directory
+                ./backend/bin/dve-manager -testnet -port 8083 > ./logs/knirvnexus.log 2>&1 &
+                NEXUS_PID=$!
+                echo $NEXUS_PID > ./data/knirvnexus.pid
+
+                print_success "KNIRVNEXUS started with PID $NEXUS_PID on port 8083"
+
+                # Wait a moment and check if process is still running
+                sleep 3
+                if ! kill -0 $NEXUS_PID 2>/dev/null; then
+                    print_error "KNIRVNEXUS failed to start. Check logs: ./logs/knirvnexus.log"
+                    return 1
+                fi
             fi
             ;;
         "knirvroot")
             print_component "Starting KNIRVROOT..."
             if check_component_dir "KNIRVROOT" "$KNIRVROOT_DIR"; then
                 cd "$KNIRVROOT_DIR"
-                # Add KNIRVROOT start logic here
-                print_success "KNIRVROOT started"
+
+                # Check if Go is available
+                if ! command -v go &> /dev/null; then
+                    print_error "Go is required but not installed"
+                    return 1
+                fi
+
+                # Create necessary directories
+                mkdir -p logs data/testnet
+
+                # Check if binary exists, build if needed
+                if [ ! -f "./knirvroot" ]; then
+                    print_info "Building KNIRVROOT..."
+                    if [ -f "./Makefile" ]; then
+                        make build
+                    else
+                        go build -o knirvroot .
+                    fi
+                fi
+
+                # Start KNIRVROOT in testnet mode
+                print_info "Starting KNIRVROOT in testnet mode on port 1317..."
+                ./knirvroot \
+                    --testnet \
+                    --port 1317 \
+                    --p2p.port 26656 \
+                    --shared_database_path ./data/testnet/blockchain.db \
+                    --miners_address KNIRVROOT_Faucet \
+                    --root \
+                    --non-interactive \
+                    --skip-install \
+                    > ./logs/knirvroot.log 2>&1 &
+
+                ROOT_PID=$!
+                echo $ROOT_PID > ./data/knirvroot.pid
+                print_success "KNIRVROOT started with PID $ROOT_PID on port 1317"
+
+                # Wait a moment and check if process is still running
+                sleep 3
+                if ! kill -0 $ROOT_PID 2>/dev/null; then
+                    print_error "KNIRVROOT failed to start. Check logs: ./logs/knirvroot.log"
+                    return 1
+                fi
             fi
             ;;
         "knirvgraph")
             print_component "Starting KNIRVGRAPH..."
             if check_component_dir "KNIRVGRAPH" "$KNIRVGRAPH_DIR"; then
                 cd "$KNIRVGRAPH_DIR"
-                # Add KNIRVGRAPH start logic here
-                print_success "KNIRVGRAPH started"
+
+                # Check if Go is available
+                if ! command -v go &> /dev/null; then
+                    print_error "Go is required but not installed"
+                    return 1
+                fi
+
+                # Create necessary directories
+                mkdir -p logs data/knirvgraph
+
+                # Check if binary exists, build if needed
+                if [ ! -f "./knirvgraph" ] && [ ! -f "./bin/knirvgraph" ]; then
+                    print_info "Building KNIRVGRAPH..."
+                    if [ -f "./Makefile" ]; then
+                        make build
+                    else
+                        go build -o knirvgraph ./cmd/knirvgraph
+                    fi
+                fi
+
+                # Start KNIRVGRAPH in testnet mode
+                print_info "Starting KNIRVGRAPH with testnet features on port 8082..."
+                if [ -f "./knirvgraph" ]; then
+                    ./knirvgraph \
+                        --testnet \
+                        --populate \
+                        --max-nodes 1000 \
+                        --rpc-port 8082 \
+                        --home ./data/knirvgraph \
+                        > ./logs/knirvgraph.log 2>&1 &
+                elif [ -f "./bin/knirvgraph" ]; then
+                    ./bin/knirvgraph \
+                        --testnet \
+                        --populate \
+                        --max-nodes 1000 \
+                        --rpc-port 8082 \
+                        --home ./data/knirvgraph \
+                        > ./logs/knirvgraph.log 2>&1 &
+                else
+                    print_error "KNIRVGRAPH binary not found after build"
+                    return 1
+                fi
+
+                GRAPH_PID=$!
+                echo $GRAPH_PID > ./data/knirvgraph.pid
+                print_success "KNIRVGRAPH started with PID $GRAPH_PID on port 8082"
+
+                # Wait a moment and check if process is still running
+                sleep 3
+                if ! kill -0 $GRAPH_PID 2>/dev/null; then
+                    print_error "KNIRVGRAPH failed to start. Check logs: ./logs/knirvgraph.log"
+                    return 1
+                fi
             fi
             ;;
         "knirvrouter")
             print_component "Starting KNIRVROUTER..."
             if check_component_dir "KNIRVROUTER" "$KNIRVROUTER_DIR"; then
                 cd "$KNIRVROUTER_DIR"
-                # Add KNIRVROUTER start logic here
-                print_success "KNIRVROUTER started"
+
+                # Check if binary exists
+                if [ ! -f "./knirvrouter" ] && [ ! -f "./bin/knirvrouter" ]; then
+                    print_warning "KNIRVROUTER binary not found, attempting to build..."
+                    if [ -f "./build.sh" ]; then
+                        ./build.sh
+                    else
+                        go build -o knirvrouter main.go
+                    fi
+                fi
+
+                # Create necessary directories
+                mkdir -p logs data
+
+                # Set environment variables for testnet mode
+                export TESTNET_MODE=true
+                export LOCAL_NETWORK_MODE=true
+                export MOCK_NRN_MINTING=true
+                export SIMPLIFIED_CONSENSUS=true
+                export DISABLE_XION_BRIDGE=true
+
+                # Start KNIRVROUTER in testnet mode
+                print_info "Starting KNIRVROUTER with testnet configuration..."
+                if [ -f "./knirvrouter" ]; then
+                    ./knirvrouter -testnet -local-network -mock-nrn > ./logs/knirvrouter.log 2>&1 &
+                elif [ -f "./bin/knirvrouter" ]; then
+                    ./bin/knirvrouter -testnet -local-network -mock-nrn > ./logs/knirvrouter.log 2>&1 &
+                else
+                    print_error "KNIRVROUTER binary not found after build attempt"
+                    return 1
+                fi
+
+                ROUTER_PID=$!
+                echo $ROUTER_PID > ./data/knirvrouter.pid
+                print_success "KNIRVROUTER started with PID $ROUTER_PID on port 5001"
+
+                # Wait a moment and check if process is still running
+                sleep 3
+                if ! kill -0 $ROUTER_PID 2>/dev/null; then
+                    print_error "KNIRVROUTER failed to start. Check logs: ./logs/knirvrouter.log"
+                    return 1
+                fi
             fi
             ;;
         "gateway")
             print_component "Starting KNIRVGATEWAY..."
-            "$SCRIPT_DIR/run-gateway.sh" start
+            if check_component_dir "KNIRVGATEWAY" "$KNIRVGATEWAY_DIR"; then
+                cd "$KNIRVGATEWAY_DIR"
+
+                # Check if Node.js and npm are available
+                if ! command -v node &> /dev/null; then
+                    print_error "Node.js is required but not installed"
+                    return 1
+                fi
+
+                if ! command -v npm &> /dev/null; then
+                    print_error "npm is required but not installed"
+                    return 1
+                fi
+
+                # Install dependencies if needed
+                if [ ! -d "node_modules" ]; then
+                    print_info "Installing KNIRVGATEWAY dependencies..."
+                    npm install
+                fi
+
+                # Create necessary directories
+                mkdir -p logs data
+
+                # Set testnet environment variables
+                export TESTNET_MODE=true
+                export NODE_ENV=testnet
+                export KNIRVROOT_URL=http://localhost:1317
+                export KNIRVCHAIN_URL=http://localhost:8090
+                export KNIRVGRAPH_URL=http://localhost:8082
+                export KNIRVNEXUS_URL=http://localhost:8083
+                export KNIRVROUTER_URL=http://localhost:5001
+
+                # Start Netlify Dev server
+                print_info "Starting KNIRVGATEWAY with Netlify Dev on port 8888..."
+                npx netlify dev --port 8888 --targetPort 3001 > ./logs/knirvgateway.log 2>&1 &
+
+                GATEWAY_PID=$!
+                echo $GATEWAY_PID > ./data/knirvgateway.pid
+                print_success "KNIRVGATEWAY started with PID $GATEWAY_PID on port 8888"
+
+                # Wait a moment and check if process is still running
+                sleep 5
+                if ! kill -0 $GATEWAY_PID 2>/dev/null; then
+                    print_error "KNIRVGATEWAY failed to start. Check logs: ./logs/knirvgateway.log"
+                    return 1
+                fi
+
+                print_info "Gateway endpoints:"
+                print_info "  - Main Site: http://localhost:8888"
+                print_info "  - Health: http://localhost:8888/gateway/health"
+                print_info "  - Services: http://localhost:8888/gateway/services"
+                print_info "  - Auth: http://localhost:8888/auth/testnet-tokens"
+            fi
             ;;
         "economics")
             print_component "Starting Economics Service..."
@@ -207,11 +465,97 @@ stop_component() {
     case $component in
         "gateway")
             print_component "Stopping KNIRVGATEWAY..."
-            "$SCRIPT_DIR/run-gateway.sh" stop
+            if [ -f "$KNIRVGATEWAY_DIR/data/knirvgateway.pid" ]; then
+                local pid=$(cat "$KNIRVGATEWAY_DIR/data/knirvgateway.pid")
+                if kill -0 "$pid" 2>/dev/null; then
+                    kill "$pid"
+                    print_success "KNIRVGATEWAY stopped (PID: $pid)"
+                else
+                    print_warning "KNIRVGATEWAY process not running"
+                fi
+                rm -f "$KNIRVGATEWAY_DIR/data/knirvgateway.pid"
+            else
+                print_warning "KNIRVGATEWAY PID file not found"
+            fi
             ;;
         "economics")
             print_component "Stopping Economics Service..."
             "$SCRIPT_DIR/run-gateway.sh" economics stop
+            ;;
+        "knirvnexus")
+            print_component "Stopping KNIRVNEXUS..."
+            if [ -f "$KNIRVNEXUS_DIR/data/knirvnexus.pid" ]; then
+                local pid=$(cat "$KNIRVNEXUS_DIR/data/knirvnexus.pid")
+                if kill -0 "$pid" 2>/dev/null; then
+                    kill "$pid"
+                    print_success "KNIRVNEXUS stopped (PID: $pid)"
+                else
+                    print_warning "KNIRVNEXUS process not running"
+                fi
+                rm -f "$KNIRVNEXUS_DIR/data/knirvnexus.pid"
+            else
+                print_warning "KNIRVNEXUS PID file not found"
+            fi
+            ;;
+        "knirvrouter")
+            print_component "Stopping KNIRVROUTER..."
+            if [ -f "$KNIRVROUTER_DIR/data/knirvrouter.pid" ]; then
+                local pid=$(cat "$KNIRVROUTER_DIR/data/knirvrouter.pid")
+                if kill -0 "$pid" 2>/dev/null; then
+                    kill "$pid"
+                    print_success "KNIRVROUTER stopped (PID: $pid)"
+                else
+                    print_warning "KNIRVROUTER process not running"
+                fi
+                rm -f "$KNIRVROUTER_DIR/data/knirvrouter.pid"
+            else
+                print_warning "KNIRVROUTER PID file not found"
+            fi
+            ;;
+        "knirvchain")
+            print_component "Stopping KNIRVCHAIN..."
+            if [ -f "$KNIRVCHAIN_DIR/data/knirvchain.pid" ]; then
+                local pid=$(cat "$KNIRVCHAIN_DIR/data/knirvchain.pid")
+                if kill -0 "$pid" 2>/dev/null; then
+                    kill "$pid"
+                    print_success "KNIRVCHAIN stopped (PID: $pid)"
+                else
+                    print_warning "KNIRVCHAIN process not running"
+                fi
+                rm -f "$KNIRVCHAIN_DIR/data/knirvchain.pid"
+            else
+                print_warning "KNIRVCHAIN PID file not found"
+            fi
+            ;;
+        "knirvgraph")
+            print_component "Stopping KNIRVGRAPH..."
+            if [ -f "$KNIRVGRAPH_DIR/data/knirvgraph.pid" ]; then
+                local pid=$(cat "$KNIRVGRAPH_DIR/data/knirvgraph.pid")
+                if kill -0 "$pid" 2>/dev/null; then
+                    kill "$pid"
+                    print_success "KNIRVGRAPH stopped (PID: $pid)"
+                else
+                    print_warning "KNIRVGRAPH process not running"
+                fi
+                rm -f "$KNIRVGRAPH_DIR/data/knirvgraph.pid"
+            else
+                print_warning "KNIRVGRAPH PID file not found"
+            fi
+            ;;
+        "knirvroot")
+            print_component "Stopping KNIRVROOT..."
+            if [ -f "$KNIRVROOT_DIR/data/knirvroot.pid" ]; then
+                local pid=$(cat "$KNIRVROOT_DIR/data/knirvroot.pid")
+                if kill -0 "$pid" 2>/dev/null; then
+                    kill "$pid"
+                    print_success "KNIRVROOT stopped (PID: $pid)"
+                else
+                    print_warning "KNIRVROOT process not running"
+                fi
+                rm -f "$KNIRVROOT_DIR/data/knirvroot.pid"
+            else
+                print_warning "KNIRVROOT PID file not found"
+            fi
             ;;
         *)
             print_component "Stopping $component..."
@@ -227,23 +571,22 @@ check_component_status() {
     
     case $component in
         "knirvchain")
-            check_service_health "http://localhost:$DEFAULT_KNIRVCHAIN_PORT/health" "KNIRVCHAIN"
+            check_service_health "http://localhost:8090/health" "KNIRVCHAIN"
             ;;
         "knirvnexus")
-            check_service_health "http://localhost:$DEFAULT_KNIRVNEXUS_PORT/health" "KNIRVNEXUS"
+            check_service_health "http://localhost:8083/health" "KNIRVNEXUS"
             ;;
         "knirvroot")
-            check_service_health "http://localhost:$DEFAULT_KNIRVROOT_PORT/health" "KNIRVROOT"
+            check_service_health "http://localhost:1317/health" "KNIRVROOT"
             ;;
         "knirvgraph")
-            check_service_health "http://localhost:$DEFAULT_KNIRVGRAPH_PORT/health" "KNIRVGRAPH"
+            check_service_health "http://localhost:8082/height" "KNIRVGRAPH"
             ;;
         "knirvrouter")
-            check_service_health "http://localhost:$DEFAULT_KNIRVROUTER_PORT/health" "KNIRVROUTER"
+            check_service_health "http://localhost:5001/status" "KNIRVROUTER"
             ;;
         "gateway")
-            check_service_health "http://localhost:$DEFAULT_GATEWAY_PORT/health" "API Gateway"
-            check_service_health "http://localhost:$DEFAULT_ECONOMICS_PORT/economics/health" "Economics Service"
+            check_service_health "http://localhost:8888/gateway/health" "KNIRVGATEWAY"
             ;;
         "economics")
             check_service_health "http://localhost:$DEFAULT_ECONOMICS_PORT/economics/health" "Economics Service"

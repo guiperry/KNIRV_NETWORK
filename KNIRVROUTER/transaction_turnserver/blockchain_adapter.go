@@ -5,18 +5,41 @@ import (
 	"fmt"
 	"log"
 	"time"
+
+	"KNIRVROUTER_GO_Verifyer/constants"
+	"KNIRVROUTER_GO_Verifyer/types"
 )
+
+// BlockchainInterface defines the methods we need from the blockchain
+type BlockchainInterface interface {
+	AddTransactionToTransactionPool(transaction *types.Transaction) error
+	GetTransactionPool() []*types.Transaction
+}
 
 // BlockchainAdapter implements the TxSubmitter interface to connect
 // the TURN server with the blockchain's transaction pool
 type BlockchainAdapter struct {
-	// Reference to the blockchain's transaction pool
-	// This will be set when the adapter is created
+	// Reference to the blockchain instance
+	blockchain   BlockchainInterface
+	minerAddress string
+
+	// Legacy support for function-based submission (deprecated)
 	txPoolSubmitFunc func(from, to string, data []byte) error
-	minerAddress     string
 }
 
-// NewBlockchainAdapter creates a new adapter with the given transaction submission function
+// NewBlockchainAdapterWithBlockchain creates a new adapter with a blockchain instance
+func NewBlockchainAdapterWithBlockchain(
+	blockchain BlockchainInterface,
+	minerAddress string,
+) *BlockchainAdapter {
+	return &BlockchainAdapter{
+		blockchain:   blockchain,
+		minerAddress: minerAddress,
+	}
+}
+
+// NewBlockchainAdapter creates a new adapter with the given transaction submission function (deprecated)
+// Use NewBlockchainAdapterWithBlockchain for new implementations
 func NewBlockchainAdapter(
 	txPoolSubmitFunc func(from, to string, data []byte) error,
 	minerAddress string,
@@ -29,10 +52,6 @@ func NewBlockchainAdapter(
 
 // SubmitTurnSessionTx implements the TxSubmitter interface
 func (a *BlockchainAdapter) SubmitTurnSessionTx(sessionData map[string]interface{}) error {
-	if a.txPoolSubmitFunc == nil {
-		return fmt.Errorf("transaction submission function not set")
-	}
-
 	// Add additional metadata
 	sessionData["recorded_at"] = time.Now().UTC().Format(time.RFC3339)
 
@@ -42,12 +61,35 @@ func (a *BlockchainAdapter) SubmitTurnSessionTx(sessionData map[string]interface
 		return fmt.Errorf("failed to marshal session data: %w", err)
 	}
 
-	// The TURN server is the "from" address
-	fromAddress := "TURN_SERVER"
+	// Use blockchain interface if available (preferred)
+	if a.blockchain != nil {
+		// Create a proper blockchain transaction
+		transaction := types.NewTransaction(
+			"TURN_SERVER",
+			a.minerAddress,
+			0, // No value transfer for TURN session data
+			jsonData,
+			constants.ORIGIN_PUBLIC,
+		)
 
-	// Submit to the blockchain using the provided function
-	// The transaction goes to the miner's address
-	err = a.txPoolSubmitFunc(fromAddress, a.minerAddress, jsonData)
+		// Submit to blockchain
+		err = a.blockchain.AddTransactionToTransactionPool(transaction)
+		if err != nil {
+			return fmt.Errorf("failed to submit transaction to blockchain: %w", err)
+		}
+
+		log.Printf("TURN session transaction submitted to blockchain for client %s",
+			sessionData["client_addr"])
+		return nil
+	}
+
+	// Fall back to legacy function-based submission
+	if a.txPoolSubmitFunc == nil {
+		return fmt.Errorf("neither blockchain interface nor transaction submission function is set")
+	}
+
+	// Submit using legacy function
+	err = a.txPoolSubmitFunc("TURN_SERVER", a.minerAddress, jsonData)
 	if err != nil {
 		return fmt.Errorf("failed to submit transaction: %w", err)
 	}
@@ -69,10 +111,6 @@ type NRNMintRequest struct {
 
 // SubmitNRNMintTx submits a transaction to mint NRN tokens
 func (a *BlockchainAdapter) SubmitNRNMintTx(recipient, amount, reason, proofID string) error {
-	if a.txPoolSubmitFunc == nil {
-		return fmt.Errorf("transaction submission function not set")
-	}
-
 	// Create mint request
 	mintRequest := NRNMintRequest{
 		Recipient: recipient,
@@ -88,9 +126,35 @@ func (a *BlockchainAdapter) SubmitNRNMintTx(recipient, amount, reason, proofID s
 		return fmt.Errorf("failed to marshal mint request: %w", err)
 	}
 
-	// Submit mint transaction
-	fromAddress := "NRN_MINTER"
-	err = a.txPoolSubmitFunc(fromAddress, recipient, jsonData)
+	// Use blockchain interface if available (preferred)
+	if a.blockchain != nil {
+		// Create a proper blockchain transaction
+		transaction := types.NewTransaction(
+			"NRN_MINTER",
+			recipient,
+			0, // Value will be handled by smart contract logic
+			jsonData,
+			constants.ORIGIN_PUBLIC,
+		)
+
+		// Submit to blockchain
+		err = a.blockchain.AddTransactionToTransactionPool(transaction)
+		if err != nil {
+			return fmt.Errorf("failed to submit NRN mint transaction to blockchain: %w", err)
+		}
+
+		log.Printf("NRN mint transaction submitted to blockchain: recipient=%s, amount=%s, reason=%s",
+			recipient, amount, reason)
+		return nil
+	}
+
+	// Fall back to legacy function-based submission
+	if a.txPoolSubmitFunc == nil {
+		return fmt.Errorf("neither blockchain interface nor transaction submission function is set")
+	}
+
+	// Submit using legacy function
+	err = a.txPoolSubmitFunc("NRN_MINTER", recipient, jsonData)
 	if err != nil {
 		return fmt.Errorf("failed to submit NRN mint transaction: %w", err)
 	}
@@ -115,13 +179,58 @@ func (a *BlockchainAdapter) SubmitParticipationReward(nodeID, participationType,
 
 // GetMintingStats returns statistics about NRN minting
 func (a *BlockchainAdapter) GetMintingStats() map[string]interface{} {
-	// In a real implementation, this would query the blockchain for minting statistics
-	// For now, return placeholder data
-	return map[string]interface{}{
-		"total_minted":     "0",
-		"total_recipients": 0,
-		"last_mint_time":   time.Now(),
-		"minting_enabled":  true,
-		"minter_address":   "NRN_MINTER",
+	stats := map[string]interface{}{
+		"minter_address":  "NRN_MINTER",
+		"minting_enabled": true,
+		"last_updated":    time.Now(),
 	}
+
+	// If we have a blockchain interface, get real statistics
+	if a.blockchain != nil {
+		txPool := a.blockchain.GetTransactionPool()
+
+		// Count different types of transactions
+		turnSessions := 0
+		nrnMints := 0
+		connectivityRewards := 0
+		participationRewards := 0
+
+		for _, tx := range txPool {
+			switch tx.From {
+			case "TURN_SERVER":
+				turnSessions++
+			case "NRN_MINTER":
+				nrnMints++
+
+				// Try to parse the transaction data to categorize
+				var mintRequest NRNMintRequest
+				if err := json.Unmarshal(tx.Data, &mintRequest); err == nil {
+					if mintRequest.Reason != "" {
+						if len(mintRequest.Reason) >= 20 && mintRequest.Reason[:20] == "connectivity_proof_r" { // "connectivity_proof_reward_score_"
+							connectivityRewards++
+						} else if len(mintRequest.Reason) >= 19 && mintRequest.Reason[:19] == "participation_rewar" { // "participation_reward_"
+							participationRewards++
+						}
+					}
+				}
+			}
+		}
+
+		stats["total_turn_sessions"] = turnSessions
+		stats["total_nrn_mints"] = nrnMints
+		stats["total_connectivity_rewards"] = connectivityRewards
+		stats["total_participation_rewards"] = participationRewards
+		stats["transaction_pool_size"] = len(txPool)
+		stats["data_source"] = "blockchain"
+	} else {
+		// Return placeholder data for legacy mode
+		stats["total_turn_sessions"] = 0
+		stats["total_nrn_mints"] = 0
+		stats["total_connectivity_rewards"] = 0
+		stats["total_participation_rewards"] = 0
+		stats["transaction_pool_size"] = 0
+		stats["data_source"] = "placeholder"
+	}
+
+	return stats
 }

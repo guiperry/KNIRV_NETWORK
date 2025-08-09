@@ -2,8 +2,8 @@
 package utils
 
 import (
-	block "KNIRVCHAIN_GO_Verifyer/blockchain"
-	blockchain "KNIRVCHAIN_GO_Verifyer/blockchain"
+	block "KNIRVROUTER_GO_Verifyer/blockchain"
+	blockchain "KNIRVROUTER_GO_Verifyer/blockchain"
 )
 
 func CompareBlocks(blocks1 []*block.Block, blocks2 []*block.Block) bool {

@@ -13,6 +13,7 @@ type Config struct {
 	ChainID     string           `mapstructure:"chain_id"`
 	NodeRole    string           `mapstructure:"node_role"`
 	Mode        string           `mapstructure:"mode"` // "headless" or "gui"
+	Testnet     bool             `mapstructure:"testnet"`
 	Database    DatabaseConfig   `mapstructure:"database"`
 	API         APIConfig        `mapstructure:"api"`
 	GUI         GUIConfig        `mapstructure:"gui"`

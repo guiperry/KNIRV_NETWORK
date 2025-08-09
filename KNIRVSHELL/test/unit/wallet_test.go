@@ -17,8 +17,7 @@ func TestWalletCreationAndLoading(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create wallet manager
-	walletManager, err := core.NewWalletManager(tempDir)
-	require.NoError(t, err)
+	walletManager := core.NewWalletManager(tempDir, nil)
 
 	// Generate key pair
 	privateKey, err := walletManager.GenerateKeyPair()
@@ -56,8 +55,7 @@ func TestWalletListing(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create wallet manager
-	walletManager, err := core.NewWalletManager(tempDir)
-	require.NoError(t, err)
+	walletManager := core.NewWalletManager(tempDir, nil)
 
 	// List wallets (should be empty)
 	wallets, err := walletManager.ListWallets()
@@ -95,8 +93,7 @@ func TestWalletExport(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create wallet manager
-	walletManager, err := core.NewWalletManager(tempDir)
-	require.NoError(t, err)
+	walletManager := core.NewWalletManager(tempDir, nil)
 
 	// Generate key pair
 	privateKey, err := walletManager.GenerateKeyPair()

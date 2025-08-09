@@ -18,18 +18,18 @@ mkdir -p ../KNIRVTESTNET/data/knirvgateway
 
 # Copy testnet environment configuration
 echo "Setting up testnet configuration..."
-cp .env.testnet ../KNIRVTESTNET/data/knirvgateway/.env
+cp .env.testnet ../KNIRVTESTNET/data/knirvgateway/.env 2>/dev/null || echo "TESTNET_MODE=true" > ../KNIRVTESTNET/data/knirvgateway/.env
 
 # Copy Netlify functions to testnet directory
 mkdir -p ../KNIRVTESTNET/data/knirvgateway/netlify/functions
-cp -r netlify/functions/* ../KNIRVTESTNET/data/knirvgateway/netlify/functions/
+cp -r netlify/functions/* ../KNIRVTESTNET/data/knirvgateway/netlify/functions/ 2>/dev/null || true
 
 # Copy package.json and install dependencies in testnet directory
-cp package.json ../KNIRVTESTNET/data/knirvgateway/
+cp package.json ../KNIRVTESTNET/data/knirvgateway/ 2>/dev/null || true
 cp package-lock.json ../KNIRVTESTNET/data/knirvgateway/ 2>/dev/null || true
 
 # Copy main files
-cp index.html ../KNIRVTESTNET/data/knirvgateway/
+cp index.html ../KNIRVTESTNET/data/knirvgateway/ 2>/dev/null || true
 cp -r assets ../KNIRVTESTNET/data/knirvgateway/ 2>/dev/null || true
 
 # Create testnet-specific configuration

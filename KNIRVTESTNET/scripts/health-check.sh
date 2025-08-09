@@ -29,10 +29,10 @@ echo "Checking service health..."
 echo ""
 
 check_service "http://localhost:1317/health" "KNIRV-ROOT" && ((healthy++)) || true
-check_service "http://localhost:8080/health" "KNIRVCHAIN" && ((healthy++)) || true
-check_service "http://localhost:8081/health" "KNIRVGRAPH" && ((healthy++)) || true
-check_service "http://localhost:8082/status" "KNIRV-NEXUS-1" && ((healthy++)) || true
-check_service "http://localhost:8083/status" "KNIRV-NEXUS-2" && ((healthy++)) || true
+check_service "http://localhost:8083/health" "KNIRVCHAIN" && ((healthy++)) || true
+check_service "http://localhost:8082/height" "KNIRVGRAPH" && ((healthy++)) || true
+check_service "http://localhost:8084/health" "KNIRV-NEXUS-DVE" && ((healthy++)) || true
+check_service "http://localhost:8085/health" "KNIRV-NEXUS-VAL" && ((healthy++)) || true
 check_service "http://localhost:8086/status" "KNIRV-ROUTER" && ((healthy++)) || true
 check_service "http://localhost:8087/health" "KNIRV-GATEWAY" && ((healthy++)) || true
 check_service "http://localhost:5001/api/v0/version" "IPFS" && ((healthy++)) || true

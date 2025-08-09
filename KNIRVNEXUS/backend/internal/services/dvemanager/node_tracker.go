@@ -3,7 +3,7 @@ package dvemanager
 import (
 	"time"
 
-	"github.com/knirv/nexus-backend/internal/models"
+	"nexus-backend/internal/models"
 )
 
 // AddNode adds a node to the tracker

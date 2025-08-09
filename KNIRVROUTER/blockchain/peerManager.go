@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"KNIRVCHAIN_GO_Verifyer/constants"
-	"KNIRVCHAIN_GO_Verifyer/interfaces"
-	"KNIRVCHAIN_GO_Verifyer/types"
+	"KNIRVROUTER_GO_Verifyer/constants"
+	"KNIRVROUTER_GO_Verifyer/interfaces"
+	"KNIRVROUTER_GO_Verifyer/types"
 )
 
 type PeerTransactionBroadcaster struct {

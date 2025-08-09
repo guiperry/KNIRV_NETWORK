@@ -1,7 +1,7 @@
 package blockchain
 
 import (
-	"KNIRVCHAIN_GO_Verifyer/types"
+	"KNIRVROUTER_GO_Verifyer/types"
 )
 
 // Blockchain defines the interface for blockchain operations needed by P2P consensus

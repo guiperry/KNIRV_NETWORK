@@ -1,6 +1,6 @@
-# KNIRVCHAIN Verifier Node - Blockchain Implementation in Go
+# KNIRVROUTER Verifier Node - Blockchain Implementation in Go
 
-KNIRVCHAIN Verifier Node is a specialized blockchain application written in Go, designed to verify and record network traffic data. It features a Proof-of-Work consensus mechanism, peer-to-peer capabilities, wallet management, and an integrated TURN server for P2P communication.
+KNIRVROUTER Verifier Node is a specialized blockchain application written in Go, designed to verify and record network traffic data. It features a Proof-of-Work consensus mechanism, peer-to-peer capabilities, wallet management, and an integrated TURN server for P2P communication.
 
 ## Features
 
@@ -36,8 +36,8 @@ KNIRVCHAIN Verifier Node is a specialized blockchain application written in Go, 
 
 1.  Clone the repository:
     ```bash
-    git clone https://github.com/yourusername/KNIRVCHAIN_GO_Verifyer.git # Replace with your actual repo URL
-    cd KNIRVCHAIN_GO_Verifyer
+    git clone https://github.com/yourusername/KNIRVROUTER_GO_Verifyer.git # Replace with your actual repo URL
+    cd KNIRVROUTER_GO_Verifyer
     ```
 
 2.  Install dependencies:
@@ -59,9 +59,9 @@ A build script is provided for convenience:
     ./build.sh
     ```
 
-This will create an executable binary named `KNIRVCHAIN` in the project's root directory.
+This will create an executable binary named `KNIRVROUTER` in the project's root directory.
 
-## Running KNIRVCHAIN Verifier Node
+## Running KNIRVROUTER Verifier Node
 
 The application uses subcommands to determine its operating mode.
 
@@ -70,7 +70,7 @@ The application uses subcommands to determine its operating mode.
 Simply run the binary without any arguments or use `go run`:
 
 ```bash
-./KNIRVCHAIN
+./KNIRVROUTER
 ```
 
 or
@@ -87,7 +87,7 @@ Starts the verifier blockchain node, listens for connections, mines, and manages
 
 ```bash
 # Using compiled binary
-./KNIRVCHAIN chain --port=5000 --miners_address=<your_address> --dbpath=<path_to_db> --root_chain=<root_chain_address>
+./KNIRVROUTER chain --port=5000 --miners_address=<your_address> --dbpath=<path_to_db> --root_chain=<root_chain_address>
 
 # Using go run
 go run . chain --port=5000 --miners_address=<your_address> --dbpath=<path_to_db> --root_chain=<root_chain_address>
@@ -104,7 +104,7 @@ Starts a server providing wallet functionalities via an API.
 
 ```bash
 # Using compiled binary
-./KNIRVCHAIN wallet --port=8080 --node_address=http://127.0.0.1:5000
+./KNIRVROUTER wallet --port=8080 --node_address=http://127.0.0.1:5000
 
 # Using go run
 go run . wallet --port=8080 --node_address=http://127.0.0.1:5000
@@ -115,8 +115,8 @@ go run . wallet --port=8080 --node_address=http://127.0.0.1:5000
 
 ### Desktop GUI Interaction Summary
 
-- **Start Verifier Blockchain**: Launches `./KNIRVCHAIN chain [flags]` based on GUI settings. Output appears in the GUI's embedded terminal.
-- **Start Wallet**: Launches `./KNIRVCHAIN wallet [flags]` based on GUI settings. Output appears in the GUI's embedded terminal.
+- **Start Verifier Blockchain**: Launches `./KNIRVROUTER chain [flags]` based on GUI settings. Output appears in the GUI's embedded terminal.
+- **Start Wallet**: Launches `./KNIRVROUTER wallet [flags]` based on GUI settings. Output appears in the GUI's embedded terminal.
 - **Generate Wallet**: Creates a new wallet and displays the address, private key, and public key in the GUI.
 - **Start TURN Server**: Initializes and starts the integrated TURN server for P2P communication.
 - **Stop TURN Server**: Stops the running TURN server.
@@ -131,7 +131,7 @@ Configuration is managed through a hierarchy: Command-line Flags > Environment V
 |-----------|---------------|-----------------|----------------------|---------------|-------------|
 | Verifier Node Port | --port | | PORT | 5000 | Port for the verifier blockchain node. |
 | Wallet Port | | --port | WALLET_PORT | 8080 | Port for the wallet server API. |
-| Miner's Address | --miners_address | | MINERS_ADDRESS | KNIRVCHAIN-... | Address receiving mining rewards. |
+| Miner's Address | --miners_address | | MINERS_ADDRESS | KNIRVROUTER-... | Address receiving mining rewards. |
 | Node Address | | --node_address | BLOCKCHAIN_NODE_ADDRESS | http://127.0.0.1:5000 | URL for wallet server to connect to verifier node. |
 | Database Path | --dbpath | | BLOCKCHAIN_DB_PATH | Standard App Data Dir | Path to the LevelDB database directory. |
 | Mining Difficulty | | | MINING_DIFFICULTY | 3 | PoW difficulty target. |
@@ -146,9 +146,9 @@ Note 1: When launching webgui via the command line, the --port flag is primary. 
 
 If --dbpath (for chain) or BLOCKCHAIN_DB_PATH (for webgui launched by Fyne GUI) are not provided, the application defaults to standard OS-specific application data directories:
 
-Linux: ~/.config/KNIRVCHAIN/data/
-macOS: ~/Library/Application Support/KNIRVCHAIN/data/
-Windows: %APPDATA%\KNIRVCHAIN\data\ (e.g., C:\Users\<User>\AppData\Roaming\KNIRVCHAIN\data\)
+Linux: ~/.config/KNIRVROUTER/data/
+macOS: ~/Library/Application Support/KNIRVROUTER/data/
+Windows: %APPDATA%\KNIRVROUTER\data\ (e.g., C:\Users\<User>\AppData\Roaming\KNIRVROUTER\data\)
 
 Within this base directory:
 
@@ -161,7 +161,7 @@ Within this base directory:
 You can create a test.env file in the project root to set environment variables easily during development:
 
 
-MINERS_ADDRESS=KNIRVCHAIN-3dd025e8fec7eda7cdd012ddde9c8e978ee7fa33
+MINERS_ADDRESS=KNIRVROUTER-3dd025e8fec7eda7cdd012ddde9c8e978ee7fa33
 PORT=5000 # Default for root node
 MINING_DIFFICULTY=3
 MINING_REWARD=100
@@ -172,7 +172,7 @@ CONSENSUS_PAUSE_TIME=60
 ## Project Structure
 
 ```
-KNIRVCHAIN_GO_Verifyer/
+KNIRVROUTER_GO_Verifyer/
 ├── blockchain/         # Core blockchain logic (blocks, mining, PoW, DB interaction)
 ├── blockchainserver/   # HTTP server API for the verifier blockchain node
 ├── constants/          # System-wide constants and default path logic

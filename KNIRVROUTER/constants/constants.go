@@ -2,7 +2,7 @@ package constants
 
 // Constants for the blockchain
 const (
-	BLOCKCHAIN_NAME           = "KNIRVCHAIN"
+	BLOCKCHAIN_NAME           = "KNIRVROUTER"
 	HEX_PREFIX                = "0x"
 	SUCCESS                   = "success"
 	FAILED                    = "failed"
@@ -11,7 +11,7 @@ const (
 	MINING_REWARD             = 1200 * DECIMAL
 	CURRENCY_NAME             = "nrn"
 	DECIMAL                   = 100
-	BLOCKCHAIN_ADDRESS        = "KNIRVCHAIN_Faucet"
+	BLOCKCHAIN_ADDRESS        = "KNIRVROUTER_Faucet"
 	BLOCKCHAIN_KEY            = "blockchain_key"
 	ADDRESS_PREFIX            = "knirvchain"
 	TXN_VERIFICATION_SUCCESS  = "verification_success"

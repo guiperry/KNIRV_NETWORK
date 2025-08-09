@@ -23,6 +23,7 @@ cosmwasm-schema = "1.5"
 # Additional dependencies
 chrono = { version = "0.4", features = ["serde"] }
 log = "0.4"
+fastrand = "2.0"
 
 # Mobile support
 winit = "0.28"

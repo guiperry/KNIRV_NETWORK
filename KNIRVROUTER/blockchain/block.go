@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	constants "KNIRVCHAIN_GO_Verifyer/constants"
-	"KNIRVCHAIN_GO_Verifyer/types"
+	constants "KNIRVROUTER_GO_Verifyer/constants"
+	"KNIRVROUTER_GO_Verifyer/types"
 )
 
 // BlockHeader represents the minimal data needed to verify a block's position in the chain

@@ -14,14 +14,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/knirv/nexus-backend/internal/config"
-	"github.com/knirv/nexus-backend/internal/database"
-	"github.com/knirv/nexus-backend/internal/models"
-	"github.com/knirv/nexus-backend/internal/services/dvemanager"
-	"github.com/knirv/nexus-backend/internal/services/gateway"
-	"github.com/knirv/nexus-backend/internal/services/validation"
-	"github.com/knirv/nexus-backend/pkg/p2p"
-	"github.com/knirv/nexus-backend/pkg/sse"
+	"nexus-backend/internal/config"
+	"nexus-backend/internal/database"
+	"nexus-backend/internal/models"
+	"nexus-backend/internal/services/dvemanager"
+	"nexus-backend/internal/services/validation"
+	"nexus-backend/pkg/p2p"
+	"nexus-backend/pkg/sse"
 )
 
 // TestSuite represents the integration test suite
@@ -30,7 +29,6 @@ type TestSuite struct {
 	p2pManager     *p2p.DVEP2PManager
 	dveManager     *dvemanager.DVEManager
 	validationCore *validation.ValidationCore
-	apiGateway     *gateway.APIGateway
 	sseManager     *sse.SSEManager
 	config         *config.Config
 	router         *gin.Engine
@@ -80,21 +78,15 @@ func SetupTestSuite(t *testing.T) *TestSuite {
 	// Initialize SSE Manager
 	sseManager := sse.NewSSEManager()
 
-	// Initialize API Gateway
-	apiGateway, err := gateway.NewAPIGateway(db.GetDB(), sseManager, cfg)
-	require.NoError(t, err)
-
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	apiGateway.SetupRoutes(router)
 
 	return &TestSuite{
 		db:             db,
 		p2pManager:     p2pManager,
 		dveManager:     dveManager,
 		validationCore: validationCore,
-		apiGateway:     apiGateway,
 		sseManager:     sseManager,
 		config:         cfg,
 		router:         router,

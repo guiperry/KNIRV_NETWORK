@@ -8,10 +8,11 @@ import (
 	"sync"
 	"time"
 
+	"nexus-backend/internal/config"
+	"nexus-backend/internal/models"
+	"nexus-backend/pkg/p2p"
+
 	"github.com/google/uuid"
-	"github.com/knirv/nexus-backend/internal/config"
-	"github.com/knirv/nexus-backend/internal/models"
-	"github.com/knirv/nexus-backend/pkg/p2p"
 	"github.com/tidwall/buntdb"
 )
 
@@ -577,4 +578,35 @@ func (dm *DVEManager) calculateNetworkLatency() float64 {
 func (dm *DVEManager) calculateTEEHealthScore() float64 {
 	// TODO: Implement actual TEE health score calculation
 	return 0.95 // Placeholder
+}
+
+// GetAllNodes returns all nodes managed by the DVE Manager
+func (dm *DVEManager) GetAllNodes() []*models.DVENode {
+	dm.mu.RLock()
+	defer dm.mu.RUnlock()
+
+	if dm.nodeTracker == nil {
+		return []*models.DVENode{}
+	}
+
+	dm.nodeTracker.mu.RLock()
+	defer dm.nodeTracker.mu.RUnlock()
+
+	nodes := make([]*models.DVENode, 0, len(dm.nodeTracker.nodes))
+	for _, node := range dm.nodeTracker.nodes {
+		nodes = append(nodes, node)
+	}
+	return nodes
+}
+
+// GetNode returns a specific node by ID
+func (dm *DVEManager) GetNode(nodeID string) (*models.DVENode, bool) {
+	dm.mu.RLock()
+	defer dm.mu.RUnlock()
+
+	if dm.nodeTracker == nil {
+		return nil, false
+	}
+
+	return dm.nodeTracker.GetNode(nodeID)
 }

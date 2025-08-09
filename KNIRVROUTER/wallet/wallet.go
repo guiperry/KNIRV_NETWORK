@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"math/big"
 
-	constants "KNIRVCHAIN_GO_Verifyer/constants"
-	"KNIRVCHAIN_GO_Verifyer/types"
+	constants "KNIRVROUTER_GO_Verifyer/constants"
+	"KNIRVROUTER_GO_Verifyer/types"
 )
 
 type Wallet struct {

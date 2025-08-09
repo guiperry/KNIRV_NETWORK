@@ -1,6 +1,6 @@
-# KNIRVCHAIN Root Chain - URI Generation API Specification
+# KNIRVROUTER Root Chain - URI Generation API Specification
 
-This document outlines the process for peer chains (verifyers) to interact with a KNIRVCHAIN root chain node to request and register new unique resource identifiers (URIs).
+This document outlines the process for peer chains (verifyers) to interact with a KNIRVROUTER root chain node to request and register new unique resource identifiers (URIs).
 
 ## Endpoint
 

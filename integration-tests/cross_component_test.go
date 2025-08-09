@@ -52,7 +52,7 @@ type DataFlowStep struct {
 }
 
 func (suite *CrossComponentTestSuite) SetupSuite() {
-	suite.gatewayURL = "http://localhost:8000"
+	suite.gatewayURL = "http://localhost:8888"
 	suite.httpClient = &http.Client{Timeout: 30 * time.Second}
 
 	// Initialize test data
@@ -75,24 +75,31 @@ func (suite *CrossComponentTestSuite) SetupSuite() {
 }
 
 func (suite *CrossComponentTestSuite) waitForAllServices() {
-	services := []string{"knirvchain", "knirvgraph", "knirvnexus-frontend", "knirvnexus-api-gateway", "knirvroot", "knirvrouter"}
+	services := map[string]string{
+		"knirvroot":    "http://localhost:1317/health",
+		"knirvchain":   "http://localhost:8090/health",
+		"knirvgraph":   "http://localhost:8082/height",
+		"knirvnexus":   "http://localhost:8083/health",
+		"knirvrouter":  "http://localhost:5001/status",
+		"knirvgateway": "http://localhost:8888/gateway/health",
+	}
 
 	suite.T().Log("Waiting for all KNIRV services to be ready...")
 
-	for _, service := range services {
-		suite.T().Logf("Checking service: %s", service)
+	for serviceName, healthURL := range services {
+		suite.T().Logf("Checking service: %s at %s", serviceName, healthURL)
 
 		for i := 0; i < 30; i++ {
-			resp, err := suite.httpClient.Get(fmt.Sprintf("%s/%s/health", suite.gatewayURL, service))
+			resp, err := suite.httpClient.Get(healthURL)
 			if err == nil && resp.StatusCode == http.StatusOK {
 				resp.Body.Close()
-				suite.T().Logf("Service %s is ready", service)
+				suite.T().Logf("Service %s is ready", serviceName)
 				break
 			}
 			if resp != nil {
 				resp.Body.Close()
 			}
-			time.Sleep(1 * time.Second)
+			time.Sleep(2 * time.Second)
 		}
 	}
 
@@ -100,16 +107,35 @@ func (suite *CrossComponentTestSuite) waitForAllServices() {
 }
 
 func (suite *CrossComponentTestSuite) authenticate() {
-	loginData := map[string]string{
-		"username": "admin",
-		"password": "password",
+	// Get testnet authentication token from gateway
+	tokenURL := fmt.Sprintf("%s/auth/testnet-tokens", suite.gatewayURL)
+
+	resp, err := suite.httpClient.Get(tokenURL)
+	if err != nil {
+		suite.T().Fatalf("Failed to get testnet token: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		suite.T().Fatalf("Token request failed with status: %d", resp.StatusCode)
 	}
 
-	resp := suite.makeRequest("POST", "/auth/login", loginData)
-	require.True(suite.T(), resp.Success, "Authentication failed")
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		suite.T().Fatalf("Failed to read token response: %v", err)
+	}
 
-	suite.authToken = resp.Data["token"].(string)
-	suite.T().Log("Authenticated for cross-component testing")
+	var tokenResponse map[string]interface{}
+	if err := json.Unmarshal(body, &tokenResponse); err != nil {
+		suite.T().Fatalf("Failed to parse token response: %v", err)
+	}
+
+	if token, ok := tokenResponse["token"].(string); ok {
+		suite.authToken = token
+		suite.T().Log("Authenticated for cross-component testing with testnet token")
+	} else {
+		suite.T().Fatal("No token found in response")
+	}
 }
 
 func (suite *CrossComponentTestSuite) createTestWallet() {

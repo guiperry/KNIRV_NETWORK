@@ -4,8 +4,8 @@ package p2p
 import (
 	"log"
 
-	"KNIRVCHAIN_GO_Verifyer/blockchain"
-	"KNIRVCHAIN_GO_Verifyer/types"
+	"KNIRVROUTER_GO_Verifyer/blockchain"
+	"KNIRVROUTER_GO_Verifyer/types"
 )
 
 // ConnectBlockchainToP2P sets up the callbacks between the blockchain and P2P manager

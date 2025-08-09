@@ -3,7 +3,7 @@ package validation
 import (
 	"sort"
 
-	"github.com/knirv/nexus-backend/internal/models"
+	"nexus-backend/internal/models"
 )
 
 // AddTask adds a task to the queue

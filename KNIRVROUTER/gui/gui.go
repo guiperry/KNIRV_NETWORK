@@ -17,8 +17,8 @@ import (
 	"sync"
 	"time"
 
-	"KNIRVCHAIN/config"
-	"KNIRVCHAIN/types"
+	"KNIRVROUTER/config"
+	"KNIRVROUTER/types"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -279,7 +279,7 @@ func NewGUI(blockchain *BlockchainStruct, db *LevelDB, discoveryMgr *DiscoveryMa
 		gui.state.walletAddress = wallet.GetAddress()
 	}
 
-	gui.window = gui.app.NewWindow("KNIRVCHAIN - Blockchain Explorer")
+	gui.window = gui.app.NewWindow("KNIRVROUTER - Blockchain Explorer")
 	gui.window.Resize(fyne.NewSize(1200, 800)) // Larger window for more content
 
 	// Initialize UI components
@@ -291,7 +291,7 @@ func NewGUI(blockchain *BlockchainStruct, db *LevelDB, discoveryMgr *DiscoveryMa
 // initUI initializes the user interface components
 func (g *GUI) initUI() {
 	// Create a modern header with logo and status information
-	logoText := canvas.NewText("KNIRVCHAIN", theme.PrimaryColor())
+	logoText := canvas.NewText("KNIRVROUTER", theme.PrimaryColor())
 	logoText.TextSize = 24
 	logoText.TextStyle = fyne.TextStyle{Bold: true}
 

@@ -1,6 +1,6 @@
 package transactionBroadcaster
 
-import "KNIRVCHAIN_GO_Verifyer/types"
+import "KNIRVROUTER_GO_Verifyer/types"
 
 type TransactionAddedEvent struct {
 	Transaction *types.Transaction

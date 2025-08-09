@@ -19,7 +19,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
-	"KNIRVCHAIN_GO_Verifyer/starter"
+	"KNIRVROUTER_GO_Verifyer/starter"
 )
 
 type InstallGUI struct {
@@ -49,7 +49,7 @@ type InstallGUI struct {
 func StartInstallGUI() {
 	myApp := app.New()
 	myApp.Settings().SetTheme(&KnirvchainTheme{Theme: theme.DarkTheme()})
-	window := myApp.NewWindow("KNIRVCHAIN Verifier Node Installation")
+	window := myApp.NewWindow("KNIRVROUTER Verifier Node Installation")
 	window.Resize(fyne.NewSize(800, 600))
 
 	installer := &InstallGUI{
@@ -70,7 +70,7 @@ func (i *InstallGUI) createUI() {
 	// Root endpoint entry
 	i.rootEndpointEntry = widget.NewEntry()
 	i.rootEndpointEntry.SetText("http://localhost:5000") // Default value
-	i.rootEndpointEntry.SetPlaceHolder("Enter KNIRVCHAIN Root endpoint")
+	i.rootEndpointEntry.SetPlaceHolder("Enter KNIRVROUTER Root endpoint")
 
 	// Desired URI entry
 	i.desiredURIEntry = widget.NewEntry()
@@ -84,7 +84,7 @@ func (i *InstallGUI) createUI() {
 	i.progressBar.Value = 0
 
 	// Status label
-	i.statusLabel = widget.NewLabel("Welcome to KNIRVCHAIN Verifier Node Installation")
+	i.statusLabel = widget.NewLabel("Welcome to KNIRVROUTER Verifier Node Installation")
 	i.statusLabel.Wrapping = fyne.TextWrapWord
 
 	// Navigation buttons
@@ -99,7 +99,7 @@ func (i *InstallGUI) createUI() {
 }
 
 func (i *InstallGUI) createMainLayout() fyne.CanvasObject {
-	title := canvas.NewText("KNIRVCHAIN Verifier Node Installation", color.NRGBA{R: 0, G: 180, B: 255, A: 255})
+	title := canvas.NewText("KNIRVROUTER Verifier Node Installation", color.NRGBA{R: 0, G: 180, B: 255, A: 255})
 	title.TextSize = 20
 	title.TextStyle = fyne.TextStyle{Bold: true}
 	title.Alignment = fyne.TextAlignCenter
@@ -173,10 +173,10 @@ func (i *InstallGUI) updateStepContent() {
 }
 
 func (i *InstallGUI) showWelcomeStep() {
-	i.statusLabel.SetText("Welcome to KNIRVCHAIN Verifier Node Installation")
-	i.contentContainer.Add(widget.NewLabel("This installer will guide you through setting up a KNIRVCHAIN Verifier Node."))
+	i.statusLabel.SetText("Welcome to KNIRVROUTER Verifier Node Installation")
+	i.contentContainer.Add(widget.NewLabel("This installer will guide you through setting up a KNIRVROUTER Verifier Node."))
 	i.contentContainer.Add(widget.NewLabel("\nThe installation will:"))
-	i.contentContainer.Add(widget.NewLabel("1. Connect to the KNIRVCHAIN Root"))
+	i.contentContainer.Add(widget.NewLabel("1. Connect to the KNIRVROUTER Root"))
 	i.contentContainer.Add(widget.NewLabel("2. Generate a unique chain URI for this verifier"))
 	i.contentContainer.Add(widget.NewLabel("3. Detect host operating system"))
 	i.contentContainer.Add(widget.NewLabel("4. Register URI handler for knirv:// protocol"))
@@ -185,8 +185,8 @@ func (i *InstallGUI) showWelcomeStep() {
 }
 
 func (i *InstallGUI) showRootEndpointStep() {
-	i.statusLabel.SetText("Connect to KNIRVCHAIN Root")
-	i.contentContainer.Add(widget.NewLabel("Enter the KNIRVCHAIN Root endpoint:"))
+	i.statusLabel.SetText("Connect to KNIRVROUTER Root")
+	i.contentContainer.Add(widget.NewLabel("Enter the KNIRVROUTER Root endpoint:"))
 	i.contentContainer.Add(i.rootEndpointEntry)
 	i.contentContainer.Add(widget.NewLabel("\nEnter your desired URI (optional):"))
 	i.contentContainer.Add(widget.NewLabel("This will be used to request a specific URI from the server."))
@@ -196,10 +196,10 @@ func (i *InstallGUI) showRootEndpointStep() {
 
 func (i *InstallGUI) showGenerateURIStep() {
 	i.statusLabel.SetText("Generating Chain URI")
-	i.contentContainer.Add(widget.NewLabel("Connecting to KNIRVCHAIN Root to generate unique chain URI..."))
+	i.contentContainer.Add(widget.NewLabel("Connecting to KNIRVROUTER Root to generate unique chain URI..."))
 
 	go func() {
-		i.terminal.Append("Connecting to KNIRVCHAIN Root...")
+		i.terminal.Append("Connecting to KNIRVROUTER Root...")
 
 		// Store the desired URI
 		i.desiredURI = i.desiredURIEntry.Text
@@ -308,7 +308,7 @@ func (i *InstallGUI) showConfigurationStep() {
 
 func (i *InstallGUI) showCompletionStep() {
 	i.statusLabel.SetText("Installation Complete")
-	i.contentContainer.Add(widget.NewLabel("Your KNIRVCHAIN Verifier Node is now configured with a unique chain URI."))
+	i.contentContainer.Add(widget.NewLabel("Your KNIRVROUTER Verifier Node is now configured with a unique chain URI."))
 	i.contentContainer.Add(widget.NewLabel(fmt.Sprintf("Chain URI: %s", i.chainURI)))
 	i.contentContainer.Add(widget.NewLabel(fmt.Sprintf("Transaction HashID: %s", i.hashID)))
 	i.contentContainer.Add(widget.NewLabel("\nClick Finish to launch the Verifyer Application..."))

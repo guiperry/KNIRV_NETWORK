@@ -1,7 +1,7 @@
-# KNIRVCHAIN Software Design Document
+# KNIRVROUTER Software Design Document
 
 ## 1. System Overview
-KNIRVCHAIN is a blockchain implementation with:
+KNIRVROUTER is a blockchain implementation with:
 - Proof-of-Work consensus
 - Peer-to-peer networking
 - Wallet functionality

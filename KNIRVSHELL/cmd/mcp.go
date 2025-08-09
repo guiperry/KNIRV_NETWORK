@@ -25,4 +25,5 @@ func init() {
 	mcpCmd.AddCommand(mcp.ProcedureCmd)
 	mcpCmd.AddCommand(mcp.GenerateCmd)
 	mcpCmd.AddCommand(mcp.InvokeCmd)
+	mcpCmd.AddCommand(mcp.NRVCmd) // Enhanced NRV integration
 }

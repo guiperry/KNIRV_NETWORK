@@ -4,17 +4,102 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/spf13/viper"
 )
 
-// Config represents the application configuration
+// ServiceEndpoints represents endpoints for a KNIRV service
+type ServiceEndpoints struct {
+	API          string `mapstructure:"api"`
+	WebSocket    string `mapstructure:"websocket"`
+	Economics    string `mapstructure:"economics"`
+	Health       string `mapstructure:"health"`
+	PoAuD        string `mapstructure:"poaud"`
+	Agentic      string `mapstructure:"agentic"`
+	Inference    string `mapstructure:"inference"`
+	Plugins      string `mapstructure:"plugins"`
+	NRV          string `mapstructure:"nrv"`
+	Graph        string `mapstructure:"graph"`
+	Transactions string `mapstructure:"transactions"`
+}
+
+// ServiceConfig represents configuration for a KNIRV service
+type ServiceConfig struct {
+	URL       string           `mapstructure:"url"`
+	APIKey    string           `mapstructure:"api_key"`
+	Endpoints ServiceEndpoints `mapstructure:"endpoints"`
+	Timeout   time.Duration    `mapstructure:"timeout"`
+	Retries   int              `mapstructure:"retries"`
+	Enabled   bool             `mapstructure:"enabled"`
+}
+
+// NetworkConfig represents network-level configuration
+type NetworkConfig struct {
+	Environment string `mapstructure:"environment"`
+	Discovery   struct {
+		Enabled  bool          `mapstructure:"enabled"`
+		Interval time.Duration `mapstructure:"interval"`
+		Timeout  time.Duration `mapstructure:"timeout"`
+	} `mapstructure:"discovery"`
+}
+
+// ServicesConfig represents all KNIRV services configuration
+type ServicesConfig struct {
+	KNIRVRoot    ServiceConfig `mapstructure:"knirvroot"`
+	KNIRVGateway ServiceConfig `mapstructure:"knirvgateway"`
+	KNIRVNexus   ServiceConfig `mapstructure:"knirvnexus"`
+	KNIRVGraph   ServiceConfig `mapstructure:"knirvgraph"`
+}
+
+// WalletConfig represents wallet configuration
+type WalletConfig struct {
+	Directory string `mapstructure:"directory"`
+	XION      struct {
+		Enabled     bool   `mapstructure:"enabled"`
+		ChainID     string `mapstructure:"chain_id"`
+		MetaAccount bool   `mapstructure:"meta_account"`
+		Gasless     bool   `mapstructure:"gasless"`
+	} `mapstructure:"xion"`
+	NRN struct {
+		Enabled    bool   `mapstructure:"enabled"`
+		FaucetURL  string `mapstructure:"faucet_url"`
+		AutoRefill bool   `mapstructure:"auto_refill"`
+		MinBalance string `mapstructure:"min_balance"`
+	} `mapstructure:"nrn"`
+}
+
+// RealtimeConfig represents real-time communication configuration
+type RealtimeConfig struct {
+	WebSocket struct {
+		Enabled           bool          `mapstructure:"enabled"`
+		ReconnectInterval time.Duration `mapstructure:"reconnect_interval"`
+		MaxRetries        int           `mapstructure:"max_retries"`
+	} `mapstructure:"websocket"`
+	SSE struct {
+		Enabled    bool          `mapstructure:"enabled"`
+		Timeout    time.Duration `mapstructure:"timeout"`
+		BufferSize int           `mapstructure:"buffer_size"`
+	} `mapstructure:"sse"`
+}
+
+// Config represents the enhanced application configuration
 type Config struct {
+	// Legacy fields for backward compatibility
 	NodeURL         string `mapstructure:"node_url"`
 	WalletDirectory string `mapstructure:"wallet_directory"`
 	LogLevel        string `mapstructure:"log_level"`
 	DefaultFee      uint64 `mapstructure:"default_fee"`
-	FileServer      struct {
+
+	// Enhanced configuration
+	KNIRV struct {
+		Network  NetworkConfig  `mapstructure:"network"`
+		Services ServicesConfig `mapstructure:"services"`
+		Wallet   WalletConfig   `mapstructure:"wallet"`
+		Realtime RealtimeConfig `mapstructure:"realtime"`
+	} `mapstructure:"knirv"`
+
+	FileServer struct {
 		Enabled bool   `mapstructure:"enabled"`
 		Port    int    `mapstructure:"port"`
 		BaseURL string `mapstructure:"base_url"`

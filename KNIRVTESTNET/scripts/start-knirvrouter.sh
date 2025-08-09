@@ -21,13 +21,13 @@ echo "Starting KNIRV-ROUTER with testnet features..."
     --testnet \
     --local-network \
     --mock-nrn \
-    --port 5001 \
+    --port 8086 \
     --miners_address KNIRVROUTER_Testnet_Miner \
     > ./logs/knirvrouter.log 2>&1 &
 
 echo $! > ./data/knirvrouter.pid
 echo "KNIRV-ROUTER testnet started with PID $(cat ./data/knirvrouter.pid)"
-echo "API endpoint: http://localhost:5001"
+echo "API endpoint: http://localhost:8086"
 echo "Testnet features:"
 echo "  - Local network mode enabled"
 echo "  - Mock NRN minting enabled"

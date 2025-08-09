@@ -6,9 +6,9 @@ echo "Starting KNIRV-GATEWAY testnet node..."
 # Create necessary directories
 mkdir -p logs data
 
-# Check if gateway directory exists
+# Check if testnet gateway directory exists
 if [ ! -d "./data/knirvgateway" ]; then
-    echo "Error: KNIRV-GATEWAY not built. Please run build-knirvgateway.sh first."
+    echo "Error: KNIRV-GATEWAY testnet version not found. Please run build-knirvgateway.sh first."
     exit 1
 fi
 
@@ -24,8 +24,8 @@ if ! command -v npm &> /dev/null; then
     exit 1
 fi
 
-# Start KNIRV-GATEWAY with Netlify Dev
-echo "Starting KNIRV-GATEWAY with testnet configuration..."
+# Navigate to testnet gateway directory
+echo "Starting KNIRV-GATEWAY testnet version..."
 cd data/knirvgateway
 
 # Install dependencies if needed
@@ -34,30 +34,32 @@ if [ ! -d "node_modules" ]; then
     npm install
 fi
 
-# Set testnet environment variables
+# Set testnet environment variables with correct service URLs
 export TESTNET_MODE=true
 export NODE_ENV=testnet
 export KNIRVROOT_URL=http://localhost:1317
-export KNIRVCHAIN_URL=http://localhost:8090
+export KNIRVCHAIN_URL=http://localhost:8083
 export KNIRVGRAPH_URL=http://localhost:8082
-export KNIRVNEXUS_URL=http://localhost:8084
-export KNIRVROUTER_URL=http://localhost:5001
+export KNIRVNEXUS_DVE_URL=http://localhost:8084
+export KNIRVNEXUS_VAL_URL=http://localhost:8085
+export KNIRVROUTER_URL=http://localhost:8086
 
-# Start Netlify Dev server
-echo "Starting Netlify Dev server on port 8888..."
-npx netlify dev --port 8888 --targetPort 3001 > ../../logs/knirvgateway.log 2>&1 &
+# Start KNIRV-GATEWAY using npm start with specified port
+echo "Starting KNIRV-GATEWAY on port 8087..."
+npx netlify dev --port 8087 > ../../logs/knirvgateway.log 2>&1 &
 
-echo $! > ../../data/knirvgateway.pid
+GATEWAY_PID=$!
+echo $GATEWAY_PID > ../../data/knirvgateway.pid
 cd ../..
 
 echo "KNIRV-GATEWAY testnet started with PID $(cat ./data/knirvgateway.pid)"
-echo "Gateway endpoint: http://localhost:8888"
+echo "Gateway endpoint: http://localhost:8087"
 echo "Testnet endpoints:"
-echo "  - Health: http://localhost:8888/gateway/health"
-echo "  - Services: http://localhost:8888/gateway/services"
-echo "  - Testnet Status: http://localhost:8888/gateway/testnet/status"
-echo "  - Auth Tokens: http://localhost:8888/auth/testnet-tokens"
-echo "  - Auth Validate: http://localhost:8888/auth/validate"
+echo "  - Health: http://localhost:8087/gateway/health"
+echo "  - Services: http://localhost:8087/gateway/services"
+echo "  - Testnet Status: http://localhost:8087/gateway/testnet/status"
+echo "  - Auth Tokens: http://localhost:8087/auth/testnet-tokens"
+echo "  - Auth Validate: http://localhost:8087/auth/validate"
 echo "Testnet features:"
 echo "  - Static service discovery enabled"
 echo "  - Simplified authentication enabled"

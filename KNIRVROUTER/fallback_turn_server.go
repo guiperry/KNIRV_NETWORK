@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"sync"
 
-	"KNIRVCHAIN_GO_Verifyer/config"
+	"KNIRVROUTER_GO_Verifyer/config"
 
 	"github.com/gorilla/mux"
 	"github.com/pion/turn/v2"

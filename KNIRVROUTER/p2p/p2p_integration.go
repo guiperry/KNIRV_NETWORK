@@ -3,9 +3,9 @@ package p2p
 import (
 	"log"
 
-	"KNIRVCHAIN_GO_Verifyer/blockchain"
-	"KNIRVCHAIN_GO_Verifyer/constants"
-	"KNIRVCHAIN_GO_Verifyer/types"
+	"KNIRVROUTER_GO_Verifyer/blockchain"
+	"KNIRVROUTER_GO_Verifyer/constants"
+	"KNIRVROUTER_GO_Verifyer/types"
 )
 
 // InitializeP2PConsensus initializes the P2P consensus manager with the blockchain

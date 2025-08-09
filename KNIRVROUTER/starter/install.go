@@ -18,7 +18,7 @@ import (
 	"github.com/pion/stun"
 )
 
-// URIResponse represents the response from the KNIRVCHAIN Root's /uriGenerator endpoint
+// URIResponse represents the response from the KNIRVROUTER Root's /uriGenerator endpoint
 type URIResponse struct {
 	TxnHash string `json:"txn_hash"`
 	URI     string `json:"uri"`
@@ -28,11 +28,11 @@ type URIResponse struct {
 type ConfigData map[string]string
 
 func Install() {
-	fmt.Println("=== KNIRVCHAIN Verifier Node Installation ===")
+	fmt.Println("=== KNIRVROUTER Verifier Node Installation ===")
 	fmt.Println("This installer will:")
-	fmt.Println("1. Connect to the KNIRVCHAIN Root")
+	fmt.Println("1. Connect to the KNIRVROUTER Root")
 	fmt.Println("2. Generate a unique chain URI for this verifier")
-	fmt.Println("3. Register with KNIRVCHAIN Node Registry")
+	fmt.Println("3. Register with KNIRVROUTER Node Registry")
 	fmt.Println("4. Detect host operating system")
 	fmt.Println("5. Register URI handler for knirv:// protocol")
 	fmt.Println("6. Set up the verifier node to start on system boot")
@@ -40,7 +40,7 @@ func Install() {
 	fmt.Println("8. Start the verifier node")
 	fmt.Println()
 
-	// Step 1: Connect to KNIRVCHAIN Root
+	// Step 1: Connect to KNIRVROUTER Root
 	rootEndpoint := promptForRootEndpoint()
 
 	// Prompt for desired URI (optional)
@@ -54,7 +54,7 @@ func Install() {
 	fmt.Printf("Successfully generated chain URI: %s\n", chainURI)
 	fmt.Printf("Transaction Hash ID: %s\n", hashID)
 
-	// Step 3: Register with KNIRVCHAIN Node Registry
+	// Step 3: Register with KNIRVROUTER Node Registry
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3001"
@@ -76,7 +76,7 @@ func Install() {
 		log.Printf("Warning: Failed to register with node registry: %v", err)
 		fmt.Println("You can register manually later using the registry API.")
 	} else {
-		fmt.Println("Successfully registered with KNIRVCHAIN Node Registry")
+		fmt.Println("Successfully registered with KNIRVROUTER Node Registry")
 	}
 
 	// Step 4: Detect host operating system
@@ -128,7 +128,7 @@ func Install() {
 	fmt.Println("Configuration updated successfully.")
 
 	fmt.Println("\n=== Installation Complete ===")
-	fmt.Println("Your KNIRVCHAIN Verifier Node is now configured with a unique chain URI.")
+	fmt.Println("Your KNIRVROUTER Verifier Node is now configured with a unique chain URI.")
 	fmt.Println("Launching the Verifier Node Manager...")
 
 	// Launch the application in a new process (will start Fyne GUI by default)
@@ -196,11 +196,11 @@ func LaunchAfterInstall() error {
 	return nil
 }
 
-// promptForRootEndpoint prompts the user for the KNIRVCHAIN Root endpoint
+// promptForRootEndpoint prompts the user for the KNIRVROUTER Root endpoint
 func promptForRootEndpoint() string {
 	defaultEndpoint := "http://localhost:5000"
 
-	fmt.Printf("Enter the KNIRVCHAIN Root endpoint [default: %s]: ", defaultEndpoint)
+	fmt.Printf("Enter the KNIRVROUTER Root endpoint [default: %s]: ", defaultEndpoint)
 	var endpoint string
 	fmt.Scanln(&endpoint)
 
@@ -227,7 +227,7 @@ func promptForDesiredURI() string {
 	return strings.TrimSpace(input)
 }
 
-// generateChainURI connects to the KNIRVCHAIN Root and generates a unique chain URI
+// generateChainURI connects to the KNIRVROUTER Root and generates a unique chain URI
 // If desiredURI is not empty, it will be passed to the server as a request parameter
 func GenerateChainURI(rootEndpoint string, desiredURI string) (string, string, error) {
 	// Construct the URI generator endpoint
@@ -260,13 +260,13 @@ func GenerateChainURI(rootEndpoint string, desiredURI string) (string, string, e
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "KNIRVCHAIN-Verifier-Installer/1.0")
+	req.Header.Set("User-Agent", "KNIRVROUTER-Verifier-Installer/1.0")
 
 	// Send the request
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("HTTP request failed: %v", err)
-		return "", "", fmt.Errorf("failed to connect to KNIRVCHAIN Root: %w", err)
+		return "", "", fmt.Errorf("failed to connect to KNIRVROUTER Root: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -388,7 +388,7 @@ func createDefaultEnvFile(envPath, serviceAddress, rootEndpoint string) error {
 		// Add other default values as needed
 		"MINERS_ADDRESS":    "knirvchain3dd025e8fec7eda7cdd012ddde9c8e978ee7fa33",
 		"DATABASE_PATH":     "database/knirv.db",
-		"BLOCKCHAIN_NAME":   "KNIRVCHAIN",
+		"BLOCKCHAIN_NAME":   "KNIRVROUTER",
 		"MINING_DIFFICULTY": "5",
 		"MINING_REWARD":     "1200",
 		"CURRENCY_NAME":     "nrn",
@@ -416,7 +416,7 @@ func RegisterURIHandlers(chainURI string) error {
 	schemes := []URIScheme{
 		{
 			Name:        "knirv",
-			Description: "KNIRVCHAIN Decentralized Protocol",
+			Description: "KNIRVROUTER Decentralized Protocol",
 		},
 	}
 
@@ -480,10 +480,10 @@ func DiscoverPublicAddress() (string, string, error) {
 	return publicAddr.IP.String(), fmt.Sprintf("%d", publicAddr.Port), nil
 }
 
-// RegisterWithNodeRegistry registers this node with the KNIRVCHAIN Node Registry
+// RegisterWithNodeRegistry registers this node with the KNIRVROUTER Node Registry
 func RegisterWithNodeRegistry(chainURI, ip, port string) error {
-	// TODO: Implement actual registration with KNIRVCHAIN Node Registry API
+	// TODO: Implement actual registration with KNIRVROUTER Node Registry API
 	// This is a placeholder implementation
-	fmt.Printf("Registering node %s at %s:%s with KNIRVCHAIN Node Registry\n", chainURI, ip, port)
+	fmt.Printf("Registering node %s at %s:%s with KNIRVROUTER Node Registry\n", chainURI, ip, port)
 	return nil
 }

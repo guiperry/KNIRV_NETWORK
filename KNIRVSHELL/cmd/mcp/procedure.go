@@ -209,10 +209,7 @@ func registerProcedure(cmd *cobra.Command, args []string) error {
 	}
 
 	// Create wallet manager
-	walletManager, err := core.NewWalletManager(filepath.Dir(walletPath))
-	if err != nil {
-		return fmt.Errorf("failed to create wallet manager: %w", err)
-	}
+	walletManager := core.NewWalletManager(filepath.Dir(walletPath), log)
 
 	// Load wallet
 	log.Info("Loading wallet...")

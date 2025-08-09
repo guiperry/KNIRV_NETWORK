@@ -1,7 +1,7 @@
 package walletserver
 
 import (
-	"KNIRVCHAIN_GO_Verifyer/constants"
+	"KNIRVROUTER_GO_Verifyer/constants"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -9,8 +9,8 @@ import (
 	"log"
 	"net/http"
 
-	"KNIRVCHAIN_GO_Verifyer/types"
-	"KNIRVCHAIN_GO_Verifyer/wallet"
+	"KNIRVROUTER_GO_Verifyer/types"
+	"KNIRVROUTER_GO_Verifyer/wallet"
 )
 
 type WalletServer struct {

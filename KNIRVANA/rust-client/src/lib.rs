@@ -34,6 +34,9 @@ pub mod systems;
 pub mod resources;
 pub mod networking;
 pub mod mobile;
+pub mod knirvana_systems;
+pub mod knirvana_ui;
+pub mod nrn_economics;
 
 // Re-export commonly used types
 pub use game_engine::*;
@@ -42,6 +45,9 @@ pub use systems::*;
 pub use resources::*;
 pub use networking::*;
 pub use mobile::*;
+pub use knirvana_systems::*;
+pub use knirvana_ui::*;
+pub use nrn_economics::*;
 
 // Re-export Bevy for convenience
 pub use bevy::prelude::*;

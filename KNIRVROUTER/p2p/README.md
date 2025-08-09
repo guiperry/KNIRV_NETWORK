@@ -1,11 +1,11 @@
-# P2P Network for KNIRVCHAIN Verifier Nodes
+# P2P Network for KNIRVROUTER Verifier Nodes
 
-This package implements the peer-to-peer networking layer for KNIRVCHAIN Verifier nodes, enabling them to communicate, share transactions, and maintain consensus on the private chain.
+This package implements the peer-to-peer networking layer for KNIRVROUTER Verifier nodes, enabling them to communicate, share transactions, and maintain consensus on the private chain.
 
 ## Core Features
 
 - **Decentralized Hash Table (DHT)**: Uses libp2p's Kademlia DHT for peer discovery and content routing.
-- **knirv:// URI Scheme**: Supports the new unified URI scheme for all KNIRVCHAIN resources.
+- **knirv:// URI Scheme**: Supports the new unified URI scheme for all KNIRVROUTER resources.
 - **Peer Discovery**: Nodes can discover other nodes in the network through DHT, bootstrap nodes, and peer exchange.
 - **Message Protocol**: Supports various message types for transaction broadcasting, block propagation, and network maintenance.
 - **Connection Management**: Handles establishing connections, maintaining them, and gracefully handling disconnections.

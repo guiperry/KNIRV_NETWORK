@@ -3,19 +3,19 @@ set -e
 
 echo "Building KNIRV-ROUTER for testnet..."
 
-# Use existing KNIRV-ROUTER binary
-echo "Using existing KNIRV-ROUTER binary..."
-if [ -f "../KNIRVROUTER/bin/knirvrouter" ]; then
-    cp ../KNIRVROUTER/bin/knirvrouter bin/knirvrouter
-    echo "✅ Copied existing KNIRV-ROUTER binary"
+# Use existing KNIRV-ROUTER headless binary
+echo "Using existing KNIRV-ROUTER headless binary..."
+if [ -f "../KNIRVROUTER/bin/knirvrouter-headless" ]; then
+    cp ../KNIRVROUTER/bin/knirvrouter-headless bin/knirvrouter
+    echo "✅ Copied existing KNIRV-ROUTER headless binary"
 else
-    echo "⚠️  No existing binary found. Building KNIRV-ROUTER with testnet features..."
+    echo "⚠️  No existing headless binary found. Building KNIRV-ROUTER with headless mode..."
     cd ../KNIRVROUTER
     go mod tidy
-    go build -tags testnet -o knirvrouter ./main.go
-    cp knirvrouter ../KNIRVTESTNET/bin/
+    go build -tags headless -o knirvrouter-headless ./main_headless.go
+    cp knirvrouter-headless ../KNIRVTESTNET/bin/knirvrouter
     cd ../KNIRVTESTNET
-    echo "✅ Built and copied KNIRV-ROUTER binary"
+    echo "✅ Built and copied KNIRV-ROUTER headless binary"
 fi
 
 # Create testnet data directories

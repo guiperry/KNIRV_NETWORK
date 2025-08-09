@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/knirv/nexus-backend/internal/config"
+	"nexus-backend/internal/config"
 )
 
 // Server represents the GUI server for serving the Next.js frontend

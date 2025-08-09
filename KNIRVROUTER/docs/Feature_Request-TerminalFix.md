@@ -63,7 +63,7 @@ func addLogLine(line string, isError bool) {
 
 func main() {
 	myApp := app.New()
-	myWindow := myApp.NewWindow("KNIRVCHAIN Console")
+	myWindow := myApp.NewWindow("KNIRVROUTER Console")
 
 	// --- Log Display Widget (List is convenient) ---
 	logList = widget.NewList(
@@ -99,9 +99,9 @@ func main() {
 		// cmd := exec.Command(cmdPath)
 
 		// Option 2: Use 'go run' (slower startup)
-		cmdPath := "/home/gperry/Documents/GitHub/KNIRVCHAIN_GO_Verifyer/main.go" // Adjust if main is elsewhere
+		cmdPath := "/home/gperry/Documents/GitHub/KNIRVROUTER_GO_Verifyer/main.go" // Adjust if main is elsewhere
 		cmd := exec.Command("go", "run", cmdPath)
-		cmd.Dir = "/home/gperry/Documents/GitHub/KNIRVCHAIN_GO_Verifyer" // Set working directory if needed
+		cmd.Dir = "/home/gperry/Documents/GitHub/KNIRVROUTER_GO_Verifyer" // Set working directory if needed
 
 		stdoutPipe, _ := cmd.StdoutPipe()
 		stderrPipe, _ := cmd.StderrPipe()

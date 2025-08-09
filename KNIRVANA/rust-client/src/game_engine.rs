@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy_rapier3d::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

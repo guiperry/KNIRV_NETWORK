@@ -20,6 +20,8 @@ type URIScheme struct {
 
 // registerURISchemes registers multiple URI schemes on the current operating system
 func registerURISchemes(schemes []URIScheme) error {
+	log.Printf("Registering URI schemes: %s", getSchemeList(schemes))
+
 	osType := runtime.GOOS
 	executablePath, err := os.Executable()
 	if err != nil {
@@ -83,7 +85,7 @@ func findInfoPlist(executablePath string) (string, error) {
 		// Maybe executable is directly in Contents?
 		contentsDir = baseDir
 	}
-	
+
 	// Check if we are likely inside Contents
 	if filepath.Base(contentsDir) == "Contents" || filepath.Base(filepath.Dir(contentsDir)) == "Contents" {
 		bundleDir := filepath.Dir(contentsDir) // Should be YourApp.app
@@ -99,7 +101,7 @@ func findInfoPlist(executablePath string) (string, error) {
 		log.Printf("Warning: Found Info.plist next to executable (%s), not in standard bundle structure.", altPath)
 		return altPath, nil
 	}
-	
+
 	// Final fallback: Check current dir (original behavior, but unreliable)
 	cwdPath := "Info.plist"
 	if _, err := os.Stat(cwdPath); err == nil {
@@ -109,7 +111,6 @@ func findInfoPlist(executablePath string) (string, error) {
 
 	return "", fmt.Errorf("Info.plist not found relative to executable %s or in CWD. macOS URI registration requires a bundled application with Info.plist", executablePath)
 }
-
 
 // registerURISchemesMacOS registers multiple URI schemes on macOS
 // Takes executablePath as argument
@@ -194,7 +195,7 @@ func registerURISchemesLinux(schemes []URIScheme, executablePath string) error {
 		desktopFileName := fmt.Sprintf("knirvchain-verifyer-%s.desktop", scheme.Name) // Unique name per scheme
 		desktopFilePath := filepath.Join(applicationsDir, desktopFileName)
 		desktopFileContent := fmt.Sprintf(`[Desktop Entry]
-Name=KNIRVCHAIN Verifyer (%s)
+Name=KNIRVROUTER Verifyer (%s)
 Comment=%s
 Exec=%s %%u
 Type=Application
@@ -256,8 +257,8 @@ func CheckAdminPrivileges() bool {
 	switch runtime.GOOS {
 	case "windows":
 		_, err := os.Open("\\\\.\\PHYSICALDRIVE0")
-        // More reliable check: attempt to open a restricted resource.
-        // net session requires network service running and might fail for other reasons.
+		// More reliable check: attempt to open a restricted resource.
+		// net session requires network service running and might fail for other reasons.
 		// Alternative: Check if the process token has the Administrators SID. Requires windows-specific API calls.
 		return err == nil // If opening succeeds, likely admin. Crude but often works.
 	case "linux", "darwin":
@@ -266,7 +267,6 @@ func CheckAdminPrivileges() bool {
 		return false
 	}
 }
-
 
 // getSchemeList returns a formatted list of schemes for display
 func getSchemeList(schemes []URIScheme) string {

@@ -1,0 +1,190 @@
+# Enhanced KNIRVSHELL Configuration
+# This configuration demonstrates the full KNIRV Network integration capabilities
+
+# Legacy configuration (for backward compatibility)
+node_url: "http://localhost:8545"
+wallet_directory: "~/.knirv/wallets"
+log_level: "info"
+default_fee: 1000000000000000
+
+# Enhanced KNIRV Network Configuration
+knirv:
+  # Network-level configuration
+  network:
+    environment: "development"  # development, staging, production
+    discovery:
+      enabled: true
+      interval: "30s"
+      timeout: "10s"
+  
+  # KNIRV Network Services Configuration
+  services:
+    # KNIRVROOT - Blockchain and Economics Hub
+    knirvroot:
+      url: "http://localhost:9999"
+      enabled: true
+      timeout: "30s"
+      retries: 3
+      api_key: "${KNIRV_ROOT_API_KEY}"
+      endpoints:
+        api: "/api/v1"
+        websocket: "/ws"
+        economics: "/economics"
+    
+    # KNIRVGATEWAY - Unified API Gateway
+    knirvgateway:
+      url: "https://gateway.knirv.network"
+      enabled: true
+      timeout: "30s"
+      retries: 3
+      api_key: "${KNIRV_GATEWAY_API_KEY}"
+      endpoints:
+        economics: "/economics"
+        health: "/health"
+        poaud: "/poaud"
+    
+    # KNIRVNEXUS - Distributed Virtual Environments
+    knirvnexus:
+      url: "http://localhost:8080"
+      enabled: true
+      timeout: "30s"
+      retries: 3
+      endpoints:
+        agentic: "/agentic"
+        inference: "/inference"
+        plugins: "/plugins"
+    
+    # KNIRVGRAPH - Network Resolution Vector System
+    knirvgraph:
+      url: "http://localhost:7080"
+      enabled: true
+      timeout: "30s"
+      retries: 3
+      endpoints:
+        nrv: "/nrv"
+        graph: "/graph"
+        transactions: "/transactions"
+  
+  # Enhanced Wallet Configuration
+  wallet:
+    directory: "~/.knirv/wallets"
+    
+    # XION Meta Account Integration
+    xion:
+      enabled: true
+      chain_id: "knirv-mainnet-1"
+      meta_account: true
+      gasless: true
+    
+    # NRN Token Management
+    nrn:
+      enabled: true
+      faucet_url: "http://localhost:9999/faucet"
+      auto_refill: true
+      min_balance: "1000"
+  
+  # Real-time Communication Configuration
+  realtime:
+    # WebSocket Configuration
+    websocket:
+      enabled: true
+      reconnect_interval: "5s"
+      max_retries: 3
+    
+    # Server-Sent Events Configuration
+    sse:
+      enabled: true
+      timeout: "30s"
+      buffer_size: 1024
+
+# File Server Configuration
+file_server:
+  enabled: false
+  port: 8080
+  base_url: "http://localhost:8080"
+
+# AI Integration Configuration
+ai:
+  provider: "openai"
+  api_key: "${OPENAI_API_KEY}"
+  base_url: ""
+  default_model: "gpt-4"
+  max_tokens: 4000
+  temperature: 0.7
+
+# Terminal UI Configuration
+ui:
+  enable_tui: true
+  theme: "default"
+  color_mode: "256"
+  show_icons: true
+  animation_speed: 100
+  compact_mode: false
+
+# Environment-specific configurations can be set using environment variables:
+# 
+# Development Environment:
+# export KNIRV_NETWORK_ENVIRONMENT=development
+# export KNIRV_ROOT_API_KEY=dev_key_123
+# export KNIRV_GATEWAY_API_KEY=dev_gateway_key_456
+# 
+# Production Environment:
+# export KNIRV_NETWORK_ENVIRONMENT=production
+# export KNIRV_ROOT_API_KEY=prod_key_789
+# export KNIRV_GATEWAY_API_KEY=prod_gateway_key_012
+# export KNIRV_SERVICES_KNIRVROOT_URL=https://root.knirv.network
+# export KNIRV_SERVICES_KNIRVNEXUS_URL=https://nexus.knirv.network
+# export KNIRV_SERVICES_KNIRVGRAPH_URL=https://graph.knirv.network
+
+# Advanced Configuration Examples:
+#
+# Custom Service Endpoints:
+# knirv:
+#   services:
+#     knirvroot:
+#       endpoints:
+#         api: "/api/v2"
+#         websocket: "/realtime"
+#         economics: "/econ"
+#         custom_endpoint: "/custom"
+#
+# Multiple Environment Support:
+# knirv:
+#   network:
+#     environment: "${KNIRV_ENV:-development}"
+#   services:
+#     knirvroot:
+#       url: "${KNIRV_ROOT_URL:-http://localhost:9999}"
+#
+# Advanced Real-time Configuration:
+# knirv:
+#   realtime:
+#     websocket:
+#       enabled: true
+#       reconnect_interval: "3s"
+#       max_retries: 5
+#       ping_interval: "30s"
+#       pong_timeout: "10s"
+#     sse:
+#       enabled: true
+#       timeout: "60s"
+#       buffer_size: 2048
+#       retry_interval: "5s"
+#
+# Advanced Wallet Configuration:
+# knirv:
+#   wallet:
+#     xion:
+#       enabled: true
+#       chain_id: "knirv-mainnet-1"
+#       meta_account: true
+#       gasless: true
+#       rpc_endpoint: "https://rpc.xion.network"
+#       api_endpoint: "https://api.xion.network"
+#     nrn:
+#       enabled: true
+#       faucet_url: "https://faucet.knirv.network"
+#       auto_refill: true
+#       min_balance: "5000"
+#       max_refill_amount: "10000"
+#       refill_threshold: "1000"

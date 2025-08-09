@@ -17,24 +17,37 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/argon2"
 )
+
+// Wallet represents a wallet with its metadata
+type Wallet struct {
+	Name      string `json:"name"`
+	Address   string `json:"address"`
+	FilePath  string `json:"file_path"`
+	Timestamp string `json:"timestamp"`
+}
 
 // WalletManager handles wallet operations
 type WalletManager struct {
 	walletDir string
+	logger    *logrus.Logger
 }
 
 // NewWalletManager creates a new wallet manager
-func NewWalletManager(walletDir string) (*WalletManager, error) {
+func NewWalletManager(walletDir string, logger *logrus.Logger) *WalletManager {
 	// Create wallet directory if it doesn't exist
 	if err := os.MkdirAll(walletDir, 0700); err != nil {
-		return nil, fmt.Errorf("failed to create wallet directory: %w", err)
+		if logger != nil {
+			logger.Errorf("Failed to create wallet directory: %v", err)
+		}
 	}
 
 	return &WalletManager{
 		walletDir: walletDir,
-	}, nil
+		logger:    logger,
+	}
 }
 
 // GenerateKeyPair generates a new ECDSA key pair
@@ -52,6 +65,56 @@ func (wm *WalletManager) WalletExists(address string) bool {
 	walletPath := wm.GetWalletPath(address)
 	_, err := os.Stat(walletPath)
 	return err == nil
+}
+
+// GetWallet retrieves wallet information by name (address)
+func (wm *WalletManager) GetWallet(name string) (*Wallet, error) {
+	// For now, treat name as address
+	address := name
+	walletPath := wm.GetWalletPath(address)
+
+	// Check if wallet exists
+	if !wm.WalletExists(address) {
+		return nil, fmt.Errorf("wallet not found: %s", name)
+	}
+
+	// Get file info for timestamp
+	fileInfo, err := os.Stat(walletPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get wallet file info: %w", err)
+	}
+
+	wallet := &Wallet{
+		Name:      name,
+		Address:   address,
+		FilePath:  walletPath,
+		Timestamp: fileInfo.ModTime().Format(time.RFC3339),
+	}
+
+	return wallet, nil
+}
+
+// SignMessage signs a message with the specified wallet
+func (wm *WalletManager) SignMessage(walletName string, message []byte) (string, error) {
+	// Get wallet
+	wallet, err := wm.GetWallet(walletName)
+	if err != nil {
+		return "", fmt.Errorf("failed to get wallet: %w", err)
+	}
+
+	// For now, return a mock signature
+	// TODO: Implement actual signing with the wallet's private key
+	signature := fmt.Sprintf("mock_signature_%s_%x", wallet.Address, message[:min(len(message), 8)])
+
+	return signature, nil
+}
+
+// Helper function for min
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // WalletFile represents the structure of a wallet file

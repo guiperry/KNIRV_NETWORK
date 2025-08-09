@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"KNIRVCHAIN_GO_Verifyer/blockchain"
-	"KNIRVCHAIN_GO_Verifyer/constants"
-	"KNIRVCHAIN_GO_Verifyer/types"
+	"KNIRVROUTER_GO_Verifyer/blockchain"
+	"KNIRVROUTER_GO_Verifyer/constants"
+	"KNIRVROUTER_GO_Verifyer/types"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -513,7 +513,7 @@ func (pcm *P2PConsensusManager) handleBlocksRequest(startAfter uint64, limit uin
 	}
 }
 
-// requestChainFromPeers requests blockchain data from KNIRVCHAIN peers
+// requestChainFromPeers requests blockchain data from KNIRVROUTER peers
 func (pcm *P2PConsensusManager) requestChainFromPeers() {
 	// --- Prevent Concurrent Sync Runs (within this node) ---
 	pcm.mu.Lock()
@@ -557,7 +557,7 @@ func (pcm *P2PConsensusManager) requestChainFromPeers() {
 
 	log.Printf("[%s] Starting P2P chain sync check with %d potential Knirvchain peer(s)", pcm.blockchain.ChainID, len(knirvPeersInfo))
 
-	// --- Iterate through KNIRVCHAIN peers only ---
+	// --- Iterate through KNIRVROUTER peers only ---
 	for _, peerInfo := range knirvPeersInfo {
 		peerID := peerInfo.ID // Extract PeerID from AddrInfo
 		if peerID == pcm.host.ID() {

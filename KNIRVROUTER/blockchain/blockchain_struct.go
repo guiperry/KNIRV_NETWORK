@@ -1,4 +1,4 @@
-// /home/gperry/Documents/GitHub/KNIRVCHAIN_GO_Verifyer/blockchain/blockchain_struct.go
+// /home/gperry/Documents/GitHub/KNIRVROUTER_GO_Verifyer/blockchain/blockchain_struct.go
 package blockchain
 
 import (
@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	constants "KNIRVCHAIN_GO_Verifyer/constants"
-	"KNIRVCHAIN_GO_Verifyer/types"
+	constants "KNIRVROUTER_GO_Verifyer/constants"
+	"KNIRVROUTER_GO_Verifyer/types"
 
 	"github.com/syndtr/goleveldb/leveldb"
 )
@@ -44,6 +44,13 @@ func (bc *BlockchainStruct) Unlock() {
 
 func (bc *BlockchainStruct) GetBlocks() []*Block {
 	return bc.Blocks
+}
+
+// GetTransactionPool returns the current transaction pool
+func (bc *BlockchainStruct) GetTransactionPool() []*types.Transaction {
+	bc.Mutex.Lock()
+	defer bc.Mutex.Unlock()
+	return bc.TransactionPool
 }
 
 // IsActivelyMining returns true if the blockchain is currently mining
@@ -116,8 +123,8 @@ func NewBlockchain(genesisBlock Block, address string) *BlockchainStruct {
 			height++
 		}
 
-		// Load transaction pool
-		pool, poolErr := GetTransactionPool()
+		// Load transaction pool using the LevelDB instance
+		pool, poolErr := db.GetTransactionPool()
 		if poolErr != nil {
 			log.Printf("Error loading transaction pool: %v", poolErr)
 			pool = []*types.Transaction{} // Default to empty pool on error
@@ -386,7 +393,6 @@ func (bc *BlockchainStruct) BroadcastLocalTransaction(txn *types.Transaction) {
 	}
 }
 
-
 func (bc *BlockchainStruct) MineNewBlock(minersAddress string) (*Block, error) {
 	bc.MiningLocked = true // Lock mining during block creation
 
@@ -602,7 +608,8 @@ func (bc *BlockchainStruct) SyncChain(newChain []*Block) error {
 	// It might be more efficient to batch writes if LevelDB supports it well,
 	// but atomic block/tip updates are safer.
 	for _, block := range newChain {
-		if err := AtomicPutBlockAndUpdateTip(block); err != nil {
+		ldb := GetLevelDBInstance()
+		if err := ldb.AtomicPutBlockAndUpdateTip(block); err != nil {
 			// Rollback might be complex here. Log error and potentially stop sync.
 			log.Printf("CRITICAL: Failed to save block %d during sync: %v", block.Number, err)
 			return fmt.Errorf("failed to save block %d during sync: %w", block.Number, err)

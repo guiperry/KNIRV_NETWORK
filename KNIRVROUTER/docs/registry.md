@@ -1,8 +1,8 @@
-# KNIRVCHAIN Node Registry & STUN Service Documentation
+# KNIRVROUTER Node Registry & STUN Service Documentation
 
 ## Overview
 
-This service provides two key functions for the KNIRVCHAIN network: a **STUN Server** for public IP discovery and an **HTTP Registry API** for node registration and lookup, designed to work with a Wildcard DNS setup.
+This service provides two key functions for the KNIRVROUTER network: a **STUN Server** for public IP discovery and an **HTTP Registry API** for node registration and lookup, designed to work with a Wildcard DNS setup.
 
 Instead of each node requiring a unique, dynamically created DNS record, all node URIs (e.g., `chain://<chainID>.nodes.knirv.com/`) initially resolve to this service thanks to a wildcard DNS record (`*.nodes.knirv.com`).
 
@@ -12,7 +12,7 @@ Nodes first use the STUN service to discover their public IP address. Then, they
 
 ## STUN Service (IP Discovery)
 
-*   **Purpose:** Allows a KNIRVCHAIN node to discover its public IP address and port as seen by the internet, which is crucial for nodes operating behind NAT (Network Address Translation). Nodes should query this service *before* registering via the HTTP API.
+*   **Purpose:** Allows a KNIRVROUTER node to discover its public IP address and port as seen by the internet, which is crucial for nodes operating behind NAT (Network Address Translation). Nodes should query this service *before* registering via the HTTP API.
 *   **Protocol:** STUN (Session Traversal Utilities for NAT) over UDP.
 *   **Address:** `stun:registry.knirv.com`
 *   **Port:** `3478` (Standard STUN UDP port, often used implicitly by clients if not specified).
@@ -25,7 +25,7 @@ Nodes first use the STUN service to discover their public IP address. Then, they
 
 ### 1. Register Node
 
-*   **Purpose:** Allows a KNIRVCHAIN node to register or update its network location (IP address and port) with the registry. Nodes should call this endpoint upon startup (after STUN discovery) and potentially periodically to signal they are still active.
+*   **Purpose:** Allows a KNIRVROUTER node to register or update its network location (IP address and port) with the registry. Nodes should call this endpoint upon startup (after STUN discovery) and potentially periodically to signal they are still active.
 *   **Method:** `POST`
 *   **Path:** `/register`
 *   **Request Body (JSON):**
@@ -55,7 +55,7 @@ Nodes first use the STUN service to discover their public IP address. Then, they
 
 ### 2. Lookup Node
 
-*   **Purpose:** Allows a KNIRVCHAIN node to query the registry for the current IP address and port of a specific peer node, identified by its `chainID`.
+*   **Purpose:** Allows a KNIRVROUTER node to query the registry for the current IP address and port of a specific peer node, identified by its `chainID`.
 *   **Method:** `GET`
 *   **Path:** `/lookup/:chainID`
     *   *Replace `:chainID` with the actual unique identifier of the target node (e.g., `/lookup/12c1023a-a324-4d39-bc78-32d26a90ce9b`).*

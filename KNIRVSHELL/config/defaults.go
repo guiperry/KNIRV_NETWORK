@@ -18,11 +18,73 @@ func setDefaults(v *viper.Viper) {
 	// Default wallet directory
 	walletDir := filepath.Join(home, ".knirv", "wallets")
 
-	// Set defaults
+	// Legacy defaults for backward compatibility
 	v.SetDefault("node_url", "http://localhost:8545")
 	v.SetDefault("wallet_directory", walletDir)
 	v.SetDefault("log_level", "info")
 	v.SetDefault("default_fee", 1000000000000000) // 0.001 ETH in wei
+
+	// Enhanced KNIRV configuration defaults
+	// Network configuration
+	v.SetDefault("knirv.network.environment", "development")
+	v.SetDefault("knirv.network.discovery.enabled", true)
+	v.SetDefault("knirv.network.discovery.interval", "30s")
+	v.SetDefault("knirv.network.discovery.timeout", "10s")
+
+	// KNIRVROOT service defaults
+	v.SetDefault("knirv.services.knirvroot.url", "http://localhost:9999")
+	v.SetDefault("knirv.services.knirvroot.enabled", true)
+	v.SetDefault("knirv.services.knirvroot.timeout", "30s")
+	v.SetDefault("knirv.services.knirvroot.retries", 3)
+	v.SetDefault("knirv.services.knirvroot.endpoints.api", "/api/v1")
+	v.SetDefault("knirv.services.knirvroot.endpoints.websocket", "/ws")
+	v.SetDefault("knirv.services.knirvroot.endpoints.economics", "/economics")
+
+	// KNIRVGATEWAY service defaults
+	v.SetDefault("knirv.services.knirvgateway.url", "https://gateway.knirv.network")
+	v.SetDefault("knirv.services.knirvgateway.enabled", true)
+	v.SetDefault("knirv.services.knirvgateway.timeout", "30s")
+	v.SetDefault("knirv.services.knirvgateway.retries", 3)
+	v.SetDefault("knirv.services.knirvgateway.endpoints.economics", "/economics")
+	v.SetDefault("knirv.services.knirvgateway.endpoints.health", "/health")
+	v.SetDefault("knirv.services.knirvgateway.endpoints.poaud", "/poaud")
+
+	// KNIRVNEXUS service defaults
+	v.SetDefault("knirv.services.knirvnexus.url", "http://localhost:8080")
+	v.SetDefault("knirv.services.knirvnexus.enabled", true)
+	v.SetDefault("knirv.services.knirvnexus.timeout", "30s")
+	v.SetDefault("knirv.services.knirvnexus.retries", 3)
+	v.SetDefault("knirv.services.knirvnexus.endpoints.agentic", "/agentic")
+	v.SetDefault("knirv.services.knirvnexus.endpoints.inference", "/inference")
+	v.SetDefault("knirv.services.knirvnexus.endpoints.plugins", "/plugins")
+
+	// KNIRVGRAPH service defaults
+	v.SetDefault("knirv.services.knirvgraph.url", "http://localhost:7080")
+	v.SetDefault("knirv.services.knirvgraph.enabled", true)
+	v.SetDefault("knirv.services.knirvgraph.timeout", "30s")
+	v.SetDefault("knirv.services.knirvgraph.retries", 3)
+	v.SetDefault("knirv.services.knirvgraph.endpoints.nrv", "/nrv")
+	v.SetDefault("knirv.services.knirvgraph.endpoints.graph", "/graph")
+	v.SetDefault("knirv.services.knirvgraph.endpoints.transactions", "/transactions")
+
+	// Wallet configuration defaults
+	v.SetDefault("knirv.wallet.directory", walletDir)
+	v.SetDefault("knirv.wallet.xion.enabled", true)
+	v.SetDefault("knirv.wallet.xion.chain_id", "knirv-mainnet-1")
+	v.SetDefault("knirv.wallet.xion.meta_account", true)
+	v.SetDefault("knirv.wallet.xion.gasless", true)
+	v.SetDefault("knirv.wallet.nrn.enabled", true)
+	v.SetDefault("knirv.wallet.nrn.faucet_url", "http://localhost:9999/faucet")
+	v.SetDefault("knirv.wallet.nrn.auto_refill", true)
+	v.SetDefault("knirv.wallet.nrn.min_balance", "1000")
+
+	// Real-time communication defaults
+	v.SetDefault("knirv.realtime.websocket.enabled", true)
+	v.SetDefault("knirv.realtime.websocket.reconnect_interval", "5s")
+	v.SetDefault("knirv.realtime.websocket.max_retries", 3)
+	v.SetDefault("knirv.realtime.sse.enabled", true)
+	v.SetDefault("knirv.realtime.sse.timeout", "30s")
+	v.SetDefault("knirv.realtime.sse.buffer_size", 1024)
 
 	// File server defaults
 	v.SetDefault("file_server.enabled", false)

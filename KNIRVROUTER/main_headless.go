@@ -9,7 +9,7 @@ import (
 	"log"
 	"os"
 
-	"KNIRVCHAIN_GO_Verifyer/starter"
+	"KNIRVROUTER_GO_Verifyer/starter"
 
 	"github.com/joho/godotenv"
 )

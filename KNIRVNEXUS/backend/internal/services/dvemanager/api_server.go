@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/knirv/nexus-backend/internal/config"
+	"nexus-backend/internal/config"
 )
 
 // APIServer provides HTTP API endpoints for DVE Manager
@@ -31,15 +31,15 @@ func (s *APIServer) Start(ctx context.Context) error {
 
 	// Health check endpoint
 	mux.HandleFunc("/health", s.handleHealth)
-	
+
 	// DVE nodes endpoints
 	mux.HandleFunc("/api/dve-nodes", s.handleDVENodes)
 	mux.HandleFunc("/api/dve-nodes/", s.handleDVENodeDetails)
-	
+
 	// Task management endpoints
 	mux.HandleFunc("/api/tasks", s.handleTasks)
 	mux.HandleFunc("/api/tasks/", s.handleTaskDetails)
-	
+
 	// System status endpoints
 	mux.HandleFunc("/api/system/status", s.handleSystemStatus)
 	mux.HandleFunc("/api/system/metrics", s.handleSystemMetrics)
@@ -108,11 +108,7 @@ func (s *APIServer) handleHealth(w http.ResponseWriter, r *http.Request) {
 func (s *APIServer) handleDVENodes(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		nodes, err := s.dveManager.GetAllNodes()
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Failed to get nodes: %v", err), http.StatusInternalServerError)
-			return
-		}
+		nodes := s.dveManager.GetAllNodes()
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -137,9 +133,9 @@ func (s *APIServer) handleDVENodeDetails(w http.ResponseWriter, r *http.Request)
 
 	switch r.Method {
 	case "GET":
-		node, err := s.dveManager.GetNode(nodeID)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Node not found: %v", err), http.StatusNotFound)
+		node, exists := s.dveManager.GetNode(nodeID)
+		if !exists {
+			http.Error(w, "Node not found", http.StatusNotFound)
 			return
 		}
 

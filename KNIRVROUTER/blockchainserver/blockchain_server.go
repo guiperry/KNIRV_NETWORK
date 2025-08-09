@@ -10,9 +10,9 @@ import (
 	"os"
 	"strconv"
 
-	"KNIRVCHAIN_GO_Verifyer/blockchain"
-	constants "KNIRVCHAIN_GO_Verifyer/constants"
-	"KNIRVCHAIN_GO_Verifyer/types"
+	"KNIRVROUTER_GO_Verifyer/blockchain"
+	constants "KNIRVROUTER_GO_Verifyer/constants"
+	"KNIRVROUTER_GO_Verifyer/types"
 )
 
 type BlockchainServer struct {

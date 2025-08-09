@@ -1,7 +1,9 @@
 package blockchain
 
 import (
+	"KNIRVROUTER_GO_Verifyer/types"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -16,6 +18,8 @@ var (
 	levelDBInstance *LevelDB
 	levelDBOnce     sync.Once
 	levelDBMutex    sync.Mutex
+	rawDBInstance   *leveldb.DB
+	rawDBOnce       sync.Once
 )
 
 // GetLevelDBInstance returns a singleton instance of LevelDB
@@ -31,10 +35,19 @@ func GetLevelDBInstance() *LevelDB {
 	return levelDBInstance
 }
 
-// NewLevelDB creates a new LevelDB instance
+// getRawDBInstance returns a singleton raw LevelDB instance
+func getRawDBInstance() (*leveldb.DB, error) {
+	var err error
+	rawDBOnce.Do(func() {
+		rawDBInstance, err = openDB()
+	})
+	return rawDBInstance, err
+}
+
+// NewLevelDB creates a new LevelDB instance using the singleton raw database
 func NewLevelDB() (*LevelDB, error) {
-	// Open the database
-	db, err := openDB()
+	// Use the singleton raw database instance
+	db, err := getRawDBInstance()
 	if err != nil {
 		return nil, err
 	}
@@ -128,6 +141,30 @@ func (ldb *LevelDB) GetChainTipHeight() (uint64, error) {
 	}
 
 	return height, nil
+}
+
+// GetTransactionPool retrieves the current transaction pool
+func (ldb *LevelDB) GetTransactionPool() ([]*types.Transaction, error) {
+	ldb.mu.Lock()
+	defer ldb.mu.Unlock()
+
+	data, err := ldb.db.Get([]byte(transactionPoolKey), nil)
+	if err != nil {
+		if errors.Is(err, leveldb.ErrNotFound) {
+			log.Println("Transaction pool not found in DB, returning empty pool")
+			return []*types.Transaction{}, nil // Return empty slice if not found
+		}
+		log.Printf("Error getting transaction pool from DB: %v", err)
+		return nil, fmt.Errorf("failed to get transaction pool: %w", err)
+	}
+
+	var pool []*types.Transaction
+	if err := json.Unmarshal(data, &pool); err != nil {
+		log.Printf("Error unmarshalling transaction pool from DB: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal transaction pool: %w", err)
+	}
+	log.Printf("Retrieved transaction pool (%d txns) from DB", len(pool))
+	return pool, nil
 }
 
 // Close closes the database

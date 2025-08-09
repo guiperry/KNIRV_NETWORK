@@ -3,19 +3,29 @@ set -e
 
 echo "Building KNIRV-NEXUS for testnet..."
 
-# Use existing KNIRV-NEXUS binary
-echo "Using existing KNIRV-NEXUS binary..."
-if [ -f "../KNIRVNEXUS/bin/knirvnexus" ]; then
-    cp ../KNIRVNEXUS/bin/knirvnexus bin/knirvnexus
-    echo "✅ Copied existing KNIRV-NEXUS binary"
-else
-    echo "⚠️  No existing binary found. Building KNIRV-NEXUS with testnet features..."
-    cd ../KNIRVNEXUS
+# Build KNIRV-NEXUS backend services
+echo "Building KNIRV-NEXUS backend services..."
+if [ -d "../KNIRVNEXUS/backend" ]; then
+    cd ../KNIRVNEXUS/backend
+
+    # Build DVE Manager
+    echo "Building DVE Manager..."
     go mod tidy
-    go build -tags testnet -o knirvnexus ./main.go
-    cp knirvnexus ../KNIRVTESTNET/bin/
-    cd ../KNIRVTESTNET
-    echo "✅ Built and copied KNIRV-NEXUS binary"
+    go build -tags testnet -o dve-manager ./cmd/dve-manager/main.go
+
+    # Build Validation Core
+    echo "Building Validation Core..."
+    go build -tags testnet -o validation-core ./cmd/validation-core/main.go
+
+    # Copy binaries to testnet bin directory
+    cp dve-manager ../../KNIRVTESTNET/bin/knirvnexus-dve-manager
+    cp validation-core ../../KNIRVTESTNET/bin/knirvnexus-validation-core
+
+    cd ../../KNIRVTESTNET
+    echo "✅ Built and copied KNIRV-NEXUS backend services"
+else
+    echo "❌ KNIRV-NEXUS backend directory not found"
+    exit 1
 fi
 
 # Create testnet data directories

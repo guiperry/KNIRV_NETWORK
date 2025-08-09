@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/knirv/nexus-backend/internal/config"
+	"nexus-backend/internal/config"
 )
 
 // APIServer provides HTTP API endpoints for Validation Core
@@ -31,15 +31,15 @@ func (s *APIServer) Start(ctx context.Context) error {
 
 	// Health check endpoint
 	mux.HandleFunc("/health", s.handleHealth)
-	
+
 	// Validation endpoints
 	mux.HandleFunc("/api/validation-tasks", s.handleValidationTasks)
 	mux.HandleFunc("/api/validation-tasks/", s.handleValidationTaskDetails)
-	
+
 	// Results endpoints
 	mux.HandleFunc("/api/validation-results", s.handleValidationResults)
 	mux.HandleFunc("/api/validation-results/", s.handleValidationResultDetails)
-	
+
 	// System status endpoints
 	mux.HandleFunc("/api/system/status", s.handleSystemStatus)
 	mux.HandleFunc("/api/system/metrics", s.handleSystemMetrics)
@@ -205,11 +205,11 @@ func (s *APIServer) handleValidationResults(w http.ResponseWriter, r *http.Reque
 		// Return mock validation results
 		results := []map[string]interface{}{
 			{
-				"id":          "result-1",
-				"task_id":     "task-1",
-				"validator":   "validator-1",
-				"result":      "valid",
-				"confidence":  0.95,
+				"id":           "result-1",
+				"task_id":      "task-1",
+				"validator":    "validator-1",
+				"result":       "valid",
+				"confidence":   0.95,
 				"completed_at": time.Now().Add(-30 * time.Minute).UTC(),
 			},
 		}
@@ -236,11 +236,11 @@ func (s *APIServer) handleValidationResultDetails(w http.ResponseWriter, r *http
 
 	// Return mock result details
 	result := map[string]interface{}{
-		"id":          resultID,
-		"task_id":     "task-1",
-		"validator":   "validator-1",
-		"result":      "valid",
-		"confidence":  0.95,
+		"id":           resultID,
+		"task_id":      "task-1",
+		"validator":    "validator-1",
+		"result":       "valid",
+		"confidence":   0.95,
 		"completed_at": time.Now().Add(-30 * time.Minute).UTC(),
 		"details": map[string]interface{}{
 			"proof":       "0xabcdef1234567890",
@@ -256,10 +256,10 @@ func (s *APIServer) handleValidationResultDetails(w http.ResponseWriter, r *http
 // handleSystemStatus handles system status requests
 func (s *APIServer) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
 	status := map[string]interface{}{
-		"service":        "validation-core",
-		"status":         "running",
-		"uptime":         time.Since(time.Now().Add(-time.Hour)).String(),
-		"active_tasks":   2,
+		"service":         "validation-core",
+		"status":          "running",
+		"uptime":          time.Since(time.Now().Add(-time.Hour)).String(),
+		"active_tasks":    2,
 		"completed_tasks": 15,
 	}
 

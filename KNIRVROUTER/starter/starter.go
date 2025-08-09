@@ -1,4 +1,4 @@
-// /home/gperry/Documents/GitHub/KNIRVCHAIN_GO_Verifyer/starter/starter.go
+// /home/gperry/Documents/GitHub/KNIRVROUTER_GO_Verifyer/starter/starter.go
 
 package starter
 
@@ -19,14 +19,18 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"KNIRVCHAIN_GO_Verifyer/blockchain"
-	"KNIRVCHAIN_GO_Verifyer/blockchainserver"
-	"KNIRVCHAIN_GO_Verifyer/connectivity"
-	constants "KNIRVCHAIN_GO_Verifyer/constants"
-	"KNIRVCHAIN_GO_Verifyer/p2p"
-	"KNIRVCHAIN_GO_Verifyer/transaction_turnserver"
-	"KNIRVCHAIN_GO_Verifyer/utils"
-	"KNIRVCHAIN_GO_Verifyer/walletserver"
+	"KNIRVROUTER_GO_Verifyer/blockchain"
+	"KNIRVROUTER_GO_Verifyer/blockchainserver"
+	"KNIRVROUTER_GO_Verifyer/connectivity"
+	constants "KNIRVROUTER_GO_Verifyer/constants"
+	"KNIRVROUTER_GO_Verifyer/p2p"
+	"KNIRVROUTER_GO_Verifyer/transaction_turnserver"
+	"KNIRVROUTER_GO_Verifyer/utils"
+	"KNIRVROUTER_GO_Verifyer/walletserver"
+
+	"math/big"
+
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 // ... (Config struct, loadConfig, init remain the same) ...
@@ -68,6 +72,72 @@ type Config struct {
 	DisableXIONBridge   bool
 }
 
+// FaucetClientAdapter adapts the main package FaucetIntegration to the connectivity.FaucetClient interface
+type FaucetClientAdapter struct {
+	faucetIntegration FaucetIntegrationInterface
+}
+
+// FaucetIntegrationInterface defines the interface for faucet integration
+type FaucetIntegrationInterface interface {
+	RequestConnectivityReward(nodeID peer.ID, proofID string, score float64, amount *big.Int) (FaucetRequestInterface, error)
+}
+
+// FaucetRequestInterface defines the interface for faucet requests
+type FaucetRequestInterface interface {
+	GetRequestID() string
+	GetNodeID() peer.ID
+	GetAmount() *big.Int
+	GetReason() string
+	GetTimestamp() time.Time
+	GetStatus() string
+	GetTxHash() string
+	GetErrorMessage() string
+}
+
+// NewFaucetClientAdapter creates a new adapter
+func NewFaucetClientAdapter(faucetIntegration FaucetIntegrationInterface) *FaucetClientAdapter {
+	return &FaucetClientAdapter{
+		faucetIntegration: faucetIntegration,
+	}
+}
+
+// RequestConnectivityReward implements the connectivity.FaucetClient interface
+func (fca *FaucetClientAdapter) RequestConnectivityReward(nodeID peer.ID, proofID string, score float64, amount *big.Int) (*connectivity.FaucetRequest, error) {
+	request, err := fca.faucetIntegration.RequestConnectivityReward(nodeID, proofID, score, amount)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert to connectivity.FaucetRequest
+	return &connectivity.FaucetRequest{
+		RequestID:    request.GetRequestID(),
+		NodeID:       request.GetNodeID(),
+		Amount:       request.GetAmount(),
+		Reason:       request.GetReason(),
+		Timestamp:    request.GetTimestamp(),
+		Status:       request.GetStatus(),
+		TxHash:       request.GetTxHash(),
+		ErrorMessage: request.GetErrorMessage(),
+	}, nil
+}
+
+// BlockchainAdapterWrapper wraps transaction_turnserver.BlockchainAdapter to implement connectivity.BlockchainAdapter
+type BlockchainAdapterWrapper struct {
+	adapter *transaction_turnserver.BlockchainAdapter
+}
+
+// NewBlockchainAdapterWrapper creates a new wrapper
+func NewBlockchainAdapterWrapper(adapter *transaction_turnserver.BlockchainAdapter) *BlockchainAdapterWrapper {
+	return &BlockchainAdapterWrapper{
+		adapter: adapter,
+	}
+}
+
+// SubmitNRNMintTx implements the connectivity.BlockchainAdapter interface
+func (baw *BlockchainAdapterWrapper) SubmitNRNMintTx(recipient, amount, reason, proofID string) error {
+	return baw.adapter.SubmitNRNMintTx(recipient, amount, reason, proofID)
+}
+
 func loadConfig() (*Config, error) {
 	// Load .env file
 	err := godotenv.Load("test.env")
@@ -93,7 +163,7 @@ func loadConfig() (*Config, error) {
 		os.Setenv("PORT", "5000")
 	}
 	if os.Getenv("MINERS_ADDRESS") == "" {
-		os.Setenv("MINERS_ADDRESS", "KNIRVCHAIN-3dd025e8fec7eda7cdd012ddde9c8e978ee7fa33")
+		os.Setenv("MINERS_ADDRESS", "KNIRVROUTER-3dd025e8fec7eda7cdd012ddde9c8e978ee7fa33")
 	}
 	dbPath := os.Getenv("BLOCKCHAIN_DB_PATH")
 	if dbPath == "" {
@@ -182,7 +252,7 @@ func loadConfig() (*Config, error) {
 }
 
 func init() {
-	log.SetPrefix("KNIRVCHAIN: ")
+	log.SetPrefix("KNIRVROUTER: ")
 }
 
 // StartWallet initializes and starts the wallet server
@@ -245,9 +315,9 @@ func StartCommandLine() {
 	if len(os.Args) < 2 {
 		fmt.Println("Error: Expected 'chain', 'wallet', or 'webgui' subcommand")
 		fmt.Println("Usage:")
-		fmt.Println("  KNIRVCHAIN chain [--port=<port>] [--miners_address=<address>] [--dbpath=<path>]")
-		fmt.Println("  KNIRVCHAIN wallet [--port=<port>] [--node_address=<url>]")
-		fmt.Println("  KNIRVCHAIN webgui [--port=<port>]") // <<< NEW Usage
+		fmt.Println("  KNIRVROUTER chain [--port=<port>] [--miners_address=<address>] [--dbpath=<path>]")
+		fmt.Println("  KNIRVROUTER wallet [--port=<port>] [--node_address=<url>]")
+		fmt.Println("  KNIRVROUTER webgui [--port=<port>]") // <<< NEW Usage
 		os.Exit(1)
 	}
 
@@ -363,31 +433,55 @@ func StartRootBlockchain(port uint64, minerAddress string) {
 
 	// Initialize connectivity proof engine
 	log.Printf("Initializing connectivity proof engine")
+
+	// Get faucet endpoint from environment or use default
+	faucetEndpoint := os.Getenv("KNIRVROOT_ENDPOINT")
+	if faucetEndpoint == "" {
+		// Try alternative environment variable names
+		if endpoint := os.Getenv("KNIRVROOT_FAUCET_ENDPOINT"); endpoint != "" {
+			faucetEndpoint = endpoint
+		} else {
+			faucetEndpoint = "http://localhost:1317" // Default from testnet config
+		}
+	}
+	// Append the NRN mint endpoint path if not already present
+	if !strings.Contains(faucetEndpoint, "/api/mint/nrn") {
+		faucetEndpoint = faucetEndpoint + "/api/mint/nrn"
+	}
+
+	// Initialize blockchain adapter with real blockchain integration
+	log.Printf("Initializing blockchain adapter with real blockchain")
+	turnBlockchainAdapter := transaction_turnserver.NewBlockchainAdapterWithBlockchain(
+		blockchain1,
+		minerAddress,
+	)
+
+	// Create wrapper for connectivity package
+	blockchainAdapter := NewBlockchainAdapterWrapper(turnBlockchainAdapter)
+
+	// Create a simple faucet client adapter for now
+	// TODO: Integrate with actual FaucetIntegration from main package
+	var faucetClientAdapter connectivity.FaucetClient = nil
+
+	// For now, we'll use nil and let the proof engine fall back to HTTP requests
+	log.Printf("Note: Using fallback faucet integration - direct HTTP requests to %s", faucetEndpoint)
+
 	proofEngineConfig := connectivity.ProofEngineConfig{
 		NRNMintingEnabled: true,
-		FaucetEndpoint:    "http://localhost:8080/api/mint/nrn",
+		FaucetEndpoint:    faucetEndpoint,
+		FaucetClient:      faucetClientAdapter,
+		BlockchainAdapter: blockchainAdapter,
 		MinConnectivity:   70.0, // Minimum connectivity score for rewards
 		MeasurementWindow: time.Minute * 5,
 		RewardMultiplier:  1.0,
 	}
 
-	// Get the host from P2P manager (assuming it has a GetHost method)
-	// In a real implementation, you'd need to expose the host from P2PManager
-	// For now, we'll create a placeholder
-	proofEngine := connectivity.NewConnectivityProofEngine(nil, proofEngineConfig)
+	// Get the actual host from P2P manager
+	proofEngine := connectivity.NewConnectivityProofEngine(p2pManager.GetHost(), proofEngineConfig)
 
-	// Initialize TURN server with blockchain adapter
+	// Initialize TURN server with the blockchain adapter
 	log.Printf("Initializing TURN server with blockchain adapter")
-	blockchainAdapter := transaction_turnserver.NewBlockchainAdapter(
-		func(from, to string, data []byte) error {
-			// This would integrate with the actual blockchain transaction pool
-			log.Printf("Blockchain transaction: from=%s, to=%s, data=%s", from, to, string(data))
-			return nil
-		},
-		minerAddress,
-	)
-
-	turnServer, err := transaction_turnserver.NewServer(3478, 3479, 8080, blockchainAdapter)
+	turnServer, err := transaction_turnserver.NewServer(3478, 3479, 8080, turnBlockchainAdapter)
 	if err != nil {
 		log.Printf("Warning: Failed to initialize TURN server: %v", err)
 	}

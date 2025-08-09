@@ -10,7 +10,7 @@ import (
 	"math/big"
 	"time"
 
-	constants "KNIRVCHAIN_GO_Verifyer/constants"
+	constants "KNIRVROUTER_GO_Verifyer/constants"
 )
 
 type Transaction struct {

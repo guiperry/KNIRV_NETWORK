@@ -9,7 +9,7 @@ import (
 )
 
 func Uninstall() {
-	fmt.Println("=== KNIRVCHAIN Verifier Node Uninstallation ===")
+	fmt.Println("=== KNIRVROUTER Verifier Node Uninstallation ===")
 	fmt.Println("This uninstaller will:")
 	fmt.Println("1. Stop any running verifier node processes")
 	fmt.Println("2. Remove URI handler for knirv:// protocol")
@@ -39,7 +39,7 @@ func Uninstall() {
 	fmt.Println("Removing system service (Placeholder)...")
 
 	fmt.Println("\n=== Uninstallation Complete ===")
-	fmt.Println("KNIRVCHAIN Verifier Node has been uninstalled.")
+	fmt.Println("KNIRVROUTER Verifier Node has been uninstalled.")
 }
 
 func stopRunningProcesses() {
@@ -47,11 +47,11 @@ func stopRunningProcesses() {
 	switch runtime.GOOS {
 	case "windows":
 		// Windows implementation
-		cmd := exec.Command("taskkill", "/F", "/IM", "KNIRVCHAIN_GO_Verifyer.exe")
+		cmd := exec.Command("taskkill", "/F", "/IM", "KNIRVROUTER_GO_Verifyer.exe")
 		cmd.Run()
 	default:
 		// Unix-like implementation
-		cmd := exec.Command("pkill", "-f", "KNIRVCHAIN_GO_Verifyer")
+		cmd := exec.Command("pkill", "-f", "KNIRVROUTER_GO_Verifyer")
 		cmd.Run()
 	}
 }
@@ -61,7 +61,7 @@ func UnregisterURIHandlers() error {
 	schemes := []URIScheme{
 		{
 			Name:        "knirv",
-			Description: "KNIRVCHAIN Decentralized Protocol",
+			Description: "KNIRVROUTER Decentralized Protocol",
 		},
 	}
 

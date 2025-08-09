@@ -2,18 +2,44 @@
 package connectivity
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"math/big"
+	"net/http"
 	"sync"
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
+
+// FaucetClient interface for NRN token minting requests
+type FaucetClient interface {
+	RequestConnectivityReward(nodeID peer.ID, proofID string, score float64, amount *big.Int) (*FaucetRequest, error)
+}
+
+// BlockchainAdapter interface for submitting NRN mint transactions to blockchain
+type BlockchainAdapter interface {
+	SubmitNRNMintTx(recipient, amount, reason, proofID string) error
+}
+
+// FaucetRequest represents a request to the faucet (interface compatible)
+type FaucetRequest struct {
+	RequestID    string    `json:"request_id"`
+	NodeID       peer.ID   `json:"node_id"`
+	Amount       *big.Int  `json:"amount"`
+	Reason       string    `json:"reason"`
+	Timestamp    time.Time `json:"timestamp"`
+	Status       string    `json:"status"` // "pending", "completed", "failed"
+	TxHash       string    `json:"tx_hash,omitempty"`
+	ErrorMessage string    `json:"error_message,omitempty"`
+}
 
 // ConnectivityProofEngine manages proof-of-connectivity for KNIRV-ROUTER
 type ConnectivityProofEngine struct {
@@ -26,6 +52,8 @@ type ConnectivityProofEngine struct {
 	proofHistoryMutex sync.RWMutex
 	nrnMintingEnabled bool
 	faucetEndpoint    string
+	faucetClient      FaucetClient
+	blockchainAdapter BlockchainAdapter
 	minConnectivity   float64
 	measurementWindow time.Duration
 }
@@ -56,11 +84,13 @@ type ConnectivityProof struct {
 
 // ProofEngineConfig contains configuration for the proof engine
 type ProofEngineConfig struct {
-	NRNMintingEnabled bool          `json:"nrn_minting_enabled"`
-	FaucetEndpoint    string        `json:"faucet_endpoint"`
-	MinConnectivity   float64       `json:"min_connectivity"`
-	MeasurementWindow time.Duration `json:"measurement_window"`
-	RewardMultiplier  float64       `json:"reward_multiplier"`
+	NRNMintingEnabled bool              `json:"nrn_minting_enabled"`
+	FaucetEndpoint    string            `json:"faucet_endpoint"`
+	FaucetClient      FaucetClient      `json:"-"` // Not serialized
+	BlockchainAdapter BlockchainAdapter `json:"-"` // Not serialized
+	MinConnectivity   float64           `json:"min_connectivity"`
+	MeasurementWindow time.Duration     `json:"measurement_window"`
+	RewardMultiplier  float64           `json:"reward_multiplier"`
 }
 
 // NewConnectivityProofEngine creates a new connectivity proof engine
@@ -75,6 +105,8 @@ func NewConnectivityProofEngine(host host.Host, config ProofEngineConfig) *Conne
 		proofHistory:      make([]ConnectivityProof, 0),
 		nrnMintingEnabled: config.NRNMintingEnabled,
 		faucetEndpoint:    config.FaucetEndpoint,
+		faucetClient:      config.FaucetClient,
+		blockchainAdapter: config.BlockchainAdapter,
 		minConnectivity:   config.MinConnectivity,
 		measurementWindow: config.MeasurementWindow,
 	}
@@ -377,19 +409,116 @@ func (cpe *ConnectivityProofEngine) submitProofForVerification(proof Connectivit
 
 // requestNRNMinting requests NRN token minting for verified proof
 func (cpe *ConnectivityProofEngine) requestNRNMinting(proof ConnectivityProof) {
-	if !cpe.nrnMintingEnabled || cpe.faucetEndpoint == "" {
-		log.Printf("NRN minting not enabled or faucet endpoint not configured")
+	if !cpe.nrnMintingEnabled {
+		log.Printf("NRN minting not enabled")
+		return
+	}
+
+	if cpe.faucetClient == nil {
+		log.Printf("Faucet client not configured, falling back to endpoint simulation")
+		cpe.requestNRNMintingFallback(proof)
 		return
 	}
 
 	log.Printf("Requesting NRN minting for proof %s: %s NRN",
 		proof.ProofID, proof.NRNReward.String())
 
-	// In production, this would make HTTP request to faucet
-	// For now, simulate the request
-	time.Sleep(1 * time.Second)
+	// Use the faucet client to request NRN tokens
+	request, err := cpe.faucetClient.RequestConnectivityReward(
+		proof.NodeID,
+		proof.ProofID,
+		proof.AggregateScore,
+		proof.NRNReward,
+	)
 
-	log.Printf("NRN minting request completed for proof %s", proof.ProofID)
+	if err != nil {
+		log.Printf("Failed to request NRN minting for proof %s: %v", proof.ProofID, err)
+		return
+	}
+
+	log.Printf("NRN minting request submitted for proof %s: RequestID=%s, Status=%s",
+		proof.ProofID, request.RequestID, request.Status)
+
+	// Also submit to blockchain adapter if available
+	if cpe.blockchainAdapter != nil {
+		reason := fmt.Sprintf("connectivity_proof_%s_score_%.2f", proof.ProofID, proof.AggregateScore)
+		err := cpe.blockchainAdapter.SubmitNRNMintTx(
+			proof.NodeID.String(),
+			proof.NRNReward.String(),
+			reason,
+			proof.ProofID,
+		)
+		if err != nil {
+			log.Printf("Failed to submit NRN mint transaction to blockchain for proof %s: %v", proof.ProofID, err)
+		} else {
+			log.Printf("NRN mint transaction submitted to blockchain for proof %s", proof.ProofID)
+		}
+	}
+}
+
+// requestNRNMintingFallback provides fallback behavior when faucet client is not available
+func (cpe *ConnectivityProofEngine) requestNRNMintingFallback(proof ConnectivityProof) {
+	if cpe.faucetEndpoint == "" {
+		log.Printf("NRN minting fallback: no faucet endpoint configured")
+		return
+	}
+
+	log.Printf("Using fallback NRN minting for proof %s: %s NRN",
+		proof.ProofID, proof.NRNReward.String())
+
+	// Prepare request payload
+	payload := map[string]interface{}{
+		"recipient": proof.NodeID.String(),
+		"amount":    proof.NRNReward.String(),
+		"reason":    fmt.Sprintf("connectivity_proof_%s_score_%.2f", proof.ProofID, proof.AggregateScore),
+		"proof_id":  proof.ProofID,
+		"timestamp": proof.Timestamp.Unix(),
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		log.Printf("Failed to marshal NRN mint request payload: %v", err)
+		return
+	}
+
+	// Create HTTP client with timeout
+	client := &http.Client{Timeout: 30 * time.Second}
+
+	// Make HTTP request to faucet endpoint
+	resp, err := client.Post(cpe.faucetEndpoint, "application/json", bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		log.Printf("Failed to send NRN mint request to %s: %v", cpe.faucetEndpoint, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Read response
+	responseBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Failed to read NRN mint response: %v", err)
+		return
+	}
+
+	// Parse response
+	var response map[string]interface{}
+	if err := json.Unmarshal(responseBody, &response); err != nil {
+		log.Printf("Failed to parse NRN mint response: %v", err)
+		return
+	}
+
+	// Check response status
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
+		if success, ok := response["success"].(bool); ok && success {
+			txHash, _ := response["tx_hash"].(string)
+			log.Printf("NRN minting request successful for proof %s: TxHash=%s", proof.ProofID, txHash)
+		} else {
+			message, _ := response["message"].(string)
+			log.Printf("NRN minting request failed for proof %s: %s", proof.ProofID, message)
+		}
+	} else {
+		log.Printf("NRN minting request failed for proof %s: HTTP %d - %s",
+			proof.ProofID, resp.StatusCode, string(responseBody))
+	}
 }
 
 // verifyConnectivityProofs verifies proofs from other nodes
