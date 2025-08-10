@@ -40,3 +40,27 @@ warp = "0.3"
 chrono = { version = "0.4", features = ["serde"] }
 log = "0.4"
 env_logger = "0.10"
+
+# IPFS Integration (using simpler HTTP client for now)
+# ipfs-api = "0.17"  # Temporarily disabled due to dependency conflicts
+# ipfs-embed = "0.23"  # Temporarily disabled due to dependency conflicts
+
+# Multi-Model LLM Support (using mock implementations for now)
+# candle-core = "0.3"  # Temporarily disabled due to dependency conflicts
+# candle-nn = "0.3"
+# candle-transformers = "0.3"
+# tokenizers = "0.14"
+
+# Tendermint/CometBFT Consensus (using mock implementations for now)
+# tendermint = "0.34"  # Temporarily disabled due to dependency conflicts
+# tendermint-rpc = "0.34"
+# tendermint-abci = "0.34"
+
+# IBC Protocol (using mock implementations for now)
+# ibc = "0.48"  # Temporarily disabled due to dependency conflicts
+# ibc-relayer = "0.26"
+
+# Additional utilities
+lru = "0.12"
+async-trait = "0.1"
+thiserror = "1.0"

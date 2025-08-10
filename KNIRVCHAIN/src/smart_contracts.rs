@@ -29,7 +29,7 @@ impl SmartContractEngine {
     pub fn new(owner_private_key: &str) -> Result<Self> {
         let initial_supply = num_bigint::BigInt::from(1_000_000_000_000_000u64); // 1 trillion
         let max_supply = num_bigint::BigInt::from(10_000_000_000_000_000u64); // 10 trillion
-        
+
         let nrn_token = NRN::new(
             "KNIRV Network Token".to_string(),
             "NRN".to_string(),
@@ -65,7 +65,10 @@ impl SmartContractEngine {
                 let to_str = params["to"].as_str().unwrap_or("");
                 let amount_str = params["amount"].as_str().unwrap_or("0");
 
-                match (hex_to_address(to_str), amount_str.parse::<num_bigint::BigInt>()) {
+                match (
+                    hex_to_address(to_str),
+                    amount_str.parse::<num_bigint::BigInt>(),
+                ) {
                     (Ok(to_address), Ok(amount)) => {
                         match self.nrn_token.transfer(from, to_address, &amount) {
                             Ok(tx) => ContractResponse {
@@ -106,7 +109,7 @@ impl SmartContractEngine {
                                         None,
                                     );
                                 }
-                                
+
                                 ContractResponse {
                                     success: true,
                                     data: Some(serde_json::to_value(tx).unwrap()),
@@ -132,7 +135,10 @@ impl SmartContractEngine {
                 let amount_str = params["amount"].as_str().unwrap_or("0");
                 let reason = params["reason"].as_str().unwrap_or("Network participation");
 
-                match (hex_to_address(to_str), amount_str.parse::<num_bigint::BigInt>()) {
+                match (
+                    hex_to_address(to_str),
+                    amount_str.parse::<num_bigint::BigInt>(),
+                ) {
                     (Ok(to_address), Ok(amount)) => {
                         match self.nrn_token.mint_reward(to_address, &amount, reason) {
                             Ok(_) => ContractResponse {
@@ -276,7 +282,11 @@ impl SmartContractEngine {
         }
     }
 
-    fn execute_skill_call(&mut self, method: String, params: serde_json::Value) -> ContractResponse {
+    fn execute_skill_call(
+        &mut self,
+        method: String,
+        params: serde_json::Value,
+    ) -> ContractResponse {
         match method.as_str() {
             "register" => {
                 let name = params["name"].as_str().unwrap_or("").to_string();
@@ -290,7 +300,10 @@ impl SmartContractEngine {
                 let owner_str = params["owner"].as_str().unwrap_or("");
                 let usage_fee_str = params["usage_fee"].as_str().unwrap_or("0");
 
-                match (hex_to_address(owner_str), usage_fee_str.parse::<num_bigint::BigInt>()) {
+                match (
+                    hex_to_address(owner_str),
+                    usage_fee_str.parse::<num_bigint::BigInt>(),
+                ) {
                     (Ok(owner), Ok(usage_fee)) => {
                         let skill = SkillMetadata {
                             name,

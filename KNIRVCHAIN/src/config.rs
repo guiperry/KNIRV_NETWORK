@@ -120,7 +120,12 @@ impl Config {
             "native" => BlockchainMode::Native,
             "xion" => BlockchainMode::Xion,
             "hybrid" => BlockchainMode::Hybrid,
-            _ => return Err(anyhow::anyhow!("Invalid blockchain mode: {}", self.blockchain.mode)),
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "Invalid blockchain mode: {}",
+                    self.blockchain.mode
+                ))
+            }
         };
 
         let xion_config = if matches!(mode, BlockchainMode::Xion | BlockchainMode::Hybrid) {
@@ -134,7 +139,9 @@ impl Config {
                     skill_registry_contract: xion_settings.skill_registry_contract.clone(),
                 })
             } else {
-                return Err(anyhow::anyhow!("XION configuration required for XION/Hybrid mode"));
+                return Err(anyhow::anyhow!(
+                    "XION configuration required for XION/Hybrid mode"
+                ));
             }
         } else {
             None
@@ -167,7 +174,7 @@ mod tests {
     fn test_blockchain_config_conversion() {
         let config = Config::load_default();
         let blockchain_config = config.to_blockchain_config().unwrap();
-        
+
         assert!(matches!(blockchain_config.mode, BlockchainMode::Native));
         assert_eq!(blockchain_config.native_config.chain_id, "knirv-1");
         assert!(blockchain_config.xion_config.is_none());

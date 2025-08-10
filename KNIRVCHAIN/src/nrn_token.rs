@@ -14,7 +14,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 //use crate::transaction::Transaction; // Import the Transaction struct from main.rs
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct Address([u8; 20]);
+pub struct Address(pub [u8; 20]);
 
 impl std::fmt::Display for Address {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -277,7 +277,10 @@ impl NRN {
             return Err(anyhow!("Insufficient balance for burn"));
         }
 
-        let transaction_data = format!("Burn {} NRN for skill {} by {}", amount, skill_id, from_address);
+        let transaction_data = format!(
+            "Burn {} NRN for skill {} by {}",
+            amount, skill_id, from_address
+        );
 
         let private_key_bytes = hex::decode(from_private_key)?;
         let signing_key = SigningKey::from_bytes(FieldBytes::from_slice(&private_key_bytes))
@@ -300,12 +303,7 @@ impl NRN {
     }
 
     // Mint reward tokens for network participation
-    pub fn mint_reward(
-        &mut self,
-        to: Address,
-        amount: &BigInt,
-        reason: &str,
-    ) -> Result<()> {
+    pub fn mint_reward(&mut self, to: Address, amount: &BigInt, reason: &str) -> Result<()> {
         if amount <= &BigInt::from(0) {
             return Err(anyhow!("Mint amount must be greater than zero"));
         }
@@ -351,11 +349,7 @@ impl LLMRegistry {
         }
     }
 
-    pub fn register_llm(
-        &mut self,
-        metadata: LLMMetadata,
-        model_data: &[u8],
-    ) -> Result<String> {
+    pub fn register_llm(&mut self, metadata: LLMMetadata, model_data: &[u8]) -> Result<String> {
         // Calculate model hash
         let mut hasher = sha3::Keccak256::new();
         hasher.update(model_data);
@@ -477,5 +471,3 @@ impl SkillRegistry {
         self.skill_invocations.get(skill_id)
     }
 }
-
-

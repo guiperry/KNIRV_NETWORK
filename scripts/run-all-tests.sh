@@ -79,6 +79,61 @@ run_gateway_integration_tests() {
     fi
 }
 
+run_knirvchain_tests() {
+    header "Running KNIRVCHAIN Multi-Model Blockchain Tests"
+
+    if [ -d "$PROJECT_ROOT/KNIRVCHAIN" ]; then
+        cd "$PROJECT_ROOT/KNIRVCHAIN"
+
+        # Run compilation check
+        if cargo check; then
+            success "KNIRVCHAIN compilation check passed"
+        else
+            error "KNIRVCHAIN compilation check failed"
+            return 1
+        fi
+
+        # Run unit tests
+        if cargo test --lib; then
+            success "KNIRVCHAIN unit tests passed"
+        else
+            error "KNIRVCHAIN unit tests failed"
+            return 1
+        fi
+
+        # Run integration tests
+        if cargo test --test integration_tests; then
+            success "KNIRVCHAIN integration tests passed"
+        else
+            error "KNIRVCHAIN integration tests failed"
+            return 1
+        fi
+
+        # Run performance tests
+        if cargo test --test performance_tests --release; then
+            success "KNIRVCHAIN performance tests passed"
+        else
+            error "KNIRVCHAIN performance tests failed"
+            return 1
+        fi
+
+        # Run comprehensive test suite if available
+        if [ -f "$PROJECT_ROOT/scripts/test-knirvchain.sh" ]; then
+            if "$PROJECT_ROOT/scripts/test-knirvchain.sh"; then
+                success "KNIRVCHAIN comprehensive test suite passed"
+            else
+                error "KNIRVCHAIN comprehensive test suite failed"
+                return 1
+            fi
+        fi
+
+        return 0
+    else
+        error "KNIRVCHAIN directory not found"
+        return 1
+    fi
+}
+
 run_frontend_tests() {
     header "Running Frontend Tests"
     
@@ -264,6 +319,7 @@ main() {
     prerequisites_status="❌ FAILED"
     operational_modes_status="❌ FAILED"
     gateway_integration_status="❌ FAILED"
+    knirvchain_status="❌ FAILED"
     frontend_status="❌ FAILED"
     end_to_end_status="❌ FAILED"
     
@@ -290,6 +346,14 @@ main() {
         ((passed_count++))
     else
         gateway_integration_status="❌ FAILED"
+        ((failed_count++))
+    fi
+
+    if run_knirvchain_tests; then
+        knirvchain_status="✅ PASSED"
+        ((passed_count++))
+    else
+        knirvchain_status="❌ FAILED"
         ((failed_count++))
     fi
     

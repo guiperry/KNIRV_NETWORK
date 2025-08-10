@@ -10,7 +10,7 @@ Welcome to the KNIRV Network documentation. This comprehensive guide provides in
 
 ### Deployment
 
-* [KNIRVTESTNET Deployment and User Guide](deployment/README.md) - Set up and run the KNIRVTESTNET, a complete test environment for the KNIRV D-TEN. Includes troubleshooting and usage instructions.
+* [KNIRVTESTNET User Guide](deployment/README.md) - User guide for KNIRVTESTNET
 
 ### KNIRVCHAIN Documentation
 

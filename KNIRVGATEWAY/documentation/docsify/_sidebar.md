@@ -6,7 +6,7 @@
 
 ## Deployment
 
-* [KNIRVTESTNET Deployment and User Guide](deployment/README.md)
+* [KNIRVTESTNET User Guide](deployment/README.md)
 
 ## KNIRVCHAIN Documentation
 

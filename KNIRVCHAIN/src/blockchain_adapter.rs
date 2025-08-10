@@ -96,7 +96,10 @@ pub struct SkillInvocationRequest {
 }
 
 impl BlockchainAdapter {
-    pub fn new(config: BlockchainConfig, smart_contracts: Arc<Mutex<SmartContractEngine>>) -> Result<Self> {
+    pub fn new(
+        config: BlockchainConfig,
+        smart_contracts: Arc<Mutex<SmartContractEngine>>,
+    ) -> Result<Self> {
         let xion_client = if matches!(config.mode, BlockchainMode::Xion | BlockchainMode::Hybrid) {
             if let Some(xion_config) = &config.xion_config {
                 Some(Arc::new(XionClient::new(
@@ -126,11 +129,14 @@ impl BlockchainAdapter {
                 // Register on both chains
                 let native_result = self.register_llm_native(request.clone()).await?;
                 let xion_result = self.register_llm_xion(request).await?;
-                
+
                 // Return combined result
                 Ok(TransactionResult {
                     success: native_result.success && xion_result.success,
-                    tx_hash: format!("native:{},xion:{}", native_result.tx_hash, xion_result.tx_hash),
+                    tx_hash: format!(
+                        "native:{},xion:{}",
+                        native_result.tx_hash, xion_result.tx_hash
+                    ),
                     block_height: native_result.block_height,
                     gas_used: native_result.gas_used,
                     error: None,
@@ -139,17 +145,23 @@ impl BlockchainAdapter {
         }
     }
 
-    pub async fn register_skill(&self, request: SkillRegistrationRequest) -> Result<TransactionResult> {
+    pub async fn register_skill(
+        &self,
+        request: SkillRegistrationRequest,
+    ) -> Result<TransactionResult> {
         match self.config.mode {
             BlockchainMode::Native => self.register_skill_native(request).await,
             BlockchainMode::Xion => self.register_skill_xion(request).await,
             BlockchainMode::Hybrid => {
                 let native_result = self.register_skill_native(request.clone()).await?;
                 let xion_result = self.register_skill_xion(request).await?;
-                
+
                 Ok(TransactionResult {
                     success: native_result.success && xion_result.success,
-                    tx_hash: format!("native:{},xion:{}", native_result.tx_hash, xion_result.tx_hash),
+                    tx_hash: format!(
+                        "native:{},xion:{}",
+                        native_result.tx_hash, xion_result.tx_hash
+                    ),
                     block_height: native_result.block_height,
                     gas_used: native_result.gas_used,
                     error: None,
@@ -165,7 +177,7 @@ impl BlockchainAdapter {
             BlockchainMode::Hybrid => {
                 // For skill invocation, we primarily use native chain but can sync to XION
                 let native_result = self.invoke_skill_native(request.clone()).await?;
-                
+
                 // Optionally sync to XION (non-blocking)
                 if native_result.success {
                     tokio::spawn({
@@ -176,18 +188,21 @@ impl BlockchainAdapter {
                         }
                     });
                 }
-                
+
                 Ok(native_result)
             }
         }
     }
 
-    async fn register_llm_native(&self, request: LLMRegistrationRequest) -> Result<TransactionResult> {
+    async fn register_llm_native(
+        &self,
+        request: LLMRegistrationRequest,
+    ) -> Result<TransactionResult> {
         let mut smart_contracts = self.smart_contracts.lock().await;
-        
+
         let owner_address = hex_to_address(&request.owner_address)?;
         let model_data = base64::engine::general_purpose::STANDARD.decode(&request.model_data)?;
-        
+
         let metadata = LLMMetadata {
             name: request.name,
             version: request.version,
@@ -201,18 +216,23 @@ impl BlockchainAdapter {
             registered_at: 0, // Will be set by register_llm
         };
 
-        let _model_hash = smart_contracts.llm_registry.register_llm(metadata, &model_data)?;
-        
+        let _model_hash = smart_contracts
+            .llm_registry
+            .register_llm(metadata, &model_data)?;
+
         Ok(TransactionResult {
             success: true,
             tx_hash: format!("native_{}", Uuid::new_v4()),
-            block_height: Some(1), // Placeholder
+            block_height: Some(1),  // Placeholder
             gas_used: Some(100000), // Placeholder
             error: None,
         })
     }
 
-    async fn register_llm_xion(&self, _request: LLMRegistrationRequest) -> Result<TransactionResult> {
+    async fn register_llm_xion(
+        &self,
+        _request: LLMRegistrationRequest,
+    ) -> Result<TransactionResult> {
         if let Some(_xion_client) = &self.xion_client {
             // Implementation would call XION smart contracts
             // For now, return a placeholder
@@ -228,11 +248,14 @@ impl BlockchainAdapter {
         }
     }
 
-    async fn register_skill_native(&self, request: SkillRegistrationRequest) -> Result<TransactionResult> {
+    async fn register_skill_native(
+        &self,
+        request: SkillRegistrationRequest,
+    ) -> Result<TransactionResult> {
         let mut smart_contracts = self.smart_contracts.lock().await;
-        
+
         let owner_address = hex_to_address(&request.owner_address)?;
-        
+
         let skill = SkillMetadata {
             name: request.name,
             skill_type: request.skill_type,
@@ -254,7 +277,7 @@ impl BlockchainAdapter {
         };
 
         let _skill_id = smart_contracts.skill_registry.register_skill(skill)?;
-        
+
         Ok(TransactionResult {
             success: true,
             tx_hash: format!("native_{}", Uuid::new_v4()),
@@ -264,7 +287,10 @@ impl BlockchainAdapter {
         })
     }
 
-    async fn register_skill_xion(&self, _request: SkillRegistrationRequest) -> Result<TransactionResult> {
+    async fn register_skill_xion(
+        &self,
+        _request: SkillRegistrationRequest,
+    ) -> Result<TransactionResult> {
         if let Some(_xion_client) = &self.xion_client {
             // Implementation would call XION smart contracts
             Ok(TransactionResult {
@@ -279,9 +305,12 @@ impl BlockchainAdapter {
         }
     }
 
-    async fn invoke_skill_native(&self, request: SkillInvocationRequest) -> Result<TransactionResult> {
+    async fn invoke_skill_native(
+        &self,
+        request: SkillInvocationRequest,
+    ) -> Result<TransactionResult> {
         let mut smart_contracts = self.smart_contracts.lock().await;
-        
+
         let amount = request.amount.parse()?;
         let _tx = smart_contracts.nrn_token.burn_for_skill(
             &request.user_private_key,
@@ -298,7 +327,7 @@ impl BlockchainAdapter {
             true, // Assume success for now
             None,
         )?;
-        
+
         Ok(TransactionResult {
             success: true,
             tx_hash: format!("native_{}", Uuid::new_v4()),
@@ -308,7 +337,10 @@ impl BlockchainAdapter {
         })
     }
 
-    async fn invoke_skill_xion(&self, _request: SkillInvocationRequest) -> Result<TransactionResult> {
+    async fn invoke_skill_xion(
+        &self,
+        _request: SkillInvocationRequest,
+    ) -> Result<TransactionResult> {
         if let Some(_xion_client) = &self.xion_client {
             // Implementation would call XION smart contracts
             Ok(TransactionResult {
@@ -336,13 +368,21 @@ impl XionClient {
 
     // Placeholder methods for XION integration
     #[allow(dead_code)]
-    pub async fn query_contract(&self, _contract_addr: &str, _query_msg: serde_json::Value) -> Result<serde_json::Value> {
+    pub async fn query_contract(
+        &self,
+        _contract_addr: &str,
+        _query_msg: serde_json::Value,
+    ) -> Result<serde_json::Value> {
         // Implementation would query XION smart contracts
         Ok(serde_json::json!({}))
     }
 
     #[allow(dead_code)]
-    pub async fn execute_contract(&self, _contract_addr: &str, _execute_msg: serde_json::Value) -> Result<String> {
+    pub async fn execute_contract(
+        &self,
+        _contract_addr: &str,
+        _execute_msg: serde_json::Value,
+    ) -> Result<String> {
         // Implementation would execute XION smart contracts
         Ok(format!("xion_tx_{}", Uuid::new_v4()))
     }
