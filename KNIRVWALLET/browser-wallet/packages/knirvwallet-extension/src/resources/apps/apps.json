@@ -9,10 +9,10 @@
     "order": 1
   },
   {
-    "symbol": "KNIRVAGENTIFIER",
-    "name": "KNIRV-AGENTIFIER",
+    "symbol": "KNIRVCORTEX",
+    "name": "KNIRV-CORTEX",
     "description": "Control and manage your AI agents.",
-    "logo": "/resources/apps/images/KNIRV-AGENTIFIER.svg",
+    "logo": "/resources/apps/images/KNIRV-CORTEX.svg",
     "link": "https://shell.knirv.network/",
     "display": true,
     "order": 2

@@ -1,8 +1,6 @@
 package services
 
 import (
-	"crypto-wallet-backend/internal/models"
-	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
@@ -14,10 +12,10 @@ import (
 
 // WalletSyncService handles synchronization between native and browser wallets
 type WalletSyncService struct {
-	container       *Container
-	activeSessions  map[string]*SyncSession
-	sessionsMutex   sync.RWMutex
-	wsConnections   map[string]*websocket.Conn
+	container        *Container
+	activeSessions   map[string]*SyncSession
+	sessionsMutex    sync.RWMutex
+	wsConnections    map[string]*websocket.Conn
 	connectionsMutex sync.RWMutex
 }
 
@@ -64,29 +62,29 @@ type WalletData struct {
 
 // TransactionData represents transaction information for synchronization
 type TransactionData struct {
-	Hash        string                 `json:"hash"`
-	From        string                 `json:"from"`
-	To          string                 `json:"to"`
-	Amount      string                 `json:"amount"`
-	Token       string                 `json:"token"`
-	Status      string                 `json:"status"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Hash      string                 `json:"hash"`
+	From      string                 `json:"from"`
+	To        string                 `json:"to"`
+	Amount    string                 `json:"amount"`
+	Token     string                 `json:"token"`
+	Status    string                 `json:"status"`
+	Timestamp time.Time              `json:"timestamp"`
+	Metadata  map[string]interface{} `json:"metadata"`
 }
 
 // NewWalletSyncService creates a new wallet synchronization service
 func NewWalletSyncService(container *Container) *WalletSyncService {
 	return &WalletSyncService{
-		container:       container,
-		activeSessions:  make(map[string]*SyncSession),
-		wsConnections:   make(map[string]*websocket.Conn),
+		container:      container,
+		activeSessions: make(map[string]*SyncSession),
+		wsConnections:  make(map[string]*websocket.Conn),
 	}
 }
 
 // CreateSyncSession creates a new synchronization session
 func (s *WalletSyncService) CreateSyncSession(userID uuid.UUID, nativeWalletID string) (*SyncSession, error) {
 	sessionID := s.generateSessionID()
-	
+
 	session := &SyncSession{
 		ID:             sessionID,
 		UserID:         userID,

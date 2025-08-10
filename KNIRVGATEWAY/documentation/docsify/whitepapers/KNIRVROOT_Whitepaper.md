@@ -45,14 +45,14 @@ KNIRV-ROOT acts as a central hub for critical network state information, ensurin
 **Expanded Information:**
 *   **Base LLM & SkillRegistry State Observer:** KNIRV-ROOT actively monitors the canonical KNIRVCHAIN (itself a sovereign `Rust`-based L1 blockchain) for finalized Base LLM updates and SkillRegistry changes. This observation is crucial for KNIRV-ROOT to maintain a comprehensive understanding of the D-TEN's evolving intelligence.
 *   **Canonical State Reconciliation:** KNIRV-ROOT reconciles its internal ledger and oracle data with these updates from KNIRVCHAIN and KNIRVGRAPH. This ensures that KNIRV-ROOT always holds the most accurate and globally consistent view of key network states, such as the latest Base LLM hash, the canonical SkillRegistry entries, and the status of SkillNode verifications.
-*   **State Propagation:** It efficiently propagates these canonical updates (e.g., new Base LLM hashes, SkillRegistry changes, NRN balance updates, verified SkillNode statuses from KNIRVGRAPH) to other relevant network components, such as KNIRV-AGENTIFIERs. This ensures network-wide consistency and allows KNIRV-AGENTIFIERs to always operate with the latest intelligence and Skill availability.
+*   **State Propagation:** It efficiently propagates these canonical updates (e.g., new Base LLM hashes, SkillRegistry changes, NRN balance updates, verified SkillNode statuses from KNIRVGRAPH) to other relevant network components, such as KNIRV-CORTEXs. This ensures network-wide consistency and allows KNIRV-CORTEXs to always operate with the latest intelligence and Skill availability.
 
 ### 2.4. Agent & Relay Registry Management
 KNIRV-ROOT maintains foundational registries for network participants and connectivity, crucial for the D-TEN's operational coherence.
 
 **Expanded Information:**
-*   **Relay Registry:** KNIRV-ROOT registers new users and agents onto the network's relay registry. This registry is essential for establishing adaptable router links and enabling seamless peer-to-peer communication across the D-TEN, especially for KNIRV-AGENTIFIERs and KNIRVANA clients.
-*   **Tunnel Registry:** KNIRV-ROOT hosts and manages the core tunnel registry. This registry allows KNIRV-AGENTIFIERs, KNIRV-NEXUS DVEs, and other components to discover and connect to network resources and services, facilitating secure and efficient data exchange.
+*   **Relay Registry:** KNIRV-ROOT registers new users and agents onto the network's relay registry. This registry is essential for establishing adaptable router links and enabling seamless peer-to-peer communication across the D-TEN, especially for KNIRV-CORTEXs and KNIRVANA clients.
+*   **Tunnel Registry:** KNIRV-ROOT hosts and manages the core tunnel registry. This registry allows KNIRV-CORTEXs, KNIRV-NEXUS DVEs, and other components to discover and connect to network resources and services, facilitating secure and efficient data exchange.
 
 ## 3. Architecture & Technical Implementation
 KNIRV-ROOT is architected as a robust, `GoLang`-based Layer 1 blockchain, leveraging a custom Proof-of-Authority consensus algorithm for its modularity and Byzantine Fault Tolerance.
@@ -84,7 +84,7 @@ All core functions and state transitions of KNIRV-ROOT are implemented determini
 **Expanded Information:**
 *   **Predictable Behavior:** Deterministic programming ensures that given the same initial state and inputs, KNIRV-ROOT will always produce the exact same output and state changes across all its validators. This is crucial for maintaining consensus and auditability.
 *   **Auditability & Reliability:** The deterministic nature allows for perfect replayability of the blockchain history, making it easy to audit and debug. This is vital for KNIRV-ROOT's role as the NRN oracle and network orchestrator, where trust and reliability are paramount.
-*   **No Embedded KNIRV-AGENTIFIER:** KNIRV-ROOT does not embed a KNIRV-AGENTIFIER for its operational logic. Its functions are purely programmatic, consensus-driven, and designed for maximum stability and security, avoiding the dynamic, evolving nature of KNIRV-AGENTIFIER agents for its core responsibilities.
+*   **No Embedded KNIRV-CORTEX:** KNIRV-ROOT does not embed a KNIRV-CORTEX for its operational logic. Its functions are purely programmatic, consensus-driven, and designed for maximum stability and security, avoiding the dynamic, evolving nature of KNIRV-CORTEX agents for its core responsibilities.
 
 ### 3.4. Payment Gateway Integration
 KNIRV-ROOT hosts and manages the Payment Gateway backend service, acting as the secure bridge between external fiat/crypto payment rails and the internal NRN economy.
@@ -99,7 +99,7 @@ KNIRV-ROOT is strategically positioned at the nexus of the KNIRV D-TEN's economi
 **Expanded Information:**
 *   **KNIRVCHAIN:** KNIRV-ROOT actively monitors KNIRVCHAIN for finalized Base LLM updates and SkillRegistry changes, propagating this canonical intelligence across the network. Conversely, KNIRVCHAIN sends `IBC` messages to KNIRV-ROOT to trigger NRN burns upon Skill invocation, ensuring the economic loop.
 *   **KNIRV-ROUTERS:** These foundational nodes submit NRN minting requests (accompanied by "Proof-of-Connectivity" data) directly to the KNIRV-ROOT blockchain. In return, they receive USDC from the KNIRV-ROOT Faucet, incentivizing their continuous operation and network integrity validation.
-*   **KNIRV-AGENTIFIER:** KNIRV-AGENTIFIER agents receive canonical Base LLM and SkillRegistry updates directly from KNIRV-ROOT, ensuring they operate with the latest collective intelligence. KNIRV-AGENTIFIERs' KNIRV-WALLETs acquire NRNs from the KNIRV-ROOT Faucet to fund Skill invocations.
+*   **KNIRV-CORTEX:** KNIRV-CORTEX agents receive canonical Base LLM and SkillRegistry updates directly from KNIRV-ROOT, ensuring they operate with the latest collective intelligence. KNIRV-CORTEXs' KNIRV-WALLETs acquire NRNs from the KNIRV-ROOT Faucet to fund Skill invocations.
 *   **KNIRV-GRAPH:** KNIRV-ROOT observes KNIRV-GRAPH for newly minted SkillNodes (as "towers" within ErrorNode vector fields). After its own verification, KNIRV-ROOT orchestrates the canonical minting of these SkillNodes onto KNIRVCHAIN. KNIRV-ROOT may also observe KNIRV-GRAPH data to inform its NRN economic policy adjustments (e.g., minting rates) or to verify SkillNode contributions that drive Base LLM evolution.
 *   **KNIRV-WALLET:** Users' KNIRV-WALLETs (leveraging XION Meta Accounts for enhanced UX) are the direct beneficiaries of NRN disbursements from the KNIRV-ROOT Faucet. They also manage wrapped NRNs on XION for seamless transactions within the broader XION ecosystem.
 *   **KNIRVANA:** Gameplay in KNIRVANA directly drives Skill invocation on KNIRVCHAIN. This, in turn, triggers NRN burns on KNIRV-ROOT, making the economic utility of the NRN tangible and directly linked to the user's experience within the game.
@@ -134,7 +134,7 @@ The development of KNIRV-ROOT will proceed in phases, focusing on strengthening 
     *   **Focus:** Secure and stable operation of the core `PoA` blockchain, NRN Module, Faucet Module, and initial Registry Module.
     *   **`IBC` Channels:** Establish stable `IBC` channels with XION for USDC inflow and wrapped NRNs, and with KNIRVCHAIN for Skill invocation burning and Base LLM/SkillRegistry observation.
     *   **Payment Gateway:** Fully integrate and secure the Payment Gateway backend service.
-    *   **Goal:** Establish KNIRV-ROOT as the canonical NRN ledger and the primary orchestrator of the NRN economy, supporting initial KNIRV-ROUTER and KNIRV-AGENTIFIER operations.
+    *   **Goal:** Establish KNIRV-ROOT as the canonical NRN ledger and the primary orchestrator of the NRN economy, supporting initial KNIRV-ROUTER and KNIRV-CORTEX operations.
 *   **Phase 2 (Decentralized Validator Set Expansion - Q4 2026):**
     *   **Focus:** Gradually expand the KNIRV-ROOT validator set, onboarding more authorized and reputable entities to further enhance decentralization and security of the `PoA` consensus.
     *   **Advanced Oracle Logic:** Refine the Oracle Module to include more sophisticated observation and reconciliation logic for KNIRVGRAPH's SkillNode verification status, ensuring seamless orchestration of canonical SkillNode minting on KNIRVCHAIN.

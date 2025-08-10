@@ -211,14 +211,14 @@
             <a href="#" class="whitepaper-link" onclick="event.stopPropagation(); openWhitepaper('KNIRVNEXUS_Whitepaper')">Read Whitepaper</a>
         </div>
 
-        <!-- KNIRV-AGENTIFIER Card -->
-        <div class="whitepaper-card" onclick="openWhitepaper('KNIRV-AGENTIFIER_Whitepaper')">
+        <!-- KNIRV-CORTEX Card -->
+        <div class="whitepaper-card" onclick="openWhitepaper('KNIRV-CORTEX_Whitepaper')">
             <div class="whitepaper-icon">🤖</div>
-            <h4 class="whitepaper-title">KNIRV-AGENTIFIER</h4>
+            <h4 class="whitepaper-title">KNIRV-CORTEX</h4>
             <p class="whitepaper-description">
                 A mobile-native adapter that transforms existing AI assistants into autonomous, self-improving agents powered by Rust WASM.
             </p>
-            <a href="#" class="whitepaper-link" onclick="event.stopPropagation(); openWhitepaper('KNIRV-AGENTIFIER_Whitepaper')">Read Whitepaper</a>
+            <a href="#" class="whitepaper-link" onclick="event.stopPropagation(); openWhitepaper('KNIRV-CORTEX_Whitepaper')">Read Whitepaper</a>
         </div>
 
         <!-- KNIRV-WALLET Card -->
@@ -226,7 +226,7 @@
             <div class="whitepaper-icon">👛</div>
             <h4 class="whitepaper-title">KNIRV-WALLET</h4>
             <p class="whitepaper-description">
-                The user-friendly gateway, leveraging XION's Meta Accounts for seamless interaction, primarily through the KNIRV-AGENTIFIER.
+                The user-friendly gateway, leveraging XION's Meta Accounts for seamless interaction, primarily through the KNIRV-CORTEX.
             </p>
             <a href="#" class="whitepaper-link" onclick="event.stopPropagation(); openWhitepaper('KNIRV-WALLET_Whitepaper')">Read Whitepaper</a>
         </div>

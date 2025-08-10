@@ -7,7 +7,7 @@ The **KNIRV-SHELL** is a sophisticated, AI-powered command-line interface (CLI) 
 
 #### **1. Introduction**
 
-The **KNIRV-SHELL** transforms the user's interaction with the D-TEN from an abstract concept into a tangible command-line experience. It is designed to overcome the limitations of isolated operations and static configurations, establishing itself as the "unified access" point for all network services. Unlike the user-facing `KNIRV-AGENTIFIER`, the `KNIRV-SHELL` is a technical interface built for precision and control, empowering developers to build, manage, and monitor their applications directly from the terminal.
+The **KNIRV-SHELL** transforms the user's interaction with the D-TEN from an abstract concept into a tangible command-line experience. It is designed to overcome the limitations of isolated operations and static configurations, establishing itself as the "unified access" point for all network services. Unlike the user-facing `KNIRV-CORTEX`, the `KNIRV-SHELL` is a technical interface built for precision and control, empowering developers to build, manage, and monitor their applications directly from the terminal.
 
 #### **2. Core Features**
 
@@ -85,3 +85,9 @@ The **KNIRV-SHELL** is envisioned as a continuously evolving tool. Future enhanc
 #### **6. Conclusion**
 
 The **KNIRV-SHELL** is a testament to the KNIRV Network's commitment to empowering developers. By providing a comprehensive, intelligent, and unified command-line tool, it transforms the complexity of a decentralized network into a powerful and manageable interface. It is the definitive toolkit for building, managing, and interacting with the entire KNIRV D-TEN, serving as a critical layer that drives both innovation and adoption.
+
+<div class="footer-links">
+<a href="#/legal/CODE_OF_CONDUCT.md" class="footer-link">Contributor Covenant Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY.md" class="footer-link">PRIVACY_POLICY.md</a> | <a href="#/legal/TERMS_AND_CONDITIONS.md" class="footer-link">TERMS AND CONDITIONS</a>
+
+© 2025 KNIRV Network
+</div>

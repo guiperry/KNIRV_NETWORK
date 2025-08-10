@@ -49,7 +49,7 @@ graph TB
     subgraph "User Interface Layer"
         KW[KNIRV-WALLET<br/>User Gateway]
         KN[KNIRVANA<br/>RTS Game]
-        KS[KNIRV-AGENTIFIER<br/>AI Agents]
+        KS[KNIRV-CORTEX<br/>AI Agents]
     end
     
     subgraph "API & Integration Layer"
@@ -139,7 +139,7 @@ graph TB
   - RESTful API for connectivity status and metrics
   - Production monitoring integration with Prometheus metrics
 
-### 🤖 KNIRV-AGENTIFIER: The User's Autonomous Gateway
+### 🤖 KNIRV-CORTEX: The User's Autonomous Gateway
 **Technology**: Rust WASM-powered AI agents with SEAL loop
 - **Purpose**: A mobile-native adapter that empowers existing AI assistants with autonomous agentic abilities, acting as the primary user gateway to the D-TEN.
 - **Key Features**:
@@ -155,16 +155,16 @@ graph TB
   - Multiplatform support: Desktop, Mobile, Web
   - XION Meta Account integration for seamless asset management
   - Secure key storage and encryption
-  - User-friendly UI for managing assets and delegating authority to KNIRV-AGENTIFIER's Key Features:
+  - User-friendly UI for managing assets and delegating authority to KNIRV-CORTEX's Key Features:
   - Web2-like authentication (email, social, biometrics)
   - Secure Gasless transactions via XION
   - NRN management and autonomous agent control
   - UDC issuance for agent delegation
 
-Clarification: An AI assistant is typically a tool that responds to user commands or queries within a confined scope, performing tasks or providing information based on direct input. In contrast, an AI agent is an autonomous entity that can understand high-level goals and initiate actions to achieve them without constant user intervention. It can proactively manage resources, interact with other systems, and make decisions on behalf of the user, such as a KNIRV-AGENTIFIER, which will use the KNIRV-WALLET to perform transactions and manage assets autonomously.
+Clarification: An AI assistant is typically a tool that responds to user commands or queries within a confined scope, performing tasks or providing information based on direct input. In contrast, an AI agent is an autonomous entity that can understand high-level goals and initiate actions to achieve them without constant user intervention. It can proactively manage resources, interact with other systems, and make decisions on behalf of the user, such as a KNIRV-CORTEX, which will use the KNIRV-WALLET to perform transactions and manage assets autonomously.
 
 ### 🎮 KNIRVANA: The Experiential Gateway
-**Technology**: Real-Time Strategy game with direct KNIRV-AGENTIFIER integration
+**Technology**: Real-Time Strategy game with direct KNIRV-CORTEX integration
 - **Purpose**: Gamified interaction with the D-TEN ecosystem
 - **Key Features**:
   - Agent unit management and task assignment
@@ -244,7 +244,7 @@ GET  /knirvrouter/*          # KNIRV-ROUTER connectivity
 
 ### Prerequisites
 - **Go**: 1.21+ for blockchain components
-- **Rust**: 1.70+ for KNIRVCHAIN and KNIRV-AGENTIFIER
+- **Rust**: 1.70+ for KNIRVCHAIN and KNIRV-CORTEX
 - **Node.js**: 18+ for frontend components
 - **Docker**: 24+ for containerized deployment
 - **Kubernetes**: 1.20+ for production deployment (optional)
@@ -480,7 +480,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - ✅ Advanced KNIRVGRAPH querying capabilities
 - ✅ KNIRV-NEXUS DVE specialization
 - 🔄 Skill licensing and royalty systems
-- 🔄 Enhanced KNIRV-AGENTIFIER SDK
+- 🔄 Enhanced KNIRV-CORTEX SDK
 - ✅ Production monitoring integration
 - ✅ Load testing and performance optimization
 
@@ -671,7 +671,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### ✅ Fully Implemented & Production Ready
 
 #### Core Infrastructure
-- **All 7 Sovereign Layers**: KNIRV-ROOT, KNIRVCHAIN, KNIRVGRAPH, KNIRV-NEXUS, KNIRV-ROUTER, KNIRV-AGENTIFIER, KNIRV-WALLET
+- **All 7 Sovereign Layers**: KNIRV-ROOT, KNIRVCHAIN, KNIRVGRAPH, KNIRV-NEXUS, KNIRV-ROUTER, KNIRV-CORTEX, KNIRV-WALLET
 - **Unified API Gateway**: Complete service orchestration with load balancing and authentication
 - **Cross-Chain Bridge**: XION integration with Meta Accounts and USDC faucet
 - **Economic Model**: NRN token minting, burning, and circulation

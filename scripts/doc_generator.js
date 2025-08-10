@@ -24,6 +24,12 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { execSync } = require('child_process');
+const https = require('https');
+
+// Load dotenv from the documentation folder
+const dotenvPath = path.join(__dirname, '..', 'KNIRVGATEWAY', 'documentation', 'node_modules', 'dotenv');
+const dotenv = require(dotenvPath);
+dotenv.config({ path: path.join(__dirname, '..', 'KNIRVGATEWAY', 'documentation', '.env') });
 
 // Configuration
 const rootDir = path.dirname(__dirname); // Go up one level from scripts directory
@@ -50,7 +56,7 @@ const CONFIG = {
     'knirvroot': 'KNIRVROOT Documentation',
     'knirvrouter': 'KNIRVROUTER Documentation',
     'knirvsdk': 'KNIRVSDK Documentation',
-    'knirvshell': 'KNIRVAGENTIFIER Documentation',
+    'knirvshell': 'KNIRVCORTEX Documentation',
     'knirvwallet': 'KNIRVWALLET Documentation'
   },
   // Special files that should be processed differently
@@ -69,8 +75,11 @@ const CONFIG = {
     'KNIRVROOT',
     'KNIRVROUTER',
     'KNIRVSDK',
-    'KNIRVAGENTIFIER',
-    'KNIRVWALLET'
+    'KNIRVCORTEX',
+    'KNIRVWALLET',
+    'KNIRVSHELL',
+    'KNIRVGATEWAY',
+    'KNIRVTESTNET'
   ],
   // Subdirectories to exclude when scanning subproducts
   excludeSubDirs: [
@@ -198,7 +207,7 @@ function updateContentHash(content, key, hashes) {
 // Generate a consistent footer with legal links
 function generateLegalFooter(categories) {
   let footer = `\n\n---\n\n<div class="footer-links">\n`;
-  
+
   // Add legal documents if they exist
   if (categories['legal'] && categories['legal'].length > 0) {
     categories['legal'].forEach(doc => {
@@ -207,10 +216,135 @@ function generateLegalFooter(categories) {
     // Remove the last separator
     footer = footer.slice(0, -3);
   }
-  
+
   footer += `\n\n© ${new Date().getFullYear()} ${CONFIG.projectName}\n</div>\n`;
-  
+
   return footer;
+}
+
+// Generate the standard footer for all documentation files
+function generateStandardFooter() {
+  return `\n\n<div class="footer-links">
+<a href="#/legal/CODE_OF_CONDUCT.md" class="footer-link">Contributor Covenant Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY.md" class="footer-link">PRIVACY_POLICY.md</a> | <a href="#/legal/TERMS_AND_CONDITIONS.md" class="footer-link">TERMS AND CONDITIONS</a>
+
+© 2025 KNIRV Network
+</div>\n`;
+}
+
+// AI-powered documentation organization functions
+async function callGeminiAPI(prompt) {
+  return new Promise((resolve, reject) => {
+    const apiKey = process.env.GEMINI_API_KEY;
+    const model = process.env.GEMINI_MODEL_NAME || 'gemini-1.5-flash';
+
+    if (!apiKey) {
+      reject(new Error('GEMINI_API_KEY not found in environment variables'));
+      return;
+    }
+
+    const requestData = JSON.stringify({
+      contents: [{
+        role: "user",
+        parts: [{ text: prompt }]
+      }],
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 4096
+      }
+    });
+
+    const options = {
+      hostname: 'generativelanguage.googleapis.com',
+      path: `/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(requestData)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => {
+        try {
+          const response = JSON.parse(data);
+          if (response.candidates && response.candidates[0] && response.candidates[0].content) {
+            resolve(response.candidates[0].content.parts[0].text);
+          } else {
+            reject(new Error('Invalid response from Gemini API'));
+          }
+        } catch (error) {
+          reject(new Error(`Failed to parse Gemini response: ${error.message}`));
+        }
+      });
+    });
+
+    req.on('error', (error) => {
+      reject(new Error(`Gemini API request failed: ${error.message}`));
+    });
+
+    req.write(requestData);
+    req.end();
+  });
+}
+
+async function callCerebrasAPI(prompt) {
+  return new Promise((resolve, reject) => {
+    const apiKey = process.env.CEREBRAS_API_KEY;
+    const baseUrl = process.env.CEREBRAS_BASE_URL || 'https://api.cerebras.ai/v1/chat/completions';
+
+    if (!apiKey) {
+      reject(new Error('CEREBRAS_API_KEY not found in environment variables'));
+      return;
+    }
+
+    const requestData = JSON.stringify({
+      model: "llama3.1-8b",
+      messages: [{
+        role: "user",
+        content: prompt
+      }],
+      max_tokens: 4096,
+      temperature: 0.3
+    });
+
+    const url = new URL(baseUrl);
+    const options = {
+      hostname: url.hostname,
+      path: url.pathname,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Length': Buffer.byteLength(requestData)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => {
+        try {
+          const response = JSON.parse(data);
+          if (response.choices && response.choices[0] && response.choices[0].message) {
+            resolve(response.choices[0].message.content);
+          } else {
+            reject(new Error('Invalid response from Cerebras API'));
+          }
+        } catch (error) {
+          reject(new Error(`Failed to parse Cerebras response: ${error.message}`));
+        }
+      });
+    });
+
+    req.on('error', (error) => {
+      reject(new Error(`Cerebras API request failed: ${error.message}`));
+    });
+
+    req.write(requestData);
+    req.end();
+  });
 }
 
 // Get all markdown files from a directory, excluding whitepapers
@@ -526,16 +660,314 @@ function parseMarkdownFile(filePath, citations, subproductInfo = null) {
   };
 }
 
-// Process all markdown files (now only whitepapers)
-function processMarkdownFiles() {
-  // Only return empty array since we're only processing whitepapers now
-  console.log('Skipping main docs and subproduct files - only processing whitepapers');
+// Helper function to determine category from subproduct name
+function determineCategory(subproductName) {
+  const categoryMap = {
+    'KNIRVCHAIN': 'knirvchain',
+    'KNIRVGRAPH': 'knirvgraph',
+    'KNIRVNEXUS': 'knirvnexus',
+    'KNIRVROOT': 'knirvroot',
+    'KNIRVROUTER': 'knirvrouter',
+    'KNIRVSDK': 'knirvsdk',
+    'KNIRVCORTEX': 'knirvshell',
+    'KNIRVWALLET': 'knirvwallet',
+    'KNIRVSHELL': 'knirvshell',
+    'KNIRVGATEWAY': 'guides',
+    'KNIRVTESTNET': 'deployment'
+  };
+  return categoryMap[subproductName] || 'guides';
+}
+
+// AI-powered documentation organization and processing (README.md files in sub-project directories only)
+async function organizeDocumentationWithAI(hashes) {
+  console.log('Starting AI-powered documentation organization for sub-project README.md files...');
+
+  // Get README.md files from sub-project directories
+  const readmeFiles = getSubprojectReadmeFiles();
+
+  if (readmeFiles.length === 0) {
+    console.log('No README.md files found in sub-project directories to organize');
+    return [];
+  }
+
+  const organizedDocs = [];
+
+  for (const fileInfo of readmeFiles) {
+    const filePath = fileInfo.fullPath;
+
+    // Check if source file has changed - if not, skip AI processing
+    if (!hasFileChanged(filePath, hashes)) {
+      console.log(`Skipping ${fileInfo.subproductName}/README.md - no changes detected`);
+
+      // Try to load existing processed file
+      const outputCategory = determineCategory(fileInfo.subproductName);
+      const outputPath = path.join(CONFIG.docsifyDir, outputCategory, 'README.md');
+
+      if (fs.existsSync(outputPath)) {
+        const existingContent = fs.readFileSync(outputPath, 'utf8');
+        const titleMatch = existingContent.match(/^# (.*)/m);
+        const title = titleMatch ? titleMatch[1] : `${fileInfo.subproductName} User Guide`;
+
+        organizedDocs.push({
+          title: title,
+          category: outputCategory,
+          description: `User guide for ${fileInfo.subproductName}`,
+          content: existingContent,
+          filename: 'README.md',
+          originalPath: filePath,
+          qualityScore: 8 // Default for existing files
+        });
+
+        console.log(`Loaded existing processed file for ${fileInfo.subproductName}`);
+        continue;
+      }
+    }
+
+    // Update hash for changed file
+    updateFileHash(filePath, hashes);
+
+    // Check if source file has changed - if not, skip AI processing
+    if (!hasFileChanged(filePath, hashes)) {
+      console.log(`Skipping ${fileInfo.subproductName}/README.md - no changes detected`);
+
+      // Try to load existing processed file
+      const outputCategory = determineCategory(fileInfo.subproductName);
+      const outputPath = path.join(CONFIG.docsifyDir, outputCategory, 'README.md');
+
+      if (fs.existsSync(outputPath)) {
+        const existingContent = fs.readFileSync(outputPath, 'utf8');
+        const titleMatch = existingContent.match(/^# (.*)/m);
+        const title = titleMatch ? titleMatch[1] : `${fileInfo.subproductName} User Guide`;
+
+        organizedDocs.push({
+          title: title,
+          category: outputCategory,
+          description: `User guide for ${fileInfo.subproductName}`,
+          content: existingContent,
+          filename: 'README.md',
+          originalPath: filePath,
+          qualityScore: 8 // Default for existing files
+        });
+
+        console.log(`Loaded existing processed file for ${fileInfo.subproductName}`);
+        continue;
+      }
+    }
+
+    // Update hash for changed file
+    updateFileHash(filePath, hashes);
+    try {
+      console.log(`Processing: ${path.basename(filePath)}`);
+
+      // Read file content
+      const content = fs.readFileSync(filePath, 'utf8');
+
+      // First pass: Gemini for initial organization and filtering
+      const geminiPrompt = `
+You are a technical documentation organizer for the KNIRV Network project. Analyze this README.md file from the ${fileInfo.subproductName} sub-project and transform it into user-friendly documentation:
+
+1. CATEGORY: Choose the most appropriate category from: guides, deployment, development, api, security, architecture, contribute, legal, knirvchain, knirvgraph, knirvnexus, knirvroot, knirvrouter, knirvsdk, knirvshell, knirvwallet
+2. TITLE: A clear, user-friendly title (e.g., "${fileInfo.subproductName} User Guide" or "${fileInfo.subproductName} Troubleshooting Guide")
+3. DESCRIPTION: A brief 1-2 sentence description (max 160 characters)
+4. PRIVACY_LEVEL: Either "PUBLIC" (safe for external users) or "PRIVATE" (contains admin-only or sensitive information)
+5. ORGANIZED_CONTENT: Transform the content into user-friendly guidelines, troubleshooting tips, and usage instructions. Focus on:
+   - Installation and setup instructions
+   - Common usage patterns
+   - Troubleshooting common issues
+   - Configuration guidelines
+   - Remove or simplify technical implementation details
+   - Make it accessible to end users and developers
+
+Sub-project: ${fileInfo.subproductName}
+Document content:
+${content}
+
+Respond in this exact format:
+CATEGORY: [category]
+TITLE: [title]
+DESCRIPTION: [description]
+PRIVACY_LEVEL: [PUBLIC/PRIVATE]
+ORGANIZED_CONTENT:
+[organized content here]
+`;
+
+      const geminiResponse = await callGeminiAPI(geminiPrompt);
+
+      // Parse Gemini response
+      const categoryMatch = geminiResponse.match(/CATEGORY:\s*(.+)/);
+      const titleMatch = geminiResponse.match(/TITLE:\s*(.+)/);
+      const descriptionMatch = geminiResponse.match(/DESCRIPTION:\s*(.+)/);
+      const privacyMatch = geminiResponse.match(/PRIVACY_LEVEL:\s*(PUBLIC|PRIVATE)/);
+      const contentMatch = geminiResponse.match(/ORGANIZED_CONTENT:\s*([\s\S]+)/);
+
+      if (!categoryMatch || !titleMatch || !privacyMatch || !contentMatch) {
+        console.warn(`Failed to parse Gemini response for ${path.basename(filePath)}, skipping AI processing`);
+        continue;
+      }
+
+      const category = categoryMatch[1].trim();
+      const title = titleMatch[1].trim();
+      const description = descriptionMatch ? descriptionMatch[1].trim() : '';
+      const privacyLevel = privacyMatch[1].trim();
+      let organizedContent = contentMatch[1].trim();
+
+      // Skip private documents
+      if (privacyLevel === 'PRIVATE') {
+        console.log(`Skipping private document: ${path.basename(filePath)}`);
+        continue;
+      }
+
+      // Second pass: Cerebras for quality check and final refinement
+      const cerebrasPrompt = `
+Review this user-focused documentation for the KNIRV Network ${fileInfo.subproductName} component. Evaluate and improve:
+
+1. USER-FRIENDLINESS: Is this accessible to end users and developers?
+2. PRACTICAL VALUE: Does it provide actionable guidance and troubleshooting?
+3. COMPLETENESS: Are installation, usage, and troubleshooting covered?
+4. CLARITY: Are technical concepts explained clearly?
+
+Focus on making this a practical guide that helps users successfully use ${fileInfo.subproductName}.
+
+Original category: ${category}
+Original title: ${title}
+Content to review:
+${organizedContent}
+
+Respond in this exact format:
+QUALITY_SCORE: [1-10]
+CATEGORY_CORRECT: [YES/NO]
+SUGGESTED_CATEGORY: [category if different]
+TITLE_CORRECT: [YES/NO]
+SUGGESTED_TITLE: [title if different]
+IMPROVEMENTS_NEEDED: [YES/NO]
+FINAL_CONTENT:
+[improved content here]
+`;
+
+      const cerebrasResponse = await callCerebrasAPI(cerebrasPrompt);
+
+      // Parse Cerebras response
+      const qualityMatch = cerebrasResponse.match(/QUALITY_SCORE:\s*(\d+)/);
+      const categoryCorrectMatch = cerebrasResponse.match(/CATEGORY_CORRECT:\s*(YES|NO)/);
+      const suggestedCategoryMatch = cerebrasResponse.match(/SUGGESTED_CATEGORY:\s*(.+)/);
+      const titleCorrectMatch = cerebrasResponse.match(/TITLE_CORRECT:\s*(YES|NO)/);
+      const suggestedTitleMatch = cerebrasResponse.match(/SUGGESTED_TITLE:\s*(.+)/);
+      const finalContentMatch = cerebrasResponse.match(/FINAL_CONTENT:\s*([\s\S]+)/);
+
+      // Apply Cerebras suggestions if available
+      let finalCategory = category;
+      let finalTitle = title;
+      let finalContent = organizedContent;
+
+      if (categoryCorrectMatch && categoryCorrectMatch[1] === 'NO' && suggestedCategoryMatch) {
+        finalCategory = suggestedCategoryMatch[1].trim();
+        console.log(`Updated category for ${path.basename(filePath)}: ${category} -> ${finalCategory}`);
+      }
+
+      if (titleCorrectMatch && titleCorrectMatch[1] === 'NO' && suggestedTitleMatch) {
+        finalTitle = suggestedTitleMatch[1].trim();
+        console.log(`Updated title for ${path.basename(filePath)}: ${title} -> ${finalTitle}`);
+      }
+
+      if (finalContentMatch) {
+        finalContent = finalContentMatch[1].trim();
+      }
+
+      // Add standard footer to the content
+      finalContent += generateStandardFooter();
+
+      organizedDocs.push({
+        title: finalTitle,
+        category: finalCategory,
+        description: description,
+        content: finalContent,
+        filename: path.basename(filePath),
+        originalPath: filePath,
+        qualityScore: qualityMatch ? parseInt(qualityMatch[1]) : 5
+      });
+
+      console.log(`Successfully processed: ${path.basename(filePath)} (Category: ${finalCategory}, Quality: ${qualityMatch ? qualityMatch[1] : 'N/A'})`);
+
+    } catch (error) {
+      console.error(`Error processing ${path.basename(filePath)}: ${error.message}`);
+      // Continue with next file
+    }
+  }
+
+  console.log(`AI organization complete. Processed ${organizedDocs.length} documents.`);
+  return organizedDocs;
+}
+
+// Get README.md files from sub-project directories
+function getSubprojectReadmeFiles() {
+  const readmeFiles = [];
+
+  CONFIG.subproductDirs.forEach(subproductDir => {
+    const subproductPath = path.join(rootDir, subproductDir);
+    const readmePath = path.join(subproductPath, 'README.md');
+
+    if (fs.existsSync(readmePath)) {
+      readmeFiles.push({
+        fullPath: readmePath,
+        subproductName: subproductDir,
+        filename: 'README.md'
+      });
+      console.log(`Found README.md in ${subproductDir}`);
+    } else {
+      console.log(`No README.md found in ${subproductDir}`);
+    }
+  });
+
+  return readmeFiles;
+}
+
+// Process deterministic documentation files (whitepapers only)
+function processDeterministicMarkdownFiles() {
+  console.log('Processing deterministic documentation files (whitepapers only)...');
+
+  // Only process whitepapers deterministically - no other docs from docs/ folder
+  console.log('Skipping docs/ folder files - only processing whitepapers deterministically');
   return [];
 }
 
-// Generate sidebar content for Docsify (whitepapers only)
+// Process all markdown files (AI organization for sub-project README.md files only)
+async function processMarkdownFiles(hashes) {
+  // Process deterministic files first (empty array - only whitepapers processed separately)
+  const deterministicDocs = processDeterministicMarkdownFiles();
+
+  // Process sub-project README.md files with AI
+  const aiOrganizedDocs = await organizeDocumentationWithAI(hashes);
+
+  // Combine both sets of documents
+  return [...deterministicDocs, ...aiOrganizedDocs];
+}
+
+// Generate sidebar content for Docsify with organized documentation
 function generateSidebar(docs) {
   let sidebar = `# ${CONFIG.projectName}\n\n`;
+
+  // Group documents by category
+  const categorizedDocs = {};
+  docs.forEach(doc => {
+    if (!categorizedDocs[doc.category]) {
+      categorizedDocs[doc.category] = [];
+    }
+    categorizedDocs[doc.category].push(doc);
+  });
+
+  // Add organized documentation sections
+  Object.keys(CONFIG.categories).forEach(categoryKey => {
+    if (categorizedDocs[categoryKey] && categorizedDocs[categoryKey].length > 0) {
+      const categoryTitle = CONFIG.categories[categoryKey];
+      sidebar += `## ${categoryTitle}\n\n`;
+
+      categorizedDocs[categoryKey].forEach(doc => {
+        const filename = doc.filename.replace('.md', '');
+        sidebar += `* [${doc.title}](${categoryKey}/${filename}.md)\n`;
+      });
+      sidebar += '\n';
+    }
+  });
 
   // Add whitepapers section
   sidebar += `## 📄 Whitepapers\n\n`;
@@ -548,12 +980,43 @@ function generateSidebar(docs) {
   return sidebar;
 }
 
-// Generate index content for Docsify (whitepapers only)
+// Generate index content for Docsify with organized documentation
 function generateIndex(docs) {
   let index = `# ${CONFIG.projectName} Documentation\n\n`;
 
   // Add description
   index += `Welcome to the ${CONFIG.projectName} documentation. This comprehensive guide provides information about the KNIRV Decentralized Trusted Execution Network (D-TEN) and its components.\n\n`;
+
+  // Group documents by category for overview
+  const categorizedDocs = {};
+  docs.forEach(doc => {
+    if (!categorizedDocs[doc.category]) {
+      categorizedDocs[doc.category] = [];
+    }
+    categorizedDocs[doc.category].push(doc);
+  });
+
+  // Add documentation sections overview
+  if (Object.keys(categorizedDocs).length > 0) {
+    index += `## 📚 Documentation Sections\n\n`;
+
+    Object.keys(CONFIG.categories).forEach(categoryKey => {
+      if (categorizedDocs[categoryKey] && categorizedDocs[categoryKey].length > 0) {
+        const categoryTitle = CONFIG.categories[categoryKey];
+        index += `### ${categoryTitle}\n\n`;
+
+        categorizedDocs[categoryKey].forEach(doc => {
+          const filename = doc.filename.replace('.md', '');
+          index += `* [${doc.title}](${categoryKey}/${filename}.md)`;
+          if (doc.description) {
+            index += ` - ${doc.description}`;
+          }
+          index += '\n';
+        });
+        index += '\n';
+      }
+    });
+  }
 
   // Add whitepapers section
   index += `## 📄 Technical Whitepapers\n\n`;
@@ -565,8 +1028,8 @@ function generateIndex(docs) {
   index += `## 🚀 Developer Community\n\n`;
   index += `We're building an open source developer community around the KNIRV Network. If you're interested in contributing, please check out our contribution guidelines.\n\n`;
 
-  // Add footer
-  index += `---\n\n© ${new Date().getFullYear()} ${CONFIG.projectName}\n`;
+  // Add standard footer
+  index += generateStandardFooter();
 
   return index;
 }
@@ -753,7 +1216,7 @@ function writeFileIfChanged(filePath, content, hashes) {
   return false;
 }
 
-// Create Docsify structure (whitepapers only)
+// Create Docsify structure with organized documentation
 function createDocsifyStructure(docs, hashes) {
   ensureDirectoryExists(CONFIG.docsifyDir);
   let filesChanged = 0;
@@ -785,12 +1248,34 @@ function createDocsifyStructure(docs, hashes) {
     filesChanged++;
   }
 
+  // Create organized documentation files by category
+  const categorizedDocs = {};
+  docs.forEach(doc => {
+    if (!categorizedDocs[doc.category]) {
+      categorizedDocs[doc.category] = [];
+    }
+    categorizedDocs[doc.category].push(doc);
+  });
+
+  // Write documentation files to their respective category directories
+  Object.keys(categorizedDocs).forEach(category => {
+    const categoryDir = path.join(CONFIG.docsifyDir, category);
+    ensureDirectoryExists(categoryDir);
+
+    categorizedDocs[category].forEach(doc => {
+      const outputPath = path.join(categoryDir, doc.filename);
+      if (writeFileIfChanged(outputPath, doc.content, hashes)) {
+        filesChanged++;
+      }
+    });
+  });
+
   console.log(`Docsify documentation structure: ${filesChanged} files updated`);
 }
 
 
 
-// Process whitepapers - copy them only to docsify directory
+// Process whitepapers - copy them only to docsify directory with footer
 function processWhitepapers(hashes) {
   const whitepaperFiles = getWhitepaperFiles();
 
@@ -806,8 +1291,11 @@ function processWhitepapers(hashes) {
   let filesChanged = 0;
 
   whitepaperFiles.forEach(filePath => {
-    const content = fs.readFileSync(filePath, 'utf8');
+    let content = fs.readFileSync(filePath, 'utf8');
     const filename = path.basename(filePath);
+
+    // Add standard footer to whitepaper content
+    content += generateStandardFooter();
 
     // Copy to docsify whitepapers directory only
     const docsifyOutputPath = path.join(docsifyWhitepaperDir, filename);
@@ -892,15 +1380,15 @@ function processReferences(hashes) {
 }
 
 // Main function
-function main() {
+async function main() {
   console.log('Starting documentation generation...');
-  
+
   // Load existing hashes
   let hashes = loadHashes();
-  
+
   // Ensure output directory exists
   ensureDirectoryExists(CONFIG.outputDir);
-  
+
   // Check if whitepaper files have changed
   const whitepaperFiles = getWhitepaperFiles();
   for (const filePath of whitepaperFiles) {
@@ -910,10 +1398,10 @@ function main() {
     }
   }
 
-  // Process markdown files (now only returns empty array)
-  const docs = processMarkdownFiles();
+  // Process markdown files with AI organization
+  const docs = await processMarkdownFiles(hashes);
 
-  // Create Docsify structure (whitepapers only)
+  // Create Docsify structure with organized documentation
   createDocsifyStructure(docs, hashes);
 
   // Process whitepapers separately
@@ -925,6 +1413,7 @@ function main() {
   console.log('Documentation generation complete!');
   console.log(`Documentation: ${CONFIG.docsifyDir}`);
   console.log(`Whitepapers: ${path.join(CONFIG.docsifyDir, 'whitepapers')}`);
+  console.log(`Organized ${docs.length} documentation files using AI`);
 }
 
 // Run the main function

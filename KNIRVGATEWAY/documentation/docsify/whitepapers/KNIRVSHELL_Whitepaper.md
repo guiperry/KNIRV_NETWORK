@@ -1,4 +1,4 @@
-# KNIRV-AGENTIFIER Whitepaper: The Adaptive, Intuitive Intelligence Interface
+# KNIRV-CORTEX Whitepaper: The Adaptive, Intuitive Intelligence Interface
 ## Empowering Decentralized AI Agents Through Seamless User Interaction and Continuous Self-Improvement
 
 **Version:** 3.0 (Revised)
@@ -11,12 +11,12 @@ The current paradigm of artificial intelligence relies on static, pre-trained mo
 
 Our design introduces the "**Cognitive Shell**" architecture, a lightweight and adaptable agent framework that operates around a powerful, foundational model. Instead of prohibitively expensive full-model retraining, our agent updates its own small, internal set of adaptive weights. Inspired by the **SEAL (Self-Adapting Language Models)** framework, the agent uses a sophisticated reinforcement learning loop to autonomously refine these weights, which control its behavior, personality, and skills.
 
-Crucially, the **KNIRV-AGENTIFIER** serves a dual purpose:
+Crucially, the **KNIRV-CORTEX** serves a dual purpose:
 
 *   **The User's Primary Interface:** It is the direct, intuitive, voice-controlled point of interaction for users to issue commands and receive abstracted feedback from the entire **KNIRV Network**.
 *   **The Cognitive Shell Template:** It is the foundational, self-improving AI agent architecture from which all other specialized agents within the **KNIRV** ecosystem can be forged and spawned.
 
-A key innovation within the **KNIRV-AGENTIFIER** is "**The Fabric**" algorithm, which intelligently translates raw problem inputs (from voice, screenshots, or camera) into visual **Network Resolution Vectors (NRVs)** that users can intuitively map to the **KNIRV-GRAPH** for collective resolution. Furthermore, the **KNIRV-AGENTIFIER** directly controls agent units within **KNIRVANA**, a Real-Time Strategy game that serves as a tangible, experiential interface for decentralized AI management.
+A key innovation within the **KNIRV-CORTEX** is "**The Fabric**" algorithm, which intelligently translates raw problem inputs (from voice, screenshots, or camera) into visual **Network Resolution Vectors (NRVs)** that users can intuitively map to the **KNIRV-GRAPH** for collective resolution. Furthermore, the **KNIRV-CORTEX** directly controls agent units within **KNIRVANA**, a Real-Time Strategy game that serves as a tangible, experiential interface for decentralized AI management.
 
 This design allows an AI agent to:
 
@@ -49,20 +49,20 @@ This design synthesizes cutting-edge technologies:
 
 *   **Self-Adapting Language Models (SEAL):** A framework where a model uses reinforcement learning to generate its own *"self-edits"*—natural language instructions for creating synthetic data and performing optimization—to improve its performance on downstream tasks.
 *   **Blockchain Technology:** Used not for currency, but as an immutable, distributed ledger. It provides a perfect mechanism for creating a tamper-proof, auditable history of the agent's states (model weights, configurations), ensuring integrity and enabling reliable recovery.
-*   **Trusted Execution Environments (TEEs):** Leveraging hardware-level isolation to protect sensitive data and computations from external threats, integrated directly into the core **KNIRV-AGENTIFIER** architecture.
+*   **Trusted Execution Environments (TEEs):** Leveraging hardware-level isolation to protect sensitive data and computations from external threats, integrated directly into the core **KNIRV-CORTEX** architecture.
 *   **Network Resolution Notice (NRN) Token:** A critical utility token that drives the network's economy by being consumed for Skill invocation and produced for network validation.
 *   **XION Layer 1:** Provides the robust, consumer-focused blockchain foundation for the **KNIRVCHAIN** and seamless user interaction.
 
 ## 2. Architectural Overview
 
-The system is designed with a modular, decoupled architecture to ensure scalability, maintainability, and clarity. The **KNIRV-AGENTIFIER** is the central orchestrator and user interface, managing its own self-improvement, interacting with the **KNIRV-WALLET** for funding and authorization, and leveraging the **KNIRV-GRAPH** for skill acquisition, all while utilizing the **KNIRVCHAIN** as the source of its Base LLM and Skill registry.
+The system is designed with a modular, decoupled architecture to ensure scalability, maintainability, and clarity. The **KNIRV-CORTEX** is the central orchestrator and user interface, managing its own self-improvement, interacting with the **KNIRV-WALLET** for funding and authorization, and leveraging the **KNIRV-GRAPH** for skill acquisition, all while utilizing the **KNIRVCHAIN** as the source of its Base LLM and Skill registry.
 
 ```mermaid
 graph TD
-    A[User Input: Voice / Screenshot / Camera] --> B[KNIRV-AGENTIFIER UI Module]
+    A[User Input: Voice / Screenshot / Camera] --> B[KNIRV-CORTEX UI Module]
     B --> C[Voice Control Module]
     B --> D[Visual Input Module]
-    C --> E[KNIRV-AGENTIFIER Core Module]
+    C --> E[KNIRV-CORTEX Core Module]
     D --> E
     E -- Internal Data Flow --> F["The Fabric" Algorithm Module]
     E -- Manages LoRA Adapters --> G[Rust WASM LoRA Adapters]
@@ -85,21 +85,21 @@ graph TD
     M -- "Acquires NRN from Faucet" --> P
     P -- "Propagates Canonical Base LLM / NRN State" --> E
 ```
-*Figure 1: High-Level System Architecture and Interaction Flow, with KNIRV-AGENTIFIER at the Core.*
+*Figure 1: High-Level System Architecture and Interaction Flow, with KNIRV-CORTEX at the Core.*
 
 **Key Modules:**
 
-*   **KNIRV-AGENTIFIER Core Module:** The central processing unit, managing the SEAL loop, Base LLM interaction, `LoRA` runtime, and orchestrating other modules.
+*   **KNIRV-CORTEX Core Module:** The central processing unit, managing the SEAL loop, Base LLM interaction, `LoRA` runtime, and orchestrating other modules.
 *   **User Interface Module:** Renders the iFrame-like display, manages visual feedback (edge coloring), and handles sliding UI panels.
 *   **Voice Control Module:** Processes speech-to-text, intent recognition, and executes voice commands.
 *   **Visual Input Module:** Captures screenshots/camera input and pre-processes images for analysis.
 *   **"The Fabric" Algorithm Module:** The novel component responsible for transforming raw problems into actionable NRV objects and their visual representation.
 *   **Network Interaction Module:** Manages all communication with external KNIRV network layers (**XION**, **KNIRV-GRAPH**, **DVEs**, **KNIRV-WALLET**, **KNIRV-ROUTERS**, **KNIRVANA**).
-*   **Rust WASM LoRA Adapters:** The encapsulated, self-improving intelligence units unique to each **KNIRV-AGENTIFIER**.
+*   **Rust WASM LoRA Adapters:** The encapsulated, self-improving intelligence units unique to each **KNIRV-CORTEX**.
 
 ## 3. Practical Implementation: The Cognitive Shell Architecture
 
-The vision of a fully self-modifying AI model implies immense computational cost. To make this system practical, deployable, and efficient, we introduce a paradigm shift: the agent is not the Large Language Model; it is a lightweight "**Cognitive Shell**" built around it. This **KNIRV-AGENTIFIER** serves as both the user's direct interface to the **KNIRV Network** and the architectural template for all other agents.
+The vision of a fully self-modifying AI model implies immense computational cost. To make this system practical, deployable, and efficient, we introduce a paradigm shift: the agent is not the Large Language Model; it is a lightweight "**Cognitive Shell**" built around it. This **KNIRV-CORTEX** serves as both the user's direct interface to the **KNIRV Network** and the architectural template for all other agents.
 
 This architecture decouples the agent's identity and learned behaviors from the static, foundational LLM it uses for reasoning. The agent exists as a lean executable binary containing its own logic and a set of small, adaptable *"weights."* It interacts with an external LLM (accessible via an API, either in the cloud or running locally) as a tool for knowledge and generation, but the agent's unique personality, skills, and memories are stored and refined within its own shell.
 
@@ -116,56 +116,56 @@ Within the **Cognitive Shell**, *"weights"* are not the parameters of the LLM it
     *   Re-ranking Models: To select the best response from several generated options.
     *   Format Enforcers: To ensure the output conforms to a required structure (e.g., `JSON`, `XML`).
     The RL loop updates the weights of these tiny models based on performance, teaching the agent to polish and secure its final output.
-*   **The Rust WASM LoRA Sidecar Adapter:** This is the most sophisticated layer, enabling surgical modification of the LLM's behavior without altering its base weights. A Low-Rank Adaptation (`LoRA`) adapter is a small matrix of weights (typically 4-30MB) that can be loaded alongside a compatible LLM at inference time. Our agent can self-program its own `agent_personality.lora` file. By fine-tuning this tiny "sidecar" file, the agent can instill specific skills, a unique communication style, or specialized domain knowledge into the LLM's responses. The self-improvement loop directly updates this `LoRA` file, which represents the pinnacle of the agent's learned identity. Crucially, these `LoRA` adapters are implemented as Rust `WASM` modules, providing a secure and efficient sandbox for their execution within the **KNIRV-AGENTIFIER's** TEE.
+*   **The Rust WASM LoRA Sidecar Adapter:** This is the most sophisticated layer, enabling surgical modification of the LLM's behavior without altering its base weights. A Low-Rank Adaptation (`LoRA`) adapter is a small matrix of weights (typically 4-30MB) that can be loaded alongside a compatible LLM at inference time. Our agent can self-program its own `agent_personality.lora` file. By fine-tuning this tiny "sidecar" file, the agent can instill specific skills, a unique communication style, or specialized domain knowledge into the LLM's responses. The self-improvement loop directly updates this `LoRA` file, which represents the pinnacle of the agent's learned identity. Crucially, these `LoRA` adapters are implemented as Rust `WASM` modules, providing a secure and efficient sandbox for their execution within the **KNIRV-CORTEX's** TEE.
 
 These three layers work in concert. The Prompt Layer frames the request, the `LoRA` Sidecar steers the LLM's generation process, and the Refinement Layer ensures the final output is safe, accurate, and well-formed. The agent's evolution is the continuous optimization of the weights across these layers.
 
-### 3.2 User Interaction Layer: The KNIRV-AGENTIFIER as Your Gateway
+### 3.2 User Interaction Layer: The KNIRV-CORTEX as Your Gateway
 
-The **KNIRV-AGENTIFIER** is designed from the ground up to be the intuitive, primary point of interaction for the end-user with the entire **KNIRV Network**. It abstracts away the underlying technical complexities, allowing users to interact naturally.
+The **KNIRV-CORTEX** is designed from the ground up to be the intuitive, primary point of interaction for the end-user with the entire **KNIRV Network**. It abstracts away the underlying technical complexities, allowing users to interact naturally.
 
-*   **Voice/Biometric Authentication:** Upon activation (e.g., via a voice command like "Hey KNIRV, activate"), the **KNIRV-AGENTIFIER** securely authenticates the user. This is primarily achieved through local processing of biometric data (e.g., voiceprint recognition, fingerprint scan) on the user's device. Crucially, raw biometric data is never stored; instead, cryptographic representations are derived and securely managed by the **KNIRV-WALLET** integration. This adheres strictly to the "Defense in Depth" principle of the `SECURITY_FRAMEWORK.md`.
-*   **Natural Language Understanding & Command Execution:** Leveraging its "**Cognitive Shell**" architecture and integrated LLM capabilities, the **KNIRV-AGENTIFIER** excels at parsing complex user intents from natural language commands (e.g., "I want you to send my mother a birthday cake!"). It uses its Prompt Strategy Layer and `LoRA` adapters to accurately interpret user requests and formulate internal execution plans.
-*   **Visual Interface Paradigm (iFrame-like):** The **KNIRV-AGENTIFIER** presents a minimalist, iFrame-like display that can act as an overlay or integrated window. Content is rendered within this "frame."
-    *   **Edge Coloring:** Dynamically colored edges of the screen/frame provide subtle, real-time visual feedback on **KNIRV-AGENTIFIER** activity (e.g., green for positive response, red for error, blue for processing).
+*   **Voice/Biometric Authentication:** Upon activation (e.g., via a voice command like "Hey KNIRV, activate"), the **KNIRV-CORTEX** securely authenticates the user. This is primarily achieved through local processing of biometric data (e.g., voiceprint recognition, fingerprint scan) on the user's device. Crucially, raw biometric data is never stored; instead, cryptographic representations are derived and securely managed by the **KNIRV-WALLET** integration. This adheres strictly to the "Defense in Depth" principle of the `SECURITY_FRAMEWORK.md`.
+*   **Natural Language Understanding & Command Execution:** Leveraging its "**Cognitive Shell**" architecture and integrated LLM capabilities, the **KNIRV-CORTEX** excels at parsing complex user intents from natural language commands (e.g., "I want you to send my mother a birthday cake!"). It uses its Prompt Strategy Layer and `LoRA` adapters to accurately interpret user requests and formulate internal execution plans.
+*   **Visual Interface Paradigm (iFrame-like):** The **KNIRV-CORTEX** presents a minimalist, iFrame-like display that can act as an overlay or integrated window. Content is rendered within this "frame."
+    *   **Edge Coloring:** Dynamically colored edges of the screen/frame provide subtle, real-time visual feedback on **KNIRV-CORTEX** activity (e.g., green for positive response, red for error, blue for processing).
     *   **Sliding Panels:** Context-sensitive menus, input panels, or information displays smoothly slide out from the invisible edges of the screen/frame when relevant, disappearing when not in use. These panels provide on-screen input methods for complex parameters, confirmations, or text entry when voice is insufficient or inconvenient.
-*   **Problem Input & "The Fabric" Integration:** The **KNIRV-AGENTIFIER** integrates a powerful multi-modal input system for problem identification.
+*   **Problem Input & "The Fabric" Integration:** The **KNIRV-CORTEX** integrates a powerful multi-modal input system for problem identification.
     *   **Multi-Modal Input:** It can receive problem inputs from voice commands ("This isn't working"), screenshots (captured from within its iFrame or device-wide), and device camera input.
     *   **TensorFlow Interpretation:** An embedded `TensorFlow` (or similar ML framework) model is utilized to interpret captured images/video, identifying objects, text (via OCR), contexts, and potential anomalies, translating visual information into structured data.
     *   **"The Fabric" Algorithm:** This pivotal algorithm:
         *   Receives raw error, obstacle, and problem inputs (from visual analysis, voice commands, or system logs).
-        *   Contextualizes them using the **KNIRV-AGENTIFIER's** Base LLM and `LoRA` to synthesize a coherent problem description.
+        *   Contextualizes them using the **KNIRV-CORTEX's** Base LLM and `LoRA` to synthesize a coherent problem description.
         *   Translates these inputs into structured **Network Resolution Vectors (NRVs)**, capturing context, severity, and potential solution paths.
-        *   Renders these **NRVs** as dynamic visual objects within the **KNIRV-AGENTIFIER's** iFrame display (e.g., interactive icons, bounding boxes highlighting errors), allowing the user to see the problem directly overlaid on the problematic content.
+        *   Renders these **NRVs** as dynamic visual objects within the **KNIRV-CORTEX's** iFrame display (e.g., interactive icons, bounding boxes highlighting errors), allowing the user to see the problem directly overlaid on the problematic content.
         *   Facilitates an intuitive visual or voice-controlled mechanism for the user to "map" these local **NRV** objects to the **KNIRV-GRAPH**, thereby submitting them as `ErrorNodes` for collective resolution.
-        *   Enables users to visually assign pretrained **KNIRV-AGENTIFIER** agent units (from **KNIRVANA** or a general network pool) to resolve specific **NRV** objects, initiating Skill invocation and **NRN** consumption.
+        *   Enables users to visually assign pretrained **KNIRV-CORTEX** agent units (from **KNIRVANA** or a general network pool) to resolve specific **NRV** objects, initiating Skill invocation and **NRN** consumption.
 
 ### 3.3 Sub-Agent Spawning and Orchestration
 
-The **KNIRV-AGENTIFIER** is not a monolithic entity; it is designed for dynamic adaptability, including the ability to spawn specialized sub-agents when needed. These sub-agents are lightweight, temporary instances of the cognitive shell architecture, designed for highly focused tasks.
+The **KNIRV-CORTEX** is not a monolithic entity; it is designed for dynamic adaptability, including the ability to spawn specialized sub-agents when needed. These sub-agents are lightweight, temporary instances of the cognitive shell architecture, designed for highly focused tasks.
 
 **Purpose of Sub-Agents:**
 
 *   **Highly Focused:** Sub-agents are created for single, specific tasks, often those requiring interaction with external, "out-of-network" services (e.g., interfacing with a particular e-commerce API, processing a specific data format, sending an email).
 *   **Ephemeral:** They are typically created for the duration of a specific task and then securely terminated, minimizing their attack surface.
-*   **Securely Isolated:** Each sub-agent operates with highly granular, time-bound internal permissions from the parent **KNIRV-AGENTIFIER**. This adherence to the "Fail-Safe Defaults" principle ensures they only perform actions absolutely necessary for their delegated task.
+*   **Securely Isolated:** Each sub-agent operates with highly granular, time-bound internal permissions from the parent **KNIRV-CORTEX**. This adherence to the "Fail-Safe Defaults" principle ensures they only perform actions absolutely necessary for their delegated task.
 
-**Internal Delegation (UDCs for Sub-Agents):** The **KNIRV-AGENTIFIER** enforces granular control by issuing "internal User Delegation Certificates (UDCs)" to its spawned sub-agents. These UDCs are cryptographically signed by the parent **KNIRV-AGENTIFIER** itself, acting within the bounds of its own UDCs received from the human user. This ensures a verifiable chain of authorization from the user, through the **KNIRV-AGENTIFIER**, to any sub-agent it spawns.
+**Internal Delegation (UDCs for Sub-Agents):** The **KNIRV-CORTEX** enforces granular control by issuing "internal User Delegation Certificates (UDCs)" to its spawned sub-agents. These UDCs are cryptographically signed by the parent **KNIRV-CORTEX** itself, acting within the bounds of its own UDCs received from the human user. This ensures a verifiable chain of authorization from the user, through the **KNIRV-CORTEX**, to any sub-agent it spawns.
 
-### 3.4 Sensitive Data Handling within KNIRV-AGENTIFIER's TEE
+### 3.4 Sensitive Data Handling within KNIRV-CORTEX's TEE
 
-A core design feature of the **KNIRV-AGENTIFIER** is its inherent capability to act as a **Trusted Execution Environment (TEE)** for sensitive operations. This means that the **KNIRV-AGENTIFIER** can securely access, process, and temporarily store highly sensitive user data without exposing it to the broader operating system or external threats.
+A core design feature of the **KNIRV-CORTEX** is its inherent capability to act as a **Trusted Execution Environment (TEE)** for sensitive operations. This means that the **KNIRV-CORTEX** can securely access, process, and temporarily store highly sensitive user data without exposing it to the broader operating system or external threats.
 
-*   **Secure Data Access:** When a task requires sensitive information (e.g., payment credentials, personal addresses, API keys for external services), the **KNIRV-AGENTIFIER** accesses this data from its encrypted local storage.
-*   **In-TEE Decryption & Processing:** The decryption and subsequent processing of this sensitive data occur entirely within the **KNIRV-AGENTIFIER's** hardened TEE environment. This hardware-backed isolation protects the data from unauthorized access or modification, even if the surrounding system is compromised. This is a direct implementation of "Defense in Depth."
-*   **Ephemeral Nature:** Sensitive data is decrypted only when strictly necessary for a task and is immediately disposed of from memory once the operation is complete. It is never persisted in an unencrypted state outside the **KNIRV-AGENTIFIER's** TEE.
-*   **DVE Distinction:** This internal TEE capability of the **KNIRV-AGENTIFIER** means that complex, sensitive transactions (like those involving external payment gateways) do not require dispatching the execution to a separate **KNIRV-NEXUS DVE** for the purpose of protecting the sensitive data in transit or at rest during the transaction. **KNIRV-NEXUS DVEs** retain their critical roles for **KNIRV-AGENTIFIER** backups and versioning, validated updates, and **KNIRV-GRAPH** error resolution simulations.
+*   **Secure Data Access:** When a task requires sensitive information (e.g., payment credentials, personal addresses, API keys for external services), the **KNIRV-CORTEX** accesses this data from its encrypted local storage.
+*   **In-TEE Decryption & Processing:** The decryption and subsequent processing of this sensitive data occur entirely within the **KNIRV-CORTEX's** hardened TEE environment. This hardware-backed isolation protects the data from unauthorized access or modification, even if the surrounding system is compromised. This is a direct implementation of "Defense in Depth."
+*   **Ephemeral Nature:** Sensitive data is decrypted only when strictly necessary for a task and is immediately disposed of from memory once the operation is complete. It is never persisted in an unencrypted state outside the **KNIRV-CORTEX's** TEE.
+*   **DVE Distinction:** This internal TEE capability of the **KNIRV-CORTEX** means that complex, sensitive transactions (like those involving external payment gateways) do not require dispatching the execution to a separate **KNIRV-NEXUS DVE** for the purpose of protecting the sensitive data in transit or at rest during the transaction. **KNIRV-NEXUS DVEs** retain their critical roles for **KNIRV-CORTEX** backups and versioning, validated updates, and **KNIRV-GRAPH** error resolution simulations.
 
 ## 4. Core Component Deep Dive
 
 ### 4.1 Self-Adapting Learning Engine
 
-Operating within the **Cognitive Shell**, this is the cognitive core of the agent, responsible for all learning and adaptation. It implements the **SEAL** framework to update the agent's internal adaptive weights. This engine also orchestrates the acquisition of `SkillNodes` from **KNIRV-GRAPH** when the **KNIRV-AGENTIFIER** identifies a need for new capabilities, such as an "online cake ordering" skill in a real-world scenario.
+Operating within the **Cognitive Shell**, this is the cognitive core of the agent, responsible for all learning and adaptation. It implements the **SEAL** framework to update the agent's internal adaptive weights. This engine also orchestrates the acquisition of `SkillNodes` from **KNIRV-GRAPH** when the **KNIRV-CORTEX** identifies a need for new capabilities, such as an "online cake ordering" skill in a real-world scenario.
 
 ```mermaid
 graph TD
@@ -214,7 +214,7 @@ graph TD
 *   Performing a few training steps on its local Response Refinement Layer models.
 *   Fine-tuning its Rust `WASM` `LoRA` Sidecar Adapter file using the synthetically generated data.
 
-This process is thousands of times more efficient than full model finetuning, making continuous, rapid self-improvement a reality. The **KNIRV-AGENTIFIER** trains its `LoRA` adapters on the Base LLM obtained from the **KNIRVCHAIN**, ensuring its individual intelligence builds upon the collective.
+This process is thousands of times more efficient than full model finetuning, making continuous, rapid self-improvement a reality. The **KNIRV-CORTEX** trains its `LoRA` adapters on the Base LLM obtained from the **KNIRVCHAIN**, ensuring its individual intelligence builds upon the collective.
 
 ### 4.2 Blockchain Persistence Module
 
@@ -345,11 +345,11 @@ The **Cognitive Shell** architecture fundamentally alters the cost-benefit equat
     *   **Increased Operational Efficiency:** The agent can handle a wider variety of tasks and adapt to new ones with minimal downtime.
     *   **Performance Gains:** The continuous improvement loop leads to measurable increases in accuracy, speed, and other KPIs over time.
 *   **Qualitative & Strategic Benefits:**
-    *   **Autonomy & Resilience:** The system can operate, learn, and recover independently, making it ideal for mission-critical, 24/7 applications. The **KNIRV-AGENTIFIER's** internal TEE capabilities enhance this significantly.
+    *   **Autonomy & Resilience:** The system can operate, learn, and recover independently, making it ideal for mission-critical, 24/7 applications. The **KNIRV-CORTEX's** internal TEE capabilities enhance this significantly.
     *   **Competitive Advantage:** An organization with self-improving AI can adapt to market changes, customer needs, and new information faster than competitors relying on static models.
     *   **Verifiable Trust:** The blockchain ledger provides an irrefutable audit trail of the agent's learning history, crucial for regulatory compliance, diagnostics, and building trust in the AI's decisions. User Delegation Certificates enhance this trust by providing a clear chain of authorization.
     *   **Knowledge Compounding:** The agent accumulates and compounds knowledge, creating an invaluable, ever-growing intellectual asset.
-    *   **Enhanced User Experience:** The **KNIRV-AGENTIFIER's** natural language and visual interface, coupled with abstraction of complexity, make advanced AI capabilities accessible to a wider audience, fostering greater adoption and enabling direct interaction with agent units in **KNIRVANA**.
+    *   **Enhanced User Experience:** The **KNIRV-CORTEX's** natural language and visual interface, coupled with abstraction of complexity, make advanced AI capabilities accessible to a wider audience, fostering greater adoption and enabling direct interaction with agent units in **KNIRVANA**.
 
 ### 5.3 Return on Investment (ROI) Summary
 
@@ -357,7 +357,7 @@ The **Cognitive Shell** architecture delivers the strategic benefits of a self-i
 
 ## 6. Technical Stack and Implementation Details
 
-*   **Core Logic & LoRA:** `Rust` for high performance, memory safety, and secure execution of **KNIRV-AGENTIFIER** core logic and `LoRA` adapters as `WASM` modules.
+*   **Core Logic & LoRA:** `Rust` for high performance, memory safety, and secure execution of **KNIRV-CORTEX** core logic and `LoRA` adapters as `WASM` modules.
 *   **Machine Learning Framework:** `PyTorch` for flexibility in custom RL loops and `TensorFlow` (or similar) for embedded visual input interpretation.
 *   **Reinforcement Learning Library:** `RLlib` (part of Ray) for scalability and support for various RL algorithms like `PPO`.
 *   **Base LLM Source:** The Base LLM is sourced directly from the **KNIRVCHAIN** (`CosmWasm` on `XION`), ensuring it's the latest, consensus-validated version of the collective intelligence.
@@ -365,8 +365,8 @@ The **Cognitive Shell** architecture delivers the strategic benefits of a self-i
 *   **Serialization Format:** `Protobuf` (Protocol Buffers) for efficient data serialization.
 *   **Adapter Modules:** Hugging Face's `peft` library (or a `Rust` equivalent) for `LoRA` adapter implementation.
 *   **Off-chain Storage:** `IPFS` (InterPlanetary File System) for storing Base LLM model files and `SkillNode` `WASM` binaries, referenced by CIDs on **KNIRVCHAIN**.
-*   **Trusted Execution Environments:** The **KNIRV-AGENTIFIER** will leverage underlying OS and hardware-level TEE capabilities (e.g., `Intel SGX`, `ARM TrustZone`) for its internal secure data handling. **KNIRV-NEXUS DVEs** provide robust, verifiable environments for **KNIRV-AGENTIFIER** backups, versioning, and **KNIRV-GRAPH** error resolution simulations.
-*   **Game Client:** `Globulation2` source code fork for **KNIRVANA**, enabling direct integration and control of agent units by the **KNIRV-AGENTIFIER**.
+*   **Trusted Execution Environments:** The **KNIRV-CORTEX** will leverage underlying OS and hardware-level TEE capabilities (e.g., `Intel SGX`, `ARM TrustZone`) for its internal secure data handling. **KNIRV-NEXUS DVEs** provide robust, verifiable environments for **KNIRV-CORTEX** backups, versioning, and **KNIRV-GRAPH** error resolution simulations.
+*   **Game Client:** `Globulation2` source code fork for **KNIRVANA**, enabling direct integration and control of agent units by the **KNIRV-CORTEX**.
 
 ## 7. Security, Governance, and Ethical Considerations
 
@@ -375,8 +375,8 @@ A self-modifying system demands robust safeguards. The `SECURITY_FRAMEWORK.md` p
 *   **Security:**
     *   **Guardrails on Self-Edits:** Implement semantic classifiers to detect and block potentially malicious or degenerative self-edits.
     *   **Blockchain Security:** Inherits **XION's** robust security for **KNIRVCHAIN** operations.
-    *   **TEE Hardening:** Ensure the **KNIRV-AGENTIFIER's** internal TEE and **KNIRV-NEXUS DVEs** are robustly hardened.
-    *   **Granular Authorization:** User Delegation Certificates (UDCs) at both user-to-**KNIRV-AGENTIFIER** and **KNIRV-AGENTIFIER**-to-sub-agent levels provide multi-layered cryptographic authorization.
+    *   **TEE Hardening:** Ensure the **KNIRV-CORTEX's** internal TEE and **KNIRV-NEXUS DVEs** are robustly hardened.
+    *   **Granular Authorization:** User Delegation Certificates (UDCs) at both user-to-**KNIRV-CORTEX** and **KNIRV-CORTEX**-to-sub-agent levels provide multi-layered cryptographic authorization.
     *   **Authentication:** Robust voice/biometric authentication for user access, with local cryptographic processing of biometric data.
     *   **The Fabric Security:** Rigorous input sanitization for voice and visual inputs to prevent malicious commands or data injections.
     *   **zkTLS:** Secure all sensitive network communications.
@@ -391,15 +391,15 @@ A self-modifying system demands robust safeguards. The `SECURITY_FRAMEWORK.md` p
 
 ## 8. Future Extensions and Roadmap
 
-*   **Deeper KNIRVANA Integration:** Explore more advanced ways **KNIRV-AGENTIFIERs** can interact with and influence **KNIRVANA** gameplay, potentially generating game content, evolving game mechanics, or creating new game modes based on learned Skills.
-*   **Multi-Agent Collaboration:** Extend the architecture to support a network of **KNIRV-AGENTIFIER** instances and other forged agents. The **KNIRVCHAIN** becomes a shared ledger of verified knowledge, allowing agents to learn from each other's validated improvements.
+*   **Deeper KNIRVANA Integration:** Explore more advanced ways **KNIRV-CORTEXs** can interact with and influence **KNIRVANA** gameplay, potentially generating game content, evolving game mechanics, or creating new game modes based on learned Skills.
+*   **Multi-Agent Collaboration:** Extend the architecture to support a network of **KNIRV-CORTEX** instances and other forged agents. The **KNIRVCHAIN** becomes a shared ledger of verified knowledge, allowing agents to learn from each other's validated improvements.
 *   **Federated Learning Integration:** Combine this system with federated learning. Self-improvement (**SEAL**) happens on-device (at the edge), and the blockchain is used to orchestrate the aggregation of privacy-preserving model updates from a fleet of agents.
 *   **Meta-Learning for Self-Improvement:** Introduce a higher-level meta-learning loop that optimizes not just the self-edits, but the entire self-improvement process.
 *   **Cross-Domain Adaptation:** Develop more sophisticated reward models and self-edit generation policies that enable the agent to generalize its learning process to entirely new and unseen domains.
-*   **Adaptive UI/UX:** The **KNIRV-AGENTIFIER's** UI dynamically adapting its layout and interaction patterns based on user behavior and current task context.
+*   **Adaptive UI/UX:** The **KNIRV-CORTEX's** UI dynamically adapting its layout and interaction patterns based on user behavior and current task context.
 
 ## 9. Conclusion
 
-The Self-Improving AI Agent System detailed in this document represents a paradigm shift from static intelligence to dynamic, continuous learning. By introducing the **Cognitive Shell** architecture as the **KNIRV-AGENTIFIER**, we make this vision practical and deployable, serving as both the user's intuitive interface and the core template for all agents.
+The Self-Improving AI Agent System detailed in this document represents a paradigm shift from static intelligence to dynamic, continuous learning. By introducing the **Cognitive Shell** architecture as the **KNIRV-CORTEX**, we make this vision practical and deployable, serving as both the user's intuitive interface and the core template for all agents.
 
 By marrying the adaptive power of the **SEAL** framework with the immutable resilience of **KNIRVCHAIN** (on **XION**), grounding it in the efficiency of Rust `WASM` `LoRA` sidecar adapters and intelligent filtering, and crucially integrating internal **TEE** capabilities for secure sensitive data handling and "**The Fabric**" algorithm for intuitive problem resolution, we lay the architectural groundwork for truly autonomous systems that are both powerful and economical. This system is not just an incremental improvement; it is a foundational platform for building the resilient, intelligent, and trustworthy AI of tomorrow, capable of running anywhere from a server to an edge device, and directly experienced through the immersive world of **KNIRVANA**.

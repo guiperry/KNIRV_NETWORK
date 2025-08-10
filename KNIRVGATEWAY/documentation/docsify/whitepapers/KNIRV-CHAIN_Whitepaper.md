@@ -116,9 +116,9 @@ graph TD
 
 *   **SkillNode Certification:** `KNIRVCHAIN` registers `SkillNodes` (representing proven solutions to NRVs). These `SkillNodes` are first minted on `KNIRVGRAPH` and undergo verification in `KNIRV-NEXUS` DVEs before being canonically registered here through `KNIRV-ROOT` orchestration. Each `SkillNode` entry includes its unique ID, a hash of its underlying executable code (e.g., `Rust WASM` binary), the NRV types it resolves, its associated `NRN` cost for invocation, and references to cryptographic proofs of its validation (stored in `KNIRV-NEXUS`).
 
-*   **Local Execution Model:** While `KNIRVCHAIN` maintains the canonical registry of skills, actual skill execution occurs locally on the requestor's device within their Trusted Execution Environment (TEE) provided by `KNIRV-AGENTIFIER` or `KNIRV-SHELL`. When a skill is invoked, `KNIRVCHAIN` burns the required `NRN` tokens and provides the skill metadata, allowing the requestor to download and execute the skill securely in their own TEE environment.
+*   **Local Execution Model:** While `KNIRVCHAIN` maintains the canonical registry of skills, actual skill execution occurs locally on the requestor's device within their Trusted Execution Environment (TEE) provided by `KNIRV-CORTEX` or `KNIRV-SHELL`. When a skill is invoked, `KNIRVCHAIN` burns the required `NRN` tokens and provides the skill metadata, allowing the requestor to download and execute the skill securely in their own TEE environment.
 
-*   **Discoverability:** `KNIRV-SHELL`s and `KNIRV-AGENTIFIER` instances can query `KNIRVCHAIN` to discover and retrieve certified `SkillNodes` relevant to problems they encounter. This canonical registry ensures that Skills are globally discoverable and trustworthy, with execution happening locally in the requestor's secure environment.
+*   **Discoverability:** `KNIRV-SHELL`s and `KNIRV-CORTEX` instances can query `KNIRVCHAIN` to discover and retrieve certified `SkillNodes` relevant to problems they encounter. This canonical registry ensures that Skills are globally discoverable and trustworthy, with execution happening locally in the requestor's secure environment.
 
 *   **Integrity:** `KNIRVCHAIN`'s consensus ensures that only genuinely validated and proven `SkillNodes` (as verified through `KNIRV-NEXUS` DVE validation and orchestrated by `KNIRV-ROOT`) are added to the registry, maintaining the quality and trustworthiness of the collective skill set available for local execution.
 
@@ -128,7 +128,7 @@ While `NRN` tokens are native to `KNIRV-ROOT`, `KNIRVCHAIN` plays a critical rol
 
 **Expanded Information:**
 
-*   **Skill Invocation & NRN Burning Trigger:** A core function of `KNIRVCHAIN` is to enforce the consumption of `NRN`s for Skill invocation. To invoke any Skill from the `SkillRegistry` on `KNIRVCHAIN`, a `KNIRV-SHELL` or `KNIRV-AGENTIFIER` instance must present an `NRN` token ID with the invocation request. `KNIRVCHAIN` verifies the `NRN`'s validity, burns the required tokens, and provides the skill metadata for local execution in the requestor's TEE. The skill code is then downloaded and executed securely within the requestor's own Trusted Execution Environment, ensuring both security and decentralization of computation.
+*   **Skill Invocation & NRN Burning Trigger:** A core function of `KNIRVCHAIN` is to enforce the consumption of `NRN`s for Skill invocation. To invoke any Skill from the `SkillRegistry` on `KNIRVCHAIN`, a `KNIRV-SHELL` or `KNIRV-CORTEX` instance must present an `NRN` token ID with the invocation request. `KNIRVCHAIN` verifies the `NRN`'s validity, burns the required tokens, and provides the skill metadata for local execution in the requestor's TEE. The skill code is then downloaded and executed securely within the requestor's own Trusted Execution Environment, ensuring both security and decentralization of computation.
 *   **Economic Loop Integration:** This mechanism directly contributes to the `NRN` economic loop, creating constant `NRN` consumption (burning on `KNIRV-ROOT`) that balances the `NRN` minting performed by `KNIRV-ROUTERS`.
 
 ### 3.4. Base LLM Evolution & Skill Integration
@@ -212,7 +212,7 @@ The `KNIRVCHAIN` will continuously evolve, driven by the needs of the D-TEN and 
 *   **Phase 1 (Initial Mainnet Deployment - Q2 2026):**
     **Focus:** Secure and stable operation of the core Rust-based blockchain, `BaseLLMRegistry` Module with CodeT5 foundation, and `SkillRegistry` Module supporting local TEE execution.
     **IBC Channels:** Establish stable `IBC` channels with `KNIRV-ROOT` for `NRN` burning and `SkillNode` orchestration, plus communication channels with `KNIRV-NEXUS` for validation proof verification.
-    **Goal:** Establish `KNIRVCHAIN` as the canonical, verifiable ledger for the Base LLM and `SkillRegistry`, supporting initial `KNIRV-SHELL` and `KNIRV-AGENTIFIER` interactions with secure local skill execution in requestor TEEs.
+    **Goal:** Establish `KNIRVCHAIN` as the canonical, verifiable ledger for the Base LLM and `SkillRegistry`, supporting initial `KNIRV-SHELL` and `KNIRV-CORTEX` interactions with secure local skill execution in requestor TEEs.
 
 *   **Phase 2 (Multi-Model Governance & Cloud Integration - Q4 2026):**
     **Focus:** Implement governance framework for Base LLM model transitions, integrate cloud model testing capabilities (Deepseek, Gemini), and enhance `KNIRV-NEXUS` integration for cryptographic proof verification of skill validations.
@@ -232,3 +232,10 @@ The `KNIRVCHAIN` will continuously evolve, driven by the needs of the D-TEN and 
 ## 8. Conclusion
 
 `KNIRVCHAIN` stands as the definitive backbone of the KNIRV D-TEN, transforming from a mere technical platform into an active, evolving intelligence machine. As its own sovereign Rust-based Layer 1 blockchain, secured by `Tendermint/CometBFT` consensus, it provides the immutable and verifiable ledger for multi-model Base LLM evolution (initially CodeT5) and the canonical `SkillRegistry` supporting secure local execution in requestor TEEs. By orchestrating Skill invocation (burning `NRN` tokens and providing skill metadata for local execution) and integrating collective learning from `KNIRVGRAPH` and `KNIRV-SHELL`s, `KNIRVCHAIN` ensures the continuous improvement and trustworthiness of the network's intelligence through democratic governance and decentralized execution. This strategic design, with off-chain model storage, on-chain verification, governance-driven model evolution, cloud integration for testing, and secure local skill execution in requestor TEEs, ensures scalability, security, adaptability, and a robust foundation for a self-improving, decentralized AI ecosystem that can evolve with technological advances.
+
+
+<div class="footer-links">
+<a href="#/legal/CODE_OF_CONDUCT.md" class="footer-link">Contributor Covenant Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY.md" class="footer-link">PRIVACY_POLICY.md</a> | <a href="#/legal/TERMS_AND_CONDITIONS.md" class="footer-link">TERMS AND CONDITIONS</a>
+
+© 2025 KNIRV Network
+</div>

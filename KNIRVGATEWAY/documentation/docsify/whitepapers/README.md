@@ -4,8 +4,8 @@ This section contains the technical whitepapers for the KNIRV Network components
 
 ## Available Whitepapers
 
-* [KNIRV-AGENTIFIER Whitepaper](whitepapers/KNIRV-AGENTIFIER_Whitepaper)
 * [KNIRV-CHAIN Whitepaper](whitepapers/KNIRV-CHAIN_Whitepaper)
+* [KNIRV-CORTEX Whitepaper](whitepapers/KNIRV-CORTEX_Whitepaper)
 * [KNIRV-D-TEN Whitepaper](whitepapers/KNIRV-D-TEN_Whitepaper)
 * [KNIRV-GATEWAY Whitepaper](whitepapers/KNIRV-GATEWAY_Whitepaper)
 * [KNIRV-GRAPH Whitepaper](whitepapers/KNIRV-GRAPH_Whitepaper)
@@ -16,7 +16,6 @@ This section contains the technical whitepapers for the KNIRV Network components
 * [KNIRV-SHELL Whitepapers](whitepapers/KNIRV-SHELL_Whitepapers)
 * [KNIRV-WALLET Whitepaper](whitepapers/KNIRV-WALLET_Whitepaper)
 * [KNIRVANA Whitepaper](whitepapers/KNIRVANA_Whitepaper)
-* [KNIRVCHAIN Gap Analysis](whitepapers/KNIRVCHAIN_Gap_Analysis)
 
 ---
 

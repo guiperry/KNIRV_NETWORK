@@ -129,3 +129,9 @@ The KNIRV-ROUTER is designed with robust security measures to ensure network int
 
 ### 7. Conclusion
 The KNIRV-ROUTER is a pivotal layer within the KNIRV D-TEN, transcending traditional routing to become an active participant in the network's economic and intelligence loops. By linking NRN token production to verifiable "Proof-of-Connectivity" and embedding URI path certificates that enable Skill routine invocation, it ensures the physical integrity of the network, fuels the NRN economy, and provides the essential communication backbone for KNIRV-SHELL agents, KNIRVANA clients, and the evolving Base LLM. The KNIRV-ROUTER is fundamental to realizing the vision of a truly resilient, self-sustaining, and intelligent decentralized network.
+
+<div class="footer-links">
+<a href="#/legal/CODE_OF_CONDUCT.md" class="footer-link">Contributor Covenant Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY.md" class="footer-link">PRIVACY_POLICY.md</a> | <a href="#/legal/TERMS_AND_CONDITIONS.md" class="footer-link">TERMS AND CONDITIONS</a>
+
+© 2025 KNIRV Network
+</div>

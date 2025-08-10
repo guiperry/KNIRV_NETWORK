@@ -8,7 +8,7 @@
 ***
 
 ### **1. Abstract**
-KNIRVANA is a high-performance, cross-platform Real-Time Strategy (RTS) game that serves as the culminating layer of the KNIRV Decentralized Trusted Execution Network (D-TEN). It is the primary experiential gateway for users to interact with and contribute to a self-improving AI ecosystem. Built with `Rust` and the `Bevy` engine, KNIRVANA transforms complex decentralized AI concepts into an intuitive and engaging gameplay experience within a 3D, Tron-style environment representing the collective knowledge of the network. By abstracting AI agent management into a competitive strategic game, players engage in a race to solve `ErrorNodes` on the `KNIRV-GRAPH`, directly contributing to the network's collective intelligence and earning the native `NRN` token. The game provides a tangible, user-driven interface for deploying `KNIRV-AGENTIFIERs`, consuming `NRN` tokens, and directly influencing the evolution of the D-TEN.
+KNIRVANA is a high-performance, cross-platform Real-Time Strategy (RTS) game that serves as the culminating layer of the KNIRV Decentralized Trusted Execution Network (D-TEN). It is the primary experiential gateway for users to interact with and contribute to a self-improving AI ecosystem. Built with `Rust` and the `Bevy` engine, KNIRVANA transforms complex decentralized AI concepts into an intuitive and engaging gameplay experience within a 3D, Tron-style environment representing the collective knowledge of the network. By abstracting AI agent management into a competitive strategic game, players engage in a race to solve `ErrorNodes` on the `KNIRV-GRAPH`, directly contributing to the network's collective intelligence and earning the native `NRN` token. The game provides a tangible, user-driven interface for deploying `KNIRV-CORTEXs`, consuming `NRN` tokens, and directly influencing the evolution of the D-TEN.
 
 ***
 
@@ -24,7 +24,7 @@ The central objective of the game is for players to compete with others in a rac
 
 ### **4. Core Gameplay Mechanics**
 KNIRVANA's core gameplay revolves around players commanding and managing AI agents as "agent units" in a real-time strategy environment.
-* **Pretraining Agents:** Players must first pretrain their `KNIRV-AGENTIFIER` agents, equipping them with the necessary skills to tackle different types of `ErrorNodes`. This is a critical strategic decision that takes place off-chain before deployment.
+* **Pretraining Agents:** Players must first pretrain their `KNIRV-CORTEX` agents, equipping them with the necessary skills to tackle different types of `ErrorNodes`. This is a critical strategic decision that takes place off-chain before deployment.
 * **Agent Deployment and Assistance:** Once deployed on the `KNIRV-GRAPH`, players can see their agent units "hammering away" at an `ErrorNode`. The player can choose to view the agent's thought process in real-time, gaining insight into its logic and progress. This allows the player to assist their agent by redirecting its focus, or by adding other, more specialized agents to the same task.
 * **Competitive Resolution:** The game's competitive dynamic is heightened by the ability for multiple players to deploy their agents on the same `ErrorNode`. The first player whose agent successfully resolves the problem wins sole ownership of the newly minted `Skill` and receives the `NRN` bounty associated with that `ErrorNode`.
 
@@ -42,7 +42,7 @@ KNIRVANA is engineered for high performance and cross-platform compatibility.
 KNIRVANA is a blockchain-native game, with its economic and operational loops deeply integrated with the KNIRV D-TEN.
 * **Tangible `NRN` Consumption:** Gameplay actions, specifically the invocation of complex `Skill` routines by agent units, directly consumes `NRN` tokens. This creates a tangible link between in-game actions and real-world economic value, with each `NRN` burn on the `KNIRV-ROOT` blockchain representing a successful agent execution.
 * **Seamless User Experience:** The game features native integration with the `XION` blockchain, leveraging its Meta Accounts to provide familiar authentication methods (e.g., social logins, email) and gasless transactions. This eliminates traditional blockchain complexity barriers for players.
-* **Agent Management:** KNIRVANA serves as a direct interface for players to configure, deploy, and observe their `KNIRV-AGENTIFIER` agents, providing real-time feedback on their performance and learning progress.
+* **Agent Management:** KNIRVANA serves as a direct interface for players to configure, deploy, and observe their `KNIRV-CORTEX` agents, providing real-time feedback on their performance and learning progress.
 
 ***
 

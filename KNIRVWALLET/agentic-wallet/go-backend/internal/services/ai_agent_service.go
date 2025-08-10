@@ -15,15 +15,15 @@ import (
 )
 
 type AIAgentService struct {
-	db       *gorm.DB
-	config   *config.Config
-	logger   logger.Logger
-	runtime  *wasm.Runtime
+	db      *gorm.DB
+	config  *config.Config
+	logger  *logger.Logger
+	runtime *wasm.Runtime
 }
 
-func NewAIAgentService(db *gorm.DB, cfg *config.Config, logger logger.Logger) *AIAgentService {
+func NewAIAgentService(db *gorm.DB, cfg *config.Config, logger *logger.Logger) *AIAgentService {
 	runtime := wasm.NewRuntime(cfg)
-	
+
 	return &AIAgentService{
 		db:      db,
 		config:  cfg,
@@ -92,7 +92,7 @@ func (s *AIAgentService) CreateAgent(ctx context.Context, userID uuid.UUID, req 
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
 
-	s.logger.Info("Created AI agent", "agent_id", agent.ID, "user_id", userID)
+	s.logger.Info("Created AI agent with ID %s for user %s", agent.ID, userID)
 	return agent, nil
 }
 
@@ -129,7 +129,7 @@ func (s *AIAgentService) ExecuteAgent(ctx context.Context, agentID uuid.UUID, re
 
 func (s *AIAgentService) executeAgentAsync(ctx context.Context, agent *models.AIAgent, execution *models.AgentExecution, input map[string]interface{}) {
 	startTime := time.Now()
-	
+
 	// Decrypt code
 	code, err := s.decryptCode(agent.EncryptedCode)
 	if err != nil {
@@ -139,14 +139,14 @@ func (s *AIAgentService) executeAgentAsync(ctx context.Context, agent *models.AI
 
 	// Execute WASM code with resource limits
 	result, err := s.runtime.Execute(ctx, code, input, &wasm.ExecutionLimits{
-		MemoryLimit:     s.config.AgentMemoryLimit,
-		CPULimit:        s.config.AgentCPULimit,
-		NetworkTimeout:  time.Duration(s.config.AgentNetworkTimeout) * time.Second,
-		Permissions:     agent.Permissions,
+		MemoryLimit:    s.config.AgentMemoryLimit,
+		CPULimit:       s.config.AgentCPULimit,
+		NetworkTimeout: time.Duration(s.config.AgentNetworkTimeout) * time.Second,
+		Permissions:    agent.Permissions,
 	})
 
 	duration := time.Since(startTime)
-	
+
 	if err != nil {
 		s.updateExecutionError(execution, err.Error(), startTime)
 		return
@@ -155,24 +155,24 @@ func (s *AIAgentService) executeAgentAsync(ctx context.Context, agent *models.AI
 	// Update execution record
 	endTime := time.Now()
 	outputJSON, _ := json.Marshal(result.Output)
-	
+
 	updates := map[string]interface{}{
-		"status":       "completed",
-		"end_time":     &endTime,
-		"duration":     duration.Milliseconds(),
-		"memory_used":  result.MemoryUsed,
-		"cpu_used":     result.CPUUsed,
-		"output":       string(outputJSON),
+		"status":      "completed",
+		"end_time":    &endTime,
+		"duration":    duration.Milliseconds(),
+		"memory_used": result.MemoryUsed,
+		"cpu_used":    result.CPUUsed,
+		"output":      string(outputJSON),
 	}
 
 	s.db.Model(execution).Updates(updates)
-	s.logger.Info("Agent execution completed", "execution_id", execution.ID, "duration", duration)
+	s.logger.Info("Agent execution completed with ID %s in %v", execution.ID, duration)
 }
 
 func (s *AIAgentService) updateExecutionError(execution *models.AgentExecution, errorMsg string, startTime time.Time) {
 	endTime := time.Now()
 	duration := endTime.Sub(startTime)
-	
+
 	updates := map[string]interface{}{
 		"status":        "failed",
 		"end_time":      &endTime,
@@ -181,7 +181,7 @@ func (s *AIAgentService) updateExecutionError(execution *models.AgentExecution, 
 	}
 
 	s.db.Model(execution).Updates(updates)
-	s.logger.Error("Agent execution failed", "execution_id", execution.ID, "error", errorMsg)
+	s.logger.Error("Agent execution failed with ID %s: %s", execution.ID, errorMsg)
 }
 
 func (s *AIAgentService) GetUserAgents(ctx context.Context, userID uuid.UUID) ([]models.AIAgent, error) {
@@ -194,7 +194,7 @@ func (s *AIAgentService) GetUserAgents(ctx context.Context, userID uuid.UUID) ([
 
 func (s *AIAgentService) GetMarketplaceAgents(ctx context.Context, category string, limit, offset int) ([]models.AIAgent, error) {
 	query := s.db.Where("is_public = ?", true)
-	
+
 	if category != "" {
 		query = query.Where("category = ?", category)
 	}
@@ -203,7 +203,7 @@ func (s *AIAgentService) GetMarketplaceAgents(ctx context.Context, category stri
 	if err := query.Limit(limit).Offset(offset).Find(&agents).Error; err != nil {
 		return nil, fmt.Errorf("failed to get marketplace agents: %w", err)
 	}
-	
+
 	return agents, nil
 }
 

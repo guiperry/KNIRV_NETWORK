@@ -3,7 +3,6 @@ package api
 import (
 	"crypto-wallet-backend/internal/services"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -43,7 +42,7 @@ type GenerateMnemonicRequest struct {
 // @Router /api/v1/multichain/chains [get]
 func (h *MultichainWalletHandler) GetSupportedChains(c *gin.Context) {
 	chains := h.walletService.GetSupportedChains()
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{

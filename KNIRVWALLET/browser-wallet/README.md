@@ -5,13 +5,13 @@
 
 ## Introduction
 
-**KNIRVWALLET** is a powerful, open-source, non-custodial wallet designed as the seamless gateway to the KNIRV Decentralized Trusted Execution Network (D-TEN). KNIRVWALLET enables users to manage NRN tokens, control KNIRV-AGENTIFIER agents, and interact with the entire KNIRV ecosystem through an intuitive, Web2-like experience powered by XION's Meta Accounts.
+**KNIRVWALLET** is a powerful, open-source, non-custodial wallet designed as the seamless gateway to the KNIRV Decentralized Trusted Execution Network (D-TEN). KNIRVWALLET enables users to manage NRN tokens, control KNIRV-CORTEX agents, and interact with the entire KNIRV ecosystem through an intuitive, Web2-like experience powered by XION's Meta Accounts.
 ​
 
 For users, KNIRVWALLET makes managing decentralized AI and crypto as simple as using traditional applications, with gasless transactions and biometric authentication.
 
 ​
-For developers, KNIRVWALLET provides comprehensive APIs for integrating with the KNIRV ecosystem and KNIRV-AGENTIFIER agents!
+For developers, KNIRVWALLET provides comprehensive APIs for integrating with the KNIRV ecosystem and KNIRV-CORTEX agents!
 
 ​
 KNIRVWALLET supports multiple platforms including browser extension, mobile app, and progressive web app, all unified under a single, powerful interface.
@@ -21,7 +21,7 @@ KNIRVWALLET supports multiple platforms including browser extension, mobile app,
 
 ✅ **KNIRV Ecosystem Integration** <br>
 ✅ **NRN Token Management** - Native support for KNIRV-ROOT's NRN tokens <br>
-✅ **KNIRV-AGENTIFIER Agent Control** - Manage and control your AI agents <br>
+✅ **KNIRV-CORTEX Agent Control** - Manage and control your AI agents <br>
 ✅ **XION Meta Accounts** - Gasless transactions and Web2-like authentication <br>
 ✅ **Multi-Chain Support** - BTC, ETH, Solana, and more <br>
 ✅ **Biometric Authentication** - Secure, convenient access <br>
@@ -84,7 +84,7 @@ Check out the KNIRVWALLET documentation for comprehensive guides and developer r
 
 - [KNIRV-ROOT](../KNIRVROOT/) - The foundational blockchain for NRN tokens
 - [KNIRVCHAIN](../KNIRVCHAIN/) - Smart contract platform for Skills and Base LLMs
-- [KNIRV-AGENTIFIER](../KNIRVAGENTIFIER/) - AI agent framework
+- [KNIRV-CORTEX](../KNIRVCORTEX/) - AI agent framework
 - [KNIRV-NEXUS](../KNIRVNEXUS/) - Distributed verification engine
   ​
   ​

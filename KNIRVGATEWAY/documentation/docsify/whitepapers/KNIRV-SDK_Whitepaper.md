@@ -395,3 +395,9 @@ The **KNIRV SDK** will continuously evolve to meet the growing needs of the deve
 ## 8. Conclusion
 
 The **KNIRV SDK** is the essential bridge for developers to unlock the full potential of the **KNIRV Decentralized Trusted Execution Network**. By providing a unified, high-level interface through a robust **API Gateway** and building upon existing `knirv://` URI resolution, the SDK abstracts away the inherent complexities of a multi-chain, decentralized AI ecosystem. Available across multiple programming languages, it empowers builders to seamlessly manage **NRN** tokens, orchestrate **KNIRV-SHELL** agents, interact with the **KNIRVGRAPH** knowledge Graphchain, contribute to the Base LLM's evolution on **KNIRVCHAIN**, and leverage the verifiable computation of **KNIRV-NEXUS** DVEs. The **KNIRV SDK** is fundamental to accelerating the development of innovative, intelligent, and decentralized applications, fostering a vibrant ecosystem around compounding intelligence.
+
+<div class="footer-links">
+<a href="#/legal/CODE_OF_CONDUCT.md" class="footer-link">Contributor Covenant Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY.md" class="footer-link">PRIVACY_POLICY.md</a> | <a href="#/legal/TERMS_AND_CONDITIONS.md" class="footer-link">TERMS AND CONDITIONS</a>
+
+© 2025 KNIRV Network
+</div>

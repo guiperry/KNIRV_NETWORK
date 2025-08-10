@@ -23,10 +23,10 @@ type ExecutionLimits struct {
 }
 
 type ExecutionResult struct {
-	Output      interface{}
-	MemoryUsed  int64
-	CPUUsed     float64
-	Duration    time.Duration
+	Output     interface{}
+	MemoryUsed int64
+	CPUUsed    float64
+	Duration   time.Duration
 }
 
 func NewRuntime(cfg *config.Config) *Runtime {
@@ -49,7 +49,7 @@ func (r *Runtime) ValidateCode(code []byte) (string, error) {
 
 func (r *Runtime) Execute(ctx context.Context, code []byte, input map[string]interface{}, limits *ExecutionLimits) (*ExecutionResult, error) {
 	startTime := time.Now()
-	
+
 	// Create WASM engine and store
 	engine := wasmer.NewEngine()
 	store := wasmer.NewStore(engine)

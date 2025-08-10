@@ -51,7 +51,7 @@ The KNIRV-TESTNET implements all 12 sovereign layers of the D-TEN:
 - **KNIRV-WALLET**: Full XION integration
 - **KNIRV-SDK**: Multi-language SDK
 - **KNIRV-SHELL**: Complete CLI
-- **KNIRV-AGENTIFIER**: Simplified agents with SEAL loop
+- **KNIRV-CORTEX**: Simplified agents with SEAL loop
 - **KNIRVANA**: Game client for testing
 - **IPFS**: Decentralized storage
 

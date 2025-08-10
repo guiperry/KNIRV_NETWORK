@@ -44,7 +44,7 @@ func NewIntegrationTestSuite() *IntegrationTestSuite {
 		knirvnexusDVEManagerURL: "http://localhost:8081", // KNIRVNEXUS DVE Manager
 		knirvnexusValidationURL: "http://localhost:8082", // KNIRVNEXUS Validation Core
 		knirvwalletURL:          "http://localhost:8083", // KNIRVWALLET
-		knirvshellURL:           "http://localhost:8084", // KNIRVAGENTIFIER
+		knirvshellURL:           "http://localhost:8084", // KNIRVCORTEX
 		knirvroterURL:           "http://localhost:8085", // KNIRVROUTER
 		knirvRootURL:            "http://localhost:8086", // KNIRVROOT
 		xionRPC:                 "https://rpc.xion-testnet-1.burnt.com:443",

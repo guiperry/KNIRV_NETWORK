@@ -6,14 +6,14 @@
 **Date:** July 18, 2025
 
 ## Abstract
-The integrity and trustworthiness of a self-improving AI ecosystem hinge on the ability to verifiably validate new knowledge and execute sensitive operations in a secure, isolated manner. This whitepaper introduces the **KNIRV-NEXUS Decentralized Validation Environment (DVE)**, a network of specialized, staked computing nodes designed to provide trustless, deterministic, and sandboxed execution environments. DVEs serve as the "crucible of truth" for the KNIRV D-TEN, rigorously testing proposed SkillNodes from KNIRVGRAPH and candidate Base LLM updates for KNIRVCHAIN. They generate cryptographic proofs of execution, enabling KNIRV-AGENTIFIER agents to autonomously contribute to the collective intelligence with verifiable assurance.
+The integrity and trustworthiness of a self-improving AI ecosystem hinge on the ability to verifiably validate new knowledge and execute sensitive operations in a secure, isolated manner. This whitepaper introduces the **KNIRV-NEXUS Decentralized Validation Environment (DVE)**, a network of specialized, staked computing nodes designed to provide trustless, deterministic, and sandboxed execution environments. DVEs serve as the "crucible of truth" for the KNIRV D-TEN, rigorously testing proposed SkillNodes from KNIRVGRAPH and candidate Base LLM updates for KNIRVCHAIN. They generate cryptographic proofs of execution, enabling KNIRV-CORTEX agents to autonomously contribute to the collective intelligence with verifiable assurance.
 
 At its core, KNIRV-NEXUS DVE embodies the **Cognitive Logistic Execution Adaptability Network (CLEAN)** paradigm. CLEAN servers are uniquely built upon a hardened, forked Kali Linux distribution and implemented in Golang, integrating cognitive AI/ML engines within their Trusted Execution Environments (TEEs). This enables dynamic adjustment of execution strategies, resource allocation, and security protocols in real-time, delivering unparalleled execution adaptability. Powered by NRN token staking (native to KNIRV-ROOT) and incentivized through a robust reward and slashing mechanism, KNIRV-NEXUS DVEs are fundamental to the D-TEN's security, reliability, and continuous, compounding intelligence.
 
 ## 1. Introduction
 The promise of self-improving AI agents is immense, but it is inextricably linked to the challenge of trust. How can a decentralized network ensure that newly learned behaviors, proposed solutions, or updated foundational models are genuinely beneficial, free from bugs, and devoid of malicious intent? Traditional centralized testing environments lack the transparency and immutability required for a trust-minimized ecosystem.
 
-The KNIRV-NEXUS DVE layer directly addresses this challenge. It provides a decentralized, cryptographically verifiable infrastructure for validating the integrity and efficacy of AI knowledge. By offering secure, isolated, and deterministic execution environments, DVEs enable KNIRV-AGENTIFIER agents to rigorously test new Skills and Base LLM updates before they are enshrined as canonical knowledge on KNIRVGRAPH and KNIRVCHAIN.
+The KNIRV-NEXUS DVE layer directly addresses this challenge. It provides a decentralized, cryptographically verifiable infrastructure for validating the integrity and efficacy of AI knowledge. By offering secure, isolated, and deterministic execution environments, DVEs enable KNIRV-CORTEX agents to rigorously test new Skills and Base LLM updates before they are enshrined as canonical knowledge on KNIRVGRAPH and KNIRVCHAIN.
 
 This whitepaper details the architecture, operational mechanics, economic incentives, and security model of KNIRV-NEXUS DVEs, highlighting their pivotal role in fostering a secure, reliable, and continuously evolving decentralized intelligence network.
 
@@ -40,21 +40,21 @@ CLEAN distinguishes KNIRV-NEXUS DVEs from conventional systems by emphasizing ho
 > *   **Proactive Security Posture:** The unique implementation stack (hardened Kali Linux and GoLang) enables continuous self-auditing and active threat hunting, transforming the network into a self-healing and self-hardening ecosystem.
 
 ## 3. Core Responsibilities of KNIRV-NEXUS DVEs within the KNIRV D-TEN
-KNIRV-NEXUS DVEs fulfill several critical responsibilities within the KNIRV D-TEN, acting as the primary verification layer for new intelligence and a secure execution environment for KNIRV-AGENTIFIER agents.
+KNIRV-NEXUS DVEs fulfill several critical responsibilities within the KNIRV D-TEN, acting as the primary verification layer for new intelligence and a secure execution environment for KNIRV-CORTEX agents.
 
 ### 3.1. Trustless Validation of SkillNodes
 DVEs are the primary mechanism for rigorously testing and validating proposed SkillNodes (solutions to NRVs) before they are accepted onto the KNIRVGRAPH and subsequently KNIRVCHAIN.
 
 > **Expanded Information:**
 > *   **Deterministic Sandbox Execution:** Each DVE node provides a secure, isolated, and deterministic sandbox environment. This sandbox is crucial because it ensures that a given Skill code, when executed with the same inputs (FailureContext), will always produce the exact same output, regardless of which DVE node performs the validation. This determinism is fundamental for achieving consensus among multiple DVEs.
-> *   **Rigorous Test Case Execution:** When a KNIRV-AGENTIFIER agent proposes a SkillNode to resolve an NRV on KNIRVGRAPH, it also provides a set of automated test cases and the original FailureContext. The DVE executes the proposed Skill within its sandbox against these test cases and the FailureContext, verifying its ability to transform the problematic state into a successful one.
+> *   **Rigorous Test Case Execution:** When a KNIRV-CORTEX agent proposes a SkillNode to resolve an NRV on KNIRVGRAPH, it also provides a set of automated test cases and the original FailureContext. The DVE executes the proposed Skill within its sandbox against these test cases and the FailureContext, verifying its ability to transform the problematic state into a successful one.
 > *   **Security & Performance Analysis:** Beyond functional correctness, DVEs also perform static and dynamic analysis of the Skill code to detect malicious behavior, resource exploits, or performance regressions. This ensures that only safe and efficient Skills are integrated into the network.
 
 ### 3.2. Verifiable Validation of Base LLM Updates
 DVEs are essential for the secure and verifiable evolution of the Base LLM (CodeT5) on KNIRVCHAIN.
 
 > **Expanded Information:**
-> *   **Testing Candidate Base LLM Updates:** When a new version of the CodeT5 Base LLM (or a delta update) is proposed (derived from collective learning on KNIRVGRAPH and KNIRV-AGENTIFIERs), DVEs are utilized to rigorously test this candidate model. This involves running comprehensive evaluation suites to ensure the update improves performance, reduces biases, and introduces no new regressions.
+> *   **Testing Candidate Base LLM Updates:** When a new version of the CodeT5 Base LLM (or a delta update) is proposed (derived from collective learning on KNIRVGRAPH and KNIRV-CORTEXs), DVEs are utilized to rigorously test this candidate model. This involves running comprehensive evaluation suites to ensure the update improves performance, reduces biases, and introduces no new regressions.
 > *   **Generating Proofs of Efficacy & Safety:** DVEs generate cryptographic proofs (e.g., attestations signed by the DVE node) of the Base LLM update's efficacy and safety. These proofs are critical for the KNIRVCHAIN's consensus mechanism to accept the new Base LLM version as canonical.
 
 ### 3.3. Cryptographic Proof Generation (ValidationProof)
@@ -62,15 +62,15 @@ The core output of a DVE's validation process is a cryptographically verifiable 
 
 > **Expanded Information:**
 > *   **Individual Attestations:** After performing a validation task, each DVE node cryptographically signs an attestation (DVEResult) of its findings (e.g., Skill passed/failed, performance metrics, security scan results).
-> *   **Aggregated ValidationProof:** These individual attestations are then aggregated by the requesting KNIRV-AGENTIFIER agent. A supermajority (typically 2/3 or more) of the selected DVE nodes must independently replicate the execution and attest to the same outcome. This collective, signed aggregation forms the ValidationProof, which is then submitted to KNIRVGRAPH and ultimately used by KNIRV-ROOT to orchestrate canonical SkillNode minting on KNIRVCHAIN.
+> *   **Aggregated ValidationProof:** These individual attestations are then aggregated by the requesting KNIRV-CORTEX agent. A supermajority (typically 2/3 or more) of the selected DVE nodes must independently replicate the execution and attest to the same outcome. This collective, signed aggregation forms the ValidationProof, which is then submitted to KNIRVGRAPH and ultimately used by KNIRV-ROOT to orchestrate canonical SkillNode minting on KNIRVCHAIN.
 > *   **zkTLS Integration:** For highly sensitive validation tasks or when dealing with private FailureContext data, DVEs can leverage zkTLS (Zero-Knowledge Transport Layer Security). This allows them to prove that a Skill correctly resolves a problem without revealing the underlying sensitive data from the FailureContext, enhancing privacy during validation.
 
-### 3.4. Secure Backup and Versioning for KNIRV-AGENTIFIERs
-DVEs provide a trusted environment for KNIRV-AGENTIFIER agents to securely back up and version their unique, personalized intelligence.
+### 3.4. Secure Backup and Versioning for KNIRV-CORTEXs
+DVEs provide a trusted environment for KNIRV-CORTEX agents to securely back up and version their unique, personalized intelligence.
 
 > **Expanded Information:**
-> *   **Secure Snapshotting:** KNIRV-AGENTIFIER agents can utilize DVEs to create secure, cryptographically attested snapshots of their internal state, including their learned Rust WASM LoRA adapters, memory, and configuration.
-> *   **Verifiable Restoration:** These snapshots can then be stored off-chain (e.g., IPFS) with their hash recorded on KNIRVGRAPH or KNIRVCHAIN. In case of a KNIRV-AGENTIFIER failure or migration, the snapshot can be verifiably restored, ensuring the agent's unique intelligence is preserved.
+> *   **Secure Snapshotting:** KNIRV-CORTEX agents can utilize DVEs to create secure, cryptographically attested snapshots of their internal state, including their learned Rust WASM LoRA adapters, memory, and configuration.
+> *   **Verifiable Restoration:** These snapshots can then be stored off-chain (e.g., IPFS) with their hash recorded on KNIRVGRAPH or KNIRVCHAIN. In case of a KNIRV-CORTEX failure or migration, the snapshot can be verifiably restored, ensuring the agent's unique intelligence is preserved.
 
 ## 4. Architectural Model & Technical Implementation
 The CLEAN architecture is composed of the internal structure of a single CLEAN Node, the network topology, and the specific implementation stack that underpins its security philosophy. A KNIRV-NEXUS DVE is a specialized computing node designed for secure, isolated, and high-performance execution. DVEs are distributed globally and operate autonomously, forming a decentralized network.
@@ -115,7 +115,7 @@ graph TD
 
 **Key Modules:**
 *   **Network Interface:** Handles all incoming requests for validation tasks and outgoing attestations/results.
-*   **Request Manager:** Parses incoming validation requests from KNIRV-AGENTIFIERs, fetches necessary resources (Skill code, FailureContext, Base LLM binaries) from IPFS.
+*   **Request Manager:** Parses incoming validation requests from KNIRV-CORTEXs, fetches necessary resources (Skill code, FailureContext, Base LLM binaries) from IPFS.
 *   **Validation Queue:** Manages the queue of validation tasks to be executed.
 *   **Secure Execution Environment (Sandbox):** The core of the DVE, providing an isolated, deterministic, and verifiable runtime for executing Skill code or Base LLM tests. This environment can leverage hardware-level Trusted Execution Environments (TEEs) where available.
 *   **Compute Core:** The underlying hardware (GPUs, CPUs) that performs the actual computation for executing Skills or running LLM tests within the sandbox.
@@ -153,7 +153,7 @@ CLEAN nodes form a peer-to-peer mesh network, eliminating any single point of fa
 
 ```mermaid
 graph TD
-    Client[KNIRV-AGENTIFIER Agent] -- "Submits Task" --> NodeA["CLEAN Node A (DVE)"]
+    Client[KNIRV-CORTEX Agent] -- "Submits Task" --> NodeA["CLEAN Node A (DVE)"]
 
     subgraph CLEAN_P2P_Network["CLEAN P2P Network"]
         NodeA <--> NodeB["CLEAN Node B (DVE)"]
@@ -172,7 +172,7 @@ The following sequence diagram illustrates how a task is handled with adaptabili
 
 ```mermaid
 sequenceDiagram
-    participant KS as KNIRV-AGENTIFIER Agent
+    participant KS as KNIRV-CORTEX Agent
     participant NodeA as Entry DVE Node
     participant CogEngine as Cognitive Engine (in NodeA)
     participant Orchestrator as Adaptability Orchestrator (in NodeA)
@@ -202,7 +202,7 @@ The foundation of CLEAN is the TEE, providing a hardware-enforced guarantee of c
 > *   **Hardware Isolation:** TEEs (e.g., Intel SGX, AMD SEV, ARM TrustZone) create a secure, isolated execution environment within the CPU. Code and data within the enclave are protected from external software, including the operating system, hypervisor, and other applications.
 > *   **Confidentiality:** Data processed within the TEE remains encrypted and inaccessible to unauthorized entities, ensuring privacy for sensitive FailureContext or Base LLM data during validation.
 > *   **Integrity:** The integrity of the code running inside the TEE is cryptographically verified upon loading. Any unauthorized modification to the code or data within the enclave will be detected, preventing tampering with validation processes.
-> *   **Remote Attestation:** TEEs enable remote attestation, allowing a KNIRV-AGENTIFIER agent (or KNIRVGRAPH/KNIRVCHAIN via KNIRV-ROOT) to cryptographically verify that a DVE node is running genuine, untampered software within a secure enclave before submitting a validation task.
+> *   **Remote Attestation:** TEEs enable remote attestation, allowing a KNIRV-CORTEX agent (or KNIRVGRAPH/KNIRVCHAIN via KNIRV-ROOT) to cryptographically verify that a DVE node is running genuine, untampered software within a secure enclave before submitting a validation task.
 
 ### 5.2. Cognitive and Inference Capabilities
 Each DVE node's Cognitive Engine uses advanced AI/ML algorithms to enable intelligent decision-making, transforming the node from a passive compute unit into an active, adaptive participant.
@@ -233,13 +233,13 @@ The KNIRV-NEXUS DVE layer is secured and incentivized through a robust cryptoeco
 > *   **Rewards for Honest Validation:** DVE operators earn NRN rewards (from KNIRV-ROOT's Ecosystem Fund) for successfully and honestly validating Skills and Base LLM updates. Rewards can be proportional to the complexity of the task, the resources consumed, and the DVE's reputation score (managed on KNIRVGRAPH).
 > *   **Slashing for Dishonesty/Malice:** If a DVE node is found to be dishonest (e.g., submitting false attestations, attempting to inject malicious code, or consistently failing to perform assigned tasks), a portion of its staked NRN (on KNIRV-ROOT) will be slashed. This provides a strong economic disincentive against malicious behavior and ensures the integrity of the validation process.
 > *   **Reputation System:** DVE nodes maintain an on-chain reputation score (managed on KNIRVGRAPH). This score is dynamically updated based on their performance, honesty, and participation history. Higher reputation DVEs are prioritized for tasks and may earn higher rewards.
-> *   **USDC for Operational Costs:** KNIRV-AGENTIFIER agents (or other entities requesting validation) pay a fee (in NRN, which is burned on KNIRV-ROOT) for DVE services. A portion of this fee, or dedicated USDC disbursements from KNIRV-ROOT's Faucet, can cover the DVE operator's operational costs (e.g., electricity, hardware depreciation).
+> *   **USDC for Operational Costs:** KNIRV-CORTEX agents (or other entities requesting validation) pay a fee (in NRN, which is burned on KNIRV-ROOT) for DVE services. A portion of this fee, or dedicated USDC disbursements from KNIRV-ROOT's Faucet, can cover the DVE operator's operational costs (e.g., electricity, hardware depreciation).
 
 ## 7. Integration with the KNIRV Ecosystem
 KNIRV-NEXUS DVEs are deeply integrated into the KNIRV D-TEN's learning and economic loops, interacting with multiple sovereign layers.
 
 > **Expanded Information:**
-> *   **KNIRV-AGENTIFIER (Primary Client):** KNIRV-AGENTIFIER agents are the primary users of DVEs. They rent DVEs to:
+> *   **KNIRV-CORTEX (Primary Client):** KNIRV-CORTEX agents are the primary users of DVEs. They rent DVEs to:
 >     *   Test proposed SkillNodes for NRV resolution.
 >     *   Validate candidate Base LLM updates.
 >     *   Generate ValidationProofs for submission to KNIRVGRAPH.
@@ -251,7 +251,7 @@ KNIRV-NEXUS DVEs are deeply integrated into the KNIRV D-TEN's learning and econo
 >     *   KNIRV-ROOT manages NRN rewards and slashing for DVEs, enforcing cryptoeconomic security.
 >     *   KNIRV-ROOT observes KNIRVGRAPH for verified SkillNodes and orchestrates their canonical minting on KNIRVCHAIN based on DVE proofs.
 >     *   KNIRV-ROOT provides USDC liquidity to cover DVE operational costs (via KNIRV-ROUTERS and the Faucet).
-> *   **KNIRV-ROUTERS (Network Connectivity):** KNIRV-ROUTERS facilitate the network traffic between KNIRV-AGENTIFIERs and DVEs, ensuring reliable and efficient communication for validation tasks.
+> *   **KNIRV-ROUTERS (Network Connectivity):** KNIRV-ROUTERS facilitate the network traffic between KNIRV-CORTEXs and DVEs, ensuring reliable and efficient communication for validation tasks.
 > *   **zkTLS Integration:** The optional use of zkTLS ensures that sensitive FailureContext data can be validated without being revealed, maintaining user and enterprise privacy.
 
 ## 8. Security & Trust Model
@@ -273,12 +273,12 @@ The KNIRV-NEXUS DVE layer will continuously evolve to meet the growing demands f
 > **Expanded Information:**
 >
 > *   **Phase 1 (Initial Mainnet Deployment - Q2 2026):**
->     *   **Focus:** Core DVE node software release, onboarding of initial DVE operators, and integration with KNIRV-AGENTIFIER for SkillNode validation.
+>     *   **Focus:** Core DVE node software release, onboarding of initial DVE operators, and integration with KNIRV-CORTEX for SkillNode validation.
 >     *   **Staking & Rewards:** Activate NRN staking and basic reward/slashing mechanisms on KNIRV-ROOT for DVE operators.
 >     *   **Goal:** Establish a functional, decentralized network of DVEs capable of providing trustless validation for SkillNodes and Base LLM updates.
 > *   **Phase 2 (Advanced Specialization & Resource Management - Q4 2026):**
 >     *   **Focus:** Implement more granular DVE specialization (e.g., specific hardware requirements, software libraries).
->     *   **Dynamic Resource Pricing:** Develop a dynamic pricing model for DVE compute resources, allowing KNIRV-AGENTIFIERs to select DVEs based on cost and performance, informed by the Cognitive Engine.
+>     *   **Dynamic Resource Pricing:** Develop a dynamic pricing model for DVE compute resources, allowing KNIRV-CORTEXs to select DVEs based on cost and performance, informed by the Cognitive Engine.
 >     *   **Enhanced zkTLS Integration:** Expand zkTLS capabilities for more complex private validation scenarios.
 >     *   **Goal:** Optimize DVE resource allocation and expand their utility for diverse AI validation tasks.
 > *   **Phase 3 (Formal Verification & ZKP Integration - Q2 2027):**
@@ -291,4 +291,4 @@ The KNIRV-NEXUS DVE layer will continuously evolve to meet the growing demands f
 >     *   **Goal:** Foster a self-governing and highly resilient DVE network, continuously adapting to the D-TEN's needs.
 
 ## 10. Conclusion
-The KNIRV-NEXUS DVE layer is an indispensable component of the KNIRV D-TEN, serving as the crucible of verifiable AI intelligence. By embodying the Cognitive Logistic Execution Adaptability Network (CLEAN) paradigm, with its unique hardened Kali Linux and GoLang implementation, KNIRV-NEXUS DVEs provide secure, deterministic, and cryptographically attested execution environments. Their integrated Cognitive Engine and Adaptability Orchestrator enable real-time, intelligent adjustment to workloads and threats. This ensures the integrity of SkillNode validation and the continuous, trustworthy evolution of the Base LLM on KNIRVCHAIN. Secured by NRN token staking on KNIRV-ROOT and incentivized through a robust economic model, KNIRV-NEXUS DVEs empower KNIRV-AGENTIFIER agents to contribute to the collective intelligence with unprecedented levels of trust and reliability. They are fundamental to realizing the vision of a truly self-improving, secure, and decentralized AI ecosystem.
+The KNIRV-NEXUS DVE layer is an indispensable component of the KNIRV D-TEN, serving as the crucible of verifiable AI intelligence. By embodying the Cognitive Logistic Execution Adaptability Network (CLEAN) paradigm, with its unique hardened Kali Linux and GoLang implementation, KNIRV-NEXUS DVEs provide secure, deterministic, and cryptographically attested execution environments. Their integrated Cognitive Engine and Adaptability Orchestrator enable real-time, intelligent adjustment to workloads and threats. This ensures the integrity of SkillNode validation and the continuous, trustworthy evolution of the Base LLM on KNIRVCHAIN. Secured by NRN token staking on KNIRV-ROOT and incentivized through a robust economic model, KNIRV-NEXUS DVEs empower KNIRV-CORTEX agents to contribute to the collective intelligence with unprecedented levels of trust and reliability. They are fundamental to realizing the vision of a truly self-improving, secure, and decentralized AI ecosystem.

@@ -1,4 +1,4 @@
-# KNIRV-AGENTIFIER Testnet Configuration
+# KNIRV-CORTEX Testnet Configuration
 agent:
   id: "agent-testnet-{ID}"
   base_llm: "CodeT5"

@@ -25,16 +25,23 @@ func main() {
 	}
 
 	// Initialize logger
-	logger := logger.New(cfg.LogLevel)
+	logger := logger.NewLogger(logger.Config{Level: cfg.LogLevel, Output: "stdout"})
 
 	// Initialize database
-	db, err := database.Initialize(cfg.DatabaseURL)
+	db, err := database.NewDatabase(database.Config{
+		Host:     "localhost",
+		Port:     "5432",
+		User:     "postgres",
+		Password: "password",
+		DBName:   "knirvwallet",
+		SSLMode:  "disable",
+	})
 	if err != nil {
-		logger.Fatal("Failed to initialize database:", err)
+		logger.Fatal("Failed to initialize database: %v", err)
 	}
 
 	// Initialize services
-	serviceContainer := services.NewContainer(db, cfg, logger)
+	serviceContainer := services.NewContainer(db.GetDB(), cfg, logger)
 
 	// Initialize API router
 	router := api.NewRouter(serviceContainer)
@@ -52,9 +59,9 @@ func main() {
 
 	// Start server in goroutine
 	go func() {
-		logger.Info("Starting server on port " + cfg.Port)
+		logger.Info("Starting server on port %s", cfg.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatal("Failed to start server:", err)
+			logger.Fatal("Failed to start server: %v", err)
 		}
 	}()
 
@@ -69,7 +76,7 @@ func main() {
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		logger.Fatal("Server forced to shutdown:", err)
+		logger.Fatal("Server forced to shutdown: %v", err)
 	}
 
 	logger.Info("Server exited")

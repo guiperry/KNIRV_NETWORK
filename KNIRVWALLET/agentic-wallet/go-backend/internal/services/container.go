@@ -10,21 +10,15 @@ import (
 type Container struct {
 	DB     *gorm.DB
 	Config *config.Config
-	Logger logger.Logger
+	Logger *logger.Logger
 
 	// Services
-	UserService             *UserService
-	WalletService           *WalletService
 	MultichainWalletService *MultichainWalletService
 	WalletSyncService       *WalletSyncService
 	AIAgentService          *AIAgentService
-	BlockchainService       *BlockchainService
-	SecurityService         *SecurityService
-	MarketDataService       *MarketDataService
-	NotificationService     *NotificationService
 }
 
-func NewContainer(db *gorm.DB, cfg *config.Config, logger logger.Logger) *Container {
+func NewContainer(db *gorm.DB, cfg *config.Config, logger *logger.Logger) *Container {
 	container := &Container{
 		DB:     db,
 		Config: cfg,
@@ -44,6 +38,9 @@ func NewContainer(db *gorm.DB, cfg *config.Config, logger logger.Logger) *Contai
 
 	// Initialize wallet sync service
 	container.WalletSyncService = NewWalletSyncService(container)
+
+	// Initialize AI agent service
+	container.AIAgentService = NewAIAgentService(db, cfg, logger)
 
 	return container
 }

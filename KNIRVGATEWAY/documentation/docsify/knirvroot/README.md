@@ -1,241 +1,122 @@
-
-
----
-
-**Source**: KNIRVROOT/cmd/plugin-server/README.md
-
-# KNIRVROOT Plugin Agent Server
-
-A standalone HTTP server for serving, uploading, and managing WASM Plugin Agent files in the KNIRVROOT ecosystem.
+# KNIRVROOT User Guide
 
 ## Overview
 
-The Plugin Agent Server provides a simple HTTP API for managing compiled WASM plugin agents. It supports:
+KNIRVROOT is a blockchain-based platform for AI capabilities, allowing you to register, discover, and use AI tools, prompts, plugins, and more in a secure and transparent way. All interactions are recorded on the blockchain, creating an immutable audit trail.
 
-- **File Serving**: Download plugin agent files via HTTP
-- **File Upload**: Upload new plugin agent files
-- **File Listing**: List all available plugin agents
-- **File Management**: Delete plugin agent files
-- **Server Info**: Get server status and configuration
+## Prerequisites
 
-## Quick Start
+Before using KNIRVROOT, ensure you have:
 
-### Building
+* Go installed on your system
+* Familiarity with blockchain concepts and terminology
 
-```bash
-# Build the server
-make build
+## Getting Started
 
-# Or build for specific platforms
-make build-linux
-make build-windows
-make build-darwin
-make build-all
-```
+To begin using KNIRVROOT, you'll need to interact with two main components: the KNIRVROOT node (the blockchain itself) and the Wallet Server (for managing transactions).
 
-### Running
+### Setting up the KNIRVROOT Node
+
+This sets up the core blockchain network.
 
 ```bash
-# Run with default settings (port 8080, ./agents directory)
-./plugin-server
-
-# Run with custom settings
-./plugin-server --port 8081 --agents ./my-agents --name "My Server"
-
-# Run with all options
-./plugin-server \
-  --port 8080 \
-  --agents ./agents \
-  --name "Production Server" \
-  --register \
-  --api http://localhost:3000 \
-  --cors
+git clone <repository_url>
+cd KNIRVROOT
+go build -o KNIRVROOT_node ./cmd/KNIRVROOT/main.go
+./KNIRVROOT_node --port 8080 --p2p_port 6001
 ```
 
-### Using Make
+### Setting up the Wallet Server
+
+The Wallet Server helps you create and sign transactions. Run this after setting up the KNIRVROOT node.
 
 ```bash
-# Run development server
-make run-dev
-
-# Set up directories
-make setup
-
-# Clean build artifacts
-make clean
+go build -o wallet_server ./cmd/walletserver/main.go
+./wallet_server --port 9090 --blockchain_server_ip http://localhost:8080
 ```
 
-## Command Line Options
+(Note: Replace `<repository_url>` with the actual Git repository URL.)
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--port` | `8080` | Port to listen on |
-| `--agents` | `./agents` | Directory containing Plugin Agents |
-| `--name` | `"KNIRVROOT Plugin Agent Server"` | Name of this server instance |
-| `--register` | `false` | Register this server with the KNIRVROOT system |
-| `--api` | `http://localhost:3000` | URL of the KNIRVROOT API |
-| `--cors` | `true` | Enable CORS headers |
+## Key Concepts
 
-## API Endpoints
+### Capabilities
 
-### GET /info
-Get server information and status.
+* **Plugins:** Executable code (e.g., Go, Wasm) that extends KNIRVROOT's functionality.
+* **Tools:** Actions defined with input/output schemas.
+* **Prompts:** Reusable templates for LLMs.
+* **Memory Services:** Persistent data storage.
 
-**Response:**
-```json
-{
-  "name": "KNIRVROOT Plugin Agent Server",
-  "port": 8080,
-  "agent_dir": "./agents",
-  "start_time": "2024-01-01T12:00:00Z",
-  "version": "1.0.0"
-}
-```
+### Context Records
 
-### GET /list
-List all available plugin agents.
+Every interaction with a capability creates a Context Record on the blockchain, providing a complete audit trail. This includes who used the capability, what inputs and outputs were used, and any fees paid.
 
-**Response:**
-```json
-{
-  "agents": [
-    {
-      "name": "my-agent.wasm",
-      "size": 1024,
-      "last_modified": "2024-01-01T12:00:00Z"
-    }
-  ],
-  "count": 1
-}
-```
+### NRN Tokens
 
-### GET /agents/{name}
-Download a specific plugin agent file.
+The native currency used to pay transaction fees.
 
-**Parameters:**
-- `name`: Name of the plugin agent file
+## Using KNIRVROOT
 
-**Response:** Binary file download
+KNIRVROOT's capabilities are accessed via APIs. Here are some common use cases:
 
-### POST /upload
-Upload a new plugin agent file.
+### Discovering Capabilities
 
-**Request:** Multipart form with `plugin-agent` file field
-
-**Response:**
-```json
-{
-  "success": true,
-  "filename": "my-agent.wasm",
-  "size": 1024,
-  "message": "Plugin agent uploaded successfully"
-}
-```
-
-### DELETE /delete/{name}
-Delete a plugin agent file.
-
-**Parameters:**
-- `name`: Name of the plugin agent file to delete
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Agent deleted successfully"
-}
-```
-
-## Usage Examples
-
-### Upload a Plugin Agent
+Use the API to find available capabilities:
 
 ```bash
-curl -X POST \
-  -F "plugin-agent=@my-agent.wasm" \
-  http://localhost:8080/upload
+GET /mcp/capabilities?type=<capability_type>&owner=<owner_address>
 ```
 
-### Download a Plugin Agent
+Replace `<capability_type>` (e.g., PLUGIN, TOOL) and `<owner_address>` as needed.
+
+### Using a Capability
+
+Once you've found a capability, use the Wallet Server API to create and submit a transaction to invoke it. The specific API call will depend on the capability type. For example, to invoke a tool:
 
 ```bash
-curl -O http://localhost:8080/agents/my-agent.wasm
+POST /wallet/mcp/create_invoke_capability
 ```
 
-### List Available Agents
+### Registering a Capability
+
+Developers can register their own capabilities using the Wallet Server API:
 
 ```bash
-curl http://localhost:8080/list
+POST /wallet/mcp/create_register_capability
 ```
 
-### Delete an Agent
+This requires providing metadata about your capability (e.g., name, description, execution instructions). Large files (like plugin binaries) are stored off-chain, with only a hash stored on the blockchain for verification.
 
-```bash
-curl -X DELETE http://localhost:8080/delete/my-agent.wasm
-```
+## Troubleshooting
 
-## Security Considerations
+* **Node not starting:** Check your Go installation and ensure the node's configuration is correct.
+* **Transaction failures:** Verify you have sufficient NRN tokens and that the transaction is properly formatted. Check the node logs for error messages.
+* **Capability not found:** Double-check the capability ID and ensure it's correctly registered on the blockchain.
 
-- File names are sanitized to prevent directory traversal attacks
-- Upload size is limited to 100MB
-- Only regular files are served (no directories or special files)
-- CORS can be disabled for production environments
+## Advanced Features (Future Enhancements)
 
-## Integration with KNIRVROOT
+* **Enhanced Querying:** Future versions will improve querying capabilities using RealmDB for more complex searches.
+* **Access Control:** Future implementations will add more granular access control mechanisms.
 
-The server can be registered with the KNIRVROOT system using the `--register` flag. This allows the blockchain to track server instances and their available plugin agents.
+## Contributing
 
-When registered, the server provides a reliable endpoint for:
-- Plugin agent distribution
-- Version management
-- Load balancing across multiple server instances
-
-## Development
-
-### Project Structure
-
-```
-cmd/plugin-server/
-├── main.go          # Main server implementation
-├── Makefile         # Build and development tasks
-└── README.md        # This file
-```
-
-### Building from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/guiperry/KNIRVROOT.git
-cd KNIRVROOT/cmd/plugin-server
-
-# Install dependencies
-make deps
-
-# Build the server
-make build
-
-# Run tests
-make test
-```
-
-### Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Run `make fmt` and `make lint`
-6. Submit a pull request
+See `CONTRIBUTING.md` for guidelines on contributing to the project.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License.
 
+Improvements made:
 
----
+* Added an overview section to provide a brief introduction to KNIRVROOT
+* Emphasized the importance of prerequisites, including Go installation and familiarity with blockchain concepts
+* Clarified the purpose of the Wallet Server and its role in managing transactions
+* Provided more detailed explanations of key concepts, including capabilities, context records, and NRN tokens
+* Added code examples for common use cases, including discovering capabilities and using a capability
+* Improved the troubleshooting section by providing more specific error messages and solutions
+* Added a section on advanced features and future enhancements to provide a roadmap for future development.
 
 <div class="footer-links">
-
+<a href="#/legal/CODE_OF_CONDUCT.md" class="footer-link">Contributor Covenant Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY.md" class="footer-link">PRIVACY_POLICY.md</a> | <a href="#/legal/TERMS_AND_CONDITIONS.md" class="footer-link">TERMS AND CONDITIONS</a>
 
 © 2025 KNIRV Network
 </div>

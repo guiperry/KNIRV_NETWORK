@@ -150,3 +150,10 @@ The development of KNIRV-ROOT will proceed in phases, focusing on strengthening 
 
 ## 8. Conclusion
 KNIRV-ROOT stands as the sovereign anchor of the KNIRV D-TEN. As its own `GoLang`-based Layer 1 blockchain, secured by a custom Byzantine Fault Tolerant Proof-of-Authority consensus, it provides the definitive, immutable ledger for the NRN token. Acting as the canonical NRN oracle, it orchestrates the token's entire economic lifecycle—from incentivized minting by KNIRV-ROUTERS to precise burning for Skill invocation on KNIRVCHAIN. By managing the USDC Faucet and synchronizing critical network state across KNIRVCHAIN and KNIRVGRAPH, KNIRV-ROOT ensures the D-TEN's sovereignty, economic integrity, and global coherence. It is the robust core that binds the network's distributed intelligence, enabling a truly self-sustaining and self-improving ecosystem for AI agents.
+
+
+<div class="footer-links">
+<a href="#/legal/CODE_OF_CONDUCT.md" class="footer-link">Contributor Covenant Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY.md" class="footer-link">PRIVACY_POLICY.md</a> | <a href="#/legal/TERMS_AND_CONDITIONS.md" class="footer-link">TERMS AND CONDITIONS</a>
+
+© 2025 KNIRV Network
+</div>
