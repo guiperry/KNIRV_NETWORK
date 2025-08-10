@@ -40,10 +40,23 @@ export class Argon2id {
     options: Argon2idOptions,
   ): Promise<Uint8Array> {
     await sodium.ready;
+    
+    // Ensure salt is exactly 16 bytes for libsodium
+    let adjustedSalt = salt;
+    if (salt.length !== 16) {
+      adjustedSalt = new Uint8Array(16);
+      if (salt.length > 16) {
+        adjustedSalt.set(salt.slice(0, 16));
+      } else {
+        adjustedSalt.set(salt);
+        // Fill remaining bytes with zeros (already done by new Uint8Array)
+      }
+    }
+    
     return sodium.crypto_pwhash(
       options.outputLength,
       password,
-      salt, // libsodium only supports 16 byte salts and will throw when you don't respect that
+      adjustedSalt, // Use adjusted salt
       options.opsLimit,
       options.memLimitKib * 1024,
       sodium.crypto_pwhash_ALG_ARGON2ID13,

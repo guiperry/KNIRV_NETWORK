@@ -2,8 +2,11 @@
 
 ## User Guides
 
-* [KNIRVCORTEX User Guide](guides/README.md)
 * [KNIRVCORTEX User Guide and Troubleshooting](guides/README.md)
+
+## Deployment
+
+* [KNIRVTESTNET Deployment and User Guide](deployment/README.md)
 
 ## KNIRVCHAIN Documentation
 
@@ -28,6 +31,15 @@
 ## KNIRVSDK Documentation
 
 * [KNIRVSDK User Guide](knirvsdk/README.md)
+
+## KNIRVCORTEX Documentation
+
+* [KNIRVSHELL User Guide](knirvshell/README.md)
+* [KNIRVSHELL User Guide](knirvshell/README.md)
+
+## KNIRVWALLET Documentation
+
+* [KNIRVWALLET User Guide](knirvwallet/README.md)
 
 ## 📄 Whitepapers
 

@@ -6,8 +6,11 @@ Welcome to the KNIRV Network documentation. This comprehensive guide provides in
 
 ### User Guides
 
-* [KNIRVCORTEX User Guide](guides/README.md) - A mobile-first AI assistant gateway enabling autonomous agent abilities and seamless integration with the knirv.com D-TEN.  Use voice commands to navigate and control features.
 * [KNIRVCORTEX User Guide and Troubleshooting](guides/README.md) - User guide for KNIRVGATEWAY
+
+### Deployment
+
+* [KNIRVTESTNET Deployment and User Guide](deployment/README.md) - Set up and run the KNIRVTESTNET, a complete test environment for the KNIRV D-TEN. Includes troubleshooting and usage instructions.
 
 ### KNIRVCHAIN Documentation
 
@@ -32,6 +35,15 @@ Welcome to the KNIRV Network documentation. This comprehensive guide provides in
 ### KNIRVSDK Documentation
 
 * [KNIRVSDK User Guide](knirvsdk/README.md) - User guide for KNIRVSDK
+
+### KNIRVCORTEX Documentation
+
+* [KNIRVSHELL User Guide](knirvshell/README.md) - User guide for KNIRVCORTEX
+* [KNIRVSHELL User Guide](knirvshell/README.md) - User guide for KNIRVSHELL
+
+### KNIRVWALLET Documentation
+
+* [KNIRVWALLET User Guide](knirvwallet/README.md) - User guide for KNIRVWALLET
 
 ## 📄 Technical Whitepapers
 

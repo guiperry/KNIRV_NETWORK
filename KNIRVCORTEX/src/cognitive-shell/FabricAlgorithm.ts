@@ -6,6 +6,7 @@ export interface FabricConfig {
   memoryDepth: number;
   attentionHeads: number;
   learningRate: number;
+  hrmIntegration?: boolean;
 }
 
 export interface FabricContext {
@@ -36,6 +37,7 @@ export class FabricAlgorithm extends EventEmitter {
   private attentionMechanism: AttentionMechanism;
   private isRunning: boolean = false;
   private processingQueue: any[] = [];
+  private hrmBridge: any = null; // Will be injected from CognitiveEngine
 
   constructor(config: FabricConfig) {
     super();
@@ -85,7 +87,12 @@ export class FabricAlgorithm extends EventEmitter {
     const startTime = Date.now();
 
     try {
-      // Add to processing queue if in adaptive mode
+      // Use HRM-enhanced processing if available
+      if (this.config.hrmIntegration && this.hrmBridge && this.hrmBridge.isReady()) {
+        return await this.hrmEnhancedProcess(input, options);
+      }
+
+      // Fallback to traditional processing
       if (this.config.processingMode === 'adaptive') {
         return await this.adaptiveProcess(input, options);
       } else {
@@ -99,6 +106,261 @@ export class FabricAlgorithm extends EventEmitter {
       const latency = Date.now() - startTime;
       this.updateMetrics(latency);
     }
+  }
+
+  private async hrmEnhancedProcess(input: any, options: any): Promise<any> {
+    console.log('Processing with HRM-enhanced Fabric Algorithm...');
+
+    try {
+      // Prepare input for HRM cognitive processing
+      const hrmInput = {
+        sensory_data: this.convertToSensoryData(input),
+        context: JSON.stringify({
+          fabricContext: this.context,
+          options: options,
+          attentionWeights: Object.fromEntries(this.attentionMechanism.weights),
+        }),
+        task_type: this.determineTaskType(input, options),
+      };
+
+      // Get HRM cognitive analysis
+      const hrmOutput = await this.hrmBridge.processCognitiveInput(hrmInput);
+
+      // Use HRM insights to enhance traditional Fabric processing
+      const enhancedOptions = {
+        ...options,
+        hrmGuidance: {
+          reasoning: hrmOutput.reasoning_result,
+          confidence: hrmOutput.confidence,
+          l_activations: hrmOutput.l_module_activations,
+          h_activations: hrmOutput.h_module_activations,
+        },
+      };
+
+      // Determine processing strategy based on HRM analysis
+      const processingStrategy = this.selectStrategyWithHRM(input, hrmOutput);
+
+      // Apply HRM-guided attention mechanism
+      const attentionResult = await this.applyHRMGuidedAttention(input, options.context, hrmOutput);
+
+      // Execute enhanced processing
+      const result = await this.executeHRMEnhancedStrategy(
+        processingStrategy,
+        attentionResult,
+        enhancedOptions
+      );
+
+      // Generate NRV (Neural Reasoning Vector) with HRM insights
+      const nrv = this.generateNRVWithHRM(result, hrmOutput);
+
+      // Update context with HRM insights
+      this.updateContextWithHRM(input, result, enhancedOptions, hrmOutput);
+
+      return {
+        ...result,
+        nrv: nrv,
+        hrmEnhanced: true,
+        hrmConfidence: hrmOutput.confidence,
+        hrmReasoning: hrmOutput.reasoning_result,
+        processingStrategy: processingStrategy,
+      };
+
+    } catch (error) {
+      console.error('Error in HRM-enhanced processing:', error);
+      // Fallback to adaptive processing
+      return this.adaptiveProcess(input, options);
+    }
+  }
+
+  private convertToSensoryData(input: any): number[] {
+    // Convert input to numerical representation for HRM processing
+    if (typeof input === 'string') {
+      const encoder = new TextEncoder();
+      const bytes = encoder.encode(input);
+      return Array.from(bytes).map(b => b / 255.0).slice(0, 512);
+    }
+
+    if (Array.isArray(input)) {
+      return input.slice(0, 512);
+    }
+
+    if (typeof input === 'object') {
+      const str = JSON.stringify(input);
+      const encoder = new TextEncoder();
+      const bytes = encoder.encode(str);
+      return Array.from(bytes).map(b => b / 255.0).slice(0, 512);
+    }
+
+    return new Array(512).fill(0);
+  }
+
+  private determineTaskType(input: any, options: any): string {
+    if (options.inputType) {
+      return `fabric_${options.inputType}`;
+    }
+
+    if (typeof input === 'object' && input.type) {
+      return `fabric_${input.type}`;
+    }
+
+    return 'fabric_general';
+  }
+
+  private selectStrategyWithHRM(input: any, hrmOutput: any): string {
+    // Use HRM confidence and activations to select processing strategy
+    const confidence = hrmOutput.confidence;
+    const avgHActivation = hrmOutput.h_module_activations.reduce((a: number, b: number) => a + b, 0) / hrmOutput.h_module_activations.length;
+
+    if (confidence > 0.8 && avgHActivation > 0.7) {
+      return 'hrm_deep_analysis';
+    } else if (confidence > 0.6 && avgHActivation > 0.5) {
+      return 'hrm_standard_processing';
+    } else {
+      return 'hrm_fast_processing';
+    }
+  }
+
+  private async applyHRMGuidedAttention(input: any, context: any, hrmOutput: any): Promise<any> {
+    // Traditional attention mechanism
+    const traditionalAttention = await this.applyAttention(input, context);
+
+    // Enhance with HRM module activations
+    const hrmGuidedWeights = new Map();
+
+    // Use L-module activations to guide sensory attention
+    if (hrmOutput.l_module_activations) {
+      hrmOutput.l_module_activations.forEach((activation: number, index: number) => {
+        hrmGuidedWeights.set(`l_module_${index}`, activation);
+      });
+    }
+
+    // Use H-module activations to guide planning attention
+    if (hrmOutput.h_module_activations) {
+      hrmOutput.h_module_activations.forEach((activation: number, index: number) => {
+        hrmGuidedWeights.set(`h_module_${index}`, activation);
+      });
+    }
+
+    return {
+      ...traditionalAttention,
+      hrmGuidedWeights: hrmGuidedWeights,
+      hrmConfidence: hrmOutput.confidence,
+      combinedFocusAreas: [
+        ...traditionalAttention.focusAreas,
+        ...Array.from(hrmGuidedWeights.keys()).filter(key => hrmGuidedWeights.get(key) > 0.7),
+      ],
+    };
+  }
+
+  private generateNRVWithHRM(result: any, hrmOutput: any): any {
+    // Generate Neural Reasoning Vector combining Fabric and HRM insights
+    return {
+      fabricVector: this.generateTraditionalNRV(result),
+      hrmVector: {
+        l_activations: hrmOutput.l_module_activations,
+        h_activations: hrmOutput.h_module_activations,
+        reasoning_confidence: hrmOutput.confidence,
+        processing_time: hrmOutput.processing_time,
+      },
+      combinedConfidence: (result.confidence + hrmOutput.confidence) / 2,
+      timestamp: new Date().toISOString(),
+      version: '1.0.0-hrm',
+    };
+  }
+
+  private generateTraditionalNRV(result: any): any {
+    // Traditional NRV generation (existing logic)
+    return {
+      confidence: result.confidence || 0.5,
+      complexity: result.complexity || 0.5,
+      attentionWeights: Object.fromEntries(this.attentionMechanism.weights),
+      contextRelevance: this.attentionMechanism.contextRelevance,
+    };
+  }
+
+  private updateContextWithHRM(input: any, result: any, options: any, hrmOutput: any): void {
+    // Traditional context update
+    this.updateContext(input, result, options);
+
+    // Add HRM-specific context
+    this.context.memoryState.hrmHistory = this.context.memoryState.hrmHistory || [];
+    this.context.memoryState.hrmHistory.push({
+      timestamp: new Date(),
+      input: input,
+      hrmOutput: hrmOutput,
+      confidence: hrmOutput.confidence,
+    });
+
+    // Keep only recent HRM history
+    if (this.context.memoryState.hrmHistory.length > 10) {
+      this.context.memoryState.hrmHistory = this.context.memoryState.hrmHistory.slice(-10);
+    }
+  }
+
+  private async executeHRMEnhancedStrategy(
+    strategy: string,
+    attentionResult: any,
+    options: any
+  ): Promise<any> {
+    console.log(`Executing HRM-enhanced strategy: ${strategy}`);
+
+    const hrmGuidance = options.hrmGuidance;
+
+    switch (strategy) {
+      case 'hrm_deep_analysis':
+        return await this.hrmDeepAnalysisProcessing(attentionResult, options, hrmGuidance);
+
+      case 'hrm_standard_processing':
+        return await this.hrmStandardProcessing(attentionResult, options, hrmGuidance);
+
+      case 'hrm_fast_processing':
+        return await this.hrmFastProcessing(attentionResult, options, hrmGuidance);
+
+      default:
+        return await this.standardProcessing(attentionResult, options);
+    }
+  }
+
+  private async hrmDeepAnalysisProcessing(attentionResult: any, options: any, hrmGuidance: any): Promise<any> {
+    // Deep analysis with HRM cognitive insights
+    const result = await this.deepAnalysisProcessing(attentionResult, options);
+
+    return {
+      ...result,
+      hrmEnhanced: true,
+      hrmReasoning: hrmGuidance.reasoning,
+      hrmConfidence: hrmGuidance.confidence,
+      analysisDepth: 'deep_with_hrm',
+      cognitiveInsights: {
+        l_module_patterns: hrmGuidance.l_activations,
+        h_module_planning: hrmGuidance.h_activations,
+      },
+    };
+  }
+
+  private async hrmStandardProcessing(attentionResult: any, options: any, hrmGuidance: any): Promise<any> {
+    // Standard processing with HRM guidance
+    const result = await this.standardProcessing(attentionResult, options);
+
+    return {
+      ...result,
+      hrmEnhanced: true,
+      hrmReasoning: hrmGuidance.reasoning,
+      hrmConfidence: hrmGuidance.confidence,
+      analysisDepth: 'standard_with_hrm',
+    };
+  }
+
+  private async hrmFastProcessing(attentionResult: any, options: any, hrmGuidance: any): Promise<any> {
+    // Fast processing with minimal HRM overhead
+    const result = await this.fastProcessing(attentionResult, options);
+
+    return {
+      ...result,
+      hrmEnhanced: true,
+      hrmConfidence: hrmGuidance.confidence,
+      analysisDepth: 'fast_with_hrm',
+    };
   }
 
   private async adaptiveProcess(input: any, options: any): Promise<any> {
@@ -497,5 +759,61 @@ export class FabricAlgorithm extends EventEmitter {
   public importMemoryState(memoryState: any): void {
     this.context.memoryState = { ...memoryState };
     this.emit('memoryStateImported');
+  }
+
+  // HRM Integration methods
+  public setHRMBridge(hrmBridge: any): void {
+    this.hrmBridge = hrmBridge;
+    console.log('HRM bridge injected into Fabric Algorithm');
+  }
+
+  public enableHRMIntegration(): void {
+    this.config.hrmIntegration = true;
+    console.log('HRM integration enabled in Fabric Algorithm');
+  }
+
+  public disableHRMIntegration(): void {
+    this.config.hrmIntegration = false;
+    console.log('HRM integration disabled in Fabric Algorithm');
+  }
+
+  public isHRMIntegrationEnabled(): boolean {
+    return this.config.hrmIntegration === true;
+  }
+
+  public getHRMStatus(): any {
+    return {
+      enabled: this.config.hrmIntegration,
+      bridgeAvailable: this.hrmBridge !== null,
+      ready: this.hrmBridge ? this.hrmBridge.isReady() : false,
+    };
+  }
+
+  public getHRMHistory(): any[] {
+    return this.context.memoryState.hrmHistory || [];
+  }
+
+  public clearHRMHistory(): void {
+    if (this.context.memoryState.hrmHistory) {
+      this.context.memoryState.hrmHistory = [];
+      this.emit('hrmHistoryCleared');
+    }
+  }
+
+  public getEnhancedMetrics(): any {
+    const baseMetrics = this.getMetrics();
+    const hrmHistory = this.getHRMHistory();
+
+    return {
+      ...baseMetrics,
+      hrmIntegration: this.config.hrmIntegration,
+      hrmProcessedCount: hrmHistory.length,
+      averageHRMConfidence: hrmHistory.length > 0
+        ? hrmHistory.reduce((sum, item) => sum + item.confidence, 0) / hrmHistory.length
+        : 0,
+      lastHRMProcessing: hrmHistory.length > 0
+        ? hrmHistory[hrmHistory.length - 1].timestamp
+        : null,
+    };
   }
 }

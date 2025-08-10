@@ -21,7 +21,7 @@ import { Keyring, KeyringData, KeyringType } from './keyring';
 
 export class HDWalletKeyring implements Keyring {
   public readonly id: string;
-  public readonly type: KeyringType = 'HD_WALLET';
+  public readonly type: KeyringType = 'HD';
   public readonly seed: Uint8Array;
   public readonly mnemonicEntropy: Uint8Array;
 

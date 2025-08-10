@@ -1,9 +1,78 @@
-import type { Provider, Tx } from '../wallet';
+import type { Provider, Tx, TxSignature } from '../wallet';
 import { v4 as uuidv4 } from 'uuid';
+import { Secp256k1Wallet, StdFee, StdSignDoc } from '@cosmjs/amino';
+import { fromBase64 } from '@cosmjs/encoding';
 
-import { Document, makeSignedTx, useTm2Wallet, KNIRVWallet } from './../..';
-import { hexToArray } from './../../utils/data';
+import { Document } from './../..';
+import { hexToArray, arrayToHex } from './../../utils/data';
 import { Keyring, KeyringData, KeyringType } from './keyring';
+
+// Type assertion to handle KNIRV-specific types
+interface KNIRVPubKey {
+  key: string;
+}
+
+interface KNIRVSignerInfo {
+  public_key: KNIRVPubKey;
+  mode_info: { single: { mode: number } };
+  sequence: string;
+}
+
+function convertToStdSignDoc(doc: Document): StdSignDoc {
+  return {
+    chain_id: doc.chain_id,
+    account_number: doc.account_number.toString(),
+    sequence: doc.sequence.toString(),
+    fee: {
+      amount: [...doc.fee.amount.map(coin => ({
+        denom: coin.denom,
+        amount: coin.amount.toString()
+      }))],
+      gas: doc.fee.gas.toString()
+    },
+    msgs: [...doc.msgs],
+    memo: doc.memo || ''
+  };
+}
+
+async function convertToTx(privateKey: Uint8Array, signed: StdSignDoc, signature: Uint8Array): Promise<Tx> {
+  // Cast to KNIRV-specific types
+  const wallet = await Secp256k1Wallet.fromKey(privateKey);
+  const accounts = await wallet.getAccounts();
+  
+  const signer_info: KNIRVSignerInfo = {
+    public_key: {
+      key: arrayToHex(accounts[0].pubkey)
+    },
+    mode_info: { single: { mode: 1 } }, // SIGN_MODE_DIRECT = 1
+    sequence: signed.sequence // Already a string from StdSignDoc
+  };
+  // Convert AminoMsg to Any type
+  const messages = signed.msgs.map(msg => ({
+    type_url: msg.type,
+    value: msg.value
+  }));
+
+  return {
+    body: {
+      messages,
+      memo: signed.memo,
+      timeout_height: '0',
+      extension_options: [],
+      non_critical_extension_options: []
+    },
+    auth_info: {
+      signer_infos: [signer_info],
+      fee: {
+        amount: [...signed.fee.amount],
+        gas: signed.fee.gas,
+        granter: '',
+        payer: ''
+      }
+    },
+    signatures: [arrayToHex(signature)]
+  };
+}
 
 export class Web3AuthKeyring implements Keyring {
   public readonly id: string;
@@ -29,24 +98,26 @@ export class Web3AuthKeyring implements Keyring {
     };
   }
 
-  async sign(provider: Provider, document: Document) {
-    const wallet = await useTm2Wallet(document).fromPrivateKey(this.privateKey);
-    wallet.connect(provider);
-    return this.signByWallet(wallet, document);
-  }
+  async sign(provider: Provider, document: Document, hdPath?: number) {
+    const wallet = await Secp256k1Wallet.fromKey(this.privateKey);
+    const accounts = await wallet.getAccounts();
+    
+    const stdSignDoc = convertToStdSignDoc({
+      ...document,
+      chain_id: provider.chainId
+    });
 
-  private async signByWallet(wallet: KNIRVWallet, document: Document) {
-    const signedTx = await makeSignedTx(wallet, document);
-    // Convert string signatures to TxSignature format
-    const signatures = (signedTx.signatures || []).map(sig => ({
-      pub_key: {
-        key: '', // Placeholder - would be derived from wallet
-      },
-      signature: sig,
-    }));
+    const { signature } = await wallet.signAmino(accounts[0].address, stdSignDoc);
+    const tx = await convertToTx(this.privateKey, stdSignDoc, fromBase64(signature.signature));
+
     return {
-      signed: signedTx,
-      signature: signatures,
+      signed: tx,
+      signature: [{
+        pub_key: {
+          key: arrayToHex(accounts[0].pubkey)
+        },
+        signature: signature.signature
+      }]
     };
   }
 
@@ -74,21 +145,24 @@ export class Web3AuthKeyring implements Keyring {
   }
 
   public static async fromPrivateKey(privateKey: Uint8Array) {
-    const wallet = await useTm2Wallet({} as Document).fromPrivateKey(privateKey);
-    const publicKey = await wallet.getPublicKey();
+    const wallet = await Secp256k1Wallet.fromKey(privateKey);
+    const accounts = await wallet.getAccounts();
+    const publicKey = accounts[0].pubkey;
+    
     return new Web3AuthKeyring({
       publicKey: Array.from(publicKey),
-      privateKey: Array.from(privateKey),
+      privateKey: Array.from(privateKey)
     });
   }
 
   public static async fromPrivateKeyStr(privateKeyStr: string) {
     const privateKey = hexToArray(privateKeyStr);
-    const wallet = await useTm2Wallet({} as Document).fromPrivateKey(privateKey);
-    const publicKey = await wallet.getPublicKey();
+    const wallet = await Secp256k1Wallet.fromKey(privateKey);
+    const accounts = await wallet.getAccounts();
+    const publicKey = accounts[0].pubkey;
     return new Web3AuthKeyring({
       publicKey: Array.from(publicKey),
-      privateKey: Array.from(privateKey),
+      privateKey: Array.from(privateKey)
     });
   }
 }

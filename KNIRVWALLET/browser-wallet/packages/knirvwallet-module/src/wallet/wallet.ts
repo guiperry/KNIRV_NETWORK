@@ -407,6 +407,46 @@ export class KnirvWallet implements Wallet {
     });
   }
 
+  // Missing methods implementation as per Wallet_FollowThrough_Implementation.md
+  public getAccounts(): Account[] {
+    return this.accounts;
+  }
+
+  public getCurrentAccount(): Account | undefined {
+    return this.accounts.find(account => account.id === this._currentAccountId);
+  }
+
+  public getAccountById(accountId: string): Account | undefined {
+    return this.accounts.find(account => account.id === accountId);
+  }
+
+  public switchToAccount(accountId: string): boolean {
+    const account = this.getAccountById(accountId);
+    if (account) {
+      this._currentAccountId = accountId;
+      return true;
+    }
+    return false;
+  }
+
+  public getKeyrings(): Keyring[] {
+    return this.keyrings;
+  }
+
+  public getKeyringById(keyringId: string): Keyring | undefined {
+    return this.keyrings.find(keyring => keyring.id === keyringId);
+  }
+
+  // Fix wallet structure validation
+  public toJSON() {
+    return {
+      accounts: this.accounts,
+      keyrings: this.keyrings,
+      currentAccountId: this._currentAccountId,
+      version: '1.0.0'
+    };
+  }
+
   public static async deserialize(encryptedSerialize: string, password: string) {
     const serialized = await decryptAES(encryptedSerialize, password);
     const plain: WalletData = JSON.parse(serialized);

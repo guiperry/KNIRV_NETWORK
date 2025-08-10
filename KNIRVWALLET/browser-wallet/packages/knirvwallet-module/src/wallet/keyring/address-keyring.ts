@@ -15,7 +15,7 @@ import { Keyring, KeyringData, KeyringType } from './keyring';
 
 export class AddressKeyring implements Keyring {
   public readonly id: string;
-  public readonly type: KeyringType = 'AIRGAP';
+  public readonly type: KeyringType = 'ADDRESS';
   public readonly addressBytes: Uint8Array;
 
   constructor({ id, addressBytes }: KeyringData) {

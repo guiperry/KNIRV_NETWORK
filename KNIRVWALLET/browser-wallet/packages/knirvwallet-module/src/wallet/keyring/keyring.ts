@@ -14,7 +14,7 @@ import { LedgerKeyring } from './ledger-keyring';
 import { PrivateKeyKeyring } from './private-key-keyring';
 import { Web3AuthKeyring } from './web3-auth-keyring';
 
-export type KeyringType = 'HD_WALLET' | 'PRIVATE_KEY' | 'LEDGER' | 'WEB3_AUTH' | 'AIRGAP';
+export type KeyringType = 'HD' | 'PRIVATE_KEY' | 'LEDGER' | 'WEB3_AUTH' | 'ADDRESS';
 
 export interface Keyring {
   id: string;
@@ -52,7 +52,7 @@ export interface KeyringData {
 
 export function makeKeyring(keyringData: KeyringData) {
   switch (keyringData.type) {
-    case 'HD_WALLET':
+    case 'HD':
       return new HDWalletKeyring(keyringData);
     case 'LEDGER':
       return new LedgerKeyring(keyringData);
@@ -60,7 +60,7 @@ export function makeKeyring(keyringData: KeyringData) {
       return new PrivateKeyKeyring(keyringData);
     case 'WEB3_AUTH':
       return new Web3AuthKeyring(keyringData);
-    case 'AIRGAP':
+    case 'ADDRESS':
       return new AddressKeyring(keyringData);
     default:
       throw new Error('Invalid Account type');
