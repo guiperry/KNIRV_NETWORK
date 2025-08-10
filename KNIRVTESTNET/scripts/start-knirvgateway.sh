@@ -38,7 +38,7 @@ fi
 export TESTNET_MODE=true
 export NODE_ENV=testnet
 export KNIRVROOT_URL=http://localhost:1317
-export KNIRVCHAIN_URL=http://localhost:8083
+export KNIRVCHAIN_URL=http://localhost:8090
 export KNIRVGRAPH_URL=http://localhost:8082
 export KNIRVNEXUS_DVE_URL=http://localhost:8084
 export KNIRVNEXUS_VAL_URL=http://localhost:8085

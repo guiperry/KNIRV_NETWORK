@@ -35,7 +35,11 @@ chmod +x scripts/*.sh
 
 ### 5. Stop When Done
 ```bash
+# Graceful shutdown
 ./scripts/stop-testnet.sh
+
+# Emergency shutdown (if stop script fails)
+./scripts/kill_knirv.sh
 ```
 
 ## 🏗️ Architecture
@@ -60,10 +64,10 @@ The KNIRV-TESTNET implements all 12 sovereign layers of the D-TEN:
 | Service | Endpoint | Purpose |
 |---------|----------|---------|
 | KNIRV-ROOT | http://localhost:1317 | NRN blockchain & oracle |
-| KNIRVCHAIN | http://localhost:8080 | Base LLM & skill registry |
-| KNIRVGRAPH | http://localhost:8081 | Knowledge graphchain |
-| KNIRV-NEXUS-1 | http://localhost:8082 | Validation environment |
-| KNIRV-NEXUS-2 | http://localhost:8083 | Validation environment |
+| KNIRVCHAIN | http://localhost:8090 | Base LLM & skill registry |
+| KNIRVGRAPH | http://localhost:8082 | Knowledge graphchain |
+| KNIRV-NEXUS-DVE | http://localhost:8084 | DVE Manager |
+| KNIRV-NEXUS-VAL | http://localhost:8085 | Validation Core |
 | KNIRV-ROUTER | http://localhost:8086 | Network routing |
 | KNIRV-GATEWAY | http://localhost:8087 | Unified API gateway |
 | IPFS API | http://localhost:5001 | Decentralized storage |

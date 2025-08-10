@@ -146,22 +146,22 @@ get_service_info() {
     if [ "$DETAILED" = true ] && [ "$status" = "HEALTHY" ]; then
         case $name in
             "KNIRV-ROOT")
-                details=$(curl -s --max-time 2 "$url" 2>/dev/null | jq -r '.mode // "unknown"' 2>/dev/null || echo "")
+                details=$(curl -s --max-time 2 "$url" 2>/dev/null | jq -r '.status // "unknown"' 2>/dev/null || echo "")
                 ;;
             "KNIRVCHAIN")
                 details=$(curl -s --max-time 2 "$url" 2>/dev/null | jq -r '.mode // "unknown"' 2>/dev/null || echo "")
                 ;;
             "KNIRVGRAPH")
-                details=$(curl -s --max-time 2 "$url" 2>/dev/null | jq -r '.mode // "unknown"' 2>/dev/null || echo "")
+                details=$(curl -s --max-time 2 "$url" 2>/dev/null | jq -r '.height // "unknown"' 2>/dev/null || echo "height")
                 ;;
-            "KNIRV-NEXUS")
-                details=$(curl -s --max-time 2 "$url" 2>/dev/null | jq -r '.mode // "unknown"' 2>/dev/null || echo "")
+            "KNIRV-NEXUS-DVE"|"KNIRV-NEXUS-VAL")
+                details=$(curl -s --max-time 2 "$url" 2>/dev/null | jq -r '.status // "unknown"' 2>/dev/null || echo "")
                 ;;
             "KNIRV-ROUTER")
-                details=$(curl -s --max-time 2 "http://localhost:$port/health" 2>/dev/null | jq -r '.status // "unknown"' 2>/dev/null || echo "")
+                details=$(curl -s --max-time 2 "$url" 2>/dev/null | jq -r '.chain_id // "blockchain"' 2>/dev/null || echo "blockchain")
                 ;;
             "KNIRV-GATEWAY")
-                details=$(curl -s --max-time 2 "$url" 2>/dev/null | jq -r '.mode // "unknown"' 2>/dev/null || echo "")
+                details=$(curl -s --max-time 2 "$url" 2>/dev/null | grep -o '<title>[^<]*</title>' | sed 's/<[^>]*>//g' | head -c 20 || echo "website")
                 ;;
         esac
     fi
@@ -242,14 +242,15 @@ perform_health_check() {
     echo "Timestamp: $timestamp"
     echo ""
     
-    # Service definitions
+    # Service definitions (core KNIRV services for testnet)
     declare -a services=(
         "KNIRV-ROOT|http://localhost:1317/health|data/knirvroot.pid|1317"
-        "KNIRVCHAIN|http://localhost:8080/health|data/knirvchain.pid|8080"
-        "KNIRVGRAPH|http://localhost:8081/health|data/knirvgraph.pid|8081"
-        "KNIRV-NEXUS|http://localhost:8082/health|data/knirvnexus.pid|8082"
-        "KNIRV-ROUTER|http://localhost:5001/health|data/knirvrouter.pid|5001"
-        "KNIRV-GATEWAY|http://localhost:8888/gateway/health|data/knirvgateway.pid|8888"
+        "KNIRVCHAIN|http://localhost:8090/health|data/knirvchain.pid|8090"
+        "KNIRVGRAPH|http://localhost:8082/height|data/knirvgraph.pid|8082"
+        "KNIRV-NEXUS-DVE|http://localhost:8084/health|data/knirvnexus-dve-manager.pid|8084"
+        "KNIRV-NEXUS-VAL|http://localhost:8085/health|data/knirvnexus-validation-core.pid|8085"
+        "KNIRV-ROUTER|http://localhost:8086/status|data/knirvrouter.pid|8086"
+        "KNIRV-GATEWAY|http://localhost:8087/|data/knirvgateway.pid|8087"
     )
     
     local healthy_count=0

@@ -23,19 +23,20 @@ check_service() {
 
 # Check all services
 healthy=0
-total=8
+total=7  # Core KNIRV services including GATEWAY
 
 echo "Checking service health..."
 echo ""
 
 check_service "http://localhost:1317/health" "KNIRV-ROOT" && ((healthy++)) || true
-check_service "http://localhost:8083/health" "KNIRVCHAIN" && ((healthy++)) || true
+check_service "http://localhost:8090/health" "KNIRVCHAIN" && ((healthy++)) || true
 check_service "http://localhost:8082/height" "KNIRVGRAPH" && ((healthy++)) || true
 check_service "http://localhost:8084/health" "KNIRV-NEXUS-DVE" && ((healthy++)) || true
 check_service "http://localhost:8085/health" "KNIRV-NEXUS-VAL" && ((healthy++)) || true
 check_service "http://localhost:8086/status" "KNIRV-ROUTER" && ((healthy++)) || true
-check_service "http://localhost:8087/health" "KNIRV-GATEWAY" && ((healthy++)) || true
-check_service "http://localhost:5001/api/v0/version" "IPFS" && ((healthy++)) || true
+check_service "http://localhost:8087/" "KNIRV-GATEWAY" && ((healthy++)) || true
+# Optional services for full deployment:
+# check_service "http://localhost:5001/api/v0/version" "IPFS" && ((healthy++)) || true
 
 echo ""
 echo "=========================================="
@@ -46,14 +47,13 @@ if [ $healthy -eq $total ]; then
     echo "🎉 All services are healthy!"
     echo ""
     echo "🌐 Service Endpoints:"
-    echo "  KNIRV-ROOT:     http://localhost:1317"
-    echo "  KNIRVCHAIN:     http://localhost:8080"
-    echo "  KNIRVGRAPH:     http://localhost:8081"
-    echo "  KNIRV-NEXUS-1:  http://localhost:8082"
-    echo "  KNIRV-NEXUS-2:  http://localhost:8083"
-    echo "  KNIRV-ROUTER:   http://localhost:8086"
-    echo "  KNIRV-GATEWAY:  http://localhost:8087"
-    echo "  IPFS API:       http://localhost:5001"
+    echo "  KNIRV-ROOT:     http://localhost:1317/health"
+    echo "  KNIRVCHAIN:     http://localhost:8090/health"
+    echo "  KNIRVGRAPH:     http://localhost:8082/height"
+    echo "  KNIRV-NEXUS-DVE: http://localhost:8084/health"
+    echo "  KNIRV-NEXUS-VAL: http://localhost:8085/health"
+    echo "  KNIRV-ROUTER:   http://localhost:8086/status"
+    echo "  KNIRV-GATEWAY:  http://localhost:8087/"
     exit 0
 else
     echo "⚠️  Some services are unhealthy."

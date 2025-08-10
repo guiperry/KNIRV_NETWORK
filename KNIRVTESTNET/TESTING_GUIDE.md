@@ -34,6 +34,18 @@ This guide provides detailed testing procedures, expected outcomes, and troubles
 ./health-check.sh --watch
 ```
 
+### 4. Shutdown When Done
+```bash
+# Stop all testnet services gracefully
+./stop-testnet.sh
+
+# If stop script fails, use the kill script
+./scripts/kill_knirv.sh
+
+# Verify all services stopped
+./health-check.sh
+```
+
 ## 📋 Test Categories
 
 ### 1. System Validation Tests
@@ -351,6 +363,74 @@ The testnet includes automated testing that runs:
 - Monitor resource usage during tests
 - Verify all endpoints respond correctly
 
+## 🛑 Shutdown and Cleanup
+
+### Graceful Shutdown
+When you're done testing, always shut down the testnet properly:
+
+```bash
+# Stop all services gracefully
+./stop-testnet.sh
+```
+
+**Expected Output**:
+```
+Stopping KNIRV-TESTNET services...
+✅ KNIRV-ROOT stopped (PID: xxxxx)
+✅ KNIRVCHAIN stopped (PID: xxxxx)
+✅ KNIRVGRAPH stopped (PID: xxxxx)
+✅ KNIRV-NEXUS-DVE stopped (PID: xxxxx)
+✅ KNIRV-NEXUS-VAL stopped (PID: xxxxx)
+✅ KNIRV-ROUTER stopped (PID: xxxxx)
+✅ KNIRV-GATEWAY stopped (PID: xxxxx)
+All services stopped successfully!
+```
+
+### Emergency Shutdown
+If the stop script fails or services are unresponsive:
+
+```bash
+# Force kill all KNIRV processes
+./scripts/kill_knirv.sh
+```
+
+**This script will**:
+- Force terminate all KNIRV-related processes
+- Clean up PID files
+- Free up all ports
+- Reset the testnet environment
+
+### Verification
+After shutdown, verify all services are stopped:
+
+```bash
+# Should show 0/7 services healthy
+./health-check.sh
+
+# Check for any remaining processes
+ps aux | grep knirv
+```
+
+### Data Persistence
+**Note**: Testnet data is preserved between runs:
+- Blockchain state in `./data/`
+- Configuration files in `./config/`
+- Logs in `./logs/`
+
+To completely reset the testnet:
+```bash
+# Stop services first
+./stop-testnet.sh
+
+# Remove all data (optional)
+rm -rf ./data/* ./logs/*
+
+# Restart fresh
+./start-testnet.sh
+```
+
 ---
 
 **Remember**: This is a testnet environment designed for development and testing. All services include mock functionality and simplified configurations for ease of use.
+
+**Always shut down the testnet when done testing to free up system resources and ports.**
