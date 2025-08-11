@@ -13,8 +13,9 @@ import (
 
 // EconomicsTestConfig holds configuration for economics integration tests
 type EconomicsTestConfig struct {
-	EconomicsURL string
-	Timeout      time.Duration
+	EconomicsURL  string
+	KNIRVGraphURL string
+	Timeout       time.Duration
 }
 
 // EconomicsResponse represents a response from the economics service
@@ -58,9 +59,15 @@ func getEconomicsConfig() *EconomicsTestConfig {
 		economicsURL = "http://localhost:8090"
 	}
 
+	knirvGraphURL := os.Getenv("KNIRVGRAPH_URL")
+	if knirvGraphURL == "" {
+		knirvGraphURL = "http://localhost:8081"
+	}
+
 	return &EconomicsTestConfig{
-		EconomicsURL: economicsURL,
-		Timeout:      30 * time.Second,
+		EconomicsURL:  economicsURL,
+		KNIRVGraphURL: knirvGraphURL,
+		Timeout:       30 * time.Second,
 	}
 }
 
@@ -407,6 +414,238 @@ func TestEconomicsWorkflow(t *testing.T) {
 		// 8. Check burn tracking
 		t.Run("Burn Tracking", func(t *testing.T) {
 			TestBurnTracking(t)
+		})
+	})
+}
+
+// KNIRVGRAPH Economics Integration Tests
+
+// SkillConfirmationRequest represents a skill confirmation request for KNIRVGRAPH
+type SkillConfirmationRequest struct {
+	SkillID   string `json:"skill_id"`
+	NRVID     string `json:"nrv_id"`
+	CreatorID string `json:"creator_id"`
+}
+
+// NRVVectorRequest represents an NRV vector creation request
+type NRVVectorRequest struct {
+	TargetHash  string                 `json:"target_hash"`
+	Coordinates []float64              `json:"coordinates"`
+	Metadata    map[string]interface{} `json:"metadata"`
+}
+
+// ErrorNodeRequest represents an error node creation request
+type ErrorNodeRequest struct {
+	ErrorType   string                 `json:"error_type"`
+	Description string                 `json:"description"`
+	Context     map[string]interface{} `json:"context"`
+	Severity    int                    `json:"severity"`
+}
+
+// SkillNodeRequest represents a skill node creation request
+type SkillNodeRequest struct {
+	SkillType    string                 `json:"skill_type"`
+	Capabilities []string               `json:"capabilities"`
+	Requirements map[string]interface{} `json:"requirements"`
+}
+
+// makeKNIRVGraphRequest makes an HTTP request to KNIRVGRAPH
+func makeKNIRVGraphRequest(t *testing.T, method, endpoint string, data interface{}) (*EconomicsResponse, error) {
+	config := getEconomicsConfig()
+	url := config.KNIRVGraphURL + endpoint
+
+	var reqBody []byte
+	var err error
+	if data != nil {
+		reqBody, err = json.Marshal(data)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal request: %w", err)
+		}
+	}
+
+	client := &http.Client{Timeout: config.Timeout}
+
+	var req *http.Request
+	if reqBody != nil {
+		req, err = http.NewRequest(method, url, bytes.NewBuffer(reqBody))
+		req.Header.Set("Content-Type", "application/json")
+	} else {
+		req, err = http.NewRequest(method, url, nil)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	var economicsResp EconomicsResponse
+	if err := json.Unmarshal(body, &economicsResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return &economicsResp, fmt.Errorf("HTTP error %d: %s", resp.StatusCode, economicsResp.Error)
+	}
+
+	return &economicsResp, nil
+}
+
+// TestKNIRVGraphHealth tests KNIRVGRAPH health endpoint
+func TestKNIRVGraphHealth(t *testing.T) {
+	resp, err := makeKNIRVGraphRequest(t, "GET", "/health", nil)
+	if err != nil {
+		t.Fatalf("KNIRVGRAPH health check failed: %v", err)
+	}
+
+	if !resp.Success {
+		t.Fatalf("KNIRVGRAPH health check returned success=false: %s", resp.Error)
+	}
+
+	t.Logf("KNIRVGRAPH health check passed")
+}
+
+// TestKNIRVGraphEconomicsMetrics tests KNIRVGRAPH economics metrics endpoint
+func TestKNIRVGraphEconomicsMetrics(t *testing.T) {
+	resp, err := makeKNIRVGraphRequest(t, "GET", "/economics/metrics", nil)
+	if err != nil {
+		t.Fatalf("KNIRVGRAPH economics metrics failed: %v", err)
+	}
+
+	if !resp.Success {
+		t.Fatalf("KNIRVGRAPH economics metrics returned success=false: %s", resp.Error)
+	}
+
+	// Check for expected metric fields
+	expectedFields := []string{"total_nrvs_created", "total_skills_invoked", "active_error_nodes", "active_skill_nodes"}
+	for _, field := range expectedFields {
+		if resp.Data[field] == nil {
+			t.Errorf("KNIRVGRAPH metrics missing expected field: %s", field)
+		}
+	}
+
+	t.Logf("KNIRVGRAPH economics metrics check passed")
+}
+
+// TestKNIRVGraphNRVOperations tests NRV system operations
+func TestKNIRVGraphNRVOperations(t *testing.T) {
+	// Create an error node
+	errorReq := ErrorNodeRequest{
+		ErrorType:   "integration_test_error",
+		Description: "Test error for integration testing",
+		Context: map[string]interface{}{
+			"test":      true,
+			"timestamp": time.Now().Unix(),
+		},
+		Severity: 2,
+	}
+
+	resp, err := makeKNIRVGraphRequest(t, "POST", "/nrv/errors", errorReq)
+	if err != nil {
+		t.Fatalf("Error node creation failed: %v", err)
+	}
+
+	if !resp.Success {
+		t.Fatalf("Error node creation returned success=false: %s", resp.Error)
+	}
+
+	errorID := resp.Data["id"].(string)
+	t.Logf("Created error node: %s", errorID)
+
+	// Create a skill node
+	skillReq := SkillNodeRequest{
+		SkillType:    "integration_test_skill",
+		Capabilities: []string{"solve_integration_error", "test_capability"},
+		Requirements: map[string]interface{}{
+			"test":           true,
+			"min_confidence": 0.8,
+		},
+	}
+
+	resp, err = makeKNIRVGraphRequest(t, "POST", "/nrv/skills", skillReq)
+	if err != nil {
+		t.Fatalf("Skill node creation failed: %v", err)
+	}
+
+	if !resp.Success {
+		t.Fatalf("Skill node creation returned success=false: %s", resp.Error)
+	}
+
+	skillID := resp.Data["id"].(string)
+	t.Logf("Created skill node: %s", skillID)
+
+	// Create NRV vector
+	nrvReq := NRVVectorRequest{
+		TargetHash:  fmt.Sprintf("test_hash_%d", time.Now().Unix()),
+		Coordinates: []float64{0.1, 0.2, 0.3, 0.4, 0.5},
+		Metadata: map[string]interface{}{
+			"error_id": errorID,
+			"skill_id": skillID,
+			"test":     true,
+		},
+	}
+
+	resp, err = makeKNIRVGraphRequest(t, "POST", "/nrv/vectors", nrvReq)
+	if err != nil {
+		t.Fatalf("NRV vector creation failed: %v", err)
+	}
+
+	if !resp.Success {
+		t.Fatalf("NRV vector creation returned success=false: %s", resp.Error)
+	}
+
+	nrvID := resp.Data["id"].(string)
+	t.Logf("Created NRV vector: %s", nrvID)
+
+	// Test skill confirmation for KNIRVCHAIN commitment
+	confirmReq := SkillConfirmationRequest{
+		SkillID:   skillID,
+		NRVID:     nrvID,
+		CreatorID: "integration_test_creator",
+	}
+
+	resp, err = makeKNIRVGraphRequest(t, "POST", "/economics/skill/confirm", confirmReq)
+	if err != nil {
+		t.Fatalf("Skill confirmation failed: %v", err)
+	}
+
+	if !resp.Success {
+		t.Fatalf("Skill confirmation returned success=false: %s", resp.Error)
+	}
+
+	t.Logf("Skill confirmation for KNIRVCHAIN commitment successful")
+}
+
+// TestKNIRVGraphEconomicsWorkflow tests the complete KNIRVGRAPH economics workflow
+func TestKNIRVGraphEconomicsWorkflow(t *testing.T) {
+	t.Run("KNIRVGRAPH Economics Workflow", func(t *testing.T) {
+		// 1. Check KNIRVGRAPH health
+		t.Run("KNIRVGRAPH Health Check", func(t *testing.T) {
+			TestKNIRVGraphHealth(t)
+		})
+
+		// 2. Get initial economics metrics
+		t.Run("Initial Economics Metrics", func(t *testing.T) {
+			TestKNIRVGraphEconomicsMetrics(t)
+		})
+
+		// 3. Test NRV operations and skill confirmation
+		t.Run("NRV Operations and Skill Confirmation", func(t *testing.T) {
+			TestKNIRVGraphNRVOperations(t)
+		})
+
+		// 4. Check updated metrics
+		t.Run("Updated Economics Metrics", func(t *testing.T) {
+			TestKNIRVGraphEconomicsMetrics(t)
 		})
 	})
 }

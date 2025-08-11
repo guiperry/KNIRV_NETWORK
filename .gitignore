@@ -33,3 +33,5 @@ node_modules
 .env.staging
 .env.testing
 .env.ci
+
+external-models

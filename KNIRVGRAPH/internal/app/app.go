@@ -1,6 +1,7 @@
 package app
 
 import (
+	"blockchain-app/internal/economics"
 	"blockchain-app/internal/graphchain"
 	"blockchain-app/internal/network"
 	"blockchain-app/internal/nrv"
@@ -32,12 +33,14 @@ type Config struct {
 }
 
 type App struct {
-	graphchain *graphchain.GraphChain
-	nrvSystem  *nrv.NRVSystem
-	rpc        *network.RPCServer
-	storage    storage.GraphStorage
-	logger     *zap.Logger
-	config     *Config
+	graphchain      *graphchain.GraphChain
+	nrvSystem       *nrv.NRVSystem
+	nrnIntegration  *economics.NRNIntegration
+	proofOfSolution *economics.ProofOfSolution
+	rpc             *network.RPCServer
+	storage         storage.GraphStorage
+	logger          *zap.Logger
+	config          *Config
 }
 
 func NewApp(homeDir string, rpcPort int) (*App, error) {
@@ -55,15 +58,29 @@ func NewApp(homeDir string, rpcPort int) (*App, error) {
 	// Initialize NRV system
 	nrvSystem := nrv.NewNRVSystem("local-peer", nil)
 
-	// Initialize RPC server with NRV system
-	rpc := network.NewRPCServerWithNRV(gc, nrvSystem, logger, rpcPort)
+	// Get KNIRVROOT URL from environment or use default
+	knirvRootURL := os.Getenv("KNIRVROOT_URL")
+	if knirvRootURL == "" {
+		knirvRootURL = "http://localhost:1317" // Default KNIRVROOT URL
+	}
+
+	// Initialize NRN integration
+	nrnIntegration := economics.NewNRNIntegration(knirvRootURL, nrvSystem)
+
+	// Initialize Proof-of-Solution
+	proofOfSolution := economics.NewProofOfSolution(nrnIntegration, nrvSystem)
+
+	// Initialize RPC server with NRV system and economics
+	rpc := network.NewRPCServerWithEconomics(gc, nrvSystem, nrnIntegration, proofOfSolution, logger, rpcPort)
 
 	return &App{
-		graphchain: gc,
-		nrvSystem:  nrvSystem,
-		rpc:        rpc,
-		storage:    storageInstance,
-		logger:     logger,
+		graphchain:      gc,
+		nrvSystem:       nrvSystem,
+		nrnIntegration:  nrnIntegration,
+		proofOfSolution: proofOfSolution,
+		rpc:             rpc,
+		storage:         storageInstance,
+		logger:          logger,
 	}, nil
 }
 
@@ -95,16 +112,30 @@ func NewAppWithConfig(homeDir string, rpcPort int, config *Config) (*App, error)
 	// Initialize NRV system
 	nrvSystem := nrv.NewNRVSystem("local-peer", nil)
 
-	// Initialize RPC server with NRV system
-	rpc := network.NewRPCServerWithNRV(gc, nrvSystem, logger, rpcPort)
+	// Get KNIRVROOT URL from environment or use default
+	knirvRootURL := os.Getenv("KNIRVROOT_URL")
+	if knirvRootURL == "" {
+		knirvRootURL = "http://localhost:1317" // Default KNIRVROOT URL
+	}
+
+	// Initialize NRN integration
+	nrnIntegration := economics.NewNRNIntegration(knirvRootURL, nrvSystem)
+
+	// Initialize Proof-of-Solution
+	proofOfSolution := economics.NewProofOfSolution(nrnIntegration, nrvSystem)
+
+	// Initialize RPC server with NRV system and economics
+	rpc := network.NewRPCServerWithEconomics(gc, nrvSystem, nrnIntegration, proofOfSolution, logger, rpcPort)
 
 	app := &App{
-		graphchain: gc,
-		nrvSystem:  nrvSystem,
-		rpc:        rpc,
-		storage:    storageInstance,
-		logger:     logger,
-		config:     config,
+		graphchain:      gc,
+		nrvSystem:       nrvSystem,
+		nrnIntegration:  nrnIntegration,
+		proofOfSolution: proofOfSolution,
+		rpc:             rpc,
+		storage:         storageInstance,
+		logger:          logger,
+		config:          config,
 	}
 
 	// Pre-populate test data if testnet mode is enabled
@@ -236,11 +267,18 @@ func (app *App) prePopulateTestData() error {
 }
 
 func (app *App) Start(ctx context.Context) error {
-	app.logger.Info("Starting GraphChain application with NRV system")
+	app.logger.Info("Starting GraphChain application with NRV system and economics")
 
 	// Start NRV system
 	if err := app.nrvSystem.Start(); err != nil {
 		return fmt.Errorf("failed to start NRV system: %w", err)
+	}
+
+	// Start NRN integration
+	if app.nrnIntegration != nil {
+		if err := app.nrnIntegration.Start(ctx); err != nil {
+			app.logger.Warn("Failed to start NRN integration", zap.Error(err))
+		}
 	}
 
 	// Start RPC server

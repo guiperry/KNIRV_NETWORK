@@ -1,11 +1,13 @@
 package network
 
 import (
+	"blockchain-app/internal/economics"
 	"blockchain-app/internal/nrv"
 	"blockchain-app/internal/types"
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"net/http"
 	"strconv"
 
@@ -14,10 +16,12 @@ import (
 )
 
 type RPCServer struct {
-	graphchain GraphChainInterface
-	nrvSystem  *nrv.NRVSystem
-	logger     *zap.Logger
-	server     *http.Server
+	graphchain      GraphChainInterface
+	nrvSystem       *nrv.NRVSystem
+	nrnIntegration  *economics.NRNIntegration
+	proofOfSolution *economics.ProofOfSolution
+	logger          *zap.Logger
+	server          *http.Server
 }
 
 type GraphChainInterface interface {
@@ -85,6 +89,67 @@ func NewRPCServerWithNRV(gc GraphChainInterface, nrvSys *nrv.NRVSystem, logger *
 		router.HandleFunc("/nrv/skills", rpc.createSkill).Methods("POST", "OPTIONS")
 		router.HandleFunc("/nrv/skills/for-error/{errorType}", rpc.getSkillsForError).Methods("GET", "OPTIONS")
 	}
+
+	rpc.server = &http.Server{
+		Addr:    fmt.Sprintf(":%d", port),
+		Handler: router,
+	}
+
+	return rpc
+}
+
+// NewRPCServerWithEconomics creates a new RPC server with economics integration
+func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *nrv.NRVSystem, nrnIntegration *economics.NRNIntegration, proofOfSolution *economics.ProofOfSolution, logger *zap.Logger, port int) *RPCServer {
+	router := mux.NewRouter()
+
+	rpc := &RPCServer{
+		graphchain:      gc,
+		nrvSystem:       nrvSys,
+		nrnIntegration:  nrnIntegration,
+		proofOfSolution: proofOfSolution,
+		logger:          logger,
+	}
+
+	// Enable CORS
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	})
+
+	// Register graph routes
+	router.HandleFunc("/node/{nodeID}", rpc.getNode).Methods("GET", "OPTIONS")
+	router.HandleFunc("/edge/{edgeID}", rpc.getEdge).Methods("GET", "OPTIONS")
+	router.HandleFunc("/graph/heads", rpc.getHeads).Methods("GET", "OPTIONS")
+	router.HandleFunc("/graph/neighbors/{nodeID}", rpc.getNeighbors).Methods("GET", "OPTIONS")
+	router.HandleFunc("/graph/path/{from}/{to}", rpc.getPath).Methods("GET", "OPTIONS")
+	router.HandleFunc("/graph/traverse", rpc.traverseGraph).Methods("POST", "OPTIONS")
+	router.HandleFunc("/height", rpc.getHeight).Methods("GET", "OPTIONS")
+	router.HandleFunc("/account/{address}", rpc.getAccount).Methods("GET", "OPTIONS")
+	router.HandleFunc("/transaction", rpc.submitGraphTransaction).Methods("POST", "OPTIONS")
+	router.HandleFunc("/node", rpc.createNode).Methods("POST", "OPTIONS")
+	router.HandleFunc("/edge", rpc.createEdge).Methods("POST", "OPTIONS")
+
+	// Register existing NRV routes (from original implementation)
+	router.HandleFunc("/nrv/resolve/{targetHash}", rpc.resolveTarget).Methods("GET", "OPTIONS")
+
+	// Register economics routes
+	router.HandleFunc("/economics/metrics", rpc.getEconomicMetrics).Methods("GET", "OPTIONS")
+	router.HandleFunc("/economics/skill/confirm", rpc.confirmSkill).Methods("POST", "OPTIONS")
+	router.HandleFunc("/economics/rewards/distribute", rpc.distributeRewards).Methods("POST", "OPTIONS")
+	router.HandleFunc("/economics/proof/solution", rpc.submitSolutionProof).Methods("POST", "OPTIONS")
+
+	// Health check
+	router.HandleFunc("/health", rpc.healthCheck).Methods("GET", "OPTIONS")
 
 	rpc.server = &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
@@ -438,4 +503,176 @@ func (rpc *RPCServer) getSkillsForError(w http.ResponseWriter, r *http.Request) 
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(skills)
+}
+
+// Economics-related handlers
+
+func (rpc *RPCServer) getEconomicMetrics(w http.ResponseWriter, r *http.Request) {
+	if rpc.nrnIntegration == nil {
+		http.Error(w, "NRN integration not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	metrics := rpc.nrnIntegration.GetEconomicMetrics()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(metrics)
+}
+
+func (rpc *RPCServer) confirmSkill(w http.ResponseWriter, r *http.Request) {
+	if rpc.nrnIntegration == nil {
+		http.Error(w, "NRN integration not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	var req struct {
+		SkillID   string `json:"skill_id"`
+		NRVID     string `json:"nrv_id"`
+		CreatorID string `json:"creator_id"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request format", http.StatusBadRequest)
+		return
+	}
+
+	// Process skill confirmation for KNIRVCHAIN commitment
+	if err := rpc.nrnIntegration.ProcessSkillConfirmation(req.SkillID, req.NRVID, req.CreatorID); err != nil {
+		http.Error(w, fmt.Sprintf("skill confirmation failed: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"success":    true,
+		"message":    "Skill confirmed for KNIRVCHAIN commitment",
+		"skill_id":   req.SkillID,
+		"nrv_id":     req.NRVID,
+		"creator_id": req.CreatorID,
+		"note":       "Skill will be committed to KNIRVCHAIN for invocation",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (rpc *RPCServer) distributeRewards(w http.ResponseWriter, r *http.Request) {
+	if rpc.nrnIntegration == nil {
+		http.Error(w, "NRN integration not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	var req struct {
+		RecipientID string `json:"recipient_id"`
+		Amount      string `json:"amount"`
+		Reason      string `json:"reason"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request format", http.StatusBadRequest)
+		return
+	}
+
+	// Parse amount
+	amount, ok := new(big.Int).SetString(req.Amount, 10)
+	if !ok {
+		http.Error(w, "invalid amount format", http.StatusBadRequest)
+		return
+	}
+
+	// Distribute rewards
+	if err := rpc.nrnIntegration.DistributeRewards(req.RecipientID, amount, req.Reason); err != nil {
+		http.Error(w, fmt.Sprintf("reward distribution failed: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"success":      true,
+		"message":      "Rewards distributed successfully",
+		"recipient_id": req.RecipientID,
+		"amount":       req.Amount,
+		"reason":       req.Reason,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (rpc *RPCServer) submitSolutionProof(w http.ResponseWriter, r *http.Request) {
+	if rpc.proofOfSolution == nil {
+		http.Error(w, "Proof-of-Solution not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	var req struct {
+		ErrorNodeID     string  `json:"error_node_id"`
+		SkillNodeID     string  `json:"skill_node_id"`
+		SolverID        string  `json:"solver_id"`
+		EfficiencyScore float64 `json:"efficiency_score"`
+		QualityScore    float64 `json:"quality_score"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request format", http.StatusBadRequest)
+		return
+	}
+
+	// Calculate reward based on scores
+	baseReward := big.NewInt(10000000) // 0.01 NRN base
+	efficiencyBonus := big.NewInt(int64(req.EfficiencyScore * 100))
+	qualityBonus := big.NewInt(int64(req.QualityScore * 100))
+
+	totalReward := new(big.Int).Add(baseReward, efficiencyBonus)
+	totalReward.Add(totalReward, qualityBonus)
+
+	// Create resolution event
+	event := economics.ResolutionEvent{
+		ErrorNodeID:     req.ErrorNodeID,
+		SkillNodeID:     req.SkillNodeID,
+		SolverID:        req.SolverID,
+		EfficiencyScore: req.EfficiencyScore,
+		QualityScore:    req.QualityScore,
+		RewardEarned:    totalReward,
+	}
+
+	// Process successful resolution
+	if err := rpc.proofOfSolution.ProcessSuccessfulResolution(event); err != nil {
+		http.Error(w, fmt.Sprintf("solution proof processing failed: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"success":       true,
+		"message":       "Solution proof processed successfully",
+		"error_node_id": req.ErrorNodeID,
+		"skill_node_id": req.SkillNodeID,
+		"solver_id":     req.SolverID,
+		"reward_earned": totalReward.String(),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (rpc *RPCServer) healthCheck(w http.ResponseWriter, r *http.Request) {
+	status := map[string]interface{}{
+		"status": "healthy",
+		"services": map[string]interface{}{
+			"graphchain": "running",
+			"nrv_system": "running",
+		},
+	}
+
+	if rpc.nrnIntegration != nil && rpc.nrnIntegration.IsEnabled() {
+		status["services"].(map[string]interface{})["nrn_integration"] = "running"
+	} else {
+		status["services"].(map[string]interface{})["nrn_integration"] = "disabled"
+	}
+
+	if rpc.proofOfSolution != nil {
+		status["services"].(map[string]interface{})["proof_of_solution"] = "running"
+	} else {
+		status["services"].(map[string]interface{})["proof_of_solution"] = "disabled"
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(status)
 }
