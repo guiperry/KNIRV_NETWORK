@@ -15,6 +15,55 @@ clean:
 test:
 	go test -v ./...
 
+# Comprehensive testing targets
+test-unit:
+	@echo "Running unit tests..."
+	go test -timeout 30s -v ./internal/...
+	go test -timeout 30s -v ./cmd/...
+
+test-coverage:
+	@echo "Running tests with coverage..."
+	@mkdir -p coverage
+	go test -timeout 30s -coverprofile=coverage/coverage.out -covermode=atomic ./...
+	go tool cover -html=coverage/coverage.out -o coverage/coverage.html
+	go tool cover -func=coverage/coverage.out
+	@echo "Coverage report generated: coverage/coverage.html"
+
+test-race:
+	@echo "Running tests with race detection..."
+	go test -timeout 30s -race -v ./...
+
+test-bench:
+	@echo "Running benchmark tests..."
+	go test -timeout 30s -bench=. -benchtime=10s -benchmem ./...
+
+test-storage:
+	@echo "Testing storage implementations..."
+	go test -v ./internal/storage/...
+
+test-network:
+	@echo "Testing network components..."
+	go test -v ./internal/network/...
+
+test-nrv:
+	@echo "Testing NRV system..."
+	go test -v ./internal/nrv/...
+
+test-graphchain:
+	@echo "Testing GraphChain..."
+	go test -v ./internal/graphchain/...
+
+test-types:
+	@echo "Testing type definitions..."
+	go test -v ./internal/types/...
+
+test-clean:
+	@echo "Cleaning test cache..."
+	go clean -testcache
+
+test-all: test-unit test-coverage test-race test-bench
+	@echo "All tests completed successfully"
+
 run:
 	go run cmd/node/main.go
 
@@ -33,7 +82,30 @@ fmt:
 	go fmt ./...
 
 lint:
-	golangci-lint run
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+		golangci-lint run ./...; \
+	else \
+		echo "golangci-lint not found, installing..."; \
+		go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
+		golangci-lint run ./...; \
+	fi
+
+vet:
+	@echo "Running go vet..."
+	go vet ./...
+
+security:
+	@echo "Running security checks..."
+	@if command -v gosec >/dev/null 2>&1; then \
+		gosec ./...; \
+	else \
+		echo "gosec not found, installing..."; \
+		go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest; \
+		gosec ./...; \
+	fi
+
+quality: fmt vet lint security
+	@echo "Code quality checks completed"
 
 generate:
 	go generate ./...

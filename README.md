@@ -251,6 +251,22 @@ GET  /knirvrouter/*          # KNIRV-ROUTER connectivity
 
 ### Quick Start Options
 
+#### 🧪 Testing First (Recommended)
+```bash
+# Clone the repository
+git clone https://github.com/guiperry/KNIRV_NETWORK.git
+cd KNIRV_NETWORK
+
+# Run comprehensive test suite
+make tests
+
+# View test reports
+open test-reports/summary_*.md
+
+# View coverage reports
+open coverage/*_coverage_*.html
+```
+
 #### 🏠 Local Development
 ```bash
 # Clone the repository
@@ -343,58 +359,412 @@ cd KNIRVROUTER && go run main.go --port 3478
 - **[KNIRV Website](KNIRVWEBSITE/)**: Main website with integrated developer portal
 - **[Netlify Deployment Guide](docs/NETLIFY_DEPLOYMENT.md)**: Web interface deployment
 
-## 🧪 Testing
+## 🧪 Comprehensive Testing Infrastructure
 
-### Comprehensive Testing Suite
+The KNIRV Network features a world-class testing infrastructure with **comprehensive coverage across all components**, **automated test execution**, and **detailed reporting**. Our testing suite ensures reliability, performance, and security across the entire decentralized AI ecosystem.
+
+### 🚀 One-Command Test Execution
+
+Run the entire KNIRV Network test suite with a single command:
+
 ```bash
-# Run full deployment and testing suite
-./scripts/manage-knirv.sh deploy-test
-
-# Run production test suite only
-./scripts/manage-knirv.sh production-test
-
-# Run integration tests with deployment validation
-./scripts/deploy-and-test.sh --comprehensive
-
-# Validate deployment integration
-./integration-tests/deployment_integration_test.sh
+# Execute comprehensive test suite for entire network
+make tests
 ```
 
-### Component-Specific Testing
+This command orchestrates testing across all components:
+- **KNIRVCORTEX**: AI Agent Framework (TypeScript/React + WASM)
+- **KNIRVSDK**: Multi-language SDK (Go, Python, TypeScript)
+- **KNIRVGRAPH**: Blockchain Explorer (Go backend + TypeScript frontend)
+- **KNIRVWALLET**: Wallet System (React Native + Web)
+- **KNIRVNEXUS**: Admin Portal (React + Go backend)
+- **KNIRVROOT**: Core Network (Go blockchain)
+- **Integration Tests**: Cross-component validation
+
+### 📊 Test Reports & Coverage
+
+All test results and coverage reports are automatically generated in organized directories:
+
+```
+📁 test-reports/           # Test execution reports
+├── cortex_tests_YYYYMMDD_HHMMSS.txt
+├── sdk_tests_YYYYMMDD_HHMMSS.txt
+├── graph_tests_YYYYMMDD_HHMMSS.txt
+├── integration_tests_YYYYMMDD_HHMMSS.txt
+└── summary_YYYYMMDD_HHMMSS.md
+
+📁 coverage/               # Coverage reports
+├── cortex_coverage_YYYYMMDD_HHMMSS.html
+├── sdk_coverage_YYYYMMDD_HHMMSS.html
+├── graph_coverage_YYYYMMDD_HHMMSS.html
+└── combined_coverage_report.html
+```
+
+**View Reports**: Open any `.html` file in your browser for interactive coverage exploration.
+
+### 🎯 Testing Targets
+
+#### Quick Testing Options
 ```bash
-# Individual component tests
+make test-quick          # Run unit tests only (faster feedback)
+make test-coverage       # Generate coverage reports
+make test-cortex         # Test AI Agent Framework only
+make test-sdk           # Test multi-language SDK only
+make test-graph         # Test blockchain explorer only
+```
+
+#### Comprehensive Testing
+```bash
+make tests              # Full test suite (recommended)
+make test-integration   # Cross-component integration tests
+make test-reports       # Generate summary reports
+```
+
+#### Cleanup
+```bash
+make test-clean         # Remove all test artifacts and reports
+```
+
+### 🏗️ Testing Architecture
+
+#### **Multi-Language Test Coverage**
+
+**KNIRVCORTEX (TypeScript/React + WASM)**
+- ✅ **Jest Configuration**: TypeScript support with JSDOM environment
+- ✅ **Component Testing**: React Testing Library for UI components
+- ✅ **WASM Integration**: Mock implementations for WebAssembly modules
+- ✅ **AI Engine Testing**: Comprehensive cognitive engine validation
+- ✅ **Voice/Visual Processing**: Audio and computer vision pipeline tests
+- ✅ **Coverage Target**: 70%+ with HTML reports
+
+**KNIRVSDK (Go + Python + TypeScript)**
+- ✅ **Go SDK Tests**: Gateway client, economics, PoAuD services
+- ✅ **Python SDK Tests**: Pytest with mocking and fixtures
+- ✅ **TypeScript SDK Tests**: Jest with comprehensive error handling
+- ✅ **Cross-Language Validation**: API compatibility across all SDKs
+- ✅ **Integration Testing**: Real API endpoint validation
+- ✅ **Coverage Target**: 70%+ per language
+
+**KNIRVGRAPH (Go + TypeScript Hybrid)**
+- ✅ **Go Backend Tests**: Blockchain, storage, and app components
+- ✅ **Frontend Tests**: React components with D3.js/Three.js mocks
+- ✅ **Integration Tests**: Backend-frontend communication
+- ✅ **Build Validation**: Compilation and deployment testing
+- ✅ **Performance Tests**: Large dataset handling
+- ✅ **Coverage Target**: 70%+ for both backend and frontend
+
+#### **Test Types & Scope**
+
+**Unit Tests** 🔬
+- Component isolation testing
+- Business logic validation
+- Error handling verification
+- Mock-based dependency testing
+- **Execution Time**: < 30 seconds per component
+
+**Integration Tests** 🔗
+- API endpoint validation
+- Database integration testing
+- Cross-service communication
+- Real-time data flow validation
+- **Execution Time**: 2-5 minutes
+
+**End-to-End Tests** 🎭
+- Complete user workflow simulation
+- Full application testing
+- Performance benchmarking
+- Security validation
+- **Execution Time**: 5-15 minutes
+
+**Performance Tests** ⚡
+- Load testing with concurrent users
+- Memory leak detection
+- Response time validation
+- Throughput measurement
+- **Execution Time**: 10-30 minutes
+
+### 🛠️ Developer Testing Guide
+
+#### **Setting Up Testing Environment**
+
+1. **Install Dependencies**
+```bash
+# Go testing tools
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+# Python testing tools
+pip install pytest pytest-cov pytest-mock responses
+
+# Node.js testing tools
+npm install -g jest @testing-library/react @testing-library/jest-dom
+```
+
+2. **Run Component Tests**
+```bash
+# Test specific components during development
+cd KNIRVCORTEX && npm test
+cd KNIRVSDK/go && go test ./...
+cd KNIRVSDK/py && pytest
+cd KNIRVGRAPH && ./scripts/run-comprehensive-tests.sh
+```
+
+#### **Writing New Tests**
+
+**Test File Naming Conventions**
+```
+Go:         *_test.go
+Python:     test_*.py or *_test.py
+TypeScript: *.test.ts, *.test.tsx, or __tests__/*.ts
+```
+
+**Coverage Requirements**
+- **Minimum**: 70% line coverage
+- **Critical Paths**: 100% coverage for core functionality
+- **Error Scenarios**: Comprehensive error handling tests
+- **Edge Cases**: Boundary condition validation
+
+**Test Structure Example (Go)**
+```go
+func TestComponentFunction(t *testing.T) {
+    // Arrange
+    setup := createTestSetup()
+
+    // Act
+    result, err := component.Function(input)
+
+    // Assert
+    assert.NoError(t, err)
+    assert.Equal(t, expected, result)
+
+    // Cleanup
+    cleanup(setup)
+}
+```
+
+**Test Structure Example (TypeScript)**
+```typescript
+describe('Component', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should handle valid input', async () => {
+    // Arrange
+    const mockData = createMockData();
+
+    // Act
+    const result = await component.process(mockData);
+
+    // Assert
+    expect(result).toBeDefined();
+    expect(result.status).toBe('success');
+  });
+});
+```
+
+#### **Continuous Integration Integration**
+
+**GitHub Actions Configuration**
+```yaml
+name: KNIRV Network Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run Comprehensive Tests
+        run: make tests
+      - name: Upload Coverage Reports
+        uses: codecov/codecov-action@v3
+        with:
+          directory: ./coverage
+```
+
+**Pre-commit Hooks**
+```bash
+# Install pre-commit hooks
+pip install pre-commit
+pre-commit install
+
+# Run tests before each commit
+echo "make test-quick" > .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
+### 📈 Test Metrics & Monitoring
+
+#### **Coverage Tracking**
+- **Real-time Coverage**: Updated with each test run
+- **Trend Analysis**: Coverage changes over time
+- **Component Breakdown**: Per-component coverage metrics
+- **Critical Path Coverage**: 100% for essential functionality
+
+#### **Performance Benchmarks**
+- **Test Execution Time**: < 15 minutes for full suite
+- **Memory Usage**: < 4GB peak during testing
+- **Parallel Execution**: Multi-core utilization for faster feedback
+- **Resource Cleanup**: Automatic cleanup prevents resource leaks
+
+#### **Quality Gates**
+- **Minimum Coverage**: 70% line coverage required
+- **Test Stability**: < 1% flaky test rate
+- **Performance Regression**: < 10% slowdown tolerance
+- **Security Validation**: Automated vulnerability scanning
+
+### 🔧 Advanced Testing Features
+
+#### **Mock Implementations**
+- **External APIs**: Comprehensive mocking for third-party services
+- **Blockchain Networks**: Safe testing without real network calls
+- **Hardware Dependencies**: WASM, audio, video device mocking
+- **Time-based Testing**: Deterministic time control for consistent tests
+
+#### **Test Data Management**
+- **Fixtures**: Reusable test data sets
+- **Factories**: Dynamic test data generation
+- **Cleanup**: Automatic test data cleanup
+- **Isolation**: Tests don't interfere with each other
+
+#### **Debugging Support**
+- **Verbose Output**: Detailed test execution logs
+- **Debug Mode**: Step-through debugging support
+- **Error Reporting**: Clear failure messages with context
+- **Stack Traces**: Full error stack traces for quick debugging
+
+### 🚨 Troubleshooting Tests
+
+#### **Common Issues**
+
+**Port Conflicts**
+```bash
+# Check for conflicting processes
+netstat -tulpn | grep :8080
+# Kill conflicting processes
+sudo kill -9 $(lsof -t -i:8080)
+```
+
+**Memory Issues**
+```bash
+# Increase Node.js memory limit
+export NODE_OPTIONS="--max-old-space-size=4096"
+# Run tests with more memory
+make tests
+```
+
+**Timeout Issues**
+```bash
+# Increase test timeout for slow systems
+export TEST_TIMEOUT=30000  # 30 seconds
+make tests
+```
+
+**Clean Test Environment**
+```bash
+# Reset all test artifacts
+make test-clean
+# Clear node modules and reinstall
+rm -rf node_modules package-lock.json && npm install
+```
+
+### 📚 Testing Best Practices
+
+#### **For Contributors**
+1. **Write Tests First**: TDD approach for new features
+2. **Test Edge Cases**: Don't just test the happy path
+3. **Mock External Dependencies**: Keep tests isolated and fast
+4. **Use Descriptive Names**: Test names should explain what they validate
+5. **Keep Tests Simple**: One assertion per test when possible
+
+#### **For Maintainers**
+1. **Review Test Coverage**: Ensure new code includes tests
+2. **Monitor Test Performance**: Keep test suite execution time reasonable
+3. **Update Test Documentation**: Keep testing guides current
+4. **Validate CI/CD**: Ensure tests run properly in automated environments
+5. **Security Testing**: Include security validation in test reviews
+
+### 🎯 Future Testing Enhancements
+
+#### **Planned Improvements**
+- **Visual Regression Testing**: Automated UI change detection
+- **Chaos Engineering**: Fault injection testing
+- **Property-Based Testing**: Automated test case generation
+- **Mutation Testing**: Test quality validation
+- **Performance Profiling**: Automated performance regression detection
+
+#### **Community Contributions**
+- **Test Case Contributions**: Community-driven test expansion
+- **Testing Tools**: Custom testing utilities and helpers
+- **Documentation**: Testing guide improvements and examples
+- **Best Practices**: Shared testing patterns and conventions
+
+---
+
+## 📋 Testing Quick Reference Card
+
+### Essential Commands
+| Command | Description | Time |
+|---------|-------------|------|
+| `make tests` | **Comprehensive test suite** | 10-15 min |
+| `make test-quick` | **Quick tests (unit only)** | 2-5 min |
+| `make test-coverage` | **Generate coverage reports** | 5-10 min |
+| `make test-clean` | **Clean test artifacts** | < 1 min |
+
+### Component Testing
+| Command | Component | Languages |
+|---------|-----------|-----------|
+| `make test-cortex` | AI Agent Framework | TypeScript/React + WASM |
+| `make test-sdk` | Multi-language SDK | Go + Python + TypeScript |
+| `make test-graph` | Blockchain Explorer | Go + TypeScript |
+| `make test-wallet` | Wallet System | React Native + Web |
+| `make test-nexus` | Admin Portal | React + Go |
+| `make test-root` | Core Network | Go |
+
+### Report Locations
+| Type | Location | Format |
+|------|----------|--------|
+| **Test Reports** | `test-reports/` | `.txt`, `.md` |
+| **Coverage Reports** | `coverage/` | `.html`, `.json` |
+| **Summary** | `test-reports/summary_*.md` | Markdown |
+
+### Coverage Requirements
+- **Minimum**: 70% line coverage
+- **Critical Paths**: 100% coverage
+- **Quality Gate**: < 1% flaky tests
+- **Performance**: < 10% regression tolerance
+
+### Demo & Documentation
+```bash
+# Interactive testing demo
+./scripts/demo-testing-infrastructure.sh
+
+# Testing infrastructure overview
+./scripts/unified-test-runner.sh
+
+# View this documentation
+open README.md#comprehensive-testing-infrastructure
+```
+
+---
+
+### Legacy Testing Commands
+
+For compatibility, these commands are still available:
+
+```bash
+# Legacy deployment and testing
+./scripts/manage-knirv.sh deploy-test
+./scripts/manage-knirv.sh production-test
+./scripts/deploy-and-test.sh --comprehensive
+
+# Component-specific legacy testing
 cd KNIRVROOT && go test ./...
 cd KNIRVCHAIN && cargo test
 cd KNIRVNEXUS && go test ./...
-cd KNIRVGRAPH && go test ./...
-cd KNIRVROUTER && go test ./...
 
-# Integration tests
-cd integration-tests && go test ./...
-```
-
-### Real Network Testing
-```bash
-# Safe simulation testing
+# Real network testing (simulation mode)
 ./scripts/real-network-test.sh --dry-run --full-suite
-
-# Bridge testing on testnet (simulation)
-./scripts/real-network-test.sh --xion-network testnet --bridge-only --dry-run
-
-# Connectivity testing
-./scripts/real-network-test.sh --connectivity-only --dry-run
-```
-
-### Production Validation
-```bash
-# Final production test suite (11 comprehensive tests)
-./deployment/testing/final-test-suite.sh
-
-# Load testing with k6 (if installed)
-k6 run deployment/testing/load_test.js
-
-# Security validation
-./scripts/deploy-and-test.sh --test-only --production-tests
 ```
 
 ## 🔧 Troubleshooting

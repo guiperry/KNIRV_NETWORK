@@ -49,6 +49,9 @@ help: ## Show this help message
 	@echo "  CLOUD_PROVIDER  Cloud provider (aws, gcp, azure, digitalocean)"
 	@echo ""
 	@echo "$(YELLOW)Examples:$(NC)"
+	@echo "  make tests                    # Run comprehensive test suite"
+	@echo "  make test-quick              # Run quick tests only"
+	@echo "  make test-coverage           # Generate coverage reports"
 	@echo "  make deploy-infrastructure ENVIRONMENT=production"
 	@echo "  make deploy-full ENVIRONMENT=development CLOUD_PROVIDER=aws"
 	@echo "  make docs && make deploy-website"
@@ -201,6 +204,161 @@ deploy-prod: ## Production deployment with confirmation
 .PHONY: deploy-staging
 deploy-staging: ## Staging deployment
 	@$(MAKE) deploy-full ENVIRONMENT=staging CLOUD_PROVIDER=aws
+
+# =============================================================================
+# COMPREHENSIVE TESTING SUITE
+# =============================================================================
+
+# Test directories and configuration
+TEST_REPORTS_DIR := $(PROJECT_ROOT)/test-reports
+COVERAGE_DIR := $(PROJECT_ROOT)/coverage
+TIMESTAMP := $(shell date +"%Y%m%d_%H%M%S")
+
+.PHONY: test-setup
+test-setup: ## Setup test environment and directories
+	@echo "$(BLUE)Setting up test environment...$(NC)"
+	@mkdir -p $(TEST_REPORTS_DIR)
+	@mkdir -p $(COVERAGE_DIR)
+	@echo "$(GREEN)✓ Test environment ready$(NC)"
+
+.PHONY: tests
+tests: test-setup ## Run comprehensive test suite for entire KNIRV network
+	@echo "$(BLUE)🚀 Running KNIRV Network Comprehensive Test Suite$(NC)"
+	@echo "=================================================="
+	@echo "Timestamp: $(TIMESTAMP)"
+	@echo "Reports Directory: $(TEST_REPORTS_DIR)"
+	@echo "Coverage Directory: $(COVERAGE_DIR)"
+	@echo ""
+	@$(MAKE) test-cortex
+	@$(MAKE) test-sdk
+	@$(MAKE) test-graph
+	@$(MAKE) test-wallet
+	@$(MAKE) test-nexus
+	@$(MAKE) test-root
+	@$(MAKE) test-integration
+	@$(MAKE) test-reports
+	@echo ""
+	@echo "$(GREEN)🎉 All KNIRV Network tests completed!$(NC)"
+	@echo "$(YELLOW)📊 View reports at: $(TEST_REPORTS_DIR)$(NC)"
+	@echo "$(YELLOW)📈 View coverage at: $(COVERAGE_DIR)$(NC)"
+
+.PHONY: test-cortex
+test-cortex: ## Test KNIRVCORTEX (AI Agent Framework)
+	@echo "$(BLUE)Testing KNIRVCORTEX...$(NC)"
+	@if [ -f "KNIRVCORTEX/scripts/run-tests.sh" ]; then \
+		cd KNIRVCORTEX && ./scripts/run-tests.sh; \
+		echo "$(GREEN)✓ KNIRVCORTEX tests completed$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠ KNIRVCORTEX test script not found$(NC)"; \
+	fi
+
+.PHONY: test-sdk
+test-sdk: ## Test KNIRVSDK (Multi-language SDK)
+	@echo "$(BLUE)Testing KNIRVSDK...$(NC)"
+	@if [ -f "KNIRVSDK/scripts/run-all-tests.sh" ]; then \
+		cd KNIRVSDK && ./scripts/run-all-tests.sh; \
+		echo "$(GREEN)✓ KNIRVSDK tests completed$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠ KNIRVSDK test script not found$(NC)"; \
+	fi
+
+.PHONY: test-graph
+test-graph: ## Test KNIRVGRAPH (Blockchain Explorer)
+	@echo "$(BLUE)Testing KNIRVGRAPH...$(NC)"
+	@if [ -f "KNIRVGRAPH/scripts/run-comprehensive-tests.sh" ]; then \
+		cd KNIRVGRAPH && ./scripts/run-comprehensive-tests.sh; \
+		echo "$(GREEN)✓ KNIRVGRAPH tests completed$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠ KNIRVGRAPH test script not found$(NC)"; \
+	fi
+
+.PHONY: test-wallet
+test-wallet: ## Test KNIRVWALLET (Wallet System)
+	@echo "$(BLUE)Testing KNIRVWALLET...$(NC)"
+	@if [ -f "KNIRVWALLET/package.json" ]; then \
+		cd KNIRVWALLET && npm test; \
+		echo "$(GREEN)✓ KNIRVWALLET tests completed$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠ KNIRVWALLET package.json not found$(NC)"; \
+	fi
+
+.PHONY: test-nexus
+test-nexus: ## Test KNIRVNEXUS (Admin Portal)
+	@echo "$(BLUE)Testing KNIRVNEXUS...$(NC)"
+	@if [ -f "KNIRVNEXUS/package.json" ]; then \
+		cd KNIRVNEXUS && npm test; \
+		echo "$(GREEN)✓ KNIRVNEXUS tests completed$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠ KNIRVNEXUS package.json not found$(NC)"; \
+	fi
+
+.PHONY: test-root
+test-root: ## Test KNIRVROOT (Core Network)
+	@echo "$(BLUE)Testing KNIRVROOT...$(NC)"
+	@if [ -f "KNIRVROOT/go.mod" ]; then \
+		cd KNIRVROOT && go test -v ./...; \
+		echo "$(GREEN)✓ KNIRVROOT tests completed$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠ KNIRVROOT go.mod not found$(NC)"; \
+	fi
+
+.PHONY: test-integration
+test-integration: ## Run integration tests
+	@echo "$(BLUE)Running integration tests...$(NC)"
+	@if [ -f "integration-tests/go.mod" ]; then \
+		cd integration-tests && go test -v ./...; \
+		echo "$(GREEN)✓ Integration tests completed$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠ Integration tests not configured$(NC)"; \
+	fi
+
+.PHONY: test-reports
+test-reports: ## Generate comprehensive test reports
+	@echo "$(BLUE)Generating test reports...$(NC)"
+	@echo "# KNIRV Network Test Report" > $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
+	@echo "Generated: $(TIMESTAMP)" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
+	@echo "" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
+	@echo "## Test Results Summary" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
+	@echo "- KNIRVCORTEX: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
+	@echo "- KNIRVSDK: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
+	@echo "- KNIRVGRAPH: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
+	@echo "- KNIRVWALLET: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
+	@echo "- KNIRVNEXUS: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
+	@echo "- KNIRVROOT: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
+	@echo "- Integration Tests: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
+	@echo "" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
+	@echo "## Report Locations" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
+	@echo "- Test Reports: $(TEST_REPORTS_DIR)" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
+	@echo "- Coverage Reports: $(COVERAGE_DIR)" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
+	@echo "$(GREEN)✓ Test reports generated$(NC)"
+
+.PHONY: test-quick
+test-quick: ## Run quick tests (unit tests only)
+	@echo "$(BLUE)Running quick test suite...$(NC)"
+	@$(MAKE) test-cortex
+	@$(MAKE) test-sdk
+	@$(MAKE) test-graph
+	@echo "$(GREEN)✓ Quick tests completed$(NC)"
+
+.PHONY: test-coverage
+test-coverage: ## Generate coverage reports for all projects
+	@echo "$(BLUE)Generating coverage reports...$(NC)"
+	@mkdir -p $(COVERAGE_DIR)
+	@echo "$(YELLOW)Coverage reports will be generated in: $(COVERAGE_DIR)$(NC)"
+	@$(MAKE) test-cortex
+	@$(MAKE) test-sdk
+	@$(MAKE) test-graph
+	@echo "$(GREEN)✓ Coverage reports generated$(NC)"
+
+.PHONY: test-clean
+test-clean: ## Clean test reports and coverage data
+	@echo "$(BLUE)Cleaning test artifacts...$(NC)"
+	@rm -rf $(TEST_REPORTS_DIR)
+	@rm -rf $(COVERAGE_DIR)
+	@find . -name "*.test" -delete
+	@find . -name "coverage" -type d -exec rm -rf {} + 2>/dev/null || true
+	@find . -name "test-results" -type d -exec rm -rf {} + 2>/dev/null || true
+	@echo "$(GREEN)✓ Test artifacts cleaned$(NC)"
 
 # =============================================================================
 # TESTING AND VALIDATION

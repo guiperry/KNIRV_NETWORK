@@ -1,0 +1,26 @@
+# Minimal KNIRV-NEXUS configuration for testnet
+mode: headless
+testnet: true
+chain_id: knirv-nexus-testnet
+node_role: dve-manager
+
+# Security configuration - disable authentication for testnet
+security:
+  auth_required: false
+  tls_enabled: false
+  audit_logging: false
+
+# Database configuration
+database:
+  path: "./testnet.db"
+
+# API configuration
+api:
+  port: 8084
+  bind_address: "0.0.0.0"
+
+# Logging configuration
+log:
+  level: "info"
+  format: "text"
+  output: "./logs/knirvnexus.log"
