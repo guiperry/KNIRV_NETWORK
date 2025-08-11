@@ -2,7 +2,35 @@
 
 A minimal-viable representation of the full KNIRV Decentralized Trusted Execution Network (D-TEN) designed for testing, development, and validation.
 
+## 🌐 Live Testnet
+
+**Access the live KNIRVTESTNET**: https://knirv.com/testnet
+
+The KNIRVTESTNET is now deployed on AWS EC2 with a Netlify-hosted frontend, providing a production-like environment for development and testing.
+
 ## 🚀 Quick Start
+
+### AWS Deployment (Recommended)
+
+Deploy the complete testnet to AWS with Netlify frontend integration:
+
+```bash
+# Deploy complete testnet infrastructure
+make deploy-testnet
+
+# Or deploy components separately:
+make deploy-testnet-infrastructure  # AWS EC2 + Cloudflare DNS
+make deploy-testnet-services       # Docker services deployment
+make update-testnet-frontend       # Netlify frontend integration
+
+# Access the live testnet
+open https://knirv.com/testnet
+
+# Monitor services
+ssh knirv-testnet 'docker ps'
+```
+
+### Local Development
 
 ### Prerequisites
 - Docker & Docker Compose

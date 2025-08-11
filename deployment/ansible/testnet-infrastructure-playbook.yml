@@ -1,0 +1,440 @@
+---
+# KNIRVTESTNET Infrastructure Provisioning Playbook
+# Purpose: Deploy dedicated testnet infrastructure to AWS with Cloudflare DNS integration
+
+- name: KNIRVTESTNET Infrastructure Provisioning
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - environments/testnet.yml
+  vars:
+    # Override with testnet-specific settings
+    instance_type: "{{ instance_type | default('t3.large') }}"
+    key_pair_name: "{{ key_pair_name | default('knirv-testnet-key') }}"
+    security_group_name: "knirv-testnet-sg"
+    
+    # Testnet-specific ports
+    testnet_service_ports:
+      - 5001   # IPFS API
+      - 8080   # IPFS Gateway / KNIRVCHAIN
+      - 8081   # KNIRVGRAPH
+      - 8082   # KNIRVNEXUS-1
+      - 8083   # KNIRVNEXUS-2
+      - 8086   # KNIRVROUTER
+      - 8087   # KNIRVGATEWAY
+      - 1317   # KNIRVROOT API
+      - 26656  # Tendermint P2P
+      - 26657  # Tendermint RPC
+      - 22     # SSH
+      - 80     # HTTP
+      - 443    # HTTPS
+      - 3478   # STUN/TURN
+      - 5349   # TURN TLS
+      - 9090   # Metrics
+    
+    # Instance tags for testnet
+    testnet_tags:
+      Name: "knirv-testnet-node"
+      Project: "KNIRV-TESTNET"
+      Environment: "testnet"
+      ManagedBy: "ansible"
+      Purpose: "blockchain-testnet"
+      AutoShutdown: "false"
+      
+  tasks:
+    # =============================================================================
+    # AWS INFRASTRUCTURE PROVISIONING
+    # =============================================================================
+    
+    - name: Create VPC for testnet
+      amazon.aws.ec2_vpc:
+        name: "knirv-testnet-vpc"
+        cidr_block: "{{ vpc_cidr }}"
+        region: "{{ region }}"
+        tags: "{{ testnet_tags }}"
+        state: present
+      register: testnet_vpc_result
+      
+    - name: Create Internet Gateway for testnet
+      amazon.aws.ec2_vpc_igw:
+        vpc_id: "{{ testnet_vpc_result.vpc.id }}"
+        region: "{{ region }}"
+        tags: "{{ testnet_tags }}"
+        state: present
+      register: testnet_igw_result
+      
+    - name: Create Subnet for testnet
+      amazon.aws.ec2_vpc_subnet:
+        vpc_id: "{{ testnet_vpc_result.vpc.id }}"
+        cidr: "{{ subnet_cidr }}"
+        region: "{{ region }}"
+        az: "{{ region }}a"
+        map_public: true
+        tags: "{{ testnet_tags }}"
+        state: present
+      register: testnet_subnet_result
+      
+    - name: Create Route Table for testnet
+      amazon.aws.ec2_vpc_route_table:
+        vpc_id: "{{ testnet_vpc_result.vpc.id }}"
+        region: "{{ region }}"
+        routes:
+          - dest: "0.0.0.0/0"
+            gateway_id: "{{ testnet_igw_result.gateway_id }}"
+        subnets:
+          - "{{ testnet_subnet_result.subnet.id }}"
+        tags: "{{ testnet_tags }}"
+        state: present
+      
+    - name: Create Security Group for testnet
+      amazon.aws.ec2_security_group:
+        name: "{{ security_group_name }}"
+        description: "KNIRVTESTNET Security Group"
+        vpc_id: "{{ testnet_vpc_result.vpc.id }}"
+        region: "{{ region }}"
+        rules:
+          # SSH Access
+          - proto: tcp
+            ports:
+              - 22
+            cidr_ip: "0.0.0.0/0"
+            rule_desc: "SSH Access"
+          # HTTP/HTTPS
+          - proto: tcp
+            ports:
+              - 80
+              - 443
+            cidr_ip: "0.0.0.0/0"
+            rule_desc: "HTTP/HTTPS Access"
+          # KNIRVTESTNET Service Ports
+          - proto: tcp
+            ports: "{{ testnet_service_ports[:-5] }}"  # Exclude SSH, HTTP, HTTPS, STUN, metrics
+            cidr_ip: "0.0.0.0/0"
+            rule_desc: "KNIRVTESTNET Services"
+          # STUN/TURN Ports
+          - proto: udp
+            ports:
+              - 3478
+            cidr_ip: "0.0.0.0/0"
+            rule_desc: "STUN/TURN UDP"
+          - proto: tcp
+            ports:
+              - 3478
+              - 5349
+            cidr_ip: "0.0.0.0/0"
+            rule_desc: "STUN/TURN TCP"
+          # Metrics (Internal only)
+          - proto: tcp
+            ports:
+              - 9090
+            cidr_ip: "10.0.0.0/8"
+            rule_desc: "Metrics (Internal)"
+        tags: "{{ testnet_tags }}"
+        state: present
+      register: testnet_security_group_result
+      
+    - name: Launch EC2 Instance for testnet
+      amazon.aws.ec2_instance:
+        name: "{{ testnet_tags.Name }}"
+        image_id: "{{ ami_id | default('ami-0c7217cdde317cfec') }}"  # Ubuntu 22.04 LTS
+        instance_type: "{{ instance_type }}"
+        key_name: "{{ key_pair_name }}"
+        vpc_subnet_id: "{{ testnet_subnet_result.subnet.id }}"
+        security_groups:
+          - "{{ testnet_security_group_result.group_id }}"
+        region: "{{ region }}"
+        tags: "{{ testnet_tags }}"
+        wait: true
+        wait_timeout: 600
+        state: present
+      register: testnet_ec2_result
+      
+    - name: Allocate Elastic IP for testnet
+      amazon.aws.ec2_eip:
+        device_id: "{{ testnet_ec2_result.instances[0].instance_id }}"
+        region: "{{ region }}"
+        tags: "{{ testnet_tags }}"
+        state: present
+      register: testnet_eip_result
+      
+    - name: Save testnet IP to file
+      copy:
+        content: "{{ testnet_eip_result.public_ip }}"
+        dest: "{{ playbook_dir }}/testnet_ip.txt"
+        mode: '0644'
+      
+    - name: Add testnet instance to inventory
+      add_host:
+        hostname: "{{ testnet_eip_result.public_ip }}"
+        groupname: testnet_nodes
+        ansible_user: ubuntu
+        ansible_ssh_private_key_file: "~/.ssh/{{ key_pair_name }}.pem"
+        ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+        public_ip: "{{ testnet_eip_result.public_ip }}"
+        instance_id: "{{ testnet_ec2_result.instances[0].instance_id }}"
+
+# =============================================================================
+# TESTNET SERVER CONFIGURATION
+# =============================================================================
+
+- name: Configure KNIRVTESTNET Server
+  hosts: testnet_nodes
+  become: true
+  gather_facts: true
+  vars_files:
+    - environments/testnet.yml
+  vars:
+    docker_compose_version: "2.21.0"
+    
+  tasks:
+    - name: Wait for SSH to become available
+      wait_for_connection:
+        delay: 30
+        timeout: 300
+        
+    - name: Update system packages
+      apt:
+        update_cache: true
+        upgrade: dist
+        autoremove: true
+        autoclean: true
+      register: apt_update
+      retries: 3
+      delay: 10
+      
+    - name: Install essential packages for testnet
+      apt:
+        name:
+          - curl
+          - wget
+          - git
+          - unzip
+          - software-properties-common
+          - apt-transport-https
+          - ca-certificates
+          - gnupg
+          - lsb-release
+          - htop
+          - vim
+          - ufw
+          - fail2ban
+          - jq
+          - tree
+          - ncdu
+        state: present
+        
+    # =============================================================================
+    # DOCKER INSTALLATION
+    # =============================================================================
+    
+    - name: Install Docker for testnet
+      block:
+        - name: Add Docker GPG key
+          apt_key:
+            url: https://download.docker.com/linux/ubuntu/gpg
+            state: present
+            
+        - name: Add Docker repository
+          apt_repository:
+            repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+            state: present
+            
+        - name: Install Docker packages
+          apt:
+            name:
+              - docker-ce
+              - docker-ce-cli
+              - containerd.io
+              - docker-buildx-plugin
+            state: present
+            update_cache: true
+            
+        - name: Start and enable Docker service
+          systemd:
+            name: docker
+            state: started
+            enabled: true
+            
+        - name: Add ubuntu user to docker group
+          user:
+            name: ubuntu
+            groups: docker
+            append: true
+            
+        - name: Install Docker Compose
+          get_url:
+            url: "https://github.com/docker/compose/releases/download/v{{ docker_compose_version }}/docker-compose-linux-x86_64"
+            dest: /usr/local/bin/docker-compose
+            mode: '0755'
+            
+        - name: Create docker-compose symlink
+          file:
+            src: /usr/local/bin/docker-compose
+            dest: /usr/bin/docker-compose
+            state: link
+
+    # =============================================================================
+    # TESTNET USER AND DIRECTORIES
+    # =============================================================================
+    
+    - name: Create knirv-testnet system user
+      user:
+        name: knirv-testnet
+        system: true
+        shell: /bin/bash
+        home: /opt/knirv-testnet
+        create_home: true
+        groups: docker
+        append: true
+        
+    - name: Create testnet directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: knirv-testnet
+        group: knirv-testnet
+        mode: '0755'
+      loop: "{{ testnet_directories }}"
+
+    # =============================================================================
+    # FIREWALL CONFIGURATION
+    # =============================================================================
+    
+    - name: Configure UFW firewall for testnet
+      block:
+        - name: Reset UFW to defaults
+          ufw:
+            state: reset
+            
+        - name: Set UFW default policies
+          ufw:
+            direction: "{{ item.direction }}"
+            policy: "{{ item.policy }}"
+          loop:
+            - { direction: 'incoming', policy: 'deny' }
+            - { direction: 'outgoing', policy: 'allow' }
+            
+        - name: Allow SSH
+          ufw:
+            rule: allow
+            port: '22'
+            proto: tcp
+            
+        - name: Allow HTTP/HTTPS
+          ufw:
+            rule: allow
+            port: "{{ item }}"
+            proto: tcp
+          loop:
+            - '80'
+            - '443'
+            
+        - name: Allow testnet service ports
+          ufw:
+            rule: allow
+            port: "{{ item }}"
+            proto: tcp
+          loop:
+            - '5001'   # IPFS API
+            - '8080'   # IPFS Gateway / KNIRVCHAIN
+            - '8081'   # KNIRVGRAPH
+            - '8082'   # KNIRVNEXUS-1
+            - '8083'   # KNIRVNEXUS-2
+            - '8086'   # KNIRVROUTER
+            - '8087'   # KNIRVGATEWAY
+            - '1317'   # KNIRVROOT API
+            - '26656'  # Tendermint P2P
+            - '26657'  # Tendermint RPC
+            
+        - name: Allow STUN/TURN ports
+          ufw:
+            rule: allow
+            port: "{{ item.port }}"
+            proto: "{{ item.proto }}"
+          loop:
+            - { port: '3478', proto: 'tcp' }
+            - { port: '3478', proto: 'udp' }
+            - { port: '5349', proto: 'tcp' }
+            
+        - name: Enable UFW
+          ufw:
+            state: enabled
+
+# =============================================================================
+# CLOUDFLARE DNS MANAGEMENT
+# =============================================================================
+
+- name: Update Cloudflare DNS Records for Testnet
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - environments/testnet.yml
+  vars:
+    testnet_public_ip: "{{ hostvars[groups['testnet_nodes'][0]]['public_ip'] }}"
+
+  tasks:
+    - name: Display testnet public IP
+      debug:
+        msg: "Updating DNS records to point to testnet IP: {{ testnet_public_ip }}"
+
+    - name: Update DNS A records for testnet subdomains
+      cloudflare_dns:
+        zone: "{{ domain_name }}"
+        record: "{{ item }}.{{ domain_name }}"
+        type: A
+        value: "{{ testnet_public_ip }}"
+        api_token: "{{ cloudflare_api_token }}"
+        state: present
+      loop: "{{ testnet_subdomains }}"
+      when:
+        - cloudflare_api_token is defined
+        - cloudflare_zone_id is defined
+
+    - name: Display DNS update summary
+      debug:
+        msg: |
+          Testnet DNS Records Updated:
+          {% for subdomain in testnet_subdomains %}
+          - {{ subdomain }}.{{ domain_name }} -> {{ testnet_public_ip }}
+          {% endfor %}
+
+# =============================================================================
+# POST-DEPLOYMENT VERIFICATION
+# =============================================================================
+
+- name: Verify Testnet Infrastructure Deployment
+  hosts: testnet_nodes
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Verify Docker is running
+      systemd:
+        name: docker
+        state: started
+      register: docker_status
+
+    - name: Test Docker functionality
+      command: docker run --rm hello-world
+      register: docker_test
+      changed_when: false
+
+    - name: Display verification results
+      debug:
+        msg: |
+          KNIRVTESTNET Infrastructure Verification Results:
+          ===============================================
+          ✅ Docker Status: {{ docker_status.status.ActiveState }}
+          ✅ Docker Test: {{ 'PASSED' if docker_test.rc == 0 else 'FAILED' }}
+          
+          Testnet Infrastructure Ready!
+          ============================
+          🌐 Public IP: {{ ansible_host }}
+          🔗 Testnet URL: https://testnet.{{ domain_name }}
+          🐳 Docker: Ready for KNIRVTESTNET deployment
+          
+          Next Steps:
+          -----------
+          1. Deploy testnet services: make deploy-testnet-services
+          2. Update frontend: make update-testnet-frontend
+          3. Monitor services: ssh knirv-testnet 'docker ps'

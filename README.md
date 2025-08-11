@@ -304,6 +304,24 @@ open http://localhost:3000  # Grafana (admin/admin123)
 kubectl get pods -n knirv-production
 ```
 
+#### 🧪 KNIRVTESTNET Deployment (AWS + Netlify)
+```bash
+# Deploy complete testnet infrastructure to AWS with Netlify frontend
+make deploy-testnet
+
+# Or deploy components separately:
+make deploy-testnet-infrastructure  # Deploy AWS EC2 infrastructure
+make deploy-testnet-services       # Deploy Docker services to EC2
+make update-testnet-frontend       # Update Netlify frontend integration
+
+# Access the live testnet
+open https://knirv.com/testnet
+
+# Monitor testnet services
+ssh knirv-testnet 'docker ps'
+ssh knirv-testnet 'docker-compose -f /opt/knirv-testnet/docker-compose-prod.yml logs'
+```
+
 ### Component-Specific Setup
 Each component can be run independently for development:
 

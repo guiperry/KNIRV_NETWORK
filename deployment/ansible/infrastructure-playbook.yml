@@ -23,14 +23,19 @@
     
     # KNIRV Service Ports
     knirv_ports:
+      - 1317  # KNIRVROOT Cosmos SDK
       - 8080  # KNIRVCHAIN
-      - 8081  # KNIRVGRAPH  
-      - 8082  # KNIRVNEXUS
-      - 8083  # KNIRVROOT
-      - 8084  # KNIRVWALLET
-      - 8085  # KNIRVSHELL
-      - 8086  # KNIRVROUTER
-      - 8087  # KNIRVGATEWAY
+      - 8081  # KNIRVGRAPH
+      - 8082  # KNIRVNEXUS-1
+      - 8083  # KNIRVNEXUS-2
+      - 8084  # KNIRVROUTER
+      - 8085  # KNIRVGATEWAY
+      - 8086  # KNIRVWALLET
+      - 8087  # KNIRVSHELL
+      - 5001  # IPFS API
+      - 8888  # IPFS Gateway
+      - 26656 # Tendermint P2P
+      - 26657 # Tendermint RPC
       - 22    # SSH
       - 80    # HTTP
       - 443   # HTTPS
@@ -45,6 +50,7 @@
     
     # KNIRV Service Subdomains
     knirv_subdomains:
+      - testnet
       - chain
       - graph
       - nexus
@@ -280,14 +286,19 @@
             port: "{{ item }}"
             proto: tcp
           loop:
+            - '1317'  # KNIRVROOT Cosmos SDK
             - '8080'  # KNIRVCHAIN
             - '8081'  # KNIRVGRAPH
-            - '8082'  # KNIRVNEXUS
-            - '8083'  # KNIRVROOT
-            - '8084'  # KNIRVWALLET
-            - '8085'  # KNIRVSHELL
-            - '8086'  # KNIRVROUTER
-            - '8087'  # KNIRVGATEWAY
+            - '8082'  # KNIRVNEXUS-1
+            - '8083'  # KNIRVNEXUS-2
+            - '8084'  # KNIRVROUTER
+            - '8085'  # KNIRVGATEWAY
+            - '8086'  # KNIRVWALLET
+            - '8087'  # KNIRVSHELL
+            - '5001'  # IPFS API
+            - '8888'  # IPFS Gateway
+            - '26656' # Tendermint P2P
+            - '26657' # Tendermint RPC
             
         - name: Allow STUN/TURN ports
           ufw:

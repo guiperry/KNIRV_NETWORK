@@ -205,6 +205,32 @@ deploy-prod: ## Production deployment with confirmation
 deploy-staging: ## Staging deployment
 	@$(MAKE) deploy-full ENVIRONMENT=staging CLOUD_PROVIDER=aws
 
+.PHONY: deploy-testnet
+deploy-testnet: ## Deploy KNIRVTESTNET to AWS with Netlify frontend integration
+	@echo "$(BLUE)Deploying KNIRVTESTNET to AWS...$(NC)"
+	@$(MAKE) deploy-testnet-infrastructure
+	@$(MAKE) deploy-testnet-services
+	@$(MAKE) update-testnet-frontend
+	@echo "$(GREEN)✓ KNIRVTESTNET deployment completed!$(NC)"
+
+.PHONY: deploy-testnet-infrastructure
+deploy-testnet-infrastructure: check-prereqs ## Deploy testnet infrastructure only
+	@echo "$(BLUE)Deploying KNIRVTESTNET infrastructure...$(NC)"
+	@cd $(ANSIBLE_DIR) && ./deploy-testnet-infrastructure.sh
+	@echo "$(GREEN)✓ KNIRVTESTNET infrastructure deployed$(NC)"
+
+.PHONY: deploy-testnet-services
+deploy-testnet-services: ## Deploy KNIRVTESTNET services via Docker Compose
+	@echo "$(BLUE)Deploying KNIRVTESTNET services...$(NC)"
+	@cd $(PROJECT_ROOT) && ./scripts/deploy-testnet-services.sh
+	@echo "$(GREEN)✓ KNIRVTESTNET services deployed$(NC)"
+
+.PHONY: update-testnet-frontend
+update-testnet-frontend: ## Update KNIRVGATEWAY testnet frontend with latest changes
+	@echo "$(BLUE)Updating KNIRVTESTNET frontend...$(NC)"
+	@cd $(PROJECT_ROOT) && ./scripts/update-testnet-frontend.sh
+	@echo "$(GREEN)✓ KNIRVTESTNET frontend updated$(NC)"
+
 # =============================================================================
 # COMPREHENSIVE TESTING SUITE
 # =============================================================================

@@ -14,6 +14,7 @@ KNIRVGATEWAY serves as the primary web portal and API gateway for the KNIRV D-TE
 
 - 🌐 **Modern Web Portal**: Responsive website showcasing KNIRV D-TEN capabilities
 - 🚀 **Serverless API Gateway**: Netlify Functions-based gateway with SSE support
+- 🧪 **KNIRVTESTNET Integration**: Live testnet frontend with AWS backend connectivity
 - 👨‍💻 **Developer Portal**: Comprehensive documentation and tools for KNIRV developers
 - 📚 **Documentation Hub**: Integrated documentation with Docsify
 - 🔄 **Real-time Updates**: Server-Sent Events (SSE) for live data streaming
@@ -32,6 +33,10 @@ KNIRVGATEWAY/
 ├── images/                       # Website images and branding
 ├── agent-developer-portal/       # Developer documentation and tools
 ├── documentation/                # Docsify-based documentation
+├── knirvtestnet/                 # KNIRVTESTNET frontend integration
+│   ├── index.html               # Testnet dashboard
+│   ├── testnet-config.js        # Testnet API configuration
+│   └── README.md                # Testnet documentation
 └── logo/                        # KNIRV branding components
 ```
 
