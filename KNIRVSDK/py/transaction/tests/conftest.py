@@ -12,7 +12,7 @@ from knirvchain_transaction_sdk import KnirvchainTransactionSDK, AsyncKnirvchain
 if TYPE_CHECKING:
     from _pytest.fixtures import FixtureRequest  # pyright: ignore[reportPrivateImportUsage]
 
-pytest.register_assert_rewrite("tests.utils")
+pytest.register_assert_rewrite("utils")
 
 logging.getLogger("knirvchain_transaction_sdk").setLevel(logging.DEBUG)
 

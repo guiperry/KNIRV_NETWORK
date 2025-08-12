@@ -50,13 +50,13 @@ func startGoServer(t *testing.T) *exec.Cmd {
 	cmd := exec.Command("go", "run", ".", "--role", "client", "--port", "8080", "--p2p-port", "4001", "--skip-install", "--no-gui")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	
+
 	// Set working directory to project root
 	wd, _ := os.Getwd()
 	if strings.HasSuffix(wd, "tests") {
 		cmd.Dir = filepath.Dir(wd)
 	}
-	
+
 	err := cmd.Start()
 	require.NoError(t, err, "Failed to start Go server")
 
@@ -72,7 +72,7 @@ func startNodeServer(t *testing.T) *exec.Cmd {
 	}
 
 	// Start the Node.js tunnel registry
-	cmd := exec.Command("node", "index.js")
+	cmd := exec.Command("node", "server.js")
 	cmd.Dir = registryDir
 	cmd.Env = append(os.Environ(),
 		"HTTP_API_PORT=3003",

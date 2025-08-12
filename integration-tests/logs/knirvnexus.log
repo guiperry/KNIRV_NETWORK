@@ -1,93 +1,17 @@
-2025/08/04 02:11:31 cerebras_provider.go:186: Registered Cerebras provider constructor with gollm registry
-2025/08/04 02:11:31 deepseek_provider.go:74: Registered Deepseek provider constructor with gollm registry
-2025/08/04 02:11:31 gemini_provider.go:63: Registering Gemini provider constructor with gollm registry
-2025/08/04 02:11:31 main.go:110: Found .env file at: .env
-2025/08/04 02:11:31 main.go:112: Successfully loaded environment variables from .env
-2025/08/04 02:11:31 main.go:146: 🚀 Starting Inference Engine in DEVELOPMENT mode...
-2025/08/04 02:11:33 main.go:196: Starting inference service...
-2025/08/04 02:11:33 inference_service.go:72: InferenceService: Starting...
-2025/08/04 02:11:33 inference_service.go:100: InferenceService: Configuring LLM attempt: Provider=cerebras, Model=llama-4-scout-17b-16e-instruct, Primary=true
-2025/08/04 02:11:33 cerebras_provider.go:194: [DEBUG] NewCerebrasProvider called! apiKey: true, model: llama-4-scout-17b-16e-instruct
-2025/08/04 02:11:33 cerebras_provider.go:222: NewCerebrasProvider created: model=llama-4-scout-17b-16e-instruct
-2025/08/04 02:11:33 INFO: Default options applied [model llama-4-scout-17b-16e-instruct maxTokens 4000]
-2025/08/04 02:11:33 cerebras_provider.go:194: [DEBUG] NewCerebrasProvider called! apiKey: true, model: llama-4-scout-17b-16e-instruct
-2025/08/04 02:11:33 cerebras_provider.go:222: NewCerebrasProvider created: model=llama-4-scout-17b-16e-instruct
-2025/08/04 02:11:33 inference_service.go:134: InferenceService: Successfully configured LLM instance for model 'llama-4-scout-17b-16e-instruct'
-2025/08/04 02:11:33 inference_service.go:100: InferenceService: Configuring LLM attempt: Provider=gemini, Model=gemini-1.5-flash-latest, Primary=false
-2025/08/04 02:11:33 gemini_provider.go:93: [DEBUG] NewGeminiProvider called! apiKey: true, model: gemini-1.5-flash-latest
-2025/08/04 02:11:33 gemini_provider.go:132: GeminiProvider: GEMINI_API_ENDPOINT not set, using default: https://generativelanguage.googleapis.com/v1beta/
-2025/08/04 02:11:33 gemini_provider.go:138: NewGeminiProvider created: model=gemini-1.5-flash-latest
-2025/08/04 02:11:33 INFO: Applied global default model [model gemini-1.5-flash-latest]
-2025/08/04 02:11:33 INFO: Applied global default max tokens [maxTokens 100000]
-2025/08/04 02:11:33 INFO: Applied global default temperature [temperature 0.7]
-2025/08/04 02:11:33 INFO: Applied global default TopP [topP 0.9]
-2025/08/04 02:11:33 INFO: Default options processing complete for Gemini [final_model gemini-1.5-flash-latest final_maxTokens 100000]
-2025/08/04 02:11:33 gemini_provider.go:93: [DEBUG] NewGeminiProvider called! apiKey: true, model: gemini-1.5-flash-latest
-2025/08/04 02:11:33 gemini_provider.go:132: GeminiProvider: GEMINI_API_ENDPOINT not set, using default: https://generativelanguage.googleapis.com/v1beta/
-2025/08/04 02:11:33 gemini_provider.go:138: NewGeminiProvider created: model=gemini-1.5-flash-latest
-2025/08/04 02:11:33 inference_service.go:134: InferenceService: Successfully configured LLM instance for model 'gemini-1.5-flash-latest'
-2025/08/04 02:11:33 inference_service.go:100: InferenceService: Configuring LLM attempt: Provider=deepseek, Model=deepseek-chat, Primary=false
-2025/08/04 02:11:33 deepseek_provider.go:79: [DEBUG] NewDeepseekProvider called! apiKey present: true, model: deepseek-chat
-2025/08/04 02:11:33 deepseek_provider.go:106: NewDeepseekProvider created: model=deepseek-chat
-2025/08/04 02:11:33 INFO: Deepseek default options applied [model deepseek-chat maxTokens 8000]
-2025/08/04 02:11:33 deepseek_provider.go:79: [DEBUG] NewDeepseekProvider called! apiKey present: true, model: deepseek-chat
-2025/08/04 02:11:33 deepseek_provider.go:106: NewDeepseekProvider created: model=deepseek-chat
-2025/08/04 02:11:33 inference_service.go:134: InferenceService: Successfully configured LLM instance for model 'deepseek-chat'
-2025/08/04 02:11:33 inference_service.go:490: InferenceService: Reconfiguring MOA...
-2025/08/04 02:11:33 cerebras_provider.go:194: [DEBUG] NewCerebrasProvider called! apiKey: true, model: llama-4-scout-17b-16e-instruct
-2025/08/04 02:11:33 cerebras_provider.go:222: NewCerebrasProvider created: model=llama-4-scout-17b-16e-instruct
-2025/08/04 02:11:33 INFO: Default options applied [model llama-4-scout-17b-16e-instruct maxTokens 4000]
-2025/08/04 02:11:33 deepseek_provider.go:79: [DEBUG] NewDeepseekProvider called! apiKey present: true, model: deepseek-chat
-2025/08/04 02:11:33 deepseek_provider.go:106: NewDeepseekProvider created: model=deepseek-chat
-2025/08/04 02:11:33 INFO: Deepseek default options applied [model deepseek-chat maxTokens 8000]
-2025/08/04 02:11:33 deepseek_provider.go:79: [DEBUG] NewDeepseekProvider called! apiKey present: true, model: deepseek-chat
-2025/08/04 02:11:33 deepseek_provider.go:106: NewDeepseekProvider created: model=deepseek-chat
-2025/08/04 02:11:33 INFO: Deepseek default options applied [model deepseek-chat maxTokens 8000]
-2025/08/04 02:11:33 inference_service.go:529: InferenceService: MOA instance created/recreated successfully (Primary: llama-4-scout-17b-16e-instruct, Fallback: deepseek-chat).
-2025/08/04 02:11:33 inference_service.go:175: InferenceService: DelegatorService created.
-2025/08/04 02:11:33 inference_service.go:178: InferenceService: Started successfully.
-2025/08/04 02:11:33 main.go:200: Inference service started successfully
-2025/08/04 02:11:33 agent_inferencer_service.go:43: Starting Agent Inferencer Service...
-2025/08/04 02:11:33 agent_inferencer_service.go:46: Agent Inferencer Service started
-2025/08/04 02:11:33 main.go:243: Agent discovery will be handled by unified database system...
-2025/08/04 02:11:33 main.go:248: ⚠️  Warning: Using embedded default JWT secret. Set JWT_SECRET environment variable in production.
-2025/08/04 02:11:33 simple_server.go:267: Initializing SimpleAPIServer with enhanced security...
-2025/08/04 02:11:33 simple_server.go:276: Security middleware initialized
-2025/08/04 02:11:33 simple_server.go:280: SHIELD framework initialized
-2025/08/04 02:11:33 simple_server.go:284: Performance manager initialized
-2025/08/04 02:11:33 reliability_manager.go:609: Default reliability configurations set up
-2025/08/04 02:11:33 simple_server.go:289: Reliability manager initialized
-2025/08/04 02:11:33 simple_server.go:331: Copying templates from agent/templates to /home/gperry/.config/Agentic-Engine/templates
-2025/08/04 02:11:33 simple_server.go:437: Security middleware applied to all routes
-2025/08/04 02:11:33 simple_server.go:425: Agent terminal handler initialized and registered
-2025/08/04 02:11:33 main.go:284: Creating sample data for development...
-DEBUG: Generated deterministic Cerebras-style embedding for text: Alpha Agent is a Genesis agent with capabilities f... (dimension: 384)
-2025/08/04 02:11:33 simple_server.go:1230: Created sample agent: Alpha Agent
-DEBUG: Generated deterministic Cerebras-style embedding for text: Beta Agent is a Genesis agent with capabilities fo... (dimension: 384)
-2025/08/04 02:11:33 simple_server.go:1230: Created sample agent: Beta Agent
-DEBUG: Generated deterministic Cerebras-style embedding for text: Gamma Agent is a Advanced agent with capabilities ... (dimension: 384)
-2025/08/04 02:11:33 simple_server.go:1230: Created sample agent: Gamma Agent
-2025/08/04 02:11:33 main.go:288: Sample data created successfully
-2025/08/04 02:11:33 main.go:301: ✅ Registered additional service handlers
-2025/08/04 02:11:33 main.go:306: 📡 Starting API server on :8083
-2025/08/04 02:11:33 simple_server.go:657: Starting Simple API server on :8083
-2025/08/04 02:11:33 simple_server.go:660: Agent discovery will be handled automatically by unified storage...
-2025/08/04 02:11:33 main.go:403: 🎨 Starting React GUI server on port 8082...
 
-> vite-react-typescript-starter@0.0.0 dev
-> vite --port 8082 --host
+> nextjs_tailwind_shadcn_ts@0.1.0 dev
+> nodemon --exec "npx tsx server.ts" --watch server.ts --watch src --ext ts,tsx,js,jsx 2>&1 | tee dev.log
 
-
-  VITE v5.4.19  ready in 310 ms
-
-  ➜  Local:   http://localhost:8082/
-  ➜  Network: http://192.168.12.122:8082/
-  ➜  Network: http://10.1.131.128:8082/
-2025/08/04 02:11:35 main.go:341: 🌐 Opening Development GUI at http://localhost:8082
-2025/08/04 05:12:52 main.go:358: 🛑 Received OS signal. Initiating shutdown...
-2025/08/04 05:12:52 main.go:363: 🛑 Shutting down servers...
-2025/08/04 05:12:52 simple_server.go:681: Stopping Simple API server...
-2025/08/04 05:12:52 main.go:377: ✅ Shutdown complete
-2025/08/04 05:12:52 agent_inferencer_service.go:61: Stopping Agent Inferencer Service...
-2025/08/04 05:12:52 agent_inferencer_service.go:64: Agent Inferencer Service stopped
-2025/08/04 05:12:52 inference_service.go:197: InferenceService stopped.
+[33m[nodemon] 3.1.10[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): server.ts src/**/*[39m
+[33m[nodemon] watching extensions: ts,tsx,js,jsx[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+sh: 1: tsx: not found
+[31m[nodemon] failed to start process, "npx tsx server.ts" exec not found[39m
+[31m[nodemon] Error
+    at Bus.<anonymous> (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/node_modules/nodemon/lib/nodemon.js:164:25)
+    at Bus.emit (node:events:529:35)
+    at ChildProcess.<anonymous> (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/node_modules/nodemon/lib/monitor/run.js:199:11)
+    at ChildProcess.emit (node:events:517:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:292:12)[39m

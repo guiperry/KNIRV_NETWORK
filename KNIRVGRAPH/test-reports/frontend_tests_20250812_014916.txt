@@ -1,0 +1,31 @@
+
+> vite-react-typescript-starter@0.0.0 test
+> jest
+
+PASS src/__tests__/App.test.tsx
+  App Component
+    Rendering
+      ✓ should render without crashing (73 ms)
+      ✓ should render all main components (17 ms)
+      ✓ should display the application title (20 ms)
+      ✓ should have proper layout structure (11 ms)
+    Context Integration
+      ✓ should provide GraphChain context to child components (16 ms)
+      ✓ should render layout with proper structure (10 ms)
+      ✓ should set up routing correctly (10 ms)
+    Component Structure
+      ✓ should render the main app container with correct classes (10 ms)
+      ✓ should contain the dashboard page by default (11 ms)
+      ✓ should wrap everything in the GraphChain provider (12 ms)
+    Error Handling
+      ✓ should render without throwing errors (10 ms)
+      ✓ should handle component unmounting gracefully (9 ms)
+    Accessibility
+      ✓ should have proper semantic structure (9 ms)
+      ✓ should have proper heading structure (10 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       14 passed, 14 total
+Snapshots:   0 total
+Time:        3.072 s, estimated 7 s
+Ran all test suites.

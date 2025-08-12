@@ -36,7 +36,7 @@ export const NetworkStatus: React.FC<NetworkStatusProps> = ({ connections }) => 
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-testid="network-status">
       <div className="text-sm text-gray-400 mb-4">
         Network connections status for all KNIRV services
       </div>

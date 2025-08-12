@@ -290,7 +290,7 @@ function App() {
     <div className="min-h-screen bg-gray-900 text-white relative overflow-hidden">
       <EdgeColoring color={getEdgeColor()} intensity={shellStatus !== 'idle' ? 0.8 : 0.3} />
       
-      <div ref={shellRef} className="relative w-full h-screen">
+      <main ref={shellRef} className="relative w-full h-screen" role="main">
         <KnirvShell
           status={shellStatus}
           nrnBalance={nrnBalance}
@@ -395,7 +395,7 @@ function App() {
             {shellStatus.charAt(0).toUpperCase() + shellStatus.slice(1)}
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

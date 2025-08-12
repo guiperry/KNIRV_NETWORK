@@ -46,7 +46,7 @@ export const NRVVisualization: React.FC<NRVVisualizationProps> = ({
   };
 
   return (
-    <div className="absolute top-20 left-4 z-30 space-y-2 max-w-sm">
+    <div className="absolute top-20 left-4 z-30 space-y-2 max-w-sm" data-testid="nrv-visualization">
       {nrvs.map((nrv) => (
         <div
           key={nrv.id}

@@ -47,7 +47,7 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
   const availableNRVs = nrvs.filter(nrv => nrv.status === 'Mapped' || nrv.status === 'Identified');
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="agent-manager">
       {/* Balance Display */}
       <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
         <div className="flex items-center space-x-2">

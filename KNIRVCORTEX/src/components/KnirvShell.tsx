@@ -36,8 +36,8 @@ export const KnirvShell: React.FC<KnirvShellProps> = ({
               <Brain className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white">KNIRV-CORTEX</h1>
-              <p className="text-xs text-gray-400">Adaptive Intelligence Interface</p>
+              <h1 className="text-lg font-bold text-white">KNIRV Cortex</h1>
+              <p className="text-xs text-gray-400">AI Agent Framework</p>
             </div>
           </div>
           

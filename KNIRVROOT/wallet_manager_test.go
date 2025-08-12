@@ -55,6 +55,12 @@ func TestWalletManager_SaveLoadMasterWallet(t *testing.T) {
 	}
 
 	// Test LoadMasterWallet with correct address
+	// For bootnode role, we need to save the regular wallet too since LoadMasterWallet checks for it
+	err = wm.SaveWallet(testWallet, config.RoleBootnode)
+	if err != nil {
+		t.Fatalf("SaveWallet failed: %v", err)
+	}
+
 	loadedWallet, err := wm.LoadMasterWallet(testAddress, config.RoleBootnode)
 	if err != nil {
 		t.Fatalf("LoadMasterWallet failed with correct address: %v", err)
@@ -99,10 +105,15 @@ func TestWalletManager_WalletConsistencyChecks(t *testing.T) {
 		Address: testAddress,
 	}
 
-	// Save wallet
+	// Save both wallets for bootnode role
 	err = wm.SaveMasterWallet(testWallet, config.RoleBootnode)
 	if err != nil {
 		t.Fatalf("SaveMasterWallet failed: %v", err)
+	}
+
+	err = wm.SaveWallet(testWallet, config.RoleBootnode)
+	if err != nil {
+		t.Fatalf("SaveWallet failed: %v", err)
 	}
 
 	// Test consistency checks

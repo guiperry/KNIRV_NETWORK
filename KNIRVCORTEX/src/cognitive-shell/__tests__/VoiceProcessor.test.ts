@@ -95,14 +95,16 @@ describe('VoiceProcessor', () => {
     });
 
     it('should start audio input successfully', async () => {
-      await voiceProcessor.startListening();
-      expect(voiceProcessor.isListening()).toBe(true);
+      await voiceProcessor.start();
+      const metrics = voiceProcessor.getMetrics();
+      expect(metrics.isListening).toBe(true);
     });
 
     it('should stop audio input successfully', async () => {
-      await voiceProcessor.startListening();
-      await voiceProcessor.stopListening();
-      expect(voiceProcessor.isListening()).toBe(false);
+      await voiceProcessor.start();
+      await voiceProcessor.stop();
+      const metrics = voiceProcessor.getMetrics();
+      expect(metrics.isListening).toBe(false);
     });
 
     it('should handle getUserMedia errors gracefully', async () => {
@@ -111,13 +113,13 @@ describe('VoiceProcessor', () => {
         Promise.reject(new Error('Permission denied'))
       );
 
-      await expect(voiceProcessor.startListening()).rejects.toThrow('Permission denied');
+      await expect(voiceProcessor.start()).rejects.toThrow('Permission denied');
     });
 
-    it('should enumerate available audio devices', async () => {
-      const devices = await voiceProcessor.getAvailableDevices();
-      expect(devices).toBeDefined();
-      expect(Array.isArray(devices)).toBe(true);
+    it('should enumerate available voices', async () => {
+      const voices = voiceProcessor.getAvailableVoices();
+      expect(voices).toBeDefined();
+      expect(Array.isArray(voices)).toBe(true);
     });
   });
 

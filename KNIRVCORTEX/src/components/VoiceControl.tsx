@@ -165,7 +165,7 @@ export const VoiceControl: React.FC<VoiceControlProps> = ({
   };
 
   return (
-    <div className="absolute bottom-4 right-4 z-40">
+    <div className="absolute bottom-4 right-4 z-40" data-testid="voice-control">
       <div className="flex flex-col items-end space-y-2">
         {/* Voice Transcript */}
         {(isListening || transcript) && (
