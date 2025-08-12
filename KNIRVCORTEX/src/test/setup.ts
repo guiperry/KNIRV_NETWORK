@@ -303,6 +303,94 @@ Object.defineProperty(window, 'sessionStorage', {
   value: localStorageMock,
 });
 
+// Mock MediaRecorder
+const MockMediaRecorder: any = jest.fn().mockImplementation(() => ({
+  start: jest.fn(),
+  stop: jest.fn(),
+  pause: jest.fn(),
+  resume: jest.fn(),
+  addEventListener: jest.fn(),
+  removeEventListener: jest.fn(),
+  state: 'inactive',
+  mimeType: 'audio/webm',
+  stream: null,
+  ondataavailable: null,
+  onerror: null,
+  onpause: null,
+  onresume: null,
+  onstart: null,
+  onstop: null,
+}));
+
+MockMediaRecorder.isTypeSupported = jest.fn().mockReturnValue(true);
+global.MediaRecorder = MockMediaRecorder;
+
+// Mock SpeechSynthesisUtterance
+global.SpeechSynthesisUtterance = jest.fn().mockImplementation((text) => ({
+  text: text || '',
+  lang: 'en-US',
+  voice: null,
+  volume: 1,
+  rate: 1,
+  pitch: 1,
+  onstart: null,
+  onend: null,
+  onerror: null,
+  onpause: null,
+  onresume: null,
+  onmark: null,
+  onboundary: null,
+}));
+
+// Mock speechSynthesis
+Object.defineProperty(window, 'speechSynthesis', {
+  value: {
+    speak: jest.fn(),
+    cancel: jest.fn(),
+    pause: jest.fn(),
+    resume: jest.fn(),
+    getVoices: jest.fn().mockReturnValue([
+      { name: 'Test Voice', lang: 'en-US', default: true }
+    ]),
+    speaking: false,
+    pending: false,
+    paused: false,
+    onvoiceschanged: null,
+  },
+  writable: true,
+});
+
+// Mock SpeechRecognition
+const mockSpeechRecognition = jest.fn().mockImplementation(() => ({
+  start: jest.fn(),
+  stop: jest.fn(),
+  abort: jest.fn(),
+  continuous: true,
+  interimResults: true,
+  lang: 'en-US',
+  onstart: null,
+  onend: null,
+  onresult: null,
+  onerror: null,
+  onspeechstart: null,
+  onspeechend: null,
+  onsoundstart: null,
+  onsoundend: null,
+  onaudiostart: null,
+  onaudioend: null,
+  onnomatch: null,
+}));
+
+Object.defineProperty(window, 'SpeechRecognition', {
+  value: mockSpeechRecognition,
+  writable: true,
+});
+
+Object.defineProperty(window, 'webkitSpeechRecognition', {
+  value: mockSpeechRecognition,
+  writable: true,
+});
+
 // Mock fetch
 global.fetch = jest.fn(() =>
   Promise.resolve({

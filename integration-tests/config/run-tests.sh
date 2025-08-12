@@ -57,17 +57,17 @@ start_real_services() {
     # Start KNIRVROOT (Core Network)
     print_status "Starting KNIRVROOT on port 1317..."
     cd "$PROJECT_ROOT/KNIRVROOT"
-    nohup go run . --role=Client --http-port=1317 --skip-install > "$TEST_DIR/logs/knirvroot.log" 2>&1 &
+    nohup go run . --role=root --port=1317 --skip-install > "$TEST_DIR/logs/knirvroot.log" 2>&1 &
     echo $! > "$TEST_DIR/logs/knirvroot.pid"
 
     # Start KNIRVGRAPH (Graph Database)
     print_status "Starting KNIRVGRAPH on port 8082..."
     cd "$PROJECT_ROOT/KNIRVGRAPH"
-    nohup go run . --port=8082 > "$TEST_DIR/logs/knirvgraph.log" 2>&1 &
+    nohup go run cmd/node/main.go --port=8082 --testnet --memory > "$TEST_DIR/logs/knirvgraph.log" 2>&1 &
     echo $! > "$TEST_DIR/logs/knirvgraph.pid"
 
     # Start KNIRVCHAIN (Blockchain)
-    print_status "Starting KNIRVCHAIN on port 8090..."
+    print_status "Starting KNIRVCHAIN on port 8000..."
     cd "$PROJECT_ROOT/KNIRVCHAIN"
     nohup cargo run > "$TEST_DIR/logs/knirvchain.log" 2>&1 &
     echo $! > "$TEST_DIR/logs/knirvchain.pid"
@@ -84,14 +84,59 @@ start_real_services() {
     nohup go run . --port=5001 > "$TEST_DIR/logs/knirvrouter.log" 2>&1 &
     echo $! > "$TEST_DIR/logs/knirvrouter.pid"
 
-    # Start KNIRVGATEWAY (Gateway)
+    # Start KNIRVGATEWAY (Gateway) - Node.js server with Netlify Functions
     print_status "Starting KNIRVGATEWAY on port 8888..."
     cd "$PROJECT_ROOT/KNIRVGATEWAY"
-    nohup python3 -m http.server 8888 > "$TEST_DIR/logs/knirvgateway.log" 2>&1 &
+    # Install dependencies if needed
+    if [ ! -d "node_modules" ]; then
+        npm install
+    fi
+    nohup npm start > "$TEST_DIR/logs/knirvgateway.log" 2>&1 &
     echo $! > "$TEST_DIR/logs/knirvgateway.pid"
 
     print_status "Waiting for services to start..."
-    sleep 10
+    print_status "This may take several minutes for Rust compilation and Node.js setup..."
+
+    # Show startup progress by monitoring logs
+    show_startup_progress() {
+        local wait_time=60
+        local check_interval=10
+        local elapsed=0
+
+        while [ $elapsed -lt $wait_time ]; do
+            echo "=== Startup Progress (${elapsed}s/${wait_time}s) ==="
+
+            # Check KNIRVCHAIN compilation progress
+            if [ -f "$TEST_DIR/logs/knirvchain.log" ]; then
+                echo "KNIRVCHAIN (Rust compilation):"
+                tail -3 "$TEST_DIR/logs/knirvchain.log" 2>/dev/null | sed 's/^/  /' || echo "  No output yet..."
+            fi
+
+            # Check KNIRVGATEWAY Node.js startup
+            if [ -f "$TEST_DIR/logs/knirvgateway.log" ]; then
+                echo "KNIRVGATEWAY (Node.js/Netlify):"
+                tail -3 "$TEST_DIR/logs/knirvgateway.log" 2>/dev/null | sed 's/^/  /' || echo "  No output yet..."
+            fi
+
+            # Check KNIRVNEXUS Node.js startup
+            if [ -f "$TEST_DIR/logs/knirvnexus.log" ]; then
+                echo "KNIRVNEXUS (Node.js/TypeScript):"
+                tail -3 "$TEST_DIR/logs/knirvnexus.log" 2>/dev/null | sed 's/^/  /' || echo "  No output yet..."
+            fi
+
+            # Check KNIRVROOT startup
+            if [ -f "$TEST_DIR/logs/knirvroot.log" ]; then
+                echo "KNIRVROOT (Go application):"
+                tail -3 "$TEST_DIR/logs/knirvroot.log" 2>/dev/null | sed 's/^/  /' || echo "  No output yet..."
+            fi
+
+            echo ""
+            sleep $check_interval
+            elapsed=$((elapsed + check_interval))
+        done
+    }
+
+    show_startup_progress
 
     # Verify services are running
     verify_services_running
@@ -103,52 +148,141 @@ verify_services_running() {
 
     local services_ok=true
 
-    # Check KNIRVROOT health
-    if ! curl -s "http://localhost:1317/health" > /dev/null; then
-        print_warning "KNIRVROOT health check failed"
+    # Helper function to extract port from service logs
+    get_service_port() {
+        local service_name="$1"
+        local log_file="$TEST_DIR/logs/$(echo $service_name | tr '[:upper:]' '[:lower:]').log"
+
+        if [ ! -f "$log_file" ]; then
+            return 1
+        fi
+
+        case "$service_name" in
+            "KNIRVCHAIN")
+                # Look for "Starting server at http://127.0.0.1:PORT" or similar
+                grep -o "Starting server at http://[^:]*:\([0-9]*\)" "$log_file" | tail -1 | grep -o "[0-9]*$"
+                ;;
+            "KNIRVROOT")
+                # Look for "Starting Server on port PORT" or similar
+                grep -o "Starting.*[Ss]erver.*port \([0-9]*\)" "$log_file" | tail -1 | grep -o "[0-9]*$"
+                ;;
+            "KNIRVGRAPH")
+                # Look for port in startup messages
+                grep -o "port \([0-9]*\)" "$log_file" | tail -1 | grep -o "[0-9]*$"
+                ;;
+            "KNIRVNEXUS")
+                # Look for "Server running on port PORT" or similar
+                grep -o "[Ss]erver.*port \([0-9]*\)" "$log_file" | tail -1 | grep -o "[0-9]*$"
+                ;;
+            "KNIRVGATEWAY")
+                # Look for Netlify dev server port
+                grep -o "Local:.*localhost:\([0-9]*\)" "$log_file" | tail -1 | grep -o "[0-9]*$"
+                ;;
+            "KNIRVROUTER")
+                # Look for router startup port
+                grep -o "[Ll]istening.*port \([0-9]*\)" "$log_file" | tail -1 | grep -o "[0-9]*$"
+                ;;
+        esac
+    }
+
+    # Helper function to get service health endpoint
+    get_service_health_endpoint() {
+        local service_name="$1"
+        local port="$2"
+
+        case "$service_name" in
+            "KNIRVCHAIN")
+                echo "http://localhost:$port/health"
+                ;;
+            "KNIRVROOT")
+                echo "http://localhost:$port/health"
+                ;;
+            "KNIRVGRAPH")
+                echo "http://localhost:$port/height"
+                ;;
+            "KNIRVNEXUS")
+                echo "http://localhost:$port/health"
+                ;;
+            "KNIRVGATEWAY")
+                echo "http://localhost:$port/gateway/health"
+                ;;
+            "KNIRVROUTER")
+                echo "http://localhost:$port/status"
+                ;;
+        esac
+    }
+
+    # Helper function to check service with retries and dynamic port discovery
+    check_service_with_retries() {
+        local service_name="$1"
+        local fallback_url="$2"
+        local max_retries=5
+        local retry_delay=10
+
+        for i in $(seq 1 $max_retries); do
+            # Try to discover the actual port from logs
+            local discovered_port=$(get_service_port "$service_name")
+            local url="$fallback_url"
+
+            if [ -n "$discovered_port" ]; then
+                url=$(get_service_health_endpoint "$service_name" "$discovered_port")
+                echo "  Discovered $service_name running on port $discovered_port"
+            fi
+
+            if curl -s "$url" > /dev/null 2>&1; then
+                print_success "$service_name is running on $url"
+                return 0
+            fi
+
+            if [ $i -lt $max_retries ]; then
+                print_status "Waiting for $service_name (attempt $i/$max_retries)..."
+                # Show recent log output for debugging
+                local log_file="$TEST_DIR/logs/$(echo $service_name | tr '[:upper:]' '[:lower:]').log"
+                if [ -f "$log_file" ]; then
+                    echo "  Recent log output:"
+                    tail -2 "$log_file" 2>/dev/null | sed 's/^/    /' || echo "    No recent output..."
+                fi
+                sleep $retry_delay
+            fi
+        done
+        print_warning "$service_name health check failed after $max_retries attempts"
+        # Show final log output for debugging
+        local log_file="$TEST_DIR/logs/$(echo $service_name | tr '[:upper:]' '[:lower:]').log"
+        if [ -f "$log_file" ]; then
+            echo "  Final log output:"
+            tail -5 "$log_file" 2>/dev/null | sed 's/^/    /' || echo "    No log output available..."
+        fi
+        return 1
+    }
+
+    # Check KNIRVROOT health (fallback to expected port)
+    if ! check_service_with_retries "KNIRVROOT" "http://localhost:1317/health"; then
         services_ok=false
-    else
-        print_success "KNIRVROOT is running"
     fi
 
-    # Check KNIRVGRAPH height endpoint
-    if ! curl -s "http://localhost:8082/height" > /dev/null; then
-        print_warning "KNIRVGRAPH height check failed"
+    # Check KNIRVGRAPH height endpoint (fallback to expected port)
+    if ! check_service_with_retries "KNIRVGRAPH" "http://localhost:8082/height"; then
         services_ok=false
-    else
-        print_success "KNIRVGRAPH is running"
     fi
 
-    # Check KNIRVCHAIN health
-    if ! curl -s "http://localhost:8090/health" > /dev/null; then
-        print_warning "KNIRVCHAIN health check failed"
+    # Check KNIRVCHAIN health (fallback to expected port)
+    if ! check_service_with_retries "KNIRVCHAIN" "http://localhost:8000/health"; then
         services_ok=false
-    else
-        print_success "KNIRVCHAIN is running"
     fi
 
-    # Check KNIRVNEXUS health
-    if ! curl -s "http://localhost:8083/health" > /dev/null; then
-        print_warning "KNIRVNEXUS health check failed"
+    # Check KNIRVNEXUS health (fallback to expected port)
+    if ! check_service_with_retries "KNIRVNEXUS" "http://localhost:8083/health"; then
         services_ok=false
-    else
-        print_success "KNIRVNEXUS is running"
     fi
 
-    # Check KNIRVROUTER status
-    if ! curl -s "http://localhost:5001/status" > /dev/null; then
-        print_warning "KNIRVROUTER status check failed"
+    # Check KNIRVROUTER status (fallback to expected port)
+    if ! check_service_with_retries "KNIRVROUTER" "http://localhost:5001/status"; then
         services_ok=false
-    else
-        print_success "KNIRVROUTER is running"
     fi
 
-    # Check KNIRVGATEWAY health
-    if ! curl -s "http://localhost:8888/gateway/health" > /dev/null; then
-        print_warning "KNIRVGATEWAY health check failed"
+    # Check KNIRVGATEWAY health (fallback to expected port)
+    if ! check_service_with_retries "KNIRVGATEWAY" "http://localhost:8888/gateway/health"; then
         services_ok=false
-    else
-        print_success "KNIRVGATEWAY is running"
     fi
 
     if [ "$services_ok" = false ]; then
@@ -472,8 +606,8 @@ generate_test_report() {
         },
         "knirvgateway": {
             "port": 8888,
-            "health_endpoint": "http://localhost:8888/gateway/health",
-            "status": "$(curl -s http://localhost:8888/gateway/health > /dev/null && echo 'running' || echo 'stopped')"
+            "health_endpoint": "http://localhost:8888/",
+            "status": "$(curl -s http://localhost:8888/ > /dev/null && echo 'running' || echo 'stopped')"
         }
     },
     "test_results": {
@@ -550,11 +684,11 @@ EOF
                 <p>Status: <span class="$(curl -s http://localhost:5001/status > /dev/null && echo 'running' || echo 'stopped')">$(curl -s http://localhost:5001/status > /dev/null && echo 'RUNNING' || echo 'STOPPED')</span></p>
                 <p>Health: http://localhost:5001/status</p>
             </div>
-            <div class="service $(curl -s http://localhost:8888/gateway/health > /dev/null && echo 'running' || echo 'stopped')">
+            <div class="service $(curl -s http://localhost:8888/ > /dev/null && echo 'running' || echo 'stopped')">
                 <h4>KNIRVGATEWAY (Gateway)</h4>
                 <p>Port: 8888</p>
-                <p>Status: <span class="$(curl -s http://localhost:8888/gateway/health > /dev/null && echo 'running' || echo 'stopped')">$(curl -s http://localhost:8888/gateway/health > /dev/null && echo 'RUNNING' || echo 'STOPPED')</span></p>
-                <p>Health: http://localhost:8888/gateway/health</p>
+                <p>Status: <span class="$(curl -s http://localhost:8888/ > /dev/null && echo 'running' || echo 'stopped')">$(curl -s http://localhost:8888/ > /dev/null && echo 'RUNNING' || echo 'STOPPED')</span></p>
+                <p>Health: http://localhost:8888/</p>
             </div>
         </div>
     </div>

@@ -1,0 +1,21 @@
+KNIRVSDK Multi-Language Test Summary
+====================================
+Timestamp: 20250812_031524
+Project Root: /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSDK
+
+Test Results:
+- Go SDK: PASSED
+- Python SDK: FAILED
+- TypeScript SDK: PASSED
+
+Coverage Information:
+- Go Coverage: 0.0%
+- Python Coverage: N/A
+- TypeScript Coverage: N/A
+
+Generated Files:
+- Go Test Output: ✓
+- Python Test Output: ✓
+- TypeScript Test Output: ✓
+
+Overall Status: PARTIAL SUCCESS

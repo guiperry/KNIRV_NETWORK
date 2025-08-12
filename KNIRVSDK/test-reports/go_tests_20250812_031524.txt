@@ -1,0 +1,9 @@
+=== RUN   TestMain
+    main_test.go:17: KNIRV Go SDK main package test passed
+--- PASS: TestMain (0.00s)
+=== RUN   TestPackageImports
+    main_test.go:24: All package imports successful
+--- PASS: TestPackageImports (0.00s)
+PASS
+coverage: 0.0% of statements
+ok  	github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go	0.004s	coverage: 0.0% of statements

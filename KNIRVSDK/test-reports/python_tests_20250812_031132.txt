@@ -1,0 +1,121 @@
+Testing Python gateway module...
+============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-8.4.1, pluggy-1.6.0 -- /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSDK/py/venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSDK/py/gateway
+configfile: pyproject.toml
+testpaths: tests
+plugins: asyncio-1.1.0, respx-0.22.0, cov-6.2.1, mock-3.14.1, anyio-4.10.0
+asyncio: mode=auto, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 42 items
+
+tests/test_client.py::test_client_initialization PASSED                  [  2%]
+tests/test_client.py::test_economics_client_creation PASSED              [  4%]
+tests/test_client.py::test_gateway_client_creation PASSED                [  7%]
+tests/test_client.py::test_auth_headers PASSED                           [  9%]
+tests/test_client.py::test_auth_headers_no_key PASSED                    [ 11%]
+tests/test_economics.py::TestEconomicsSkillsService::test_list_skills PASSED [ 14%]
+tests/test_economics.py::TestEconomicsSkillsService::test_list_skills_with_pagination PASSED [ 16%]
+tests/test_economics.py::TestEconomicsSkillsService::test_get_skill PASSED [ 19%]
+tests/test_economics.py::TestEconomicsSkillsService::test_get_skill_not_found PASSED [ 21%]
+tests/test_economics.py::TestEconomicsSkillsService::test_create_skill PASSED [ 23%]
+tests/test_economics.py::TestEconomicsSkillsService::test_create_skill_validation_error PASSED [ 26%]
+tests/test_economics.py::TestEconomicsSkillsService::test_update_skill PASSED [ 28%]
+tests/test_economics.py::TestEconomicsSkillsService::test_delete_skill PASSED [ 30%]
+tests/test_economics.py::TestEconomicsSkillsService::test_search_skills PASSED [ 33%]
+tests/test_economics.py::TestEconomicsLLMService::test_list_models PASSED [ 35%]
+tests/test_economics.py::TestEconomicsLLMService::test_get_usage PASSED  [ 38%]
+tests/test_economics.py::TestEconomicsLLMService::test_estimate_cost PASSED [ 40%]
+tests/test_economics.py::TestEconomicsValidationService::test_validate_skill PASSED [ 42%]
+tests/test_economics.py::TestEconomicsValidationService::test_validate_skill_with_errors PASSED [ 45%]
+tests/test_economics.py::TestEconomicsValidationService::test_list_validation_rules PASSED [ 47%]
+tests/test_economics.py::TestEconomicsErrorHandling::test_network_error FAILED [ 50%]
+tests/test_economics.py::TestEconomicsErrorHandling::test_server_error FAILED [ 52%]
+tests/test_economics.py::TestEconomicsErrorHandling::test_timeout_error FAILED [ 54%]
+tests/test_economics.py::TestEconomicsErrorHandling::test_invalid_parameters FAILED [ 57%]
+tests/test_poaud.py::TestPoAuDProofsService::test_list_proofs PASSED     [ 59%]
+tests/test_poaud.py::TestPoAuDProofsService::test_list_proofs_with_filters PASSED [ 61%]
+tests/test_poaud.py::TestPoAuDProofsService::test_get_proof PASSED       [ 64%]
+tests/test_poaud.py::TestPoAuDProofsService::test_create_proof PASSED    [ 66%]
+tests/test_poaud.py::TestPoAuDProofsService::test_update_proof PASSED    [ 69%]
+tests/test_poaud.py::TestPoAuDProofsService::test_verify_proof PASSED    [ 71%]
+tests/test_poaud.py::TestPoAuDChallengesService::test_list_challenges PASSED [ 73%]
+tests/test_poaud.py::TestPoAuDChallengesService::test_get_challenge PASSED [ 76%]
+tests/test_poaud.py::TestPoAuDChallengesService::test_create_challenge PASSED [ 78%]
+tests/test_poaud.py::TestPoAuDChallengesService::test_submit_challenge PASSED [ 80%]
+tests/test_poaud.py::TestPoAuDChallengesService::test_get_challenge_submissions PASSED [ 83%]
+tests/test_poaud.py::TestPoAuDReputationService::test_get_user_reputation PASSED [ 85%]
+tests/test_poaud.py::TestPoAuDReputationService::test_get_leaderboard PASSED [ 88%]
+tests/test_poaud.py::TestPoAuDReputationService::test_update_reputation PASSED [ 90%]
+tests/test_poaud.py::TestPoAuDValidation::test_proof_validation PASSED   [ 92%]
+tests/test_poaud.py::TestPoAuDValidation::test_challenge_validation PASSED [ 95%]
+tests/test_poaud.py::TestPoAuDValidation::test_api_error_handling PASSED [ 97%]
+tests/test_poaud.py::TestPoAuDValidation::test_validation_error_handling FAILED [100%]
+
+=================================== FAILURES ===================================
+________________ TestEconomicsErrorHandling.test_network_error _________________
+tests/test_economics.py:455: in test_network_error
+    with pytest.raises(KNIRVAPIError):
+E   Failed: DID NOT RAISE <class 'knirv_gateway_sdk._exceptions.APIError'>
+_________________ TestEconomicsErrorHandling.test_server_error _________________
+tests/test_economics.py:468: in test_server_error
+    with pytest.raises(KNIRVAPIError) as exc_info:
+E   Failed: DID NOT RAISE <class 'knirv_gateway_sdk._exceptions.APIError'>
+________________ TestEconomicsErrorHandling.test_timeout_error _________________
+tests/test_economics.py:479: in test_timeout_error
+    with pytest.raises(KNIRVAPIError):
+E   Failed: DID NOT RAISE <class 'knirv_gateway_sdk._exceptions.APIError'>
+______________ TestEconomicsErrorHandling.test_invalid_parameters ______________
+tests/test_economics.py:485: in test_invalid_parameters
+    client.economics.skills.get("")  # Empty skill ID
+src/knirv_gateway_sdk/resources/economics.py:110: in get
+    raise APIError("Skill not found", status_code=404)
+E   knirv_gateway_sdk._exceptions.APIError: Skill not found
+______________ TestPoAuDValidation.test_validation_error_handling ______________
+tests/test_poaud.py:568: in test_validation_error_handling
+    client.poaud.proofs.create({})
+src/knirv_gateway_sdk/resources/poaud.py:121: in create
+    raise ValueError("Missing required fields: skill_id and user_id")
+E   ValueError: Missing required fields: skill_id and user_id
+=========================== short test summary info ============================
+FAILED tests/test_economics.py::TestEconomicsErrorHandling::test_network_error
+FAILED tests/test_economics.py::TestEconomicsErrorHandling::test_server_error
+FAILED tests/test_economics.py::TestEconomicsErrorHandling::test_timeout_error
+FAILED tests/test_economics.py::TestEconomicsErrorHandling::test_invalid_parameters
+FAILED tests/test_poaud.py::TestPoAuDValidation::test_validation_error_handling
+========================= 5 failed, 37 passed in 4.69s =========================
+Python gateway tests failed
+Testing Python transaction module...
+============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-8.4.1, pluggy-1.6.0 -- /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSDK/py/venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSDK/py/transaction
+configfile: pyproject.toml
+testpaths: tests
+plugins: asyncio-1.1.0, respx-0.22.0, cov-6.2.1, mock-3.14.1, anyio-4.10.0
+asyncio: mode=auto, asyncio_default_fixture_loop_scope=session, asyncio_default_test_loop_scope=function
+collecting ... collected 564 items / 1 error
+
+==================================== ERRORS ====================================
+_____________________ ERROR collecting tests/test_files.py _____________________
+ImportError while importing test module '/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSDK/py/transaction/tests/test_files.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/test_files.py:5: in <module>
+    from dirty_equals import IsDict, IsList, IsBytes, IsTuple
+E   ModuleNotFoundError: No module named 'dirty_equals'
+=========================== short test summary info ============================
+ERROR tests/test_files.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+=============================== 1 error in 2.96s ===============================
+Python transaction tests failed
+Testing Python transmission module...
+No tests found for Python transmission module
+Testing Python unified module...
+ImportError while loading conftest '/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSDK/py/unified/tests/conftest.py'.
+tests/conftest.py:10: in <module>
+    from knirv_sdk import KNIRVClient, ClientConfig
+E   ModuleNotFoundError: No module named 'knirv_sdk'
+Python unified tests failed

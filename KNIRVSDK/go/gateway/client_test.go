@@ -212,12 +212,13 @@ func TestClientHTTPMethods(t *testing.T) {
 func TestClientRequestHeaders(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Check for expected headers
-		if r.Header.Get("Authorization") == "" {
-			t.Error("Expected Authorization header")
+		if r.Header.Get("X-API-Key") == "" {
+			t.Error("Expected X-API-Key header")
 		}
 
-		if r.Header.Get("Content-Type") != "application/json" {
-			t.Error("Expected Content-Type: application/json")
+		// Content-Type is only set for requests with body, so we'll check Accept instead
+		if r.Header.Get("Accept") != "application/json" {
+			t.Error("Expected Accept: application/json")
 		}
 
 		if r.Header.Get("User-Agent") == "" {

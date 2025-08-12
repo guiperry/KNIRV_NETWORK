@@ -76,20 +76,44 @@ if [ -d "go" ]; then
             print_error "Failed to install Go dependencies"
         fi
         
-        # Run Go tests
+        # Run Go tests for all modules
         echo "Running Go tests..."
         GO_TEST_OUTPUT="$REPORTS_DIR/go_tests_$TIMESTAMP.txt"
         GO_COVERAGE_OUTPUT="$COVERAGE_DIR/go_coverage_$TIMESTAMP.out"
-        
-        if go test -v -coverprofile="$GO_COVERAGE_OUTPUT" ./... > "$GO_TEST_OUTPUT" 2>&1; then
+        GO_TESTS_PASSED=true
+
+        # Test main module first
+        echo "Testing main Go module..." > "$GO_TEST_OUTPUT"
+        if go test -v -coverprofile="$GO_COVERAGE_OUTPUT" ./... >> "$GO_TEST_OUTPUT" 2>&1; then
+            echo "Main Go module tests passed" >> "$GO_TEST_OUTPUT"
+        else
+            echo "Main Go module tests failed" >> "$GO_TEST_OUTPUT"
+            GO_TESTS_PASSED=false
+        fi
+
+        # Test individual modules for better coverage
+        for module in gateway transaction transmission; do
+            if [ -d "$module" ]; then
+                echo "Testing Go $module module..." >> "$GO_TEST_OUTPUT"
+                cd "$module"
+                if go test -v -coverprofile="$COVERAGE_DIR/go_${module}_coverage_$TIMESTAMP.out" ./... >> "$GO_TEST_OUTPUT" 2>&1; then
+                    echo "Go $module tests passed" >> "$GO_TEST_OUTPUT"
+                else
+                    echo "Go $module tests failed" >> "$GO_TEST_OUTPUT"
+                    GO_TESTS_PASSED=false
+                fi
+                cd ..
+            fi
+        done
+
+        if [ "$GO_TESTS_PASSED" = true ]; then
             print_success "Go tests passed"
-            GO_TESTS_PASSED=true
-            
-            # Generate coverage report
+
+            # Generate coverage report from main module
             if go tool cover -html="$GO_COVERAGE_OUTPUT" -o "$COVERAGE_DIR/go_coverage_$TIMESTAMP.html"; then
                 print_success "Go coverage report generated"
             fi
-            
+
             # Extract coverage percentage
             GO_COVERAGE=$(go tool cover -func="$GO_COVERAGE_OUTPUT" | tail -1 | awk '{print $3}')
             echo "Go Coverage: $GO_COVERAGE"
@@ -155,17 +179,17 @@ if [ -d "py" ]; then
         # Test each Python submodule separately
         PYTHON_TESTS_PASSED=true
 
-        for module in gateway transaction transmission; do
+        for module in gateway transaction transmission unified; do
             if [ -d "$module" ]; then
                 echo "Testing Python $module module..." >> "$PYTHON_TEST_OUTPUT"
                 cd "$module"
                 if [ -f "pyproject.toml" ] && [ -d "tests" ]; then
-                    if ! pytest --verbose >> "../$PYTHON_TEST_OUTPUT" 2>&1; then
-                        echo "Python $module tests failed" >> "../$PYTHON_TEST_OUTPUT"
+                    if ! pytest --verbose >> "$PYTHON_TEST_OUTPUT" 2>&1; then
+                        echo "Python $module tests failed" >> "$PYTHON_TEST_OUTPUT"
                         PYTHON_TESTS_PASSED=false
                     fi
                 else
-                    echo "No tests found for Python $module module" >> "../$PYTHON_TEST_OUTPUT"
+                    echo "No tests found for Python $module module" >> "$PYTHON_TEST_OUTPUT"
                 fi
                 cd ..
             fi

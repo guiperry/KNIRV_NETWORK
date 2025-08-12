@@ -241,7 +241,7 @@ func advancedExample() {
 		return
 	}
 
-	fmt.Printf("Estimated fees: %s\n", feesResp.TotalFee)
+	fmt.Printf("Estimated fees: %.2f\n", feesResp.TotalFee)
 
 	// 3. Process the skill invocation
 	skillResp, err := client.Economics.Skills.Invoke(ctx, gateway.SkillInvocationRequest{

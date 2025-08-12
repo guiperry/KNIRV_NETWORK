@@ -32,6 +32,7 @@ type Config struct {
 	Testnet TestnetConfig `json:"testnet"`
 }
 
+// App represents the main GraphChain application
 type App struct {
 	graphchain      *graphchain.GraphChain
 	nrvSystem       *nrv.NRVSystem
@@ -43,6 +44,7 @@ type App struct {
 	config          *Config
 }
 
+// NewApp creates a new GraphChain application instance
 func NewApp(homeDir string, rpcPort int) (*App, error) {
 	logger, _ := zap.NewProduction()
 

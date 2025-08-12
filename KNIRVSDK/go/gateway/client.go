@@ -260,8 +260,47 @@ func (c *Client) NewRequest(ctx context.Context, method, path string, body inter
 
 // Do executes an HTTP request and returns the response
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
-	client := &http.Client{
-		Timeout: 30 * time.Second,
+	// Create a temporary config to get the configured HTTP client and retry settings
+	cfg := &requestconfig.RequestConfig{}
+	for _, opt := range c.Options {
+		opt(cfg)
 	}
-	return client.Do(req)
+
+	// Use the configured HTTP client
+	httpClient := cfg.GetHTTPClient()
+
+	// Implement retry logic
+	maxRetries := cfg.Retries
+	if maxRetries == 0 {
+		maxRetries = 1 // At least one attempt
+	}
+
+	var lastErr error
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		resp, err := httpClient.Do(req)
+		if err == nil && resp.StatusCode < 500 {
+			// Success or client error (don't retry client errors)
+			return resp, nil
+		}
+
+		// Store the error for potential return
+		if err != nil {
+			lastErr = err
+		} else {
+			resp.Body.Close() // Close the body before retrying
+		}
+
+		// Don't sleep after the last attempt
+		if attempt < maxRetries-1 && cfg.RetryDelay > 0 {
+			time.Sleep(cfg.RetryDelay)
+		}
+	}
+
+	// Return the last error if all retries failed
+	if lastErr != nil {
+		return nil, lastErr
+	}
+
+	// This shouldn't happen, but just in case
+	return nil, http.ErrServerClosed
 }

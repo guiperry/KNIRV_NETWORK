@@ -10,6 +10,20 @@ import { FabricAlgorithm } from './components/FabricAlgorithm';
 import { CognitiveShellInterface } from './components/CognitiveShellInterface';
 import { CognitiveState } from './cognitive-shell/CognitiveEngine';
 
+export interface Adaptation {
+  id: string;
+  type: string;
+  description: string;
+  timestamp: Date;
+}
+
+export interface SkillResult {
+  success: boolean;
+  data?: unknown;
+  error?: string;
+  executionTime?: number;
+}
+
 export interface NRV {
   id: string;
   problemDescription: string;
@@ -46,7 +60,7 @@ function App() {
   const [nrnBalance, setNrnBalance] = useState(1250);
   const [cognitiveMode, setCognitiveMode] = useState(false);
   const [cognitiveState, setCognitiveState] = useState<CognitiveState | null>(null);
-  const [networkConnections, setNetworkConnections] = useState<{
+  const [networkConnections] = useState<{
     [key: string]: 'connected' | 'disconnected' | 'connecting';
   }>({
     knirvChain: 'connected',
@@ -196,13 +210,7 @@ function App() {
     );
   };
 
-  const handleAnalyzeToggle = () => {
-    setActivePanels(prev => 
-      prev.includes('agent-manager') 
-        ? prev.filter(id => id !== 'agent-manager')
-        : [...prev, 'agent-manager']
-    );
-  };
+
 
   const handleNRVMapping = (nrv: NRV) => {
     setCurrentNRVs(prev => prev.map(n => 
@@ -251,7 +259,7 @@ function App() {
     setCognitiveState(state);
   };
 
-  const handleSkillInvoked = (skillId: string, result: any) => {
+  const handleSkillInvoked = (skillId: string, result: SkillResult) => {
     console.log('Skill invoked:', skillId, result);
 
     // Create NRV for skill invocation
@@ -268,7 +276,7 @@ function App() {
     setCurrentNRVs(prev => [...prev, newNRV]);
   };
 
-  const handleAdaptationTriggered = (adaptation: any) => {
+  const handleAdaptationTriggered = (adaptation: Adaptation) => {
     console.log('Adaptation triggered:', adaptation);
     setShellStatus('processing');
 

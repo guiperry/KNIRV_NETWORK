@@ -17,6 +17,49 @@ var (
 	rpcURL = "http://localhost:8080"
 )
 
+// makeHTTPRequest performs an HTTP GET request and returns the response body
+func makeHTTPRequest(url string) ([]byte, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("HTTP request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response: %v", err)
+	}
+
+	return body, nil
+}
+
+// makeHTTPPostRequest performs an HTTP POST request and returns the response body
+func makeHTTPPostRequest(url string, data []byte) ([]byte, error) {
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
+	if err != nil {
+		return nil, fmt.Errorf("HTTP POST request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response: %v", err)
+	}
+
+	return body, nil
+}
+
+// prettyPrintJSON formats and prints JSON data
+func prettyPrintJSON(data []byte) error {
+	var prettyJSON bytes.Buffer
+	err := json.Indent(&prettyJSON, data, "", "  ")
+	if err != nil {
+		return fmt.Errorf("error formatting JSON: %v", err)
+	}
+	fmt.Println(prettyJSON.String())
+	return nil
+}
+
 func main() {
 	var rootCmd = &cobra.Command{
 		Use:   "graphchain-cli",
@@ -51,16 +94,9 @@ func getHeightCmd() *cobra.Command {
 		Use:   "height",
 		Short: "Get current GraphChain height",
 		Run: func(cmd *cobra.Command, args []string) {
-			resp, err := http.Get(rpcURL + "/height")
+			body, err := makeHTTPRequest(rpcURL + "/height")
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
-				return
-			}
-			defer resp.Body.Close()
-
-			body, err := io.ReadAll(resp.Body)
-			if err != nil {
-				fmt.Printf("Error reading response: %v\n", err)
 				return
 			}
 
@@ -76,16 +112,9 @@ func getNodeCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			nodeID := args[0]
-			resp, err := http.Get(rpcURL + "/node/" + nodeID)
+			body, err := makeHTTPRequest(rpcURL + "/node/" + nodeID)
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
-				return
-			}
-			defer resp.Body.Close()
-
-			body, err := io.ReadAll(resp.Body)
-			if err != nil {
-				fmt.Printf("Error reading response: %v\n", err)
 				return
 			}
 
@@ -108,16 +137,9 @@ func getEdgeCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			edgeID := args[0]
-			resp, err := http.Get(rpcURL + "/edge/" + edgeID)
+			body, err := makeHTTPRequest(rpcURL + "/edge/" + edgeID)
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
-				return
-			}
-			defer resp.Body.Close()
-
-			body, err := io.ReadAll(resp.Body)
-			if err != nil {
-				fmt.Printf("Error reading response: %v\n", err)
 				return
 			}
 

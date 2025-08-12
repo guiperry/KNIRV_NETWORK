@@ -104,14 +104,14 @@ func testNodeRegistration(t *testing.T) {
 	nodeInfoJSON, err := json.Marshal(nodeInfo)
 	require.NoError(t, err, "Failed to marshal node info")
 
-	resp, err := http.Post("http://localhost:3003/api/node/register", "application/json", bytes.NewBuffer(nodeInfoJSON))
+	resp, err := http.Post("http://localhost:3003/api/registry/register", "application/json", bytes.NewBuffer(nodeInfoJSON))
 	require.NoError(t, err, "Failed to register node")
 	defer resp.Body.Close()
 
-	assert.Equal(t, http.StatusOK, resp.StatusCode, "Node registration failed")
+	assert.Equal(t, http.StatusCreated, resp.StatusCode, "Node registration failed")
 
 	// Verify the node was registered
-	resp, err = http.Get("http://localhost:3003/api/node/info?devId=QmTestPeerId123")
+	resp, err = http.Get("http://localhost:3003/api/registry/node/dev/QmTestPeerId123")
 	require.NoError(t, err, "Failed to get node info")
 	defer resp.Body.Close()
 

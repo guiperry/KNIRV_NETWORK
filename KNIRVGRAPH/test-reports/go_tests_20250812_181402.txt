@@ -1,0 +1,260 @@
+	blockchain-app		coverage: 0.0% of statements
+	blockchain-app/cmd/cli		coverage: 0.0% of statements
+=== RUN   TestMainFunction
+--- PASS: TestMainFunction (0.00s)
+=== RUN   TestEnvironmentVariables
+=== RUN   TestEnvironmentVariables/Port_configuration
+=== RUN   TestEnvironmentVariables/Storage_configuration
+=== RUN   TestEnvironmentVariables/Log_level_configuration
+--- PASS: TestEnvironmentVariables (0.00s)
+    --- PASS: TestEnvironmentVariables/Port_configuration (0.00s)
+    --- PASS: TestEnvironmentVariables/Storage_configuration (0.00s)
+    --- PASS: TestEnvironmentVariables/Log_level_configuration (0.00s)
+=== RUN   TestConfigurationDefaults
+--- PASS: TestConfigurationDefaults (0.00s)
+=== RUN   TestSignalHandling
+    main_test.go:136: Signal handling test placeholder - would test graceful shutdown
+--- PASS: TestSignalHandling (0.00s)
+=== RUN   TestApplicationStartup
+=== RUN   TestApplicationStartup/Valid_memory_storage
+=== RUN   TestApplicationStartup/Valid_leveldb_storage
+=== RUN   TestApplicationStartup/Invalid_port
+=== RUN   TestApplicationStartup/Invalid_storage_type
+--- PASS: TestApplicationStartup (0.00s)
+    --- PASS: TestApplicationStartup/Valid_memory_storage (0.00s)
+    --- PASS: TestApplicationStartup/Valid_leveldb_storage (0.00s)
+    --- PASS: TestApplicationStartup/Invalid_port (0.00s)
+    --- PASS: TestApplicationStartup/Invalid_storage_type (0.00s)
+=== RUN   TestResourceCleanup
+    main_test.go:211: Resource cleanup test placeholder - would test proper cleanup
+--- PASS: TestResourceCleanup (0.00s)
+=== RUN   TestHealthCheck
+    main_test.go:223: Health check test placeholder - would test application health
+--- PASS: TestHealthCheck (0.00s)
+=== RUN   TestMetrics
+    main_test.go:235: Metrics test placeholder - would test metrics collection
+--- PASS: TestMetrics (0.00s)
+=== RUN   TestLogging
+=== RUN   TestLogging/LogLevel_debug
+=== RUN   TestLogging/LogLevel_info
+=== RUN   TestLogging/LogLevel_warn
+=== RUN   TestLogging/LogLevel_error
+--- PASS: TestLogging (0.00s)
+    --- PASS: TestLogging/LogLevel_debug (0.00s)
+    --- PASS: TestLogging/LogLevel_info (0.00s)
+    --- PASS: TestLogging/LogLevel_warn (0.00s)
+    --- PASS: TestLogging/LogLevel_error (0.00s)
+=== RUN   TestDataDirectory
+--- PASS: TestDataDirectory (0.00s)
+=== RUN   TestVersionInfo
+    main_test.go:274: Version info test placeholder - would test version reporting
+--- PASS: TestVersionInfo (0.00s)
+PASS
+coverage: [no statements]
+ok  	blockchain-app/cmd	0.031s	coverage: [no statements]
+	blockchain-app/cmd/node		coverage: 0.0% of statements
+	blockchain-app/examples		coverage: 0.0% of statements
+	blockchain-app/internal/economics		coverage: 0.0% of statements
+	blockchain-app/pkg/utils		coverage: 0.0% of statements
+	blockchain-app/pkg/crypto		coverage: 0.0% of statements
+=== RUN   TestNewApp
+--- PASS: TestNewApp (0.36s)
+=== RUN   TestAppStartAndStop
+{"level":"info","ts":1755036847.2473655,"caller":"app/app.go:291","msg":"Starting GraphChain application with NRV system and economics"}
+2025/08/12 18:14:07 Starting NRV System...
+2025/08/12 18:14:07 Starting NRN Integration for KNIRVGRAPH...
+2025/08/12 18:14:07 Warning: Could not connect to KNIRVROOT at http://localhost:1317: Get "http://localhost:1317/ping": dial tcp 127.0.0.1:1317: connect: connection refused
+{"level":"info","ts":1755036847.2483418,"caller":"network/rpc.go:165","msg":"Starting RPC server","addr":":8081"}
+{"level":"info","ts":1755036847.2980523,"caller":"app/app.go:324","msg":"Stopping GraphChain application"}
+2025/08/12 18:14:07 Stopping NRV System...
+{"level":"info","ts":1755036847.3476958,"caller":"app/app.go:324","msg":"Stopping GraphChain application"}
+--- PASS: TestAppStartAndStop (0.82s)
+=== RUN   TestAppConfiguration
+--- PASS: TestAppConfiguration (0.38s)
+=== RUN   TestAppMultipleInstances
+--- PASS: TestAppMultipleInstances (0.85s)
+PASS
+coverage: 27.7% of statements
+ok  	blockchain-app/internal/app	2.441s	coverage: 27.7% of statements
+=== RUN   TestNewChain
+--- PASS: TestNewChain (0.00s)
+=== RUN   TestChainAddBlock
+--- PASS: TestChainAddBlock (0.00s)
+=== RUN   TestChainAddBlockSequential
+--- PASS: TestChainAddBlockSequential (0.00s)
+=== RUN   TestChainGetBlock
+--- PASS: TestChainGetBlock (0.00s)
+=== RUN   TestChainGetBlockNotFound
+--- PASS: TestChainGetBlockNotFound (0.00s)
+=== RUN   TestChainGetHeight
+--- PASS: TestChainGetHeight (0.00s)
+=== RUN   TestChainGetState
+--- PASS: TestChainGetState (0.00s)
+=== RUN   TestChainValidateBlock
+=== RUN   TestChainValidateBlock/Valid_block
+=== RUN   TestChainValidateBlock/Block_with_zero_height
+=== RUN   TestChainValidateBlock/Block_with_future_timestamp
+--- PASS: TestChainValidateBlock (0.00s)
+    --- PASS: TestChainValidateBlock/Valid_block (0.00s)
+    --- PASS: TestChainValidateBlock/Block_with_zero_height (0.00s)
+    --- PASS: TestChainValidateBlock/Block_with_future_timestamp (0.00s)
+=== RUN   TestChainExecuteBlock
+--- PASS: TestChainExecuteBlock (0.00s)
+=== RUN   TestChainConcurrentAccess
+--- PASS: TestChainConcurrentAccess (0.01s)
+=== RUN   TestChainBlockSerialization
+--- PASS: TestChainBlockSerialization (0.00s)
+PASS
+coverage: 75.9% of statements
+ok  	blockchain-app/internal/blockchain	0.026s	coverage: 75.9% of statements
+=== RUN   TestNewGraphChain
+--- PASS: TestNewGraphChain (0.00s)
+=== RUN   TestGraphChainAddNode
+--- PASS: TestGraphChainAddNode (0.00s)
+=== RUN   TestGraphChainAddEdge
+--- PASS: TestGraphChainAddEdge (0.00s)
+=== RUN   TestGraphChainGetCurrentHeight
+--- PASS: TestGraphChainGetCurrentHeight (0.00s)
+=== RUN   TestGraphChainGetHeads
+--- PASS: TestGraphChainGetHeads (0.00s)
+=== RUN   TestGraphChainFindPath
+--- PASS: TestGraphChainFindPath (0.00s)
+=== RUN   TestGraphChainValidateNode
+=== RUN   TestGraphChainValidateNode/Valid_node
+=== RUN   TestGraphChainValidateNode/Node_with_empty_ID
+=== RUN   TestGraphChainValidateNode/Node_with_invalid_parent_reference
+--- PASS: TestGraphChainValidateNode (0.00s)
+    --- PASS: TestGraphChainValidateNode/Valid_node (0.00s)
+    --- PASS: TestGraphChainValidateNode/Node_with_empty_ID (0.00s)
+    --- PASS: TestGraphChainValidateNode/Node_with_invalid_parent_reference (0.00s)
+=== RUN   TestGraphChainGetNeighbors
+--- PASS: TestGraphChainGetNeighbors (0.00s)
+PASS
+coverage: 65.0% of statements
+ok  	blockchain-app/internal/graphchain	0.014s	coverage: 65.0% of statements
+=== RUN   TestNewRPCServer
+--- PASS: TestNewRPCServer (0.00s)
+=== RUN   TestNewRPCServerWithNRV
+--- PASS: TestNewRPCServerWithNRV (0.00s)
+=== RUN   TestRPCServerHealthEndpoint
+--- PASS: TestRPCServerHealthEndpoint (0.00s)
+=== RUN   TestRPCServerGetHeightEndpoint
+--- PASS: TestRPCServerGetHeightEndpoint (0.00s)
+=== RUN   TestRPCServerGetNodeEndpoint
+--- PASS: TestRPCServerGetNodeEndpoint (0.00s)
+=== RUN   TestRPCServerCreateNodeEndpoint
+--- PASS: TestRPCServerCreateNodeEndpoint (0.00s)
+=== RUN   TestRPCServerGetHeadsEndpoint
+--- PASS: TestRPCServerGetHeadsEndpoint (0.00s)
+=== RUN   TestRPCServerFindPathEndpoint
+--- PASS: TestRPCServerFindPathEndpoint (0.00s)
+=== RUN   TestRPCServerErrorHandling
+--- PASS: TestRPCServerErrorHandling (0.00s)
+=== RUN   TestRPCServerCORS
+--- PASS: TestRPCServerCORS (0.00s)
+PASS
+coverage: 26.3% of statements
+ok  	blockchain-app/internal/network	0.021s	coverage: 26.3% of statements
+=== RUN   TestNewNRVSystem
+--- PASS: TestNewNRVSystem (0.00s)
+=== RUN   TestNRVSystemCreateVector
+--- PASS: TestNRVSystemCreateVector (0.00s)
+=== RUN   TestNRVSystemResolveTarget
+--- PASS: TestNRVSystemResolveTarget (0.00s)
+=== RUN   TestNRVSystemCreateErrorNode
+2025/08/12 18:14:06 Warning: Could not find resolution path for error 853dabe679f3b45807c1c1b8622cdae3fffbaab4896517c98483733b190909c9: no skills found for error type: network_error
+--- PASS: TestNRVSystemCreateErrorNode (0.00s)
+=== RUN   TestNRVSystemCreateSkillNode
+--- PASS: TestNRVSystemCreateSkillNode (0.00s)
+=== RUN   TestNRVSystemGetSkillsForErrorType
+--- PASS: TestNRVSystemGetSkillsForErrorType (0.00s)
+=== RUN   TestNRVSystemGetAllVectors
+--- PASS: TestNRVSystemGetAllVectors (0.00s)
+=== RUN   TestNRVSystemGetAllErrorNodes
+2025/08/12 18:14:06 Warning: Could not find resolution path for error 00d17f95dfc3c4bd2f8fbd8e228927356b0986500fba81c8a389c175f6060a71: no skills found for error type: network_error
+2025/08/12 18:14:06 Warning: Could not find resolution path for error 55b20aa4032f756b72a3d25fdd9e323aa57d3863cd1c219dd7e5db91ca8b3781: no skills found for error type: database_error
+--- PASS: TestNRVSystemGetAllErrorNodes (0.00s)
+=== RUN   TestNRVSystemGetAllSkillNodes
+--- PASS: TestNRVSystemGetAllSkillNodes (0.00s)
+=== RUN   TestNRVSystemConcurrency
+--- PASS: TestNRVSystemConcurrency (0.00s)
+=== RUN   TestNRVSystem
+2025/08/12 18:14:06 Starting NRV System...
+=== RUN   TestNRVSystem/CreateVector
+=== RUN   TestNRVSystem/ResolveTarget
+=== RUN   TestNRVSystem/CreateErrorNode
+2025/08/12 18:14:06 Warning: Could not find resolution path for error 4db0fde033f59dd621e13b604f3cf545efddf2637b3457242b5bd729b9a37a16: no skills found for error type: network_error
+=== RUN   TestNRVSystem/CreateSkillNode
+=== RUN   TestNRVSystem/GetSkillsForErrorType
+=== RUN   TestNRVSystem/VectorConfidenceDecay
+2025/08/12 18:14:06 Processing vector creation: c9d3bc27117d4850df2421c0b61764614a8721cad36eafe749eac7cde58047d6
+2025/08/12 18:14:06 Processing vector creation: f3ed11975766444d5c76c69822ad60e8d2f36a4607b001d8c8103ecfcf68e8da
+2025/08/12 18:14:06 Processing vector creation: 9e173e1dd4ca0c049deb64857335160e35209efabc0b0f4633b18b142275205a
+2025/08/12 18:14:06 Processing vector creation: fa4930e6a11cdc491c5590f1daaba9598a07b3a8d96ff1861372bc52415c804f
+2025/08/12 18:14:06 Processing vector creation: df81609c1671a6ea03a66e66e084b8b967ec14f4af7ca67246b6e692e6055465
+=== RUN   TestNRVSystem/GetAllMethods
+2025/08/12 18:14:06 Stopping NRV System...
+--- PASS: TestNRVSystem (0.00s)
+    --- PASS: TestNRVSystem/CreateVector (0.00s)
+    --- PASS: TestNRVSystem/ResolveTarget (0.00s)
+    --- PASS: TestNRVSystem/CreateErrorNode (0.00s)
+    --- PASS: TestNRVSystem/CreateSkillNode (0.00s)
+    --- PASS: TestNRVSystem/GetSkillsForErrorType (0.00s)
+    --- PASS: TestNRVSystem/VectorConfidenceDecay (0.00s)
+    --- PASS: TestNRVSystem/GetAllMethods (0.00s)
+=== RUN   TestNRVConfig
+--- PASS: TestNRVConfig (0.00s)
+=== RUN   TestVectorExpiration
+2025/08/12 18:14:06 Processing vector creation: d2b42a098949ffa7b8e1baeae26b8c49fffd1f208960d5d5847a9ab58b91ea71
+2025/08/12 18:14:06 Starting NRV System...
+2025/08/12 18:14:06 Processing vector creation: 72f1d3a2d80f7e680fa47e9aa1353dd98e32b0a39e3b1cff7b4f8a94fb8f2c00
+2025/08/12 18:14:06 Cleaned up expired vector: 72f1d3a2d80f7e680fa47e9aa1353dd98e32b0a39e3b1cff7b4f8a94fb8f2c00
+2025/08/12 18:14:06 Stopping NRV System...
+--- PASS: TestVectorExpiration (0.20s)
+PASS
+coverage: 80.0% of statements
+ok  	blockchain-app/internal/nrv	0.216s	coverage: 80.0% of statements
+=== RUN   TestMemoryStorage
+--- PASS: TestMemoryStorage (0.00s)
+=== RUN   TestBluntDBStorage
+--- PASS: TestBluntDBStorage (1.18s)
+=== RUN   TestLevelDBStorage
+--- PASS: TestLevelDBStorage (0.27s)
+=== RUN   TestStorageInterface
+=== RUN   TestStorageInterface/MemoryStorage
+=== RUN   TestStorageInterface/BluntDBStorage
+--- PASS: TestStorageInterface (0.93s)
+    --- PASS: TestStorageInterface/MemoryStorage (0.00s)
+    --- PASS: TestStorageInterface/BluntDBStorage (0.00s)
+PASS
+coverage: 32.8% of statements
+ok  	blockchain-app/internal/storage	2.411s	coverage: 32.8% of statements
+=== RUN   TestNewGraphNode
+--- PASS: TestNewGraphNode (0.00s)
+=== RUN   TestGraphNodeValidation
+=== RUN   TestGraphNodeValidation/Valid_node
+=== RUN   TestGraphNodeValidation/Empty_node_ID
+=== RUN   TestGraphNodeValidation/No_parents
+--- PASS: TestGraphNodeValidation (0.00s)
+    --- PASS: TestGraphNodeValidation/Valid_node (0.00s)
+    --- PASS: TestGraphNodeValidation/Empty_node_ID (0.00s)
+    --- PASS: TestGraphNodeValidation/No_parents (0.00s)
+=== RUN   TestGraphNodeSerialization
+--- PASS: TestGraphNodeSerialization (0.00s)
+=== RUN   TestGraphNodeHash
+--- PASS: TestGraphNodeHash (0.00s)
+=== RUN   TestGraphNodeMethods
+--- PASS: TestGraphNodeMethods (0.00s)
+=== RUN   TestGraphNodeTimestamp
+--- PASS: TestGraphNodeTimestamp (0.00s)
+=== RUN   TestGraphNodeEdgeCases
+=== RUN   TestGraphNodeEdgeCases/Large_payload_data
+=== RUN   TestGraphNodeEdgeCases/Many_parents
+=== RUN   TestGraphNodeEdgeCases/Unicode_data
+--- PASS: TestGraphNodeEdgeCases (0.00s)
+    --- PASS: TestGraphNodeEdgeCases/Large_payload_data (0.00s)
+    --- PASS: TestGraphNodeEdgeCases/Many_parents (0.00s)
+    --- PASS: TestGraphNodeEdgeCases/Unicode_data (0.00s)
+PASS
+coverage: 21.6% of statements
+ok  	blockchain-app/internal/types	0.016s	coverage: 21.6% of statements
