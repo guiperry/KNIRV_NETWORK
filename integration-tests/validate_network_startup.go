@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -287,17 +286,4 @@ func (nv *NetworkValidator) printSummary() {
 	} else {
 		fmt.Println("Authentication: ❌ No token")
 	}
-}
-
-func main() {
-	validator := NewNetworkValidator()
-
-	if err := validator.ValidateNetworkStartup(); err != nil {
-		fmt.Printf("\n❌ Validation failed: %v\n", err)
-		validator.printSummary()
-		os.Exit(1)
-	}
-
-	validator.printSummary()
-	fmt.Println("\n🎉 All KNIRV network components are working correctly!")
 }

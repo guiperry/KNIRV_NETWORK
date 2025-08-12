@@ -46,7 +46,9 @@ function App() {
   const [nrnBalance, setNrnBalance] = useState(1250);
   const [cognitiveMode, setCognitiveMode] = useState(false);
   const [cognitiveState, setCognitiveState] = useState<CognitiveState | null>(null);
-  const [networkConnections, setNetworkConnections] = useState({
+  const [networkConnections, setNetworkConnections] = useState<{
+    [key: string]: 'connected' | 'disconnected' | 'connecting';
+  }>({
     knirvChain: 'connected',
     knirvGraph: 'connected',
     knirvWallet: 'connected',

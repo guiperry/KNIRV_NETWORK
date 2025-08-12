@@ -12,7 +12,7 @@ import {
   StorageModelDataV002,
   WalletModelV002,
 } from './storage-model-v002';
-import { decryptAES, encryptAES } from 'adena-module';
+import { decryptAES, encryptAES } from '@knirvsdk/crypto';
 
 export class StorageMigration002 implements Migration<StorageModelDataV002> {
   public readonly version = 2;

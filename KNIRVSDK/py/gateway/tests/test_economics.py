@@ -6,8 +6,7 @@ import pytest
 import responses
 import json
 from unittest.mock import Mock, patch
-from knirv_gateway_sdk import KNIRVGateway
-from knirv_gateway_sdk.exceptions import KNIRVAPIError, KNIRVValidationError
+from knirv_gateway_sdk import KNIRVGateway, KNIRVAPIError, KNIRVValidationError
 
 
 @pytest.fixture
@@ -75,7 +74,7 @@ class TestEconomicsSkillsService:
         )
 
         skills = client.economics.skills.list()
-        
+
         assert len(skills["skills"]) == 2
         assert skills["skills"][0]["name"] == "Network Repair"
         assert skills["skills"][1]["name"] == "Data Analysis"

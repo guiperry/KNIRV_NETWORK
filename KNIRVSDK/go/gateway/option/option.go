@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cloud-equities/KNIRVGATEWAY/sdk/go/gateway/internal/requestconfig"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/gateway/internal/requestconfig"
 )
 
 // RequestOption is a function that modifies a request configuration
@@ -104,6 +104,14 @@ func WithRetries(retries int) RequestOption {
 // WithRetryDelay sets the delay between retries
 func WithRetryDelay(delay time.Duration) RequestOption {
 	return func(cfg *requestconfig.RequestConfig) {
+		cfg.RetryDelay = delay
+	}
+}
+
+// WithRetryPolicy sets both retries and delay
+func WithRetryPolicy(retries int, delay time.Duration) RequestOption {
+	return func(cfg *requestconfig.RequestConfig) {
+		cfg.Retries = retries
 		cfg.RetryDelay = delay
 	}
 }

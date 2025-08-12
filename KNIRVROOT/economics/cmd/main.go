@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"shared-integration/economics"
+	"KNIRVROOT/economics"
 )
 
 func main() {

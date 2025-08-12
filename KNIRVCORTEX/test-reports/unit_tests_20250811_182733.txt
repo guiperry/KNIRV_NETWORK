@@ -1,0 +1,661 @@
+
+> vite-react-typescript-starter@0.0.0 test
+> jest --verbose --passWithNoTests
+
+FAIL src/components/__tests__/CognitiveShellInterface.test.tsx
+  ● Test suite failed to run
+
+    Cannot find module '../Terminal' from 'src/components/__tests__/CognitiveShellInterface.test.tsx'
+
+       9 |
+      10 | // Mock child components
+    > 11 | jest.mock('../Terminal', () => {
+         |      ^
+      12 |   return function MockTerminal({ onCommand, history }: any) {
+      13 |     return (
+      14 |       <div data-testid="terminal">
+
+      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.<anonymous> (src/components/__tests__/CognitiveShellInterface.test.tsx:11:6)
+
+FAIL src/cognitive-shell/__tests__/VoiceProcessor.test.ts
+  ● Test suite failed to run
+
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m67[0m:[93m22[0m - [91merror[0m[90m TS2554: [0mExpected 1 arguments, but got 0.
+
+    [7m67[0m     voiceProcessor = new VoiceProcessor();
+    [7m  [0m [91m                     ~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/cognitive-shell/VoiceProcessor.ts[0m:[93m36[0m:[93m15[0m
+        [7m36[0m   constructor(config: VoiceConfig) {
+        [7m  [0m [96m              ~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'config' was not provided.
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m71[0m:[93m20[0m - [91merror[0m[90m TS2339: [0mProperty 'dispose' does not exist on type 'VoiceProcessor'.
+
+    [7m71[0m     voiceProcessor.dispose();
+    [7m  [0m [91m                   ~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m80[0m:[93m37[0m - [91merror[0m[90m TS2339: [0mProperty 'getConfig' does not exist on type 'VoiceProcessor'.
+
+    [7m80[0m       const config = voiceProcessor.getConfig();
+    [7m  [0m [91m                                    ~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m87[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'initialize' does not exist on type 'VoiceProcessor'.
+
+    [7m87[0m       await voiceProcessor.initialize();
+    [7m  [0m [91m                           ~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m88[0m:[93m29[0m - [91merror[0m[90m TS2339: [0mProperty 'isInitialized' does not exist on type 'VoiceProcessor'.
+
+    [7m88[0m       expect(voiceProcessor.isInitialized()).toBe(true);
+    [7m  [0m [91m                            ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m94[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'initialize' does not exist on type 'VoiceProcessor'.
+
+    [7m94[0m       await voiceProcessor.initialize();
+    [7m  [0m [91m                           ~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m98[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'startListening' does not exist on type 'VoiceProcessor'.
+
+    [7m98[0m       await voiceProcessor.startListening();
+    [7m  [0m [91m                           ~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m99[0m:[93m29[0m - [91merror[0m[90m TS2341: [0mProperty 'isListening' is private and only accessible within class 'VoiceProcessor'.
+
+    [7m99[0m       expect(voiceProcessor.isListening()).toBe(true);
+    [7m  [0m [91m                            ~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m99[0m:[93m29[0m - [91merror[0m[90m TS2349: [0mThis expression is not callable.
+      Type 'Boolean' has no call signatures.
+
+    [7m99[0m       expect(voiceProcessor.isListening()).toBe(true);
+    [7m  [0m [91m                            ~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m103[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'startListening' does not exist on type 'VoiceProcessor'.
+
+    [7m103[0m       await voiceProcessor.startListening();
+    [7m   [0m [91m                           ~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m104[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'stopListening' does not exist on type 'VoiceProcessor'.
+
+    [7m104[0m       await voiceProcessor.stopListening();
+    [7m   [0m [91m                           ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m105[0m:[93m29[0m - [91merror[0m[90m TS2341: [0mProperty 'isListening' is private and only accessible within class 'VoiceProcessor'.
+
+    [7m105[0m       expect(voiceProcessor.isListening()).toBe(false);
+    [7m   [0m [91m                            ~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m105[0m:[93m29[0m - [91merror[0m[90m TS2349: [0mThis expression is not callable.
+      Type 'Boolean' has no call signatures.
+
+    [7m105[0m       expect(voiceProcessor.isListening()).toBe(false);
+    [7m   [0m [91m                            ~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m114[0m:[93m35[0m - [91merror[0m[90m TS2339: [0mProperty 'startListening' does not exist on type 'VoiceProcessor'.
+
+    [7m114[0m       await expect(voiceProcessor.startListening()).rejects.toThrow('Permission denied');
+    [7m   [0m [91m                                  ~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m118[0m:[93m44[0m - [91merror[0m[90m TS2551: [0mProperty 'getAvailableDevices' does not exist on type 'VoiceProcessor'. Did you mean 'getAvailableVoices'?
+
+    [7m118[0m       const devices = await voiceProcessor.getAvailableDevices();
+    [7m   [0m [91m                                           ~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/cognitive-shell/VoiceProcessor.ts[0m:[93m349[0m:[93m10[0m
+        [7m349[0m   public getAvailableVoices(): SpeechSynthesisVoice[] {
+        [7m   [0m [96m         ~~~~~~~~~~~~~~~~~~[0m
+        'getAvailableVoices' is declared here.
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m126[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'initialize' does not exist on type 'VoiceProcessor'.
+
+    [7m126[0m       await voiceProcessor.initialize();
+    [7m   [0m [91m                           ~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m127[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'startListening' does not exist on type 'VoiceProcessor'.
+
+    [7m127[0m       await voiceProcessor.startListening();
+    [7m   [0m [91m                           ~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m134[0m:[93m37[0m - [91merror[0m[90m TS2341: [0mProperty 'processAudioData' is private and only accessible within class 'VoiceProcessor'.
+
+    [7m134[0m       const result = voiceProcessor.processAudioData(mockAudioData);
+    [7m   [0m [91m                                    ~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m134[0m:[93m54[0m - [91merror[0m[90m TS2345: [0mArgument of type 'Float32Array<ArrayBuffer>' is not assignable to parameter of type 'Blob'.
+      Type 'Float32Array<ArrayBuffer>' is missing the following properties from type 'Blob': size, type, arrayBuffer, bytes, and 2 more.
+
+    [7m134[0m       const result = voiceProcessor.processAudioData(mockAudioData);
+    [7m   [0m [91m                                                     ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m142[0m:[93m39[0m - [91merror[0m[90m TS2339: [0mProperty 'detectVoiceActivity' does not exist on type 'VoiceProcessor'.
+
+    [7m142[0m       const hasVoice = voiceProcessor.detectVoiceActivity(mockAudioData);
+    [7m   [0m [91m                                      ~~~~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m150[0m:[93m39[0m - [91merror[0m[90m TS2339: [0mProperty 'extractFeatures' does not exist on type 'VoiceProcessor'.
+
+    [7m150[0m       const features = voiceProcessor.extractFeatures(mockAudioData);
+    [7m   [0m [91m                                      ~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m161[0m:[93m42[0m - [91merror[0m[90m TS2339: [0mProperty 'applyNoiseReduction' does not exist on type 'VoiceProcessor'.
+
+    [7m161[0m       const cleanedData = voiceProcessor.applyNoiseReduction(mockAudioData);
+    [7m   [0m [91m                                         ~~~~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m169[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'initialize' does not exist on type 'VoiceProcessor'.
+
+    [7m169[0m       await voiceProcessor.initialize();
+    [7m   [0m [91m                           ~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m187[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'startSpeechRecognition' does not exist on type 'VoiceProcessor'.
+
+    [7m187[0m       await voiceProcessor.startSpeechRecognition();
+    [7m   [0m [91m                           ~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m199[0m:[93m22[0m - [91merror[0m[90m TS2339: [0mProperty 'onSpeechResult' does not exist on type 'VoiceProcessor'.
+
+    [7m199[0m       voiceProcessor.onSpeechResult(callback);
+    [7m   [0m [91m                     ~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m202[0m:[93m22[0m - [91merror[0m[90m TS2339: [0mProperty 'handleSpeechResult' does not exist on type 'VoiceProcessor'.
+
+    [7m202[0m       voiceProcessor.handleSpeechResult(mockResult);
+    [7m   [0m [91m                     ~~~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m210[0m:[93m22[0m - [91merror[0m[90m TS2339: [0mProperty 'onSpeechError' does not exist on type 'VoiceProcessor'.
+
+    [7m210[0m       voiceProcessor.onSpeechError(errorCallback);
+    [7m   [0m [91m                     ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m211[0m:[93m22[0m - [91merror[0m[90m TS2339: [0mProperty 'handleSpeechError' does not exist on type 'VoiceProcessor'.
+
+    [7m211[0m       voiceProcessor.handleSpeechError(mockError);
+    [7m   [0m [91m                     ~~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m219[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'initialize' does not exist on type 'VoiceProcessor'.
+
+    [7m219[0m       await voiceProcessor.initialize();
+    [7m   [0m [91m                           ~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m226[0m:[93m39[0m - [91merror[0m[90m TS2339: [0mProperty 'analyzeFrequencySpectrum' does not exist on type 'VoiceProcessor'.
+
+    [7m226[0m       const analysis = voiceProcessor.analyzeFrequencySpectrum(mockFrequencyData);
+    [7m   [0m [91m                                      ~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m237[0m:[93m39[0m - [91merror[0m[90m TS2339: [0mProperty 'detectSilence' does not exist on type 'VoiceProcessor'.
+
+    [7m237[0m       const isSilent = voiceProcessor.detectSilence(silentData);
+    [7m   [0m [91m                                      ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m245[0m:[93m37[0m - [91merror[0m[90m TS2339: [0mProperty 'detectLoudAudio' does not exist on type 'VoiceProcessor'.
+
+    [7m245[0m       const isLoud = voiceProcessor.detectLoudAudio(loudData);
+    [7m   [0m [91m                                    ~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m255[0m:[93m36[0m - [91merror[0m[90m TS2339: [0mProperty 'calculateAudioStatistics' does not exist on type 'VoiceProcessor'.
+
+    [7m255[0m       const stats = voiceProcessor.calculateAudioStatistics(mockAudioData);
+    [7m   [0m [91m                                   ~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m272[0m:[93m22[0m - [91merror[0m[90m TS2339: [0mProperty 'updateConfig' does not exist on type 'VoiceProcessor'.
+
+    [7m272[0m       voiceProcessor.updateConfig(newConfig);
+    [7m   [0m [91m                     ~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m273[0m:[93m37[0m - [91merror[0m[90m TS2339: [0mProperty 'getConfig' does not exist on type 'VoiceProcessor'.
+
+    [7m273[0m       const config = voiceProcessor.getConfig();
+    [7m   [0m [91m                                    ~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m287[0m:[93m24[0m - [91merror[0m[90m TS2339: [0mProperty 'updateConfig' does not exist on type 'VoiceProcessor'.
+
+    [7m287[0m         voiceProcessor.updateConfig(invalidConfig);
+    [7m   [0m [91m                       ~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m294[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'initialize' does not exist on type 'VoiceProcessor'.
+
+    [7m294[0m       await voiceProcessor.initialize();
+    [7m   [0m [91m                           ~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m297[0m:[93m22[0m - [91merror[0m[90m TS2339: [0mProperty 'onAudioData' does not exist on type 'VoiceProcessor'.
+
+    [7m297[0m       voiceProcessor.onAudioData(callback);
+    [7m   [0m [91m                     ~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m300[0m:[93m22[0m - [91merror[0m[90m TS2341: [0mProperty 'processAudioData' is private and only accessible within class 'VoiceProcessor'.
+
+    [7m300[0m       voiceProcessor.processAudioData(mockAudioData);
+    [7m   [0m [91m                     ~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m300[0m:[93m39[0m - [91merror[0m[90m TS2345: [0mArgument of type 'Float32Array<ArrayBuffer>' is not assignable to parameter of type 'Blob'.
+      Type 'Float32Array<ArrayBuffer>' is missing the following properties from type 'Blob': size, type, arrayBuffer, bytes, and 2 more.
+
+    [7m300[0m       voiceProcessor.processAudioData(mockAudioData);
+    [7m   [0m [91m                                      ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m306[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'initialize' does not exist on type 'VoiceProcessor'.
+
+    [7m306[0m       await voiceProcessor.initialize();
+    [7m   [0m [91m                           ~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m309[0m:[93m22[0m - [91merror[0m[90m TS2339: [0mProperty 'onVoiceActivity' does not exist on type 'VoiceProcessor'.
+
+    [7m309[0m       voiceProcessor.onVoiceActivity(callback);
+    [7m   [0m [91m                     ~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m314[0m:[93m22[0m - [91merror[0m[90m TS2339: [0mProperty 'detectVoiceActivity' does not exist on type 'VoiceProcessor'.
+
+    [7m314[0m       voiceProcessor.detectVoiceActivity(mockAudioData);
+    [7m   [0m [91m                     ~~~~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m320[0m:[93m22[0m - [91merror[0m[90m TS2339: [0mProperty 'onError' does not exist on type 'VoiceProcessor'.
+
+    [7m320[0m       voiceProcessor.onError(errorCallback);
+    [7m   [0m [91m                     ~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m323[0m:[93m22[0m - [91merror[0m[90m TS2339: [0mProperty 'handleError' does not exist on type 'VoiceProcessor'.
+
+    [7m323[0m       voiceProcessor.handleError(testError);
+    [7m   [0m [91m                     ~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m331[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'initialize' does not exist on type 'VoiceProcessor'.
+
+    [7m331[0m       await voiceProcessor.initialize();
+    [7m   [0m [91m                           ~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m332[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'startListening' does not exist on type 'VoiceProcessor'.
+
+    [7m332[0m       await voiceProcessor.startListening();
+    [7m   [0m [91m                           ~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m334[0m:[93m22[0m - [91merror[0m[90m TS2339: [0mProperty 'dispose' does not exist on type 'VoiceProcessor'.
+
+    [7m334[0m       voiceProcessor.dispose();
+    [7m   [0m [91m                     ~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m336[0m:[93m29[0m - [91merror[0m[90m TS2341: [0mProperty 'isListening' is private and only accessible within class 'VoiceProcessor'.
+
+    [7m336[0m       expect(voiceProcessor.isListening()).toBe(false);
+    [7m   [0m [91m                            ~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m336[0m:[93m29[0m - [91merror[0m[90m TS2349: [0mThis expression is not callable.
+      Type 'Boolean' has no call signatures.
+
+    [7m336[0m       expect(voiceProcessor.isListening()).toBe(false);
+    [7m   [0m [91m                            ~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m337[0m:[93m29[0m - [91merror[0m[90m TS2339: [0mProperty 'isInitialized' does not exist on type 'VoiceProcessor'.
+
+    [7m337[0m       expect(voiceProcessor.isInitialized()).toBe(false);
+    [7m   [0m [91m                            ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m341[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'initialize' does not exist on type 'VoiceProcessor'.
+
+    [7m341[0m       await voiceProcessor.initialize();
+    [7m   [0m [91m                           ~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m342[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'startListening' does not exist on type 'VoiceProcessor'.
+
+    [7m342[0m       await voiceProcessor.startListening();
+    [7m   [0m [91m                           ~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m346[0m:[93m22[0m - [91merror[0m[90m TS2339: [0mProperty 'dispose' does not exist on type 'VoiceProcessor'.
+
+    [7m346[0m       voiceProcessor.dispose();
+    [7m   [0m [91m                     ~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m351[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'initialize' does not exist on type 'VoiceProcessor'.
+
+    [7m351[0m       await voiceProcessor.initialize();
+    [7m   [0m [91m                           ~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VoiceProcessor.test.ts[0m:[93m353[0m:[93m22[0m - [91merror[0m[90m TS2339: [0mProperty 'dispose' does not exist on type 'VoiceProcessor'.
+
+    [7m353[0m       voiceProcessor.dispose();
+    [7m   [0m [91m                     ~~~~~~~[0m
+
+FAIL src/cognitive-shell/__tests__/VisualProcessor.test.ts
+  ● Test suite failed to run
+
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m130[0m:[93m38[0m - [91merror[0m[90m TS2339: [0mProperty 'getConfig' does not exist on type 'VisualProcessor'.
+
+    [7m130[0m       const config = visualProcessor.getConfig();
+    [7m   [0m [91m                                     ~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m139[0m:[93m30[0m - [91merror[0m[90m TS2341: [0mProperty 'isInitialized' is private and only accessible within class 'VisualProcessor'.
+
+    [7m139[0m       expect(visualProcessor.isInitialized()).toBe(true);
+    [7m   [0m [91m                             ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m139[0m:[93m30[0m - [91merror[0m[90m TS2349: [0mThis expression is not callable.
+      Type 'Boolean' has no call signatures.
+
+    [7m139[0m       expect(visualProcessor.isInitialized()).toBe(true);
+    [7m   [0m [91m                             ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m154[0m:[93m29[0m - [91merror[0m[90m TS2339: [0mProperty 'startCamera' does not exist on type 'VisualProcessor'.
+
+    [7m154[0m       await visualProcessor.startCamera();
+    [7m   [0m [91m                            ~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m155[0m:[93m30[0m - [91merror[0m[90m TS2339: [0mProperty 'isCameraActive' does not exist on type 'VisualProcessor'.
+
+    [7m155[0m       expect(visualProcessor.isCameraActive()).toBe(true);
+    [7m   [0m [91m                             ~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m159[0m:[93m29[0m - [91merror[0m[90m TS2339: [0mProperty 'startCamera' does not exist on type 'VisualProcessor'.
+
+    [7m159[0m       await visualProcessor.startCamera();
+    [7m   [0m [91m                            ~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m160[0m:[93m29[0m - [91merror[0m[90m TS2339: [0mProperty 'stopCamera' does not exist on type 'VisualProcessor'.
+
+    [7m160[0m       await visualProcessor.stopCamera();
+    [7m   [0m [91m                            ~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m161[0m:[93m30[0m - [91merror[0m[90m TS2339: [0mProperty 'isCameraActive' does not exist on type 'VisualProcessor'.
+
+    [7m161[0m       expect(visualProcessor.isCameraActive()).toBe(false);
+    [7m   [0m [91m                             ~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m169[0m:[93m36[0m - [91merror[0m[90m TS2339: [0mProperty 'startCamera' does not exist on type 'VisualProcessor'.
+
+    [7m169[0m       await expect(visualProcessor.startCamera()).rejects.toThrow('Permission denied');
+    [7m   [0m [91m                                   ~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m173[0m:[93m45[0m - [91merror[0m[90m TS2339: [0mProperty 'getAvailableCameras' does not exist on type 'VisualProcessor'.
+
+    [7m173[0m       const devices = await visualProcessor.getAvailableCameras();
+    [7m   [0m [91m                                            ~~~~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m179[0m:[93m29[0m - [91merror[0m[90m TS2339: [0mProperty 'startCamera' does not exist on type 'VisualProcessor'.
+
+    [7m179[0m       await visualProcessor.startCamera();
+    [7m   [0m [91m                            ~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m180[0m:[93m29[0m - [91merror[0m[90m TS2339: [0mProperty 'switchCamera' does not exist on type 'VisualProcessor'.
+
+    [7m180[0m       await visualProcessor.switchCamera('camera-2');
+    [7m   [0m [91m                            ~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m196[0m:[93m44[0m - [91merror[0m[90m TS2339: [0mProperty 'processImage' does not exist on type 'VisualProcessor'.
+
+    [7m196[0m       const result = await visualProcessor.processImage(mockImageData);
+    [7m   [0m [91m                                           ~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m204[0m:[93m44[0m - [91merror[0m[90m TS2341: [0mProperty 'preprocessImage' is private and only accessible within class 'VisualProcessor'.
+
+    [7m204[0m       const preprocessed = visualProcessor.preprocessImage(mockImageData);
+    [7m   [0m [91m                                           ~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m212[0m:[93m39[0m - [91merror[0m[90m TS2339: [0mProperty 'resizeImage' does not exist on type 'VisualProcessor'.
+
+    [7m212[0m       const resized = visualProcessor.resizeImage(mockImageData, 224, 224);
+    [7m   [0m [91m                                      ~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m221[0m:[93m40[0m - [91merror[0m[90m TS2339: [0mProperty 'applyFilter' does not exist on type 'VisualProcessor'.
+
+    [7m221[0m       const filtered = visualProcessor.applyFilter(mockImageData, 'blur');
+    [7m   [0m [91m                                       ~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m236[0m:[93m48[0m - [91merror[0m[90m TS2341: [0mProperty 'detectObjects' is private and only accessible within class 'VisualProcessor'.
+
+    [7m236[0m       const detections = await visualProcessor.detectObjects(mockImageData);
+    [7m   [0m [91m                                               ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m244[0m:[93m48[0m - [91merror[0m[90m TS2341: [0mProperty 'detectObjects' is private and only accessible within class 'VisualProcessor'.
+
+    [7m244[0m       const detections = await visualProcessor.detectObjects(mockImageData);
+    [7m   [0m [91m                                               ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m246[0m:[93m22[0m - [91merror[0m[90m TS2339: [0mProperty 'length' does not exist on type 'void'.
+
+    [7m246[0m       if (detections.length > 0) {
+    [7m   [0m [91m                     ~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m255[0m:[93m48[0m - [91merror[0m[90m TS2341: [0mProperty 'detectObjects' is private and only accessible within class 'VisualProcessor'.
+
+    [7m255[0m       const detections = await visualProcessor.detectObjects(mockImageData, 0.8);
+    [7m   [0m [91m                                               ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m255[0m:[93m77[0m - [91merror[0m[90m TS2554: [0mExpected 1 arguments, but got 2.
+
+    [7m255[0m       const detections = await visualProcessor.detectObjects(mockImageData, 0.8);
+    [7m   [0m [91m                                                                            ~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m257[0m:[93m18[0m - [91merror[0m[90m TS2339: [0mProperty 'forEach' does not exist on type 'void'.
+
+    [7m257[0m       detections.forEach(detection => {
+    [7m   [0m [91m                 ~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m270[0m:[93m43[0m - [91merror[0m[90m TS2339: [0mProperty 'detectFaces' does not exist on type 'VisualProcessor'.
+
+    [7m270[0m       const faces = await visualProcessor.detectFaces(mockImageData);
+    [7m   [0m [91m                                          ~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m278[0m:[93m47[0m - [91merror[0m[90m TS2339: [0mProperty 'extractFaceEmbedding' does not exist on type 'VisualProcessor'.
+
+    [7m278[0m       const embedding = await visualProcessor.extractFaceEmbedding(mockImageData);
+    [7m   [0m [91m                                              ~~~~~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m288[0m:[93m42[0m - [91merror[0m[90m TS2339: [0mProperty 'compareFaceEmbeddings' does not exist on type 'VisualProcessor'.
+
+    [7m288[0m       const similarity = visualProcessor.compareFaceEmbeddings(embedding1, embedding2);
+    [7m   [0m [91m                                         ~~~~~~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m302[0m:[93m46[0m - [91merror[0m[90m TS2339: [0mProperty 'analyzeScene' does not exist on type 'VisualProcessor'.
+
+    [7m302[0m       const analysis = await visualProcessor.analyzeScene(mockImageData);
+    [7m   [0m [91m                                             ~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m312[0m:[93m52[0m - [91merror[0m[90m TS2339: [0mProperty 'detectText' does not exist on type 'VisualProcessor'.
+
+    [7m312[0m       const textDetections = await visualProcessor.detectText(mockImageData);
+    [7m   [0m [91m                                                   ~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m320[0m:[93m46[0m - [91merror[0m[90m TS2339: [0mProperty 'estimateDepth' does not exist on type 'VisualProcessor'.
+
+    [7m320[0m       const depthMap = await visualProcessor.estimateDepth(mockImageData);
+    [7m   [0m [91m                                             ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m329[0m:[93m29[0m - [91merror[0m[90m TS2339: [0mProperty 'startCamera' does not exist on type 'VisualProcessor'.
+
+    [7m329[0m       await visualProcessor.startCamera();
+    [7m   [0m [91m                            ~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m333[0m:[93m29[0m - [91merror[0m[90m TS2339: [0mProperty 'startRealTimeProcessing' does not exist on type 'VisualProcessor'.
+
+    [7m333[0m       await visualProcessor.startRealTimeProcessing();
+    [7m   [0m [91m                            ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m334[0m:[93m30[0m - [91merror[0m[90m TS2341: [0mProperty 'isProcessing' is private and only accessible within class 'VisualProcessor'.
+
+    [7m334[0m       expect(visualProcessor.isProcessing()).toBe(true);
+    [7m   [0m [91m                             ~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m334[0m:[93m30[0m - [91merror[0m[90m TS2349: [0mThis expression is not callable.
+      Type 'Boolean' has no call signatures.
+
+    [7m334[0m       expect(visualProcessor.isProcessing()).toBe(true);
+    [7m   [0m [91m                             ~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m338[0m:[93m29[0m - [91merror[0m[90m TS2339: [0mProperty 'startRealTimeProcessing' does not exist on type 'VisualProcessor'.
+
+    [7m338[0m       await visualProcessor.startRealTimeProcessing();
+    [7m   [0m [91m                            ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m339[0m:[93m29[0m - [91merror[0m[90m TS2339: [0mProperty 'stopRealTimeProcessing' does not exist on type 'VisualProcessor'.
+
+    [7m339[0m       await visualProcessor.stopRealTimeProcessing();
+    [7m   [0m [91m                            ~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m340[0m:[93m30[0m - [91merror[0m[90m TS2341: [0mProperty 'isProcessing' is private and only accessible within class 'VisualProcessor'.
+
+    [7m340[0m       expect(visualProcessor.isProcessing()).toBe(false);
+    [7m   [0m [91m                             ~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m340[0m:[93m30[0m - [91merror[0m[90m TS2349: [0mThis expression is not callable.
+      Type 'Boolean' has no call signatures.
+
+    [7m340[0m       expect(visualProcessor.isProcessing()).toBe(false);
+    [7m   [0m [91m                             ~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m345[0m:[93m23[0m - [91merror[0m[90m TS2339: [0mProperty 'onFrameProcessed' does not exist on type 'VisualProcessor'.
+
+    [7m345[0m       visualProcessor.onFrameProcessed(callback);
+    [7m   [0m [91m                      ~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m347[0m:[93m29[0m - [91merror[0m[90m TS2339: [0mProperty 'startRealTimeProcessing' does not exist on type 'VisualProcessor'.
+
+    [7m347[0m       await visualProcessor.startRealTimeProcessing(30); // 30 FPS
+    [7m   [0m [91m                            ~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m365[0m:[93m38[0m - [91merror[0m[90m TS2339: [0mProperty 'getConfig' does not exist on type 'VisualProcessor'.
+
+    [7m365[0m       const config = visualProcessor.getConfig();
+    [7m   [0m [91m                                     ~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m390[0m:[93m23[0m - [91merror[0m[90m TS2339: [0mProperty 'onFrameProcessed' does not exist on type 'VisualProcessor'.
+
+    [7m390[0m       visualProcessor.onFrameProcessed(callback);
+    [7m   [0m [91m                      ~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m393[0m:[93m29[0m - [91merror[0m[90m TS2339: [0mProperty 'processImage' does not exist on type 'VisualProcessor'.
+
+    [7m393[0m       await visualProcessor.processImage(mockImageData);
+    [7m   [0m [91m                            ~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m402[0m:[93m23[0m - [91merror[0m[90m TS2339: [0mProperty 'onObjectDetected' does not exist on type 'VisualProcessor'.
+
+    [7m402[0m       visualProcessor.onObjectDetected(callback);
+    [7m   [0m [91m                      ~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m405[0m:[93m29[0m - [91merror[0m[90m TS2341: [0mProperty 'detectObjects' is private and only accessible within class 'VisualProcessor'.
+
+    [7m405[0m       await visualProcessor.detectObjects(mockImageData);
+    [7m   [0m [91m                            ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m412[0m:[93m23[0m - [91merror[0m[90m TS2339: [0mProperty 'onError' does not exist on type 'VisualProcessor'.
+
+    [7m412[0m       visualProcessor.onError(errorCallback);
+    [7m   [0m [91m                      ~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m415[0m:[93m23[0m - [91merror[0m[90m TS2339: [0mProperty 'handleError' does not exist on type 'VisualProcessor'.
+
+    [7m415[0m       visualProcessor.handleError(testError);
+    [7m   [0m [91m                      ~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m424[0m:[93m29[0m - [91merror[0m[90m TS2339: [0mProperty 'startCamera' does not exist on type 'VisualProcessor'.
+
+    [7m424[0m       await visualProcessor.startCamera();
+    [7m   [0m [91m                            ~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m428[0m:[93m30[0m - [91merror[0m[90m TS2339: [0mProperty 'isCameraActive' does not exist on type 'VisualProcessor'.
+
+    [7m428[0m       expect(visualProcessor.isCameraActive()).toBe(false);
+    [7m   [0m [91m                             ~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m429[0m:[93m30[0m - [91merror[0m[90m TS2341: [0mProperty 'isProcessing' is private and only accessible within class 'VisualProcessor'.
+
+    [7m429[0m       expect(visualProcessor.isProcessing()).toBe(false);
+    [7m   [0m [91m                             ~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m429[0m:[93m30[0m - [91merror[0m[90m TS2349: [0mThis expression is not callable.
+      Type 'Boolean' has no call signatures.
+
+    [7m429[0m       expect(visualProcessor.isProcessing()).toBe(false);
+    [7m   [0m [91m                             ~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m434[0m:[93m29[0m - [91merror[0m[90m TS2339: [0mProperty 'startCamera' does not exist on type 'VisualProcessor'.
+
+    [7m434[0m       await visualProcessor.startCamera();
+    [7m   [0m [91m                            ~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/VisualProcessor.test.ts[0m:[93m446[0m:[93m29[0m - [91merror[0m[90m TS2339: [0mProperty 'processImage' does not exist on type 'VisualProcessor'.
+
+    [7m446[0m       await visualProcessor.processImage(mockImageData);
+    [7m   [0m [91m                            ~~~~~~~~~~~~[0m
+
+FAIL src/cognitive-shell/__tests__/CognitiveEngine.test.ts
+  ● Test suite failed to run
+
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m34[0m:[93m9[0m - [91merror[0m[90m TS2353: [0mObject literal may only specify known properties, and 'modelPath' does not exist in type 'HRMConfig'.
+
+    [7m34[0m         modelPath: '/test/model',
+    [7m  [0m [91m        ~~~~~~~~~[0m
+
+      [96msrc/cognitive-shell/CognitiveEngine.ts[0m:[93m42[0m:[93m3[0m
+        [7m42[0m   hrmConfig?: HRMConfig;
+        [7m  [0m [96m  ~~~~~~~~~[0m
+        The expected type comes from property 'hrmConfig' which is declared here on type 'CognitiveConfig'
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m58[0m:[93m29[0m - [91merror[0m[90m TS2554: [0mExpected 1 arguments, but got 0.
+
+    [7m58[0m       const defaultEngine = new CognitiveEngine();
+    [7m  [0m [91m                            ~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96msrc/cognitive-shell/CognitiveEngine.ts[0m:[93m66[0m:[93m15[0m
+        [7m66[0m   constructor(config: CognitiveConfig) {
+        [7m  [0m [96m              ~~~~~~~~~~~~~~~~~~~~~~~[0m
+        An argument for 'config' was not provided.
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m78[0m:[93m23[0m - [91merror[0m[90m TS2341: [0mProperty 'updateContext' is private and only accessible within class 'CognitiveEngine'.
+
+    [7m78[0m       cognitiveEngine.updateContext(contextKey, contextValue);
+    [7m  [0m [91m                      ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m88[0m:[93m19[0m - [91merror[0m[90m TS2341: [0mProperty 'updateContext' is private and only accessible within class 'CognitiveEngine'.
+
+    [7m88[0m       smallEngine.updateContext('key1', 'value1');
+    [7m  [0m [91m                  ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m89[0m:[93m19[0m - [91merror[0m[90m TS2341: [0mProperty 'updateContext' is private and only accessible within class 'CognitiveEngine'.
+
+    [7m89[0m       smallEngine.updateContext('key2', 'value2');
+    [7m  [0m [91m                  ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m90[0m:[93m19[0m - [91merror[0m[90m TS2341: [0mProperty 'updateContext' is private and only accessible within class 'CognitiveEngine'.
+
+    [7m90[0m       smallEngine.updateContext('key3', 'value3'); // Should trigger cleanup
+    [7m  [0m [91m                  ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m99[0m:[93m23[0m - [91merror[0m[90m TS2339: [0mProperty 'activateSkill' does not exist on type 'CognitiveEngine'.
+
+    [7m99[0m       cognitiveEngine.activateSkill(skillName);
+    [7m  [0m [91m                      ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m103[0m:[93m23[0m - [91merror[0m[90m TS2339: [0mProperty 'deactivateSkill' does not exist on type 'CognitiveEngine'.
+
+    [7m103[0m       cognitiveEngine.deactivateSkill(skillName);
+    [7m   [0m [91m                      ~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m110[0m:[93m23[0m - [91merror[0m[90m TS2339: [0mProperty 'updateConfidence' does not exist on type 'CognitiveEngine'.
+
+    [7m110[0m       cognitiveEngine.updateConfidence(newConfidence);
+    [7m   [0m [91m                      ~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m117[0m:[93m23[0m - [91merror[0m[90m TS2339: [0mProperty 'updateConfidence' does not exist on type 'CognitiveEngine'.
+
+    [7m117[0m       cognitiveEngine.updateConfidence(1.5);
+    [7m   [0m [91m                      ~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m120[0m:[93m23[0m - [91merror[0m[90m TS2339: [0mProperty 'updateConfidence' does not exist on type 'CognitiveEngine'.
+
+    [7m120[0m       cognitiveEngine.updateConfidence(-0.5);
+    [7m   [0m [91m                      ~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m136[0m:[93m23[0m - [91merror[0m[90m TS2339: [0mProperty 'recordLearningEvent' does not exist on type 'CognitiveEngine'.
+
+    [7m136[0m       cognitiveEngine.recordLearningEvent(learningEvent);
+    [7m   [0m [91m                      ~~~~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m152[0m:[93m23[0m - [91merror[0m[90m TS2339: [0mProperty 'recordLearningEvent' does not exist on type 'CognitiveEngine'.
+
+    [7m152[0m       cognitiveEngine.recordLearningEvent(highFeedbackEvent);
+    [7m   [0m [91m                      ~~~~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m171[0m:[93m25[0m - [91merror[0m[90m TS2339: [0mProperty 'recordLearningEvent' does not exist on type 'CognitiveEngine'.
+
+    [7m171[0m         cognitiveEngine.recordLearningEvent(event);
+    [7m   [0m [91m                        ~~~~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m184[0m:[93m23[0m - [91merror[0m[90m TS2339: [0mProperty 'activateSkill' does not exist on type 'CognitiveEngine'.
+
+    [7m184[0m       cognitiveEngine.activateSkill('testSkill');
+    [7m   [0m [91m                      ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m186[0m:[93m44[0m - [91merror[0m[90m TS2554: [0mExpected 2 arguments, but got 1.
+
+    [7m186[0m       const result = await cognitiveEngine.processInput(testInput);
+    [7m   [0m [91m                                           ~~~~~~~~~~~~[0m
+
+      [96msrc/cognitive-shell/CognitiveEngine.ts[0m:[93m637[0m:[93m41[0m
+        [7m637[0m   public async processInput(input: any, inputType: string): Promise<any> {
+        [7m   [0m [96m                                        ~~~~~~~~~~~~~~~~~[0m
+        An argument for 'inputType' was not provided.
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m201[0m:[93m27[0m - [91merror[0m[90m TS2554: [0mExpected 2 arguments, but got 1.
+
+    [7m201[0m       await timeoutEngine.processInput(testInput);
+    [7m   [0m [91m                          ~~~~~~~~~~~~[0m
+
+      [96msrc/cognitive-shell/CognitiveEngine.ts[0m:[93m637[0m:[93m41[0m
+        [7m637[0m   public async processInput(input: any, inputType: string): Promise<any> {
+        [7m   [0m [96m                                        ~~~~~~~~~~~~~~~~~[0m
+        An argument for 'inputType' was not provided.
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m215[0m:[93m44[0m - [91merror[0m[90m TS2554: [0mExpected 2 arguments, but got 1.
+
+    [7m215[0m       const result = await cognitiveEngine.processInput(testInput);
+    [7m   [0m [91m                                           ~~~~~~~~~~~~[0m
+
+      [96msrc/cognitive-shell/CognitiveEngine.ts[0m:[93m637[0m:[93m41[0m
+        [7m637[0m   public async processInput(input: any, inputType: string): Promise<any> {
+        [7m   [0m [96m                                        ~~~~~~~~~~~~~~~~~[0m
+        An argument for 'inputType' was not provided.
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m222[0m:[93m30[0m - [91merror[0m[90m TS2339: [0mProperty 'isVoiceEnabled' does not exist on type 'CognitiveEngine'.
+
+    [7m222[0m       expect(cognitiveEngine.isVoiceEnabled()).toBe(true);
+    [7m   [0m [91m                             ~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m226[0m:[93m30[0m - [91merror[0m[90m TS2339: [0mProperty 'isVisualEnabled' does not exist on type 'CognitiveEngine'.
+
+    [7m226[0m       expect(cognitiveEngine.isVisualEnabled()).toBe(true);
+    [7m   [0m [91m                             ~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m230[0m:[93m30[0m - [91merror[0m[90m TS2339: [0mProperty 'isLoRAEnabled' does not exist on type 'CognitiveEngine'.
+
+    [7m230[0m       expect(cognitiveEngine.isLoRAEnabled()).toBe(true);
+    [7m   [0m [91m                             ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m234[0m:[93m30[0m - [91merror[0m[90m TS2339: [0mProperty 'isHRMEnabled' does not exist on type 'CognitiveEngine'.
+
+    [7m234[0m       expect(cognitiveEngine.isHRMEnabled()).toBe(true);
+    [7m   [0m [91m                             ~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m238[0m:[93m30[0m - [91merror[0m[90m TS2339: [0mProperty 'isWalletIntegrationEnabled' does not exist on type 'CognitiveEngine'.
+
+    [7m238[0m       expect(cognitiveEngine.isWalletIntegrationEnabled()).toBe(true);
+    [7m   [0m [91m                             ~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m242[0m:[93m30[0m - [91merror[0m[90m TS2339: [0mProperty 'isChainIntegrationEnabled' does not exist on type 'CognitiveEngine'.
+
+    [7m242[0m       expect(cognitiveEngine.isChainIntegrationEnabled()).toBe(true);
+    [7m   [0m [91m                             ~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m251[0m:[93m23[0m - [91merror[0m[90m TS2341: [0mProperty 'updateContext' is private and only accessible within class 'CognitiveEngine'.
+
+    [7m251[0m       cognitiveEngine.updateContext('test', 'value');
+    [7m   [0m [91m                      ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m260[0m:[93m23[0m - [91merror[0m[90m TS2339: [0mProperty 'activateSkill' does not exist on type 'CognitiveEngine'.
+
+    [7m260[0m       cognitiveEngine.activateSkill('testSkill');
+    [7m   [0m [91m                      ~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m278[0m:[93m23[0m - [91merror[0m[90m TS2339: [0mProperty 'recordLearningEvent' does not exist on type 'CognitiveEngine'.
+
+    [7m278[0m       cognitiveEngine.recordLearningEvent(learningEvent);
+    [7m   [0m [91m                      ~~~~~~~~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m288[0m:[93m23[0m - [91merror[0m[90m TS2339: [0mProperty 'updateConfig' does not exist on type 'CognitiveEngine'.
+
+    [7m288[0m       cognitiveEngine.updateConfig(newConfig);
+    [7m   [0m [91m                      ~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m290[0m:[93m30[0m - [91merror[0m[90m TS2339: [0mProperty 'getConfig' does not exist on type 'CognitiveEngine'.
+
+    [7m290[0m       expect(cognitiveEngine.getConfig().learningRate).toBe(0.02);
+    [7m   [0m [91m                             ~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m297[0m:[93m25[0m - [91merror[0m[90m TS2339: [0mProperty 'updateConfig' does not exist on type 'CognitiveEngine'.
+
+    [7m297[0m         cognitiveEngine.updateConfig(invalidConfig);
+    [7m   [0m [91m                        ~~~~~~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m304[0m:[93m54[0m - [91merror[0m[90m TS2769: [0mNo overload matches this call.
+      Overload 1 of 3, '(object: CognitiveEngine, method: never): SpyInstance<never, never, any>', gave the following error.
+        Argument of type '"dispose"' is not assignable to parameter of type 'never'.
+      Overload 2 of 3, '(object: CognitiveEngine, method: keyof CognitiveEngine): SpyInstance<any, [] | [input: any, inputType: string] | [event: string, listener: Function] | [skillId: string, parameters: any] | [weightsData: ...] | ... 40 more ... | [event: ...], any>', gave the following error.
+        Argument of type '"dispose"' is not assignable to parameter of type 'keyof CognitiveEngine'.
+
+    [7m304[0m       const disposeSpy = jest.spyOn(cognitiveEngine, 'dispose');
+    [7m   [0m [91m                                                     ~~~~~~~~~[0m
+
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m306[0m:[93m23[0m - [91merror[0m[90m TS2339: [0mProperty 'dispose' does not exist on type 'CognitiveEngine'.
+
+    [7m306[0m       cognitiveEngine.dispose();
+    [7m   [0m [91m                      ~~~~~~~[0m
+    [96msrc/cognitive-shell/__tests__/CognitiveEngine.test.ts[0m:[93m315[0m:[93m23[0m - [91merror[0m[90m TS2339: [0mProperty 'dispose' does not exist on type 'CognitiveEngine'.
+
+    [7m315[0m       cognitiveEngine.dispose();
+    [7m   [0m [91m                      ~~~~~~~[0m
+
+FAIL src/__tests__/App.test.tsx
+  ● Test suite failed to run
+
+    [96msrc/App.tsx[0m:[93m327[0m:[93m26[0m - [91merror[0m[90m TS2322: [0mType '{ knirvChain: string; knirvGraph: string; knirvWallet: string; knirvRouters: string; knirvana: string; knirvNexus: string; }' is not assignable to type '{ [key: string]: "connected" | "disconnected" | "connecting"; }'.
+      Property 'knirvChain' is incompatible with index signature.
+        Type 'string' is not assignable to type '"connected" | "disconnected" | "connecting"'.
+
+    [7m327[0m           <NetworkStatus connections={networkConnections} />
+    [7m   [0m [91m                         ~~~~~~~~~~~[0m
+
+      [96msrc/components/NetworkStatus.tsx[0m:[93m5[0m:[93m3[0m
+        [7m5[0m   connections: {
+        [7m [0m [96m  ~~~~~~~~~~~[0m
+        The expected type comes from property 'connections' which is declared here on type 'IntrinsicAttributes & NetworkStatusProps'
+
+Test Suites: 5 failed, 5 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        18.059 s
+Ran all test suites.

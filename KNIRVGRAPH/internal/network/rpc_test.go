@@ -6,9 +6,7 @@ import (
 	"blockchain-app/internal/storage"
 	"blockchain-app/internal/types"
 	"bytes"
-	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -135,7 +133,7 @@ func TestRPCServerGetNodeEndpoint(t *testing.T) {
 	req := httptest.NewRequest("GET", "/node/test-node", nil)
 	w := httptest.NewRecorder()
 
-	server.handleGetNode(w, req)
+	server.server.Handler.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", w.Code)
@@ -182,7 +180,7 @@ func TestRPCServerCreateNodeEndpoint(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
-	server.handleCreateNode(w, req)
+	server.server.Handler.ServeHTTP(w, req)
 
 	if w.Code != http.StatusCreated {
 		t.Errorf("Expected status 201, got %d", w.Code)
@@ -215,22 +213,27 @@ func TestRPCServerGetHeadsEndpoint(t *testing.T) {
 	gc.AddNode(node1)
 	gc.AddNode(node2)
 
-	req := httptest.NewRequest("GET", "/heads", nil)
+	req := httptest.NewRequest("GET", "/graph/heads", nil)
 	w := httptest.NewRecorder()
 
-	server.handleGetHeads(w, req)
+	server.server.Handler.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", w.Code)
 	}
 
-	var response []string
+	var response map[string][]string
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to unmarshal response: %v", err)
 	}
 
-	if len(response) == 0 {
+	heads, ok := response["heads"]
+	if !ok {
+		t.Error("Expected 'heads' field in response")
+	}
+
+	if len(heads) == 0 {
 		t.Error("Expected at least one head node")
 	}
 }
@@ -251,22 +254,27 @@ func TestRPCServerFindPathEndpoint(t *testing.T) {
 	gc.AddNode(nodeA)
 	gc.AddNode(nodeB)
 
-	req := httptest.NewRequest("GET", "/path?from=A&to=B", nil)
+	req := httptest.NewRequest("GET", "/graph/path/A/B", nil)
 	w := httptest.NewRecorder()
 
-	server.handleFindPath(w, req)
+	server.server.Handler.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", w.Code)
 	}
 
-	var response []string
+	var response map[string][]string
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to unmarshal response: %v", err)
 	}
 
-	if len(response) == 0 {
+	path, ok := response["path"]
+	if !ok {
+		t.Error("Expected 'path' field in response")
+	}
+
+	if len(path) == 0 {
 		t.Error("Expected non-empty path")
 	}
 }

@@ -1,4 +1,4 @@
-package main
+package integration_tests
 
 import (
 	"bytes"
@@ -20,30 +20,30 @@ type PerformanceBenchmarkSuite struct {
 
 // Benchmark result structure
 type BenchmarkResult struct {
-	BenchmarkName     string                 `json:"benchmark_name"`
-	TotalRequests     int                    `json:"total_requests"`
-	SuccessfulRequests int                   `json:"successful_requests"`
-	FailedRequests    int                    `json:"failed_requests"`
-	SuccessRate       float64                `json:"success_rate"`
-	TotalDuration     time.Duration          `json:"total_duration"`
-	AverageLatency    time.Duration          `json:"average_latency"`
-	MinLatency        time.Duration          `json:"min_latency"`
-	MaxLatency        time.Duration          `json:"max_latency"`
-	RequestsPerSecond float64                `json:"requests_per_second"`
-	Percentiles       map[string]time.Duration `json:"percentiles"`
-	Metrics           map[string]interface{} `json:"metrics"`
-	Timestamp         time.Time              `json:"timestamp"`
+	BenchmarkName      string                   `json:"benchmark_name"`
+	TotalRequests      int                      `json:"total_requests"`
+	SuccessfulRequests int                      `json:"successful_requests"`
+	FailedRequests     int                      `json:"failed_requests"`
+	SuccessRate        float64                  `json:"success_rate"`
+	TotalDuration      time.Duration            `json:"total_duration"`
+	AverageLatency     time.Duration            `json:"average_latency"`
+	MinLatency         time.Duration            `json:"min_latency"`
+	MaxLatency         time.Duration            `json:"max_latency"`
+	RequestsPerSecond  float64                  `json:"requests_per_second"`
+	Percentiles        map[string]time.Duration `json:"percentiles"`
+	Metrics            map[string]interface{}   `json:"metrics"`
+	Timestamp          time.Time                `json:"timestamp"`
 }
 
 // Performance test configuration
 type PerformanceTestConfig struct {
-	ConcurrentUsers   int           `json:"concurrent_users"`
-	RequestsPerUser   int           `json:"requests_per_user"`
-	TestDuration      time.Duration `json:"test_duration"`
-	RampUpTime        time.Duration `json:"ramp_up_time"`
-	ThinkTime         time.Duration `json:"think_time"`
-	MaxLatency        time.Duration `json:"max_latency"`
-	MinSuccessRate    float64       `json:"min_success_rate"`
+	ConcurrentUsers int           `json:"concurrent_users"`
+	RequestsPerUser int           `json:"requests_per_user"`
+	TestDuration    time.Duration `json:"test_duration"`
+	RampUpTime      time.Duration `json:"ramp_up_time"`
+	ThinkTime       time.Duration `json:"think_time"`
+	MaxLatency      time.Duration `json:"max_latency"`
+	MinSuccessRate  float64       `json:"min_success_rate"`
 }
 
 // Create new performance benchmark suite
@@ -71,40 +71,40 @@ func (suite *PerformanceBenchmarkSuite) executePerformanceTest(
 	payload interface{},
 	config PerformanceTestConfig,
 ) BenchmarkResult {
-	
+
 	fmt.Printf("Running benchmark: %s\n", benchmarkName)
-	
+
 	totalRequests := config.ConcurrentUsers * config.RequestsPerUser
 	results := make(chan time.Duration, totalRequests)
 	errors := make(chan error, totalRequests)
-	
+
 	startTime := time.Now()
 	var wg sync.WaitGroup
-	
+
 	// Launch concurrent users
 	for user := 0; user < config.ConcurrentUsers; user++ {
 		wg.Add(1)
-		
+
 		go func(userID int) {
 			defer wg.Done()
-			
+
 			// Ramp-up delay
 			rampDelay := time.Duration(userID) * (config.RampUpTime / time.Duration(config.ConcurrentUsers))
 			time.Sleep(rampDelay)
-			
+
 			// Execute requests for this user
 			for req := 0; req < config.RequestsPerUser; req++ {
 				requestStart := time.Now()
-				
+
 				err := suite.makeRequest(endpoint, payload)
 				requestDuration := time.Since(requestStart)
-				
+
 				if err != nil {
 					errors <- err
 				} else {
 					results <- requestDuration
 				}
-				
+
 				// Think time between requests
 				if config.ThinkTime > 0 && req < config.RequestsPerUser-1 {
 					time.Sleep(config.ThinkTime)
@@ -112,28 +112,28 @@ func (suite *PerformanceBenchmarkSuite) executePerformanceTest(
 			}
 		}(user)
 	}
-	
+
 	// Wait for all users to complete
 	wg.Wait()
 	close(results)
 	close(errors)
-	
+
 	totalDuration := time.Since(startTime)
-	
+
 	// Collect results
 	var latencies []time.Duration
 	successCount := 0
 	errorCount := 0
-	
+
 	for latency := range results {
 		latencies = append(latencies, latency)
 		successCount++
 	}
-	
+
 	for range errors {
 		errorCount++
 	}
-	
+
 	// Calculate statistics
 	result := BenchmarkResult{
 		BenchmarkName:      benchmarkName,
@@ -147,7 +147,7 @@ func (suite *PerformanceBenchmarkSuite) executePerformanceTest(
 		Metrics:            make(map[string]interface{}),
 		Timestamp:          time.Now(),
 	}
-	
+
 	if len(latencies) > 0 {
 		// Sort latencies for percentile calculation
 		for i := 0; i < len(latencies)-1; i++ {
@@ -157,30 +157,30 @@ func (suite *PerformanceBenchmarkSuite) executePerformanceTest(
 				}
 			}
 		}
-		
+
 		result.MinLatency = latencies[0]
 		result.MaxLatency = latencies[len(latencies)-1]
-		
+
 		// Calculate average
 		var totalLatency time.Duration
 		for _, latency := range latencies {
 			totalLatency += latency
 		}
 		result.AverageLatency = totalLatency / time.Duration(len(latencies))
-		
+
 		// Calculate percentiles
 		result.Percentiles["p50"] = latencies[len(latencies)*50/100]
 		result.Percentiles["p90"] = latencies[len(latencies)*90/100]
 		result.Percentiles["p95"] = latencies[len(latencies)*95/100]
 		result.Percentiles["p99"] = latencies[len(latencies)*99/100]
 	}
-	
+
 	// Add configuration metrics
 	result.Metrics["concurrent_users"] = config.ConcurrentUsers
 	result.Metrics["requests_per_user"] = config.RequestsPerUser
 	result.Metrics["test_duration"] = config.TestDuration.Seconds()
 	result.Metrics["ramp_up_time"] = config.RampUpTime.Seconds()
-	
+
 	return result
 }
 
@@ -190,24 +190,24 @@ func (suite *PerformanceBenchmarkSuite) makeRequest(endpoint string, payload int
 	if err != nil {
 		return err
 	}
-	
+
 	req, err := http.NewRequest("POST", suite.baseURL+endpoint, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return err
 	}
-	
+
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	resp, err := suite.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("HTTP error: %d", resp.StatusCode)
 	}
-	
+
 	return nil
 }
 
@@ -221,29 +221,29 @@ func (suite *PerformanceBenchmarkSuite) benchmarkHRMCognitiveProcessing() Benchm
 			"task_type":    "cognitive_analysis",
 		},
 		"config": map[string]interface{}{
-			"l_module_count": 8,
-			"h_module_count": 4,
+			"l_module_count":    8,
+			"h_module_count":    4,
 			"enable_adaptation": true,
 		},
 	}
-	
+
 	config := PerformanceTestConfig{
-		ConcurrentUsers:  10,
-		RequestsPerUser:  20,
-		TestDuration:     60 * time.Second,
-		RampUpTime:       10 * time.Second,
-		ThinkTime:        100 * time.Millisecond,
-		MaxLatency:       5 * time.Second,
-		MinSuccessRate:   0.95,
+		ConcurrentUsers: 10,
+		RequestsPerUser: 20,
+		TestDuration:    60 * time.Second,
+		RampUpTime:      10 * time.Second,
+		ThinkTime:       100 * time.Millisecond,
+		MaxLatency:      5 * time.Second,
+		MinSuccessRate:  0.95,
 	}
-	
+
 	result := suite.executePerformanceTest(
 		"HRM Cognitive Processing",
 		"/api/hrm/process",
 		payload,
 		config,
 	)
-	
+
 	suite.addResult(result)
 	return result
 }
@@ -253,30 +253,30 @@ func (suite *PerformanceBenchmarkSuite) benchmarkNeuralNetworkOperations() Bench
 	payload := map[string]interface{}{
 		"operation": "tensor_operations_benchmark",
 		"config": map[string]interface{}{
-			"tensor_size":     []int{100, 100},
-			"operations":      []string{"add", "multiply", "matmul"},
-			"iterations":      50,
-			"measure_memory":  true,
+			"tensor_size":    []int{100, 100},
+			"operations":     []string{"add", "multiply", "matmul"},
+			"iterations":     50,
+			"measure_memory": true,
 		},
 	}
-	
+
 	config := PerformanceTestConfig{
-		ConcurrentUsers:  5,
-		RequestsPerUser:  10,
-		TestDuration:     45 * time.Second,
-		RampUpTime:       5 * time.Second,
-		ThinkTime:        200 * time.Millisecond,
-		MaxLatency:       3 * time.Second,
-		MinSuccessRate:   0.90,
+		ConcurrentUsers: 5,
+		RequestsPerUser: 10,
+		TestDuration:    45 * time.Second,
+		RampUpTime:      5 * time.Second,
+		ThinkTime:       200 * time.Millisecond,
+		MaxLatency:      3 * time.Second,
+		MinSuccessRate:  0.90,
 	}
-	
+
 	result := suite.executePerformanceTest(
 		"Neural Network Operations",
 		"/api/neural/benchmark",
 		payload,
 		config,
 	)
-	
+
 	suite.addResult(result)
 	return result
 }
@@ -297,24 +297,24 @@ func (suite *PerformanceBenchmarkSuite) benchmarkLoRATraining() BenchmarkResult 
 		},
 		"test_data": suite.generateTrainingData(100, 256, 256),
 	}
-	
+
 	config := PerformanceTestConfig{
-		ConcurrentUsers:  3,
-		RequestsPerUser:  5,
-		TestDuration:     90 * time.Second,
-		RampUpTime:       10 * time.Second,
-		ThinkTime:        500 * time.Millisecond,
-		MaxLatency:       15 * time.Second,
-		MinSuccessRate:   0.80,
+		ConcurrentUsers: 3,
+		RequestsPerUser: 5,
+		TestDuration:    90 * time.Second,
+		RampUpTime:      10 * time.Second,
+		ThinkTime:       500 * time.Millisecond,
+		MaxLatency:      15 * time.Second,
+		MinSuccessRate:  0.80,
 	}
-	
+
 	result := suite.executePerformanceTest(
 		"LoRA Adapter Training",
 		"/api/neural/lora/benchmark",
 		payload,
 		config,
 	)
-	
+
 	suite.addResult(result)
 	return result
 }
@@ -324,32 +324,32 @@ func (suite *PerformanceBenchmarkSuite) benchmarkVisualProcessing() BenchmarkRes
 	payload := map[string]interface{}{
 		"operation": "visual_processing_benchmark",
 		"config": map[string]interface{}{
-			"image_size":           []int{224, 224, 3},
-			"object_detection":     true,
-			"face_recognition":     true,
-			"scene_analysis":       true,
-			"enable_hrm_guidance":  true,
+			"image_size":          []int{224, 224, 3},
+			"object_detection":    true,
+			"face_recognition":    true,
+			"scene_analysis":      true,
+			"enable_hrm_guidance": true,
 		},
 		"test_data": suite.generateImageData(224, 224, 3),
 	}
-	
+
 	config := PerformanceTestConfig{
-		ConcurrentUsers:  8,
-		RequestsPerUser:  15,
-		TestDuration:     60 * time.Second,
-		RampUpTime:       8 * time.Second,
-		ThinkTime:        300 * time.Millisecond,
-		MaxLatency:       8 * time.Second,
-		MinSuccessRate:   0.85,
+		ConcurrentUsers: 8,
+		RequestsPerUser: 15,
+		TestDuration:    60 * time.Second,
+		RampUpTime:      8 * time.Second,
+		ThinkTime:       300 * time.Millisecond,
+		MaxLatency:      8 * time.Second,
+		MinSuccessRate:  0.85,
 	}
-	
+
 	result := suite.executePerformanceTest(
 		"Visual Processing",
 		"/api/visual/benchmark",
 		payload,
 		config,
 	)
-	
+
 	suite.addResult(result)
 	return result
 }
@@ -364,24 +364,24 @@ func (suite *PerformanceBenchmarkSuite) benchmarkEcosystemCommunication() Benchm
 			"message_size":      "medium",
 		},
 	}
-	
+
 	config := PerformanceTestConfig{
-		ConcurrentUsers:  15,
-		RequestsPerUser:  25,
-		TestDuration:     45 * time.Second,
-		RampUpTime:       5 * time.Second,
-		ThinkTime:        50 * time.Millisecond,
-		MaxLatency:       2 * time.Second,
-		MinSuccessRate:   0.95,
+		ConcurrentUsers: 15,
+		RequestsPerUser: 25,
+		TestDuration:    45 * time.Second,
+		RampUpTime:      5 * time.Second,
+		ThinkTime:       50 * time.Millisecond,
+		MaxLatency:      2 * time.Second,
+		MinSuccessRate:  0.95,
 	}
-	
+
 	result := suite.executePerformanceTest(
 		"Ecosystem Communication",
 		"/api/ecosystem/communication/benchmark",
 		payload,
 		config,
 	)
-	
+
 	suite.addResult(result)
 	return result
 }
@@ -391,35 +391,35 @@ func (suite *PerformanceBenchmarkSuite) benchmarkUnifiedSkillExecution() Benchma
 	payload := map[string]interface{}{
 		"operation": "unified_skill_execution_benchmark",
 		"config": map[string]interface{}{
-			"skill_id":     "benchmark_skill_001",
-			"skill_type":   "cognitive_processing",
-			"nrn_cost":     "1.0",
+			"skill_id":   "benchmark_skill_001",
+			"skill_type": "cognitive_processing",
+			"nrn_cost":   "1.0",
 			"parameters": map[string]interface{}{
-				"input": "Performance benchmark test input",
+				"input":      "Performance benchmark test input",
 				"complexity": "medium",
 			},
 			"enable_wallet_integration": true,
 			"enable_chain_integration":  true,
 		},
 	}
-	
+
 	config := PerformanceTestConfig{
-		ConcurrentUsers:  5,
-		RequestsPerUser:  10,
-		TestDuration:     120 * time.Second,
-		RampUpTime:       15 * time.Second,
-		ThinkTime:        1 * time.Second,
-		MaxLatency:       20 * time.Second,
-		MinSuccessRate:   0.80,
+		ConcurrentUsers: 5,
+		RequestsPerUser: 10,
+		TestDuration:    120 * time.Second,
+		RampUpTime:      15 * time.Second,
+		ThinkTime:       1 * time.Second,
+		MaxLatency:      20 * time.Second,
+		MinSuccessRate:  0.80,
 	}
-	
+
 	result := suite.executePerformanceTest(
 		"Unified Skill Execution",
 		"/api/ecosystem/unified-skill/benchmark",
 		payload,
 		config,
 	)
-	
+
 	suite.addResult(result)
 	return result
 }
@@ -436,20 +436,20 @@ func (suite *PerformanceBenchmarkSuite) generateSensoryData(size int) []float64 
 func (suite *PerformanceBenchmarkSuite) generateTrainingData(samples, inputDim, outputDim int) map[string]interface{} {
 	inputs := make([][]float64, samples)
 	outputs := make([][]float64, samples)
-	
+
 	for i := 0; i < samples; i++ {
 		inputs[i] = make([]float64, inputDim)
 		outputs[i] = make([]float64, outputDim)
-		
+
 		for j := 0; j < inputDim; j++ {
 			inputs[i][j] = float64((i*j)%256) / 255.0
 		}
-		
+
 		for j := 0; j < outputDim; j++ {
-			outputs[i][j] = float64((i+j)%2)
+			outputs[i][j] = float64((i + j) % 2)
 		}
 	}
-	
+
 	return map[string]interface{}{
 		"inputs":  inputs,
 		"outputs": outputs,
@@ -471,29 +471,29 @@ func (suite *PerformanceBenchmarkSuite) generateImageData(width, height, channel
 // Generate performance report
 func (suite *PerformanceBenchmarkSuite) generatePerformanceReport() map[string]interface{} {
 	report := map[string]interface{}{
-		"benchmark_suite":    "KNIRV-CORTEX Performance Benchmarks",
-		"total_benchmarks":   len(suite.results),
-		"execution_time":     time.Now(),
-		"benchmarks":         suite.results,
-		"summary":            make(map[string]interface{}),
+		"benchmark_suite":  "KNIRV-CORTEX Performance Benchmarks",
+		"total_benchmarks": len(suite.results),
+		"execution_time":   time.Now(),
+		"benchmarks":       suite.results,
+		"summary":          make(map[string]interface{}),
 	}
-	
+
 	// Calculate summary statistics
 	totalRequests := 0
 	totalSuccessful := 0
 	var totalLatency time.Duration
 	var maxRPS float64
-	
+
 	for _, result := range suite.results {
 		totalRequests += result.TotalRequests
 		totalSuccessful += result.SuccessfulRequests
 		totalLatency += result.AverageLatency
-		
+
 		if result.RequestsPerSecond > maxRPS {
 			maxRPS = result.RequestsPerSecond
 		}
 	}
-	
+
 	summary := map[string]interface{}{
 		"total_requests":       totalRequests,
 		"total_successful":     totalSuccessful,
@@ -501,7 +501,7 @@ func (suite *PerformanceBenchmarkSuite) generatePerformanceReport() map[string]i
 		"average_latency":      totalLatency / time.Duration(len(suite.results)),
 		"max_rps":              maxRPS,
 	}
-	
+
 	report["summary"] = summary
 	return report
 }
@@ -515,9 +515,9 @@ func (suite *PerformanceBenchmarkSuite) getResults() []BenchmarkResult {
 func TestPerformanceBenchmarks(t *testing.T) {
 	baseURL := "http://localhost:3001"
 	suite := NewPerformanceBenchmarkSuite(baseURL)
-	
+
 	fmt.Println("Starting KNIRV-CORTEX Performance Benchmarks...")
-	
+
 	benchmarks := []struct {
 		name string
 		fn   func() BenchmarkResult
@@ -529,11 +529,11 @@ func TestPerformanceBenchmarks(t *testing.T) {
 		{"Ecosystem Communication", suite.benchmarkEcosystemCommunication},
 		{"Unified Skill Execution", suite.benchmarkUnifiedSkillExecution},
 	}
-	
+
 	for _, benchmark := range benchmarks {
 		fmt.Printf("Running benchmark: %s...\n", benchmark.name)
 		result := benchmark.fn()
-		
+
 		fmt.Printf("  Total Requests: %d\n", result.TotalRequests)
 		fmt.Printf("  Success Rate: %.2f%%\n", result.SuccessRate*100)
 		fmt.Printf("  Average Latency: %v\n", result.AverageLatency)
@@ -541,10 +541,10 @@ func TestPerformanceBenchmarks(t *testing.T) {
 		fmt.Printf("  P95 Latency: %v\n", result.Percentiles["p95"])
 		fmt.Println()
 	}
-	
+
 	// Generate performance report
 	report := suite.generatePerformanceReport()
-	
+
 	// Print summary
 	summary := report["summary"].(map[string]interface{})
 	fmt.Printf("Performance Benchmarks Summary:\n")
@@ -553,13 +553,13 @@ func TestPerformanceBenchmarks(t *testing.T) {
 	fmt.Printf("Overall Success Rate: %.2f%%\n", summary["overall_success_rate"].(float64)*100)
 	fmt.Printf("Average Latency: %v\n", summary["average_latency"])
 	fmt.Printf("Max RPS: %.2f\n", summary["max_rps"])
-	
+
 	// Check if performance meets requirements
 	overallSuccessRate := summary["overall_success_rate"].(float64)
 	if overallSuccessRate < 0.85 {
 		t.Errorf("Overall success rate too low: %.2f%% < 85%%", overallSuccessRate*100)
 	}
-	
+
 	maxRPS := summary["max_rps"].(float64)
 	if maxRPS < 10.0 {
 		t.Errorf("Maximum RPS too low: %.2f < 10.0", maxRPS)

@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     
     switch (action) {
       case 'run_audit':
-        const auditResult = Math.random() > 0.1 ? 'passed' : Math.random() > 0.5 ? 'warning' : 'failed';
+        const auditResult = Math.random() > 0.1 ? 'passed' : Math.random() > 0.5 ? 'warning' : 'failed' as 'passed' | 'warning' | 'failed';
         const newAudit = {
           id: `audit-${String(mockTEESecurity.audit_history.length + 1).padStart(3, '0')}`,
           timestamp: new Date().toISOString(),

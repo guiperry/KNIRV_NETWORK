@@ -9,8 +9,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/cloud-equities/KNIRVGATEWAY/sdk/go/gateway/internal/requestconfig"
-	"github.com/cloud-equities/KNIRVGATEWAY/sdk/go/gateway/option"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/gateway/internal/requestconfig"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/gateway/option"
 )
 
 // Client creates a struct with services and top level methods that help with
@@ -104,7 +104,7 @@ func DefaultClientOptions() []option.RequestOption {
 // environment (KNIRVGATEWAY_API_KEY, KNIRVGATEWAY_BASE_URL). The option passed in as arguments are
 // applied after these default arguments, and all option will be passed down to the
 // services and requests that this client makes.
-func NewClient(opts ...option.RequestOption) *Client {
+func NewClient(opts ...option.RequestOption) (*Client, error) {
 	options := DefaultClientOptions()
 	options = append(options, opts...)
 
@@ -138,7 +138,7 @@ func NewClient(opts ...option.RequestOption) *Client {
 		NetworkAuthors: NetworkAuthorsService{client: client},
 	}
 
-	return client
+	return client, nil
 }
 
 // NewEconomicsClient creates a client specifically for the Economics Service
@@ -152,7 +152,8 @@ func NewEconomicsClient(opts ...option.RequestOption) *Client {
 	}
 
 	economicsOpts = append(economicsOpts, opts...)
-	return NewClient(economicsOpts...)
+	client, _ := NewClient(economicsOpts...)
+	return client
 }
 
 // NewGatewayClient creates a client specifically for the API Gateway
@@ -166,7 +167,8 @@ func NewGatewayClient(opts ...option.RequestOption) *Client {
 	}
 
 	gatewayOpts = append(gatewayOpts, opts...)
-	return NewClient(gatewayOpts...)
+	client, _ := NewClient(gatewayOpts...)
+	return client
 }
 
 // Execute makes an HTTP request with the given context and request configuration
@@ -191,7 +193,7 @@ func (c *Client) Get(ctx context.Context, path string, opts ...option.RequestOpt
 	}
 
 	for _, opt := range append(c.Options, opts...) {
-		opt.Apply(&cfg)
+		opt(&cfg)
 	}
 
 	return c.Execute(ctx, cfg)
@@ -206,7 +208,7 @@ func (c *Client) Post(ctx context.Context, path string, body interface{}, opts .
 	}
 
 	for _, opt := range append(c.Options, opts...) {
-		opt.Apply(&cfg)
+		opt(&cfg)
 	}
 
 	return c.Execute(ctx, cfg)
@@ -221,7 +223,7 @@ func (c *Client) Put(ctx context.Context, path string, body interface{}, opts ..
 	}
 
 	for _, opt := range append(c.Options, opts...) {
-		opt.Apply(&cfg)
+		opt(&cfg)
 	}
 
 	return c.Execute(ctx, cfg)
@@ -235,8 +237,31 @@ func (c *Client) Delete(ctx context.Context, path string, opts ...option.Request
 	}
 
 	for _, opt := range append(c.Options, opts...) {
-		opt.Apply(&cfg)
+		opt(&cfg)
 	}
 
 	return c.Execute(ctx, cfg)
+}
+
+// NewRequest creates a new HTTP request with the specified method, path, and body
+func (c *Client) NewRequest(ctx context.Context, method, path string, body interface{}) (*http.Request, error) {
+	cfg := requestconfig.RequestConfig{
+		Method: method,
+		Path:   path,
+		Body:   body,
+	}
+
+	for _, opt := range c.Options {
+		opt(&cfg)
+	}
+
+	return cfg.Build(ctx)
+}
+
+// Do executes an HTTP request and returns the response
+func (c *Client) Do(req *http.Request) (*http.Response, error) {
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+	return client.Do(req)
 }

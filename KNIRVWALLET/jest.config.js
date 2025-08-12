@@ -18,24 +18,7 @@ module.exports = {
 
   // Transform configuration - explicitly override any babel configs
   transform: {
-    '^.+\\.tsx?$': 'ts-jest',
-    '^.+\\.jsx?$': 'babel-jest'
-  },
-
-  // Transform ignore patterns for native modules
-  transformIgnorePatterns: [
-    'node_modules/(?!(libsodium-wrappers-sumo|libsodium-sumo|@cosmjs|bech32)/)'
-  ],
-
-  // Module name mapping for problematic modules
-  moduleNameMapper: {
-    '^libsodium-sumo$': '<rootDir>/browser-wallet/node_modules/libsodium-sumo',
-    '^libsodium-wrappers-sumo$': '<rootDir>/browser-wallet/node_modules/libsodium-wrappers-sumo'
-  },
-
-  // Globals for ts-jest
-  globals: {
-    'ts-jest': {
+    '^.+\\.tsx?$': ['ts-jest', {
       useESM: false,
       tsconfig: {
         compilerOptions: {
@@ -46,19 +29,27 @@ module.exports = {
           allowSyntheticDefaultImports: true,
           strict: false,
           skipLibCheck: true,
-          isolatedModules: false
+          isolatedModules: false,
+          jsx: 'react-jsx',
+          moduleResolution: 'node'
         }
       }
-    }
+    }],
+    '^.+\\.jsx?$': 'babel-jest'
   },
-  
-  // Module name mapping for path resolution
+
+  // Module name mapping for path resolution and problematic modules
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/test-utils/$1',
     '^@knirvwallet/(.*)$': '<rootDir>/browser-wallet/packages/$1/src',
     '^@agentic/(.*)$': '<rootDir>/agentic-wallet/src/$1',
     '^@test-utils/(.*)$': '<rootDir>/test-utils/$1',
-    '^@integration/(.*)$': '<rootDir>/../integration-tests/$1'
+    '^@integration/(.*)$': '<rootDir>/../integration-tests/$1',
+    '^@resources/(.*)$': '<rootDir>/browser-wallet/packages/knirvwallet-extension/src/resources/$1',
+    '^libsodium-sumo$': '<rootDir>/browser-wallet/node_modules/libsodium-sumo',
+    '^libsodium-wrappers-sumo$': '<rootDir>/browser-wallet/node_modules/libsodium-wrappers-sumo',
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+    '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$': 'jest-transform-stub'
   },
   
   // Test match patterns
@@ -76,14 +67,9 @@ module.exports = {
     '/coverage/'
   ],
   
-  // Transform ignore patterns
+  // Transform ignore patterns for native modules
   transformIgnorePatterns: [
-    'node_modules/(?!(.*\\.mjs$|@gnolang|@cosmjs))'
-  ],
-  
-  // Setup files
-  setupFiles: [
-    '<rootDir>/test-utils/jest-setup.js'
+    'node_modules/(?!(.*\\.mjs$|@gnolang|@cosmjs|libsodium-wrappers-sumo|libsodium-sumo|bech32)/)'
   ],
   
   // Setup files after environment
@@ -168,12 +154,7 @@ module.exports = {
     }
   ],
   
-  // Global variables
-  globals: {
-    'ts-jest': {
-      useESM: true
-    }
-  },
+
   
   // Verbose output
   verbose: true,

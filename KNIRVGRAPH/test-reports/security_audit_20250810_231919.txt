@@ -1,0 +1,48 @@
+# npm audit report
+
+@babel/helpers  <7.26.10
+Severity: moderate
+Babel has inefficient RegExp complexity in generated code with .replace when transpiling named capturing groups - https://github.com/advisories/GHSA-968p-4wvh-cqc8
+fix available via `npm audit fix`
+node_modules/@babel/helpers
+
+@eslint/plugin-kit  <=0.3.3
+Regular Expression Denial of Service (ReDoS) in @eslint/plugin-kit - https://github.com/advisories/GHSA-7q7g-4xm8-89cq
+@eslint/plugin-kit is vulnerable to Regular Expression Denial of Service attacks through ConfigCommentParser - https://github.com/advisories/GHSA-xffm-g5w8-qvg7
+fix available via `npm audit fix`
+node_modules/@eslint/plugin-kit
+
+brace-expansion  1.0.0 - 1.1.11 || 2.0.0 - 2.0.1
+brace-expansion Regular Expression Denial of Service vulnerability - https://github.com/advisories/GHSA-v6h2-p8h4-qcjw
+brace-expansion Regular Expression Denial of Service vulnerability - https://github.com/advisories/GHSA-v6h2-p8h4-qcjw
+fix available via `npm audit fix`
+node_modules/@typescript-eslint/typescript-estree/node_modules/brace-expansion
+node_modules/brace-expansion
+node_modules/glob/node_modules/brace-expansion
+
+cross-spawn  7.0.0 - 7.0.4
+Severity: high
+Regular Expression Denial of Service (ReDoS) in cross-spawn - https://github.com/advisories/GHSA-3xgq-45jj-v275
+fix available via `npm audit fix`
+node_modules/cross-spawn
+
+esbuild  <=0.24.2
+Severity: moderate
+esbuild enables any website to send any requests to the development server and read the response - https://github.com/advisories/GHSA-67mh-4wv8-2f99
+fix available via `npm audit fix`
+node_modules/esbuild
+  vite  0.11.0 - 6.1.6
+  Depends on vulnerable versions of esbuild
+  node_modules/vite
+
+nanoid  <3.3.8
+Severity: moderate
+Predictable results in nanoid generation when given non-integer values - https://github.com/advisories/GHSA-mwcw-c2x4-8c55
+fix available via `npm audit fix`
+node_modules/nanoid
+
+
+7 vulnerabilities (2 low, 4 moderate, 1 high)
+
+To address all issues, run:
+  npm audit fix

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloud-equities/KNIRVGATEWAY/sdk/go/gateway/option"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/gateway/option"
 )
 
 func TestNewClient(t *testing.T) {
@@ -44,43 +44,52 @@ func TestNewClient(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			client, err := NewClient(tt.opts...)
-			
+
 			if tt.wantErr {
 				if err == nil {
 					t.Error("Expected error but got none")
 				}
 				return
 			}
-			
+
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 				return
 			}
-			
+
 			if client == nil {
 				t.Error("Expected client but got nil")
 				return
 			}
-			
-			// Verify services are initialized
-			if client.Economics == nil {
-				t.Error("Economics service not initialized")
+
+			// Verify services are initialized (they are value types, so just check they exist)
+			// Economics service should have sub-services
+			if client.Economics.Skills.client == nil {
+				t.Error("Economics Skills service not properly initialized")
 			}
-			
-			if client.Gateway == nil {
-				t.Error("Gateway service not initialized")
+
+			if client.Economics.LLM.client == nil {
+				t.Error("Economics LLM service not properly initialized")
 			}
-			
-			if client.Health == nil {
-				t.Error("Health service not initialized")
+
+			// Gateway service should have sub-services
+			if client.Gateway.Routes.client == nil {
+				t.Error("Gateway Routes service not properly initialized")
 			}
-			
-			if client.Integration == nil {
-				t.Error("Integration service not initialized")
+
+			// Health service should be initialized
+			if client.Health.client == nil {
+				t.Error("Health service not properly initialized")
 			}
-			
-			if client.PoAuD == nil {
-				t.Error("PoAuD service not initialized")
+
+			// Integration service should be initialized
+			if client.Integration.client == nil {
+				t.Error("Integration service not properly initialized")
+			}
+
+			// PoAuD service should be initialized
+			if client.PoAuD.client == nil {
+				t.Error("PoAuD service not properly initialized")
 			}
 		})
 	}
@@ -109,13 +118,13 @@ func TestClientEnvironmentVariables(t *testing.T) {
 			// Set environment variable
 			os.Setenv(tt.envVar, tt.value)
 			defer os.Unsetenv(tt.envVar)
-			
+
 			client, err := NewClient()
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 				return
 			}
-			
+
 			if client == nil {
 				t.Error("Expected client but got nil")
 			}
@@ -156,7 +165,7 @@ func TestClientHTTPMethods(t *testing.T) {
 		if err != nil {
 			t.Errorf("Failed to create GET request: %v", err)
 		}
-		
+
 		if req.Method != http.MethodGet {
 			t.Errorf("Expected GET method, got %s", req.Method)
 		}
@@ -169,7 +178,7 @@ func TestClientHTTPMethods(t *testing.T) {
 		if err != nil {
 			t.Errorf("Failed to create POST request: %v", err)
 		}
-		
+
 		if req.Method != http.MethodPost {
 			t.Errorf("Expected POST method, got %s", req.Method)
 		}
@@ -182,7 +191,7 @@ func TestClientHTTPMethods(t *testing.T) {
 		if err != nil {
 			t.Errorf("Failed to create PUT request: %v", err)
 		}
-		
+
 		if req.Method != http.MethodPut {
 			t.Errorf("Expected PUT method, got %s", req.Method)
 		}
@@ -193,7 +202,7 @@ func TestClientHTTPMethods(t *testing.T) {
 		if err != nil {
 			t.Errorf("Failed to create DELETE request: %v", err)
 		}
-		
+
 		if req.Method != http.MethodDelete {
 			t.Errorf("Expected DELETE method, got %s", req.Method)
 		}
@@ -206,15 +215,15 @@ func TestClientRequestHeaders(t *testing.T) {
 		if r.Header.Get("Authorization") == "" {
 			t.Error("Expected Authorization header")
 		}
-		
+
 		if r.Header.Get("Content-Type") != "application/json" {
 			t.Error("Expected Content-Type: application/json")
 		}
-		
+
 		if r.Header.Get("User-Agent") == "" {
 			t.Error("Expected User-Agent header")
 		}
-		
+
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status": "ok"}`))
 	}))
@@ -254,7 +263,7 @@ func TestClientTimeout(t *testing.T) {
 	httpClient := &http.Client{
 		Timeout: 100 * time.Millisecond,
 	}
-	
+
 	client, err := NewClient(
 		option.WithBaseURL(server.URL),
 		option.WithHTTPClient(httpClient),

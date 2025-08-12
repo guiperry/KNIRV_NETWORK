@@ -29,6 +29,8 @@ from ._exceptions import (
     UnprocessableEntityError,
     RateLimitError,
     InternalServerError,
+    KNIRVAPIError,
+    KNIRVValidationError,
 )
 
 __all__ = [
@@ -48,4 +50,6 @@ __all__ = [
     "UnprocessableEntityError",
     "RateLimitError",
     "InternalServerError",
+    "KNIRVAPIError",
+    "KNIRVValidationError",
 ]

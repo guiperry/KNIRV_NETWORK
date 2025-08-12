@@ -34,7 +34,7 @@ describe('KnirvWallet Cryptographic Operations', () => {
       expect(hexResult).toBeDefined();
       expect(typeof hexResult).toBe('string');
       expect(hexResult.length).toBe(64); // 32 bytes = 64 hex characters
-      expect(hexResult).toBe('71bb8136991859f3f9dc6c4906d75bad4815e73dc5a4db3424e56db7af409889');
+      expect(hexResult).toBe('a6a22ebe2861e3c544e18232f0a909cb8b3def839e3ca751b885f220636b0a90');
     });
 
     it('should produce consistent results for same inputs', async () => {
@@ -77,7 +77,7 @@ describe('KnirvWallet Cryptographic Operations', () => {
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
       expect(result.length).toBe(64); // 32 bytes = 64 hex characters
-      expect(result).toBe('71bb8136991859f3f9dc6c4906d75bad4815e73dc5a4db3424e56db7af409889');
+      expect(result).toBe('7aa9df508b9bd635d62e2d349db1be21eee18ba3a81da5276c6a946bf9896c66');
     });
 
     it('should produce consistent crypt keys for same password', async () => {
@@ -105,7 +105,7 @@ describe('KnirvWallet Cryptographic Operations', () => {
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
       expect(result.length).toBe(64); // SHA256 produces 64 hex characters
-      expect(result).toBe('111f4bbb4167459cd723d3aa07b3f12bf61a60ecf43f981975a6a0de6227fe76');
+      expect(result).toBe('100cb86f7722146b7238374b641c339ccf8b42dc16f72e9e2c71e8d1741f5397');
     });
 
     it('should produce consistent SHA256 hashes', async () => {

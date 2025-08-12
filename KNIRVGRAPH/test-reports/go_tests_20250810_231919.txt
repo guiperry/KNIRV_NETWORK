@@ -1,0 +1,270 @@
+=== RUN   TestMainFunction
+--- PASS: TestMainFunction (0.00s)
+=== RUN   TestEnvironmentVariables
+=== RUN   TestEnvironmentVariables/Port_configuration
+=== RUN   TestEnvironmentVariables/Storage_configuration
+=== RUN   TestEnvironmentVariables/Log_level_configuration
+--- PASS: TestEnvironmentVariables (0.00s)
+    --- PASS: TestEnvironmentVariables/Port_configuration (0.00s)
+    --- PASS: TestEnvironmentVariables/Storage_configuration (0.00s)
+    --- PASS: TestEnvironmentVariables/Log_level_configuration (0.00s)
+=== RUN   TestConfigurationDefaults
+--- PASS: TestConfigurationDefaults (0.00s)
+=== RUN   TestSignalHandling
+    main_test.go:136: Signal handling test placeholder - would test graceful shutdown
+--- PASS: TestSignalHandling (0.00s)
+=== RUN   TestApplicationStartup
+=== RUN   TestApplicationStartup/Valid_memory_storage
+=== RUN   TestApplicationStartup/Valid_leveldb_storage
+=== RUN   TestApplicationStartup/Invalid_port
+=== RUN   TestApplicationStartup/Invalid_storage_type
+--- PASS: TestApplicationStartup (0.00s)
+    --- PASS: TestApplicationStartup/Valid_memory_storage (0.00s)
+    --- PASS: TestApplicationStartup/Valid_leveldb_storage (0.00s)
+    --- PASS: TestApplicationStartup/Invalid_port (0.00s)
+    --- PASS: TestApplicationStartup/Invalid_storage_type (0.00s)
+=== RUN   TestResourceCleanup
+    main_test.go:211: Resource cleanup test placeholder - would test proper cleanup
+--- PASS: TestResourceCleanup (0.00s)
+=== RUN   TestHealthCheck
+    main_test.go:223: Health check test placeholder - would test application health
+--- PASS: TestHealthCheck (0.00s)
+=== RUN   TestMetrics
+    main_test.go:235: Metrics test placeholder - would test metrics collection
+--- PASS: TestMetrics (0.00s)
+=== RUN   TestLogging
+=== RUN   TestLogging/LogLevel_debug
+=== RUN   TestLogging/LogLevel_info
+=== RUN   TestLogging/LogLevel_warn
+=== RUN   TestLogging/LogLevel_error
+--- PASS: TestLogging (0.00s)
+    --- PASS: TestLogging/LogLevel_debug (0.00s)
+    --- PASS: TestLogging/LogLevel_info (0.00s)
+    --- PASS: TestLogging/LogLevel_warn (0.00s)
+    --- PASS: TestLogging/LogLevel_error (0.00s)
+=== RUN   TestDataDirectory
+--- PASS: TestDataDirectory (0.00s)
+=== RUN   TestVersionInfo
+    main_test.go:274: Version info test placeholder - would test version reporting
+--- PASS: TestVersionInfo (0.00s)
+PASS
+coverage: [no statements]
+ok  	blockchain-app/cmd	0.125s	coverage: [no statements]
+# blockchain-app/internal/blockchain [blockchain-app/internal/blockchain.test]
+internal/blockchain/chain_test.go:138:11: chain.GetHeight undefined (type *Chain has no field or method GetHeight)
+internal/blockchain/chain_test.go:139:55: chain.GetHeight undefined (type *Chain has no field or method GetHeight)
+internal/blockchain/chain_test.go:150:12: chain.GetHeight undefined (type *Chain has no field or method GetHeight)
+internal/blockchain/chain_test.go:151:52: chain.GetHeight undefined (type *Chain has no field or method GetHeight)
+internal/blockchain/chain_test.go:198:17: cannot use time.Now().Add(time.Hour).Unix() (value of type int64) as time.Time value in struct literal
+internal/blockchain/chain_test.go:199:6: unknown field PrevHash in struct literal of type types.BlockHeader
+internal/blockchain/chain_test.go:201:19: cannot use []*types.Transaction{} (value of type []*types.Transaction) as []types.Transaction value in struct literal
+internal/blockchain/chain_test.go:266:10: chain.GetHeight undefined (type *Chain has no field or method GetHeight)
+internal/blockchain/chain_test.go:277:11: chain.GetHeight undefined (type *Chain has no field or method GetHeight)
+internal/blockchain/chain_test.go:278:54: chain.GetHeight undefined (type *Chain has no field or method GetHeight)
+internal/blockchain/chain_test.go:278:54: too many errors
+# blockchain-app/internal/network [blockchain-app/internal/network.test]
+internal/network/rpc_test.go:34:12: server.port undefined (type *RPCServer has no field or method port)
+internal/network/rpc_test.go:35:49: server.port undefined (type *RPCServer has no field or method port)
+internal/network/rpc_test.go:72:9: server.handleHealth undefined (type *RPCServer has no field or method handleHealth)
+internal/network/rpc_test.go:102:9: server.handleGetHeight undefined (type *RPCServer has no field or method handleGetHeight)
+internal/network/rpc_test.go:138:9: server.handleGetNode undefined (type *RPCServer has no field or method handleGetNode)
+internal/network/rpc_test.go:185:9: server.handleCreateNode undefined (type *RPCServer has no field or method handleCreateNode)
+internal/network/rpc_test.go:221:9: server.handleGetHeads undefined (type *RPCServer has no field or method handleGetHeads)
+internal/network/rpc_test.go:257:9: server.handleFindPath undefined (type *RPCServer has no field or method handleFindPath)
+internal/network/rpc_test.go:288:9: server.handleGetNode undefined (type *RPCServer has no field or method handleGetNode)
+internal/network/rpc_test.go:299:9: server.handleCreateNode undefined (type *RPCServer has no field or method handleCreateNode)
+internal/network/rpc_test.go:299:9: too many errors
+	blockchain-app/cmd/cli		coverage: 0.0% of statements
+	blockchain-app/cmd/node		coverage: 0.0% of statements
+	blockchain-app/examples		coverage: 0.0% of statements
+FAIL	blockchain-app/internal/blockchain [build failed]
+	blockchain-app/internal/economics		coverage: 0.0% of statements
+FAIL	blockchain-app/internal/network [build failed]
+	blockchain-app/pkg/crypto		coverage: 0.0% of statements
+	blockchain-app/pkg/utils		coverage: 0.0% of statements
+=== RUN   TestNewApp
+--- PASS: TestNewApp (0.57s)
+=== RUN   TestAppStartAndStop
+{"level":"info","ts":1754882370.8128242,"caller":"app/app.go:270","msg":"Starting GraphChain application with NRV system and economics"}
+2025/08/10 23:19:30 Starting NRV System...
+2025/08/10 23:19:30 Starting NRN Integration for KNIRVGRAPH...
+2025/08/10 23:19:30 Warning: Could not connect to KNIRVROOT at http://localhost:1317: Get "http://localhost:1317/ping": dial tcp 127.0.0.1:1317: connect: connection refused
+{"level":"info","ts":1754882370.8136315,"caller":"network/rpc.go:163","msg":"Starting RPC server","addr":":8081"}
+{"level":"info","ts":1754882370.8634248,"caller":"app/app.go:303","msg":"Stopping GraphChain application"}
+2025/08/10 23:19:30 Stopping NRV System...
+{"level":"info","ts":1754882370.9131095,"caller":"app/app.go:303","msg":"Stopping GraphChain application"}
+2025/08/10 23:19:30 Stopping NRV System...
+panic: close of closed channel
+
+goroutine 45 [running]:
+blockchain-app/internal/nrv.(*NRVSystem).Stop(0xc0000e4000)
+	/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVGRAPH/internal/nrv/nrv_system.go:64 +0x9e
+blockchain-app/internal/app.(*App).Stop(0xc000159360, {0xcaa838, 0xc0001c92d0})
+	/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVGRAPH/internal/app/app.go:311 +0x1d1
+blockchain-app/internal/app.(*App).Start(0xc000159360, {0xcaa838, 0xc0001c92d0})
+	/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVGRAPH/internal/app/app.go:298 +0x3dd
+blockchain-app/internal/app.TestAppStartAndStop.func1()
+	/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVGRAPH/internal/app/app_test.go:57 +0x28
+created by blockchain-app/internal/app.TestAppStartAndStop in goroutine 14
+	/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVGRAPH/internal/app/app_test.go:56 +0x15b
+FAIL	blockchain-app/internal/app	1.202s
+=== RUN   TestNewGraphChain
+--- PASS: TestNewGraphChain (0.00s)
+=== RUN   TestGraphChainAddNode
+--- PASS: TestGraphChainAddNode (0.00s)
+=== RUN   TestGraphChainAddEdge
+coverage: 26.2% of statements
+panic: test timed out after 10m0s
+	running tests:
+		TestGraphChainAddEdge (10m0s)
+
+goroutine 25 [running]:
+testing.(*M).startAlarm.func1()
+	/home/gperry/.gvm/gos/go1.23.1/src/testing/testing.go:2373 +0x385
+created by time.goFunc
+	/home/gperry/.gvm/gos/go1.23.1/src/time/sleep.go:215 +0x2d
+
+goroutine 1 [chan receive]:
+testing.(*T).Run(0xc0000dcd00, {0x953d8b?, 0x0?}, 0x987af8)
+	/home/gperry/.gvm/gos/go1.23.1/src/testing/testing.go:1751 +0x3ab
+testing.runTests.func1(0xc0000dcd00)
+	/home/gperry/.gvm/gos/go1.23.1/src/testing/testing.go:2168 +0x37
+testing.tRunner(0xc0000dcd00, 0xc00022fc70)
+	/home/gperry/.gvm/gos/go1.23.1/src/testing/testing.go:1690 +0xf4
+testing.runTests(0xc0000d46c0, {0xd58640, 0x8, 0x8}, {0x474330?, 0x473f9a?, 0xd648e0?})
+	/home/gperry/.gvm/gos/go1.23.1/src/testing/testing.go:2166 +0x43d
+testing.(*M).Run(0xc0000e32c0)
+	/home/gperry/.gvm/gos/go1.23.1/src/testing/testing.go:2034 +0x64a
+main.main()
+	_testmain.go:69 +0x9b
+
+goroutine 20 [chan receive]:
+github.com/golang/glog.(*loggingT).flushDaemon(0xd64aa0)
+	/home/gperry/.gvm/pkgsets/go1.23.1/global/pkg/mod/github.com/golang/glog@v0.0.0-20160126235308-23def4e6c14b/glog.go:882 +0x66
+created by github.com/golang/glog.init.0 in goroutine 1
+	/home/gperry/.gvm/pkgsets/go1.23.1/global/pkg/mod/github.com/golang/glog@v0.0.0-20160126235308-23def4e6c14b/glog.go:410 +0x1ae
+
+goroutine 24 [sync.RWMutex.RLock]:
+sync.runtime_SemacquireRWMutexR(0x0?, 0x78?, 0x47111d?)
+	/home/gperry/.gvm/gos/go1.23.1/src/runtime/sema.go:100 +0x25
+sync.(*RWMutex).RLock(...)
+	/home/gperry/.gvm/gos/go1.23.1/src/sync/rwmutex.go:72
+blockchain-app/internal/graphchain.(*GraphChain).GetNode(0xc00027e230, {0x949648, 0x6})
+	/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVGRAPH/internal/graphchain/graph.go:361 +0x97
+blockchain-app/internal/graphchain.(*GraphChain).validateEdge(0xc00027e230, 0xc0000be3c0)
+	/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVGRAPH/internal/graphchain/graph.go:163 +0x89
+blockchain-app/internal/graphchain.(*GraphChain).AddEdge(0xc00027e230, 0xc0000be3c0)
+	/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVGRAPH/internal/graphchain/graph.go:97 +0x9a
+blockchain-app/internal/graphchain.TestGraphChainAddEdge(0xc0000ddba0)
+	/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVGRAPH/internal/graphchain/graphchain_test.go:77 +0x3c5
+testing.tRunner(0xc0000ddba0, 0x987af8)
+	/home/gperry/.gvm/gos/go1.23.1/src/testing/testing.go:1690 +0xf4
+created by testing.(*T).Run in goroutine 1
+	/home/gperry/.gvm/gos/go1.23.1/src/testing/testing.go:1743 +0x390
+FAIL	blockchain-app/internal/graphchain	600.037s
+=== RUN   TestNewNRVSystem
+--- PASS: TestNewNRVSystem (0.00s)
+=== RUN   TestNRVSystemCreateVector
+--- PASS: TestNRVSystemCreateVector (0.00s)
+=== RUN   TestNRVSystemResolveTarget
+--- PASS: TestNRVSystemResolveTarget (0.00s)
+=== RUN   TestNRVSystemCreateErrorNode
+2025/08/10 23:19:29 Warning: Could not find resolution path for error f209428d9b8f453e8d2e9337dc2cfb61b99e9f9a814737d663fdae3d9891bbf2: no skills found for error type: network_error
+--- PASS: TestNRVSystemCreateErrorNode (0.00s)
+=== RUN   TestNRVSystemCreateSkillNode
+--- PASS: TestNRVSystemCreateSkillNode (0.00s)
+=== RUN   TestNRVSystemGetSkillsForErrorType
+    nrv_system_test.go:193: Expected 1 skill for connection_timeout, got 2
+--- FAIL: TestNRVSystemGetSkillsForErrorType (0.00s)
+=== RUN   TestNRVSystemGetAllVectors
+--- PASS: TestNRVSystemGetAllVectors (0.00s)
+=== RUN   TestNRVSystemGetAllErrorNodes
+2025/08/10 23:19:29 Warning: Could not find resolution path for error 29a0b5b90b6a96560d0458eb378f29288d3875c9c71ee4979a1977e371ff3a94: no skills found for error type: network_error
+2025/08/10 23:19:29 Warning: Could not find resolution path for error 4a965371512fc08ab6aa93fb3005973cc0d358fc1cd033ecb07a196a670cf1eb: no skills found for error type: database_error
+--- PASS: TestNRVSystemGetAllErrorNodes (0.00s)
+=== RUN   TestNRVSystemGetAllSkillNodes
+--- PASS: TestNRVSystemGetAllSkillNodes (0.00s)
+=== RUN   TestNRVSystemConcurrency
+--- PASS: TestNRVSystemConcurrency (0.00s)
+=== RUN   TestNRVSystem
+2025/08/10 23:19:29 Starting NRV System...
+=== RUN   TestNRVSystem/CreateVector
+=== RUN   TestNRVSystem/ResolveTarget
+2025/08/10 23:19:29 Processing vector creation: a616aac38bb9375aa3c29dba3a50e6e049a7829e1ba61b3002755f420e26565f
+=== RUN   TestNRVSystem/CreateErrorNode
+2025/08/10 23:19:29 Processing vector creation: a3a4850c79d0df7b4f90c331d315aa9b6477b584f348b73fb13d3f2d3abb7e55
+2025/08/10 23:19:29 Warning: Could not find resolution path for error d1f14747248ae5bff34443d9bc4d2ea8e27a7e656c47f3a1a16e9e629acb7252: no skills found for error type: network_error
+=== RUN   TestNRVSystem/CreateSkillNode
+2025/08/10 23:19:29 Processing vector creation: 830f955ff98c82c5ea0568a022892ce8e4f3b0147a64f967db29816fa97d4b66
+=== RUN   TestNRVSystem/GetSkillsForErrorType
+2025/08/10 23:19:29 Processing vector creation: e761fd6eecdc99ddf246831866c6086fce84b245e92caf481145924e5da5558a
+2025/08/10 23:19:29 Processing vector creation: 5947a1167fce306744431e3f6f0bb9b9ccc4e71df4705e174a0cde947b6de495
+=== RUN   TestNRVSystem/VectorConfidenceDecay
+=== RUN   TestNRVSystem/GetAllMethods
+2025/08/10 23:19:29 Stopping NRV System...
+--- PASS: TestNRVSystem (0.00s)
+    --- PASS: TestNRVSystem/CreateVector (0.00s)
+    --- PASS: TestNRVSystem/ResolveTarget (0.00s)
+    --- PASS: TestNRVSystem/CreateErrorNode (0.00s)
+    --- PASS: TestNRVSystem/CreateSkillNode (0.00s)
+    --- PASS: TestNRVSystem/GetSkillsForErrorType (0.00s)
+    --- PASS: TestNRVSystem/VectorConfidenceDecay (0.00s)
+    --- PASS: TestNRVSystem/GetAllMethods (0.00s)
+=== RUN   TestNRVConfig
+--- PASS: TestNRVConfig (0.00s)
+2025/08/10 23:19:29 Processing vector creation: e02ff963ee6554d81733b2c96f9de8aff43e2975ec396bb256a374ee219b3895
+=== RUN   TestVectorExpiration
+2025/08/10 23:19:29 Starting NRV System...
+2025/08/10 23:19:29 Processing vector creation: 8e591f19a56fe73c6e4cec3bd2f4006fa96aa4512fa89202c3cc4429d1f8e53b
+2025/08/10 23:19:29 Cleaned up expired vector: 8e591f19a56fe73c6e4cec3bd2f4006fa96aa4512fa89202c3cc4429d1f8e53b
+2025/08/10 23:19:29 Stopping NRV System...
+--- PASS: TestVectorExpiration (0.20s)
+FAIL
+coverage: 79.9% of statements
+FAIL	blockchain-app/internal/nrv	0.216s
+=== RUN   TestMemoryStorage
+--- PASS: TestMemoryStorage (0.00s)
+=== RUN   TestBluntDBStorage
+--- PASS: TestBluntDBStorage (0.96s)
+=== RUN   TestLevelDBStorage
+--- PASS: TestLevelDBStorage (0.14s)
+=== RUN   TestStorageInterface
+=== RUN   TestStorageInterface/MemoryStorage
+=== RUN   TestStorageInterface/BluntDBStorage
+--- PASS: TestStorageInterface (0.59s)
+    --- PASS: TestStorageInterface/MemoryStorage (0.00s)
+    --- PASS: TestStorageInterface/BluntDBStorage (0.00s)
+PASS
+coverage: 32.8% of statements
+ok  	blockchain-app/internal/storage	1.718s	coverage: 32.8% of statements
+=== RUN   TestNewGraphNode
+--- PASS: TestNewGraphNode (0.00s)
+=== RUN   TestGraphNodeValidation
+=== RUN   TestGraphNodeValidation/Valid_node
+=== RUN   TestGraphNodeValidation/Empty_node_ID
+=== RUN   TestGraphNodeValidation/No_parents
+--- PASS: TestGraphNodeValidation (0.00s)
+    --- PASS: TestGraphNodeValidation/Valid_node (0.00s)
+    --- PASS: TestGraphNodeValidation/Empty_node_ID (0.00s)
+    --- PASS: TestGraphNodeValidation/No_parents (0.00s)
+=== RUN   TestGraphNodeSerialization
+    graphnode_test.go:154: Data mismatch for key int_key: expected 123, got 123
+--- FAIL: TestGraphNodeSerialization (0.00s)
+=== RUN   TestGraphNodeHash
+--- PASS: TestGraphNodeHash (0.00s)
+=== RUN   TestGraphNodeMethods
+--- PASS: TestGraphNodeMethods (0.00s)
+=== RUN   TestGraphNodeTimestamp
+--- PASS: TestGraphNodeTimestamp (0.00s)
+=== RUN   TestGraphNodeEdgeCases
+=== RUN   TestGraphNodeEdgeCases/Large_payload_data
+=== RUN   TestGraphNodeEdgeCases/Many_parents
+=== RUN   TestGraphNodeEdgeCases/Unicode_data
+--- PASS: TestGraphNodeEdgeCases (0.00s)
+    --- PASS: TestGraphNodeEdgeCases/Large_payload_data (0.00s)
+    --- PASS: TestGraphNodeEdgeCases/Many_parents (0.00s)
+    --- PASS: TestGraphNodeEdgeCases/Unicode_data (0.00s)
+FAIL
+coverage: 21.8% of statements
+FAIL	blockchain-app/internal/types	0.009s
+FAIL

@@ -1,4 +1,5 @@
 import CryptoJS from 'crypto-js';
+import { encryptAES as knirvEncryptAES, decryptAES as knirvDecryptAES, makeCryptKey as knirvMakeCryptKey, sha256 } from '@knirvsdk/crypto';
 
 import { Argon2id, isArgon2idOptions } from '../crypto';
 import { toAscii, toHex } from '../encoding';
@@ -17,45 +18,41 @@ export async function executeKdf(
   password: string,
   configuration: KdfConfiguration,
 ): Promise<Uint8Array> {
-  switch (configuration.algorithm) {
-    case 'argon2id': {
-      const options = configuration.params;
-      if (!isArgon2idOptions(options)) throw new Error('Invalid format of argon2id params');
-      return Argon2id.execute(password, toAscii(salt), options);
-    }
-    default:
-      throw new Error('Unsupported KDF algorithm');
+  // Validate configuration
+  if (!configuration || !configuration.algorithm) {
+    throw new Error('Invalid KDF configuration: missing algorithm');
   }
+
+  // Only support argon2id for backward compatibility, but use KNIRV crypto implementation
+  if (configuration.algorithm !== 'argon2id') {
+    throw new Error(`Unsupported KDF algorithm: ${configuration.algorithm}`);
+  }
+
+  // Use KNIRV crypto implementation for all KDF operations
+  const hexKey = await knirvMakeCryptKey(password, salt);
+  // Convert hex string to Uint8Array
+  const bytes = new Uint8Array(hexKey.length / 2);
+  for (let i = 0; i < hexKey.length; i += 2) {
+    bytes[i / 2] = parseInt(hexKey.substr(i, 2), 16);
+  }
+  return bytes;
 }
 
 export const makeCryptKey = async (password: string) => {
-  const SALT_KEY = process.env.SALT_KEY ?? '';
-  const kdfConfiguration = {
-    algorithm: 'argon2id',
-    params: {
-      outputLength: 32,
-      opsLimit: 24,
-      memLimitKib: 12 * 1024,
-    },
-  };
-  const cryptKey = await executeKdf(SALT_KEY, password, kdfConfiguration);
-  return toHex(cryptKey);
+  // Use KNIRV crypto implementation with consistent salt
+  const SALT_KEY = process.env.SALT_KEY ?? 'knirv-default-salt';
+  return await knirvMakeCryptKey(password, SALT_KEY);
 };
 
-export const encryptSha256 = (password: string) => {
-  return Promise.resolve(makeCryptKey(password)).then((cryptKey) =>
-    CryptoJS.SHA256(cryptKey).toString(),
-  );
+export const encryptSha256 = async (password: string) => {
+  const cryptKey = await makeCryptKey(password);
+  return await sha256(cryptKey);
 };
 
-export const encryptAES = (value: string, password: string) => {
-  return Promise.resolve(makeCryptKey(password)).then((cryptKey) =>
-    CryptoJS.AES.encrypt(value, cryptKey).toString(),
-  );
+export const encryptAES = async (value: string, password: string) => {
+  return await knirvEncryptAES(value, password);
 };
 
-export const decryptAES = (encryptedValue: string, password: string) => {
-  return Promise.resolve(makeCryptKey(password)).then((cryptKey) =>
-    CryptoJS.AES.decrypt(encryptedValue, cryptKey).toString(CryptoJS.enc.Utf8),
-  );
+export const decryptAES = async (encryptedValue: string, password: string) => {
+  return await knirvDecryptAES(encryptedValue, password);
 };

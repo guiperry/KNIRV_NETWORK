@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import React from 'react';
+import * as React from 'react';
 
 // Mock WASM module
 jest.mock('../wasm-pkg/knirv_cortex_wasm', () => ({
@@ -247,7 +247,7 @@ const mockWebGLContext = {
   viewport: jest.fn(),
 };
 
-HTMLCanvasElement.prototype.getContext = jest.fn((contextType) => {
+HTMLCanvasElement.prototype.getContext = jest.fn((contextType: string) => {
   if (contextType === 'webgl' || contextType === 'experimental-webgl') {
     return mockWebGLContext;
   }
@@ -277,7 +277,10 @@ HTMLCanvasElement.prototype.getContext = jest.fn((contextType) => {
       transform: jest.fn(),
       rect: jest.fn(),
       clip: jest.fn(),
-    };
+      canvas: {},
+      globalAlpha: 1,
+      globalCompositeOperation: 'source-over',
+    } as any;
   }
   return null;
 });

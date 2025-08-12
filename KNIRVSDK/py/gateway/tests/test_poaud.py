@@ -7,8 +7,7 @@ import responses
 import json
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
-from knirv_gateway_sdk import KNIRVGateway
-from knirv_gateway_sdk.exceptions import KNIRVAPIError, KNIRVValidationError
+from knirv_gateway_sdk import KNIRVGateway, KNIRVAPIError, KNIRVValidationError
 
 
 @pytest.fixture

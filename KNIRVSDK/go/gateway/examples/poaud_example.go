@@ -9,11 +9,11 @@ import (
 	"log"
 	"time"
 
-	"github.com/cloud-equities/KNIRVGATEWAY/sdk/go/gateway"
-	"github.com/cloud-equities/KNIRVGATEWAY/sdk/go/gateway/option"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/gateway"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/gateway/option"
 )
 
-func main() {
+func poaudMain() {
 	// Create a new PoAu-D client
 	client := gateway.NewPoAuDClient(
 		option.WithBaseURL("http://localhost:8000"), // Gateway URL
@@ -142,7 +142,7 @@ func monitorPoAuDStatus(client *gateway.PoAuDClient, ctx context.Context, iterat
 			fmt.Printf("Monitor %d - Enabled: %t, NAPs: %d, Delegated: %d\n",
 				i+1, status.Enabled, status.NetworkAuthorsCount, status.DelegatedTransactions)
 		}
-		
+
 		if i < iterations-1 {
 			time.Sleep(2 * time.Second)
 		}
@@ -229,7 +229,7 @@ func demonstrateBatchOperations() {
 	// Batch add multiple network authors
 	authors := []string{
 		"knirv1batch001",
-		"knirv1batch002", 
+		"knirv1batch002",
 		"knirv1batch003",
 	}
 

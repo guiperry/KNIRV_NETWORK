@@ -109,7 +109,6 @@ disallow_untyped_defs = false
 
 [tool.ruff]
 line-length = 120
-format = "grouped"
 target-version = "py38"
 select = [
   # isort

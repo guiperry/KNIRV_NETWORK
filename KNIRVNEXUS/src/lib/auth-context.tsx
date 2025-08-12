@@ -26,8 +26,8 @@ export type Role = keyof typeof ROLES;
 export interface AuthUser {
   user: string;
   role: Role;
-  permissions: string[];
-  nexus_access: string[];
+  permissions: readonly string[];
+  nexus_access: readonly string[];
   node_id?: string;
   authenticated: boolean;
 }

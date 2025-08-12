@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloud-equities/KNIRVGATEWAY/sdk/go/gateway/option"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/gateway/option"
 )
 
 func TestPoAuDService(t *testing.T) {
@@ -107,15 +107,15 @@ func TestPoAuDService(t *testing.T) {
 		case "/poaud/reputation/user-1":
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"user_id":         "user-1",
+				"user_id":          "user-1",
 				"reputation_score": 850,
 				"skill_ratings": map[string]interface{}{
 					"skill-1": 0.95,
 					"skill-2": 0.88,
 				},
-				"total_proofs":     25,
-				"verified_proofs":  23,
-				"success_rate":     0.92,
+				"total_proofs":    25,
+				"verified_proofs": 23,
+				"success_rate":    0.92,
 			})
 		default:
 			w.WriteHeader(http.StatusNotFound)
@@ -213,7 +213,7 @@ func TestPoAuDService(t *testing.T) {
 			ProofID: "proof-1",
 			Evidence: map[string]interface{}{
 				"validator_id": "validator-1",
-				"notes":       "Proof verified successfully",
+				"notes":        "Proof verified successfully",
 			},
 		}
 
@@ -323,8 +323,6 @@ func TestPoAuDValidation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
-
-	ctx := context.Background()
 
 	t.Run("Validate proof creation request", func(t *testing.T) {
 		// Test with invalid request (missing required fields)

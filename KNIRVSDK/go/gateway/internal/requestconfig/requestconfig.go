@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -46,16 +47,16 @@ type RequestConfig struct {
 	Verbose     bool
 
 	// Advanced features
-	RateLimiting           bool
-	RequestsPerSecond      int
-	CircuitBreaker         bool
-	FailureThreshold       int
-	CircuitBreakerTimeout  time.Duration
-	MetricsEnabled         bool
-	TracingEnabled         bool
-	ServiceName            string
-	HealthCheckEnabled     bool
-	HealthCheckInterval    time.Duration
+	RateLimiting          bool
+	RequestsPerSecond     int
+	CircuitBreaker        bool
+	FailureThreshold      int
+	CircuitBreakerTimeout time.Duration
+	MetricsEnabled        bool
+	TracingEnabled        bool
+	ServiceName           string
+	HealthCheckEnabled    bool
+	HealthCheckInterval   time.Duration
 }
 
 // BasicAuth holds basic authentication credentials
@@ -245,30 +246,30 @@ func (cfg *RequestConfig) GetHTTPClient() *http.Client {
 // Clone creates a copy of the request configuration
 func (cfg *RequestConfig) Clone() *RequestConfig {
 	clone := &RequestConfig{
-		Method:                 cfg.Method,
-		Path:                   cfg.Path,
-		Body:                   cfg.Body,
-		BaseURL:                cfg.BaseURL,
-		EconomicsURL:           cfg.EconomicsURL,
-		APIKey:                 cfg.APIKey,
-		NRNContract:            cfg.NRNContract,
-		HTTPClient:             cfg.HTTPClient,
-		Timeout:                cfg.Timeout,
-		Retries:                cfg.Retries,
-		RetryDelay:             cfg.RetryDelay,
-		Environment:            cfg.Environment,
-		Debug:                  cfg.Debug,
-		Verbose:                cfg.Verbose,
-		RateLimiting:           cfg.RateLimiting,
-		RequestsPerSecond:      cfg.RequestsPerSecond,
-		CircuitBreaker:         cfg.CircuitBreaker,
-		FailureThreshold:       cfg.FailureThreshold,
-		CircuitBreakerTimeout:  cfg.CircuitBreakerTimeout,
-		MetricsEnabled:         cfg.MetricsEnabled,
-		TracingEnabled:         cfg.TracingEnabled,
-		ServiceName:            cfg.ServiceName,
-		HealthCheckEnabled:     cfg.HealthCheckEnabled,
-		HealthCheckInterval:    cfg.HealthCheckInterval,
+		Method:                cfg.Method,
+		Path:                  cfg.Path,
+		Body:                  cfg.Body,
+		BaseURL:               cfg.BaseURL,
+		EconomicsURL:          cfg.EconomicsURL,
+		APIKey:                cfg.APIKey,
+		NRNContract:           cfg.NRNContract,
+		HTTPClient:            cfg.HTTPClient,
+		Timeout:               cfg.Timeout,
+		Retries:               cfg.Retries,
+		RetryDelay:            cfg.RetryDelay,
+		Environment:           cfg.Environment,
+		Debug:                 cfg.Debug,
+		Verbose:               cfg.Verbose,
+		RateLimiting:          cfg.RateLimiting,
+		RequestsPerSecond:     cfg.RequestsPerSecond,
+		CircuitBreaker:        cfg.CircuitBreaker,
+		FailureThreshold:      cfg.FailureThreshold,
+		CircuitBreakerTimeout: cfg.CircuitBreakerTimeout,
+		MetricsEnabled:        cfg.MetricsEnabled,
+		TracingEnabled:        cfg.TracingEnabled,
+		ServiceName:           cfg.ServiceName,
+		HealthCheckEnabled:    cfg.HealthCheckEnabled,
+		HealthCheckInterval:   cfg.HealthCheckInterval,
 	}
 
 	// Deep copy maps
@@ -319,4 +320,70 @@ func (cfg *RequestConfig) Validate() error {
 	}
 
 	return nil
+}
+
+// RequestOption is a function that modifies a request configuration
+type RequestOption func(*RequestConfig)
+
+// NewRequestConfig creates a new request configuration with the given parameters
+func NewRequestConfig(ctx context.Context, method, path string, body, response interface{}, opts ...RequestOption) *RequestConfig {
+	cfg := &RequestConfig{
+		Method:      method,
+		Path:        path,
+		Body:        body,
+		BaseURL:     "http://localhost:8000",
+		Timeout:     30 * time.Second,
+		Headers:     make(map[string]string),
+		QueryParams: make(map[string]string),
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		opt(cfg)
+	}
+
+	return cfg
+}
+
+// ExecuteNewRequest executes an HTTP request and returns the response
+func ExecuteNewRequest[T any](cfg *RequestConfig) (T, error) {
+	var result T
+
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.Timeout)
+	defer cancel()
+
+	// Build the request
+	req, err := cfg.Build(ctx)
+	if err != nil {
+		return result, fmt.Errorf("failed to build request: %w", err)
+	}
+
+	// Execute the request
+	client := cfg.GetHTTPClient()
+	resp, err := client.Do(req)
+	if err != nil {
+		return result, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return result, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Check for HTTP errors
+	if resp.StatusCode >= 400 {
+		return result, fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	// Unmarshal response if we have a target type
+	if len(respBody) > 0 {
+		if err := json.Unmarshal(respBody, &result); err != nil {
+			return result, fmt.Errorf("failed to unmarshal response: %w", err)
+		}
+	}
+
+	return result, nil
 }

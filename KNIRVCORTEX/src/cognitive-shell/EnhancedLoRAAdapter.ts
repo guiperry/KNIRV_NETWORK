@@ -163,8 +163,8 @@ export class EnhancedLoRAAdapter extends EventEmitter {
 
       const weights: TensorFlowLoRAWeights = {
         layerName: module,
-        A: A,
-        B: B,
+        A: A as tf.Tensor2D,
+        B: B as tf.Tensor2D,
         scaling: this.config.alpha / this.config.rank,
       };
 
@@ -484,8 +484,8 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     gradB.dispose();
 
     // Update with new tensors
-    loraWeights.A = newA;
-    loraWeights.B = newB;
+    loraWeights.A = newA as tf.Tensor2D;
+    loraWeights.B = newB as tf.Tensor2D;
   }
 
   private updateMetricsFromHistory(history: tf.History): void {
@@ -566,7 +566,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     if (typeof originalInput === 'string') {
       // For text, we might return enhanced metadata
       return {
-        ...originalInput,
+        text: originalInput,
         adaptationApplied: true,
         confidence: vector[0] || 1.0,
         adaptationStrength: Math.abs(vector[1] || 0),

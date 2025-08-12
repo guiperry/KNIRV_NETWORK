@@ -15,17 +15,19 @@ class KNIRVGatewayError(Exception):
 
 class APIError(KNIRVGatewayError):
     """Base class for all API-related errors."""
-    
+
     def __init__(
         self,
         message: str,
         *,
         request: Optional[httpx.Request] = None,
         response: Optional[httpx.Response] = None,
+        status_code: Optional[int] = None,
     ) -> None:
         super().__init__(message)
         self.request = request
         self.response = response
+        self.status_code = status_code
 
 
 class APIConnectionError(APIError):
@@ -108,3 +110,13 @@ class RateLimitError(APIStatusError):
 class InternalServerError(APIStatusError):
     """Error raised when the API returns a 500 status code."""
     pass
+
+
+class ValidationError(KNIRVGatewayError):
+    """Error raised when input validation fails."""
+    pass
+
+
+# Aliases for backward compatibility with tests
+KNIRVAPIError = APIError
+KNIRVValidationError = APIResponseValidationError

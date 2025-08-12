@@ -40,6 +40,7 @@ export const VoiceControl: React.FC<VoiceControlProps> = ({
       const config: VoiceConfig = {
         sampleRate: 16000,
         channels: 1,
+        bufferSize: 4096,
         language: 'en-US',
         enableWakeWord: true,
         wakeWord: 'knirv',

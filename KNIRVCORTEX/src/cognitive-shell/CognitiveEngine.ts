@@ -62,6 +62,7 @@ export class CognitiveEngine extends EventEmitter {
   private chainIntegration: KNIRVChainIntegration;
   private ecosystemCommunication: EcosystemCommunicationLayer;
   private isRunning: boolean = false;
+  private adaptationTimer: NodeJS.Timeout | null = null;
 
   constructor(config: CognitiveConfig) {
     super();
@@ -102,6 +103,7 @@ export class CognitiveEngine extends EventEmitter {
       this.voiceProcessor = new VoiceProcessor({
         sampleRate: 16000,
         channels: 1,
+        bufferSize: 4096,
         language: 'en-US',
         enableWakeWord: true,
         wakeWord: 'knirv',
@@ -133,6 +135,7 @@ export class CognitiveEngine extends EventEmitter {
         dropout: 0.1,
         targetModules: ['attention', 'feedforward'],
         taskType: 'cognitive_processing',
+        learningRate: 0.001,
       });
     }
 
@@ -145,6 +148,7 @@ export class CognitiveEngine extends EventEmitter {
           dropout: 0.1,
           targetModules: ['base_hidden_1', 'base_hidden_2', 'base_output'],
           taskType: 'cognitive_processing',
+          learningRate: 0.001,
         },
         {
           inputDim: 512,
@@ -850,10 +854,10 @@ export class CognitiveEngine extends EventEmitter {
         };
 
         // Process through SEAL framework
-        const sealResponse = await this.sealFramework.processInput(cognitiveInput);
+        const sealResponse = await this.sealFramework.generateResponse(cognitiveInput, {});
 
         // Generate NRV through Fabric Algorithm
-        const nrv = await this.fabricAlgorithm.generateNRV(cognitiveInput, sealResponse);
+        const nrv = await this.fabricAlgorithm.process(cognitiveInput, { sealResponse });
 
         this.emit('enhancedVisualProcessed', {
           input: result,
@@ -1353,7 +1357,7 @@ export class CognitiveEngine extends EventEmitter {
     // For now, we'll record it as a new feedback interaction
     try {
       await this.adaptiveLearningPipeline.recordInteraction({
-        inputType: 'feedback',
+        inputType: 'text',
         input: { interactionId, feedback },
         output: { acknowledged: true },
         userFeedback: feedback,
@@ -2125,5 +2129,52 @@ export class CognitiveEngine extends EventEmitter {
       results,
       timestamp: Date.now(),
     };
+  }
+
+  /**
+   * Dispose of the cognitive engine and cleanup resources
+   */
+  dispose(): void {
+    try {
+      // Stop any running processes
+      this.isRunning = false;
+
+      // Clear all timers and intervals
+      if (this.adaptationTimer) {
+        clearInterval(this.adaptationTimer);
+        this.adaptationTimer = null;
+      }
+
+      // Dispose of visual processor if it exists
+      if (this.visualProcessor && typeof this.visualProcessor.dispose === 'function') {
+        this.visualProcessor.dispose();
+      }
+
+      // Dispose of voice processor if it exists
+      if (this.voiceProcessor && typeof this.voiceProcessor.dispose === 'function') {
+        this.voiceProcessor.dispose();
+      }
+
+      // Dispose of SEAL framework if it exists
+      if (this.sealFramework && typeof this.sealFramework.dispose === 'function') {
+        this.sealFramework.dispose();
+      }
+
+      // Clear all event listeners
+      this.removeAllListeners();
+
+      // Reset state
+      this.state = {
+        currentContext: new Map(),
+        activeSkills: [],
+        learningHistory: [],
+        confidenceLevel: 0.5,
+        adaptationLevel: 0.0,
+      };
+
+      console.log('CognitiveEngine disposed successfully');
+    } catch (error) {
+      console.error('Error during CognitiveEngine disposal:', error);
+    }
   }
 }

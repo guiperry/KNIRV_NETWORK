@@ -1,8 +1,7 @@
-package main
+package integration_tests
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -18,36 +17,36 @@ import (
 // Test configuration structures
 type CortexTestConfig struct {
 	Environment struct {
-		Name                   string `yaml:"name"`
+		Name                  string `yaml:"name"`
 		Timeout               string `yaml:"timeout"`
 		CleanupAfterTest      bool   `yaml:"cleanup_after_test"`
 		ParallelExecution     bool   `yaml:"parallel_execution"`
 		AIModelLoadingTimeout string `yaml:"ai_model_loading_timeout"`
 	} `yaml:"environment"`
-	
+
 	CortexEndpoints struct {
 		CognitiveEngine struct {
 			URL            string `yaml:"url"`
 			HealthEndpoint string `yaml:"health_endpoint"`
 			Timeout        string `yaml:"timeout"`
 		} `yaml:"cognitive_engine"`
-		
+
 		HRMBridge struct {
 			WASMModule string `yaml:"wasm_module"`
 			Timeout    string `yaml:"timeout"`
 		} `yaml:"hrm_bridge"`
-		
+
 		NeuralNetworks struct {
-			TensorFlowBackend    bool   `yaml:"tensorflow_backend"`
-			ModelLoadingTimeout  string `yaml:"model_loading_timeout"`
+			TensorFlowBackend   bool   `yaml:"tensorflow_backend"`
+			ModelLoadingTimeout string `yaml:"model_loading_timeout"`
 		} `yaml:"neural_networks"`
-		
+
 		EcosystemCommunication struct {
 			URL     string `yaml:"url"`
 			Timeout string `yaml:"timeout"`
 		} `yaml:"ecosystem_communication"`
 	} `yaml:"cortex_endpoints"`
-	
+
 	AICore struct {
 		HRMCognitive struct {
 			LModuleCount        int     `yaml:"l_module_count"`
@@ -59,15 +58,15 @@ type CortexTestConfig struct {
 				Data interface{} `yaml:"data"`
 			} `yaml:"test_inputs"`
 		} `yaml:"hrm_cognitive"`
-		
+
 		NeuralNetworks struct {
 			TensorFlowTests struct {
-				ModelCreation      bool `yaml:"model_creation"`
-				TensorOperations   bool `yaml:"tensor_operations"`
+				ModelCreation       bool `yaml:"model_creation"`
+				TensorOperations    bool `yaml:"tensor_operations"`
 				GradientComputation bool `yaml:"gradient_computation"`
-				MemoryManagement   bool `yaml:"memory_management"`
+				MemoryManagement    bool `yaml:"memory_management"`
 			} `yaml:"tensorflow_tests"`
-			
+
 			LoRAAdapter struct {
 				Rank          int      `yaml:"rank"`
 				Alpha         int      `yaml:"alpha"`
@@ -76,7 +75,7 @@ type CortexTestConfig struct {
 				TrainingSteps int      `yaml:"training_steps"`
 				TestDataSize  int      `yaml:"test_data_size"`
 			} `yaml:"lora_adapter"`
-			
+
 			EnhancedLoRA struct {
 				InputDim     int     `yaml:"input_dim"`
 				HiddenDim    int     `yaml:"hidden_dim"`
@@ -87,10 +86,10 @@ type CortexTestConfig struct {
 				HRMGuidance  bool    `yaml:"hrm_guidance"`
 			} `yaml:"enhanced_lora"`
 		} `yaml:"neural_networks"`
-		
+
 		AdaptiveLearning struct {
-			MinInteractions      int     `yaml:"min_interactions"`
-			AdaptationThreshold  float64 `yaml:"adaptation_threshold"`
+			MinInteractions     int     `yaml:"min_interactions"`
+			AdaptationThreshold float64 `yaml:"adaptation_threshold"`
 			MaxPatterns         int     `yaml:"max_patterns"`
 			LearningRateDecay   float64 `yaml:"learning_rate_decay"`
 			FeedbackWeight      float64 `yaml:"feedback_weight"`
@@ -98,7 +97,7 @@ type CortexTestConfig struct {
 			RealTimeAdaptation  bool    `yaml:"real_time_adaptation"`
 		} `yaml:"adaptive_learning"`
 	} `yaml:"ai_core"`
-	
+
 	EcosystemIntegration struct {
 		WalletIntegration struct {
 			TestAccounts []struct {
@@ -107,31 +106,31 @@ type CortexTestConfig struct {
 				Balance    string `yaml:"balance"`
 				NRNBalance string `yaml:"nrn_balance"`
 			} `yaml:"test_accounts"`
-			
+
 			TransactionTests []struct {
 				Type                 string `yaml:"type"`
-				Amount              string `yaml:"amount,omitempty"`
-				NRNAmount           string `yaml:"nrn_amount,omitempty"`
+				Amount               string `yaml:"amount,omitempty"`
+				NRNAmount            string `yaml:"nrn_amount,omitempty"`
 				ExpectedResponseTime string `yaml:"expected_response_time"`
 			} `yaml:"transaction_tests"`
 		} `yaml:"wallet_integration"`
-		
+
 		ChainIntegration struct {
 			TestContracts struct {
-				NRNToken     string `yaml:"nrn_token"`
+				NRNToken      string `yaml:"nrn_token"`
 				SkillRegistry string `yaml:"skill_registry"`
 				LLMRegistry   string `yaml:"llm_registry"`
 			} `yaml:"test_contracts"`
-			
+
 			BlockchainTests []struct {
 				Type                 string `yaml:"type"`
-				Contract            string `yaml:"contract,omitempty"`
-				Method              string `yaml:"method,omitempty"`
-				SkillID             string `yaml:"skill_id,omitempty"`
+				Contract             string `yaml:"contract,omitempty"`
+				Method               string `yaml:"method,omitempty"`
+				SkillID              string `yaml:"skill_id,omitempty"`
 				ExpectedResponseTime string `yaml:"expected_response_time"`
 			} `yaml:"blockchain_tests"`
 		} `yaml:"chain_integration"`
-		
+
 		VisualProcessing struct {
 			TestImages []struct {
 				Type            string   `yaml:"type"`
@@ -140,7 +139,7 @@ type CortexTestConfig struct {
 				ExpectedFaces   int      `yaml:"expected_faces,omitempty"`
 				ExpectedScene   string   `yaml:"expected_scene,omitempty"`
 			} `yaml:"test_images"`
-			
+
 			AIModels struct {
 				ObjectDetection    bool `yaml:"object_detection"`
 				FaceRecognition    bool `yaml:"face_recognition"`
@@ -148,46 +147,46 @@ type CortexTestConfig struct {
 				GestureRecognition bool `yaml:"gesture_recognition"`
 				TextRecognition    bool `yaml:"text_recognition"`
 			} `yaml:"ai_models"`
-			
+
 			PerformanceThresholds struct {
-				MaxProcessingTime string `yaml:"max_processing_time"`
+				MaxProcessingTime string  `yaml:"max_processing_time"`
 				MinConfidence     float64 `yaml:"min_confidence"`
-				MaxMemoryUsage    string `yaml:"max_memory_usage"`
+				MaxMemoryUsage    string  `yaml:"max_memory_usage"`
 			} `yaml:"performance_thresholds"`
 		} `yaml:"visual_processing"`
 	} `yaml:"ecosystem_integration"`
-	
+
 	Performance struct {
 		CognitiveProcessing struct {
-			ConcurrentRequests   int    `yaml:"concurrent_requests"`
-			TestDuration        string `yaml:"test_duration"`
-			RequestsPerSecond   int    `yaml:"requests_per_second"`
-			MaxResponseTime     string `yaml:"max_response_time"`
+			ConcurrentRequests int    `yaml:"concurrent_requests"`
+			TestDuration       string `yaml:"test_duration"`
+			RequestsPerSecond  int    `yaml:"requests_per_second"`
+			MaxResponseTime    string `yaml:"max_response_time"`
 		} `yaml:"cognitive_processing"`
-		
+
 		NeuralNetworkOperations struct {
-			TensorOperationsPerSecond   int     `yaml:"tensor_operations_per_second"`
-			ModelInferenceTime         string  `yaml:"model_inference_time"`
-			MemoryEfficiencyThreshold  float64 `yaml:"memory_efficiency_threshold"`
+			TensorOperationsPerSecond int     `yaml:"tensor_operations_per_second"`
+			ModelInferenceTime        string  `yaml:"model_inference_time"`
+			MemoryEfficiencyThreshold float64 `yaml:"memory_efficiency_threshold"`
 		} `yaml:"neural_network_operations"`
-		
+
 		EcosystemCommunication struct {
-			MessageThroughput   int    `yaml:"message_throughput"`
-			MaxLatency         string `yaml:"max_latency"`
-			HeartbeatInterval  string `yaml:"heartbeat_interval"`
-			ConnectionTimeout  string `yaml:"connection_timeout"`
+			MessageThroughput int    `yaml:"message_throughput"`
+			MaxLatency        string `yaml:"max_latency"`
+			HeartbeatInterval string `yaml:"heartbeat_interval"`
+			ConnectionTimeout string `yaml:"connection_timeout"`
 		} `yaml:"ecosystem_communication"`
 	} `yaml:"performance"`
 }
 
 // Test result structures
 type TestResult struct {
-	TestName    string                 `json:"test_name"`
-	Status      string                 `json:"status"`
-	Duration    time.Duration          `json:"duration"`
-	Error       string                 `json:"error,omitempty"`
-	Metrics     map[string]interface{} `json:"metrics,omitempty"`
-	Timestamp   time.Time              `json:"timestamp"`
+	TestName  string                 `json:"test_name"`
+	Status    string                 `json:"status"`
+	Duration  time.Duration          `json:"duration"`
+	Error     string                 `json:"error,omitempty"`
+	Metrics   map[string]interface{} `json:"metrics,omitempty"`
+	Timestamp time.Time              `json:"timestamp"`
 }
 
 type CortexTestSuite struct {
@@ -200,18 +199,18 @@ type CortexTestSuite struct {
 // Load test configuration
 func loadTestConfig() (*CortexTestConfig, error) {
 	configPath := filepath.Join(".", "knirvcortex_test_config.yaml")
-	
+
 	data, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %v", err)
 	}
-	
+
 	var config CortexTestConfig
 	err = yaml.Unmarshal(data, &config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse config: %v", err)
 	}
-	
+
 	return &config, nil
 }
 
@@ -221,9 +220,9 @@ func NewCortexTestSuite() (*CortexTestSuite, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &CortexTestSuite{
-		config: config,
+		config:  config,
 		results: make([]TestResult, 0),
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
@@ -241,11 +240,11 @@ func (suite *CortexTestSuite) addResult(testName, status string, duration time.D
 		Metrics:   metrics,
 		Timestamp: time.Now(),
 	}
-	
+
 	if err != nil {
 		result.Error = err.Error()
 	}
-	
+
 	suite.results = append(suite.results, result)
 }
 
@@ -253,57 +252,57 @@ func (suite *CortexTestSuite) addResult(testName, status string, duration time.D
 func (suite *CortexTestSuite) makeRequest(method, url string, body interface{}) (*http.Response, error) {
 	var reqBody []byte
 	var err error
-	
+
 	if body != nil {
 		reqBody, err = json.Marshal(body)
 		if err != nil {
 			return nil, err
 		}
 	}
-	
+
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
 	if err != nil {
 		return nil, err
 	}
-	
+
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	return suite.httpClient.Do(req)
 }
 
 // Test health check
 func (suite *CortexTestSuite) testHealthCheck() error {
 	start := time.Now()
-	
+
 	url := suite.config.CortexEndpoints.CognitiveEngine.URL + suite.config.CortexEndpoints.CognitiveEngine.HealthEndpoint
-	
+
 	resp, err := suite.makeRequest("GET", url, nil)
 	if err != nil {
 		suite.addResult("health_check", "FAILED", time.Since(start), err, nil)
 		return err
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		err = fmt.Errorf("health check failed with status: %d", resp.StatusCode)
 		suite.addResult("health_check", "FAILED", time.Since(start), err, nil)
 		return err
 	}
-	
+
 	suite.addResult("health_check", "PASSED", time.Since(start), nil, map[string]interface{}{
 		"status_code": resp.StatusCode,
 	})
-	
+
 	return nil
 }
 
 // Test HRM cognitive processing
 func (suite *CortexTestSuite) testHRMCognitiveProcessing() error {
 	start := time.Now()
-	
+
 	for i, testInput := range suite.config.AICore.HRMCognitive.TestInputs {
 		testName := fmt.Sprintf("hrm_cognitive_processing_%d", i)
-		
+
 		payload := map[string]interface{}{
 			"type": testInput.Type,
 			"data": testInput.Data,
@@ -312,28 +311,28 @@ func (suite *CortexTestSuite) testHRMCognitiveProcessing() error {
 				"h_module_count": suite.config.AICore.HRMCognitive.HModuleCount,
 			},
 		}
-		
+
 		url := suite.config.CortexEndpoints.CognitiveEngine.URL + "/api/cognitive/process"
-		
+
 		resp, err := suite.makeRequest("POST", url, payload)
 		if err != nil {
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
 		defer resp.Body.Close()
-		
+
 		if resp.StatusCode != http.StatusOK {
 			err = fmt.Errorf("cognitive processing failed with status: %d", resp.StatusCode)
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		var result map[string]interface{}
 		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		// Validate response
 		confidence, ok := result["confidence"].(float64)
 		if !ok || confidence < suite.config.AICore.HRMCognitive.ConfidenceThreshold {
@@ -341,24 +340,24 @@ func (suite *CortexTestSuite) testHRMCognitiveProcessing() error {
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		suite.addResult(testName, "PASSED", time.Since(start), nil, map[string]interface{}{
 			"confidence": confidence,
 			"response":   result,
 		})
 	}
-	
+
 	return nil
 }
 
 // Test neural network operations
 func (suite *CortexTestSuite) testNeuralNetworkOperations() error {
 	start := time.Now()
-	
+
 	// Test TensorFlow.js operations
 	if suite.config.AICore.NeuralNetworks.TensorFlowTests.TensorOperations {
 		testName := "tensorflow_tensor_operations"
-		
+
 		payload := map[string]interface{}{
 			"operation": "tensor_test",
 			"config": map[string]interface{}{
@@ -366,15 +365,15 @@ func (suite *CortexTestSuite) testNeuralNetworkOperations() error {
 				"output_shape": []int{1000},
 			},
 		}
-		
+
 		url := suite.config.CortexEndpoints.CognitiveEngine.URL + "/api/neural/test"
-		
+
 		resp, err := suite.makeRequest("POST", url, payload)
 		if err != nil {
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 		} else {
 			defer resp.Body.Close()
-			
+
 			if resp.StatusCode == http.StatusOK {
 				suite.addResult(testName, "PASSED", time.Since(start), nil, map[string]interface{}{
 					"status_code": resp.StatusCode,
@@ -385,11 +384,11 @@ func (suite *CortexTestSuite) testNeuralNetworkOperations() error {
 			}
 		}
 	}
-	
+
 	// Test LoRA adapter
 	if suite.config.AICore.NeuralNetworks.LoRAAdapter.TrainingSteps > 0 {
 		testName := "lora_adapter_training"
-		
+
 		payload := map[string]interface{}{
 			"operation": "lora_training",
 			"config": map[string]interface{}{
@@ -401,15 +400,15 @@ func (suite *CortexTestSuite) testNeuralNetworkOperations() error {
 				"test_data_size": suite.config.AICore.NeuralNetworks.LoRAAdapter.TestDataSize,
 			},
 		}
-		
+
 		url := suite.config.CortexEndpoints.CognitiveEngine.URL + "/api/neural/lora"
-		
+
 		resp, err := suite.makeRequest("POST", url, payload)
 		if err != nil {
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 		} else {
 			defer resp.Body.Close()
-			
+
 			if resp.StatusCode == http.StatusOK {
 				suite.addResult(testName, "PASSED", time.Since(start), nil, map[string]interface{}{
 					"status_code": resp.StatusCode,
@@ -420,38 +419,38 @@ func (suite *CortexTestSuite) testNeuralNetworkOperations() error {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
 // Test ecosystem integration
 func (suite *CortexTestSuite) testEcosystemIntegration() error {
 	start := time.Now()
-	
+
 	// Test wallet integration
 	for _, test := range suite.config.EcosystemIntegration.WalletIntegration.TransactionTests {
 		testName := fmt.Sprintf("wallet_%s", test.Type)
-		
+
 		payload := map[string]interface{}{
 			"type": test.Type,
 		}
-		
+
 		if test.Amount != "" {
 			payload["amount"] = test.Amount
 		}
 		if test.NRNAmount != "" {
 			payload["nrn_amount"] = test.NRNAmount
 		}
-		
+
 		url := suite.config.CortexEndpoints.CognitiveEngine.URL + "/api/wallet/test"
-		
+
 		resp, err := suite.makeRequest("POST", url, payload)
 		if err != nil {
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
 		defer resp.Body.Close()
-		
+
 		if resp.StatusCode == http.StatusOK {
 			suite.addResult(testName, "PASSED", time.Since(start), nil, map[string]interface{}{
 				"status_code": resp.StatusCode,
@@ -461,15 +460,15 @@ func (suite *CortexTestSuite) testEcosystemIntegration() error {
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 		}
 	}
-	
+
 	// Test blockchain integration
 	for _, test := range suite.config.EcosystemIntegration.ChainIntegration.BlockchainTests {
 		testName := fmt.Sprintf("blockchain_%s", test.Type)
-		
+
 		payload := map[string]interface{}{
 			"type": test.Type,
 		}
-		
+
 		if test.Contract != "" {
 			payload["contract"] = test.Contract
 		}
@@ -479,16 +478,16 @@ func (suite *CortexTestSuite) testEcosystemIntegration() error {
 		if test.SkillID != "" {
 			payload["skill_id"] = test.SkillID
 		}
-		
+
 		url := suite.config.CortexEndpoints.CognitiveEngine.URL + "/api/blockchain/test"
-		
+
 		resp, err := suite.makeRequest("POST", url, payload)
 		if err != nil {
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
 		defer resp.Body.Close()
-		
+
 		if resp.StatusCode == http.StatusOK {
 			suite.addResult(testName, "PASSED", time.Since(start), nil, map[string]interface{}{
 				"status_code": resp.StatusCode,
@@ -498,7 +497,7 @@ func (suite *CortexTestSuite) testEcosystemIntegration() error {
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -508,22 +507,22 @@ func (suite *CortexTestSuite) generateReport() error {
 	if err := os.MkdirAll(reportDir, 0755); err != nil {
 		return err
 	}
-	
+
 	timestamp := time.Now().Format("2006-01-02T15-04-05")
 	reportFile := filepath.Join(reportDir, fmt.Sprintf("cortex_test_report_%s.json", timestamp))
-	
+
 	report := map[string]interface{}{
-		"test_suite":    "KNIRV-CORTEX Integration Tests",
-		"start_time":    suite.startTime,
-		"end_time":      time.Now(),
+		"test_suite":     "KNIRV-CORTEX Integration Tests",
+		"start_time":     suite.startTime,
+		"end_time":       time.Now(),
 		"total_duration": time.Since(suite.startTime),
-		"total_tests":   len(suite.results),
-		"passed_tests":  0,
-		"failed_tests":  0,
-		"results":       suite.results,
-		"config":        suite.config,
+		"total_tests":    len(suite.results),
+		"passed_tests":   0,
+		"failed_tests":   0,
+		"results":        suite.results,
+		"config":         suite.config,
 	}
-	
+
 	// Count passed/failed tests
 	for _, result := range suite.results {
 		if result.Status == "PASSED" {
@@ -532,12 +531,12 @@ func (suite *CortexTestSuite) generateReport() error {
 			report["failed_tests"] = report["failed_tests"].(int) + 1
 		}
 	}
-	
+
 	reportData, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
 		return err
 	}
-	
+
 	return ioutil.WriteFile(reportFile, reportData, 0644)
 }
 
@@ -547,9 +546,9 @@ func TestKNIRVCortexIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create test suite: %v", err)
 	}
-	
+
 	fmt.Println("Starting KNIRV-CORTEX Integration Tests...")
-	
+
 	// Run tests
 	tests := []struct {
 		name string
@@ -560,19 +559,19 @@ func TestKNIRVCortexIntegration(t *testing.T) {
 		{"Neural Network Operations", suite.testNeuralNetworkOperations},
 		{"Ecosystem Integration", suite.testEcosystemIntegration},
 	}
-	
+
 	for _, test := range tests {
 		fmt.Printf("Running %s...\n", test.name)
 		if err := test.fn(); err != nil {
 			fmt.Printf("Test %s encountered errors: %v\n", test.name, err)
 		}
 	}
-	
+
 	// Generate report
 	if err := suite.generateReport(); err != nil {
 		t.Errorf("Failed to generate report: %v", err)
 	}
-	
+
 	// Print summary
 	passed := 0
 	failed := 0
@@ -583,28 +582,14 @@ func TestKNIRVCortexIntegration(t *testing.T) {
 			failed++
 		}
 	}
-	
+
 	fmt.Printf("\nTest Summary:\n")
 	fmt.Printf("Total Tests: %d\n", len(suite.results))
 	fmt.Printf("Passed: %d\n", passed)
 	fmt.Printf("Failed: %d\n", failed)
 	fmt.Printf("Duration: %v\n", time.Since(suite.startTime))
-	
+
 	if failed > 0 {
 		t.Errorf("%d tests failed", failed)
 	}
-}
-
-func main() {
-	// This allows the test to be run as a standalone program
-	testing.Main(func(pat, str string) (bool, error) { return true, nil },
-		[]testing.InternalTest{
-			{
-				Name: "TestKNIRVCortexIntegration",
-				F:    TestKNIRVCortexIntegration,
-			},
-		},
-		[]testing.InternalBenchmark{},
-		[]testing.InternalExample{},
-	)
 }

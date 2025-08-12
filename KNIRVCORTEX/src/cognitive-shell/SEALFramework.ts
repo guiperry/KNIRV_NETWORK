@@ -678,4 +678,27 @@ export class SEALFramework extends EventEmitter {
       ready: this.hrmBridge ? this.hrmBridge.isReady() : false,
     };
   }
+
+  public dispose(): void {
+    try {
+      // Stop the framework
+      this.stop();
+
+      // Clear all agents
+      this.agents.clear();
+
+      // Clear active invocations
+      this.activeInvocations.clear();
+
+      // Clear HRM bridge
+      this.hrmBridge = null;
+
+      // Remove all event listeners
+      this.removeAllListeners();
+
+      console.log('SEALFramework disposed successfully');
+    } catch (error) {
+      console.error('Error during SEALFramework disposal:', error);
+    }
+  }
 }

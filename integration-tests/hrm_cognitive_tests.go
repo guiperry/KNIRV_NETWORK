@@ -1,4 +1,4 @@
-package main
+package integration_tests
 
 import (
 	"bytes"
@@ -62,11 +62,11 @@ func (suite *HRMCognitiveTestSuite) addResult(testName, status string, duration 
 		Metrics:   metrics,
 		Timestamp: time.Now(),
 	}
-	
+
 	if err != nil {
 		result.Error = err.Error()
 	}
-	
+
 	suite.results = append(suite.results, result)
 }
 
@@ -76,25 +76,25 @@ func (suite *HRMCognitiveTestSuite) makeHRMRequest(endpoint string, payload inte
 	if err != nil {
 		return nil, err
 	}
-	
+
 	req, err := http.NewRequest("POST", suite.baseURL+endpoint, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, err
 	}
-	
+
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	resp, err := suite.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	
+
 	var hrmResp HRMResponse
 	if err := json.NewDecoder(resp.Body).Decode(&hrmResp); err != nil {
 		return nil, err
 	}
-	
+
 	return &hrmResp, nil
 }
 
@@ -102,7 +102,7 @@ func (suite *HRMCognitiveTestSuite) makeHRMRequest(endpoint string, payload inte
 func (suite *HRMCognitiveTestSuite) testHRMInitialization() error {
 	start := time.Now()
 	testName := "hrm_wasm_initialization"
-	
+
 	payload := map[string]interface{}{
 		"action": "initialize",
 		"config": HRMConfig{
@@ -112,26 +112,26 @@ func (suite *HRMCognitiveTestSuite) testHRMInitialization() error {
 			ProcessingTimeout: 30000,
 		},
 	}
-	
+
 	resp, err := suite.makeHRMRequest("/api/hrm/initialize", payload)
 	if err != nil {
 		suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 		return err
 	}
-	
+
 	if !resp.Success {
 		err = fmt.Errorf("HRM initialization failed: %s", resp.Error)
 		suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 		return err
 	}
-	
+
 	metrics := map[string]interface{}{
 		"processing_time":    resp.ProcessingTime,
 		"l_module_count":     len(resp.LModuleOutputs),
 		"h_module_count":     len(resp.HModuleOutputs),
 		"adaptation_applied": resp.AdaptationApplied,
 	}
-	
+
 	suite.addResult(testName, "PASSED", time.Since(start), nil, metrics)
 	return nil
 }
@@ -173,11 +173,11 @@ func (suite *HRMCognitiveTestSuite) testHRMTextProcessing() error {
 			ExpectedMin: 0.3,
 		},
 	}
-	
+
 	for i, testCase := range testCases {
 		start := time.Now()
 		testName := fmt.Sprintf("hrm_text_processing_%d", i)
-		
+
 		payload := map[string]interface{}{
 			"action": "process_cognitive_input",
 			"input": map[string]interface{}{
@@ -187,25 +187,25 @@ func (suite *HRMCognitiveTestSuite) testHRMTextProcessing() error {
 			},
 			"config": testCase.Config,
 		}
-		
+
 		resp, err := suite.makeHRMRequest("/api/hrm/process", payload)
 		if err != nil {
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		if !resp.Success {
 			err = fmt.Errorf("HRM processing failed: %s", resp.Error)
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		if resp.Confidence < testCase.ExpectedMin {
 			err = fmt.Errorf("confidence too low: %f < %f", resp.Confidence, testCase.ExpectedMin)
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		metrics := map[string]interface{}{
 			"confidence":         resp.Confidence,
 			"processing_time":    resp.ProcessingTime,
@@ -214,10 +214,10 @@ func (suite *HRMCognitiveTestSuite) testHRMTextProcessing() error {
 			"adaptation_applied": resp.AdaptationApplied,
 			"input_length":       len(testCase.Data.(string)),
 		}
-		
+
 		suite.addResult(testName, "PASSED", time.Since(start), nil, metrics)
 	}
-	
+
 	return nil
 }
 
@@ -258,11 +258,11 @@ func (suite *HRMCognitiveTestSuite) testHRMSensoryProcessing() error {
 			ExpectedMin: 0.5,
 		},
 	}
-	
+
 	for i, testCase := range testCases {
 		start := time.Now()
 		testName := fmt.Sprintf("hrm_sensory_processing_%d", i)
-		
+
 		payload := map[string]interface{}{
 			"action": "process_cognitive_input",
 			"input": map[string]interface{}{
@@ -272,25 +272,25 @@ func (suite *HRMCognitiveTestSuite) testHRMSensoryProcessing() error {
 			},
 			"config": testCase.Config,
 		}
-		
+
 		resp, err := suite.makeHRMRequest("/api/hrm/process", payload)
 		if err != nil {
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		if !resp.Success {
 			err = fmt.Errorf("HRM sensory processing failed: %s", resp.Error)
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		if resp.Confidence < testCase.ExpectedMin {
 			err = fmt.Errorf("confidence too low: %f < %f", resp.Confidence, testCase.ExpectedMin)
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		metrics := map[string]interface{}{
 			"confidence":         resp.Confidence,
 			"processing_time":    resp.ProcessingTime,
@@ -299,10 +299,10 @@ func (suite *HRMCognitiveTestSuite) testHRMSensoryProcessing() error {
 			"adaptation_applied": resp.AdaptationApplied,
 			"sensory_data_size":  len(testCase.Data.([]float64)),
 		}
-		
+
 		suite.addResult(testName, "PASSED", time.Since(start), nil, metrics)
 	}
-	
+
 	return nil
 }
 
@@ -314,11 +314,11 @@ func (suite *HRMCognitiveTestSuite) testHRMModuleConfiguration() error {
 		{LModuleCount: 16, HModuleCount: 8, EnableAdaptation: true, ProcessingTimeout: 30000},
 		{LModuleCount: 8, HModuleCount: 4, EnableAdaptation: false, ProcessingTimeout: 30000},
 	}
-	
+
 	for i, config := range configurations {
 		start := time.Now()
 		testName := fmt.Sprintf("hrm_module_config_%d", i)
-		
+
 		payload := map[string]interface{}{
 			"action": "process_cognitive_input",
 			"input": map[string]interface{}{
@@ -328,35 +328,35 @@ func (suite *HRMCognitiveTestSuite) testHRMModuleConfiguration() error {
 			},
 			"config": config,
 		}
-		
+
 		resp, err := suite.makeHRMRequest("/api/hrm/process", payload)
 		if err != nil {
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		if !resp.Success {
 			err = fmt.Errorf("HRM module configuration test failed: %s", resp.Error)
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		// Validate module outputs match configuration
 		expectedLModules := config.LModuleCount
 		expectedHModules := config.HModuleCount
-		
+
 		if len(resp.LModuleOutputs) != expectedLModules {
 			err = fmt.Errorf("L-module count mismatch: expected %d, got %d", expectedLModules, len(resp.LModuleOutputs))
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		if len(resp.HModuleOutputs) != expectedHModules {
 			err = fmt.Errorf("H-module count mismatch: expected %d, got %d", expectedHModules, len(resp.HModuleOutputs))
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		metrics := map[string]interface{}{
 			"confidence":         resp.Confidence,
 			"processing_time":    resp.ProcessingTime,
@@ -365,10 +365,10 @@ func (suite *HRMCognitiveTestSuite) testHRMModuleConfiguration() error {
 			"adaptation_applied": resp.AdaptationApplied,
 			"config":             config,
 		}
-		
+
 		suite.addResult(testName, "PASSED", time.Since(start), nil, metrics)
 	}
-	
+
 	return nil
 }
 
@@ -376,19 +376,19 @@ func (suite *HRMCognitiveTestSuite) testHRMModuleConfiguration() error {
 func (suite *HRMCognitiveTestSuite) testHRMPerformance() error {
 	start := time.Now()
 	testName := "hrm_performance_load_test"
-	
+
 	concurrentRequests := 5
 	requestsPerWorker := 10
-	
+
 	type performanceResult struct {
 		success        bool
 		processingTime int
 		confidence     float64
 		error          error
 	}
-	
+
 	resultsChan := make(chan performanceResult, concurrentRequests*requestsPerWorker)
-	
+
 	// Launch concurrent workers
 	for worker := 0; worker < concurrentRequests; worker++ {
 		go func(workerID int) {
@@ -407,30 +407,30 @@ func (suite *HRMCognitiveTestSuite) testHRMPerformance() error {
 						ProcessingTimeout: 30000,
 					},
 				}
-				
+
 				resp, err := suite.makeHRMRequest("/api/hrm/process", payload)
-				
+
 				result := performanceResult{
 					error: err,
 				}
-				
+
 				if err == nil && resp.Success {
 					result.success = true
 					result.processingTime = resp.ProcessingTime
 					result.confidence = resp.Confidence
 				}
-				
+
 				resultsChan <- result
 			}
 		}(worker)
 	}
-	
+
 	// Collect results
 	totalRequests := concurrentRequests * requestsPerWorker
 	successCount := 0
 	totalProcessingTime := 0
 	totalConfidence := 0.0
-	
+
 	for i := 0; i < totalRequests; i++ {
 		result := <-resultsChan
 		if result.success {
@@ -439,32 +439,32 @@ func (suite *HRMCognitiveTestSuite) testHRMPerformance() error {
 			totalConfidence += result.confidence
 		}
 	}
-	
+
 	successRate := float64(successCount) / float64(totalRequests)
 	avgProcessingTime := 0
 	avgConfidence := 0.0
-	
+
 	if successCount > 0 {
 		avgProcessingTime = totalProcessingTime / successCount
 		avgConfidence = totalConfidence / float64(successCount)
 	}
-	
+
 	metrics := map[string]interface{}{
-		"total_requests":        totalRequests,
-		"successful_requests":   successCount,
-		"success_rate":          successRate,
-		"avg_processing_time":   avgProcessingTime,
-		"avg_confidence":        avgConfidence,
-		"concurrent_workers":    concurrentRequests,
-		"requests_per_worker":   requestsPerWorker,
+		"total_requests":      totalRequests,
+		"successful_requests": successCount,
+		"success_rate":        successRate,
+		"avg_processing_time": avgProcessingTime,
+		"avg_confidence":      avgConfidence,
+		"concurrent_workers":  concurrentRequests,
+		"requests_per_worker": requestsPerWorker,
 	}
-	
+
 	if successRate < 0.8 {
 		err := fmt.Errorf("success rate too low: %f", successRate)
 		suite.addResult(testName, "FAILED", time.Since(start), err, metrics)
 		return err
 	}
-	
+
 	suite.addResult(testName, "PASSED", time.Since(start), nil, metrics)
 	return nil
 }
@@ -472,7 +472,7 @@ func (suite *HRMCognitiveTestSuite) testHRMPerformance() error {
 // Helper function to convert text to sensory data
 func (suite *HRMCognitiveTestSuite) textToSensoryData(text string) []float64 {
 	data := make([]float64, 512)
-	
+
 	// Simple text encoding to sensory data
 	for i, char := range text {
 		if i >= 512 {
@@ -480,14 +480,14 @@ func (suite *HRMCognitiveTestSuite) textToSensoryData(text string) []float64 {
 		}
 		data[i] = float64(char) / 255.0
 	}
-	
+
 	return data
 }
 
 // Helper function to generate sensory data
 func (suite *HRMCognitiveTestSuite) generateSensoryData(size int, pattern string) []float64 {
 	data := make([]float64, size)
-	
+
 	switch pattern {
 	case "random":
 		for i := 0; i < size; i++ {
@@ -506,7 +506,7 @@ func (suite *HRMCognitiveTestSuite) generateSensoryData(size int, pattern string
 			data[i] = 0.5
 		}
 	}
-	
+
 	return data
 }
 
@@ -519,9 +519,9 @@ func (suite *HRMCognitiveTestSuite) getResults() []TestResult {
 func TestHRMCognitiveFunctionality(t *testing.T) {
 	baseURL := "http://localhost:3001"
 	suite := NewHRMCognitiveTestSuite(baseURL)
-	
+
 	fmt.Println("Starting HRM Cognitive Core Tests...")
-	
+
 	tests := []struct {
 		name string
 		fn   func() error
@@ -532,19 +532,19 @@ func TestHRMCognitiveFunctionality(t *testing.T) {
 		{"HRM Module Configuration", suite.testHRMModuleConfiguration},
 		{"HRM Performance Load Test", suite.testHRMPerformance},
 	}
-	
+
 	for _, test := range tests {
 		fmt.Printf("Running %s...\n", test.name)
 		if err := test.fn(); err != nil {
 			fmt.Printf("Test %s encountered errors: %v\n", test.name, err)
 		}
 	}
-	
+
 	// Print summary
 	results := suite.getResults()
 	passed := 0
 	failed := 0
-	
+
 	for _, result := range results {
 		if result.Status == "PASSED" {
 			passed++
@@ -552,12 +552,12 @@ func TestHRMCognitiveFunctionality(t *testing.T) {
 			failed++
 		}
 	}
-	
+
 	fmt.Printf("\nHRM Cognitive Tests Summary:\n")
 	fmt.Printf("Total Tests: %d\n", len(results))
 	fmt.Printf("Passed: %d\n", passed)
 	fmt.Printf("Failed: %d\n", failed)
-	
+
 	if failed > 0 {
 		t.Errorf("%d HRM cognitive tests failed", failed)
 	}

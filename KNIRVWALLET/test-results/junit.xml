@@ -1,511 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="KNIRVWALLET Tests" tests="146" failures="73" errors="0" time="18.672">
-  <testsuite name="KNIRVWALLET End-to-End Wallet Workflow" errors="0" failures="19" skipped="0" timestamp="2025-08-10T00:48:43" time="7.125" tests="19">
-    <testcase classname="KNIRVWALLET End-to-End Wallet Workflow Browser Wallet Extension Workflow should load KNIRVWALLET extension interface" name="KNIRVWALLET End-to-End Wallet Workflow Browser Wallet Extension Workflow should load KNIRVWALLET extension interface" time="0.014">
-      <failure>browserType.launch: Executable doesn&apos;t exist at /home/gperry/.cache/ms-playwright/chromium-1181/chrome-linux/chrome
-╔═════════════════════════════════════════════════════════════════════════╗
-║ Looks like Playwright Test or Playwright was just installed or updated. ║
-║ Please run the following command to download new browsers:              ║
-║                                                                         ║
-║     npx playwright install                                              ║
-║                                                                         ║
-║ &lt;3 Playwright Team                                                      ║
-╚═════════════════════════════════════════════════════════════════════════╝
-    at Object.launch (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/e2e/wallet-workflow.test.js:32:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:95:7)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KNIRVWALLET End-to-End Wallet Workflow Browser Wallet Extension Workflow should create HD wallet from mnemonic" name="KNIRVWALLET End-to-End Wallet Workflow Browser Wallet Extension Workflow should create HD wallet from mnemonic" time="0.001">
-      <failure>browserType.launch: Executable doesn&apos;t exist at /home/gperry/.cache/ms-playwright/chromium-1181/chrome-linux/chrome
-╔═════════════════════════════════════════════════════════════════════════╗
-║ Looks like Playwright Test or Playwright was just installed or updated. ║
-║ Please run the following command to download new browsers:              ║
-║                                                                         ║
-║     npx playwright install                                              ║
-║                                                                         ║
-║ &lt;3 Playwright Team                                                      ║
-╚═════════════════════════════════════════════════════════════════════════╝
-    at Object.launch (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/e2e/wallet-workflow.test.js:32:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:95:7)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KNIRVWALLET End-to-End Wallet Workflow Browser Wallet Extension Workflow should display wallet balance and account information" name="KNIRVWALLET End-to-End Wallet Workflow Browser Wallet Extension Workflow should display wallet balance and account information" time="0.001">
-      <failure>browserType.launch: Executable doesn&apos;t exist at /home/gperry/.cache/ms-playwright/chromium-1181/chrome-linux/chrome
-╔═════════════════════════════════════════════════════════════════════════╗
-║ Looks like Playwright Test or Playwright was just installed or updated. ║
-║ Please run the following command to download new browsers:              ║
-║                                                                         ║
-║     npx playwright install                                              ║
-║                                                                         ║
-║ &lt;3 Playwright Team                                                      ║
-╚═════════════════════════════════════════════════════════════════════════╝
-    at Object.launch (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/e2e/wallet-workflow.test.js:32:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:95:7)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KNIRVWALLET End-to-End Wallet Workflow Browser Wallet Extension Workflow should refresh wallet balance" name="KNIRVWALLET End-to-End Wallet Workflow Browser Wallet Extension Workflow should refresh wallet balance" time="0.001">
-      <failure>browserType.launch: Executable doesn&apos;t exist at /home/gperry/.cache/ms-playwright/chromium-1181/chrome-linux/chrome
-╔═════════════════════════════════════════════════════════════════════════╗
-║ Looks like Playwright Test or Playwright was just installed or updated. ║
-║ Please run the following command to download new browsers:              ║
-║                                                                         ║
-║     npx playwright install                                              ║
-║                                                                         ║
-║ &lt;3 Playwright Team                                                      ║
-╚═════════════════════════════════════════════════════════════════════════╝
-    at Object.launch (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/e2e/wallet-workflow.test.js:32:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:95:7)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KNIRVWALLET End-to-End Wallet Workflow Browser Wallet Extension Workflow should sign and send transaction" name="KNIRVWALLET End-to-End Wallet Workflow Browser Wallet Extension Workflow should sign and send transaction" time="0.022">
-      <failure>browserType.launch: Executable doesn&apos;t exist at /home/gperry/.cache/ms-playwright/chromium-1181/chrome-linux/chrome
-╔═════════════════════════════════════════════════════════════════════════╗
-║ Looks like Playwright Test or Playwright was just installed or updated. ║
-║ Please run the following command to download new browsers:              ║
-║                                                                         ║
-║     npx playwright install                                              ║
-║                                                                         ║
-║ &lt;3 Playwright Team                                                      ║
-╚═════════════════════════════════════════════════════════════════════════╝
-    at Object.launch (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/e2e/wallet-workflow.test.js:32:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:95:7)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KNIRVWALLET End-to-End Wallet Workflow React Native Mobile App Workflow should load mobile wallet interface" name="KNIRVWALLET End-to-End Wallet Workflow React Native Mobile App Workflow should load mobile wallet interface" time="0.002">
-      <failure>browserType.launch: Executable doesn&apos;t exist at /home/gperry/.cache/ms-playwright/chromium-1181/chrome-linux/chrome
-╔═════════════════════════════════════════════════════════════════════════╗
-║ Looks like Playwright Test or Playwright was just installed or updated. ║
-║ Please run the following command to download new browsers:              ║
-║                                                                         ║
-║     npx playwright install                                              ║
-║                                                                         ║
-║ &lt;3 Playwright Team                                                      ║
-╚═════════════════════════════════════════════════════════════════════════╝
-    at Object.launch (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/e2e/wallet-workflow.test.js:32:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:95:7)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KNIRVWALLET End-to-End Wallet Workflow React Native Mobile App Workflow should create XION meta account" name="KNIRVWALLET End-to-End Wallet Workflow React Native Mobile App Workflow should create XION meta account" time="0">
-      <failure>browserType.launch: Executable doesn&apos;t exist at /home/gperry/.cache/ms-playwright/chromium-1181/chrome-linux/chrome
-╔═════════════════════════════════════════════════════════════════════════╗
-║ Looks like Playwright Test or Playwright was just installed or updated. ║
-║ Please run the following command to download new browsers:              ║
-║                                                                         ║
-║     npx playwright install                                              ║
-║                                                                         ║
-║ &lt;3 Playwright Team                                                      ║
-╚═════════════════════════════════════════════════════════════════════════╝
-    at Object.launch (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/e2e/wallet-workflow.test.js:32:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:95:7)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KNIRVWALLET End-to-End Wallet Workflow React Native Mobile App Workflow should request NRN from faucet" name="KNIRVWALLET End-to-End Wallet Workflow React Native Mobile App Workflow should request NRN from faucet" time="0">
-      <failure>browserType.launch: Executable doesn&apos;t exist at /home/gperry/.cache/ms-playwright/chromium-1181/chrome-linux/chrome
-╔═════════════════════════════════════════════════════════════════════════╗
-║ Looks like Playwright Test or Playwright was just installed or updated. ║
-║ Please run the following command to download new browsers:              ║
-║                                                                         ║
-║     npx playwright install                                              ║
-║                                                                         ║
-║ &lt;3 Playwright Team                                                      ║
-╚═════════════════════════════════════════════════════════════════════════╝
-    at Object.launch (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/e2e/wallet-workflow.test.js:32:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:95:7)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KNIRVWALLET End-to-End Wallet Workflow React Native Mobile App Workflow should invoke skill with NRN burn" name="KNIRVWALLET End-to-End Wallet Workflow React Native Mobile App Workflow should invoke skill with NRN burn" time="0">
-      <failure>browserType.launch: Executable doesn&apos;t exist at /home/gperry/.cache/ms-playwright/chromium-1181/chrome-linux/chrome
-╔═════════════════════════════════════════════════════════════════════════╗
-║ Looks like Playwright Test or Playwright was just installed or updated. ║
-║ Please run the following command to download new browsers:              ║
-║                                                                         ║
-║     npx playwright install                                              ║
-║                                                                         ║
-║ &lt;3 Playwright Team                                                      ║
-╚═════════════════════════════════════════════════════════════════════════╝
-    at Object.launch (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/e2e/wallet-workflow.test.js:32:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:95:7)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KNIRVWALLET End-to-End Wallet Workflow Cross-Platform Wallet Synchronization should generate QR code for wallet sync" name="KNIRVWALLET End-to-End Wallet Workflow Cross-Platform Wallet Synchronization should generate QR code for wallet sync" time="0">
-      <failure>browserType.launch: Executable doesn&apos;t exist at /home/gperry/.cache/ms-playwright/chromium-1181/chrome-linux/chrome
-╔═════════════════════════════════════════════════════════════════════════╗
-║ Looks like Playwright Test or Playwright was just installed or updated. ║
-║ Please run the following command to download new browsers:              ║
-║                                                                         ║
-║     npx playwright install                                              ║
-║                                                                         ║
-║ &lt;3 Playwright Team                                                      ║
-╚═════════════════════════════════════════════════════════════════════════╝
-    at Object.launch (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/e2e/wallet-workflow.test.js:32:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:95:7)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KNIRVWALLET End-to-End Wallet Workflow Cross-Platform Wallet Synchronization should scan QR code and establish sync connection" name="KNIRVWALLET End-to-End Wallet Workflow Cross-Platform Wallet Synchronization should scan QR code and establish sync connection" time="0.001">
-      <failure>browserType.launch: Executable doesn&apos;t exist at /home/gperry/.cache/ms-playwright/chromium-1181/chrome-linux/chrome
-╔═════════════════════════════════════════════════════════════════════════╗
-║ Looks like Playwright Test or Playwright was just installed or updated. ║
-║ Please run the following command to download new browsers:              ║
-║                                                                         ║
-║     npx playwright install                                              ║
-║                                                                         ║
-║ &lt;3 Playwright Team                                                      ║
-╚═════════════════════════════════════════════════════════════════════════╝
-    at Object.launch (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/e2e/wallet-workflow.test.js:32:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:95:7)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KNIRVWALLET End-to-End Wallet Workflow Cross-Platform Wallet Synchronization should synchronize wallet data between platforms" name="KNIRVWALLET End-to-End Wallet Workflow Cross-Platform Wallet Synchronization should synchronize wallet data between platforms" time="0">
-      <failure>browserType.launch: Executable doesn&apos;t exist at /home/gperry/.cache/ms-playwright/chromium-1181/chrome-linux/chrome
-╔═════════════════════════════════════════════════════════════════════════╗
-║ Looks like Playwright Test or Playwright was just installed or updated. ║
-║ Please run the following command to download new browsers:              ║
-║                                                                         ║
-║     npx playwright install                                              ║
-║                                                                         ║
-║ &lt;3 Playwright Team                                                      ║
-╚═════════════════════════════════════════════════════════════════════════╝
-    at Object.launch (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/e2e/wallet-workflow.test.js:32:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:95:7)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KNIRVWALLET End-to-End Wallet Workflow Error Handling and Edge Cases should handle network connectivity issues" name="KNIRVWALLET End-to-End Wallet Workflow Error Handling and Edge Cases should handle network connectivity issues" time="0.001">
-      <failure>browserType.launch: Executable doesn&apos;t exist at /home/gperry/.cache/ms-playwright/chromium-1181/chrome-linux/chrome
-╔═════════════════════════════════════════════════════════════════════════╗
-║ Looks like Playwright Test or Playwright was just installed or updated. ║
-║ Please run the following command to download new browsers:              ║
-║                                                                         ║
-║     npx playwright install                                              ║
-║                                                                         ║
-║ &lt;3 Playwright Team                                                      ║
-╚═════════════════════════════════════════════════════════════════════════╝
-    at Object.launch (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/e2e/wallet-workflow.test.js:32:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:95:7)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KNIRVWALLET End-to-End Wallet Workflow Error Handling and Edge Cases should handle invalid transaction inputs" name="KNIRVWALLET End-to-End Wallet Workflow Error Handling and Edge Cases should handle invalid transaction inputs" time="0">
-      <failure>browserType.launch: Executable doesn&apos;t exist at /home/gperry/.cache/ms-playwright/chromium-1181/chrome-linux/chrome
-╔═════════════════════════════════════════════════════════════════════════╗
-║ Looks like Playwright Test or Playwright was just installed or updated. ║
-║ Please run the following command to download new browsers:              ║
-║                                                                         ║
-║     npx playwright install                                              ║
-║                                                                         ║
-║ &lt;3 Playwright Team                                                      ║
-╚═════════════════════════════════════════════════════════════════════════╝
-    at Object.launch (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/e2e/wallet-workflow.test.js:32:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:95:7)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KNIRVWALLET End-to-End Wallet Workflow Error Handling and Edge Cases should handle insufficient balance scenarios" name="KNIRVWALLET End-to-End Wallet Workflow Error Handling and Edge Cases should handle insufficient balance scenarios" time="0.001">
-      <failure>browserType.launch: Executable doesn&apos;t exist at /home/gperry/.cache/ms-playwright/chromium-1181/chrome-linux/chrome
-╔═════════════════════════════════════════════════════════════════════════╗
-║ Looks like Playwright Test or Playwright was just installed or updated. ║
-║ Please run the following command to download new browsers:              ║
-║                                                                         ║
-║     npx playwright install                                              ║
-║                                                                         ║
-║ &lt;3 Playwright Team                                                      ║
-╚═════════════════════════════════════════════════════════════════════════╝
-    at Object.launch (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/e2e/wallet-workflow.test.js:32:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:95:7)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KNIRVWALLET End-to-End Wallet Workflow Performance and Responsiveness should load wallet interface within acceptable time" name="KNIRVWALLET End-to-End Wallet Workflow Performance and Responsiveness should load wallet interface within acceptable time" time="0.001">
-      <failure>browserType.launch: Executable doesn&apos;t exist at /home/gperry/.cache/ms-playwright/chromium-1181/chrome-linux/chrome
-╔═════════════════════════════════════════════════════════════════════════╗
-║ Looks like Playwright Test or Playwright was just installed or updated. ║
-║ Please run the following command to download new browsers:              ║
-║                                                                         ║
-║     npx playwright install                                              ║
-║                                                                         ║
-║ &lt;3 Playwright Team                                                      ║
-╚═════════════════════════════════════════════════════════════════════════╝
-    at Object.launch (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/e2e/wallet-workflow.test.js:32:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:95:7)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KNIRVWALLET End-to-End Wallet Workflow Performance and Responsiveness should handle multiple concurrent operations" name="KNIRVWALLET End-to-End Wallet Workflow Performance and Responsiveness should handle multiple concurrent operations" time="0.001">
-      <failure>browserType.launch: Executable doesn&apos;t exist at /home/gperry/.cache/ms-playwright/chromium-1181/chrome-linux/chrome
-╔═════════════════════════════════════════════════════════════════════════╗
-║ Looks like Playwright Test or Playwright was just installed or updated. ║
-║ Please run the following command to download new browsers:              ║
-║                                                                         ║
-║     npx playwright install                                              ║
-║                                                                         ║
-║ &lt;3 Playwright Team                                                      ║
-╚═════════════════════════════════════════════════════════════════════════╝
-    at Object.launch (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/e2e/wallet-workflow.test.js:32:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:95:7)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KNIRVWALLET End-to-End Wallet Workflow Security and Privacy should not expose sensitive data in DOM" name="KNIRVWALLET End-to-End Wallet Workflow Security and Privacy should not expose sensitive data in DOM" time="0">
-      <failure>browserType.launch: Executable doesn&apos;t exist at /home/gperry/.cache/ms-playwright/chromium-1181/chrome-linux/chrome
-╔═════════════════════════════════════════════════════════════════════════╗
-║ Looks like Playwright Test or Playwright was just installed or updated. ║
-║ Please run the following command to download new browsers:              ║
-║                                                                         ║
-║     npx playwright install                                              ║
-║                                                                         ║
-║ &lt;3 Playwright Team                                                      ║
-╚═════════════════════════════════════════════════════════════════════════╝
-    at Object.launch (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/e2e/wallet-workflow.test.js:32:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:95:7)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KNIRVWALLET End-to-End Wallet Workflow Security and Privacy should clear sensitive data on logout" name="KNIRVWALLET End-to-End Wallet Workflow Security and Privacy should clear sensitive data on logout" time="0.001">
-      <failure>browserType.launch: Executable doesn&apos;t exist at /home/gperry/.cache/ms-playwright/chromium-1181/chrome-linux/chrome
-╔═════════════════════════════════════════════════════════════════════════╗
-║ Looks like Playwright Test or Playwright was just installed or updated. ║
-║ Please run the following command to download new browsers:              ║
-║                                                                         ║
-║     npx playwright install                                              ║
-║                                                                         ║
-║ &lt;3 Playwright Team                                                      ║
-╚═════════════════════════════════════════════════════════════════════════╝
-    at Object.launch (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/e2e/wallet-workflow.test.js:32:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:95:7)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-  </testsuite>
-  <testsuite name="KnirvWallet Core Functionality" errors="0" failures="0" skipped="0" timestamp="2025-08-10T00:48:52" time="0.474" tests="22">
-    <testcase classname="KnirvWallet Core Functionality Wallet Creation HD Wallet Creation should create HD wallet from valid 12-word mnemonic" name="KnirvWallet Core Functionality Wallet Creation HD Wallet Creation should create HD wallet from valid 12-word mnemonic" time="0.01">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Creation HD Wallet Creation should create HD wallet from valid 24-word mnemonic" name="KnirvWallet Core Functionality Wallet Creation HD Wallet Creation should create HD wallet from valid 24-word mnemonic" time="0.004">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Creation HD Wallet Creation should reject invalid mnemonic" name="KnirvWallet Core Functionality Wallet Creation HD Wallet Creation should reject invalid mnemonic" time="0.037">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Creation HD Wallet Creation should generate deterministic addresses from same mnemonic" name="KnirvWallet Core Functionality Wallet Creation HD Wallet Creation should generate deterministic addresses from same mnemonic" time="0.003">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Creation Private Key Wallet Creation should create wallet from valid private key" name="KnirvWallet Core Functionality Wallet Creation Private Key Wallet Creation should create wallet from valid private key" time="0.004">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Creation Private Key Wallet Creation should handle private key with 0x prefix" name="KnirvWallet Core Functionality Wallet Creation Private Key Wallet Creation should handle private key with 0x prefix" time="0.019">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Creation Private Key Wallet Creation should reject invalid private key length" name="KnirvWallet Core Functionality Wallet Creation Private Key Wallet Creation should reject invalid private key length" time="0.004">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Creation Ledger Wallet Creation should create Ledger wallet connection" name="KnirvWallet Core Functionality Wallet Creation Ledger Wallet Creation should create Ledger wallet connection" time="0.006">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Creation Ledger Wallet Creation should handle Ledger connection failure" name="KnirvWallet Core Functionality Wallet Creation Ledger Wallet Creation should handle Ledger connection failure" time="0.006">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Serialization should serialize HD wallet correctly" name="KnirvWallet Core Functionality Wallet Serialization should serialize HD wallet correctly" time="0.013">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Serialization should not include sensitive data in serialization" name="KnirvWallet Core Functionality Wallet Serialization should not include sensitive data in serialization" time="0.006">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Serialization should deserialize wallet correctly" name="KnirvWallet Core Functionality Wallet Serialization should deserialize wallet correctly" time="0.004">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Account Management should add new account to HD wallet" name="KnirvWallet Core Functionality Account Management should add new account to HD wallet" time="0.004">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Account Management should switch current account" name="KnirvWallet Core Functionality Account Management should switch current account" time="0.004">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Account Management should get current account details" name="KnirvWallet Core Functionality Account Management should get current account details" time="0.009">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Account Management should validate account address format" name="KnirvWallet Core Functionality Account Management should validate account address format" time="0.004">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Keyring Management should manage HD keyring" name="KnirvWallet Core Functionality Keyring Management should manage HD keyring" time="0.004">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Keyring Management should manage private key keyring" name="KnirvWallet Core Functionality Keyring Management should manage private key keyring" time="0.004">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Keyring Management should manage Ledger keyring" name="KnirvWallet Core Functionality Keyring Management should manage Ledger keyring" time="0.004">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet State Management should maintain wallet state consistency" name="KnirvWallet Core Functionality Wallet State Management should maintain wallet state consistency" time="0.004">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet State Management should handle wallet lock/unlock" name="KnirvWallet Core Functionality Wallet State Management should handle wallet lock/unlock" time="0.005">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet State Management should clear sensitive data on lock" name="KnirvWallet Core Functionality Wallet State Management should clear sensitive data on lock" time="0.005">
-    </testcase>
-  </testsuite>
-  <testsuite name="Simple Jest Test" errors="0" failures="0" skipped="0" timestamp="2025-08-10T00:48:53" time="0.136" tests="3">
-    <testcase classname="Simple Jest Test should pass basic test" name="Simple Jest Test should pass basic test" time="0.003">
-    </testcase>
-    <testcase classname="Simple Jest Test should handle async operations" name="Simple Jest Test should handle async operations" time="0.002">
-    </testcase>
-    <testcase classname="Simple Jest Test should work with objects" name="Simple Jest Test should work with objects" time="0.004">
-    </testcase>
-  </testsuite>
-  <testsuite name="Simple TypeScript Test" errors="0" failures="0" skipped="0" timestamp="2025-08-10T00:48:53" time="0.124" tests="2">
-    <testcase classname="Simple TypeScript Test should handle TypeScript syntax" name="Simple TypeScript Test should handle TypeScript syntax" time="0.005">
-    </testcase>
-    <testcase classname="Simple TypeScript Test should work with interfaces" name="Simple TypeScript Test should work with interfaces" time="0.003">
-    </testcase>
-  </testsuite>
-  <testsuite name="KnirvWallet Keyring Management" errors="0" failures="15" skipped="0" timestamp="2025-08-10T00:48:45" time="11.085" tests="28">
-    <testcase classname="KnirvWallet Keyring Management HD Keyring Management should create HD keyring with correct properties" name="KnirvWallet Keyring Management HD Keyring Management should create HD keyring with correct properties" time="0.098">
+<testsuites name="KNIRVWALLET Tests" tests="28" failures="10" errors="0" time="8.867">
+  <testsuite name="KnirvWallet Keyring Management" errors="0" failures="10" skipped="0" timestamp="2025-08-12T03:53:48" time="7.28" tests="28">
+    <testcase classname="KnirvWallet Keyring Management HD Keyring Management should create HD keyring with correct properties" name="KnirvWallet Keyring Management HD Keyring Management should create HD keyring with correct properties" time="0.035">
       <failure>Error: expect(received).toBe(expected) // Object.is equality
 
-Expected: &quot;HD&quot;
-Received: &quot;HD_WALLET&quot;
-    at Object.toBe (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/keyring-management.test.ts:22:28)
+Expected: &quot;abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about&quot;
+Received: undefined
+    at Object.toBe (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/keyring-management.test.ts:24:32)
     at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
@@ -518,74 +19,39 @@ Received: &quot;HD_WALLET&quot;
     at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
     at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
     at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="KnirvWallet Keyring Management HD Keyring Management should derive multiple accounts from HD keyring" name="KnirvWallet Keyring Management HD Keyring Management should derive multiple accounts from HD keyring" time="0.068">
+    <testcase classname="KnirvWallet Keyring Management HD Keyring Management should derive multiple accounts from HD keyring" name="KnirvWallet Keyring Management HD Keyring Management should derive multiple accounts from HD keyring" time="0.045">
     </testcase>
-    <testcase classname="KnirvWallet Keyring Management HD Keyring Management should generate unique addresses for different derivation paths" name="KnirvWallet Keyring Management HD Keyring Management should generate unique addresses for different derivation paths" time="0.028">
+    <testcase classname="KnirvWallet Keyring Management HD Keyring Management should generate unique addresses for different derivation paths" name="KnirvWallet Keyring Management HD Keyring Management should generate unique addresses for different derivation paths" time="0.027">
       <failure>Error: expect(received).toBe(expected) // Object.is equality
 
 Expected: 3
 Received: 1
     at Object.toBe (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/keyring-management.test.ts:49:36)</failure>
     </testcase>
-    <testcase classname="KnirvWallet Keyring Management HD Keyring Management should maintain consistent addresses for same mnemonic and path" name="KnirvWallet Keyring Management HD Keyring Management should maintain consistent addresses for same mnemonic and path" time="0.029">
+    <testcase classname="KnirvWallet Keyring Management HD Keyring Management should maintain consistent addresses for same mnemonic and path" name="KnirvWallet Keyring Management HD Keyring Management should maintain consistent addresses for same mnemonic and path" time="0.023">
     </testcase>
-    <testcase classname="KnirvWallet Keyring Management HD Keyring Management should handle mnemonic validation correctly" name="KnirvWallet Keyring Management HD Keyring Management should handle mnemonic validation correctly" time="0.022">
+    <testcase classname="KnirvWallet Keyring Management HD Keyring Management should handle mnemonic validation correctly" name="KnirvWallet Keyring Management HD Keyring Management should handle mnemonic validation correctly" time="0.009">
     </testcase>
-    <testcase classname="KnirvWallet Keyring Management HD Keyring Management should reject invalid mnemonic in keyring creation" name="KnirvWallet Keyring Management HD Keyring Management should reject invalid mnemonic in keyring creation" time="0.014">
+    <testcase classname="KnirvWallet Keyring Management HD Keyring Management should reject invalid mnemonic in keyring creation" name="KnirvWallet Keyring Management HD Keyring Management should reject invalid mnemonic in keyring creation" time="0.006">
     </testcase>
-    <testcase classname="KnirvWallet Keyring Management Private Key Keyring Management should create private key keyring with correct properties" name="KnirvWallet Keyring Management Private Key Keyring Management should create private key keyring with correct properties" time="0.003">
-      <failure>TypeError: (0 , _.useTm2Wallet) is not a function
-    at Function.fromPrivateKey (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/keyring/web3-auth-keyring.ts:77:38)
-    at Function.fromPrivateKey [as createByWeb3Auth] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/wallet.ts:443:43)
-    at Object.createByWeb3Auth (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/keyring-management.test.ts:77:34)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at new Promise (&lt;anonymous&gt;)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:246:5)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:126:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
+    <testcase classname="KnirvWallet Keyring Management Private Key Keyring Management should create private key keyring with correct properties" name="KnirvWallet Keyring Management Private Key Keyring Management should create private key keyring with correct properties" time="0.116">
     </testcase>
-    <testcase classname="KnirvWallet Keyring Management Private Key Keyring Management should create single account from private key" name="KnirvWallet Keyring Management Private Key Keyring Management should create single account from private key" time="0.003">
-      <failure>TypeError: (0 , _.useTm2Wallet) is not a function
-    at Function.fromPrivateKey (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/keyring/web3-auth-keyring.ts:77:38)
-    at Function.fromPrivateKey [as createByWeb3Auth] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/wallet.ts:443:43)
-    at Object.createByWeb3Auth (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/keyring-management.test.ts:77:34)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at new Promise (&lt;anonymous&gt;)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:246:5)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:126:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
+    <testcase classname="KnirvWallet Keyring Management Private Key Keyring Management should create single account from private key" name="KnirvWallet Keyring Management Private Key Keyring Management should create single account from private key" time="0.004">
     </testcase>
     <testcase classname="KnirvWallet Keyring Management Private Key Keyring Management should handle private key with 0x prefix" name="KnirvWallet Keyring Management Private Key Keyring Management should handle private key with 0x prefix" time="0.004">
-      <failure>TypeError: (0 , _.useTm2Wallet) is not a function
-    at Function.fromPrivateKey (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/keyring/web3-auth-keyring.ts:77:38)
-    at Function.fromPrivateKey [as createByWeb3Auth] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/wallet.ts:443:43)
-    at Object.createByWeb3Auth (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/keyring-management.test.ts:77:34)
+      <failure>Error: input data is not a valid secp256k1 private key
+    at Function.makeKeypair (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@cosmjs/crypto/src/secp256k1.ts:41:13)
+    at Function.fromKey (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@cosmjs/amino/src/secp256k1wallet.ts:22:43)
+    at Function.fromKey [as fromPrivateKey] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/keyring/web3-auth-keyring.ts:148:42)
+    at Function.fromPrivateKey [as createByWeb3Auth] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/wallet.ts:483:43)
+    at Object.createByWeb3Auth (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/keyring-management.test.ts:94:50)
     at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:246:5)
+    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:252:3)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:126:9)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
@@ -593,50 +59,13 @@ Received: 1
     at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
     at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
     at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="KnirvWallet Keyring Management Private Key Keyring Management should generate consistent address for same private key" name="KnirvWallet Keyring Management Private Key Keyring Management should generate consistent address for same private key" time="0.002">
-      <failure>TypeError: (0 , _.useTm2Wallet) is not a function
-    at Function.fromPrivateKey (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/keyring/web3-auth-keyring.ts:77:38)
-    at Function.fromPrivateKey [as createByWeb3Auth] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/wallet.ts:443:43)
-    at Object.createByWeb3Auth (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/keyring-management.test.ts:77:34)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at new Promise (&lt;anonymous&gt;)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:246:5)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:126:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
+    <testcase classname="KnirvWallet Keyring Management Private Key Keyring Management should generate consistent address for same private key" name="KnirvWallet Keyring Management Private Key Keyring Management should generate consistent address for same private key" time="0.009">
     </testcase>
-    <testcase classname="KnirvWallet Keyring Management Private Key Keyring Management should validate private key keyring structure" name="KnirvWallet Keyring Management Private Key Keyring Management should validate private key keyring structure" time="0.002">
-      <failure>TypeError: (0 , _.useTm2Wallet) is not a function
-    at Function.fromPrivateKey (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/keyring/web3-auth-keyring.ts:77:38)
-    at Function.fromPrivateKey [as createByWeb3Auth] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/wallet.ts:443:43)
-    at Object.createByWeb3Auth (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/keyring-management.test.ts:77:34)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at new Promise (&lt;anonymous&gt;)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:281:40)
-    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:246:5)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:126:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
+    <testcase classname="KnirvWallet Keyring Management Private Key Keyring Management should validate private key keyring structure" name="KnirvWallet Keyring Management Private Key Keyring Management should validate private key keyring structure" time="0.004">
     </testcase>
-    <testcase classname="KnirvWallet Keyring Management Ledger Keyring Management should create Ledger keyring with correct properties" name="KnirvWallet Keyring Management Ledger Keyring Management should create Ledger keyring with correct properties" time="0.034">
+    <testcase classname="KnirvWallet Keyring Management Ledger Keyring Management should create Ledger keyring with correct properties" name="KnirvWallet Keyring Management Ledger Keyring Management should create Ledger keyring with correct properties" time="0.035">
       <failure>Error: Unknown transport error
     at Function.fromReturnCode (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@zondax/ledger-js/src/responseError.ts:45:12)
     at processErrorResponse (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@zondax/ledger-js/src/common.ts:89:24)
@@ -648,7 +77,7 @@ Received: 1
     at MockLedgerConnector.verifyDeviceIsReady (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@cosmjs/ledger-amino/src/ledgerconnector.ts:150:5)
     at MockLedgerConnector.getPubkey (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@cosmjs/ledger-amino/src/ledgerconnector.ts:82:5)
     at Function.createBy (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/account/ledger-account.ts:68:23)
-    at Function.createByLedger (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/wallet.ts:432:23)
+    at Function.createByLedger (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/wallet.ts:472:23)
     at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/keyring-management.test.ts:121:16)</failure>
     </testcase>
     <testcase classname="KnirvWallet Keyring Management Ledger Keyring Management should create multiple Ledger accounts" name="KnirvWallet Keyring Management Ledger Keyring Management should create multiple Ledger accounts" time="0.004">
@@ -663,7 +92,7 @@ Received: 1
     at MockLedgerConnector.verifyDeviceIsReady (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@cosmjs/ledger-amino/src/ledgerconnector.ts:150:5)
     at MockLedgerConnector.getPubkey (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@cosmjs/ledger-amino/src/ledgerconnector.ts:82:5)
     at Function.createBy (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/account/ledger-account.ts:68:23)
-    at Function.createByLedger (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/wallet.ts:432:23)
+    at Function.createByLedger (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/wallet.ts:472:23)
     at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/keyring-management.test.ts:121:16)</failure>
     </testcase>
     <testcase classname="KnirvWallet Keyring Management Ledger Keyring Management should validate Ledger keyring structure" name="KnirvWallet Keyring Management Ledger Keyring Management should validate Ledger keyring structure" time="0.003">
@@ -678,10 +107,10 @@ Received: 1
     at MockLedgerConnector.verifyDeviceIsReady (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@cosmjs/ledger-amino/src/ledgerconnector.ts:150:5)
     at MockLedgerConnector.getPubkey (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@cosmjs/ledger-amino/src/ledgerconnector.ts:82:5)
     at Function.createBy (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/account/ledger-account.ts:68:23)
-    at Function.createByLedger (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/wallet.ts:432:23)
+    at Function.createByLedger (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/wallet.ts:472:23)
     at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/keyring-management.test.ts:121:16)</failure>
     </testcase>
-    <testcase classname="KnirvWallet Keyring Management Ledger Keyring Management should handle Ledger device connection" name="KnirvWallet Keyring Management Ledger Keyring Management should handle Ledger device connection" time="0.004">
+    <testcase classname="KnirvWallet Keyring Management Ledger Keyring Management should handle Ledger device connection" name="KnirvWallet Keyring Management Ledger Keyring Management should handle Ledger device connection" time="0.003">
       <failure>Error: Unknown transport error
     at Function.fromReturnCode (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@zondax/ledger-js/src/responseError.ts:45:12)
     at processErrorResponse (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@zondax/ledger-js/src/common.ts:89:24)
@@ -693,15 +122,13 @@ Received: 1
     at MockLedgerConnector.verifyDeviceIsReady (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@cosmjs/ledger-amino/src/ledgerconnector.ts:150:5)
     at MockLedgerConnector.getPubkey (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@cosmjs/ledger-amino/src/ledgerconnector.ts:82:5)
     at Function.createBy (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/account/ledger-account.ts:68:23)
-    at Function.createByLedger (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/wallet.ts:432:23)
+    at Function.createByLedger (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/wallet.ts:472:23)
     at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/keyring-management.test.ts:121:16)</failure>
     </testcase>
-    <testcase classname="KnirvWallet Keyring Management Address-only Keyring Management should create address-only keyring with correct properties" name="KnirvWallet Keyring Management Address-only Keyring Management should create address-only keyring with correct properties" time="0.007">
-      <failure>Error: expect(received).toBe(expected) // Object.is equality
-
-Expected: &quot;ADDRESS&quot;
-Received: &quot;AIRGAP&quot;
-    at Object.toBe (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/keyring-management.test.ts:171:28)
+    <testcase classname="KnirvWallet Keyring Management Address-only Keyring Management should create address-only keyring with correct properties" name="KnirvWallet Keyring Management Address-only Keyring Management should create address-only keyring with correct properties" time="0.005">
+      <failure>Error: Address keyring missing address
+    at Function.validateKeyringStructure (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/test-utils/wallet-test-utils.ts:289:17)
+    at Object.validateKeyringStructure (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/keyring-management.test.ts:173:31)
     at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
@@ -714,10 +141,9 @@ Received: &quot;AIRGAP&quot;
     at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
     at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
     at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="KnirvWallet Keyring Management Address-only Keyring Management should create watch-only account" name="KnirvWallet Keyring Management Address-only Keyring Management should create watch-only account" time="0.004">
+    <testcase classname="KnirvWallet Keyring Management Address-only Keyring Management should create watch-only account" name="KnirvWallet Keyring Management Address-only Keyring Management should create watch-only account" time="0.003">
       <failure>Error: expect(received).toBe(expected) // Object.is equality
 
 Expected: &quot;g1jg8mtutu9khhfwc4nxmuhcpftf0pajdhfvsqf5&quot;
@@ -735,8 +161,7 @@ Received: undefined
     at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
     at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
     at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
     <testcase classname="KnirvWallet Keyring Management Address-only Keyring Management should validate address keyring structure" name="KnirvWallet Keyring Management Address-only Keyring Management should validate address keyring structure" time="0.003">
     </testcase>
@@ -745,7 +170,7 @@ Received: undefined
     at Object.decode (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/bech32/dist/index.js:158:15)
     at decode (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/encoding/bech32.ts:12:33)
     at Function.fromAddress (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/keyring/address-keyring.ts:71:46)
-    at Function.fromAddress [as createByAddress] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/wallet.ts:453:42)
+    at Function.fromAddress [as createByAddress] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/wallet.ts:493:42)
     at Object.createByAddress (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/keyring-management.test.ts:191:48)
     at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
@@ -759,511 +184,25 @@ Received: undefined
     at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
     at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
     at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="KnirvWallet Keyring Management Mixed Keyring Management should handle multiple keyring types in same wallet" name="KnirvWallet Keyring Management Mixed Keyring Management should handle multiple keyring types in same wallet" time="0.009">
-      <failure>Error: expect(received).toBe(expected) // Object.is equality
-
-Expected: &quot;HD&quot;
-Received: &quot;HD_WALLET&quot;
-    at Object.toBe (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/keyring-management.test.ts:206:41)</failure>
+    <testcase classname="KnirvWallet Keyring Management Mixed Keyring Management should handle multiple keyring types in same wallet" name="KnirvWallet Keyring Management Mixed Keyring Management should handle multiple keyring types in same wallet" time="0.01">
     </testcase>
-    <testcase classname="KnirvWallet Keyring Management Mixed Keyring Management should maintain keyring-account relationships" name="KnirvWallet Keyring Management Mixed Keyring Management should maintain keyring-account relationships" time="0.007">
+    <testcase classname="KnirvWallet Keyring Management Mixed Keyring Management should maintain keyring-account relationships" name="KnirvWallet Keyring Management Mixed Keyring Management should maintain keyring-account relationships" time="0.006">
     </testcase>
-    <testcase classname="KnirvWallet Keyring Management Keyring Validation and Error Handling should validate keyring structure requirements" name="KnirvWallet Keyring Management Keyring Validation and Error Handling should validate keyring structure requirements" time="0.014">
+    <testcase classname="KnirvWallet Keyring Management Keyring Validation and Error Handling should validate keyring structure requirements" name="KnirvWallet Keyring Management Keyring Validation and Error Handling should validate keyring structure requirements" time="0.004">
     </testcase>
-    <testcase classname="KnirvWallet Keyring Management Keyring Validation and Error Handling should reject invalid keyring types" name="KnirvWallet Keyring Management Keyring Validation and Error Handling should reject invalid keyring types" time="0.004">
+    <testcase classname="KnirvWallet Keyring Management Keyring Validation and Error Handling should reject invalid keyring types" name="KnirvWallet Keyring Management Keyring Validation and Error Handling should reject invalid keyring types" time="0.002">
     </testcase>
-    <testcase classname="KnirvWallet Keyring Management Keyring Validation and Error Handling should require keyring ID and type" name="KnirvWallet Keyring Management Keyring Validation and Error Handling should require keyring ID and type" time="0.022">
+    <testcase classname="KnirvWallet Keyring Management Keyring Validation and Error Handling should require keyring ID and type" name="KnirvWallet Keyring Management Keyring Validation and Error Handling should require keyring ID and type" time="0.005">
     </testcase>
     <testcase classname="KnirvWallet Keyring Management Account Creation from Keyrings should create seed accounts from HD keyring" name="KnirvWallet Keyring Management Account Creation from Keyrings should create seed accounts from HD keyring" time="0.003">
     </testcase>
-    <testcase classname="KnirvWallet Keyring Management Account Creation from Keyrings should create ledger accounts from Ledger keyring" name="KnirvWallet Keyring Management Account Creation from Keyrings should create ledger accounts from Ledger keyring" time="0.003">
+    <testcase classname="KnirvWallet Keyring Management Account Creation from Keyrings should create ledger accounts from Ledger keyring" name="KnirvWallet Keyring Management Account Creation from Keyrings should create ledger accounts from Ledger keyring" time="0.002">
     </testcase>
-    <testcase classname="KnirvWallet Keyring Management Account Creation from Keyrings should create single accounts from private key keyring" name="KnirvWallet Keyring Management Account Creation from Keyrings should create single accounts from private key keyring" time="0.003">
+    <testcase classname="KnirvWallet Keyring Management Account Creation from Keyrings should create single accounts from private key keyring" name="KnirvWallet Keyring Management Account Creation from Keyrings should create single accounts from private key keyring" time="0.002">
     </testcase>
-    <testcase classname="KnirvWallet Keyring Management Account Creation from Keyrings should create airgap accounts from address keyring" name="KnirvWallet Keyring Management Account Creation from Keyrings should create airgap accounts from address keyring" time="0.003">
-    </testcase>
-  </testsuite>
-  <testsuite name="KnirvWallet Core Functionality" errors="0" failures="25" skipped="0" timestamp="2025-08-10T00:48:45" time="11.484" tests="34">
-    <testcase classname="KnirvWallet Core Functionality Wallet Creation HD Wallet Creation should create wallet from valid 12-word mnemonic" name="KnirvWallet Core Functionality Wallet Creation HD Wallet Creation should create wallet from valid 12-word mnemonic" time="0.094">
-      <failure>Error: expect(received).toBeDefined()
-
-Received: undefined
-    at Object.toBeDefined (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:27:41)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Creation HD Wallet Creation should create wallet from valid 24-word mnemonic" name="KnirvWallet Core Functionality Wallet Creation HD Wallet Creation should create wallet from valid 24-word mnemonic" time="0.037">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Creation HD Wallet Creation should create wallet with multiple derivation paths" name="KnirvWallet Core Functionality Wallet Creation HD Wallet Creation should create wallet with multiple derivation paths" time="0.02">
-      <failure>Error: expect(received).toContain(expected) // indexOf
-
-Expected substring: &quot;3&quot;
-Received string:    &quot;Account 2&quot;
-    at toContain (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:49:32)
-    at Array.forEach (&lt;anonymous&gt;)
-    at Object.forEach (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:48:25)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Creation HD Wallet Creation should throw error for invalid mnemonic" name="KnirvWallet Core Functionality Wallet Creation HD Wallet Creation should throw error for invalid mnemonic" time="0.137">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Creation HD Wallet Creation should generate correct address for known mnemonic" name="KnirvWallet Core Functionality Wallet Creation HD Wallet Creation should generate correct address for known mnemonic" time="0.029">
-      <failure>Error: expect(received).toBe(expected) // Object.is equality
-
-Expected: &quot;g1jg8mtutu9khhfwc4nxmuhcpftf0pajdhfvsqf5&quot;
-Received: &quot;g1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqluuxe&quot;
-    at Object.toBe (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:64:25)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Creation Private Key Wallet Creation should create wallet from valid private key" name="KnirvWallet Core Functionality Wallet Creation Private Key Wallet Creation should create wallet from valid private key" time="0.003">
-      <failure>TypeError: (0 , _.useTm2Wallet) is not a function
-    at Function.fromPrivateKey (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/keyring/web3-auth-keyring.ts:77:38)
-    at Function.fromPrivateKey [as createByWeb3Auth] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/wallet.ts:443:43)
-    at Object.createByWeb3Auth (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:70:42)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at new Promise (&lt;anonymous&gt;)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:316:40)
-    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:252:3)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:126:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Creation Private Key Wallet Creation should create wallet from private key with 0x prefix" name="KnirvWallet Core Functionality Wallet Creation Private Key Wallet Creation should create wallet from private key with 0x prefix" time="0.003">
-      <failure>TypeError: (0 , _.useTm2Wallet) is not a function
-    at Function.fromPrivateKey (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/keyring/web3-auth-keyring.ts:77:38)
-    at Function.fromPrivateKey [as createByWeb3Auth] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/wallet.ts:443:43)
-    at Object.createByWeb3Auth (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:79:42)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at new Promise (&lt;anonymous&gt;)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:316:40)
-    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:252:3)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:126:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Creation Private Key Wallet Creation should throw error for invalid private key" name="KnirvWallet Core Functionality Wallet Creation Private Key Wallet Creation should throw error for invalid private key" time="0.005">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Creation Ledger Wallet Creation should create wallet from Ledger device" name="KnirvWallet Core Functionality Wallet Creation Ledger Wallet Creation should create wallet from Ledger device" time="0.052">
-      <failure>Error: Unknown transport error
-    at Function.fromReturnCode (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@zondax/ledger-js/src/responseError.ts:45:12)
-    at processErrorResponse (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@zondax/ledger-js/src/common.ts:89:24)
-    at CosmosApp.appInfo (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@zondax/ledger-js/src/app.ts:266:33)
-    at MockLedgerConnector.getOpenAppName (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@cosmjs/ledger-amino/src/ledgerconnector.ts:123:22)
-    at MockLedgerConnector.verifyCosmosAppIsOpen (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@cosmjs/ledger-amino/src/ledgerconnector.ts:137:21)
-    at MockLedgerConnector.getCosmosAppVersion (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@cosmjs/ledger-amino/src/ledgerconnector.ts:71:5)
-    at MockLedgerConnector.verifyAppVersion (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@cosmjs/ledger-amino/src/ledgerconnector.ts:128:21)
-    at MockLedgerConnector.verifyDeviceIsReady (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@cosmjs/ledger-amino/src/ledgerconnector.ts:150:5)
-    at MockLedgerConnector.getPubkey (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@cosmjs/ledger-amino/src/ledgerconnector.ts:82:5)
-    at Function.createBy (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/account/ledger-account.ts:68:23)
-    at Function.createByLedger (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/wallet.ts:432:23)
-    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:97:24)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Creation Ledger Wallet Creation should create wallet with multiple Ledger accounts" name="KnirvWallet Core Functionality Wallet Creation Ledger Wallet Creation should create wallet with multiple Ledger accounts" time="0.004">
-      <failure>Error: Unknown transport error
-    at Function.fromReturnCode (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@zondax/ledger-js/src/responseError.ts:45:12)
-    at processErrorResponse (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@zondax/ledger-js/src/common.ts:89:24)
-    at CosmosApp.appInfo (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@zondax/ledger-js/src/app.ts:266:33)
-    at MockLedgerConnector.getOpenAppName (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@cosmjs/ledger-amino/src/ledgerconnector.ts:123:22)
-    at MockLedgerConnector.verifyCosmosAppIsOpen (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@cosmjs/ledger-amino/src/ledgerconnector.ts:137:21)
-    at MockLedgerConnector.getCosmosAppVersion (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@cosmjs/ledger-amino/src/ledgerconnector.ts:71:5)
-    at MockLedgerConnector.verifyAppVersion (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@cosmjs/ledger-amino/src/ledgerconnector.ts:128:21)
-    at MockLedgerConnector.verifyDeviceIsReady (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@cosmjs/ledger-amino/src/ledgerconnector.ts:150:5)
-    at MockLedgerConnector.getPubkey (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/@cosmjs/ledger-amino/src/ledgerconnector.ts:82:5)
-    at Function.createBy (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/account/ledger-account.ts:68:23)
-    at Function.createByLedger (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/wallet.ts:432:23)
-    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:108:24)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Creation Ledger Wallet Creation should handle Ledger connection errors gracefully" name="KnirvWallet Core Functionality Wallet Creation Ledger Wallet Creation should handle Ledger connection errors gracefully" time="0.005">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Creation Address-only Wallet Creation should create watch-only wallet from address" name="KnirvWallet Core Functionality Wallet Creation Address-only Wallet Creation should create watch-only wallet from address" time="0.005">
-      <failure>Error: expect(received).toBe(expected) // Object.is equality
-
-Expected: &quot;ADDRESS&quot;
-Received: &quot;AIRGAP&quot;
-    at Object.toBe (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:134:44)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Creation Address-only Wallet Creation should throw error for invalid address" name="KnirvWallet Core Functionality Wallet Creation Address-only Wallet Creation should throw error for invalid address" time="0.01">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Serialization should serialize and deserialize HD wallet correctly" name="KnirvWallet Core Functionality Wallet Serialization should serialize and deserialize HD wallet correctly" time="0.008">
-      <failure>TypeError: invalid salt length
-    at f (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:21105)
-    at Object.Xa [as crypto_pwhash] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:75625)
-    at Function.crypto_pwhash [as execute] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/crypto/libsodium.ts:43:19)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Serialization should fail deserialization with wrong password" name="KnirvWallet Core Functionality Wallet Serialization should fail deserialization with wrong password" time="0.013">
-      <failure>TypeError: invalid salt length
-    at f (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:21105)
-    at Object.Xa [as crypto_pwhash] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:75625)
-    at Function.crypto_pwhash [as execute] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/crypto/libsodium.ts:43:19)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Serialization should serialize private key wallet without exposing private key" name="KnirvWallet Core Functionality Wallet Serialization should serialize private key wallet without exposing private key" time="0.002">
-      <failure>TypeError: (0 , _.useTm2Wallet) is not a function
-    at Function.fromPrivateKey (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/keyring/web3-auth-keyring.ts:77:38)
-    at Function.fromPrivateKey [as createByWeb3Auth] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/wallet.ts:443:43)
-    at Object.createByWeb3Auth (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:175:40)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at new Promise (&lt;anonymous&gt;)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:316:40)
-    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:252:3)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:126:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Account Management should get all accounts" name="KnirvWallet Core Functionality Account Management should get all accounts" time="0.015">
-      <failure>TypeError: wallet.getAccounts is not a function
-    at Object.getAccounts (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:194:31)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at new Promise (&lt;anonymous&gt;)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:316:40)
-    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:252:3)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:126:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Account Management should get current account" name="KnirvWallet Core Functionality Account Management should get current account" time="0.015">
-      <failure>TypeError: wallet.getCurrentAccount is not a function
-    at Object.getCurrentAccount (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:202:37)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at new Promise (&lt;anonymous&gt;)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:316:40)
-    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:252:3)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:126:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Account Management should switch between accounts" name="KnirvWallet Core Functionality Account Management should switch between accounts" time="0.032">
-      <failure>TypeError: multiAccountWallet.getCurrentAccount is not a function
-    at Object.getCurrentAccount (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:217:33)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Account Management should get account by ID" name="KnirvWallet Core Functionality Account Management should get account by ID" time="0.01">
-      <failure>TypeError: wallet.getAccountById is not a function
-    at Object.getAccountById (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:226:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at new Promise (&lt;anonymous&gt;)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:316:40)
-    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:252:3)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:126:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Account Management should return undefined for non-existent account ID" name="KnirvWallet Core Functionality Account Management should return undefined for non-existent account ID" time="0.016">
-      <failure>TypeError: wallet.getAccountById is not a function
-    at Object.getAccountById (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:234:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at new Promise (&lt;anonymous&gt;)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:316:40)
-    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:252:3)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:126:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Keyring Management should get all keyrings" name="KnirvWallet Core Functionality Keyring Management should get all keyrings" time="0.011">
-      <failure>TypeError: wallet.getKeyrings is not a function
-    at Object.getKeyrings (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:248:31)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at new Promise (&lt;anonymous&gt;)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:316:40)
-    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:252:3)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:126:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Keyring Management should get current keyring" name="KnirvWallet Core Functionality Keyring Management should get current keyring" time="0.013">
-      <failure>Error: expect(received).toBe(expected) // Object.is equality
-
-Expected: &quot;HD&quot;
-Received: &quot;HD_WALLET&quot;
-    at Object.toBe (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:257:35)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at new Promise (&lt;anonymous&gt;)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:316:40)
-    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:252:3)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:126:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Keyring Management should get keyring by ID" name="KnirvWallet Core Functionality Keyring Management should get keyring by ID" time="0.013">
-      <failure>TypeError: wallet.getKeyringById is not a function
-    at Object.getKeyringById (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:262:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at new Promise (&lt;anonymous&gt;)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:316:40)
-    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:252:3)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:126:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Keyring Management should return undefined for non-existent keyring ID" name="KnirvWallet Core Functionality Keyring Management should return undefined for non-existent keyring ID" time="0.017">
-      <failure>TypeError: wallet.getKeyringById is not a function
-    at Object.getKeyringById (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:270:30)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at new Promise (&lt;anonymous&gt;)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:316:40)
-    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:252:3)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:126:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Properties should have correct structure for HD wallet" name="KnirvWallet Core Functionality Wallet Properties should have correct structure for HD wallet" time="0.014">
-      <failure>Error: expected object to have wallet structure (accounts, keyrings, currentAccountId)
-    at Object.toHaveWalletStructure (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:280:22)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Properties should have correct structure for private key wallet" name="KnirvWallet Core Functionality Wallet Properties should have correct structure for private key wallet" time="0.002">
-      <failure>TypeError: (0 , _.useTm2Wallet) is not a function
-    at Function.fromPrivateKey (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/keyring/web3-auth-keyring.ts:77:38)
-    at Function.fromPrivateKey [as createByWeb3Auth] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/wallet/wallet.ts:443:43)
-    at Object.createByWeb3Auth (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:286:40)
-    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:298:28)
-    at new Promise (&lt;anonymous&gt;)
-    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/utils.js:231:10)
-    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:316:40)
-    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:252:3)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:126:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:121:9)
-    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/run.js:71:3)
-    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
-    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
-    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Properties should have correct structure for address-only wallet" name="KnirvWallet Core Functionality Wallet Properties should have correct structure for address-only wallet" time="0.003">
-      <failure>Error: expected object to have wallet structure (accounts, keyrings, currentAccountId)
-    at Object.toHaveWalletStructure (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:295:22)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Properties should generate unique account names" name="KnirvWallet Core Functionality Wallet Properties should generate unique account names" time="0.04">
-      <failure>Error: expect(received).toBe(expected) // Object.is equality
-
-Expected: 5
-Received: 2
-    at Object.toBe (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/wallet-core.test.ts:306:32)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Wallet Properties should generate unique keyring IDs" name="KnirvWallet Core Functionality Wallet Properties should generate unique keyring IDs" time="0.027">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Error Handling should handle empty mnemonic gracefully" name="KnirvWallet Core Functionality Error Handling should handle empty mnemonic gracefully" time="0.004">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Error Handling should handle null/undefined inputs gracefully" name="KnirvWallet Core Functionality Error Handling should handle null/undefined inputs gracefully" time="0.006">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Error Handling should handle invalid serialized data gracefully" name="KnirvWallet Core Functionality Error Handling should handle invalid serialized data gracefully" time="0.005">
-    </testcase>
-    <testcase classname="KnirvWallet Core Functionality Error Handling should handle corrupted serialized data gracefully" name="KnirvWallet Core Functionality Error Handling should handle corrupted serialized data gracefully" time="0.008">
-      <failure>TypeError: invalid salt length
-    at f (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:21105)
-    at Object.Xa [as crypto_pwhash] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:75625)
-    at Function.crypto_pwhash [as execute] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/crypto/libsodium.ts:43:19)</failure>
-    </testcase>
-  </testsuite>
-  <testsuite name="KnirvWallet Cryptographic Operations" errors="0" failures="14" skipped="0" timestamp="2025-08-10T00:48:45" time="13.426" tests="38">
-    <testcase classname="KnirvWallet Cryptographic Operations Key Derivation Function (KDF) should execute KDF with correct parameters" name="KnirvWallet Cryptographic Operations Key Derivation Function (KDF) should execute KDF with correct parameters" time="1.416">
-      <failure>Error: expect(received).toBe(expected) // Object.is equality
-
-Expected: &quot;71bb8136991859f3f9dc6c4906d75bad4815e73dc5a4db3424e56db7af409889&quot;
-Received: &quot;0c037b008ffb1ab711c3c04e41b252d36a193501ce5d52d16f9f960316649743&quot;
-    at Object.toBe (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/tests/unit/browser-wallet/crypto-operations.test.ts:37:25)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Key Derivation Function (KDF) should produce consistent results for same inputs" name="KnirvWallet Cryptographic Operations Key Derivation Function (KDF) should produce consistent results for same inputs" time="2.565">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Key Derivation Function (KDF) should produce different results for different passwords" name="KnirvWallet Cryptographic Operations Key Derivation Function (KDF) should produce different results for different passwords" time="2.61">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Key Derivation Function (KDF) should produce different results for different salts" name="KnirvWallet Cryptographic Operations Key Derivation Function (KDF) should produce different results for different salts" time="0.003">
-      <failure>TypeError: invalid salt length
-    at f (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:21105)
-    at Object.Xa [as crypto_pwhash] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:75625)
-    at Function.crypto_pwhash [as execute] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/crypto/libsodium.ts:43:19)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Cryptographic Key Generation should make crypt key with KDF" name="KnirvWallet Cryptographic Operations Cryptographic Key Generation should make crypt key with KDF" time="0.003">
-      <failure>TypeError: invalid salt length
-    at f (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:21105)
-    at Object.Xa [as crypto_pwhash] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:75625)
-    at Function.crypto_pwhash [as execute] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/crypto/libsodium.ts:43:19)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Cryptographic Key Generation should produce consistent crypt keys for same password" name="KnirvWallet Cryptographic Operations Cryptographic Key Generation should produce consistent crypt keys for same password" time="0.003">
-      <failure>TypeError: invalid salt length
-    at f (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:21105)
-    at Object.Xa [as crypto_pwhash] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:75625)
-    at Function.crypto_pwhash [as execute] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/crypto/libsodium.ts:43:19)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Cryptographic Key Generation should produce different crypt keys for different passwords" name="KnirvWallet Cryptographic Operations Cryptographic Key Generation should produce different crypt keys for different passwords" time="0.003">
-      <failure>TypeError: invalid salt length
-    at f (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:21105)
-    at Object.Xa [as crypto_pwhash] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:75625)
-    at Function.crypto_pwhash [as execute] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/crypto/libsodium.ts:43:19)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations SHA256 Encryption should encrypt with SHA256" name="KnirvWallet Cryptographic Operations SHA256 Encryption should encrypt with SHA256" time="0.002">
-      <failure>TypeError: invalid salt length
-    at f (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:21105)
-    at Object.Xa [as crypto_pwhash] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:75625)
-    at Function.crypto_pwhash [as execute] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/crypto/libsodium.ts:43:19)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations SHA256 Encryption should produce consistent SHA256 hashes" name="KnirvWallet Cryptographic Operations SHA256 Encryption should produce consistent SHA256 hashes" time="0.002">
-      <failure>TypeError: invalid salt length
-    at f (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:21105)
-    at Object.Xa [as crypto_pwhash] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:75625)
-    at Function.crypto_pwhash [as execute] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/crypto/libsodium.ts:43:19)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations SHA256 Encryption should produce different hashes for different inputs" name="KnirvWallet Cryptographic Operations SHA256 Encryption should produce different hashes for different inputs" time="0.003">
-      <failure>TypeError: invalid salt length
-    at f (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:21105)
-    at Object.Xa [as crypto_pwhash] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:75625)
-    at Function.crypto_pwhash [as execute] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/crypto/libsodium.ts:43:19)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations AES Encryption/Decryption should encrypt and decrypt data successfully" name="KnirvWallet Cryptographic Operations AES Encryption/Decryption should encrypt and decrypt data successfully" time="0.003">
-      <failure>TypeError: invalid salt length
-    at f (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:21105)
-    at Object.Xa [as crypto_pwhash] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:75625)
-    at Function.crypto_pwhash [as execute] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/crypto/libsodium.ts:43:19)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations AES Encryption/Decryption should fail decryption with wrong password" name="KnirvWallet Cryptographic Operations AES Encryption/Decryption should fail decryption with wrong password" time="0.002">
-      <failure>TypeError: invalid salt length
-    at f (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:21105)
-    at Object.Xa [as crypto_pwhash] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:75625)
-    at Function.crypto_pwhash [as execute] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/crypto/libsodium.ts:43:19)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations AES Encryption/Decryption should handle empty string encryption" name="KnirvWallet Cryptographic Operations AES Encryption/Decryption should handle empty string encryption" time="0.002">
-      <failure>TypeError: invalid salt length
-    at f (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:21105)
-    at Object.Xa [as crypto_pwhash] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:75625)
-    at Function.crypto_pwhash [as execute] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/crypto/libsodium.ts:43:19)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations AES Encryption/Decryption should handle large data encryption" name="KnirvWallet Cryptographic Operations AES Encryption/Decryption should handle large data encryption" time="0.002">
-      <failure>TypeError: invalid salt length
-    at f (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:21105)
-    at Object.Xa [as crypto_pwhash] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:75625)
-    at Function.crypto_pwhash [as execute] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/crypto/libsodium.ts:43:19)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations AES Encryption/Decryption should produce different ciphertext for same plaintext with different passwords" name="KnirvWallet Cryptographic Operations AES Encryption/Decryption should produce different ciphertext for same plaintext with different passwords" time="0.002">
-      <failure>TypeError: invalid salt length
-    at f (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:21105)
-    at Object.Xa [as crypto_pwhash] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:75625)
-    at Function.crypto_pwhash [as execute] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/crypto/libsodium.ts:43:19)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Mnemonic Validation should validate correct mnemonic formats" name="KnirvWallet Cryptographic Operations Mnemonic Validation should validate correct mnemonic formats" time="0.003">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Mnemonic Validation should reject invalid mnemonic formats" name="KnirvWallet Cryptographic Operations Mnemonic Validation should reject invalid mnemonic formats" time="0.003">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Mnemonic Validation should generate test mnemonics with correct word counts" name="KnirvWallet Cryptographic Operations Mnemonic Validation should generate test mnemonics with correct word counts" time="0.004">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Mnemonic Validation should reject invalid word counts" name="KnirvWallet Cryptographic Operations Mnemonic Validation should reject invalid word counts" time="0.019">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Private Key Validation should validate correct private key formats" name="KnirvWallet Cryptographic Operations Private Key Validation should validate correct private key formats" time="0.002">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Private Key Validation should reject invalid private key formats" name="KnirvWallet Cryptographic Operations Private Key Validation should reject invalid private key formats" time="0.003">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Private Key Validation should generate valid test private keys" name="KnirvWallet Cryptographic Operations Private Key Validation should generate valid test private keys" time="0.003">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Private Key Validation should handle hex prefix operations correctly" name="KnirvWallet Cryptographic Operations Private Key Validation should handle hex prefix operations correctly" time="0.003">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Key Derivation should validate derivation paths" name="KnirvWallet Cryptographic Operations Key Derivation should validate derivation paths" time="0.003">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Key Derivation should generate valid derivation paths" name="KnirvWallet Cryptographic Operations Key Derivation should generate valid derivation paths" time="0.003">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Key Derivation should parse derivation paths correctly" name="KnirvWallet Cryptographic Operations Key Derivation should parse derivation paths correctly" time="0.003">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Key Derivation should derive consistent keys from same inputs" name="KnirvWallet Cryptographic Operations Key Derivation should derive consistent keys from same inputs" time="0.003">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Key Derivation should derive different keys for different paths" name="KnirvWallet Cryptographic Operations Key Derivation should derive different keys for different paths" time="0.002">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Signature Operations should generate valid signature format" name="KnirvWallet Cryptographic Operations Signature Operations should generate valid signature format" time="0.003">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Signature Operations should mock sign transactions" name="KnirvWallet Cryptographic Operations Signature Operations should mock sign transactions" time="0.002">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Signature Operations should mock verify signatures" name="KnirvWallet Cryptographic Operations Signature Operations should mock verify signatures" time="0.002">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Signature Operations should reject invalid signature formats" name="KnirvWallet Cryptographic Operations Signature Operations should reject invalid signature formats" time="0.002">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Comprehensive Crypto Test Suite should run all crypto tests successfully" name="KnirvWallet Cryptographic Operations Comprehensive Crypto Test Suite should run all crypto tests successfully" time="0.028">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Comprehensive Crypto Test Suite should handle crypto test failures gracefully" name="KnirvWallet Cryptographic Operations Comprehensive Crypto Test Suite should handle crypto test failures gracefully" time="0.005">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Error Handling and Edge Cases should handle null/undefined inputs gracefully" name="KnirvWallet Cryptographic Operations Error Handling and Edge Cases should handle null/undefined inputs gracefully" time="0.006">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Error Handling and Edge Cases should handle empty password gracefully" name="KnirvWallet Cryptographic Operations Error Handling and Edge Cases should handle empty password gracefully" time="0.003">
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Error Handling and Edge Cases should handle corrupted encrypted data gracefully" name="KnirvWallet Cryptographic Operations Error Handling and Edge Cases should handle corrupted encrypted data gracefully" time="0.003">
-      <failure>TypeError: invalid salt length
-    at f (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:21105)
-    at Object.Xa [as crypto_pwhash] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js:1:75625)
-    at Function.crypto_pwhash [as execute] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVWALLET/browser-wallet/packages/knirvwallet-module/src/crypto/libsodium.ts:43:19)</failure>
-    </testcase>
-    <testcase classname="KnirvWallet Cryptographic Operations Error Handling and Edge Cases should handle invalid KDF parameters gracefully" name="KnirvWallet Cryptographic Operations Error Handling and Edge Cases should handle invalid KDF parameters gracefully" time="0.012">
+    <testcase classname="KnirvWallet Keyring Management Account Creation from Keyrings should create airgap accounts from address keyring" name="KnirvWallet Keyring Management Account Creation from Keyrings should create airgap accounts from address keyring" time="0.007">
     </testcase>
   </testsuite>
 </testsuites>

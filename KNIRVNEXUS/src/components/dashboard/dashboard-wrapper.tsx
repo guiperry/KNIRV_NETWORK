@@ -162,7 +162,13 @@ export function DashboardWrapper({ children }: DashboardWrapperProps) {
                           You have read-only access to validation tasks.
                         </AlertDescription>
                       </Alert>
-                    } showError={false} />
+                    } showError={false}>
+                      <div className="mt-4">
+                        <p className="text-sm text-muted-foreground">
+                          Execute validation tasks and manage validation workflows.
+                        </p>
+                      </div>
+                    </ValidationAccess>
                   </div>
                 </ValidationAccess>
               </TabsContent>

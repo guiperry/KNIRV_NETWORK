@@ -60,7 +60,7 @@ class LLMResponse(BaseResponse):
 class ValidationRequest(BaseModel):
     """Validation request model."""
     data: Dict[str, Any]
-    schema: Optional[Dict[str, Any]] = None
+    validation_schema: Optional[Dict[str, Any]] = None
     rules: Optional[List[str]] = None
 
 

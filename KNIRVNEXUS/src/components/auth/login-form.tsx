@@ -38,7 +38,7 @@ export function LoginForm() {
     }
   };
 
-  const useTestnetToken = (testToken: string) => {
+  const setTestnetToken = (testToken: string) => {
     setToken(testToken);
     setError('');
   };
@@ -108,7 +108,7 @@ export function LoginForm() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => useTestnetToken('testnet-admin-123')}
+                    onClick={() => setTestnetToken('testnet-admin-123')}
                     disabled={isSubmitting}
                   >
                     Use
@@ -124,7 +124,7 @@ export function LoginForm() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => useTestnetToken('testnet-validator-456')}
+                    onClick={() => setTestnetToken('testnet-validator-456')}
                     disabled={isSubmitting}
                   >
                     Use
@@ -140,7 +140,7 @@ export function LoginForm() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => useTestnetToken('testnet-observer-789')}
+                    onClick={() => setTestnetToken('testnet-observer-789')}
                     disabled={isSubmitting}
                   >
                     Use

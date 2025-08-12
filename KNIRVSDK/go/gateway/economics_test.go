@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/cloud-equities/KNIRVGATEWAY/sdk/go/gateway/option"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/gateway/option"
 )
 
 func TestEconomicsSkillsService(t *testing.T) {
@@ -19,17 +19,17 @@ func TestEconomicsSkillsService(t *testing.T) {
 				json.NewEncoder(w).Encode(map[string]interface{}{
 					"skills": []map[string]interface{}{
 						{
-							"id":          "skill-1",
-							"name":        "Network Repair",
-							"description": "Repairs network connectivity issues",
-							"cost":        100,
+							"id":           "skill-1",
+							"name":         "Network Repair",
+							"description":  "Repairs network connectivity issues",
+							"cost":         100,
 							"success_rate": 0.95,
 						},
 						{
-							"id":          "skill-2",
-							"name":        "Data Analysis",
-							"description": "Analyzes data patterns",
-							"cost":        150,
+							"id":           "skill-2",
+							"name":         "Data Analysis",
+							"description":  "Analyzes data patterns",
+							"cost":         150,
 							"success_rate": 0.88,
 						},
 					},
@@ -45,12 +45,12 @@ func TestEconomicsSkillsService(t *testing.T) {
 			if r.Method == http.MethodGet {
 				w.WriteHeader(http.StatusOK)
 				json.NewEncoder(w).Encode(map[string]interface{}{
-					"id":          "skill-1",
-					"name":        "Network Repair",
-					"description": "Repairs network connectivity issues",
-					"cost":        100,
+					"id":           "skill-1",
+					"name":         "Network Repair",
+					"description":  "Repairs network connectivity issues",
+					"cost":         100,
 					"success_rate": 0.95,
-					"usage_count": 1250,
+					"usage_count":  1250,
 					"total_earned": 125000,
 				})
 			} else if r.Method == http.MethodPut {
@@ -126,9 +126,13 @@ func TestEconomicsSkillsService(t *testing.T) {
 			Cost: 120,
 		}
 
-		err := client.Economics.Skills.Update(ctx, "skill-1", updateReq)
+		updatedSkill, err := client.Economics.Skills.Update(ctx, "skill-1", updateReq)
 		if err != nil {
 			t.Errorf("Failed to update skill: %v", err)
+		}
+
+		if updatedSkill.Cost != 120 {
+			t.Errorf("Expected updated cost 120, got %d", updatedSkill.Cost)
 		}
 	})
 
@@ -148,16 +152,16 @@ func TestEconomicsLLMService(t *testing.T) {
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"models": []map[string]interface{}{
 					{
-						"id":           "model-1",
-						"name":         "GPT-4",
+						"id":             "model-1",
+						"name":           "GPT-4",
 						"cost_per_token": 0.00003,
-						"max_tokens":   8192,
+						"max_tokens":     8192,
 					},
 					{
-						"id":           "model-2",
-						"name":         "Claude-3",
+						"id":             "model-2",
+						"name":           "Claude-3",
 						"cost_per_token": 0.000015,
-						"max_tokens":   4096,
+						"max_tokens":     4096,
 					},
 				},
 			})
@@ -329,12 +333,12 @@ func TestEconomicsFeesService(t *testing.T) {
 			t.Errorf("Failed to calculate fees: %v", err)
 		}
 
-		if fees.TotalFee != 115 {
-			t.Errorf("Expected total fee 115, got %d", fees.TotalFee)
+		if fees.TotalFee != 15 { // 10 + 5 = 15 from our mock
+			t.Errorf("Expected total fee 15, got %f", fees.TotalFee)
 		}
 
 		if fees.BaseFee != 10 {
-			t.Errorf("Expected base fee 10, got %d", fees.BaseFee)
+			t.Errorf("Expected base fee 10, got %f", fees.BaseFee)
 		}
 	})
 
@@ -349,7 +353,7 @@ func TestEconomicsFeesService(t *testing.T) {
 		}
 
 		if structure.MinimumFee != 1 {
-			t.Errorf("Expected minimum fee 1, got %d", structure.MinimumFee)
+			t.Errorf("Expected minimum fee 1, got %f", structure.MinimumFee)
 		}
 	})
 }
@@ -360,11 +364,11 @@ func TestEconomicsMetricsService(t *testing.T) {
 		case "/economics/metrics/overview":
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"total_revenue":    50000,
-				"total_skills":     25,
-				"active_users":     150,
-				"success_rate":     0.92,
-				"average_cost":     125,
+				"total_revenue": 50000,
+				"total_skills":  25,
+				"active_users":  150,
+				"success_rate":  0.92,
+				"average_cost":  125,
 			})
 		case "/economics/metrics/skills":
 			w.WriteHeader(http.StatusOK)

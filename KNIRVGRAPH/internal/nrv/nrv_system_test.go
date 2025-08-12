@@ -189,12 +189,28 @@ func TestNRVSystemGetSkillsForErrorType(t *testing.T) {
 		t.Fatalf("Failed to get skills for error type: %v", err)
 	}
 
-	if len(skills) != 1 {
-		t.Errorf("Expected 1 skill for connection_timeout, got %d", len(skills))
+	// Should find 2 skills: skill1 (specific) and skill2 (general)
+	if len(skills) != 2 {
+		t.Errorf("Expected 2 skills for connection_timeout, got %d", len(skills))
 	}
 
-	if skills[0].ID != skill1.ID {
-		t.Errorf("Expected skill1 ID %s, got %s", skill1.ID, skills[0].ID)
+	// Verify that both skill1 and skill2 are found
+	foundSkill1 := false
+	foundSkill2 := false
+	for _, skill := range skills {
+		if skill.ID == skill1.ID {
+			foundSkill1 = true
+		}
+		if skill.ID == skill2.ID {
+			foundSkill2 = true
+		}
+	}
+
+	if !foundSkill1 {
+		t.Errorf("Expected to find skill1 for connection_timeout")
+	}
+	if !foundSkill2 {
+		t.Errorf("Expected to find skill2 (general) for connection_timeout")
 	}
 
 	// Test finding skills for general error type

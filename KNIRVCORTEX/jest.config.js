@@ -1,9 +1,8 @@
 /** @type {import('jest').Config} */
 export default {
-  preset: 'ts-jest/presets/default-esm',
+  preset: 'ts-jest',
   testEnvironment: 'jsdom',
-  extensionsToTreatAsEsm: ['.ts', '.tsx'],
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@components/(.*)$': '<rootDir>/src/components/$1',
     '^@cognitive-shell/(.*)$': '<rootDir>/src/cognitive-shell/$1',
@@ -12,9 +11,10 @@ export default {
   },
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
-      useESM: true,
       tsconfig: {
-        jsx: 'react-jsx'
+        jsx: 'react-jsx',
+        esModuleInterop: true,
+        allowSyntheticDefaultImports: true
       }
     }]
   },
@@ -43,11 +43,6 @@ export default {
   },
   testTimeout: 10000,
   verbose: true,
-  globals: {
-    'ts-jest': {
-      useESM: true
-    }
-  },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   testPathIgnorePatterns: [
     '<rootDir>/node_modules/',

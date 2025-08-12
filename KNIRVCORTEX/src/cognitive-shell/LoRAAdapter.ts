@@ -6,6 +6,7 @@ export interface LoRAConfig {
   dropout: number;
   targetModules: string[];
   taskType: string;
+  learningRate: number;
 }
 
 export interface LoRAWeights {

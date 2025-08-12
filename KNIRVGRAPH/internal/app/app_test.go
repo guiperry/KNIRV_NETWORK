@@ -8,7 +8,7 @@ import (
 
 func TestNewApp(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	app, err := NewApp(tempDir, 8080)
 	if err != nil {
 		t.Fatalf("Failed to create app: %v", err)
@@ -41,7 +41,7 @@ func TestNewApp(t *testing.T) {
 
 func TestAppStartAndStop(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	app, err := NewApp(tempDir, 8081)
 	if err != nil {
 		t.Fatalf("Failed to create app: %v", err)
@@ -63,7 +63,7 @@ func TestAppStartAndStop(t *testing.T) {
 	// Stop the app
 	stopCtx, stopCancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer stopCancel()
-	
+
 	err = app.Stop(stopCtx)
 	if err != nil {
 		t.Errorf("Failed to stop app: %v", err)
@@ -82,14 +82,14 @@ func TestAppStartAndStop(t *testing.T) {
 
 func TestAppConfiguration(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	app, err := NewApp(tempDir, 9000)
 	if err != nil {
 		t.Fatalf("Failed to create app: %v", err)
 	}
 
 	// Test that the app was created with the correct configuration
-	if app.config == nil {
+	if app.GetConfig() == nil {
 		t.Error("Expected config to be initialized")
 	}
 
@@ -102,7 +102,7 @@ func TestAppConfiguration(t *testing.T) {
 func TestAppMultipleInstances(t *testing.T) {
 	tempDir1 := t.TempDir()
 	tempDir2 := t.TempDir()
-	
+
 	// Create two app instances with different ports
 	app1, err := NewApp(tempDir1, 8083)
 	if err != nil {

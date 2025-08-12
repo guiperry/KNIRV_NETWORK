@@ -3,8 +3,6 @@ package blockchain
 import (
 	"blockchain-app/internal/storage"
 	"blockchain-app/internal/types"
-	"crypto/sha256"
-	"encoding/hex"
 	"testing"
 	"time"
 )
@@ -63,12 +61,8 @@ func TestChainAddBlockSequential(t *testing.T) {
 	chain := NewChain(storage)
 
 	// Add multiple blocks sequentially
+	var prevHash string
 	for i := uint64(1); i <= 5; i++ {
-		var prevHash string
-		if i > 1 {
-			prevHash = calculateBlockHash(i - 1)
-		}
-
 		block := createTestBlock(i, prevHash)
 		err = chain.AddBlock(block)
 		if err != nil {
@@ -78,6 +72,9 @@ func TestChainAddBlockSequential(t *testing.T) {
 		if chain.height != i {
 			t.Errorf("Expected height to be %d, got %d", i, chain.height)
 		}
+
+		// Set the previous hash for the next iteration
+		prevHash = block.Hash
 	}
 }
 
@@ -106,8 +103,10 @@ func TestChainGetBlock(t *testing.T) {
 		t.Errorf("Expected block height 1, got %d", retrievedBlock.Header.Height)
 	}
 
-	if retrievedBlock.Header.Timestamp != block.Header.Timestamp {
-		t.Error("Block timestamps don't match")
+	// Compare timestamps with second precision (JSON serialization may lose nanosecond precision)
+	if retrievedBlock.Header.Timestamp.Unix() != block.Header.Timestamp.Unix() {
+		t.Errorf("Block timestamps don't match: expected %v, got %v",
+			block.Header.Timestamp.Unix(), retrievedBlock.Header.Timestamp.Unix())
 	}
 }
 
@@ -140,8 +139,9 @@ func TestChainGetHeight(t *testing.T) {
 	}
 
 	// Add blocks and check height
+	var prevHash string
 	for i := uint64(1); i <= 3; i++ {
-		block := createTestBlock(i, "")
+		block := createTestBlock(i, prevHash)
 		err = chain.AddBlock(block)
 		if err != nil {
 			t.Fatalf("Failed to add block %d: %v", i, err)
@@ -150,6 +150,9 @@ func TestChainGetHeight(t *testing.T) {
 		if chain.GetHeight() != i {
 			t.Errorf("Expected height %d, got %d", i, chain.GetHeight())
 		}
+
+		// Set the previous hash for the next iteration
+		prevHash = block.Hash
 	}
 }
 
@@ -195,7 +198,7 @@ func TestChainValidateBlock(t *testing.T) {
 			block: &types.Block{
 				Header: types.BlockHeader{
 					Height:    1,
-					Timestamp: time.Now().Add(time.Hour).Unix(),
+					Timestamp: time.Now().Add(time.Hour),
 					PrevHash:  "",
 				},
 				Transactions: []*types.Transaction{},
@@ -225,6 +228,14 @@ func TestChainExecuteBlock(t *testing.T) {
 
 	chain := NewChain(storage)
 
+	// Set up initial balance for the sender
+	senderAccount := &types.Account{
+		Address: "sender",
+		Balance: 1000,
+		Nonce:   0,
+	}
+	chain.state.SetAccount(senderAccount)
+
 	// Create a block with transactions
 	block := createTestBlockWithTransactions(1, "")
 
@@ -251,19 +262,38 @@ func TestChainConcurrentAccess(t *testing.T) {
 	// Test concurrent reads and writes
 	done := make(chan bool, 2)
 
-	// Goroutine 1: Add blocks
+	// Add blocks sequentially first
+	var prevHash string
+	for i := uint64(1); i <= 10; i++ {
+		block := createTestBlock(i, prevHash)
+		err := chain.AddBlock(block)
+		if err != nil {
+			t.Fatalf("Failed to add block %d: %v", i, err)
+		}
+		prevHash = block.Hash
+	}
+
+	// Test concurrent reads
 	go func() {
-		for i := uint64(1); i <= 10; i++ {
-			block := createTestBlock(i, "")
-			chain.AddBlock(block)
+		for i := 0; i < 10; i++ {
+			height := chain.GetHeight()
+			if height != 10 {
+				t.Errorf("Expected height 10, got %d", height)
+			}
+			time.Sleep(time.Millisecond)
 		}
 		done <- true
 	}()
 
-	// Goroutine 2: Read height
 	go func() {
-		for i := 0; i < 10; i++ {
-			chain.GetHeight()
+		for i := uint64(1); i <= 10; i++ {
+			block, err := chain.GetBlock(i)
+			if err != nil {
+				t.Errorf("Failed to get block %d: %v", i, err)
+			}
+			if block.Header.Height != i {
+				t.Errorf("Expected block height %d, got %d", i, block.Header.Height)
+			}
 			time.Sleep(time.Millisecond)
 		}
 		done <- true
@@ -305,8 +335,10 @@ func TestChainBlockSerialization(t *testing.T) {
 		t.Error("Block height mismatch after serialization")
 	}
 
-	if retrievedBlock.Header.Timestamp != originalBlock.Header.Timestamp {
-		t.Error("Block timestamp mismatch after serialization")
+	// Compare timestamps with second precision (JSON serialization may lose nanosecond precision)
+	if retrievedBlock.Header.Timestamp.Unix() != originalBlock.Header.Timestamp.Unix() {
+		t.Errorf("Block timestamp mismatch after serialization: expected %v, got %v",
+			originalBlock.Header.Timestamp.Unix(), retrievedBlock.Header.Timestamp.Unix())
 	}
 
 	if retrievedBlock.Header.PrevHash != originalBlock.Header.PrevHash {
@@ -317,14 +349,16 @@ func TestChainBlockSerialization(t *testing.T) {
 // Helper functions
 
 func createTestBlock(height uint64, prevHash string) *types.Block {
-	return &types.Block{
+	block := &types.Block{
 		Header: types.BlockHeader{
 			Height:    height,
-			Timestamp: time.Now().Unix(),
+			Timestamp: time.Now(),
 			PrevHash:  prevHash,
 		},
 		Transactions: []*types.Transaction{},
 	}
+	block.Hash = block.CalculateHash()
+	return block
 }
 
 func createTestBlockWithTransactions(height uint64, prevHash string) *types.Block {
@@ -333,21 +367,15 @@ func createTestBlockWithTransactions(height uint64, prevHash string) *types.Bloc
 		From:      "sender",
 		To:        "receiver",
 		Amount:    100,
-		Timestamp: time.Now().Unix(),
+		Timestamp: time.Now(),
 	}
 
 	return &types.Block{
 		Header: types.BlockHeader{
 			Height:    height,
-			Timestamp: time.Now().Unix(),
+			Timestamp: time.Now(),
 			PrevHash:  prevHash,
 		},
 		Transactions: []*types.Transaction{tx},
 	}
-}
-
-func calculateBlockHash(height uint64) string {
-	data := []byte(string(rune(height)))
-	hash := sha256.Sum256(data)
-	return hex.EncodeToString(hash[:])
 }

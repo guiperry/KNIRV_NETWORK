@@ -6,11 +6,10 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/big"
 	"os"
 
-	"github.com/cloud-equities/KNIRVGATEWAY/sdk/go/gateway"
-	"github.com/cloud-equities/KNIRVGATEWAY/sdk/go/gateway/option"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/gateway"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/gateway/option"
 )
 
 func main() {
@@ -31,14 +30,20 @@ func basicExample() {
 	fmt.Println("=== Basic Client Setup ===")
 
 	// Create a client with default options
-	client := gateway.NewClient()
+	client, err := gateway.NewClient()
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
 
 	// Or create with custom options
-	customClient := gateway.NewClient(
+	customClient, err := gateway.NewClient(
 		option.WithEnvironmentDevelopment(),
 		option.WithDebug(true),
 		option.WithTimeout(60000),
 	)
+	if err != nil {
+		log.Fatalf("Failed to create custom client: %v", err)
+	}
 
 	// Create economics-specific client
 	economicsClient := gateway.NewEconomicsClient(
@@ -105,9 +110,10 @@ func economicsExample() {
 	}
 
 	// Example 4: Calculate network fees
-	feesRequest := gateway.NetworkFeesRequest{
-		GasUsed:  21000,
-		Priority: "medium",
+	feesRequest := &gateway.FeeCalculationRequest{
+		TransactionType: "skill_invocation",
+		Amount:          100.0,
+		Priority:        "medium",
 	}
 
 	feesResp, err := client.Economics.Fees.Calculate(ctx, feesRequest)
@@ -122,7 +128,7 @@ func economicsExample() {
 	if err != nil {
 		log.Printf("Metrics retrieval failed: %v", err)
 	} else {
-		fmt.Printf("Economic metrics: Total Supply: %s, Total Burned: %s\n", 
+		fmt.Printf("Economic metrics: Total Supply: %s, Total Burned: %s\n",
 			metrics.TotalSupply, metrics.TotalBurned)
 	}
 
@@ -147,7 +153,7 @@ func economicsExample() {
 	if err != nil {
 		log.Printf("Rules retrieval failed: %v", err)
 	} else {
-		fmt.Printf("Skill invocation cost: %s, LLM registration fee: %s\n", 
+		fmt.Printf("Skill invocation cost: %s, LLM registration fee: %s\n",
 			rules.SkillInvocationCost, rules.LLMRegistrationFee)
 	}
 }
@@ -155,9 +161,12 @@ func economicsExample() {
 func healthExample() {
 	fmt.Println("\n=== Health Monitoring ===")
 
-	client := gateway.NewClient(
+	client, err := gateway.NewClient(
 		option.WithEnvironmentDevelopment(),
 	)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
 
 	ctx := context.Background()
 
@@ -173,10 +182,13 @@ func healthExample() {
 func integrationExample() {
 	fmt.Println("\n=== Integration Status ===")
 
-	client := gateway.NewClient(
+	client, err := gateway.NewClient(
 		option.WithEnvironmentDevelopment(),
 		option.WithDefaultKNIRVServices(),
 	)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
 
 	ctx := context.Background()
 
@@ -193,10 +205,13 @@ func integrationExample() {
 func advancedExample() {
 	fmt.Println("\n=== Advanced Usage ===")
 
-	client := gateway.NewClient(
+	client, err := gateway.NewClient(
 		option.WithEnvironmentDevelopment(),
 		option.WithVerbose(true),
 	)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
 
 	ctx := context.Background()
 
@@ -212,13 +227,14 @@ func advancedExample() {
 		return
 	}
 
-	fmt.Printf("Current system state - Total Supply: %s, Network Utilization: %f\n", 
+	fmt.Printf("Current system state - Total Supply: %s, Network Utilization: %f\n",
 		metrics.TotalSupply, metrics.NetworkUtilization)
 
 	// 2. Calculate fees for the operation
-	feesResp, err := client.Economics.Fees.Calculate(ctx, gateway.NetworkFeesRequest{
-		GasUsed:  50000,
-		Priority: "high",
+	feesResp, err := client.Economics.Fees.Calculate(ctx, &gateway.FeeCalculationRequest{
+		TransactionType: "skill_invocation",
+		Amount:          200.0,
+		Priority:        "high",
 	})
 	if err != nil {
 		log.Printf("Fee calculation failed: %v", err)
@@ -247,7 +263,7 @@ func advancedExample() {
 		return
 	}
 
-	fmt.Printf("Transaction verified: Status: %s, Amount: %s\n", 
+	fmt.Printf("Transaction verified: Status: %s, Amount: %s\n",
 		transaction.Status, transaction.Amount)
 
 	// 5. Get updated metrics

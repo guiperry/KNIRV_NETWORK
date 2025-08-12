@@ -46,6 +46,19 @@ type App struct {
 func NewApp(homeDir string, rpcPort int) (*App, error) {
 	logger, _ := zap.NewProduction()
 
+	// Initialize default config
+	config := &Config{
+		Testnet: TestnetConfig{
+			Enabled:     false,
+			InMemory:    false,
+			PrePopulate: false,
+			MaxNodes:    1000,
+			ChainID:     "knirvgraph-1",
+			Port:        rpcPort,
+			LocalMode:   true,
+		},
+	}
+
 	// Initialize BluntDB storage
 	storageInstance, err := storage.NewBluntDBStorage(fmt.Sprintf("%s/data", homeDir))
 	if err != nil {
@@ -81,7 +94,13 @@ func NewApp(homeDir string, rpcPort int) (*App, error) {
 		rpc:             rpc,
 		storage:         storageInstance,
 		logger:          logger,
+		config:          config,
 	}, nil
+}
+
+// GetConfig returns the application configuration
+func (app *App) GetConfig() *Config {
+	return app.config
 }
 
 // NewAppWithConfig creates a new App instance with optional configuration

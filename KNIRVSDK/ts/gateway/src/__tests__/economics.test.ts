@@ -53,7 +53,7 @@ describe('EconomicsService', () => {
           per_page: 10
         };
 
-        mockClient.get.mockResolvedValue(mockResponse);
+        mockClient.get.mockResolvedValue(mockResponse as any);
 
         const result = await economicsService.skills.list();
 
@@ -71,7 +71,7 @@ describe('EconomicsService', () => {
           per_page: 5
         };
 
-        mockClient.get.mockResolvedValue(mockResponse);
+        mockClient.get.mockResolvedValue(mockResponse as any);
 
         await economicsService.skills.list({ page: 2, per_page: 5 });
 
@@ -82,7 +82,7 @@ describe('EconomicsService', () => {
 
       it('should list skills with filters', async () => {
         const mockResponse = { skills: [], total: 0 };
-        mockClient.get.mockResolvedValue(mockResponse);
+        mockClient.get.mockResolvedValue(mockResponse as any);
 
         await economicsService.skills.list({
           category: 'network',
@@ -114,7 +114,7 @@ describe('EconomicsService', () => {
           total_earned: 125000
         };
 
-        mockClient.get.mockResolvedValue(mockSkill);
+        mockClient.get.mockResolvedValue(mockSkill as any);
 
         const result = await economicsService.skills.get('skill-1');
 
@@ -154,7 +154,7 @@ describe('EconomicsService', () => {
           ...skillData
         };
 
-        mockClient.post.mockResolvedValue(mockResponse);
+        mockClient.post.mockResolvedValue(mockResponse as any);
 
         const result = await economicsService.skills.create(skillData);
 
@@ -208,7 +208,7 @@ describe('EconomicsService', () => {
         };
 
         const mockResponse = { updated: true };
-        mockClient.put.mockResolvedValue(mockResponse);
+        mockClient.put.mockResolvedValue(mockResponse as any);
 
         const result = await economicsService.skills.update('skill-1', updateData);
 
@@ -259,7 +259,7 @@ describe('EconomicsService', () => {
           total: 1
         };
 
-        mockClient.get.mockResolvedValue(mockResponse);
+        mockClient.get.mockResolvedValue(mockResponse as any);
 
         const result = await economicsService.skills.search({
           query: 'network',
@@ -305,7 +305,7 @@ describe('EconomicsService', () => {
           ]
         };
 
-        mockClient.get.mockResolvedValue(mockResponse);
+        mockClient.get.mockResolvedValue(mockResponse as any);
 
         const result = await economicsService.llm.listModels();
 
@@ -327,7 +327,7 @@ describe('EconomicsService', () => {
           }
         };
 
-        mockClient.get.mockResolvedValue(mockResponse);
+        mockClient.get.mockResolvedValue(mockResponse as any);
 
         const result = await economicsService.llm.getUsage();
 
@@ -337,7 +337,7 @@ describe('EconomicsService', () => {
 
       it('should get usage for specific period', async () => {
         const mockResponse = { total_tokens: 500000, total_cost: 15.00 };
-        mockClient.get.mockResolvedValue(mockResponse);
+        mockClient.get.mockResolvedValue(mockResponse as any);
 
         await economicsService.llm.getUsage({ period: '2024-01' });
 
@@ -355,7 +355,7 @@ describe('EconomicsService', () => {
           model: 'gpt-4'
         };
 
-        mockClient.post.mockResolvedValue(mockResponse);
+        mockClient.post.mockResolvedValue(mockResponse as any);
 
         const result = await economicsService.llm.estimateCost({
           text: 'This is a test prompt for cost estimation',
@@ -393,7 +393,7 @@ describe('EconomicsService', () => {
           warnings: ['Cost is higher than average for this category']
         };
 
-        mockClient.post.mockResolvedValue(mockResponse);
+        mockClient.post.mockResolvedValue(mockResponse as any);
 
         const validationData = {
           skill_id: 'skill-1',
@@ -444,7 +444,7 @@ describe('EconomicsService', () => {
           ]
         };
 
-        mockClient.get.mockResolvedValue(mockResponse);
+        mockClient.get.mockResolvedValue(mockResponse as any);
 
         const result = await economicsService.validation.listRules();
 
@@ -454,7 +454,7 @@ describe('EconomicsService', () => {
 
       it('should filter rules by category', async () => {
         const mockResponse = { rules: [] };
-        mockClient.get.mockResolvedValue(mockResponse);
+        mockClient.get.mockResolvedValue(mockResponse as any);
 
         await economicsService.validation.listRules({ category: 'cost' });
 

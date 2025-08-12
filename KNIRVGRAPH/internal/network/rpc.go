@@ -22,6 +22,7 @@ type RPCServer struct {
 	proofOfSolution *economics.ProofOfSolution
 	logger          *zap.Logger
 	server          *http.Server
+	port            int
 }
 
 type GraphChainInterface interface {
@@ -47,6 +48,7 @@ func NewRPCServerWithNRV(gc GraphChainInterface, nrvSys *nrv.NRVSystem, logger *
 		graphchain: gc,
 		nrvSystem:  nrvSys,
 		logger:     logger,
+		port:       port,
 	}
 
 	// Enable CORS
@@ -330,6 +332,7 @@ func (rpc *RPCServer) createNode(w http.ResponseWriter, r *http.Request) {
 
 	response := map[string]string{"status": "created", "node_id": node.ID}
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -650,6 +653,47 @@ func (rpc *RPCServer) submitSolutionProof(w http.ResponseWriter, r *http.Request
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+// Handler method aliases for backward compatibility with tests
+func (rpc *RPCServer) handleHealth(w http.ResponseWriter, r *http.Request) {
+	rpc.healthCheck(w, r)
+}
+
+func (rpc *RPCServer) handleGetHeight(w http.ResponseWriter, r *http.Request) {
+	rpc.getHeight(w, r)
+}
+
+func (rpc *RPCServer) handleGetNode(w http.ResponseWriter, r *http.Request) {
+	rpc.getNode(w, r)
+}
+
+func (rpc *RPCServer) handleCreateNode(w http.ResponseWriter, r *http.Request) {
+	rpc.createNode(w, r)
+}
+
+func (rpc *RPCServer) handleGetHeads(w http.ResponseWriter, r *http.Request) {
+	rpc.getHeads(w, r)
+}
+
+func (rpc *RPCServer) handleFindPath(w http.ResponseWriter, r *http.Request) {
+	rpc.getPath(w, r)
+}
+
+// enableCORS wraps a handler with CORS headers
+func (rpc *RPCServer) enableCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (rpc *RPCServer) healthCheck(w http.ResponseWriter, r *http.Request) {

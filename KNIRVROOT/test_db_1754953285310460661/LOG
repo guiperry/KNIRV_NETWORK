@@ -1,0 +1,19 @@
+=============== Aug 11, 2025 (EDT) ===============
+19:01:25.310679 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+19:01:25.360701 db@open opening
+19:01:25.361199 version@stat F·[] S·0B[] Sc·[]
+19:01:25.401251 db@janitor F·2 G·0
+19:01:25.401297 db@open done T·40.566513ms
+19:01:25.552546 memdb@flush N·3 S·191B
+19:01:25.592131 memdb@flush created L0@3 N·3 S·228B "cap..ity,v3":"mcp..ity,v2"
+19:01:25.592226 version@stat F·[1] S·228B[228B] Sc·[0.25]
+19:01:25.652696 memdb@flush committed F·1 T·100.088933ms
+19:01:25.652816 journal@remove removed @1
+19:01:25.652864 table@compaction range L-1 "":""
+19:01:25.652889 table@compaction L0·1 -> L1·0 S·228B Q·3
+19:01:25.692985 table@build created L1@4 N·3 S·228B "cap..ity,v3":"mcp..ity,v2"
+19:01:25.693261 version@stat F·[0 1] S·228B[0B 228B] Sc·[0.00 0.00]
+19:01:25.753672 table@compaction committed F~ S~ Ke·0 D·0 T·100.628723ms
+19:01:25.753839 table@remove removed @3
+19:01:25.844534 db@close closing
+19:01:25.844905 db@close done T·370.017µs

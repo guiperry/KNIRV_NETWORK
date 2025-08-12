@@ -151,12 +151,30 @@ if [ -d "py" ]; then
         echo "Running Python tests..."
         PYTHON_TEST_OUTPUT="$REPORTS_DIR/python_tests_$TIMESTAMP.txt"
         PYTHON_COVERAGE_OUTPUT="$COVERAGE_DIR/python_coverage_$TIMESTAMP.xml"
-        
-        if pytest --verbose --cov=gateway --cov-report=xml:"$PYTHON_COVERAGE_OUTPUT" --cov-report=html:"$COVERAGE_DIR/python_coverage_$TIMESTAMP" > "$PYTHON_TEST_OUTPUT" 2>&1; then
+
+        # Test each Python submodule separately
+        PYTHON_TESTS_PASSED=true
+
+        for module in gateway transaction transmission; do
+            if [ -d "$module" ]; then
+                echo "Testing Python $module module..." >> "$PYTHON_TEST_OUTPUT"
+                cd "$module"
+                if [ -f "pyproject.toml" ] && [ -d "tests" ]; then
+                    if ! pytest --verbose >> "../$PYTHON_TEST_OUTPUT" 2>&1; then
+                        echo "Python $module tests failed" >> "../$PYTHON_TEST_OUTPUT"
+                        PYTHON_TESTS_PASSED=false
+                    fi
+                else
+                    echo "No tests found for Python $module module" >> "../$PYTHON_TEST_OUTPUT"
+                fi
+                cd ..
+            fi
+        done
+
+        if [ "$PYTHON_TESTS_PASSED" = true ]; then
             print_success "Python tests passed"
-            PYTHON_TESTS_PASSED=true
-            
-            # Extract coverage percentage
+
+            # Extract coverage percentage (placeholder since we're not generating coverage yet)
             if [ -f "$PYTHON_COVERAGE_OUTPUT" ]; then
                 PYTHON_COVERAGE=$(python3 -c "
 import xml.etree.ElementTree as ET

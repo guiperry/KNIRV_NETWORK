@@ -25,6 +25,7 @@ type NRVSystem struct {
 	config        *NRVConfig
 	ctx           context.Context
 	cancel        context.CancelFunc
+	stopOnce      sync.Once
 }
 
 // NewNRVSystem creates a new NRV system instance
@@ -59,9 +60,11 @@ func (nrv *NRVSystem) Start() error {
 
 // Stop shuts down the NRV system
 func (nrv *NRVSystem) Stop() error {
-	log.Println("Stopping NRV System...")
-	nrv.cancel()
-	close(nrv.updateChannel)
+	nrv.stopOnce.Do(func() {
+		log.Println("Stopping NRV System...")
+		nrv.cancel()
+		close(nrv.updateChannel)
+	})
 	return nil
 }
 

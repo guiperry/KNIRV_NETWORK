@@ -1,4 +1,4 @@
-module github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction
+module github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction
 
 go 1.21
 

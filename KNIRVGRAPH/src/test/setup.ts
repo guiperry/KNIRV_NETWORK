@@ -1,5 +1,11 @@
 import '@testing-library/jest-dom';
-import React from 'react';
+import * as React from 'react';
+
+// Polyfills for Node.js environment
+import { TextEncoder, TextDecoder } from 'util';
+
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder as any;
 
 // Mock Web APIs
 Object.defineProperty(window, 'matchMedia', {
@@ -31,7 +37,7 @@ global.IntersectionObserver = jest.fn().mockImplementation(() => ({
 }));
 
 // Mock WebSocket
-global.WebSocket = jest.fn().mockImplementation(() => ({
+(global as any).WebSocket = jest.fn().mockImplementation(() => ({
   addEventListener: jest.fn(),
   removeEventListener: jest.fn(),
   send: jest.fn(),
@@ -40,7 +46,7 @@ global.WebSocket = jest.fn().mockImplementation(() => ({
 }));
 
 // Mock Canvas API
-HTMLCanvasElement.prototype.getContext = jest.fn((contextType) => {
+(HTMLCanvasElement.prototype.getContext as any) = jest.fn((contextType) => {
   if (contextType === '2d') {
     return {
       fillRect: jest.fn(),
@@ -67,7 +73,7 @@ HTMLCanvasElement.prototype.getContext = jest.fn((contextType) => {
       transform: jest.fn(),
       rect: jest.fn(),
       clip: jest.fn(),
-    };
+    } as any;
   }
   return null;
 });
@@ -102,90 +108,7 @@ global.fetch = jest.fn(() =>
   })
 ) as jest.Mock;
 
-// Mock D3.js if used for graph visualization
-jest.mock('d3', () => ({
-  select: jest.fn(() => ({
-    selectAll: jest.fn(() => ({
-      data: jest.fn(() => ({
-        enter: jest.fn(() => ({
-          append: jest.fn(() => ({
-            attr: jest.fn(() => ({
-              style: jest.fn(),
-              text: jest.fn(),
-              on: jest.fn(),
-            })),
-            style: jest.fn(),
-            text: jest.fn(),
-            on: jest.fn(),
-          })),
-        })),
-        exit: jest.fn(() => ({
-          remove: jest.fn(),
-        })),
-        attr: jest.fn(),
-        style: jest.fn(),
-        text: jest.fn(),
-        on: jest.fn(),
-      })),
-    })),
-    append: jest.fn(() => ({
-      attr: jest.fn(),
-      style: jest.fn(),
-    })),
-    attr: jest.fn(),
-    style: jest.fn(),
-    on: jest.fn(),
-  })),
-  scaleLinear: jest.fn(() => ({
-    domain: jest.fn(() => ({
-      range: jest.fn(),
-    })),
-    range: jest.fn(),
-  })),
-  forceSimulation: jest.fn(() => ({
-    force: jest.fn(),
-    on: jest.fn(),
-    nodes: jest.fn(),
-    alpha: jest.fn(),
-    restart: jest.fn(),
-    stop: jest.fn(),
-  })),
-  forceManyBody: jest.fn(),
-  forceLink: jest.fn(() => ({
-    id: jest.fn(),
-    distance: jest.fn(),
-  })),
-  forceCenter: jest.fn(),
-  drag: jest.fn(() => ({
-    on: jest.fn(),
-  })),
-  zoom: jest.fn(() => ({
-    on: jest.fn(),
-    scaleExtent: jest.fn(),
-    transform: jest.fn(),
-  })),
-  zoomIdentity: {},
-  event: {},
-}));
-
-// Mock Three.js if used for 3D visualization
-jest.mock('three', () => ({
-  Scene: jest.fn(() => ({
-    add: jest.fn(),
-    remove: jest.fn(),
-  })),
-  PerspectiveCamera: jest.fn(),
-  WebGLRenderer: jest.fn(() => ({
-    setSize: jest.fn(),
-    render: jest.fn(),
-    domElement: document.createElement('canvas'),
-  })),
-  Mesh: jest.fn(),
-  SphereGeometry: jest.fn(),
-  MeshBasicMaterial: jest.fn(),
-  Vector3: jest.fn(),
-  Color: jest.fn(),
-}));
+// Note: D3.js and Three.js mocks removed as they are not used in this project
 
 // Mock console methods to reduce noise in tests
 const originalConsole = { ...console };

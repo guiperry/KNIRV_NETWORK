@@ -19,6 +19,7 @@
   "devDependencies": {
     "@babel/core": "^7.23.0",
     "@babel/preset-env": "^7.23.0",
+    "@babel/preset-react": "^7.23.0",
     "@babel/preset-typescript": "^7.23.0",
     "@jest/globals": "^29.7.0",
     "@playwright/test": "^1.40.0",
@@ -38,5 +39,10 @@
     "playwright": "^1.40.0",
     "ts-jest": "^29.1.0",
     "typescript": "^5.2.0"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "^2.6.3",
+    "@gnolang/tm2-js-client": "^1.3.0",
+    "@knirvsdk/crypto": "file:../KNIRVSDK/ts/crypto"
   }
 }

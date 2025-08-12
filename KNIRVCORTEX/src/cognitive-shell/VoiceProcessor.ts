@@ -2,6 +2,7 @@ import { EventEmitter } from './EventEmitter';
 
 export interface VoiceConfig {
   sampleRate: number;
+  bufferSize: number;
   channels: number;
   language: string;
   enableWakeWord: boolean;
@@ -28,14 +29,22 @@ export class VoiceProcessor extends EventEmitter {
   private config: VoiceConfig;
   private isListening: boolean = false;
   private isRecording: boolean = false;
+  private initialized: boolean = false;
   private mediaRecorder: MediaRecorder | null = null;
   private audioContext: AudioContext | null = null;
   private recognition: any = null; // SpeechRecognition
   private synthesis: SpeechSynthesis | null = null;
 
-  constructor(config: VoiceConfig) {
+  constructor(config?: VoiceConfig) {
     super();
-    this.config = config;
+    this.config = config || {
+      sampleRate: 44100,
+      bufferSize: 4096,
+      channels: 1,
+      language: 'en-US',
+      enableWakeWord: false,
+      noiseReduction: true,
+    };
     this.initializeWebAPIs();
   }
 
@@ -74,7 +83,7 @@ export class VoiceProcessor extends EventEmitter {
 
     this.recognition.onresult = (event: any) => {
       const results = Array.from(event.results);
-      const latestResult = results[results.length - 1];
+      const latestResult = results[results.length - 1] as any;
 
       if (latestResult.isFinal) {
         const result: SpeechRecognitionResult = {
@@ -365,5 +374,24 @@ export class VoiceProcessor extends EventEmitter {
       language: this.config.language,
       wakeWordEnabled: this.config.enableWakeWord,
     };
+  }
+
+  // Additional methods expected by tests
+  public async initialize(): Promise<void> {
+    this.initializeWebAPIs();
+    this.initialized = true;
+  }
+
+  public dispose(): void {
+    this.stop();
+    this.initialized = false;
+  }
+
+  public getConfig(): VoiceConfig {
+    return { ...this.config };
+  }
+
+  public isInitialized(): boolean {
+    return this.initialized;
   }
 }

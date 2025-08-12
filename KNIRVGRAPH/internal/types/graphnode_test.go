@@ -148,10 +148,24 @@ func TestGraphNodeSerialization(t *testing.T) {
 		t.Errorf("Weight mismatch: expected %f, got %f", original.Weight, deserialized.Weight)
 	}
 
-	// Check payload data fields
+	// Check payload data fields with type-aware comparison
 	for key, value := range original.Data.Payload {
-		if deserialized.Data.Payload[key] != value {
-			t.Errorf("Data mismatch for key %s: expected %v, got %v", key, value, deserialized.Data.Payload[key])
+		deserializedValue := deserialized.Data.Payload[key]
+
+		// Handle JSON number unmarshaling (int becomes float64)
+		if key == "int_key" {
+			if originalInt, ok := value.(int); ok {
+				if deserializedFloat, ok := deserializedValue.(float64); ok {
+					if float64(originalInt) != deserializedFloat {
+						t.Errorf("Data mismatch for key %s: expected %v, got %v", key, value, deserializedValue)
+					}
+					continue
+				}
+			}
+		}
+
+		if deserializedValue != value {
+			t.Errorf("Data mismatch for key %s: expected %v, got %v", key, value, deserializedValue)
 		}
 	}
 }

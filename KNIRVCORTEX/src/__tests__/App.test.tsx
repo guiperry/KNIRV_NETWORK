@@ -3,7 +3,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import App from '../App';
 
-// Mock all child components
+// Temporarily disable mocks to identify the problematic component
+/*
 jest.mock('../components/CognitiveShellInterface', () => {
   return function MockCognitiveShellInterface() {
     return <div data-testid="cognitive-shell-interface">Cognitive Shell Interface</div>;
@@ -33,6 +34,35 @@ jest.mock('../components/NRVVisualization', () => {
     return <div data-testid="nrv-visualization">NRV Visualization</div>;
   };
 });
+
+jest.mock('../components/KnirvShell', () => {
+  return function MockKnirvShell() {
+    return <div data-testid="knirv-shell">KNIRV Shell</div>;
+  };
+});
+
+jest.mock('../components/SlidingPanel', () => {
+  return function MockSlidingPanel({ children, isOpen, title }: any) {
+    return isOpen ? (
+      <div data-testid="sliding-panel" data-title={title}>
+        {children}
+      </div>
+    ) : null;
+  };
+});
+
+jest.mock('../components/EdgeColoring', () => {
+  return function MockEdgeColoring() {
+    return <div data-testid="edge-coloring">Edge Coloring</div>;
+  };
+});
+
+jest.mock('../components/FabricAlgorithm', () => {
+  return function MockFabricAlgorithm() {
+    return <div data-testid="fabric-algorithm">Fabric Algorithm</div>;
+  };
+});
+*/
 
 describe('App Component', () => {
   beforeEach(() => {

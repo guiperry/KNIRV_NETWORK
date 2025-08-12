@@ -445,7 +445,6 @@ export class EcosystemCommunicationLayer extends EventEmitter {
     try {
       const response = await fetch(`${endpoint.url}${endpoint.healthCheckPath}`, {
         method: 'GET',
-        timeout: 5000,
       });
 
       return response.ok;

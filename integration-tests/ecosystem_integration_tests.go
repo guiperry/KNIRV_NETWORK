@@ -1,4 +1,4 @@
-package main
+package integration_tests
 
 import (
 	"bytes"
@@ -55,11 +55,11 @@ func (suite *EcosystemTestSuite) addResult(testName, status string, duration tim
 		Metrics:   metrics,
 		Timestamp: time.Now(),
 	}
-	
+
 	if err != nil {
 		result.Error = err.Error()
 	}
-	
+
 	suite.results = append(suite.results, result)
 }
 
@@ -69,25 +69,25 @@ func (suite *EcosystemTestSuite) makeEcosystemRequest(endpoint string, payload i
 	if err != nil {
 		return nil, err
 	}
-	
+
 	req, err := http.NewRequest("POST", suite.baseURL+endpoint, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, err
 	}
-	
+
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	resp, err := suite.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	
+
 	var ecosystemResp EcosystemResponse
 	if err := json.NewDecoder(resp.Body).Decode(&ecosystemResp); err != nil {
 		return nil, err
 	}
-	
+
 	return &ecosystemResp, nil
 }
 
@@ -98,8 +98,8 @@ func (suite *EcosystemTestSuite) testWalletIntegration() error {
 			Component: "knirv-wallet",
 			Operation: "initialize",
 			Config: map[string]interface{}{
-				"api_base_url":        "http://localhost:8083/api/v1",
-				"chain_id":            "knirv-mainnet-1",
+				"api_base_url":          "http://localhost:8083/api/v1",
+				"chain_id":              "knirv-mainnet-1",
 				"enable_cross_platform": true,
 			},
 		},
@@ -138,38 +138,38 @@ func (suite *EcosystemTestSuite) testWalletIntegration() error {
 			},
 		},
 	}
-	
+
 	for i, test := range walletTests {
 		start := time.Now()
 		testName := fmt.Sprintf("wallet_%s_%d", test.Operation, i)
-		
+
 		resp, err := suite.makeEcosystemRequest("/api/ecosystem/wallet/test", test)
 		if err != nil {
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		if !resp.Success {
 			err = fmt.Errorf("wallet operation failed: %s", resp.Error)
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		metrics := map[string]interface{}{
 			"processing_time": resp.ProcessingTime,
 			"component":       resp.Component,
 			"operation":       resp.Operation,
 		}
-		
+
 		if resp.Metrics != nil {
 			for k, v := range resp.Metrics {
 				metrics[k] = v
 			}
 		}
-		
+
 		suite.addResult(testName, "PASSED", time.Since(start), nil, metrics)
 	}
-	
+
 	return nil
 }
 
@@ -180,8 +180,8 @@ func (suite *EcosystemTestSuite) testChainIntegration() error {
 			Component: "knirv-chain",
 			Operation: "initialize",
 			Config: map[string]interface{}{
-				"rpc_url":   "http://localhost:8080",
-				"chain_id":  "knirv-chain-1",
+				"rpc_url":  "http://localhost:8080",
+				"chain_id": "knirv-chain-1",
 				"contracts": map[string]string{
 					"nrn_token":      "0x1234567890123456789012345678901234567890",
 					"skill_registry": "0x2345678901234567890123456789012345678901",
@@ -232,38 +232,38 @@ func (suite *EcosystemTestSuite) testChainIntegration() error {
 			},
 		},
 	}
-	
+
 	for i, test := range chainTests {
 		start := time.Now()
 		testName := fmt.Sprintf("chain_%s_%d", test.Operation, i)
-		
+
 		resp, err := suite.makeEcosystemRequest("/api/ecosystem/chain/test", test)
 		if err != nil {
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		if !resp.Success {
 			err = fmt.Errorf("chain operation failed: %s", resp.Error)
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		metrics := map[string]interface{}{
 			"processing_time": resp.ProcessingTime,
 			"component":       resp.Component,
 			"operation":       resp.Operation,
 		}
-		
+
 		if resp.Metrics != nil {
 			for k, v := range resp.Metrics {
 				metrics[k] = v
 			}
 		}
-		
+
 		suite.addResult(testName, "PASSED", time.Since(start), nil, metrics)
 	}
-	
+
 	return nil
 }
 
@@ -323,38 +323,38 @@ func (suite *EcosystemTestSuite) testVisualProcessingIntegration() error {
 			TestData: suite.generateSyntheticImageData(512, 512, 3),
 		},
 	}
-	
+
 	for i, test := range visualTests {
 		start := time.Now()
 		testName := fmt.Sprintf("visual_%s_%d", test.Operation, i)
-		
+
 		resp, err := suite.makeEcosystemRequest("/api/ecosystem/visual/test", test)
 		if err != nil {
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		if !resp.Success {
 			err = fmt.Errorf("visual processing operation failed: %s", resp.Error)
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		metrics := map[string]interface{}{
 			"processing_time": resp.ProcessingTime,
 			"component":       resp.Component,
 			"operation":       resp.Operation,
 		}
-		
+
 		if resp.Metrics != nil {
 			for k, v := range resp.Metrics {
 				metrics[k] = v
 			}
 		}
-		
+
 		suite.addResult(testName, "PASSED", time.Since(start), nil, metrics)
 	}
-	
+
 	return nil
 }
 
@@ -382,10 +382,10 @@ func (suite *EcosystemTestSuite) testEcosystemCommunication() error {
 			Component: "ecosystem-communication",
 			Operation: "send_message",
 			Config: map[string]interface{}{
-				"to":               "knirv-wallet",
-				"type":             "query",
-				"payload":          map[string]interface{}{"action": "get_status"},
-				"priority":         "normal",
+				"to":                "knirv-wallet",
+				"type":              "query",
+				"payload":           map[string]interface{}{"action": "get_status"},
+				"priority":          "normal",
 				"requires_response": true,
 			},
 		},
@@ -409,38 +409,38 @@ func (suite *EcosystemTestSuite) testEcosystemCommunication() error {
 			},
 		},
 	}
-	
+
 	for i, test := range communicationTests {
 		start := time.Now()
 		testName := fmt.Sprintf("communication_%s_%d", test.Operation, i)
-		
+
 		resp, err := suite.makeEcosystemRequest("/api/ecosystem/communication/test", test)
 		if err != nil {
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		if !resp.Success {
 			err = fmt.Errorf("ecosystem communication operation failed: %s", resp.Error)
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		metrics := map[string]interface{}{
 			"processing_time": resp.ProcessingTime,
 			"component":       resp.Component,
 			"operation":       resp.Operation,
 		}
-		
+
 		if resp.Metrics != nil {
 			for k, v := range resp.Metrics {
 				metrics[k] = v
 			}
 		}
-		
+
 		suite.addResult(testName, "PASSED", time.Since(start), nil, metrics)
 	}
-	
+
 	return nil
 }
 
@@ -491,38 +491,38 @@ func (suite *EcosystemTestSuite) testCrossComponentIntegration() error {
 			},
 		},
 	}
-	
+
 	for i, test := range crossTests {
 		start := time.Now()
 		testName := fmt.Sprintf("cross_component_%s_%d", test.Operation, i)
-		
+
 		resp, err := suite.makeEcosystemRequest("/api/ecosystem/cross-component/test", test)
 		if err != nil {
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		if !resp.Success {
 			err = fmt.Errorf("cross-component operation failed: %s", resp.Error)
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
 		}
-		
+
 		metrics := map[string]interface{}{
 			"processing_time": resp.ProcessingTime,
 			"component":       resp.Component,
 			"operation":       resp.Operation,
 		}
-		
+
 		if resp.Metrics != nil {
 			for k, v := range resp.Metrics {
 				metrics[k] = v
 			}
 		}
-		
+
 		suite.addResult(testName, "PASSED", time.Since(start), nil, metrics)
 	}
-	
+
 	return nil
 }
 
@@ -548,9 +548,9 @@ func (suite *EcosystemTestSuite) getResults() []TestResult {
 func TestEcosystemIntegrations(t *testing.T) {
 	baseURL := "http://localhost:3001"
 	suite := NewEcosystemTestSuite(baseURL)
-	
+
 	fmt.Println("Starting Ecosystem Integration Tests...")
-	
+
 	tests := []struct {
 		name string
 		fn   func() error
@@ -561,19 +561,19 @@ func TestEcosystemIntegrations(t *testing.T) {
 		{"Ecosystem Communication", suite.testEcosystemCommunication},
 		{"Cross-Component Integration", suite.testCrossComponentIntegration},
 	}
-	
+
 	for _, test := range tests {
 		fmt.Printf("Running %s...\n", test.name)
 		if err := test.fn(); err != nil {
 			fmt.Printf("Test %s encountered errors: %v\n", test.name, err)
 		}
 	}
-	
+
 	// Print summary
 	results := suite.getResults()
 	passed := 0
 	failed := 0
-	
+
 	for _, result := range results {
 		if result.Status == "PASSED" {
 			passed++
@@ -581,12 +581,12 @@ func TestEcosystemIntegrations(t *testing.T) {
 			failed++
 		}
 	}
-	
+
 	fmt.Printf("\nEcosystem Integration Tests Summary:\n")
 	fmt.Printf("Total Tests: %d\n", len(results))
 	fmt.Printf("Passed: %d\n", passed)
 	fmt.Printf("Failed: %d\n", failed)
-	
+
 	if failed > 0 {
 		t.Errorf("%d ecosystem integration tests failed", failed)
 	}

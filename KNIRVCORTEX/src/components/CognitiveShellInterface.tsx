@@ -27,6 +27,12 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
     voiceEnabled: true,
     visualEnabled: true,
     loraEnabled: true,
+    enhancedLoraEnabled: false,
+    hrmEnabled: false,
+    adaptiveLearningEnabled: true,
+    walletIntegrationEnabled: true,
+    chainIntegrationEnabled: true,
+    ecosystemCommunicationEnabled: true,
   });
 
   const engineRef = useRef<CognitiveEngine | null>(null);

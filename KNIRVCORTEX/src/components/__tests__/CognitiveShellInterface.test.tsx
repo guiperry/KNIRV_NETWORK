@@ -33,24 +33,7 @@ jest.mock('../Terminal', () => {
   };
 });
 
-jest.mock('../SkillPanel', () => {
-  return function MockSkillPanel({ skills, onSkillToggle }: any) {
-    return (
-      <div data-testid="skill-panel">
-        {skills.map((skill: any) => (
-          <button
-            key={skill.name}
-            data-testid={`skill-${skill.name}`}
-            onClick={() => onSkillToggle(skill.name)}
-            className={skill.active ? 'active' : 'inactive'}
-          >
-            {skill.name}
-          </button>
-        ))}
-      </div>
-    );
-  };
-});
+// Note: SkillPanel component doesn't exist, so no mock needed
 
 jest.mock('../ContextViewer', () => {
   return function MockContextViewer({ context }: any) {
