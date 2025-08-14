@@ -1,6 +1,9 @@
 // Netlify Function for Health Monitoring with SSE
 // Replaces WebSocket health broadcasts with Server-Sent Events
 
+const fs = require('fs');
+const path = require('path');
+
 const services = {
   knirvchain: process.env.KNIRVCHAIN_URL || "https://chain.knirv.com",
   knirvgraph: process.env.KNIRVGRAPH_URL || "https://graph.knirv.com",
@@ -31,11 +34,16 @@ exports.handler = async (event, context) => {
     };
   }
 
+  // Health monitor frontend page
+  if (path === '/health-monitor' || path === '/health-monitor/') {
+    return await serveHealthMonitorPage();
+  }
+
   // SSE endpoint for health monitoring
   if (path === '/health-monitor/events') {
     return await handleHealthSSE();
   }
-  
+
   // Health check endpoint
   if (path === '/health-monitor/status') {
     return await handleHealthStatus();
@@ -47,6 +55,63 @@ exports.handler = async (event, context) => {
     body: JSON.stringify({ error: 'Not found' })
   };
 };
+
+async function serveHealthMonitorPage() {
+  try {
+    // Try to read the health monitor HTML file
+    const htmlPath = path.join(process.cwd(), 'health-monitor.html');
+    let htmlContent;
+
+    try {
+      htmlContent = fs.readFileSync(htmlPath, 'utf8');
+    } catch (error) {
+      // Fallback HTML if file not found
+      htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRV Health Monitor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-6">KNIRV Network Health Monitor</h1>
+        <div id="status" class="bg-gray-800 p-6 rounded-lg">
+            <p>Loading health status...</p>
+        </div>
+    </div>
+    <script>
+        fetch('/health-monitor/status')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('status').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            })
+            .catch(error => {
+                document.getElementById('status').innerHTML = '<p class="text-red-500">Error loading health data: ' + error.message + '</p>';
+            });
+    </script>
+</body>
+</html>`;
+    }
+
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'text/html',
+        'Cache-Control': 'no-cache'
+      },
+      body: htmlContent
+    };
+  } catch (error) {
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: 'Failed to serve health monitor page' })
+    };
+  }
+}
 
 async function handleHealthSSE() {
   // Perform health checks
