@@ -126,7 +126,7 @@ print_success "All dependencies are available"
 
 # Check port availability
 print_step "Checking port availability..."
-ports=(1317 8090 8082 8084 5001 8888)
+ports=(1317 8090 8082 8084 8086 8888)
 port_names=("KNIRV-ROOT" "KNIRVCHAIN" "KNIRVGRAPH" "KNIRV-NEXUS" "KNIRV-ROUTER" "KNIRV-GATEWAY")
 
 for i in "${!ports[@]}"; do
@@ -201,7 +201,7 @@ fi
 # 5. Start KNIRV-ROUTER (network routing)
 print_status "Starting KNIRV-ROUTER..."
 if ./scripts/start-knirvrouter.sh; then
-    wait_for_service "KNIRV-ROUTER" "http://localhost:5001/health" || exit 1
+    wait_for_service "KNIRV-ROUTER" "http://localhost:8086/status" || exit 1
 else
     print_error "Failed to start KNIRV-ROUTER"
     exit 1
@@ -228,7 +228,7 @@ echo "  🔗 KNIRV-ROOT:    http://localhost:1317"
 echo "  ⛓️  KNIRVCHAIN:   http://localhost:8090"
 echo "  📊 KNIRVGRAPH:    http://localhost:8082"
 echo "  🔒 KNIRV-NEXUS:   http://localhost:8084 (API) / http://localhost:8083 (GUI)"
-echo "  🌐 KNIRV-ROUTER:  http://localhost:5001"
+echo "  🌐 KNIRV-ROUTER:  http://localhost:8086"
 echo "  🚪 KNIRV-GATEWAY: http://localhost:8888"
 echo ""
 echo "Testnet Endpoints:"

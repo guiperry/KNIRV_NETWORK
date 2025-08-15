@@ -29,6 +29,8 @@ export interface AdaptationMetrics {
   epoch: number;
   learningRate: number;
   timestamp: Date;
+  batchesProcessed?: number;
+  lastTrainingTime?: number;
 }
 
 export class LoRAAdapter extends EventEmitter {

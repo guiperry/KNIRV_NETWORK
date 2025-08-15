@@ -723,4 +723,15 @@ export class EnhancedLoRAAdapter extends EventEmitter {
       ready: tf.ready(),
     };
   }
+
+  // Methods required by AdaptiveLearningPipeline interface
+  public getAdaptationMetrics(): Record<string, unknown> {
+    return {
+      ...this.metrics,
+      isTraining: this.isTraining,
+      isRunning: this.isRunning,
+      weightsCount: this.weights.size,
+      trainingDataSize: this.trainingData.length
+    };
+  }
 }

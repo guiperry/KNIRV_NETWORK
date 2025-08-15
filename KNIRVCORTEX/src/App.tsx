@@ -59,7 +59,8 @@ function App() {
   const [activePanels, setActivePanels] = useState<string[]>([]);
   const [nrnBalance, setNrnBalance] = useState(1250);
   const [cognitiveMode, setCognitiveMode] = useState(false);
-  const [cognitiveState, setCognitiveState] = useState<CognitiveState | null>(null);
+  // Cognitive state for future use
+  // const [cognitiveState] = useState<CognitiveState | null>(null);
   const [networkConnections] = useState<{
     [key: string]: 'connected' | 'disconnected' | 'connecting';
   }>({

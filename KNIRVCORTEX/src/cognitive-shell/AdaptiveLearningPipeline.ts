@@ -1,21 +1,48 @@
 import { EventEmitter } from './EventEmitter';
 
+// Define proper types for input/output data
+export type InputData = string | ArrayBuffer | Record<string, unknown> | unknown[];
+export type OutputData = string | Record<string, unknown> | unknown[];
+export type ContextData = Record<string, unknown>;
+export type PatternData = Record<string, unknown> | number[];
+
+// Define interfaces for bridge components
+export interface HRMBridge {
+  process: (data: unknown) => Promise<unknown>;
+  isConnected: () => boolean;
+  isReady: () => boolean;
+}
+
+export interface EnhancedLoraAdapter {
+  adapt: (input: unknown, expectedOutput: unknown, feedback: number) => Promise<unknown>;
+  getAdaptationMetrics: () => Record<string, unknown>;
+  isAdapterReady: () => boolean;
+  trainOnBatch: (trainingData: Array<{ input: unknown; output: unknown; feedback: number }>) => Promise<void>;
+}
+
+export interface HRMLoRABridge {
+  processWithLoRA: (data: unknown, loraConfig: Record<string, unknown>) => Promise<unknown>;
+  updateLoRAWeights: (weights: Record<string, unknown>) => void;
+  getStatus: () => { isRunning: boolean; isConnected: boolean };
+  forceSyncNow: () => Promise<void>;
+}
+
 export interface UserInteraction {
   id: string;
   timestamp: Date;
   inputType: 'text' | 'voice' | 'visual' | 'gesture';
-  input: any;
-  output: any;
+  input: InputData;
+  output: OutputData;
   userFeedback?: number; // -1 to 1 scale
   implicitFeedback?: number; // Derived from behavior
-  context: any;
+  context: ContextData;
   sessionId: string;
 }
 
 export interface LearningPattern {
   patternId: string;
-  inputPattern: any;
-  outputPattern: any;
+  inputPattern: PatternData;
+  outputPattern: PatternData;
   confidence: number;
   frequency: number;
   lastSeen: Date;
@@ -48,9 +75,9 @@ export class AdaptiveLearningPipeline extends EventEmitter {
   private patterns: Map<string, LearningPattern> = new Map();
   private metrics: AdaptationMetrics;
   private isRunning: boolean = false;
-  private hrmBridge: any = null;
-  private enhancedLoraAdapter: any = null;
-  private hrmLoraBridge: any = null;
+  private hrmBridge: HRMBridge | null = null;
+  private enhancedLoraAdapter: EnhancedLoraAdapter | null = null;
+  private hrmLoraBridge: HRMLoRABridge | null = null;
   private currentSessionId: string = '';
 
   constructor(config?: Partial<LearningConfig>) {
@@ -87,17 +114,17 @@ export class AdaptiveLearningPipeline extends EventEmitter {
     this.currentSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  public setHRMBridge(hrmBridge: any): void {
+  public setHRMBridge(hrmBridge: HRMBridge): void {
     this.hrmBridge = hrmBridge;
     console.log('HRM bridge connected to Adaptive Learning Pipeline');
   }
 
-  public setEnhancedLoRAAdapter(enhancedLoraAdapter: any): void {
+  public setEnhancedLoRAAdapter(enhancedLoraAdapter: EnhancedLoraAdapter): void {
     this.enhancedLoraAdapter = enhancedLoraAdapter;
     console.log('Enhanced LoRA adapter connected to Adaptive Learning Pipeline');
   }
 
-  public setHRMLoRABridge(hrmLoraBridge: any): void {
+  public setHRMLoRABridge(hrmLoraBridge: HRMLoRABridge): void {
     this.hrmLoraBridge = hrmLoraBridge;
     console.log('HRM-LoRA bridge connected to Adaptive Learning Pipeline');
   }
@@ -169,8 +196,13 @@ export class AdaptiveLearningPipeline extends EventEmitter {
           task_type: 'feedback_analysis',
         };
 
-        const hrmOutput = await this.hrmBridge.processCognitiveInput(hrmInput);
-        implicitScore += hrmOutput.confidence * 0.4;
+        const hrmOutput = await this.hrmBridge.process(hrmInput);
+        if (typeof hrmOutput === 'object' && hrmOutput !== null && !Array.isArray(hrmOutput)) {
+          const outputObj = hrmOutput as Record<string, unknown>;
+          if (typeof outputObj.confidence === 'number') {
+            implicitScore += outputObj.confidence * 0.4;
+          }
+        }
 
       } catch (error) {
         console.error('Error getting HRM feedback:', error);
@@ -191,7 +223,7 @@ export class AdaptiveLearningPipeline extends EventEmitter {
     return Math.max(-1, Math.min(1, implicitScore));
   }
 
-  private convertToSensoryData(input: any): number[] {
+  private convertToSensoryData(input: InputData): number[] {
     // Convert input to numerical representation
     if (typeof input === 'string') {
       const encoder = new TextEncoder();
@@ -200,7 +232,7 @@ export class AdaptiveLearningPipeline extends EventEmitter {
     }
 
     if (Array.isArray(input)) {
-      return input.slice(0, 512);
+      return input.map(item => typeof item === 'number' ? item : 0).slice(0, 512);
     }
 
     if (typeof input === 'object') {
@@ -211,20 +243,22 @@ export class AdaptiveLearningPipeline extends EventEmitter {
     return new Array(512).fill(0);
   }
 
-  private analyzeOutputQuality(output: any): number {
+  private analyzeOutputQuality(output: OutputData): number {
     // Simple output quality analysis
     let quality = 0.5; // Base quality
 
-    if (typeof output === 'object') {
-      if (output.confidence) {
-        quality += output.confidence * 0.3;
+    if (typeof output === 'object' && output !== null && !Array.isArray(output)) {
+      const outputObj = output as Record<string, unknown>;
+
+      if (typeof outputObj.confidence === 'number') {
+        quality += outputObj.confidence * 0.3;
       }
 
-      if (output.text && output.text.length > 10) {
+      if (typeof outputObj.text === 'string' && outputObj.text.length > 10) {
         quality += 0.2; // Bonus for substantial text
       }
 
-      if (output.hrmEnhanced) {
+      if (outputObj.hrmEnhanced === true) {
         quality += 0.1; // Bonus for HRM enhancement
       }
     }
@@ -232,7 +266,7 @@ export class AdaptiveLearningPipeline extends EventEmitter {
     return Math.max(0, Math.min(1, quality));
   }
 
-  private analyzeContextQuality(context: any): number {
+  private analyzeContextQuality(context: ContextData): number {
     // Analyze context richness and relevance
     let quality = 0.5;
 
@@ -240,7 +274,7 @@ export class AdaptiveLearningPipeline extends EventEmitter {
       const keys = Object.keys(context);
       quality += Math.min(keys.length * 0.05, 0.3); // More context is better
 
-      if (context.confidenceLevel && context.confidenceLevel > 0.7) {
+      if (typeof context.confidenceLevel === 'number' && context.confidenceLevel > 0.7) {
         quality += 0.2;
       }
     }
@@ -300,7 +334,7 @@ export class AdaptiveLearningPipeline extends EventEmitter {
     return patterns;
   }
 
-  private hashInput(input: any): string {
+  private hashInput(input: InputData): string {
     // Simple hash function for input
     const str = JSON.stringify(input);
     let hash = 0;
@@ -312,36 +346,49 @@ export class AdaptiveLearningPipeline extends EventEmitter {
     return Math.abs(hash).toString(36);
   }
 
-  private normalizeInput(input: any): any {
+  private normalizeInput(input: InputData): PatternData {
     // Normalize input for pattern matching
     if (typeof input === 'string') {
-      return input.toLowerCase().trim();
+      // Convert string to numerical representation
+      return this.convertToSensoryData(input);
     }
 
     if (Array.isArray(input)) {
-      return input.map(item => this.normalizeInput(item));
+      return input.map(item => typeof item === 'number' ? item : 0).slice(0, 512);
     }
 
-    if (typeof input === 'object' && input !== null) {
-      const normalized: any = {};
+    if (typeof input === 'object' && input !== null && !(input instanceof ArrayBuffer)) {
+      const normalized: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(input)) {
-        normalized[key.toLowerCase()] = this.normalizeInput(value);
+        normalized[key.toLowerCase()] = value;
       }
       return normalized;
     }
 
-    return input;
+    if (input instanceof ArrayBuffer) {
+      // Convert ArrayBuffer to number array
+      const view = new Uint8Array(input);
+      return Array.from(view).map(b => b / 255.0).slice(0, 512);
+    }
+
+    return { value: String(input) };
   }
 
-  private normalizeOutput(output: any): any {
+  private normalizeOutput(output: OutputData): PatternData {
     // Normalize output for pattern storage
-    if (typeof output === 'object' && output !== null) {
+    if (typeof output === 'object' && output !== null && !Array.isArray(output)) {
+      const outputObj = output as Record<string, unknown>;
       return {
-        type: output.type || 'unknown',
-        confidence: output.confidence || 0.5,
-        text: output.text || '',
-        hrmEnhanced: output.hrmEnhanced || false,
+        type: outputObj.type || 'unknown',
+        confidence: typeof outputObj.confidence === 'number' ? outputObj.confidence : 0.5,
+        text: typeof outputObj.text === 'string' ? outputObj.text : '',
+        hrmEnhanced: outputObj.hrmEnhanced === true,
       };
+    }
+
+    if (Array.isArray(output)) {
+      // Convert array to numerical representation
+      return output.map(item => typeof item === 'number' ? item : 0).slice(0, 512);
     }
 
     return { text: String(output), confidence: 0.5 };
@@ -361,8 +408,11 @@ export class AdaptiveLearningPipeline extends EventEmitter {
     }
 
     // Factor in output quality
-    if (interaction.output && interaction.output.confidence) {
-      confidence += interaction.output.confidence * 0.3;
+    if (interaction.output && typeof interaction.output === 'object' && !Array.isArray(interaction.output)) {
+      const outputObj = interaction.output as Record<string, unknown>;
+      if (typeof outputObj.confidence === 'number') {
+        confidence += outputObj.confidence * 0.3;
+      }
     }
 
     return Math.max(0, Math.min(1, confidence));
@@ -377,19 +427,22 @@ export class AdaptiveLearningPipeline extends EventEmitter {
     }
 
     // Increase strength for high-confidence outputs
-    if (interaction.output && interaction.output.confidence > 0.8) {
-      strength += 0.2;
-    }
+    if (interaction.output && typeof interaction.output === 'object' && !Array.isArray(interaction.output)) {
+      const outputObj = interaction.output as Record<string, unknown>;
+      if (typeof outputObj.confidence === 'number' && outputObj.confidence > 0.8) {
+        strength += 0.2;
+      }
 
-    // Factor in HRM confidence if available
-    if (interaction.output && interaction.output.hrmConfidence) {
-      strength += interaction.output.hrmConfidence * this.config.hrmInfluenceWeight;
+      // Factor in HRM confidence if available
+      if (typeof outputObj.hrmConfidence === 'number') {
+        strength += outputObj.hrmConfidence * this.config.hrmInfluenceWeight;
+      }
     }
 
     return Math.max(0.05, Math.min(0.8, strength));
   }
 
-  private async updateLearningPattern(pattern: LearningPattern, interaction: UserInteraction): Promise<void> {
+  private async updateLearningPattern(pattern: LearningPattern, _interaction: UserInteraction): Promise<void> {
     const existingPattern = this.patterns.get(pattern.patternId);
 
     if (existingPattern) {
@@ -494,8 +547,8 @@ export class AdaptiveLearningPipeline extends EventEmitter {
     return true;
   }
 
-  private prepareTrainingData(): any[] {
-    const trainingData: any[] = [];
+  private prepareTrainingData(): Array<{ input: unknown; output: unknown; feedback: number }> {
+    const trainingData: Array<{ input: unknown; output: unknown; feedback: number }> = [];
 
     // Get recent high-confidence patterns
     const recentPatterns = Array.from(this.patterns.values())
@@ -508,7 +561,6 @@ export class AdaptiveLearningPipeline extends EventEmitter {
         input: pattern.inputPattern,
         output: pattern.outputPattern,
         feedback: pattern.confidence,
-        timestamp: pattern.lastSeen,
       });
     }
 
@@ -647,7 +699,7 @@ export class AdaptiveLearningPipeline extends EventEmitter {
     this.emit('patternsCleared');
   }
 
-  public getStatus(): any {
+  public getStatus(): Record<string, unknown> {
     return {
       isRunning: this.isRunning,
       currentSessionId: this.currentSessionId,

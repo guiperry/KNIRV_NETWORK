@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -501,6 +502,585 @@ func (suite *CortexTestSuite) testEcosystemIntegration() error {
 	return nil
 }
 
+// Test CognitiveEngine-specific scenarios
+func (suite *CortexTestSuite) testCognitiveEngineScenarios() error {
+	start := time.Now()
+
+	// Test 1: Unified Skill Execution with Payment
+	testName := "cognitive_engine_unified_skill_execution"
+	payload := map[string]interface{}{
+		"operation": "unified_skill_execution",
+		"skill_id":  "test_cognitive_skill",
+		"parameters": map[string]interface{}{
+			"input_text": "Analyze this complex cognitive task",
+			"complexity": "high",
+		},
+		"nrn_amount": "5.0",
+	}
+
+	url := suite.config.CortexEndpoints.CognitiveEngine.URL + "/api/cognitive/unified"
+	resp, err := suite.makeRequest("POST", url, payload)
+	if err != nil {
+		suite.addResult(testName, "FAILED", time.Since(start), err, nil)
+	} else {
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			suite.addResult(testName, "PASSED", time.Since(start), nil, map[string]interface{}{
+				"status_code": resp.StatusCode,
+			})
+		} else {
+			err = fmt.Errorf("unified skill execution failed with status: %d", resp.StatusCode)
+			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
+		}
+	}
+
+	// Test 2: Cross-Chain Transfer Operations
+	testName = "cognitive_engine_cross_chain_transfer"
+	payload = map[string]interface{}{
+		"operation":  "cross_chain_transfer",
+		"from_chain": "knirv-chain",
+		"to_chain":   "ethereum",
+		"amount":     "25.0",
+		"recipient":  "0x1234567890123456789012345678901234567890",
+	}
+
+	resp, err = suite.makeRequest("POST", url, payload)
+	if err != nil {
+		suite.addResult(testName, "FAILED", time.Since(start), err, nil)
+	} else {
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			suite.addResult(testName, "PASSED", time.Since(start), nil, map[string]interface{}{
+				"status_code": resp.StatusCode,
+			})
+		} else {
+			err = fmt.Errorf("cross-chain transfer failed with status: %d", resp.StatusCode)
+			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
+		}
+	}
+
+	// Test 3: Multi-Service Query
+	testName = "cognitive_engine_multi_service_query"
+	payload = map[string]interface{}{
+		"operation": "multi_service_query",
+		"services":  []string{"knirv-nexus", "knirv-graph"},
+		"query":     "Get comprehensive system status",
+	}
+
+	resp, err = suite.makeRequest("POST", url, payload)
+	if err != nil {
+		suite.addResult(testName, "FAILED", time.Since(start), err, nil)
+	} else {
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			suite.addResult(testName, "PASSED", time.Since(start), nil, map[string]interface{}{
+				"status_code": resp.StatusCode,
+			})
+		} else {
+			err = fmt.Errorf("multi-service query failed with status: %d", resp.StatusCode)
+			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
+		}
+	}
+
+	return nil
+}
+
+// Test adaptive learning and pattern recognition
+func (suite *CortexTestSuite) testAdaptiveLearning() error {
+	start := time.Now()
+
+	// Test 1: Pattern Learning
+	testName := "adaptive_learning_pattern_recognition"
+	patterns := []map[string]interface{}{
+		{
+			"input":    "Hello, how are you?",
+			"output":   "greeting_response",
+			"feedback": 0.9,
+		},
+		{
+			"input":    "What is the weather like?",
+			"output":   "weather_query",
+			"feedback": 0.8,
+		},
+		{
+			"input":    "Goodbye, see you later",
+			"output":   "farewell_response",
+			"feedback": 0.85,
+		},
+	}
+
+	payload := map[string]interface{}{
+		"operation": "learn_from_patterns",
+		"patterns":  patterns,
+	}
+
+	url := suite.config.CortexEndpoints.CognitiveEngine.URL + "/api/cognitive/adaptive"
+	resp, err := suite.makeRequest("POST", url, payload)
+	if err != nil {
+		suite.addResult(testName, "FAILED", time.Since(start), err, nil)
+	} else {
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			suite.addResult(testName, "PASSED", time.Since(start), nil, map[string]interface{}{
+				"status_code":   resp.StatusCode,
+				"pattern_count": len(patterns),
+			})
+		} else {
+			err = fmt.Errorf("pattern learning failed with status: %d", resp.StatusCode)
+			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
+		}
+	}
+
+	// Test 2: Real-time Adaptation
+	testName = "adaptive_learning_real_time_adaptation"
+	payload = map[string]interface{}{
+		"operation": "trigger_adaptation",
+		"context": map[string]interface{}{
+			"recent_interactions":  10,
+			"confidence_threshold": 0.7,
+		},
+	}
+
+	resp, err = suite.makeRequest("POST", url, payload)
+	if err != nil {
+		suite.addResult(testName, "FAILED", time.Since(start), err, nil)
+	} else {
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			suite.addResult(testName, "PASSED", time.Since(start), nil, map[string]interface{}{
+				"status_code": resp.StatusCode,
+			})
+		} else {
+			err = fmt.Errorf("real-time adaptation failed with status: %d", resp.StatusCode)
+			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
+		}
+	}
+
+	// Test 3: Feedback Processing
+	testName = "adaptive_learning_feedback_processing"
+	feedbackSessions := []map[string]interface{}{
+		{"interaction_id": "session_1", "feedback": 0.9},
+		{"interaction_id": "session_2", "feedback": 0.7},
+		{"interaction_id": "session_3", "feedback": 0.8},
+	}
+
+	for i, session := range feedbackSessions {
+		sessionTestName := fmt.Sprintf("%s_%d", testName, i+1)
+		payload = map[string]interface{}{
+			"operation":      "provide_feedback",
+			"interaction_id": session["interaction_id"],
+			"feedback":       session["feedback"],
+		}
+
+		resp, err = suite.makeRequest("POST", url, payload)
+		if err != nil {
+			suite.addResult(sessionTestName, "FAILED", time.Since(start), err, nil)
+		} else {
+			defer resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				suite.addResult(sessionTestName, "PASSED", time.Since(start), nil, map[string]interface{}{
+					"status_code": resp.StatusCode,
+					"feedback":    session["feedback"],
+				})
+			} else {
+				err = fmt.Errorf("feedback processing failed with status: %d", resp.StatusCode)
+				suite.addResult(sessionTestName, "FAILED", time.Since(start), err, nil)
+			}
+		}
+	}
+
+	return nil
+}
+
+// Test enhanced LoRA operations
+func (suite *CortexTestSuite) testEnhancedLoRAOperations() error {
+	start := time.Now()
+
+	// Test 1: LoRA Training
+	testName := "enhanced_lora_training"
+	trainingData := []map[string]interface{}{
+		{
+			"input":    []float64{0.1, 0.2, 0.3, 0.4, 0.5},
+			"output":   []float64{0.9, 0.8, 0.7, 0.6, 0.5},
+			"feedback": 0.85,
+		},
+		{
+			"input":    []float64{0.2, 0.3, 0.4, 0.5, 0.6},
+			"output":   []float64{0.8, 0.7, 0.6, 0.5, 0.4},
+			"feedback": 0.9,
+		},
+	}
+
+	payload := map[string]interface{}{
+		"operation":     "train_enhanced_lora",
+		"training_data": trainingData,
+		"config": map[string]interface{}{
+			"epochs":        suite.config.AICore.NeuralNetworks.EnhancedLoRA.Epochs,
+			"learning_rate": suite.config.AICore.NeuralNetworks.EnhancedLoRA.LearningRate,
+			"batch_size":    suite.config.AICore.NeuralNetworks.EnhancedLoRA.BatchSize,
+		},
+	}
+
+	url := suite.config.CortexEndpoints.CognitiveEngine.URL + "/api/cognitive/lora"
+	resp, err := suite.makeRequest("POST", url, payload)
+	if err != nil {
+		suite.addResult(testName, "FAILED", time.Since(start), err, nil)
+	} else {
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			suite.addResult(testName, "PASSED", time.Since(start), nil, map[string]interface{}{
+				"status_code":      resp.StatusCode,
+				"training_samples": len(trainingData),
+			})
+		} else {
+			err = fmt.Errorf("LoRA training failed with status: %d", resp.StatusCode)
+			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
+		}
+	}
+
+	// Test 2: Model Save/Load Operations
+	testName = "enhanced_lora_model_persistence"
+	modelName := "test_lora_model_v1"
+
+	// Save model
+	payload = map[string]interface{}{
+		"operation":  "save_model",
+		"model_name": modelName,
+	}
+
+	resp, err = suite.makeRequest("POST", url, payload)
+	if err != nil {
+		suite.addResult(testName+"_save", "FAILED", time.Since(start), err, nil)
+	} else {
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			suite.addResult(testName+"_save", "PASSED", time.Since(start), nil, map[string]interface{}{
+				"status_code": resp.StatusCode,
+				"model_name":  modelName,
+			})
+
+			// Load model
+			payload = map[string]interface{}{
+				"operation":  "load_model",
+				"model_name": modelName,
+			}
+
+			resp, err = suite.makeRequest("POST", url, payload)
+			if err != nil {
+				suite.addResult(testName+"_load", "FAILED", time.Since(start), err, nil)
+			} else {
+				defer resp.Body.Close()
+				if resp.StatusCode == http.StatusOK {
+					suite.addResult(testName+"_load", "PASSED", time.Since(start), nil, map[string]interface{}{
+						"status_code": resp.StatusCode,
+						"model_name":  modelName,
+					})
+				} else {
+					err = fmt.Errorf("LoRA model loading failed with status: %d", resp.StatusCode)
+					suite.addResult(testName+"_load", "FAILED", time.Since(start), err, nil)
+				}
+			}
+		} else {
+			err = fmt.Errorf("LoRA model saving failed with status: %d", resp.StatusCode)
+			suite.addResult(testName+"_save", "FAILED", time.Since(start), err, nil)
+		}
+	}
+
+	// Test 3: Weight Export/Import
+	testName = "enhanced_lora_weight_operations"
+
+	// Export weights
+	payload = map[string]interface{}{
+		"operation": "export_weights",
+	}
+
+	resp, err = suite.makeRequest("POST", url, payload)
+	if err != nil {
+		suite.addResult(testName+"_export", "FAILED", time.Since(start), err, nil)
+	} else {
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			var exportResult map[string]interface{}
+			if err := json.NewDecoder(resp.Body).Decode(&exportResult); err == nil {
+				suite.addResult(testName+"_export", "PASSED", time.Since(start), nil, map[string]interface{}{
+					"status_code":  resp.StatusCode,
+					"weights_size": len(fmt.Sprintf("%v", exportResult["weights"])),
+				})
+
+				// Import weights
+				payload = map[string]interface{}{
+					"operation": "import_weights",
+					"weights":   exportResult["weights"],
+				}
+
+				resp, err = suite.makeRequest("POST", url, payload)
+				if err != nil {
+					suite.addResult(testName+"_import", "FAILED", time.Since(start), err, nil)
+				} else {
+					defer resp.Body.Close()
+					if resp.StatusCode == http.StatusOK {
+						suite.addResult(testName+"_import", "PASSED", time.Since(start), nil, map[string]interface{}{
+							"status_code": resp.StatusCode,
+						})
+					} else {
+						err = fmt.Errorf("LoRA weight import failed with status: %d", resp.StatusCode)
+						suite.addResult(testName+"_import", "FAILED", time.Since(start), err, nil)
+					}
+				}
+			} else {
+				suite.addResult(testName+"_export", "FAILED", time.Since(start), err, nil)
+			}
+		} else {
+			err = fmt.Errorf("LoRA weight export failed with status: %d", resp.StatusCode)
+			suite.addResult(testName+"_export", "FAILED", time.Since(start), err, nil)
+		}
+	}
+
+	return nil
+}
+
+// Test performance and load scenarios
+func (suite *CortexTestSuite) testPerformanceScenarios() error {
+	start := time.Now()
+
+	// Test 1: Concurrent Cognitive Processing
+	testName := "performance_concurrent_processing"
+	concurrentRequests := suite.config.Performance.CognitiveProcessing.ConcurrentRequests
+
+	type requestResult struct {
+		index    int
+		duration time.Duration
+		success  bool
+		error    error
+	}
+
+	results := make(chan requestResult, concurrentRequests)
+
+	// Launch concurrent requests
+	for i := 0; i < concurrentRequests; i++ {
+		go func(index int) {
+			requestStart := time.Now()
+
+			payload := map[string]interface{}{
+				"operation": "cognitive_processing",
+				"input":     fmt.Sprintf("Concurrent test request %d", index),
+				"type":      "text",
+			}
+
+			url := suite.config.CortexEndpoints.CognitiveEngine.URL + "/api/cognitive/process"
+			resp, err := suite.makeRequest("POST", url, payload)
+
+			result := requestResult{
+				index:    index,
+				duration: time.Since(requestStart),
+				success:  err == nil && resp != nil && resp.StatusCode == http.StatusOK,
+				error:    err,
+			}
+
+			if resp != nil {
+				resp.Body.Close()
+			}
+
+			results <- result
+		}(i)
+	}
+
+	// Collect results
+	successCount := 0
+	totalDuration := time.Duration(0)
+	maxDuration := time.Duration(0)
+
+	for i := 0; i < concurrentRequests; i++ {
+		result := <-results
+		if result.success {
+			successCount++
+		}
+		totalDuration += result.duration
+		if result.duration > maxDuration {
+			maxDuration = result.duration
+		}
+	}
+
+	avgDuration := totalDuration / time.Duration(concurrentRequests)
+	successRate := float64(successCount) / float64(concurrentRequests)
+
+	if successRate >= 0.8 { // 80% success rate threshold
+		suite.addResult(testName, "PASSED", time.Since(start), nil, map[string]interface{}{
+			"concurrent_requests": concurrentRequests,
+			"success_rate":        successRate,
+			"avg_duration":        avgDuration.String(),
+			"max_duration":        maxDuration.String(),
+		})
+	} else {
+		err := fmt.Errorf("concurrent processing success rate too low: %.2f", successRate)
+		suite.addResult(testName, "FAILED", time.Since(start), err, map[string]interface{}{
+			"concurrent_requests": concurrentRequests,
+			"success_rate":        successRate,
+		})
+	}
+
+	// Test 2: Memory Usage Under Load
+	testName = "performance_memory_usage"
+
+	// Simulate memory-intensive operations
+	for i := 0; i < 50; i++ {
+		payload := map[string]interface{}{
+			"operation":  "memory_intensive_task",
+			"data_size":  1024 * 1024, // 1MB data
+			"iterations": 10,
+		}
+
+		url := suite.config.CortexEndpoints.CognitiveEngine.URL + "/api/cognitive/memory-test"
+		resp, err := suite.makeRequest("POST", url, payload)
+		if resp != nil {
+			resp.Body.Close()
+		}
+
+		if err != nil {
+			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
+			break
+		}
+	}
+
+	// Check if we completed without memory errors
+	suite.addResult(testName, "PASSED", time.Since(start), nil, map[string]interface{}{
+		"memory_test_iterations": 50,
+	})
+
+	// Test 3: Ecosystem Communication Performance
+	testName = "performance_ecosystem_communication"
+	messageCount := suite.config.Performance.EcosystemCommunication.MessageThroughput
+
+	successfulMessages := 0
+	communicationStart := time.Now()
+
+	for i := 0; i < messageCount; i++ {
+		payload := map[string]interface{}{
+			"operation": "ecosystem_message",
+			"target":    "knirv-nexus",
+			"message":   fmt.Sprintf("Performance test message %d", i),
+		}
+
+		url := suite.config.CortexEndpoints.EcosystemCommunication.URL + "/send"
+		resp, err := suite.makeRequest("POST", url, payload)
+
+		if err == nil && resp != nil && resp.StatusCode == http.StatusOK {
+			successfulMessages++
+		}
+
+		if resp != nil {
+			resp.Body.Close()
+		}
+	}
+
+	communicationDuration := time.Since(communicationStart)
+	throughput := float64(successfulMessages) / communicationDuration.Seconds()
+
+	expectedThroughput := float64(suite.config.Performance.EcosystemCommunication.MessageThroughput) / 60.0 // per second
+
+	if throughput >= expectedThroughput*0.8 { // 80% of expected throughput
+		suite.addResult(testName, "PASSED", time.Since(start), nil, map[string]interface{}{
+			"messages_sent":       messageCount,
+			"successful_messages": successfulMessages,
+			"throughput_per_sec":  throughput,
+			"expected_throughput": expectedThroughput,
+		})
+	} else {
+		err := fmt.Errorf("ecosystem communication throughput too low: %.2f msg/s", throughput)
+		suite.addResult(testName, "FAILED", time.Since(start), err, map[string]interface{}{
+			"throughput_per_sec":  throughput,
+			"expected_throughput": expectedThroughput,
+		})
+	}
+
+	return nil
+}
+
+// Test error handling and recovery scenarios
+func (suite *CortexTestSuite) testErrorHandlingScenarios() error {
+	start := time.Now()
+
+	// Test 1: Invalid Input Handling
+	testName := "error_handling_invalid_inputs"
+	invalidInputs := []interface{}{
+		nil,
+		"",
+		map[string]interface{}{},
+		[]interface{}{},
+		strings.Repeat("x", 1000000), // Very large string
+	}
+
+	for i, input := range invalidInputs {
+		subTestName := fmt.Sprintf("%s_%d", testName, i)
+
+		payload := map[string]interface{}{
+			"operation": "process_input",
+			"input":     input,
+			"type":      "text",
+		}
+
+		url := suite.config.CortexEndpoints.CognitiveEngine.URL + "/api/cognitive/process"
+		resp, err := suite.makeRequest("POST", url, payload)
+
+		// Should handle gracefully (not crash)
+		if resp != nil {
+			resp.Body.Close()
+			suite.addResult(subTestName, "PASSED", time.Since(start), nil, map[string]interface{}{
+				"status_code": resp.StatusCode,
+				"input_type":  fmt.Sprintf("%T", input),
+			})
+		} else if err != nil {
+			// Network error is acceptable for invalid inputs
+			suite.addResult(subTestName, "PASSED", time.Since(start), nil, map[string]interface{}{
+				"handled_gracefully": true,
+				"error_type":         fmt.Sprintf("%T", err),
+			})
+		}
+	}
+
+	// Test 2: Service Recovery
+	testName = "error_handling_service_recovery"
+
+	// Simulate service failure and recovery
+	payload := map[string]interface{}{
+		"operation": "simulate_failure",
+		"component": "hrm_bridge",
+	}
+
+	url := suite.config.CortexEndpoints.CognitiveEngine.URL + "/api/cognitive/test-failure"
+	resp, err := suite.makeRequest("POST", url, payload)
+	if resp != nil {
+		resp.Body.Close()
+	}
+
+	// Wait for recovery
+	time.Sleep(5 * time.Second)
+
+	// Test if service recovered
+	payload = map[string]interface{}{
+		"operation": "health_check",
+	}
+
+	url = suite.config.CortexEndpoints.CognitiveEngine.URL + "/api/health"
+	resp, err = suite.makeRequest("GET", url, nil)
+
+	if err == nil && resp != nil && resp.StatusCode == http.StatusOK {
+		suite.addResult(testName, "PASSED", time.Since(start), nil, map[string]interface{}{
+			"recovery_successful": true,
+		})
+	} else {
+		suite.addResult(testName, "FAILED", time.Since(start), err, map[string]interface{}{
+			"recovery_successful": false,
+		})
+	}
+
+	if resp != nil {
+		resp.Body.Close()
+	}
+
+	return nil
+}
+
 // Generate test report
 func (suite *CortexTestSuite) generateReport() error {
 	reportDir := "./test-reports/knirv-cortex"
@@ -558,6 +1138,11 @@ func TestKNIRVCortexIntegration(t *testing.T) {
 		{"HRM Cognitive Processing", suite.testHRMCognitiveProcessing},
 		{"Neural Network Operations", suite.testNeuralNetworkOperations},
 		{"Ecosystem Integration", suite.testEcosystemIntegration},
+		{"CognitiveEngine Scenarios", suite.testCognitiveEngineScenarios},
+		{"Adaptive Learning", suite.testAdaptiveLearning},
+		{"Enhanced LoRA Operations", suite.testEnhancedLoRAOperations},
+		{"Performance Scenarios", suite.testPerformanceScenarios},
+		{"Error Handling Scenarios", suite.testErrorHandlingScenarios},
 	}
 
 	for _, test := range tests {

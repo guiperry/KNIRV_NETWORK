@@ -3,71 +3,53 @@ set -e
 
 echo "Building KNIRV-GATEWAY for testnet..."
 
-cd ../KNIRVGATEWAY
+# Ensure gateway data directory exists
+mkdir -p data/knirvgateway
 
-# Install dependencies
+# Check if we need to copy from production KNIRVGATEWAY first
+if [ ! -f "data/knirvgateway/package.json" ]; then
+    echo "Setting up initial KNIRV-GATEWAY testnet configuration..."
+
+    # Copy essential files from production KNIRVGATEWAY
+    if [ -d "../KNIRVGATEWAY" ]; then
+        cp ../KNIRVGATEWAY/package.json data/knirvgateway/ 2>/dev/null || true
+        cp ../KNIRVGATEWAY/package-lock.json data/knirvgateway/ 2>/dev/null || true
+        cp ../KNIRVGATEWAY/index.html data/knirvgateway/ 2>/dev/null || true
+        cp -r ../KNIRVGATEWAY/assets data/knirvgateway/ 2>/dev/null || true
+        cp -r ../KNIRVGATEWAY/netlify data/knirvgateway/ 2>/dev/null || true
+        cp -r ../KNIRVGATEWAY/nexus-portal data/knirvgateway/ 2>/dev/null || true
+    fi
+fi
+
+cd data/knirvgateway
+
+# Install dependencies and run fix script if needed
 echo "Installing Node.js dependencies..."
-npm install
+npm install || {
+    echo "npm install failed, running netlify-cli fix..."
+    if [ -f "scripts/fix-netlify-cli.sh" ]; then
+        ./scripts/fix-netlify-cli.sh --auto
+    else
+        echo "Fix script not found, continuing..."
+    fi
+    npm install
+}
 
 # Build the application with testnet configuration
 echo "Building KNIRV-GATEWAY with testnet features..."
-npm run build
+npm run build || {
+    echo "Build failed, running netlify-cli fix..."
+    if [ -f "scripts/fix-netlify-cli.sh" ]; then
+        ./scripts/fix-netlify-cli.sh --auto
+        npm run build
+    else
+        echo "Fix script not found, build failed"
+        exit 1
+    fi
+}
 
-# Create gateway data directory
-mkdir -p ../KNIRVTESTNET/data/knirvgateway
-
-# Copy testnet environment configuration
-echo "Setting up testnet configuration..."
-cp .env.testnet ../KNIRVTESTNET/data/knirvgateway/.env 2>/dev/null || echo "TESTNET_MODE=true" > ../KNIRVTESTNET/data/knirvgateway/.env
-
-# Copy Netlify functions to testnet directory
-mkdir -p ../KNIRVTESTNET/data/knirvgateway/netlify/functions
-cp -r netlify/functions/* ../KNIRVTESTNET/data/knirvgateway/netlify/functions/ 2>/dev/null || true
-
-# Copy package.json and install dependencies in testnet directory
-cp package.json ../KNIRVTESTNET/data/knirvgateway/ 2>/dev/null || true
-cp package-lock.json ../KNIRVTESTNET/data/knirvgateway/ 2>/dev/null || true
-
-# Copy main files
-cp index.html ../KNIRVTESTNET/data/knirvgateway/ 2>/dev/null || true
-cp -r assets ../KNIRVTESTNET/data/knirvgateway/ 2>/dev/null || true
-
-# Create testnet-specific configuration
-cat > ../KNIRVTESTNET/data/knirvgateway/netlify.toml << 'EOF'
-[build]
-  command = "npm install"
-  functions = "netlify/functions"
-  publish = "."
-
-[dev]
-  command = "npm run dev"
-  port = 8888
-  targetPort = 8888
-
-[[redirects]]
-  from = "/gateway/*"
-  to = "/.netlify/functions/gateway-sse"
-  status = 200
-
-[[redirects]]
-  from = "/auth/*"
-  to = "/.netlify/functions/gateway-sse"
-  status = 200
-
-[functions]
-  node_bundler = "esbuild"
-
-[context.testnet.environment]
-  TESTNET_MODE = "true"
-  NODE_ENV = "testnet"
-  KNIRVROOT_URL = "http://localhost:1317"
-  KNIRVCHAIN_URL = "http://localhost:8080"
-  KNIRVGRAPH_URL = "http://localhost:8081"
-  KNIRVNEXUS_URL = "http://localhost:8082"
-  KNIRVROUTER_URL = "http://localhost:5001"
-EOF
-
-cd ../KNIRVTESTNET
+# Return to testnet directory
+cd ../../
 
 echo "KNIRV-GATEWAY testnet build completed successfully!"
 echo "Gateway will be available at: http://localhost:8888"

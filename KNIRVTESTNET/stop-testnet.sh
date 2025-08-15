@@ -102,9 +102,9 @@ stop_service "KNIRV-ROOT" "data/knirvroot.pid"
 print_status "Cleaning up any remaining processes..."
 
 # Kill any processes listening on our ports
-ports=(1317 8080 8081 8082 5001 8888)
+ports=(1317 8090 8082 8084 8086 8888)
 for port in "${ports[@]}"; do
-    local pids=$(lsof -ti:$port 2>/dev/null || true)
+    pids=$(lsof -ti:$port 2>/dev/null || true)
     if [ -n "$pids" ]; then
         print_warning "Found processes still using port $port, terminating..."
         echo "$pids" | xargs kill -TERM 2>/dev/null || true

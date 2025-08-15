@@ -238,10 +238,20 @@ audit: test
 	go run honnef.co/go/tools/cmd/staticcheck@latest -checks=all,-ST1000,-U1000 ./...
 	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
-## test: run all tests
+## test: run all tests (unit tests + integration tests)
 .PHONY: test
-test:
+test: test-unit test-integration
+
+## test-unit: run unit tests only
+.PHONY: test-unit
+test-unit:
 	go test -v -race -buildvcs ./...
+
+## test-integration: run integration tests across all KNIRV components
+.PHONY: test-integration
+test-integration:
+	@echo "Running comprehensive integration tests..."
+	./scripts/run-integration-tests.sh
 
 ## test/cover: run all tests and display coverage
 .PHONY: test/cover

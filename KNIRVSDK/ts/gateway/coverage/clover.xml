@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1755036840771" clover="3.2.0">
-  <project timestamp="1755036840771" name="All files">
+<coverage generated="1755224772744" clover="3.2.0">
+  <project timestamp="1755224772744" name="All files">
     <metrics statements="342" coveredstatements="221" conditionals="205" coveredconditionals="125" methods="75" coveredmethods="42" elements="622" coveredelements="388" complexity="0" loc="342" ncloc="342" packages="1" files="7" classes="7"/>
     <file name="client.ts" path="/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSDK/ts/gateway/src/client.ts">
       <metrics statements="104" coveredstatements="90" conditionals="85" coveredconditionals="71" methods="19" coveredmethods="16"/>

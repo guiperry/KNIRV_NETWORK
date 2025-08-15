@@ -243,9 +243,11 @@ test_gateway_proxy() {
 
 # Main integration test function
 perform_integration_tests() {
-    print_header "🔗 KNIRV TESTNET INTEGRATION TESTS"
-    print_header "=================================="
-    echo ""
+    if [ "$1" != "--silent" ]; then
+        print_header "🔗 KNIRV TESTNET INTEGRATION TESTS"
+        print_header "=================================="
+        echo ""
+    fi
     
     # 1. Test individual service health endpoints
     print_status "Testing individual service health endpoints..."
@@ -290,31 +292,45 @@ perform_integration_tests() {
     echo ""
     
     # Summary
-    print_header "📊 INTEGRATION TEST SUMMARY"
-    print_header "==========================="
-    echo "Total tests: $TOTAL_TESTS"
-    echo "Passed: $PASSED_TESTS"
-    echo "Failed: $FAILED_TESTS"
-    echo ""
+    if [ "$1" != "--silent" ]; then
+        print_header "📊 INTEGRATION TEST SUMMARY"
+        print_header "==========================="
+        echo "Total tests: $TOTAL_TESTS"
+        echo "Passed: $PASSED_TESTS"
+        echo "Failed: $FAILED_TESTS"
+        echo ""
+        
+        if [ $FAILED_TESTS -eq 0 ]; then
+            print_success "All integration tests passed! 🎉"
+            print_status "The KNIRV testnet is fully functional and ready for use."
+            echo ""
+            echo "🚀 Next Steps:"
+            echo "  • Use the gateway at: http://localhost:8888"
+            echo "  • Check service status: ./health-check.sh --watch"
+            echo "  • View logs in the ./logs/ directory"
+            echo "  • Stop the testnet: ./stop-testnet.sh"
+        else
+            print_error "Integration tests failed with $FAILED_TESTS errors."
+            print_status "Please check the service logs and fix the issues."
+            echo ""
+            echo "🔧 Troubleshooting:"
+            echo "  • Check service health: ./health-check.sh"
+            echo "  • Validate configuration: ./validate-config.sh"
+            echo "  • View service logs: tail -f logs/*.log"
+            echo "  • Restart services: ./stop-testnet.sh && ./start-testnet.sh"
+        fi
+    fi
     
-    if [ $FAILED_TESTS -eq 0 ]; then
-        print_success "All integration tests passed! 🎉"
-        print_status "The KNIRV testnet is fully functional and ready for use."
-        echo ""
-        echo "🚀 Next Steps:"
-        echo "  • Use the gateway at: http://localhost:8888"
-        echo "  • Check service status: ./health-check.sh --watch"
-        echo "  • View logs in the ./logs/ directory"
-        echo "  • Stop the testnet: ./stop-testnet.sh"
-    else
-        print_error "Integration tests failed with $FAILED_TESTS errors."
-        print_status "Please check the service logs and fix the issues."
-        echo ""
-        echo "🔧 Troubleshooting:"
-        echo "  • Check service health: ./health-check.sh"
-        echo "  • Validate configuration: ./validate-config.sh"
-        echo "  • View service logs: tail -f logs/*.log"
-        echo "  • Restart services: ./stop-testnet.sh && ./start-testnet.sh"
+    # Generate JSON report when run from main test suite
+    if [ "$1" = "--silent" ]; then
+        echo '{
+            "testSuite": "KNIRVTestnet",
+            "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
+            "totalTests": '$TOTAL_TESTS',
+            "passedTests": '$PASSED_TESTS',
+            "failedTests": '$FAILED_TESTS',
+            "success": '$([ $FAILED_TESTS -eq 0 ] && echo "true" || echo "false")'
+        }' > "$(dirname "$0")/test-report.json"
     fi
     
     # Return appropriate exit code

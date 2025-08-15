@@ -15,8 +15,8 @@ CLOUD_PROVIDER ?= aws
 PROJECT_ROOT := $(shell pwd)
 ANSIBLE_DIR := $(PROJECT_ROOT)/deployment/ansible
 SCRIPTS_DIR := $(PROJECT_ROOT)/scripts
-KNIRVWEBSITE_DIR := $(PROJECT_ROOT)/KNIRVWEBSITE
-DOCS_DIR := $(PROJECT_ROOT)/KNIRVWEBSITE/documentation
+KNIRVGATEWAY_DIR := $(PROJECT_ROOT)/KNIRVGATEWAY
+DOCS_DIR := $(PROJECT_ROOT)/KNIRVGATEWAY/documentation
 DEPLOYMENT_DIR := $(PROJECT_ROOT)/deployment
 
 # Colors for output
@@ -166,17 +166,17 @@ deploy-monitoring: ## Deploy monitoring stack only
 	@echo "$(GREEN)✓ Monitoring stack deployed$(NC)"
 
 .PHONY: deploy-website
-deploy-website: docs ## Deploy KNIRVWEBSITE (with fresh documentation)
-	@echo "$(BLUE)Deploying KNIRVWEBSITE with updated documentation...$(NC)"
-	@if [ -d "$(KNIRVWEBSITE_DIR)" ]; then \
-		echo "$(YELLOW)Note: KNIRVWEBSITE deployment method depends on your hosting setup$(NC)"; \
+deploy-website: docs ## Deploy KNIRVGATEWAY (with fresh documentation)
+	@echo "$(BLUE)Deploying KNIRVGATEWAY with updated documentation...$(NC)"
+	@if [ -d "$(KNIRVGATEWAY_DIR)" ]; then \
+		echo "$(YELLOW)Note: KNIRVGATEWAY deployment method depends on your hosting setup$(NC)"; \
 		echo "$(YELLOW)Documentation has been generated and is ready for deployment$(NC)"; \
 		echo "$(YELLOW)Generated files are in: $(DOCS_DIR)/docsify$(NC)"; \
 	else \
-		echo "$(RED)Error: KNIRVWEBSITE directory not found$(NC)"; \
+		echo "$(RED)Error: KNIRVGATEWAY directory not found$(NC)"; \
 		exit 1; \
 	fi
-	@echo "$(GREEN)✓ KNIRVWEBSITE ready for deployment$(NC)"
+	@echo "$(GREEN)✓ KNIRVGATEWAY ready for deployment$(NC)"
 
 # =============================================================================
 # FULL DEPLOYMENT WORKFLOWS

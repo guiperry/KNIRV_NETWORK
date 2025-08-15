@@ -120,6 +120,13 @@ node validate-portal.js
 - **Key Tests**: Gateway endpoints, role-based access control, real-time features, cross-origin requests
 - **Validation**: Service integration, authentication flows, portal accessibility, API gateway functionality
 
+### 11. KNIRVTestnet Integration Testing (`knirvtestnet_integration_test.go`) ⭐ NEW
+- **Purpose**: Validate KNIRVTestnet standalone integration and service discovery
+- **Coverage**: Testnet service health, cross-service communication, authentication, gateway proxy
+- **Key Tests**: Service endpoints, testnet-specific functionality, service discovery
+- **Validation**: Testnet readiness, standalone operation, mirrored production behavior
+- **Execution**: Can be run independently or as part of full test suite via `run-integration-tests.sh`
+
 ## Architecture
 
 ### Component Integration

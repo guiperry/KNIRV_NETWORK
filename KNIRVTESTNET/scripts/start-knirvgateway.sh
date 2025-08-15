@@ -31,7 +31,26 @@ cd data/knirvgateway
 # Install dependencies if needed
 if [ ! -d "node_modules" ]; then
     echo "Installing dependencies..."
-    npm install
+    npm install || {
+        echo "npm install failed, running netlify-cli fix..."
+        if [ -f "scripts/fix-netlify-cli.sh" ]; then
+            ./scripts/fix-netlify-cli.sh --auto
+            npm install
+        else
+            echo "Fix script not found, installation failed"
+            exit 1
+        fi
+    }
+fi
+
+# Check if netlify-cli is working
+if ! npx netlify --version >/dev/null 2>&1; then
+    echo "netlify-cli issues detected, running fix..."
+    if [ -f "scripts/fix-netlify-cli.sh" ]; then
+        ./scripts/fix-netlify-cli.sh --auto
+    else
+        echo "Fix script not found, netlify-cli may not work properly"
+    fi
 fi
 
 # Set testnet environment variables with correct service URLs
@@ -45,21 +64,21 @@ export KNIRVNEXUS_VAL_URL=http://localhost:8085
 export KNIRVROUTER_URL=http://localhost:8086
 
 # Start KNIRV-GATEWAY using npm start with specified port
-echo "Starting KNIRV-GATEWAY on port 8087..."
-npx netlify dev --port 8087 > ../../logs/knirvgateway.log 2>&1 &
+echo "Starting KNIRV-GATEWAY on port 8888..."
+npx netlify dev --port 8888 > ../../logs/knirvgateway.log 2>&1 &
 
 GATEWAY_PID=$!
 echo $GATEWAY_PID > ../../data/knirvgateway.pid
 cd ../..
 
 echo "KNIRV-GATEWAY testnet started with PID $(cat ./data/knirvgateway.pid)"
-echo "Gateway endpoint: http://localhost:8087"
+echo "Gateway endpoint: http://localhost:8888"
 echo "Testnet endpoints:"
-echo "  - Health: http://localhost:8087/gateway/health"
-echo "  - Services: http://localhost:8087/gateway/services"
-echo "  - Testnet Status: http://localhost:8087/gateway/testnet/status"
-echo "  - Auth Tokens: http://localhost:8087/auth/testnet-tokens"
-echo "  - Auth Validate: http://localhost:8087/auth/validate"
+echo "  - Health: http://localhost:8888/gateway/health"
+echo "  - Services: http://localhost:8888/gateway/services"
+echo "  - Testnet Status: http://localhost:8888/gateway/testnet/status"
+echo "  - Auth Tokens: http://localhost:8888/auth/testnet-tokens"
+echo "  - Auth Validate: http://localhost:8888/auth/validate"
 echo "Testnet features:"
 echo "  - Static service discovery enabled"
 echo "  - Simplified authentication enabled"

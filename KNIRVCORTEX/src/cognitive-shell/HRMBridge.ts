@@ -233,4 +233,22 @@ export class HRMBridge extends EventEmitter {
     this.config = { ...this.config, ...newConfig };
     this.emit('configUpdated', this.config);
   }
+
+  // Methods required by AdaptiveLearningPipeline interface
+  public async process(data: unknown): Promise<unknown> {
+    if (typeof data === 'object' && data !== null && 'sensory_data' in data) {
+      return this.processCognitiveInput(data as HRMCognitiveInput);
+    }
+    // Convert other data types to HRM format
+    const hrmInput: HRMCognitiveInput = {
+      sensory_data: Array.isArray(data) ? data as number[] : [0],
+      context: typeof data === 'string' ? data : JSON.stringify(data),
+      task_type: 'general'
+    };
+    return this.processCognitiveInput(hrmInput);
+  }
+
+  public isConnected(): boolean {
+    return this.isInitialized;
+  }
 }

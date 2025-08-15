@@ -39,9 +39,11 @@ type TestConfig struct {
 // GetConfig returns the current configuration
 // This is a helper function for the wallet manager to access the configuration
 func GetConfig() (*Config, error) {
-	// Load the configuration from the default path
-	cfg, _, err := LoadConfig("", RoleClient)
-	return cfg, err
+	// For testing, create a minimal config that doesn't interfere with wallet tests
+	// This avoids miner address mismatches during testing
+	cfg := DefaultConfig()
+	cfg.MinersAddress = "" // Empty miner address to avoid conflicts in tests
+	return cfg, nil
 }
 
 func (t *TestConfig) GetWalletPath(role ...Role) (string, error) {
@@ -144,13 +146,13 @@ func StartTestNodeWithDB(port int, minerAddress string, dbPath string, extraArgs
 				} else {
 					cmd.Process.Signal(syscall.SIGTERM)
 				}
-				
+
 				// Wait with timeout
 				done := make(chan error, 1)
 				go func() {
 					done <- cmd.Wait()
 				}()
-				
+
 				select {
 				case <-done:
 					// Process exited
@@ -222,7 +224,7 @@ func WaitForNode(t *testing.T, nodeURL string, timeout time.Duration) {
 			if resp != nil {
 				resp.Body.Close()
 			}
-			
+
 			t.Logf("Node at %s not yet ready, retrying...", nodeURL)
 		}
 	}

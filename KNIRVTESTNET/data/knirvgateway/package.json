@@ -4,9 +4,14 @@
   "description": "KNIRV Gateway - Unified Web Portal and API Gateway for the KNIRV Decentralized Trusted Execution Network",
   "main": "index.html",
   "scripts": {
-    "dev": "netlify dev",
-    "start": "netlify dev",
-    "build": "npm install && echo 'KNIRV Gateway built with Netlify Functions support'",
+    "dev": "npm run check-health && netlify dev",
+    "start": "node scripts/smart-start.js",
+    "build": "npm run check-health && npm install && npm run build:nexus && echo 'KNIRV Gateway built with Netlify Functions support'",
+    "build:nexus": "npm run check-nexus-health && cd nexus-portal && npm install && npm run build",
+    "smart-build": "npm run check-health && npm run build || npm run auto-fix",
+    "check-health": "node scripts/check-health.js",
+    "check-nexus-health": "node scripts/check-nexus-health.js",
+    "auto-fix": "echo '🔧 Auto-fixing detected issues...' && ./scripts/fix-netlify-cli.sh --auto && npm run build",
     "test": "npm run validate",
     "deploy": "netlify deploy --prod",
     "deploy:preview": "netlify deploy",
@@ -14,13 +19,22 @@
     "validate": "echo 'Validating KNIRV Gateway Functions...' && npm run functions:test",
     "health-check": "curl -f http://localhost:8888/gateway/health || exit 1",
     "lint": "echo 'Linting not configured - add ESLint for production'",
-    "clean": "rm -rf node_modules package-lock.json && npm install"
+    "clean": "rm -rf node_modules package-lock.json nexus-portal/node_modules nexus-portal/package-lock.json && npm install",
+    "fix-netlify": "npm run clean && npm audit fix && npm install",
+    "reset": "npm run clean && npm cache clean --force && npm install",
+    "start-unsafe": "npm run build && netlify dev",
+    "force-fix": "./scripts/fix-netlify-cli.sh",
+    "health-report": "npm run check-health && npm run check-nexus-health"
   },
   "dependencies": {
-    "http-proxy-middleware": "^2.0.6"
+    "adm-zip": "^0.5.10",
+    "brace-expansion": "2.0.2",
+    "http-proxy-middleware": "^2.0.6",
+    "on-headers": "1.1.0",
+    "tar-fs": "3.1.0"
   },
   "devDependencies": {
-    "netlify-cli": "^17.0.0"
+    "netlify-cli": "21.6.0"
   },
   "engines": {
     "node": ">=18.0.0"

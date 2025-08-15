@@ -630,6 +630,190 @@ func (pt *PerformanceTester) testConnectivityStatus(_ *testing.T) {
 	pt.recordRequest(latency, err == nil)
 }
 
+// Test KNIRVCORTEX Performance
+func (pt *PerformanceTester) TestKNIRVCORTEXPerformance(t *testing.T) {
+	config := LoadTestConfig{
+		ConcurrentUsers: 8, // Lower concurrency for AI operations
+		TestDuration:    60 * time.Second,
+		RequestsPerUser: 15,
+		RampUpTime:      8 * time.Second,
+	}
+
+	t.Run("CognitiveProcessingLoad", func(t *testing.T) {
+		pt.resetMetrics()
+
+		ctx, cancel := context.WithTimeout(context.Background(), config.TestDuration)
+		defer cancel()
+
+		var wg sync.WaitGroup
+		startTime := time.Now()
+
+		// Test different types of cognitive processing
+		processingTypes := []string{"text", "voice", "visual", "multimodal"}
+
+		for i := 0; i < config.ConcurrentUsers; i++ {
+			wg.Add(1)
+			go func(userID int) {
+				defer wg.Done()
+
+				for j := 0; j < config.RequestsPerUser; j++ {
+					select {
+					case <-ctx.Done():
+						return
+					default:
+						processingType := processingTypes[j%len(processingTypes)]
+						pt.testCognitiveProcessing(t, userID, j, processingType)
+						time.Sleep(500 * time.Millisecond) // Space out AI operations
+					}
+				}
+			}(i)
+		}
+
+		wg.Wait()
+		testDuration := time.Since(startTime)
+		pt.calculateFinalMetrics(testDuration)
+
+		assert.Greater(t, pt.metrics.SuccessfulRequests, int64(0))
+		assert.Less(t, pt.metrics.ErrorRate, 15.0, "Cognitive processing error rate should be less than 15%")
+		assert.Greater(t, pt.metrics.RequestsPerSecond, 0.5, "Should process at least 0.5 requests per second")
+
+		t.Logf("KNIRVCORTEX Cognitive Processing Metrics: %+v", pt.metrics)
+	})
+
+	t.Run("AdaptiveLearningLoad", func(t *testing.T) {
+		pt.resetMetrics()
+
+		ctx, cancel := context.WithTimeout(context.Background(), config.TestDuration)
+		defer cancel()
+
+		var wg sync.WaitGroup
+		startTime := time.Now()
+
+		for i := 0; i < config.ConcurrentUsers; i++ {
+			wg.Add(1)
+			go func(userID int) {
+				defer wg.Done()
+
+				for j := 0; j < config.RequestsPerUser; j++ {
+					select {
+					case <-ctx.Done():
+						return
+					default:
+						switch j % 3 {
+						case 0:
+							pt.testPatternLearning(t, userID, j)
+						case 1:
+							pt.testFeedbackProcessing(t, userID, j)
+						case 2:
+							pt.testAdaptationTrigger(t, userID, j)
+						}
+						time.Sleep(300 * time.Millisecond)
+					}
+				}
+			}(i)
+		}
+
+		wg.Wait()
+		testDuration := time.Since(startTime)
+		pt.calculateFinalMetrics(testDuration)
+
+		assert.Greater(t, pt.metrics.SuccessfulRequests, int64(0))
+		assert.Less(t, pt.metrics.ErrorRate, 20.0, "Adaptive learning error rate should be less than 20%")
+
+		t.Logf("KNIRVCORTEX Adaptive Learning Metrics: %+v", pt.metrics)
+	})
+
+	t.Run("LoRAOperationsLoad", func(t *testing.T) {
+		pt.resetMetrics()
+
+		ctx, cancel := context.WithTimeout(context.Background(), config.TestDuration)
+		defer cancel()
+
+		var wg sync.WaitGroup
+		startTime := time.Now()
+
+		for i := 0; i < config.ConcurrentUsers/2; i++ { // Even lower concurrency for LoRA
+			wg.Add(1)
+			go func(userID int) {
+				defer wg.Done()
+
+				for j := 0; j < config.RequestsPerUser/2; j++ {
+					select {
+					case <-ctx.Done():
+						return
+					default:
+						switch j % 4 {
+						case 0:
+							pt.testLoRATraining(t, userID, j)
+						case 1:
+							pt.testLoRAModelSave(t, userID, j)
+						case 2:
+							pt.testLoRAModelLoad(t, userID, j)
+						case 3:
+							pt.testLoRAWeightOperations(t, userID, j)
+						}
+						time.Sleep(1 * time.Second) // Space out LoRA operations more
+					}
+				}
+			}(i)
+		}
+
+		wg.Wait()
+		testDuration := time.Since(startTime)
+		pt.calculateFinalMetrics(testDuration)
+
+		assert.Greater(t, pt.metrics.SuccessfulRequests, int64(0))
+		assert.Less(t, pt.metrics.ErrorRate, 25.0, "LoRA operations error rate should be less than 25%")
+
+		t.Logf("KNIRVCORTEX LoRA Operations Metrics: %+v", pt.metrics)
+	})
+
+	t.Run("EcosystemIntegrationLoad", func(t *testing.T) {
+		pt.resetMetrics()
+
+		ctx, cancel := context.WithTimeout(context.Background(), config.TestDuration)
+		defer cancel()
+
+		var wg sync.WaitGroup
+		startTime := time.Now()
+
+		for i := 0; i < config.ConcurrentUsers; i++ {
+			wg.Add(1)
+			go func(userID int) {
+				defer wg.Done()
+
+				for j := 0; j < config.RequestsPerUser; j++ {
+					select {
+					case <-ctx.Done():
+						return
+					default:
+						switch j % 4 {
+						case 0:
+							pt.testUnifiedSkillExecution(t, userID, j)
+						case 1:
+							pt.testCrossChainTransfer(t, userID, j)
+						case 2:
+							pt.testMultiServiceQuery(t, userID, j)
+						case 3:
+							pt.testEcosystemMessaging(t, userID, j)
+						}
+						time.Sleep(400 * time.Millisecond)
+					}
+				}
+			}(i)
+		}
+
+		wg.Wait()
+		testDuration := time.Since(startTime)
+		pt.calculateFinalMetrics(testDuration)
+
+		assert.Greater(t, pt.metrics.SuccessfulRequests, int64(0))
+		assert.Less(t, pt.metrics.ErrorRate, 18.0, "Ecosystem integration error rate should be less than 18%")
+
+		t.Logf("KNIRVCORTEX Ecosystem Integration Metrics: %+v", pt.metrics)
+	})
+}
+
 func TestPerformanceAndLoad(t *testing.T) {
 	suite := NewIntegrationTestSuite()
 	suite.SetupTest(t)
@@ -644,4 +828,266 @@ func TestPerformanceAndLoad(t *testing.T) {
 	t.Run("GatewayPerformance", tester.TestGatewayPerformance)
 	t.Run("BridgePerformance", tester.TestBridgePerformance)
 	t.Run("KNIRVROUTERPerformance", tester.TestKNIRVROUTERPerformance)
+
+	// KNIRVCORTEX Performance Tests
+	t.Run("KNIRVCORTEXPerformance", tester.TestKNIRVCORTEXPerformance)
+}
+
+// Helper methods for KNIRVCORTEX performance tests
+func (pt *PerformanceTester) testCognitiveProcessing(_ *testing.T, userID, requestID int, processingType string) {
+	start := time.Now()
+
+	var payload map[string]interface{}
+	var endpoint string
+
+	switch processingType {
+	case "text":
+		payload = map[string]interface{}{
+			"operation": "cognitive_processing",
+			"input":     fmt.Sprintf("Performance test text input %d from user %d", requestID, userID),
+			"type":      "text",
+		}
+		endpoint = "/api/cognitive/process"
+	case "voice":
+		payload = map[string]interface{}{
+			"operation": "voice_processing",
+			"input":     fmt.Sprintf("Voice command %d from user %d", requestID, userID),
+			"type":      "voice",
+		}
+		endpoint = "/api/cognitive/voice"
+	case "visual":
+		payload = map[string]interface{}{
+			"operation": "visual_processing",
+			"input":     []interface{}{userID, requestID, "test_visual_data"},
+			"type":      "visual",
+		}
+		endpoint = "/api/cognitive/visual"
+	case "multimodal":
+		payload = map[string]interface{}{
+			"operation": "multimodal_processing",
+			"text":      fmt.Sprintf("Text %d", requestID),
+			"voice":     fmt.Sprintf("Voice %d", requestID),
+			"visual":    []interface{}{userID, requestID},
+			"type":      "multimodal",
+		}
+		endpoint = "/api/cognitive/multimodal"
+	}
+
+	_, err := pt.suite.makeRequest("POST", endpoint, payload)
+
+	latency := time.Since(start)
+	pt.recordRequest(latency, err == nil)
+}
+
+func (pt *PerformanceTester) testPatternLearning(_ *testing.T, userID, requestID int) {
+	start := time.Now()
+
+	patterns := []map[string]interface{}{
+		{
+			"input":    fmt.Sprintf("Pattern input %d from user %d", requestID, userID),
+			"output":   fmt.Sprintf("pattern_output_%d", requestID%5),
+			"feedback": 0.7 + float64(requestID%3)*0.1,
+		},
+	}
+
+	payload := map[string]interface{}{
+		"operation": "learn_from_patterns",
+		"patterns":  patterns,
+	}
+
+	_, err := pt.suite.makeRequest("POST", "/api/cognitive/adaptive", payload)
+
+	latency := time.Since(start)
+	pt.recordRequest(latency, err == nil)
+}
+
+func (pt *PerformanceTester) testFeedbackProcessing(_ *testing.T, userID, requestID int) {
+	start := time.Now()
+
+	payload := map[string]interface{}{
+		"operation":      "provide_feedback",
+		"interaction_id": fmt.Sprintf("perf_test_%d_%d", userID, requestID),
+		"feedback":       0.5 + float64(requestID%5)*0.1,
+	}
+
+	_, err := pt.suite.makeRequest("POST", "/api/cognitive/adaptive", payload)
+
+	latency := time.Since(start)
+	pt.recordRequest(latency, err == nil)
+}
+
+func (pt *PerformanceTester) testAdaptationTrigger(_ *testing.T, userID, requestID int) {
+	start := time.Now()
+
+	payload := map[string]interface{}{
+		"operation": "trigger_adaptation",
+		"context": map[string]interface{}{
+			"user_id":              userID,
+			"request_id":           requestID,
+			"recent_interactions":  10,
+			"confidence_threshold": 0.7,
+		},
+	}
+
+	_, err := pt.suite.makeRequest("POST", "/api/cognitive/adaptive", payload)
+
+	latency := time.Since(start)
+	pt.recordRequest(latency, err == nil)
+}
+
+func (pt *PerformanceTester) testLoRATraining(_ *testing.T, userID, requestID int) {
+	start := time.Now()
+
+	trainingData := []map[string]interface{}{
+		{
+			"input":    []float64{float64(userID), float64(requestID), 0.1, 0.2, 0.3},
+			"output":   []float64{0.9, 0.8, 0.7, 0.6, 0.5},
+			"feedback": 0.8 + float64(requestID%3)*0.05,
+		},
+	}
+
+	payload := map[string]interface{}{
+		"operation":     "train_enhanced_lora",
+		"training_data": trainingData,
+		"config": map[string]interface{}{
+			"epochs":        5,
+			"learning_rate": 0.001,
+			"batch_size":    1,
+		},
+	}
+
+	_, err := pt.suite.makeRequest("POST", "/api/cognitive/lora", payload)
+
+	latency := time.Since(start)
+	pt.recordRequest(latency, err == nil)
+}
+
+func (pt *PerformanceTester) testLoRAModelSave(_ *testing.T, userID, requestID int) {
+	start := time.Now()
+
+	payload := map[string]interface{}{
+		"operation":  "save_model",
+		"model_name": fmt.Sprintf("perf_test_model_%d_%d", userID, requestID),
+	}
+
+	_, err := pt.suite.makeRequest("POST", "/api/cognitive/lora", payload)
+
+	latency := time.Since(start)
+	pt.recordRequest(latency, err == nil)
+}
+
+func (pt *PerformanceTester) testLoRAModelLoad(_ *testing.T, userID, requestID int) {
+	start := time.Now()
+
+	payload := map[string]interface{}{
+		"operation":  "load_model",
+		"model_name": fmt.Sprintf("perf_test_model_%d_%d", userID, requestID),
+	}
+
+	_, err := pt.suite.makeRequest("POST", "/api/cognitive/lora", payload)
+
+	latency := time.Since(start)
+	pt.recordRequest(latency, err == nil)
+}
+
+func (pt *PerformanceTester) testLoRAWeightOperations(_ *testing.T, userID, requestID int) {
+	start := time.Now()
+
+	var payload map[string]interface{}
+	if requestID%2 == 0 {
+		// Export weights
+		payload = map[string]interface{}{
+			"operation": "export_weights",
+		}
+	} else {
+		// Import weights
+		payload = map[string]interface{}{
+			"operation": "import_weights",
+			"weights": map[string]interface{}{
+				"layer_1": []float64{0.1, 0.2, 0.3},
+				"layer_2": []float64{0.4, 0.5, 0.6},
+			},
+		}
+	}
+
+	_, err := pt.suite.makeRequest("POST", "/api/cognitive/lora", payload)
+
+	latency := time.Since(start)
+	pt.recordRequest(latency, err == nil)
+}
+
+func (pt *PerformanceTester) testUnifiedSkillExecution(_ *testing.T, userID, requestID int) {
+	start := time.Now()
+
+	payload := map[string]interface{}{
+		"operation": "unified_skill_execution",
+		"skill_id":  fmt.Sprintf("perf_test_skill_%d", requestID%5),
+		"parameters": map[string]interface{}{
+			"user_id":    userID,
+			"request_id": requestID,
+			"complexity": "medium",
+		},
+		"nrn_amount": "1.0",
+	}
+
+	_, err := pt.suite.makeRequest("POST", "/api/cognitive/unified", payload)
+
+	latency := time.Since(start)
+	pt.recordRequest(latency, err == nil)
+}
+
+func (pt *PerformanceTester) testCrossChainTransfer(_ *testing.T, userID, requestID int) {
+	start := time.Now()
+
+	payload := map[string]interface{}{
+		"operation":  "cross_chain_transfer",
+		"from_chain": "knirv-chain",
+		"to_chain":   "ethereum",
+		"amount":     "0.1",
+		"recipient":  fmt.Sprintf("0x%040d", userID*1000+requestID),
+	}
+
+	_, err := pt.suite.makeRequest("POST", "/api/cognitive/unified", payload)
+
+	latency := time.Since(start)
+	pt.recordRequest(latency, err == nil)
+}
+
+func (pt *PerformanceTester) testMultiServiceQuery(_ *testing.T, userID, requestID int) {
+	start := time.Now()
+
+	services := []string{"knirv-nexus", "knirv-graph"}
+	if requestID%3 == 0 {
+		services = append(services, "knirv-chain")
+	}
+
+	payload := map[string]interface{}{
+		"operation": "multi_service_query",
+		"services":  services,
+		"query":     fmt.Sprintf("Performance test query %d from user %d", requestID, userID),
+	}
+
+	_, err := pt.suite.makeRequest("POST", "/api/cognitive/unified", payload)
+
+	latency := time.Since(start)
+	pt.recordRequest(latency, err == nil)
+}
+
+func (pt *PerformanceTester) testEcosystemMessaging(_ *testing.T, userID, requestID int) {
+	start := time.Now()
+
+	targets := []string{"knirv-nexus", "knirv-graph", "knirv-chain"}
+	target := targets[requestID%len(targets)]
+
+	payload := map[string]interface{}{
+		"operation": "ecosystem_message",
+		"target":    target,
+		"message":   fmt.Sprintf("Performance test message %d from user %d", requestID, userID),
+		"priority":  "normal",
+	}
+
+	_, err := pt.suite.makeRequest("POST", "/api/cognitive/messaging", payload)
+
+	latency := time.Since(start)
+	pt.recordRequest(latency, err == nil)
 }

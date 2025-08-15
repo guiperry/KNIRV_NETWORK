@@ -1162,19 +1162,19 @@ func (m *ChromemManager) GetBadgeAttachments(agentID string) ([]*BadgeAttachment
 		return nil, fmt.Errorf("failed to get badge attachments collection: %w", err)
 	}
 
-	// Query for badge attachments with progressive limits to handle ChromeDB validation
-	// ChromeDB requires nResults <= number of documents in collection
+	// Query for badge attachments using agent ID as the query text
+	// This should match documents that contain the agent ID
 	var results []chromem.Result
 
-	// Try progressively smaller limits until we find one that works
-	limits := []int{10, 5, 3, 2, 1}
+	// Try progressively larger limits to get all possible attachments
+	limits := []int{50, 20, 10, 5, 3, 2, 1}
 	for _, limit := range limits {
 		results, err = attachmentCollection.Query(
 			context.Background(),
-			"Badge Attachment", // Generic query to match badge attachment documents
-			limit,              // Progressive limit
-			nil,                // No where clause to avoid "unsupported operator" errors
-			nil,                // No include map
+			fmt.Sprintf("Agent ID: %s", agentID), // Query specifically for this agent
+			limit,                                // Progressive limit
+			nil,                                  // No where clause to avoid "unsupported operator" errors
+			nil,                                  // No include map
 		)
 		if err == nil {
 			break // Success, exit the retry loop
@@ -1182,8 +1182,24 @@ func (m *ChromemManager) GetBadgeAttachments(agentID string) ([]*BadgeAttachment
 	}
 
 	if err != nil {
-		// If all limits failed, the collection might be empty
-		return []*BadgeAttachment{}, nil
+		// If all limits failed, try a fallback approach with generic query
+		for _, limit := range []int{50, 20, 10, 5, 3, 2, 1} {
+			results, err = attachmentCollection.Query(
+				context.Background(),
+				"Badge Attachment", // Generic query to match badge attachment documents
+				limit,              // Progressive limit
+				nil,                // No where clause to avoid "unsupported operator" errors
+				nil,                // No include map
+			)
+			if err == nil {
+				break // Success, exit the retry loop
+			}
+		}
+
+		if err != nil {
+			// If all limits failed, the collection might be empty
+			return []*BadgeAttachment{}, nil
+		}
 	}
 
 	// Process the results and filter by agent ID

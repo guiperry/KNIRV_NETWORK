@@ -4,7 +4,7 @@ import * as React from 'react';
 // Mock WASM module
 jest.mock('../wasm-pkg/knirv_cortex_wasm', () => ({
   greet: jest.fn(() => 'Hello from WASM!'),
-  process_data: jest.fn((data: any) => data),
+  process_data: jest.fn((data: unknown) => data),
   initialize_cortex: jest.fn(() => true),
   get_version: jest.fn(() => '1.0.0'),
 }));
@@ -247,7 +247,7 @@ const mockWebGLContext = {
   viewport: jest.fn(),
 };
 
-HTMLCanvasElement.prototype.getContext = jest.fn((contextType: string) => {
+(HTMLCanvasElement.prototype.getContext as jest.Mock) = jest.fn((contextType: string) => {
   if (contextType === 'webgl' || contextType === 'experimental-webgl') {
     return mockWebGLContext;
   }
@@ -277,10 +277,43 @@ HTMLCanvasElement.prototype.getContext = jest.fn((contextType: string) => {
       transform: jest.fn(),
       rect: jest.fn(),
       clip: jest.fn(),
-      canvas: {},
+      canvas: {} as HTMLCanvasElement,
       globalAlpha: 1,
       globalCompositeOperation: 'source-over',
-    } as any;
+      // Add missing required properties for CanvasRenderingContext2D
+      fillStyle: '#000000',
+      strokeStyle: '#000000',
+      lineWidth: 1,
+      lineCap: 'butt' as CanvasLineCap,
+      lineJoin: 'miter' as CanvasLineJoin,
+      miterLimit: 10,
+      lineDashOffset: 0,
+      shadowOffsetX: 0,
+      shadowOffsetY: 0,
+      shadowBlur: 0,
+      shadowColor: 'rgba(0, 0, 0, 0)',
+      font: '10px sans-serif',
+      textAlign: 'start' as CanvasTextAlign,
+      textBaseline: 'alphabetic' as CanvasTextBaseline,
+      direction: 'inherit' as CanvasDirection,
+      imageSmoothingEnabled: true,
+      imageSmoothingQuality: 'low' as ImageSmoothingQuality,
+      filter: 'none',
+      isPointInPath: jest.fn(),
+      isPointInStroke: jest.fn(),
+      getLineDash: jest.fn(() => []),
+      setLineDash: jest.fn(),
+      createLinearGradient: jest.fn(),
+      createRadialGradient: jest.fn(),
+      createPattern: jest.fn(),
+      bezierCurveTo: jest.fn(),
+      arcTo: jest.fn(),
+      ellipse: jest.fn(),
+      strokeText: jest.fn(),
+      quadraticCurveTo: jest.fn(),
+      getTransform: jest.fn(),
+      resetTransform: jest.fn(),
+    } as unknown as CanvasRenderingContext2D;
   }
   return null;
 });
@@ -304,7 +337,7 @@ Object.defineProperty(window, 'sessionStorage', {
 });
 
 // Mock MediaRecorder
-const MockMediaRecorder: any = jest.fn().mockImplementation(() => ({
+const MockMediaRecorder = jest.fn().mockImplementation(() => ({
   start: jest.fn(),
   stop: jest.fn(),
   pause: jest.fn(),
@@ -320,10 +353,14 @@ const MockMediaRecorder: any = jest.fn().mockImplementation(() => ({
   onresume: null,
   onstart: null,
   onstop: null,
-}));
+})) as unknown as {
+  new (stream: MediaStream, options?: MediaRecorderOptions): MediaRecorder;
+  prototype: MediaRecorder;
+  isTypeSupported(type: string): boolean;
+};
 
-MockMediaRecorder.isTypeSupported = jest.fn().mockReturnValue(true);
-global.MediaRecorder = MockMediaRecorder;
+(MockMediaRecorder as unknown as { isTypeSupported: jest.Mock }).isTypeSupported = jest.fn().mockReturnValue(true);
+global.MediaRecorder = MockMediaRecorder as unknown as typeof MediaRecorder;
 
 // Mock SpeechSynthesisUtterance
 global.SpeechSynthesisUtterance = jest.fn().mockImplementation((text) => ({
@@ -404,7 +441,6 @@ global.fetch = jest.fn(() =>
 ) as jest.Mock;
 
 // Mock console methods to reduce noise in tests
-const originalConsole = { ...console };
 beforeEach(() => {
   jest.spyOn(console, 'log').mockImplementation(() => {});
   jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -418,14 +454,14 @@ afterEach(() => {
 // Global test utilities
 declare global {
   var testUtils: {
-    createMockEvent: (type: string, data?: any) => Event;
+    createMockEvent: (type: string, data?: unknown) => Event;
     waitFor: (condition: () => boolean, timeout?: number) => Promise<void>;
-    mockComponent: (name: string) => React.ComponentType<any>;
+    mockComponent: (name: string) => React.ComponentType<Record<string, unknown>>;
   };
 }
 
 global.testUtils = {
-  createMockEvent: (type: string, data: any = {}) => {
+  createMockEvent: (type: string, data: Record<string, unknown> = {}) => {
     const event = new Event(type);
     Object.assign(event, data);
     return event;
@@ -442,8 +478,8 @@ global.testUtils = {
   },
   
   mockComponent: (name: string) => {
-    return jest.fn(({ children, ...props }) => {
+    return jest.fn(({ children, ...props }: { children?: React.ReactNode; [key: string]: unknown }) => {
       return React.createElement('div', { 'data-testid': name, ...props }, children);
-    });
+    }) as React.ComponentType<Record<string, unknown>>;
   },
 };

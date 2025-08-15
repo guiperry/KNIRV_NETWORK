@@ -411,4 +411,57 @@ export class HRMLoRABridge extends EventEmitter {
       cachedWeights: this.hrmWeightCache.size,
     };
   }
+
+  // Methods required by AdaptiveLearningPipeline interface
+  public async processWithLoRA(data: unknown, loraConfig: Record<string, unknown>): Promise<unknown> {
+    if (!this.hrmBridge || !this.enhancedLoraAdapter) {
+      throw new Error('HRM Bridge or Enhanced LoRA Adapter not initialized');
+    }
+
+    try {
+      // Process with HRM first
+      const hrmResult = await this.hrmBridge.process(data);
+
+      // Apply LoRA adaptation
+      const adaptedResult = await this.enhancedLoraAdapter.adapt(hrmResult, loraConfig);
+
+      return adaptedResult;
+    } catch (error) {
+      console.error('Error in processWithLoRA:', error);
+      throw error;
+    }
+  }
+
+  public updateLoRAWeights(weights: Record<string, unknown>): void {
+    if (!this.enhancedLoraAdapter) {
+      console.warn('Enhanced LoRA Adapter not initialized');
+      return;
+    }
+
+    try {
+      // Update the cached weights
+      for (const [key, value] of Object.entries(weights)) {
+        // Convert value to tensor if it's not already one
+        if (value && typeof value === 'object' && 'data' in value) {
+          // Assume it's tensor-like data
+          const tensor = tf.tensor(value as any);
+          this.hrmWeightCache.set(key, tensor);
+        } else if (Array.isArray(value)) {
+          // Convert array to tensor
+          const tensor = tf.tensor(value);
+          this.hrmWeightCache.set(key, tensor);
+        }
+        // Skip non-tensor values
+      }
+
+      // Trigger weight synchronization
+      this.performWeightSync().catch(error => {
+        console.error('Error updating LoRA weights:', error);
+      });
+    } catch (error) {
+      console.error('Error updating LoRA weights:', error);
+    }
+  }
+
+
 }

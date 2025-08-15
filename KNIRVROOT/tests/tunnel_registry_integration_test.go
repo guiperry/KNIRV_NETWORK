@@ -47,7 +47,7 @@ func TestTunnelRegistryIntegration(t *testing.T) {
 
 func startGoServer(t *testing.T) *exec.Cmd {
 	// Try to run the server with proper flags
-	cmd := exec.Command("go", "run", ".", "--role", "client", "--port", "8080", "--p2p-port", "4001", "--skip-install", "--no-gui")
+	cmd := exec.Command("go", "run", ".", "-role", "client", "-port", "8080", "-p2p.port", "4001", "-skip-install", "-no-wallet-server")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -96,7 +96,7 @@ func testNodeRegistration(t *testing.T) {
 	nodeInfo := map[string]interface{}{
 		"devId":         "QmTestPeerId123",
 		"chainId":       "test-chain-1",
-		"publicIp":      "192.168.1.1",
+		"publicIp":      "localhost",
 		"publicP2pPort": 4001,
 		"type":          "dev",
 	}
@@ -123,7 +123,7 @@ func testNodeRegistration(t *testing.T) {
 
 	assert.Equal(t, "QmTestPeerId123", registeredNode["devId"], "Node ID mismatch")
 	assert.Equal(t, "test-chain-1", registeredNode["chainId"], "Chain ID mismatch")
-	assert.Equal(t, "192.168.1.1", registeredNode["publicIp"], "Public IP mismatch")
+	assert.Equal(t, "localhost", registeredNode["publicIp"], "Public IP mismatch")
 	assert.Equal(t, float64(4001), registeredNode["publicP2pPort"], "Public P2P port mismatch")
 }
 

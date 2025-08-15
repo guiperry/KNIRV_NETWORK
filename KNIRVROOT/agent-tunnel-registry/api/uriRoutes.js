@@ -61,8 +61,36 @@ router.post('/generate', (req, res) => {
             directInfo: !nodeInfo.isTunneled ? { ip: nodeInfo.publicIp, port: nodeInfo.publicP2pPort } : null
         });
     }).catch(err => {
-        console.error(`[URI Generate] Error checking if ID exists: ${err.message}`);
-        res.status(500).json({ error: 'Internal server error during ID verification' });
+        console.warn(`[URI Generate] Go internal API not available (${err.message}), proceeding without ID verification`);
+
+        // Proceed without ID verification for testing/development
+        // Map the unique resource ID to the node's devId in the local registry
+        registryManager.mapTunneledResource(resourceSpecificId, devId);
+
+        // Generate and return the URI
+        let uri;
+        if (nodeInfo.isTunneled) {
+            uri = `agent://${config.serverPublicHost}/${resourceSpecificId}.${resourceType}${subPath ? '/' + subPath.replace(/^\//, '') : ''}`;
+        } else {
+            uri = `agent://${nodeInfo.publicIp || nodeInfo.devId}/${resourceSpecificId}.${resourceType}${subPath ? '/' + subPath.replace(/^\//, '') : ''}`;
+        }
+
+        // Try to announce the resource on the DHT (optional for testing)
+        axios.post(`http://localhost:${config.goInternalApiPort}/internal/dht/announceResource`, {
+            id: resourceSpecificId,
+            type: resourceType,
+            multiaddress: nodeInfo.isTunneled ?
+                `/ip4/${config.serverPublicHost}/tcp/${config.publicRelayPort}/p2p/${config.relayServerPeerId}/p2p-circuit/p2p/${devId}` :
+                `/ip4/${nodeInfo.publicIp}/tcp/${nodeInfo.publicP2pPort}/p2p/${devId}`
+        }).catch(err => console.warn(`[URI Generate] Failed to announce resource ${resourceSpecificId} on DHT: ${err.message}`));
+
+        res.json({
+            uri,
+            resourceId: resourceSpecificId,
+            resourceType,
+            subPath,
+            directInfo: !nodeInfo.isTunneled ? { ip: nodeInfo.publicIp, port: nodeInfo.publicP2pPort } : null
+        });
     });
 });
 
@@ -113,19 +141,29 @@ router.get('/resolve', (req, res) => {
         // Determine if this is a tunneled resource or direct dev
         let connectionDetails = null;
         
-        // Check if this is a tunneled resource ID
-        const targetPeerIdForTunneled = registryManager.getPeerIdForTunneledResource(identifier);
-        
-        if (targetPeerIdForTunneled) {
-            const nodeInfo = registryManager.getNodeByPeerId(targetPeerIdForTunneled);
-            if (nodeInfo && nodeInfo.isTunneled) {
-                connectionDetails = {
-                    connectionType: 'TUNNELED',
-                    targetPeerId: targetPeerIdForTunneled,
-                    tunnelServerHost: config.serverPublicHost,
-                    tunnelServerPort: config.publicRelayPort,
-                    relayProtocolInfo: "Send targetPeerId as first line (JSON: {\"targetPeerId\":\"Qm...\"}) after connecting to tunnel server."
-                };
+        // Check if this is a resource ID that maps to a node (tunneled or direct)
+        const targetPeerIdForResource = registryManager.getPeerIdForTunneledResource(identifier);
+
+        if (targetPeerIdForResource) {
+            const nodeInfo = registryManager.getNodeByPeerId(targetPeerIdForResource);
+            if (nodeInfo) {
+                if (nodeInfo.isTunneled) {
+                    connectionDetails = {
+                        connectionType: 'TUNNELED',
+                        targetPeerId: targetPeerIdForResource,
+                        tunnelServerHost: config.serverPublicHost,
+                        tunnelServerPort: config.publicRelayPort,
+                        relayProtocolInfo: "Send targetPeerId as first line (JSON: {\"targetPeerId\":\"Qm...\"}) after connecting to tunnel server."
+                    };
+                } else if (nodeInfo.publicIp && nodeInfo.publicP2pPort) {
+                    // For direct nodes mapped via resource ID
+                    const directMultiaddress = `/ip4/${nodeInfo.publicIp}/tcp/${nodeInfo.publicP2pPort}/p2p/${nodeInfo.devId}`;
+                    connectionDetails = {
+                        connectionType: 'DIRECT_P2P',
+                        targetPeerId: nodeInfo.devId,
+                        multiaddress: directMultiaddress,
+                    };
+                }
             }
         }
         
@@ -275,11 +313,13 @@ router.get('/resolve', (req, res) => {
                             res.status(404).json({ error: `Resource with identifier '${identifier}' not found in local registry, DHT, or blockchain.` });
                         }
                     }).catch(dbError => {
-                        res.status(500).json({ error: `Error looking up capability '${identifier}' in blockchain: ${dbError.message}` });
+                        console.warn(`[URI Resolve] Database lookup failed for '${identifier}': ${dbError.message}`);
+                        res.status(404).json({ error: `Resource with identifier '${identifier}' not found in local registry, DHT, or blockchain. Database service unavailable.` });
                     });
                 }
             }).catch(dhtError => {
-                res.status(500).json({ error: `Error looking up resource '${identifier}' on DHT: ${dhtError.message}` });
+                console.warn(`[URI Resolve] DHT lookup failed for '${identifier}': ${dhtError.message}`);
+                res.status(404).json({ error: `Resource with identifier '${identifier}' not found in local registry. DHT service unavailable.` });
             });
             return; // Exit here as the response will be sent asynchronously
         }

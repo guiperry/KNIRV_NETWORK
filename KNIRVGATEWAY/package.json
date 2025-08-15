@@ -27,11 +27,11 @@
     "health-report": "npm run check-health && npm run check-nexus-health"
   },
   "dependencies": {
-    "http-proxy-middleware": "^2.0.6",
-    "adm-zip": "^0.5.10"
+    "adm-zip": "^0.5.10",
+    "http-proxy-middleware": "^2.0.6"
   },
   "devDependencies": {
-    "netlify-cli": "21.6.0"
+    "netlify-cli": "^23.1.4"
   },
   "engines": {
     "node": ">=18.0.0"
