@@ -11,7 +11,7 @@ import (
 	"KNIRVROOT/types"
 	"KNIRVROOT/utils" // Added to access constants
 	"log"
-	
+
 	"sync"
 	"time"
 
@@ -422,6 +422,202 @@ func (csm *ChromemSyncManager) OnNewBlockConfirmed(block *Block, registrationCon
 							log.Printf("[ERROR] ChromemSyncManager: Error adding registration context record %s to ChromemDB for tx %s: %v", ctxIDReg, tx.TransactionHash, errAddCtx)
 						} else {
 							log.Printf("[DEBUG] ChromemSyncManager: Successfully added registration context record %s to ChromemDB for tx %s.", ctxIDReg, tx.TransactionHash)
+						}
+					}
+				}
+			}
+		} else if string(tx.Type) == "update_capability_txn" {
+			log.Printf("[DEBUG] ChromemSyncManager: Processing update_capability_txn: %s in block %d", tx.TransactionHash, block.BlockNumber)
+
+			// Parse the update transaction data
+			var updateDataMap map[string]interface{}
+			if err := json.Unmarshal(tx.Data, &updateDataMap); err != nil {
+				log.Printf("Error unmarshaling capability update data for tx %s: %v", tx.TransactionHash, err)
+				continue
+			}
+
+			var capabilityID string
+			var capDesc interface{}
+
+			// Check if this is the test format with capabilityDescriptor
+			if capDescriptor, hasCapDesc := updateDataMap["capabilityDescriptor"]; hasCapDesc {
+				// Test format: { "capabilityID": "...", "capabilityDescriptor": { ... } }
+				if capID, ok := updateDataMap["capabilityID"].(string); ok {
+					capabilityID = capID
+					capDesc = capDescriptor
+				}
+			} else {
+				// Standard format: MCPUpdateCapabilityData
+				var mcpUpdateData types.MCPUpdateCapabilityData
+				if err := json.Unmarshal(tx.Data, &mcpUpdateData); err != nil {
+					log.Printf("Error unmarshaling MCPUpdateCapabilityData for tx %s: %v", tx.TransactionHash, err)
+					continue
+				}
+				capabilityID = mcpUpdateData.CapabilityID
+				capDesc = mcpUpdateData.Descriptor
+			}
+
+			if capabilityID == "" || capDesc == nil {
+				log.Printf("[ERROR] ChromemSyncManager: Invalid capability update data for tx %s", tx.TransactionHash)
+				continue
+			}
+
+			// Convert the capability descriptor to the proper format
+			capDescMap, ok := capDesc.(map[string]interface{})
+			if !ok {
+				log.Printf("[ERROR] ChromemSyncManager: Capability descriptor is not a map for update tx %s", tx.TransactionHash)
+				continue
+			}
+			converted, err := types.ConvertMapToCapability(capDescMap)
+			if err != nil {
+				log.Printf("[ERROR] ChromemSyncManager: Failed to convert JSON capability descriptor for update tx %s: %v", tx.TransactionHash, err)
+				continue
+			}
+
+			// Convert to protobuf format for ChromemDB
+			var updateData pb.MCPRegisterCapabilityDataProto
+			switch desc := converted.(type) {
+			case *types.ResourceDescriptor:
+				resourceProto, err := ConvertResourceDescriptorToProto(*desc)
+				if err != nil {
+					log.Printf("[ERROR] ChromemSyncManager: Failed to convert resource descriptor to proto for update tx %s: %v", tx.TransactionHash, err)
+					continue
+				}
+				updateData = pb.MCPRegisterCapabilityDataProto{
+					CapabilityDescriptor: &pb.CapabilityDescriptorContainerProto{
+						Descriptor_: &pb.CapabilityDescriptorContainerProto_Resource{
+							Resource: resourceProto,
+						},
+					},
+				}
+			case *types.ToolDescriptor:
+				toolProto, err := ConvertToolDescriptorToProto(*desc)
+				if err != nil {
+					log.Printf("[ERROR] ChromemSyncManager: Failed to convert tool descriptor to proto for update tx %s: %v", tx.TransactionHash, err)
+					continue
+				}
+				updateData = pb.MCPRegisterCapabilityDataProto{
+					CapabilityDescriptor: &pb.CapabilityDescriptorContainerProto{
+						Descriptor_: &pb.CapabilityDescriptorContainerProto_Tool{
+							Tool: toolProto,
+						},
+					},
+				}
+			case *types.PromptDescriptor:
+				promptProto, err := ConvertPromptDescriptorToProto(*desc)
+				if err != nil {
+					log.Printf("[ERROR] ChromemSyncManager: Failed to convert prompt descriptor to proto for update tx %s: %v", tx.TransactionHash, err)
+					continue
+				}
+				updateData = pb.MCPRegisterCapabilityDataProto{
+					CapabilityDescriptor: &pb.CapabilityDescriptorContainerProto{
+						Descriptor_: &pb.CapabilityDescriptorContainerProto_Prompt{
+							Prompt: promptProto,
+						},
+					},
+				}
+			case *types.MemoryServiceDescriptor:
+				memoryProto, err := ConvertMemoryServiceDescriptorToProto(*desc)
+				if err != nil {
+					log.Printf("[ERROR] ChromemSyncManager: Failed to convert memory service descriptor to proto for update tx %s: %v", tx.TransactionHash, err)
+					continue
+				}
+				updateData = pb.MCPRegisterCapabilityDataProto{
+					CapabilityDescriptor: &pb.CapabilityDescriptorContainerProto{
+						Descriptor_: &pb.CapabilityDescriptorContainerProto_MemoryService{
+							MemoryService: memoryProto,
+						},
+					},
+				}
+			default:
+				log.Printf("[ERROR] ChromemSyncManager: Unsupported capability type '%T' in update for tx %s", converted, tx.TransactionHash)
+				continue
+			}
+
+			// Prepare for ChromemDB update
+			capID, capDoc, capMetadata, err := PrepareCapabilityDescriptorForChromemFromRegister(
+				&updateData,
+				tx.TransactionHash,
+				block.BlockNumber,
+				block.Timestamp,
+			)
+			if err != nil {
+				log.Printf("[ERROR] ChromemSyncManager: Error preparing capability descriptor for update tx %s: %v", tx.TransactionHash, err)
+				continue
+			}
+
+			// Mark this as an update in metadata
+			capMetadata["updateTxHash"] = tx.TransactionHash
+			capMetadata["isUpdate"] = true
+
+			log.Printf("[DEBUG] ChromemSyncManager: Prepared capability update for ChromemDB. CapID: %s, Doc: %.60s..., Metadata: %v", capID, capDoc, capMetadata)
+
+			// Update in ChromemDB (this will overwrite the existing document)
+			err = csm.capabilityDescriptorCollection.Add(
+				context.Background(),
+				[]string{capID},
+				nil,
+				[]map[string]string{convertMetadata(capMetadata)},
+				[]string{capDoc},
+			)
+			if err != nil {
+				log.Printf("[ERROR] ChromemSyncManager: Error updating capability %s in ChromemDB for tx %s: %v", capID, tx.TransactionHash, err)
+			} else {
+				log.Printf("[DEBUG] ChromemSyncManager: Successfully updated capability %s in ChromemDB for tx %s.", capID, tx.TransactionHash)
+
+				// Handle context record for update
+				var levelDBContextRecordProto *pb.ContextRecordProto
+				var errDbGet error
+
+				// Find the matching pre-fetched context record for THIS transaction
+				foundPrefetched := false
+				for _, preFetchedProto := range registrationContextRecords {
+					if preFetchedProto != nil && preFetchedProto.Id == tx.TransactionHash {
+						levelDBContextRecordProto = preFetchedProto
+						foundPrefetched = true
+						log.Printf("[DEBUG] ChromemSyncManager: Using pre-fetched context record for update tx %s.", tx.TransactionHash)
+						break
+					}
+				}
+
+				if !foundPrefetched {
+					log.Printf("[DEBUG] ChromemSyncManager: No pre-fetched context record found for update tx %s. Attempting LevelDB fetch.", tx.TransactionHash)
+					// Retry fetching from LevelDB if not pre-fetched
+					for i := 0; i < 3; i++ { // Retry up to 3 times
+						levelDBContextRecordProto, errDbGet = csm.db.GetContextRecord(tx.TransactionHash)
+						if errDbGet == nil && levelDBContextRecordProto != nil {
+							break
+						}
+						log.Printf("[WARN] ChromemSyncManager: Attempt %d to get context record from LevelDB for update tx %s failed: %v. Retrying in 100ms...", i+1, tx.TransactionHash, errDbGet)
+						time.Sleep(100 * time.Millisecond)
+					}
+				}
+
+				if levelDBContextRecordProto == nil {
+					log.Printf("[ERROR] ChromemSyncManager: Failed to get context record from LevelDB for update tx %s after retries. Error: %v. It will not be synced to ChromemDB.", tx.TransactionHash, errDbGet)
+				} else {
+					// Convert proto to types.ContextRecord
+					contextRecord, errConv := ConvertProtoToContextRecord(levelDBContextRecordProto)
+					if errConv != nil {
+						log.Printf("[ERROR] ChromemSyncManager: Failed to convert context record proto to type for update tx %s: %v", tx.TransactionHash, errConv)
+					} else {
+						ctxIDUpdate, ctxDocUpdate, ctxMetadataUpdate := PrepareContextRecordForChromemEnhanced(
+							&contextRecord,
+							tx.TransactionHash,
+							int64(block.BlockNumber),
+							block.Timestamp,
+						)
+						errAddCtx := csm.contextRecordCollection.Add(
+							context.Background(),
+							[]string{ctxIDUpdate},
+							nil,
+							[]map[string]string{convertMetadata(ctxMetadataUpdate)},
+							[]string{ctxDocUpdate},
+						)
+						if errAddCtx != nil {
+							log.Printf("[ERROR] ChromemSyncManager: Error adding update context record %s to ChromemDB for tx %s: %v", ctxIDUpdate, tx.TransactionHash, errAddCtx)
+						} else {
+							log.Printf("[DEBUG] ChromemSyncManager: Successfully added update context record %s to ChromemDB for tx %s.", ctxIDUpdate, tx.TransactionHash)
 						}
 					}
 				}

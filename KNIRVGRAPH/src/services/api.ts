@@ -2,12 +2,12 @@
 export interface GraphNode {
   id: string;
   node_type: string;
-  data: any;
+  data: Record<string, unknown>;
   parents: string[];
   children: string[];
   weight: number;
   timestamp: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface GraphEdge {
@@ -16,7 +16,7 @@ export interface GraphEdge {
   to: string;
   weight: number;
   edge_type: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   timestamp: string;
 }
 
@@ -24,7 +24,7 @@ export interface SkillNode {
   id: string;
   skill_type: string;
   capabilities: string[];
-  requirements: Record<string, any>;
+  requirements: Record<string, unknown>;
   performance?: {
     success_rate: number;
     avg_resolution_time: number;
@@ -43,7 +43,7 @@ export interface ErrorNode {
   id: string;
   error_type: string;
   description: string;
-  context: Record<string, any>;
+  context: Record<string, unknown>;
   severity: number;
   timestamp: string;
   resolution_status?: 'pending' | 'resolved' | 'failed';
@@ -57,7 +57,7 @@ export interface NRVVector {
   coordinates: number[];
   confidence: number;
   timestamp: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface GraphChainStats {
@@ -179,7 +179,7 @@ class GraphChainAPI {
         totalVectors: vectors.length,
         avgResolutionTime,
       };
-    } catch (error) {
+    } catch {
       throw new Error('Failed to fetch GraphChain stats');
     }
   }

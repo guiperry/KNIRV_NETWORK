@@ -3,7 +3,9 @@ package storage
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
+	"strings"
 
 	"github.com/dgraph-io/badger/v3"
 )
@@ -250,12 +252,21 @@ func (s *BluntDBStorage) RunGC() error {
 }
 
 func (s *BluntDBStorage) Backup(path string) error {
+	// Validate path to prevent directory traversal
+	if strings.Contains(path, "..") {
+		return fmt.Errorf("invalid path: directory traversal not allowed")
+	}
+
 	// Create backup file
-	file, err := os.Create(path)
+	file, err := os.Create(path) // #nosec G304 - path is validated above
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			log.Printf("Error closing backup file: %v", closeErr)
+		}
+	}()
 
 	_, err = s.db.Backup(file, 0)
 	return err

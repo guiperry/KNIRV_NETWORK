@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { graphChainApi, ErrorNode, SkillNode } from '../services/api';
 import { useGraphChain } from '../context/GraphChainContext';
-import { AlertTriangle, Clock, User, Hash, ArrowRight, Brain, CheckCircle, XCircle } from 'lucide-react';
+import { AlertTriangle, Clock, Hash, ArrowRight, Brain, CheckCircle, XCircle } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const ErrorNodes: React.FC = () => {

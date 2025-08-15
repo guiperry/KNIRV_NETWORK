@@ -222,8 +222,8 @@ func (m *ChromemManager) OnNewBlockConfirmed(block *Block) error {
 			txDataJSON = string(dataBytes)
 		}
 
-		// Add to ChromemDB
-		err := m.AddTransaction(
+		// Add to ChromemDB (use internal method since we already hold the lock)
+		err := m.addTransactionInternal(
 			txHash, blockHash,
 			blockNumber, value, fee,
 			from, to, txType, status, dataType, txDataJSON,
@@ -287,16 +287,13 @@ func (m *ChromemManager) OnBlockOrphaned(block *Block) error {
 	return nil
 }
 
-// AddTransaction indexes a transaction in ChromemDB using natural language document format
-func (m *ChromemManager) AddTransaction(
+// addTransactionInternal indexes a transaction in ChromemDB using natural language document format (internal, no locking)
+func (m *ChromemManager) addTransactionInternal(
 	txHash, blockHash string,
 	blockNumber, value, fee uint64,
 	from, to, txType, status, dataType, txDataJSON string,
 	timestamp, blockTimestamp int64,
 ) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
 	// Prepare natural language document and enriched metadata
 	docID := txHash
 	documentContent := fmt.Sprintf("Transaction of type '%s' from '%s'", txType, from)
@@ -339,16 +336,26 @@ func (m *ChromemManager) AddTransaction(
 	return err
 }
 
-// AddContextRecord indexes a context record in ChromemDB
-func (m *ChromemManager) AddContextRecord(
+// AddTransaction indexes a transaction in ChromemDB using natural language document format
+func (m *ChromemManager) AddTransaction(
+	txHash, blockHash string,
+	blockNumber, value, fee uint64,
+	from, to, txType, status, dataType, txDataJSON string,
+	timestamp, blockTimestamp int64,
+) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	return m.addTransactionInternal(txHash, blockHash, blockNumber, value, fee, from, to, txType, status, dataType, txDataJSON, timestamp, blockTimestamp)
+}
+
+// addContextRecordInternal indexes a context record in ChromemDB (internal, no locking)
+func (m *ChromemManager) addContextRecordInternal(
 	recordID, capabilityID, invokerNRN, providerNRN, status,
 	inputDataHash, outputDataHash, errorMsg, txHash string,
 	gasFeeNRN uint64, timestampInitiated, timestampCompleted,
 	blockHeight, blockTimestamp int64,
 ) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
 	// Prepare natural language document
 	docID := recordID
 	documentContent := fmt.Sprintf("Context record for capability %s. Status: %s. Invoked by %s, provided by %s. Error: %s. Initiated at %s, completed at %s.",
@@ -390,14 +397,24 @@ func (m *ChromemManager) AddContextRecord(
 	return err
 }
 
-// AddCapabilityDescriptorSync synchronously indexes a capability descriptor in ChromemDB
-func (m *ChromemManager) AddCapabilityDescriptorSync(
-	capabilityID, name, owner, version, description, capabilityType, txHash string,
-	gasFeeNRN uint64, registeredAt, blockHeight, blockTimestamp int64,
+// AddContextRecord indexes a context record in ChromemDB
+func (m *ChromemManager) AddContextRecord(
+	recordID, capabilityID, invokerNRN, providerNRN, status,
+	inputDataHash, outputDataHash, errorMsg, txHash string,
+	gasFeeNRN uint64, timestampInitiated, timestampCompleted,
+	blockHeight, blockTimestamp int64,
 ) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	return m.addContextRecordInternal(recordID, capabilityID, invokerNRN, providerNRN, status, inputDataHash, outputDataHash, errorMsg, txHash, gasFeeNRN, timestampInitiated, timestampCompleted, blockHeight, blockTimestamp)
+}
+
+// addCapabilityDescriptorSyncInternal synchronously indexes a capability descriptor in ChromemDB (internal, no locking)
+func (m *ChromemManager) addCapabilityDescriptorSyncInternal(
+	capabilityID, name, owner, version, description, capabilityType, txHash string,
+	gasFeeNRN uint64, registeredAt, blockHeight, blockTimestamp int64,
+) error {
 	// Prepare natural language document
 	docID := capabilityID
 	dataObj := map[string]interface{}{
@@ -446,6 +463,17 @@ func (m *ChromemManager) AddCapabilityDescriptorSync(
 	}
 
 	return err
+}
+
+// AddCapabilityDescriptorSync synchronously indexes a capability descriptor in ChromemDB
+func (m *ChromemManager) AddCapabilityDescriptorSync(
+	capabilityID, name, owner, version, description, capabilityType, txHash string,
+	gasFeeNRN uint64, registeredAt, blockHeight, blockTimestamp int64,
+) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	return m.addCapabilityDescriptorSyncInternal(capabilityID, name, owner, version, description, capabilityType, txHash, gasFeeNRN, registeredAt, blockHeight, blockTimestamp)
 }
 
 // AddCapabilityDescriptor indexes a capability descriptor in ChromemDB (async version)

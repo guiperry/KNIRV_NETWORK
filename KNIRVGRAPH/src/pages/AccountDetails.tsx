@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { blockchainApi, Account } from '../services/api';
-import { ArrowLeft, Wallet, CreditCard, Hash, TrendingUp, Clock } from 'lucide-react';
+import { ArrowLeft, Wallet, CreditCard, Hash, TrendingUp } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const AccountDetails: React.FC = () => {

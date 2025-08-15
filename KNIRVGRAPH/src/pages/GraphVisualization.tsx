@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useGraphChain } from '../context/GraphChainContext';
 import { graphChainApi, SkillNode, ErrorNode } from '../services/api';
-import { Network, Brain, AlertTriangle, Zap, Filter, Search } from 'lucide-react';
+import { Network, Brain, AlertTriangle, Zap } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const GraphVisualization: React.FC = () => {

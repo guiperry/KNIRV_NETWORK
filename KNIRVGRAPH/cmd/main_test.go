@@ -10,7 +10,7 @@ func TestMainFunction(t *testing.T) {
 	// Test that main function can be called without panicking
 	// We'll use a timeout to prevent the test from hanging
 	done := make(chan bool, 1)
-	
+
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -18,20 +18,24 @@ func TestMainFunction(t *testing.T) {
 			}
 			done <- true
 		}()
-		
+
 		// Set test environment variables
-		os.Setenv("KNIRVGRAPH_PORT", "8081")
-		os.Setenv("KNIRVGRAPH_STORAGE", "memory")
-		
+		if err := os.Setenv("KNIRVGRAPH_PORT", "8081"); err != nil {
+			t.Errorf("Failed to set KNIRVGRAPH_PORT: %v", err)
+		}
+		if err := os.Setenv("KNIRVGRAPH_STORAGE", "memory"); err != nil {
+			t.Errorf("Failed to set KNIRVGRAPH_STORAGE: %v", err)
+		}
+
 		// This would normally run indefinitely, so we'll just test initialization
 		// In a real test, we'd need to modify main to be more testable
 		// For now, we'll just verify the function exists and can be called
-		
+
 		// Note: Calling main() directly would start the server
 		// In a production test, we'd want to refactor main to be more testable
 		done <- true
 	}()
-	
+
 	// Wait for completion or timeout
 	select {
 	case <-done:
@@ -71,8 +75,14 @@ func TestEnvironmentVariables(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set environment variable
-			os.Setenv(tt.envVar, tt.value)
-			defer os.Unsetenv(tt.envVar)
+			if err := os.Setenv(tt.envVar, tt.value); err != nil {
+				t.Errorf("Failed to set %s: %v", tt.envVar, err)
+			}
+			defer func() {
+				if err := os.Unsetenv(tt.envVar); err != nil {
+					t.Errorf("Failed to unset %s: %v", tt.envVar, err)
+				}
+			}()
 
 			// Get the value
 			actual := os.Getenv(tt.envVar)
@@ -93,7 +103,9 @@ func TestConfigurationDefaults(t *testing.T) {
 	}
 
 	for _, envVar := range envVars {
-		os.Unsetenv(envVar)
+		if err := os.Unsetenv(envVar); err != nil {
+			t.Errorf("Failed to unset %s: %v", envVar, err)
+		}
 	}
 
 	// Test default values
@@ -121,18 +133,18 @@ func TestConfigurationDefaults(t *testing.T) {
 func TestSignalHandling(t *testing.T) {
 	// Test that the application can handle signals gracefully
 	// This is a basic test to ensure signal handling setup doesn't panic
-	
+
 	// In a real application, we'd test:
 	// 1. SIGTERM handling for graceful shutdown
 	// 2. SIGINT handling for interrupt
 	// 3. Cleanup of resources on shutdown
-	
+
 	// For now, we'll just verify that signal handling can be set up
 	// without errors
-	
+
 	// This test would be more meaningful with a refactored main function
 	// that separates signal handling into testable components
-	
+
 	t.Log("Signal handling test placeholder - would test graceful shutdown")
 }
 
@@ -175,7 +187,7 @@ func TestApplicationStartup(t *testing.T) {
 			// Set environment variables
 			os.Setenv("KNIRVGRAPH_PORT", scenario.port)
 			os.Setenv("KNIRVGRAPH_STORAGE", scenario.storage)
-			
+
 			defer func() {
 				os.Unsetenv("KNIRVGRAPH_PORT")
 				os.Unsetenv("KNIRVGRAPH_STORAGE")
@@ -183,7 +195,7 @@ func TestApplicationStartup(t *testing.T) {
 
 			// In a real test, we'd validate the configuration
 			// and test startup without actually starting the server
-			
+
 			// For now, we'll just validate the environment setup
 			port := os.Getenv("KNIRVGRAPH_PORT")
 			storage := os.Getenv("KNIRVGRAPH_STORAGE")
@@ -206,7 +218,7 @@ func TestResourceCleanup(t *testing.T) {
 	// 2. Network listeners are stopped
 	// 3. Background goroutines are terminated
 	// 4. Temporary files are cleaned up
-	
+
 	// For now, this is a placeholder test
 	t.Log("Resource cleanup test placeholder - would test proper cleanup")
 }
@@ -218,7 +230,7 @@ func TestHealthCheck(t *testing.T) {
 	// 2. Memory usage
 	// 3. Disk space
 	// 4. Network connectivity
-	
+
 	// For now, this is a placeholder test
 	t.Log("Health check test placeholder - would test application health")
 }
@@ -230,7 +242,7 @@ func TestMetrics(t *testing.T) {
 	// 2. Response time metrics
 	// 3. Error rate metrics
 	// 4. Resource usage metrics
-	
+
 	// For now, this is a placeholder test
 	t.Log("Metrics test placeholder - would test metrics collection")
 }
@@ -238,12 +250,12 @@ func TestMetrics(t *testing.T) {
 func TestLogging(t *testing.T) {
 	// Test logging configuration and functionality
 	logLevels := []string{"debug", "info", "warn", "error"}
-	
+
 	for _, level := range logLevels {
 		t.Run("LogLevel_"+level, func(t *testing.T) {
 			os.Setenv("KNIRVGRAPH_LOG_LEVEL", level)
 			defer os.Unsetenv("KNIRVGRAPH_LOG_LEVEL")
-			
+
 			actualLevel := os.Getenv("KNIRVGRAPH_LOG_LEVEL")
 			if actualLevel != level {
 				t.Errorf("Expected log level %s, got %s", level, actualLevel)
@@ -255,10 +267,10 @@ func TestLogging(t *testing.T) {
 func TestDataDirectory(t *testing.T) {
 	// Test data directory configuration
 	testDataDir := "/tmp/knirvgraph-test-data"
-	
+
 	os.Setenv("KNIRVGRAPH_DATA_DIR", testDataDir)
 	defer os.Unsetenv("KNIRVGRAPH_DATA_DIR")
-	
+
 	actualDataDir := os.Getenv("KNIRVGRAPH_DATA_DIR")
 	if actualDataDir != testDataDir {
 		t.Errorf("Expected data directory %s, got %s", testDataDir, actualDataDir)
@@ -269,7 +281,7 @@ func TestVersionInfo(t *testing.T) {
 	// Test version information
 	// This would test that version information is properly embedded
 	// and can be retrieved
-	
+
 	// For now, this is a placeholder test
 	t.Log("Version info test placeholder - would test version reporting")
 }

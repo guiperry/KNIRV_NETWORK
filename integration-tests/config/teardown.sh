@@ -143,15 +143,16 @@ cleanup_test_data() {
     
     print_status "Cleaning up test data..."
     
-    # Remove test databases
+    # Remove test databases and temporary directories
     if [ -d "$TEST_DIR/data" ]; then
         rm -rf "$TEST_DIR/data"
-        print_success "Test data cleaned up"
     fi
     
-    # Remove temporary files
-    find "$TEST_DIR" -name "*.tmp" -delete 2>/dev/null || true
-    find "$TEST_DIR" -name "*.lock" -delete 2>/dev/null || true
+    # Clean up all known database locations
+    rm -rf "$PROJECT_ROOT/database" 2>/dev/null || true
+    rm -rf "$PROJECT_ROOT/database_reflection" 2>/dev/null || true
+    rm -rf "$PROJECT_ROOT/data/testnet" 2>/dev/null || true
+    rm -rf "$PROJECT_ROOT/testdata/node1/db" 2>/dev/null || true
     
     # Clean up component-specific data
     rm -rf "$PROJECT_ROOT/KNIRVCHAIN/sledchain.db" 2>/dev/null || true
@@ -161,6 +162,13 @@ cleanup_test_data() {
     rm -rf "$PROJECT_ROOT/KNIRVNEXUS/node_modules/.cache" 2>/dev/null || true
     rm -rf "$PROJECT_ROOT/KNIRVROOT/data" 2>/dev/null || true
     rm -rf "$PROJECT_ROOT/KNIRVROUTER/data" 2>/dev/null || true
+    
+    # Remove temporary files and directories
+    find "$TEST_DIR" -name "*.tmp" -delete 2>/dev/null || true
+    find "$TEST_DIR" -name "*.lock" -delete 2>/dev/null || true
+    find "$TEST_DIR" -type d -name "test-*" -exec rm -rf {} + 2>/dev/null || true
+    
+    print_success "Test data cleaned up"
 }
 
 # Function to clean up logs

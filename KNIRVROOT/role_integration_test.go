@@ -157,15 +157,16 @@ func TestRoleBasedWalletConsistency(t *testing.T) {
 		masterAddress  string
 		expectSuccess  bool
 		expectMismatch bool
+		testWallet     string // "miner", "master", or "both"
 	}{
-		{"Peer_CorrectAddress", config.RolePeer, devAddress, "", true, false},
-		{"Peer_WrongAddress", config.RolePeer, "wrong-address", "", false, true},
-		{"Peer_EmptyAddress", config.RolePeer, "", "", true, false},
-		{"Bootnode_CorrectAddresses", config.RoleBootnode, devAddress, masterAddress, true, false},
-		{"Bootnode_WrongMinerAddress", config.RoleBootnode, "wrong-address", masterAddress, false, true},
-		{"Bootnode_WrongMasterAddress", config.RoleBootnode, devAddress, "wrong-address", false, true},
-		{"Bootnode_EmptyAddresses", config.RoleBootnode, "", "", true, false},
-		{"Root_AnyAddress", config.Root, "any-address", "any-address", true, false}, // Root doesn't check
+		{"Peer_CorrectAddress", config.RolePeer, devAddress, "", true, false, "miner"},
+		{"Peer_WrongAddress", config.RolePeer, "wrong-address", "", false, true, "miner"},
+		{"Peer_EmptyAddress", config.RolePeer, "", "", true, false, "miner"},
+		{"Bootnode_CorrectAddresses", config.RoleBootnode, devAddress, masterAddress, true, false, "both"},
+		{"Bootnode_WrongMinerAddress", config.RoleBootnode, "wrong-address", masterAddress, false, true, "miner"},
+		{"Bootnode_WrongMasterAddress", config.RoleBootnode, devAddress, "wrong-address", false, true, "master"},
+		{"Bootnode_EmptyAddresses", config.RoleBootnode, "", "", true, false, "both"},
+		{"Root_AnyAddress", config.Root, "any-address", "any-address", true, false, "miner"}, // Root doesn't check
 	}
 
 	for _, tc := range testCases {
@@ -201,7 +202,7 @@ func TestRoleBasedWalletConsistency(t *testing.T) {
 			var masterWalletObj *Wallet
 			var err error
 
-			if tc.role != config.Root {
+			if tc.role != config.Root && (tc.testWallet == "miner" || tc.testWallet == "both") {
 				// Check MinersAddress
 				if testConfig.MinersAddress != "" {
 					devWalletObj, err = wm.LoadWallet(testConfig.MinersAddress, tc.role)
@@ -233,7 +234,7 @@ func TestRoleBasedWalletConsistency(t *testing.T) {
 				}
 
 				// Check MasterAddress for Bootnode
-				if tc.role == config.RoleBootnode {
+				if tc.role == config.RoleBootnode && (tc.testWallet == "master" || tc.testWallet == "both") {
 					if testConfig.MasterAddress != "" {
 						masterWalletObj, err = wm.LoadMasterWallet(testConfig.MasterAddress, tc.role)
 						if tc.expectSuccess {

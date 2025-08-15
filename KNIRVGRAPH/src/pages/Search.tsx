@@ -62,7 +62,7 @@ const Search: React.FC = () => {
           type: resultType,
         });
 
-      } catch (error) {
+      } catch {
         setResults({ skills: [], errors: [], type: 'unknown' });
       } finally {
         setLoading(false);
@@ -72,6 +72,7 @@ const Search: React.FC = () => {
     performSearch();
   }, [query, currentHeight]);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleString();
   };

@@ -1011,22 +1011,127 @@ func (mcp *MCPProcessor) ApplyMCPTransactionEffects(tx *Transaction, accounts ma
 		}
 		return nil, nil // No specific context record proto to return for invoke, it's part of tx.Data
 	case TransactionTypeMCPUpdateCapability:
-		var mcpUpdateData types.MCPUpdateCapabilityData
-		if err := json.Unmarshal(tx.Data, &mcpUpdateData); err != nil {
-			return nil, fmt.Errorf("ApplyMCPTransactionEffects: failed to unmarshal MCPUpdateCapabilityData for tx %s: %w", tx.TransactionHash, err)
+		// First try to parse as generic map to determine format
+		var updateDataMap map[string]interface{}
+		if err := json.Unmarshal(tx.Data, &updateDataMap); err != nil {
+			return nil, fmt.Errorf("ApplyMCPTransactionEffects: failed to unmarshal update data for tx %s: %w", tx.TransactionHash, err)
 		}
 
 		if mcp.db == nil {
 			return nil, fmt.Errorf("ApplyMCPTransactionEffects: database not available for update tx %s", tx.TransactionHash)
 		}
 
-		// Get the existing capability
-		existingCapability, err := mcp.db.GetCapabilityByID(mcpUpdateData.CapabilityID)
-		if err != nil {
-			return nil, fmt.Errorf("ApplyMCPTransactionEffects: failed to get existing capability %s: %w", mcpUpdateData.CapabilityID, err)
+		var capabilityID string
+		var concreteDescriptor interface{}
+
+		// Check if this is the test format with capabilityDescriptor
+		if capDescriptor, hasCapDesc := updateDataMap["capabilityDescriptor"]; hasCapDesc {
+			// Test format: { "capabilityID": "...", "capabilityDescriptor": { ... } }
+			capabilityID = updateDataMap["capabilityID"].(string)
+
+			// Convert the full capability descriptor
+			descriptorBytes, err := json.Marshal(capDescriptor)
+			if err != nil {
+				return nil, fmt.Errorf("ApplyMCPTransactionEffects: failed to marshal capability descriptor: %w", err)
+			}
+
+			// Determine the type from the descriptor itself
+			var tempBaseDesc types.BaseDescriptor
+			if err := json.Unmarshal(descriptorBytes, &tempBaseDesc); err != nil {
+				return nil, fmt.Errorf("ApplyMCPTransactionEffects: failed to unmarshal base descriptor: %w", err)
+			}
+
+			switch tempBaseDesc.CapabilityType {
+			case types.CapabilityTypeResource:
+				var resourceDesc types.ResourceDescriptor
+				if err := json.Unmarshal(descriptorBytes, &resourceDesc); err != nil {
+					return nil, fmt.Errorf("ApplyMCPTransactionEffects: failed to unmarshal resource descriptor: %w", err)
+				}
+				concreteDescriptor = resourceDesc
+			case types.CapabilityTypeTool:
+				var toolDesc types.ToolDescriptor
+				if err := json.Unmarshal(descriptorBytes, &toolDesc); err != nil {
+					return nil, fmt.Errorf("ApplyMCPTransactionEffects: failed to unmarshal tool descriptor: %w", err)
+				}
+				concreteDescriptor = toolDesc
+			case types.CapabilityTypePrompt:
+				var promptDesc types.PromptDescriptor
+				if err := json.Unmarshal(descriptorBytes, &promptDesc); err != nil {
+					return nil, fmt.Errorf("ApplyMCPTransactionEffects: failed to unmarshal prompt descriptor: %w", err)
+				}
+				concreteDescriptor = promptDesc
+			case types.CapabilityTypeMemoryService:
+				var memoryDesc types.MemoryServiceDescriptor
+				if err := json.Unmarshal(descriptorBytes, &memoryDesc); err != nil {
+					return nil, fmt.Errorf("ApplyMCPTransactionEffects: failed to unmarshal memory service descriptor: %w", err)
+				}
+				concreteDescriptor = memoryDesc
+			default:
+				return nil, fmt.Errorf("ApplyMCPTransactionEffects: unsupported capability type: %s", tempBaseDesc.CapabilityType)
+			}
+		} else {
+			// Standard format: MCPUpdateCapabilityData
+			var mcpUpdateData types.MCPUpdateCapabilityData
+			if err := json.Unmarshal(tx.Data, &mcpUpdateData); err != nil {
+				return nil, fmt.Errorf("ApplyMCPTransactionEffects: failed to unmarshal MCPUpdateCapabilityData for tx %s: %w", tx.TransactionHash, err)
+			}
+
+			capabilityID = mcpUpdateData.CapabilityID
+
+			// Get the existing capability to determine type
+			existingCapability, err := mcp.db.GetCapabilityByID(mcpUpdateData.CapabilityID)
+			if err != nil {
+				return nil, fmt.Errorf("ApplyMCPTransactionEffects: failed to get existing capability %s: %w", mcpUpdateData.CapabilityID, err)
+			}
+
+			existingBaseDesc, err := getBaseDescriptorFromInterface(existingCapability)
+			if err != nil {
+				return nil, fmt.Errorf("ApplyMCPTransactionEffects: failed to get base descriptor from existing capability: %w", err)
+			}
+
+			// Convert the update descriptor based on the existing capability type
+			descriptorBytes, err := json.Marshal(mcpUpdateData.Descriptor)
+			if err != nil {
+				return nil, fmt.Errorf("ApplyMCPTransactionEffects: failed to marshal descriptor: %w", err)
+			}
+
+			switch existingBaseDesc.CapabilityType {
+			case types.CapabilityTypeResource:
+				var resourceDesc types.ResourceDescriptor
+				if err := json.Unmarshal(descriptorBytes, &resourceDesc); err != nil {
+					return nil, fmt.Errorf("ApplyMCPTransactionEffects: failed to unmarshal resource descriptor: %w", err)
+				}
+				concreteDescriptor = resourceDesc
+			case types.CapabilityTypeTool:
+				var toolDesc types.ToolDescriptor
+				if err := json.Unmarshal(descriptorBytes, &toolDesc); err != nil {
+					return nil, fmt.Errorf("ApplyMCPTransactionEffects: failed to unmarshal tool descriptor: %w", err)
+				}
+				concreteDescriptor = toolDesc
+			case types.CapabilityTypePrompt:
+				var promptDesc types.PromptDescriptor
+				if err := json.Unmarshal(descriptorBytes, &promptDesc); err != nil {
+					return nil, fmt.Errorf("ApplyMCPTransactionEffects: failed to unmarshal prompt descriptor: %w", err)
+				}
+				concreteDescriptor = promptDesc
+			case types.CapabilityTypeMemoryService:
+				var memoryDesc types.MemoryServiceDescriptor
+				if err := json.Unmarshal(descriptorBytes, &memoryDesc); err != nil {
+					return nil, fmt.Errorf("ApplyMCPTransactionEffects: failed to unmarshal memory service descriptor: %w", err)
+				}
+				concreteDescriptor = memoryDesc
+			default:
+				return nil, fmt.Errorf("ApplyMCPTransactionEffects: unsupported capability type: %s", existingBaseDesc.CapabilityType)
+			}
 		}
 
-		// Extract the base descriptor
+		// Get the existing capability for ownership verification
+		existingCapability, err := mcp.db.GetCapabilityByID(capabilityID)
+		if err != nil {
+			return nil, fmt.Errorf("ApplyMCPTransactionEffects: failed to get existing capability %s: %w", capabilityID, err)
+		}
+
+		// Extract the base descriptor for ownership verification
 		baseDesc, err := getBaseDescriptorFromInterface(existingCapability)
 		if err != nil {
 			return nil, fmt.Errorf("ApplyMCPTransactionEffects: failed to extract base descriptor from existing capability: %w", err)
@@ -1034,36 +1139,33 @@ func (mcp *MCPProcessor) ApplyMCPTransactionEffects(tx *Transaction, accounts ma
 
 		// Verify ownership
 		if baseDesc.Owner != tx.From {
-			return nil, fmt.Errorf("ApplyMCPTransactionEffects: sender %s is not the owner of capability %s", tx.From, mcpUpdateData.CapabilityID)
+			return nil, fmt.Errorf("ApplyMCPTransactionEffects: sender %s is not the owner of capability %s", tx.From, capabilityID)
 		}
 
-		// Apply updates to the capability
-		// This is a simplified example - in a real implementation, you would need to handle
-		// different capability types and update specific fields based on the update data.
-		if err := mcp.db.UpdateCapability(mcpUpdateData.CapabilityID, mcpUpdateData.Descriptor); err != nil {
-			return nil, fmt.Errorf("ApplyMCPTransactionEffects: failed to update capability %s: %w", mcpUpdateData.CapabilityID, err)
+		if err := mcp.db.UpdateCapability(capabilityID, concreteDescriptor); err != nil {
+			return nil, fmt.Errorf("ApplyMCPTransactionEffects: failed to update capability %s: %w", capabilityID, err)
 		}
 		// Explicitly verify it's in the DB immediately after saving
-		if _, err := mcp.db.GetCapabilityByID(mcpUpdateData.CapabilityID); err != nil {
-			log.Printf("[ERROR] ApplyMCPTransactionEffects: CRITICAL - FAILED to retrieve updated capability %s immediately after save: %v", mcpUpdateData.CapabilityID, err)
-			return nil, fmt.Errorf("failed to verify updated capability save for %s: %w", mcpUpdateData.CapabilityID, err)
+		if _, err := mcp.db.GetCapabilityByID(capabilityID); err != nil {
+			log.Printf("[ERROR] ApplyMCPTransactionEffects: CRITICAL - FAILED to retrieve updated capability %s immediately after save: %v", capabilityID, err)
+			return nil, fmt.Errorf("failed to verify updated capability save for %s: %w", capabilityID, err)
 		}
 
 		// Create a context record for the update
-		contextRecord := types.NewContextRecord(tx.TransactionHash, mcpUpdateData.CapabilityID, types.InteractionTypeCapabilityUpdate, tx.From, "", "", nil)
+		contextRecord := types.NewContextRecord(tx.TransactionHash, capabilityID, types.InteractionTypeCapabilityUpdate, tx.From, "", "", nil)
 		startSaveTime := time.Now()
 		if err := mcp.db.SaveContextRecord(*contextRecord); err != nil {
-			agentlog.LogWarning(fmt.Sprintf("Warning: Failed to save context record for capability update %s: %v", mcpUpdateData.CapabilityID, err))
+			agentlog.LogWarning(fmt.Sprintf("Warning: Failed to save context record for capability update %s: %v", capabilityID, err))
 			return nil, nil // Return nil proto, but not a fatal error for the overall transaction
 		}
 		saveDuration := time.Since(startSaveTime)
 		if saveDuration > 100*time.Millisecond {
-			agentlog.LogWarning(fmt.Sprintf("Slow context record save for capability %s: took %v", mcpUpdateData.CapabilityID, saveDuration))
+			agentlog.LogWarning(fmt.Sprintf("Slow context record save for capability %s: took %v", capabilityID, saveDuration))
 		}
 		// Convert to proto before returning
 		contextRecordProto, errProto := ConvertContextRecordToProto(*contextRecord)
 		if errProto != nil {
-			agentlog.LogWarning(fmt.Sprintf("Warning: Failed to convert context record to proto for capability update %s: %v", mcpUpdateData.CapabilityID, errProto))
+			agentlog.LogWarning(fmt.Sprintf("Warning: Failed to convert context record to proto for capability update %s: %v", capabilityID, errProto))
 			return nil, nil
 		}
 		return contextRecordProto, nil

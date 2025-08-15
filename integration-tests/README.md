@@ -253,6 +253,14 @@ KNIRV_TEST_LOGS_DIR=./logs             # Test logs directory
    ./config/run-tests.sh --timeout 900s
    ```
 
+4. **Database Cleanup Issues**
+   ```bash
+   # Manual cleanup of test databases if needed
+   rm -rf ./database ./database_reflection ./data/testnet ./testdata/node1/db
+   rm -rf integration-tests/data KNIRVCHAIN/sledchain.db KNIRVGRAPH/data
+   rm -rf KNIRVNEXUS/db KNIRVROOT/data KNIRVROUTER/data
+   ```
+
 ### Debug Mode
 ```bash
 # Verbose execution

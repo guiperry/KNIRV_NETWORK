@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	neturl "net/url"
 	"os"
 	"strings"
 
@@ -19,11 +21,24 @@ var (
 
 // makeHTTPRequest performs an HTTP GET request and returns the response body
 func makeHTTPRequest(url string) ([]byte, error) {
-	resp, err := http.Get(url)
+	// Validate URL to prevent SSRF attacks
+	parsedURL, err := neturl.Parse(url)
+	if err != nil {
+		return nil, fmt.Errorf("invalid URL: %v", err)
+	}
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return nil, fmt.Errorf("unsupported URL scheme: %s", parsedURL.Scheme)
+	}
+
+	resp, err := http.Get(url) // #nosec G107 - URL is validated above
 	if err != nil {
 		return nil, fmt.Errorf("HTTP request failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			log.Printf("Error closing response body: %v", closeErr)
+		}
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -35,11 +50,24 @@ func makeHTTPRequest(url string) ([]byte, error) {
 
 // makeHTTPPostRequest performs an HTTP POST request and returns the response body
 func makeHTTPPostRequest(url string, data []byte) ([]byte, error) {
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
+	// Validate URL to prevent SSRF attacks
+	parsedURL, err := neturl.Parse(url)
+	if err != nil {
+		return nil, fmt.Errorf("invalid URL: %v", err)
+	}
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return nil, fmt.Errorf("unsupported URL scheme: %s", parsedURL.Scheme)
+	}
+
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data)) // #nosec G107 - URL is validated above
 	if err != nil {
 		return nil, fmt.Errorf("HTTP POST request failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			log.Printf("Error closing response body: %v", closeErr)
+		}
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -316,7 +344,9 @@ func createNodeCmd() *cobra.Command {
 	cmd.Flags().StringVar(&parents, "parents", "", "Comma-separated parent node IDs")
 	cmd.Flags().Float64Var(&weight, "weight", 1.0, "Node weight")
 
-	cmd.MarkFlagRequired("id")
+	if err := cmd.MarkFlagRequired("id"); err != nil {
+		log.Printf("Error marking flag as required: %v", err)
+	}
 
 	return cmd
 }
@@ -363,8 +393,12 @@ func createEdgeCmd() *cobra.Command {
 	cmd.Flags().Float64Var(&weight, "weight", 1.0, "Edge weight")
 	cmd.Flags().IntVar(&edgeType, "type", 0, "Edge type (0=Transaction, 1=Validation, 2=Consensus, 3=State, 4=Custom)")
 
-	cmd.MarkFlagRequired("from")
-	cmd.MarkFlagRequired("to")
+	if err := cmd.MarkFlagRequired("from"); err != nil {
+		log.Printf("Error marking flag as required: %v", err)
+	}
+	if err := cmd.MarkFlagRequired("to"); err != nil {
+		log.Printf("Error marking flag as required: %v", err)
+	}
 
 	return cmd
 }
@@ -413,7 +447,9 @@ func sendGraphTxCmd() *cobra.Command {
 	cmd.Flags().Uint64Var(&fee, "fee", 1, "Transaction fee")
 	cmd.Flags().IntVar(&txType, "type", 5, "Transaction type (0=CreateNode, 1=CreateEdge, 2=UpdateNode, 3=DeleteNode, 4=DeleteEdge, 5=Transfer)")
 
-	cmd.MarkFlagRequired("from")
+	if err := cmd.MarkFlagRequired("from"); err != nil {
+		log.Printf("Error marking flag as required: %v", err)
+	}
 
 	return cmd
 }

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { graphChainApi, SkillNode } from '../services/api';
 import { useGraphChain } from '../context/GraphChainContext';
-import { Brain, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { Brain, ChevronLeft, ChevronRight } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 import SkillNodeCard from '../components/SkillNodeCard';
 

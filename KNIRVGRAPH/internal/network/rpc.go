@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -93,8 +94,12 @@ func NewRPCServerWithNRV(gc GraphChainInterface, nrvSys *nrv.NRVSystem, logger *
 	}
 
 	rpc.server = &http.Server{
-		Addr:    fmt.Sprintf(":%d", port),
-		Handler: router,
+		Addr:              fmt.Sprintf(":%d", port),
+		Handler:           router,
+		ReadHeaderTimeout: 30 * time.Second, // Prevent Slowloris attacks
+		ReadTimeout:       60 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	return rpc
@@ -154,8 +159,12 @@ func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *nrv.NRVSystem, nr
 	router.HandleFunc("/health", rpc.healthCheck).Methods("GET", "OPTIONS")
 
 	rpc.server = &http.Server{
-		Addr:    fmt.Sprintf(":%d", port),
-		Handler: router,
+		Addr:              fmt.Sprintf(":%d", port),
+		Handler:           router,
+		ReadHeaderTimeout: 30 * time.Second, // Prevent Slowloris attacks
+		ReadTimeout:       60 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	return rpc
@@ -188,7 +197,10 @@ func (rpc *RPCServer) getNode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(node)
+	if err := json.NewEncoder(w).Encode(node); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (rpc *RPCServer) getEdge(w http.ResponseWriter, r *http.Request) {
@@ -202,7 +214,10 @@ func (rpc *RPCServer) getEdge(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(edge)
+	if err := json.NewEncoder(w).Encode(edge); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (rpc *RPCServer) getHeads(w http.ResponseWriter, r *http.Request) {
@@ -210,7 +225,10 @@ func (rpc *RPCServer) getHeads(w http.ResponseWriter, r *http.Request) {
 
 	response := map[string][]string{"heads": heads}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (rpc *RPCServer) getNeighbors(w http.ResponseWriter, r *http.Request) {

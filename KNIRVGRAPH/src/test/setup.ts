@@ -5,7 +5,7 @@ import * as React from 'react';
 import { TextEncoder, TextDecoder } from 'util';
 
 global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder as any;
+global.TextDecoder = TextDecoder as typeof global.TextDecoder;
 
 // Mock Web APIs
 Object.defineProperty(window, 'matchMedia', {
@@ -37,7 +37,7 @@ global.IntersectionObserver = jest.fn().mockImplementation(() => ({
 }));
 
 // Mock WebSocket
-(global as any).WebSocket = jest.fn().mockImplementation(() => ({
+(global as typeof global & { WebSocket: unknown }).WebSocket = jest.fn().mockImplementation(() => ({
   addEventListener: jest.fn(),
   removeEventListener: jest.fn(),
   send: jest.fn(),
@@ -46,7 +46,7 @@ global.IntersectionObserver = jest.fn().mockImplementation(() => ({
 }));
 
 // Mock Canvas API
-(HTMLCanvasElement.prototype.getContext as any) = jest.fn((contextType) => {
+(HTMLCanvasElement.prototype.getContext as jest.Mock) = jest.fn((contextType) => {
   if (contextType === '2d') {
     return {
       fillRect: jest.fn(),
@@ -73,7 +73,7 @@ global.IntersectionObserver = jest.fn().mockImplementation(() => ({
       transform: jest.fn(),
       rect: jest.fn(),
       clip: jest.fn(),
-    } as any;
+    } as CanvasRenderingContext2D;
   }
   return null;
 });
@@ -111,6 +111,7 @@ global.fetch = jest.fn(() =>
 // Note: D3.js and Three.js mocks removed as they are not used in this project
 
 // Mock console methods to reduce noise in tests
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const originalConsole = { ...console };
 beforeEach(() => {
   jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -123,13 +124,27 @@ afterEach(() => {
 });
 
 // Global test utilities
+interface MockGraphData {
+  nodes: Array<{ id: string; label: string; type: string }>;
+  edges: Array<{ id: string; from: string; to: string }>;
+}
+
+interface MockBlockchainData {
+  blocks: Array<{ id: string; height: number; hash: string }>;
+  transactions: Array<{ id: string; from: string; to: string; amount: number }>;
+}
+
+interface MockNRVData {
+  vectors: Array<{ id: string; coordinates: number[]; confidence: number }>;
+}
+
 declare global {
-  var testUtils: {
-    createMockGraphData: () => any;
-    createMockBlockchainData: () => any;
-    createMockNRVData: () => any;
+  const testUtils: {
+    createMockGraphData: () => MockGraphData;
+    createMockBlockchainData: () => MockBlockchainData;
+    createMockNRVData: () => MockNRVData;
     waitFor: (condition: () => boolean, timeout?: number) => Promise<void>;
-    mockComponent: (name: string) => React.ComponentType<any>;
+    mockComponent: (name: string) => React.ComponentType<{ children?: React.ReactNode }>;
   };
 }
 

@@ -15,6 +15,7 @@ interface GraphChainContextType {
 
 const GraphChainContext = createContext<GraphChainContextType | undefined>(undefined);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useGraphChain = () => {
   const context = useContext(GraphChainContext);
   if (context === undefined) {

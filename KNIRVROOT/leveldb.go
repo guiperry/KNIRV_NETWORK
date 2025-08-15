@@ -758,23 +758,31 @@ func (db *LevelDB) UpdateCapability(capabilityID string, updates interface{}) er
 		return fmt.Errorf("failed to merge capability updates: %w", err)
 	}
 
+	// Convert merged proto back to Go struct for SaveCapability
+	log.Printf("[UpdateCapability] Converting merged proto back to Go struct")
+	mergedGoStruct, err := convertProtoToGoStruct(mergedCap)
+	if err != nil {
+		log.Printf("[UpdateCapability] Failed to convert proto to Go struct: %v", err)
+		return fmt.Errorf("failed to convert merged capability to Go struct: %w", err)
+	}
+
 	// Save merged capability with verification
 	log.Printf("[UpdateCapability] Saving merged capability")
-	if err := db.SaveCapability(mergedCap); err != nil {
+	if err := db.SaveCapability(mergedGoStruct); err != nil {
 		log.Printf("[UpdateCapability] Failed to save merged capability: %v", err)
 		return fmt.Errorf("failed to save merged capability: %w", err)
 	}
 
 	// Verify the update was applied
 	log.Printf("[UpdateCapability] Verifying update")
-	updatedCap, err := db.GetCapabilityByID(capabilityID)
+	updatedCapProto, err := db.GetCapabilityByID(capabilityID)
 	if err != nil {
 		log.Printf("[UpdateCapability] Failed to verify update: %v", err)
 		return fmt.Errorf("failed to verify capability update: %w", err)
 	}
 
-	// Compare the updated capability with our merged version
-	if !proto.Equal(mergedCap, updatedCap) {
+	// Compare the updated capability with our merged version (both are proto types)
+	if !proto.Equal(mergedCap, updatedCapProto) {
 		log.Printf("[UpdateCapability] Update verification failed - stored capability doesn't match expected state")
 		return fmt.Errorf("capability update verification failed - stored state doesn't match expected updates")
 	}
@@ -822,6 +830,19 @@ func mergeCapabilityDescriptors(existing, updates *pb.CapabilityDescriptorContai
 				log.Printf("[mergeCapabilityDescriptors] Updating gas fee: %d -> %d", x.Resource.BaseDescriptor.GasFeeNrn, updatesResource.BaseDescriptor.GasFeeNrn)
 				x.Resource.BaseDescriptor.GasFeeNrn = updatesResource.BaseDescriptor.GasFeeNrn
 			}
+			if updatesResource.BaseDescriptor.CustomMetadata != nil {
+				log.Printf("[mergeCapabilityDescriptors] Updating custom metadata")
+				if x.Resource.BaseDescriptor.CustomMetadata == nil {
+					x.Resource.BaseDescriptor.CustomMetadata = &structpb.Struct{Fields: make(map[string]*structpb.Value)}
+				}
+				// Merge custom metadata fields
+				for key, value := range updatesResource.BaseDescriptor.CustomMetadata.Fields {
+					log.Printf("[mergeCapabilityDescriptors] Updating custom metadata field: %s", key)
+					x.Resource.BaseDescriptor.CustomMetadata.Fields[key] = value
+				}
+			}
+		} else {
+			log.Printf("[mergeCapabilityDescriptors] WARNING: updatesResource.BaseDescriptor is nil!")
 		}
 
 	case *pb.CapabilityDescriptorContainerProto_Tool:
@@ -854,6 +875,17 @@ func mergeCapabilityDescriptors(existing, updates *pb.CapabilityDescriptorContai
 			if updatesTool.BaseDescriptor.GasFeeNrn != 0 {
 				log.Printf("[mergeCapabilityDescriptors] Updating gas fee: %d -> %d", x.Tool.BaseDescriptor.GasFeeNrn, updatesTool.BaseDescriptor.GasFeeNrn)
 				x.Tool.BaseDescriptor.GasFeeNrn = updatesTool.BaseDescriptor.GasFeeNrn
+			}
+			if updatesTool.BaseDescriptor.CustomMetadata != nil {
+				log.Printf("[mergeCapabilityDescriptors] Updating custom metadata")
+				if x.Tool.BaseDescriptor.CustomMetadata == nil {
+					x.Tool.BaseDescriptor.CustomMetadata = &structpb.Struct{Fields: make(map[string]*structpb.Value)}
+				}
+				// Merge custom metadata fields
+				for key, value := range updatesTool.BaseDescriptor.CustomMetadata.Fields {
+					log.Printf("[mergeCapabilityDescriptors] Updating custom metadata field: %s", key)
+					x.Tool.BaseDescriptor.CustomMetadata.Fields[key] = value
+				}
 			}
 		}
 
@@ -888,6 +920,17 @@ func mergeCapabilityDescriptors(existing, updates *pb.CapabilityDescriptorContai
 				log.Printf("[mergeCapabilityDescriptors] Updating gas fee: %d -> %d", x.Prompt.BaseDescriptor.GasFeeNrn, updatesPrompt.BaseDescriptor.GasFeeNrn)
 				x.Prompt.BaseDescriptor.GasFeeNrn = updatesPrompt.BaseDescriptor.GasFeeNrn
 			}
+			if updatesPrompt.BaseDescriptor.CustomMetadata != nil {
+				log.Printf("[mergeCapabilityDescriptors] Updating custom metadata")
+				if x.Prompt.BaseDescriptor.CustomMetadata == nil {
+					x.Prompt.BaseDescriptor.CustomMetadata = &structpb.Struct{Fields: make(map[string]*structpb.Value)}
+				}
+				// Merge custom metadata fields
+				for key, value := range updatesPrompt.BaseDescriptor.CustomMetadata.Fields {
+					log.Printf("[mergeCapabilityDescriptors] Updating custom metadata field: %s", key)
+					x.Prompt.BaseDescriptor.CustomMetadata.Fields[key] = value
+				}
+			}
 		}
 
 	case *pb.CapabilityDescriptorContainerProto_MemoryService:
@@ -921,6 +964,17 @@ func mergeCapabilityDescriptors(existing, updates *pb.CapabilityDescriptorContai
 				log.Printf("[mergeCapabilityDescriptors] Updating gas fee: %d -> %d", x.MemoryService.BaseDescriptor.GasFeeNrn, updatesMemory.BaseDescriptor.GasFeeNrn)
 				x.MemoryService.BaseDescriptor.GasFeeNrn = updatesMemory.BaseDescriptor.GasFeeNrn
 			}
+			if updatesMemory.BaseDescriptor.CustomMetadata != nil {
+				log.Printf("[mergeCapabilityDescriptors] Updating custom metadata")
+				if x.MemoryService.BaseDescriptor.CustomMetadata == nil {
+					x.MemoryService.BaseDescriptor.CustomMetadata = &structpb.Struct{Fields: make(map[string]*structpb.Value)}
+				}
+				// Merge custom metadata fields
+				for key, value := range updatesMemory.BaseDescriptor.CustomMetadata.Fields {
+					log.Printf("[mergeCapabilityDescriptors] Updating custom metadata field: %s", key)
+					x.MemoryService.BaseDescriptor.CustomMetadata.Fields[key] = value
+				}
+			}
 		}
 
 	default:
@@ -931,6 +985,157 @@ func mergeCapabilityDescriptors(existing, updates *pb.CapabilityDescriptorContai
 
 	log.Printf("[mergeCapabilityDescriptors] Merge completed successfully")
 	return merged, nil
+}
+
+// convertProtoToGoStruct converts a proto capability descriptor back to a Go struct
+func convertProtoToGoStruct(protoDesc *pb.CapabilityDescriptorContainerProto) (interface{}, error) {
+	switch desc := protoDesc.GetDescriptor_().(type) {
+	case *pb.CapabilityDescriptorContainerProto_Resource:
+		resource := desc.Resource
+		baseDesc := resource.GetBaseDescriptor()
+
+		// Convert custom metadata from proto struct to map
+		customMetadata := make(map[string]interface{})
+		if baseDesc.GetCustomMetadata() != nil {
+			for key, value := range baseDesc.GetCustomMetadata().GetFields() {
+				customMetadata[key] = value.AsInterface()
+			}
+		}
+
+		// Convert location hints from repeated string to slice
+		var locationHints []string
+		if resource.GetSchema() != nil {
+			locationHints = resource.GetSchema().GetLocationHints()
+		}
+
+		// Convert proto resource type to Go enum
+		var resourceType types.DiscoveryResourceType
+		switch resource.GetResourceType() {
+		case pb.DiscoveryResourceTypeProto_DISCOVERY_RESOURCE_TYPE_PROTO_FILE:
+			resourceType = types.DiscoveryResourceTypeFile
+		case pb.DiscoveryResourceTypeProto_DISCOVERY_RESOURCE_TYPE_PROTO_API:
+			resourceType = types.DiscoveryResourceTypeAPI
+		case pb.DiscoveryResourceTypeProto_DISCOVERY_RESOURCE_TYPE_PROTO_PLUGIN:
+			resourceType = types.DiscoveryResourceTypePlugin
+		case pb.DiscoveryResourceTypeProto_DISCOVERY_RESOURCE_TYPE_PROTO_GENERATED_DOCUMENT:
+			resourceType = types.DiscoveryResourceTypeGeneratedDoc
+		case pb.DiscoveryResourceTypeProto_DISCOVERY_RESOURCE_TYPE_PROTO_DATASET:
+			resourceType = types.DiscoveryResourceTypeDataset
+		case pb.DiscoveryResourceTypeProto_DISCOVERY_RESOURCE_TYPE_PROTO_MODEL_ARTIFACT:
+			resourceType = types.DiscoveryResourceTypeModelArtifact
+		case pb.DiscoveryResourceTypeProto_DISCOVERY_RESOURCE_TYPE_PROTO_SERVICE:
+			resourceType = types.DiscoveryResourceTypeService
+		default:
+			resourceType = types.DiscoveryResourceTypeFile // Default fallback
+		}
+
+		return types.ResourceDescriptor{
+			BaseDescriptor: types.BaseDescriptor{
+				ID:             baseDesc.GetId(),
+				CapabilityType: types.CapabilityTypeResource, // Convert from proto enum to Go enum
+				Name:           baseDesc.GetName(),
+				Owner:          baseDesc.GetOwner(),
+				Version:        baseDesc.GetVersion(),
+				Description:    baseDesc.GetDescription(),
+				GasFeeNRN:      baseDesc.GetGasFeeNrn(),
+				Timestamp:      baseDesc.GetTimestamp().GetSeconds(),
+				CustomMetadata: customMetadata,
+			},
+			ResourceType: resourceType,
+			ContentHash:  resource.GetContentHash(),
+			Schema: types.PluginSchemaDetail{
+				Summary:       resource.GetSchema().GetSummary(),
+				LocationHints: locationHints,
+			},
+		}, nil
+
+	case *pb.CapabilityDescriptorContainerProto_Tool:
+		tool := desc.Tool
+		baseDesc := tool.GetBaseDescriptor()
+
+		// Convert custom metadata from proto struct to map
+		customMetadata := make(map[string]interface{})
+		if baseDesc.GetCustomMetadata() != nil {
+			for key, value := range baseDesc.GetCustomMetadata().GetFields() {
+				customMetadata[key] = value.AsInterface()
+			}
+		}
+
+		return types.ToolDescriptor{
+			BaseDescriptor: types.BaseDescriptor{
+				ID:             baseDesc.GetId(),
+				CapabilityType: types.CapabilityTypeTool, // Convert from proto enum to Go enum
+				Name:           baseDesc.GetName(),
+				Owner:          baseDesc.GetOwner(),
+				Version:        baseDesc.GetVersion(),
+				Description:    baseDesc.GetDescription(),
+				GasFeeNRN:      baseDesc.GetGasFeeNrn(),
+				Timestamp:      baseDesc.GetTimestamp().GetSeconds(),
+				CustomMetadata: customMetadata,
+			},
+			ExecutionPointer: tool.GetExecutionPointer(),
+			InputSchemaJSON:  tool.GetInputSchemaJson(),
+			OutputSchemaJSON: tool.GetOutputSchemaJson(),
+		}, nil
+
+	case *pb.CapabilityDescriptorContainerProto_Prompt:
+		prompt := desc.Prompt
+		baseDesc := prompt.GetBaseDescriptor()
+
+		// Convert custom metadata from proto struct to map
+		customMetadata := make(map[string]interface{})
+		if baseDesc.GetCustomMetadata() != nil {
+			for key, value := range baseDesc.GetCustomMetadata().GetFields() {
+				customMetadata[key] = value.AsInterface()
+			}
+		}
+
+		return types.PromptDescriptor{
+			BaseDescriptor: types.BaseDescriptor{
+				ID:             baseDesc.GetId(),
+				CapabilityType: types.CapabilityTypePrompt, // Convert from proto enum to Go enum
+				Name:           baseDesc.GetName(),
+				Owner:          baseDesc.GetOwner(),
+				Version:        baseDesc.GetVersion(),
+				Description:    baseDesc.GetDescription(),
+				GasFeeNRN:      baseDesc.GetGasFeeNrn(),
+				Timestamp:      baseDesc.GetTimestamp().GetSeconds(),
+				CustomMetadata: customMetadata,
+			},
+			Template:             prompt.GetTemplate(),
+			ParametersSchemaJSON: prompt.GetParametersSchemaJson(),
+		}, nil
+
+	case *pb.CapabilityDescriptorContainerProto_MemoryService:
+		memory := desc.MemoryService
+		baseDesc := memory.GetBaseDescriptor()
+
+		// Convert custom metadata from proto struct to map
+		customMetadata := make(map[string]interface{})
+		if baseDesc.GetCustomMetadata() != nil {
+			for key, value := range baseDesc.GetCustomMetadata().GetFields() {
+				customMetadata[key] = value.AsInterface()
+			}
+		}
+
+		return types.MemoryServiceDescriptor{
+			BaseDescriptor: types.BaseDescriptor{
+				ID:             baseDesc.GetId(),
+				CapabilityType: types.CapabilityTypeMemoryService, // Convert from proto enum to Go enum
+				Name:           baseDesc.GetName(),
+				Owner:          baseDesc.GetOwner(),
+				Version:        baseDesc.GetVersion(),
+				Description:    baseDesc.GetDescription(),
+				GasFeeNRN:      baseDesc.GetGasFeeNrn(),
+				Timestamp:      baseDesc.GetTimestamp().GetSeconds(),
+				CustomMetadata: customMetadata,
+			},
+			GraphSchema: memory.GetGraphSchema(),
+		}, nil
+
+	default:
+		return nil, fmt.Errorf("unsupported capability type in proto descriptor")
+	}
 }
 
 // PoAu-D Network Authors Management

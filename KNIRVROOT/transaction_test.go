@@ -96,7 +96,9 @@ func TestTransactionFlow(t *testing.T) {
 
 	// --- Start mining to process the funding transaction ---
 	cm := newTestConsensusManager(bc)
-	bc.StopMining = false             // Ensure mining is not stopped initially
+	bc.Lock()
+	bc.StopMining = false // Ensure mining is not stopped initially
+	bc.Unlock()
 	miningDone := make(chan struct{}) // Channel to signal mining completion
 	go func() {
 		bc.ProofOfWorkMining(context.Background(), receiverWallet.GetAddress(), cm)
@@ -126,8 +128,10 @@ func TestTransactionFlow(t *testing.T) {
 			}
 			bc.Unlock() // Unlock after checking
 		case <-fundingTimeout:
+			bc.Lock()
 			bc.StopMining = true // Stop the miner on timeout
-			<-miningDone         // Wait for miner goroutine to finish
+			bc.Unlock()
+			<-miningDone // Wait for miner goroutine to finish
 			t.Fatalf("Timeout waiting for initial funding transaction %s to be mined", signedFundingTxn.TransactionHash)
 		}
 	}
@@ -221,14 +225,18 @@ func TestTransactionFlow(t *testing.T) {
 			}
 			bc.Unlock()
 		case <-timeout:
+			bc.Lock()
 			bc.StopMining = true // Stop the miner on timeout
-			<-miningDone         // Wait for miner goroutine to finish
+			bc.Unlock()
+			<-miningDone // Wait for miner goroutine to finish
 			t.Fatalf("Mining timeout reached waiting for transaction %s", signedTxn.TransactionHash)
 		}
 	}
 
 	// Stop mining now that we've found the block
+	bc.Lock()
 	bc.StopMining = true
+	bc.Unlock()
 	<-miningDone // Wait for miner goroutine to exit cleanly
 
 	//verification: // Keep label for clarity, though goto is removed

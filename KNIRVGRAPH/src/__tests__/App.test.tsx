@@ -4,16 +4,24 @@ import '@testing-library/jest-dom';
 import App from '../App';
 
 // Mock React Router
+interface MockRouterProps {
+  children: React.ReactNode;
+}
+
+interface MockRouteProps {
+  element: React.ReactNode;
+}
+
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  BrowserRouter: ({ children }: any) => <div data-testid="router">{children}</div>,
-  Routes: ({ children }: any) => <div data-testid="routes">{children}</div>,
-  Route: ({ element }: any) => <div data-testid="route">{element}</div>,
+  BrowserRouter: ({ children }: MockRouterProps) => <div data-testid="router">{children}</div>,
+  Routes: ({ children }: MockRouterProps) => <div data-testid="routes">{children}</div>,
+  Route: ({ element }: MockRouteProps) => <div data-testid="route">{element}</div>,
 }));
 
 // Mock the GraphChain context
 jest.mock('../context/GraphChainContext', () => ({
-  GraphChainProvider: ({ children }: any) => (
+  GraphChainProvider: ({ children }: MockRouterProps) => (
     <div data-testid="graphchain-provider">{children}</div>
   ),
   useGraphChain: () => ({
@@ -69,7 +77,7 @@ jest.mock('../pages/Search', () => {
 
 // Mock Layout component
 jest.mock('../components/Layout', () => {
-  return function MockLayout({ children }: any) {
+  return function MockLayout({ children }: MockRouterProps) {
     return (
       <div data-testid="layout">
         <header data-testid="header">KNIRV Graph</header>

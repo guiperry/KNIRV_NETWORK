@@ -65,7 +65,7 @@ func (g *GenesisDoc) SaveAs(file string) error {
 		return err
 	}
 
-	return os.WriteFile(file, data, 0644)
+	return os.WriteFile(file, data, 0600) // More secure file permissions
 }
 
 func LoadGenesis(file string) (*GenesisDoc, error) {

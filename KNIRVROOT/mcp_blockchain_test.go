@@ -860,19 +860,20 @@ func TestMCPCapabilityUpdate(t *testing.T) {
 			return false, fmt.Errorf("capability %s not found in ChromemDB", resourceDesc.ID)
 		}
 
-		// Verify the updated fields
-		var desc map[string]interface{}
-		if err := json.Unmarshal([]byte(capResults[0].Content), &desc); err != nil {
-			return false, fmt.Errorf("failed to unmarshal capability descriptor: %w", err)
+		// Verify the updated fields in metadata (ChromemDB stores metadata, not JSON content)
+		metadata := capResults[0].Metadata
+		if metadata == nil {
+			return false, fmt.Errorf("capability metadata is nil")
 		}
 
-		if desc["Name"] != updatedResourceDesc.Name {
+		if name, ok := metadata["name"]; !ok || name != updatedResourceDesc.Name {
 			return false, fmt.Errorf("Name not updated in ChromemDB: expected %s, got %s",
-				updatedResourceDesc.Name, desc["Name"])
+				updatedResourceDesc.Name, name)
 		}
-		if desc["Version"] != updatedResourceDesc.Version {
-			return false, fmt.Errorf("Version not updated in ChromemDB: expected %s, got %s",
-				updatedResourceDesc.Version, desc["Version"])
+
+		// Check if this is an update by looking for the isUpdate flag
+		if isUpdate, ok := metadata["isUpdate"]; !ok || isUpdate != "true" {
+			return false, fmt.Errorf("isUpdate flag not set in ChromemDB metadata")
 		}
 
 		// Then verify the context record exists

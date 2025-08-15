@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useGraphChain } from '../context/GraphChainContext';
 import { graphChainApi, SkillNode, ErrorNode, GraphChainStats } from '../services/api';
-import { Activity, Brain, AlertTriangle, Clock, TrendingUp, ArrowRight, RefreshCw, Network } from 'lucide-react';
+import { Brain, AlertTriangle, Clock, ArrowRight, RefreshCw, Network } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 import StatsCard from '../components/StatsCard';
 import SkillNodeCard from '../components/SkillNodeCard';
@@ -11,7 +11,8 @@ const Dashboard: React.FC = () => {
   const { currentHeight, isLoading, error, refreshData } = useGraphChain();
   const [stats, setStats] = useState<GraphChainStats | null>(null);
   const [recentSkills, setRecentSkills] = useState<SkillNode[]>([]);
-  const [recentErrors, setRecentErrors] = useState<ErrorNode[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [recentErrors, setRecentErrors] = useState<ErrorNode[]>([]); // TODO: Display recent errors in dashboard
   const [statsLoading, setStatsLoading] = useState(true);
 
   useEffect(() => {
