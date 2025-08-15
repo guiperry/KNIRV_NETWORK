@@ -23,11 +23,11 @@ type CortexAgent struct {
 
 // AgentConnection handles communication with CORTEX
 type AgentConnection struct {
-	Endpoint    string
-	Client      *http.Client
-	Connected   bool
-	LastPing    time.Time
-	SessionID   string
+	Endpoint  string
+	Client    *http.Client
+	Connected bool
+	LastPing  time.Time
+	SessionID string
 }
 
 // AgentConfig holds agent configuration
@@ -62,24 +62,24 @@ type AgentMetrics struct {
 
 // Task represents a task for an agent
 type Task struct {
-	ID          string
-	Type        TaskType
-	Description string
-	Parameters  map[string]interface{}
-	Priority    int
-	Timeout     time.Duration
+	ID           string
+	Type         TaskType
+	Description  string
+	Parameters   map[string]interface{}
+	Priority     int
+	Timeout      time.Duration
 	Dependencies []string
 }
 
 // TaskResult represents the result of a task execution
 type TaskResult struct {
-	TaskID      string
-	Status      TaskStatus
-	Result      interface{}
-	Error       string
-	Duration    time.Duration
-	Metrics     TaskMetrics
-	Timestamp   time.Time
+	TaskID    string
+	Status    TaskStatus
+	Result    interface{}
+	Error     string
+	Duration  time.Duration
+	Metrics   TaskMetrics
+	Timestamp time.Time
 }
 
 // TaskMetrics holds task execution metrics
@@ -198,7 +198,7 @@ func (ca *CortexAgent) connect(ctx context.Context) error {
 	}
 
 	reqBody, _ := json.Marshal(connectReq)
-	
+
 	// Make connection request
 	resp, err := ca.makeRequest(ctx, "POST", "/api/agents/connect", reqBody)
 	if err != nil {
@@ -231,7 +231,7 @@ func (ca *CortexAgent) initializeCapabilities(ctx context.Context) error {
 	}
 
 	reqBody, _ := json.Marshal(capReq)
-	
+
 	_, err := ca.makeRequest(ctx, "POST", "/api/agents/capabilities", reqBody)
 	return err
 }
@@ -270,10 +270,10 @@ func (ca *CortexAgent) ExecuteTask(ctx context.Context, task Task) (*TaskResult,
 	}
 
 	var taskResp struct {
-		TaskID   string      `json:"task_id"`
-		Status   string      `json:"status"`
-		Result   interface{} `json:"result"`
-		Metrics  TaskMetrics `json:"metrics"`
+		TaskID  string      `json:"task_id"`
+		Status  string      `json:"status"`
+		Result  interface{} `json:"result"`
+		Metrics TaskMetrics `json:"metrics"`
 	}
 
 	if err := json.Unmarshal(resp, &taskResp); err != nil {
@@ -314,12 +314,12 @@ func (ca *CortexAgent) Collaborate(ctx context.Context, agents []*CortexAgent, t
 	}
 
 	collabReq := map[string]interface{}{
-		"session_id":    ca.Connection.SessionID,
-		"task_id":       task.ID,
-		"participants":  agentIDs,
-		"task_type":     task.Type,
-		"description":   task.Description,
-		"parameters":    task.Parameters,
+		"session_id":   ca.Connection.SessionID,
+		"task_id":      task.ID,
+		"participants": agentIDs,
+		"task_type":    task.Type,
+		"description":  task.Description,
+		"parameters":   task.Parameters,
 	}
 
 	reqBody, _ := json.Marshal(collabReq)
@@ -369,10 +369,10 @@ func (ca *CortexAgent) Learn(ctx context.Context, feedback interface{}) (*Learni
 
 	// Prepare learning request
 	learnReq := map[string]interface{}{
-		"session_id":     ca.Connection.SessionID,
-		"feedback":       feedback,
-		"learning_rate":  ca.Config.LearningRate,
-		"current_state":  ca.Performance,
+		"session_id":    ca.Connection.SessionID,
+		"feedback":      feedback,
+		"learning_rate": ca.Config.LearningRate,
+		"current_state": ca.Performance,
 	}
 
 	reqBody, _ := json.Marshal(learnReq)
@@ -415,6 +415,12 @@ func (ca *CortexAgent) Learn(ctx context.Context, feedback interface{}) (*Learni
 
 // makeRequest makes HTTP request to CORTEX
 func (ca *CortexAgent) makeRequest(ctx context.Context, method, endpoint string, body []byte) ([]byte, error) {
+	// Use the parameters to avoid unused parameter warnings
+	_ = ctx
+	_ = method
+	_ = endpoint
+	_ = body
+
 	// Implementation would make actual HTTP request to CORTEX
 	// For now, return mock response
 	return []byte(`{"status": "success"}`), nil
@@ -426,7 +432,7 @@ func (ca *CortexAgent) updatePerformance(success bool, duration time.Duration) {
 	defer ca.mu.Unlock()
 
 	ca.Performance.TasksCompleted++
-	
+
 	if success {
 		ca.Performance.SuccessRate = (ca.Performance.SuccessRate*float64(ca.Performance.TasksCompleted-1) + 1.0) / float64(ca.Performance.TasksCompleted)
 	} else {

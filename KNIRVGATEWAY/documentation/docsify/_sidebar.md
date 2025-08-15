@@ -2,11 +2,11 @@
 
 ## User Guides
 
-* [KNIRVCORTEX User Guide and Troubleshooting](guides/README.md)
+* [User Guides](guides/README.md)
 
 ## Deployment
 
-* [KNIRVTESTNET User Guide](deployment/README.md)
+* [Deployment Guides](deployment/README.md)
 
 ## KNIRVCHAIN Documentation
 

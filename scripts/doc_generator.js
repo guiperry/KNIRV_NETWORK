@@ -38,6 +38,8 @@ const CONFIG = {
   outputDir: path.join(rootDir, 'KNIRVGATEWAY', 'documentation'),
   docsifyDir: path.join(rootDir, 'KNIRVGATEWAY', 'documentation', 'docsify'),
   hashFile: path.join(rootDir, 'KNIRVGATEWAY', 'documentation', '.doc_hashes.json'),
+  // Backup directory for consolidated .md files
+  backupDir: path.join(rootDir, '.doc-consolidation-backups'),
   projectName: 'KNIRV Network',
   projectRepo: 'https://github.com/guiperry/KNIRV_NETWORK',
   categories: {
@@ -67,6 +69,8 @@ const CONFIG = {
   },
   // Whitepapers directory - files here should be copied directly without refactoring
   whitepaperSourceDir: 'whitepapers',
+  // Note: The 'docs' directory is excluded from .md file consolidation except for whitepapers
+  // This prevents the script from processing its own output and source documentation
   // Subproduct directories to scan for additional documentation
   subproductDirs: [
     'KNIRVCHAIN',
@@ -196,6 +200,214 @@ function hasContentChanged(content, key, hashes) {
 function updateFileHash(filePath, hashes) {
   hashes[filePath] = calculateFileHash(filePath);
   return hashes;
+}
+
+// Create comprehensive backup of files before consolidation
+function createConsolidationBackup(dirInfo, timestamp) {
+  console.log(`  💾 Creating backup for ${dirInfo.relativePath}...`);
+
+  try {
+    // Create timestamped backup directory
+    const backupSubDir = path.join(CONFIG.backupDir, timestamp, dirInfo.relativePath);
+    ensureDirectoryExists(backupSubDir);
+
+    // Backup README.md if it exists
+    const readmePath = path.join(dirInfo.directory, dirInfo.readmeFile);
+    if (fs.existsSync(readmePath)) {
+      const backupReadmePath = path.join(backupSubDir, dirInfo.readmeFile);
+      fs.copyFileSync(readmePath, backupReadmePath);
+      console.log(`    📄 Backed up ${dirInfo.readmeFile}`);
+    }
+
+    // Backup all other .md files
+    for (const mdFile of dirInfo.otherMdFiles) {
+      const sourcePath = path.join(dirInfo.directory, mdFile);
+      const backupPath = path.join(backupSubDir, mdFile);
+      if (fs.existsSync(sourcePath)) {
+        fs.copyFileSync(sourcePath, backupPath);
+        console.log(`    📄 Backed up ${mdFile}`);
+      }
+    }
+
+    // Create backup metadata
+    const metadata = {
+      timestamp: timestamp,
+      directory: dirInfo.relativePath,
+      readmeFile: dirInfo.readmeFile,
+      otherMdFiles: dirInfo.otherMdFiles,
+      backupReason: 'Pre-consolidation backup',
+      originalSizes: {}
+    };
+
+    // Record original file sizes
+    if (fs.existsSync(readmePath)) {
+      metadata.originalSizes[dirInfo.readmeFile] = fs.statSync(readmePath).size;
+    }
+    for (const mdFile of dirInfo.otherMdFiles) {
+      const sourcePath = path.join(dirInfo.directory, mdFile);
+      if (fs.existsSync(sourcePath)) {
+        metadata.originalSizes[mdFile] = fs.statSync(sourcePath).size;
+      }
+    }
+
+    fs.writeFileSync(path.join(backupSubDir, 'backup-metadata.json'), JSON.stringify(metadata, null, 2));
+
+    console.log(`  ✅ Backup created successfully in ${backupSubDir}`);
+    return backupSubDir;
+  } catch (error) {
+    console.log(`  ❌ Backup failed: ${error.message}`);
+    throw new Error(`Backup failed for ${dirInfo.relativePath}: ${error.message}`);
+  }
+}
+
+// Validate consolidated content before writing
+function validateConsolidatedContent(originalContent, consolidatedContent, dirInfo) {
+  console.log(`  🔍 Validating consolidated content for ${dirInfo.relativePath}...`);
+
+  const validationResults = {
+    isValid: true,
+    warnings: [],
+    errors: [],
+    metrics: {}
+  };
+
+  // Check if consolidated content is significantly longer than original
+  const originalLength = originalContent.length;
+  const consolidatedLength = consolidatedContent.length;
+
+  validationResults.metrics.originalLength = originalLength;
+  validationResults.metrics.consolidatedLength = consolidatedLength;
+  validationResults.metrics.lengthIncrease = consolidatedLength - originalLength;
+  validationResults.metrics.lengthRatio = originalLength > 0 ? consolidatedLength / originalLength : 0;
+
+  // Validation checks
+  if (consolidatedLength < originalLength * 0.8) {
+    validationResults.errors.push(`Consolidated content is significantly shorter than original (${consolidatedLength} vs ${originalLength} chars)`);
+    validationResults.isValid = false;
+  }
+
+  if (consolidatedLength < 1000) {
+    validationResults.warnings.push(`Consolidated content seems too short (${consolidatedLength} chars)`);
+  }
+
+  // Check for truncation indicators
+  const truncationIndicators = [
+    /\*KNIR$/,  // Truncated at end
+    /\.\.\.$/, // Ends with ellipsis
+    /[^.!?]$/, // Doesn't end with proper punctuation (but allow markdown)
+  ];
+
+  for (const indicator of truncationIndicators) {
+    if (indicator.test(consolidatedContent.trim())) {
+      validationResults.errors.push(`Content appears to be truncated (matches pattern: ${indicator})`);
+      validationResults.isValid = false;
+    }
+  }
+
+  // Check for essential markdown structure
+  const hasHeaders = /^#+ /.test(consolidatedContent);
+  if (!hasHeaders) {
+    validationResults.warnings.push('No markdown headers found in consolidated content');
+  }
+
+  // Check for minimum content requirements
+  const wordCount = consolidatedContent.split(/\s+/).length;
+  validationResults.metrics.wordCount = wordCount;
+
+  if (wordCount < 100) {
+    validationResults.errors.push(`Content too short: only ${wordCount} words`);
+    validationResults.isValid = false;
+  }
+
+  console.log(`    📊 Validation metrics:`, validationResults.metrics);
+
+  if (validationResults.warnings.length > 0) {
+    console.log(`    ⚠️ Warnings:`, validationResults.warnings);
+  }
+
+  if (validationResults.errors.length > 0) {
+    console.log(`    ❌ Errors:`, validationResults.errors);
+  }
+
+  return validationResults;
+}
+
+// Safe file writing with validation
+function safeWriteConsolidatedFile(filePath, content, dirInfo, backupDir) {
+  console.log(`  💾 Safely writing consolidated file: ${path.basename(filePath)}...`);
+
+  try {
+    // Create temporary file first
+    const tempPath = filePath + '.tmp';
+    fs.writeFileSync(tempPath, content);
+
+    // Verify the temporary file was written correctly
+    const writtenContent = fs.readFileSync(tempPath, 'utf8');
+    if (writtenContent !== content) {
+      throw new Error('File content verification failed after writing');
+    }
+
+    if (writtenContent.length !== content.length) {
+      throw new Error(`File length mismatch: expected ${content.length}, got ${writtenContent.length}`);
+    }
+
+    // Check for truncation in written file
+    if (writtenContent.endsWith('*KNIR') || writtenContent.length < content.length * 0.95) {
+      throw new Error('Written file appears to be truncated');
+    }
+
+    // If validation passes, move temp file to final location
+    fs.renameSync(tempPath, filePath);
+
+    console.log(`  ✅ File written successfully: ${path.basename(filePath)} (${content.length} chars)`);
+    return true;
+  } catch (error) {
+    console.log(`  ❌ Safe write failed: ${error.message}`);
+
+    // Clean up temp file if it exists
+    const tempPath = filePath + '.tmp';
+    if (fs.existsSync(tempPath)) {
+      fs.unlinkSync(tempPath);
+    }
+
+    throw error;
+  }
+}
+
+// Clean old backup directories (keep last 10)
+function cleanOldBackups() {
+  try {
+    if (!fs.existsSync(CONFIG.backupDir)) {
+      return;
+    }
+
+    const backupDirs = fs.readdirSync(CONFIG.backupDir)
+      .filter(item => {
+        const itemPath = path.join(CONFIG.backupDir, item);
+        return fs.lstatSync(itemPath).isDirectory();
+      })
+      .map(dir => ({
+        name: dir,
+        path: path.join(CONFIG.backupDir, dir),
+        mtime: fs.statSync(path.join(CONFIG.backupDir, dir)).mtime
+      }))
+      .sort((a, b) => b.mtime - a.mtime); // Sort by modification time, newest first
+
+    // Keep only the 10 most recent backups
+    const backupsToDelete = backupDirs.slice(10);
+
+    for (const backup of backupsToDelete) {
+      console.log(`🗑️ Cleaning old backup: ${backup.name}`);
+      // Recursively delete old backup directory
+      fs.rmSync(backup.path, { recursive: true, force: true });
+    }
+
+    if (backupsToDelete.length > 0) {
+      console.log(`✅ Cleaned ${backupsToDelete.length} old backup directories`);
+    }
+  } catch (error) {
+    console.log(`⚠️ Failed to clean old backups: ${error.message}`);
+  }
 }
 
 // Update hash for content
@@ -1379,9 +1591,331 @@ function processReferences(hashes) {
   }
 }
 
+// Comprehensive .md file consolidation across all subproject directories
+async function consolidateAllProjectDocumentation() {
+  console.log('🔄 Starting comprehensive .md file consolidation across all subproject directories...');
+
+  const projectRoot = rootDir;
+  const consolidationResults = [];
+
+  // Ensure backup directory exists and clean old backups
+  ensureDirectoryExists(CONFIG.backupDir);
+  cleanOldBackups();
+
+  // Function to find all directories with multiple .md files (excluding docs directory)
+  function findDirectoriesWithMultipleMdFiles(dir, depth = 0) {
+    if (depth > 3) return []; // Limit recursion depth
+
+    const results = [];
+    const relativePath = path.relative(projectRoot, dir);
+
+    // Skip the docs directory entirely (except for whitepapers which are handled separately)
+    if (relativePath === 'docs' || relativePath.startsWith('docs/')) {
+      console.log(`Skipping docs directory: ${relativePath}`);
+      return results;
+    }
+
+    try {
+      const items = fs.readdirSync(dir);
+      const mdFiles = items.filter(item => {
+        const itemPath = path.join(dir, item);
+        return fs.lstatSync(itemPath).isFile() && item.endsWith('.md');
+      });
+
+      // If this directory has multiple .md files, it's a candidate for consolidation
+      if (mdFiles.length > 1) {
+        const hasReadme = mdFiles.some(file => file.toLowerCase() === 'readme.md');
+        const otherMdFiles = mdFiles.filter(file => file.toLowerCase() !== 'readme.md');
+
+        if (hasReadme && otherMdFiles.length > 0) {
+          results.push({
+            directory: dir,
+            relativePath: relativePath,
+            readmeFile: mdFiles.find(file => file.toLowerCase() === 'readme.md'),
+            otherMdFiles: otherMdFiles,
+            allMdFiles: mdFiles
+          });
+        }
+      }
+
+      // Recursively check subdirectories
+      for (const item of items) {
+        const itemPath = path.join(dir, item);
+        const stat = fs.lstatSync(itemPath);
+
+        if (stat.isDirectory() && !CONFIG.excludeSubDirs.includes(item) && !item.startsWith('.')) {
+          // Additional check to skip docs directory
+          const subRelativePath = path.relative(projectRoot, itemPath);
+          if (subRelativePath !== 'docs' && !subRelativePath.startsWith('docs/')) {
+            results.push(...findDirectoriesWithMultipleMdFiles(itemPath, depth + 1));
+          }
+        }
+      }
+    } catch (error) {
+      console.log(`Skipping directory ${dir}: ${error.message}`);
+    }
+
+    return results;
+  }
+
+  // Find all directories that need consolidation
+  const candidateDirectories = findDirectoriesWithMultipleMdFiles(projectRoot);
+
+  console.log(`Found ${candidateDirectories.length} directories with multiple .md files:`);
+  candidateDirectories.forEach(dir => {
+    console.log(`  📁 ${dir.relativePath}: README.md + ${dir.otherMdFiles.length} other .md files`);
+  });
+
+  // Process each directory for consolidation
+  for (const dirInfo of candidateDirectories) {
+    await consolidateDirectoryDocumentation(dirInfo);
+    consolidationResults.push(dirInfo);
+  }
+
+  return consolidationResults;
+}
+
+// Consolidate .md files in a specific directory using AI with comprehensive safety checks
+async function consolidateDirectoryDocumentation(dirInfo) {
+  console.log(`\n🔄 Consolidating documentation in: ${dirInfo.relativePath}`);
+
+  const readmePath = path.join(dirInfo.directory, dirInfo.readmeFile);
+  const otherMdPaths = dirInfo.otherMdFiles.map(file => path.join(dirInfo.directory, file));
+
+  // Create timestamped backup before any changes
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  let backupDir;
+
+  try {
+    backupDir = createConsolidationBackup(dirInfo, timestamp);
+  } catch (error) {
+    console.log(`  ❌ Backup failed, skipping consolidation for safety: ${error.message}`);
+    return;
+  }
+
+  // Read all .md file contents
+  const readmeContent = fs.existsSync(readmePath) ? fs.readFileSync(readmePath, 'utf8') : '';
+  const otherContents = otherMdPaths.map(filePath => ({
+    filename: path.basename(filePath),
+    content: fs.readFileSync(filePath, 'utf8'),
+    path: filePath
+  }));
+
+  // Check if consolidation has already been done
+  const hasConsolidationMarkers = otherContents.some(file =>
+    readmeContent.includes(file.filename.replace('.md', '')) ||
+    readmeContent.includes(file.content.substring(0, 100))
+  );
+
+  if (hasConsolidationMarkers && readmeContent.length > 5000) {
+    console.log(`  ✅ ${dirInfo.relativePath} already appears to be consolidated`);
+
+    // Validate existing content before removing files
+    const validation = validateConsolidatedContent(readmeContent, readmeContent, dirInfo);
+    if (!validation.isValid) {
+      console.log(`  ⚠️ Existing consolidated content failed validation, keeping individual files`);
+      return;
+    }
+
+    // Remove the individual .md files since they're consolidated and validated
+    for (const fileInfo of otherContents) {
+      if (fs.existsSync(fileInfo.path)) {
+        console.log(`    🗑️ Removing consolidated file: ${fileInfo.filename}`);
+        fs.unlinkSync(fileInfo.path);
+      }
+    }
+    return;
+  }
+
+  // Use AI to intelligently consolidate the documentation
+  console.log(`  🤖 Generating consolidated documentation...`);
+  const consolidatedContent = await generateConsolidatedDocumentation(
+    dirInfo.relativePath,
+    readmeContent,
+    otherContents
+  );
+
+  if (!consolidatedContent) {
+    console.log(`  ❌ Failed to generate consolidated content for ${dirInfo.relativePath}`);
+    return;
+  }
+
+  // Validate the consolidated content
+  const validation = validateConsolidatedContent(readmeContent, consolidatedContent, dirInfo);
+  if (!validation.isValid) {
+    console.log(`  ❌ Consolidated content failed validation for ${dirInfo.relativePath}`);
+    console.log(`  📋 Validation errors:`, validation.errors);
+    return;
+  }
+
+  if (validation.warnings.length > 0) {
+    console.log(`  ⚠️ Validation warnings for ${dirInfo.relativePath}:`, validation.warnings);
+  }
+
+  // Safely write the consolidated content
+  try {
+    safeWriteConsolidatedFile(readmePath, consolidatedContent, dirInfo, backupDir);
+    console.log(`  ✅ Successfully consolidated ${otherContents.length} files into ${dirInfo.readmeFile}`);
+
+    // Only remove individual files after successful validation and writing
+    for (const fileInfo of otherContents) {
+      if (fs.existsSync(fileInfo.path)) {
+        console.log(`    🗑️ Removing consolidated file: ${fileInfo.filename}`);
+        fs.unlinkSync(fileInfo.path);
+      }
+    }
+
+    console.log(`  📊 Final metrics: ${validation.metrics.consolidatedLength} chars, ${validation.metrics.wordCount} words`);
+  } catch (error) {
+    console.log(`  ❌ Failed to write consolidated content: ${error.message}`);
+    console.log(`  💾 Backup preserved at: ${backupDir}`);
+  }
+}
+
+// Generate consolidated documentation using AI
+async function generateConsolidatedDocumentation(directoryPath, readmeContent, otherContents) {
+  console.log(`  🤖 Using AI to consolidate documentation for ${directoryPath}...`);
+
+  try {
+    // Prepare the prompt for AI consolidation
+    const prompt = `You are a technical documentation expert. Please consolidate the following documentation files into a single, comprehensive README.md file.
+
+DIRECTORY: ${directoryPath}
+
+CURRENT README.md CONTENT:
+${readmeContent}
+
+ADDITIONAL .MD FILES TO CONSOLIDATE:
+${otherContents.map(file => `
+=== ${file.filename} ===
+${file.content}
+`).join('\n')}
+
+CONSOLIDATION REQUIREMENTS:
+1. Create a comprehensive, well-organized README.md that includes ALL information from the additional files
+2. Organize content logically with clear sections and subsections
+3. Remove any duplicate information
+4. Maintain all technical details, commands, examples, and specifications
+5. Use proper markdown formatting with headers, code blocks, tables, and lists
+6. Include a table of contents for easy navigation
+7. Preserve all important links, references, and technical specifications
+8. Organize content into logical categories like: Overview, Features, Usage, Configuration, Troubleshooting, etc.
+9. Make the documentation comprehensive enough that the individual files are no longer needed
+10. Ensure the consolidated document is professional and easy to navigate
+
+Please provide ONLY the consolidated README.md content, no explanations or comments.`;
+
+    // Use the first available AI service
+    let consolidatedContent = null;
+
+    if (process.env.GEMINI_API_KEY) {
+      consolidatedContent = await callGeminiAPI(prompt);
+    } else if (process.env.CEREBRAS_API_KEY) {
+      consolidatedContent = await callCerebrasAPI(prompt);
+    } else {
+      console.log('  ⚠️ No AI API keys available, performing basic consolidation');
+      return performBasicConsolidation(readmeContent, otherContents);
+    }
+
+    return consolidatedContent;
+  } catch (error) {
+    console.log(`  ❌ AI consolidation failed: ${error.message}`);
+    return performBasicConsolidation(readmeContent, otherContents);
+  }
+}
+
+// Fallback basic consolidation without AI
+function performBasicConsolidation(readmeContent, otherContents) {
+  console.log('  📝 Performing basic consolidation without AI...');
+
+  let consolidated = readmeContent;
+
+  // Add a consolidation header if not present
+  if (!consolidated.includes('# Consolidated Documentation')) {
+    consolidated = `# Consolidated Documentation\n\n${consolidated}`;
+  }
+
+  // Add each file's content as a section
+  for (const fileInfo of otherContents) {
+    const sectionTitle = fileInfo.filename.replace('.md', '').replace(/[_-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    consolidated += `\n\n## ${sectionTitle}\n\n${fileInfo.content}`;
+  }
+
+  return consolidated;
+}
+
+// Enhanced README detection with comprehensive subdirectory scanning (excluding docs directory)
+function findAllReadmeFiles() {
+  console.log('🔍 Enhanced README detection with comprehensive subdirectory scanning (excluding docs directory)...');
+
+  const readmeFiles = [];
+  const projectRoot = rootDir;
+
+  // Recursive function to scan directories
+  function scanDirectory(dir, depth = 0) {
+    if (depth > 4) return; // Limit recursion depth
+
+    const relativePath = path.relative(projectRoot, dir);
+
+    // Skip the docs directory entirely (except for whitepapers which are handled separately)
+    if (relativePath === 'docs' || relativePath.startsWith('docs/')) {
+      console.log(`Skipping docs directory: ${relativePath}`);
+      return;
+    }
+
+    try {
+      const items = fs.readdirSync(dir);
+
+      for (const item of items) {
+        const itemPath = path.join(dir, item);
+        const stat = fs.lstatSync(itemPath);
+
+        if (stat.isDirectory()) {
+          // Skip excluded directories
+          if (CONFIG.excludeSubDirs.includes(item) || item.startsWith('.')) {
+            continue;
+          }
+
+          // Additional check to skip docs directory
+          const subRelativePath = path.relative(projectRoot, itemPath);
+          if (subRelativePath !== 'docs' && !subRelativePath.startsWith('docs/')) {
+            // Recursively scan subdirectories
+            scanDirectory(itemPath, depth + 1);
+          }
+        } else if (stat.isFile() && item.toLowerCase() === 'readme.md') {
+          // Found a README.md file (not in docs directory)
+          const fileRelativePath = path.relative(projectRoot, itemPath);
+          readmeFiles.push({
+            path: itemPath,
+            relativePath: fileRelativePath,
+            directory: path.dirname(fileRelativePath),
+            lastModified: stat.mtime,
+            size: stat.size
+          });
+        }
+      }
+    } catch (error) {
+      // Skip directories we can't read
+      console.log(`Skipping directory ${dir}: ${error.message}`);
+    }
+  }
+
+  // Start scanning from project root
+  scanDirectory(projectRoot);
+
+  console.log(`📊 Found ${readmeFiles.length} README.md files across the project (excluding docs directory)`);
+
+  // Log found files for debugging
+  readmeFiles.forEach(file => {
+    console.log(`  📄 ${file.relativePath} (${file.size} bytes, modified: ${file.lastModified.toISOString().split('T')[0]})`);
+  });
+
+  return readmeFiles;
+}
+
 // Main function
 async function main() {
-  console.log('Starting documentation generation...');
+  console.log('🚀 Starting enhanced documentation generation with comprehensive consolidation...');
 
   // Load existing hashes
   let hashes = loadHashes();
@@ -1389,7 +1923,18 @@ async function main() {
   // Ensure output directory exists
   ensureDirectoryExists(CONFIG.outputDir);
 
-  // Check if whitepaper files have changed
+  // STEP 1: Consolidate all .md files across all subproject directories
+  console.log('\n📚 STEP 1: Comprehensive .md file consolidation across all directories');
+  const consolidationResults = await consolidateAllProjectDocumentation();
+  console.log(`✅ Consolidated documentation in ${consolidationResults.length} directories`);
+
+  // STEP 2: Enhanced README detection after consolidation
+  console.log('\n🔍 STEP 2: Enhanced README detection with updated file structure');
+  const allReadmeFiles = findAllReadmeFiles();
+  console.log(`📊 Detected ${allReadmeFiles.length} README.md files for processing`);
+
+  // STEP 3: Check if whitepaper files have changed
+  console.log('\n📄 STEP 3: Whitepaper change detection');
   const whitepaperFiles = getWhitepaperFiles();
   for (const filePath of whitepaperFiles) {
     if (hasFileChanged(filePath, hashes)) {
@@ -1398,22 +1943,250 @@ async function main() {
     }
   }
 
-  // Process markdown files with AI organization
+  // STEP 4: Process markdown files with AI organization
+  console.log('\n🤖 STEP 4: AI-powered documentation organization');
   const docs = await processMarkdownFiles(hashes);
 
-  // Create Docsify structure with organized documentation
-  createDocsifyStructure(docs, hashes);
+  // STEP 5: Create comprehensive Docsify structure with organized documentation
+  console.log('\n🏗️ STEP 5: Creating comprehensive documentation hierarchy');
+  await createEnhancedDocsifyStructure(docs, hashes, allReadmeFiles);
 
-  // Process whitepapers separately
+  // STEP 6: Process whitepapers separately
+  console.log('\n📄 STEP 6: Whitepaper processing');
   processWhitepapers(hashes);
 
-  // Save updated hashes
+  // STEP 7: Save updated hashes
   saveHashes(hashes);
 
-  console.log('Documentation generation complete!');
-  console.log(`Documentation: ${CONFIG.docsifyDir}`);
-  console.log(`Whitepapers: ${path.join(CONFIG.docsifyDir, 'whitepapers')}`);
-  console.log(`Organized ${docs.length} documentation files using AI`);
+  // STEP 8: Final validation check for critical files
+  console.log('\n🔍 STEP 8: Final validation of critical documentation files');
+  await performFinalValidation(allReadmeFiles);
+
+  console.log('\n🎉 Enhanced documentation generation complete!');
+  console.log(`📚 Documentation: ${CONFIG.docsifyDir}`);
+  console.log(`📄 Whitepapers: ${path.join(CONFIG.docsifyDir, 'whitepapers')}`);
+  console.log(`🤖 Organized ${docs.length} documentation files using AI`);
+  console.log(`📁 Consolidated documentation in ${consolidationResults.length} directories`);
+  console.log(`🔍 Processed ${allReadmeFiles.length} README.md files`);
+  console.log(`💾 Backups stored in: ${CONFIG.backupDir}`);
+  console.log('📊 Generated comprehensive documentation hierarchy for public navigation');
+}
+
+// Perform final validation of critical documentation files
+async function performFinalValidation(allReadmeFiles) {
+  console.log('🔍 Performing final validation of critical documentation files...');
+
+  const criticalFiles = [
+    'KNIRVTESTNET/README.md',
+    'KNIRVWALLET/README.md',
+    'scripts/README.md',
+    'README.md'
+  ];
+
+  let validationIssues = 0;
+
+  for (const criticalFile of criticalFiles) {
+    const filePath = path.join(rootDir, criticalFile);
+
+    if (!fs.existsSync(filePath)) {
+      console.log(`  ❌ Critical file missing: ${criticalFile}`);
+      validationIssues++;
+      continue;
+    }
+
+    const content = fs.readFileSync(filePath, 'utf8');
+    const fileSize = content.length;
+    const wordCount = content.split(/\s+/).length;
+
+    // Check for truncation indicators
+    const isTruncated = content.endsWith('*KNIR') ||
+                       content.endsWith('- Ensure') ||
+                       (content.match(/[^.!?*]\s*$/) && !content.endsWith('*'));
+
+    if (isTruncated) {
+      console.log(`  ❌ File appears truncated: ${criticalFile}`);
+      validationIssues++;
+    } else if (fileSize < 1000) {
+      console.log(`  ⚠️ File seems too short: ${criticalFile} (${fileSize} chars)`);
+      validationIssues++;
+    } else {
+      console.log(`  ✅ ${criticalFile} validated (${fileSize} chars, ${wordCount} words)`);
+    }
+  }
+
+  if (validationIssues > 0) {
+    console.log(`\n⚠️ Found ${validationIssues} validation issues with critical files`);
+    console.log(`💾 Check backup directory for recovery: ${CONFIG.backupDir}`);
+  } else {
+    console.log('\n✅ All critical files passed validation');
+  }
+}
+
+// Enhanced Docsify structure creation with comprehensive organization
+async function createEnhancedDocsifyStructure(docs, hashes, allReadmeFiles) {
+  console.log('🏗️ Creating enhanced Docsify structure with comprehensive organization...');
+
+  // Create the standard Docsify structure
+  createDocsifyStructure(docs, hashes);
+
+  // Generate comprehensive documentation categories using AI
+  await generateComprehensiveDocumentationHierarchy(allReadmeFiles, hashes);
+
+  console.log('✅ Enhanced Docsify structure created successfully');
+}
+
+// Generate comprehensive documentation hierarchy using AI inference
+async function generateComprehensiveDocumentationHierarchy(allReadmeFiles, hashes) {
+  console.log('🤖 Generating comprehensive documentation hierarchy using AI inference...');
+
+  try {
+    // Prepare content for AI analysis (excluding docs directory files)
+    const documentationContent = allReadmeFiles
+      .filter(file => !file.relativePath.startsWith('docs/') && file.relativePath !== 'docs')
+      .map(file => ({
+        path: file.relativePath,
+        directory: file.directory,
+        content: fs.readFileSync(file.path, 'utf8').substring(0, 2000), // First 2000 chars for analysis
+        size: file.size,
+        lastModified: file.lastModified
+      }));
+
+    // Create AI prompt for comprehensive organization
+    const organizationPrompt = `You are a technical documentation architect. Analyze the following README.md files from a complex software project and organize them into a comprehensive, navigable documentation hierarchy.
+
+PROJECT: KNIRV Network (Decentralized Trusted Execution Network)
+
+README FILES TO ORGANIZE:
+${documentationContent.map(doc => `
+=== ${doc.path} ===
+Directory: ${doc.directory}
+Size: ${doc.size} bytes
+Content Preview:
+${doc.content}
+`).join('\n')}
+
+ORGANIZATION REQUIREMENTS:
+1. Create a comprehensive documentation hierarchy with these main categories:
+   - Deployment Guides (step-by-step deployment instructions)
+   - Troubleshooting Guides (common issues and solutions)
+   - Architecture Documents (system design and component relationships)
+   - Current Status Reports (real-time system status and metrics)
+   - API Documentation (comprehensive API reference)
+   - User Guides (end-user documentation and tutorials)
+   - Developer Guides (development setup and contribution guides)
+
+2. For each category, organize the README files into logical subcategories
+3. Create a navigation structure suitable for public documentation
+4. Generate appropriate titles and descriptions for each section
+5. Identify which files belong in which categories based on their content
+6. Create cross-references between related documentation
+7. Generate a master table of contents
+
+Please provide a JSON structure with the following format:
+{
+  "categories": {
+    "deployment": {
+      "title": "Deployment Guides",
+      "description": "...",
+      "subcategories": {
+        "infrastructure": {
+          "title": "Infrastructure Deployment",
+          "files": ["path/to/readme.md", ...],
+          "description": "..."
+        }
+      }
+    }
+  },
+  "navigation": [...],
+  "crossReferences": {...}
+}`;
+
+    let organizationResult = null;
+
+    // Try AI organization
+    if (process.env.GEMINI_API_KEY) {
+      organizationResult = await callGeminiAPI(organizationPrompt);
+    } else if (process.env.CEREBRAS_API_KEY) {
+      organizationResult = await callCerebrasAPI(organizationPrompt);
+    }
+
+    if (organizationResult) {
+      // Parse and apply the AI-generated organization
+      await applyDocumentationOrganization(organizationResult, allReadmeFiles);
+    } else {
+      // Fallback to basic organization
+      await createBasicDocumentationHierarchy(allReadmeFiles);
+    }
+
+  } catch (error) {
+    console.log(`❌ AI organization failed: ${error.message}`);
+    await createBasicDocumentationHierarchy(allReadmeFiles);
+  }
+}
+
+// Apply AI-generated documentation organization
+async function applyDocumentationOrganization(organizationJson, allReadmeFiles) {
+  console.log('📊 Applying AI-generated documentation organization...');
+
+  try {
+    const organization = JSON.parse(organizationJson);
+
+    // Create organized directory structure in docsify
+    const docsifyDir = CONFIG.docsifyDir;
+
+    for (const [categoryKey, categoryInfo] of Object.entries(organization.categories || {})) {
+      const categoryDir = path.join(docsifyDir, categoryKey);
+      ensureDirectoryExists(categoryDir);
+
+      // Create category index file
+      const categoryIndexContent = `# ${categoryInfo.title}\n\n${categoryInfo.description}\n\n`;
+      fs.writeFileSync(path.join(categoryDir, 'README.md'), categoryIndexContent);
+
+      // Process subcategories
+      for (const [subKey, subInfo] of Object.entries(categoryInfo.subcategories || {})) {
+        const subDir = path.join(categoryDir, subKey);
+        ensureDirectoryExists(subDir);
+
+        // Copy relevant files to subcategory
+        for (const filePath of subInfo.files || []) {
+          const sourceFile = allReadmeFiles.find(f => f.relativePath === filePath);
+          if (sourceFile) {
+            const targetPath = path.join(subDir, path.basename(sourceFile.path));
+            fs.copyFileSync(sourceFile.path, targetPath);
+          }
+        }
+      }
+    }
+
+    console.log('✅ AI-generated documentation organization applied successfully');
+  } catch (error) {
+    console.log(`❌ Failed to apply AI organization: ${error.message}`);
+    await createBasicDocumentationHierarchy(allReadmeFiles);
+  }
+}
+
+// Fallback basic documentation hierarchy
+async function createBasicDocumentationHierarchy(allReadmeFiles) {
+  console.log('📝 Creating basic documentation hierarchy...');
+
+  const docsifyDir = CONFIG.docsifyDir;
+  const categories = {
+    'deployment': 'Deployment Guides',
+    'troubleshooting': 'Troubleshooting',
+    'architecture': 'Architecture',
+    'api': 'API Documentation',
+    'guides': 'User Guides'
+  };
+
+  for (const [key, title] of Object.entries(categories)) {
+    const categoryDir = path.join(docsifyDir, key);
+    ensureDirectoryExists(categoryDir);
+
+    const indexContent = `# ${title}\n\nThis section contains ${title.toLowerCase()} for the KNIRV Network.\n\n`;
+    fs.writeFileSync(path.join(categoryDir, 'README.md'), indexContent);
+  }
+
+  console.log('✅ Basic documentation hierarchy created');
 }
 
 // Run the main function

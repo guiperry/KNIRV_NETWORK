@@ -1,19 +1,61 @@
-# KNIRV Client Transmission SDK for Go
+# KNIRV Client Transmission SDK
 
-The KNIRV Client Transmission SDK for Go provides a high-level interface for interacting with the KNIRVCHAIN network. It simplifies the process of resolving `knirv://` URIs, discovering peers on the private DHT, connecting to them, and fetching the underlying resources.
+## Table of Contents
+
+- [Overview](#overview)
+- [Installation](#installation)
+- [Features](#features)
+- [Usage](#usage)
+    - [Parsing URIs](#parsing-uris)
+    - [Fetching Resources](#fetching-resources)
+    - [Custom Configuration](#custom-configuration)
+- [Error Handling](#error-handling)
+- [Testing](#testing)
+    - [Testing the Go SDK](#testing-the-go-sdk)
+    - [Testing the Python SDK](#testing-the-python-sdk)
+    - [Testing the JavaScript/TypeScript SDK](#testing-the-javascripttypescript-sdk)
+    - [Testing with Real KNIRVCHAIN Network](#testing-with-real-knirvchain-network)
+    - [Example Configuration](#example-configuration)
+    - [Troubleshooting](#troubleshooting)
+    - [Debugging](#debugging)
+- [Example](#example)
+- [License](#license)
+
+
+## Overview
+
+The KNIRV Client Transmission SDK provides a high-level interface for interacting with the KNIRVCHAIN network.  It simplifies resolving `knirv://` URIs, discovering peers on the private DHT, connecting to them, and fetching underlying resources.  This SDK is available in Go, Python, and JavaScript/TypeScript.
+
 
 ## Installation
+
+**Go:**
 
 ```bash
 go get github.com/cloud-equities/KNIRVCHAIN_CONNECTION_SDK/go
 ```
 
+**Python:**
+
+1. Navigate to the Python SDK directory: `cd /home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN_GO_ROOT_MCP/sdk/python`
+2. Create a virtual environment: `python -m venv venv`
+3. Activate the virtual environment: `source venv/bin/activate` (On Windows: `venv\Scripts\activate`)
+4. Install the SDK: `pip install -e .`
+
+**JavaScript/TypeScript:**
+
+1. Navigate to the JavaScript SDK directory: `cd /home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN_GO_ROOT_MCP/sdk/js`
+2. Install dependencies: `npm install` or `yarn install`
+3. Build the SDK: `npm run build` or `yarn build`
+
+
 ## Features
 
-- Parse `knirv://` URIs into their components (ID, ResourceType, Path, Query)
-- Discover peers on the KNIRVCHAIN DHT that provide specific resources
+- Parse `knirv://` URIs into components (ID, ResourceType, Path, Query)
+- Discover peers on the KNIRVCHAIN DHT providing specific resources
 - Connect to peers and fetch resources using libp2p streams
 - Handle errors and retries gracefully
+
 
 ## Usage
 
@@ -91,13 +133,13 @@ knirvClient, err := client.New(config)
 
 ## Error Handling
 
-The SDK provides specific error types to help with error handling:
+The SDK provides specific error types:
 
-- `parser.ErrInvalidURI`: Returned when a URI is invalid
-- `client.ErrClientClosed`: Returned when operations are attempted on a closed client
-- `client.ErrResourceNotFound`: Returned when a resource cannot be found
-- `client.ErrConnectionFailed`: Returned when connection to a peer fails
-- `client.ErrFetchFailed`: Returned when fetching a resource fails
+- `parser.ErrInvalidURI`: Invalid URI.
+- `client.ErrClientClosed`: Operations on a closed client.
+- `client.ErrResourceNotFound`: Resource not found.
+- `client.ErrConnectionFailed`: Connection to a peer failed.
+- `client.ErrFetchFailed`: Fetching a resource failed.
 
 Example:
 
@@ -116,9 +158,121 @@ if err != nil {
 }
 ```
 
+## Testing
+
+### Testing the Go SDK
+
+**Setup:**
+
+1. `cd /home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN_GO_ROOT_MCP/sdk/go`
+2. `go mod tidy`
+
+**Running Tests:**
+
+1. `cd parser`
+2. `go test -v`
+3. `cd ../client`
+4. `go test -v`
+
+**Running the Example:**
+
+1. `cd ../example`
+2. `go build -o knirv-example`
+3. `./knirv-example knirv://mychain-alpha.chain/block?number=123`
+
+### Testing the Python SDK
+
+**Setup:**
+
+1. `cd /home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN_GO_ROOT_MCP/sdk/python`
+2. `python -m venv venv`
+3. `source venv/bin/activate`  (On Windows: `venv\Scripts\activate`)
+4. `pip install -e .`
+5. `pip install pytest`
+
+**Running Tests:**
+
+`pytest`
+
+**Running the Example:**
+
+`python examples/fetch_resource.py knirv://mychain-alpha.chain/block?number=123`
+
+### Testing the JavaScript/TypeScript SDK
+
+**Setup:**
+
+1. `cd /home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN_GO_ROOT_MCP/sdk/js`
+2. `npm install` or `yarn install`
+3. `npm run build` or `yarn build`
+
+**Running Tests:**
+
+`npm test` or `yarn test`
+
+**Running the Example:**
+
+`npx ts-node examples/fetch-resource.ts knirv://mychain-alpha.chain/block?number=123`
+
+### Testing with Real KNIRVCHAIN Network
+
+Replace default bootstrap peers with actual KNIRVCHAIN network peers and use valid `knirv://` URIs.
+
+### Example Configuration
+
+**Go:**
+
+```go
+config := client.ClientConfig{
+    BootstrapPeers: []string{
+        "/ip4/your-node-ip/tcp/port/p2p/peer-id",
+        // Add more peers here
+    },
+    LogEnabled: true,
+}
+```
+
+**Python:**
+
+```python
+client = KnirvClient(
+    bootstrap_peers=[
+        "/ip4/your-node-ip/tcp/port/p2p/peer-id",
+        # Add more peers here
+    ],
+    log_enabled=True
+)
+```
+
+**JavaScript/TypeScript:**
+
+```javascript
+const client = new KnirvClient({
+    bootstrapPeers: [
+        '/ip4/your-node-ip/tcp/port/p2p/peer-id',
+        // Add more peers here
+    ],
+    logEnabled: true
+});
+```
+
+### Troubleshooting
+
+**Common Issues:**
+
+- **Connection Failures:** Check network connectivity, firewall settings, and peer multiaddresses.
+- **Resource Not Found:** Verify URI format, resource existence, and provider status.
+- **Build Errors:**  (Go: `go mod tidy`; Python: check virtual environment; JavaScript: verify npm/yarn dependencies).
+
+### Debugging
+
+Enable `logEnabled` for detailed logging (see Example Configuration above).
+
+
 ## Example
 
-See the `example` directory for a complete example of using the SDK.
+See the `example` directory for a complete example (Go SDK).
+
 
 ## License
 

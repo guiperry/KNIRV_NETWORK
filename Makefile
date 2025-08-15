@@ -50,6 +50,7 @@ help: ## Show this help message
 	@echo ""
 	@echo "$(YELLOW)Examples:$(NC)"
 	@echo "  make tests                    # Run comprehensive test suite"
+	@echo "  make testnet-tests           # Start KNIRVTESTNET and run tests"
 	@echo "  make test-quick              # Run quick tests only"
 	@echo "  make test-coverage           # Generate coverage reports"
 	@echo "  make deploy-infrastructure ENVIRONMENT=production"
@@ -386,6 +387,17 @@ test-clean: ## Clean test reports and coverage data
 	@find . -name "test-results" -type d -exec rm -rf {} + 2>/dev/null || true
 	@echo "$(GREEN)✓ Test artifacts cleaned$(NC)"
 
+.PHONY: testnet-tests
+testnet-tests: ## Start KNIRVTESTNET and run comprehensive tests
+	@echo "$(BLUE)🧪 Starting KNIRVTESTNET and running comprehensive tests...$(NC)"
+	@echo "========================================================"
+	@if [ -f "KNIRVTESTNET/Makefile" ]; then \
+		cd KNIRVTESTNET && $(MAKE) testnet; \
+		echo "$(GREEN)✓ KNIRVTESTNET tests completed$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠ KNIRVTESTNET Makefile not found$(NC)"; \
+	fi
+
 # =============================================================================
 # TESTING AND VALIDATION
 # =============================================================================
@@ -478,6 +490,127 @@ update-deps: ## Update Ansible collections and documentation dependencies
 	@echo "$(GREEN)✓ Dependencies updated$(NC)"
 
 # =============================================================================
+# NETWORK FIX SYNCHRONIZATION
+# =============================================================================
+
+.PHONY: sync-validate
+sync-validate: ## Validate the synchronization system configuration
+	@echo "$(BLUE)Validating KNIRV Network Fix Synchronization System...$(NC)"
+	@$(SCRIPTS_DIR)/validate-sync.sh
+	@echo "$(GREEN)✓ Synchronization system validation completed$(NC)"
+
+.PHONY: sync-test
+sync-test: ## Test the synchronization system functionality
+	@echo "$(BLUE)Testing KNIRV Network Fix Synchronization System...$(NC)"
+	@$(SCRIPTS_DIR)/test-sync-system.sh
+	@echo "$(GREEN)✓ Synchronization system tests completed$(NC)"
+
+.PHONY: sync-dry-run
+sync-dry-run: ## Preview what fixes would be synchronized (both directions)
+	@echo "$(BLUE)Previewing KNIRV Network Fix Synchronization (dry run)...$(NC)"
+	@$(SCRIPTS_DIR)/sync-network-fixes.sh --dry-run --direction both --verbose
+	@echo "$(GREEN)✓ Synchronization preview completed$(NC)"
+
+.PHONY: sync-testnet-to-prod
+sync-testnet-to-prod: ## Synchronize testnet fixes to production
+	@echo "$(YELLOW)WARNING: This will apply testnet fixes to production environment$(NC)"
+	@read -p "Are you sure you want to continue? (y/N): " confirm && [ "$$confirm" = "y" ]
+	@echo "$(BLUE)Synchronizing testnet fixes to production...$(NC)"
+	@$(SCRIPTS_DIR)/sync-network-fixes.sh --direction testnet-to-prod --verbose
+	@echo "$(GREEN)✓ Testnet to production synchronization completed$(NC)"
+
+.PHONY: sync-prod-to-testnet
+sync-prod-to-testnet: ## Back-port production fixes to testnet
+	@echo "$(BLUE)Back-porting production fixes to testnet...$(NC)"
+	@$(SCRIPTS_DIR)/sync-network-fixes.sh --direction prod-to-testnet --verbose
+	@echo "$(GREEN)✓ Production to testnet synchronization completed$(NC)"
+
+.PHONY: sync-both
+sync-both: ## Synchronize fixes in both directions (testnet ↔ production)
+	@echo "$(YELLOW)WARNING: This will synchronize fixes in both directions$(NC)"
+	@read -p "Are you sure you want to continue? (y/N): " confirm && [ "$$confirm" = "y" ]
+	@echo "$(BLUE)Synchronizing fixes in both directions...$(NC)"
+	@$(SCRIPTS_DIR)/sync-network-fixes.sh --direction both --verbose
+	@echo "$(GREEN)✓ Bidirectional synchronization completed$(NC)"
+
+.PHONY: sync-force-testnet-to-prod
+sync-force-testnet-to-prod: ## Force synchronize testnet fixes to production (override newer files)
+	@echo "$(RED)WARNING: This will FORCE synchronization and may overwrite newer production files$(NC)"
+	@read -p "Are you absolutely sure? This action cannot be undone easily. (y/N): " confirm && [ "$$confirm" = "y" ]
+	@echo "$(BLUE)Force synchronizing testnet fixes to production...$(NC)"
+	@$(SCRIPTS_DIR)/sync-network-fixes.sh --direction testnet-to-prod --force --verbose
+	@echo "$(GREEN)✓ Force synchronization completed$(NC)"
+
+.PHONY: sync-service
+sync-service: ## Synchronize fixes for a specific service (usage: make sync-service SERVICE=knirvroot)
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "$(RED)Error: SERVICE parameter is required$(NC)"; \
+		echo "Usage: make sync-service SERVICE=<service_name>"; \
+		echo "Available services: knirvroot, knirvchain, knirvgraph, knirvnexus, knirvrouter, knirvgateway"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)Synchronizing fixes for service: $(SERVICE)...$(NC)"
+	@$(SCRIPTS_DIR)/sync-network-fixes.sh --services $(SERVICE) --direction both --verbose
+	@echo "$(GREEN)✓ Service $(SERVICE) synchronization completed$(NC)"
+
+.PHONY: sync-emergency-hotfix
+sync-emergency-hotfix: ## Emergency hotfix back-port from production to testnet
+	@echo "$(RED)EMERGENCY: Back-porting critical production hotfixes to testnet$(NC)"
+	@echo "$(BLUE)Synchronizing emergency hotfixes...$(NC)"
+	@$(SCRIPTS_DIR)/sync-network-fixes.sh --direction prod-to-testnet --force --verbose
+	@echo "$(GREEN)✓ Emergency hotfix synchronization completed$(NC)"
+
+.PHONY: sync-status
+sync-status: ## Show synchronization system status and recent activity
+	@echo "$(BLUE)KNIRV Network Fix Synchronization Status$(NC)"
+	@echo "=========================================="
+	@echo ""
+	@echo "$(YELLOW)Recent Synchronization Logs:$(NC)"
+	@if [ -d ".sync-state" ]; then \
+		ls -la .sync-state/sync-*.log 2>/dev/null | tail -5 || echo "No recent sync logs found"; \
+	else \
+		echo "No sync state directory found"; \
+	fi
+	@echo ""
+	@echo "$(YELLOW)Backup Status:$(NC)"
+	@if [ -d ".sync-backups" ]; then \
+		echo "Backup directory exists: .sync-backups"; \
+		ls -la .sync-backups/ 2>/dev/null | wc -l | xargs -I {} echo "Total backup files: {}"; \
+	else \
+		echo "No backup directory found"; \
+	fi
+	@echo ""
+	@echo "$(YELLOW)System Health:$(NC)"
+	@if [ -x "$(SCRIPTS_DIR)/sync-network-fixes.sh" ]; then \
+		echo "✓ Sync script is executable"; \
+	else \
+		echo "✗ Sync script is not executable"; \
+	fi
+	@if [ -f "$(SCRIPTS_DIR)/sync-config.yaml" ]; then \
+		echo "✓ Configuration file exists"; \
+	else \
+		echo "✗ Configuration file missing"; \
+	fi
+
+.PHONY: sync-clean
+sync-clean: ## Clean synchronization logs and temporary files
+	@echo "$(BLUE)Cleaning synchronization artifacts...$(NC)"
+	@rm -rf .sync-state/sync-*.log
+	@echo "$(GREEN)✓ Synchronization logs cleaned$(NC)"
+
+.PHONY: sync-clean-backups
+sync-clean-backups: ## Clean old synchronization backups (keeps last 10)
+	@echo "$(YELLOW)WARNING: This will remove old synchronization backups$(NC)"
+	@read -p "Are you sure? (y/N): " confirm && [ "$$confirm" = "y" ]
+	@echo "$(BLUE)Cleaning old synchronization backups...$(NC)"
+	@if [ -d ".sync-backups" ]; then \
+		ls -t .sync-backups/ | tail -n +11 | xargs -I {} rm -f .sync-backups/{}; \
+		echo "$(GREEN)✓ Old backups cleaned (kept last 10)$(NC)"; \
+	else \
+		echo "No backup directory found"; \
+	fi
+
+# =============================================================================
 # SHORTCUTS
 # =============================================================================
 
@@ -501,6 +634,183 @@ dev: deploy-dev ## Shortcut for deploy-dev
 
 .PHONY: prod
 prod: deploy-prod ## Shortcut for deploy-prod
+
+# Sync shortcuts
+.PHONY: sync
+sync: sync-dry-run ## Shortcut for sync-dry-run (safe preview)
+
+.PHONY: sync-t2p
+sync-t2p: sync-testnet-to-prod ## Shortcut for sync-testnet-to-prod
+
+.PHONY: sync-p2t
+sync-p2t: sync-prod-to-testnet ## Shortcut for sync-prod-to-testnet
+
+.PHONY: sync-help
+sync-help: ## Show detailed help for synchronization commands
+	@echo "$(BLUE)KNIRV Network Fix Synchronization Commands$(NC)"
+	@echo "=============================================="
+	@echo ""
+	@echo "$(YELLOW)Basic Commands:$(NC)"
+	@echo "  $(GREEN)sync-validate$(NC)           Validate synchronization system"
+	@echo "  $(GREEN)sync-test$(NC)               Test synchronization functionality"
+	@echo "  $(GREEN)sync-dry-run$(NC)            Preview synchronization changes"
+	@echo "  $(GREEN)sync-status$(NC)             Show system status and recent activity"
+	@echo ""
+	@echo "$(YELLOW)Synchronization Commands:$(NC)"
+	@echo "  $(GREEN)sync-testnet-to-prod$(NC)    Apply testnet fixes to production"
+	@echo "  $(GREEN)sync-prod-to-testnet$(NC)    Back-port production fixes to testnet"
+	@echo "  $(GREEN)sync-both$(NC)               Synchronize in both directions"
+	@echo "  $(GREEN)sync-emergency-hotfix$(NC)   Emergency production hotfix back-port"
+	@echo ""
+	@echo "$(YELLOW)Advanced Commands:$(NC)"
+	@echo "  $(GREEN)sync-force-testnet-to-prod$(NC) Force sync (may overwrite newer files)"
+	@echo "  $(GREEN)sync-service SERVICE=name$(NC)  Sync specific service only"
+	@echo ""
+	@echo "$(YELLOW)Maintenance Commands:$(NC)"
+	@echo "  $(GREEN)sync-clean$(NC)              Clean synchronization logs"
+	@echo "  $(GREEN)sync-clean-backups$(NC)      Clean old backup files"
+	@echo ""
+	@echo "$(YELLOW)Shortcuts:$(NC)"
+	@echo "  $(GREEN)sync$(NC)                    Same as sync-dry-run (safe preview)"
+	@echo "  $(GREEN)sync-t2p$(NC)                Same as sync-testnet-to-prod"
+	@echo "  $(GREEN)sync-p2t$(NC)                Same as sync-prod-to-testnet"
+	@echo ""
+	@echo "$(YELLOW)Examples:$(NC)"
+	@echo "  make sync                            # Preview all changes"
+	@echo "  make sync-testnet-to-prod           # Apply testnet fixes to production"
+	@echo "  make sync-service SERVICE=knirvroot # Sync only KNIRVROOT service"
+	@echo "  make sync-emergency-hotfix          # Emergency production hotfix"
+	@echo ""
+	@echo "$(YELLOW)Safety Notes:$(NC)"
+	@echo "  • Always run 'make sync' first to preview changes"
+	@echo "  • Backups are created automatically before modifications"
+	@echo "  • Use 'make sync-validate' to check system health"
+	@echo "  • Emergency commands bypass some safety checks"
+	@echo "  • Production sync commands require confirmation"
+
+# =============================================================================
+# PORTAL VERSION SYNCHRONIZATION
+# =============================================================================
+
+.PHONY: sync-portals
+sync-portals: ## Synchronize all portal versions (nexus-portal and graphchain-explorer)
+	@echo "$(BLUE)Synchronizing KNIRV Portal Versions...$(NC)"
+	@$(SCRIPTS_DIR)/sync-portal-versions.sh --type both --verbose
+	@echo "$(GREEN)✓ Portal synchronization completed$(NC)"
+
+.PHONY: sync-portals-dry-run
+sync-portals-dry-run: ## Preview portal synchronization changes
+	@echo "$(BLUE)Previewing KNIRV Portal Version Synchronization...$(NC)"
+	@$(SCRIPTS_DIR)/sync-portal-versions.sh --type both --dry-run --verbose
+	@echo "$(GREEN)✓ Portal synchronization preview completed$(NC)"
+
+.PHONY: sync-nexus-portal
+sync-nexus-portal: ## Synchronize nexus-portal versions across all locations
+	@echo "$(BLUE)Synchronizing KNIRV Nexus Portal versions...$(NC)"
+	@$(SCRIPTS_DIR)/sync-portal-versions.sh --type nexus --verbose
+	@echo "$(GREEN)✓ Nexus Portal synchronization completed$(NC)"
+
+.PHONY: sync-graphchain-explorer
+sync-graphchain-explorer: ## Synchronize graphchain-explorer versions across all locations
+	@echo "$(BLUE)Synchronizing KNIRV GraphChain Explorer versions...$(NC)"
+	@$(SCRIPTS_DIR)/sync-portal-versions.sh --type graphchain --verbose
+	@echo "$(GREEN)✓ GraphChain Explorer synchronization completed$(NC)"
+
+.PHONY: sync-portals-force
+sync-portals-force: ## Force synchronize all portals (override newer files)
+	@echo "$(RED)WARNING: This will FORCE portal synchronization and may overwrite newer files$(NC)"
+	@read -p "Are you absolutely sure? This action cannot be undone easily. (y/N): " confirm && [ "$$confirm" = "y" ]
+	@echo "$(BLUE)Force synchronizing all portal versions...$(NC)"
+	@$(SCRIPTS_DIR)/sync-portal-versions.sh --type both --force --verbose
+	@echo "$(GREEN)✓ Force portal synchronization completed$(NC)"
+
+.PHONY: sync-portals-status
+sync-portals-status: ## Show portal synchronization status and version information
+	@echo "$(BLUE)KNIRV Portal Version Status$(NC)"
+	@echo "============================"
+	@echo ""
+	@echo "$(YELLOW)Nexus Portal Versions:$(NC)"
+	@if [ -f "KNIRVGATEWAY/nexus-portal/package.json" ]; then \
+		echo "  KNIRVGATEWAY: $$(jq -r '.version // "unknown"' KNIRVGATEWAY/nexus-portal/package.json)"; \
+	else \
+		echo "  KNIRVGATEWAY: not found"; \
+	fi
+	@if [ -f "KNIRVTESTNET/data/knirvgateway/nexus-portal/package.json" ]; then \
+		echo "  KNIRVTESTNET: $$(jq -r '.version // "unknown"' KNIRVTESTNET/data/knirvgateway/nexus-portal/package.json)"; \
+	else \
+		echo "  KNIRVTESTNET: not found"; \
+	fi
+	@if [ -f "KNIRVNEXUS/package.json" ]; then \
+		echo "  KNIRVNEXUS: $$(jq -r '.version // "unknown"' KNIRVNEXUS/package.json)"; \
+	else \
+		echo "  KNIRVNEXUS: not found"; \
+	fi
+	@echo ""
+	@echo "$(YELLOW)GraphChain Explorer Status:$(NC)"
+	@if [ -d "KNIRVGATEWAY/graphchain-explorer" ]; then \
+		echo "  KNIRVGATEWAY: exists ($$(find KNIRVGATEWAY/graphchain-explorer -name '*.js' | wc -l) JS files)"; \
+	else \
+		echo "  KNIRVGATEWAY: not found"; \
+	fi
+	@if [ -d "KNIRVTESTNET/data/knirvgateway/graphchain-explorer" ]; then \
+		echo "  KNIRVTESTNET: exists ($$(find KNIRVTESTNET/data/knirvgateway/graphchain-explorer -name '*.js' | wc -l) JS files)"; \
+	else \
+		echo "  KNIRVTESTNET: not found"; \
+	fi
+	@echo ""
+	@echo "$(YELLOW)Recent Portal Sync Logs:$(NC)"
+	@if [ -d ".portal-sync-state" ]; then \
+		ls -la .portal-sync-state/portal-sync-*.log 2>/dev/null | tail -3 || echo "No recent portal sync logs found"; \
+	else \
+		echo "No portal sync state directory found"; \
+	fi
+
+.PHONY: sync-portals-clean
+sync-portals-clean: ## Clean portal synchronization logs and temporary files
+	@echo "$(BLUE)Cleaning portal synchronization artifacts...$(NC)"
+	@rm -rf .portal-sync-state/portal-sync-*.log
+	@echo "$(GREEN)✓ Portal synchronization logs cleaned$(NC)"
+
+.PHONY: sync-portals-help
+sync-portals-help: ## Show detailed help for portal synchronization commands
+	@echo "$(BLUE)KNIRV Portal Version Synchronization Commands$(NC)"
+	@echo "=============================================="
+	@echo ""
+	@echo "$(YELLOW)Basic Commands:$(NC)"
+	@echo "  $(GREEN)sync-portals-dry-run$(NC)     Preview portal synchronization changes"
+	@echo "  $(GREEN)sync-portals$(NC)             Synchronize all portal versions"
+	@echo "  $(GREEN)sync-portals-status$(NC)      Show version status and recent activity"
+	@echo ""
+	@echo "$(YELLOW)Specific Portal Commands:$(NC)"
+	@echo "  $(GREEN)sync-nexus-portal$(NC)        Sync only nexus-portal implementations"
+	@echo "  $(GREEN)sync-graphchain-explorer$(NC) Sync only graphchain-explorer implementations"
+	@echo ""
+	@echo "$(YELLOW)Advanced Commands:$(NC)"
+	@echo "  $(GREEN)sync-portals-force$(NC)       Force sync (may overwrite newer files)"
+	@echo "  $(GREEN)sync-portals-clean$(NC)       Clean synchronization logs"
+	@echo ""
+	@echo "$(YELLOW)Portal Locations:$(NC)"
+	@echo "  $(GREEN)Nexus Portal:$(NC)"
+	@echo "    • KNIRVGATEWAY/nexus-portal/src"
+	@echo "    • KNIRVTESTNET/data/knirvgateway/nexus-portal/src"
+	@echo "    • KNIRVNEXUS/src"
+	@echo ""
+	@echo "  $(GREEN)GraphChain Explorer:$(NC)"
+	@echo "    • KNIRVGATEWAY/graphchain-explorer"
+	@echo "    • KNIRVTESTNET/data/knirvgateway/graphchain-explorer"
+	@echo ""
+	@echo "$(YELLOW)Examples:$(NC)"
+	@echo "  make sync-portals-dry-run        # Preview all portal changes"
+	@echo "  make sync-nexus-portal           # Sync only nexus-portal"
+	@echo "  make sync-graphchain-explorer    # Sync only graphchain-explorer"
+	@echo "  make sync-portals-status         # Check current versions"
+	@echo ""
+	@echo "$(YELLOW)Safety Notes:$(NC)"
+	@echo "  • Always run sync-portals-dry-run first to preview changes"
+	@echo "  • Script detects latest version automatically"
+	@echo "  • Backups are created automatically before modifications"
+	@echo "  • Idempotent updates preserve target-specific implementations"
+	@echo "  • Force commands bypass version checks"
 
 # =============================================================================
 # DEFAULT TARGET

@@ -6,11 +6,11 @@ Welcome to the KNIRV Network documentation. This comprehensive guide provides in
 
 ### User Guides
 
-* [KNIRVCORTEX User Guide and Troubleshooting](guides/README.md) - User guide for KNIRVGATEWAY
+* [User Guides](guides/README.md) - User guide for KNIRVGATEWAY
 
 ### Deployment
 
-* [KNIRVTESTNET User Guide](deployment/README.md) - User guide for KNIRVTESTNET
+* [Deployment Guides](deployment/README.md) - User guide for KNIRVTESTNET
 
 ### KNIRVCHAIN Documentation
 

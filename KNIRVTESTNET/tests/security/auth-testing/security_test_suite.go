@@ -1,18 +1,14 @@
-package security
+package authtesting
 
 import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // SecurityTestSuite manages security testing for the testnet
@@ -205,7 +201,7 @@ func TestAuthenticationSecurity(t *testing.T) {
 	suite := NewSecurityTestSuite()
 	suite.Results.StartTime = time.Now()
 
-	for serviceName, service := range suite.Services {
+	for serviceName := range suite.Services {
 		t.Run(fmt.Sprintf("Auth_%s", serviceName), func(t *testing.T) {
 			results := &ServiceSecurityResults{
 				ServiceName: serviceName,
@@ -214,32 +210,40 @@ func TestAuthenticationSecurity(t *testing.T) {
 
 			// Test valid authentication
 			t.Run("ValidAuth", func(t *testing.T) {
-				result := suite.testValidAuthentication(service, suite.TestUsers[0])
+				result := suite.testValidAuthentication(suite.TestUsers[0])
 				results.AuthTests["valid_auth"] = result
-				assert.True(t, result.Passed, "Valid authentication should succeed")
+				if !result.Passed {
+					t.Error("Valid authentication should succeed")
+				}
 			})
 
 			// Test invalid credentials
 			t.Run("InvalidCredentials", func(t *testing.T) {
 				invalidUser := TestUser{Username: "invalid", Password: "wrong"}
-				result := suite.testInvalidAuthentication(service, invalidUser)
+				result := suite.testInvalidAuthentication(invalidUser)
 				results.AuthTests["invalid_credentials"] = result
-				assert.True(t, result.Passed, "Invalid credentials should be rejected")
+				if !result.Passed {
+					t.Error("Invalid credentials should be rejected")
+				}
 			})
 
 			// Test SQL injection in auth
 			t.Run("SQLInjection", func(t *testing.T) {
 				sqlUser := TestUser{Username: "admin'; DROP TABLE users; --", Password: "password"}
-				result := suite.testSQLInjectionAuth(service, sqlUser)
+				result := suite.testSQLInjectionAuth(sqlUser)
 				results.AuthTests["sql_injection"] = result
-				assert.True(t, result.Passed, "SQL injection should be prevented")
+				if !result.Passed {
+					t.Error("SQL injection should be prevented")
+				}
 			})
 
 			// Test brute force protection
 			t.Run("BruteForceProtection", func(t *testing.T) {
-				result := suite.testBruteForceProtection(service, suite.TestUsers[0])
+				result := suite.testBruteForceProtection(suite.TestUsers[0])
 				results.AuthTests["brute_force"] = result
-				assert.True(t, result.Passed, "Brute force attacks should be prevented")
+				if !result.Passed {
+					t.Error("Brute force attacks should be prevented")
+				}
 			})
 
 			suite.Results.ServiceResults[serviceName] = results
@@ -276,10 +280,12 @@ func TestAccessControl(t *testing.T) {
 			for _, protectedPath := range service.ProtectedPaths {
 				// Test authorized access
 				t.Run(fmt.Sprintf("Authorized_%s", protectedPath.Path), func(t *testing.T) {
-					result := suite.testAuthorizedAccess(service, protectedPath, protectedPath.RequiredRole)
+					result := suite.testAuthorizedAccess(protectedPath, protectedPath.RequiredRole)
 					testName := fmt.Sprintf("authorized_%s_%s", protectedPath.Method, protectedPath.Path)
 					results.AccessTests[testName] = result
-					assert.True(t, result.Passed, "Authorized access should succeed")
+					if !result.Passed {
+						t.Error("Authorized access should succeed")
+					}
 				})
 
 				// Test unauthorized access
@@ -288,26 +294,30 @@ func TestAccessControl(t *testing.T) {
 					if protectedPath.RequiredRole == "guest" {
 						unauthorizedRole = "user"
 					}
-					result := suite.testUnauthorizedAccess(service, protectedPath, unauthorizedRole)
+					result := suite.testUnauthorizedAccess(protectedPath, unauthorizedRole)
 					testName := fmt.Sprintf("unauthorized_%s_%s", protectedPath.Method, protectedPath.Path)
 					results.AccessTests[testName] = result
-					assert.True(t, result.Passed, "Unauthorized access should be denied")
+					if !result.Passed {
+						t.Error("Unauthorized access should be denied")
+					}
 				})
 
 				// Test access without token
 				t.Run(fmt.Sprintf("NoToken_%s", protectedPath.Path), func(t *testing.T) {
-					result := suite.testAccessWithoutToken(service, protectedPath)
+					result := suite.testAccessWithoutToken(protectedPath)
 					testName := fmt.Sprintf("no_token_%s_%s", protectedPath.Method, protectedPath.Path)
 					results.AccessTests[testName] = result
-					assert.True(t, result.Passed, "Access without token should be denied")
+					if !result.Passed {
+						t.Error("Access without token should be denied")
+					}
 				})
 			}
 		})
 	}
 }
 
-// TestSecurityHeaders tests security headers
-func TestSecurityHeaders(t *testing.T) {
+// TestServiceSecurityHeaders tests service security headers
+func TestServiceSecurityHeaders(t *testing.T) {
 	suite := NewSecurityTestSuite()
 
 	for serviceName, service := range suite.Services {
@@ -325,15 +335,16 @@ func TestSecurityHeaders(t *testing.T) {
 			results.SecurityHeaders = headerResults
 
 			for _, expectedHeader := range service.SecurityHeaders {
-				assert.True(t, headerResults[expectedHeader],
-					"Security header %s should be present", expectedHeader)
+				if !headerResults[expectedHeader] {
+					t.Errorf("Security header %s should be present", expectedHeader)
+				}
 			}
 		})
 	}
 }
 
-// TestRateLimiting tests rate limiting mechanisms
-func TestRateLimiting(t *testing.T) {
+// TestServiceRateLimiting tests service rate limiting mechanisms
+func TestServiceRateLimiting(t *testing.T) {
 	suite := NewSecurityTestSuite()
 
 	for serviceName, service := range suite.Services {
@@ -349,10 +360,11 @@ func TestRateLimiting(t *testing.T) {
 
 			for _, endpoint := range service.AuthEndpoints {
 				if endpoint.RateLimit > 0 {
-					result := suite.testRateLimit(service, endpoint)
+					result := suite.testRateLimit(endpoint)
 					results.RateLimitTests[endpoint.Path] = result
-					assert.True(t, result.Passed,
-						"Rate limiting should work for endpoint %s", endpoint.Path)
+					if !result.Passed {
+						t.Errorf("Rate limiting should work for endpoint %s", endpoint.Path)
+					}
 				}
 			}
 		})
@@ -362,7 +374,7 @@ func TestRateLimiting(t *testing.T) {
 // Helper methods for security testing
 
 // testValidAuthentication tests valid authentication
-func (suite *SecurityTestSuite) testValidAuthentication(service *SecurityTarget, user TestUser) *AuthTestResult {
+func (suite *SecurityTestSuite) testValidAuthentication(user TestUser) *AuthTestResult {
 	startTime := time.Now()
 
 	token, err := suite.authenticateUser(&user)
@@ -388,7 +400,7 @@ func (suite *SecurityTestSuite) testValidAuthentication(service *SecurityTarget,
 }
 
 // testInvalidAuthentication tests invalid authentication
-func (suite *SecurityTestSuite) testInvalidAuthentication(service *SecurityTarget, user TestUser) *AuthTestResult {
+func (suite *SecurityTestSuite) testInvalidAuthentication(user TestUser) *AuthTestResult {
 	startTime := time.Now()
 
 	_, err := suite.authenticateUser(&user)
@@ -410,7 +422,7 @@ func (suite *SecurityTestSuite) testInvalidAuthentication(service *SecurityTarge
 }
 
 // testSQLInjectionAuth tests SQL injection in authentication
-func (suite *SecurityTestSuite) testSQLInjectionAuth(service *SecurityTarget, user TestUser) *AuthTestResult {
+func (suite *SecurityTestSuite) testSQLInjectionAuth(user TestUser) *AuthTestResult {
 	startTime := time.Now()
 
 	_, err := suite.authenticateUser(&user)
@@ -432,7 +444,7 @@ func (suite *SecurityTestSuite) testSQLInjectionAuth(service *SecurityTarget, us
 }
 
 // testBruteForceProtection tests brute force protection
-func (suite *SecurityTestSuite) testBruteForceProtection(service *SecurityTarget, user TestUser) *AuthTestResult {
+func (suite *SecurityTestSuite) testBruteForceProtection(user TestUser) *AuthTestResult {
 	result := &AuthTestResult{
 		TestName:    "Brute Force Protection",
 		Description: "Test protection against brute force attacks",
@@ -463,7 +475,7 @@ func (suite *SecurityTestSuite) testBruteForceProtection(service *SecurityTarget
 }
 
 // testAuthorizedAccess tests authorized access to protected resources
-func (suite *SecurityTestSuite) testAuthorizedAccess(service *SecurityTarget, path ProtectedPath, role string) *AccessTestResult {
+func (suite *SecurityTestSuite) testAuthorizedAccess(path ProtectedPath, role string) *AccessTestResult {
 	result := &AccessTestResult{
 		TestName:     "Authorized Access",
 		Path:         path.Path,
@@ -474,7 +486,7 @@ func (suite *SecurityTestSuite) testAuthorizedAccess(service *SecurityTarget, pa
 	}
 
 	token := suite.TestTokens[role]
-	statusCode, err := suite.makeAuthenticatedRequest(service.BaseURL+path.Path, path.Method, token)
+	statusCode, err := suite.makeAuthenticatedRequest(token)
 
 	result.ActualCode = statusCode
 	result.Passed = statusCode == result.ExpectedCode && err == nil
@@ -487,7 +499,7 @@ func (suite *SecurityTestSuite) testAuthorizedAccess(service *SecurityTarget, pa
 }
 
 // testUnauthorizedAccess tests unauthorized access to protected resources
-func (suite *SecurityTestSuite) testUnauthorizedAccess(service *SecurityTarget, path ProtectedPath, role string) *AccessTestResult {
+func (suite *SecurityTestSuite) testUnauthorizedAccess(path ProtectedPath, role string) *AccessTestResult {
 	result := &AccessTestResult{
 		TestName:     "Unauthorized Access",
 		Path:         path.Path,
@@ -498,7 +510,7 @@ func (suite *SecurityTestSuite) testUnauthorizedAccess(service *SecurityTarget, 
 	}
 
 	token := suite.TestTokens[role]
-	statusCode, err := suite.makeAuthenticatedRequest(service.BaseURL+path.Path, path.Method, token)
+	statusCode, err := suite.makeAuthenticatedRequest(token)
 
 	result.ActualCode = statusCode
 	result.Passed = statusCode == result.ExpectedCode || statusCode == 401 // Unauthorized is also acceptable
@@ -511,7 +523,7 @@ func (suite *SecurityTestSuite) testUnauthorizedAccess(service *SecurityTarget, 
 }
 
 // testAccessWithoutToken tests access without authentication token
-func (suite *SecurityTestSuite) testAccessWithoutToken(service *SecurityTarget, path ProtectedPath) *AccessTestResult {
+func (suite *SecurityTestSuite) testAccessWithoutToken(path ProtectedPath) *AccessTestResult {
 	result := &AccessTestResult{
 		TestName:     "Access Without Token",
 		Path:         path.Path,
@@ -521,7 +533,7 @@ func (suite *SecurityTestSuite) testAccessWithoutToken(service *SecurityTarget, 
 		ExpectedCode: 401, // Unauthorized
 	}
 
-	statusCode, err := suite.makeAuthenticatedRequest(service.BaseURL+path.Path, path.Method, "")
+	statusCode, err := suite.makeAuthenticatedRequest("")
 
 	result.ActualCode = statusCode
 	result.Passed = statusCode == result.ExpectedCode
@@ -555,7 +567,7 @@ func (suite *SecurityTestSuite) testSecurityHeaders(service *SecurityTarget) map
 }
 
 // testRateLimit tests rate limiting
-func (suite *SecurityTestSuite) testRateLimit(service *SecurityTarget, endpoint AuthEndpoint) *RateLimitResult {
+func (suite *SecurityTestSuite) testRateLimit(endpoint AuthEndpoint) *RateLimitResult {
 	result := &RateLimitResult{
 		Endpoint:     endpoint.Path,
 		Limit:        endpoint.RateLimit,
@@ -564,7 +576,7 @@ func (suite *SecurityTestSuite) testRateLimit(service *SecurityTarget, endpoint 
 
 	// Make requests rapidly
 	for i := 0; i < result.TestRequests; i++ {
-		statusCode, _ := suite.makeRequest(service.BaseURL+endpoint.Path, endpoint.Method, nil)
+		statusCode, _ := suite.makeRequest()
 		if statusCode == 429 { // Too Many Requests
 			result.Blocked++
 		}
@@ -591,14 +603,14 @@ func (suite *SecurityTestSuite) authenticateUser(user *TestUser) (string, error)
 }
 
 // makeAuthenticatedRequest makes an authenticated HTTP request
-func (suite *SecurityTestSuite) makeAuthenticatedRequest(url, method, token string) (int, error) {
+func (suite *SecurityTestSuite) makeAuthenticatedRequest(token string) (int, error) {
 	// Mock implementation - in real implementation would make actual HTTP request
 	if token == "" {
 		return 401, nil // Unauthorized
 	}
 
 	// Simulate role-based access control
-	if strings.Contains(url, "/admin") && !strings.Contains(token, "admin") {
+	if !strings.Contains(token, "admin") {
 		return 403, nil // Forbidden
 	}
 
@@ -606,7 +618,7 @@ func (suite *SecurityTestSuite) makeAuthenticatedRequest(url, method, token stri
 }
 
 // makeRequest makes an HTTP request
-func (suite *SecurityTestSuite) makeRequest(url, method string, data interface{}) (int, error) {
+func (suite *SecurityTestSuite) makeRequest() (int, error) {
 	// Mock implementation
 	return 200, nil
 }

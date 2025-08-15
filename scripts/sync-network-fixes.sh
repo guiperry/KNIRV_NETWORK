@@ -140,19 +140,27 @@ transform_for_environment() {
 detect_fixes() {
     local direction="$1"
     local fixes_found=()
-    
-    log "INFO" "Detecting fixes for direction: $direction"
-    
+
+    # Redirect log output to stderr to avoid capturing it
+    log "INFO" "Detecting fixes for direction: $direction" >&2
+
     case "$direction" in
-        "testnet-to-prod"|"both")
+        "testnet-to-prod")
             detect_testnet_fixes fixes_found
             ;;
-        "prod-to-testnet"|"both")
+        "prod-to-testnet")
+            detect_production_fixes fixes_found
+            ;;
+        "both")
+            detect_testnet_fixes fixes_found
             detect_production_fixes fixes_found
             ;;
     esac
-    
-    printf '%s\n' "${fixes_found[@]}"
+
+    # Only output if we have fixes
+    if [[ ${#fixes_found[@]} -gt 0 ]]; then
+        printf '%s\n' "${fixes_found[@]}"
+    fi
 }
 
 detect_testnet_fixes() {
@@ -160,7 +168,7 @@ detect_testnet_fixes() {
     
     # Check for fixes mentioned in final-test-fixes.md
     if [[ -f "$PROJECT_ROOT/KNIRVROOT/final-test-fixes.md" ]]; then
-        log "INFO" "Found testnet fixes documentation"
+        log "INFO" "Found testnet fixes documentation" >&2
         fixes_ref+=("badge-attachment-fix:KNIRVROOT/chromem_manager.go")
         fixes_ref+=("tunnel-registry-fix:KNIRVROOT/tunnel_registry.go")
         fixes_ref+=("python-sdk-fix:KNIRVSDK/py/")
@@ -171,42 +179,46 @@ detect_testnet_fixes() {
     # Check for newer files in testnet
     for testnet_path in "${!TESTNET_TO_PROD_PATHS[@]}"; do
         local prod_path="${TESTNET_TO_PROD_PATHS[$testnet_path]}"
-        
+
         if [[ -d "$PROJECT_ROOT/$testnet_path" ]]; then
             while IFS= read -r -d '' file; do
-                local rel_file="${file#$PROJECT_ROOT/$testnet_path/}"
-                local prod_file="$PROJECT_ROOT/$prod_path/$rel_file"
-                
-                local testnet_time=$(get_file_timestamp "$file")
-                local prod_time=$(get_file_timestamp "$prod_file")
-                
-                if [[ $testnet_time -gt $prod_time ]]; then
-                    fixes_ref+=("file-update:$testnet_path/$rel_file")
+                if [[ -f "$file" ]]; then
+                    local rel_file="${file#$PROJECT_ROOT/$testnet_path/}"
+                    local prod_file="$PROJECT_ROOT/$prod_path/$rel_file"
+
+                    local testnet_time=$(get_file_timestamp "$file")
+                    local prod_time=$(get_file_timestamp "$prod_file")
+
+                    if [[ $testnet_time -gt $prod_time ]]; then
+                        fixes_ref+=("file-update:$testnet_path/$rel_file")
+                    fi
                 fi
-            done < <(find "$PROJECT_ROOT/$testnet_path" -type f -print0)
+            done < <(find "$PROJECT_ROOT/$testnet_path" -type f -print0 2>/dev/null || true)
         fi
     done
 }
 
 detect_production_fixes() {
     local -n fixes_ref=$1
-    
+
     # Check for newer files in production
     for prod_path in "${!PROD_TO_TESTNET_PATHS[@]}"; do
         local testnet_path="${PROD_TO_TESTNET_PATHS[$prod_path]}"
-        
+
         if [[ -d "$PROJECT_ROOT/$prod_path" ]]; then
             while IFS= read -r -d '' file; do
-                local rel_file="${file#$PROJECT_ROOT/$prod_path/}"
-                local testnet_file="$PROJECT_ROOT/$testnet_path/$rel_file"
-                
-                local prod_time=$(get_file_timestamp "$file")
-                local testnet_time=$(get_file_timestamp "$testnet_file")
-                
-                if [[ $prod_time -gt $testnet_time ]]; then
-                    fixes_ref+=("file-update:$prod_path/$rel_file")
+                if [[ -f "$file" ]]; then
+                    local rel_file="${file#$PROJECT_ROOT/$prod_path/}"
+                    local testnet_file="$PROJECT_ROOT/$testnet_path/$rel_file"
+
+                    local prod_time=$(get_file_timestamp "$file")
+                    local testnet_time=$(get_file_timestamp "$testnet_file")
+
+                    if [[ $prod_time -gt $testnet_time ]]; then
+                        fixes_ref+=("file-update:$prod_path/$rel_file")
+                    fi
                 fi
-            done < <(find "$PROJECT_ROOT/$prod_path" -type f -print0)
+            done < <(find "$PROJECT_ROOT/$prod_path" -type f -print0 2>/dev/null || true)
         fi
     done
 }
@@ -252,19 +264,111 @@ apply_fix() {
 apply_badge_attachment_fix() {
     local file_path="$1"
     local direction="$2"
-    
+
     # This fix improves ChromeDB query logic for badge attachments
     log "INFO" "Applying badge attachment fix to $file_path"
-    
+
     if [[ "$direction" == "testnet-to-prod" ]]; then
         # Copy the improved ChromeDB query logic from testnet to production
         local source="$PROJECT_ROOT/$file_path"
         local target="$PROJECT_ROOT/KNIRVROOT/chromem_manager.go"
-        
+
         if [[ -f "$source" ]]; then
             backup_file "$target"
-            cp "$source" "$target"
-            log "SUCCESS" "Badge attachment fix applied to production"
+            if [[ "$DRY_RUN" == "true" ]]; then
+                log "INFO" "[DRY RUN] Would apply badge attachment fix to $target"
+            else
+                cp "$source" "$target"
+                log "SUCCESS" "Badge attachment fix applied to production"
+            fi
+        fi
+    fi
+}
+
+apply_tunnel_registry_fix() {
+    local file_path="$1"
+    local direction="$2"
+
+    log "INFO" "Applying tunnel registry fix to $file_path"
+
+    if [[ "$direction" == "testnet-to-prod" ]]; then
+        local source="$PROJECT_ROOT/$file_path"
+        local target="$PROJECT_ROOT/KNIRVROOT/tunnel_registry.go"
+
+        if [[ -f "$source" ]]; then
+            backup_file "$target"
+            if [[ "$DRY_RUN" == "true" ]]; then
+                log "INFO" "[DRY RUN] Would apply tunnel registry fix to $target"
+            else
+                cp "$source" "$target"
+                log "SUCCESS" "Tunnel registry fix applied to production"
+            fi
+        fi
+    fi
+}
+
+apply_python_sdk_fix() {
+    local file_path="$1"
+    local direction="$2"
+
+    log "INFO" "Applying Python SDK fix to $file_path"
+
+    if [[ "$direction" == "testnet-to-prod" ]]; then
+        local source="$PROJECT_ROOT/$file_path"
+        local target="$PROJECT_ROOT/KNIRVSDK/py/"
+
+        if [[ -d "$source" ]]; then
+            backup_file "$target"
+            if [[ "$DRY_RUN" == "true" ]]; then
+                log "INFO" "[DRY RUN] Would sync Python SDK modules to $target"
+            else
+                rsync -av "$source/" "$target/"
+                log "SUCCESS" "Python SDK fix applied to production"
+            fi
+        fi
+    fi
+}
+
+apply_cortex_mock_fix() {
+    local file_path="$1"
+    local direction="$2"
+
+    log "INFO" "Applying CORTEX mock fix to $file_path"
+
+    if [[ "$direction" == "testnet-to-prod" ]]; then
+        local source="$PROJECT_ROOT/$file_path"
+        local target="$PROJECT_ROOT/KNIRVCORTEX/"
+
+        if [[ -d "$source" ]]; then
+            backup_file "$target"
+            if [[ "$DRY_RUN" == "true" ]]; then
+                log "INFO" "[DRY RUN] Would sync CORTEX mock implementations to $target"
+            else
+                rsync -av "$source/" "$target/"
+                log "SUCCESS" "CORTEX mock fix applied to production"
+            fi
+        fi
+    fi
+}
+
+apply_gateway_build_fix() {
+    local file_path="$1"
+    local direction="$2"
+
+    log "INFO" "Applying Gateway build fix to $file_path"
+
+    if [[ "$direction" == "testnet-to-prod" ]]; then
+        local source="$PROJECT_ROOT/$file_path"
+        local target="$PROJECT_ROOT/KNIRVGATEWAY/package.json"
+
+        if [[ -f "$source" ]]; then
+            backup_file "$target"
+            if [[ "$DRY_RUN" == "true" ]]; then
+                log "INFO" "[DRY RUN] Would apply Gateway build fix to $target"
+            else
+                cp "$source" "$target"
+                log "SUCCESS" "Gateway build fix applied to production"
+            fi
         fi
     fi
 }
@@ -405,25 +509,36 @@ main() {
     log "INFO" "Direction: $DIRECTION, Services: $SERVICES, Dry Run: $DRY_RUN"
     
     # Detect fixes
-    local fixes=($(detect_fixes "$DIRECTION"))
-    
-    if [[ ${#fixes[@]} -eq 0 ]]; then
+    local fixes_output
+    fixes_output=$(detect_fixes "$DIRECTION")
+
+    if [[ -z "$fixes_output" ]]; then
         log "INFO" "No fixes detected for synchronization"
         exit 0
     fi
-    
+
+    # Convert output to array
+    local fixes=()
+    while IFS= read -r line; do
+        if [[ -n "$line" ]]; then
+            fixes+=("$line")
+        fi
+    done <<< "$fixes_output"
+
     log "INFO" "Found ${#fixes[@]} fixes to synchronize"
-    
+
     # Apply fixes
     local applied=0
     local failed=0
-    
+
     for fix in "${fixes[@]}"; do
-        if apply_fix "$fix" "$DIRECTION"; then
-            ((applied++))
-        else
-            ((failed++))
-            log "ERROR" "Failed to apply fix: $fix"
+        if [[ -n "$fix" ]]; then
+            if apply_fix "$fix" "$DIRECTION"; then
+                ((applied++))
+            else
+                ((failed++))
+                log "ERROR" "Failed to apply fix: $fix"
+            fi
         fi
     done
     

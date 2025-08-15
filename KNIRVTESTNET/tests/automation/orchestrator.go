@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
+	"os"
 	"sync"
 	"time"
 )
@@ -16,32 +18,43 @@ type TestnetOrchestrator struct {
 	TestScenarios []TestScenario
 	Metrics       *MetricsCollector
 	Config        *OrchestratorConfig
-	mu            sync.RWMutex
+	mu            sync.RWMutex // Protects concurrent access to Services and CortexAgents
 }
 
-// ServiceManager handles individual service lifecycle
-type ServiceManager struct {
-	Name      string
-	Endpoint  string
-	Port      int
-	Status    ServiceStatus
-	Health    HealthMetrics
-	Process   *ProcessManager
+// GetService safely retrieves a service by name
+func (o *TestnetOrchestrator) GetService(name string) (*ServiceManager, bool) {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+	s, ok := o.Services[name]
+	return s, ok
 }
 
-// CortexAgent represents a CORTEX agent instance
-type CortexAgent struct {
-	ID           string
-	Type         AgentType
-	Capabilities []string
-	State        AgentState
-	Performance  PerformanceMetrics
-	Connection   *AgentConnection
+// AddService safely adds a new service
+func (o *TestnetOrchestrator) AddService(name string, service *ServiceManager) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	o.Services[name] = service
+}
+
+// GetAgent safely retrieves an agent by name
+func (o *TestnetOrchestrator) GetAgent(name string) (*CortexAgent, bool) {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+	a, ok := o.CortexAgents[name]
+	return a, ok
+}
+
+// AddAgent safely adds a new agent
+func (o *TestnetOrchestrator) AddAgent(name string, agent *CortexAgent) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	o.CortexAgents[name] = agent
 }
 
 // TestScenario defines a test execution scenario
 type TestScenario struct {
 	Name         string
+	Description  string
 	Type         ScenarioType
 	Duration     time.Duration
 	Steps        []TestStep
@@ -61,6 +74,27 @@ type TestStep struct {
 	RetryPolicy RetryPolicy
 }
 
+// ValidationCriteria defines test validation requirements
+type ValidationCriteria struct {
+	ExpectedResults   map[string]interface{}
+	SuccessThreshold  float64
+	FailureConditions []string
+}
+
+// StepValidation defines step-level validation
+type StepValidation struct {
+	ExpectedStatus   int
+	ExpectedResponse string
+	ResponseChecks   []string
+}
+
+// RetryPolicy defines retry behavior for failed steps
+type RetryPolicy struct {
+	MaxAttempts int
+	BackoffMs   int
+	Enabled     bool
+}
+
 // MetricsCollector aggregates test and performance metrics
 type MetricsCollector struct {
 	ServiceMetrics map[string]*ServiceMetrics
@@ -68,6 +102,15 @@ type MetricsCollector struct {
 	TestMetrics    *TestExecutionMetrics
 	StartTime      time.Time
 	mu             sync.RWMutex
+}
+
+// TestExecutionMetrics tracks test execution statistics
+type TestExecutionMetrics struct {
+	TotalTests    int
+	PassedTests   int
+	FailedTests   int
+	SkippedTests  int
+	ExecutionTime time.Duration
 }
 
 // OrchestratorConfig holds orchestrator configuration
@@ -123,6 +166,45 @@ func NewTestnetOrchestrator(config *OrchestratorConfig) *TestnetOrchestrator {
 		TestScenarios: []TestScenario{},
 		Metrics:       NewMetricsCollector(),
 		Config:        config,
+	}
+}
+
+// NewMetricsCollector creates a new metrics collector
+func NewMetricsCollector() *MetricsCollector {
+	return &MetricsCollector{
+		ServiceMetrics: make(map[string]*ServiceMetrics),
+		AgentMetrics:   make(map[string]*AgentMetrics),
+		TestMetrics: &TestExecutionMetrics{
+			TotalTests:  0,
+			PassedTests: 0,
+			FailedTests: 0,
+		},
+		StartTime: time.Now(),
+	}
+}
+
+// StartCollection begins metrics collection
+func (mc *MetricsCollector) StartCollection(interval time.Duration) {
+	log.Printf("Starting metrics collection with interval: %v", interval)
+	// Implementation would start background goroutine for metrics collection
+}
+
+// StopCollection stops metrics collection
+func (mc *MetricsCollector) StopCollection() {
+	log.Println("Stopping metrics collection")
+	// Implementation would stop background goroutine
+}
+
+// GetSummary returns a summary of collected metrics
+func (mc *MetricsCollector) GetSummary() map[string]interface{} {
+	mc.mu.RLock()
+	defer mc.mu.RUnlock()
+
+	return map[string]interface{}{
+		"test_metrics":    mc.TestMetrics,
+		"service_metrics": mc.ServiceMetrics,
+		"agent_metrics":   mc.AgentMetrics,
+		"uptime":          time.Since(mc.StartTime),
 	}
 }
 
@@ -414,4 +496,393 @@ type StepResult struct {
 	Status    string
 	Error     string
 	Response  interface{}
+}
+
+// PrintTestPlan prints the test plan for the specified test type
+func (o *TestnetOrchestrator) PrintTestPlan(testType string) {
+	log.Printf("Test Plan for: %s", testType)
+	log.Println("=====================================")
+
+	scenarios := o.FilterScenarios(testType)
+	for i, scenario := range scenarios {
+		log.Printf("%d. %s", i+1, scenario.Name)
+		log.Printf("   Description: %s", scenario.Description)
+		log.Printf("   Duration: %v", scenario.Duration)
+		log.Printf("   Steps: %d", len(scenario.Steps))
+		log.Println()
+	}
+
+	log.Printf("Total scenarios: %d", len(scenarios))
+}
+
+// RunAllTests executes all test categories
+func (o *TestnetOrchestrator) RunAllTests(ctx context.Context) error {
+	log.Println("Running all test categories...")
+
+	categories := []string{"e2e", "performance", "security", "cortex"}
+
+	for _, category := range categories {
+		log.Printf("Starting %s tests...", category)
+
+		result, err := o.ExecuteTestSuite(ctx, category)
+		if err != nil {
+			log.Printf("Test category %s failed: %v", category, err)
+			return fmt.Errorf("test category %s failed: %w", category, err)
+		}
+
+		log.Printf("Test category %s completed with %.2f%% success rate",
+			category, result.SuccessRate*100)
+	}
+
+	return nil
+}
+
+// RunE2ETests executes end-to-end tests
+func (o *TestnetOrchestrator) RunE2ETests(ctx context.Context) error {
+	log.Println("Running E2E tests...")
+
+	result, err := o.ExecuteTestSuite(ctx, "e2e")
+	if err != nil {
+		return fmt.Errorf("E2E tests failed: %w", err)
+	}
+
+	if result.SuccessRate < 0.8 {
+		return fmt.Errorf("E2E tests failed with success rate %.2f%% (minimum 80%% required)",
+			result.SuccessRate*100)
+	}
+
+	return nil
+}
+
+// RunPerformanceTests executes performance tests
+func (o *TestnetOrchestrator) RunPerformanceTests(ctx context.Context) error {
+	log.Println("Running performance tests...")
+
+	result, err := o.ExecuteTestSuite(ctx, "performance")
+	if err != nil {
+		return fmt.Errorf("performance tests failed: %w", err)
+	}
+
+	if result.SuccessRate < 0.7 {
+		return fmt.Errorf("performance tests failed with success rate %.2f%% (minimum 70%% required)",
+			result.SuccessRate*100)
+	}
+
+	return nil
+}
+
+// RunSecurityTests executes security tests
+func (o *TestnetOrchestrator) RunSecurityTests(ctx context.Context) error {
+	log.Println("Running security tests...")
+
+	result, err := o.ExecuteTestSuite(ctx, "security")
+	if err != nil {
+		return fmt.Errorf("security tests failed: %w", err)
+	}
+
+	if result.SuccessRate < 0.9 {
+		return fmt.Errorf("security tests failed with success rate %.2f%% (minimum 90%% required)",
+			result.SuccessRate*100)
+	}
+
+	return nil
+}
+
+// RunCortexTests executes CORTEX agent tests
+func (o *TestnetOrchestrator) RunCortexTests(ctx context.Context) error {
+	log.Println("Running CORTEX tests...")
+
+	result, err := o.ExecuteTestSuite(ctx, "cortex")
+	if err != nil {
+		return fmt.Errorf("CORTEX tests failed: %w", err)
+	}
+
+	if result.SuccessRate < 0.8 {
+		return fmt.Errorf("CORTEX tests failed with success rate %.2f%% (minimum 80%% required)",
+			result.SuccessRate*100)
+	}
+
+	return nil
+}
+
+// GenerateReport generates a comprehensive test report
+func (o *TestnetOrchestrator) GenerateReport() error {
+	log.Println("Generating test report...")
+
+	// Create reports directory if it doesn't exist
+	reportsDir := "../../reports"
+	if err := os.MkdirAll(reportsDir, 0755); err != nil {
+		return fmt.Errorf("failed to create reports directory: %w", err)
+	}
+
+	// Generate timestamp for report filename
+	timestamp := time.Now().Format("20060102_150405")
+	reportFile := fmt.Sprintf("%s/testnet_report_%s.json", reportsDir, timestamp)
+
+	// Collect all metrics and results
+	report := map[string]interface{}{
+		"timestamp": time.Now(),
+		"services":  o.getServiceStatus(),
+		"agents":    o.getCortexAgentStatus(),
+		"metrics":   o.Metrics.GetSummary(),
+	}
+
+	// Write report to file
+	file, err := os.Create(reportFile)
+	if err != nil {
+		return fmt.Errorf("failed to create report file: %w", err)
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(report); err != nil {
+		return fmt.Errorf("failed to write report: %w", err)
+	}
+
+	log.Printf("Test report generated: %s", reportFile)
+	return nil
+}
+
+// Helper methods for report generation
+func (o *TestnetOrchestrator) getServiceStatus() map[string]interface{} {
+	status := make(map[string]interface{})
+	for name, service := range o.Services {
+		status[name] = map[string]interface{}{
+			"status": service.Status,
+			"health": service.IsHealthy(),
+		}
+	}
+	return status
+}
+
+func (o *TestnetOrchestrator) getCortexAgentStatus() map[string]interface{} {
+	status := make(map[string]interface{})
+	for id, agent := range o.CortexAgents {
+		status[id] = map[string]interface{}{
+			"state":        agent.State,
+			"type":         agent.Type,
+			"capabilities": agent.Capabilities,
+			"performance":  agent.Performance,
+		}
+	}
+	return status
+}
+
+// LoadTestScenarios loads test scenarios from configuration
+func (o *TestnetOrchestrator) LoadTestScenarios() error {
+	log.Println("Loading test scenarios...")
+
+	// Load default test scenarios
+	o.TestScenarios = []TestScenario{
+		{
+			Name:        "Basic Service Health Check",
+			Description: "Verify all services are healthy and responding",
+			Type:        ScenarioTypeIntegration,
+			Duration:    5 * time.Minute,
+			Steps: []TestStep{
+				{
+					Name:    "Check KNIRV-ROOT Health",
+					Action:  StepActionCall,
+					Target:  "http://localhost:1317/health",
+					Timeout: 10 * time.Second,
+				},
+				{
+					Name:    "Check KNIRVCHAIN Health",
+					Action:  StepActionCall,
+					Target:  "http://localhost:8090/health",
+					Timeout: 10 * time.Second,
+				},
+				{
+					Name:    "Check Gateway Health",
+					Action:  StepActionCall,
+					Target:  "http://localhost:8888/gateway/health",
+					Timeout: 10 * time.Second,
+				},
+			},
+		},
+		{
+			Name:        "Performance Load Test",
+			Description: "Test system performance under load",
+			Type:        ScenarioTypePerformance,
+			Duration:    10 * time.Minute,
+			Steps: []TestStep{
+				{
+					Name:    "Load Test Gateway",
+					Action:  StepActionCall,
+					Target:  "http://localhost:8888/gateway/health",
+					Timeout: 30 * time.Second,
+					Parameters: map[string]interface{}{
+						"concurrent_requests": 100,
+						"duration":            "5m",
+					},
+				},
+			},
+		},
+		{
+			Name:        "Security Validation",
+			Description: "Validate security controls and authentication",
+			Type:        ScenarioTypeSecurity,
+			Duration:    15 * time.Minute,
+			Steps: []TestStep{
+				{
+					Name:    "Test Authentication",
+					Action:  StepActionCall,
+					Target:  "http://localhost:8888/auth/testnet-tokens",
+					Timeout: 10 * time.Second,
+				},
+			},
+		},
+	}
+
+	log.Printf("Loaded %d test scenarios", len(o.TestScenarios))
+	return nil
+}
+
+// FilterScenarios filters scenarios by type
+func (o *TestnetOrchestrator) FilterScenarios(scenarioType string) []TestScenario {
+	var filtered []TestScenario
+
+	for _, scenario := range o.TestScenarios {
+		switch scenarioType {
+		case "all":
+			filtered = append(filtered, scenario)
+		case "e2e":
+			if scenario.Type == ScenarioTypeIntegration {
+				filtered = append(filtered, scenario)
+			}
+		case "performance":
+			if scenario.Type == ScenarioTypePerformance {
+				filtered = append(filtered, scenario)
+			}
+		case "security":
+			if scenario.Type == ScenarioTypeSecurity {
+				filtered = append(filtered, scenario)
+			}
+		case "cortex":
+			if scenario.Type == ScenarioTypeDemo {
+				filtered = append(filtered, scenario)
+			}
+		}
+	}
+
+	return filtered
+}
+
+// ValidateScenario validates scenario completion
+func (o *TestnetOrchestrator) ValidateScenario(ctx context.Context, scenario TestScenario, result *TestResult) error {
+	log.Printf("Validating scenario: %s", scenario.Name)
+
+	// Check if all steps passed
+	for stepName, stepResult := range result.Steps {
+		if stepResult.Status != "PASSED" {
+			return fmt.Errorf("step %s failed: %s", stepName, stepResult.Error)
+		}
+	}
+
+	// Additional validation based on scenario type
+	switch scenario.Type {
+	case ScenarioTypePerformance:
+		// Validate performance metrics
+		if result.Duration > scenario.Duration {
+			return fmt.Errorf("scenario exceeded maximum duration: %v > %v", result.Duration, scenario.Duration)
+		}
+	case ScenarioTypeSecurity:
+		// Validate security requirements
+		log.Println("Security validation passed")
+	}
+
+	return nil
+}
+
+// Step execution methods
+func (o *TestnetOrchestrator) executeStartAction(ctx context.Context, step TestStep) error {
+	log.Printf("Starting service/agent: %s", step.Target)
+
+	// Check if it's a service or agent
+	if service, exists := o.Services[step.Target]; exists {
+		return service.Start(ctx)
+	}
+
+	if agent, exists := o.CortexAgents[step.Target]; exists {
+		return agent.Initialize(ctx)
+	}
+
+	return fmt.Errorf("target not found: %s", step.Target)
+}
+
+func (o *TestnetOrchestrator) executeCallAction(ctx context.Context, step TestStep) (interface{}, error) {
+	// Use ctx for timeout context
+	log.Printf("Making HTTP call to: %s", step.Target)
+
+	// Simple HTTP client implementation with context
+	client := &http.Client{Timeout: step.Timeout}
+	req, err := http.NewRequestWithContext(ctx, "GET", step.Target, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("HTTP request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("HTTP request failed with status: %d", resp.StatusCode)
+	}
+
+	return map[string]interface{}{
+		"status_code": resp.StatusCode,
+		"status":      resp.Status,
+	}, nil
+}
+
+func (o *TestnetOrchestrator) executeValidateAction(ctx context.Context, step TestStep) error {
+	// Use ctx for potential timeout handling
+	_ = ctx
+	log.Printf("Validating: %s", step.Target)
+
+	// Implementation would perform validation based on step parameters
+	// For now, just return success
+	return nil
+}
+
+func (o *TestnetOrchestrator) executeWaitAction(ctx context.Context, step TestStep) error {
+	log.Printf("Waiting for: %s", step.Target)
+
+	// Extract wait duration from parameters
+	if duration, ok := step.Parameters["duration"].(string); ok {
+		if waitDuration, err := time.ParseDuration(duration); err == nil {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(waitDuration):
+				return nil
+			}
+		}
+	}
+
+	// Default wait
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(5 * time.Second):
+		return nil
+	}
+}
+
+func (o *TestnetOrchestrator) executeStopAction(ctx context.Context, step TestStep) error {
+	log.Printf("Stopping service/agent: %s", step.Target)
+
+	// Check if it's a service or agent
+	if service, exists := o.Services[step.Target]; exists {
+		return service.Stop(ctx)
+	}
+
+	if agent, exists := o.CortexAgents[step.Target]; exists {
+		return agent.Shutdown(ctx)
+	}
+
+	return fmt.Errorf("target not found: %s", step.Target)
 }

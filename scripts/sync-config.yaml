@@ -1,0 +1,278 @@
+# KNIRV Network Fix Synchronization Configuration
+
+# =============================================================================
+# ENVIRONMENT MAPPINGS
+# =============================================================================
+
+# Path mappings between testnet and production environments
+path_mappings:
+  testnet_to_production:
+    "KNIRVTESTNET/config": "deployment/production-config"
+    "KNIRVTESTNET/scripts": "scripts"
+    "KNIRVTESTNET/data/knirvgateway": "KNIRVGATEWAY"
+    "KNIRVTESTNET/data/knirvroot": "KNIRVROOT/data"
+    "KNIRVTESTNET/data/knirvchain": "KNIRVCHAIN/data"
+    "KNIRVTESTNET/data/knirvgraph": "KNIRVGRAPH/data"
+    "KNIRVTESTNET/data/knirvnexus": "KNIRVNEXUS/data"
+    "KNIRVTESTNET/data/knirvrouter": "KNIRVROUTER/data"
+
+  production_to_testnet:
+    "deployment/production-config": "KNIRVTESTNET/config"
+    "scripts": "KNIRVTESTNET/scripts"
+    "KNIRVGATEWAY": "KNIRVTESTNET/data/knirvgateway"
+    "KNIRVROOT/data": "KNIRVTESTNET/data/knirvroot"
+    "KNIRVCHAIN/data": "KNIRVTESTNET/data/knirvchain"
+    "KNIRVGRAPH/data": "KNIRVTESTNET/data/knirvgraph"
+    "KNIRVNEXUS/data": "KNIRVTESTNET/data/knirvnexus"
+    "KNIRVROUTER/data": "KNIRVTESTNET/data/knirvrouter"
+
+# =============================================================================
+# TRANSFORMATION RULES
+# =============================================================================
+
+# Environment-specific transformations
+transformations:
+  testnet_to_production:
+    # Chain IDs
+    - pattern: "testnet-1"
+      replacement: "mainnet-1"
+    - pattern: "knirvchain-testnet-1"
+      replacement: "knirvchain-mainnet-1"
+    - pattern: "knirvgraph-testnet-1"
+      replacement: "knirvgraph-mainnet-1"
+    - pattern: "knirv-testnet-1"
+      replacement: "knirv-mainnet-1"
+    
+    # URLs and endpoints
+    - pattern: "localhost"
+      replacement: "api.knirv.com"
+    - pattern: "127.0.0.1"
+      replacement: "api.knirv.com"
+    - pattern: "http://"
+      replacement: "https://"
+    
+    # Environment flags
+    - pattern: "TESTNET_MODE=true"
+      replacement: "TESTNET_MODE=false"
+    - pattern: "testnet_mode: true"
+      replacement: "testnet_mode: false"
+    - pattern: "debug_mode: true"
+      replacement: "debug_mode: false"
+    
+    # Consensus settings
+    - pattern: "validators: 1"
+      replacement: "validators: 3"
+    - pattern: "simplified_consensus: true"
+      replacement: "simplified_consensus: false"
+    - pattern: "mock_nrn_minting: true"
+      replacement: "mock_nrn_minting: false"
+    
+    # Security settings
+    - pattern: "auth_required: false"
+      replacement: "auth_required: true"
+    - pattern: "tls_enabled: false"
+      replacement: "tls_enabled: true"
+    - pattern: "cors_enabled: true"
+      replacement: "cors_enabled: false"
+
+  production_to_testnet:
+    # Chain IDs
+    - pattern: "mainnet-1"
+      replacement: "testnet-1"
+    - pattern: "knirvchain-mainnet-1"
+      replacement: "knirvchain-testnet-1"
+    - pattern: "knirvgraph-mainnet-1"
+      replacement: "knirvgraph-testnet-1"
+    - pattern: "knirv-mainnet-1"
+      replacement: "knirv-testnet-1"
+    
+    # URLs and endpoints
+    - pattern: "api.knirv.com"
+      replacement: "localhost"
+    - pattern: "https://"
+      replacement: "http://"
+    
+    # Environment flags
+    - pattern: "TESTNET_MODE=false"
+      replacement: "TESTNET_MODE=true"
+    - pattern: "testnet_mode: false"
+      replacement: "testnet_mode: true"
+    - pattern: "debug_mode: false"
+      replacement: "debug_mode: true"
+    
+    # Consensus settings
+    - pattern: "validators: 3"
+      replacement: "validators: 1"
+    - pattern: "simplified_consensus: false"
+      replacement: "simplified_consensus: true"
+    - pattern: "mock_nrn_minting: false"
+      replacement: "mock_nrn_minting: true"
+    
+    # Security settings
+    - pattern: "auth_required: true"
+      replacement: "auth_required: false"
+    - pattern: "tls_enabled: true"
+      replacement: "tls_enabled: false"
+    - pattern: "cors_enabled: false"
+      replacement: "cors_enabled: true"
+
+# =============================================================================
+# SERVICE CONFIGURATIONS
+# =============================================================================
+
+services:
+  knirvroot:
+    config_files:
+      - "config/root_config.json"
+      - "config/default_config.json"
+    code_files:
+      - "chromem_manager.go"
+      - "sync_manager.go"
+      - "blockchain_server.go"
+      - "tunnel_registry.go"
+    priority: high
+
+  knirvchain:
+    config_files:
+      - "config/blockchain.toml"
+      - "Cargo.toml"
+    code_files:
+      - "src/main.rs"
+      - "src/blockchain_adapter.rs"
+      - "src/nrn_token.rs"
+    priority: high
+
+  knirvgraph:
+    config_files:
+      - "config/graph-config.yaml"
+    code_files:
+      - "internal/app/app.go"
+      - "internal/network/rpc.go"
+      - "internal/economics/nrn_integration.go"
+    priority: medium
+
+  knirvnexus:
+    config_files:
+      - "config/knirv-nexus.yaml"
+      - ".env.production"
+      - ".env.testnet"
+    code_files:
+      - "api/security_middleware.go"
+      - "cmd/main.go"
+    priority: medium
+
+  knirvrouter:
+    config_files:
+      - "config/knirvrouter-config.yaml"
+      - "config/knirvrouter-testnet.env"
+    code_files:
+      - "connectivity/proof_engine.go"
+      - "p2p/dht.go"
+      - "transaction_turnserver/server.go"
+    priority: high
+
+  knirvgateway:
+    config_files:
+      - "package.json"
+      - "netlify.toml"
+      - "nexus-portal/.env.production"
+    code_files:
+      - "api-gateway/gateway.js"
+      - "assets/js/social-sharing.js"
+    priority: medium
+
+# =============================================================================
+# FIX CATEGORIES
+# =============================================================================
+
+fix_categories:
+  security:
+    priority: critical
+    auto_apply: true
+    validation_required: true
+    
+  performance:
+    priority: high
+    auto_apply: true
+    validation_required: true
+    
+  bug_fix:
+    priority: high
+    auto_apply: true
+    validation_required: true
+    
+  feature:
+    priority: medium
+    auto_apply: false
+    validation_required: true
+    
+  config:
+    priority: medium
+    auto_apply: true
+    validation_required: false
+    
+  documentation:
+    priority: low
+    auto_apply: true
+    validation_required: false
+
+# =============================================================================
+# VALIDATION RULES
+# =============================================================================
+
+validation:
+  pre_sync:
+    - check_git_status
+    - check_service_health
+    - validate_config_syntax
+    
+  post_sync:
+    - run_unit_tests
+    - check_service_startup
+    - validate_endpoints
+    - run_integration_tests
+    
+  rollback_triggers:
+    - test_failure
+    - service_startup_failure
+    - endpoint_validation_failure
+
+# =============================================================================
+# EXCLUSIONS
+# =============================================================================
+
+exclusions:
+  # Files to never sync
+  never_sync:
+    - "*.log"
+    - "*.pid"
+    - "*.lock"
+    - "node_modules/"
+    - ".git/"
+    - "target/"
+    - "dist/"
+    - "build/"
+    
+  # Environment-specific files
+  environment_specific:
+    - ".env.local"
+    - "secrets.yaml"
+    - "private-keys/"
+    - "ssl-certs/"
+
+# =============================================================================
+# NOTIFICATION SETTINGS
+# =============================================================================
+
+notifications:
+  enabled: true
+  channels:
+    - console
+    - log_file
+  
+  events:
+    - sync_start
+    - sync_complete
+    - sync_failure
+    - validation_failure
+    - rollback_triggered

@@ -314,6 +314,9 @@ make deploy-testnet-infrastructure  # Deploy AWS EC2 infrastructure
 make deploy-testnet-services       # Deploy Docker services to EC2
 make update-testnet-frontend       # Update Netlify frontend integration
 
+# Run comprehensive testnet tests locally
+make testnet-tests                  # Start testnet and run all tests
+
 # Access the live testnet
 open https://knirv.com/testnet
 

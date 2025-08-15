@@ -35,6 +35,7 @@ type ServiceConfig struct {
 	StartArgs       []string
 	WorkingDir      string
 	HealthEndpoint  string
+	Port            int
 	StartupTimeout  time.Duration
 	ShutdownTimeout time.Duration
 	Environment     map[string]string
