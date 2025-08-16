@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Chat Summary.Text.Erb - KNIRV Forum</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/discourse.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Chat Summary.Text.Erb</h1>
+        <div id="content">
+            <!-- Content will be loaded via JavaScript -->
+        </div>
+    </div>
+    <script src="/js/discourse-common.js"></script>
+    <script src="/js/discourse-chat_summary.text.erb"></script>
+</body>
+</html>

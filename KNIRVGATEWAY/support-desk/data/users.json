@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "username": "admin",
+    "email": "admin@knirv.com",
+    "password": "$2a$10$WRqPMnQKaVZ3tkDS3WCeM.aOcTS31NNGadVDi./5cUDvrVD3r0X0S",
+    "name": "KNIRV Administrator",
+    "is_admin": true,
+    "created_at": "2025-08-16T04:47:16.269Z",
+    "updated_at": "2025-08-16T04:47:16.269Z"
+  },
+  {
+    "id": 2,
+    "username": "customer",
+    "email": "customer@example.com",
+    "password": "$2a$10$dc317BZ6MG0D/41QtfeeZ.S1tYhoa/CWU8tRwIv/Jkn63qZgmEQny",
+    "name": "Sample Customer",
+    "is_admin": false,
+    "created_at": "2025-08-16T04:47:16.428Z",
+    "updated_at": "2025-08-16T04:47:16.428Z"
+  }
+]

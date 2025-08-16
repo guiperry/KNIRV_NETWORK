@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Topic List - KNIRV Forum</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/discourse.css">
+</head>
+<body>
+    <div id="topic-list-container">
+        <!-- Topic list content -->
+    </div>
+    <script src="/js/discourse-list.js"></script>
+</body>
+</html>

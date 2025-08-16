@@ -1,0 +1,33 @@
+{
+  "name": "discourse-netlify-functions",
+  "version": "1.0.0",
+  "description": "Netlify Functions for Discourse Forum",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "formidable": "^3.5.1",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^6.9.8",
+    "@supabase/supabase-js": "^2.39.0",
+    "uuid": "^9.0.1",
+    "mime-types": "^2.1.35",
+    "sharp": "^0.33.0",
+    "markdown-it": "^14.0.0",
+    "dompurify": "^3.0.7",
+    "jsdom": "^23.0.1"
+  },
+  "devDependencies": {
+    "@netlify/functions": "^2.4.0"
+  },
+  "keywords": [
+    "discourse",
+    "forum",
+    "netlify",
+    "functions"
+  ],
+  "author": "KNIRV Network",
+  "license": "MIT"
+}

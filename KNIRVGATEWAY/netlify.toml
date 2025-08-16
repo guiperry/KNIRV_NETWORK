@@ -1,7 +1,7 @@
 [build]
-  # Static site with Netlify Functions - smart build with health monitoring
+  # Static site with Netlify Functions - smart build with health monitoring and app initialization
   publish = "."
-  command = "npm run smart-build"
+  command = "npm run smart-build-with-apps"
   functions = "netlify/functions"
 
 # Documentation build context
@@ -47,6 +47,18 @@
   base = "presenter/"
   publish = "presenter/"
   command = "npm install"
+
+# Forum build context
+[context.forum]
+  base = "forum/"
+  publish = "forum/src/"
+  command = "node ../scripts/init_discourse_database.js && echo 'Forum database initialized'"
+
+# Support Desk build context
+[context.support-desk]
+  base = "support-desk/"
+  publish = "support-desk/src/"
+  command = "node ../scripts/init_support_database.js && echo 'Support desk database initialized'"
 
 # Production build settings
 [build.environment]
@@ -235,6 +247,120 @@
 [[redirects]]
   from = "/sitemap.xml"
   to = "/sitemap.xml"
+  status = 200
+
+
+# Discourse Forum static assets (CSS, JS, images)
+[[redirects]]
+  from = "/forum/css/*"
+  to = "/forum/src/css/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/forum/js/*"
+  to = "/forum/src/js/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/forum/img/*"
+  to = "/forum/src/img/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/forum/fonts/*"
+  to = "/forum/src/fonts/:splat"
+  status = 200
+
+# Discourse Forum redirects
+[[redirects]]
+  from = "/forum/*"
+  to = "/forum/src/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/discourse/*"
+  to = "/forum/src/:splat"
+  status = 200
+
+# Discourse API redirects
+[[redirects]]
+  from = "/api/discourse/*"
+  to = "/.netlify/functions/discourse-:splat"
+  status = 200
+
+# Discourse SPA routing
+[[redirects]]
+  from = "/forum/src/t/*"
+  to = "/forum/src/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/forum/src/u/*"
+  to = "/forum/src/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/forum/src/c/*"
+  to = "/forum/src/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/forum/src/admin/*"
+  to = "/forum/src/index.html"
+  status = 200
+
+# Support Desk static assets (CSS, JS, images)
+[[redirects]]
+  from = "/support-desk/css/*"
+  to = "/support-desk/src/css/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/support-desk/js/*"
+  to = "/support-desk/src/js/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/support-desk/img/*"
+  to = "/support-desk/src/img/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/support-desk/fonts/*"
+  to = "/support-desk/src/fonts/:splat"
+  status = 200
+
+# Support Desk redirects
+[[redirects]]
+  from = "/support/*"
+  to = "/support-desk/src/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/hesk/*"
+  to = "/support-desk/src/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/support-desk/*"
+  to = "/support-desk/src/:splat"
+  status = 200
+
+# Support Desk API redirects
+[[redirects]]
+  from = "/api/hesk/*"
+  to = "/.netlify/functions/discourse-:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/support/*"
+  to = "/.netlify/functions/discourse-:splat"
+  status = 200
+
+# Support Desk SPA routing
+[[redirects]]
+  from = "/support-desk/src/*"
+  to = "/support-desk/src/index.html"
   status = 200
 
 # Default fallback for main site (must be last)

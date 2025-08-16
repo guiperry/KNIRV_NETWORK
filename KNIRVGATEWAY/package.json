@@ -9,6 +9,10 @@
     "build": "npm run check-health && npm install && npm run build:nexus && echo 'KNIRV Gateway built with Netlify Functions support'",
     "build:nexus": "npm run check-nexus-health && cd nexus-portal && npm install && npm run build",
     "smart-build": "npm run check-health && npm run build || npm run auto-fix",
+    "smart-build-with-apps": "npm run check-health && npm run init-apps && npm run build || npm run auto-fix",
+    "init-apps": "npm run init-forum && npm run init-support-desk",
+    "init-forum": "node scripts/init_discourse_database.js",
+    "init-support-desk": "node scripts/init_support_database.js",
     "check-health": "node scripts/check-health.js",
     "check-nexus-health": "node scripts/check-nexus-health.js",
     "auto-fix": "echo '🔧 Auto-fixing detected issues...' && ./scripts/fix-netlify-cli.sh --auto && npm run build",
@@ -28,6 +32,7 @@
   },
   "dependencies": {
     "adm-zip": "^0.5.10",
+    "bcryptjs": "^2.4.3",
     "http-proxy-middleware": "^2.0.6"
   },
   "devDependencies": {

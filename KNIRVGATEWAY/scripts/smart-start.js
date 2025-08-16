@@ -71,18 +71,45 @@ class SmartStart {
         }
     }
 
+    async initializeApplications() {
+        this.log('Initializing applications...');
+
+        try {
+            // Initialize forum database
+            this.log('Initializing forum database...');
+            execSync('npm run init-forum', {
+                stdio: 'inherit',
+                timeout: 60000 // 1 minute
+            });
+
+            // Initialize support desk database
+            this.log('Initializing support desk database...');
+            execSync('npm run init-support-desk', {
+                stdio: 'inherit',
+                timeout: 60000 // 1 minute
+            });
+
+            this.log('Application initialization completed successfully', 'success');
+            return true;
+
+        } catch (error) {
+            this.log(`Application initialization failed: ${error.message}`, 'error');
+            return false;
+        }
+    }
+
     async buildProject() {
         this.log('Building project...');
-        
+
         try {
             execSync('npm run build', {
                 stdio: 'inherit',
                 timeout: 300000 // 5 minutes
             });
-            
+
             this.log('Build completed successfully', 'success');
             return true;
-            
+
         } catch (error) {
             this.log(`Build failed: ${error.message}`, 'error');
             return false;
@@ -165,7 +192,14 @@ class SmartStart {
             
             this.log('Auto-fix completed. Re-running health checks...', 'info');
         }
-        
+
+        // Initialize applications
+        const initSuccessful = await this.initializeApplications();
+        if (!initSuccessful) {
+            this.log('Application initialization failed. Cannot start gateway.', 'error');
+            process.exit(1);
+        }
+
         // Build the project
         const buildSuccessful = await this.buildProject();
         if (!buildSuccessful) {
