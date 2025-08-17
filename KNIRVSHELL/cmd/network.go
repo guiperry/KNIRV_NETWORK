@@ -216,7 +216,7 @@ func runNetworkConnect(cmd *cobra.Command, args []string) error {
 		var client core.KNIRVServiceClient
 		
 		switch name {
-		case "knirvroot":
+		case "knirvoracle":
 			client = core.NewKNIRVRootClient(service.Config, log)
 		case "knirvgateway":
 			client = core.NewKNIRVGatewayClient(service.Config, log)

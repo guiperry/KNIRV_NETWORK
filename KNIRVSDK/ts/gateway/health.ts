@@ -108,7 +108,7 @@ export class HealthService {
     const services = {
       knirvchain: this.config.serviceURLs.knirvchain,
       knirvnexus: this.config.serviceURLs.knirvnexus,
-      knirvroot: this.config.serviceURLs.knirvroot,
+      knirvoracle: this.config.serviceURLs.knirvoracle,
       knirvgraph: this.config.serviceURLs.knirvgraph,
     };
 
@@ -174,7 +174,7 @@ export class HealthService {
    * Wait for a service to become healthy
    */
   async waitForService(
-    serviceName: 'economics' | 'gateway' | 'knirvchain' | 'knirvnexus' | 'knirvroot' | 'knirvgraph',
+    serviceName: 'economics' | 'gateway' | 'knirvchain' | 'knirvnexus' | 'knirvoracle' | 'knirvgraph',
     options: {
       timeout?: number;
       interval?: number;

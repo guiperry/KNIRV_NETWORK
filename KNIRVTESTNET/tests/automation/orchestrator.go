@@ -213,7 +213,7 @@ func (o *TestnetOrchestrator) Initialize(ctx context.Context) error {
 	log.Println("Initializing Testnet Orchestrator...")
 
 	// Initialize service managers
-	services := []string{"knirv-root", "knirvchain", "knirvgraph", "knirv-nexus", "knirv-router", "knirv-gateway"}
+	services := []string{"knirv-oracle", "knirvchain", "knirvgraph", "knirv-nexus", "knirv-router", "knirv-gateway"}
 	for _, service := range services {
 		o.Services[service] = NewServiceManager(service)
 	}
@@ -256,7 +256,7 @@ func (o *TestnetOrchestrator) StartServices(ctx context.Context) error {
 	log.Println("Starting testnet services...")
 
 	// Start services in dependency order
-	serviceOrder := []string{"knirv-root", "knirvchain", "knirvgraph", "knirv-nexus", "knirv-router", "knirv-gateway"}
+	serviceOrder := []string{"knirv-oracle", "knirvchain", "knirvgraph", "knirv-nexus", "knirv-router", "knirv-gateway"}
 
 	for _, serviceName := range serviceOrder {
 		service := o.Services[serviceName]
@@ -682,7 +682,7 @@ func (o *TestnetOrchestrator) LoadTestScenarios() error {
 			Duration:    5 * time.Minute,
 			Steps: []TestStep{
 				{
-					Name:    "Check KNIRV-ROOT Health",
+					Name:    "Check KNIRV-ORACLE Health",
 					Action:  StepActionCall,
 					Target:  "http://localhost:1317/health",
 					Timeout: 10 * time.Second,

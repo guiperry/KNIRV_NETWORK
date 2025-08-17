@@ -1,34 +1,34 @@
-# KNIRVROOT User Guide
+# KNIRVORACLE User Guide
 
 ## Overview
 
-KNIRVROOT is a blockchain-based platform for AI capabilities, allowing you to register, discover, and use AI tools, prompts, plugins, and more in a secure and transparent way. All interactions are recorded on the blockchain, creating an immutable audit trail.
+KNIRVORACLE is a blockchain-based platform for AI capabilities, allowing you to register, discover, and use AI tools, prompts, plugins, and more in a secure and transparent way. All interactions are recorded on the blockchain, creating an immutable audit trail.
 
 ## Prerequisites
 
-Before using KNIRVROOT, ensure you have:
+Before using KNIRVORACLE, ensure you have:
 
 * Go installed on your system
 * Familiarity with blockchain concepts and terminology
 
 ## Getting Started
 
-To begin using KNIRVROOT, you'll need to interact with two main components: the KNIRVROOT node (the blockchain itself) and the Wallet Server (for managing transactions).
+To begin using KNIRVORACLE, you'll need to interact with two main components: the KNIRVORACLE node (the blockchain itself) and the Wallet Server (for managing transactions).
 
-### Setting up the KNIRVROOT Node
+### Setting up the KNIRVORACLE Node
 
 This sets up the core blockchain network.
 
 ```bash
 git clone <repository_url>
-cd KNIRVROOT
-go build -o KNIRVROOT_node ./cmd/KNIRVROOT/main.go
-./KNIRVROOT_node --port 8080 --p2p_port 6001
+cd KNIRVORACLE
+go build -o KNIRVORACLE_node ./cmd/KNIRVORACLE/main.go
+./KNIRVORACLE_node --port 8080 --p2p_port 6001
 ```
 
 ### Setting up the Wallet Server
 
-The Wallet Server helps you create and sign transactions. Run this after setting up the KNIRVROOT node.
+The Wallet Server helps you create and sign transactions. Run this after setting up the KNIRVORACLE node.
 
 ```bash
 go build -o wallet_server ./cmd/walletserver/main.go
@@ -41,7 +41,7 @@ go build -o wallet_server ./cmd/walletserver/main.go
 
 ### Capabilities
 
-* **Plugins:** Executable code (e.g., Go, Wasm) that extends KNIRVROOT's functionality.
+* **Plugins:** Executable code (e.g., Go, Wasm) that extends KNIRVORACLE's functionality.
 * **Tools:** Actions defined with input/output schemas.
 * **Prompts:** Reusable templates for LLMs.
 * **Memory Services:** Persistent data storage.
@@ -54,9 +54,9 @@ Every interaction with a capability creates a Context Record on the blockchain, 
 
 The native currency used to pay transaction fees.
 
-## Using KNIRVROOT
+## Using KNIRVORACLE
 
-KNIRVROOT's capabilities are accessed via APIs. Here are some common use cases:
+KNIRVORACLE's capabilities are accessed via APIs. Here are some common use cases:
 
 ### Discovering Capabilities
 
@@ -107,7 +107,7 @@ This project is licensed under the MIT License.
 
 Improvements made:
 
-* Added an overview section to provide a brief introduction to KNIRVROOT
+* Added an overview section to provide a brief introduction to KNIRVORACLE
 * Emphasized the importance of prerequisites, including Go installation and familiarity with blockchain concepts
 * Clarified the purpose of the Wallet Server and its role in managing transactions
 * Provided more detailed explanations of key concepts, including capabilities, context records, and NRN tokens

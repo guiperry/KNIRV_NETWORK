@@ -283,7 +283,7 @@ func setupEnvironment() {
 	os.Setenv("GATEWAY_SERVICE_URL", "http://localhost:8000")
 	os.Setenv("KNIRVCHAIN_URL", "http://localhost:8080")
 	os.Setenv("KNIRVNEXUS_URL", "http://localhost:8081")
-	os.Setenv("KNIRVROOT_URL", "http://localhost:8082")
+	os.Setenv("KNIRVORACLE_URL", "http://localhost:8082")
 	os.Setenv("KNIRVGRAPH_URL", "http://localhost:8083")
 	os.Setenv("KNIRV_DEBUG", "true")
 }

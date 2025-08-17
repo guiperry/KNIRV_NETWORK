@@ -1,8 +1,8 @@
 # KNIRV Service Discovery Configuration for Integration Tests
 
 services:
-  knirvroot:
-    name: "KNIRV-ROOT"
+  knirvoracle:
+    name: "KNIRV-ORACLE"
     url: "http://localhost:1317"
     health_endpoint: "/health"
     api_endpoints:
@@ -99,19 +99,19 @@ test_config:
 dependencies:
   knirvchain:
     depends_on:
-      - knirvroot
+      - knirvoracle
       - knirvgraph
   knirvnexus:
     depends_on:
-      - knirvroot
+      - knirvoracle
       - knirvchain
       - knirvgraph
   knirvrouter:
     depends_on:
-      - knirvroot
+      - knirvoracle
   knirvgateway:
     depends_on:
-      - knirvroot
+      - knirvoracle
       - knirvchain
       - knirvgraph
       - knirvnexus
@@ -120,7 +120,7 @@ dependencies:
 # Expected Response Formats
 response_formats:
   health_check:
-    knirvroot:
+    knirvoracle:
       expected_fields: ["port", "status"]
       expected_status: "ok"
     knirvchain:

@@ -38,12 +38,23 @@ jni = "0.21"
 [target.'cfg(target_os = "ios")'.dependencies]
 objc = "0.2"
 
+# Testing dependencies
+[dev-dependencies]
+tokio-test = "0.4"
+mockall = "0.12"
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.0"
+serial_test = "3.0"
+tempfile = "3.0"
+wiremock = "0.5"
+
 [features]
 default = ["desktop"]
 desktop = []
 mobile = ["bevy/bevy_winit"]
 android = ["mobile"]
 ios = ["mobile"]
+test-utils = []
 
 [lib]
 name = "knirvana_game_client"
@@ -56,3 +67,15 @@ path = "src/main.rs"
 [[example]]
 name = "basic_game"
 path = "examples/basic_game.rs"
+
+[[bench]]
+name = "game_performance"
+harness = false
+
+[[bench]]
+name = "networking_performance"
+harness = false
+
+[[bench]]
+name = "mobile_performance"
+harness = false

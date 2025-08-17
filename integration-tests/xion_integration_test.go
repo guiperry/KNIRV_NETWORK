@@ -46,7 +46,7 @@ func NewIntegrationTestSuite() *IntegrationTestSuite {
 		knirvwalletURL:          "http://localhost:8083", // KNIRVWALLET
 		knirvshellURL:           "http://localhost:8084", // KNIRVCORTEX
 		knirvroterURL:           "http://localhost:8085", // KNIRVROUTER
-		knirvRootURL:            "http://localhost:8086", // KNIRVROOT
+		knirvRootURL:            "http://localhost:8086", // KNIRVORACLE
 		xionRPC:                 "https://rpc.xion-testnet-1.burnt.com:443",
 	}
 }
@@ -189,7 +189,7 @@ func (suite *IntegrationTestSuite) TestFullWorkflow(t *testing.T) {
 			return
 		}
 
-		// Test bridge transfer from KNIRVROOT to XION
+		// Test bridge transfer from KNIRVORACLE to XION
 		bridgeData := map[string]interface{}{
 			"target_chain": "xion",
 			"amount":       "1000000",
@@ -390,8 +390,8 @@ func (suite *IntegrationTestSuite) TestKNIRVNEXUSAgentManagement(t *testing.T) {
 	})
 }
 
-// Test KNIRVROOT Blockchain Operations
-func (suite *IntegrationTestSuite) TestKNIRVROOTBlockchain(t *testing.T) {
+// Test KNIRVORACLE Blockchain Operations
+func (suite *IntegrationTestSuite) TestKNIRVORACLEBlockchain(t *testing.T) {
 	// Test 1: Create Transaction
 	t.Run("CreateTransaction", func(t *testing.T) {
 		// Skip if wallet is not available (KNIRVWALLET service not running)
@@ -513,6 +513,6 @@ func TestIntegrationSuite(t *testing.T) {
 	// Run all test suites
 	t.Run("FullWorkflow", suite.TestFullWorkflow)
 	t.Run("KNIRVNEXUSAgentManagement", suite.TestKNIRVNEXUSAgentManagement)
-	t.Run("KNIRVROOTBlockchain", suite.TestKNIRVROOTBlockchain)
+	t.Run("KNIRVORACLEBlockchain", suite.TestKNIRVORACLEBlockchain)
 	t.Run("KNIRVROUTERConnectivity", suite.TestKNIRVROUTERConnectivity)
 }

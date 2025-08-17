@@ -11,7 +11,7 @@ connectivity:
 
 nrn_minting:
   enabled: true
-  knirvroot_endpoint: "http://localhost:1317"
+  knirvoracle_endpoint: "http://localhost:1317"
   mint_rate: 100  # NRN per successful proof
 
 p2p:

@@ -14,8 +14,8 @@ The proliferation of autonomous AI agents demands a robust, verifiable, and cont
 KNIRVCHAIN enables the network to:
 
 *   **Maintain the Canonical Base LLM:** Record cryptographic hashes and metadata of the collective Base LLM's versions, representing its continuous evolution through validated learning. The actual `CodeT5` model binaries are stored off-chain, with their integrity verified by on-chain hashes.
-*   **Certify Agent Skills:** Register and validate SkillNodes (proven solutions to Network Resolution Vectors or NRVs) contributed by `KNIRV-CORTEX` agents, after their initial minting and verification on `KNIRVGRAPH` and `KNIRV-ROOT`.
-*   **Enforce the NRN Economy:** Manage the lifecycle of Network Resolution Notice (`NRN`) token consumption, triggering burns on `KNIRV-ROOT` for Skill invocation.
+*   **Certify Agent Skills:** Register and validate SkillNodes (proven solutions to Network Resolution Vectors or NRVs) contributed by `KNIRV-CORTEX` agents, after their initial minting and verification on `KNIRVGRAPH` and `KNIRV-ORACLE`.
+*   **Enforce the NRN Economy:** Manage the lifecycle of Network Resolution Notice (`NRN`) token consumption, triggering burns on `KNIRV-ORACLE` for Skill invocation.
 *   **Orchestrate Decentralized Learning:** Act as the final consensus layer for the network's "active machine" learning loop, driven by `KNIRV-CORTEX` agents, `KNIRVGRAPH` data, and `KNIRV-NEXUS` DVE validations, translating collective experience into Base LLM evolution.
 
 By leveraging its own robust `Tendermint/CometBFT` consensus, `KNIRVCHAIN` provides a secure, efficient, and transparent foundation for a self-improving, decentralized intelligence network, empowering truly trusted execution for AI agents.
@@ -46,7 +46,7 @@ graph TD
         KS -- Rents DVEs for Validation --> DVE[KNIRV-NEXUS DVEs]
         KS -- Uses for NRN/Transactions --> KW["KNIRV-WALLET (XION Meta Account)"]
 
-        KW -- Acquires NRN from Faucet --> KR["KNIRV-ROOT Blockchain (NRN Oracle & Orchestrator)"]
+        KW -- Acquires NRN from Faucet --> KR["KNIRV-ORACLE Blockchain (NRN Oracle & Orchestrator)"]
         KR -- Provides USDC Faucet --> R[KNIRV-ROUTERS]
         R -- Mints NRNs --> KR
 
@@ -92,7 +92,7 @@ graph TD
 
 *   **CodeT5 as the Base LLM:** The foundational model for the KNIRV D-TEN is `CodeT5`. `CodeT5`, a family of encoder-decoder models for programming language tasks, is particularly well-suited due to its strong performance in code generation, summarization, and understanding across multiple programming languages. This makes it an ideal Base LLM for an AI agent network focused on problem resolution and Skill creation. Its ability to handle diverse code-related tasks provides a robust foundation for `KNIRV-CORTEX` agents to build upon.
     > **Reference:** "CodeT5: Identifier-aware Unified Pre-trained Encoder-Decoder Models for Code Understanding and Generation" (Wang et al., 2021) - CodeT5's architecture and pre-training objectives enable it to learn rich representations of code, crucial for Skill development and NRV resolution.
-*   **Canonical State & Verifiable Evolution:** `KNIRVCHAIN` stores the cryptographic hash (CID) of the current, consensus-validated `CodeT5` Base LLM model file, along with its version ID, timestamp, and metadata (e.g., summary of changes, contributing `SkillNodes`). Each new Base LLM update, proposed by `KNIRV-CORTEX`s (after DVE validation and `KNIRV-ROOT` orchestration) and accepted by `KNIRVCHAIN`'s consensus, becomes a new, immutable version of the collective intelligence. This provides a transparent and auditable lineage of the Base LLM's evolution.
+*   **Canonical State & Verifiable Evolution:** `KNIRVCHAIN` stores the cryptographic hash (CID) of the current, consensus-validated `CodeT5` Base LLM model file, along with its version ID, timestamp, and metadata (e.g., summary of changes, contributing `SkillNodes`). Each new Base LLM update, proposed by `KNIRV-CORTEX`s (after DVE validation and `KNIRV-ORACLE` orchestration) and accepted by `KNIRVCHAIN`'s consensus, becomes a new, immutable version of the collective intelligence. This provides a transparent and auditable lineage of the Base LLM's evolution.
 *   **Off-Chain Storage for Model Binaries:** The actual large `CodeT5` Base LLM model files (binaries) are stored off-chain on decentralized storage networks like IPFS. `KNIRVCHAIN` only stores their immutable content hashes (CIDs). This ensures data integrity (any tampering with the off-chain file would invalidate its on-chain hash) while preventing blockchain bloat, making the system scalable and economically viable.
 *   **Accessing the Base LLM:** `KNIRV-CORTEX` agents access the Base LLM by querying `KNIRVCHAIN` for the latest canonical Base LLM's CID. They then retrieve the actual `CodeT5` model binary from IPFS using this CID. This ensures that all `KNIRV-CORTEX`s operate on the same, verified foundational model.
 *   **Building Upon the Base LLM:** `KNIRV-CORTEX` agents do not directly modify the Base LLM. Instead, they "build upon" it by developing and refining their own `Rust WASM LoRA` adapters. These small, personalized LoRAs are applied on top of the canonical `CodeT5` Base LLM during inference, allowing each `KNIRV-CORTEX` to develop unique skills and personalities without altering the shared foundation.
@@ -103,18 +103,18 @@ graph TD
 
 **Expanded Information:**
 
-*   **SkillNode Certification:** `KNIRVCHAIN` registers `SkillNodes` (representing proven solutions to NRVs). These `SkillNodes` are first minted on `KNIRVGRAPH` and undergo verification by `KNIRV-ROOT` before being canonically registered here. Each `SkillNode` entry includes its unique ID, a hash of its underlying executable code (e.g., `Rust WASM` binary), the NRV types it resolves, its associated `NRN` cost for invocation, and cryptographic proofs of its validation (generated in DVEs).
+*   **SkillNode Certification:** `KNIRVCHAIN` registers `SkillNodes` (representing proven solutions to NRVs). These `SkillNodes` are first minted on `KNIRVGRAPH` and undergo verification by `KNIRV-ORACLE` before being canonically registered here. Each `SkillNode` entry includes its unique ID, a hash of its underlying executable code (e.g., `Rust WASM` binary), the NRV types it resolves, its associated `NRN` cost for invocation, and cryptographic proofs of its validation (generated in DVEs).
 *   **Discoverability:** `KNIRV-CORTEX`s can query `KNIRVCHAIN` to discover and retrieve certified `SkillNodes` relevant to problems they encounter. This canonical registry ensures that Skills are globally discoverable and trustworthy.
-*   **Integrity:** `KNIRVCHAIN`'s consensus ensures that only genuinely validated and proven `SkillNodes` (as verified by `KNIRV-ROOT`) are added to the registry, maintaining the quality and trustworthiness of the collective skill set available for invocation.
+*   **Integrity:** `KNIRVCHAIN`'s consensus ensures that only genuinely validated and proven `SkillNodes` (as verified by `KNIRV-ORACLE`) are added to the registry, maintaining the quality and trustworthiness of the collective skill set available for invocation.
 
 ### 3.3. NRN Economy Enforcer (Consumption)
 
-While `NRN` tokens are native to `KNIRV-ROOT`, `KNIRVCHAIN` plays a critical role in enforcing their consumption within the D-TEN.
+While `NRN` tokens are native to `KNIRV-ORACLE`, `KNIRVCHAIN` plays a critical role in enforcing their consumption within the D-TEN.
 
 **Expanded Information:**
 
-*   **Skill Invocation & NRN Burning Trigger:** A core function of `KNIRVCHAIN` is to enforce the consumption of `NRN`s for Skill invocation. To invoke any Skill from the `SkillRegistry` on `KNIRVCHAIN`, a `KNIRV-CORTEX` (or other authorized entity) must present an `NRN` token ID with the invocation request. `KNIRVCHAIN` verifies the `NRN`'s validity and then sends an `IBC` message to the `KNIRV-ROOT` blockchain to trigger the burning of that specific `NRN` token from `KNIRV-ROOT`'s native ledger. This direct interaction ensures that Skill utility is intrinsically linked to `NRN` consumption.
-*   **Economic Loop Integration:** This mechanism directly contributes to the `NRN` economic loop, creating constant `NRN` consumption (burning on `KNIRV-ROOT`) that balances the `NRN` minting performed by `KNIRV-ROUTERS`.
+*   **Skill Invocation & NRN Burning Trigger:** A core function of `KNIRVCHAIN` is to enforce the consumption of `NRN`s for Skill invocation. To invoke any Skill from the `SkillRegistry` on `KNIRVCHAIN`, a `KNIRV-CORTEX` (or other authorized entity) must present an `NRN` token ID with the invocation request. `KNIRVCHAIN` verifies the `NRN`'s validity and then sends an `IBC` message to the `KNIRV-ORACLE` blockchain to trigger the burning of that specific `NRN` token from `KNIRV-ORACLE`'s native ledger. This direct interaction ensures that Skill utility is intrinsically linked to `NRN` consumption.
+*   **Economic Loop Integration:** This mechanism directly contributes to the `NRN` economic loop, creating constant `NRN` consumption (burning on `KNIRV-ORACLE`) that balances the `NRN` minting performed by `KNIRV-ROUTERS`.
 
 ### 3.4. Base LLM Evolution & Skill Integration
 
@@ -123,7 +123,7 @@ The `KNIRVCHAIN` is the ultimate arbiter of the Base LLM's evolution, integratin
 **Expanded Information:**
 
 *   **From Skills to Base LLM Updates:** The validated `SkillNodes` (first minted on `KNIRVGRAPH`, then canonically on `KNIRVCHAIN`) and the `ErrorNodes` they resolve on `KNIRVGRAPH` serve as crucial data points for improving the Base LLM.
-*   **Data Aggregation:** `KNIRV-ROOT` (as the network oracle) and potentially specialized `KNIRV-CORTEX`s aggregate successful Skill executions and resolved `ErrorNodes` from `KNIRVGRAPH`.
+*   **Data Aggregation:** `KNIRV-ORACLE` (as the network oracle) and potentially specialized `KNIRV-CORTEX`s aggregate successful Skill executions and resolved `ErrorNodes` from `KNIRVGRAPH`.
 *   **Synthetic Data Generation/Fine-tuning Instructions:** This aggregated data is then used to generate synthetic training data or explicit fine-tuning instructions for `CodeT5`. This process often occurs in secure `KNIRV-NEXUS` DVEs to ensure data integrity and privacy.
 *   **Base LLM Update Proposal:** A new version of the `CodeT5` Base LLM (or a delta update) is prepared based on these learning insights. This new model file (or update) is uploaded to IPFS, and its CID, along with cryptographic proofs of its efficacy and safety (generated in DVEs), is bundled into a Base LLM update proposal.
 *   **KNIRVCHAIN Consensus:** This Base LLM update proposal is submitted to the `KNIRVCHAIN`. `KNIRVCHAIN`'s validator set (via its `Tendermint/CometBFT` consensus) verifies the proofs, ensuring the update is beneficial and safe. Upon consensus, the new Base LLM's CID becomes the canonical version on `KNIRVCHAIN`.
@@ -143,8 +143,8 @@ The heart of `KNIRVCHAIN` is its custom-built blockchain, designed for determini
 *   **Tendermint/CometBFT Consensus:** `KNIRVCHAIN` utilizes its own `Tendermint/CometBFT` consensus engine. This provides Byzantine Fault Tolerant (BFT) security, high transaction finality, and a robust validator set responsible for securing the chain, validating transactions, and reaching consensus on Base LLM updates and `SkillNode` registrations. Its "instant finality" ensures that state changes are confirmed in a single block, crucial for responsive intelligence updates.
 *   **Custom Modules:** `KNIRVCHAIN` includes several custom modules, built within its Rust framework, that define its core functionalities:
     *   **`BaseLLMRegistry` Module:** Manages the canonical `CodeT5` Base LLM versions. It stores the CIDs of Base LLM binaries, their version history, and cryptographic proofs of their validation. It processes proposals for new Base LLM versions and updates the canonical reference upon consensus.
-    *   **`SkillRegistry` Module:** Manages the canonical `SkillNode` registry. It stores `SkillNode` metadata, CIDs of their executable code, and validation proofs. It processes requests for `SkillNode` minting (orchestrated by `KNIRV-ROOT`) and provides a globally accessible, verifiable list of available Skills.
-    *   **`IBC` Module:** Facilitates secure and trust-minimized communication with other `IBC`-enabled blockchains, particularly `KNIRV-ROOT`.
+    *   **`SkillRegistry` Module:** Manages the canonical `SkillNode` registry. It stores `SkillNode` metadata, CIDs of their executable code, and validation proofs. It processes requests for `SkillNode` minting (orchestrated by `KNIRV-ORACLE`) and provides a globally accessible, verifiable list of available Skills.
+    *   **`IBC` Module:** Facilitates secure and trust-minimized communication with other `IBC`-enabled blockchains, particularly `KNIRV-ORACLE`.
 
 ### 4.2. Inter-Blockchain Communication (IBC)
 
@@ -152,9 +152,9 @@ The heart of `KNIRVCHAIN` is its custom-built blockchain, designed for determini
 
 **Expanded Information:**
 
-*   **NRN Burning Trigger:** `KNIRVCHAIN` sends `IBC` messages to `KNIRV-ROOT` to trigger the burning of `NRN` tokens upon Skill invocation. This ensures that the economic consumption of `NRN`s is directly tied to Skill utility on `KNIRVCHAIN`.
-*   **SkillNode Canonical Minting:** `KNIRVCHAIN` receives `IBC` messages from `KNIRV-ROOT` (orchestrating the process after `KNIRVGRAPH` minting and `KNIRV-ROOT` verification) to canonically mint new `SkillNodes` onto its `SkillRegistry`. This makes the Skill globally discoverable and invokable.
-*   **Base LLM Update Orchestration:** `KNIRVCHAIN` can send `IBC` messages to `KNIRV-ROOT` to notify it of new canonical Base LLM versions, allowing `KNIRV-ROOT` to propagate this information across the D-TEN.
+*   **NRN Burning Trigger:** `KNIRVCHAIN` sends `IBC` messages to `KNIRV-ORACLE` to trigger the burning of `NRN` tokens upon Skill invocation. This ensures that the economic consumption of `NRN`s is directly tied to Skill utility on `KNIRVCHAIN`.
+*   **SkillNode Canonical Minting:** `KNIRVCHAIN` receives `IBC` messages from `KNIRV-ORACLE` (orchestrating the process after `KNIRVGRAPH` minting and `KNIRV-ORACLE` verification) to canonically mint new `SkillNodes` onto its `SkillRegistry`. This makes the Skill globally discoverable and invokable.
+*   **Base LLM Update Orchestration:** `KNIRVCHAIN` can send `IBC` messages to `KNIRV-ORACLE` to notify it of new canonical Base LLM versions, allowing `KNIRV-ORACLE` to propagate this information across the D-TEN.
 
 ### 4.3. Deterministic Execution
 
@@ -171,9 +171,9 @@ The `NRN` token's utility is intrinsically tied to `KNIRVCHAIN` through Skill in
 
 **Expanded Information:**
 
-*   **Mandatory Skill Invocation:** The requirement to present an `NRN` token (which is then burned on `KNIRV-ROOT`) for every Skill invocation on `KNIRVCHAIN` creates constant, organic demand for the token. This directly links network utility to economic activity.
+*   **Mandatory Skill Invocation:** The requirement to present an `NRN` token (which is then burned on `KNIRV-ORACLE`) for every Skill invocation on `KNIRVCHAIN` creates constant, organic demand for the token. This directly links network utility to economic activity.
 *   **Value Accrual:** As the Base LLM (`CodeT5`) evolves and the `SkillRegistry` grows with more validated and useful Skills, the utility and demand for `NRN`s increase, driving value accrual for the token and the entire KNIRV D-TEN.
-*   **Economic Loop Integration:** `KNIRVCHAIN` is a key component in the D-TEN's self-sustaining economic loop, where Skill invocation (consumption) balances `NRN` production by `KNIRV-ROUTERS` (supply), all orchestrated by `KNIRV-ROOT`.
+*   **Economic Loop Integration:** `KNIRVCHAIN` is a key component in the D-TEN's self-sustaining economic loop, where Skill invocation (consumption) balances `NRN` production by `KNIRV-ROUTERS` (supply), all orchestrated by `KNIRV-ORACLE`.
 
 ## 6. Security & Trust Model
 
@@ -185,7 +185,7 @@ The `NRN` token's utility is intrinsically tied to `KNIRVCHAIN` through Skill in
 *   **Rust & WASM Security:** The use of Rust for native modules and `CosmWasm` for smart contracts provides strong memory safety and a secure `WASM` sandbox for contract execution, preventing malicious code from affecting the underlying chain.
 *   **Cryptographic Proofs:** DVE-generated cryptographic proofs (e.g., zkTLS-enhanced attestations) ensure the integrity and validity of Base LLM updates and `SkillNode` submissions before they are accepted by `KNIRVCHAIN` consensus.
 *   **Immutability:** Once a Base LLM version or `SkillNode` is committed to `KNIRVCHAIN`, it is immutable, providing a tamper-proof audit trail of the network's intelligence and capabilities.
-*   **IBC Security:** Leverages the robust security model of `IBC` for secure cross-chain communication with `KNIRV-ROOT`, ensuring that `NRN` burning and `SkillNode` orchestration are performed securely.
+*   **IBC Security:** Leverages the robust security model of `IBC` for secure cross-chain communication with `KNIRV-ORACLE`, ensuring that `NRN` burning and `SkillNode` orchestration are performed securely.
 *   **Auditable Ledger:** The immutable nature of the `KNIRVCHAIN` provides a complete audit trail of all Base LLM versions and `SkillNode` registrations, fostering transparency and accountability.
 
 ## 7. Future Roadmap
@@ -196,7 +196,7 @@ The `KNIRVCHAIN` will continuously evolve, driven by the needs of the D-TEN and 
 
 *   **Phase 1 (Initial Mainnet Deployment - Q2 2026):**  
     **Focus:** Secure and stable operation of the core Rust-based blockchain, `BaseLLMRegistry` Module, and `SkillRegistry` Module.  
-    **IBC Channels:** Establish stable `IBC` channels with `KNIRV-ROOT` for `NRN` burning and `SkillNode` orchestration.  
+    **IBC Channels:** Establish stable `IBC` channels with `KNIRV-ORACLE` for `NRN` burning and `SkillNode` orchestration.  
     **Goal:** Establish `KNIRVCHAIN` as the canonical, verifiable ledger for the Base LLM and `SkillRegistry`, supporting initial `KNIRV-CORTEX` and `KNIRVGRAPH` interactions.
 
 *   **Phase 2 (Advanced Base LLM Update Mechanisms - Q4 2026):**  
@@ -205,7 +205,7 @@ The `KNIRVCHAIN` will continuously evolve, driven by the needs of the D-TEN and 
     **Goal:** Enhance the decentralization and efficiency of Base LLM evolution.
 
 *   **Phase 3 (Cross-Chain Skill Invocation - Q2 2027):**  
-    **Focus:** Extend Skill invocation capabilities to other `IBC`-enabled chains. This would allow `KNIRV-CORTEX`s or other entities on different blockchains to trigger Skills registered on `KNIRVCHAIN` (and burn `NRN`s on `KNIRV-ROOT`), expanding the D-TEN's reach.  
+    **Focus:** Extend Skill invocation capabilities to other `IBC`-enabled chains. This would allow `KNIRV-CORTEX`s or other entities on different blockchains to trigger Skills registered on `KNIRVCHAIN` (and burn `NRN`s on `KNIRV-ORACLE`), expanding the D-TEN's reach.  
     **Goal:** Position `KNIRVCHAIN` as a core component of a multi-chain AI ecosystem.
 
 *   **Phase 4 (Adaptive Base LLM Architectures - 2028+):**  
@@ -215,4 +215,4 @@ The `KNIRVCHAIN` will continuously evolve, driven by the needs of the D-TEN and 
 
 ## 8. Conclusion
 
-`KNIRVCHAIN` stands as the definitive backbone of the KNIRV D-TEN, transforming from a mere technical platform into an active, evolving intelligence machine. As its own sovereign Rust-based Layer 1 blockchain, secured by `Tendermint/CometBFT` consensus, it provides the immutable and verifiable ledger for the `CodeT5` Base LLM's evolution and the canonical `SkillRegistry`. By orchestrating Skill invocation (triggering `NRN` burns on `KNIRV-ROOT`) and integrating collective learning from `KNIRVGRAPH` and `KNIRV-CORTEX`s, `KNIRVCHAIN` ensures the continuous improvement and trustworthiness of the network's intelligence. This strategic design, with off-chain model storage and on-chain verification, ensures scalability, security, and a robust foundation for a self-improving, decentralized AI ecosystem.
+`KNIRVCHAIN` stands as the definitive backbone of the KNIRV D-TEN, transforming from a mere technical platform into an active, evolving intelligence machine. As its own sovereign Rust-based Layer 1 blockchain, secured by `Tendermint/CometBFT` consensus, it provides the immutable and verifiable ledger for the `CodeT5` Base LLM's evolution and the canonical `SkillRegistry`. By orchestrating Skill invocation (triggering `NRN` burns on `KNIRV-ORACLE`) and integrating collective learning from `KNIRVGRAPH` and `KNIRV-CORTEX`s, `KNIRVCHAIN` ensures the continuous improvement and trustworthiness of the network's intelligence. This strategic design, with off-chain model storage and on-chain verification, ensures scalability, security, and a robust foundation for a self-improving, decentralized AI ecosystem.

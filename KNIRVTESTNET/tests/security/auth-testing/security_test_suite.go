@@ -138,8 +138,8 @@ type SecurityVulnerability struct {
 // NewSecurityTestSuite creates a new security test suite
 func NewSecurityTestSuite() *SecurityTestSuite {
 	services := map[string]*SecurityTarget{
-		"knirv-root": {
-			Name:    "knirv-root",
+		"knirv-oracle": {
+			Name:    "knirv-oracle",
 			BaseURL: "http://localhost:1317",
 			AuthEndpoints: []AuthEndpoint{
 				{Path: "/auth/login", Method: "POST", RequiredAuth: false, RateLimit: 10},

@@ -91,7 +91,7 @@ type FyneGuiConfig struct {
 	// New KNIRV-ROUTER specific configurations
 	NRNMintingRate       string // Rate of NRN token minting
 	ConnectivityInterval string // Interval for connectivity tests (seconds)
-	FaucetEndpoint       string // KNIRV-ROOT Faucet endpoint
+	FaucetEndpoint       string // KNIRV-ORACLE Faucet endpoint
 	ProofEnginePort      string // Port for Proof-of-Connectivity engine API
 }
 
@@ -450,7 +450,7 @@ func StartFyneGUI() {
 			// New KNIRV-ROUTER defaults
 			NRNMintingRate:       "10",                              // NRNs per minute
 			ConnectivityInterval: "30",                              // Connectivity test interval in seconds
-			FaucetEndpoint:       "http://root.knirvchain.com:8080", // KNIRV-ROOT Faucet endpoint
+			FaucetEndpoint:       "http://root.knirvchain.com:8080", // KNIRV-ORACLE Faucet endpoint
 			ProofEnginePort:      "9090",                            // Proof-of-Connectivity engine API port
 		},
 		window:            window,
@@ -676,7 +676,7 @@ func StartFyneGUI() {
 			widget.NewFormItem("TURN Port (UDP/TCP)", state.turnPortEntry),
 			widget.NewFormItem("NRN Minting Rate (per min)", state.nrnMintingRateEntry),
 			widget.NewFormItem("Connectivity Test Interval (sec)", state.connectivityIntervalEntry),
-			widget.NewFormItem("KNIRV-ROOT Faucet Endpoint", state.faucetEndpointEntry),
+			widget.NewFormItem("KNIRV-ORACLE Faucet Endpoint", state.faucetEndpointEntry),
 			widget.NewFormItem("Proof Engine API Port", state.proofEnginePortEntry),
 		)),
 		widget.NewSeparator(),
@@ -1583,17 +1583,17 @@ func (s *FyneGUIState) stopProofEngine() {
 	s.updateStatus("Proof-of-Connectivity Engine stopped successfully")
 }
 
-// connectToFaucet establishes connection to KNIRV-ROOT Faucet
+// connectToFaucet establishes connection to KNIRV-ORACLE Faucet
 func (s *FyneGUIState) connectToFaucet() {
 	s.mu.Lock()
 	if s.faucetConnected {
 		s.mu.Unlock()
-		s.updateStatus("Already connected to KNIRV-ROOT Faucet")
+		s.updateStatus("Already connected to KNIRV-ORACLE Faucet")
 		return
 	}
 	s.mu.Unlock()
 
-	s.updateStatus("Connecting to KNIRV-ROOT Faucet...")
+	s.updateStatus("Connecting to KNIRV-ORACLE Faucet...")
 	s.logChan <- "Faucet Configuration:"
 	s.logChan <- "  Endpoint: " + s.config.FaucetEndpoint
 
@@ -1604,7 +1604,7 @@ func (s *FyneGUIState) connectToFaucet() {
 	s.mu.Unlock()
 
 	s.updateIndicator(s.faucetIndicator, s.faucetStatusLabel, true, "Faucet: Connected")
-	s.updateStatus("Connected to KNIRV-ROOT Faucet successfully")
+	s.updateStatus("Connected to KNIRV-ORACLE Faucet successfully")
 
 	// Update display with mock data for now
 	s.updateUSDCBalance("250.75")

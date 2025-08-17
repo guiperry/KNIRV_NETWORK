@@ -230,7 +230,7 @@ App::new()
 ## Integration with KNIRV Ecosystem
 
 ### Blockchain Layer
-- **KNIRV-ROOT**: Native NRN token ledger integration with real-time balance updates
+- **KNIRV-ORACLE**: Native NRN token ledger integration with real-time balance updates
 - **KNIRVCHAIN**: Direct smart contract interaction for skill registry and governance
 - **XION Integration**: Gasless transaction support with seamless user experience
 - **Wallet Connectivity**: Support for KNIRVWALLET and external wallet providers

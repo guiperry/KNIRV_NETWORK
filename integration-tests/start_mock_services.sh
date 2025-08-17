@@ -24,7 +24,7 @@ declare -A SERVICES=(
     ["KNIRVWALLET"]="8083"
     ["KNIRVCORTEX"]="8084"
     ["KNIRVROUTER"]="8085"
-    ["KNIRVROOT"]="8086"
+    ["KNIRVORACLE"]="8086"
 )
 
 # Function to print colored output

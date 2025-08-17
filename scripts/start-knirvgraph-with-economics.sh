@@ -15,7 +15,7 @@ KNIRVGRAPH_DIR="$PROJECT_ROOT/KNIRVGRAPH"
 
 # Set environment variables for economics integration
 export ECONOMICS_ENABLED=true
-export KNIRVROOT_URL=${KNIRVROOT_URL:-http://localhost:1317}
+export KNIRVORACLE_URL=${KNIRVORACLE_URL:-http://localhost:1317}
 export KNIRVGRAPH_PORT=${KNIRVGRAPH_PORT:-8081}
 export KNIRVGRAPH_HOME=${KNIRVGRAPH_HOME:-$HOME/.knirvgraph}
 
@@ -26,7 +26,7 @@ export KNIRVGATEWAY_URL=${KNIRVGATEWAY_URL:-http://localhost:8000}
 
 echo "📊 Economics integration enabled"
 echo "🌐 Service URLs configured:"
-echo "  - KNIRVROOT: $KNIRVROOT_URL"
+echo "  - KNIRVORACLE: $KNIRVORACLE_URL"
 echo "  - KNIRVCHAIN: $KNIRVCHAIN_URL"
 echo "  - KNIRVNEXUS: $KNIRVNEXUS_URL"
 echo "  - KNIRVGATEWAY: $KNIRVGATEWAY_URL"
@@ -83,13 +83,13 @@ cleanup() {
 # Set up signal handlers
 trap cleanup SIGINT SIGTERM
 
-# Test KNIRVROOT connectivity
-echo "🔗 Testing KNIRVROOT connectivity..."
-if curl -s --max-time 5 "$KNIRVROOT_URL/ping" > /dev/null 2>&1; then
-    echo "✅ KNIRVROOT is accessible at $KNIRVROOT_URL"
+# Test KNIRVORACLE connectivity
+echo "🔗 Testing KNIRVORACLE connectivity..."
+if curl -s --max-time 5 "$KNIRVORACLE_URL/ping" > /dev/null 2>&1; then
+    echo "✅ KNIRVORACLE is accessible at $KNIRVORACLE_URL"
 else
-    echo "⚠️  Warning: KNIRVROOT not accessible at $KNIRVROOT_URL"
-    echo "   Economics integration will be disabled until KNIRVROOT is available"
+    echo "⚠️  Warning: KNIRVORACLE not accessible at $KNIRVORACLE_URL"
+    echo "   Economics integration will be disabled until KNIRVORACLE is available"
 fi
 
 # Start KNIRVGRAPH
@@ -129,7 +129,7 @@ fi
 if curl -s http://localhost:$KNIRVGRAPH_PORT/economics/metrics > /dev/null 2>&1; then
     echo "✅ Economics metrics endpoint is responding"
 else
-    echo "⚠️  Economics metrics endpoint not yet available (normal if KNIRVROOT is not connected)"
+    echo "⚠️  Economics metrics endpoint not yet available (normal if KNIRVORACLE is not connected)"
 fi
 
 # Test NRV system endpoint

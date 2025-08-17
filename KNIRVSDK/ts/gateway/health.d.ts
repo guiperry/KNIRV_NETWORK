@@ -32,7 +32,7 @@ export declare class HealthService {
     /**
      * Wait for a service to become healthy
      */
-    waitForService(serviceName: 'economics' | 'gateway' | 'knirvchain' | 'knirvnexus' | 'knirvroot' | 'knirvgraph', options?: {
+    waitForService(serviceName: 'economics' | 'gateway' | 'knirvchain' | 'knirvnexus' | 'knirvoracle' | 'knirvgraph', options?: {
         timeout?: number;
         interval?: number;
     }): Promise<boolean>;

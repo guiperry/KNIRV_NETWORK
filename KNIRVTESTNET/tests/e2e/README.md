@@ -57,7 +57,7 @@ cd user-journey-tests && ./run-tests.sh
 - `TestGatewayIntegration`: Complete gateway functionality
 
 **Services Tested**:
-- ✅ KNIRV-ROOT (port 1317): Health checks passing
+- ✅ KNIRV-ORACLE (port 1317): Health checks passing
 - ✅ KNIRVCHAIN (port 8090): Blockchain integration verified
 - ✅ KNIRVGRAPH (port 8082): Graph data integration working
 - ✅ KNIRV-NEXUS-DVE (port 8084): DVE service healthy

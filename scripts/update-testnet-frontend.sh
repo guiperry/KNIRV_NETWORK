@@ -289,7 +289,7 @@ create_testnet_index() {
                 <h3>🔗 Core Services</h3>
                 <ul class="service-list">
                     <li class="service-item">
-                        <span class="service-name">KNIRVROOT</span>
+                        <span class="service-name">KNIRVORACLE</span>
                         <span class="service-status status-checking" id="status-root">Checking...</span>
                     </li>
                     <li class="service-item">
@@ -344,7 +344,7 @@ create_testnet_index() {
             <h3>🌐 Testnet Endpoints</h3>
             <div class="endpoint-list">
                 <div class="endpoint-item">
-                    <h4>KNIRVROOT API</h4>
+                    <h4>KNIRVORACLE API</h4>
                     <a href="http://$TESTNET_IP:1317" target="_blank">http://$TESTNET_IP:1317</a>
                 </div>
                 <div class="endpoint-item">
@@ -405,7 +405,7 @@ create_testnet_index() {
     <script>
         // Service health check configuration
         const services = [
-            { id: 'status-root', url: 'http://$TESTNET_IP:1317/health', name: 'KNIRVROOT' },
+            { id: 'status-root', url: 'http://$TESTNET_IP:1317/health', name: 'KNIRVORACLE' },
             { id: 'status-chain', url: 'http://$TESTNET_IP:8080/health', name: 'KNIRVCHAIN' },
             { id: 'status-graph', url: 'http://$TESTNET_IP:8081/health', name: 'KNIRVGRAPH' },
             { id: 'status-gateway', url: 'http://$TESTNET_IP:8087/health', name: 'KNIRVGATEWAY' },
@@ -498,7 +498,7 @@ update_netlify_config() {
     NODE_ENV = "testnet"
     VITE_API_BASE_URL = "http://$TESTNET_IP"
     VITE_TESTNET_IP = "$TESTNET_IP"
-    VITE_KNIRVROOT_URL = "http://$TESTNET_IP:1317"
+    VITE_KNIRVORACLE_URL = "http://$TESTNET_IP:1317"
     VITE_KNIRVCHAIN_URL = "http://$TESTNET_IP:8080"
     VITE_KNIRVGRAPH_URL = "http://$TESTNET_IP:8081"
     VITE_KNIRVNEXUS_1_URL = "http://$TESTNET_IP:8082"
@@ -588,7 +588,7 @@ window.KNIRV_TESTNET_CONFIG = {
     
     // Service endpoints
     endpoints: {
-        knirvroot: {
+        knirvoracle: {
             api: 'http://$TESTNET_IP:1317',
             rpc: 'http://$TESTNET_IP:26657',
             health: 'http://$TESTNET_IP:1317/health'
@@ -706,7 +706,7 @@ The KNIRV Testnet is a live blockchain development environment running on AWS EC
 
 | Service | Port | Endpoint | Description |
 |---------|------|----------|-------------|
-| KNIRVROOT | 1317 | http://$TESTNET_IP:1317 | Core blockchain API |
+| KNIRVORACLE | 1317 | http://$TESTNET_IP:1317 | Core blockchain API |
 | KNIRVCHAIN | 8080 | http://$TESTNET_IP:8080 | Smart contracts & LLM validation |
 | KNIRVGRAPH | 8081 | http://$TESTNET_IP:8081 | Graph storage & DHT |
 | KNIRVNEXUS-1 | 8082 | http://$TESTNET_IP:8082 | TEE simulation node 1 |
@@ -725,7 +725,7 @@ The KNIRV Testnet is a live blockchain development environment running on AWS EC
 
 ### API Proxy
 All testnet services are accessible through Netlify proxy endpoints:
-- \`/api/testnet/root/*\` → KNIRVROOT
+- \`/api/testnet/root/*\` → KNIRVORACLE
 - \`/api/testnet/chain/*\` → KNIRVCHAIN  
 - \`/api/testnet/graph/*\` → KNIRVGRAPH
 - \`/api/testnet/nexus1/*\` → KNIRVNEXUS-1

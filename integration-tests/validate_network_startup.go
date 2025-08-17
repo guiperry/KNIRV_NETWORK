@@ -30,8 +30,8 @@ func NewNetworkValidator() *NetworkValidator {
 	return &NetworkValidator{
 		client: &http.Client{Timeout: 30 * time.Second},
 		services: map[string]ServiceInfo{
-			"knirvroot": {
-				Name:      "KNIRV-ROOT",
+			"knirvoracle": {
+				Name:      "KNIRV-ORACLE",
 				URL:       "http://localhost:1317",
 				HealthURL: "http://localhost:1317/health",
 			},

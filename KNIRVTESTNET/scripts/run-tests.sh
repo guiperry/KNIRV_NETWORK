@@ -154,7 +154,7 @@ test_basic_connectivity() {
     echo "🧪 Testing basic connectivity..."
 
     echo "  🔗 Testing service endpoints..."
-    curl -s http://localhost:1317/health > /dev/null && echo "    ✅ KNIRV-ROOT reachable" || echo "    ❌ KNIRV-ROOT unreachable"
+    curl -s http://localhost:1317/health > /dev/null && echo "    ✅ KNIRV-ORACLE reachable" || echo "    ❌ KNIRV-ORACLE unreachable"
     curl -s http://localhost:8080/health > /dev/null && echo "    ✅ KNIRVCHAIN reachable" || echo "    ❌ KNIRVCHAIN unreachable"
     curl -s http://localhost:8081/health > /dev/null && echo "    ✅ KNIRVGRAPH reachable" || echo "    ❌ KNIRVGRAPH unreachable"
     curl -s http://localhost:8082/status > /dev/null && echo "    ✅ KNIRV-NEXUS-1 reachable" || echo "    ❌ KNIRV-NEXUS-1 unreachable"
@@ -217,7 +217,7 @@ check_testnet_running() {
     # Check for PID files as secondary indicator
     local pid_files=(
         "$TESTNET_ROOT/data/knirvgateway.pid"
-        "$TESTNET_ROOT/data/knirvroot.pid"
+        "$TESTNET_ROOT/data/knirvoracle.pid"
         "$TESTNET_ROOT/data/knirvchain.pid"
         "$TESTNET_ROOT/data/knirvgraph.pid"
     )
@@ -370,7 +370,7 @@ start_testnet() {
     print_step "Starting core blockchain services..."
 
     # Start services in dependency order, letting gateway coordinate ports
-    local services=("knirvroot" "knirvchain" "knirvgraph" "knirvnexus" "knirvrouter")
+    local services=("knirvoracle" "knirvchain" "knirvgraph" "knirvnexus" "knirvrouter")
 
     for service in "${services[@]}"; do
         print_step "Starting $service..."
@@ -394,7 +394,7 @@ start_testnet() {
         # Check service health through gateway if possible
         local service_health_url
         case $service in
-            "knirvroot")
+            "knirvoracle")
                 service_health_url="http://localhost:1317/status"
                 ;;
             "knirvchain")

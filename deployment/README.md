@@ -74,7 +74,7 @@ The main KNIRV D-TEN stack includes:
 - **KNIRVCHAIN** (Port 8080) - Blockchain layer
 - **KNIRVGRAPH** (Port 8081) - NRV graph processing
 - **KNIRVNEXUS** (Port 8082) - LLM inference engine
-- **KNIRVROOT** (Port 8083) - Core orchestration with XION bridge
+- **KNIRVORACLE** (Port 8083) - Core orchestration with XION bridge
 - **KNIRVROUTER** (Ports 3478/5349/9090) - Connectivity with proof engine
 
 ### Monitoring Stack

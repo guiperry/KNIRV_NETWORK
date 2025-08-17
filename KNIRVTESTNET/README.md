@@ -235,7 +235,7 @@ Options:
 **Expected Results**:  (Example output)
 ```
 Service Status:
-  ✓ KNIRV-ROOT      HEALTHY    PID:12345  45ms http://localhost:1317/health
+  ✓ KNIRV-ORACLE      HEALTHY    PID:12345  45ms http://localhost:1317/health
   ✓ KNIRVCHAIN      HEALTHY    PID:12346  32ms http://localhost:8080/health
   ✓ KNIRVGRAPH      HEALTHY    PID:12347  28ms http://localhost:8081/health
   ✓ KNIRV-NEXUS     HEALTHY    PID:12348  41ms http://localhost:8082/health
@@ -260,7 +260,7 @@ Overall Status: All services are healthy (6/6)
 **Command**: `make test-integration` or `./scripts/test-integration.sh`
 **Test**: Gateway service discovery
 **Expected Results**:
-- ✅ Gateway discovers knirvroot
+- ✅ Gateway discovers knirvoracle
 - ✅ Gateway discovers knirvchain
 - ✅ Gateway discovers knirvgraph
 - ✅ Gateway discovers knirvnexus
@@ -362,8 +362,8 @@ curl -X POST http://localhost:8182/testnet/validate/skill \
 **Purpose**: Test gateway's ability to proxy requests to services
 **Manual Tests**:
 ```bash
-# Test proxy to KNIRV-ROOT
-curl http://localhost:8888/knirvroot/health
+# Test proxy to KNIRV-ORACLE
+curl http://localhost:8888/knirvoracle/health
 
 # Test gateway endpoints
 curl http://localhost:8888/gateway/health
@@ -570,7 +570,7 @@ make test-performance
 ### **Benchmark Results**
 ```
 Service Startup Times:
-- KNIRV-ROOT: ~8 seconds
+- KNIRV-ORACLE: ~8 seconds
 - KNIRVCHAIN: ~12 seconds
 - KNIRVGRAPH: ~10 seconds
 - KNIRV-NEXUS: ~15 seconds

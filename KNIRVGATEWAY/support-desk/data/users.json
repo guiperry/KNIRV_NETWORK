@@ -3,20 +3,20 @@
     "id": 1,
     "username": "admin",
     "email": "admin@knirv.com",
-    "password": "$2a$10$WRqPMnQKaVZ3tkDS3WCeM.aOcTS31NNGadVDi./5cUDvrVD3r0X0S",
+    "password": "$2a$10$KMefBOqfRS78Y7s6MCSh.OvpVd852MAPQ5X0ySpT6xWr2MefVEm0C",
     "name": "KNIRV Administrator",
     "is_admin": true,
-    "created_at": "2025-08-16T04:47:16.269Z",
-    "updated_at": "2025-08-16T04:47:16.269Z"
+    "created_at": "2025-08-17T15:33:36.077Z",
+    "updated_at": "2025-08-17T15:33:36.077Z"
   },
   {
     "id": 2,
     "username": "customer",
     "email": "customer@example.com",
-    "password": "$2a$10$dc317BZ6MG0D/41QtfeeZ.S1tYhoa/CWU8tRwIv/Jkn63qZgmEQny",
+    "password": "$2a$10$ghYhxRMa/9uBihm2MaqeoeveXGD48wW3GW8k7AUVBWfVcTHHUbAVu",
     "name": "Sample Customer",
     "is_admin": false,
-    "created_at": "2025-08-16T04:47:16.428Z",
-    "updated_at": "2025-08-16T04:47:16.428Z"
+    "created_at": "2025-08-17T15:33:36.224Z",
+    "updated_at": "2025-08-17T15:33:36.224Z"
   }
 ]

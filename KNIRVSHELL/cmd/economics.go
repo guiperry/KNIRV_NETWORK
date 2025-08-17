@@ -140,15 +140,15 @@ func runEconomicsBalance(cmd *cobra.Command, args []string) error {
 		address = wallet.Address
 	}
 
-	// Create KNIRVROOT client
+	// Create KNIRVORACLE client
 	knirvRootClient := core.NewKNIRVRootClient(&cfg.KNIRV.Services.KNIRVRoot, log)
 
-	// Connect to KNIRVROOT
+	// Connect to KNIRVORACLE
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := knirvRootClient.Connect(ctx); err != nil {
-		return fmt.Errorf("failed to connect to KNIRVROOT: %w", err)
+		return fmt.Errorf("failed to connect to KNIRVORACLE: %w", err)
 	}
 	defer knirvRootClient.Disconnect()
 
@@ -194,16 +194,16 @@ func runEconomicsTransfer(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to get wallet: %w", err)
 	}
 
-	// Create KNIRVROOT client and NRN token manager
+	// Create KNIRVORACLE client and NRN token manager
 	knirvRootClient := core.NewKNIRVRootClient(&cfg.KNIRV.Services.KNIRVRoot, log)
 	nrnManager := core.NewNRNTokenManager(&cfg.KNIRV.Wallet, knirvRootClient, log)
 
-	// Connect to KNIRVROOT
+	// Connect to KNIRVORACLE
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := knirvRootClient.Connect(ctx); err != nil {
-		return fmt.Errorf("failed to connect to KNIRVROOT: %w", err)
+		return fmt.Errorf("failed to connect to KNIRVORACLE: %w", err)
 	}
 	defer knirvRootClient.Disconnect()
 
@@ -252,16 +252,16 @@ func runEconomicsFaucet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to get wallet: %w", err)
 	}
 
-	// Create KNIRVROOT client and NRN token manager
+	// Create KNIRVORACLE client and NRN token manager
 	knirvRootClient := core.NewKNIRVRootClient(&cfg.KNIRV.Services.KNIRVRoot, log)
 	nrnManager := core.NewNRNTokenManager(&cfg.KNIRV.Wallet, knirvRootClient, log)
 
-	// Connect to KNIRVROOT
+	// Connect to KNIRVORACLE
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := knirvRootClient.Connect(ctx); err != nil {
-		return fmt.Errorf("failed to connect to KNIRVROOT: %w", err)
+		return fmt.Errorf("failed to connect to KNIRVORACLE: %w", err)
 	}
 	defer knirvRootClient.Disconnect()
 

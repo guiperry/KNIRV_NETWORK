@@ -67,7 +67,7 @@ func TestServiceDiscovery(t *testing.T) {
 		// Check if all services are reported
 		if services, ok := statusResponse["services"]; ok {
 			if serviceMap, ok := services.(map[string]interface{}); ok {
-				expectedServices := []string{"knirvroot", "knirvchain", "knirvgraph", "knirvnexus_dve", "knirvnexus_validation", "knirvrouter"}
+				expectedServices := []string{"knirvoracle", "knirvchain", "knirvgraph", "knirvnexus_dve", "knirvnexus_validation", "knirvrouter"}
 				for _, serviceName := range expectedServices {
 					if service, exists := serviceMap[serviceName]; exists {
 						t.Logf("✅ Service %s found in testnet status: %v", serviceName, service)
@@ -85,7 +85,7 @@ func TestCrossServiceCommunication(t *testing.T) {
 	client := &http.Client{Timeout: Timeout}
 
 	services := map[string]string{
-		"KNIRV-ROOT":      RootURL + "/health",
+		"KNIRV-ORACLE":      RootURL + "/health",
 		"KNIRVCHAIN":      ChainURL + "/health",
 		"KNIRVGRAPH":      GraphURL + "/height",
 		"KNIRV-NEXUS-DVE": DVEUrl + "/health",

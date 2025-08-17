@@ -131,93 +131,132 @@ backup_directory() {
 # =============================================================================
 
 detect_latest_nexus_portal() {
-    local latest_version="0.0.0"
-    local latest_location=""
-    local latest_timestamp=0
+    # KNIRVNEXUS is always considered the authoritative source
+    # We sync FROM KNIRVNEXUS TO other locations, not the other way around
+    local authoritative_location="knirvnexus"
+    local authoritative_path="$PROJECT_ROOT/${NEXUS_PORTALS[$authoritative_location]}"
+    local package_file="$authoritative_path/package.json"
 
-    log "INFO" "Detecting latest nexus-portal version..." >&2
+    log "INFO" "Using KNIRVNEXUS as authoritative source for nexus-portal..." >&2
 
-    for location in "${!NEXUS_PORTALS[@]}"; do
-        local portal_path="$PROJECT_ROOT/${NEXUS_PORTALS[$location]}"
-        local package_file=""
+    if [[ -f "$package_file" ]]; then
+        local version=$(get_package_version "$package_file")
+        local timestamp=$(get_file_timestamp "$package_file")
 
-        # Determine package.json location based on portal structure
-        if [[ "$location" == "knirvnexus" ]]; then
-            package_file="$portal_path/package.json"
-        else
-            package_file="$portal_path/package.json"
-        fi
-
-        if [[ -f "$package_file" ]]; then
-            local version=$(get_package_version "$package_file")
-            local timestamp=$(get_file_timestamp "$package_file")
-
-            log "INFO" "Found $location: version $version, timestamp $timestamp" >&2
-
-            local comparison=$(compare_versions "$version" "$latest_version")
-            if [[ "$comparison" == "newer" ]] || [[ "$comparison" == "equal" && $timestamp -gt $latest_timestamp ]]; then
-                latest_version="$version"
-                latest_location="$location"
-                latest_timestamp="$timestamp"
-            fi
-        else
-            log "WARNING" "No package.json found for $location at $package_file" >&2
-        fi
-    done
-
-    if [[ -n "$latest_location" ]]; then
-        log "SUCCESS" "Latest nexus-portal: $latest_location (version $latest_version)" >&2
-        echo "$latest_location"
+        log "INFO" "Found $authoritative_location: version $version, timestamp $timestamp" >&2
+        log "SUCCESS" "Using authoritative nexus-portal: $authoritative_location (version $version)" >&2
+        echo "$authoritative_location"
     else
-        log "ERROR" "No valid nexus-portal found" >&2
-        return 1
+        log "ERROR" "No package.json found for authoritative source at $package_file" >&2
+
+        # Fallback to timestamp-based detection if KNIRVNEXUS is not available
+        log "WARNING" "Falling back to timestamp-based detection..." >&2
+
+        local latest_timestamp=0
+        local latest_location=""
+
+        for location in "${!NEXUS_PORTALS[@]}"; do
+            local portal_path="$PROJECT_ROOT/${NEXUS_PORTALS[$location]}"
+            local fallback_package_file="$portal_path/package.json"
+
+            if [[ -f "$fallback_package_file" ]]; then
+                local timestamp=$(get_file_timestamp "$fallback_package_file")
+                log "INFO" "Found $location: timestamp $timestamp" >&2
+
+                if [[ $timestamp -gt $latest_timestamp ]]; then
+                    latest_timestamp="$timestamp"
+                    latest_location="$location"
+                fi
+            fi
+        done
+
+        if [[ -n "$latest_location" ]]; then
+            log "SUCCESS" "Fallback latest nexus-portal: $latest_location" >&2
+            echo "$latest_location"
+        else
+            log "ERROR" "No valid nexus-portal found" >&2
+            return 1
+        fi
     fi
 }
 
 detect_latest_graphchain_explorer() {
-    local latest_timestamp=0
-    local latest_location=""
+    # KNIRVGATEWAY is always considered the authoritative source for GraphChain Explorer
+    # We sync FROM KNIRVGATEWAY TO other locations, not the other way around
+    local authoritative_location="knirvgateway"
+    local authoritative_path="$PROJECT_ROOT/${GRAPHCHAIN_EXPLORERS[$authoritative_location]}"
 
-    log "INFO" "Detecting latest graphchain-explorer version..." >&2
+    log "INFO" "Using KNIRVGATEWAY as authoritative source for graphchain-explorer..." >&2
 
-    for location in "${!GRAPHCHAIN_EXPLORERS[@]}"; do
-        local explorer_path="$PROJECT_ROOT/${GRAPHCHAIN_EXPLORERS[$location]}"
+    if [[ -d "$authoritative_path" ]]; then
+        # Check for key files to verify it's a valid GraphChain Explorer
+        local key_files=("index.html" "js/graphchain-core.js" "css/graphchain.css")
+        local file_count=0
 
-        if [[ -d "$explorer_path" ]]; then
-            # Check for key files to determine "freshness"
-            local key_files=("index.html" "js/graphchain-core.js" "css/graphchain.css")
-            local total_timestamp=0
-            local file_count=0
-
-            for file in "${key_files[@]}"; do
-                local file_path="$explorer_path/$file"
-                if [[ -f "$file_path" ]]; then
-                    local timestamp=$(get_file_timestamp "$file_path")
-                    total_timestamp=$((total_timestamp + timestamp))
-                    ((file_count++))
-                fi
-            done
-
-            if [[ $file_count -gt 0 ]]; then
-                local avg_timestamp=$((total_timestamp / file_count))
-                log "INFO" "Found $location: average timestamp $avg_timestamp" >&2
-
-                if [[ $avg_timestamp -gt $latest_timestamp ]]; then
-                    latest_timestamp="$avg_timestamp"
-                    latest_location="$location"
-                fi
+        for file in "${key_files[@]}"; do
+            local file_path="$authoritative_path/$file"
+            if [[ -f "$file_path" ]]; then
+                ((file_count++))
             fi
-        else
-            log "WARNING" "GraphChain explorer not found at $explorer_path" >&2
-        fi
-    done
+        done
 
-    if [[ -n "$latest_location" ]]; then
-        log "SUCCESS" "Latest graphchain-explorer: $latest_location" >&2
-        echo "$latest_location"
+        if [[ $file_count -gt 0 ]]; then
+            log "INFO" "Found $authoritative_location: $file_count key files present" >&2
+            log "SUCCESS" "Using authoritative graphchain-explorer: $authoritative_location" >&2
+            echo "$authoritative_location"
+        else
+            log "WARNING" "KNIRVGATEWAY GraphChain Explorer appears incomplete, falling back..." >&2
+        fi
     else
-        log "ERROR" "No valid graphchain-explorer found" >&2
-        return 1
+        log "WARNING" "KNIRVGATEWAY GraphChain Explorer not found, falling back..." >&2
+    fi
+
+    # Fallback to timestamp-based detection if KNIRVGATEWAY is not available
+    if [[ ! -d "$authoritative_path" ]] || [[ $file_count -eq 0 ]]; then
+        log "WARNING" "Falling back to timestamp-based detection..." >&2
+
+        local latest_timestamp=0
+        local latest_location=""
+
+        for location in "${!GRAPHCHAIN_EXPLORERS[@]}"; do
+            local explorer_path="$PROJECT_ROOT/${GRAPHCHAIN_EXPLORERS[$location]}"
+
+            if [[ -d "$explorer_path" ]]; then
+                # Check for key files to determine "freshness"
+                local key_files=("index.html" "js/graphchain-core.js" "css/graphchain.css")
+                local total_timestamp=0
+                local fallback_file_count=0
+
+                for file in "${key_files[@]}"; do
+                    local file_path="$explorer_path/$file"
+                    if [[ -f "$file_path" ]]; then
+                        local timestamp=$(get_file_timestamp "$file_path")
+                        total_timestamp=$((total_timestamp + timestamp))
+                        ((fallback_file_count++))
+                    fi
+                done
+
+                if [[ $fallback_file_count -gt 0 ]]; then
+                    local avg_timestamp=$((total_timestamp / fallback_file_count))
+                    log "INFO" "Found $location: average timestamp $avg_timestamp" >&2
+
+                    if [[ $avg_timestamp -gt $latest_timestamp ]]; then
+                        latest_timestamp="$avg_timestamp"
+                        latest_location="$location"
+                    fi
+                fi
+            else
+                log "WARNING" "GraphChain explorer not found at $explorer_path" >&2
+            fi
+        done
+
+        if [[ -n "$latest_location" ]]; then
+            log "SUCCESS" "Fallback latest graphchain-explorer: $latest_location" >&2
+            echo "$latest_location"
+        else
+            log "ERROR" "No valid graphchain-explorer found" >&2
+            return 1
+        fi
     fi
 }
 

@@ -1,0 +1,17 @@
+{
+  "desktop_host": {
+    "port": 8082,
+    "hrm_weights_path": "./weights.safetensors",
+    "tee_data_dir": "./data",
+    "production": true
+  },
+  "mobile_tool": {
+    "api_endpoint": "http://localhost:8082",
+    "websocket_endpoint": "ws://localhost:8082/api/mcp/ws"
+  },
+  "agent_core": {
+    "wasm_module": "./agent-core.wasm",
+    "personality_adaptation": true,
+    "memory_buffer_size": 100
+  }
+}

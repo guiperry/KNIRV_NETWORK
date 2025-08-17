@@ -46,7 +46,7 @@ type NetworkConfig struct {
 
 // ServicesConfig represents all KNIRV services configuration
 type ServicesConfig struct {
-	KNIRVRoot    ServiceConfig `mapstructure:"knirvroot"`
+	KNIRVRoot    ServiceConfig `mapstructure:"knirvoracle"`
 	KNIRVGateway ServiceConfig `mapstructure:"knirvgateway"`
 	KNIRVNexus   ServiceConfig `mapstructure:"knirvnexus"`
 	KNIRVGraph   ServiceConfig `mapstructure:"knirvgraph"`

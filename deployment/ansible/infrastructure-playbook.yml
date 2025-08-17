@@ -23,7 +23,7 @@
     
     # KNIRV Service Ports
     knirv_ports:
-      - 1317  # KNIRVROOT Cosmos SDK
+      - 1317  # KNIRVORACLE Cosmos SDK
       - 8080  # KNIRVCHAIN
       - 8081  # KNIRVGRAPH
       - 8082  # KNIRVNEXUS-1
@@ -286,7 +286,7 @@
             port: "{{ item }}"
             proto: tcp
           loop:
-            - '1317'  # KNIRVROOT Cosmos SDK
+            - '1317'  # KNIRVORACLE Cosmos SDK
             - '8080'  # KNIRVCHAIN
             - '8081'  # KNIRVGRAPH
             - '8082'  # KNIRVNEXUS-1

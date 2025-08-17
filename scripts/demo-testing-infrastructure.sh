@@ -185,7 +185,7 @@ echo "  ✓ KNIRVSDK: Multi-language SDK (Go, Python, TypeScript)"
 echo "  ✓ KNIRVGRAPH: Blockchain Explorer (Go + TypeScript)"
 echo "  ✓ KNIRVWALLET: Wallet System"
 echo "  ✓ KNIRVNEXUS: Admin Portal"
-echo "  ✓ KNIRVROOT: Core Network"
+echo "  ✓ KNIRVORACLE: Core Network"
 echo "  ✓ Integration Tests: Cross-component validation"
 echo ""
 

@@ -15,7 +15,7 @@ export interface ClientOptions {
     serviceURLs?: {
         knirvchain?: string;
         knirvnexus?: string;
-        knirvroot?: string;
+        knirvoracle?: string;
         knirvgraph?: string;
     };
 }
@@ -161,7 +161,7 @@ export interface GatewayStatus {
 export interface IntegrationStatus {
     knirvchain_url: string;
     knirvnexus_url: string;
-    knirvroot_url: string;
+    knirvoracle_url: string;
     knirvgraph_url: string;
     last_sync: string;
     status: string;

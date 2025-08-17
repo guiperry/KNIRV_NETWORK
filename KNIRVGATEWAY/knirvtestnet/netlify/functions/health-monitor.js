@@ -5,7 +5,7 @@ const services = {
   knirvchain: process.env.KNIRVCHAIN_URL || "https://chain.knirv.com",
   knirvgraph: process.env.KNIRVGRAPH_URL || "https://graph.knirv.com",
   knirvnexus: process.env.KNIRVNEXUS_URL || "https://nexus.knirv.com",
-  knirvroot: process.env.KNIRVROOT_URL || "https://root.knirv.com"
+  knirvoracle: process.env.KNIRVORACLE_URL || "https://root.knirv.com"
 };
 
 exports.handler = async (event, context) => {

@@ -169,14 +169,14 @@ func (sr *ServiceRegistry) UpdateServiceStatus(name string, status ServiceStatus
 func (sr *ServiceRegistry) registerConfiguredServices() error {
 	services := sr.config.KNIRV.Services
 
-	// Register KNIRVROOT
+	// Register KNIRVORACLE
 	if services.KNIRVRoot.Enabled {
 		endpoint := &ServiceEndpoint{
-			Name:         "knirvroot",
+			Name:         "knirvoracle",
 			URL:          services.KNIRVRoot.URL,
 			Status:       ServiceStatusUnknown,
 			Capabilities: []string{"blockchain", "economics", "agent-management"},
-			Metadata:     map[string]string{"type": "knirvroot"},
+			Metadata:     map[string]string{"type": "knirvoracle"},
 			Config:       &services.KNIRVRoot,
 		}
 		sr.RegisterService(endpoint)

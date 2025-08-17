@@ -83,7 +83,7 @@ func (ntm *NRNTokenManager) GetBalance() *big.Int {
 func (ntm *NRNTokenManager) UpdateBalance(ctx context.Context, address string) error {
 	ntm.logger.Debugf("Updating NRN balance for address: %s", address)
 
-	// Get balance from KNIRVROOT
+	// Get balance from KNIRVORACLE
 	balanceStr, err := ntm.knirvRootClient.GetNRNBalance(ctx, address)
 	if err != nil {
 		return fmt.Errorf("failed to get NRN balance: %w", err)
@@ -130,7 +130,7 @@ func (ntm *NRNTokenManager) Transfer(ctx context.Context, from, to string, amoun
 		Metadata:  make(map[string]interface{}),
 	}
 
-	// TODO: Implement actual NRN transfer via KNIRVROOT
+	// TODO: Implement actual NRN transfer via KNIRVORACLE
 	// For now, we'll simulate the transfer
 	tx.Hash = fmt.Sprintf("0x%x", generateTransactionHash(tx))
 	tx.Status = "confirmed"
@@ -154,7 +154,7 @@ func (ntm *NRNTokenManager) RequestFromFaucet(ctx context.Context, address strin
 
 	ntm.logger.Infof("Requesting %s NRN from faucet for address: %s", amount, address)
 
-	// Use KNIRVROOT client for faucet request
+	// Use KNIRVORACLE client for faucet request
 	err := ntm.knirvRootClient.RequestNRNFromFaucet(ctx, address, amount)
 	if err != nil {
 		return nil, fmt.Errorf("faucet request failed: %w", err)

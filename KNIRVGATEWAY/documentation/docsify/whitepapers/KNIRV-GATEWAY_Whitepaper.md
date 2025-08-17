@@ -54,7 +54,7 @@ graph TD
     B -- "Proxies Requests To" --> F{KNIRV Ecosystem}
 
     subgraph "KNIRV Ecosystem"
-        G[KNIRVROOT]
+        G[KNIRVORACLE]
         H[KNIRVCHAIN]
         I[KNIRVGRAPH]
         J[KNIRVNEXUS]
@@ -83,11 +83,11 @@ The API gateway exposes a series of endpoints to manage the gateway itself, moni
 *   **Gateway Management**: Endpoints like `GET /gateway/health` and `GET /gateway/services` provide status and metrics for the gateway.
 *   **Health Monitoring**: `GET /health-monitor/status` and `GET /health-monitor/events` provide real-time service health updates via SSE.
 *   **Authentication**: `POST /auth/login` and `POST /auth/logout` manage user sessions and token verification.
-*   **Service Proxy**: The gateway acts as a proxy for key KNIRV services, including endpoints for `KNIRVROOT` (`/api/*`), economics (`/economics/*`), and the tunnel registry (`/tunnel/*`).
+*   **Service Proxy**: The gateway acts as a proxy for key KNIRV services, including endpoints for `KNIRVORACLE` (`/api/*`), economics (`/economics/*`), and the tunnel registry (`/tunnel/*`).
 
 ### **5. Integration with the KNIRV Ecosystem**
 
-The KNIRV-GATEWAY is designed to be the central point of contact for the entire D-TEN. It is configured to interact with other sovereign layers through environment variables. Specifically, it establishes connections to `KNIRVROOT`, `KNIRVCHAIN`, `KNIRVGRAPH`, and `KNIRVNEXUS`, acting as a front-facing proxy that streamlines communication and provides a single, secure entry point to the entire network.
+The KNIRV-GATEWAY is designed to be the central point of contact for the entire D-TEN. It is configured to interact with other sovereign layers through environment variables. Specifically, it establishes connections to `KNIRVORACLE`, `KNIRVCHAIN`, `KNIRVGRAPH`, and `KNIRVNEXUS`, acting as a front-facing proxy that streamlines communication and provides a single, secure entry point to the entire network.
 
 ### **6. Conclusion**
 

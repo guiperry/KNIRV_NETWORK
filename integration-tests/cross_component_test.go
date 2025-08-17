@@ -76,7 +76,7 @@ func (suite *CrossComponentTestSuite) SetupSuite() {
 
 func (suite *CrossComponentTestSuite) waitForAllServices() {
 	services := map[string]string{
-		"knirvroot":    "http://localhost:1317/health",
+		"knirvoracle":    "http://localhost:1317/health",
 		"knirvchain":   "http://localhost:8090/health",
 		"knirvgraph":   "http://localhost:8082/height",
 		"knirvnexus":   "http://localhost:8083/health",
@@ -164,7 +164,7 @@ func (suite *CrossComponentTestSuite) fundTestWallet(amount string) {
 		"amount":  amount,
 	}
 
-	resp := suite.makeAuthenticatedRequest("POST", "/knirvroot/faucet/fund", fundData)
+	resp := suite.makeAuthenticatedRequest("POST", "/knirvoracle/faucet/fund", fundData)
 	require.True(suite.T(), resp.Success, "Failed to fund test wallet")
 
 	suite.testWallet.Balance = amount
@@ -177,7 +177,7 @@ func (suite *CrossComponentTestSuite) TestCompleteDataFlowIntegration() {
 		var dataFlow []DataFlowStep
 		var issues []string
 
-		componentsUsed := []string{"KNIRVGATEWAY", "KNIRVCHAIN", "KNIRVGRAPH", "KNIRVNEXUS-FRONTEND", "KNIRVNEXUS-API-GATEWAY", "KNIRVROOT"}
+		componentsUsed := []string{"KNIRVGATEWAY", "KNIRVCHAIN", "KNIRVGRAPH", "KNIRVNEXUS-FRONTEND", "KNIRVNEXUS-API-GATEWAY", "KNIRVORACLE"}
 
 		// Step 1: Register LLM via KNIRVCHAIN
 		suite.T().Log("Step 1: Registering LLM via KNIRVCHAIN...")
@@ -337,7 +337,7 @@ func (suite *CrossComponentTestSuite) TestCompleteDataFlowIntegration() {
 			issues = append(issues, fmt.Sprintf("Skill invocation failed: %s", invokeResp.Error))
 		}
 
-		// Step 6: Verify Cross-Chain Bridge via KNIRVROOT
+		// Step 6: Verify Cross-Chain Bridge via KNIRVORACLE
 		suite.T().Log("Step 6: Testing Cross-Chain Bridge...")
 		stepStart = time.Now()
 
@@ -345,15 +345,15 @@ func (suite *CrossComponentTestSuite) TestCompleteDataFlowIntegration() {
 			"target_chain": "xion",
 			"amount":       "500000", // 0.5 NRN
 			"recipient":    suite.testWallet.Address,
-			"source":       "KNIRVROOT",
+			"source":       "KNIRVORACLE",
 		}
 
-		bridgeResp := suite.makeAuthenticatedRequest("POST", "/knirvroot/bridge/transfer", bridgeData)
+		bridgeResp := suite.makeAuthenticatedRequest("POST", "/knirvoracle/bridge/transfer", bridgeData)
 		stepDuration = time.Since(stepStart)
 
 		dataFlow = append(dataFlow, DataFlowStep{
 			Step:      6,
-			Component: "KNIRVROOT",
+			Component: "KNIRVORACLE",
 			Action:    "Cross-Chain Bridge Transfer",
 			Success:   bridgeResp.Success,
 			Duration:  stepDuration,
@@ -391,7 +391,7 @@ func (suite *CrossComponentTestSuite) TestCompleteDataFlowIntegration() {
 // Test 2: Service Communication Validation
 func (suite *CrossComponentTestSuite) TestServiceCommunication() {
 	suite.Run("ServiceCommunicationTest", func() {
-		services := []string{"knirvchain", "knirvgraph", "knirvnexus-frontend", "knirvnexus-api-gateway", "knirvroot", "knirvrouter"}
+		services := []string{"knirvchain", "knirvgraph", "knirvnexus-frontend", "knirvnexus-api-gateway", "knirvoracle", "knirvrouter"}
 
 		// Test health endpoints for all services
 		for _, service := range services {
@@ -467,7 +467,7 @@ func (suite *CrossComponentTestSuite) TestDataConsistency() {
 func (suite *CrossComponentTestSuite) TestKNIRVGATEWAYIntegration() {
 	suite.Run("KNIRVGATEWAYIntegrationTest", func() {
 		// Test gateway routing capabilities
-		services := []string{"knirvchain", "knirvgraph", "knirvnexus-frontend", "knirvnexus-api-gateway", "knirvroot", "knirvrouter"}
+		services := []string{"knirvchain", "knirvgraph", "knirvnexus-frontend", "knirvnexus-api-gateway", "knirvoracle", "knirvrouter"}
 
 		for _, service := range services {
 			suite.T().Logf("Testing KNIRVGATEWAY routing to %s...", service)

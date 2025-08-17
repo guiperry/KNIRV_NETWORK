@@ -25,7 +25,7 @@ A comprehensive graph-based blockchain application featuring Network Resolution 
 │  │ +Economics  │ │    Core     │ │   (Vectors)         │   │
 │  └─────────────┘ └─────────────┘ └─────────────────────┘   │
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐   │
-│  │   Storage   │ │ NRN Token   │ │   KNIRVROOT         │   │
+│  │   Storage   │ │ NRN Token   │ │   KNIRVORACLE         │   │
 │  │  (BluntDB)  │ │ Integration │ │   Integration       │   │
 │  └─────────────┘ └─────────────┘ └─────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
@@ -41,14 +41,14 @@ A comprehensive graph-based blockchain application featuring Network Resolution 
 - **Signature Verification**: Secure validation of vector authenticity
 
 ### 💰 Economics Integration
-- **NRN Token Integration**: Seamless integration with KNIRVROOT for NRN operations
+- **NRN Token Integration**: Seamless integration with KNIRVORACLE for NRN operations
 - **Skill Confirmation**: Skill validation for KNIRVCHAIN commitment
 - **Proof-of-Solution**: Reward distribution based on solution quality and efficiency
 - **Economic Metrics**: Real-time tracking of network economic activity
 - **Reward Distribution**: Automated NRN rewards for network participation
 
 ### 🔗 KNIRV Ecosystem Integration
-- **KNIRVROOT Connectivity**: Direct integration with KNIRV blockchain
+- **KNIRVORACLE Connectivity**: Direct integration with KNIRV blockchain
 - **Cross-Component Communication**: Seamless interaction with other KNIRV services
 - **Unified Authentication**: Shared authentication across KNIRV ecosystem
 - **Real-time Synchronization**: Live updates and state synchronization
@@ -78,7 +78,7 @@ A comprehensive graph-based blockchain application featuring Network Resolution 
 - Go 1.21+
 - Node.js 18+
 - npm or yarn
-- KNIRVROOT running (for economics integration)
+- KNIRVORACLE running (for economics integration)
 
 ### Development Setup
 
@@ -336,7 +336,7 @@ curl http://localhost:8081/health
 
 # This will test:
 # - KNIRVGRAPH connectivity
-# - KNIRVROOT integration
+# - KNIRVORACLE integration
 # - NRV system operations
 # - Economics endpoints
 # - Skill confirmation for KNIRVCHAIN commitment
@@ -358,8 +358,8 @@ tail -f KNIRVGRAPH/logs/knirvgraph.log
 
 ### Environment Configuration
 ```bash
-# Set KNIRVROOT URL (default: http://localhost:1317)
-export KNIRVROOT_URL=http://localhost:1317
+# Set KNIRVORACLE URL (default: http://localhost:1317)
+export KNIRVORACLE_URL=http://localhost:1317
 
 # Set KNIRVGRAPH port (default: 8081)
 export KNIRVGRAPH_PORT=8081
@@ -380,7 +380,7 @@ KNIRVGRAPH/
 │   ├── graphchain/        # GraphChain core
 │   ├── nrv/               # Network Resolution Vector system
 │   ├── economics/         # NRN token integration and Proof-of-Solution
-│   │   ├── nrn_integration.go    # KNIRVROOT integration
+│   │   ├── nrn_integration.go    # KNIRVORACLE integration
 │   │   └── proof_of_solution.go  # Proof-of-Solution consensus
 │   ├── network/           # Networking and RPC with economics endpoints
 │   ├── storage/           # Data persistence with NRV support
@@ -597,7 +597,7 @@ MIT License - see LICENSE file for details.
 
 ### ✅ Completed (August 2025)
 - [x] **NRV System Implementation** - Complete Network Resolution Vector system
-- [x] **Economics Integration** - Full NRN token integration with KNIRVROOT
+- [x] **Economics Integration** - Full NRN token integration with KNIRVORACLE
 - [x] **Proof-of-Solution** - Reward mechanism for error resolution
 - [x] **ErrorNodes & SkillNodes** - Specialized node types for AI capabilities
 - [x] **KNIRV Ecosystem Integration** - Seamless integration with other KNIRV components

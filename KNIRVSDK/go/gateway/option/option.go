@@ -177,13 +177,13 @@ func WithKNIRVNexusURL(url string) RequestOption {
 	}
 }
 
-// WithKNIRVRootURL sets the KNIRVROOT service URL
+// WithKNIRVRootURL sets the KNIRVORACLE service URL
 func WithKNIRVRootURL(url string) RequestOption {
 	return func(cfg *requestconfig.RequestConfig) {
 		if cfg.ServiceURLs == nil {
 			cfg.ServiceURLs = make(map[string]string)
 		}
-		cfg.ServiceURLs["knirvroot"] = url
+		cfg.ServiceURLs["knirvoracle"] = url
 	}
 }
 
@@ -205,7 +205,7 @@ func WithAllKNIRVServices(chainURL, nexusURL, rootURL, graphURL string) RequestO
 		}
 		cfg.ServiceURLs["knirvchain"] = chainURL
 		cfg.ServiceURLs["knirvnexus"] = nexusURL
-		cfg.ServiceURLs["knirvroot"] = rootURL
+		cfg.ServiceURLs["knirvoracle"] = rootURL
 		cfg.ServiceURLs["knirvgraph"] = graphURL
 	}
 }
@@ -215,7 +215,7 @@ func WithDefaultKNIRVServices() RequestOption {
 	return WithAllKNIRVServices(
 		"http://localhost:8080", // KNIRVCHAIN
 		"http://localhost:8081", // KNIRVNEXUS
-		"http://localhost:8082", // KNIRVROOT
+		"http://localhost:8082", // KNIRVORACLE
 		"http://localhost:8083", // KNIRVGRAPH
 	)
 }

@@ -161,14 +161,14 @@
     </div>
 
     <div class="whitepaper-grid">
-        <!-- KNIRV-ROOT Card -->
-        <div class="whitepaper-card" onclick="openWhitepaper('KNIRVROOT_Whitepaper')">
+        <!-- KNIRV-ORACLE Card -->
+        <div class="whitepaper-card" onclick="openWhitepaper('KNIRVORACLE_Whitepaper')">
             <div class="whitepaper-icon">🔗</div>
-            <h4 class="whitepaper-title">KNIRV-ROOT</h4>
+            <h4 class="whitepaper-title">KNIRV-ORACLE</h4>
             <p class="whitepaper-description">
                 The sovereign GoLang-based blockchain, acting as the canonical NRN token ledger and network oracle. It orchestrates the economic loop and state synchronization.
             </p>
-            <a href="#" class="whitepaper-link" onclick="event.stopPropagation(); openWhitepaper('KNIRVROOT_Whitepaper')">Read Whitepaper</a>
+            <a href="#" class="whitepaper-link" onclick="event.stopPropagation(); openWhitepaper('KNIRVORACLE_Whitepaper')">Read Whitepaper</a>
         </div>
 
         <!-- KNIRV-ROUTER Card -->

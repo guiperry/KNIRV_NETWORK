@@ -15,7 +15,7 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Configuration
 GATEWAY_URL="http://localhost:8888"
-KNIRVROOT_URL="http://localhost:5002"
+KNIRVORACLE_URL="http://localhost:5002"
 
 # Colors for output
 RED='\033[0;31m'
@@ -62,7 +62,7 @@ echo "======================================"
 
 # Check if required services are running
 run_test "Netlify Dev Server" "curl -s $GATEWAY_URL/gateway/health" "healthy"
-run_test "KNIRVROOT Service" "curl -s $KNIRVROOT_URL/health" "ok"
+run_test "KNIRVORACLE Service" "curl -s $KNIRVORACLE_URL/health" "ok"
 
 echo ""
 echo "🌐 Phase 2: Gateway Function Validation"
@@ -70,7 +70,7 @@ echo "======================================="
 
 # Test core gateway endpoints
 run_test "Gateway Health Check" "curl -s $GATEWAY_URL/gateway/health" "healthy"
-run_test "Gateway Services List" "curl -s $GATEWAY_URL/gateway/services" "knirvroot"
+run_test "Gateway Services List" "curl -s $GATEWAY_URL/gateway/services" "knirvoracle"
 run_test "Gateway Metrics" "curl -s $GATEWAY_URL/gateway/metrics" "services"
 
 echo ""
@@ -100,7 +100,7 @@ echo "🔗 Phase 6: Service Proxy Validation"
 echo "===================================="
 
 # Test service proxying
-run_test "KNIRVROOT Proxy" "curl -s $GATEWAY_URL/health" "KNIRV"
+run_test "KNIRVORACLE Proxy" "curl -s $GATEWAY_URL/health" "KNIRV"
 
 echo ""
 echo "📋 Phase 7: Migration Completeness Check"
@@ -117,9 +117,9 @@ else
 fi
 TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
-# Check KNIRVROOT economics integration
-echo -n "Checking KNIRVROOT economics integration... "
-if [ -d "$PROJECT_ROOT/KNIRVROOT/economics" ] && [ -f "$PROJECT_ROOT/KNIRVROOT/economics_integration.go" ]; then
+# Check KNIRVORACLE economics integration
+echo -n "Checking KNIRVORACLE economics integration... "
+if [ -d "$PROJECT_ROOT/KNIRVORACLE/economics" ] && [ -f "$PROJECT_ROOT/KNIRVORACLE/economics_integration.go" ]; then
     echo -e "${GREEN}✅ PASS${NC}"
     PASSED_TESTS=$((PASSED_TESTS + 1))
 else
@@ -130,7 +130,7 @@ TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
 # Check tunnel registry migration
 echo -n "Checking tunnel registry migration... "
-if [ -d "$PROJECT_ROOT/KNIRVROOT/agent-tunnel-registry" ] && [ ! -d "$PROJECT_ROOT/KNIRVGATEWAY/agent-tunnel-registry" ]; then
+if [ -d "$PROJECT_ROOT/KNIRVORACLE/agent-tunnel-registry" ] && [ ! -d "$PROJECT_ROOT/KNIRVGATEWAY/agent-tunnel-registry" ]; then
     echo -e "${GREEN}✅ PASS${NC}"
     PASSED_TESTS=$((PASSED_TESTS + 1))
 else
@@ -141,7 +141,7 @@ TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
 # Check economics migration
 echo -n "Checking economics migration... "
-if [ -d "$PROJECT_ROOT/KNIRVROOT/economics" ] && [ ! -d "$PROJECT_ROOT/KNIRVGATEWAY/economics" ]; then
+if [ -d "$PROJECT_ROOT/KNIRVORACLE/economics" ] && [ ! -d "$PROJECT_ROOT/KNIRVGATEWAY/economics" ]; then
     echo -e "${GREEN}✅ PASS${NC}"
     PASSED_TESTS=$((PASSED_TESTS + 1))
 else
@@ -170,8 +170,8 @@ if [ $FAILED_TESTS -eq 0 ]; then
     echo -e "🎉 ${GREEN}MIGRATION VALIDATION: COMPLETE SUCCESS!${NC}"
     echo ""
     echo "✅ All components successfully migrated and validated:"
-    echo "   • tunnel-registry moved to KNIRV-ROOT"
-    echo "   • economics module integrated into KNIRV-ROOT"
+    echo "   • tunnel-registry moved to KNIRV-ORACLE"
+    echo "   • economics module integrated into KNIRV-ORACLE"
     echo "   • API Gateway converted to Netlify Functions with SSE"
     echo "   • All endpoints functional and tested"
     echo "   • Service proxy working correctly"

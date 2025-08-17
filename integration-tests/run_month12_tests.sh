@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 GATEWAY_URL="http://localhost:8000"
-SERVICES=("knirvchain" "knirvgraph" "knirvnexus" "knirvroot" "knirvrouter")
+SERVICES=("knirvchain" "knirvgraph" "knirvnexus" "knirvoracle" "knirvrouter")
 TEST_TIMEOUT="30m"
 REPORT_DIR="./test-reports"
 

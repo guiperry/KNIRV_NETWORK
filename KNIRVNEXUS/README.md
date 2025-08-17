@@ -30,7 +30,7 @@ KNIRV-NEXUS implements a microservices architecture running on Kubernetes with t
 - **Container Runtime**: Podman (rootless containers)
 - **Orchestration**: Kubernetes with production-ready configurations
 - **Database**: BuntDB (embedded key-value store with custom indexes)
-- **Networking**: libp2p (aligned with KNIRV-ROOT protocols)
+- **Networking**: libp2p (aligned with KNIRV-ORACLE protocols)
 - **Configuration**: Viper for professional configuration management
 
 ## 🚀 Features
@@ -56,7 +56,7 @@ KNIRV-NEXUS implements a microservices architecture running on Kubernetes with t
 - Cryptographic proof generation
 
 ### P2P Networking
-- KNIRV-ROOT aligned libp2p implementation
+- KNIRV-ORACLE aligned libp2p implementation
 - DHT-based node discovery
 - GossipSub message distribution
 - Network topology monitoring

@@ -67,7 +67,7 @@ For more complex issues, refer to the individual READMEs within each implementat
 
 ### Key Features
 
-* **Multi-Chain Support:** Manage assets across BTC, ETH, Solana, and KNIRV-ROOT.
+* **Multi-Chain Support:** Manage assets across BTC, ETH, Solana, and KNIRV-ORACLE.
 * **NRN Token Management:** Send, receive, and burn NRN tokens.
 * **AI Agent Management:** Control and interact with your KNIRV-CORTEX agents.
 * **Secure Authentication:** Biometric login and hardware wallet (Ledger) support.

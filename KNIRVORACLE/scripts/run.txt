@@ -1,0 +1,10 @@
+# Terminal interface (recommended)
+./KNIRVORACLE --terminal --dev
+./KNIRVORACLE --terminal --root
+./KNIRVORACLE --terminal --bootnode
+
+# GUI interface (existing)
+./KNIRVORACLE --gui
+
+# Headless mode (existing)
+./KNIRVORACLE

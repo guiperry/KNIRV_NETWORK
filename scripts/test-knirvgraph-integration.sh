@@ -18,7 +18,7 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 REPORT_DIR="$PROJECT_ROOT/integration-tests/test-reports"
 KNIRVGRAPH_URL=${KNIRVGRAPH_URL:-http://localhost:8081}
-KNIRVROOT_URL=${KNIRVROOT_URL:-http://localhost:1317}
+KNIRVORACLE_URL=${KNIRVORACLE_URL:-http://localhost:1317}
 
 # Helper functions
 log_info() {
@@ -46,7 +46,7 @@ REPORT_FILE="$REPORT_DIR/knirvgraph_integration_test_$TIMESTAMP.json"
 echo "🧪 KNIRVGRAPH Integration Tests for Unified Test Suite"
 echo "📊 Configuration:"
 echo "  - KNIRVGRAPH URL: $KNIRVGRAPH_URL"
-echo "  - KNIRVROOT URL: $KNIRVROOT_URL"
+echo "  - KNIRVORACLE URL: $KNIRVORACLE_URL"
 echo "  - Report File: $REPORT_FILE"
 echo ""
 
@@ -57,7 +57,7 @@ cat > "$REPORT_FILE" << EOF
   "timestamp": "$TIMESTAMP",
   "configuration": {
     "knirvgraph_url": "$KNIRVGRAPH_URL",
-    "knirvroot_url": "$KNIRVROOT_URL"
+    "knirvoracle_url": "$KNIRVORACLE_URL"
   },
   "tests": [],
   "summary": {

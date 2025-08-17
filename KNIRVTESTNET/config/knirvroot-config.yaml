@@ -1,4 +1,4 @@
-# KNIRV-ROOT Testnet Configuration
+# KNIRV-ORACLE Testnet Configuration
 network:
   chain_id: "knirv-testnet-1"
   consensus: "poa-bft"

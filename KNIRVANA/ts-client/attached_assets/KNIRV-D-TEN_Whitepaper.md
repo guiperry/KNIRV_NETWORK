@@ -10,7 +10,7 @@ The current landscape of Artificial Intelligence is characterized by fragmented 
 
 The D-TEN unifies twelve sovereign layers, each operating as a specialized, interoperable component:
 
-*   **KNIRV-ROOT:** The sovereign `GoLang`-based blockchain, acting as the canonical `NRN` token ledger and network oracle.
+*   **KNIRV-ORACLE:** The sovereign `GoLang`-based blockchain, acting as the canonical `NRN` token ledger and network oracle.
 *   **KNIRV-ROUTER:** The `GoLang`-based network integrity layer, producing `NRN`s via "Proof-of-Connectivity" and embedding URI path certificates.
 *   **KNIRVGRAPH:** The `GoLang`-based Graphchain, serving as the decentralized knowledge fabric for `ErrorNode`s and `SkillNode`s.
 *   **KNIRVCHAIN:** The sovereign `Rust`-based blockchain, hosting the canonical CodeT5 Base LLM and `SkillRegistry`.
@@ -43,19 +43,19 @@ The core vision of the KNIRV D-TEN is to create a permissionless, transparent, a
 >
 > *   **The "Active Machine":** The D-TEN is designed as an "active machine" where intelligence is not static but continuously evolves. Each Skill added, each Base LLM update, and each resolved `ErrorNode` contributes to the network's collective intelligence, making it smarter and more robust over time.
 >
-> *   **Economic Alignment:** The Network Resolution Notice (`NRN`) token, native to **KNIRV-ROOT**, is the economic lifeblood. Its utility is intrinsically tied to Skill invocation and network operations, ensuring that economic incentives are perfectly aligned with the growth and health of the collective intelligence.
+> *   **Economic Alignment:** The Network Resolution Notice (`NRN`) token, native to **KNIRV-ORACLE**, is the economic lifeblood. Its utility is intrinsically tied to Skill invocation and network operations, ensuring that economic incentives are perfectly aligned with the growth and health of the collective intelligence.
 >
 > *   **Experiential Gateway (KNIRVANA):** The entire system culminates in **KNIRVANA**, a Real-Time Strategy (RTS) game that serves as the primary experiential gateway. Players interact with **KNIRV-CORTEX** agents, consume `NRN`s for Skill invocation, and directly contribute to the D-TEN's learning loop through gameplay.
 
 # 3. The Sovereign Layers of the KNIRV D-TEN
 The KNIRV D-TEN is comprised of twelve distinct, yet deeply interconnected, sovereign layers. Each layer operates with its own specialized function, consensus, and codebase, communicating seamlessly via `IBC` and the **KNIRV-GATEWAY** unified API gateway.
 
-## 3.1. KNIRV-ROOT: The NRN Oracle & Economic Orchestrator
-**KNIRV-ROOT** is the foundational sovereign `GoLang`-based Layer 1 blockchain that serves as the ultimate source of truth for the `NRN` token and orchestrates the D-TEN's economic and state synchronization.
+## 3.1. KNIRV-ORACLE: The NRN Oracle & Economic Orchestrator
+**KNIRV-ORACLE** is the foundational sovereign `GoLang`-based Layer 1 blockchain that serves as the ultimate source of truth for the `NRN` token and orchestrates the D-TEN's economic and state synchronization.
 
 > **Expanded Information:**
 >
-> *   **Canonical NRN Ledger:** **KNIRV-ROOT** is the native and canonical ledger for all `NRN` tokens. Its `GoLang`-based implementation and custom Proof-of-Authority (`PoA`) consensus (which is Byzantine Fault Tolerant) ensure deterministic and highly reliable management of `NRN` supply, balances, minting, and burning.
+> *   **Canonical NRN Ledger:** **KNIRV-ORACLE** is the native and canonical ledger for all `NRN` tokens. Its `GoLang`-based implementation and custom Proof-of-Authority (`PoA`) consensus (which is Byzantine Fault Tolerant) ensure deterministic and highly reliable management of `NRN` supply, balances, minting, and burning.
 >
 > *   **NRN Economic Orchestration:** It directly manages the `NRN` lifecycle:
 >     *   **Minting:** Processes `NRN` minting requests from **KNIRV-ROUTER**s (based on "Proof-of-Connectivity").
@@ -66,7 +66,7 @@ The KNIRV D-TEN is comprised of twelve distinct, yet deeply interconnected, sove
 >
 > *   **Registries:** Maintains the canonical Agent and Tunnel Relay Registries, crucial for network discoverability and connectivity.
 >
-> *   **Dedicated Whitepaper:** For a comprehensive understanding, refer to the *KNIRV-ROOT Whitepaper (Version 2.0)*.
+> *   **Dedicated Whitepaper:** For a comprehensive understanding, refer to the *KNIRV-ORACLE Whitepaper (Version 2.0)*.
 
 ## 3.2. KNIRV-ROUTER: The Network Integrity & NRN Production Layer
 **KNIRV-ROUTER** is a `GoLang`-based network node responsible for maintaining the physical integrity of the D-TEN's communication pathways and serving as the primary producer of `NRN` tokens.
@@ -79,7 +79,7 @@ The KNIRV D-TEN is comprised of twelve distinct, yet deeply interconnected, sove
 >
 > *   **Traffic Routing & P2P Facilitation:** Beyond `NRN` production, **KNIRV-ROUTER**s perform traditional routing functions, facilitating secure peer-to-peer (`P2P`) communication between **KNIRV-CORTEX** agents, **KNIRV-NEXUS DVEs**, and **KNIRVANA** clients. They leverage existing `GoLang` components like the P2P DHT and TURN server for robust connectivity.
 >
-> *   **Economic Incentive:** **KNIRV-ROUTER**s are incentivized with USDC (from **KNIRV-ROOT**'s Faucet) for each `NRN` they mint and prove connectivity for, ensuring continuous network validation.
+> *   **Economic Incentive:** **KNIRV-ROUTER**s are incentivized with USDC (from **KNIRV-ORACLE**'s Faucet) for each `NRN` they mint and prove connectivity for, ensuring continuous network validation.
 >
 > *   **Dedicated Whitepaper:** For a comprehensive understanding, refer to the *KNIRV-ROUTER Whitepaper (Version 2.1)*.
 
@@ -100,8 +100,8 @@ The KNIRV D-TEN is comprised of twelve distinct, yet deeply interconnected, sove
 >
 > *   **`SkillNode` Minting Process (Multi-stage):**
 >     1.  `SkillNode` is first minted as a "tower" within its corresponding `ErrorNode` vector field on **KNIRVGRAPH** (after DVE validation).
->     2.  **KNIRV-ROOT** verifies this `SkillNode` from **KNIRVGRAPH**.
->     3.  Only then, **KNIRV-ROOT** orchestrates the canonical minting of the `SkillNode` onto **KNIRVCHAIN**.
+>     2.  **KNIRV-ORACLE** verifies this `SkillNode` from **KNIRVGRAPH**.
+>     3.  Only then, **KNIRV-ORACLE** orchestrates the canonical minting of the `SkillNode` onto **KNIRVCHAIN**.
 >
 > *   **Proof-of-Solution Economy:** **KNIRVGRAPH** powers this economy by incentivizing Observers (for `NRV` submission), Solvers (for Skill creation), and Validators (for DVE operations).
 >
@@ -114,9 +114,9 @@ The KNIRV D-TEN is comprised of twelve distinct, yet deeply interconnected, sove
 >
 > *   **Living Base LLM Ledger:** **KNIRVCHAIN** stores the cryptographic hashes (`CID`s) and metadata of the current, consensus-validated Base LLM model files. The foundational model is CodeT5, chosen for its robust performance in code-related AI tasks. Actual CodeT5 binaries are stored off-chain (e.g., IPFS) with on-chain hashes ensuring integrity.
 >
-> *   **Canonical SkillRegistry:** It provides the authoritative and tamper-proof registry for all canonically certified AI agent skills. `SkillNode`s are registered here after their initial minting on **KNIRVGRAPH** and subsequent verification/orchestration by **KNIRV-ROOT**.
+> *   **Canonical SkillRegistry:** It provides the authoritative and tamper-proof registry for all canonically certified AI agent skills. `SkillNode`s are registered here after their initial minting on **KNIRVGRAPH** and subsequent verification/orchestration by **KNIRV-ORACLE**.
 >
-> *   **NRN Economy Enforcer (Consumption):** **KNIRVCHAIN** enforces the consumption of `NRN`s for Skill invocation. When a Skill is invoked, **KNIRVCHAIN** sends an `IBC` message to **KNIRV-ROOT** to trigger the burning of the `NRN`.
+> *   **NRN Economy Enforcer (Consumption):** **KNIRVCHAIN** enforces the consumption of `NRN`s for Skill invocation. When a Skill is invoked, **KNIRVCHAIN** sends an `IBC` message to **KNIRV-ORACLE** to trigger the burning of the `NRN`.
 >
 > *   **Base LLM Evolution:** **KNIRVCHAIN** is the ultimate arbiter of the Base LLM's evolution. Validated `SkillNode`s and resolved `ErrorNode`s from **KNIRVGRAPH** are aggregated to generate new training data or fine-tuning instructions for CodeT5. New Base LLM versions are proposed (with DVE proofs), and accepted by **KNIRVCHAIN**'s consensus, ensuring continuous improvement.
 >
@@ -135,7 +135,7 @@ The KNIRV D-TEN is comprised of twelve distinct, yet deeply interconnected, sove
 >
 > *   **Cryptographic Proof Generation:** They generate `ValidationProof`s (aggregated, signed attestations) of execution integrity and efficacy. `zkTLS` can be used for private validation of sensitive data.
 >
-> *   **NRN Staking & Incentives:** DVE operators stake `NRN` tokens (native to **KNIRV-ROOT**) and earn `NRN` rewards (from **KNIRV-ROOT**'s Ecosystem Fund) for honest validation. Slashing mechanisms deter malicious behavior.
+> *   **NRN Staking & Incentives:** DVE operators stake `NRN` tokens (native to **KNIRV-ORACLE**) and earn `NRN` rewards (from **KNIRV-ORACLE**'s Ecosystem Fund) for honest validation. Slashing mechanisms deter malicious behavior.
 >
 > *   **Dedicated Whitepaper:** For a comprehensive understanding, refer to the *KNIRV-NEXUS DVE Whitepaper (Version 2.0)*.
 
@@ -165,7 +165,7 @@ The **KNIRV-WALLET** is the intuitive and secure digital wallet that serves as t
 >
 > *   **XION Integration:** Leverages XION's Meta Accounts for familiar authentication (email, social logins, biometrics) and native gasless transactions, eliminating the need for users to manage seed phrases or pay gas fees directly.
 >
-> *   **NRN Management:** Provides intuitive management of `NRN` token balances (native to **KNIRV-ROOT**, with wrapped versions on XION for UX) and transaction history. Facilitates `NRN` acquisition from the **KNIRV-ROOT** Faucet.
+> *   **NRN Management:** Provides intuitive management of `NRN` token balances (native to **KNIRV-ORACLE**, with wrapped versions on XION for UX) and transaction history. Facilitates `NRN` acquisition from the **KNIRV-ORACLE** Faucet.
 >
 > *   **KNIRV-CORTEX Control:** Serves as the secure control center for a user's **KNIRV-CORTEX** agents, issuing User Delegation Certificates (`UDC`s) to grant specific, auditable permissions for agent actions.
 >
@@ -182,7 +182,7 @@ The **KNIRV-GATEWAY** serves as the primary and unified web portal and API gatew
 >
 > *   **Developer Portal & Documentation Hub:** An integrated portal offering comprehensive documentation, tools, and tutorials for developers, powered by Docsify for easy navigation.
 >
-> *   **Service Proxy & Integration:** Acts as a front-facing proxy that streamlines communication with all sovereign layers (**KNIRV-ROOT**, **KNIRVCHAIN**, **KNIRVGRAPH**, **KNIRV-NEXUS**), providing a single, secure entry point to the entire network.
+> *   **Service Proxy & Integration:** Acts as a front-facing proxy that streamlines communication with all sovereign layers (**KNIRV-ORACLE**, **KNIRVCHAIN**, **KNIRVGRAPH**, **KNIRV-NEXUS**), providing a single, secure entry point to the entire network.
 >
 > *   **Authentication & Security:** Handles secure API access and user management through dedicated authentication endpoints, with health monitoring and performance metrics.
 >
@@ -195,7 +195,7 @@ The **KNIRV-SDK** is a comprehensive suite of tools, libraries, and APIs designe
 >
 > *   **Gateway SDK Integration:** Features complete integration with **KNIRV-GATEWAY** services including economics management, skill invocation processing, LLM registration, validation rewards, and PoAu-D consensus management across `Go`, `TypeScript`, and `Python`.
 >
-> *   **Unified Access via API Gateway:** The SDK's primary interaction model is through the **KNIRV-GATEWAY** unified API gateway, which acts as a single entry point for all client-side and external interactions with **KNIRV-ROOT**, **KNIRVCHAIN**, **KNIRVGRAPH**, **KNIRV-NEXUS DVE**, and **KNIRV-ROUTER** services.
+> *   **Unified Access via API Gateway:** The SDK's primary interaction model is through the **KNIRV-GATEWAY** unified API gateway, which acts as a single entry point for all client-side and external interactions with **KNIRV-ORACLE**, **KNIRVCHAIN**, **KNIRVGRAPH**, **KNIRV-NEXUS DVE**, and **KNIRV-ROUTER** services.
 >
 > *   **High-Level Abstraction:** Provides intuitive, high-level functions that abstract away blockchain transactions, cryptographic operations, and `P2P` communication, allowing developers to focus on application logic.
 >
@@ -231,7 +231,7 @@ The **KNIRV-TESTNET** is a carefully constructed, minimal-viable representation 
 
 > **Expanded Information:**
 >
-> *   **Minimalist Architecture:** Features scaled-down versions of all sovereign layers including a simplified **KNIRV-ROOT** with minimal validators, emulated **KNIRV-ROUTER** for routing logic testing, and a small cluster of **KNIRV-NEXUS** nodes with TEE capabilities.
+> *   **Minimalist Architecture:** Features scaled-down versions of all sovereign layers including a simplified **KNIRV-ORACLE** with minimal validators, emulated **KNIRV-ROUTER** for routing logic testing, and a small cluster of **KNIRV-NEXUS** nodes with TEE capabilities.
 >
 > *   **Single-Shard Implementation:** Utilizes a single-shard **KNIRVCHAIN** or private chain with pre-selected validators, enabling fast iteration, easy resets, and comprehensive testing of PBFT consensus and agent certification processes.
 >
@@ -256,7 +256,7 @@ The **KNIRV-TESTNET** is a carefully constructed, minimal-viable representation 
 >
 > *   **Blockchain-Native Gaming:** Features native integration with **XION** blockchain and `NRN` token, enabling gasless transactions, smart contract interactions, and seamless economic integration without traditional blockchain complexity barriers.
 >
-> *   **Tangible NRN Consumption:** Gameplay in **KNIRVANA** directly consumes `NRN` tokens. Every invocation of a complex Skill by an agent unit within the game, for path resolution and task execution, triggers an `NRN` burn on the **KNIRV-ROOT** blockchain. This makes the economic utility of `NRN`s immediately tangible and understandable to players.
+> *   **Tangible NRN Consumption:** Gameplay in **KNIRVANA** directly consumes `NRN` tokens. Every invocation of a complex Skill by an agent unit within the game, for path resolution and task execution, triggers an `NRN` burn on the **KNIRV-ORACLE** blockchain. This makes the economic utility of `NRN`s immediately tangible and understandable to players.
 >
 > *   **Live Learning Feedback Loop:** **KNIRVANA** gameplay becomes a rich source of real-world data for the **KNIRVGRAPH**. Successful task completions by agent units lead to new `SkillNode`s, while failures generate `ErrorNode`s. This means playing **KNIRVANA** directly contributes to the evolution and improvement of the Base LLM and the collective intelligence of the entire KNIRV network.
 >
@@ -267,7 +267,7 @@ The **KNIRV-TESTNET** is a carefully constructed, minimal-viable representation 
 > *   **Dedicated Whitepaper:** For a comprehensive understanding, a dedicated *KNIRVANA Whitepaper* will detail its specific gameplay mechanics, economic integration, technical architecture, and contribution to the D-TEN's learning loop.
 
 # 4. The Interconnected Economic Loop: NRN Flow within the D-TEN
-The `NRN` token, native to **KNIRV-ROOT**, is the economic lifeblood of the entire KNIRV D-TEN, orchestrating a continuous, self-sustaining loop that incentivizes all participants and fuels the compounding intelligence.
+The `NRN` token, native to **KNIRV-ORACLE**, is the economic lifeblood of the entire KNIRV D-TEN, orchestrating a continuous, self-sustaining loop that incentivizes all participants and fuels the compounding intelligence.
 
 > **Expanded Information:**
 >
@@ -275,7 +275,7 @@ The `NRN` token, native to **KNIRV-ROOT**, is the economic lifeblood of the enti
 > graph TD
 >     subgraph KNIRV D-TEN Economic Loop
 >         direction LR
->         A[KNIRV-ROUTERS] -- "1. Proof-of-Connectivity" --> B(KNIRV-ROOT: NRN Minting)
+>         A[KNIRV-ROUTERS] -- "1. Proof-of-Connectivity" --> B(KNIRV-ORACLE: NRN Minting)
 >         B -- "2. USDC Payment" --> A
 >         B -- "3. NRN Supply" --> C[KNIRV-WALLET]
 >
@@ -287,7 +287,7 @@ The `NRN` token, native to **KNIRV-ROOT**, is the economic lifeblood of the enti
 >         F -- "8. Request DVE Validation" --> G[KNIRV-NEXUS DVEs]
 >         G -- "9. Generate Validation Proof" --> D
 >         D -- "10. Submit Mint Resolution" --> F
->         F -- "11. Notify KNIRV-ROOT of Verified SkillNode" --> B
+>         F -- "11. Notify KNIRV-ORACLE of Verified SkillNode" --> B
 >         B -- "12. Orchestrate Canonical SkillNode Minting" --> E
 >
 >         B -- "13. NRN Rewards (Solvers, DVEs, Observers)" --> D
@@ -309,19 +309,19 @@ The `NRN` token, native to **KNIRV-ROOT**, is the economic lifeblood of the enti
 > ```
 > *Figure 3: The Self-Sustaining NRN Economic Loop within the KNIRV D-TEN.*
 >
-> 1.  **`NRN` Minting by KNIRV-ROUTERS:** **KNIRV-ROUTERs** continuously perform "Proof-of-Connectivity" tests, validating network pathways. For each successful proof, they submit a request to **KNIRV-ROOT** to mint new `NRN` tokens.
-> 2.  **USDC Payment to KNIRV-ROUTERS:** **KNIRV-ROOT** compensates **KNIRV-ROUTERs** with USDC (sourced from its Faucet, primarily via XION) for their operational costs and the value provided in `NRN` production.
-> 3.  **`NRN` Supply to KNIRV-WALLET:** Newly minted `NRN`s flow into the network, becoming available for users and **KNIRV-CORTEX** agents via the **KNIRV-WALLET** (which can manage both native `NRN` on **KNIRV-ROOT** and wrapped `NRN` on XION).
+> 1.  **`NRN` Minting by KNIRV-ROUTERS:** **KNIRV-ROUTERs** continuously perform "Proof-of-Connectivity" tests, validating network pathways. For each successful proof, they submit a request to **KNIRV-ORACLE** to mint new `NRN` tokens.
+> 2.  **USDC Payment to KNIRV-ROUTERS:** **KNIRV-ORACLE** compensates **KNIRV-ROUTERs** with USDC (sourced from its Faucet, primarily via XION) for their operational costs and the value provided in `NRN` production.
+> 3.  **`NRN` Supply to KNIRV-WALLET:** Newly minted `NRN`s flow into the network, becoming available for users and **KNIRV-CORTEX** agents via the **KNIRV-WALLET** (which can manage both native `NRN` on **KNIRV-ORACLE** and wrapped `NRN` on XION).
 > 4.  **`NRN` for Skill Invocation:** **KNIRV-CORTEX** agents (or users via **KNIRVANA**) acquire `NRN`s from their **KNIRV-WALLET** to pay for Skill invocations.
 > 5.  **Skill Invocation on KNIRVCHAIN:** **KNIRV-CORTEX** agents invoke Skills from the `SkillRegistry` on **KNIRVCHAIN**.
-> 6.  **`NRN` Burning Trigger:** **KNIRVCHAIN** sends an `IBC` message to **KNIRV-ROOT** to trigger the burning of the `NRN` token used for Skill invocation. This creates deflationary pressure.
+> 6.  **`NRN` Burning Trigger:** **KNIRVCHAIN** sends an `IBC` message to **KNIRV-ORACLE** to trigger the burning of the `NRN` token used for Skill invocation. This creates deflationary pressure.
 > 7.  **Failure Detection & Solution Proposal:** **KNIRV-CORTEX** agents detect failures, generate `FailureContext`, and propose solutions (Skills) to `NRV`s on **KNIRVGRAPH**.
 > 8.  **DVE Validation Request:** **KNIRV-CORTEX** agents request validation of their proposed Skills from **KNIRV-NEXUS DVEs**.
 > 9.  **`ValidationProof` Generation:** **KNIRV-NEXUS DVEs** execute the Skill in a secure sandbox and generate cryptographic `ValidationProof`s.
 > 10. **`MintResolution` Submission:** **KNIRV-CORTEX** agents submit the `ValidationProof` and Skill to **KNIRVGRAPH** via a `MintResolution` transaction.
-> 11. **KNIRV-ROOT Orchestration:** **KNIRVGRAPH** notifies **KNIRV-ROOT** of the verified `SkillNode`. **KNIRV-ROOT** performs its own verification.
-> 12. **Canonical `SkillNode` Minting on KNIRVCHAIN:** After **KNIRV-ROOT**'s verification, **KNIRV-ROOT** orchestrates the canonical minting of the `SkillNode` onto **KNIRVCHAIN**'s `SkillRegistry`. This makes the Skill globally available for invocation.
-> 13. **`NRN` Rewards (Solvers, DVEs, Observers):** **KNIRV-ROOT** distributes `NRN` rewards (from its Ecosystem Fund) to Solvers (for Skill creation), DVE operators (for validation services), and Observers (for `NRV` submission), incentivizing their contributions.
+> 11. **KNIRV-ORACLE Orchestration:** **KNIRVGRAPH** notifies **KNIRV-ORACLE** of the verified `SkillNode`. **KNIRV-ORACLE** performs its own verification.
+> 12. **Canonical `SkillNode` Minting on KNIRVCHAIN:** After **KNIRV-ORACLE**'s verification, **KNIRV-ORACLE** orchestrates the canonical minting of the `SkillNode` onto **KNIRVCHAIN**'s `SkillRegistry`. This makes the Skill globally available for invocation.
+> 13. **`NRN` Rewards (Solvers, DVEs, Observers):** **KNIRV-ORACLE** distributes `NRN` rewards (from its Ecosystem Fund) to Solvers (for Skill creation), DVE operators (for validation services), and Observers (for `NRV` submission), incentivizing their contributions.
 > 14. **Gameplay-Driven Learning (KNIRVANA):** **KNIRVANA** gameplay consumes `NRN`s and generates valuable data (successful Skill executions, new `ErrorNode`s) that feeds back into **KNIRVGRAPH**, driving further Base LLM evolution and Skill creation.
 >
 > This intricate loop ensures that every action within the D-TEN contributes to its economic and intellectual growth, creating a truly self-sustaining and self-improving decentralized AI ecosystem.
@@ -359,7 +359,7 @@ The KNIRV D-TEN is a sophisticated multi-chain and multi-component architecture,
 >         end
 >
 >         subgraph Core Blockchain & Graphchain Layer
->             KRBC["KNIRV-ROOT Blockchain (GoLang PoA BFT)"]
+>             KRBC["KNIRV-ORACLE Blockchain (GoLang PoA BFT)"]
 >             KCC["KNIRVCHAIN Blockchain (Rust Tendermint BFT)"]
 >             KGBC["KNIRVGRAPH Graphchain (GoLang Tendermint BFT)"]
 >         end
@@ -440,14 +440,14 @@ The KNIRV D-TEN is a sophisticated multi-chain and multi-component architecture,
 >
 > *   **Key Interconnections:**
 >     *   **Unified API Gateway (AG):** Serves as the single, secure entry point for all external interactions, abstracting the complexity of direct blockchain/Graphchain communication. It routes requests to the appropriate backend service.
->     *   **Inter-Blockchain Communication (`IBC`):** The standard protocol for secure, trust-minimized communication between the sovereign blockchains/Graphchains (**KNIRV-ROOT**, **KNIRVCHAIN**, **KNIRVGRAPH**, and **XION**). `IBC` enables:
->         *   **NRN Flow:** `NRN` minting requests from **KNIRV-ROUTERs** to **KNIRV-ROOT**; `NRN` burning triggers from **KNIRVCHAIN** to **KNIRV-ROOT**.
->         *   **State Synchronization:** Base LLM updates and `SkillRegistry` changes from **KNIRVCHAIN** to **KNIRV-ROOT** (for propagation); `SkillNode` verification notifications from **KNIRVGRAPH** to **KNIRV-ROOT**.
->         *   **Asset Bridging:** USDC liquidity from **XION** to **KNIRV-ROOT**'s Faucet; wrapped `NRN`s between **KNIRV-ROOT** and **XION**.
->         *   **`SkillNode` Orchestration:** **KNIRV-ROOT** orchestrating the canonical minting of verified `SkillNode`s from **KNIRVGRAPH** onto **KNIRVCHAIN**.
+>     *   **Inter-Blockchain Communication (`IBC`):** The standard protocol for secure, trust-minimized communication between the sovereign blockchains/Graphchains (**KNIRV-ORACLE**, **KNIRVCHAIN**, **KNIRVGRAPH**, and **XION**). `IBC` enables:
+>         *   **NRN Flow:** `NRN` minting requests from **KNIRV-ROUTERs** to **KNIRV-ORACLE**; `NRN` burning triggers from **KNIRVCHAIN** to **KNIRV-ORACLE**.
+>         *   **State Synchronization:** Base LLM updates and `SkillRegistry` changes from **KNIRVCHAIN** to **KNIRV-ORACLE** (for propagation); `SkillNode` verification notifications from **KNIRVGRAPH** to **KNIRV-ORACLE**.
+>         *   **Asset Bridging:** USDC liquidity from **XION** to **KNIRV-ORACLE**'s Faucet; wrapped `NRN`s between **KNIRV-ORACLE** and **XION**.
+>         *   **`SkillNode` Orchestration:** **KNIRV-ORACLE** orchestrating the canonical minting of verified `SkillNode`s from **KNIRVGRAPH** onto **KNIRVCHAIN**.
 >     *   **IPFS Network:** A decentralized content-addressed storage layer for large data blobs such as Base LLM binaries (CodeT5), `SkillNode` executable code, `FailureContext` data, and **KNIRV-CORTEX** state snapshots. Blockchains (**KNIRVCHAIN**, **KNIRVGRAPH**) store only the cryptographic hashes (`CID`s) of these files, ensuring integrity without on-chain bloat.
 >     *   **KNIRV-NEXUS DVE Network:** Provides off-chain, verifiable computation. **KNIRV-CORTEXs** rent DVEs for Skill validation and Base LLM testing, generating cryptographic proofs submitted to **KNIRVGRAPH**.
->     *   **KNIRV-ROUTER Network:** Facilitates `P2P` communication across the D-TEN and is the source of `NRN` production via "Proof-of-Connectivity," feeding into **KNIRV-ROOT**.
+>     *   **KNIRV-ROUTER Network:** Facilitates `P2P` communication across the D-TEN and is the source of `NRN` production via "Proof-of-Connectivity," feeding into **KNIRV-ORACLE**.
 
 # 6. Security & Trust Model: Defense in Depth
 The KNIRV D-TEN is secured by a multi-layered, defense-in-depth approach, combining the strengths of decentralized consensus, cryptographic proofs, trusted execution environments, and economic incentives across all layers.
@@ -455,7 +455,7 @@ The KNIRV D-TEN is secured by a multi-layered, defense-in-depth approach, combin
 > **Expanded Information:**
 >
 > *   **Sovereign Blockchain/Graphchain Security:**
->     *   **KNIRV-ROOT:** Secured by a custom Byzantine Fault Tolerant (`BFT`) Proof-of-Authority (`PoA`) consensus, ensuring high reliability and deterministic `NRN` management.
+>     *   **KNIRV-ORACLE:** Secured by a custom Byzantine Fault Tolerant (`BFT`) Proof-of-Authority (`PoA`) consensus, ensuring high reliability and deterministic `NRN` management.
 >     *   **KNIRVCHAIN:** Secured by its own Tendermint/CometBFT consensus, providing `BFT` security and instant finality for Base LLM updates and `SkillRegistry` integrity.
 >     *   **KNIRVGRAPH:** Secured by its own Tendermint/CometBFT consensus, ensuring the integrity and immutability of the knowledge Graphchain.
 >
@@ -464,7 +464,7 @@ The KNIRV D-TEN is secured by a multi-layered, defense-in-depth approach, combin
 >     *   **Cryptographic Proofs:** DVEs generate `ValidationProof`s (e.g., `zkTLS`-enhanced attestations) that are cryptographically verified on-chain, ensuring the integrity of off-chain computations.
 >
 > *   **Cryptoeconomic Security (`NRN` Token):**
->     *   **Staking & Slashing:** `NRN` staking (on **KNIRV-ROOT** for DVEs, on **KNIRVGRAPH**/**KNIRVCHAIN** for validators) provides a strong economic incentive for honest behavior. Malicious actions lead to slashing of staked `NRN`.
+>     *   **Staking & Slashing:** `NRN` staking (on **KNIRV-ORACLE** for DVEs, on **KNIRVGRAPH**/**KNIRVCHAIN** for validators) provides a strong economic incentive for honest behavior. Malicious actions lead to slashing of staked `NRN`.
 >     *   **Proof-of-Connectivity:** **KNIRV-ROUTERs** earn `NRN` by proving network integrity, aligning economic incentives with network health.
 >     *   **Proof-of-Solution:** Solvers earn `NRN` for verifiable problem resolution, incentivizing valuable contributions to the knowledge graph.
 >
@@ -483,7 +483,7 @@ The KNIRV D-TEN is governed by its `NRN` token holders through a multi-layered, 
 
 > **Expanded Information:**
 >
-> *   **Layer-Specific Governance:** Each sovereign blockchain/Graphchain (**KNIRV-ROOT**, **KNIRVCHAIN**, **KNIRVGRAPH**) maintains its own on-chain governance module, allowing `NRN` holders (staked on the respective chain, with `NRN` native to **KNIRV-ROOT**) to propose and vote on parameters specific to that layer (e.g., **KNIRV-ROOT**'s `NRN` minting rates, **KNIRVCHAIN**'s Base LLM update thresholds, **KNIRVGRAPH**'s `NRV` bounty rules).
+> *   **Layer-Specific Governance:** Each sovereign blockchain/Graphchain (**KNIRV-ORACLE**, **KNIRVCHAIN**, **KNIRVGRAPH**) maintains its own on-chain governance module, allowing `NRN` holders (staked on the respective chain, with `NRN` native to **KNIRV-ORACLE**) to propose and vote on parameters specific to that layer (e.g., **KNIRV-ORACLE**'s `NRN` minting rates, **KNIRVCHAIN**'s Base LLM update thresholds, **KNIRVGRAPH**'s `NRV` bounty rules).
 >
 > *   **Hybrid Voting Model:** Governance within **KNIRVGRAPH** (and potentially other layers) employs a hybrid voting model, combining `NRN` stake with an on-chain Reputation Score. This gives more weight to participants with a proven history of positive contributions (e.g., successful Skill resolutions, honest DVE attestations), fostering a meritocratic governance structure.
 >
@@ -497,8 +497,8 @@ The KNIRV D-TEN's development will proceed in phases, focusing on establishing a
 > **Expanded Information:**
 >
 > *   **Phase 1 (Q2 2026: Core Mainnet Launch & Interoperability)**
->     *   **Focus:** Mainnet deployment of **KNIRV-ROOT**, **KNIRVCHAIN**, **KNIRVGRAPH**, **KNIRV-ROUTER** network, and initial **KNIRV-NEXUS DVEs**.
->     *   **Interoperability:** Establish stable `IBC` channels between **KNIRV-ROOT**, **KNIRVCHAIN**, **KNIRVGRAPH**, and **XION**.
+>     *   **Focus:** Mainnet deployment of **KNIRV-ORACLE**, **KNIRVCHAIN**, **KNIRVGRAPH**, **KNIRV-ROUTER** network, and initial **KNIRV-NEXUS DVEs**.
+>     *   **Interoperability:** Establish stable `IBC` channels between **KNIRV-ORACLE**, **KNIRVCHAIN**, **KNIRVGRAPH**, and **XION**.
 >     *   **User Access:** Launch **KNIRV-WALLET** with core `NRN` management and **KNIRV-CORTEX** `UDC` issuance.
 >     *   **Developer Access:** Release initial **KNIRV SDK** with Unified API Gateway.
 >     *   **Goal:** Establish a functional, interconnected D-TEN capable of basic Skill invocation, Base LLM updates, and `NRN` economic loop.
@@ -506,7 +506,7 @@ The KNIRV D-TEN's development will proceed in phases, focusing on establishing a
 > *   **Phase 2 (Q4 2026: Enhanced Intelligence & Agent Capabilities)**
 >     *   **Focus:** Refine **KNIRVGRAPH**'s knowledge graph querying, implement advanced **KNIRV-NEXUS DVE** specialization and resource management.
 >     *   **KNIRV-CORTEX SDK:** Enhance **KNIRV-CORTEX** SDK for deeper agent control and analytics.
->     *   **Skill Licensing:** Implement RoyaltyBearing Skill licensing and automated royalty payments (orchestrated by **KNIRV-ROOT**).
+>     *   **Skill Licensing:** Implement RoyaltyBearing Skill licensing and automated royalty payments (orchestrated by **KNIRV-ORACLE**).
 >     *   **Goal:** Foster a more dynamic Skill marketplace and empower **KNIRV-CORTEX** agents with more sophisticated, verifiable capabilities.
 >
 > *   **Phase 3 (Q2 2027: Experiential Integration & Advanced Learning)**
@@ -522,6 +522,6 @@ The KNIRV D-TEN's development will proceed in phases, focusing on establishing a
 >     *   **Goal:** Establish the KNIRV D-TEN as a foundational, universal layer for decentralized, self-improving AI across the digital landscape.
 
 # 9. Conclusion
-The KNIRV Decentralized Trusted Execution Network (D-TEN) represents a monumental leap towards a future where Artificial Intelligence is not only powerful but also transparent, verifiable, and collectively intelligent. By meticulously designing and integrating twelve sovereign layers—**KNIRV-ROOT**, **KNIRV-ROUTER**, **KNIRVGRAPH**, **KNIRVCHAIN**, **KNIRV-NEXUS DVE**, **KNIRV-CORTEX**, **KNIRV-WALLET**, **KNIRV-GATEWAY**, **KNIRV-SHELL**, **KNIRV-SDK**, **KNIRV-TESTNET**, and **KNIRVANA**—interconnected by the **KNIRV-GATEWAY** unified portal and API gateway and `IBC`, the D-TEN creates a robust, self-healing ecosystem.
+The KNIRV Decentralized Trusted Execution Network (D-TEN) represents a monumental leap towards a future where Artificial Intelligence is not only powerful but also transparent, verifiable, and collectively intelligent. By meticulously designing and integrating twelve sovereign layers—**KNIRV-ORACLE**, **KNIRV-ROUTER**, **KNIRVGRAPH**, **KNIRVCHAIN**, **KNIRV-NEXUS DVE**, **KNIRV-CORTEX**, **KNIRV-WALLET**, **KNIRV-GATEWAY**, **KNIRV-SHELL**, **KNIRV-SDK**, **KNIRV-TESTNET**, and **KNIRVANA**—interconnected by the **KNIRV-GATEWAY** unified portal and API gateway and `IBC`, the D-TEN creates a robust, self-healing ecosystem.
 
 This network transforms the challenge of AI failure into an engine for compounding knowledge, driven by a self-sustaining `NRN` token economy. From the physical validation of **KNIRV-ROUTERs** to the verifiable computation of **KNIRV-NEXUS DVEs**, from the knowledge fabric of **KNIRVGRAPH** to the living intelligence of **KNIRVCHAIN**, through the autonomous capabilities of **KNIRV-CORTEXs**, the intuitive user experience of **KNIRV-WALLET**, the unified access of **KNIRV-GATEWAY**, the comprehensive developer tools of **KNIRV-SHELL**, the multi-language development support of **KNIRV-SDK**, the high-fidelity testing environment of **KNIRV-TESTNET**, and culminating in the immersive cross-platform gameplay of **KNIRVANA**, the KNIRV D-TEN is poised to redefine the landscape of decentralized AI. We are building the economic and coordination backbone for a new era of secure, intelligent, and autonomously evolving systems that spans from enterprise development to consumer gaming experiences.

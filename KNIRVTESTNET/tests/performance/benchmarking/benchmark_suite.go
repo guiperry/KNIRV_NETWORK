@@ -133,8 +133,8 @@ func NewBenchmarkSuite() *BenchmarkSuite {
 	}
 
 	services := map[string]*ServiceBenchmark{
-		"knirv-root": {
-			Name:    "knirv-root",
+		"knirv-oracle": {
+			Name:    "knirv-oracle",
 			BaseURL: "http://localhost:1317",
 			Endpoints: []EndpointBenchmark{
 				{Path: "/health", Method: "GET", ExpectedStatus: 200},

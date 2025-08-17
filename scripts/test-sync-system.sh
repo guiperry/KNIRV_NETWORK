@@ -95,7 +95,7 @@ test_directory_structure() {
         "KNIRVTESTNET"
         "deployment"
         "scripts"
-        "KNIRVROOT"
+        "KNIRVORACLE"
         "KNIRVGATEWAY"
     )
     

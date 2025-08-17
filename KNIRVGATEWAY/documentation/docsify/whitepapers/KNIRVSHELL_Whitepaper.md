@@ -78,7 +78,7 @@ graph TD
     H -- "Routes Game/Agent P2P Traffic" --> N[KNIRV-ROUTERS]
     E -- Controls Agent Units --> O["KNIRVANA (Game Client)"]
 
-    J -- Syncs --> P["KNIRV-ROOT (NRN Oracle & Orchestrator)"]
+    J -- Syncs --> P["KNIRV-ORACLE (NRN Oracle & Orchestrator)"]
     K -- Feeds Data To --> P
 
     P -- "Provides USDC Faucet" --> N

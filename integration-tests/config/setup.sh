@@ -152,10 +152,10 @@ build_components() {
     npm install
     npm run build
     
-    # Build KNIRVROOT
-    print_status "Building KNIRVROOT..."
-    cd "$PROJECT_ROOT/KNIRVROOT"
-    go build -o bin/knirvroot .
+    # Build KNIRVORACLE
+    print_status "Building KNIRVORACLE..."
+    cd "$PROJECT_ROOT/KNIRVORACLE"
+    go build -o bin/knirvoracle .
     
     # Build KNIRVROUTER
     print_status "Building KNIRVROUTER..."
@@ -251,11 +251,11 @@ start_services() {
     npm run start > "$TEST_DIR/logs/knirvnexus-frontend.log" 2>&1 &
     echo $! > "$TEST_DIR/pids/knirvnexus-frontend.pid"
     
-    # Start KNIRVROOT
-    print_status "Starting KNIRVROOT on port 8086..."
-    cd "$PROJECT_ROOT/KNIRVROOT"
-    ./bin/knirvroot --port 8086 > "$TEST_DIR/logs/knirvroot.log" 2>&1 &
-    echo $! > "$TEST_DIR/pids/knirvroot.pid"
+    # Start KNIRVORACLE
+    print_status "Starting KNIRVORACLE on port 8086..."
+    cd "$PROJECT_ROOT/KNIRVORACLE"
+    ./bin/knirvoracle --port 8086 > "$TEST_DIR/logs/knirvoracle.log" 2>&1 &
+    echo $! > "$TEST_DIR/pids/knirvoracle.pid"
     
     # Start KNIRVROUTER
     print_status "Starting KNIRVROUTER on port 8085..."
@@ -270,7 +270,7 @@ start_services() {
     wait_for_service "http://localhost:8080/health" 60
     wait_for_service "http://localhost:8081/health" 60
     wait_for_service "http://localhost:8083/api/v1/health" 60
-    # Skip KNIRVROUTER and KNIRVROOT health checks for now due to build/runtime issues
+    # Skip KNIRVROUTER and KNIRVORACLE health checks for now due to build/runtime issues
     # wait_for_service "http://localhost:8085/status" 60
     # wait_for_service "http://localhost:8086/health" 60
     
@@ -288,9 +288,9 @@ run_health_checks() {
         "KNIRVNEXUS-DVE-MANAGER:http://localhost:8081/health"
         "KNIRVNEXUS-VALIDATION-CORE:http://localhost:8082/health"
         "KNIRVNEXUS-FRONTEND:http://localhost:3000/api/health"
-        # Skip KNIRVROUTER and KNIRVROOT health checks for now due to build/runtime issues
+        # Skip KNIRVROUTER and KNIRVORACLE health checks for now due to build/runtime issues
         # "KNIRVROUTER:http://localhost:8085/status"
-        # "KNIRVROOT:http://localhost:8086/health"
+        # "KNIRVORACLE:http://localhost:8086/health"
     )
     
     for service in "${services[@]}"; do

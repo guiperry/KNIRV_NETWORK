@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Test script for KNIRV Economics Integration
-# This script tests the economics service integration with KNIRVROOT
+# This script tests the economics service integration with KNIRVORACLE
 # Run from project root: ./scripts/test-economics-integration.sh
 
 set -e
@@ -11,12 +11,12 @@ echo "🧪 Testing KNIRV Economics Integration..."
 # Get script directory and project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-KNIRVROOT_DIR="$PROJECT_ROOT/KNIRVROOT"
+KNIRVORACLE_DIR="$PROJECT_ROOT/KNIRVORACLE"
 
 # Configuration
 ECONOMICS_URL="http://localhost:8090"
 GATEWAY_URL="http://localhost:8888"
-KNIRVROOT_URL="http://localhost:8080"
+KNIRVORACLE_URL="http://localhost:8080"
 
 # Colors for output
 RED='\033[0;31m'
@@ -112,17 +112,17 @@ else
 fi
 
 echo ""
-echo "🔗 Testing KNIRVROOT Integration..."
+echo "🔗 Testing KNIRVORACLE Integration..."
 
-# Test KNIRVROOT health
-if curl -s "$KNIRVROOT_URL/health" > /dev/null 2>&1; then
-    test_endpoint "$KNIRVROOT_URL/health" "KNIRVROOT Health Check"
+# Test KNIRVORACLE health
+if curl -s "$KNIRVORACLE_URL/health" > /dev/null 2>&1; then
+    test_endpoint "$KNIRVORACLE_URL/health" "KNIRVORACLE Health Check"
     
     # Test economics integration endpoints
-    test_endpoint "$KNIRVROOT_URL/api/economics/status" "Economics Integration Status"
-    test_endpoint "$KNIRVROOT_URL/api/economics/metrics" "Economics Integration Metrics"
+    test_endpoint "$KNIRVORACLE_URL/api/economics/status" "Economics Integration Status"
+    test_endpoint "$KNIRVORACLE_URL/api/economics/metrics" "Economics Integration Metrics"
 else
-    echo -e "${YELLOW}⚠️  KNIRVROOT not running at $KNIRVROOT_URL${NC}"
+    echo -e "${YELLOW}⚠️  KNIRVORACLE not running at $KNIRVORACLE_URL${NC}"
 fi
 
 echo ""
@@ -171,7 +171,7 @@ echo "📈 Testing Service Discovery..."
 
 # Test if economics service is discoverable
 echo -n "Testing Service Discovery... "
-if curl -s "$KNIRVROOT_URL/api/services" | grep -q "economics" 2>/dev/null; then
+if curl -s "$KNIRVORACLE_URL/api/services" | grep -q "economics" 2>/dev/null; then
     echo -e "${GREEN}✅ Economics service is discoverable${NC}"
 else
     echo -e "${YELLOW}⚠️  Economics service not found in service discovery${NC}"
@@ -189,7 +189,7 @@ echo "✅ Economics service endpoints"
 echo "✅ Basic functionality tests"
 echo ""
 echo "🎯 Next Steps:"
-echo "1. Ensure KNIRVROOT is running with economics integration"
+echo "1. Ensure KNIRVORACLE is running with economics integration"
 echo "2. Test with real authentication tokens"
 echo "3. Monitor economics service logs for any issues"
 echo "4. Test integration with other KNIRV components"

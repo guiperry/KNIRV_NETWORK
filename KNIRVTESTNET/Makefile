@@ -20,7 +20,7 @@ help: ## Show this help message
 	@echo ""
 	@echo "$(GREEN)Build Commands:$(NC)"
 	@echo "  build-all        Build all KNIRV components"
-	@echo "  build-root       Build KNIRV-ROOT"
+	@echo "  build-root       Build KNIRV-ORACLE"
 	@echo "  build-chain      Build KNIRVCHAIN"
 	@echo "  build-graph      Build KNIRVGRAPH"
 	@echo "  build-nexus      Build KNIRV-NEXUS"
@@ -59,9 +59,9 @@ build-all: ## Build all KNIRV components
 	@echo "$(BLUE)Building all KNIRV components...$(NC)"
 	@$(SCRIPTS_DIR)/build-all.sh
 
-build-root: ## Build KNIRV-ROOT
-	@echo "$(BLUE)Building KNIRV-ROOT...$(NC)"
-	@$(SCRIPTS_DIR)/build-knirvroot.sh
+build-root: ## Build KNIRV-ORACLE
+	@echo "$(BLUE)Building KNIRV-ORACLE...$(NC)"
+	@$(SCRIPTS_DIR)/build-knirvoracle.sh
 
 build-chain: ## Build KNIRVCHAIN
 	@echo "$(BLUE)Building KNIRVCHAIN...$(NC)"

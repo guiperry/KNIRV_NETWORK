@@ -100,8 +100,8 @@ stop_service "KNIRVGRAPH" "data/knirvgraph.pid"
 # 2. Stop KNIRVCHAIN
 stop_service "KNIRVCHAIN" "data/knirvchain.pid"
 
-# 1. Stop KNIRV-ROOT
-stop_service "KNIRV-ROOT" "data/knirvroot.pid"
+# 1. Stop KNIRV-ORACLE
+stop_service "KNIRV-ORACLE" "data/knirvoracle.pid"
 
 # Clean up any remaining processes
 print_status "Cleaning up any remaining processes..."
@@ -143,7 +143,7 @@ echo ""
 
 # Display final status
 echo "Final Status:"
-if [ -f "data/knirvroot.pid" ] || [ -f "data/knirvchain.pid" ] || [ -f "data/knirvgraph.pid" ] || [ -f "data/knirvnexus.pid" ] || [ -f "data/knirvrouter.pid" ] || [ -f "data/knirvgateway.pid" ]; then
+if [ -f "data/knirvoracle.pid" ] || [ -f "data/knirvchain.pid" ] || [ -f "data/knirvgraph.pid" ] || [ -f "data/knirvnexus.pid" ] || [ -f "data/knirvrouter.pid" ] || [ -f "data/knirvgateway.pid" ]; then
     print_warning "Some PID files still exist - manual cleanup may be required"
 else
     print_success "Clean shutdown - no PID files remaining"

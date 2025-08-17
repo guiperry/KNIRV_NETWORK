@@ -40,7 +40,7 @@ KNIRVANA is engineered for high performance and cross-platform compatibility.
 
 ### **6. Blockchain Integration and Economics**
 KNIRVANA is a blockchain-native game, with its economic and operational loops deeply integrated with the KNIRV D-TEN.
-* **Tangible `NRN` Consumption:** Gameplay actions, specifically the invocation of complex `Skill` routines by agent units, directly consumes `NRN` tokens. This creates a tangible link between in-game actions and real-world economic value, with each `NRN` burn on the `KNIRV-ROOT` blockchain representing a successful agent execution.
+* **Tangible `NRN` Consumption:** Gameplay actions, specifically the invocation of complex `Skill` routines by agent units, directly consumes `NRN` tokens. This creates a tangible link between in-game actions and real-world economic value, with each `NRN` burn on the `KNIRV-ORACLE` blockchain representing a successful agent execution.
 * **Seamless User Experience:** The game features native integration with the `XION` blockchain, leveraging its Meta Accounts to provide familiar authentication methods (e.g., social logins, email) and gasless transactions. This eliminates traditional blockchain complexity barriers for players.
 * **Agent Management:** KNIRVANA serves as a direct interface for players to configure, deploy, and observe their `KNIRV-CORTEX` agents, providing real-time feedback on their performance and learning progress.
 

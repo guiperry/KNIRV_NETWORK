@@ -53,7 +53,7 @@ run_test() {
 
 # Test 1: Service Health Checks
 test_service_health() {
-    local services=("knirvchain" "knirvgraph" "knirvnexus" "knirvroot")
+    local services=("knirvchain" "knirvgraph" "knirvnexus" "knirvoracle")
 
     for service in "${services[@]}"; do
         local response=$(curl -s -o /dev/null -w "%{http_code}" "$GATEWAY_URL/$service/health")
@@ -190,7 +190,7 @@ test_token_economics() {
     local token=$(cat "$TEST_DATA_DIR/auth_token")
 
     # Get economic metrics
-    local metrics_response=$(curl -s "$GATEWAY_URL/knirvroot/economics/metrics" \
+    local metrics_response=$(curl -s "$GATEWAY_URL/knirvoracle/economics/metrics" \
         -H "Authorization: Bearer $token")
 
     local total_supply=$(echo "$metrics_response" | jq -r '.total_supply')
@@ -224,7 +224,7 @@ test_cross_chain_bridge() {
     local token=$(cat "$TEST_DATA_DIR/auth_token")
 
     # Test bridge transfer
-    local bridge_response=$(curl -s -X POST "$GATEWAY_URL/knirvroot/bridge/transfer" \
+    local bridge_response=$(curl -s -X POST "$GATEWAY_URL/knirvoracle/bridge/transfer" \
         -H "Authorization: Bearer $token" \
         -H "Content-Type: application/json" \
         -d "{
@@ -243,7 +243,7 @@ test_cross_chain_bridge() {
     sleep 10
 
     # Check bridge status
-    local status_response=$(curl -s "$GATEWAY_URL/knirvroot/bridge/status?tx_hash=$tx_hash" \
+    local status_response=$(curl -s "$GATEWAY_URL/knirvoracle/bridge/status?tx_hash=$tx_hash" \
         -H "Authorization: Bearer $token")
 
     local status=$(echo "$status_response" | jq -r '.status')

@@ -89,9 +89,9 @@ func NewNRNIntegration(knirvRootURL string, nrvSystem *nrv.NRVSystem) *NRNIntegr
 func (ni *NRNIntegration) Start(ctx context.Context) error {
 	log.Println("Starting NRN Integration for KNIRVGRAPH...")
 
-	// Test connection to KNIRVROOT
+	// Test connection to KNIRVORACLE
 	if err := ni.testConnection(); err != nil {
-		log.Printf("Warning: Could not connect to KNIRVROOT at %s: %v", ni.knirvRootURL, err)
+		log.Printf("Warning: Could not connect to KNIRVORACLE at %s: %v", ni.knirvRootURL, err)
 		ni.enabled = false
 		return nil // Don't fail startup, just disable economics
 	}
@@ -104,7 +104,7 @@ func (ni *NRNIntegration) Start(ctx context.Context) error {
 	return nil
 }
 
-// testConnection tests the connection to KNIRVROOT
+// testConnection tests the connection to KNIRVORACLE
 func (ni *NRNIntegration) testConnection() error {
 	url := fmt.Sprintf("%s/ping", ni.knirvRootURL)
 	resp, err := ni.httpClient.Get(url)
@@ -114,7 +114,7 @@ func (ni *NRNIntegration) testConnection() error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("KNIRVROOT returned status %d", resp.StatusCode)
+		return fmt.Errorf("KNIRVORACLE returned status %d", resp.StatusCode)
 	}
 
 	return nil
@@ -141,7 +141,7 @@ func (ni *NRNIntegration) ProcessSkillConfirmation(skillID, nrvID, creatorID str
 		"action":     "confirm_for_chain_commitment",
 	}
 
-	// Send to KNIRVROOT for KNIRVCHAIN coordination
+	// Send to KNIRVORACLE for KNIRVCHAIN coordination
 	url := fmt.Sprintf("%s/api/economics/skill/confirm", ni.knirvRootURL)
 	if err := ni.makeRequest("POST", url, request); err != nil {
 		return fmt.Errorf("failed to process skill confirmation: %w", err)
@@ -191,7 +191,7 @@ func (ni *NRNIntegration) DistributeRewards(recipientID string, amount *big.Int,
 		},
 	}
 
-	// Send to KNIRVROOT for NRN minting/distribution
+	// Send to KNIRVORACLE for NRN minting/distribution
 	url := fmt.Sprintf("%s/api/economics/rewards/distribute", ni.knirvRootURL)
 	if err := ni.makeRequest("POST", url, request); err != nil {
 		return fmt.Errorf("failed to distribute rewards: %w", err)
@@ -225,7 +225,7 @@ func (ni *NRNIntegration) GetEconomicMetrics() *EconomicMetrics {
 	return metrics
 }
 
-// makeRequest makes an HTTP request to KNIRVROOT
+// makeRequest makes an HTTP request to KNIRVORACLE
 func (ni *NRNIntegration) makeRequest(method, url string, data interface{}) error {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
@@ -252,7 +252,7 @@ func (ni *NRNIntegration) makeRequest(method, url string, data interface{}) erro
 	return nil
 }
 
-// periodicSync performs periodic synchronization with KNIRVROOT
+// periodicSync performs periodic synchronization with KNIRVORACLE
 func (ni *NRNIntegration) periodicSync(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
@@ -267,7 +267,7 @@ func (ni *NRNIntegration) periodicSync(ctx context.Context) {
 	}
 }
 
-// syncWithKNIRVRoot synchronizes state with KNIRVROOT
+// syncWithKNIRVRoot synchronizes state with KNIRVORACLE
 func (ni *NRNIntegration) syncWithKNIRVRoot() {
 	if !ni.enabled {
 		return
@@ -281,7 +281,7 @@ func (ni *NRNIntegration) syncWithKNIRVRoot() {
 	metrics := ni.GetEconomicMetrics()
 
 	if err := ni.makeRequest("POST", url, metrics); err != nil {
-		log.Printf("Failed to sync with KNIRVROOT: %v", err)
+		log.Printf("Failed to sync with KNIRVORACLE: %v", err)
 	}
 
 	ni.lastSync = time.Now()

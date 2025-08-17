@@ -5,8 +5,8 @@
     "description": "General questions and support requests",
     "color": "#3498db",
     "order": 1,
-    "created_at": "2025-08-16T04:47:16.429Z",
-    "updated_at": "2025-08-16T04:47:16.429Z"
+    "created_at": "2025-08-17T15:33:36.225Z",
+    "updated_at": "2025-08-17T15:33:36.225Z"
   },
   {
     "id": 2,
@@ -14,8 +14,8 @@
     "description": "Technical problems and bug reports",
     "color": "#e74c3c",
     "order": 2,
-    "created_at": "2025-08-16T04:47:16.429Z",
-    "updated_at": "2025-08-16T04:47:16.429Z"
+    "created_at": "2025-08-17T15:33:36.225Z",
+    "updated_at": "2025-08-17T15:33:36.225Z"
   },
   {
     "id": 3,
@@ -23,8 +23,8 @@
     "description": "Billing and payment related questions",
     "color": "#f39c12",
     "order": 3,
-    "created_at": "2025-08-16T04:47:16.429Z",
-    "updated_at": "2025-08-16T04:47:16.429Z"
+    "created_at": "2025-08-17T15:33:36.225Z",
+    "updated_at": "2025-08-17T15:33:36.225Z"
   },
   {
     "id": 4,
@@ -32,7 +32,7 @@
     "description": "Suggestions for new features",
     "color": "#2ecc71",
     "order": 4,
-    "created_at": "2025-08-16T04:47:16.429Z",
-    "updated_at": "2025-08-16T04:47:16.429Z"
+    "created_at": "2025-08-17T15:33:36.225Z",
+    "updated_at": "2025-08-17T15:33:36.225Z"
   }
 ]

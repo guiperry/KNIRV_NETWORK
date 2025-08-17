@@ -17,7 +17,7 @@ import (
 	"github.com/tidwall/buntdb"
 )
 
-// DVEP2PManager implements P2P networking for DVE nodes aligned with KNIRV-ROOT
+// DVEP2PManager implements P2P networking for DVE nodes aligned with KNIRV-ORACLE
 type DVEP2PManager struct {
 	host   host.Host
 	dht    *dht.IpfsDHT
@@ -49,7 +49,7 @@ type MessageHandler interface {
 	HandleMessage(ctx context.Context, msg *models.P2PMessage) error
 }
 
-// DVE Protocol Constants (aligned with KNIRV-ROOT)
+// DVE Protocol Constants (aligned with KNIRV-ORACLE)
 const (
 	DVEValidationTopic      = "dve-validation"
 	DVEResultTopic          = "dve-results"
@@ -73,7 +73,7 @@ const (
 func NewDVEP2PManager(chainID, nodeRole string, db *buntdb.DB) (*DVEP2PManager, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// Create libp2p host (aligned with KNIRV-ROOT configuration)
+	// Create libp2p host (aligned with KNIRV-ORACLE configuration)
 	host, err := libp2p.New(
 		libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/4001"),
 		libp2p.DefaultSecurity,
@@ -123,7 +123,7 @@ func NewDVEP2PManager(chainID, nodeRole string, db *buntdb.DB) (*DVEP2PManager, 
 func (dpm *DVEP2PManager) setupTopics() error {
 	var err error
 
-	// Create topic names with chain ID prefix (aligned with KNIRV-ROOT)
+	// Create topic names with chain ID prefix (aligned with KNIRV-ORACLE)
 	validationTopicName := fmt.Sprintf("%s.%s", dpm.chainID, DVEValidationTopic)
 	resultTopicName := fmt.Sprintf("%s.%s", dpm.chainID, DVEResultTopic)
 	nodeTopicName := fmt.Sprintf("%s.%s", dpm.chainID, DVENodeTopic)
@@ -426,10 +426,10 @@ func (dpm *DVEP2PManager) discoverNodes() {
 // findDVENodes finds other DVE nodes using DHT
 func (dpm *DVEP2PManager) findDVENodes() {
 	// Implementation would use DHT to find providers of DVE resources
-	// This is aligned with KNIRV-ROOT's discovery mechanism
+	// This is aligned with KNIRV-ORACLE's discovery mechanism
 	log.Printf("[DVE][%s] Discovering DVE nodes...", dpm.nodeRole)
 
-	// TODO: Implement DHT-based node discovery similar to KNIRV-ROOT
+	// TODO: Implement DHT-based node discovery similar to KNIRV-ORACLE
 	// This would involve:
 	// 1. Creating a CID for DVE node resources
 	// 2. Querying DHT for providers

@@ -67,7 +67,7 @@ node validate-portal.js
 ### 1. Basic Integration Tests (`xion-integration-test.go`)
 - **Purpose**: Validate core functionality of each KNIRV component
 - **Coverage**: API endpoints, health checks, basic operations
-- **Components**: KNIRVCHAIN, KNIRVGRAPH, KNIRVNEXUS (Frontend + Backend), KNIRVROOT, KNIRVROUTER
+- **Components**: KNIRVCHAIN, KNIRVGRAPH, KNIRVNEXUS (Frontend + Backend), KNIRVORACLE, KNIRVROUTER
 
 ### 2. Cross-Component Validation (`cross-component-validation.go`)
 - **Purpose**: Verify inter-component communication and data flow
@@ -138,7 +138,7 @@ node validate-portal.js
        │                   │          │  │      (3000)             │ │
        ▼                   ▼          │  └─────────────────────────┘ │
 ┌─────────────┐    ┌─────────────┐    │  ┌─────────────────────────┐ │
-│ KNIRVROOT   │◄──►│ KNIRVROUTER │◄──►│  │ API Gateway    (8080)   │ │
+│ KNIRVORACLE   │◄──►│ KNIRVROUTER │◄──►│  │ API Gateway    (8080)   │ │
 │   (8086)    │    │   (8085)    │    │  │ DVE Manager    (8081)   │ │
 └─────────────┘    └─────────────┘    │  │ Validation Core(8082)   │ │
        │                              │  └─────────────────────────┘ │
@@ -198,8 +198,8 @@ KNIRV_TEST_LOGS_DIR=./logs             # Test logs directory
 
 ### Integration Coverage
 - ✅ KNIRVCHAIN ↔ KNIRVGRAPH: LLM registration and skill invocation
-- ✅ KNIRVNEXUS ↔ KNIRVROOT: Agent creation and execution payments
-- ✅ KNIRVROUTER ↔ KNIRVROOT: Connectivity proofs and rewards
+- ✅ KNIRVNEXUS ↔ KNIRVORACLE: Agent creation and execution payments
+- ✅ KNIRVROUTER ↔ KNIRVORACLE: Connectivity proofs and rewards
 - ✅ Cross-chain bridge functionality
 
 ### Workflow Coverage
@@ -258,7 +258,7 @@ KNIRV_TEST_LOGS_DIR=./logs             # Test logs directory
    # Manual cleanup of test databases if needed
    rm -rf ./database ./database_reflection ./data/testnet ./testdata/node1/db
    rm -rf integration-tests/data KNIRVCHAIN/sledchain.db KNIRVGRAPH/data
-   rm -rf KNIRVNEXUS/db KNIRVROOT/data KNIRVROUTER/data
+   rm -rf KNIRVNEXUS/db KNIRVORACLE/data KNIRVROUTER/data
    ```
 
 ### Debug Mode

@@ -23,7 +23,7 @@ class MockKNIRVGATEWAYHandler(BaseHTTPRequestHandler):
                 "status": "healthy",
                 "version": "testnet-1.0.0",
                 "services": {
-                    "knirvroot": "http://localhost:1317",
+                    "knirvoracle": "http://localhost:1317",
                     "knirvchain": "http://localhost:8080",
                     "knirvgraph": "http://localhost:8081",
                     "knirvnexus": ["http://localhost:8082", "http://localhost:8083"],

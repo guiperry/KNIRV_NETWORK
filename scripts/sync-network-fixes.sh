@@ -167,10 +167,10 @@ detect_testnet_fixes() {
     local -n fixes_ref=$1
     
     # Check for fixes mentioned in final-test-fixes.md
-    if [[ -f "$PROJECT_ROOT/KNIRVROOT/final-test-fixes.md" ]]; then
+    if [[ -f "$PROJECT_ROOT/KNIRVORACLE/final-test-fixes.md" ]]; then
         log "INFO" "Found testnet fixes documentation" >&2
-        fixes_ref+=("badge-attachment-fix:KNIRVROOT/chromem_manager.go")
-        fixes_ref+=("tunnel-registry-fix:KNIRVROOT/tunnel_registry.go")
+        fixes_ref+=("badge-attachment-fix:KNIRVORACLE/chromem_manager.go")
+        fixes_ref+=("tunnel-registry-fix:KNIRVORACLE/tunnel_registry.go")
         fixes_ref+=("python-sdk-fix:KNIRVSDK/py/")
         fixes_ref+=("cortex-mock-fix:KNIRVCORTEX/")
         fixes_ref+=("gateway-build-fix:KNIRVGATEWAY/package.json")
@@ -271,7 +271,7 @@ apply_badge_attachment_fix() {
     if [[ "$direction" == "testnet-to-prod" ]]; then
         # Copy the improved ChromeDB query logic from testnet to production
         local source="$PROJECT_ROOT/$file_path"
-        local target="$PROJECT_ROOT/KNIRVROOT/chromem_manager.go"
+        local target="$PROJECT_ROOT/KNIRVORACLE/chromem_manager.go"
 
         if [[ -f "$source" ]]; then
             backup_file "$target"
@@ -293,7 +293,7 @@ apply_tunnel_registry_fix() {
 
     if [[ "$direction" == "testnet-to-prod" ]]; then
         local source="$PROJECT_ROOT/$file_path"
-        local target="$PROJECT_ROOT/KNIRVROOT/tunnel_registry.go"
+        local target="$PROJECT_ROOT/KNIRVORACLE/tunnel_registry.go"
 
         if [[ -f "$source" ]]; then
             backup_file "$target"
@@ -450,7 +450,7 @@ Usage: $0 [OPTIONS]
 
 OPTIONS:
     -d, --direction DIRECTION   Sync direction: testnet-to-prod, prod-to-testnet, both (default: both)
-    -s, --services SERVICES     Services to sync: all, knirvroot, knirvchain, etc. (default: all)
+    -s, --services SERVICES     Services to sync: all, knirvoracle, knirvchain, etc. (default: all)
     -n, --dry-run              Show what would be done without making changes
     -f, --force                Force sync even if target is newer
     -v, --verbose              Enable verbose logging
@@ -460,7 +460,7 @@ EXAMPLES:
     $0                                    # Sync all fixes in both directions
     $0 -d testnet-to-prod                # Sync testnet fixes to production
     $0 -d prod-to-testnet -n             # Dry run: show what would be synced from prod to testnet
-    $0 -s knirvroot -v                   # Sync only KNIRVROOT fixes with verbose output
+    $0 -s knirvoracle -v                   # Sync only KNIRVORACLE fixes with verbose output
 
 EOF
 }

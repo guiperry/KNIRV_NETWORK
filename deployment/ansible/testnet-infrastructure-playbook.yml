@@ -22,7 +22,7 @@
       - 8083   # KNIRVNEXUS-2
       - 8086   # KNIRVROUTER
       - 8087   # KNIRVGATEWAY
-      - 1317   # KNIRVROOT API
+      - 1317   # KNIRVORACLE API
       - 26656  # Tendermint P2P
       - 26657  # Tendermint RPC
       - 22     # SSH
@@ -342,7 +342,7 @@
             - '8083'   # KNIRVNEXUS-2
             - '8086'   # KNIRVROUTER
             - '8087'   # KNIRVGATEWAY
-            - '1317'   # KNIRVROOT API
+            - '1317'   # KNIRVORACLE API
             - '26656'  # Tendermint P2P
             - '26657'  # Tendermint RPC
             

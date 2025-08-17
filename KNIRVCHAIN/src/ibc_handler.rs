@@ -215,12 +215,12 @@ impl IBCHandler {
         }
     }
 
-    /// Initialize connection to KNIRV-ROOT
+    /// Initialize connection to KNIRV-ORACLE
     pub async fn initialize_knirv_root_connection(&self, chain_id: String) -> Result<String> {
-        let connection_id = format!("connection-knirv-root-{}", uuid::Uuid::new_v4());
-        let client_id = format!("client-knirv-root-{}", uuid::Uuid::new_v4());
+        let connection_id = format!("connection-knirv-oracle-{}", uuid::Uuid::new_v4());
+        let client_id = format!("client-knirv-oracle-{}", uuid::Uuid::new_v4());
 
-        // Create IBC client for KNIRV-ROOT
+        // Create IBC client for KNIRV-ORACLE
         let client = IBCClient {
             client_id: client_id.clone(),
             client_type: "tendermint".to_string(),
@@ -250,7 +250,7 @@ impl IBCHandler {
         let mut root_connection = self.knirv_root_connection.lock().await;
         *root_connection = Some(connection_id.clone());
 
-        info!("Initialized KNIRV-ROOT connection: {}", connection_id);
+        info!("Initialized KNIRV-ORACLE connection: {}", connection_id);
         Ok(connection_id)
     }
 
@@ -293,7 +293,7 @@ impl IBCHandler {
         Ok(connection_id)
     }
 
-    /// Send NRN burn message to KNIRV-ROOT
+    /// Send NRN burn message to KNIRV-ORACLE
     pub async fn send_nrn_burn_message(
         &self,
         nrn_token_id: &str,
@@ -314,7 +314,7 @@ impl IBCHandler {
         self.send_to_knirv_root(message).await
     }
 
-    /// Send skill registration to KNIRV-ROOT
+    /// Send skill registration to KNIRV-ORACLE
     pub async fn send_skill_registration(
         &self,
         skill_data: SkillRegistrationData,
@@ -335,7 +335,7 @@ impl IBCHandler {
         self.send_to_knirv_root(message).await
     }
 
-    /// Send model transition update to KNIRV-ROOT
+    /// Send model transition update to KNIRV-ORACLE
     pub async fn send_model_transition_update(
         &self,
         previous_model: Option<String>,
@@ -371,14 +371,14 @@ impl IBCHandler {
         self.send_to_knirv_nexus(message).await
     }
 
-    /// Send message to KNIRV-ROOT
+    /// Send message to KNIRV-ORACLE
     async fn send_to_knirv_root(&self, message: IBCMessage) -> Result<()> {
         let root_connection = self.knirv_root_connection.lock().await;
         let connection_id = root_connection
             .as_ref()
-            .ok_or_else(|| anyhow!("KNIRV-ROOT connection not established"))?;
+            .ok_or_else(|| anyhow!("KNIRV-ORACLE connection not established"))?;
 
-        self.send_message(connection_id, message, "knirv-root")
+        self.send_message(connection_id, message, "knirv-oracle")
             .await
     }
 
@@ -436,9 +436,9 @@ impl IBCHandler {
     /// Process outgoing IBC message (placeholder implementation)
     async fn process_outgoing_message(&self, message: IBCMessage, destination: &str) -> Result<()> {
         match destination {
-            "knirv-root" => {
-                info!("Processing message to KNIRV-ROOT: {:?}", message);
-                // TODO: Implement actual HTTP/gRPC call to KNIRV-ROOT
+            "knirv-oracle" => {
+                info!("Processing message to KNIRV-ORACLE: {:?}", message);
+                // TODO: Implement actual HTTP/gRPC call to KNIRV-ORACLE
             }
             "knirv-nexus" => {
                 info!("Processing message to KNIRV-NEXUS: {:?}", message);

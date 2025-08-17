@@ -106,7 +106,7 @@ build_and_push_images() {
     log_step "Building and pushing Docker images..."
 
     # List of services to build
-    services=("knirvchain" "knirvgraph" "knirvnexus" "knirvroot" "knirvrouter")
+    services=("knirvchain" "knirvgraph" "knirvnexus" "knirvoracle" "knirvrouter")
 
     for service in "${services[@]}"; do
         log_info "Building $service..."

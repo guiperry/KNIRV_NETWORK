@@ -85,7 +85,7 @@ func TestPoAuDIntegrationSuite(t *testing.T) {
 func testInitialStatusCheck(t *testing.T) {
 	t.Log("Testing initial PoAu-D status check...")
 
-	// Check status via direct KNIRV-ROOT API
+	// Check status via direct KNIRV-ORACLE API
 	resp, err := makeRequest("GET", rootNodeURL+"/poaud/status", nil)
 	require.NoError(t, err)
 	defer resp.Body.Close()

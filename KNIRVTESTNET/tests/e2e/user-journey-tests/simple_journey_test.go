@@ -128,7 +128,7 @@ func TestServiceConnectivity(t *testing.T) {
 	client := &http.Client{Timeout: Timeout}
 
 	services := map[string]string{
-		"KNIRV-ROOT":      "http://localhost:1317/health",
+		"KNIRV-ORACLE":      "http://localhost:1317/health",
 		"KNIRVCHAIN":      "http://localhost:8090/health",
 		"KNIRVGRAPH":      "http://localhost:8082/height",
 		"KNIRV-NEXUS-DVE": "http://localhost:8084/health",

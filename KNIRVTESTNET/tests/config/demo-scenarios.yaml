@@ -85,7 +85,7 @@ scenarios:
       - step: "distribute_rewards"
         description: "Distribute NRN rewards for skill creation"
         action: "reward_distribute"
-        target: "knirv-root"
+        target: "knirv-oracle"
         parameters:
           recipient: "cortex-dev-001"
           amount: 100
@@ -138,7 +138,7 @@ scenarios:
         id: "knirvgraph"
         role: "shared-knowledge"
       - type: "service"
-        id: "knirv-root"
+        id: "knirv-oracle"
         role: "nrn-management"
 
     workflow:
@@ -228,7 +228,7 @@ scenarios:
       - step: "distribute_rewards"
         description: "Distribute collaborative rewards"
         action: "collaborative_reward"
-        target: "knirv-root"
+        target: "knirv-oracle"
         parameters:
           participants: ["cortex-dev-001", "cortex-collab-001", "cortex-learner-001"]
           total_reward: 300

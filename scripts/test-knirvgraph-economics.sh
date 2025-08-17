@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # KNIRVGRAPH Economics Integration Test Script
-# This script tests the economics integration between KNIRVGRAPH and KNIRVROOT
+# This script tests the economics integration between KNIRVGRAPH and KNIRVORACLE
 # Run from project root: ./scripts/test-knirvgraph-economics.sh
 
 set -e
@@ -10,7 +10,7 @@ echo "🧪 Testing KNIRVGRAPH Economics Integration..."
 
 # Configuration
 KNIRVGRAPH_URL=${KNIRVGRAPH_URL:-http://localhost:8081}
-KNIRVROOT_URL=${KNIRVROOT_URL:-http://localhost:1317}
+KNIRVORACLE_URL=${KNIRVORACLE_URL:-http://localhost:1317}
 TEST_USER_ID="test_user_$(date +%s)"
 TEST_SKILL_ID=""
 TEST_ERROR_ID=""
@@ -61,9 +61,9 @@ test_knirvgraph_health() {
     curl -s --max-time 10 "$KNIRVGRAPH_URL/health" > /dev/null
 }
 
-# Test KNIRVROOT connectivity
-test_knirvroot_health() {
-    curl -s --max-time 10 "$KNIRVROOT_URL/ping" > /dev/null
+# Test KNIRVORACLE connectivity
+test_knirvoracle_health() {
+    curl -s --max-time 10 "$KNIRVORACLE_URL/ping" > /dev/null
 }
 
 # Test economics metrics endpoint
@@ -182,7 +182,7 @@ main() {
     echo "🚀 Starting KNIRVGRAPH Economics Integration Tests"
     echo "📊 Test Configuration:"
     echo "  - KNIRVGRAPH URL: $KNIRVGRAPH_URL"
-    echo "  - KNIRVROOT URL: $KNIRVROOT_URL"
+    echo "  - KNIRVORACLE URL: $KNIRVORACLE_URL"
     echo "  - Test User ID: $TEST_USER_ID"
     echo ""
     
@@ -198,9 +198,9 @@ main() {
     fi
     
     ((total_tests++))
-    if ! run_test "KNIRVROOT Connectivity" "test_knirvroot_health"; then
+    if ! run_test "KNIRVORACLE Connectivity" "test_knirvoracle_health"; then
         ((failed_tests++))
-        log_warning "KNIRVROOT is not accessible. Economics integration will be limited."
+        log_warning "KNIRVORACLE is not accessible. Economics integration will be limited."
     fi
     
     # Economics endpoint tests

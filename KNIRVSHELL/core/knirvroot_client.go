@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// KNIRVRootClient handles communication with KNIRVROOT service
+// KNIRVRootClient handles communication with KNIRVORACLE service
 type KNIRVRootClient struct {
 	*APIClient
 	config       *config.ServiceConfig
@@ -18,7 +18,7 @@ type KNIRVRootClient struct {
 	capabilities []string
 }
 
-// BlockchainState represents the blockchain state from KNIRVROOT
+// BlockchainState represents the blockchain state from KNIRVORACLE
 type BlockchainState struct {
 	Height      int64                  `json:"height"`
 	Blocks      []interface{}          `json:"blocks"`
@@ -53,7 +53,7 @@ type EconomicsData struct {
 	Metrics      map[string]interface{} `json:"metrics"`
 }
 
-// NewKNIRVRootClient creates a new KNIRVROOT client
+// NewKNIRVRootClient creates a new KNIRVORACLE client
 func NewKNIRVRootClient(cfg *config.ServiceConfig, logger *logrus.Logger) *KNIRVRootClient {
 	apiClient := NewAPIClient(cfg.URL,
 		WithTimeout(cfg.Timeout),
@@ -65,48 +65,48 @@ func NewKNIRVRootClient(cfg *config.ServiceConfig, logger *logrus.Logger) *KNIRV
 		APIClient:    apiClient,
 		config:       cfg,
 		logger:       logger,
-		serviceName:  "knirvroot",
+		serviceName:  "knirvoracle",
 		capabilities: []string{"blockchain", "economics", "agent-management", "tunnel-registry"},
 	}
 }
 
-// Connect establishes connection to KNIRVROOT
+// Connect establishes connection to KNIRVORACLE
 func (c *KNIRVRootClient) Connect(ctx context.Context) error {
-	c.logger.Info("Connecting to KNIRVROOT service")
+	c.logger.Info("Connecting to KNIRVORACLE service")
 
 	// Test connection with a ping
 	err := c.HealthCheck(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to connect to KNIRVROOT: %w", err)
+		return fmt.Errorf("failed to connect to KNIRVORACLE: %w", err)
 	}
 
 	c.connected = true
-	c.logger.Info("Successfully connected to KNIRVROOT")
+	c.logger.Info("Successfully connected to KNIRVORACLE")
 	return nil
 }
 
-// Disconnect closes connection to KNIRVROOT
+// Disconnect closes connection to KNIRVORACLE
 func (c *KNIRVRootClient) Disconnect() error {
-	c.logger.Info("Disconnecting from KNIRVROOT service")
+	c.logger.Info("Disconnecting from KNIRVORACLE service")
 	c.connected = false
 	return nil
 }
 
-// HealthCheck performs a health check on KNIRVROOT
+// HealthCheck performs a health check on KNIRVORACLE
 func (c *KNIRVRootClient) HealthCheck(ctx context.Context) error {
 	var response interface{}
 	return c.Get(ctx, "/ping", &response)
 }
 
-// GetCapabilities returns the capabilities of KNIRVROOT
+// GetCapabilities returns the capabilities of KNIRVORACLE
 func (c *KNIRVRootClient) GetCapabilities() []string {
 	return c.capabilities
 }
 
-// Subscribe subscribes to events from KNIRVROOT
+// Subscribe subscribes to events from KNIRVORACLE
 func (c *KNIRVRootClient) Subscribe(events []string, handler EventHandler) error {
 	// TODO: Implement WebSocket subscription
-	c.logger.Infof("Subscribing to KNIRVROOT events: %v", events)
+	c.logger.Infof("Subscribing to KNIRVORACLE events: %v", events)
 	return nil
 }
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Mock KNIRV-ROOT server for testnet
+Mock KNIRV-ORACLE server for testnet
 Provides basic API endpoints for testing
 """
 
@@ -10,7 +10,7 @@ import threading
 import time
 import sys
 
-class MockKNIRVROOTHandler(BaseHTTPRequestHandler):
+class MockKNIRVORACLEHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/status':
             self.send_response(200)
@@ -83,12 +83,12 @@ class MockKNIRVROOTHandler(BaseHTTPRequestHandler):
         pass
 
 def run_server():
-    server = HTTPServer(('0.0.0.0', 1317), MockKNIRVROOTHandler)
-    print("Mock KNIRV-ROOT server started on http://localhost:1317")
+    server = HTTPServer(('0.0.0.0', 1317), MockKNIRVORACLEHandler)
+    print("Mock KNIRV-ORACLE server started on http://localhost:1317")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\nMock KNIRV-ROOT server stopped")
+        print("\nMock KNIRV-ORACLE server stopped")
         server.shutdown()
 
 if __name__ == '__main__':

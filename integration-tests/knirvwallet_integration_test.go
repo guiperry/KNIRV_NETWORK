@@ -322,7 +322,7 @@ func (suite *KNIRVWalletTestSuite) TestWalletOperations() {
 			"amount":  "5000000", // 5 NRN
 		}
 
-		resp := suite.makeRequest("POST", "/knirvroot/faucet/fund", fundReq)
+		resp := suite.makeRequest("POST", "/knirvoracle/faucet/fund", fundReq)
 		require.True(suite.T(), resp.Success, "Failed to fund wallet: %s", resp.Error)
 
 		// Verify balance increased
@@ -358,7 +358,7 @@ func (suite *KNIRVWalletTestSuite) TestNRNTokenOperations() {
 		"address": testWallet.Address,
 		"amount":  "10000000", // 10 NRN
 	}
-	fundResp := suite.makeRequest("POST", "/knirvroot/faucet/fund", fundReq)
+	fundResp := suite.makeRequest("POST", "/knirvoracle/faucet/fund", fundReq)
 	require.True(suite.T(), fundResp.Success, "Failed to fund NRN test wallet")
 
 	time.Sleep(3 * time.Second) // Wait for funding

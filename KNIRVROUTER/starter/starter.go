@@ -435,10 +435,10 @@ func StartRootBlockchain(port uint64, minerAddress string) {
 	log.Printf("Initializing connectivity proof engine")
 
 	// Get faucet endpoint from environment or use default
-	faucetEndpoint := os.Getenv("KNIRVROOT_ENDPOINT")
+	faucetEndpoint := os.Getenv("KNIRVORACLE_ENDPOINT")
 	if faucetEndpoint == "" {
 		// Try alternative environment variable names
-		if endpoint := os.Getenv("KNIRVROOT_FAUCET_ENDPOINT"); endpoint != "" {
+		if endpoint := os.Getenv("KNIRVORACLE_FAUCET_ENDPOINT"); endpoint != "" {
 			faucetEndpoint = endpoint
 		} else {
 			faucetEndpoint = "http://localhost:1317" // Default from testnet config

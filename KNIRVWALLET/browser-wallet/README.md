@@ -22,7 +22,7 @@
 ## Features
 
 ✅ **KNIRV Ecosystem Integration**
-✅ **NRN Token Management:** Native support for KNIRV-ROOT's NRN tokens
+✅ **NRN Token Management:** Native support for KNIRV-ORACLE's NRN tokens
 ✅ **KNIRV-CORTEX Agent Control:** Manage and control your AI agents
 ✅ **XION Meta Accounts:** Gasless transactions and Web2-like authentication
 ✅ **Multi-Chain Support:** BTC, ETH, Solana, and more
@@ -81,7 +81,7 @@ This will store the extension's build output in `packages/knirvwallet-extension/
 
 KNIRVWALLET is part of the broader KNIRV ecosystem:
 
-- [KNIRV-ROOT](../KNIRVROOT/) - The foundational blockchain for NRN tokens
+- [KNIRV-ORACLE](../KNIRVORACLE/) - The foundational blockchain for NRN tokens
 - [KNIRVCHAIN](../KNIRVCHAIN/) - Smart contract platform for Skills and Base LLMs
 - [KNIRV-CORTEX](../KNIRVCORTEX/) - AI agent framework
 - [KNIRV-NEXUS](../KNIRVNEXUS/) - Distributed verification engine

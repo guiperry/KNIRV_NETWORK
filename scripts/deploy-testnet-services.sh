@@ -133,16 +133,16 @@ services:
       - knirv-testnet
     restart: unless-stopped
 
-  knirvroot:
-    image: knirvroot:latest
+  knirvoracle:
+    image: knirvoracle:latest
     container_name: knirv-testnet-root
     ports:
       - "1317:1317"
       - "26657:26657"
       - "26656:26656"
     volumes:
-      - ./data/knirvroot:/root/.knirvroot
-      - ./config/knirvroot-config.yaml:/root/config.yaml
+      - ./data/knirvoracle:/root/.knirvoracle
+      - ./config/knirvoracle-config.yaml:/root/config.yaml
     depends_on:
       - ipfs
     networks:
@@ -161,7 +161,7 @@ services:
       - ./data/knirvchain:/app/data
       - ./config/knirvchain-config.toml:/app/config.toml
     depends_on:
-      - knirvroot
+      - knirvoracle
       - ipfs
     networks:
       - knirv-testnet
@@ -179,7 +179,7 @@ services:
       - ./data/knirvgraph:/app/data
       - ./config/knirvgraph-config.yaml:/app/config.yaml
     depends_on:
-      - knirvroot
+      - knirvoracle
       - ipfs
     networks:
       - knirv-testnet
@@ -199,7 +199,7 @@ services:
       - NODE_ID=1
       - MOCK_TEE=true
     depends_on:
-      - knirvroot
+      - knirvoracle
     networks:
       - knirv-testnet
     restart: unless-stopped
@@ -216,7 +216,7 @@ services:
       - NODE_ID=2
       - MOCK_TEE=true
     depends_on:
-      - knirvroot
+      - knirvoracle
     networks:
       - knirv-testnet
     restart: unless-stopped
@@ -231,7 +231,7 @@ services:
       - ./data/knirvrouter:/app/data
       - ./config/knirvrouter-config.yaml:/app/config.yaml
     depends_on:
-      - knirvroot
+      - knirvoracle
     networks:
       - knirv-testnet
     restart: unless-stopped
@@ -244,7 +244,7 @@ services:
     volumes:
       - ./config/knirvgateway-config.json:/app/config.json
     depends_on:
-      - knirvroot
+      - knirvoracle
       - knirvchain
       - knirvgraph
       - knirvnexus-1
@@ -289,14 +289,14 @@ build_docker_images() {
 cd /opt/knirv-testnet
 
 # Build KNIRV services (using mock builds for now)
-echo "Building KNIRVROOT..."
-docker build -t knirvroot:latest -f - . << 'DOCKERFILE'
+echo "Building KNIRVORACLE..."
+docker build -t knirvoracle:latest -f - . << 'DOCKERFILE'
 FROM ubuntu:22.04
 RUN apt-get update && apt-get install -y curl
-COPY scripts/mock-knirvroot.py /app/mock-knirvroot.py
+COPY scripts/mock-knirvoracle.py /app/mock-knirvoracle.py
 WORKDIR /app
 EXPOSE 1317 26656 26657
-CMD ["python3", "mock-knirvroot.py"]
+CMD ["python3", "mock-knirvoracle.py"]
 DOCKERFILE
 
 echo "Building KNIRVCHAIN..."
@@ -390,7 +390,7 @@ verify_deployment() {
         "knirvnexus-2:8083:/health"
         "knirvrouter:8086:/health"
         "knirvgateway:8087:/health"
-        "knirvroot:1317:/health"
+        "knirvoracle:1317:/health"
     )
     
     echo ""
@@ -441,7 +441,7 @@ display_summary() {
     echo -e "  🤖 KNIRVNEXUS-2: http://$TESTNET_IP:8083"
     echo -e "  🌐 KNIRVROUTER: http://$TESTNET_IP:8086"
     echo -e "  🚪 KNIRVGATEWAY: http://$TESTNET_IP:8087"
-    echo -e "  🏛️  KNIRVROOT: http://$TESTNET_IP:1317"
+    echo -e "  🏛️  KNIRVORACLE: http://$TESTNET_IP:1317"
     echo ""
     echo -e "${YELLOW}Next Steps:${NC}"
     echo -e "  1. Update frontend: make update-testnet-frontend"

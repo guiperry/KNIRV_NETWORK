@@ -33,9 +33,9 @@ subnet_cidr: 10.1.1.0/24
 testnet_ports:
   ipfs_api: 5001
   ipfs_gateway: 8080
-  knirvroot_api: 1317
-  knirvroot_rpc: 26657
-  knirvroot_p2p: 26656
+  knirvoracle_api: 1317
+  knirvoracle_rpc: 26657
+  knirvoracle_p2p: 26656
   knirvchain: 8080
   knirvgraph: 8081
   knirvnexus_1: 8082
@@ -202,7 +202,7 @@ deployment:
 # Service startup order
 service_startup_order:
   - ipfs
-  - knirvroot
+  - knirvoracle
   - knirvchain
   - knirvgraph
   - knirvnexus-1

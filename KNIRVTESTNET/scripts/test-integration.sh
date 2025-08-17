@@ -138,7 +138,7 @@ test_http_endpoint() {
 # Function to discover actual service ports from running processes
 discover_service_ports() {
     # Initialize port variables with defaults
-    KNIRVROOT_PORT=1317
+    KNIRVORACLE_PORT=1317
     KNIRVCHAIN_PORT=8090
     KNIRVGRAPH_PORT=8082
     KNIRVNEXUS_PORT=8084
@@ -146,15 +146,15 @@ discover_service_ports() {
     KNIRVGATEWAY_PORT=8888
 
     # Try to discover actual ports from PID files
-    if [ -f "data/knirvroot.pid" ]; then
-        local pid=$(cat data/knirvroot.pid 2>/dev/null)
+    if [ -f "data/knirvoracle.pid" ]; then
+        local pid=$(cat data/knirvoracle.pid 2>/dev/null)
         if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
             local ports=$(lsof -Pan -p "$pid" -i 2>/dev/null | grep LISTEN | sed 's/.*:\([0-9]*\).*/\1/' | sort -n)
             # Prefer API port 1317 over RPC port 26657
             if echo "$ports" | grep -q "^1317$"; then
-                KNIRVROOT_PORT=1317
+                KNIRVORACLE_PORT=1317
             elif [ -n "$ports" ]; then
-                KNIRVROOT_PORT=$(echo "$ports" | head -1)
+                KNIRVORACLE_PORT=$(echo "$ports" | head -1)
             fi
         fi
     fi
@@ -204,7 +204,7 @@ discover_service_ports() {
         fi
     fi
 
-    print_verbose "Discovered ports: ROOT=$KNIRVROOT_PORT, CHAIN=$KNIRVCHAIN_PORT, GRAPH=$KNIRVGRAPH_PORT, NEXUS=$KNIRVNEXUS_PORT, ROUTER=$KNIRVROUTER_PORT, GATEWAY=$KNIRVGATEWAY_PORT"
+    print_verbose "Discovered ports: ROOT=$KNIRVORACLE_PORT, CHAIN=$KNIRVCHAIN_PORT, GRAPH=$KNIRVGRAPH_PORT, NEXUS=$KNIRVNEXUS_PORT, ROUTER=$KNIRVROUTER_PORT, GATEWAY=$KNIRVGATEWAY_PORT"
 }
 
 # Function to test service discovery through gateway
@@ -312,12 +312,12 @@ test_cross_service_communication() {
 test_gateway_proxy() {
     print_verbose "Testing gateway proxy functionality"
 
-    # Test proxying to KNIRV-ROOT through gateway (flexible - may not be implemented)
+    # Test proxying to KNIRV-ORACLE through gateway (flexible - may not be implemented)
     local proxy_response=$(curl -s --max-time "$TIMEOUT" \
-        "http://localhost:$KNIRVGATEWAY_PORT/knirvroot/health" 2>/dev/null)
+        "http://localhost:$KNIRVGATEWAY_PORT/knirvoracle/health" 2>/dev/null)
 
     if echo "$proxy_response" | grep -q "healthy\|testnet\|ok"; then
-        test_passed "Gateway proxy to KNIRV-ROOT works"
+        test_passed "Gateway proxy to KNIRV-ORACLE works"
     else
         # Check if gateway is at least responding
         local gateway_response=$(curl -s --max-time "$TIMEOUT" \
@@ -326,7 +326,7 @@ test_gateway_proxy() {
             print_verbose "Gateway proxy not fully implemented yet, but gateway is healthy"
             test_passed "Gateway proxy checked (implementation pending)"
         else
-            test_failed "Gateway proxy to KNIRV-ROOT failed"
+            test_failed "Gateway proxy to KNIRV-ORACLE failed"
             print_verbose "Proxy response: $proxy_response"
         fi
     fi
@@ -347,7 +347,7 @@ perform_integration_tests() {
 
     # 1. Test individual service health endpoints
     print_status "Testing individual service health endpoints..."
-    test_http_endpoint "KNIRV-ROOT" "http://localhost:$KNIRVROOT_PORT/health" 200 "ok"
+    test_http_endpoint "KNIRV-ORACLE" "http://localhost:$KNIRVORACLE_PORT/health" 200 "ok"
     test_http_endpoint "KNIRVCHAIN" "http://localhost:$KNIRVCHAIN_PORT/health" 200 "healthy"
     test_http_endpoint "KNIRVGRAPH" "http://localhost:$KNIRVGRAPH_PORT/height" 200
     test_http_endpoint "KNIRV-NEXUS" "http://localhost:$KNIRVNEXUS_PORT/health" 200 "healthy"
@@ -375,7 +375,7 @@ perform_integration_tests() {
     
     # 3. Test service discovery
     print_status "Testing service discovery..."
-    test_service_discovery "knirvroot"
+    test_service_discovery "knirvoracle"
     test_service_discovery "knirvchain"
     test_service_discovery "knirvgraph"
     test_service_discovery "knirvnexus"

@@ -457,7 +457,7 @@ func (pt *PerformanceTester) TestGatewayPerformance(t *testing.T) {
 		var wg sync.WaitGroup
 		startTime := time.Now()
 
-		services := []string{"knirvchain", "knirvgraph", "knirvnexus", "knirvroot", "knirvrouter"}
+		services := []string{"knirvchain", "knirvgraph", "knirvnexus", "knirvoracle", "knirvrouter"}
 
 		for i := 0; i < config.ConcurrentUsers; i++ {
 			wg.Add(1)
@@ -601,10 +601,10 @@ func (pt *PerformanceTester) testBridgeTransfer(_ *testing.T, userID, requestID 
 		"target_chain": "xion",
 		"amount":       "100000", // Small amount for load testing
 		"recipient":    fmt.Sprintf("test_recipient_%d_%d", userID, requestID),
-		"source":       "KNIRVROOT",
+		"source":       "KNIRVORACLE",
 	}
 
-	_, err := pt.suite.makeRequest("POST", "/knirvroot/bridge/transfer", bridgeData)
+	_, err := pt.suite.makeRequest("POST", "/knirvoracle/bridge/transfer", bridgeData)
 
 	latency := time.Since(start)
 	pt.recordRequest(latency, err == nil)

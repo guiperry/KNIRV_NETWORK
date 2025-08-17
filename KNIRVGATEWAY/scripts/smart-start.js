@@ -57,7 +57,7 @@ class SmartStart {
         
         try {
             // Run the fix script in auto mode
-            execSync('./fix-netlify-cli.sh --auto', {
+            execSync('./scripts/fix-netlify-cli.sh --auto', {
                 stdio: 'inherit',
                 timeout: 300000 // 5 minutes
             });

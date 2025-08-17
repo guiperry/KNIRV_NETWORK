@@ -54,11 +54,11 @@ start_real_services() {
     # Wait a moment for cleanup
     sleep 2
 
-    # Start KNIRVROOT (Core Network)
-    print_status "Starting KNIRVROOT on port 1317..."
-    cd "$PROJECT_ROOT/KNIRVROOT"
-    nohup go run . --role=root --port=1317 --skip-install > "$TEST_DIR/logs/knirvroot.log" 2>&1 &
-    echo $! > "$TEST_DIR/logs/knirvroot.pid"
+    # Start KNIRVORACLE (Core Network)
+    print_status "Starting KNIRVORACLE on port 1317..."
+    cd "$PROJECT_ROOT/KNIRVORACLE"
+    nohup go run . --role=root --port=1317 --skip-install > "$TEST_DIR/logs/knirvoracle.log" 2>&1 &
+    echo $! > "$TEST_DIR/logs/knirvoracle.pid"
 
     # Start KNIRVGRAPH (Graph Database)
     print_status "Starting KNIRVGRAPH on port 8082..."
@@ -124,10 +124,10 @@ start_real_services() {
                 tail -3 "$TEST_DIR/logs/knirvnexus.log" 2>/dev/null | sed 's/^/  /' || echo "  No output yet..."
             fi
 
-            # Check KNIRVROOT startup
-            if [ -f "$TEST_DIR/logs/knirvroot.log" ]; then
-                echo "KNIRVROOT (Go application):"
-                tail -3 "$TEST_DIR/logs/knirvroot.log" 2>/dev/null | sed 's/^/  /' || echo "  No output yet..."
+            # Check KNIRVORACLE startup
+            if [ -f "$TEST_DIR/logs/knirvoracle.log" ]; then
+                echo "KNIRVORACLE (Go application):"
+                tail -3 "$TEST_DIR/logs/knirvoracle.log" 2>/dev/null | sed 's/^/  /' || echo "  No output yet..."
             fi
 
             echo ""
@@ -162,7 +162,7 @@ verify_services_running() {
                 # Look for "Starting server at http://127.0.0.1:PORT" or similar
                 grep -o "Starting server at http://[^:]*:\([0-9]*\)" "$log_file" | tail -1 | grep -o "[0-9]*$"
                 ;;
-            "KNIRVROOT")
+            "KNIRVORACLE")
                 # Look for "Starting Server on port PORT" or similar
                 grep -o "Starting.*[Ss]erver.*port \([0-9]*\)" "$log_file" | tail -1 | grep -o "[0-9]*$"
                 ;;
@@ -194,7 +194,7 @@ verify_services_running() {
             "KNIRVCHAIN")
                 echo "http://localhost:$port/health"
                 ;;
-            "KNIRVROOT")
+            "KNIRVORACLE")
                 echo "http://localhost:$port/health"
                 ;;
             "KNIRVGRAPH")
@@ -255,8 +255,8 @@ verify_services_running() {
         return 1
     }
 
-    # Check KNIRVROOT health (fallback to expected port)
-    if ! check_service_with_retries "KNIRVROOT" "http://localhost:1317/health"; then
+    # Check KNIRVORACLE health (fallback to expected port)
+    if ! check_service_with_retries "KNIRVORACLE" "http://localhost:1317/health"; then
         services_ok=false
     fi
 
@@ -315,7 +315,7 @@ stop_services_gracefully() {
     print_status "Stopping services gracefully..."
 
     # Stop services by PID files
-    for service in knirvroot knirvgraph knirvchain knirvnexus knirvrouter knirvgateway; do
+    for service in knirvoracle knirvgraph knirvchain knirvnexus knirvrouter knirvgateway; do
         local pid_file="$TEST_DIR/logs/${service}.pid"
         if [ -f "$pid_file" ]; then
             local pid=$(cat "$pid_file")
@@ -340,7 +340,7 @@ check_services_stopped() {
 
     # Check each service port
     local ports=(1317 8082 8090 8083 5001 8888)
-    local service_names=("KNIRVROOT" "KNIRVGRAPH" "KNIRVCHAIN" "KNIRVNEXUS" "KNIRVROUTER" "KNIRVGATEWAY")
+    local service_names=("KNIRVORACLE" "KNIRVGRAPH" "KNIRVCHAIN" "KNIRVNEXUS" "KNIRVROUTER" "KNIRVGATEWAY")
 
     for i in "${!ports[@]}"; do
         local port=${ports[$i]}
@@ -579,7 +579,7 @@ generate_test_report() {
     "command": "$COMMAND",
     "test_pattern": "$TEST_PATTERN",
     "services": {
-        "knirvroot": {
+        "knirvoracle": {
             "port": 1317,
             "health_endpoint": "http://localhost:1317/health",
             "status": "$(curl -s http://localhost:1317/health > /dev/null && echo 'running' || echo 'stopped')"
@@ -655,7 +655,7 @@ EOF
         <h2>🔧 Service Status</h2>
         <div class="service-status">
             <div class="service $(curl -s http://localhost:1317/health > /dev/null && echo 'running' || echo 'stopped')">
-                <h4>KNIRVROOT (Core Network)</h4>
+                <h4>KNIRVORACLE (Core Network)</h4>
                 <p>Port: 1317</p>
                 <p>Status: <span class="$(curl -s http://localhost:1317/health > /dev/null && echo 'running' || echo 'stopped')">$(curl -s http://localhost:1317/health > /dev/null && echo 'RUNNING' || echo 'STOPPED')</span></p>
                 <p>Health: http://localhost:1317/health</p>
@@ -733,8 +733,8 @@ EOF
     <div class="section">
         <h2>🔗 Integration Points Tested</h2>
         <ul>
-            <li><strong>KNIRVROOT ↔ KNIRVGRAPH:</strong> Core network to graph database communication</li>
-            <li><strong>KNIRVCHAIN ↔ KNIRVROOT:</strong> Blockchain to core network integration</li>
+            <li><strong>KNIRVORACLE ↔ KNIRVGRAPH:</strong> Core network to graph database communication</li>
+            <li><strong>KNIRVCHAIN ↔ KNIRVORACLE:</strong> Blockchain to core network integration</li>
             <li><strong>KNIRVNEXUS ↔ All Services:</strong> Management portal service discovery</li>
             <li><strong>KNIRVROUTER ↔ Network:</strong> P2P routing and connectivity</li>
             <li><strong>KNIRVGATEWAY ↔ Frontend:</strong> API gateway and web interface</li>

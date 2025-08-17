@@ -58,7 +58,7 @@ graph TB
     end
     
     subgraph "Core Blockchain Layer"
-        KR[KNIRV-ROOT<br/>NRN Oracle & Economic Orchestrator]
+        KR[KNIRV-ORACLE<br/>NRN Oracle & Economic Orchestrator]
         KC[KNIRVCHAIN<br/>Living Base LLM & Skill Registry]
         KG[KNIRVGRAPH<br/>Knowledge Graphchain]
     end
@@ -85,7 +85,7 @@ graph TB
 
 ## 🔧 Core Components
 
-### 🏛️ KNIRV-ROOT: The Economic Orchestrator
+### 🏛️ KNIRV-ORACLE: The Economic Orchestrator
 **Technology**: GoLang-based Layer 1 blockchain with PoAu-D consensus and XION bridge
 - **Purpose**: Canonical NRN token ledger, network oracle, and cross-chain bridge
 - **Key Features**:
@@ -174,7 +174,7 @@ Clarification: An AI assistant is typically a tool that responds to user command
 
 ## 🔄 PoAu-D Consensus: Proof of Authority using Delegation
 
-KNIRV-ROOT introduces a novel consensus mechanism that combines the efficiency of Proof of Authority with the flexibility of transaction delegation:
+KNIRV-ORACLE introduces a novel consensus mechanism that combines the efficiency of Proof of Authority with the flexibility of transaction delegation:
 
 ### 🏛️ Network Authors (NAPs)
 - **Authority**: Authorized peers with block proposal rights
@@ -226,7 +226,7 @@ GET  /auth/validate           # Token validation
 GET  /knirvchain/*           # KNIRVCHAIN operations
 GET  /knirvgraph/*           # KNIRVGRAPH queries
 GET  /knirvnexus/*           # KNIRV-NEXUS validation
-GET  /knirvroot/*            # KNIRV-ROOT transactions
+GET  /knirvoracle/*            # KNIRV-ORACLE transactions
 GET  /knirvrouter/*          # KNIRV-ROUTER connectivity
 ```
 
@@ -329,8 +329,8 @@ ssh knirv-testnet 'docker-compose -f /opt/knirv-testnet/docker-compose-prod.yml 
 Each component can be run independently for development:
 
 ```bash
-# KNIRV-ROOT (NRN Oracle & Bridge)
-cd KNIRVROOT && go run main.go --port 8083
+# KNIRV-ORACLE (NRN Oracle & Bridge)
+cd KNIRVORACLE && go run main.go --port 8083
 
 # KNIRVCHAIN (Skill Registry)
 cd KNIRVCHAIN && cargo run
@@ -399,7 +399,7 @@ This command orchestrates testing across all components:
 - **KNIRVGRAPH**: Blockchain Explorer (Go backend + TypeScript frontend)
 - **KNIRVWALLET**: Wallet System (React Native + Web)
 - **KNIRVNEXUS**: Admin Portal (React + Go backend)
-- **KNIRVROOT**: Core Network (Go blockchain)
+- **KNIRVORACLE**: Core Network (Go blockchain)
 - **Integration Tests**: Cross-component validation
 
 ### 📊 Test Reports & Coverage
@@ -780,7 +780,7 @@ For compatibility, these commands are still available:
 ./scripts/deploy-and-test.sh --comprehensive
 
 # Component-specific legacy testing
-cd KNIRVROOT && go test ./...
+cd KNIRVORACLE && go test ./...
 cd KNIRVCHAIN && cargo test
 cd KNIRVNEXUS && go test ./...
 
@@ -1062,7 +1062,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### ✅ Fully Implemented & Production Ready
 
 #### Core Infrastructure
-- **All 7 Sovereign Layers**: KNIRV-ROOT, KNIRVCHAIN, KNIRVGRAPH, KNIRV-NEXUS, KNIRV-ROUTER, KNIRV-CORTEX, KNIRV-WALLET
+- **All 7 Sovereign Layers**: KNIRV-ORACLE, KNIRVCHAIN, KNIRVGRAPH, KNIRV-NEXUS, KNIRV-ROUTER, KNIRV-CORTEX, KNIRV-WALLET
 - **Unified API Gateway**: Complete service orchestration with load balancing and authentication
 - **Cross-Chain Bridge**: XION integration with Meta Accounts and USDC faucet
 - **Economic Model**: NRN token minting, burning, and circulation

@@ -19,8 +19,8 @@ knirv:
   
   # KNIRV Network Services Configuration
   services:
-    # KNIRVROOT - Blockchain and Economics Hub
-    knirvroot:
+    # KNIRVORACLE - Blockchain and Economics Hub
+    knirvoracle:
       url: "http://localhost:9999"
       enabled: true
       timeout: "30s"
@@ -132,7 +132,7 @@ ui:
 # export KNIRV_NETWORK_ENVIRONMENT=production
 # export KNIRV_ROOT_API_KEY=prod_key_789
 # export KNIRV_GATEWAY_API_KEY=prod_gateway_key_012
-# export KNIRV_SERVICES_KNIRVROOT_URL=https://root.knirv.network
+# export KNIRV_SERVICES_KNIRVORACLE_URL=https://root.knirv.network
 # export KNIRV_SERVICES_KNIRVNEXUS_URL=https://nexus.knirv.network
 # export KNIRV_SERVICES_KNIRVGRAPH_URL=https://graph.knirv.network
 
@@ -141,7 +141,7 @@ ui:
 # Custom Service Endpoints:
 # knirv:
 #   services:
-#     knirvroot:
+#     knirvoracle:
 #       endpoints:
 #         api: "/api/v2"
 #         websocket: "/realtime"
@@ -153,7 +153,7 @@ ui:
 #   network:
 #     environment: "${KNIRV_ENV:-development}"
 #   services:
-#     knirvroot:
+#     knirvoracle:
 #       url: "${KNIRV_ROOT_URL:-http://localhost:9999}"
 #
 # Advanced Real-time Configuration:

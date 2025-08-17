@@ -90,7 +90,7 @@ show_usage() {
     echo "  XION_RPC                 XION RPC endpoint"
     echo "  KNIRVCHAIN_URL           KNIRVCHAIN service URL"
     echo "  KNIRVNEXUS_URL           KNIRVNEXUS service URL"
-    echo "  KNIRVROOT_URL            KNIRVROOT service URL"
+    echo "  KNIRVORACLE_URL            KNIRVORACLE service URL"
     echo "  KNIRVGRAPH_URL           KNIRVGRAPH service URL"
 }
 
@@ -136,7 +136,7 @@ start_economics() {
     export XION_RPC=${XION_RPC:-"https://rpc.xion-testnet-1.burnt.com:443"}
     export KNIRVCHAIN_URL=${KNIRVCHAIN_URL:-"http://localhost:8080"}
     export KNIRVNEXUS_URL=${KNIRVNEXUS_URL:-"http://localhost:8081"}
-    export KNIRVROOT_URL=${KNIRVROOT_URL:-"http://localhost:8082"}
+    export KNIRVORACLE_URL=${KNIRVORACLE_URL:-"http://localhost:8082"}
     export KNIRVGRAPH_URL=${KNIRVGRAPH_URL:-"http://localhost:8083"}
     
     print_info "Starting economics service on port $ECONOMICS_PORT"

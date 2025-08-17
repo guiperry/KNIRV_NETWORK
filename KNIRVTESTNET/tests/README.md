@@ -144,7 +144,7 @@ cd e2e/cortex-demo-suite
 testnet:
   environment: "local"
   services:
-    - knirv-root
+    - knirv-oracle
     - knirvchain
     - knirvgraph
     - knirv-nexus
@@ -173,7 +173,7 @@ demos:
   multi-agent-collaboration:
     duration: "15m"
     agents: 3
-    services: ["knirv-router", "knirvgraph", "knirv-root"]
+    services: ["knirv-router", "knirvgraph", "knirv-oracle"]
   
   learning-adaptation:
     duration: "20m"

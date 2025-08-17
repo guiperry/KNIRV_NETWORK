@@ -320,13 +320,13 @@ test-nexus: ## Test KNIRVNEXUS (Admin Portal)
 	fi
 
 .PHONY: test-root
-test-root: ## Test KNIRVROOT (Core Network)
-	@echo "$(BLUE)Testing KNIRVROOT...$(NC)"
-	@if [ -f "KNIRVROOT/go.mod" ]; then \
-		cd KNIRVROOT && go test -v ./...; \
-		echo "$(GREEN)✓ KNIRVROOT tests completed$(NC)"; \
+test-root: ## Test KNIRVORACLE (Core Network)
+	@echo "$(BLUE)Testing KNIRVORACLE...$(NC)"
+	@if [ -f "KNIRVORACLE/go.mod" ]; then \
+		cd KNIRVORACLE && go test -v ./...; \
+		echo "$(GREEN)✓ KNIRVORACLE tests completed$(NC)"; \
 	else \
-		echo "$(YELLOW)⚠ KNIRVROOT go.mod not found$(NC)"; \
+		echo "$(YELLOW)⚠ KNIRVORACLE go.mod not found$(NC)"; \
 	fi
 
 .PHONY: test-integration
@@ -351,7 +351,7 @@ test-reports: ## Generate comprehensive test reports
 	@echo "- KNIRVGRAPH: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "- KNIRVWALLET: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "- KNIRVNEXUS: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
-	@echo "- KNIRVROOT: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
+	@echo "- KNIRVORACLE: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "- Integration Tests: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "## Report Locations" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
@@ -542,11 +542,11 @@ sync-force-testnet-to-prod: ## Force synchronize testnet fixes to production (ov
 	@echo "$(GREEN)✓ Force synchronization completed$(NC)"
 
 .PHONY: sync-service
-sync-service: ## Synchronize fixes for a specific service (usage: make sync-service SERVICE=knirvroot)
+sync-service: ## Synchronize fixes for a specific service (usage: make sync-service SERVICE=knirvoracle)
 	@if [ -z "$(SERVICE)" ]; then \
 		echo "$(RED)Error: SERVICE parameter is required$(NC)"; \
 		echo "Usage: make sync-service SERVICE=<service_name>"; \
-		echo "Available services: knirvroot, knirvchain, knirvgraph, knirvnexus, knirvrouter, knirvgateway"; \
+		echo "Available services: knirvoracle, knirvchain, knirvgraph, knirvnexus, knirvrouter, knirvgateway"; \
 		exit 1; \
 	fi
 	@echo "$(BLUE)Synchronizing fixes for service: $(SERVICE)...$(NC)"
@@ -678,7 +678,7 @@ sync-help: ## Show detailed help for synchronization commands
 	@echo "$(YELLOW)Examples:$(NC)"
 	@echo "  make sync                            # Preview all changes"
 	@echo "  make sync-testnet-to-prod           # Apply testnet fixes to production"
-	@echo "  make sync-service SERVICE=knirvroot # Sync only KNIRVROOT service"
+	@echo "  make sync-service SERVICE=knirvoracle # Sync only KNIRVORACLE service"
 	@echo "  make sync-emergency-hotfix          # Emergency production hotfix"
 	@echo ""
 	@echo "$(YELLOW)Safety Notes:$(NC)"

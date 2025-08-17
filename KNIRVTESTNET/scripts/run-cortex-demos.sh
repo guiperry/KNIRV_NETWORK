@@ -182,7 +182,7 @@ check_prerequisites() {
     
     # Check if testnet services are running
     local services=("1317" "8090" "8082" "8084" "5001" "8087")
-    local service_names=("knirv-root" "knirvchain" "knirvgraph" "knirv-nexus" "knirv-router" "knirv-gateway")
+    local service_names=("knirv-oracle" "knirvchain" "knirvgraph" "knirv-nexus" "knirv-router" "knirv-gateway")
     
     for i in "${!services[@]}"; do
         local port="${services[$i]}"

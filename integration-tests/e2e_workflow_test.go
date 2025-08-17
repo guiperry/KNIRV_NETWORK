@@ -87,7 +87,7 @@ func (suite *E2ETestSuite) TearDownSuite() {
 }
 
 func (suite *E2ETestSuite) waitForServices() {
-	services := []string{"knirvchain", "knirvgraph", "knirvnexus", "knirvroot", "knirvrouter"}
+	services := []string{"knirvchain", "knirvgraph", "knirvnexus", "knirvoracle", "knirvrouter"}
 
 	for _, service := range services {
 		suite.T().Logf("Waiting for service: %s", service)
@@ -147,7 +147,7 @@ func (suite *E2ETestSuite) fundTestWallet() {
 		"amount":  "10000000", // 10 NRN
 	}
 
-	resp := suite.makeAuthenticatedRequest("POST", "/knirvroot/faucet/fund", fundData)
+	resp := suite.makeAuthenticatedRequest("POST", "/knirvoracle/faucet/fund", fundData)
 	require.True(suite.T(), resp.Success, "Failed to fund test wallet")
 
 	suite.testWallet.Balance = "10000000"
@@ -443,10 +443,10 @@ func (suite *E2ETestSuite) TestCompleteWorkflow() {
 			"target_chain": "xion",
 			"amount":       "1000000", // 1 NRN
 			"recipient":    suite.testWallet.Address,
-			"source":       "KNIRVROOT",
+			"source":       "KNIRVORACLE",
 		}
 
-		resp := suite.makeAuthenticatedRequest("POST", "/knirvroot/bridge/transfer", bridgeData)
+		resp := suite.makeAuthenticatedRequest("POST", "/knirvoracle/bridge/transfer", bridgeData)
 		assert.True(suite.T(), resp.Success, "Bridge transfer failed: %s", resp.Error)
 		assert.NotEmpty(suite.T(), resp.TxHash, "No transaction hash returned")
 
@@ -457,7 +457,7 @@ func (suite *E2ETestSuite) TestCompleteWorkflow() {
 		time.Sleep(10 * time.Second)
 
 		// Check bridge status
-		statusResp := suite.makeAuthenticatedRequest("GET", fmt.Sprintf("/knirvroot/bridge/status?tx_hash=%s", txHash), nil)
+		statusResp := suite.makeAuthenticatedRequest("GET", fmt.Sprintf("/knirvoracle/bridge/status?tx_hash=%s", txHash), nil)
 		assert.True(suite.T(), statusResp.Success, "Failed to check bridge status")
 
 		status := statusResp.Data["status"].(string)
@@ -466,7 +466,7 @@ func (suite *E2ETestSuite) TestCompleteWorkflow() {
 
 	// Test 9: Economic Metrics Validation
 	suite.Run("EconomicMetricsValidation", func() {
-		metricsResp := suite.makeAuthenticatedRequest("GET", "/knirvroot/economics/metrics", nil)
+		metricsResp := suite.makeAuthenticatedRequest("GET", "/knirvoracle/economics/metrics", nil)
 		assert.True(suite.T(), metricsResp.Success, "Failed to get economic metrics")
 
 		metrics := metricsResp.Data

@@ -423,7 +423,7 @@ distribute_collaborative_rewards() {
         }
     }'
     
-    # Make request to KNIRV-ROOT
+    # Make request to KNIRV-ORACLE
     local response=$(curl -s -X POST \
         -H "Content-Type: application/json" \
         -d "$reward_data" \

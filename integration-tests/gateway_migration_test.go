@@ -168,10 +168,10 @@ func testServiceProxyFunctionality(t *testing.T, config *GatewayMigrationTestCon
 	ctx, cancel := context.WithTimeout(context.Background(), config.TestTimeout)
 	defer cancel()
 
-	// Test proxy to KNIRVROOT (should work if KNIRVROOT is running)
+	// Test proxy to KNIRVORACLE (should work if KNIRVORACLE is running)
 	resp, err := makeHTTPRequest(ctx, "GET", config.GatewayURL+"/health", nil)
 	if err != nil {
-		t.Logf("⚠️  Service proxy test skipped (KNIRVROOT not running): %v", err)
+		t.Logf("⚠️  Service proxy test skipped (KNIRVORACLE not running): %v", err)
 		return
 	}
 	defer resp.Body.Close()

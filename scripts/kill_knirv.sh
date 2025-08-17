@@ -2,7 +2,7 @@
 # KNIRV Network Process Termination Script
 #
 # This script comprehensively terminates all KNIRV-related processes across the entire network.
-# It handles all KNIRV services including KNIRVCHAIN, KNIRVNEXUS, KNIRVGRAPH, KNIRVROOT,
+# It handles all KNIRV services including KNIRVCHAIN, KNIRVNEXUS, KNIRVGRAPH, KNIRVORACLE,
 # KNIRVROUTER, KNIRVGATEWAY, Economics Service, and associated frontend processes.
 #
 # Features:
@@ -30,13 +30,13 @@ PORTS_TO_CHECK=(
     8000    # KNIRVGATEWAY API Gateway
     8080    # KNIRVCHAIN / KNIRVNEXUS Frontend
     8081    # KNIRVNEXUS API
-    8082    # KNIRVROOT
+    8082    # KNIRVORACLE
     8083    # KNIRVGRAPH
     8090    # Economics Service
     8091    # KNIRVROUTER
 
     # Legacy/Alternative ports
-    5000 5001 6000 6001    # KNIRVROOT legacy ports
+    5000 5001 6000 6001    # KNIRVORACLE legacy ports
     3000 3001              # Development servers
     4000 4001              # Additional services
     9000 9001              # Monitoring/metrics
@@ -47,7 +47,7 @@ LOCK_FILES=("*.lock" "*.pid")
 
 # KNIRV service patterns to search for
 KNIRV_PATTERNS=(
-    "KNIRVROOT"
+    "KNIRVORACLE"
     "KNIRVCHAIN"
     "KNIRVNEXUS"
     "KNIRVGRAPH"
@@ -58,7 +58,7 @@ KNIRV_PATTERNS=(
     "knirvnexus"
     "knirvchain"
     "knirvgraph"
-    "knirvroot"
+    "knirvoracle"
     "knirvrouter"
     "api-gateway"
 )
@@ -221,7 +221,7 @@ show_help() {
     echo "  --no-cleanup   Skip cleanup of temp files and logs"
     echo ""
     echo "This script will terminate all KNIRV network processes including:"
-    echo "  - KNIRVCHAIN, KNIRVNEXUS, KNIRVGRAPH, KNIRVROOT, KNIRVROUTER"
+    echo "  - KNIRVCHAIN, KNIRVNEXUS, KNIRVGRAPH, KNIRVORACLE, KNIRVROUTER"
     echo "  - KNIRVGATEWAY and Economics Service"
     echo "  - Associated Node.js/Vite frontend processes"
     echo "  - All child processes and related services"

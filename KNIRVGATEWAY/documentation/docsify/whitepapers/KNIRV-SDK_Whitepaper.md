@@ -16,7 +16,7 @@ Building decentralized applications and integrating with complex multi-chain AI 
 
 ## 1. Introduction
 
-The **KNIRV D-TEN** represents a paradigm shift in decentralized AI, with its sovereign Graphchains (**KNIRVGRAPH**), blockchains (**KNIRV-ROOT**, **KNIRVCHAIN**), and intelligent agents (**KNIRV-SHELL**). However, the power of such a sophisticated ecosystem can only be fully realized if it is easily accessible to developers. Direct interaction with multiple blockchain RPCs, complex P2P protocols, and specialized data structures can be a significant barrier to entry.
+The **KNIRV D-TEN** represents a paradigm shift in decentralized AI, with its sovereign Graphchains (**KNIRVGRAPH**), blockchains (**KNIRV-ORACLE**, **KNIRVCHAIN**), and intelligent agents (**KNIRV-SHELL**). However, the power of such a sophisticated ecosystem can only be fully realized if it is easily accessible to developers. Direct interaction with multiple blockchain RPCs, complex P2P protocols, and specialized data structures can be a significant barrier to entry.
 
 The **KNIRV SDK** is engineered to bridge this gap. It provides a unified, high-level abstraction layer that simplifies programmatic interaction with all components of the **KNIRV D-TEN**. By centralizing access through a robust **API Gateway** and building upon existing `knirv://` URI resolution capabilities, the SDK empowers developers to focus on building innovative applications rather than grappling with low-level network intricacies.
 
@@ -47,7 +47,7 @@ The SDK provides intuitive, high-level functions that abstract away the complexi
 
 > **Expanded Information:**
 >
-> -   **Blockchain Interaction Abstraction:** Instead of raw RPC calls to **KNIRV-ROOT**, **KNIRVCHAIN**, or **KNIRVGRAPH**, developers use simple SDK methods like `knirv.nrn.transfer(amount, recipient)` or `knirv.skill.invoke(skillId, data)`. The SDK handles the underlying transaction construction, signing (via **KNIRV-WALLET** integration), and submission.
+> -   **Blockchain Interaction Abstraction:** Instead of raw RPC calls to **KNIRV-ORACLE**, **KNIRVCHAIN**, or **KNIRVGRAPH**, developers use simple SDK methods like `knirv.nrn.transfer(amount, recipient)` or `knirv.skill.invoke(skillId, data)`. The SDK handles the underlying transaction construction, signing (via **KNIRV-WALLET** integration), and submission.
 > -   **P2P & DHT Abstraction:** Building upon existing `knirv://` URI resolution capabilities, the SDK simplifies peer discovery and resource fetching within the D-TEN's private DHT. Developers can simply request a resource via its `knirv://` URI, and the SDK handles the complex libp2p streams and peer connections.
 > -   **Cryptographic Simplification:** The SDK simplifies cryptographic operations, such as generating User Delegation Certificates (UDCs) for **KNIRV-SHELL** agents or verifying ValidationProofs from **KNIRV-NEXUS** DVEs. Developers interact with clear method calls, not raw cryptographic primitives.
 
@@ -57,7 +57,7 @@ The **KNIRV SDK** is designed to be accessible to a broad developer community, o
 
 > **Expanded Information:**
 >
-> -   **Go SDK:** For Go applications, leveraging Go's strengths in concurrency and performance, ideal for backend services and **KNIRV-ROUTER**/**KNIRV-ROOT** integrations.
+> -   **Go SDK:** For Go applications, leveraging Go's strengths in concurrency and performance, ideal for backend services and **KNIRV-ROUTER**/**KNIRV-ORACLE** integrations.
 > -   **Python SDK:** For Python applications, catering to data scientists, AI/ML developers, and researchers, providing a familiar environment for interacting with the D-TEN's intelligence layers.
 > -   **JavaScript/TypeScript SDK:** For Node.js and browser-based applications, enabling frontend developers to build rich, interactive user interfaces for **KNIRV-WALLET** and **KNIRVANA**.
 
@@ -100,12 +100,12 @@ The SDK provides comprehensive functionalities for interacting with the **NRN** 
 
 > **Expanded Information:**
 >
-> -   **NRN Balance & History:** Methods to query a user's **NRN** balance (from **KNIRV-ROOT**) and retrieve transaction history.
-> -   **NRN Transfer:** Simple methods to transfer **NRN** tokens between accounts (orchestrated by **KNIRV-ROOT** via the **API Gateway**).
-> -   **NRN Acquisition:** Direct interface to acquire **NRN** from the **KNIRV-ROOT** Faucet (via the **API Gateway**), abstracting the USDC exchange process.
-> -   **Skill Invocation:** A core function allowing **KNIRV-SHELL** agents (or dApps) to invoke Skills from **KNIRVCHAIN**, which triggers **NRN** burning on **KNIRV-ROOT**. The SDK handles the underlying transaction construction and submission.
-> -   **LLM/Skill Registration:** Methods to submit Base LLM update proposals to **KNIRVCHAIN** (orchestrated by **KNIRV-ROOT**) and SkillNode proposals to **KNIRVGRAPH** (which then triggers canonical minting on **KNIRVCHAIN** via **KNIRV-ROOT**).
-> -   **Reward Claiming:** Interface for Solvers, DVE operators, and Observers to claim their **NRN** rewards (from **KNIRV-ROOT**).
+> -   **NRN Balance & History:** Methods to query a user's **NRN** balance (from **KNIRV-ORACLE**) and retrieve transaction history.
+> -   **NRN Transfer:** Simple methods to transfer **NRN** tokens between accounts (orchestrated by **KNIRV-ORACLE** via the **API Gateway**).
+> -   **NRN Acquisition:** Direct interface to acquire **NRN** from the **KNIRV-ORACLE** Faucet (via the **API Gateway**), abstracting the USDC exchange process.
+> -   **Skill Invocation:** A core function allowing **KNIRV-SHELL** agents (or dApps) to invoke Skills from **KNIRVCHAIN**, which triggers **NRN** burning on **KNIRV-ORACLE**. The SDK handles the underlying transaction construction and submission.
+> -   **LLM/Skill Registration:** Methods to submit Base LLM update proposals to **KNIRVCHAIN** (orchestrated by **KNIRV-ORACLE**) and SkillNode proposals to **KNIRVGRAPH** (which then triggers canonical minting on **KNIRVCHAIN** via **KNIRV-ORACLE**).
+> -   **Reward Claiming:** Interface for Solvers, DVE operators, and Observers to claim their **NRN** rewards (from **KNIRV-ORACLE**).
 
 ### 3.4. KNIRV-SHELL Management & User Delegation Certificates (UDCs)
 
@@ -348,8 +348,8 @@ The **KNIRV SDK** provides the programmatic glue that connects external applicat
 
 > **Expanded Information:**
 >
-> -   **KNIRV-ROOT (NRN Oracle & Orchestrator):** The SDK provides direct access to **KNIRV-ROOT's** functionalities via the APIGateway, enabling **NRN** balance queries, faucet interactions, and the orchestration of **NRN** burning for Skill invocation. The TokenEconomics service, managed by **KNIRV-ROOT's** backend, is exposed through the **API Gateway**, allowing the SDK to interact with its logic for Skill invocation, LLM registration, and reward processing.
-> -   **KNIRVCHAIN (Base LLM & Skill Certification):** Developers can use the SDK to query the canonical Base LLM (CodeT5) versions, retrieve SkillNode metadata from the SkillRegistry, and submit Base LLM update proposals or SkillNode minting requests (orchestrated by **KNIRV-ROOT**). The `knirv://` URI resolution is key for fetching the actual model and skill binaries.
+> -   **KNIRV-ORACLE (NRN Oracle & Orchestrator):** The SDK provides direct access to **KNIRV-ORACLE's** functionalities via the APIGateway, enabling **NRN** balance queries, faucet interactions, and the orchestration of **NRN** burning for Skill invocation. The TokenEconomics service, managed by **KNIRV-ORACLE's** backend, is exposed through the **API Gateway**, allowing the SDK to interact with its logic for Skill invocation, LLM registration, and reward processing.
+> -   **KNIRVCHAIN (Base LLM & Skill Certification):** Developers can use the SDK to query the canonical Base LLM (CodeT5) versions, retrieve SkillNode metadata from the SkillRegistry, and submit Base LLM update proposals or SkillNode minting requests (orchestrated by **KNIRV-ORACLE**). The `knirv://` URI resolution is key for fetching the actual model and skill binaries.
 > -   **KNIRVGRAPH (Knowledge Graphchain):** The SDK offers comprehensive methods to interact with **KNIRVGRAPH**, including announcing NRVs to the DHT, querying the knowledge graph for ErrorNodes and SkillNodes, and submitting `ProposeSolution` and `MintResolution` transactions. This allows developers to build applications that contribute to and leverage the network's collective intelligence.
 > -   **KNIRV-NEXUS DVEs (Verifiable Execution):** The SDK provides interfaces to submit validation tasks to **KNIRV-NEXUS** DVEs (via the **API Gateway**), retrieve ValidationProofs, and integrate with secure backup functionalities for **KNIRV-SHELLs**.
 > -   **KNIRV-ROUTERS (Network Connectivity):** While not directly exposed for configuration, the SDK implicitly relies on **KNIRV-ROUTERS** for `knirv://` URI resolution and underlying network connectivity, facilitating peer discovery and resource fetching.

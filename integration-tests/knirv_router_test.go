@@ -126,7 +126,7 @@ func (suite *KNIRVROUTERTestSuite) fundTestWallet(amount string) {
 		"amount":  amount,
 	}
 
-	resp := suite.makeAuthenticatedRequest("POST", "/knirvroot/faucet/fund", fundData)
+	resp := suite.makeAuthenticatedRequest("POST", "/knirvoracle/faucet/fund", fundData)
 	require.True(suite.T(), resp.Success, "Failed to fund test wallet")
 
 	suite.testWallet.Balance = amount

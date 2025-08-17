@@ -119,7 +119,7 @@ type CortexAgent struct {
 ## 🔄 **Service Management**
 
 ### **Supported Services**
-- **KNIRV-ROOT** (port 1317): Core network service
+- **KNIRV-ORACLE** (port 1317): Core network service
 - **KNIRVCHAIN** (port 8090): Blockchain service
 - **KNIRVGRAPH** (port 8082): Graph database service
 - **KNIRV-NEXUS-DVE** (port 8084): DVE management service

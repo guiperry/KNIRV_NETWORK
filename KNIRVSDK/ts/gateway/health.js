@@ -83,7 +83,7 @@ export class HealthService {
         const services = {
             knirvchain: this.config.serviceURLs.knirvchain,
             knirvnexus: this.config.serviceURLs.knirvnexus,
-            knirvroot: this.config.serviceURLs.knirvroot,
+            knirvoracle: this.config.serviceURLs.knirvoracle,
             knirvgraph: this.config.serviceURLs.knirvgraph,
         };
         for (const [serviceName, serviceURL] of Object.entries(services)) {

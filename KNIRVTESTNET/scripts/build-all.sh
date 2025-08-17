@@ -11,11 +11,11 @@ mkdir -p bin data logs
 echo "Building KNIRV-TESTNET with real components..."
 
 # Create data directories
-mkdir -p data/{knirvroot,knirvchain,knirvgraph,knirvnexus,knirvrouter,knirvgateway,ipfs}
+mkdir -p data/{knirvoracle,knirvchain,knirvgraph,knirvnexus,knirvrouter,knirvgateway,ipfs}
 
 # Build components with testnet features
-echo "1/6 Building KNIRV-ROOT with testnet mode..."
-./scripts/build-knirvroot.sh
+echo "1/6 Building KNIRV-ORACLE with testnet mode..."
+./scripts/build-knirvoracle.sh
 
 echo "2/6 Building KNIRVCHAIN with testnet features..."
 ./scripts/build-knirvchain.sh

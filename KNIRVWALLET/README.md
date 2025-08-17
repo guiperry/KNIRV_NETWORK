@@ -65,7 +65,7 @@ Both implementations share core functionality while optimizing for their respect
 ## ✨ Key Features
 
 ### 🔐 Core Wallet Functionality
-- Multi-Chain Support: BTC, ETH, Solana, and KNIRV-ROOT blockchain
+- Multi-Chain Support: BTC, ETH, Solana, and KNIRV-ORACLE blockchain
 - NRN Token Management: Native support for KNIRV Network's NRN tokens
 - XION Meta Accounts: Gasless transactions and Web2-like authentication
 - Biometric Authentication: Secure, convenient access across platforms
@@ -255,7 +255,7 @@ await nrvService.submitSkillNode(skillType, capabilities);
 
 KNIRVWALLET seamlessly integrates with the broader KNIRV ecosystem:
 
-- **[KNIRV-ROOT](../KNIRVROOT/)**: Foundational blockchain for NRN tokens
+- **[KNIRV-ORACLE](../KNIRVORACLE/)**: Foundational blockchain for NRN tokens
 - **[KNIRVCHAIN](../KNIRVCHAIN/)**: Smart contract platform for Skills and Base LLMs  
 - **[KNIRV-CORTEX](../KNIRVCORTEX/)**: AI agent framework
 - **[KNIRV-NEXUS](../KNIRVNEXUS/)**: Distributed verification engine

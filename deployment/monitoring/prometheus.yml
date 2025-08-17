@@ -56,8 +56,8 @@ scrape_configs:
     scrape_interval: 30s
     scrape_timeout: 10s
 
-  # KNIRVROOT
-  - job_name: 'knirvroot'
+  # KNIRVORACLE
+  - job_name: 'knirvoracle'
     static_configs:
       - targets: ['knirv-service:8083']
     metrics_path: '/metrics'

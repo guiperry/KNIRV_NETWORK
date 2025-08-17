@@ -187,7 +187,7 @@ test_docker_files() {
         "$PROJECT_ROOT/KNIRVCHAIN/Dockerfile"
         "$PROJECT_ROOT/KNIRVGRAPH/Dockerfile"
         "$PROJECT_ROOT/KNIRVNEXUS/Dockerfile"
-        "$PROJECT_ROOT/KNIRVROOT/Dockerfile"
+        "$PROJECT_ROOT/KNIRVORACLE/Dockerfile"
         "$PROJECT_ROOT/KNIRVROUTER/Dockerfile"
         "$PROJECT_ROOT/KNIRVGATEWAY/Dockerfile"
     )

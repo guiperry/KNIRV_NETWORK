@@ -126,7 +126,7 @@ func (v *CrossComponentValidator) TestKNIRVCHAINGraphIntegration(t *testing.T) {
 	})
 }
 
-// Test KNIRVNEXUS <-> KNIRVROOT Integration
+// Test KNIRVNEXUS <-> KNIRVORACLE Integration
 func (v *CrossComponentValidator) TestKNIRVNEXUSRootIntegration(t *testing.T) {
 	// Test 1: Agent creation in NEXUS triggers blockchain transaction in ROOT
 	t.Run("AgentCreationBlockchainRecord", func(t *testing.T) {
@@ -151,7 +151,7 @@ func (v *CrossComponentValidator) TestKNIRVNEXUSRootIntegration(t *testing.T) {
 		// Wait for blockchain propagation
 		time.Sleep(5 * time.Second)
 
-		// Verify agent creation is recorded in KNIRVROOT blockchain
+		// Verify agent creation is recorded in KNIRVORACLE blockchain
 		resp, err = v.suite.makeRequest("GET", v.suite.knirvRootURL+"/blockchain/transactions?type=agent_creation&agent_id="+agentID, nil)
 		require.NoError(t, err)
 
@@ -229,7 +229,7 @@ func (v *CrossComponentValidator) TestKNIRVNEXUSRootIntegration(t *testing.T) {
 	})
 }
 
-// Test KNIRVROUTER <-> KNIRVROOT Integration
+// Test KNIRVROUTER <-> KNIRVORACLE Integration
 func (v *CrossComponentValidator) TestKNIRVROUTERRootIntegration(t *testing.T) {
 	// Test 1: Connectivity proof generates NRN rewards
 	t.Run("ConnectivityProofRewards", func(t *testing.T) {

@@ -90,9 +90,9 @@ start_all_services() {
     cd "$PROJECT_ROOT"
     
     # Start services using the updated manage-knirv.sh script
-    print_step "Starting KNIRV-ROOT..."
-    ./scripts/manage-knirv.sh start knirvroot
-    wait_for_service "http://localhost:1317/health" "KNIRV-ROOT" 30 3
+    print_step "Starting KNIRV-ORACLE..."
+    ./scripts/manage-knirv.sh start knirvoracle
+    wait_for_service "http://localhost:1317/health" "KNIRV-ORACLE" 30 3
     
     print_step "Starting KNIRVCHAIN..."
     ./scripts/manage-knirv.sh start knirvchain
@@ -124,7 +124,7 @@ validate_service_health() {
     local all_healthy=true
     
     # Check each service
-    if ! check_service_health "http://localhost:1317/health" "KNIRV-ROOT"; then
+    if ! check_service_health "http://localhost:1317/health" "KNIRV-ORACLE"; then
         all_healthy=false
     fi
     
@@ -256,7 +256,7 @@ This report documents the complete validation of the KNIRV TESTNET with all iden
 ## Services Status
 
 ### Core Services
-- ✅ KNIRV-ROOT: Running on port 1317
+- ✅ KNIRV-ORACLE: Running on port 1317
 - ✅ KNIRVCHAIN: Running on port 8090  
 - ✅ KNIRVGRAPH: Running on port 8082
 

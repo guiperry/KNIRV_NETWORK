@@ -67,7 +67,7 @@ validate_config_syntax() {
     fi
     
     # Check JSON configs
-    for config_file in "$PROJECT_ROOT"/KNIRVROOT/config/*.json; do
+    for config_file in "$PROJECT_ROOT"/KNIRVORACLE/config/*.json; do
         if [[ -f "$config_file" ]]; then
             if jq empty "$config_file" >/dev/null 2>&1; then
                 test_result "JSON Config" "pass" "$(basename "$config_file") is valid JSON"
@@ -85,17 +85,17 @@ validate_config_syntax() {
 validate_service_configs() {
     log "INFO" "Validating service configurations..."
     
-    # KNIRVROOT config validation
-    local root_config="$PROJECT_ROOT/KNIRVROOT/config/root_config.json"
+    # KNIRVORACLE config validation
+    local root_config="$PROJECT_ROOT/KNIRVORACLE/config/root_config.json"
     if [[ -f "$root_config" ]]; then
         local chain_id=$(jq -r '.chainID' "$root_config" 2>/dev/null || echo "")
         if [[ -n "$chain_id" && "$chain_id" != "null" ]]; then
-            test_result "KNIRVROOT Config" "pass" "Chain ID configured: $chain_id"
+            test_result "KNIRVORACLE Config" "pass" "Chain ID configured: $chain_id"
         else
-            test_result "KNIRVROOT Config" "fail" "Chain ID not configured"
+            test_result "KNIRVORACLE Config" "fail" "Chain ID not configured"
         fi
     else
-        test_result "KNIRVROOT Config" "fail" "root_config.json not found"
+        test_result "KNIRVORACLE Config" "fail" "root_config.json not found"
     fi
     
     # KNIRVGATEWAY config validation
@@ -164,7 +164,7 @@ validate_environment_consistency() {
 validate_badge_attachment_fix() {
     log "INFO" "Validating badge attachment fix..."
     
-    local chromem_file="$PROJECT_ROOT/KNIRVROOT/chromem_manager.go"
+    local chromem_file="$PROJECT_ROOT/KNIRVORACLE/chromem_manager.go"
     if [[ -f "$chromem_file" ]]; then
         if grep -q "GetBadgeAttachments" "$chromem_file"; then
             if grep -q "progressive limits" "$chromem_file" || grep -q "agent-specific filtering" "$chromem_file"; then
@@ -183,7 +183,7 @@ validate_badge_attachment_fix() {
 validate_tunnel_registry_fix() {
     log "INFO" "Validating tunnel registry fix..."
     
-    local tunnel_file="$PROJECT_ROOT/KNIRVROOT/tunnel_registry.go"
+    local tunnel_file="$PROJECT_ROOT/KNIRVORACLE/tunnel_registry.go"
     if [[ -f "$tunnel_file" ]]; then
         if grep -q "URI resolution" "$tunnel_file" || grep -q "direct nodes" "$tunnel_file"; then
             test_result "Tunnel Registry Fix" "pass" "Enhanced URI resolution found"

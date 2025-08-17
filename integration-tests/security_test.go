@@ -69,7 +69,7 @@ func (suite *SecurityTestSuite) SetupSuite() {
 }
 
 func (suite *SecurityTestSuite) waitForServices() {
-	services := []string{"knirvchain", "knirvgraph", "knirvnexus", "knirvroot", "knirvrouter"}
+	services := []string{"knirvchain", "knirvgraph", "knirvnexus", "knirvoracle", "knirvrouter"}
 
 	for _, service := range services {
 		suite.T().Logf("Waiting for service: %s", service)

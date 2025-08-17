@@ -68,8 +68,8 @@ func NewServiceManager(serviceName string) *ServiceManager {
 // getServiceConfig returns configuration for each service
 func getServiceConfig(serviceName string) ServiceConfig {
 	configs := map[string]ServiceConfig{
-		"knirv-root": {
-			StartCommand:    "./scripts/start-knirvroot.sh",
+		"knirv-oracle": {
+			StartCommand:    "./scripts/start-knirvoracle.sh",
 			WorkingDir:      "../",
 			HealthEndpoint:  "/health",
 			Port:            1317,

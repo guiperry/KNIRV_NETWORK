@@ -14,9 +14,9 @@ services:
     networks:
       - knirv-testnet
 
-  knirvroot:
+  knirvoracle:
     build:
-      context: ../KNIRVROOT
+      context: ../KNIRVORACLE
       dockerfile: Dockerfile
     container_name: knirv-testnet-root
     ports:
@@ -24,8 +24,8 @@ services:
       - "26657:26657"
       - "26656:26656"
     volumes:
-      - ./data/knirvroot:/root/.knirvroot
-      - ./config/knirvroot-config.yaml:/root/config.yaml
+      - ./data/knirvoracle:/root/.knirvoracle
+      - ./config/knirvoracle-config.yaml:/root/config.yaml
     depends_on:
       - ipfs
     networks:
@@ -45,7 +45,7 @@ services:
       - ./data/knirvchain:/app/data
       - ./config/knirvchain-config.toml:/app/config.toml
     depends_on:
-      - knirvroot
+      - knirvoracle
       - ipfs
     networks:
       - knirv-testnet
@@ -64,7 +64,7 @@ services:
       - ./data/knirvgraph:/app/data
       - ./config/knirvgraph-config.yaml:/app/config.yaml
     depends_on:
-      - knirvroot
+      - knirvoracle
       - ipfs
     networks:
       - knirv-testnet
@@ -85,7 +85,7 @@ services:
       - NODE_ID=1
       - MOCK_TEE=true
     depends_on:
-      - knirvroot
+      - knirvoracle
     networks:
       - knirv-testnet
 
@@ -103,7 +103,7 @@ services:
       - NODE_ID=2
       - MOCK_TEE=true
     depends_on:
-      - knirvroot
+      - knirvoracle
     networks:
       - knirv-testnet
 
@@ -119,7 +119,7 @@ services:
       - ./data/knirvrouter:/app/data
       - ./config/knirvrouter-config.yaml:/app/config.yaml
     depends_on:
-      - knirvroot
+      - knirvoracle
     networks:
       - knirv-testnet
 
@@ -133,7 +133,7 @@ services:
     volumes:
       - ./config/knirvgateway-config.json:/app/config.json
     depends_on:
-      - knirvroot
+      - knirvoracle
       - knirvchain
       - knirvgraph
       - knirvnexus-1

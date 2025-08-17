@@ -31,14 +31,14 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("knirv.network.discovery.interval", "30s")
 	v.SetDefault("knirv.network.discovery.timeout", "10s")
 
-	// KNIRVROOT service defaults
-	v.SetDefault("knirv.services.knirvroot.url", "http://localhost:9999")
-	v.SetDefault("knirv.services.knirvroot.enabled", true)
-	v.SetDefault("knirv.services.knirvroot.timeout", "30s")
-	v.SetDefault("knirv.services.knirvroot.retries", 3)
-	v.SetDefault("knirv.services.knirvroot.endpoints.api", "/api/v1")
-	v.SetDefault("knirv.services.knirvroot.endpoints.websocket", "/ws")
-	v.SetDefault("knirv.services.knirvroot.endpoints.economics", "/economics")
+	// KNIRVORACLE service defaults
+	v.SetDefault("knirv.services.knirvoracle.url", "http://localhost:9999")
+	v.SetDefault("knirv.services.knirvoracle.enabled", true)
+	v.SetDefault("knirv.services.knirvoracle.timeout", "30s")
+	v.SetDefault("knirv.services.knirvoracle.retries", 3)
+	v.SetDefault("knirv.services.knirvoracle.endpoints.api", "/api/v1")
+	v.SetDefault("knirv.services.knirvoracle.endpoints.websocket", "/ws")
+	v.SetDefault("knirv.services.knirvoracle.endpoints.economics", "/economics")
 
 	// KNIRVGATEWAY service defaults
 	v.SetDefault("knirv.services.knirvgateway.url", "https://gateway.knirv.network")

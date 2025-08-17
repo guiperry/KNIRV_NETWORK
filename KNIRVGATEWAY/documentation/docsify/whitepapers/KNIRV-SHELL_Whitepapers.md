@@ -7,7 +7,7 @@ The **KNIRV-SHELL** is a sophisticated, AI-powered command-line interface (CLI) 
 
 #### **1. Introduction**
 
-The **KNIRV-SHELL** transforms the user's interaction with the D-TEN from an abstract concept into a tangible command-line experience. It is designed to overcome the limitations of isolated operations and static configurations, establishing itself as the "unified access" point for all network services. Unlike the user-facing `KNIRV-CORTEX`, the `KNIRV-SHELL` is a technical interface built for precision and control, empowering developers to build, manage, and monitor their applications directly from the terminal.
+The **KNIRV-SHELL** transforms the user's interaction with the D-TEN from an abstract concept into a tangible command-line experience. It is designed to overcome the limitations of isolated operations and static configurations, establishing itself as the "unified access" point for all network services. Unlike the user-facing `KNIRV-AGENTIFIER`, the `KNIRV-SHELL` is a technical interface built for precision and control, empowering developers to build, manage, and monitor their applications directly from the terminal.
 
 #### **2. Core Features**
 
@@ -43,7 +43,7 @@ graph TD
 
     subgraph "D-TEN Ecosystem"
         G[KNIRV-GATEWAY]
-        H[KNIRV-ROOT]
+        H[KNIRV-ORACLE]
         I[KNIRV-NEXUS]
         J[Dynamic Service Registry]
         K["NRN Token Management <br/><i>(Future)</i>"]
@@ -70,7 +70,7 @@ graph TD
 #### **4. Integration with the D-TEN Ecosystem**
 
 The `KNIRV-SHELL` is engineered to be a unified, single-pane-of-glass interface for the entire KNIRV ecosystem.
-*   **Unified API Access**: It acts as a single point of entry to a variety of services, including `KNIRV-ROOT`, `KNIRV-NEXUS`, and `KNIRV-GATEWAY`, addressing the previously identified "isolated operation" gap.
+*   **Unified API Access**: It acts as a single point of entry to a variety of services, including `KNIRV-ORACLE`, `KNIRV-NEXUS`, and `KNIRV-GATEWAY`, addressing the previously identified "isolated operation" gap.
 *   **Economic Integration**: The implementation plan includes the future integration of a module for NRN token management, which will provide developers with direct control over the network's economics and facilitate the seamless settlement of transactions.
 *   **Enhanced Inter-Module Communication**: The plan outlines the use of gRPC for efficient communication with core services, ensuring low-latency and high-throughput data exchange with other layers of the network.
 

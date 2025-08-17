@@ -128,7 +128,7 @@ export KNIRVGATEWAY_API_KEY="your-api-key"
 export NRN_CONTRACT="your-nrn-contract-address"
 export KNIRVCHAIN_URL="http://localhost:8080"
 export KNIRVNEXUS_URL="http://localhost:8081"
-export KNIRVROOT_URL="http://localhost:8082"
+export KNIRVORACLE_URL="http://localhost:8082"
 export KNIRVGRAPH_URL="http://localhost:8083"
 ```
 

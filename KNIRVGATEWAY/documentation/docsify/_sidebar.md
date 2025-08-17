@@ -20,9 +20,9 @@
 
 * [KNIRVNEXUS User and Deployment Guide](knirvnexus/README.md)
 
-## KNIRVROOT Documentation
+## KNIRVORACLE Documentation
 
-* [KNIRVROOT User Guide](knirvroot/README.md)
+* [KNIRVORACLE User Guide](knirvoracle/README.md)
 
 ## KNIRVROUTER Documentation
 

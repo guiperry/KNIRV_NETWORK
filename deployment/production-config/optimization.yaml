@@ -150,8 +150,8 @@ spec:
             memory: "2Gi"
             cpu: "2000m"
 
-      - name: knirvroot
-        image: knirv/knirvroot:v1.0.0
+      - name: knirvoracle
+        image: knirv/knirvoracle:v1.0.0
         ports:
         - containerPort: 8083
         env:
@@ -179,7 +179,7 @@ spec:
             secretKeyRef:
               name: blockchain-secrets
               key: xion-rpc-url
-        - name: KNIRVROOT_ENDPOINT
+        - name: KNIRVORACLE_ENDPOINT
           value: "http://root.knirv:8083"
         - name: NRN_CONTRACT_ADDR
           value: "xion1nrncontractaddress"
@@ -218,7 +218,7 @@ spec:
   - name: knirvnexus
     port: 8082
     targetPort: 8082
-  - name: knirvroot
+  - name: knirvoracle
     port: 8083
     targetPort: 8083
   - name: knirvrouter-turn

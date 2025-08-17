@@ -142,7 +142,7 @@ netlify/functions/
 - `GET /auth/verify` - Token verification
 
 #### Service Proxy
-- `/api/*` - Proxy to KNIRVROOT services
+- `/api/*` - Proxy to KNIRVORACLE services
 - `/economics/*` - Economics service endpoints
 - `/tunnel/*` - Tunnel registry endpoints
 
@@ -200,7 +200,7 @@ Configure these environment variables for production:
 
 ```bash
 # Service URLs
-KNIRVROOT_URL=https://root.knirv.com
+KNIRVORACLE_URL=https://root.knirv.com
 KNIRVCHAIN_URL=https://chain.knirv.com
 KNIRVGRAPH_URL=https://graph.knirv.com
 KNIRVNEXUS_URL=https://nexus.knirv.com
@@ -369,13 +369,13 @@ All notable changes to the KNIRV Gateway project will be documented in this sect
 - **Gateway Migration**: Migrated from KNIRVGATEWAY Go-based WebSocket gateway
 - **SSE Conversion**: Converted WebSocket functionality to Server-Sent Events
 - **Netlify Functions**: Implemented serverless functions architecture
-- **Economics Integration**: Integrated economics module into KNIRVROOT
-- **Tunnel Registry Migration**: Moved tunnel registry to KNIRVROOT
+- **Economics Integration**: Integrated economics module into KNIRVORACLE
+- **Tunnel Registry Migration**: Moved tunnel registry to KNIRVORACLE
 
 ### Changed
 - **Architecture**: Moved from centralized gateway to distributed serverless functions
 - **Communication**: Replaced WebSockets with Server-Sent Events for better browser compatibility
-- **Service Location**: Moved economics and tunnel registry to KNIRVROOT for better architecture
+- **Service Location**: Moved economics and tunnel registry to KNIRVORACLE for better architecture
 - **Build Process**: Updated from static-only to static + functions build
 
 ### Removed
@@ -498,7 +498,7 @@ Subscribe for updates on the future of AI! 🚀
 🚀 Open-source implementation of the world's first self-improving AI network
 
 ## Key Features
-- 12 sovereign layers (KNIRV-ROOT, KNIRVCHAIN, KNIRVGRAPH, etc.)
+- 12 sovereign layers (KNIRV-ORACLE, KNIRVCHAIN, KNIRVGRAPH, etc.)
 - Self-healing AI through ErrorNode → SkillNode transformation
 - Verifiable execution with KNIRV-NEXUS DVE
 - NRN token economics and

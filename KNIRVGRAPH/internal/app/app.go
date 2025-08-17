@@ -73,10 +73,10 @@ func NewApp(homeDir string, rpcPort int) (*App, error) {
 	// Initialize NRV system
 	nrvSystem := nrv.NewNRVSystem("local-peer", nil)
 
-	// Get KNIRVROOT URL from environment or use default
-	knirvRootURL := os.Getenv("KNIRVROOT_URL")
+	// Get KNIRVORACLE URL from environment or use default
+	knirvRootURL := os.Getenv("KNIRVORACLE_URL")
 	if knirvRootURL == "" {
-		knirvRootURL = "http://localhost:1317" // Default KNIRVROOT URL
+		knirvRootURL = "http://localhost:1317" // Default KNIRVORACLE URL
 	}
 
 	// Initialize NRN integration
@@ -133,10 +133,10 @@ func NewAppWithConfig(homeDir string, rpcPort int, config *Config) (*App, error)
 	// Initialize NRV system
 	nrvSystem := nrv.NewNRVSystem("local-peer", nil)
 
-	// Get KNIRVROOT URL from environment or use default
-	knirvRootURL := os.Getenv("KNIRVROOT_URL")
+	// Get KNIRVORACLE URL from environment or use default
+	knirvRootURL := os.Getenv("KNIRVORACLE_URL")
 	if knirvRootURL == "" {
-		knirvRootURL = "http://localhost:1317" // Default KNIRVROOT URL
+		knirvRootURL = "http://localhost:1317" // Default KNIRVORACLE URL
 	}
 
 	// Initialize NRN integration

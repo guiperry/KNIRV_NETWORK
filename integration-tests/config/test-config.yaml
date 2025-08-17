@@ -54,7 +54,7 @@ endpoints:
     health_endpoint: "/status"
     timeout: "30s"
   
-  knirvroot:
+  knirvoracle:
     url: "http://localhost:8086"
     health_endpoint: "/health"
     timeout: "30s"
@@ -187,7 +187,7 @@ production_deployment:
         knirvnexus_api_gateway: "http://localhost:8080"
         knirvnexus_dve_manager: "http://localhost:8081"
         knirvnexus_validation_core: "http://localhost:8082"
-        knirvroot: "http://localhost:8083"
+        knirvoracle: "http://localhost:8083"
         knirvrouter: "http://localhost:8084"
         knirvrouter_api: "http://localhost:9090"
 

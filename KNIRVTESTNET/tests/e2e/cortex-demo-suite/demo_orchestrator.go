@@ -350,7 +350,7 @@ func (do *DemoOrchestrator) InitializeCortexAgents(ctx context.Context) error {
 // InitializeServices initializes service clients
 func (do *DemoOrchestrator) InitializeServices(ctx context.Context) error {
 	services := map[string]string{
-		"knirv-root":    "http://localhost:1317",
+		"knirv-oracle":    "http://localhost:1317",
 		"knirvchain":    "http://localhost:8090",
 		"knirvgraph":    "http://localhost:8082",
 		"knirv-nexus":   "http://localhost:8084",

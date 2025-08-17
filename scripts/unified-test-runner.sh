@@ -77,7 +77,7 @@ echo -e "  ${GREEN}make test-sdk${NC}           # Test KNIRVSDK (Multi-language 
 echo -e "  ${GREEN}make test-graph${NC}         # Test KNIRVGRAPH (Blockchain Explorer)"
 echo -e "  ${GREEN}make test-wallet${NC}        # Test KNIRVWALLET (Wallet System)"
 echo -e "  ${GREEN}make test-nexus${NC}         # Test KNIRVNEXUS (Admin Portal)"
-echo -e "  ${GREEN}make test-root${NC}          # Test KNIRVROOT (Core Network)"
+echo -e "  ${GREEN}make test-root${NC}          # Test KNIRVORACLE (Core Network)"
 echo ""
 
 echo -e "${CYAN}Advanced Commands:${NC}"

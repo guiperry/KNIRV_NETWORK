@@ -384,15 +384,15 @@ func (pts *ProductionTestSuite) testConnectivityProofEngine(t *testing.T) {
 	})
 }
 
-// testBridgeIntegration validates KNIRV-ROOT bridge integration
+// testBridgeIntegration validates KNIRV-ORACLE bridge integration
 func (pts *ProductionTestSuite) testBridgeIntegration(t *testing.T) {
 	if !pts.config.ProductionDeployment.ProductionTests.BridgeTests {
 		t.Skip("Bridge tests are disabled")
 	}
 
-	rootURL := pts.config.ProductionDeployment.DeploymentModes.Local.Services["knirvroot"]
+	rootURL := pts.config.ProductionDeployment.DeploymentModes.Local.Services["knirvoracle"]
 	if rootURL == "" {
-		t.Skip("KNIRV-ROOT URL not configured")
+		t.Skip("KNIRV-ORACLE URL not configured")
 	}
 
 	// Test bridge health

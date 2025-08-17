@@ -59,7 +59,7 @@ Start an interactive shell with `knirv`. This provides tab completion and comman
 
 KNIRVSHELL integrates with several KNIRV Network services:
 
-* **KNIRVROOT:** Blockchain operations (use `knirv system` commands).
+* **KNIRVORACLE:** Blockchain operations (use `knirv system` commands).
 * **KNIRVGATEWAY:** API gateway access (implicitly used by many commands).
 * **KNIRVNEXUS:** DVE rental and inference API (use `knirv mcp` commands).
 * **KNIRVGRAPH:** NRV system operations (use `knirv mcp nrv` commands).

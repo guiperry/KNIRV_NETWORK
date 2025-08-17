@@ -121,7 +121,7 @@ func runSystemInit(cmd *cobra.Command, args []string) error {
 			var client core.KNIRVServiceClient
 			
 			switch name {
-			case "knirvroot":
+			case "knirvoracle":
 				client = core.NewKNIRVRootClient(service.Config, log)
 			case "knirvgateway":
 				client = core.NewKNIRVGatewayClient(service.Config, log)
@@ -242,7 +242,7 @@ func runSystemStatus(cmd *cobra.Command, args []string) error {
 		name    string
 		config  config.ServiceConfig
 	}{
-		{"KNIRVROOT", cfg.KNIRV.Services.KNIRVRoot},
+		{"KNIRVORACLE", cfg.KNIRV.Services.KNIRVRoot},
 		{"KNIRVGATEWAY", cfg.KNIRV.Services.KNIRVGateway},
 		{"KNIRVNEXUS", cfg.KNIRV.Services.KNIRVNexus},
 		{"KNIRVGRAPH", cfg.KNIRV.Services.KNIRVGraph},

@@ -19,7 +19,7 @@ A comprehensive blockchain implementation for the KNIRV network with advanced mu
 - **Performance Testing**: Comprehensive model evaluation and comparison framework
 - **TEE Integration**: Support for Intel SGX, AMD TEE, ARM TrustZone secure execution
 - **Governance System**: Validator-based voting for model transitions and network decisions
-- **IBC Communication**: Cross-chain messaging with KNIRV-ROOT and KNIRV-NEXUS
+- **IBC Communication**: Cross-chain messaging with KNIRV-ORACLE and KNIRV-NEXUS
 - **IPFS Storage**: Decentralized model and skill code storage with caching
 
 ### 🏗️ **Architecture Components**
@@ -55,7 +55,7 @@ A comprehensive blockchain implementation for the KNIRV network with advanced mu
    - Dynamic validator set management
 
 7. **IBC Handler** (`ibc_handler.rs`)
-   - KNIRV-ROOT P2P network integration
+   - KNIRV-ORACLE P2P network integration
    - KNIRV-NEXUS DVE connections
    - Cross-chain state synchronization
 
@@ -145,7 +145,7 @@ The server will start on `http://localhost:8080`
 - DVE (Distributed Validation Environment) connections
 - Cryptographic proof validation
 
-### KNIRV-ROOT Integration
+### KNIRV-ORACLE Integration
 - P2P network communication via IBC
 - Cross-chain message routing
 - Network state synchronization

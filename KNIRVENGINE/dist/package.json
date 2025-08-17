@@ -1,0 +1,15 @@
+{
+  "name": "dist",
+  "version": "1.0.0",
+  "description": "KNIRVENGINE is a revolutionary three-engine cognitive architecture that combines Human-like Reasoning Models (HRM), QR code linkage systems, and WebAssembly (WASM) runtime for autonomous agent deployment and cognitive processing.",
+  "main": "test_complete_system.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ws": "^8.18.3"
+  }
+}

@@ -19,7 +19,7 @@ export function defaultClientOptions() {
         serviceURLs: {
             knirvchain: process.env.KNIRVCHAIN_URL || 'http://localhost:8080',
             knirvnexus: process.env.KNIRVNEXUS_URL || 'http://localhost:8081',
-            knirvroot: process.env.KNIRVROOT_URL || 'http://localhost:8082',
+            knirvoracle: process.env.KNIRVORACLE_URL || 'http://localhost:8082',
             knirvgraph: process.env.KNIRVGRAPH_URL || 'http://localhost:8083',
         },
     };

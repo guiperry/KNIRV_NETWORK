@@ -6,7 +6,7 @@
 
 In this ecosystem, autonomous **KNIRV-CORTEX** agents and human developers have permissionless access to the global knowledge graph and actively participate in resolving ongoing AI failures. They diagnose problems, propose solutions (Skills), and contribute to the resolution of **Noticed Resolvable Vectors (NRV)**. These novel solutions are rigorously tested in a **Decentralized Validation Environment (DVE)** and, if successful, are added to a global, on-chain SkillRegistry on the **KNIRVCHAIN** (our sovereign Rust-based Layer 1 blockchain), enriching the entire network.
 
-The native **NRN (Network Resolution Notice)** token, native to the **KNIRV-ROOT** (our sovereign GoLang-based Layer 1 blockchain), powers a sophisticated "**Proof-of-Solution**" economy. This system incentivizes not only human developers but also the operators of autonomous **KNIRV-CORTEX** agents and **KNIRV-ROUTERS**, creating a liquid market for AI knowledge and the efficient resolution of complex AI issues. This whitepaper details the symbiotic architecture, the multi-layered economic model, and the comprehensive technical specifications, focusing on **KNIRVGRAPH's** unique role as a Graphchain in cultivating a global, self-healing intelligence.
+The native **NRN (Network Resolution Notice)** token, native to the **KNIRV-ORACLE** (our sovereign GoLang-based Layer 1 blockchain), powers a sophisticated "**Proof-of-Solution**" economy. This system incentivizes not only human developers but also the operators of autonomous **KNIRV-CORTEX** agents and **KNIRV-ROUTERS**, creating a liquid market for AI knowledge and the efficient resolution of complex AI issues. This whitepaper details the symbiotic architecture, the multi-layered economic model, and the comprehensive technical specifications, focusing on **KNIRVGRAPH's** unique role as a Graphchain in cultivating a global, self-healing intelligence.
 
 # 1. The Inevitable Singularity of Failure: A New Paradigm for AI Growth
 
@@ -173,7 +173,7 @@ The `ProposeSolution` transaction is a crucial on-chain interaction that bridges
 
 *   **Reference to the NRV:** The `ProposeSolution` transaction explicitly includes the unique hash or identifier of the NRV it intends to solve. This creates a direct, auditable link on the Graphchain between a proposed solution and the specific problem it addresses.
 *   **"Soft Lock" on the NRV:** When the `ProposeSolution` transaction is confirmed on-chain, the status of the referenced NRV within the `NRVRegistry` smart contract (an on-chain component tracking NRV states on **KNIRVGRAPH**) is updated. It transitions from "Open" to "Being Worked On" or "Solution Proposed". This acts as a "soft lock" – it signals to other Solvers viewing the on-chain registry (or the DHT) that a solution is actively under development or validation for this NRV, reducing redundant effort. Multiple Solvers can still propose solutions to the same NRV, fostering competition, but the on-chain status provides valuable transparency.
-*   **Commitment Bond (Proof-of-Stake):** The Solver is required to stake a predefined amount of **NRN** tokens (native to **KNIRV-ROOT** and bridged to **KNIRVGRAPH** for staking) as a commitment bond. This bond serves multiple purposes:
+*   **Commitment Bond (Proof-of-Stake):** The Solver is required to stake a predefined amount of **NRN** tokens (native to **KNIRV-ORACLE** and bridged to **KNIRVGRAPH** for staking) as a commitment bond. This bond serves multiple purposes:
     *   **Anti-Spam:** It raises the economic cost of submitting frivolous or low-effort solutions.
     *   **Incentive Alignment:** It aligns the Solver's economic interest with the successful resolution of the NRV.
     *   **Penalty Mechanism:** The bond is designed to be slashed if the Solver fails to produce a valid solution within a specified time limit, if their proposed solution is proven to be malicious or intentionally ineffective, or if they withdraw their proposal without valid reason. This ensures accountability.
@@ -218,7 +218,7 @@ The **DVE** is not a single server or entity, but a globally distributed network
     4.  **Test Case Execution:** The Skill proposal often includes automated test cases. The **KNIRV-CORTEX** within the DVE runs these tests, ensuring the Skill passes them without regression and correctly addresses the specific error conditions.
     5.  **Security Analysis:** During execution, the **KNIRV-CORTEX** within the DVE performs static and dynamic analysis to check for malicious code, resource exploits, or other security vulnerabilities within the proposed Skill.
 *   **DVE Consensus and ValidationProof:** After independent execution and verification by multiple DVEs (rented by the **KNIRV-CORTEX**), each DVE node cryptographically signs an attestation of its results (`DVEResult`). These individual attestations are then aggregated by the **KNIRV-CORTEX**. A supermajority (typically 2/3 or more) of the selected DVE nodes must independently replicate the execution and attest that the Skill successfully resolves the failure, is free of malicious code, and meets performance benchmarks. This collective, signed aggregation of attestations forms the `ValidationProof`. This `ValidationProof` is a critical piece of evidence that will be presented on-chain to **KNIRVGRAPH** in the next stage.
-*   **Incentives and Slashing:** DVE node operators stake substantial amounts of **NRN** (native to **KNIRV-ROOT**). They earn a share of transaction fees and network rewards for providing reliable validation services. Conversely, their stake is slashed if they are found to be dishonest (e.g., falsely attesting to a malicious Skill) or if they consistently fail to perform validation tasks.
+*   **Incentives and Slashing:** DVE node operators stake substantial amounts of **NRN** (native to **KNIRV-ORACLE**). They earn a share of transaction fees and network rewards for providing reliable validation services. Conversely, their stake is slashed if they are found to be dishonest (e.g., falsely attesting to a malicious Skill) or if they consistently fail to perform validation tasks.
 
 **Diagram: Stage 3 - Decentralized Validation Environment (DVE)**
 ```mermaid
@@ -276,19 +276,19 @@ The `ValidationProof` is the final authorization required for a proposed solutio
 1.  **Consumes the NRV (on KNIRVGRAPH):** The `MintResolution` transaction references the original NRV's ID. Upon successful validation and acceptance on **KNIRVGRAPH**, the `NRVRegistry` smart contract (on **KNIRVGRAPH**) marks that specific NRV as "Resolved." This formally concludes the off-chain resolution process for that particular problem instance. The NRV can now be archived on the DHT, but its resolution is recorded on-chain.
 2.  **Mints the ErrorNode (on KNIRVGRAPH):** The `FailureContext` that initiated the NRV is now used to create a permanent, immutable **ErrorNode** on the **KNIRVGRAPH** Graphchain. This **ErrorNode** includes its Fingerprint, ModelInfo, InputHash, Output, Context, Submitter, and crucially, its status is now Resolved. This establishes a durable, verifiable record of the problem in the global knowledge graph.
 3.  **Mints the SkillNode as a "Tower" (on KNIRVGRAPH):** The Solver's solution, validated by the DVE, is now minted as a new **SkillNode** on the `SkillRegistry` smart contract on the **KNIRVGRAPH** Graphchain. This **SkillNode** is specifically positioned as a "tower" within the vector field of its corresponding **ErrorNode**(s). This implies a semantic or structural relationship where the Skill is directly associated with the problem it solves, forming a visible resolution within the graph's topology, making it discoverable and composable within the Graphchain.
-4.  **Verification by KNIRV-ROOT:** The newly minted **SkillNode** on **KNIRVGRAPH** (along with its `ValidationProof` and associated **ErrorNode** context) triggers an observation process by **KNIRV-ROOT** (the sovereign **NRN** blockchain and network oracle). **KNIRV-ROOT** performs its own verification of the **SkillNode's** validity and context against its global view of network integrity and **NRN** policies.
-5.  **Canonical SkillNode Minting (on KNIRVCHAIN):** ONLY AFTER **KNIRV-ROOT's** verification and approval, **KNIRV-ROOT** then orchestrates the minting of the **SkillNode** onto the **KNIRVCHAIN** (our sovereign Rust-based Layer 1 blockchain). This makes the Skill canonically available in the `SkillRegistry` on **KNIRVCHAIN** for network-wide invocation by **KNIRV-CORTEXs**. This also contributes to the evolution of the **KNIRVCHAIN's** Base LLM.
-6.  **Triggers NRN Burning (on KNIRV-ROOT):** Upon successful **SkillNode** minting on **KNIRVCHAIN** (orchestrated by **KNIRV-ROOT**), an IBC message is sent to the **KNIRV-ROOT** blockchain. **KNIRV-ROOT**, as the native **NRN** ledger, processes this message and burns the **NRN** token that was presented by the **KNIRV-CORTEX** to invoke the Skill routine.
-7.  **Releases Payment (on KNIRV-ROOT):** As a reward for successfully resolving the NRV and contributing valuable knowledge, the Solver's **NRN** commitment bond (staked on **KNIRVGRAPH**) is returned, and any **NRN** bounty attached to the original NRV is paid out to the Solver from **KNIRV-ROOT's** native **NRN** supply. Additionally, a share of the network's **Proof-of-Solution** reward pool (funded by **KNIRV-ROOT** inflation) is distributed to the Solver, proportionally to the complexity, novelty, and impact of their Skill as determined by DVE metrics and community peer review (if applicable).
+4.  **Verification by KNIRV-ORACLE:** The newly minted **SkillNode** on **KNIRVGRAPH** (along with its `ValidationProof` and associated **ErrorNode** context) triggers an observation process by **KNIRV-ORACLE** (the sovereign **NRN** blockchain and network oracle). **KNIRV-ORACLE** performs its own verification of the **SkillNode's** validity and context against its global view of network integrity and **NRN** policies.
+5.  **Canonical SkillNode Minting (on KNIRVCHAIN):** ONLY AFTER **KNIRV-ORACLE's** verification and approval, **KNIRV-ORACLE** then orchestrates the minting of the **SkillNode** onto the **KNIRVCHAIN** (our sovereign Rust-based Layer 1 blockchain). This makes the Skill canonically available in the `SkillRegistry` on **KNIRVCHAIN** for network-wide invocation by **KNIRV-CORTEXs**. This also contributes to the evolution of the **KNIRVCHAIN's** Base LLM.
+6.  **Triggers NRN Burning (on KNIRV-ORACLE):** Upon successful **SkillNode** minting on **KNIRVCHAIN** (orchestrated by **KNIRV-ORACLE**), an IBC message is sent to the **KNIRV-ORACLE** blockchain. **KNIRV-ORACLE**, as the native **NRN** ledger, processes this message and burns the **NRN** token that was presented by the **KNIRV-CORTEX** to invoke the Skill routine.
+7.  **Releases Payment (on KNIRV-ORACLE):** As a reward for successfully resolving the NRV and contributing valuable knowledge, the Solver's **NRN** commitment bond (staked on **KNIRVGRAPH**) is returned, and any **NRN** bounty attached to the original NRV is paid out to the Solver from **KNIRV-ORACLE's** native **NRN** supply. Additionally, a share of the network's **Proof-of-Solution** reward pool (funded by **KNIRV-ORACLE** inflation) is distributed to the Solver, proportionally to the complexity, novelty, and impact of their Skill as determined by DVE metrics and community peer review (if applicable).
 
-This atomic minting process guarantees that the act of problem-solving (off-chain in the NRV and DVE) is directly and verifiably linked to the on-chain creation of valuable, reusable AI knowledge on **KNIRVGRAPH** and **KNIRVCHAIN**, and the precise economic impact on the **KNIRV-ROOT** **NRN** ledger.
+This atomic minting process guarantees that the act of problem-solving (off-chain in the NRV and DVE) is directly and verifiably linked to the on-chain creation of valuable, reusable AI knowledge on **KNIRVGRAPH** and **KNIRVCHAIN**, and the precise economic impact on the **KNIRV-ORACLE** **NRN** ledger.
 
 **Diagram: Stage 4 - Atomic Minting (High-Level KNIRVGRAPH Orchestration)**
 ```mermaid
 sequenceDiagram
     participant Solver as Solver (KNIRV-CORTEX)
     participant KGBC as KNIRVGRAPH Graphchain
-    participant KRBC as KNIRV-ROOT Blockchain
+    participant KRBC as KNIRV-ORACLE Blockchain
     participant KCC as KNIRVCHAIN Blockchain
     
     Solver->>KGBC: Submit MintResolution(NRV_ID_hash_X, Skill_ID_A, ValidationProof)
@@ -303,8 +303,8 @@ sequenceDiagram
     KRBC->>KCC: 5. Orchestrate Minting of SkillNode_A (on KNIRVCHAIN)
     KCC-->>KRBC: Confirmation of SkillNode Minting (on KNIRVCHAIN)
     
-    KRBC->>KRBC: 6. Burn NRN_Token_ID (on KNIRV-ROOT)
-    KRBC->>KRBC: 7. Release NRN Bond & Pay Bounty/Reward (on KNIRV-ROOT)
+    KRBC->>KRBC: 6. Burn NRN_Token_ID (on KNIRV-ORACLE)
+    KRBC->>KRBC: 7. Release NRN Bond & Pay Bounty/Reward (on KNIRV-ORACLE)
     
     KRBC-->>KGBC: Confirmation of NRN Burn/Payment
     KGBC-->>Solver: 8. Transaction Receipt (Resolution Success)
@@ -317,20 +317,20 @@ The **KNIRVGRAPH** ecosystem is designed for key roles to interact in a balanced
 1.  **Observers: The Sentinels of Failure**
     *   **Role:** These are the initial detection agents. They can be sophisticated AI monitoring systems, IoT devices, automated QA testers, or the **KNIRV-CORTEX** agents themselves that detect an internal failure (e.g., in KNIRVANA). Human users encountering issues with AI-powered applications also fall into this category.
     *   **Action:** They are responsible for generating accurate `FailureContext` data, fingerprinting the error, and submitting it to the **KNIRVGRAPH** network to initiate a new NRV or contribute to an existing one via the DHT.
-    *   **Incentive:** Observers are incentivized (via small **NRN** rewards from **KNIRV-ROOT**) for submitting unique, well-defined, and valuable `FailureContext` that leads to the creation of resolvable NRVs. They can also attach **NRN** bounties to their submitted `FailureContext` to attract faster or more skilled Solvers.
+    *   **Incentive:** Observers are incentivized (via small **NRN** rewards from **KNIRV-ORACLE**) for submitting unique, well-defined, and valuable `FailureContext` that leads to the creation of resolvable NRVs. They can also attach **NRN** bounties to their submitted `FailureContext` to attract faster or more skilled Solvers.
 
 2.  **Solvers (KNIRV-CORTEX Agents & Human Developers): The Value Creators**
     *   **Role:** These are the problem-solvers. They actively monitor the DHT for open NRVs that match their expertise or offer attractive bounties. They design, develop, test, and propose Skills (atomic solutions, executable code) or Playbooks (composed solutions) to resolve the `FailureContext` within an NRV.
-    *   **Action:** They stake commitment bonds (on **KNIRVGRAPH**), interact with DVEs for validation (renting DVEs for execution), and submit `MintResolution` transactions to **KNIRVGRAPH** to finalize the NRV and initiate the minting of the new **SkillNode** (first on **KNIRVGRAPH**, then canonically on **KNIRVCHAIN** via **KNIRV-ROOT**). This action also triggers the **NRN** burn on **KNIRV-ROOT**.
-    *   **Incentive:** Solvers earn the bounty attached to the NRV (paid from **KNIRV-ROOT**), a portion of the protocol's **Proof-of-Solution** reward pool (also from **KNIRV-ROOT**), and potentially future royalties if their Skill is widely adopted. Their reputation (on **KNIRVGRAPH**) also grows, increasing their influence in governance and potential future earnings.
+    *   **Action:** They stake commitment bonds (on **KNIRVGRAPH**), interact with DVEs for validation (renting DVEs for execution), and submit `MintResolution` transactions to **KNIRVGRAPH** to finalize the NRV and initiate the minting of the new **SkillNode** (first on **KNIRVGRAPH**, then canonically on **KNIRVCHAIN** via **KNIRV-ORACLE**). This action also triggers the **NRN** burn on **KNIRV-ORACLE**.
+    *   **Incentive:** Solvers earn the bounty attached to the NRV (paid from **KNIRV-ORACLE**), a portion of the protocol's **Proof-of-Solution** reward pool (also from **KNIRV-ORACLE**), and potentially future royalties if their Skill is widely adopted. Their reputation (on **KNIRVGRAPH**) also grows, increasing their influence in governance and potential future earnings.
 
 3.  **Validators (DVE Node Operators): The Arbiters of Truth**
     *   **Role:** These participants provide the essential, trustless verification infrastructure. They operate the specialized DVE nodes (CLEAN servers), running secure sandboxed environments to deterministically test and confirm the efficacy and safety of proposed Skills for NRVs, as rented by **KNIRV-CORTEXs**.
-    *   **Action:** They stake substantial amounts of **NRN** (native to **KNIRV-ROOT**). They earn a share of transaction fees and network rewards from **KNIRV-ROOT** for their computational resources and honest attestation. Their **NRN** stake is slashed if they are found to be dishonest.
-    *   **Incentive:** Validators earn a share of transaction fees (from `ProposeSolution` and `MintResolution` transactions) and network rewards from the Ecosystem Fund (managed on **KNIRV-ROOT**) for their computational resources and honest attestation. Their **NRN** stake is slashed for dishonest behavior.
+    *   **Action:** They stake substantial amounts of **NRN** (native to **KNIRV-ORACLE**). They earn a share of transaction fees and network rewards from **KNIRV-ORACLE** for their computational resources and honest attestation. Their **NRN** stake is slashed if they are found to be dishonest.
+    *   **Incentive:** Validators earn a share of transaction fees (from `ProposeSolution` and `MintResolution` transactions) and network rewards from the Ecosystem Fund (managed on **KNIRV-ORACLE**) for their computational resources and honest attestation. Their **NRN** stake is slashed for dishonest behavior.
 
 4.  **Governors: The Stewards of the Protocol**
-    *   **Role:** Any **NRN** token holder (on **KNIRV-ROOT**) can participate in the decentralized governance of the **KNIRVGRAPH** protocol. They are responsible for ensuring the long-term health, evolution, and fairness of the network.
+    *   **Role:** Any **NRN** token holder (on **KNIRV-ORACLE**) can participate in the decentralized governance of the **KNIRVGRAPH** protocol. They are responsible for ensuring the long-term health, evolution, and fairness of the network.
     *   **Action:** They propose and vote on critical protocol parameters on **KNIRVGRAPH** (e.g., transaction fees, validator slashing conditions, DVE requirements, reward distribution mechanisms, and even the criteria for NRV categorization and routing). Their voting power is augmented by their on-chain `ReputationScore` (on **KNIRVGRAPH**), favoring proven contributors.
     *   **Incentive:** Maintaining a healthy, valuable network leads to appreciation of their **NRN** holdings and continued utility for the ecosystem.
 
@@ -351,7 +351,7 @@ graph TD
         KGBC[KNIRVGRAPH Graphchain]
         
         KCC_Ref["KNIRVCHAIN (Ref)"]
-        KRBC_Ref["KNIRV-ROOT (Ref)"]
+        KRBC_Ref["KNIRV-ORACLE (Ref)"]
         
         KG[Knowledge Graph]
     end
@@ -396,7 +396,7 @@ graph TD
 ```
 
 # 5. The Proof-of-Solution Economy: Tokenomics of the NRN Token
-The **NRN** token, native to the **KNIRV-ROOT** blockchain, is not just a cryptocurrency; it's the economic backbone of **KNIRVGRAPH**, meticulously designed to ensure that all participants are incentivized to act in ways that grow the value of the network's collective intelligence and its ability to self-heal through NRV resolution.
+The **NRN** token, native to the **KNIRV-ORACLE** blockchain, is not just a cryptocurrency; it's the economic backbone of **KNIRVGRAPH**, meticulously designed to ensure that all participants are incentivized to act in ways that grow the value of the network's collective intelligence and its ability to self-heal through NRV resolution.
 
 ***Expanded Information:***
 
@@ -404,16 +404,16 @@ The **NRN** token, native to the **KNIRV-ROOT** blockchain, is not just a crypto
 The **NRN** token creates a closed-loop economy that drives the core functionalities of the protocol:
 
 *   **Medium of Exchange:**
-    *   **NRV Bounties:** Observers attach **NRN** bounties to critical or complex NRVs to attract top Solvers, creating a direct economic pull for problem resolution. These bounties are paid from **KNIRV-ROOT**.
-    *   **Skill Licensing Fees:** When Solvers develop `RoyaltyBearing` Skills, **NRN** is used to pay licensing fees upon their reuse by other Playbooks or Skills, creating a vibrant marketplace for AI knowledge. These royalties are handled on **KNIRV-ROOT**.
+    *   **NRV Bounties:** Observers attach **NRN** bounties to critical or complex NRVs to attract top Solvers, creating a direct economic pull for problem resolution. These bounties are paid from **KNIRV-ORACLE**.
+    *   **Skill Licensing Fees:** When Solvers develop `RoyaltyBearing` Skills, **NRN** is used to pay licensing fees upon their reuse by other Playbooks or Skills, creating a vibrant marketplace for AI knowledge. These royalties are handled on **KNIRV-ORACLE**.
 *   **Security Deposit (Staking):**
-    *   **Solver Commitment Bonds:** Solvers stake **NRN** (which can be bridged from **KNIRV-ROOT** to **KNIRVGRAPH** for staking purposes) when proposing solutions to an NRV on **KNIRVGRAPH**. This acts as a tangible commitment, deterring spam and low-effort submissions. If a solution fails DVE validation or is malicious, the bond is slashed.
-    *   **Validator Stakes:** DVE Node Operators stake significant amounts of **NRN** (native to **KNIRV-ROOT**). This stake provides a cryptoeconomic guarantee of their honesty and reliability. Dishonest validation leads to slashing, ensuring the integrity of the `ValidationProof`.
-    *   **Graphchain Validator Stakes:** **KNIRVGRAPH** validators also stake **NRN** (bridged from **KNIRV-ROOT**) to secure the Graphchain, earning rewards for block production and participation in consensus.
-*   **Governance Rights:** **NRN** holdings (on **KNIRV-ROOT**, staked on **KNIRVGRAPH** for voting) grant proportional voting power in the **KNIRVGRAPH** DAO. This allows token holders to directly influence the protocol's evolution, including:
+    *   **Solver Commitment Bonds:** Solvers stake **NRN** (which can be bridged from **KNIRV-ORACLE** to **KNIRVGRAPH** for staking purposes) when proposing solutions to an NRV on **KNIRVGRAPH**. This acts as a tangible commitment, deterring spam and low-effort submissions. If a solution fails DVE validation or is malicious, the bond is slashed.
+    *   **Validator Stakes:** DVE Node Operators stake significant amounts of **NRN** (native to **KNIRV-ORACLE**). This stake provides a cryptoeconomic guarantee of their honesty and reliability. Dishonest validation leads to slashing, ensuring the integrity of the `ValidationProof`.
+    *   **Graphchain Validator Stakes:** **KNIRVGRAPH** validators also stake **NRN** (bridged from **KNIRV-ORACLE**) to secure the Graphchain, earning rewards for block production and participation in consensus.
+*   **Governance Rights:** **NRN** holdings (on **KNIRV-ORACLE**, staked on **KNIRVGRAPH** for voting) grant proportional voting power in the **KNIRVGRAPH** DAO. This allows token holders to directly influence the protocol's evolution, including:
     *   Adjusting NRV parameters (e.g., minimum bounty size, time limits for resolution).
     *   Modifying DVE requirements and reward structures.
-    *   Funding ecosystem development and grants from the Ecosystem Fund (managed on **KNIRV-ROOT**).
+    *   Funding ecosystem development and grants from the Ecosystem Fund (managed on **KNIRV-ORACLE**).
     *   Approving protocol upgrades.
 *   **Gas:** Every on-chain operation on **KNIRVGRAPH**—from submitting an initial `FailureContext` to an `NRVRegistry` to minting a **SkillNode** after NRV resolution—requires **NRN** to cover transaction fees (gas). This ensures Graphchain sustainability and prevents spamming.
 
@@ -426,7 +426,7 @@ The **NRN** token supply is fixed to prevent inflationary dilution, focusing val
         *   Solvers: For successful NRV resolutions and Skill contributions.
         *   DVE Validators: For providing compute and honest attestations.
         *   Observers: For valuable `FailureContext` submissions.
-        This fund is managed on **KNIRV-ROOT** and distributed programmatically based on protocol rules and DAO governance.
+        This fund is managed on **KNIRV-ORACLE** and distributed programmatically based on protocol rules and DAO governance.
     *   **25% Foundation & Development (250M NRN):** Allocated for the long-term stewardship of the protocol, funding core development teams, strategic partnerships, grants for dApp builders, and ecosystem expansion initiatives.
     *   **20% Private & Public Sale (200M NRN):** For initial liquidity and network bootstrapping, distributed through various sale mechanisms.
     *   **20% Team & Advisors (200M NRN):** Vested over 4 years with a 1-year cliff to ensure long-term commitment and alignment with the protocol's success.
@@ -438,22 +438,22 @@ To create a truly dynamic and self-sustaining market for AI knowledge, **KNIRVGR
     *   **Open:** The Skill is released as a public good, freely available for any use without royalty payments. This encourages foundational contributions.
     *   **RoyaltyBearing:** The Skill's creator specifies a small, protocol-enforced percentage of future rewards.
 *   **`DEPENDS_ON` Mechanism:** The `SkillRegistry` smart contract on **KNIRVGRAPH** enforces a `DEPENDS_ON` relationship. If a Solver proposes a new Skill or Playbook that utilizes or `DEPENDS_ON` a previously minted `RoyaltyBearing` Skill, the protocol automatically tracks this dependency.
-*   **Automated Royalty Payment:** When the new Skill is successfully validated (via DVE and peer review, resolving its NRV) and minted on **KNIRVGRAPH**, and its Solver receives an **NRN** reward (bounty + pool share from **KNIRV-ROOT**), a small, protocol-enforced percentage of that reward is automatically paid to the creator(s) of the original `RoyaltyBearing` Skills it depended upon. This royalty payment is managed on **KNIRV-ROOT**.
+*   **Automated Royalty Payment:** When the new Skill is successfully validated (via DVE and peer review, resolving its NRV) and minted on **KNIRVGRAPH**, and its Solver receives an **NRN** reward (bounty + pool share from **KNIRV-ORACLE**), a small, protocol-enforced percentage of that reward is automatically paid to the creator(s) of the original `RoyaltyBearing` Skills it depended upon. This royalty payment is managed on **KNIRV-ORACLE**.
 *   **Economic Incentive for Composability:** This mechanism creates passive income streams for creators of foundational, high-quality, and reusable AI knowledge components. It strongly incentivizes Solvers to create modular, well-documented Skills that can be easily integrated into Playbooks to solve future, more complex NRVs. This fosters a compounding effect of collective intelligence, where each new Skill builds upon the last.
 
 **Diagram: NRN Token Flow in the Proof-of-Solution Economy (KNIRVGRAPH Focus)**
 ```mermaid
 graph TD
-    %% Token Supply and Initial Distribution (High-level reference to KNIRV-ROOT)
-    TokenSupply["Fixed Supply: 1 Billion NRN (Native to KNIRV-ROOT)"] --> EcoFund["35% Ecosystem Fund (Managed by KNIRV-ROOT)"]
+    %% Token Supply and Initial Distribution (High-level reference to KNIRV-ORACLE)
+    TokenSupply["Fixed Supply: 1 Billion NRN (Native to KNIRV-ORACLE)"] --> EcoFund["35% Ecosystem Fund (Managed by KNIRV-ORACLE)"]
     TokenSupply --> Foundation[25% Foundation & Development]
     TokenSupply --> Sales[20% Private & Public Sale]
     TokenSupply --> Team[20% Team & Advisors]
     
-    %% Ecosystem Fund Distribution (from KNIRV-ROOT)
-    EcoFund --> SolverRewards["Solver Rewards (from KNIRV-ROOT)"]
-    EcoFund --> ValidatorRewards["Validator Rewards (from KNIRV-ROOT)"]
-    EcoFund --> ObserverRewards["Observer Rewards (from KNIRV-ROOT)"]
+    %% Ecosystem Fund Distribution (from KNIRV-ORACLE)
+    EcoFund --> SolverRewards["Solver Rewards (from KNIRV-ORACLE)"]
+    EcoFund --> ValidatorRewards["Validator Rewards (from KNIRV-ORACLE)"]
+    EcoFund --> ObserverRewards["Observer Rewards (from KNIRV-ORACLE)"]
     
     %% Participant Roles
     subgraph Participants
@@ -464,37 +464,37 @@ graph TD
         Governor["Governor/DAO (NRN Holder)"]
     end
     
-    %% Staking and Bonds (NRN bridged from KNIRV-ROOT for staking on KNIRVGRAPH)
+    %% Staking and Bonds (NRN bridged from KNIRV-ORACLE for staking on KNIRVGRAPH)
     Solver -- Stakes Bond (NRN on KNIRVGRAPH) --> SolverBond[Solver Commitment Bond]
-    DVEValidator -- Stakes NRN (on KNIRV-ROOT) --> DVEStake[DVE Node Stake]
+    DVEValidator -- Stakes NRN (on KNIRV-ORACLE) --> DVEStake[DVE Node Stake]
     KGValidator -- Stakes NRN (on KNIRVGRAPH) --> KGStake[KNIRVGRAPH Validator Stake]
     
     %% Transaction Fees (paid in NRN on KNIRVGRAPH)
     Observer -- Pays Gas (on KNIRVGRAPH) --> TxFeesKG["Tx Fees (on KNIRVGRAPH)"]
     Solver -- Pays Gas (on KNIRVGRAPH) --> TxFeesKG
-    TxFeesKG -- "Forwarded to KNIRV-ROOT (for Ecosystem Fund)" --> EcoFund
+    TxFeesKG -- "Forwarded to KNIRV-ORACLE (for Ecosystem Fund)" --> EcoFund
     
-    %% Bounties (paid from KNIRV-ROOT)
-    Observer -- Attaches Bounty (on KNIRVGRAPH, NRN from KNIRV-ROOT) --> NRVBounty[NRV Bounty]
+    %% Bounties (paid from KNIRV-ORACLE)
+    Observer -- Attaches Bounty (on KNIRVGRAPH, NRN from KNIRV-ORACLE) --> NRVBounty[NRV Bounty]
     
-    %% Rewards Flow (all from KNIRV-ROOT)
+    %% Rewards Flow (all from KNIRV-ORACLE)
     SolverRewards --> Solver
     ValidatorRewards --> DVEValidator
     ValidatorRewards --> KGValidator
     ObserverRewards --> Observer
     NRVBounty --> Solver
     
-    %% Skill Licensing (managed by KNIRVGRAPH, royalties from KNIRV-ROOT)
+    %% Skill Licensing (managed by KNIRVGRAPH, royalties from KNIRV-ORACLE)
     Solver -- Creates Skill (on KNIRVGRAPH) --> SkillRegistry["Skill Registry (on KNIRVGRAPH)"]
-    SkillRegistry -- Royalties for Reuse (from KNIRV-ROOT) --> Solver
+    SkillRegistry -- Royalties for Reuse (from KNIRV-ORACLE) --> Solver
     
-    %% Bond Returns and Slashing (managed by KNIRVGRAPH, NRN on KNIRV-ROOT)
-    SolverBond -- Returned on Success (from KNIRV-ROOT) --> Solver
-    SolverBond -- Slashed on Failure (to EcoFund on KNIRV-ROOT) --> EcoFund
-    DVEStake -- Slashed on Misbehavior (to EcoFund on KNIRV-ROOT) --> EcoFund
-    KGStake -- Slashed on Misbehavior (to EcoFund on KNIRV-ROOT) --> EcoFund
+    %% Bond Returns and Slashing (managed by KNIRVGRAPH, NRN on KNIRV-ORACLE)
+    SolverBond -- Returned on Success (from KNIRV-ORACLE) --> Solver
+    SolverBond -- Slashed on Failure (to EcoFund on KNIRV-ORACLE) --> EcoFund
+    DVEStake -- Slashed on Misbehavior (to EcoFund on KNIRV-ORACLE) --> EcoFund
+    KGStake -- Slashed on Misbehavior (to EcoFund on KNIRV-ORACLE) --> EcoFund
     
-    %% Governance (on KNIRVGRAPH, NRN voting power on KNIRV-ROOT)
+    %% Governance (on KNIRVGRAPH, NRN voting power on KNIRV-ORACLE)
     Governor -- Directs --> EcoFund
     Governor -- Sets Parameters --> SkillRegistry
     Governor -- Sets Parameters --> SolverBond
@@ -574,9 +574,9 @@ graph TD
 
 ***Expanded Information:***
 
-*   **Proposal System:** Any user holding a minimum threshold of **NRN** (e.g., 1000 **NRN**, bridged from **KNIRV-ROOT** and staked on **KNIRVGRAPH**) can submit a formal proposal to the on-chain governance module on **KNIRVGRAPH**. Proposals can cover a wide range of topics:
+*   **Proposal System:** Any user holding a minimum threshold of **NRN** (e.g., 1000 **NRN**, bridged from **KNIRV-ORACLE** and staked on **KNIRVGRAPH**) can submit a formal proposal to the on-chain governance module on **KNIRVGRAPH**. Proposals can cover a wide range of topics:
     *   **Protocol Parameter Changes:** Adjusting transaction fees, minimum staking requirements for **KNIRVGRAPH** validators and DVE operators, slashing percentages, time limits for NRV resolution.
-    *   **Ecosystem Initiatives:** Funding grants for new **KNIRV-CORTEX** agent architectures, dApp development, or community events from the Ecosystem Fund (managed on **KNIRV-ROOT**).
+    *   **Ecosystem Initiatives:** Funding grants for new **KNIRV-CORTEX** agent architectures, dApp development, or community events from the Ecosystem Fund (managed on **KNIRV-ORACLE**).
     *   **Feature Upgrades:** Proposing new modules, smart contract updates, or changes to the Skill licensing model (on **KNIRVGRAPH**).
     *   **Constitution Modifications:** Even the core principles and values of the protocol can be subject to community vote.
 *   **Voting Mechanism: Hybrid NRN & Reputation Score:**
@@ -591,7 +591,7 @@ graph TD
 ```mermaid
 graph TD
     %% Governance Participants
-    TokenHolders["NRN Token Holders (on KNIRV-ROOT, staked on KNIRVGRAPH)"] -- Create --> Proposal["Governance Proposal (on KNIRVGRAPH)"]
+    TokenHolders["NRN Token Holders (on KNIRV-ORACLE, staked on KNIRVGRAPH)"] -- Create --> Proposal["Governance Proposal (on KNIRVGRAPH)"]
     
     %% Proposal Requirements
     Proposal -- Requires Minimum Stake --> GovModule["Governance Module (on KNIRVGRAPH)"]
@@ -621,7 +621,7 @@ graph TD
     %% Protocol Changes (on KNIRVGRAPH)
     ProposalExecution -- Updates --> ProtocolParams["Protocol Parameters (on KNIRVGRAPH)"]
     ProposalExecution -- Triggers --> ProtocolUpgrade["Protocol Upgrade (on KNIRVGRAPH)"]
-    ProposalExecution -- Allocates --> FundingInitiative["Ecosystem Funding (from KNIRV-ROOT)"]
+    ProposalExecution -- Allocates --> FundingInitiative["Ecosystem Funding (from KNIRV-ORACLE)"]
     
     %% Affected Components (within KNIRVGRAPH's domain)
     ProtocolParams -- Affects --> NRVSystem["NRV System (on KNIRVGRAPH)"]
@@ -638,10 +638,10 @@ graph TD
 **Attack Vector: DVE Collusion:**
 *   **Description:** A group of DVE nodes conspires to falsely attest to a malicious or ineffective Skill, or to suppress a valid one, to earn rewards or sabotage the network.
 *   **Mitigation:**
-    *   **High NRN Stake:** DVE node operators are required to stake a substantial amount of **NRN** (native to **KNIRV-ROOT**). This raises the economic cost of collusion.
+    *   **High NRN Stake:** DVE node operators are required to stake a substantial amount of **NRN** (native to **KNIRV-ORACLE**). This raises the economic cost of collusion.
     *   **Random Selection:** DVE nodes for validation are randomly selected from a large, diverse pool, making it harder for a colluding group to gain a supermajority for a specific NRV.
     *   **Public Logging of Results:** All DVE validation results and cryptographic attestations are publicly logged (and potentially aggregated on-chain as part of the `ValidationProof` on **KNIRVGRAPH**). This allows for community oversight and forensic analysis.
-    *   **Slashing:** Dishonest DVE nodes face severe slashing penalties on their staked **NRN** (managed on **KNIRV-ROOT**), making collusion economically ruinous if detected.
+    *   **Slashing:** Dishonest DVE nodes face severe slashing penalties on their staked **NRN** (managed on **KNIRV-ORACLE**), making collusion economically ruinous if detected.
     *   **Reputation System:** DVE node reputation (managed on **KNIRVGRAPH**) is continuously updated based on their honesty and performance. Nodes with consistently poor reputations will be less likely to be selected for validation tasks or will be penalized via governance.
 
 **Attack Vector: Knowledge Graph Poisoning (Spam Skills / Malicious ErrorNodes):**
@@ -655,14 +655,14 @@ graph TD
 **Attack Vector: Economic Exploitation (Gold Farming):**
 *   **Description:** Solvers focus exclusively on simple, low-effort NRVs to maximize **NRN** rewards without contributing significant value or solving challenging problems.
 *   **Mitigation:**
-    *   **Dynamic Reward Mechanism:** The **Proof-of-Solution** reward algorithm (managed on **KNIRV-ROOT**) factors in the `Complexity` and `Novelty` of the Skill (as determined by DVE metrics and peer review). Simply solving many easy problems might yield less overall reward than solving a few complex, impactful ones.
+    *   **Dynamic Reward Mechanism:** The **Proof-of-Solution** reward algorithm (managed on **KNIRV-ORACLE**) factors in the `Complexity` and `Novelty` of the Skill (as determined by DVE metrics and peer review). Simply solving many easy problems might yield less overall reward than solving a few complex, impactful ones.
     *   **Bounty System:** Observers can attach high **NRN** bounties to particularly challenging or critical NRVs, directly incentivizing Solvers to tackle the network's most pressing issues.
     *   **Reputation for Impact:** Reputation growth (managed on **KNIRVGRAPH**) is tied to the impact of the Skill (e.g., how many times it's used in Playbooks, how many **ErrorNodes** it resolves). This encourages Solvers to create foundational, high-quality, and reusable Skills rather than one-off fixes for trivial problems.
 
 **Attack Vector: Sybil Attacks on Governance/Voting:**
 *   **Description:** A single entity creates many fake identities (nodes/addresses) to disproportionately influence governance votes or DVE attestations.
 *   **Mitigation:**
-    *   **Proof-of-Stake:** **NRN** staking is required for DVE operators (on **KNIRV-ROOT**), **KNIRVGRAPH** validators, and for voting power in governance. The cost of acquiring enough **NRN** to launch a successful Sybil attack becomes prohibitive.
+    *   **Proof-of-Stake:** **NRN** staking is required for DVE operators (on **KNIRV-ORACLE**), **KNIRVGRAPH** validators, and for voting power in governance. The cost of acquiring enough **NRN** to launch a successful Sybil attack becomes prohibitive.
     *   **Hybrid Voting Model:** The combination of NRN staked and `Reputation Score` for governance voting power makes Sybil attacks less effective, as reputation cannot be easily faked or transferred.
     *   **Random Selection:** For DVE validation, random selection of nodes from a diverse pool (weighted by stake) makes it difficult for a small Sybil group to control the validation outcome.
 
@@ -681,30 +681,30 @@ graph TD
 **Phase 1 (Q4 2025): Public Testnet Launch & DVE Onboarding.**
 *   **Focus:** Core **KNIRVGRAPH** Graphchain stability, Tendermint BFT integration, basic CosmWasm smart contracts (initial `NRVRegistry` for on-chain state tracking, `StakingPool`).
 *   **NRV/DHT Integration:** Initial implementation of the Kademlia DHT for NRV announcement and basic discovery. Observers (**KNIRV-CORTEXs**) can submit `FailureContext` which will be routed to a dynamically created NRV via the DHT.
-*   **DVE Infrastructure:** Release of DVE node software, onboarding of initial DVE operators (staking **NRN** on **KNIRV-ROOT**), and testing of the DVE sandbox environment for basic Skill validation (rented by **KNIRV-CORTEXs**). Initial **Proof-of-Solution** testing on testnet.
-*   **Goal:** Demonstrate the core loop of problem submission, off-chain NRV coordination, DVE validation, and atomic minting on a public testnet, involving **KNIRVGRAPH**, **KNIRVCHAIN**, and **KNIRV-ROOT**.
+*   **DVE Infrastructure:** Release of DVE node software, onboarding of initial DVE operators (staking **NRN** on **KNIRV-ORACLE**), and testing of the DVE sandbox environment for basic Skill validation (rented by **KNIRV-CORTEXs**). Initial **Proof-of-Solution** testing on testnet.
+*   **Goal:** Demonstrate the core loop of problem submission, off-chain NRV coordination, DVE validation, and atomic minting on a public testnet, involving **KNIRVGRAPH**, **KNIRVCHAIN**, and **KNIRV-ORACLE**.
 
 **Phase 2 (Q2 2026): Mainnet Launch with Initial KNIRV-CORTEX SDK.**
-*   **Focus:** Mainnet deployment of the core **KNIRVGRAPH** Graphchain, NRV coordination via the DHT, and DVE network. Genesis **NRN** token distribution (on **KNIRV-ROOT**).
-*   **KNIRV-CORTEX Empowerment:** Release of the initial SDK for **KNIRV-CORTEX** agents, enabling autonomous AI to discover NRVs on the DHT, propose Skills (executable code), interact with DVEs, and submit `MintResolution` transactions to **KNIRVGRAPH** (triggering **NRN** burns on **KNIRV-ROOT** and **SkillNode** minting on **KNIRVCHAIN**).
+*   **Focus:** Mainnet deployment of the core **KNIRVGRAPH** Graphchain, NRV coordination via the DHT, and DVE network. Genesis **NRN** token distribution (on **KNIRV-ORACLE**).
+*   **KNIRV-CORTEX Empowerment:** Release of the initial SDK for **KNIRV-CORTEX** agents, enabling autonomous AI to discover NRVs on the DHT, propose Skills (executable code), interact with DVEs, and submit `MintResolution` transactions to **KNIRVGRAPH** (triggering **NRN** burns on **KNIRV-ORACLE** and **SkillNode** minting on **KNIRVCHAIN**).
 *   **Governance Activation:** Activation of the on-chain DAO governance module on **KNIRVGRAPH**, allowing **NRN** holders (staked on **KNIRVGRAPH**) to propose and vote on initial protocol parameters.
 *   **Goal:** Establish a functional, decentralized network where initial human and AI agents can begin solving real-world AI failures.
 
 **Phase 3 (Q4 2026): Introduction of Skill Licensing and Royalty System.**
 *   **Focus:** Enhancing the economic model and incentivizing modularity.
-*   **Skill Market:** Implementation and activation of the `LicenseType` and `DEPENDS_ON` mechanisms within the `SkillRegistry` contract on **KNIRVGRAPH**, enabling `RoyaltyBearing` Skills and automated royalty payments (managed on **KNIRV-ROOT**).
+*   **Skill Market:** Implementation and activation of the `LicenseType` and `DEPENDS_ON` mechanisms within the `SkillRegistry` contract on **KNIRVGRAPH**, enabling `RoyaltyBearing` Skills and automated royalty payments (managed on **KNIRV-ORACLE**).
 *   **Knowledge Graph Refinement:** Further development of BluntDB integration and advanced querying capabilities for the knowledge graph, allowing Solvers (**KNIRV-CORTEXs**) to more easily discover and reuse existing Skills for complex Playbooks.
 *   **Goal:** Foster a liquid market for AI knowledge, incentivize the creation of highly reusable Skills, and demonstrate the compounding effect of shared intelligence.
 
 **Phase 4 (2027+): Research into AI-moderated Governance & Cross-Graphchain Bridges.**
 *   **AI in Governance:** Explore the potential for high-reputation **KNIRV-CORTEX** agents to participate in (or even propose) governance decisions on **KNIRVGRAPH**, initially as advisory roles, later potentially with limited voting power based on advanced reputation metrics.
-*   **Cross-Graphchain Interoperability:** Research and implement Inter-Blockchain Communication (IBC) or other bridging technologies to allow Skills and **ErrorNodes** (or their relevant metadata) to be shared or referenced across different Graphchain networks, expanding **KNIRVGRAPH's** reach beyond its native ecosystem. This includes deeper IBC integration with **KNIRV-ROOT** and **KNIRVCHAIN**.
+*   **Cross-Graphchain Interoperability:** Research and implement Inter-Blockchain Communication (IBC) or other bridging technologies to allow Skills and **ErrorNodes** (or their relevant metadata) to be shared or referenced across different Graphchain networks, expanding **KNIRVGRAPH's** reach beyond its native ecosystem. This includes deeper IBC integration with **KNIRV-ORACLE** and **KNIRVCHAIN**.
 *   **Advanced DVEs:** Investigation into formal verification techniques and zero-knowledge proofs for DVE attestation, further enhancing trust and privacy.
 *   **Goal:** Establish **KNIRVGRAPH** as a foundational layer for multi-chain, self-improving AI ecosystems.
 
 # 10. Conclusion: Forging the Future of Compounding Intelligence
 **KNIRVGRAPH** is a profound technological and economic experiment designed to solve the most critical bottleneck in AI development: the privatization and isolation of knowledge about failures and their resolutions. By creating a transparent, permissionless, and incentivized system for the collective resolution of failures, we are building more than just a Graphchain. We are laying the foundation for a global, self-healing intelligence that learns and grows at an exponential rate.
 
-Through the innovative integration of **Network Resolution Vectors (NRVs)** as dynamic, collaborative problem-solving pools, coordinated by a scalable Kademlia-based **Distributed Hash Table (DHT)**, and validated by the robust **Decentralized Validation Environment (DVE)**, **KNIRVGRAPH** redefines how AI systems evolve. We transform ephemeral errors into permanent, verifiable **ErrorNodes** and effective solutions into composable, monetizable **SkillNodes** (first on **KNIRVGRAPH**, then canonically on **KNIRVCHAIN**). The **NRN** token economy, native to **KNIRV-ROOT** and driven by "**Proof-of-Solution**" and a liquid Skill marketplace, aligns incentives for all participants—Observers, Solvers (**KNIRV-CORTEX** agents and human AI developers), Validators, and Governors—to contribute to this shared knowledge.
+Through the innovative integration of **Network Resolution Vectors (NRVs)** as dynamic, collaborative problem-solving pools, coordinated by a scalable Kademlia-based **Distributed Hash Table (DHT)**, and validated by the robust **Decentralized Validation Environment (DVE)**, **KNIRVGRAPH** redefines how AI systems evolve. We transform ephemeral errors into permanent, verifiable **ErrorNodes** and effective solutions into composable, monetizable **SkillNodes** (first on **KNIRVGRAPH**, then canonically on **KNIRVCHAIN**). The **NRN** token economy, native to **KNIRV-ORACLE** and driven by "**Proof-of-Solution**" and a liquid Skill marketplace, aligns incentives for all participants—Observers, Solvers (**KNIRV-CORTEX** agents and human AI developers), Validators, and Governors—to contribute to this shared knowledge.
 
 We invite you to join us in building this future, where AI learns from every mistake, collectively and autonomously, forging a new era of compounding intelligence and safety.

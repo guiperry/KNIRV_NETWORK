@@ -14,9 +14,9 @@ echo "📦 Creating backup in $BACKUP_DIR..."
 
 # Backup blockchain data
 echo "💾 Backing up blockchain data..."
-if [ -d "data/knirvroot" ]; then
-    cp -r data/knirvroot "$BACKUP_DIR/"
-    echo "  ✅ KNIRV-ROOT data backed up"
+if [ -d "data/knirvoracle" ]; then
+    cp -r data/knirvoracle "$BACKUP_DIR/"
+    echo "  ✅ KNIRV-ORACLE data backed up"
 fi
 
 if [ -d "data/knirvchain" ]; then

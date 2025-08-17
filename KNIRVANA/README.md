@@ -84,7 +84,7 @@ npm run dev
 KNIRVANA seamlessly integrates with the entire KNIRV D-TEN ecosystem:
 
 ### Blockchain Components
-- **KNIRV-ROOT**: NRN token ledger and network oracle
+- **KNIRV-ORACLE**: NRN token ledger and network oracle
 - **KNIRVCHAIN**: Smart contracts and SkillRegistry
 - **XION Integration**: Gasless transactions and user experience
 
@@ -110,6 +110,27 @@ KNIRVANA seamlessly integrates with the entire KNIRV D-TEN ecosystem:
 **For TypeScript Client:**
 - Node.js 18+
 - Modern web browser with WebGL support
+
+### Testing
+
+KNIRVANA includes a comprehensive test suite for both implementations:
+
+```bash
+# Run all tests
+make test
+
+# Run implementation-specific tests
+make test-rust    # Rust client tests
+make test-ts      # TypeScript client tests
+
+# Run specific test categories
+make test-unit           # Unit tests
+make test-integration    # Integration tests
+make test-performance    # Performance tests
+make test-e2e           # End-to-end tests
+```
+
+[📖 Complete Testing Guide →](TESTING.md)
 
 ### Project Structure
 

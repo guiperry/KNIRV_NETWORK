@@ -20,11 +20,17 @@ class DatabaseManager {
         this.supabaseClient = null;
 
         if (this.dbType === 'supabase') {
-            const { createClient } = require('@supabase/supabase-js');
-            this.supabaseClient = createClient(
-                config.get('SUPABASE_URL'),
-                config.get('SUPABASE_ANON_KEY')
-            );
+            try {
+                const { createClient } = require('@supabase/supabase-js');
+                this.supabaseClient = createClient(
+                    config.get('SUPABASE_URL'),
+                    config.get('SUPABASE_ANON_KEY')
+                );
+            } catch (error) {
+                console.warn('Supabase client not available, falling back to JSON database');
+                this.dbType = 'json';
+                this.supabaseClient = null;
+            }
         }
     }
 

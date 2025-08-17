@@ -143,8 +143,8 @@ func NewLoadTestSuite() *LoadTestSuite {
 	}
 
 	services := map[string]*ServiceTarget{
-		"knirv-root": {
-			Name:    "knirv-root",
+		"knirv-oracle": {
+			Name:    "knirv-oracle",
 			BaseURL: "http://localhost:1317",
 			Weight:  0.2,
 			Endpoints: []EndpointTarget{

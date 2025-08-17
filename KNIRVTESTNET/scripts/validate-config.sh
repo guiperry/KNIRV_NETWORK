@@ -229,20 +229,20 @@ perform_validation() {
     
     # 2. Check required binaries
     print_status "Checking required binaries..."
-    check_binary_exists "bin/knirvroot" "KNIRV-ROOT"
+    check_binary_exists "bin/knirvoracle" "KNIRV-ORACLE"
     check_binary_exists "bin/knirvchain" "KNIRVCHAIN"
     check_binary_exists "bin/knirvgraph" "KNIRVGRAPH"
     check_binary_exists "bin/knirvnexus" "KNIRV-NEXUS"
     check_binary_exists "bin/knirvrouter" "KNIRV-ROUTER"
     echo ""
     
-    # 3. Check KNIRV-ROOT configuration
-    print_status "Validating KNIRV-ROOT configuration..."
-    check_file_exists "config/knirvroot-testnet-config.json" "KNIRV-ROOT testnet config"
-    if [ -f "config/knirvroot-testnet-config.json" ]; then
-        check_json_config "config/knirvroot-testnet-config.json" "testnet.enabled" "true" "KNIRV-ROOT testnet mode"
-        check_json_config "config/knirvroot-testnet-config.json" "testnet.chain_id" "knirv-testnet-1" "KNIRV-ROOT chain ID"
-        check_json_config "config/knirvroot-testnet-config.json" "port" "1317" "KNIRV-ROOT port"
+    # 3. Check KNIRV-ORACLE configuration
+    print_status "Validating KNIRV-ORACLE configuration..."
+    check_file_exists "config/knirvoracle-testnet-config.json" "KNIRV-ORACLE testnet config"
+    if [ -f "config/knirvoracle-testnet-config.json" ]; then
+        check_json_config "config/knirvoracle-testnet-config.json" "testnet.enabled" "true" "KNIRV-ORACLE testnet mode"
+        check_json_config "config/knirvoracle-testnet-config.json" "testnet.chain_id" "knirv-testnet-1" "KNIRV-ORACLE chain ID"
+        check_json_config "config/knirvoracle-testnet-config.json" "port" "1317" "KNIRV-ORACLE port"
     fi
     echo ""
     
@@ -291,7 +291,7 @@ perform_validation() {
     
     # 9. Check port availability
     print_status "Checking port availability..."
-    check_port_available 1317 "KNIRV-ROOT"
+    check_port_available 1317 "KNIRV-ORACLE"
     check_port_available 8080 "KNIRVCHAIN"
     check_port_available 8081 "KNIRVGRAPH"
     check_port_available 8082 "KNIRV-NEXUS"

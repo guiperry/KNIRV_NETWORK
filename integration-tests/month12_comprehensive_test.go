@@ -306,7 +306,7 @@ func (suite *Month12ComprehensiveTestSuite) generateComprehensiveReport() *Compr
 
 	// Generate system metrics
 	systemMetrics := &SystemMetrics{
-		ServicesHealthy:  5, // knirvchain, knirvgraph, knirvnexus, knirvroot, knirvrouter
+		ServicesHealthy:  5, // knirvchain, knirvgraph, knirvnexus, knirvoracle, knirvrouter
 		TotalServices:    5,
 		AvgResponseTime:  150.0, // ms
 		ErrorRate:        2.5,   // percent

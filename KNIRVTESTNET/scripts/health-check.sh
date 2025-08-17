@@ -144,7 +144,7 @@ discover_service_port() {
                         return 0
                     fi
                     ;;
-                "KNIRV-ROOT")
+                "KNIRV-ORACLE")
                     # For root, prefer 1317 (API port) over 26657 (RPC)
                     if echo "$ports" | grep -q "^1317$"; then
                         echo "1317"
@@ -207,7 +207,7 @@ get_service_info() {
     # Get additional details if requested
     if [ "$DETAILED" = true ] && [ "$status" = "HEALTHY" ]; then
         case $name in
-            "KNIRV-ROOT")
+            "KNIRV-ORACLE")
                 details=$(curl -s --max-time 2 "$url" 2>/dev/null | jq -r '.status // "unknown"' 2>/dev/null || echo "")
                 ;;
             "KNIRVCHAIN")
@@ -308,7 +308,7 @@ perform_health_check() {
 
     # Service definitions with dynamic port discovery
     declare -a service_configs=(
-        "KNIRV-ROOT|1317|/health|data/knirvroot.pid"
+        "KNIRV-ORACLE|1317|/health|data/knirvoracle.pid"
         "KNIRVCHAIN|8090|/health|data/knirvchain.pid"
         "KNIRVGRAPH|8082|/height|data/knirvgraph.pid"
         "KNIRV-NEXUS-DVE|8084|/health|data/knirvnexus-dve-manager.pid"

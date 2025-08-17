@@ -41,9 +41,9 @@ func NewServiceDiscovery() *ServiceDiscovery {
 func (sd *ServiceDiscovery) LoadServices() error {
 	// Load service URLs from environment
 	services := map[string]ServiceConfig{
-		"knirvroot": {
-			Name:           "KNIRV-ROOT",
-			URL:            getEnvOrDefault("KNIRVROOT_URL", "http://localhost:1317"),
+		"knirvoracle": {
+			Name:           "KNIRV-ORACLE",
+			URL:            getEnvOrDefault("KNIRVORACLE_URL", "http://localhost:1317"),
 			HealthEndpoint: "/health",
 			APIEndpoints:   []string{"/cosmos/bank/v1beta1/balances", "/nrn/mint", "/nrn/burn"},
 			RetryCount:     3,

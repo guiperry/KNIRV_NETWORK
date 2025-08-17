@@ -6,7 +6,7 @@
 **Date:** July 19, 2025
 
 ## Abstract
-The widespread adoption of decentralized AI ecosystems is often hindered by complex blockchain interactions, intimidating security protocols, and fragmented user experiences. This whitepaper introduces the **KNIRV-WALLET**, a revolutionary digital wallet designed to be the intuitive and secure gateway to the entire KNIRV Decentralized Trusted Execution Network (D-TEN). Leveraging XION's Meta Accounts and native gasless transactions, the **KNIRV-WALLET** abstracts away blockchain complexities, providing a seamless, Web2-like experience for managing NRN tokens (native to KNIRV-ROOT), interacting with KNIRV-CORTEX agents, and participating in the KNIRVANA game. It prioritizes user-centric design, robust security through User Delegation Certificates (UDCs) and biometric authentication, and real-time insights into the NRN economy, making decentralized AI accessible to everyone.
+The widespread adoption of decentralized AI ecosystems is often hindered by complex blockchain interactions, intimidating security protocols, and fragmented user experiences. This whitepaper introduces the **KNIRV-WALLET**, a revolutionary digital wallet designed to be the intuitive and secure gateway to the entire KNIRV Decentralized Trusted Execution Network (D-TEN). Leveraging XION's Meta Accounts and native gasless transactions, the **KNIRV-WALLET** abstracts away blockchain complexities, providing a seamless, Web2-like experience for managing NRN tokens (native to KNIRV-ORACLE), interacting with KNIRV-CORTEX agents, and participating in the KNIRVANA game. It prioritizes user-centric design, robust security through User Delegation Certificates (UDCs) and biometric authentication, and real-time insights into the NRN economy, making decentralized AI accessible to everyone.
 
 ## 1. Introduction
 The vision of a self-improving, decentralized AI network like the KNIRV D-TEN is ambitious, but its success ultimately depends on user accessibility. Traditional cryptocurrency wallets, while powerful, often present significant barriers to entry for mainstream users due to seed phrases, complex transaction fees, and a steep learning curve. This friction impedes adoption and limits the potential reach of decentralized applications.
@@ -30,10 +30,10 @@ The **KNIRV-WALLET** prioritizes a frictionless and secure onboarding and authen
 The **KNIRV-WALLET** provides intuitive management of NRN tokens and abstracts away the complexities of blockchain transactions.
 
 **Expanded Information:**
-*   **NRN Balance & History:** Users can view their NRN token balance (native to KNIRV-ROOT, with wrapped versions on XION for UX) and a clear transaction history, including NRN acquisitions, transfers, and burns (for Skill invocation).
-*   **Gasless Transactions (via XION):** Leveraging XION's native gasless transaction capabilities, users can perform NRN transfers and interact with KNIRVCHAIN (via KNIRV-ROOT orchestration) without needing to acquire and manage separate gas tokens. This eliminates a major source of friction and confusion for users.
-*   **Simplified NRN Acquisition:** The **KNIRV-WALLET** provides a direct, intuitive interface to acquire NRN tokens from the KNIRV-ROOT Faucet using USDC (primarily facilitated via XION). This streamlines the process of onboarding new users into the NRN economy.
-*   **NRN Burning Visibility:** While NRN burning for Skill invocation occurs on KNIRV-ROOT (triggered by KNIRVCHAIN), the **KNIRV-WALLET** provides clear, real-time feedback to the user, showing when their NRNs are consumed and for what purpose, making the economic utility transparent.
+*   **NRN Balance & History:** Users can view their NRN token balance (native to KNIRV-ORACLE, with wrapped versions on XION for UX) and a clear transaction history, including NRN acquisitions, transfers, and burns (for Skill invocation).
+*   **Gasless Transactions (via XION):** Leveraging XION's native gasless transaction capabilities, users can perform NRN transfers and interact with KNIRVCHAIN (via KNIRV-ORACLE orchestration) without needing to acquire and manage separate gas tokens. This eliminates a major source of friction and confusion for users.
+*   **Simplified NRN Acquisition:** The **KNIRV-WALLET** provides a direct, intuitive interface to acquire NRN tokens from the KNIRV-ORACLE Faucet using USDC (primarily facilitated via XION). This streamlines the process of onboarding new users into the NRN economy.
+*   **NRN Burning Visibility:** While NRN burning for Skill invocation occurs on KNIRV-ORACLE (triggered by KNIRVCHAIN), the **KNIRV-WALLET** provides clear, real-time feedback to the user, showing when their NRNs are consumed and for what purpose, making the economic utility transparent.
 
 ### 2.3. KNIRV-CORTEX Agent Orchestration & Control
 The **KNIRV-WALLET** serves as the secure control center for a user's KNIRV-CORTEX agents.
@@ -80,7 +80,7 @@ graph TD
     end
 
     subgraph KNIRV_D_TEN_BLOCKCHAINS[KNIRV D-TEN Blockchains]
-        KRBC[KNIRV-ROOT Blockchain: NRN Native, Faucet]
+        KRBC[KNIRV-ORACLE Blockchain: NRN Native, Faucet]
         KCC[KNIRVCHAIN Blockchain: Skill Registry, Base LLM]
         XION[XION Blockchain: Meta Accounts, Gasless Tx, USDC Liquidity]
     end
@@ -109,7 +109,7 @@ graph TD
 *   **User Interface (UI):** Built with modern frontend frameworks (e.g., React for web, React Native for mobile) for a responsive, intuitive, and visually appealing experience.
 *   **Client-Side Logic:** Contains the core application logic, including the XION SDK integration for Meta Accounts and gasless transactions, and local cryptographic utilities for UDC generation and biometric hashing.
 *   **KNIRV-WALLET Backend (API Gateway):** A lightweight backend service that acts as an API gateway, routing requests, handling authentication, and aggregating data from various KNIRV D-TEN blockchains for efficient display in the UI. This backend is primarily for data aggregation and routing, not for sensitive key management.
-*   **KNIRV D-TEN Blockchains:** The core decentralized infrastructure that the wallet interacts with: KNIRV-ROOT (for native NRN), KNIRVCHAIN (for SkillRegistry), and XION (for Meta Accounts, gasless transactions, and USDC liquidity).
+*   **KNIRV D-TEN Blockchains:** The core decentralized infrastructure that the wallet interacts with: KNIRV-ORACLE (for native NRN), KNIRVCHAIN (for SkillRegistry), and XION (for Meta Accounts, gasless transactions, and USDC liquidity).
 
 ### 3.2. XION's Generalized Abstraction Layer
 The **KNIRV-WALLET** deeply integrates with XION's protocol-level abstractions, which are key to its user-friendliness.
@@ -126,7 +126,7 @@ User Delegation Certificates (UDCs) are central to the **KNIRV-WALLET's** securi
 *   **Purpose:** UDCs are cryptographically signed tokens issued by the **KNIRV-WALLET** that grant a KNIRV-CORTEX agent specific, time-bound permissions to act on the user's behalf. This ensures that KNIRV-CORTEX agents operate within strict, auditable boundaries defined by the user.
 *   **Granular Permissions:** UDCs can specify highly granular permissions, such as "allow KNIRV-CORTEX X to spend up to 50 NRN for Skill invocations related to 'travel booking' for the next 24 hours."
 *   **On-Demand Issuance:** UDCs are typically generated on-demand by the **KNIRV-WALLET** when a user issues a command to their KNIRV-CORTEX that requires external interaction (e.g., NRN transfer, Skill invocation).
-*   **Cryptographic Signature:** Each UDC is cryptographically signed by the user's **KNIRV-WALLET** (via their XION Meta Account), providing an undeniable proof of authorization. This signature is verifiable on-chain (e.g., by KNIRV-ROOT or KNIRVCHAIN smart contracts) when the KNIRV-CORTEX attempts to execute an action.
+*   **Cryptographic Signature:** Each UDC is cryptographically signed by the user's **KNIRV-WALLET** (via their XION Meta Account), providing an undeniable proof of authorization. This signature is verifiable on-chain (e.g., by KNIRV-ORACLE or KNIRVCHAIN smart contracts) when the KNIRV-CORTEX attempts to execute an action.
 *   **Revocation:** Users can revoke UDCs at any time through their **KNIRV-WALLET**, immediately canceling the agent's permissions.
 
 ## 4. Integration with the KNIRV Ecosystem
@@ -134,9 +134,9 @@ The **KNIRV-WALLET** is the central user touchpoint, deeply integrated with all 
 
 **Expanded Information:**
 *   **KNIRV-CORTEX:** The **KNIRV-WALLET** is the control panel for KNIRV-CORTEX agents. It issues UDCs, monitors agent activity, and provides the interface for KNIRV-CORTEXs to acquire NRNs for Skill invocation.
-*   **KNIRV-ROOT Blockchain:** The **KNIRV-WALLET** directly interacts with KNIRV-ROOT for canonical NRN balance inquiries, NRN acquisition from the Faucet, and to observe NRN burning events triggered by Skill invocations.
-*   **KNIRVCHAIN Blockchain:** The **KNIRV-WALLET** allows users to view the SkillRegistry and the Base LLM versions on KNIRVCHAIN. When a KNIRV-CORTEX invokes a Skill on KNIRVCHAIN, the **KNIRV-WALLET** facilitates the NRN payment (which is then burned on KNIRV-ROOT).
-*   **XION Blockchain:** XION is the foundational layer for **KNIRV-WALLET's** user experience. It provides Meta Accounts for simplified authentication and account management, and enables gasless transactions for seamless NRN operations. USDC liquidity for the KNIRV-ROOT Faucet also flows through XION.
+*   **KNIRV-ORACLE Blockchain:** The **KNIRV-WALLET** directly interacts with KNIRV-ORACLE for canonical NRN balance inquiries, NRN acquisition from the Faucet, and to observe NRN burning events triggered by Skill invocations.
+*   **KNIRVCHAIN Blockchain:** The **KNIRV-WALLET** allows users to view the SkillRegistry and the Base LLM versions on KNIRVCHAIN. When a KNIRV-CORTEX invokes a Skill on KNIRVCHAIN, the **KNIRV-WALLET** facilitates the NRN payment (which is then burned on KNIRV-ORACLE).
+*   **XION Blockchain:** XION is the foundational layer for **KNIRV-WALLET's** user experience. It provides Meta Accounts for simplified authentication and account management, and enables gasless transactions for seamless NRN operations. USDC liquidity for the KNIRV-ORACLE Faucet also flows through XION.
 *   **KNIRVANA (Game Client):** The **KNIRV-WALLET** is integrated directly into KNIRVANA, allowing players to manage their NRNs for in-game Skill invocations by their agent units. It provides a real-time view of NRN consumption during gameplay and simplifies the acquisition of NRNs for continued play.
 *   **KNIRV-ROUTERS & KNIRV-NEXUS DVEs:** While not directly interacting, the **KNIRV-WALLET** indirectly benefits from these layers by providing the NRNs that fund their operations and ensure network integrity and verifiable computation.
 

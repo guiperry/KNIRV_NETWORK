@@ -12,9 +12,9 @@ let services = {};
 if (isTestnet) {
   // Testnet service configuration - all local
   services = {
-    knirvroot: {
-      name: "knirvroot",
-      url: process.env.KNIRVROOT_URL || "http://localhost:1317",
+    knirvoracle: {
+      name: "knirvoracle",
+      url: process.env.KNIRVORACLE_URL || "http://localhost:1317",
       healthPath: "/health",
       isHealthy: true,
       lastCheck: new Date(),
@@ -92,9 +92,9 @@ if (isTestnet) {
       isHealthy: true,
       lastCheck: new Date()
     },
-    knirvroot: {
-      name: "knirvroot",
-      url: process.env.KNIRVROOT_URL || "http://localhost:5002",
+    knirvoracle: {
+      name: "knirvoracle",
+      url: process.env.KNIRVORACLE_URL || "http://localhost:5002",
       healthPath: "/health",
       isHealthy: true,
       lastCheck: new Date()
@@ -928,10 +928,10 @@ function determineServiceFromPath(path) {
   } else if (path.startsWith('/api/v1/agents') || path.startsWith('/api/v1/workflows') || path.startsWith('/api/v1/mcp')) {
     return 'knirvnexus_dve'; // Legacy NEXUS routes go to DVE manager
   } else if (path.startsWith('/api/registry') || path.startsWith('/api/uri') || path.startsWith('/api/economics') || path.startsWith('/economics')) {
-    return 'knirvroot';
+    return 'knirvoracle';
   }
 
-  return 'knirvroot'; // Default fallback
+  return 'knirvoracle'; // Default fallback
 }
 
 function generateToken() {

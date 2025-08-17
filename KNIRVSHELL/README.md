@@ -11,9 +11,9 @@ A comprehensive command-line interface that provides full integration with the e
 - **Hot Configuration Reloading**: Update configuration without restarting
 
 ### 2. Complete KNIRV Network Integration
-- **KNIRVROOT Client**: Blockchain operations, agent management, economics integration
+- **KNIRVORACLE Client**: Blockchain operations, agent management, economics integration
 - **KNIRVGATEWAY Client**: Unified API gateway access, health monitoring, authentication
-- **KNIRVNEXUS Client**: DVE rental, agentic engine, inference API integration
+- **KNIRVNEXUS Client**: DVE rental, KNIRVENGINE, inference API integration
 - **KNIRVGRAPH Client**: NRV system, ErrorNode/SkillNode operations, graph queries
 
 ### 3. Wallet and Economics Integration
@@ -212,7 +212,7 @@ knirv:
   network:
     environment: "development"
   services:
-    knirvroot:
+    knirvoracle:
       url: "http://localhost:9999"
       api_key: "your-api-key"
     # ... other services
@@ -358,7 +358,7 @@ knirv init [flags]
 Flags:
       --config string       Configuration file path
       --log-level string    Logging level (debug, info, warn, error)
-      --node-url string     KNIRV-ROOT node URL
+      --node-url string     KNIRV-ORACLE node URL
       --overwrite           Overwrite existing configuration
       --wallet-dir string   Wallet directory path
 ```
@@ -404,7 +404,7 @@ Available Commands:
 - Health status reporting and alerting
 
 #### KNIRV Service Clients
-- **KNIRVRootClient** (`core/knirvroot_client.go`): Blockchain and economics operations
+- **KNIRVRootClient** (`core/knirvoracle_client.go`): Blockchain and economics operations
 - **KNIRVGatewayClient** (`core/knirvgateway_client.go`): Gateway and proxy operations
 - **KNIRVNexusClient** (`core/knirvnexus_client.go`): DVE and inference operations
 - **KNIRVGraphClient** (`core/knirvgraph_client.go`): Graph and NRV operations

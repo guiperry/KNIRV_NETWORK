@@ -154,7 +154,7 @@ node scripts/doc_generator.js
 ./sync-network-fixes.sh --direction prod-to-testnet
 
 # Sync specific service only
-./sync-network-fixes.sh --services knirvroot --verbose
+./sync-network-fixes.sh --services knirvoracle --verbose
 
 # Emergency production hotfix backport
 ./sync-network-fixes.sh --direction prod-to-testnet --force
@@ -694,7 +694,7 @@ make docs
 **Location**: `./scripts/kill_knirv.sh`
 
 **Features**:
-- ✅ **Complete Network Coverage**: Terminates all KNIRV services (KNIRVCHAIN, KNIRVNEXUS, KNIRVGRAPH, KNIRVROOT, KNIRVROUTER, KNIRVGATEWAY)
+- ✅ **Complete Network Coverage**: Terminates all KNIRV services (KNIRVCHAIN, KNIRVNEXUS, KNIRVGRAPH, KNIRVORACLE, KNIRVROUTER, KNIRVGATEWAY)
 - ✅ **Multi-Service Detection**: Economics Service, API Gateway, frontend processes (Node.js/Vite)
 - ✅ **Advanced Process Discovery**: By name, port, working directory, and child processes
 - ✅ **Graceful Shutdown**: SIGTERM first, then SIGKILL if needed with configurable timeouts
@@ -868,7 +868,7 @@ cd integration-tests
 - `--no-cleanup`: Skip cleanup of temporary files, logs, and build artifacts
 
 #### Process Detection Features
-- **Service Pattern Matching**: Detects KNIRVCHAIN, KNIRVNEXUS, KNIRVGRAPH, KNIRVROOT, KNIRVROUTER, KNIRVGATEWAY
+- **Service Pattern Matching**: Detects KNIRVCHAIN, KNIRVNEXUS, KNIRVGRAPH, KNIRVORACLE, KNIRVROUTER, KNIRVGATEWAY
 - **Port-based Detection**: Monitors ports 8000-8091 and legacy ports (5000-6001)
 - **Directory-based Search**: Finds Go processes in KNIRV directories
 - **Child Process Detection**: Automatically finds and terminates child processes
@@ -916,7 +916,7 @@ export GATEWAY_PORT=8000
 # KNIRV Component URLs
 export KNIRVCHAIN_URL=http://localhost:8080
 export KNIRVNEXUS_URL=http://localhost:8081
-export KNIRVROOT_URL=http://localhost:8082
+export KNIRVORACLE_URL=http://localhost:8082
 export KNIRVGRAPH_URL=http://localhost:8083
 
 # Integration Testing
@@ -1195,11 +1195,11 @@ pipeline {
 | KNIRVGATEWAY | 8000 | API Gateway |
 | KNIRVCHAIN | 8080 | Blockchain Frontend |
 | KNIRVNEXUS | 8081 | Inference Engine API |
-| KNIRVROOT | 8082 | Root Service |
+| KNIRVORACLE | 8082 | Root Service |
 | KNIRVGRAPH | 8083 | Graph Service |
 | Economics | 8090 | Economics Service |
 | KNIRVROUTER | 8091 | Router Service |
-| Legacy Ports | 5000-6001 | Legacy KNIRVROOT |
+| Legacy Ports | 5000-6001 | Legacy KNIRVORACLE |
 | Dev Servers | 3000-4001 | Development |
 
 ### Exit Codes
@@ -1270,9 +1270,9 @@ Comprehensive validation of the entire migration:
 ```
 
 ### `start-with-economics.sh`
-Starts KNIRVROOT with integrated economics service:
+Starts KNIRVORACLE with integrated economics service:
 - Sets up environment variables
-- Builds KNIRVROOT with economics
+- Builds KNIRVORACLE with economics
 - Starts the integrated service
 
 ```bash
@@ -1283,7 +1283,7 @@ Starts KNIRVROOT with integrated economics service:
 Tests the economics service integration:
 - Economics service health
 - API endpoints
-- Integration with KNIRVROOT
+- Integration with KNIRVORACLE
 
 ```bash
 ./scripts/test-economics-integration.sh

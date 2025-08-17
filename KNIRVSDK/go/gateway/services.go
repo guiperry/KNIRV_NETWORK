@@ -43,7 +43,7 @@ type GatewayStatus struct {
 type IntegrationStatus struct {
 	KNIRVChainURL string    `json:"knirvchain_url"`
 	KNIRVNexusURL string    `json:"knirvnexus_url"`
-	KNIRVRootURL  string    `json:"knirvroot_url"`
+	KNIRVRootURL  string    `json:"knirvoracle_url"`
 	KNIRVGraphURL string    `json:"knirvgraph_url"`
 	LastSync      time.Time `json:"last_sync"`
 	Status        string    `json:"status"`

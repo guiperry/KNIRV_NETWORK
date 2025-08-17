@@ -10,7 +10,7 @@ path_mappings:
     "KNIRVTESTNET/config": "deployment/production-config"
     "KNIRVTESTNET/scripts": "scripts"
     "KNIRVTESTNET/data/knirvgateway": "KNIRVGATEWAY"
-    "KNIRVTESTNET/data/knirvroot": "KNIRVROOT/data"
+    "KNIRVTESTNET/data/knirvoracle": "KNIRVORACLE/data"
     "KNIRVTESTNET/data/knirvchain": "KNIRVCHAIN/data"
     "KNIRVTESTNET/data/knirvgraph": "KNIRVGRAPH/data"
     "KNIRVTESTNET/data/knirvnexus": "KNIRVNEXUS/data"
@@ -20,7 +20,7 @@ path_mappings:
     "deployment/production-config": "KNIRVTESTNET/config"
     "scripts": "KNIRVTESTNET/scripts"
     "KNIRVGATEWAY": "KNIRVTESTNET/data/knirvgateway"
-    "KNIRVROOT/data": "KNIRVTESTNET/data/knirvroot"
+    "KNIRVORACLE/data": "KNIRVTESTNET/data/knirvoracle"
     "KNIRVCHAIN/data": "KNIRVTESTNET/data/knirvchain"
     "KNIRVGRAPH/data": "KNIRVTESTNET/data/knirvgraph"
     "KNIRVNEXUS/data": "KNIRVTESTNET/data/knirvnexus"
@@ -121,7 +121,7 @@ transformations:
 # =============================================================================
 
 services:
-  knirvroot:
+  knirvoracle:
     config_files:
       - "config/root_config.json"
       - "config/default_config.json"

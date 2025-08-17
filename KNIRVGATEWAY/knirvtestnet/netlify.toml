@@ -22,7 +22,7 @@
 [context.testnet.environment]
   TESTNET_MODE = "true"
   NODE_ENV = "testnet"
-  KNIRVROOT_URL = "http://localhost:1317"
+  KNIRVORACLE_URL = "http://localhost:1317"
   KNIRVCHAIN_URL = "http://localhost:8083"
   KNIRVGRAPH_URL = "http://localhost:8082"
   KNIRVNEXUS_DVE_URL = "http://localhost:8084"

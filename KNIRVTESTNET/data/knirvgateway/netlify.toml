@@ -76,7 +76,7 @@
     VITE_SSE_BASE_URL = "/.netlify/functions/gateway-sse"
     VITE_TESTNET_MODE = "true"
     TESTNET_MODE = "true"
-    KNIRVROOT_URL = "http://localhost:1317"
+    KNIRVORACLE_URL = "http://localhost:1317"
     KNIRVCHAIN_URL = "http://localhost:8090"
     KNIRVGRAPH_URL = "http://localhost:8082"
     KNIRVNEXUS_URL = "http://localhost:8084"

@@ -15,7 +15,7 @@ process.env.ECONOMICS_SERVICE_URL = 'http://localhost:8090';
 process.env.GATEWAY_SERVICE_URL = 'http://localhost:8000';
 process.env.KNIRVCHAIN_URL = 'http://localhost:8080';
 process.env.KNIRVNEXUS_URL = 'http://localhost:8081';
-process.env.KNIRVROOT_URL = 'http://localhost:8082';
+process.env.KNIRVORACLE_URL = 'http://localhost:8082';
 process.env.KNIRVGRAPH_URL = 'http://localhost:8083';
 
 async function main() {
@@ -178,7 +178,7 @@ async function integrationExample() {
     serviceURLs: {
       knirvchain: 'http://localhost:8080',
       knirvnexus: 'http://localhost:8081',
-      knirvroot: 'http://localhost:8082',
+      knirvoracle: 'http://localhost:8082',
       knirvgraph: 'http://localhost:8083',
     },
   });

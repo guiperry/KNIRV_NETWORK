@@ -56,7 +56,7 @@ fi
 # Set testnet environment variables with correct service URLs
 export TESTNET_MODE=true
 export NODE_ENV=testnet
-export KNIRVROOT_URL=http://localhost:1317
+export KNIRVORACLE_URL=http://localhost:1317
 export KNIRVCHAIN_URL=http://localhost:8090
 export KNIRVGRAPH_URL=http://localhost:8082
 export KNIRVNEXUS_DVE_URL=http://localhost:8084

@@ -132,7 +132,7 @@ print_success "All dependencies are available"
 # Check port availability
 print_step "Checking port availability..."
 ports=(1317 8090 8082 8084 8086 8888)
-port_names=("KNIRV-ROOT" "KNIRVCHAIN" "KNIRVGRAPH" "KNIRV-NEXUS" "KNIRV-ROUTER" "KNIRV-GATEWAY")
+port_names=("KNIRV-ORACLE" "KNIRVCHAIN" "KNIRVGRAPH" "KNIRV-NEXUS" "KNIRV-ROUTER" "KNIRV-GATEWAY")
 
 for i in "${!ports[@]}"; do
     port=${ports[$i]}
@@ -150,7 +150,7 @@ print_success "All required ports are available"
 # Build all components
 print_step "Building all components..."
 
-components=("knirvroot" "knirvchain" "knirvgraph" "knirvnexus" "knirvrouter" "knirvgateway")
+components=("knirvoracle" "knirvchain" "knirvgraph" "knirvnexus" "knirvrouter" "knirvgateway")
 
 for component in "${components[@]}"; do
     print_status "Building $component..."
@@ -167,12 +167,12 @@ print_success "All components built successfully"
 # Start services in order
 print_step "Starting services..."
 
-# 1. Start KNIRV-ROOT (blockchain foundation)
-print_status "Starting KNIRV-ROOT..."
-if ./scripts/start-knirvroot.sh; then
-    wait_for_service "KNIRV-ROOT" "http://localhost:1317/health" || exit 1
+# 1. Start KNIRV-ORACLE (blockchain foundation)
+print_status "Starting KNIRV-ORACLE..."
+if ./scripts/start-knirvoracle.sh; then
+    wait_for_service "KNIRV-ORACLE" "http://localhost:1317/health" || exit 1
 else
-    print_error "Failed to start KNIRV-ROOT"
+    print_error "Failed to start KNIRV-ORACLE"
     exit 1
 fi
 
@@ -229,7 +229,7 @@ echo "🎉 KNIRV TESTNET IS RUNNING!"
 echo "============================"
 echo ""
 echo "Service Status:"
-echo "  🔗 KNIRV-ROOT:    http://localhost:1317"
+echo "  🔗 KNIRV-ORACLE:    http://localhost:1317"
 echo "  ⛓️  KNIRVCHAIN:   http://localhost:8090"
 echo "  📊 KNIRVGRAPH:    http://localhost:8082"
 echo "  🔒 KNIRV-NEXUS:   http://localhost:8084 (API) / http://localhost:8083 (GUI)"

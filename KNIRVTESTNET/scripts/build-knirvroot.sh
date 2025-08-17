@@ -1,38 +1,38 @@
 #!/bin/bash
 set -e
 
-echo "Building KNIRV-ROOT for testnet..."
+echo "Building KNIRV-ORACLE for testnet..."
 
-# Build KNIRV-ROOT from source with testnet support
-echo "Building KNIRV-ROOT from source with testnet support..."
-cd ../KNIRVROOT
+# Build KNIRV-ORACLE from source with testnet support
+echo "Building KNIRV-ORACLE from source with testnet support..."
+cd ../KNIRVORACLE
 
 # Clean any previous builds
-rm -f knirvroot KNIRVROOT bin/knirvroot
+rm -f knirvoracle KNIRVORACLE bin/knirvoracle
 
 # Build with all dependencies (build entire package, not just main.go)
-echo "Compiling KNIRV-ROOT..."
-go build -o knirvroot .
+echo "Compiling KNIRV-ORACLE..."
+go build -o knirvoracle .
 
 # Copy to testnet bin directory
-cp knirvroot ../KNIRVTESTNET/bin/knirvroot
-echo "✅ Built and copied KNIRV-ROOT binary with testnet support"
+cp knirvoracle ../KNIRVTESTNET/bin/knirvoracle
+echo "✅ Built and copied KNIRV-ORACLE binary with testnet support"
 
 cd ../KNIRVTESTNET
 
 # Create simplified testnet data directory
 echo "Setting up testnet data directory..."
-mkdir -p data/knirvroot
+mkdir -p data/knirvoracle
 mkdir -p data/testnet
 
 # Copy testnet configuration
 echo "Setting up testnet configuration..."
-cp ../KNIRVROOT/config/testnet_config.json config/knirvroot-testnet-config.json
+cp ../KNIRVORACLE/config/testnet_config.json config/knirvoracle-testnet-config.json
 
 # Create genesis file for testnet
 echo "Creating testnet genesis file..."
-mkdir -p data/knirvroot/genesis
-cat > data/knirvroot/genesis/genesis.json << 'EOF'
+mkdir -p data/knirvoracle/genesis
+cat > data/knirvoracle/genesis/genesis.json << 'EOF'
 {
   "chain_id": "knirv-testnet-1",
   "validators": [
@@ -54,4 +54,4 @@ cat > data/knirvroot/genesis/genesis.json << 'EOF'
 }
 EOF
 
-echo "KNIRV-ROOT testnet build completed successfully!"
+echo "KNIRV-ORACLE testnet build completed successfully!"
