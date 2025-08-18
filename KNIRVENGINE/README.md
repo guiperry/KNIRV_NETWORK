@@ -54,8 +54,8 @@ cd KNIRV_NETWORK/KNIRVENGINE
 
 2. **Build Desktop-Host**:
 ```bash
-cd desktop-host
-go build -o desktop-host main.go
+cd desktop-client
+go build -o desktop-client main.go
 ```
 
 3. **Build Mobile-Tool**:
@@ -75,8 +75,8 @@ cargo build --release --target wasm32-unknown-unknown
 
 1. **Start Desktop Host**:
 ```bash
-cd desktop-host
-./desktop-host
+cd desktop-client
+./desktop-client
 ```
 
 2. **Start Mobile Tool** (development):
@@ -284,7 +284,7 @@ The system passes 8/10 comprehensive tests:
 ### Project Structure
 ```
 KNIRVENGINE/
-├── desktop-host/          # Go backend with HRM
+├── desktop-client/          # Go backend with HRM
 ├── mobile-controller/           # React mobile client
 ├── agent-core/            # WASM cognitive shell
 ├── test_*.js             # Integration tests
@@ -337,17 +337,17 @@ KNIRVENGINE/
 
 ### Docker Support
 ```dockerfile
-# Example Dockerfile for desktop-host
+# Example Dockerfile for desktop-client
 FROM golang:1.21-alpine AS builder
 WORKDIR /app
 COPY . .
-RUN go build -o desktop-host main.go
+RUN go build -o desktop-client main.go
 
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 WORKDIR /root/
-COPY --from=builder /app/desktop-host .
-CMD ["./desktop-host"]
+COPY --from=builder /app/desktop-client .
+CMD ["./desktop-client"]
 ```
 
 ## 📄 License

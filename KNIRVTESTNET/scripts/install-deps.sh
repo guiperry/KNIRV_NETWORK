@@ -299,6 +299,32 @@ EOF
 
     print_status "Environment refreshed for current session"
     print_status "Toolchains are now available in PATH"
+
+    # Install Node.js dependencies and fix axios if needed
+    print_status "Installing Node.js dependencies..."
+    if [ -f "package.json" ]; then
+        npm install || {
+            print_warning "npm install failed, checking for axios corruption..."
+            if [ -f "scripts/fix-axios-corruption.sh" ]; then
+                print_status "Running axios corruption fix..."
+                chmod +x scripts/fix-axios-corruption.sh
+                ./scripts/fix-axios-corruption.sh || {
+                    print_warning "Axios fix script failed, trying manual fix..."
+                    npm install axios@1.6.8 --save-exact
+                }
+            else
+                print_warning "Axios fix script not found, trying manual fix..."
+                npm install axios@1.6.8 --save-exact
+            fi
+
+            # Retry npm install after axios fix
+            npm install || print_error "npm install failed even after axios fix"
+        }
+        print_success "Node.js dependencies installed"
+    else
+        print_warning "package.json not found, skipping npm install"
+    fi
+
     print_status "You can now run 'npm start' to build and start the KNIRV testnet"
 }
 

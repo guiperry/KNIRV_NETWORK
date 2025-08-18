@@ -5,12 +5,12 @@
 window.KNIRV_CONFIG = {
   environment: 'testnet',
   apiEndpoints: {
-    chain: 'http://localhost:8080',
-    graph: 'http://localhost:8081',
-    nexus: 'http://localhost:8082',
-    oracle: 'http://localhost:1317',
-    router: 'http://localhost:8086',
-    knirvana: 'http://localhost:3000'
+    chain: 'https://chain-test.knirv.com',
+    graph: 'https://graph-test.knirv.com',
+    nexus: 'https://nexus-test.knirv.com',
+    oracle: 'https://oracle-test.knirv.com',
+    router: 'https://router-test.knirv.com',
+    knirvana: 'https://knirvana-test.knirv.com'
   },
   features: {
     interactiveGraph: true,

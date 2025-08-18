@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRV GraphChain Explorer - KNIRV Gateway</title>
+    <meta name="description" content="Real-time KNIRV GraphChain data, SkillNodes, and ErrorNode analytics">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="../assets/favicon.png" type="image/png">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="../assets/css/vendor.bundle.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="css/graphchain.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body class="nk-body bg-theme-dark tc-light">
+    <!-- Header -->
+    <header class="header-main header-menu-s2 is-transparent" id="header">
+        <div class="header-wrap">
+            <div class="container">
+                <div class="header-logo">
+                    <a href="../index.html" class="logo-link" aria-label="Return to KNIRV Gateway home">
+                        <div id="animated-logo-container"></div>
+                    </a>
+                </div>
+                
+                <!-- GraphChain Explorer Navigation -->
+                <nav class="header-menu" id="header-menu">
+                    <ul class="menu">
+                        <li class="menu-item">
+                            <a href="index.html" class="menu-link">Dashboard</a>
+                        </li>
+                        <li class="menu-item">
+                            <a href="skills.html" class="menu-link">SkillNodes</a>
+                        </li>
+                        <li class="menu-item">
+                            <a href="errors.html" class="menu-link">ErrorNodes</a>
+                        </li>
+                        <li class="menu-item">
+                            <a href="graph.html" class="menu-link">Graph View</a>
+                        </li>
+                        <li class="menu-item">
+                            <a href="search.html" class="menu-link">Search</a>
+                        </li>
+                    </ul>
+                    
+                    <!-- Search -->
+                    <div class="header-search">
+                        <input type="text" placeholder="Search nodes..." id="global-search" class="form-control">
+                        <button type="button" id="search-button" class="btn btn-icon">
+                            <em class="icon ni ni-search"></em>
+                        </button>
+                    </div>
+                    
+                    <!-- Back to Main Site -->
+                    <div class="header-action">
+                        <a href="../index.html" class="btn btn-outline btn-light">
+                            <em class="icon ni ni-arrow-left"></em>
+                            <span>Back to KNIRV</span>
+                        </a>
+                    </div>
+                </nav>
+                
+                <!-- Mobile Menu Toggle -->
+                <div class="header-nav-toggle">
+                    <a href="#" class="navbar-toggle" data-menu-toggle="header-menu">
+                        <div class="toggle-line">
+                            <span></span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="nk-pages">
+        <!-- Hero Section -->
+        <section class="section section-hero bg-theme-grad tc-light">
+            <div class="container">
+                <div class="nk-block nk-block-lg">
+                    <div class="row align-items-center justify-content-between">
+                        <div class="col-lg-6">
+                            <div class="hero-content">
+                                <h1 class="hero-title">
+                                    <span class="text-grad">KNIRV GraphChain</span> Explorer
+                                </h1>
+                                <p class="hero-subtitle lead">
+                                    Real-time KNIRV GraphChain data, SkillNodes, and ErrorNode analytics
+                                </p>
+                                <div class="hero-status">
+                                    <div class="status-indicator">
+                                        <div class="status-dot"></div>
+                                        <span>Live Connection</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-5">
+                            <div class="hero-visual">
+                                <div class="network-animation">
+                                    <!-- Network visualization will be added here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dashboard Content -->
+        <section class="section section-dashboard bg-theme-dark tc-light">
+            <div class="container">
+                <div class="nk-block">
+                    <!-- Loading State -->
+                    <div id="loading-state" class="loading-state">
+                        <div class="loading-spinner"></div>
+                        <p>Loading GraphChain data...</p>
+                    </div>
+
+                    <!-- Error State -->
+                    <div id="error-state" class="error-state" style="display: none;">
+                        <div class="error-icon">
+                            <em class="icon ni ni-alert-circle"></em>
+                        </div>
+                        <h3>Failed to Load Dashboard</h3>
+                        <p id="error-message"></p>
+                        <button onclick="location.reload()" class="btn btn-primary">
+                            <em class="icon ni ni-reload"></em>
+                            <span>Retry</span>
+                        </button>
+                    </div>
+
+                    <!-- Main Dashboard Content -->
+                    <div id="main-content" style="display: none;">
+                        <!-- Stats Grid -->
+                        <div class="row g-4 mb-4">
+                            <div class="col-lg-3 col-md-6">
+                                <div class="stats-card stats-card-blue">
+                                    <div class="stats-icon">
+                                        <em class="icon ni ni-network"></em>
+                                    </div>
+                                    <div class="stats-content">
+                                        <div class="stats-value" id="stat-height">0</div>
+                                        <div class="stats-label">Graph Height</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-3 col-md-6">
+                                <div class="stats-card stats-card-green">
+                                    <div class="stats-icon">
+                                        <em class="icon ni ni-cpu"></em>
+                                    </div>
+                                    <div class="stats-content">
+                                        <div class="stats-value" id="stat-skills">0</div>
+                                        <div class="stats-label">SkillNodes</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-3 col-md-6">
+                                <div class="stats-card stats-card-orange">
+                                    <div class="stats-icon">
+                                        <em class="icon ni ni-alert-triangle"></em>
+                                    </div>
+                                    <div class="stats-content">
+                                        <div class="stats-value" id="stat-errors">0</div>
+                                        <div class="stats-label">ErrorNodes</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-3 col-md-6">
+                                <div class="stats-card stats-card-purple">
+                                    <div class="stats-icon">
+                                        <em class="icon ni ni-clock"></em>
+                                    </div>
+                                    <div class="stats-content">
+                                        <div class="stats-value" id="stat-resolution-time">0s</div>
+                                        <div class="stats-label">Avg Resolution Time</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent SkillNodes -->
+                        <div class="nk-block">
+                            <div class="card card-bordered">
+                                <div class="card-inner">
+                                    <div class="card-title-group">
+                                        <div class="card-title">
+                                            <h6 class="title">
+                                                <em class="icon ni ni-cpu"></em>
+                                                Recent SkillNodes
+                                            </h6>
+                                        </div>
+                                        <div class="card-tools">
+                                            <a href="skills.html" class="link">
+                                                View All
+                                                <em class="icon ni ni-arrow-right"></em>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div id="recent-skills-container" class="recent-skills">
+                                        <!-- SkillNode cards will be populated here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="nk-block">
+                            <div class="row g-4">
+                                <div class="col-lg-4">
+                                    <a href="skills.html" class="action-card action-card-blue" role="button" aria-label="Explore SkillNodes in the KNIRV GraphChain" tabindex="0">
+                                        <div class="action-icon">
+                                            <em class="icon ni ni-cpu"></em>
+                                        </div>
+                                        <div class="action-content">
+                                            <h6>Explore SkillNodes</h6>
+                                            <p>Browse through all SkillNodes in the GraphChain</p>
+                                        </div>
+                                        <div class="action-arrow">
+                                            <em class="icon ni ni-arrow-right"></em>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="col-lg-4">
+                                    <a href="errors.html" class="action-card action-card-orange" role="button" aria-label="View ErrorNodes in the KNIRV GraphChain" tabindex="0">
+                                        <div class="action-icon">
+                                            <em class="icon ni ni-alert-triangle"></em>
+                                        </div>
+                                        <div class="action-content">
+                                            <h6>View ErrorNodes</h6>
+                                            <p>Explore ErrorNodes and their resolution paths</p>
+                                        </div>
+                                        <div class="action-arrow">
+                                            <em class="icon ni ni-arrow-right"></em>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="col-lg-4">
+                                    <a href="graph.html" class="action-card action-card-purple">
+                                        <div class="action-icon">
+                                            <em class="icon ni ni-network"></em>
+                                        </div>
+                                        <div class="action-content">
+                                            <h6>Graph Visualization</h6>
+                                            <p>Visualize SkillNode-ErrorNode relationships</p>
+                                        </div>
+                                        <div class="action-arrow">
+                                            <em class="icon ni ni-arrow-right"></em>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer-section bg-theme tc-light">
+        <div class="container">
+            <div class="footer-bottom">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <p class="copyright-text">
+                            &copy; 2024 KNIRV Network. KNIRV GraphChain Explorer.
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="footer-nav">
+                            <ul>
+                                <li><a href="../index.html">Home</a></li>
+                                <li><a href="../documentation/">Docs</a></li>
+                                <li><a href="../agent-developer-portal/">Developer Portal</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="../assets/js/jquery.bundle.js"></script>
+    <script src="../assets/js/scripts.js"></script>
+    <script src="../assets/js/gateway-sse-client.js"></script>
+    <script src="js/graphchain-core.js"></script>
+    <script src="js/graphchain-api.js"></script>
+    <script src="js/graphchain-sse.js"></script>
+    <script src="test-data.js"></script>
+    <script src="js/components/animated-logo.js"></script>
+    <script src="js/components/skill-card.js"></script>
+    <script src="js/components/error-card.js"></script>
+    <script src="js/components/stats-card.js"></script>
+    <script src="js/pages/dashboard.js"></script>
+
+    <script>
+        // Initialize animated logo
+        document.addEventListener('DOMContentLoaded', () => {
+            const logoContainer = document.getElementById('animated-logo-container');
+            if (logoContainer) {
+                const logo = new AnimatedKNIRVLogo(logoContainer, {
+                    width: 40,
+                    height: 40,
+                    showText: true,
+                    textSize: 'small'
+                });
+                const logoElement = logo.render();
+                logoContainer.appendChild(logoElement);
+            }
+        });
+    </script>
+</body>
+</html>

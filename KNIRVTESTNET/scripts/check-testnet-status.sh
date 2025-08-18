@@ -47,12 +47,7 @@ discover_service_port() {
                     fi
                     # If 8086 not found, router may not be running properly
                     ;;
-                "NANDA-ANS")
-                    if echo "$ports" | grep -q "^9002$"; then
-                        echo "9002"
-                        return 0
-                    fi
-                    ;;
+
             esac
 
             # Return first available port if preferred not found
@@ -114,7 +109,7 @@ check_service "KNIRVGRAPH" "8082" "/height" "data/knirvgraph.pid"
 check_service "KNIRV-NEXUS" "8084" "/health" "data/knirvnexus.pid"
 check_service "KNIRV-ROUTER" "8086" "/status" "data/knirvrouter.pid"
 check_service "KNIRV-GATEWAY" "8888" "/gateway/health" "data/knirvgateway.pid"
-check_service "NANDA-ANS" "9002" "/" "data/nanda-ans.pid"
+
 check_service "HEALTH-MONITOR" "10001" "/health-monitor/status" "data/health-monitor.pid"
 check_service "KNIRVTESTNET-SERVER" "10000" "/health" "data/knirvtestnet-server.pid"
 
@@ -125,7 +120,7 @@ check_pid_file "KNIRVGRAPH" "data/knirvgraph.pid"
 check_pid_file "KNIRV-NEXUS" "data/knirvnexus.pid"
 check_pid_file "KNIRV-ROUTER" "data/knirvrouter.pid"
 check_pid_file "KNIRV-GATEWAY" "data/knirvgateway.pid"
-check_pid_file "NANDA ANS" "data/nanda-ans.pid"
+
 check_pid_file "Health Monitor" "data/health-monitor.pid"
 
 echo -e "\n${BLUE}Log Files:${NC}"
@@ -147,7 +142,7 @@ echo "🔒 KNIRV-NEXUS API: http://localhost:8084"
 echo "🔒 KNIRV-NEXUS GUI: http://localhost:8083"
 echo "🌐 KNIRV-ROUTER: http://localhost:8086"
 echo "🚪 KNIRV-GATEWAY: http://localhost:8888"
-echo "🤖 NANDA ANS: http://localhost:9002"
+
 
 echo -e "\n${BLUE}Useful Commands:${NC}"
 echo "📊 View all logs: npm run logs"

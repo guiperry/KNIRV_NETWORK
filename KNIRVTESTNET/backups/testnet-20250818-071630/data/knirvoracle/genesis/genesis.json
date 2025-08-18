@@ -1,0 +1,19 @@
+{
+  "chain_id": "knirv-testnet-1",
+  "validators": [
+    {
+      "address": "validator1",
+      "power": 100
+    },
+    {
+      "address": "validator2",
+      "power": 100
+    },
+    {
+      "address": "validator3",
+      "power": 100
+    }
+  ],
+  "initial_nrn": 1000000000000,
+  "timestamp": "2025-08-06T00:00:00Z"
+}

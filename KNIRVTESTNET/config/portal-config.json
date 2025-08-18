@@ -4,8 +4,8 @@
     "documentation": "../documentation/docsify/",
     "graphchain_explorer": "../graphchain-explorer/",
     "nexus_portal": "../nexus-portal/",
-    "support_desk": "../support-desk/",
-    "nanda_ans": "../nanda_ans/"
+    "support_desk": "../support-desk/"
+
   },
   "external_services": {
     "payment_gateway": "https://pay.knirv.com/add-funds",
@@ -70,7 +70,7 @@
     "payment_gateway_enabled": true,
     "nexus_integration_enabled": true,
     "graphchain_explorer_enabled": true,
-    "nanda_ans_enabled": true,
+
     "support_desk_enabled": true
   },
   "ui": {

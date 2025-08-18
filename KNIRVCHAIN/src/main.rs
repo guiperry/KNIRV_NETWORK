@@ -4,6 +4,7 @@ use crate::nrn_token::*;
 use crate::smart_contracts::*;
 use actix_web::rt::spawn;
 use actix_web::{get, post, web, App, Error, HttpResponse, HttpServer, Responder};
+use clap::Parser;
 use dotenv::dotenv;
 use futures::executor::block_on;
 use num_bigint::BigInt;
@@ -40,6 +41,19 @@ mod tee_skill_distributor;
 
 // Cloud model integration
 mod cloud_models;
+
+/// KNIRVCHAIN - A blockchain for AI model and skill management
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Disable auto-mining (reduces resource usage)
+    #[arg(long)]
+    disable_mining: bool,
+
+    /// Run in testnet mode
+    #[arg(long)]
+    testnet: bool,
+}
 
 // Custom error wrapper for anyhow::Error to implement ResponseError
 #[derive(Debug)]
@@ -105,6 +119,9 @@ struct SharedState {
 
     // Cloud model testing (optional)
     cloud_testing_framework: Arc<Mutex<Option<cloud_models::CloudModelTestingFramework>>>,
+
+    // Mining configuration
+    mining_enabled: bool,
 }
 
 // Helper function to convert byte array to hex string
@@ -245,47 +262,61 @@ async fn send_transaction(
     let difficulty_clone = **difficulty; //Double dereference to get u32 from Arc<u32>
     let state_clone = state.clone();
 
-    spawn(async move {
-        // 1. Acquire locks in consistent order (blockchain first, then transaction pool):
-        let block_index: u64 = match get_latest_block(&state_clone.blockchain).await {
-            Ok(block) => block.index + 1,
-            Err(e) => {
-                error!(
-                    "[ERROR] Cannot get latest block, could not mine block, Error: {}",
-                    e
-                );
-                return;
-            }
-        };
-        let mut pool = state_clone.transaction_pool.lock().await;
-        let transactions: Vec<Transaction> = pool.drain(..).collect(); // Get all the transactions
-        info!(
-            "[INFO] Clearing transaction pool, new block has: {} transactions",
-            transactions.len()
-        );
+    // Only trigger automatic mining if mining is enabled
+    if state.mining_enabled {
+        spawn(async move {
+            // 1. Acquire locks in consistent order (blockchain first, then transaction pool):
+            let block_index: u64 = match get_latest_block(&state_clone.blockchain).await {
+                Ok(block) => block.index + 1,
+                Err(e) => {
+                    error!(
+                        "[ERROR] Cannot get latest block, could not mine block, Error: {}",
+                        e
+                    );
+                    return;
+                }
+            };
+            let mut pool = state_clone.transaction_pool.lock().await;
+            let transactions: Vec<Transaction> = pool.drain(..).collect(); // Get all the transactions
+            info!(
+                "[INFO] Clearing transaction pool, new block has: {} transactions",
+                transactions.len()
+            );
 
-        let new_block = Block {
-            index: block_index,
-            timestamp: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
-            data: serde_json::to_string(&transactions).unwrap(),
-            previous_hash: String::new(),
-            nonce: 0,
-            hash: String::new(),
-        };
-        match add_block(&state_clone, new_block, difficulty_clone).await {
-            Ok(_) => info!("[INFO] Successfully added new block automatically with content"),
-            Err(e) => error!(
-                "[ERROR] Error mining new block automatically with content: {}",
-                e
-            ),
-        }
-    });
+            let new_block = Block {
+                index: block_index,
+                timestamp: SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs(),
+                data: serde_json::to_string(&transactions).unwrap(),
+                previous_hash: String::new(),
+                nonce: 0,
+                hash: String::new(),
+            };
+            match add_block(&state_clone, new_block, difficulty_clone).await {
+                Ok(_) => info!("[INFO] Successfully added new block automatically with content"),
+                Err(e) => error!(
+                    "[ERROR] Error mining new block automatically with content: {}",
+                    e
+                ),
+            }
+        });
+    } else {
+        // Just add transaction to pool without mining
+        let mut pool = state.transaction_pool.lock().await;
+        pool.push(txn.clone());
+        info!("[INFO] Transaction added to pool (mining disabled)");
+    }
+
+    let message = if state.mining_enabled {
+        "Transaction submitted successfully (mining async)".to_string()
+    } else {
+        "Transaction submitted successfully (added to pool, mining disabled)".to_string()
+    };
 
     Ok(HttpResponse::Created().json(BlockchainResponse {
-        message: "Transaction submitted successfully (mining async)".to_string(),
+        message,
         data: Some(serde_json::to_string(&txn).unwrap()),
         transaction_hash: Some(transaction_hash),
     }))
@@ -788,6 +819,10 @@ fn setup_logging() {
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
+
+    // Parse command line arguments
+    let args = Args::parse();
+
     let rpc_endpoint =
         env::var("KNIRVCHAIN_RPC_ENDPOINT").unwrap_or_else(|_| String::from("127.0.0.1:8000"));
     let difficulty: u32 = env::var("BLOCK_DIFFICULTY").map_or(0, |v| v.parse().unwrap_or(0));
@@ -896,54 +931,64 @@ async fn main() -> std::io::Result<()> {
 
         // Cloud model testing
         cloud_testing_framework,
+
+        // Mining configuration
+        mining_enabled: !args.disable_mining,
     });
 
     println!("[INFO] Starting server at http://{}", rpc_endpoint);
     println!("[INFO] KNIRVCHAIN Chain ID: {}", chain_id);
-    let state_clone = shared_state.clone();
-    let difficulty_clone = difficulty;
-    spawn(async move {
-        loop {
-            let mut pool = state_clone.transaction_pool.lock().await;
-            if !pool.is_empty() {
-                let transactions: Vec<Transaction> = pool.drain(..).collect();
-                info!("[INFO] Transactions found in pool, creating block automatically");
-                let block_index: u64 = match block_on(get_latest_block(&state_clone.blockchain)) {
-                    Ok(block) => block.index + 1,
-                    Err(err) => {
-                        error!("[ERROR] Failed to retrieve latest block {}", err);
-                        0
-                    }
-                };
 
-                let new_block = Block {
-                    index: block_index,
-                    timestamp: SystemTime::now()
-                        .duration_since(UNIX_EPOCH)
-                        .unwrap()
-                        .as_secs(),
-                    data: serde_json::to_string(&transactions).unwrap(),
-                    previous_hash: String::new(),
-                    nonce: 0,
-                    hash: String::new(),
-                };
-                match add_block(&state_clone, new_block, difficulty_clone).await {
-                    //Difficulty directly, with no deref
-                    Ok(_) => {
-                        info!("[INFO] Successfully added new block automatically with content")
-                    }
-                    Err(e) => error!(
-                        "[ERROR] Error mining new block automatically with content: {}",
-                        e
-                    ),
-                };
-            } else {
-                info!("[INFO] No transactions in the pool, skipping block creation.");
+    // Start auto-mining loop only if not disabled
+    if !args.disable_mining {
+        println!("[INFO] Auto-mining enabled");
+        let state_clone = shared_state.clone();
+        let difficulty_clone = difficulty;
+        spawn(async move {
+            loop {
+                let mut pool = state_clone.transaction_pool.lock().await;
+                if !pool.is_empty() {
+                    let transactions: Vec<Transaction> = pool.drain(..).collect();
+                    info!("[INFO] Transactions found in pool, creating block automatically");
+                    let block_index: u64 = match block_on(get_latest_block(&state_clone.blockchain)) {
+                        Ok(block) => block.index + 1,
+                        Err(err) => {
+                            error!("[ERROR] Failed to retrieve latest block {}", err);
+                            0
+                        }
+                    };
+
+                    let new_block = Block {
+                        index: block_index,
+                        timestamp: SystemTime::now()
+                            .duration_since(UNIX_EPOCH)
+                            .unwrap()
+                            .as_secs(),
+                        data: serde_json::to_string(&transactions).unwrap(),
+                        previous_hash: String::new(),
+                        nonce: 0,
+                        hash: String::new(),
+                    };
+                    match add_block(&state_clone, new_block, difficulty_clone).await {
+                        //Difficulty directly, with no deref
+                        Ok(_) => {
+                            info!("[INFO] Successfully added new block automatically with content")
+                        }
+                        Err(e) => error!(
+                            "[ERROR] Error mining new block automatically with content: {}",
+                            e
+                        ),
+                    };
+                } else {
+                    info!("[INFO] No transactions in the pool, skipping block creation.");
+                }
+
+                actix_web::rt::time::sleep(Duration::from_secs(block_time)).await;
             }
-
-            actix_web::rt::time::sleep(Duration::from_secs(block_time)).await;
-        }
-    });
+        });
+    } else {
+        println!("[INFO] Auto-mining disabled - blocks will only be created manually via API");
+    }
 
     HttpServer::new(move || {
         App::new()

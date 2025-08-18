@@ -1,0 +1,46 @@
+# Port Configuration for KNIRV Network Services
+# This file contains non-sensitive port configuration that can be safely committed to version control
+
+# Core Service Ports
+core_services:
+  knirvchain: 8080
+  knirvgraph: 8081
+  knirvnexus: 8082
+  knirvoracle: 1317
+  knirvrouter: 8086
+  knirvana: 3000
+
+# Gateway and API Ports
+gateway:
+  main_port: 10000
+  api_port: 8084
+  gui_port: 8083
+
+# Development Ports
+development:
+  health_monitor: 10001
+  test_server: 10002
+  mock_services: 10003
+
+# Database Ports
+database:
+  postgres: 5432
+  redis: 6379
+
+# Network Ports
+network:
+  ipfs_api: 5001
+  ipfs_gateway: 8080
+  p2p_discovery: 4001
+
+# External Service Ports
+external_services:
+  ipfs_api: 5001
+  ipfs_gateway: 8080
+
+# Backup Ports (in case of conflicts)
+backup_ports:
+  knirvchain_alt: 8090
+  knirvgraph_alt: 8091
+  knirvnexus_alt: 8092
+  knirvrouter_alt: 8096

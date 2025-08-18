@@ -72,20 +72,34 @@ fi
 
 print_success "Toolchains verified successfully"
 
-# Install Node.js dependencies
+# Install Node.js dependencies with axios fix
 print_status "Installing Node.js dependencies..."
-npm install
+npm install || {
+    print_warning "npm install failed, checking for axios corruption..."
+    if [ -f "scripts/fix-axios-corruption.sh" ]; then
+        print_status "Running axios corruption fix..."
+        chmod +x scripts/fix-axios-corruption.sh
+        ./scripts/fix-axios-corruption.sh || {
+            print_warning "Axios fix script failed, trying manual fix..."
+            npm install axios@1.6.8 --save-exact
+        }
+    else
+        print_warning "Axios fix script not found, trying manual fix..."
+        npm install axios@1.6.8 --save-exact
+    fi
+
+    # Retry npm install after axios fix
+    npm install || {
+        print_error "npm install failed even after axios fix"
+        exit 1
+    }
+}
 
 # Install dependencies for sub-projects
-if [ -d "nexus-portal" ]; then
-    print_status "Installing NEXUS portal dependencies..."
-    cd nexus-portal && npm install && cd ..
-fi
+# NEXUS frontend is now built via build-nexus-frontend.sh script
+print_status "NEXUS frontend will be built via build-nexus-frontend.sh"
 
-if [ -d "nanda_ans" ]; then
-    print_status "Installing NANDA ANS dependencies..."
-    cd nanda_ans && npm install && cd ..
-fi
+
 
 # Build all components
 print_status "Building KNIRV components..."
@@ -136,27 +150,17 @@ else
     print_warning "KNIRV-GATEWAY build script not found, skipping"
 fi
 
-print_status "Building NANDA ANS..."
-if [ -f "scripts/build-nanda-ans.sh" ]; then
-    bash scripts/build-nanda-ans.sh
-else
-    print_warning "NANDA ANS build script not found, skipping"
-fi
+
 
 # Build frontend components
-if [ -d "nexus-portal" ]; then
-    print_status "Building NEXUS portal frontend..."
-    cd nexus-portal
-    npm run build 2>/dev/null || print_warning "NEXUS portal build failed"
-    cd ..
+print_status "Building NEXUS frontend..."
+if ./scripts/build-nexus-frontend.sh; then
+    print_success "NEXUS frontend built successfully"
+else
+    print_warning "NEXUS frontend build failed"
 fi
 
-if [ -d "nanda_ans" ]; then
-    print_status "Building NANDA ANS frontend..."
-    cd nanda_ans
-    npm run build 2>/dev/null || print_warning "NANDA ANS build failed"
-    cd ..
-fi
+
 
 # Load endpoints for production
 print_status "Loading production endpoints..."
@@ -177,13 +181,11 @@ for binary in bin/*; do
 done
 
 # Check frontend builds
-if [ -d "nexus-portal/.next" ] || [ -d "nexus-portal/dist" ]; then
-    print_success "NEXUS portal frontend built"
+if [ -d "data/knirvnexus/portal/.next" ] || [ -d "data/knirvnexus/portal/dist" ]; then
+    print_success "NEXUS frontend built"
 fi
 
-if [ -d "nanda_ans/.next" ] || [ -d "nanda_ans/dist" ]; then
-    print_success "NANDA ANS frontend built"
-fi
+
 
 echo ""
 print_status "Build artifacts ready for deployment"

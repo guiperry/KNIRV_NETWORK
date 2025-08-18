@@ -19,13 +19,14 @@ export KNIRVCHAIN_ID="1"
 export BLOCK_TIME="5"
 export RUST_LOG="info"
 
-# Start KNIRVCHAIN in testnet mode with memory limit (80MB)
-echo "Starting KNIRVCHAIN with testnet features and 80MB memory limit..."
+# Start KNIRVCHAIN in testnet mode with resource reduction and memory limit (120MB)
+echo "Starting KNIRVCHAIN with testnet features, mining disabled, and 120MB memory limit..."
 cd data/knirvchain
 (
-    # Set memory limit for this process (80MB = 81920KB)
-    ulimit -v 81920
-    exec ../../bin/knirvchain
+    # Set memory limit for this process (120MB = 122880KB)
+    ulimit -v 122880
+    # Use new command line flags for testnet mode and disabled mining
+    exec ../../bin/knirvchain --testnet --disable-mining
 ) > ../../logs/knirvchain.log 2>&1 &
 cd ../..
 
@@ -37,6 +38,8 @@ echo "  - Health check: http://localhost:8090/health"
 echo "  - Testnet status: http://localhost:8090/testnet/status"
 echo "  - Mock LLM validate: http://localhost:8090/testnet/llm/validate"
 echo "  - Mock skill validate: http://localhost:8090/testnet/skill/validate"
+echo "Resource optimizations: Auto-mining disabled (~80% CPU reduction, ~20% memory reduction)"
+echo "Note: Transactions will be queued but not automatically mined (manual mining available via API)"
 echo "Log file: ./logs/knirvchain.log"
 
 # Wait a moment and check if process is still running

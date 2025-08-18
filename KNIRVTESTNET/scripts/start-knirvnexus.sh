@@ -19,11 +19,10 @@ BASE_DIR="$(dirname "$SCRIPT_DIR")"
 # Ensure minimal config is in place
 cp $BASE_DIR/data/knirvnexus/knirv-nexus-minimal.yaml $BASE_DIR/data/knirvnexus/knirv-nexus.yaml
 
-# Start DVE Manager with memory limit (30MB)
-echo "Starting KNIRV-NEXUS DVE Manager with 30MB memory limit..."
+# Start DVE Manager (no memory limit due to Go 1.23.3 compatibility)
+echo "Starting KNIRV-NEXUS DVE Manager with testnet optimizations..."
 cd $BASE_DIR/data/knirvnexus && (
-    # Set memory limit for this process (30MB = 30720KB)
-    ulimit -v 30720
+    # Note: Memory will be managed by Go runtime and system limits
     exec ../../bin/knirvnexus-dve-manager \
         -testnet \
         -port 8084
@@ -33,11 +32,10 @@ DVE_PID=$!
 cd $BASE_DIR
 echo $DVE_PID > data/knirvnexus-dve-manager.pid
 
-# Start Validation Core with memory limit (30MB)
-echo "Starting KNIRV-NEXUS Validation Core with 30MB memory limit..."
+# Start Validation Core (no memory limit due to Go 1.23.3 compatibility)
+echo "Starting KNIRV-NEXUS Validation Core with testnet optimizations..."
 cd $BASE_DIR/data/knirvnexus && (
-    # Set memory limit for this process (30MB = 30720KB)
-    ulimit -v 30720
+    # Note: Memory will be managed by Go runtime and system limits
     exec ../../bin/knirvnexus-validation-core \
         -testnet \
         -port 8085
@@ -51,14 +49,18 @@ echo "KNIRV-NEXUS services started:"
 echo "  DVE Manager PID: $(cat ./data/knirvnexus-dve-manager.pid)"
 echo "  Validation Core PID: $(cat ./data/knirvnexus-validation-core.pid)"
 echo "API endpoints:"
-echo "  DVE Manager: http://localhost:8081"
-echo "  Validation Core: http://localhost:8082"
+echo "  DVE Manager: http://localhost:8084"
+echo "  Validation Core: http://localhost:8085"
 echo "Testnet features:"
 echo "  - Headless mode enabled"
 echo "  - TEE simulation enabled"
 echo "  - Mock validation responses"
 echo "  - Simplified validation proofs"
 echo "  - Clean database on start"
+echo "Resource optimizations:"
+echo "  - No memory limits (Go 1.23.3 runtime managed)"
+echo "  - Testnet mode with simplified operations"
+echo "  - Mock validation for reduced computational overhead"
 echo "Log file: ./logs/knirvnexus.log"
 
 # Wait a moment and check if processes are still running

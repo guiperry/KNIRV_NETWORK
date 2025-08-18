@@ -1,0 +1,151 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: knirv-nexus-config
+  namespace: knirv-nexus
+data:
+  knirv-nexus.yaml: |
+    # KNIRV-NEXUS Production Configuration
+    mode: headless  # headless | gui
+    environment: production
+    chain_id: knirv-nexus-mainnet
+    node_role: dve-manager
+
+    # Service configuration
+    api:
+      port: 8080
+      bind_address: "0.0.0.0"
+      address: "0.0.0.0"
+
+    # GUI mode configuration (disabled in production)
+    gui:
+      enabled: false
+      port: 9080
+      frontend_path: "./dist"
+      bind_address: "127.0.0.1"
+
+    # Security configuration
+    security:
+      auth_required: true
+      tls_enabled: true
+      audit_logging: true
+      jwt_secret: "${KNIRV_JWT_SECRET}"
+
+    # Database configuration
+    database:
+      path: /app/data/nexus.db
+
+    # User roles and permissions
+    roles:
+      validator:
+        permissions:
+          - "node:read"
+          - "node:update"
+          - "tasks:read"
+          - "results:read"
+        scoped_access: true
+
+      admin:
+        permissions:
+          - "*:*"
+        scoped_access: false
+
+      observer:
+        permissions:
+          - "*:read"
+        scoped_access: false
+
+    # Network configuration
+    network:
+      chain_id: "knirv-nexus-mainnet"
+      p2p_port: 4001
+      discovery_enabled: true
+
+    # P2P configuration
+    p2p:
+      port: 4001
+      bootstraps:
+        - "/ip4/127.0.0.1/tcp/4001/p2p/12D3KooWExample"
+
+    # Authentication configuration
+    auth:
+      jwt_secret: "${KNIRV_JWT_SECRET}"
+      token_expiry: "24h"
+      enable_oauth: false
+      oauth_providers: []
+
+    # Validation configuration
+    validation:
+      timeout: "300s"
+      max_concurrent: 10
+      enable_tee: true
+
+    # TEE configuration
+    tee:
+      type: "software"
+      software:
+        enable_attestation: true
+        key_file: "/app/keys/tee.key"
+
+    # Reports configuration
+    reports:
+      storage_path: "/app/reports"
+      max_file_size: 104857600  # 100MB
+      retention_days: 30
+      enable_sharing: true
+      enable_scheduling: true
+
+    # Logging configuration
+    log:
+      level: "info"
+      format: "json"
+      output: "stdout"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: knirv-nexus-scripts
+  namespace: knirv-nexus
+data:
+  init-db.sh: |
+    #!/bin/bash
+    set -e
+    
+    echo "Initializing KNIRV-NEXUS database..."
+    
+    # Create data directory if it doesn't exist
+    mkdir -p /app/data
+    
+    # Set proper permissions
+    chmod 755 /app/data
+    
+    echo "Database initialization complete"
+  
+  health-check.sh: |
+    #!/bin/bash
+    set -e
+    
+    # Check if the service is responding
+    curl -f http://localhost:8080/health || exit 1
+    
+    # Check if P2P port is listening
+    netstat -ln | grep :4001 || exit 1
+    
+    echo "Health check passed"
+  
+  backup-db.sh: |
+    #!/bin/bash
+    set -e
+    
+    BACKUP_DIR="/app/backups"
+    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+    
+    mkdir -p $BACKUP_DIR
+    
+    # Create backup of database
+    cp /app/data/nexus.db "$BACKUP_DIR/nexus_$TIMESTAMP.db"
+    
+    # Keep only last 7 backups
+    ls -t $BACKUP_DIR/nexus_*.db | tail -n +8 | xargs -r rm
+    
+    echo "Database backup completed: nexus_$TIMESTAMP.db"

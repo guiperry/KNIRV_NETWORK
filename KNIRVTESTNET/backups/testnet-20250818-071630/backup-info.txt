@@ -1,0 +1,29 @@
+KNIRVTESTNET Backup Information
+===============================
+Created: Mon Aug 18 07:16:34 AM EDT 2025
+Backup Type: Pre-unified-architecture
+Git Commit: 8e8732c89bdf03ff248f1e25a48c3cb9dd83a230
+Git Branch: main
+
+Changes Made:
+- Renamed data/knirvgateway to data/testnet-gateway
+- Added NEXUS frontend integration
+- Updated server/app.js for environment-aware routing
+- Added Netlify functions testing
+- Deprecated root index.html
+
+Files Backed Up:
+- server/ (Express server configuration)
+- scripts/ (All build and start scripts)
+- data/ (Gateway and service data)
+- config/ (Configuration files)
+- package.json (Dependencies)
+- index.html (Root landing page)
+- logs/ (Service logs if available)
+
+Restore Instructions:
+To restore this backup, run:
+  rm -rf server/ scripts/ data/ config/
+  cp -r backups/testnet-20250818-071630/* ./
+  
+Note: This will overwrite current implementation!

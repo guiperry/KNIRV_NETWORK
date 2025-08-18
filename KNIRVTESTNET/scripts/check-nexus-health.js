@@ -15,7 +15,7 @@ function checkNexusHealth() {
   
   const issues = [];
   const warnings = [];
-  const nexusDir = path.join(__dirname, '..', 'nexus-portal');
+  const nexusDir = path.join(__dirname, '..', 'data', 'knirvnexus', 'portal');
   
   // Check if Nexus Portal directory exists
   if (!fs.existsSync(nexusDir)) {
@@ -72,7 +72,7 @@ function checkNexusHealth() {
   if (fs.existsSync(distPath)) {
     console.log('✅ Nexus Portal build output (dist) exists');
   } else {
-    warnings.push('Nexus Portal not built yet - run npm run build in nexus-portal directory');
+    warnings.push('NEXUS Frontend not built yet - run ./scripts/build-nexus-frontend.sh');
   }
   
   // Check for node_modules
@@ -80,7 +80,7 @@ function checkNexusHealth() {
   if (fs.existsSync(nodeModulesPath)) {
     console.log('✅ Nexus Portal dependencies installed');
   } else {
-    warnings.push('Nexus Portal dependencies not installed - run npm install in nexus-portal directory');
+    warnings.push('NEXUS Frontend dependencies not installed - run ./scripts/build-nexus-frontend.sh');
   }
   
   // Check configuration

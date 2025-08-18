@@ -8,7 +8,7 @@ KNIRVTESTNET now includes unified web application hosting on Render, migrated fr
 - **GraphChain Explorer** - `/graphchain-explorer`
 - **Nexus Portal** - `/nexus-portal`
 - **Agent Developer Portal** - `/agent-developer-portal`
-- **NANDA ANS** - `/nanda-ans`
+
 
 ### Render Configuration
 - **Root Directory**: `KNIRVTESTNET` (set in Render dashboard)

@@ -15,17 +15,26 @@ fi
 # Copy testnet environment file to working directory
 cp data/knirvrouter/test.env ./test.env
 
-# Start KNIRV-ROUTER in testnet mode with memory limit (40MB)
-echo "Starting KNIRV-ROUTER with testnet features and 40MB memory limit..."
+# Start KNIRV-ROUTER in testnet mode (no memory limit due to Go 1.23.1 compatibility)
+echo "Starting KNIRV-ROUTER with testnet features and resource optimizations..."
+
+# Copy optimized environment file to runtime directory
+mkdir -p ./data/knirvrouter
+cp ./config/knirvrouter-testnet.env ./data/knirvrouter/.env
+
+# Set resource optimization environment variables
+export CONNECTIVITY_LOG_LEVEL=warn
+export REDUCE_CONNECTIVITY_LOGS=true
+
+# Start KNIRV-ROUTER from the base directory to avoid path issues
 (
-    # Set memory limit for this process (40MB = 40960KB)
-    ulimit -v 40960
+    # Note: Memory will be managed by Go runtime and system limits
     exec ./bin/knirvrouter \
-        --testnet \
-        --local-network \
-        --mock-nrn \
-        --port 8086 \
-        --miners_address KNIRVROUTER_Testnet_Miner
+        -testnet \
+        -local-network \
+        -mock-nrn \
+        -port 8086 \
+        -miners_address KNIRVROUTER_Testnet_Miner
 ) > ./logs/knirvrouter.log 2>&1 &
 
 echo $! > ./data/knirvrouter.pid
@@ -37,6 +46,14 @@ echo "  - Mock NRN minting enabled"
 echo "  - Simplified consensus enabled"
 echo "  - XION bridge disabled"
 echo "  - Chain ID: knirvrouter-testnet-1"
+echo "Resource optimizations:"
+echo "  - No memory limit (Go 1.23.1 runtime managed)"
+echo "  - Local network mode (reduced external network calls)"
+echo "  - Mock NRN minting (simplified token operations)"
+echo "  - Simplified consensus (reduced computational overhead)"
+echo "  - Increased mining difficulty: 6 (reduced CPU usage)"
+echo "  - Reduced connectivity measurements: every 2 minutes (reduced bandwidth)"
+echo "  - Warning-level logging only (reduced log verbosity)"
 echo "Log file: ./logs/knirvrouter.log"
 
 # Wait a moment and check if process is still running

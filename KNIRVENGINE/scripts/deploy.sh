@@ -67,7 +67,7 @@ create_directories() {
     
     mkdir -p "$DEPLOY_DIR"
     mkdir -p "$BACKUP_DIR"
-    mkdir -p "$DEPLOY_DIR/desktop-host"
+    mkdir -p "$DEPLOY_DIR/desktop-client"
     mkdir -p "$DEPLOY_DIR/mobile-controller"
     mkdir -p "$DEPLOY_DIR/agent-core"
     
@@ -88,7 +88,7 @@ backup_existing() {
 build_desktop_host() {
     log "Building Desktop-Host engine with Electron wrapper..."
 
-    cd ../desktop-host
+    cd ../desktop-client
 
     # Use the production build script which includes Electron packaging
     if [ -f "scripts/run_production.sh" ]; then
@@ -104,23 +104,23 @@ build_desktop_host() {
         # Copy the Electron binaries to deployment directory
         if [ -d "electron/dist/linux-unpacked" ]; then
             log "Copying Electron Linux binary..."
-            cp -r electron/dist/linux-unpacked "../$DEPLOY_DIR/desktop-host/"
+            cp -r electron/dist/linux-unpacked "../$DEPLOY_DIR/desktop-client/"
         fi
 
         if [ -d "electron/dist/win-unpacked" ]; then
             log "Copying Electron Windows binary..."
-            cp -r electron/dist/win-unpacked "../$DEPLOY_DIR/desktop-host/"
+            cp -r electron/dist/win-unpacked "../$DEPLOY_DIR/desktop-client/"
         fi
 
         if [ -d "electron/dist/mac" ]; then
             log "Copying Electron macOS binary..."
-            cp -r electron/dist/mac "../$DEPLOY_DIR/desktop-host/"
+            cp -r electron/dist/mac "../$DEPLOY_DIR/desktop-client/"
         fi
     else
         # Fallback to simple Go build
         log "Electron build script not found, using simple Go build..."
-        go build -ldflags="-w -s" -o desktop-host main.go
-        cp desktop-host "../$DEPLOY_DIR/desktop-host/"
+        go build -ldflags="-w -s" -o desktop-client main.go
+        cp desktop-client "../$DEPLOY_DIR/desktop-client/"
     fi
 
     cd ..
@@ -207,11 +207,11 @@ create_startup_scripts() {
     log "Creating startup scripts..."
     
     # Desktop Host startup script
-    cat > "$DEPLOY_DIR/start-desktop-host.sh" << 'EOF'
+    cat > "$DEPLOY_DIR/start-desktop-client.sh" << 'EOF'
 #!/bin/bash
-cd "$(dirname "$0")/desktop-host"
+cd "$(dirname "$0")/desktop-client"
 echo "Starting KNIRVENGINE Desktop Host..."
-./desktop-host
+./desktop-client
 EOF
     
     # Mobile Tool startup script (for development)
@@ -229,7 +229,7 @@ echo "🚀 Starting KNIRVENGINE Complete System..."
 
 # Start Desktop Host in background
 cd "$(dirname "$0")"
-./start-desktop-host.sh &
+./start-desktop-client.sh &
 DESKTOP_PID=$!
 
 echo "Desktop Host started (PID: $DESKTOP_PID)"
@@ -262,7 +262,7 @@ run_tests() {
     npm install ws > /dev/null 2>&1
     
     # Start system for testing
-    ./start-desktop-host.sh &
+    ./start-desktop-client.sh &
     DESKTOP_PID=$!
     
     # Wait for startup
@@ -297,7 +297,7 @@ create_documentation() {
 
 2. **Start individual components**:
    ```bash
-   ./start-desktop-host.sh    # Desktop Host only
+   ./start-desktop-client.sh    # Desktop Host only
    ./start-mobile-controller.sh     # Mobile Tool dev server
    ```
 

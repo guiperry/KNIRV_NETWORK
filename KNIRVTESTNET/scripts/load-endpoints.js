@@ -156,7 +156,9 @@ window.KNIRV_CONFIG = {
 window.NEXUS_CONFIG = {
   environment: '${config.DEPLOYMENT_ENV}',
   apiEndpoints: {
-    nexus: '${endpoints.KNIRVNEXUS_API}',
+    nexus_gui: '${endpoints.KNIRVNEXUS_GUI_API || endpoints.KNIRVNEXUS_API}',
+    nexus_dve: '${endpoints.KNIRVNEXUS_DVE_API}',
+    nexus_validation: '${endpoints.KNIRVNEXUS_VALIDATION_API}',
     chain: '${endpoints.KNIRVCHAIN_API}',
     oracle: '${endpoints.KNIRVORACLE_API}',
     router: '${endpoints.KNIRVROUTER_API}'
@@ -168,8 +170,14 @@ window.NEXUS_CONFIG = {
   }
 };`;
 
+    // Create NEXUS config directory if it doesn't exist
+    const nexusConfigDir = path.join(testnetRoot, 'data', 'knirvnexus', 'portal', 'public');
+    if (!fs.existsSync(nexusConfigDir)) {
+      fs.mkdirSync(nexusConfigDir, { recursive: true });
+    }
+
     fs.writeFileSync(
-      path.join(testnetRoot, 'nexus-portal', 'public', 'config.js'),
+      path.join(nexusConfigDir, 'config.js'),
       nexusConfig
     );
 
@@ -181,7 +189,7 @@ window.NEXUS_CONFIG = {
     console.log('✅ Configuration files generated successfully');
     console.log('📁 Generated:');
     console.log('   - graphchain-explorer/js/config.js');
-    console.log('   - nexus-portal/public/config.js');
+    console.log('   - data/knirvnexus/portal/public/config.js');
     
   } catch (error) {
     console.error('❌ Error generating config files:', error.message);

@@ -3,13 +3,16 @@
 
 # Service Endpoints
 endpoints:
-  knirvchain: "http://localhost:8080"
-  knirvgraph: "http://localhost:8081"
-  knirvnexus: "http://localhost:8082"
-  knirvoracle: "http://localhost:1317"
-  knirvrouter: "http://localhost:8086"
-  knirvana: "http://localhost:3000"
-  interactive_graph: "http://localhost:3000"
+  knirvchain: "https://chain-test.knirv.com"
+  knirvgraph: "https://graph-test.knirv.com"
+  knirvnexus: "https://nexus-test.knirv.com"
+  knirvnexus_gui: "https://nexus-test.knirv.com"
+  knirvnexus_dve: "https://nexus-dve-test.knirv.com"
+  knirvnexus_validation: "https://nexus-validation-test.knirv.com"
+  knirvoracle: "https://oracle-test.knirv.com"
+  knirvrouter: "https://router-test.knirv.com"
+  knirvana: "https://knirvana-test.knirv.com"
+  interactive_graph: "https://knirvana-test.knirv.com"
 
 # Testnet Configuration
 testnet:

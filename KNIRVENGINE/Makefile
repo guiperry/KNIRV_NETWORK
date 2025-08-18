@@ -11,8 +11,8 @@ help:
 	@echo "Available targets:"
 	@echo ""
 	@echo "📦 Build Commands:"
-	@echo "  build          - Build all components (desktop-host, mobile-controller, agent-core)"
-	@echo "  build-desktop  - Build desktop-host with Electron wrapper"
+	@echo "  build          - Build all components (desktop-client, mobile-controller, agent-core)"
+	@echo "  build-desktop  - Build desktop-client with Electron wrapper"
 	@echo "  build-mobile   - Build mobile-controller for production"
 	@echo "  build-wasm     - Build agent-core WASM module"
 	@echo ""
@@ -42,7 +42,7 @@ help:
 # Install all dependencies
 install:
 	@echo "📦 Installing dependencies..."
-	@cd desktop-host && go mod download
+	@cd desktop-client && go mod download
 	@cd mobile-controller && npm install
 	@cd agent-core/rust-wasm && cargo fetch
 	@echo "✅ Dependencies installed"
@@ -51,13 +51,13 @@ install:
 build: build-desktop build-mobile build-wasm
 	@echo "🎉 All components built successfully!"
 
-# Build desktop-host with Electron wrapper
+# Build desktop-client with Electron wrapper
 build-desktop:
-	@echo "🖥️  Building desktop-host..."
-	@cd desktop-host && go build -ldflags="-w -s" -o desktop-host main.go
-	@if [ -f "desktop-host/scripts/run_production.sh" ]; then \
+	@echo "🖥️  Building desktop-client..."
+	@cd desktop-client && go build -ldflags="-w -s" -o desktop-client main.go
+	@if [ -f "desktop-client/scripts/run_production.sh" ]; then \
 		echo "📦 Building Electron wrapper..."; \
-		cd desktop-host && chmod +x scripts/run_production.sh && \
+		cd desktop-client && chmod +x scripts/run_production.sh && \
 		sed 's|./dist/linux-unpacked/knirv-engine-desktop|echo "Build completed"|' scripts/run_production.sh > temp_build.sh && \
 		chmod +x temp_build.sh && ./temp_build.sh && rm temp_build.sh; \
 	fi
@@ -124,8 +124,8 @@ deploy:
 # Start development environment
 dev:
 	@echo "🛠️  Starting development environment..."
-	@echo "Starting desktop-host in background..."
-	@cd desktop-host && ./desktop-host &
+	@echo "Starting desktop-client in background..."
+	@cd desktop-client && ./desktop-client &
 	@echo "Starting mobile-controller development server..."
 	@cd mobile-controller && npm run dev
 
@@ -140,8 +140,8 @@ clean:
 	@rm -rf dist/
 	@rm -rf backup/
 	@rm -f deploy.log
-	@cd desktop-host && rm -f desktop-host
-	@cd desktop-host && rm -rf electron/dist/
+	@cd desktop-client && rm -f desktop-client
+	@cd desktop-client && rm -rf electron/dist/
 	@cd mobile-controller && rm -rf dist/
 	@cd mobile-controller && rm -rf android/
 	@cd mobile-controller && rm -rf ios/
@@ -163,7 +163,7 @@ docs:
 # Quick build (no Electron)
 quick-build:
 	@echo "⚡ Quick build (Go binary only)..."
-	@cd desktop-host && go build -o desktop-host main.go
+	@cd desktop-client && go build -o desktop-client main.go
 	@cd mobile-controller && npm run build
 	@cd agent-core/rust-wasm && cargo build --release --target wasm32-unknown-unknown
 	@echo "✅ Quick build completed"
@@ -176,8 +176,8 @@ quick-test:
 # Quick deploy (development)
 quick-deploy: quick-build
 	@echo "⚡ Quick deploy..."
-	@mkdir -p dist/desktop-host dist/mobile-controller dist/agent-core
-	@cp desktop-host/desktop-host dist/desktop-host/
+	@mkdir -p dist/desktop-client dist/mobile-controller dist/agent-core
+	@cp desktop-client/desktop-client dist/desktop-client/
 	@cp -r mobile-controller/dist/* dist/mobile-controller/
 	@cp agent-core/rust-wasm/target/wasm32-unknown-unknown/release/knirv_cortex_wasm.wasm dist/agent-core/agent-core.wasm
 
@@ -186,15 +186,15 @@ quick-deploy: quick-build
 
 build-linux:
 	@echo "🐧 Building for Linux..."
-	@cd desktop-host && GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o desktop-host-linux main.go
+	@cd desktop-client && GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o desktop-client-linux main.go
 
 build-windows:
 	@echo "🪟 Building for Windows..."
-	@cd desktop-host && GOOS=windows GOARCH=amd64 go build -ldflags="-w -s" -o desktop-host-windows.exe main.go
+	@cd desktop-client && GOOS=windows GOARCH=amd64 go build -ldflags="-w -s" -o desktop-client-windows.exe main.go
 
 build-macos:
 	@echo "🍎 Building for macOS..."
-	@cd desktop-host && GOOS=darwin GOARCH=amd64 go build -ldflags="-w -s" -o desktop-host-macos main.go
+	@cd desktop-client && GOOS=darwin GOARCH=amd64 go build -ldflags="-w -s" -o desktop-client-macos main.go
 
 # Check system requirements
 check:

@@ -3,7 +3,7 @@ echo "🚀 Starting KNIRVENGINE Complete System..."
 
 # Start Desktop Host in background
 cd "$(dirname "$0")"
-./start-desktop-host.sh &
+./start-desktop-client.sh &
 DESKTOP_PID=$!
 
 echo "Desktop Host started (PID: $DESKTOP_PID)"

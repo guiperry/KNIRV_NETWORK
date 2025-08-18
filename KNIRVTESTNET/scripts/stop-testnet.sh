@@ -88,8 +88,7 @@ print_status "Stopping services in reverse order..."
 # 8. Stop Health Monitor
 stop_service "Health Monitor" "data/health-monitor.pid"
 
-# 7. Stop NANDA ANS
-stop_service "NANDA ANS" "data/nanda-ans.pid"
+
 
 # 6. Stop KNIRV-GATEWAY
 stop_service "KNIRV-GATEWAY" "data/knirvgateway.pid"

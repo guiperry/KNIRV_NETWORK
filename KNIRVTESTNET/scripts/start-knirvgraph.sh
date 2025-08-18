@@ -12,16 +12,15 @@ if [ ! -f "./bin/knirvgraph" ]; then
     exit 1
 fi
 
-# Start KNIRVGRAPH in testnet mode with in-memory storage and memory limit (60MB)
-echo "Starting KNIRVGRAPH with testnet features and 60MB memory limit..."
+# Start KNIRVGRAPH in testnet mode with in-memory storage (no memory limit due to Go 1.23.3 compatibility)
+echo "Starting KNIRVGRAPH with testnet features and resource optimizations..."
 (
-    # Set memory limit for this process (60MB = 61440KB)
-    ulimit -v 61440
+    # Note: Memory will be managed by Go runtime and system limits (Go 1.23.3 compatibility)
     exec ./bin/knirvgraph \
         --testnet \
         --memory \
         --populate \
-        --max-nodes 500 \
+        --max-nodes 250 \
         --rpc-port 8082 \
         --home ./data/knirvgraph
 ) > ./logs/knirvgraph.log 2>&1 &
@@ -34,6 +33,10 @@ echo "  - In-memory storage enabled"
 echo "  - Pre-populated test data"
 echo "  - Real DHT implementation"
 echo "  - Full graph operations"
+echo "Resource optimizations:"
+echo "  - Reduced max nodes: 250 (50% reduction from default 500)"
+echo "  - In-memory storage (faster, reduced disk I/O)"
+echo "  - No memory limit (Go 1.23.3 runtime managed)"
 echo "Log file: ./logs/knirvgraph.log"
 
 # Wait a moment and check if process is still running

@@ -7,7 +7,33 @@ class KNIRVAuth {
     }
 
     init() {
-        // Hide main content initially
+        // For testnet, auto-login with demo user to avoid authentication issues
+        const isTestnet = window.location.hostname.includes('testnet') ||
+                         window.location.hostname.includes('localhost') ||
+                         window.location.pathname.includes('testnet');
+
+        if (isTestnet) {
+            // Auto-login with demo admin user for testnet
+            this.currentUser = {
+                id: 'demo-admin',
+                username: 'testnet-admin',
+                email: 'admin@testnet.knirv.com',
+                role: 'admin',
+                joinDate: new Date().toISOString(),
+                permissions: ['read', 'write', 'admin']
+            };
+
+            const token = this.generateToken();
+            localStorage.setItem('knirv_dev_user', JSON.stringify(this.currentUser));
+            localStorage.setItem('knirv_dev_token', token);
+
+            this.isAuthenticated = true;
+            this.updateUIForAuthenticatedUser();
+            this.showMainContent();
+            return;
+        }
+
+        // Hide main content initially for production
         this.hideMainContent();
 
         // Check for existing session

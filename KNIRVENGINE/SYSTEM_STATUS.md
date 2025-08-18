@@ -127,7 +127,7 @@ KNIRVENGINE has been successfully implemented as a three-engine cognitive archit
 
 ### ✅ Startup Scripts
 - `start-system.sh` - Complete system startup
-- `start-desktop-host.sh` - Desktop engine only
+- `start-desktop-client.sh` - Desktop engine only
 - `start-mobile-controller.sh` - Mobile development server
 
 ### ✅ Configuration Management
@@ -156,7 +156,7 @@ KNIRVENGINE has been successfully implemented as a three-engine cognitive archit
 ## 📈 Scalability Features
 
 ### ✅ Horizontal Scaling
-- Stateless desktop-host design
+- Stateless desktop-client design
 - Load balancer ready
 - Database-agnostic architecture
 - Microservice-compatible

@@ -5,9 +5,10 @@ network:
   external_addr: "localhost:8086"
 
 connectivity:
-  proof_interval: "60s"  # Generate connectivity proofs every minute
-  target_paths: 10       # Test 10 different network paths
+  proof_interval: "300s"  # Generate connectivity proofs every 5 minutes (reduced from 1 minute)
+  target_paths: 5         # Test 5 different network paths (reduced from 10)
   timeout: "30s"
+  measurement_interval: "120s"  # Measure peer connectivity every 2 minutes (reduced from 30s)
 
 nrn_minting:
   enabled: true
@@ -34,5 +35,6 @@ api:
     - "/peers"
 
 logging:
-  level: "info"
+  level: "warn"  # Reduced from "info" to "warn" to reduce log verbosity
   file: "./logs/knirvrouter.log"
+  connectivity_logs: false  # Disable verbose connectivity measurement logs

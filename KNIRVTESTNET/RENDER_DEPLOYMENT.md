@@ -71,7 +71,7 @@ The Render build process follows these steps:
    - KNIRV-GATEWAY (Node.js)
 4. **Build Frontend Components**:
    - NEXUS Portal (Next.js)
-   - NANDA ANS (Next.js)
+
 5. **Load Configuration** - Testnet endpoints and settings
 
 ## 🏗️ Architecture
@@ -84,7 +84,7 @@ KNIRVTESTNET (Port 10000)
 ├── KNIRV-NEXUS (Port 8084) - TEE simulation
 ├── KNIRV-ROUTER (Port 8086) - Network routing
 ├── KNIRV-GATEWAY (Port 8888) - API gateway
-├── NANDA ANS (Port 9002) - Agent registry
+
 └── Health Monitor (Port 10001) - Service monitoring
 ```
 

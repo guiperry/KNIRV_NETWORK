@@ -49,12 +49,7 @@ This document tracks the status of `go mod tidy` implementation across all Go ap
 - **Build Tool**: npm
 - **Command**: `npm install`
 
-### 3. NANDA ANS
-- **Language**: Node.js
-- **Build Tool**: npm
-- **Commands**: `npm install` + `npm run build`
-
-### 4. NEXUS Portal
+### 3. NEXUS Portal
 - **Language**: Node.js
 - **Build Tool**: npm
 - **Commands**: `npm install` + `npm run build`

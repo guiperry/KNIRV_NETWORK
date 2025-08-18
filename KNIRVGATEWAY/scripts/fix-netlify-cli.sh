@@ -18,12 +18,21 @@ fi
 # Function to check if netlify-cli is working
 check_netlify_cli() {
     echo "🔍 Checking netlify-cli status..."
-    if npx netlify --version >/dev/null 2>&1; then
+
+    # Try with timeout to avoid hanging
+    if timeout 30s npx netlify --version >/dev/null 2>&1; then
         echo "✅ netlify-cli is working"
-        npx netlify --version
+        timeout 30s npx netlify --version
         return 0
     else
-        echo "❌ netlify-cli is not working"
+        echo "❌ netlify-cli is not working or timed out"
+
+        # Check if netlify-cli binary exists
+        if [ -f "node_modules/.bin/netlify" ]; then
+            echo "ℹ️  netlify-cli binary found but not responding"
+        else
+            echo "ℹ️  netlify-cli binary not found"
+        fi
         return 1
     fi
 }
@@ -31,22 +40,47 @@ check_netlify_cli() {
 # Function to clean and reinstall
 clean_and_reinstall() {
     echo "🧹 Cleaning up corrupted dependencies..."
-    
+
+    # Kill any hanging netlify processes
+    echo "🔪 Killing any hanging netlify processes..."
+    pkill -f "netlify" || true
+    pkill -f "npx" || true
+
     # Remove node_modules and package-lock.json
+    echo "🗑️  Removing corrupted node_modules..."
     rm -rf node_modules package-lock.json
     rm -rf nexus-portal/node_modules nexus-portal/package-lock.json
-    
-    # Clear npm cache
+
+    # Clear npm cache aggressively
     echo "🗑️  Clearing npm cache..."
     npm cache clean --force
-    
-    # Reinstall dependencies
+    npm cache verify
+
+    # Remove any global netlify-cli that might be interfering
+    echo "🧹 Cleaning global netlify-cli..."
+    npm uninstall -g netlify-cli 2>/dev/null || true
+
+    # Reinstall dependencies with specific netlify-cli version
     echo "📦 Reinstalling dependencies..."
     npm install
-    
-    # Build nexus-portal
-    echo "🏗️  Building nexus-portal..."
-    npm run build:nexus
+
+    # Verify netlify-cli installation
+    echo "🔍 Verifying netlify-cli installation..."
+    if [ -f "node_modules/.bin/netlify" ]; then
+        echo "✅ netlify-cli binary installed successfully"
+    else
+        echo "❌ netlify-cli binary not found after installation"
+        return 1
+    fi
+
+    # Check if running in testnet mode
+    if [ "$TESTNET_MODE" = "true" ] || [ "$NODE_ENV" = "testnet" ] || [ ! -d "nexus-portal" ]; then
+        echo "ℹ️  No nexus-portal directory found, skipping build (testnet mode)"
+    else
+        # Build nexus-portal
+        echo "🏗️  Building nexus-portal..."
+        npm run build:nexus
+    fi
 }
 
 # Function to check Node.js version compatibility
@@ -64,14 +98,15 @@ check_node_version() {
     fi
 }
 
-# Function to run audit and fix vulnerabilities
+# Function to run audit and fix vulnerabilities (DISABLED to prevent netlify-cli corruption)
 fix_vulnerabilities() {
     echo "🔒 Checking for security vulnerabilities..."
     if npm audit --audit-level=moderate >/dev/null 2>&1; then
         echo "✅ No moderate or high vulnerabilities found"
     else
-        echo "⚠️  Vulnerabilities detected, attempting to fix..."
-        npm audit fix --audit-level=moderate
+        echo "⚠️  Vulnerabilities detected, but skipping fixes to prevent netlify-cli corruption"
+        echo "   Testnet environment has reduced security requirements"
+        echo "   Manual vulnerability review recommended for production"
     fi
 }
 
@@ -113,9 +148,11 @@ main() {
         echo ""
         echo "✅ netlify-cli fix completed successfully!"
         
-        # Fix vulnerabilities
+        # Skip vulnerability fixes to prevent netlify-cli corruption
         echo ""
-        fix_vulnerabilities
+        echo "⚠️  Skipping vulnerability fixes to maintain netlify-cli stability"
+        echo "   Vulnerability fixes can corrupt netlify-cli installation"
+        echo "   Testnet environment has reduced security requirements"
         
         echo ""
         echo "🎉 All done! You can now run:"

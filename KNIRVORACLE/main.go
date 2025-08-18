@@ -76,7 +76,7 @@ var AppVersion = "dev" // Default if not set by ldflags
 
 // Constants for go-rocket-update
 const (
-	GitHubRepoOwner = "guiperry"  // Replace with your GitHub username or organization
+	GitHubRepoOwner = "guiperry"    // Replace with your GitHub username or organization
 	GitHubRepoName  = "KNIRVORACLE" // Replace with your GitHub repository name
 )
 
@@ -355,6 +355,7 @@ func main() {
 	nonInteractive := flag.Bool("non-interactive", false, "Automatically accept all default and randomly created values for installation")
 	skipInstall := flag.Bool("skip-install", false, "Skip installation process even if InstallComplete is false")
 	testnetMode := flag.Bool("testnet", false, "Run in testnet mode with simplified configuration")
+	disableP2P := flag.Bool("disable-p2p", false, "Disable P2P messaging and consensus (reduces memory usage and network traffic)")
 
 	// The -role flag helps determine which section of the config to load if other role flags aren't set.
 	roleFlag := flag.String("role", "", "Node role (Root, Bootnode, Peer, Client) - overrides auto-detection if other role flags are absent.")
@@ -1120,7 +1121,7 @@ func main() {
 			// Start dev node with pre-initialized GUI components in goroutine
 			go func() {
 				// Pass the correct finalPeerConfig
-				mgr, errStart := startNodeWithComponents(ctx, &wg, *finalPeerConfig, finalPeerConfig.NoWalletServer, *runNetworkMode, guiDB, guiDiscoveryMgr, guiBC)
+				mgr, errStart := startNodeWithComponents(ctx, &wg, *finalPeerConfig, finalPeerConfig.NoWalletServer, *disableP2P, *runNetworkMode, guiDB, guiDiscoveryMgr, guiBC)
 				if errStart != nil {
 					log.Printf("Failed to start dev node with components: %v", errStart)
 					guiP2PReadyChan <- nil // Signal failure
@@ -1132,7 +1133,7 @@ func main() {
 		} else {
 			// Start dev node without GUI components
 			// Pass the correct finalPeerConfig
-			startNode(ctx, &wg, *finalPeerConfig, nodeRole, finalPeerConfig.NoWalletServer, *runNetworkMode)
+			startNode(ctx, &wg, *finalPeerConfig, nodeRole, finalPeerConfig.NoWalletServer, *disableP2P, *runNetworkMode)
 		}
 
 	} else if nodeRole == config.Root && *runNetworkMode {
@@ -1149,7 +1150,7 @@ func main() {
 		// If GUI is enabled, start the main node with GUI components
 		if rootNodeEffectiveConfig.UseGUI {
 			go func() {
-				mgr, errStart := startNodeWithComponents(ctx, &wg, rootNodeEffectiveConfig, rootNodeEffectiveConfig.NoWalletServer, *runNetworkMode, guiDB, guiDiscoveryMgr, guiBC)
+				mgr, errStart := startNodeWithComponents(ctx, &wg, rootNodeEffectiveConfig, rootNodeEffectiveConfig.NoWalletServer, *disableP2P, *runNetworkMode, guiDB, guiDiscoveryMgr, guiBC)
 				if errStart != nil {
 					log.Printf("Failed to start main node with components: %v", errStart)
 					guiP2PReadyChan <- nil // Signal failure
@@ -1160,7 +1161,7 @@ func main() {
 			}()
 		} else {
 			// Start without GUI
-			startNode(ctx, &wg, rootNodeEffectiveConfig, nodeRole, rootNodeEffectiveConfig.NoWalletServer, *runNetworkMode)
+			startNode(ctx, &wg, rootNodeEffectiveConfig, nodeRole, rootNodeEffectiveConfig.NoWalletServer, *disableP2P, *runNetworkMode)
 		}
 
 		// Start Reflection Node (Potentially with GUI)
@@ -1192,7 +1193,7 @@ func main() {
 		log.Printf("Starting Reflection Node (HTTP: %d, P2P: %d, GUI: %t, DB: %s, Root: %t)",
 			actualReflectionNodeConfig.Port, actualReflectionNodeConfig.P2PPort, actualReflectionNodeConfig.UseGUI, actualReflectionNodeConfig.ReflectionDatabasePath, actualReflectionNodeConfig.IsRoot)
 		// Reflection node should always run headless now
-		startNode(ctx, &wg, *actualReflectionNodeConfig, nodeRole, actualReflectionNodeConfig.NoWalletServer, *runNetworkMode)
+		startNode(ctx, &wg, *actualReflectionNodeConfig, nodeRole, actualReflectionNodeConfig.NoWalletServer, *disableP2P, *runNetworkMode)
 		log.Printf("Reflection Node started successfully (ChainID: %s)", actualReflectionNodeConfig.ChainID)
 	} else {
 		// *** START SINGLE NODE MODE ***
@@ -1204,7 +1205,7 @@ func main() {
 
 		if guiNodeConfig != nil { // Single node mode WITH GUI
 			go func() {
-				mgr, errStart := startNodeWithComponents(ctx, &wg, *guiNodeConfig, guiNodeConfig.NoWalletServer, *runNetworkMode, guiDB, guiDiscoveryMgr, guiBC)
+				mgr, errStart := startNodeWithComponents(ctx, &wg, *guiNodeConfig, guiNodeConfig.NoWalletServer, *disableP2P, *runNetworkMode, guiDB, guiDiscoveryMgr, guiBC)
 				if errStart != nil {
 					log.Printf("Failed to start node with components: %v", errStart)
 					guiP2PReadyChan <- nil // Signal failure
@@ -1214,13 +1215,13 @@ func main() {
 				}
 			}()
 		} else { // Single node mode WITHOUT GUI
-			startNode(ctx, &wg, mainNodeConfig, nodeRole, mainNodeConfig.NoWalletServer, *runNetworkMode)
+			startNode(ctx, &wg, mainNodeConfig, nodeRole, mainNodeConfig.NoWalletServer, *disableP2P, *runNetworkMode)
 		}
 	}
 
 	// --- Wait for Signal ---
 	// Wait for P2P Manager initialization if needed
-	if guiNodeConfig != nil {
+	if guiNodeConfig != nil && !*disableP2P {
 		log.Printf("[%s] Waiting for P2P Consensus Manager initialization...", guiNodeConfig.ChainID)
 		select {
 		case p2pMgr := <-guiP2PReadyChan:
@@ -1239,7 +1240,12 @@ func main() {
 			wg.Wait()
 			return
 		}
+	} else if guiNodeConfig != nil && *disableP2P {
+		log.Printf("[%s] P2P disabled - skipping P2P Consensus Manager wait", guiNodeConfig.ChainID)
+	}
 
+	// Initialize payment processor if in root mode and enabled (moved outside the P2P check)
+	if guiNodeConfig != nil {
 		// Initialize payment processor if in root mode and enabled
 		if guiNodeConfig.IsRoot && guiNodeConfig.PaymentProcessor.Enabled {
 			var err error
@@ -1273,22 +1279,30 @@ func startNodeWithComponents(
 	wg *sync.WaitGroup,
 	cfg config.Config,
 	disableWallet bool,
+	disableP2P bool,
 	isNetworkMode bool,
 	db *LevelDB, // Pre-initialized
 	discoveryMgr *DiscoveryManager, // Pre-initialized
 	bc *BlockchainStruct, // Pre-initialized
 ) (*P2PConsensusManager, error) { // Return the manager
-	// Create P2P Consensus Manager first
-	p2pConsensusMgr, err := NewP2PConsensusManager(bc, db, discoveryMgr, nodeRole)
-	if err != nil {
-		// Clean up already initialized components if manager fails
-		// Note: Closing shared components here might be problematic if they are used elsewhere.
-		// The caller (main) should handle cleanup based on where the error occurred.
-		// discoveryMgr.Close() // Avoid closing shared manager here
-		// db.Close() // Avoid closing shared DB here
-		return nil, fmt.Errorf("[%s] failed to create P2P consensus manager: %w", cfg.ChainID, err)
+	var p2pConsensusMgr *P2PConsensusManager
+
+	// Create P2P Consensus Manager first (skip if disabled)
+	if !disableP2P {
+		var err error
+		p2pConsensusMgr, err = NewP2PConsensusManager(bc, db, discoveryMgr, nodeRole)
+		if err != nil {
+			// Clean up already initialized components if manager fails
+			// Note: Closing shared components here might be problematic if they are used elsewhere.
+			// The caller (main) should handle cleanup based on where the error occurred.
+			// discoveryMgr.Close() // Avoid closing shared manager here
+			// db.Close() // Avoid closing shared DB here
+			return nil, fmt.Errorf("[%s] failed to create P2P consensus manager: %w", cfg.ChainID, err)
+		}
+		bc.p2pConsensusMgr = p2pConsensusMgr // Assign to blockchain struct
+	} else {
+		log.Printf("[%s] P2P messaging disabled - skipping P2P consensus manager initialization", cfg.ChainID)
 	}
-	bc.p2pConsensusMgr = p2pConsensusMgr // Assign to blockchain struct
 
 	wg.Add(1)
 	go func() {
@@ -1323,8 +1337,12 @@ func startNodeWithComponents(
 			log.Printf("[%s] Node components shutdown sequence initiated.", cfg.ChainID)
 		}()
 
-		// Start P2P Consensus Manager
-		p2pConsensusMgr.Start()
+		// Start P2P Consensus Manager (only if not disabled)
+		if p2pConsensusMgr != nil {
+			p2pConsensusMgr.Start()
+		} else {
+			log.Printf("[%s] P2P Consensus Manager disabled - skipping start", cfg.ChainID)
+		}
 
 		// Start Discovery Manager background tasks (if not already running)
 		// Assuming Run handles multiple calls or is only called once externally if pre-initialized.
@@ -1526,7 +1544,7 @@ func startNodeWithComponents(
 
 // startNode initializes its own components
 // and starts the node with the given configuration.
-func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role config.Role, disableWallet bool, isNetworkMode bool) {
+func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role config.Role, disableWallet bool, disableP2P bool, isNetworkMode bool) {
 	wg.Add(1)
 
 	// Get access to the global chromemManager
@@ -1673,19 +1691,23 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 			}()
 		}
 
-		// P2P consensus manager
-		p2pConsensusMgr, err := NewP2PConsensusManager(bc, db, discoveryMgr, role)
-		if err != nil {
-			log.Printf("[%s][%s] WARNING: Failed to initialize P2P consensus manager: %v", role.String(), cfg.ChainID, err)
+		// P2P consensus manager (skip if disabled)
+		if !disableP2P {
+			p2pConsensusMgr, err := NewP2PConsensusManager(bc, db, discoveryMgr, role)
+			if err != nil {
+				log.Printf("[%s][%s] WARNING: Failed to initialize P2P consensus manager: %v", role.String(), cfg.ChainID, err)
+			} else {
+				bc.p2pConsensusMgr = p2pConsensusMgr
+				log.Printf("[%s][%s] Starting P2P consensus manager with MinersAddress: %s", role.String(), cfg.ChainID, cfg.MinersAddress)
+				log.Printf("[%s][%s] ChromemDB path: %s", role.String(), cfg.ChainID, cfg.SearchableDatabasePath)
+				p2pConsensusMgr.Start()
+				defer func() {
+					log.Printf("[%s][%s] Stopping P2P consensus manager...", role.String(), cfg.ChainID)
+					p2pConsensusMgr.Stop()
+				}()
+			}
 		} else {
-			bc.p2pConsensusMgr = p2pConsensusMgr
-			log.Printf("[%s][%s] Starting P2P consensus manager with MinersAddress: %s", role.String(), cfg.ChainID, cfg.MinersAddress)
-			log.Printf("[%s][%s] ChromemDB path: %s", role.String(), cfg.ChainID, cfg.SearchableDatabasePath)
-			p2pConsensusMgr.Start()
-			defer func() {
-				log.Printf("[%s][%s] Stopping P2P consensus manager...", role.String(), cfg.ChainID)
-				p2pConsensusMgr.Stop()
-			}()
+			log.Printf("[%s][%s] P2P messaging disabled - skipping P2P consensus manager initialization", role.String(), cfg.ChainID)
 		}
 
 		// 6. Wallet server (optional)

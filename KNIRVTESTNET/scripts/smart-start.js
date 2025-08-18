@@ -33,7 +33,41 @@ async function smartStart() {
     process.exit(1);
   }
   
-  // Run health check first
+  // Check and fix axios corruption first
+  console.log('\n🔧 Checking axios installation...');
+  try {
+    require('axios');
+    console.log('✅ Axios is working correctly');
+  } catch (error) {
+    if (error.code === 'MODULE_NOT_FOUND' && error.message.includes('axios')) {
+      console.log('❌ Axios corruption detected, running fix...');
+      const { execSync } = require('child_process');
+      try {
+        execSync('./scripts/fix-axios-corruption.sh', {
+          stdio: 'inherit',
+          cwd: path.join(__dirname, '..')
+        });
+        console.log('✅ Axios fix completed');
+      } catch (fixError) {
+        console.error('❌ Axios fix failed:', fixError.message);
+        console.log('Attempting manual axios downgrade...');
+        try {
+          execSync('npm install axios@1.6.8 --save-exact', {
+            stdio: 'inherit',
+            cwd: path.join(__dirname, '..')
+          });
+          console.log('✅ Axios downgraded successfully');
+        } catch (downgradeError) {
+          console.error('❌ Manual axios fix failed:', downgradeError.message);
+          process.exit(1);
+        }
+      }
+    } else {
+      console.warn('⚠️  Axios check failed with unexpected error:', error.message);
+    }
+  }
+
+  // Run health check
   console.log('\n🏥 Running health check...');
   try {
     const { checkHealth } = require('./check-health');

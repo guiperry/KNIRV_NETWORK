@@ -1,0 +1,27 @@
+# KNIRV-SDK Testnet Configuration
+gateway:
+  endpoint: "http://localhost:8087"
+  api_version: "v1"
+  timeout: "30s"
+
+languages:
+  go:
+    module: "github.com/knirv/sdk-go"
+    version: "v0.1.0-testnet"
+  typescript:
+    package: "@knirv/sdk-ts"
+    version: "0.1.0-testnet"
+  python:
+    package: "knirv-sdk"
+    version: "0.1.0-testnet"
+
+features:
+  nrn_management: true
+  skill_invocation: true
+  agent_control: true
+  graph_queries: true
+
+testnet:
+  mock_mode: false
+  debug_logging: true
+  rate_limiting: false

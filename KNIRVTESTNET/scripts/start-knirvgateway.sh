@@ -7,8 +7,8 @@ echo "Starting KNIRV-GATEWAY testnet node..."
 mkdir -p logs data
 
 # Check if testnet gateway directory exists
-if [ ! -d "./data/knirvgateway" ]; then
-    echo "Error: KNIRV-GATEWAY testnet version not found. Please run build-knirvgateway.sh first."
+if [ ! -d "./data/testnet-gateway" ]; then
+    echo "Error: Testnet Gateway not found. Please run build-knirvgateway.sh first."
     exit 1
 fi
 
@@ -25,8 +25,8 @@ if ! command -v npm &> /dev/null; then
 fi
 
 # Navigate to testnet gateway directory
-echo "Starting KNIRV-GATEWAY testnet version..."
-cd data/knirvgateway
+echo "Starting Testnet Gateway..."
+cd data/testnet-gateway
 
 # Install dependencies if needed
 if [ ! -d "node_modules" ]; then
@@ -63,12 +63,12 @@ export KNIRVNEXUS_DVE_URL=http://localhost:8084
 export KNIRVNEXUS_VAL_URL=http://localhost:8085
 export KNIRVROUTER_URL=http://localhost:8086
 
-# Start KNIRV-GATEWAY using npm start with specified port and memory limit (80MB)
-echo "Starting KNIRV-GATEWAY on port 8888 with 80MB memory limit..."
-NODE_OPTIONS="--max-old-space-size=80" npx netlify dev --port 8888 > ../../logs/knirvgateway.log 2>&1 &
+# Start KNIRV-GATEWAY using npm start with specified port and memory limit (136MB optimized)
+echo "Starting KNIRV-GATEWAY on port 8888 with 136MB memory limit..."
+NODE_OPTIONS="--max-old-space-size=136" npx netlify dev --port 8888 > ../../logs/knirvgateway.log 2>&1 &
 
 GATEWAY_PID=$!
-echo $GATEWAY_PID > ../../data/knirvgateway.pid
+echo $GATEWAY_PID > ../../data/testnet-gateway.pid
 cd ../..
 
 echo "KNIRV-GATEWAY testnet started with PID $(cat ./data/knirvgateway.pid)"
@@ -84,14 +84,17 @@ echo "  - Static service discovery enabled"
 echo "  - Simplified authentication enabled"
 echo "  - Local service proxying enabled"
 echo "  - SSE support enabled"
+echo "Resource optimizations:"
+echo "  - Memory limit: 136MB (optimized for testnet)"
+echo "  - Testnet mode with simplified operations"
 echo "Log file: ./logs/knirvgateway.log"
 
 # Wait a moment and check if process is still running
 sleep 5
-if ! kill -0 $(cat ./data/knirvgateway.pid) 2>/dev/null; then
-    echo "Error: KNIRV-GATEWAY failed to start. Check logs:"
+if ! kill -0 $(cat ./data/testnet-gateway.pid) 2>/dev/null; then
+    echo "Error: Testnet Gateway failed to start. Check logs:"
     tail -20 ./logs/knirvgateway.log
     exit 1
 fi
 
-echo "KNIRV-GATEWAY testnet is running successfully!"
+echo "Testnet Gateway is running successfully!"

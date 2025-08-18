@@ -7,7 +7,7 @@
     "dev": "npm run check-health && netlify dev",
     "start": "node scripts/smart-start.js",
     "build": "npm run load-endpoints && npm run check-health && npm install && npm run check-function-deps --fix && npm run build:nexus && echo 'KNIRV Gateway built with Netlify Functions support'",
-    "build:nexus": "npm run check-nexus-health && cd nexus-portal && npm install && npm run build",
+    "build:nexus": "npm run check-nexus-health && if [ -d \"nexus-portal\" ]; then cd nexus-portal && npm install && npm run build; else echo 'No nexus-portal directory found, skipping build (testnet mode)'; fi",
     "smart-build": "npm run check-health && npm run build || npm run auto-fix",
     "smart-build-with-apps": "npm run check-health && npm run init-apps && npm run build || npm run auto-fix",
     "install-function-deps": "cd netlify/functions && npm install",
@@ -52,7 +52,7 @@
     "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "netlify-cli": "^23.1.4"
+    "netlify-cli": "21.6.0"
   },
   "engines": {
     "node": ">=18.0.0"

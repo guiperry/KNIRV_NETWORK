@@ -3,7 +3,7 @@
 
 ### Executive Summary
 
-This document outlines the implementation plan for the KNIRVENGINE ecosystem, featuring three integrated engines: **desktop-host** (host system), **mobile-controller** (wallet/UDC management + client components), and **agent-core** (pure cognitive WASM). The architecture enables seamless QR code-based linkage for target system assignment, transaction signing, and distributed AI agent operations while maintaining security boundaries between engines.
+This document outlines the implementation plan for the KNIRVENGINE ecosystem, featuring three integrated engines: **desktop-client** (host system), **mobile-controller** (wallet/UDC management + client components), and **agent-core** (pure cognitive WASM). The architecture enables seamless QR code-based linkage for target system assignment, transaction signing, and distributed AI agent operations while maintaining security boundaries between engines.
 
 ## KNIRVENGINE Architecture Overview
 
@@ -15,7 +15,7 @@ This document outlines the implementation plan for the KNIRVENGINE ecosystem, fe
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  ┌─────────────────────┐    QR Code     ┌─────────────────────┐             │
-│  │   DESKTOP-HOST      │◄──Linkage────► │   MOBILE-TOOL       │             │
+│  │   DESKTOP-CLIENT    │◄──Linkage────► │   MOBILE-CONTROLLER │             │
 │  │   (Host System)     │                │ (Client + Wallet)   │             │
 │  │                     │                │                     │             │
 │  │ ├── Electron App    │                │ ├── Voice Processor │             │
@@ -49,7 +49,7 @@ This document outlines the implementation plan for the KNIRVENGINE ecosystem, fe
 │                                    │ Secure Communication                   │
 │                                    ▼                                        │
 │  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │                    MOBILE-TOOL CLIENT LAYER                         │    │
+│  │                    MOBILE-CONTROLLER CLIENT LAYER                   │    │
 │  │                                                                     │    │
 │  │ ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐         │    │
 │  │ │ Voice Processor │ │ Visual Processor│ │ React UI        │         │    │
@@ -68,7 +68,7 @@ This document outlines the implementation plan for the KNIRVENGINE ecosystem, fe
 
 ## Engine Specifications
 
-### Desktop-Host (Host System)
+### Desktop-Client (Host System)
 **Technology Stack**: Electron + Go Backend + React Frontend
 **Primary Responsibilities**:
 - **WASM Runtime Provision**: Load and execute agent-core WASM modules
@@ -95,17 +95,17 @@ type DesktopHost struct {
 }
 ```
 
-### Mobile-Tool (Client + Wallet/UDC Management)
+### Mobile-Controller (Client + Wallet/UDC Management)
 **Technology Stack**: React + TypeScript + Voice/Visual Processing
 **Primary Responsibilities**:
 - **KNIRV-WALLET Integration**: Asset management and transaction execution
 - **UDC Orchestration**: User Delegation Certificate management
 - **Transaction Signing**: Secure cryptographic operations
-- **QR Code Scanning**: Link with desktop-host for target assignment
+- **QR Code Scanning**: Link with desktop-client for target assignment
 - **Voice Processing**: Web Speech API, voice commands, speech synthesis
 - **Visual Processing**: Camera input, computer vision, Canvas/WebGL operations
 - **Client Interface**: React UI components and event coordination
-- **Secure Communication**: Encrypted channels with desktop-host
+- **Secure Communication**: Encrypted channels with desktop-client
 
 **Core Components**:
 ```typescript
@@ -137,7 +137,7 @@ interface MobileTool {
 - **Personality Adaptation**: Dynamic response schema generation
 - **Agent Orchestration**: Coordinate multiple specialized agents
 - **Pure WASM Modules**: All cognitive operations in compiled WASM
-- **Host Integration**: Interface with desktop-host functions
+- **Host Integration**: Interface with desktop-client functions
 
 **Core Components**:
 ```rust
@@ -549,7 +549,7 @@ impl HRMEngine {
 
 ### Linkage Protocol Architecture
 
-The QR code linkage system enables secure, seamless communication between desktop-host and mobile-controller for target system assignment and transaction signing.
+The QR code linkage system enables secure, seamless communication between desktop-client and mobile-controller for target system assignment and transaction signing.
 
 #### 1. QR Code Generation (Desktop-Host)
 ```go
@@ -1189,9 +1189,9 @@ func (deh *DesktopEngineHost) RequestTransactionSigning(mobileDeviceID string, t
 
 #### 1.1 Desktop-Host WASM Runtime Setup with HRM
 ```go
-// Enhanced desktop-host main.go integration
+// Enhanced desktop-client main.go integration
 func main() {
-    // Initialize desktop-host
+    // Initialize desktop-client
     desktopHost := &DesktopHost{
         electronApp:       initializeElectronApp(),
         goBackend:        initializeGoBackend(),
@@ -1469,14 +1469,14 @@ wasm-pack build --target web --out-dir ../dist/wasm
 cd ../src/cognitive-shell
 wasm-pack build --target web --out-dir ../../dist/wasm/personality
 
-# Copy WASM modules to desktop-host
-cp dist/*.wasm ../desktop-host/wasm-modules/
-cp dist/wasm/*.wasm ../desktop-host/wasm-modules/
+# Copy WASM modules to desktop-client
+cp dist/*.wasm ../desktop-client/wasm-modules/
+cp dist/wasm/*.wasm ../desktop-client/wasm-modules/
 
 # Verify HRM weights are available
 if [ -f "../../external-models/HRM/weights.safetensors" ]; then
     echo "HRM weights available: $(ls -lh ../../external-models/HRM/weights.safetensors)"
-    cp ../../external-models/HRM/weights.safetensors ../desktop-host/wasm-modules/
+    cp ../../external-models/HRM/weights.safetensors ../desktop-client/wasm-modules/
 else
     echo "Warning: HRM weights not found. Run HRM deployment process first."
 fi
@@ -1488,7 +1488,7 @@ echo "Agent-Core WASM modules built successfully with HRM integration"
 
 #### 2.1 Desktop-Host QR Generation API
 ```go
-// QR Code API endpoints in desktop-host
+// QR Code API endpoints in desktop-client
 func (api *APIServer) setupQRLinkageRoutes() {
     api.router.HandleFunc("/api/qr/target-assignment", api.handleTargetAssignmentQR).Methods("POST")
     api.router.HandleFunc("/api/qr/transaction-sign", api.handleTransactionSignQR).Methods("POST")
@@ -1790,7 +1790,7 @@ export class AgentCoreBridge {
 
         return new Promise((resolve, reject) => {
             this.websocket!.onopen = () => {
-                console.log('Connected to agent-core via desktop-host');
+                console.log('Connected to agent-core via desktop-client');
                 this.setupEventHandlers();
                 resolve();
             };
@@ -1932,8 +1932,8 @@ export class AgentCoreBridge {
 
 echo "Building KNIRVENGINE ecosystem..."
 
-# Build desktop-host
-cd KNIRVENGINE/desktop-host
+# Build desktop-client
+cd KNIRVENGINE/desktop-client
 make build-production
 make build-electron
 
@@ -1955,9 +1955,9 @@ wasm-opt -Oz -o ../dist/hrm-cognitive.wasm target/wasm32-unknown-unknown/release
 cd ../../
 mkdir -p dist/knirvengine
 
-# Copy desktop-host
-cp -r desktop-host/dist/* dist/knirvengine/desktop/
-cp -r desktop-host/electron/dist/* dist/knirvengine/desktop/
+# Copy desktop-client
+cp -r desktop-client/dist/* dist/knirvengine/desktop/
+cp -r desktop-client/electron/dist/* dist/knirvengine/desktop/
 
 # Copy mobile-controller
 cp -r mobile-controller/dist/* dist/knirvengine/mobile/
@@ -1979,9 +1979,9 @@ echo "KNIRVENGINE distribution package created: knirvengine-v1.0.0.tar.gz"
 # docker-compose.yml for KNIRVENGINE deployment
 version: '3.8'
 services:
-  desktop-host:
+  desktop-client:
     build:
-      context: ./desktop-host
+      context: ./desktop-client
       dockerfile: Dockerfile.production
     ports:
       - "8080:8080"
@@ -2019,7 +2019,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - REACT_APP_DESKTOP_ENDPOINT=http://desktop-host:8080
+      - REACT_APP_DESKTOP_ENDPOINT=http://desktop-client:8080
       - REACT_APP_QR_SCANNER_ENABLED=true
       - REACT_APP_WALLET_INTEGRATION=true
       - REACT_APP_HRM_PROCESSING_ENABLED=true
@@ -2082,7 +2082,7 @@ The KNIRVENGINE three-engine architecture with QR code linkage represents a brea
    - **Pure WASM Implementation**: No TypeScript dependencies, maximum performance
    - **HRM Cognitive Processing**: 27M-parameter hierarchical reasoning model
    - **Cognitive Processing**: HRM-based reasoning, personality adaptation, adaptive learning
-   - **Host Integration**: Direct interface with desktop-host system functions
+   - **Host Integration**: Direct interface with desktop-client system functions
    - **Portable Intelligence**: Single WASM binary contains entire cognitive stack with HRM
 
 ### **Key Innovations:**
@@ -2101,7 +2101,7 @@ The KNIRVENGINE three-engine architecture with QR code linkage represents a brea
 - **Scalable Communication**: WebSocket-based real-time coordination between engines
 - **Cross-Platform Consistency**: Identical cognitive behavior across all deployment scenarios
 
-This implementation enables truly autonomous AI agents powered by the 27M-parameter HRM model that can operate across multiple devices while maintaining strict security boundaries and providing exceptional user experiences. The component migration strategy ensures optimal performance by placing each component in its ideal execution environment: Web APIs in the browser (mobile-controller), system integration in native code (desktop-host), and HRM cognitive processing in high-performance WASM (agent-core).
+This implementation enables truly autonomous AI agents powered by the 27M-parameter HRM model that can operate across multiple devices while maintaining strict security boundaries and providing exceptional user experiences. The component migration strategy ensures optimal performance by placing each component in its ideal execution environment: Web APIs in the browser (mobile-controller), system integration in native code (desktop-client), and HRM cognitive processing in high-performance WASM (agent-core).
 ```yaml
 # OpenAPI specification for agent microservice
 openapi: 3.0.0

@@ -15,6 +15,24 @@ class NexusHealthChecker {
         this.warnings = [];
     }
 
+    // Helper method to find the correct nexus-portal path
+    getNexusPath() {
+        const possibleNexusPaths = [
+            path.join(process.cwd(), 'nexus-portal'), // Original location
+            path.join(process.cwd(), '../data/knirvnexus/portal'), // KNIRVTESTNET location
+            path.join(process.cwd(), 'data/knirvnexus/portal') // Alternative location
+        ];
+
+        for (const testPath of possibleNexusPaths) {
+            if (fs.existsSync(testPath)) {
+                return testPath;
+            }
+        }
+
+        // Return original path for error reporting if none found
+        return possibleNexusPaths[0];
+    }
+
     log(message, type = 'info') {
         const timestamp = new Date().toISOString();
         const prefix = {
@@ -30,8 +48,8 @@ class NexusHealthChecker {
 
     async checkNexusDirectory() {
         this.log('Checking NEXUS portal directory structure...');
-        
-        const nexusPath = path.join(process.cwd(), 'nexus-portal');
+
+        const nexusPath = this.getNexusPath();
         const requiredFiles = [
             'package.json',
             'vite.config.ts',
@@ -39,10 +57,18 @@ class NexusHealthChecker {
             'src/App.tsx',
             'dashboard.html'
         ];
-        
+
+        // Check if running in testnet mode
+        const isTestnetMode = process.env.TESTNET_MODE === 'true' || process.env.NODE_ENV === 'testnet';
+
         if (!fs.existsSync(nexusPath)) {
-            this.issues.push('nexus-portal directory does not exist');
-            return false;
+            if (isTestnetMode) {
+                this.log('nexus-portal directory not found - skipping (testnet mode)', 'info');
+                return true;
+            } else {
+                this.issues.push('nexus-portal directory does not exist');
+                return false;
+            }
         }
         
         for (const file of requiredFiles) {
@@ -57,8 +83,8 @@ class NexusHealthChecker {
 
     async checkNexusDependencies() {
         this.log('Checking NEXUS portal dependencies...');
-        
-        const nexusPath = path.join(process.cwd(), 'nexus-portal');
+
+        const nexusPath = this.getNexusPath();
         const nodeModulesPath = path.join(nexusPath, 'node_modules');
         const packageLockPath = path.join(nexusPath, 'package-lock.json');
         
@@ -85,8 +111,8 @@ class NexusHealthChecker {
 
     async checkNexusBuild() {
         this.log('Checking NEXUS portal build artifacts...');
-        
-        const nexusPath = path.join(process.cwd(), 'nexus-portal');
+
+        const nexusPath = this.getNexusPath();
         const distPath = path.join(nexusPath, 'dist');
         const indexPath = path.join(distPath, 'index.html');
         const assetsPath = path.join(distPath, 'assets');
@@ -132,8 +158,8 @@ class NexusHealthChecker {
 
     async checkBuildFreshness() {
         this.log('Checking NEXUS portal build freshness...');
-        
-        const nexusPath = path.join(process.cwd(), 'nexus-portal');
+
+        const nexusPath = this.getNexusPath();
         const distPath = path.join(nexusPath, 'dist');
         const indexPath = path.join(distPath, 'index.html');
         const srcPath = path.join(nexusPath, 'src');
@@ -185,8 +211,8 @@ class NexusHealthChecker {
 
     async testViteBuild() {
         this.log('Testing Vite build capability...');
-        
-        const nexusPath = path.join(process.cwd(), 'nexus-portal');
+
+        const nexusPath = this.getNexusPath();
         
         try {
             // Test if vite can be invoked
@@ -208,14 +234,24 @@ class NexusHealthChecker {
 
     async runNexusHealthCheck() {
         this.log('🏥 Starting NEXUS portal health check...');
-        
+
+        // Check if running in testnet mode
+        const isTestnetMode = process.env.TESTNET_MODE === 'true' || process.env.NODE_ENV === 'testnet';
+        const nexusPath = this.getNexusPath();
+
+        // If in testnet mode and nexus-portal doesn't exist, skip all checks
+        if (isTestnetMode && !fs.existsSync(nexusPath)) {
+            this.log('Testnet mode detected with no nexus-portal - skipping all checks', 'info');
+            return true;
+        }
+
         const checks = [
             this.checkNexusDirectory(),
             this.checkNexusDependencies(),
             this.checkNexusBuild(),
             this.checkBuildFreshness()
         ];
-        
+
         await Promise.all(checks);
         
         // Report results

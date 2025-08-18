@@ -53,7 +53,7 @@
                         <span id="overall-status-text" class="text-sm font-medium">Loading...</span>
                     </div>
                     <a href="/" class="text-blue-400 hover:text-blue-300 font-medium">
-                        ← Back to Gateway
+                        ← Back to Testnet
                     </a>
                 </div>
             </div>
@@ -127,7 +127,7 @@
             isRefreshing = true;
 
             try {
-                const response = await fetch('http://localhost:10001/health-monitor/status');
+                const response = await fetch('/api/health-monitor/status');
                 const data = await response.json();
                 updateHealthDisplay(data);
             } catch (error) {

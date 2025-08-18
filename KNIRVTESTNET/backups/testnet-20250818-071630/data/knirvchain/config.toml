@@ -1,0 +1,28 @@
+[testnet]
+enabled = true
+single_validator = true
+simplified_consensus = true
+mock_ipfs = true
+mock_llm = true
+in_memory_db = true
+
+[blockchain]
+chain_id = "knirvchain-testnet-1"
+block_time = 5
+difficulty = 1
+
+[api]
+host = "127.0.0.1"
+port = 8080
+
+[storage]
+database_path = "./data/knirvchain/testnet.db"
+in_memory = true
+
+[llm]
+mock_mode = true
+validation_timeout = 5000
+
+[skills]
+mock_validation = true
+simplified_testing = true

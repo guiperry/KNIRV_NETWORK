@@ -53,8 +53,8 @@ class CompleteSystemTest {
         
         try {
             // Start desktop host
-            this.desktopHost = spawn('./desktop-host', [], {
-                cwd: path.join(__dirname, 'desktop-host'),
+            this.desktopHost = spawn('./desktop-client', [], {
+                cwd: path.join(__dirname, 'desktop-client'),
                 stdio: ['pipe', 'pipe', 'pipe']
             });
 

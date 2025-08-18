@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="zxx" class="js">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="author" content="KNIRV Network">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="KNIRV TESTNET: Complete testing environment for the Decentralized Trusted Execution Network - Test all 12 sovereign layers, validate AI skills, and experience the future of self-improving AI in a safe development environment.">
+    <meta name="keywords" content="KNIRV, TESTNET, testing, development, D-TEN, decentralized AI, blockchain testing, NRN token, KNIRV-ORACLE, KNIRVCHAIN, KNIRVGRAPH, KNIRV-CORTEX, KNIRV-SHELL, KNIRV-SDK, KNIRVANA, AI testing, mock services">
+    <!-- Fav Icon  -->
+    <link rel="shortcut icon" href="assets/favicon.png">
+    <!-- Site Title  -->
+    <title>KNIRV TESTNET | Complete D-TEN Testing Environment</title>
+    <!-- Bootstrap CSS for accordion functionality -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bundle and Base CSS -->
+    <link rel="stylesheet" href="assets/css/vendor.bundle.css?ver=210">
+    <link rel="stylesheet" href="assets/css/style-dark.css?ver=210">
+    <!-- Extra CSS -->
+    <link rel="stylesheet" href="assets/css/theme.css?ver=210">
+    <link rel="stylesheet" href="assets/css/rtl.css?ver=210">
+    <!-- Tailwind CSS for animated logo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom styles for animated logo and FAQ fixes -->
+    <style>
+        /* Fix for Bootstrap accordion functionality */
+        .accordion-faq .collapse {
+            transition: height 0.35s ease !important;
+            overflow: hidden;
+        }
+
+        .accordion-faq .collapse.show {
+            height: auto !important;
+            overflow: visible !important;
+        }
+
+        .accordion-faq .collapsing {
+            height: 0 !important;
+            overflow: hidden !important;
+            transition: height 0.35s ease !important;
+        }
+
+        /* Ensure accordion titles work properly with Bootstrap */
+        .accordion-faq .accordion-title[data-bs-toggle="collapse"] {
+            cursor: pointer !important;
+        }
+
+        /* Prevent custom accordion styles from interfering */
+        .accordion-faq .accordion-item {
+            transition: none !important;
+        }
+
+        /* Ensure proper display */
+        .accordion-faq .accordion-content {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        /* Fix accordion icon behavior for Bootstrap accordions */
+        .accordion-faq .accordion-title:not(.collapsed) .accordion-icon-s2:after {
+            transform: rotate(0deg) !important;
+        }
+
+        .accordion-faq .accordion-title.collapsed .accordion-icon-s2:after {
+            transform: rotate(-180deg) !important;
+        }
+
+        .animated-logo-container {
+            width: 200px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .animated-logo-container svg {
+            width: 40px;
+            height: 40px;
+        }
+        .animated-logo-container h1 {
+            font-size: 1.5rem;
+            margin-left: 0.5rem;
+        }
+        .animated-logo-container h2 {
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+
+<body class="nk-body body-wider theme-dark mode-onepage has-rtl" dir="rtl">
+    <div class="nk-wrap">
+        <header class="nk-header page-header is-transparent is-sticky is-shrink is-dark" id="header">
+            <!-- Header @s -->
+            <div class="header-main">
+                <div class="header-container container">
+                    <div class="header-wrap">
+                        <!-- Logo @s -->
+                        <div class="header-logo logo animated" data-animate="fadeInDown" data-delay=".65">
+                            <a href="./" class="logo-link">
+                                <div id="animated-logo" class="animated-logo-container"></div>
+                            </a>
+                        </div>
+                        <!-- Menu Toogle @s -->
+                        <div class="header-nav-toggle">
+                            <a href="#" class="navbar-toggle" data-menu-toggle="example-menu-04">
+                                <div class="toggle-line">
+                                    <span></span>
+                                </div>
+                            </a>
+                        </div>
+                        <!-- Menu @s -->
+                        <div class="header-navbar header-navbar-s1">
+                            <nav class="header-menu" id="example-menu-04">
+                                <ul class="menu menu-s2 animated" data-animate="fadeInDown" data-delay=".75">
+                                    <li class="menu-item"><a class="menu-link nav-link" href="#testnet-overview">Testnet Overview</a></li>
+                                    <li class="menu-item"><a class="menu-link nav-link" href="#architecture">Architecture</a></li>
+                                    <li class="menu-item"><a class="menu-link nav-link" href="#endpoints">Service Endpoints</a></li>
+                                    <li class="menu-item"><a class="menu-link nav-link" href="#testing">Testing Guide</a></li>
+                                    <li class="menu-item has-sub">
+                                        <a class="menu-link nav-link menu-toggle" href="#">Testnet Tools</a>
+                                        <ul class="menu-sub menu-drop">
+                                            <li class="menu-item"><a class="menu-link nav-link" href="/nexus-portal/">KNIRV NEXUS</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="/graphchain-explorer/">GraphChain Explorer</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="/agent-developer-portal/">Agent Developer Portal</a></li>
+
+                                            <li class="menu-item"><a class="menu-link nav-link" href="/health-monitor">Health Monitor</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="/api/endpoints">Service Discovery</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="/gateway/status">Testnet Status</a></li>
+                                        </ul>
+                                    </li>
+                                    <li class="menu-item has-sub">
+                                        <a class="menu-link nav-link menu-toggle" href="#">Testing Resources</a>
+                                        <ul class="menu-sub menu-drop">
+                                            <li class="menu-item"><a class="menu-link nav-link" href="#quick-start">Quick Start</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="#testing">Testing Procedures</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="#troubleshooting">Troubleshooting</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="#monitoring">Monitoring</a></li>
+                                        </ul>
+                                    </li>
+                                    <li class="menu-item has-sub">
+                                        <a class="menu-link nav-link menu-toggle" href="#">Support</a>
+                                        <ul class="menu-sub menu-drop">
+                                            <li class="menu-item"><a class="menu-link nav-link" href="#team">Development Team</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="#contact">Get Help</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="https://github.com/KNIRV-NETWORK">GitHub</a></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                                <ul class="menu-btns animated" data-animate="fadeInDown" data-delay=".85">
+                                    <li><a href="#quick-start" class="btn btn-rg btn-auto btn-outline btn-grad on-bg-theme btn-round"><span>Start Testing</span></a></li>
+                                    <li><a href="/health-monitor" class="btn btn-rg btn-auto btn-outline btn-grad on-bg-theme btn-round"><span>Health Check</span></a></li>
+                                    <li><a href="https://knirv.com" class="btn btn-rg btn-auto btn-outline btn-grad on-bg-theme btn-round" target="_blank"><span>← Main Site</span></a></li>
+                                </ul>
+                            </nav>
+                        </div><!-- .header-navbar @e -->
+                    </div>
+                </div>
+            </div><!-- .header-main @e -->
+            <!-- Banner @s -->
+            <div class="header-banner bg-theme-dark">
+                <div class="nk-banner">
+                    <div class="banner banner-mask-fix banner-fs banner-single tc-light">
+                        <div class="banner-wrap">
+                            <div class="container">
+                                <div class="row align-items-center justify-content-center gutter-vr-30px">
+                                    <div class="col-lg-6 order-lg-last">
+                                        <div class="banner-gfx banner-gfx-re-s3 animated" data-animate="fadeInUp" data-delay="1.25">
+                                            <img src="../images/dark/gfx-d-dark.png" alt="header">
+                                            <img class="banner-gfx-icon banner-gfx-icon-1" src="../images/icons/icon-custom.png" alt="">
+                                            <img class="banner-gfx-icon banner-gfx-icon-2" src="../images/icons/icon-bitcoin.png" alt="">
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <div class="banner-caption wide-auto text-center text-lg-start">
+                                            <div class="cpn-head mt-0">
+                                                <h1 class="title title-xl-2 title-semibold animated" data-animate="fadeInUp" data-delay="1.35">Welcome to <br/> KNIRV TESTNET</h1>
+                                            </div>
+                                            <div class="cpn-text cpn-text-s1">
+                                                <p class="lead animated" data-animate="fadeInUp" data-delay="1.45">Your complete testing environment for the KNIRV D-TEN ecosystem. Test all 12 sovereign layers, validate AI skills, and experience the future of self-improving AI in a safe development environment with mock services and comprehensive monitoring.</p>
+                                            </div>
+                                            <div class="cpn-btns">
+                                                <ul class="btn-grp animated" data-animate="fadeInUp" data-delay="1.55">
+                                                    <li><a href="#quick-start" class="btn btn-md btn-grad btn-round">Start Testing Now</a></li>
+                                                    <li><a href="/health-monitor" class="btn btn-md btn-grad btn-grad-alternet btn-round">Health Monitor</a></li>
+                                                    <li><a href="#architecture" class="btn btn-md btn-outline btn-grad on-bg-theme btn-round">View Architecture</a></li>
+                                                </ul>
+                                            </div>
+                                            <div class="cpn-social">
+                                                <ul class="social">
+                                                    <li class="animated" data-animate="fadeInUp" data-delay="1.65"><a href="#"><em class="social-icon fab fa-facebook-f"></em></a></li>
+                                                    <li class="animated" data-animate="fadeInUp" data-delay="1.7"><a href="#"><em class="social-icon fab fa-twitter"></em></a></li>
+                                                    <li class="animated" data-animate="fadeInUp" data-delay="1.75"><a href="#"><em class="social-icon fab fa-youtube"></em></a></li>
+                                                    <li class="animated" data-animate="fadeInUp" data-delay="1.8"><a href="#"><em class="social-icon fab fa-github"></em></a></li>
+                                                    <li class="animated" data-animate="fadeInUp" data-delay="1.85"><a href="#"><em class="social-icon fab fa-bitcoin"></em></a></li>
+                                                    <li class="animated" data-animate="fadeInUp" data-delay="1.9"><a href="#"><em class="social-icon fab fa-medium-m"></em></a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div><!-- .col -->
+                                </div><!-- .row -->
+                            </div>
+                        </div>
+                    </div>
+                </div><!-- .nk-banner -->
+                <div class="nk-ovm mask-c-dark shape-v mask-contain-bottom"></div>
+                <!-- Place Particle Js -->
+                <div id="particles-bg" class="particles-container particles-bg" data-pt-base="#00c0fa" data-pt-base-op=".3" data-pt-line="#2b56f5" data-pt-line-op=".5" data-pt-shape="#00c0fa" data-pt-shape-op=".2"></div>
+            </div>
+            <!-- .header-banner @e -->
+        </header>
+        <main class="nk-pages">
+            <section class="section mask-c-blend-dark bg-theme-dark-alt tc-light ov-h" id="testnet-overview">
+                <div class="container">
+                    <!-- Block @s -->
+                    <div class="nk-block nk-block-text-wrap">
+                        <div class="row align-items-center justify-content-center justify-content-md-between gutter-vr-30px">
+                            <div class="col-mb-9 col-sm-7 col-md-6 col-lg-5 order-md-last">
+                                <div class="nk-block-img animated" data-animate="fadeInUp" data-delay=".1">
+                                    <img src="../images/light/gfx-z-a.png" alt="KNIRV Testnet Architecture">
+                                </div>
+                            </div>
+                            <div class="col-sm-10 col-md-6 text-center text-md-start">
+                                <div class="nk-block-text">
+                                    <h2 class="title animated" data-animate="fadeInUp" data-delay=".2">Complete D-TEN <br>Testing Environment</h2>
+                                    <p class="lead animated" data-animate="fadeInUp" data-delay=".3">KNIRV TESTNET provides a minimal-viable representation of the full KNIRV D-TEN ecosystem. Test all 12 sovereign layers with simplified configurations, mock services, and comprehensive monitoring tools designed for development and validation.</p>
+                                    <div class="btn-grp animated" data-animate="fadeInUp" data-delay=".4">
+                                        <a href="#quick-start" class="btn btn-grad btn-round btn-md">Quick Start Guide</a>
+                                        <a href="/gateway/status" class="btn btn-primary btn-round btn-md">Check Status</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div><!-- .row -->
+                    </div><!-- .block @e -->
+                </div>
+            </section>
+            <!-- // -->
+            <section class="section bg-theme-dark-alt tc-light py-0 ov-h" id="quick-start">
+                <div class="container">
+                    <!-- Block @s -->
+                    <div class="nk-block nk-block-features-2">
+                        <div class="row align-items-center gutter-vr-30px justify-content-center justify-content-md-between">
+                            <div class="col-mb-9 col-sm-7 col-md-6 col-lg-5">
+                                <div class="gfx py-4 animated" data-animate="fadeInUp" data-delay=".1">
+                                    <img src="../images/light/gfx-z-b.png" alt="Quick Start Guide">
+                                </div>
+                            </div><!-- .col -->
+                            <div class="col-sm-10 col-md-6 text-center text-md-start">
+                                <!-- Section Head @s -->
+                                <div class="nk-block-text">
+                                    <h4 class="title title-lg animated" data-animate="fadeInUp" data-delay=".2">🚀 Quick Start Guide</h4>
+                                    <p class="lead animated" data-animate="fadeInUp" data-delay=".3">Get your KNIRV TESTNET environment up and running in minutes with our streamlined setup process.</p>
+                                    <div class="animated" data-animate="fadeInUp" data-delay=".4">
+                                        <h6 class="title-sm">Prerequisites:</h6>
+                                        <p>Docker & Docker Compose, Go 1.23+, Rust 1.70+, Node.js 18+, Python 3.9+</p>
+                                    </div>
+                                    <div class="animated" data-animate="fadeInUp" data-delay=".5">
+                                        <h6 class="title-sm">Setup Commands:</h6>
+                                        <code style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; display: block; margin: 10px 0;">
+                                            cd KNIRVTESTNET<br/>
+                                            chmod +x scripts/*.sh<br/>
+                                            ./scripts/build-all.sh<br/>
+                                            ./scripts/start-testnet.sh
+                                        </code>
+                                    </div>
+                                    <div class="btn-grp animated" data-animate="fadeInUp" data-delay=".6">
+                                        <a href="#testing" class="btn btn-grad btn-round btn-md">Testing Guide</a>
+                                        <a href="#endpoints" class="btn btn-primary btn-round btn-md">Service Endpoints</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div><!-- .row -->
+                    </div><!-- .block @e -->
+                </div>
+            </section>
+            <!-- // -->
+            <section class="section bg-theme-dark-alt tc-light" id="endpoints">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm tc-light">
+                        <div class="section-head-line">
+                            <span class="line-1"></span><span class="line-2"></span><span class="line-3"></span><span class="line-4"></span>
+                            <span class="line-5"></span><span class="line-6"></span><span class="line-7"></span><span class="line-8"></span>
+                        </div>
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1" title="ENDPOINTS">Service Endpoints</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">Access all testnet services through these local endpoints. Each service provides health checks, testing interfaces, and mock functionality for development.</p>
+                    </div>
+                    <!-- Block @s -->
+                    <div class="nk-block nk-block-text-wrap">
+                        <div class="row align-items-center justify-content-center justify-content-md-between gutter-vr-30px">
+                            <div class="col-mb-9 col-sm-7 col-md-6">
+                                <div class="nk-block-img animated" data-animate="fadeInUp" data-delay=".3">
+                                    <img src="../images/dark/gfx-z-c.png" alt="Service Endpoints">
+                                </div>
+                            </div>
+                            <div class="col-sm-10 col-md-6 col-lg-5">
+                                <div class="nk-block-text ms-lg-3 ms-xl-0">
+                                    <p class="animated" data-animate="fadeInUp" data-delay=".4">The KNIRV TESTNET provides local endpoints for all 12 sovereign layers, enabling comprehensive testing of the entire D-TEN ecosystem.</p>
+                                    <ul class="list list-dot pdb-r">
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".5"><strong>KNIRV-ORACLE:</strong> localhost:1317 - NRN blockchain & oracle</li>
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".55"><strong>KNIRVCHAIN:</strong> localhost:8090 - Base LLM & skill registry</li>
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".6"><strong>KNIRVGRAPH:</strong> localhost:8082 - Knowledge graphchain</li>
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".65"><strong>KNIRV-NEXUS DVE:</strong> localhost:8084 - DVE Manager</li>
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".7"><strong>KNIRV-ROUTER:</strong> localhost:8086 - Network routing</li>
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".75"><strong>KNIRV-GATEWAY:</strong> localhost:8087 - Unified API gateway</li>
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".8"><strong>IPFS API:</strong> localhost:5001 - Decentralized storage</li>
+                                    </ul>
+                                    <ul class="btn-grp justify-content-center justify-content-md-start">
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".85"><a href="/api/endpoints" class="btn btn-grad btn-round btn-md">Service Discovery</a></li>
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".9"><a href="/health-monitor" class="btn btn-primary btn-round btn-md">Health Monitor</a></li>
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".95">
+                                            <ul class="btn-grp gutter-15px">
+                                                <li><a href="/gateway/status" class="btn btn-icon btn-round btn-md btn-auto btn-primary" title="Testnet Status"><em class="fas fa-chart-line"></em></a></li>
+                                                <li><a href="/config" class="btn btn-icon btn-round btn-md btn-auto btn-primary" title="Configuration"><em class="fas fa-cog"></em></a></li>
+                                            </ul>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div><!-- .row -->
+                    </div><!-- .block @e -->
+                </div>
+            </section>
+            <!-- // -->
+            <section class="section bg-theme-dark-alt tc-light" id="architecture">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1" title="ARCHITECTURE">Testnet Architecture</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">The KNIRV TESTNET implements all twelve sovereign layers with simplified configurations and mock services for comprehensive testing and development.</p>
+                    </div>
+                    <!-- Block @s -->
+                    <div class="nk-block">
+                        <div class="row justify-content-center gutter-vr-40px">
+                            <div class="col-lg-4 col-md-6">
+                                <div class="feature feature-s6 feature-s6-1 animated" data-animate="fadeInUp" data-delay=".3">
+                                    <div class="feature-text">
+                                        <h5 class="title title-sm">KNIRV-ORACLE (Testnet)</h5>
+                                        <p>3-validator PoA blockchain for NRN management with simplified consensus and test keyring backend for development testing.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="feature feature-s6 feature-s6-2 animated" data-animate="fadeInUp" data-delay=".4">
+                                    <div class="feature-text">
+                                        <h5 class="title title-sm">KNIRV-ROUTER (Testnet)</h5>
+                                        <p>Single router for connectivity testing with mock proof-of-connectivity and simplified network pathways for development.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="feature feature-s6 feature-s6-3 animated" data-animate="fadeInUp" data-delay=".5">
+                                    <div class="feature-text">
+                                        <h5 class="title title-sm">KNIRVGRAPH (Testnet)</h5>
+                                        <p>Small-scale graphchain with pre-populated test data for ErrorNodes and SkillNodes, enabling rapid development testing.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="feature feature-s6 feature-s6-4 animated" data-animate="fadeInUp" data-delay=".6">
+                                    <div class="feature-text">
+                                        <h5 class="title title-sm">KNIRVCHAIN (Testnet)</h5>
+                                        <p>Single-shard Rust blockchain with CodeT5 base and mock LLM validation endpoints for skill testing and development.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="feature feature-s6 feature-s6-5 animated" data-animate="fadeInUp" data-delay=".7">
+                                    <div class="feature-text">
+                                        <h5 class="title title-sm">KNIRV-NEXUS DVE (Testnet)</h5>
+                                        <p>2 DVE nodes with simulated TEE providing mock cryptographic proofs and validation for testing execution environments.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="feature feature-s6 feature-s6-6 animated" data-animate="fadeInUp" data-delay=".8">
+                                    <div class="feature-text">
+                                        <h5 class="title title-sm">KNIRV-CORTEX (Testnet)</h5>
+                                        <p>Simplified agents with SEAL loop functionality, providing autonomous testing capabilities and mock AI interactions.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row gutter-vr-40px">
+                            <div class="col-lg-4 col-md-6">
+                                <div class="feature feature-s6 animated" data-animate="fadeInUp" data-delay=".9">
+                                    <div class="feature-text">
+                                        <h5 class="title title-sm">KNIRV-WALLET (Testnet)</h5>
+                                        <p>Full XION integration with Meta Accounts for seamless testnet interaction and USDC faucet access for development.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="feature feature-s6 animated" data-animate="fadeInUp" data-delay="1.0">
+                                    <div class="feature-text">
+                                        <h5 class="title title-sm">KNIRV-GATEWAY (Testnet)</h5>
+                                        <p>Complete API gateway implementation with health monitoring, service discovery, and testnet-specific endpoints.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="feature feature-s6 animated" data-animate="fadeInUp" data-delay="1.1">
+                                    <div class="feature-text">
+                                        <h5 class="title title-sm">KNIRV-SHELL (Testnet)</h5>
+                                        <p>Complete CLI with testnet-specific commands, debugging tools, and simplified authentication for development access.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="feature feature-s6 animated" data-animate="fadeInUp" data-delay="1.2">
+                                    <div class="feature-text">
+                                        <h5 class="title title-sm">KNIRV-SDK (Testnet)</h5>
+                                        <p>Multi-language SDK with testnet configurations, mock service integrations, and comprehensive testing utilities.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="feature feature-s6 animated" data-animate="fadeInUp" data-delay="1.3">
+                                    <div class="feature-text">
+                                        <h5 class="title title-sm">KNIRVANA (Testnet)</h5>
+                                        <p>Game client for testing with simplified mechanics and mock integrations for validating experiential interfaces.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="feature feature-s6 animated" data-animate="fadeInUp" data-delay="1.4">
+                                    <div class="feature-text">
+                                        <h5 class="title title-sm">IPFS (Testnet)</h5>
+                                        <p>Decentralized storage layer with local IPFS node for testing distributed data storage and retrieval mechanisms.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- .block @e -->
+                </div>
+            </section>
+            <!-- // -->
+            <section class="section section-tokensale tc-light bg-theme-dark" id="testing">
+                <!-- Block @s -->
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1" title="TESTING">Testing Procedures</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">Comprehensive testing workflows for validating all aspects of the KNIRV TESTNET, from service health monitoring to integration testing and performance validation.</p>
+                    </div>
+                    <div class="nk-block nk-block-token mgb-m30">
+                        <div class="row align-items-center justify-content-between gutter-vr-50px">
+                            <div class="col-lg-6">
+                                <div class="row gutter-vr-30px">
+                                    <div class="col-sm-6">
+                                        <div class="stage-info animated" data-animate="fadeInUp" data-delay=".3">
+                                            <h6 class="title title-s6 title-xs-s2">1. Pre-Flight Checks</h6>
+                                            <p>Validate dependencies and configuration</p>
+                                            <code style="font-size: 0.8em;">./validate-config.sh</code>
+                                        </div>
+                                    </div><!-- .col  -->
+                                    <div class="col-sm-6">
+                                        <div class="stage-info animated" data-animate="fadeInUp" data-delay=".4">
+                                            <h6 class="title title-s6 title-xs-s2">2. Start Services</h6>
+                                            <p>Launch all testnet components</p>
+                                            <code style="font-size: 0.8em;">./start-testnet.sh</code>
+                                        </div>
+                                    </div><!-- .col  -->
+                                    <div class="col-sm-6">
+                                        <div class="stage-info animated" data-animate="fadeInUp" data-delay=".5">
+                                            <h6 class="title title-s6 title-xs-s2">3. Health Validation</h6>
+                                            <p>Monitor service health and status</p>
+                                            <code style="font-size: 0.8em;">./health-check.sh</code>
+                                        </div>
+                                    </div><!-- .col  -->
+                                    <div class="col-sm-6">
+                                        <div class="stage-info animated" data-animate="fadeInUp" data-delay=".6">
+                                            <h6 class="title title-s6 title-xs-s2">4. Integration Tests</h6>
+                                            <p>Run comprehensive test suite</p>
+                                            <code style="font-size: 0.8em;">./test-integration.sh</code>
+                                        </div>
+                                    </div><!-- .col  -->
+                                    <div class="col-sm-6">
+                                        <div class="stage-info animated" data-animate="fadeInUp" data-delay=".7">
+                                            <h6 class="title title-s6 title-xs-s2">5. Mock Testing</h6>
+                                            <p><a href="/api/testnet/llm/validate" class="btn btn-primary btn-sm">Test Mock LLM</a></p>
+                                            <p class="text-xs mt-2">Validate mock services and TEE simulation</p>
+                                        </div>
+                                    </div><!-- .col  -->
+                                    <div class="col-sm-6">
+                                        <div class="stage-info animated" data-animate="fadeInUp" data-delay=".8">
+                                            <h6 class="title title-s6 title-xs-s2">6. Shutdown</h6>
+                                            <p>Graceful service termination</p>
+                                            <code style="font-size: 0.8em;">./stop-testnet.sh</code>
+                                        </div>
+                                    </div><!-- .col  -->
+                                </div><!-- .row  -->
+                            </div>
+                            <div class="col-lg-5">
+                                <div class="token-status token-status-s5 bg-theme-alt round no-bd animated" data-animate="fadeInUp" data-delay=".9">
+                                    <div class="token-box token-box-s3">
+                                        <h4 class="title text-center mb-3">🧪 Testing Status</h4>
+                                        <div class="text-center">
+                                            <p class="lead">All Systems Ready</p>
+                                            <p class="text-sm">6/6 Services Available</p>
+                                            <div class="progress-wrap mb-3">
+                                                <div class="progress-title">Test Coverage <span class="progress-amount">95%</span></div>
+                                                <div class="progress-bar progress-bar-xs bg-black-10">
+                                                    <div class="progress-percent bg-theme-grad-alternet" data-percent="95"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="token-action">
+                                        <a class="btn btn-md btn-grad btn-grad-alternet btn-round" href="/health-monitor">Monitor Health</a>
+                                    </div>
+                                    <ul class="icon-list">
+                                        <li><em class="fas fa-server" title="Services"></em></li>
+                                        <li><em class="fas fa-chart-line" title="Monitoring"></em></li>
+                                        <li><em class="fas fa-flask" title="Testing"></em></li>
+                                        <li><em class="fas fa-cogs" title="Configuration"></em></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- .block @e -->
+                    <div class="nk-block">
+                        <div class="row justify-content-center gutter-vr-40px">
+                            <div class="col-md-6 col-mb-8">
+                                <div class="single-chart">
+                                    <h3 class="mgb-l text-center title-lg animated" data-animate="fadeInUp" data-delay=".1">Performance<br>Metrics</h3>
+                                    <div class="chart animated" data-animate="fadeInUp" data-delay=".2">
+                                        <div class="text-center p-4">
+                                            <div class="row">
+                                                <div class="col-6">
+                                                    <h4 class="title-sm">Startup Time</h4>
+                                                    <p class="lead">&lt;15s</p>
+                                                </div>
+                                                <div class="col-6">
+                                                    <h4 class="title-sm">Response Time</h4>
+                                                    <p class="lead">&lt;200ms</p>
+                                                </div>
+                                                <div class="col-6">
+                                                    <h4 class="title-sm">Memory Usage</h4>
+                                                    <p class="lead">&lt;200MB</p>
+                                                </div>
+                                                <div class="col-6">
+                                                    <h4 class="title-sm">Test Coverage</h4>
+                                                    <p class="lead">95%</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-mb-8">
+                                <div class="single-chart">
+                                    <h3 class="mgb-l text-center title-lg animated" data-animate="fadeInUp" data-delay=".3">Service<br>Health</h3>
+                                    <div class="chart animated" data-animate="fadeInUp" data-delay=".4">
+                                        <div class="text-center p-4">
+                                            <div class="row">
+                                                <div class="col-12 mb-3">
+                                                    <h4 class="title-sm">All Services Healthy</h4>
+                                                    <p class="lead text-success">6/6 Online</p>
+                                                </div>
+                                                <div class="col-6">
+                                                    <p class="text-sm">✅ KNIRV-ORACLE</p>
+                                                    <p class="text-sm">✅ KNIRVCHAIN</p>
+                                                    <p class="text-sm">✅ KNIRVGRAPH</p>
+                                                </div>
+                                                <div class="col-6">
+                                                    <p class="text-sm">✅ KNIRV-NEXUS</p>
+                                                    <p class="text-sm">✅ KNIRV-ROUTER</p>
+                                                    <p class="text-sm">✅ KNIRV-GATEWAY</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- .block @e -->
+                </div>
+            </section>
+            <!-- // -->
+            <section class="section bg-theme tc-light section-connect" id="troubleshooting">
+                <div class="container ov-h">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1" title="TROUBLESHOOTING">Troubleshooting Guide</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">Common issues and solutions for KNIRV TESTNET development and testing.</p>
+                    </div><!-- .section-head @e -->
+                </div>
+                <!-- Block @s -->
+                <div class="nk-block ov-h">
+                    <div class="container">
+                        <div class="roadmap-list animated" data-animate="fadeInUp" data-delay=".2">
+                            <div class="roadmap-item roadmap-item-sm roadmap-done">
+                                <div class="roadmap-innr">
+                                    <h6 class="roadmap-title roadmap-title-s2">Step 1</h6>
+                                    <p>🔍 Check Dependencies: Verify Go, Rust, Node.js, Python installations</p>
+                                </div>
+                            </div><!-- .roadmap-item -->
+                            <div class="roadmap-item roadmap-done">
+                                <div class="roadmap-innr">
+                                    <h6 class="roadmap-title roadmap-title-s2">Step 2</h6>
+                                    <p>🚪 Port Conflicts: Check if ports 1317, 8080-8090, 5001, 8888 are available</p>
+                                </div>
+                            </div>
+                            <div class="roadmap-item roadmap-item-lg">
+                                <div class="roadmap-innr">
+                                    <h6 class="roadmap-title roadmap-title-s2">Step 3</h6>
+                                    <p>📋 Service Logs: Check ./logs/ directory for error messages</p>
+                                </div>
+                            </div>
+                            <div class="roadmap-item">
+                                <div class="roadmap-innr">
+                                    <h6 class="roadmap-title roadmap-title-s2">Step 4</h6>
+                                    <p>🔄 Restart Services: Use ./stop-testnet.sh then ./start-testnet.sh</p>
+                                </div>
+                            </div>
+                            <div class="roadmap-item roadmap-item-sm">
+                                <div class="roadmap-innr">
+                                    <h6 class="roadmap-title roadmap-title-s2">Step 5</h6>
+                                    <p>🏗️ Rebuild: Run ./scripts/build-all.sh if binaries are missing</p>
+                                </div>
+                            </div>
+                            <div class="roadmap-item">
+                                <div class="roadmap-innr">
+                                    <h6 class="roadmap-title roadmap-title-s2">Step 6</h6>
+                                    <p>🧹 Clean Reset: Remove ./data/* and ./logs/* for fresh start</p>
+                                </div>
+                            </div>
+                            <div class="roadmap-item roadmap-item-lg">
+                                <div class="roadmap-innr">
+                                    <h6 class="roadmap-title roadmap-title-s2">Step 7</h6>
+                                    <p>⚡ Emergency Stop: Use ./scripts/kill_knirv.sh if services hang</p>
+                                </div>
+                            </div>
+                            <div class="roadmap-item">
+                                <div class="roadmap-innr">
+                                    <h6 class="roadmap-title roadmap-title-s2">Step 8</h6>
+                                    <p>📊 Monitor Resources: Check CPU/memory usage with top/htop</p>
+                                </div>
+                            </div>
+                            <div class="roadmap-item roadmap-item-sm">
+                                <div class="roadmap-innr">
+                                    <h6 class="roadmap-title roadmap-title-s2">Step 9</h6>
+                                    <p>🌐 Test Endpoints: Manually curl service health endpoints</p>
+                                </div>
+                            </div>
+                            <div class="roadmap-item">
+                                <div class="roadmap-innr">
+                                    <h6 class="roadmap-title roadmap-title-s2">Step 10</h6>
+                                    <p>🆘 Get Help: Check GitHub issues or contact development team</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!-- .block @e -->
+            </section>
+            <!-- // -->
+            <section class="section bg-theme-dark-alt tc-light" id="monitoring">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm tc-light">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1" title="MONITORING">Real-Time Monitoring</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">Monitor your KNIRV TESTNET environment with comprehensive health checks, performance metrics, and service status dashboards.</p>
+                    </div>
+                    <!-- Block @s -->
+                    <div class="nk-block">
+                        <div class="row justify-content-center gutter-vr-40px">
+                            <div class="col-lg-4 col-md-6">
+                                <div class="feature feature-s6 feature-s6-1 animated" data-animate="fadeInUp" data-delay=".3">
+                                    <div class="feature-text">
+                                        <h5 class="title title-sm">🏥 Health Monitoring</h5>
+                                        <p>Real-time service health checks with response time metrics and automatic failure detection.</p>
+                                        <a href="/health-monitor" class="btn btn-sm btn-primary">View Health Status</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="feature feature-s6 feature-s6-2 animated" data-animate="fadeInUp" data-delay=".4">
+                                    <div class="feature-text">
+                                        <h5 class="title title-sm">🔍 Service Discovery</h5>
+                                        <p>Automatic discovery and registration of all testnet services with endpoint validation.</p>
+                                        <a href="/api/endpoints" class="btn btn-sm btn-primary">Service Registry</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="feature feature-s6 feature-s6-3 animated" data-animate="fadeInUp" data-delay=".5">
+                                    <div class="feature-text">
+                                        <h5 class="title title-sm">📊 Performance Metrics</h5>
+                                        <p>Comprehensive performance tracking including startup times, memory usage, and throughput.</p>
+                                        <a href="/gateway/metrics" class="btn btn-sm btn-primary">View Metrics</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="feature feature-s6 feature-s6-4 animated" data-animate="fadeInUp" data-delay=".6">
+                                    <div class="feature-text">
+                                        <h5 class="title title-sm">🔐 Authentication Status</h5>
+                                        <p>Monitor testnet authentication tokens and validate access credentials for development.</p>
+                                        <a href="/api/testnet/auth/testnet-tokens" class="btn btn-sm btn-primary">Auth Tokens</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="feature feature-s6 feature-s6-5 animated" data-animate="fadeInUp" data-delay=".7">
+                                    <div class="feature-text">
+                                        <h5 class="title title-sm">📝 Log Monitoring</h5>
+                                        <p>Centralized log aggregation and real-time monitoring for all testnet services.</p>
+                                        <code style="font-size: 0.8em;">tail -f logs/*.log</code>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="feature feature-s6 feature-s6-6 animated" data-animate="fadeInUp" data-delay=".8">
+                                    <div class="feature-text">
+                                        <h5 class="title title-sm">⚡ Resource Usage</h5>
+                                        <p>Monitor CPU, memory, and network usage across all testnet components.</p>
+                                        <code style="font-size: 0.8em;">./scripts/monitor-resources.sh</code>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- .block @e -->
+                </div>
+            </section>
+            <!-- // -->
+            <section class="section bg-theme-dark tc-light ov-h pdb-0" id="team">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm tc-light">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1" title="team">Development Team</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">Meet the team behind KNIRV TESTNET - combining expertise in blockchain, AI, and distributed systems to create comprehensive testing environments for the D-TEN ecosystem.</p>
+                    </div>
+                    <!-- Block @s -->
+                    <div class="nk-block nk-block-team-list team-list">
+                        <div class="row justify-content-center">
+                            <div class="col-lg-3 col-mb-6">
+                                <div class="team team-s3 team-s3-alt animated" data-animate="fadeInUp" data-delay=".3">
+                                    <div class="team-photo round-full team-photo-bg">
+                                        <a href="#team-popup-1" class="team-show content-popup" data-overlay="bg-theme-grad-alternet"></a>
+                                        <img src="images/team/JohnPerry.png" alt="team" class="round-full">
+                                    </div>
+                                    <h5 class="team-name title title-sm">Guillermo Perry</h5>
+                                    <span class="team-position">Chief Solutions Architect</span>
+                                    <ul class="team-social team-social-s2">
+                                        <li><a href="https://www.linkedin.com/in/guillermo-perry-7b29aa30"><em class="fab fa-linkedin-in"></em></a></li>
+                                        <li><a href="#"><em class="fab fa-facebook-f"></em></a></li>
+                                        <li><a href="#"><em class="fab fa-twitter"></em></a></li>
+                                    </ul>
+                                </div>
+                                <!-- Start .team-profile  -->
+                                <div id="team-popup-1" class="team-popup mfp-hide">
+                                    <a title="Close" class="mfp-close">×</a>
+                                    <div class="row align-items-start">
+                                        <div class="col-md-6">
+                                            <div class="team-photo">
+                                                <img src="images/team/JohnPerry.png" alt="team">
+                                            </div>
+                                        </div><!-- .col  -->
+                                        <div class="col-md-6">
+                                            <div class="team-popup-info ps-md-3">
+                                                <h3 class="team-name title title-lg pt-4">Guillermo Perry</h3>
+                                                <p class="team-position mb-1">Chief Solutions Architect</p>
+                                                <ul class="team-social team-social-s2 mb-4">
+                                                    <li><a href="#"><em class="fab fa-facebook-f"></em></a></li>
+                                                    <li><a href="https://www.linkedin.com/in/guillermo-perry-7b29aa30"><em class="fab fa-linkedin-in"></em></a></li>
+                                                </ul>
+                                                <p>A seasoned software architect with over twenty years of experience in the industry. His passion for technology is matched only by his commitment to excellence.</p>
+                                                <p>Guillermo leads the architectural vision for the KNIRV D-TEN ecosystem, ensuring scalable and robust solutions across all twelve sovereign layers.</p>
+                                                <div class="progress-list">
+                                                    <div class="progress-wrap">
+                                                        <div class="progress-title">Blockchain <span class="progress-amount">85%</span></div>
+                                                        <div class="progress-bar progress-bar-xs bg-black-10">
+                                                            <div class="progress-percent bg-theme-grad-alternet" data-percent="85"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="progress-wrap">
+                                                        <div class="progress-title">Decentralization <span class="progress-amount">68%</span></div>
+                                                        <div class="progress-bar progress-bar-xs bg-black-10">
+                                                            <div class="progress-percent bg-theme-grad-alternet" data-percent="68"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div><!-- .col  -->
+                                    </div><!-- .row  -->
+                                </div><!-- .team-profile  -->
+                            </div><!-- .col -->
+                            <div class="col-lg-3 col-mb-6">
+                                <div class="team team-s3 team-s3-alt animated" data-animate="fadeInUp" data-delay=".4">
+                                    <div class="team-photo round-full team-photo-bg">
+                                        <a href="#team-popup-2" class="team-show content-popup" data-overlay="bg-theme-grad-alternet"></a>
+                                        <img src="images/team/Herman.jpg" alt="team" class="round-full">
+                                    </div>
+                                    <h5 class="team-name title title-sm">Herman Duquerronette</h5>
+                                    <span class="team-position">Sr. Software Developer</span>
+                                    <ul class="team-social team-social-s2">
+                                        <li><a href="https://www.linkedin.com/in/herman-duquerronette-36568a76"><em class="fab fa-linkedin-in"></em></a></li>
+                                        <li><a href="#"><em class="fab fa-facebook-f"></em></a></li>
+                                        <li><a href="#"><em class="fab fa-twitter"></em></a></li>
+                                    </ul>
+                                </div>
+                                <!-- Start .team-popup  -->
+                                <div id="team-popup-2" class="team-popup mfp-hide">
+                                    <a title="Close" class="mfp-close">×</a>
+                                    <div class="row align-items-start">
+                                        <div class="col-md-6">
+                                            <div class="team-photo">
+                                                <img src="images/team/Herman.jpg" alt="team">
+                                            </div>
+                                        </div><!-- .col  -->
+                                        <div class="col-md-6">
+                                            <div class="team-popup-info ps-md-3">
+                                                <h3 class="team-name title title-lg pt-4">Herman Duquerronette</h3>
+                                                <p class="team-position mb-1">Sr. Software Developer</p>
+                                                <ul class="team-social team-social-s2 mb-4">
+                                                    <li><a href="#"><em class="fab fa-facebook-f"></em></a></li>
+                                                    <li><a href="https://www.linkedin.com/in/herman-duquerronette-36568a76"><em class="fab fa-linkedin-in"></em></a></li>
+                                                </ul>
+                                                <p>A seasoned software developer with over two decades of experience in the industry. His passion for technology is matched only by his commitment to excellence.</p>
+                                                <p>Herman brings deep technical expertise to the KNIRV ecosystem, focusing on robust software development practices and system reliability across the D-TEN infrastructure.</p>
+                                            </div>
+                                        </div><!-- .col  -->
+                                    </div><!-- .row  -->
+                                </div><!-- .team-popup  -->
+                            </div><!-- .col -->
+                            <div class="col-lg-3 col-mb-6">
+                                <div class="team team-s3 team-s3-alt animated" data-animate="fadeInUp" data-delay=".5">
+                                    <div class="team-photo round-full team-photo-bg">
+                                        <a href="#team-popup-3" class="team-show content-popup" data-overlay="bg-theme-grad-alternet"></a>
+                                        <img src="images/team/Kareem.jpg" alt="team" class="round-full">
+                                    </div>
+                                    <h5 class="team-name title title-sm">Kareem Bullard</h5>
+                                    <span class="team-position">Project Manager</span>
+                                    <ul class="team-social team-social-s2">
+                                        <li><a href="https://www.linkedin.com/in/kareem-bullard-a644b9225"><em class="fab fa-linkedin-in"></em></a></li>
+                                        <li><a href="#"><em class="fab fa-facebook-f"></em></a></li>
+                                        <li><a href="#"><em class="fab fa-twitter"></em></a></li>
+                                    </ul>
+                                </div>
+                                <!-- Start .team-profile  -->
+                                <div id="team-popup-3" class="team-popup mfp-hide">
+                                    <a title="Close" class="mfp-close">×</a>
+                                    <div class="row align-items-start">
+                                        <div class="col-md-6">
+                                            <div class="team-photo">
+                                                <img src="images/team/Kareem.jpg" alt="team">
+                                            </div>
+                                        </div><!-- .col  -->
+                                        <div class="col-md-6">
+                                            <div class="team-popup-info ps-md-3">
+                                                <h3 class="team-name title title-lg pt-4">Kareem Bullard</h3>
+                                                <p class="team-position mb-1">Project Manager</p>
+                                                <ul class="team-social team-social-s2 mb-4">
+                                                    <li><a href="#"><em class="fab fa-facebook-f"></em></a></li>
+                                                    <li><a href="https://www.linkedin.com/in/kareem-bullard-a644b9225"><em class="fab fa-linkedin-in"></em></a></li>
+                                                </ul>
+                                                <p>Orchestrating Success with Strategic Leadership. With a proven track record in delivering high-impact projects on time and within budget, I bring a unique blend of tactical foresight and operational expertise.</p>
+                                                <p>Kareem ensures seamless coordination across all KNIRV D-TEN development initiatives, managing complex project timelines and stakeholder relationships to drive successful outcomes.</p>
+                                            </div>
+                                        </div><!-- .col  -->
+                                    </div><!-- .row  -->
+                                </div><!-- .team-profile  -->
+                            </div><!-- .col -->
+                            
+                            
+                        </div><!-- .row -->
+                    </div>
+                    <!-- ADVISORS SECTION - COMMENTED OUT FOR FUTURE USE
+                    <div class="nk-block nk-block-team-list">
+                        <div class="section-head section-head-sm text-center wide-auto-sm">
+                            <h2 class="title-lg-2 title-semibold animated" data-animate="fadeInUp" data-delay=".7">ADVISORS</h2>
+                        </div>
+                        <div class="row justify-content-center">
+                            <div class="col-lg-3 col-mb-6">
+                                <div class="team team-s3 team-s3-alt animated" data-animate="fadeInUp" data-delay=".8">
+                                    <div class="team-photo round-full team-photo-bg">
+                                        <a href="#team-popup-1" class="team-show content-popup" data-overlay="bg-theme-grad-alternet"></a>
+                                        <img src="images/team/sq-e.jpg" alt="team" class="round-full">
+                                    </div>
+                                    <h5 class="team-name title title-sm">Louis Baker</h5>
+                                    <span class="team-position">CEO &amp; Lead Blockchain</span>
+                                    <ul class="team-social team-social-s2">
+                                        <li><a href="#"><em class="fab fa-linkedin-in"></em></a></li>
+                                        <li><a href="#"><em class="fab fa-facebook-f"></em></a></li>
+                                        <li><a href="#"><em class="fab fa-twitter"></em></a></li>
+                                    </ul>
+                                </div>
+                                <!-- Start .team-profile  
+                                <div id="team-popup-5" class="team-popup mfp-hide">
+                                    <a title="Close" class="mfp-close">×</a>
+                                    <div class="row align-items-start">
+                                        <div class="col-md-6">
+                                            <div class="team-photo">
+                                                <img src="images/team/e-color.jpg" alt="team">
+                                            </div>
+                                        </div><!-- .col  
+                                        <div class="col-md-6">
+                                            <div class="team-popup-info ps-md-3">
+                                                <h3 class="team-name title title-lg pt-4">Louis Baker</h3>
+                                                <p class="team-position mb-1">CEO &amp; Lead Blockchain </p>
+                                                <ul class="team-social team-social-s2 mb-4">
+                                                    <li><a href="#"><em class="fab fa-facebook-f"></em></a></li>
+                                                    <li><a href="#"><em class="fab fa-linkedin-in"></em></a></li>
+                                                </ul>
+                                                <p>Visionary leader and architect of the KNIRV D-TEN ecosystem, bringing over a decade of blockchain innovation and AI research experience.</p>
+                                                <p>Louis spearheads the development of the world's first self-healing AI network, focusing on transforming AI failures into collective knowledge through decentralized trusted execution.</p>
+                                                <div class="progress-list">
+                                                    <div class="progress-wrap">
+                                                        <div class="progress-title">Blockchain <span class="progress-amount">85%</span></div>
+                                                        <div class="progress-bar progress-bar-xs bg-black-10">
+                                                            <div class="progress-percent bg-theme-grad-alternet" data-percent="85"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="progress-wrap">
+                                                        <div class="progress-title">Decentralization <span class="progress-amount">68%</span></div>
+                                                        <div class="progress-bar progress-bar-xs bg-black-10">
+                                                            <div class="progress-percent bg-theme-grad-alternet" data-percent="68"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div><!-- .col  
+                                    </div><!-- .row 
+                                </div><!-- .team-profile  
+                            </div><!-- .col 
+                            <div class="col-lg-3 col-mb-6">
+                                <div class="team team-s3 team-s3-alt animated" data-animate="fadeInUp" data-delay=".9">
+                                    <div class="team-photo round-full team-photo-bg">
+                                        <a href="#team-popup-2" class="team-show content-popup" data-overlay="bg-theme-grad-alternet"></a>
+                                        <img src="images/team/sq-f.jpg" alt="team" class="round-full">
+                                    </div>
+                                    <h5 class="team-name title title-sm">Jonathan Rios</h5>
+                                    <span class="team-position">CTO &amp; Software Engineer</span>
+                                    <ul class="team-social team-social-s2">
+                                        <li><a href="#"><em class="fab fa-linkedin-in"></em></a></li>
+                                        <li><a href="#"><em class="fab fa-facebook-f"></em></a></li>
+                                        <li><a href="#"><em class="fab fa-twitter"></em></a></li>
+                                    </ul>
+                                </div>
+                                <!-- Start .team-popup  
+                                <div id="team-popup-6" class="team-popup mfp-hide">
+                                    <a title="Close" class="mfp-close">×</a>
+                                    <div class="row align-items-start">
+                                        <div class="col-md-6">
+                                            <div class="team-photo">
+                                                <img src="images/team/f-color.jpg" alt="team">
+                                            </div>
+                                        </div><!-- .col 
+                                        <div class="col-md-6">
+                                            <div class="team-popup-info ps-md-3">
+                                                <h3 class="team-name title title-lg pt-4">Jonathan Rios</h3>
+                                                <p class="team-position mb-1">CTO &amp; Software Engineer</p>
+                                                <ul class="team-social team-social-s2 mb-4">
+                                                    <li><a href="#"><em class="fab fa-facebook-f"></em></a></li>
+                                                    <li><a href="#"><em class="fab fa-linkedin-in"></em></a></li>
+                                                </ul>
+                                                <p>Expert in AI systems engineering and distributed computing, Jonathan leads the technical implementation of KNIRV-AGENTIFIER autonomous agents.</p>
+                                                <p>His expertise in Rust WASM and machine learning drives the development of self-improving AI agents that contribute to the collective intelligence network.</p>
+                                            </div>
+                                        </div><!-- .col  
+                                    </div><!-- .row  
+                                </div><!-- .team-popup  
+                            </div><!-- .col 
+                            <div class="col-lg-3 col-mb-6">
+                                <div class="team team-s3 team-s3-alt animated" data-animate="fadeInUp" data-delay="1">
+                                    <div class="team-photo round-full team-photo-bg">
+                                        <a href="#team-popup-3" class="team-show content-popup" data-overlay="bg-theme-grad-alternet"></a>
+                                        <img src="images/team/sq-g.jpg" alt="team" class="round-full">
+                                    </div>
+                                    <h5 class="team-name title title-sm">Jason Morales</h5>
+                                    <span class="team-position">Sr.Backend developer</span>
+                                    <ul class="team-social team-social-s2">
+                                        <li><a href="#"><em class="fab fa-linkedin-in"></em></a></li>
+                                        <li><a href="#"><em class="fab fa-facebook-f"></em></a></li>
+                                        <li><a href="#"><em class="fab fa-twitter"></em></a></li>
+                                    </ul>
+                                </div>
+                                <!-- Start .team-profile  
+                                <div id="team-popup-7" class="team-popup mfp-hide">
+                                    <a title="Close" class="mfp-close">×</a>
+                                    <div class="row align-items-start">
+                                        <div class="col-md-6">
+                                            <div class="team-photo">
+                                                <img src="images/team/g-color.jpg" alt="team">
+                                            </div>
+                                        </div><!-- .col  
+                                        <div class="col-md-6">
+                                            <div class="team-popup-info ps-md-3">
+                                                <h3 class="team-name title title-lg pt-4">Jason Morales</h3>
+                                                <p class="team-position mb-1">Sr.Backend developer</p>
+                                                <ul class="team-social team-social-s2 mb-4">
+                                                    <li><a href="#"><em class="fab fa-facebook-f"></em></a></li>
+                                                    <li><a href="#"><em class="fab fa-linkedin-in"></em></a></li>
+                                                </ul>
+                                                <p>Senior blockchain developer specializing in KNIRV-ORACLE and KNIRVCHAIN architecture, with deep expertise in GoLang and Rust development.</p>
+                                                <p>Jason focuses on building the sovereign blockchain layers that power the NRN token economy and ensure network integrity across the D-TEN ecosystem.</p>
+                                            </div>
+                                        </div><!-- .col  
+                                    </div><!-- .row  
+                                </div><!-- .team-profile  
+                            </div><!-- .col 
+                        </div><!-- .row 
+                    </div><!-- .block @e 
+                    END ADVISORS SECTION COMMENT -->
+                </div>
+            </section>
+            <!-- // -->
+            <section class="section bg-theme-dark tc-light" id="partners">
+                <div class="container">
+                    <!-- Section Head @s -->
+                    <div class="section-head text-center wide-auto-sm tc-light">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1" title="Partners">D-TEN Ecosystem Partners</h2>
+                    </div><!-- .section-head @e -->
+                    <!-- Block @s -->
+                    <div class="nk-block block-partners">
+                        <ul class="partner-list flex-wrap">
+                            <li class="partner-logo-lg animated" data-animate="fadeInUp" data-delay=".2"><img src="images/partners/a-md.png" alt="partner"></li>
+                            <li class="partner-logo-lg animated" data-animate="fadeInUp" data-delay=".3"><img src="images/partners/b-md.png" alt="partner"></li>
+                            <li class="partner-logo-lg animated" data-animate="fadeInUp" data-delay=".4"><img src="images/partners/c-md.png" alt="partner"></li>
+                            <li class="partner-logo-lg animated" data-animate="fadeInUp" data-delay=".5"><img src="images/partners/d-md.png" alt="partner"></li>
+                            <li class="partner-logo-lg animated" data-animate="fadeInUp" data-delay=".6"><img src="images/partners/e-md.png" alt="partner"></li>
+                        </ul>
+                    </div>
+                    <!-- Block @e -->
+                </div>
+            </section>
+            <!-- // -->
+            <section class="section bg-theme-alt tc-light section-connect" id="media-partner">
+                <div class="transform-line"></div>
+                <div class="container">
+                    <!-- Section Head @s -->
+                    <div class="section-head wide-auto-sm text-center">
+                        <h2 class="title-xs animated" data-animate="fadeInUp" data-delay=".1">As seen in</h2>
+                    </div><!-- .section-head @e -->
+                    <!-- Block @s -->
+                    <div class="nk-block block-partners">
+                        <ul class="partner-list partner-list-s2 flex-wrap">
+                            <li class="partner-logo-s2 animated" data-animate="fadeInUp" data-delay=".2"><img src="images/partners/a-xs.png" alt="partner"></li>
+                            <li class="partner-logo-s2 animated" data-animate="fadeInUp" data-delay=".25"><img src="images/partners/b-xs.png" alt="partner"></li>
+                            <li class="partner-logo-s2 animated" data-animate="fadeInUp" data-delay=".3"><img src="images/partners/c-xs.png" alt="partner"></li>
+                            <li class="partner-logo-s2 animated" data-animate="fadeInUp" data-delay=".35"><img src="images/partners/d-xs.png" alt="partner"></li>
+                            <li class="partner-logo-s2 animated" data-animate="fadeInUp" data-delay=".4"><img src="images/partners/e-xs.png" alt="partner"></li>
+                            <li class="partner-logo-s2 animated" data-animate="fadeInUp" data-delay=".45"><img src="images/partners/f-xs.png" alt="partner"></li>
+                            <li class="partner-logo-s2 animated" data-animate="fadeInUp" data-delay=".5"><img src="images/partners/a-sm.png" alt="partner"></li>
+                            <li class="partner-logo-s2 animated" data-animate="fadeInUp" data-delay=".55"><img src="images/partners/b-sm.png" alt="partner"></li>
+                            <li class="partner-logo-s2 animated" data-animate="fadeInUp" data-delay=".6"><img src="images/partners/c-sm.png" alt="partner"></li>
+                            <li class="partner-logo-s2 animated" data-animate="fadeInUp" data-delay=".65"><img src="images/partners/d-sm.png" alt="partner"></li>
+                        </ul>
+                    </div>
+                    <!-- Block @e -->
+                </div>
+            </section>
+            <!-- // -->
+            <section class="section section-contact bg-theme-dark tc-light" id="blog">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1" title="news">KNIRV D-TEN News</h2>
+                    </div><!-- .section-head @e -->
+                    <!-- Block @s -->
+                    <div class="nk-block nk-block-blog">
+                        <div class="row justify-content-center">
+                            <div class="col-lg-4 col-sm-9">
+                                <div class="blog blog-s2 animated" data-animate="fadeInUp" data-delay=".2">
+                                    <div class="blog-photo">
+                                        <img src="images/blog/a.jpg" alt="blog-thumb">
+                                    </div>
+                                    <div class="blog-text">
+                                        <ul class="blog-meta">
+                                            <li><a href="#">15 Jul, 2025</a></li>
+                                            <li><a href="#">D-TEN</a></li>
+                                        </ul>
+                                        <h4 class="title title-sm"><a href="documentation/docsify/#/whitepapers/KNIRV-D-TEN_Whitepaper">Introducing the KNIRV D-TEN</a></h4>
+                                        <p>The world's first Decentralized Trusted Execution Network transforms AI failures into collective knowledge...</p>
+                                    </div>
+                                </div><!-- .blog -->
+                            </div><!-- .col -->
+                            <div class="col-lg-4 col-sm-9">
+                                <div class="blog blog-s2 animated" data-animate="fadeInUp" data-delay=".3">
+                                    <div class="blog-photo">
+                                        <img src="images/blog/b.jpg" alt="blog-thumb">
+                                    </div>
+                                    <div class="blog-text">
+                                        <ul class="blog-meta">
+                                            <li><a href="#">18 Jul, 2025</a></li>
+                                            <li><a href="#">NRN Token</a></li>
+                                        </ul>
+                                        <h4 class="title title-sm"><a href="documentation/docsify/#/whitepapers/KNIRVORACLE_Whitepaper">NRN Economics: Self-Sustaining AI Economy</a></h4>
+                                        <p>How the Network Resolution Notice token creates a deflationary economic loop that incentivizes collective AI learning...</p>
+                                    </div>
+                                </div><!-- .blog -->
+                            </div><!-- .col -->
+                            <div class="col-lg-4 col-sm-9">
+                                <div class="blog blog-s2 animated" data-animate="fadeInUp" data-delay=".4">
+                                    <div class="blog-photo">
+                                        <img src="images/blog/c.jpg" alt="blog-thumb">
+                                    </div>
+                                    <div class="blog-text">
+                                        <ul class="blog-meta">
+                                            <li><a href="#">19 Jul, 2025</a></li>
+                                            <li><a href="#">KNIRV-AGENTIFIER</a></li>
+                                        </ul>
+                                        <h4 class="title title-sm"><a href="documentation/docsify/#/whitepapers/KNIRVAGENTIFIER_Whitepaper">KNIRV-AGENTIFIER: Autonomous Self-Improving AI</a></h4>
+                                        <p>Discover how KNIRV-AGENTIFIER agents continuously learn and adapt through the SEAL loop, contributing to collective intelligence...</p>
+                                    </div>
+                                </div><!-- .blog -->
+                            </div><!-- .col -->
+                        </div><!-- .row -->
+                    </div><!-- .block @e -->
+                    <div class="text-center pdt-r animated" data-animate="fadeInUp" data-delay=".5">
+                        <a href="documentation/docsify/#/whitepapers/" class="link link-primary link-uc link-animate"><span>Read all Whitepapers</span> <em class="link-icon ti ti-angle-right"></em></a>
+                    </div>
+                </div>
+            </section>
+            <!-- // -->
+            <section class="section bg-theme tc-light pb-0" id="faqs">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1" title="FAQS">Frequently Asked Questions</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">Below we've provided answers about the KNIRV D-TEN, NRN token, AI agents, and the ecosystem. If you have any other questions, please get in touch using the contact form below.</p>
+                    </div><!-- .section-head @e -->
+                    <!-- Block @s -->
+                    <div class="nk-block overflow-hidden">
+                        <div class="row justify-content-center">
+                            <div class="col-xl-8 col-lg-10">
+                                <ul class="nav tab-nav tab-nav-line mgb-r animated" data-animate="fadeInUp" data-delay=".3">
+                                    <li><a class="active" data-bs-toggle="tab" href="#general-questions-19">General</a></li>
+                                    <li><a data-bs-toggle="tab" href="#ico-questions-19">D-TEN &amp; Architecture</a></li>
+                                    <li><a data-bs-toggle="tab" href="#tokens-sales-19">NRN Token</a></li>
+                                    <li><a data-bs-toggle="tab" href="#client-19">AI Agents</a></li>
+                                    <li><a data-bs-toggle="tab" href="#legal-19">Technical</a></li>
+                                </ul>
+                                <div class="tab-content animated" data-animate="fadeInUp" data-delay=".4">
+                                    <div class="tab-pane fade show active" id="general-questions-19">
+                                        <div class="accordion accordion-s1 accordion-faq" id="faq-67">
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title" data-bs-toggle="collapse" data-bs-target="#faq-67-1">? What is KNIRV D-TEN<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-67-1" class="collapse show" data-bs-parent="#faq-67">
+                                                    <div class="accordion-content">
+                                                        <p>KNIRV D-TEN is the world's first Decentralized Trusted Execution Network that transforms AI failures into collective knowledge through twelve sovereign layers, creating a self-healing, continuously evolving intelligence ecosystem.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-67-2">? How do I access NRN tokens<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-67-2" class="collapse" data-bs-parent="#faq-67">
+                                                    <div class="accordion-content">
+                                                        <p>You can acquire NRN tokens through the USDC Faucet via XION integration using your KNIRV-WALLET. NRN tokens are also earned by participating as a Solver, DVE operator, or Observer in the network.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-67-3">? How can I participate in the KNIRV D-TEN network<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-67-3" class="collapse" data-bs-parent="#faq-67">
+                                                    <div class="accordion-content">
+                                                        <p>You can join the D-TEN network as a Solver, DVE operator, or Observer. Access NRN tokens through the USDC Faucet via XION integration, and start contributing to the collective AI intelligence.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-67-4">? How do I benefit from NRN tokens<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-67-4" class="collapse" data-bs-parent="#faq-67">
+                                                    <div class="accordion-content">
+                                                        <p>NRN tokens enable you to invoke Skills, participate in network governance, earn rewards for solving problems, and access premium features across the KNIRV D-TEN ecosystem.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane fade" id="ico-questions-19">
+                                        <div class="accordion accordion-s1 accordion-faq" id="faq-68">
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title" data-bs-toggle="collapse" data-bs-target="#faq-68-1">? What makes the D-TEN self-healing<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-68-1" class="collapse show" data-bs-parent="#faq-68">
+                                                    <div class="accordion-content">
+                                                        <p>The D-TEN transforms AI failures into structured ErrorNodes within KNIRVGRAPH, incentivizing solutions that become composable Skills. This creates a continuous learning loop where every failure strengthens the network.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-68-2">? How do KNIRV-AGENTIFIER agents learn and improve<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-68-2" class="collapse" data-bs-parent="#faq-68">
+                                                    <div class="accordion-content">
+                                                        <p>KNIRV-AGENTIFIER agents use the SEAL loop (Sense, Evaluate, Act, Learn) to continuously improve. They access the collective knowledge in KNIRVGRAPH and contribute their learnings back to the network.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-68-3">? What are the twelve sovereign layers<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-68-3" class="collapse" data-bs-parent="#faq-68">
+                                                    <div class="accordion-content">
+                                                        <p>The twelve layers are: KNIRV-ORACLE (NRN Oracle), KNIRV-ROUTER (Network Integrity), KNIRVGRAPH (Knowledge Fabric), KNIRVCHAIN (Base LLM), KNIRV-NEXUS DVE (Execution), KNIRV-AGENTIFIER (AI Agents), KNIRV-WALLET (User Gateway), KNIRV-GATEWAY (Unified Portal), KNIRV-SHELL (CLI), KNIRV-SDK (Development Kit), KNIRV-TESTNET (Testing Environment), and KNIRVANA (Gaming Interface).</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-68-4">? How does the NRN economic model work<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-68-4" class="collapse" data-bs-parent="#faq-68">
+                                                    <div class="accordion-content">
+                                                        <p>NRN tokens are generated through Proof-of-Connectivity by KNIRV-ROUTERs. They're used for Skill invocation, creating a deflationary loop where network usage burns tokens while problem-solving generates new ones.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane fade" id="tokens-sales-19">
+                                        <div class="accordion accordion-s1 accordion-faq" id="faq-69">
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title" data-bs-toggle="collapse" data-bs-target="#faq-69-1">? What is KNIRV-NEXUS DVE<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-69-1" class="collapse show" data-bs-parent="#faq-69">
+                                                    <div class="accordion-content">
+                                                        <p>KNIRV-NEXUS DVE provides Decentralized Validation Environments for verifiable execution. It ensures cryptographic proofs of computation through the CLEAN paradigm, enabling trusted AI operations.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-69-2">? How does KNIRVGRAPH store knowledge<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-69-2" class="collapse" data-bs-parent="#faq-69">
+                                                    <div class="accordion-content">
+                                                        <p>KNIRVGRAPH uses a GoLang-based Graphchain to store ErrorNodes and SkillNodes, creating a decentralized knowledge fabric that chronicles AI learning and enables skill composition.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-69-3">? What is the role of KNIRVCHAIN<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-69-3" class="collapse" data-bs-parent="#faq-69">
+                                                    <div class="accordion-content">
+                                                        <p>KNIRVCHAIN is the Rust-based sovereign blockchain hosting the canonical CodeT5 Base LLM and the authoritative SkillRegistry, serving as the foundation for AI model evolution.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-69-4">? How does KNIRV-WALLET simplify access<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-69-4" class="collapse" data-bs-parent="#faq-69">
+                                                    <div class="accordion-content">
+                                                        <p>KNIRV-WALLET leverages XION's Meta Accounts for seamless, user-friendly interaction with the entire D-TEN ecosystem, eliminating complex blockchain interactions for end users.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane fade" id="client-19">
+                                        <div class="accordion accordion-s1 accordion-faq" id="faq-70">
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title" data-bs-toggle="collapse" data-bs-target="#faq-70-1">? What is Proof-of-Connectivity<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-70-1" class="collapse show" data-bs-parent="#faq-70">
+                                                    <div class="accordion-content">
+                                                        <p>Proof-of-Connectivity is KNIRV-ROUTER's consensus mechanism that generates NRN tokens by verifying network pathways and embedding URI path certificates for trusted connections.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-70-2">? How do Skills become monetizable<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-70-2" class="collapse" data-bs-parent="#faq-70">
+                                                    <div class="accordion-content">
+                                                        <p>When Solvers create successful solutions to ErrorNodes, they become composable Skills in the registry. Other agents pay NRN tokens to invoke these Skills, creating revenue for the original Solver.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-70-3">? What is the CLEAN paradigm<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-70-3" class="collapse" data-bs-parent="#faq-70">
+                                                    <div class="accordion-content">
+                                                        <p>CLEAN (Cryptographic Ledger for Execution, Attestation, and Notarization) ensures verifiable computation in KNIRV-NEXUS DVE environments through cryptographic proofs and attestations.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-70-4">? How does KNIRVANA enhance the experience<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-70-4" class="collapse" data-bs-parent="#faq-70">
+                                                    <div class="accordion-content">
+                                                        <p>KNIRVANA provides a real-time strategy game interface that makes interacting with the D-TEN ecosystem engaging and intuitive, gamifying AI collaboration and learning.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane fade" id="legal-19">
+                                        <div class="accordion accordion-s1 accordion-faq" id="faq-71">
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title" data-bs-toggle="collapse" data-bs-target="#faq-71-1">? What are the technical requirements<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-71-1" class="collapse show" data-bs-parent="#faq-71">
+                                                    <div class="accordion-content">
+                                                        <p>The D-TEN supports multiple programming languages and frameworks. KNIRV-AGENTIFIER agents run on Rust WASM, while the ecosystem provides APIs for seamless integration with existing systems.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-71-2">? How is data privacy maintained<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-71-2" class="collapse" data-bs-parent="#faq-71">
+                                                    <div class="accordion-content">
+                                                        <p>The D-TEN uses cryptographic proofs and zero-knowledge techniques to ensure privacy. Only necessary information is shared while maintaining the integrity of the collective learning process.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-71-3">? What is the development roadmap<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-71-3" class="collapse" data-bs-parent="#faq-71">
+                                                    <div class="accordion-content">
+                                                        <p>The roadmap spans four phases from Q2 2026 to 2028+, progressing from core mainnet launch through enhanced intelligence, experiential integration, to cross-ecosystem expansion.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-71-4">? How can developers get started<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-71-4" class="collapse" data-bs-parent="#faq-71">
+                                                    <div class="accordion-content">
+                                                        <p>Developers can access the KNIRV-SDK, KNIRV-SHELL CLI, KNIRV-TESTNET, and comprehensive documentation through our GitHub repositories. Start by creating KNIRV-AGENTIFIER agents or integrating with existing D-TEN APIs.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div><!-- .col -->
+                        </div><!-- .row -->
+                    </div><!-- .block @e -->
+                </div>
+            </section>
+            <!-- // -->
+            <section class="section section-contact bg-theme tc-light" id="contact">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1" title="Contact">Contact KNIRV D-TEN</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">Ready to join the future of AI? Reach out to us and we’ll get back to you shortly.</p>
+                    </div><!-- .section-head @e -->
+                    <!-- Block @s -->
+                    <div class="nk-block block-contact">
+                        <div class="row justify-content-center text-center">
+                            <div class="col-xl-8 col-lg-10">
+                                <ul class="contact-list contact-list-s1 flex-wrap flex-md-nowrap pdb-l">
+                                    <li class="animated" data-animate="fadeInUp" data-delay=".3">
+                                        <em class="contact-icon fas fa-phone"></em>
+                                        <div class="contact-text">
+                                            <span>+44 0123 4567</span>
+                                        </div>
+                                    </li>
+                                    <li class="animated" data-animate="fadeInUp" data-delay=".4">
+                                        <em class="contact-icon fas fa-envelope"></em>
+                                        <div class="contact-text">
+                                            <span>info@knirv.com</span>
+                                        </div>
+                                    </li>
+                                    <li class="animated" data-animate="fadeInUp" data-delay=".5">
+                                        <em class="contact-icon fas fa-paper-plane"></em>
+                                        <div class="contact-text">
+                                            <span>Join us on Telegram</span>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div><!-- .col -->
+                            <div class="col-xl-8 col-lg-10">
+                                <div class="contact-wrap p-0">
+                                    <form id="contact-form-01" class="contact-form nk-form-submit" action="form/contact.php" method="post">
+                                        <div class="field-item field-item-center animated" data-animate="fadeInUp" data-delay=".6">
+                                            <input name="contact-name" type="text" class="input-line required">
+                                            <label class="field-label field-label-line">Your Name</label>
+                                        </div>
+                                        <div class="field-item field-item-center animated" data-animate="fadeInUp" data-delay=".7">
+                                            <input name="contact-email" type="email" class="input-line input-line-center required email">
+                                            <label class="field-label field-label-line">Your Email</label>
+                                        </div>
+                                        <div class="field-item field-item-center animated" data-animate="fadeInUp" data-delay=".8">
+                                            <textarea name="contact-message" class="input-line input-line-center input-textarea required"></textarea>
+                                            <label class="field-label field-label-line">Your Message</label>
+                                        </div>
+                                        <input type="text" class="d-none" name="form-anti-honeypot" value="">
+                                        <div class="field-wrap animated" data-animate="fadeInUp" data-delay=".9">
+                                            <button type="submit" class="btn btn-round btn-lg btn-grad">Submit</button>
+                                            <div class="form-results"></div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div><!-- .col -->
+                        </div><!-- .row -->
+                    </div><!-- .block @e -->
+                </div>
+            </section>
+            <!-- // -->
+        </main>
+        <!-- Footer -->
+        <footer class="nk-footer bg-theme-alt section-connect">
+            <div class="section section-m pb-0 tc-light ov-h">
+                <div class="container py-4">
+                    <!-- Block @s -->
+                    <div class="nk-block pb-lg-5">
+                        <div class="row justify-content-center text-center">
+                            <div class="col-lg-6 col-md-9">
+                                <div class="wide-auto-sm section-head section-head-sm pdb-r">
+                                    <h4 class="title title-md animated" data-animate="fadeInUp" data-delay=".1">Get Testnet Updates</h4>
+                                    <p class="animated" data-animate="fadeInUp" data-delay=".15">Stay informed about KNIRV TESTNET improvements, new features, and testing opportunities.</p>
+                                </div>
+                                <div class="animated" data-animate="fadeInUp" data-delay=".2">
+                                    <div class="btn-grp justify-content-center">
+                                        <a href="https://github.com/KNIRV-NETWORK" class="btn btn-md btn-round btn-grad">GitHub Repository</a>
+                                        <a href="/health-monitor" class="btn btn-md btn-round btn-primary">Monitor Health</a>
+                                        <a href="#quick-start" class="btn btn-md btn-round btn-outline btn-grad on-bg-theme">Start Testing</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- .block @e -->
+                </div>
+                <div class="nk-ovm shape-contain shape-center-top shape-p"></div>
+            </div>
+            <div class="section section-footer section-s tc-light bg-transparent">
+                <div class="container">
+                    <!-- Block @s -->
+                    <div class="nk-block block-footer">
+                        <div class="row">
+                            <div class="col">
+                                <div class="wgs wgs-text text-center mb-3">
+                                    <!-- Navigation Links -->
+                                    <div class="footer-nav mb-4">
+                                        <ul class="btn-grp justify-content-center gutter-15px">
+                                            <li><a href="https://knirv.com" class="btn btn-sm btn-outline btn-primary" target="_blank">Main Site</a></li>
+                                            <li><a href="/nexus-portal/" class="btn btn-sm btn-outline btn-primary">NEXUS Portal</a></li>
+                                            <li><a href="/graphchain-explorer/" class="btn btn-sm btn-outline btn-primary">GraphChain Explorer</a></li>
+                                            <li><a href="/agent-developer-portal/" class="btn btn-sm btn-outline btn-primary">Agent Portal</a></li>
+                                            <li><a href="/health-monitor" class="btn btn-sm btn-outline btn-primary">Health Monitor</a></li>
+                                        </ul>
+                                    </div>
+                                    <ul class="social pdb-m justify-content-center">
+                                        <li><a href="https://github.com/KNIRV-NETWORK" target="_blank"><em class="social-icon fab fa-github"></em></a></li>
+                                        <li><a href="https://knirv.com" target="_blank"><em class="social-icon fas fa-globe"></em></a></li>
+                                        <li><a href="/gateway/status"><em class="social-icon fas fa-chart-line"></em></a></li>
+                                        <li><a href="/config"><em class="social-icon fas fa-cog"></em></a></li>
+                                    </ul>
+                                    <div class="copyright-text copyright-text-s3 pdt-m">
+                                        <p><span class="d-sm-block">Copyright &copy; 2025, KNIRV TESTNET. Development Environment for D-TEN Testing. </span>All trademarks and copyrights belong to their respective owners.</p>
+                                        <p class="small mt-2">
+                                            <a href="https://knirv.com" target="_blank" class="text-light">← Return to Main KNIRV Site</a> |
+                                            <a href="/health" class="text-light">System Health</a> |
+                                            <a href="/api/endpoints" class="text-light">API Endpoints</a>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- .block @e -->
+                </div>
+            </div>
+        </footer>
+    </div>
+    <!-- Preloader -->
+    <div class="preloader"><span class="spinner spinner-round"></span></div>
+    <!-- JavaScript -->
+    <script src="assets/js/jquery.bundle.js?ver=210"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/scripts.js?ver=210"></script>
+    <script src="assets/js/charts.js?ver=210"></script>
+    <script src="assets/js/charts.js?ver=210"></script>
+
+    <!-- Bootstrap accordion fix -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Ensure Bootstrap accordion works properly
+            const accordionElements = document.querySelectorAll('.accordion-faq [data-bs-toggle="collapse"]');
+
+            accordionElements.forEach(function(element) {
+                element.addEventListener('click', function(e) {
+                    // Let Bootstrap handle the accordion
+                    console.log('Accordion clicked:', this.getAttribute('data-bs-target'));
+                });
+            });
+
+            // Listen for Bootstrap collapse events
+            document.querySelectorAll('.accordion-faq .collapse').forEach(function(collapseElement) {
+                collapseElement.addEventListener('show.bs.collapse', function() {
+                    console.log('Accordion showing:', this.id);
+                });
+
+                collapseElement.addEventListener('hide.bs.collapse', function() {
+                    console.log('Accordion hiding:', this.id);
+                });
+            });
+        });
+    </script>
+
+    <!-- React and Animated Logo -->
+    <script type="module">
+      // Import React from CDN
+      import React, { useState, useEffect } from 'https://esm.sh/react@18.2.0';
+      import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
+
+      // Animated KNIRV Logo Component
+      const KnirvNetworkLogo = () => {
+        const [glowIntensity, setGlowIntensity] = useState(0.5);
+
+        useEffect(() => {
+          const interval = setInterval(() => {
+            setGlowIntensity((prev) => 0.3 + Math.sin(Date.now() * 2e-3) * 0.2);
+          }, 50);
+          return () => clearInterval(interval);
+        }, []);
+
+        return React.createElement("div", {
+          className: "flex items-center space-x-3",
+          style: { width: '200px', height: '60px' }
+        },
+          React.createElement("div", { className: "relative" },
+            React.createElement("svg", {
+              width: "40",
+              height: "40",
+              viewBox: "0 0 120 120",
+              className: "drop-shadow-2xl",
+              style: {
+                filter: `drop-shadow(0 0 ${10 * glowIntensity}px #00f5ff) drop-shadow(0 0 ${20 * glowIntensity}px #8b5cf6)`
+              }
+            },
+              // Central soma (cell body)
+              React.createElement("circle", {
+                cx: "60", cy: "60", r: "8",
+                fill: "url(#somaGradient)",
+                stroke: "#00f5ff",
+                strokeWidth: "1.5"
+              }),
+
+              // Glowing ring around soma
+              React.createElement("circle", {
+                cx: "60", cy: "60", r: "12",
+                fill: "none",
+                stroke: "url(#glowRing)",
+                strokeWidth: "1",
+                opacity: glowIntensity * 0.6,
+                className: "animate-pulse"
+              }),
+
+              // Dendrites (branching structures)
+              React.createElement("path", {
+                d: "M55 52 C50 45, 45 40, 40 35 C38 32, 35 30, 32 28 C30 26, 27 25, 25 22",
+                stroke: "url(#dendriteGradient)",
+                strokeWidth: "2", fill: "none", opacity: "0.9"
+              }),
+              React.createElement("path", {
+                d: "M65 52 C70 45, 75 40, 80 35 C82 32, 85 30, 88 28 C90 26, 93 25, 95 22",
+                stroke: "url(#dendriteGradient)",
+                strokeWidth: "2", fill: "none", opacity: "0.9"
+              }),
+              React.createElement("path", {
+                d: "M55 68 C50 75, 45 80, 40 85 C38 88, 35 90, 32 92 C30 94, 27 95, 25 98",
+                stroke: "url(#dendriteGradient)",
+                strokeWidth: "2", fill: "none", opacity: "0.9"
+              }),
+              React.createElement("path", {
+                d: "M65 68 C70 75, 75 80, 80 85 C82 88, 85 90, 88 92 C90 94, 93 95, 95 98",
+                stroke: "url(#dendriteGradient)",
+                strokeWidth: "2", fill: "none", opacity: "0.9"
+              }),
+              React.createElement("path", {
+                d: "M52 60 C45 58, 38 56, 30 55 C27 54, 24 53, 20 52",
+                stroke: "url(#dendriteGradient)",
+                strokeWidth: "2", fill: "none", opacity: "0.9"
+              }),
+              React.createElement("path", {
+                d: "M68 60 C75 58, 82 56, 90 55 C93 54, 96 53, 100 52",
+                stroke: "url(#dendriteGradient)",
+                strokeWidth: "2", fill: "none", opacity: "0.9"
+              }),
+
+              // Synaptic terminals (connection points)
+              React.createElement("g", { style: { opacity: glowIntensity } },
+                React.createElement("circle", { cx: "25", cy: "22", r: "2", fill: "#00f5ff" }),
+                React.createElement("circle", { cx: "95", cy: "22", r: "2", fill: "#00f5ff" }),
+                React.createElement("circle", { cx: "25", cy: "98", r: "2", fill: "#00f5ff" }),
+                React.createElement("circle", { cx: "95", cy: "98", r: "2", fill: "#00f5ff" }),
+                React.createElement("circle", { cx: "20", cy: "52", r: "2", fill: "#00f5ff" }),
+                React.createElement("circle", { cx: "100", cy: "52", r: "2", fill: "#00f5ff" })
+              ),
+
+              // Central core with pulsing effect
+              React.createElement("circle", {
+                cx: "60", cy: "60", r: "4",
+                fill: "#fff",
+                opacity: glowIntensity * 0.8,
+                className: "animate-pulse"
+              }),
+
+              // Gradient definitions
+              React.createElement("defs", null,
+                React.createElement("radialGradient", { id: "somaGradient", cx: "30%", cy: "30%" },
+                  React.createElement("stop", { offset: "0%", stopColor: "#fff" }),
+                  React.createElement("stop", { offset: "30%", stopColor: "#00f5ff" }),
+                  React.createElement("stop", { offset: "70%", stopColor: "#0080ff" }),
+                  React.createElement("stop", { offset: "100%", stopColor: "#1a1a2e" })
+                ),
+                React.createElement("linearGradient", { id: "dendriteGradient", x1: "0%", y1: "0%", x2: "100%", y2: "100%" },
+                  React.createElement("stop", { offset: "0%", stopColor: "#00f5ff" }),
+                  React.createElement("stop", { offset: "30%", stopColor: "#0080ff" }),
+                  React.createElement("stop", { offset: "70%", stopColor: "#8b5cf6" }),
+                  React.createElement("stop", { offset: "100%", stopColor: "#1a1a2e" })
+                ),
+                React.createElement("radialGradient", { id: "glowRing", cx: "50%", cy: "50%" },
+                  React.createElement("stop", { offset: "0%", stopColor: "transparent" }),
+                  React.createElement("stop", { offset: "80%", stopColor: "transparent" }),
+                  React.createElement("stop", { offset: "100%", stopColor: "#00f5ff" })
+                )
+              )
+            )
+          ),
+
+          // Text part
+          React.createElement("div", { className: "flex flex-col" },
+            React.createElement("div", { className: "relative" },
+              React.createElement("h1", {
+                className: "text-2xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-purple-600",
+                style: {
+                  fontFamily: "'Orbitron', 'Arial Black', sans-serif",
+                  textShadow: `0 0 ${5 * glowIntensity}px rgba(168, 85, 247, 0.5)`,
+                  margin: 0,
+                  lineHeight: 1
+                }
+              }, "KNIRV"),
+              React.createElement("div", {
+                className: "h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent mt-1",
+                style: { opacity: glowIntensity }
+              })
+            ),
+            React.createElement("div", { className: "relative" },
+              React.createElement("h2", {
+                className: "text-xs font-light tracking-widest text-gray-300 uppercase",
+                style: {
+                  fontFamily: "'Rajdhani', 'Arial', sans-serif",
+                  textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+                  margin: 0,
+                  marginTop: '2px'
+                }
+              }, "Network")
+            )
+          )
+        );
+      };
+
+      // Initialize the animated logo when DOM is ready
+      document.addEventListener('DOMContentLoaded', function() {
+        const logoContainer = document.getElementById('animated-logo');
+        if (logoContainer) {
+          const root = createRoot(logoContainer);
+          root.render(React.createElement(KnirvNetworkLogo));
+        }
+      });
+    </script>
+
+    <!-- Universal Footer -->
+    <script src="js/universal-footer.js"></script>
+</body>
+
+</html>

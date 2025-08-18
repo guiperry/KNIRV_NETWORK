@@ -40,6 +40,7 @@ warp = "0.3"
 chrono = { version = "0.4", features = ["serde"] }
 log = "0.4"
 env_logger = "0.10"
+clap = { version = "4.0", features = ["derive"] }
 
 # IPFS Integration (using simpler HTTP client for now)
 # ipfs-api = "0.17"  # Temporarily disabled due to dependency conflicts

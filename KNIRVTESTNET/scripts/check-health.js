@@ -19,9 +19,10 @@ function checkHealth() {
   // Check if required directories exist
   const requiredDirs = [
     'graphchain-explorer',
-    'nexus-portal',
+    'data/testnet-gateway',
+    'data/knirvnexus',
     'agent-developer-portal',
-    'nanda_ans',
+
     'server',
     'scripts',
     'config',
@@ -89,7 +90,15 @@ function checkHealth() {
   }
   
   // Check application-specific health
-  
+
+  // Testnet Gateway
+  const gatewayPackagePath = path.join(__dirname, '..', 'data', 'testnet-gateway', 'package.json');
+  if (fs.existsSync(gatewayPackagePath)) {
+    console.log('✅ Testnet Gateway package.json exists');
+  } else {
+    warnings.push('Testnet Gateway package.json not found - run build-knirvgateway.sh');
+  }
+
   // GraphChain Explorer
   const graphchainConfigPath = path.join(__dirname, '..', 'graphchain-explorer', 'js', 'config.js');
   if (fs.existsSync(graphchainConfigPath)) {
@@ -98,21 +107,23 @@ function checkHealth() {
     warnings.push('GraphChain Explorer config not found - run load-endpoints script');
   }
   
-  // Nexus Portal
-  const nexusPackagePath = path.join(__dirname, '..', 'nexus-portal', 'package.json');
-  if (fs.existsSync(nexusPackagePath)) {
-    console.log('✅ Nexus Portal package.json exists');
+  // NEXUS Frontend (integrated)
+  const nexusFrontendPath = path.join(__dirname, '..', 'data', 'knirvnexus', 'portal');
+  if (fs.existsSync(nexusFrontendPath)) {
+    console.log('✅ NEXUS Frontend build exists');
+
+    // Check if package.json exists in the portal
+    const nexusPackagePath = path.join(nexusFrontendPath, 'package.json');
+    if (fs.existsSync(nexusPackagePath)) {
+      console.log('✅ NEXUS Frontend package.json exists');
+    } else {
+      warnings.push('NEXUS Frontend package.json not found - run build-nexus-frontend.sh');
+    }
   } else {
-    warnings.push('Nexus Portal package.json not found');
+    warnings.push('NEXUS Frontend not built - run build-nexus-frontend.sh');
   }
   
-  // NANDA ANS
-  const nandaPackagePath = path.join(__dirname, '..', 'nanda_ans', 'package.json');
-  if (fs.existsSync(nandaPackagePath)) {
-    console.log('✅ NANDA ANS package.json exists');
-  } else {
-    warnings.push('NANDA ANS package.json not found');
-  }
+
   
   // Summary
   console.log('\n📊 Health Check Summary');
