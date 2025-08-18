@@ -1,6 +1,6 @@
 module Agentic_Engine
 
-go 1.23.10
+go 1.23.3
 
 require (
 	github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction v0.0.0-20250612001214-1bfbcf6e3447

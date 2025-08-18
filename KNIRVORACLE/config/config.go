@@ -2,7 +2,6 @@ package config
 
 import (
 	"KNIRVORACLE/utils"
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -17,8 +16,9 @@ import (
 	"github.com/spf13/viper"
 )
 
-//go:embed embedded/default_root.key
-var EmbeddedRootKeyData []byte
+// EmbeddedRootKeyData is defined in build-tag specific files:
+// - embedded_key_testnet.go (for testnet builds with -tags testnet)
+// - embedded_key_production.go (for production builds without tags)
 
 const AppName = "KNIRVORACLE"
 
