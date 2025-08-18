@@ -12,10 +12,11 @@ if [ ! -f "./bin/knirvgraph" ]; then
     exit 1
 fi
 
-# Start KNIRVGRAPH in testnet mode
+# Start KNIRVGRAPH in testnet mode with in-memory storage
 echo "Starting KNIRVGRAPH with testnet features..."
 ./bin/knirvgraph \
     --testnet \
+    --memory \
     --populate \
     --max-nodes 1000 \
     --rpc-port 8082 \
@@ -26,7 +27,7 @@ echo $! > ./data/knirvgraph.pid
 echo "KNIRVGRAPH testnet started with PID $(cat ./data/knirvgraph.pid)"
 echo "API endpoint: http://localhost:8082"
 echo "Testnet features:"
-echo "  - Default storage enabled"
+echo "  - In-memory storage enabled"
 echo "  - Pre-populated test data"
 echo "  - Real DHT implementation"
 echo "  - Full graph operations"
