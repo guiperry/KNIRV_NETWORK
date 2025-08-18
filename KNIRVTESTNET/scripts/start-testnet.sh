@@ -251,17 +251,25 @@ run_smart_initialization
 if [ "$RENDER" = "true" ] || [ -n "$RENDER_SERVICE_ID" ]; then
     print_status "Running on Render - checking for pre-built binaries..."
 
-    # Check if binaries exist
+    # Check if binaries exist (excluding knirvgateway which is a Node.js app)
     missing_binaries=()
-    components=("knirvoracle" "knirvchain" "knirvgraph" "knirvnexus" "knirvrouter" "knirvgateway")
+    binary_components=("knirvoracle" "knirvchain" "knirvgraph" "knirvnexus" "knirvrouter")
 
-    for component in "${components[@]}"; do
+    for component in "${binary_components[@]}"; do
         if [ ! -f "bin/$component" ]; then
             missing_binaries+=("$component")
         else
             print_success "$component binary found"
         fi
     done
+
+    # Check if knirvgateway Node.js app is built
+    if [ -d "data/knirvgateway" ] && [ -f "data/knirvgateway/package.json" ]; then
+        print_success "knirvgateway Node.js app found"
+    else
+        print_error "knirvgateway Node.js app not found in data/knirvgateway"
+        missing_binaries+=("knirvgateway")
+    fi
 
     if [ ${#missing_binaries[@]} -eq 0 ]; then
         print_success "All pre-built binaries found, skipping build phase"
