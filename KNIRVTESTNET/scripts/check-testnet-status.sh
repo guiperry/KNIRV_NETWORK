@@ -40,10 +40,12 @@ discover_service_port() {
                     fi
                     ;;
                 "KNIRV-ROUTER")
+                    # Router should always use port 8086 for API
                     if echo "$ports" | grep -q "^8086$"; then
                         echo "8086"
                         return 0
                     fi
+                    # If 8086 not found, router may not be running properly
                     ;;
                 "NANDA-ANS")
                     if echo "$ports" | grep -q "^9002$"; then
