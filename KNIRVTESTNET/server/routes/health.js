@@ -11,6 +11,14 @@ router.get('/', async (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'testnet',
+    server: {
+      port: process.env.PORT || 'not set',
+      host: req.get('host') || 'unknown',
+      protocol: req.protocol,
+      url: `${req.protocol}://${req.get('host')}`,
+      render_service_id: process.env.RENDER_SERVICE_ID || 'not set',
+      render_external_url: process.env.RENDER_EXTERNAL_URL || 'not set'
+    },
     services: {},
     summary: {
       total: 0,

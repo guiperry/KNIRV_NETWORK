@@ -40,11 +40,21 @@ fi
 # Set environment variables for Render
 export NODE_ENV=production
 export TESTNET_MODE=true
-export PORT=${PORT:-10000}
+
+# Render.com sets PORT automatically - don't override it
+if [ -z "$PORT" ]; then
+    print_warning "PORT environment variable not set by Render"
+    export PORT=10000
+    print_warning "Defaulting to PORT=10000"
+else
+    print_success "Render provided PORT=$PORT"
+fi
 
 print_status "Starting KNIRV Testnet Web Server for Render..."
 print_status "Environment: $NODE_ENV"
 print_status "Port: $PORT"
+print_status "Render Service ID: ${RENDER_SERVICE_ID:-'not set'}"
+print_status "Render External URL: ${RENDER_EXTERNAL_URL:-'not set'}"
 
 # Create necessary directories
 mkdir -p logs data

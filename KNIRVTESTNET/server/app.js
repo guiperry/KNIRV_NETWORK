@@ -89,6 +89,16 @@ if (environment.isLocal) {
   app.use('/nexus-portal', express.static(path.join(__dirname, '../data/knirvnexus/portal')));
 }
 
+// Simple health check for Render.com
+app.get('/ping', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    port: process.env.PORT,
+    environment: process.env.NODE_ENV
+  });
+});
+
 // API Routes
 app.use('/api', apiRoutes);
 app.use('/health', healthRoutes);
@@ -98,13 +108,140 @@ app.use('/support', supportRoutes);
 
 // Application routes - Environment aware
 app.get('/', (req, res) => {
-  if (environment.isLocal) {
-    // Serve from testnet-gateway for local development
-    res.sendFile(path.join(__dirname, '../data/testnet-gateway/index.html'));
-  } else {
-    // Serve from testnet-gateway for staging/production
-    res.sendFile(path.join(__dirname, '../data/testnet-gateway/index.html'));
+  const primaryIndexPath = path.join(__dirname, '../data/testnet-gateway/index.html');
+  const fallbackIndexPath = path.join(__dirname, '../index.html');
+
+  // Try primary path first (testnet-gateway)
+  if (fs.existsSync(primaryIndexPath)) {
+    res.sendFile(primaryIndexPath);
   }
+  // Try fallback path (KNIRVTESTNET root)
+  else if (fs.existsSync(fallbackIndexPath)) {
+    res.sendFile(fallbackIndexPath);
+  }
+  // Last resort: diagnostics page
+  else {
+    res.redirect('/diagnostics');
+  }
+});
+
+// Diagnostics page
+app.get('/diagnostics', (req, res) => {
+  res.status(200).send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>KNIRV TESTNET - Diagnostics</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #1a1a1a; color: #fff; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .status { background: #2a2a2a; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .success { color: #4CAF50; }
+        .info { color: #2196F3; }
+        .warning { color: #FF9800; }
+        .error { color: #f44336; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .nav-button {
+          position: fixed; top: 20px; right: 20px;
+          background: #4CAF50; color: white; padding: 10px 20px;
+          border: none; border-radius: 5px; cursor: pointer; text-decoration: none;
+        }
+        .nav-button:hover { background: #45a049; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #444; }
+        th { background: #333; }
+        .code { background: #333; padding: 10px; border-radius: 4px; font-family: monospace; }
+      </style>
+    </head>
+    <body>
+      <a href="/" class="nav-button">← Back to Site</a>
+      <div class="container">
+        <div class="header">
+          <h1>🔧 KNIRV TESTNET - Server Diagnostics</h1>
+          <p class="info">Real-time server status and configuration information</p>
+        </div>
+
+        <div class="grid">
+          <div class="status">
+            <h2 class="success">✅ Server Status</h2>
+            <table>
+              <tr><td><strong>Status:</strong></td><td class="success">Running</td></tr>
+              <tr><td><strong>Environment:</strong></td><td>${process.env.NODE_ENV || 'testnet'}</td></tr>
+              <tr><td><strong>Port:</strong></td><td>${process.env.PORT || 'not set'}</td></tr>
+              <tr><td><strong>Host:</strong></td><td>${req.get('host') || 'unknown'}</td></tr>
+              <tr><td><strong>Protocol:</strong></td><td>${req.protocol}</td></tr>
+              <tr><td><strong>URL:</strong></td><td>${req.protocol}://${req.get('host')}</td></tr>
+              <tr><td><strong>Timestamp:</strong></td><td>${new Date().toISOString()}</td></tr>
+            </table>
+          </div>
+
+          <div class="status">
+            <h2 class="info">🌐 Render Environment</h2>
+            <table>
+              <tr><td><strong>Render Service:</strong></td><td>${process.env.RENDER_SERVICE_ID || 'not set'}</td></tr>
+              <tr><td><strong>External URL:</strong></td><td>${process.env.RENDER_EXTERNAL_URL || 'not set'}</td></tr>
+              <tr><td><strong>Service Name:</strong></td><td>${process.env.RENDER_SERVICE_NAME || 'not set'}</td></tr>
+              <tr><td><strong>Git Commit:</strong></td><td>${process.env.RENDER_GIT_COMMIT || 'not set'}</td></tr>
+              <tr><td><strong>Git Branch:</strong></td><td>${process.env.RENDER_GIT_BRANCH || 'not set'}</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="status">
+          <h2 class="info">📁 File System Status</h2>
+          <div class="grid">
+            <div>
+              <h3>Primary Index Path:</h3>
+              <div class="code">${path.join(__dirname, '../data/testnet-gateway/index.html')}</div>
+              <p class="${fs.existsSync(path.join(__dirname, '../data/testnet-gateway/index.html')) ? 'success' : 'error'}">
+                ${fs.existsSync(path.join(__dirname, '../data/testnet-gateway/index.html')) ? '✅ File exists' : '❌ File not found'}
+              </p>
+            </div>
+            <div>
+              <h3>Fallback Index Path:</h3>
+              <div class="code">${path.join(__dirname, '../index.html')}</div>
+              <p class="${fs.existsSync(path.join(__dirname, '../index.html')) ? 'success' : 'error'}">
+                ${fs.existsSync(path.join(__dirname, '../index.html')) ? '✅ File exists' : '❌ File not found'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="status">
+          <h2 class="info">🔗 Available Endpoints</h2>
+          <div class="grid">
+            <div>
+              <h3>Health & Monitoring:</h3>
+              <p><a href="/ping" style="color: #4CAF50;">/ping</a> - Simple health check</p>
+              <p><a href="/health" style="color: #4CAF50;">/health</a> - Comprehensive health check</p>
+              <p><a href="/health-monitor" style="color: #4CAF50;">/health-monitor</a> - Health monitor UI</p>
+              <p><a href="/api/health-monitor/status" style="color: #4CAF50;">/api/health-monitor/status</a> - API status</p>
+            </div>
+            <div>
+              <h3>Applications:</h3>
+              <p><a href="/nexus-portal" style="color: #4CAF50;">/nexus-portal</a> - NEXUS Portal</p>
+              <p><a href="/graphchain-explorer" style="color: #4CAF50;">/graphchain-explorer</a> - GraphChain Explorer</p>
+              <p><a href="/agent-developer-portal" style="color: #4CAF50;">/agent-developer-portal</a> - Agent Developer Portal</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="status">
+          <h2 class="info">⚙️ System Information</h2>
+          <table>
+            <tr><td><strong>Node.js Version:</strong></td><td>${process.version}</td></tr>
+            <tr><td><strong>Platform:</strong></td><td>${process.platform}</td></tr>
+            <tr><td><strong>Architecture:</strong></td><td>${process.arch}</td></tr>
+            <tr><td><strong>Working Directory:</strong></td><td>${process.cwd()}</td></tr>
+            <tr><td><strong>Memory Usage:</strong></td><td>${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)} MB</td></tr>
+            <tr><td><strong>Uptime:</strong></td><td>${Math.round(process.uptime())} seconds</td></tr>
+          </table>
+        </div>
+      </div>
+    </body>
+    </html>
+  `);
 });
 
 app.get('/health-monitor', (req, res) => {
