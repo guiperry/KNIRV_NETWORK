@@ -19,23 +19,29 @@ BASE_DIR="$(dirname "$SCRIPT_DIR")"
 # Ensure minimal config is in place
 cp $BASE_DIR/data/knirvnexus/knirv-nexus-minimal.yaml $BASE_DIR/data/knirvnexus/knirv-nexus.yaml
 
-# Start DVE Manager
-echo "Starting KNIRV-NEXUS DVE Manager..."
-cd $BASE_DIR/data/knirvnexus && ../../bin/knirvnexus-dve-manager \
-    -testnet \
-    -port 8084 \
-    > ../../logs/knirvnexus-dve-manager.log 2>&1 &
+# Start DVE Manager with memory limit (30MB)
+echo "Starting KNIRV-NEXUS DVE Manager with 30MB memory limit..."
+cd $BASE_DIR/data/knirvnexus && (
+    # Set memory limit for this process (30MB = 30720KB)
+    ulimit -v 30720
+    exec ../../bin/knirvnexus-dve-manager \
+        -testnet \
+        -port 8084
+) > ../../logs/knirvnexus-dve-manager.log 2>&1 &
 
 DVE_PID=$!
 cd $BASE_DIR
 echo $DVE_PID > data/knirvnexus-dve-manager.pid
 
-# Start Validation Core
-echo "Starting KNIRV-NEXUS Validation Core..."
-cd $BASE_DIR/data/knirvnexus && ../../bin/knirvnexus-validation-core \
-    -testnet \
-    -port 8085 \
-    > ../../logs/knirvnexus-validation-core.log 2>&1 &
+# Start Validation Core with memory limit (30MB)
+echo "Starting KNIRV-NEXUS Validation Core with 30MB memory limit..."
+cd $BASE_DIR/data/knirvnexus && (
+    # Set memory limit for this process (30MB = 30720KB)
+    ulimit -v 30720
+    exec ../../bin/knirvnexus-validation-core \
+        -testnet \
+        -port 8085
+) > ../../logs/knirvnexus-validation-core.log 2>&1 &
 
 VALIDATION_PID=$!
 cd $BASE_DIR

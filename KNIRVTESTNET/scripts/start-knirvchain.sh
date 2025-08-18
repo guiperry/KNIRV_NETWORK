@@ -19,10 +19,14 @@ export KNIRVCHAIN_ID="1"
 export BLOCK_TIME="5"
 export RUST_LOG="info"
 
-# Start KNIRVCHAIN in testnet mode
-echo "Starting KNIRVCHAIN with testnet features..."
+# Start KNIRVCHAIN in testnet mode with memory limit (80MB)
+echo "Starting KNIRVCHAIN with testnet features and 80MB memory limit..."
 cd data/knirvchain
-../../bin/knirvchain > ../../logs/knirvchain.log 2>&1 &
+(
+    # Set memory limit for this process (80MB = 81920KB)
+    ulimit -v 81920
+    exec ../../bin/knirvchain
+) > ../../logs/knirvchain.log 2>&1 &
 cd ../..
 
 echo $! > ./data/knirvchain.pid

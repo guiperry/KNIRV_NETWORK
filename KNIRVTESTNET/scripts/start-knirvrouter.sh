@@ -15,15 +15,18 @@ fi
 # Copy testnet environment file to working directory
 cp data/knirvrouter/test.env ./test.env
 
-# Start KNIRV-ROUTER in testnet mode
-echo "Starting KNIRV-ROUTER with testnet features..."
-./bin/knirvrouter \
-    --testnet \
-    --local-network \
-    --mock-nrn \
-    --port 8086 \
-    --miners_address KNIRVROUTER_Testnet_Miner \
-    > ./logs/knirvrouter.log 2>&1 &
+# Start KNIRV-ROUTER in testnet mode with memory limit (40MB)
+echo "Starting KNIRV-ROUTER with testnet features and 40MB memory limit..."
+(
+    # Set memory limit for this process (40MB = 40960KB)
+    ulimit -v 40960
+    exec ./bin/knirvrouter \
+        --testnet \
+        --local-network \
+        --mock-nrn \
+        --port 8086 \
+        --miners_address KNIRVROUTER_Testnet_Miner
+) > ./logs/knirvrouter.log 2>&1 &
 
 echo $! > ./data/knirvrouter.pid
 echo "KNIRV-ROUTER testnet started with PID $(cat ./data/knirvrouter.pid)"

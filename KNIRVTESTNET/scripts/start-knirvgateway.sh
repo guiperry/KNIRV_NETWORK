@@ -63,9 +63,9 @@ export KNIRVNEXUS_DVE_URL=http://localhost:8084
 export KNIRVNEXUS_VAL_URL=http://localhost:8085
 export KNIRVROUTER_URL=http://localhost:8086
 
-# Start KNIRV-GATEWAY using npm start with specified port
-echo "Starting KNIRV-GATEWAY on port 8888..."
-npx netlify dev --port 8888 > ../../logs/knirvgateway.log 2>&1 &
+# Start KNIRV-GATEWAY using npm start with specified port and memory limit (80MB)
+echo "Starting KNIRV-GATEWAY on port 8888 with 80MB memory limit..."
+NODE_OPTIONS="--max-old-space-size=80" npx netlify dev --port 8888 > ../../logs/knirvgateway.log 2>&1 &
 
 GATEWAY_PID=$!
 echo $GATEWAY_PID > ../../data/knirvgateway.pid

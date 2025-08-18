@@ -223,6 +223,20 @@ check_process() {
     return 1
 }
 
+# Function to check memory usage
+check_memory_usage() {
+    if command -v free >/dev/null 2>&1; then
+        local mem_info=$(free -m | grep "Mem:")
+        local used_mem=$(echo $mem_info | awk '{print $3}')
+        local total_mem=$(echo $mem_info | awk '{print $2}')
+        print_status "Memory usage: ${used_mem}MB / ${total_mem}MB"
+
+        if [ "$used_mem" -gt 450 ]; then
+            print_warning "High memory usage detected: ${used_mem}MB (approaching 512MB limit)"
+        fi
+    fi
+}
+
 # Create necessary directories
 print_step "Creating directories..."
 mkdir -p logs data bin config
@@ -296,13 +310,22 @@ else
     print_success "All components built successfully"
 fi
 
-# Start services in order
-print_step "Starting services..."
+# Start services in order with memory limits
+print_step "Starting services with memory limits..."
+print_status "Memory allocation strategy:"
+print_status "  KNIRV-ORACLE: 80MB (blockchain foundation)"
+print_status "  KNIRVCHAIN: 80MB (smart contracts)"
+print_status "  KNIRVGRAPH: 60MB (in-memory graph)"
+print_status "  KNIRV-NEXUS: 60MB (30MB each for DVE + Validation)"
+print_status "  KNIRV-ROUTER: 40MB (network routing)"
+print_status "  KNIRV-GATEWAY: 80MB (Node.js gateway)"
+print_status "  Total allocated: ~400MB (leaving ~100MB for system)"
 
 # 1. Start KNIRV-ORACLE (blockchain foundation)
 print_status "Starting KNIRV-ORACLE..."
 if ./scripts/start-knirvoracle.sh; then
     wait_for_service "KNIRV-ORACLE" "1317" "/health" "data/knirvoracle.pid" || exit 1
+    check_memory_usage
 else
     print_error "Failed to start KNIRV-ORACLE"
     exit 1
@@ -312,6 +335,7 @@ fi
 print_status "Starting KNIRVCHAIN..."
 if ./scripts/start-knirvchain.sh; then
     wait_for_service "KNIRVCHAIN" "8090" "/health" "data/knirvchain.pid" || exit 1
+    check_memory_usage
 else
     print_error "Failed to start KNIRVCHAIN"
     exit 1
@@ -321,6 +345,7 @@ fi
 print_status "Starting KNIRVGRAPH..."
 if ./scripts/start-knirvgraph.sh; then
     wait_for_service "KNIRVGRAPH" "8082" "/height" "data/knirvgraph.pid" || exit 1
+    check_memory_usage
 else
     print_error "Failed to start KNIRVGRAPH"
     exit 1

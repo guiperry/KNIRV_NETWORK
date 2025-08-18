@@ -12,19 +12,22 @@ if [ ! -f "./bin/knirvoracle" ]; then
     exit 1
 fi
 
-# Start KNIRV-ORACLE in testnet mode
-echo "Starting KNIRV-ORACLE in testnet mode..."
-./bin/knirvoracle \
-    --testnet \
-    --config ./config/knirvoracle-testnet-config.json \
-    --port 1317 \
-    --p2p.port 26656 \
-    --shared_database_path ./data/testnet/blockchain.db \
-    --miners_address KNIRVORACLE_Faucet \
-    --root \
-    --non-interactive \
-    --skip-install \
-    > ./logs/knirvoracle.log 2>&1 &
+# Start KNIRV-ORACLE in testnet mode with memory limit (80MB)
+echo "Starting KNIRV-ORACLE in testnet mode with 80MB memory limit..."
+(
+    # Set memory limit for this process (80MB = 81920KB)
+    ulimit -v 81920
+    exec ./bin/knirvoracle \
+        --testnet \
+        --config ./config/knirvoracle-testnet-config.json \
+        --port 1317 \
+        --p2p.port 26656 \
+        --shared_database_path ./data/testnet/blockchain.db \
+        --miners_address KNIRVORACLE_Faucet \
+        --root \
+        --non-interactive \
+        --skip-install
+) > ./logs/knirvoracle.log 2>&1 &
 
 echo $! > ./data/knirvoracle.pid
 echo "KNIRV-ORACLE testnet started with PID $(cat ./data/knirvoracle.pid)"
