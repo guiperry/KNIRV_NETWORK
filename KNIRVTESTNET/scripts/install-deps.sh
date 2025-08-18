@@ -230,12 +230,23 @@ main() {
     install_nodejs
     install_python
     
-    # Verify installations
-    print_status "Verifying installations..."
-    
+    # Refresh environment and verify installations
+    print_status "Refreshing environment and verifying installations..."
+
     # Source updated environment
-    source ~/.bashrc 2>/dev/null || true
+    if [ -f ~/.bashrc ]; then
+        source ~/.bashrc 2>/dev/null || true
+    fi
+
+    # Explicitly export PATH with all toolchain locations
     export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/.local/go/bin:$PATH"
+    export GOROOT="$HOME/.local/go"
+    export GOPATH="$HOME/.local/go-workspace"
+
+    # Also source cargo environment if it exists
+    if [ -f ~/.cargo/env ]; then
+        source ~/.cargo/env 2>/dev/null || true
+    fi
     
     echo ""
     echo "🔍 Installation Verification:"
@@ -273,7 +284,21 @@ main() {
     
     echo ""
     print_success "Dependency installation completed!"
-    print_status "Please run 'source ~/.bashrc' or restart your shell to use the new tools"
+
+    # Create environment file for current session
+    print_status "Creating environment file for current session..."
+    cat > ~/.knirv-env << EOF
+# KNIRV Testnet Environment Variables
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/.local/go/bin:\$PATH"
+export GOROOT="$HOME/.local/go"
+export GOPATH="$HOME/.local/go-workspace"
+EOF
+
+    # Source the environment file
+    source ~/.knirv-env
+
+    print_status "Environment refreshed for current session"
+    print_status "Toolchains are now available in PATH"
     print_status "You can now run 'npm start' to build and start the KNIRV testnet"
 }
 

@@ -18,7 +18,7 @@
     "nanda:dev": "cd nanda_ans && npm run dev",
     "health:dev": "nodemon server/health-monitor.js",
     "install:deps": "bash scripts/install-deps.sh && npm install && cd nexus-portal && npm install && cd ../nanda_ans && npm install && cd ..",
-    "install:toolchains": "bash scripts/install-deps.sh",
+    "install:toolchains": "bash scripts/install-deps.sh && npm install",
     "smart-start": "node scripts/smart-start.js",
     "build": "npm run load-endpoints:testnet && npm run build:all",
     "build:render": "bash scripts/render-build.sh",
@@ -48,7 +48,9 @@
     "logs:nexus": "tail -f logs/nexus-portal.log",
     "logs:health": "tail -f logs/health-monitor.log",
     "services:list": "ps aux | grep -E '(knirv|nanda|nexus|health-monitor)' | grep -v grep",
-    "services:kill": "bash scripts/kill_knirv.sh"
+    "services:kill": "bash scripts/kill_knirv.sh",
+    "env:load": "source scripts/load-env.sh",
+    "env:check": "source scripts/load-env.sh && echo 'Environment loaded successfully'"
   },
   "dependencies": {
     "express": "^4.18.2",

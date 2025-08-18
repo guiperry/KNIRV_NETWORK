@@ -34,9 +34,9 @@ print_error() {
 print_status "Installing required toolchains..."
 bash scripts/install-deps.sh
 
-# Source the updated environment
-source ~/.bashrc 2>/dev/null || true
-export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/.local/go/bin:$PATH"
+# Load the environment using our environment loader
+print_status "Loading toolchain environment..."
+source scripts/load-env.sh
 
 # Verify toolchains are available
 print_status "Verifying toolchains..."
