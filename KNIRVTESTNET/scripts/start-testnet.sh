@@ -227,38 +227,66 @@ check_process() {
 print_step "Creating directories..."
 mkdir -p logs data bin config
 
-# Run pre-start toolchain check
-print_step "Pre-Start Toolchain Check..."
-if [ -f "scripts/pre-start.sh" ]; then
-    bash scripts/pre-start.sh
-    if [ $? -ne 0 ]; then
-        print_error "Pre-start check failed"
-        exit 1
-    fi
+# Run pre-start toolchain check (skip on Render where binaries are pre-built)
+if [ "$RENDER" = "true" ] || [ -n "$RENDER_SERVICE_ID" ]; then
+    print_status "Running on Render - skipping toolchain check (binaries pre-built)"
 else
-    print_warning "pre-start.sh not found, skipping toolchain check"
+    print_step "Pre-Start Toolchain Check..."
+    if [ -f "scripts/pre-start.sh" ]; then
+        bash scripts/pre-start.sh
+        if [ $? -ne 0 ]; then
+            print_error "Pre-start check failed"
+            exit 1
+        fi
+    else
+        print_warning "pre-start.sh not found, skipping toolchain check"
+    fi
 fi
 
 # Run smart initialization (replaces static dependency and port checking)
 print_step "Smart Initialization..."
 run_smart_initialization
 
-# Build all components
-print_step "Building all components..."
+# Build all components (skip on Render where binaries are pre-built)
+if [ "$RENDER" = "true" ] || [ -n "$RENDER_SERVICE_ID" ]; then
+    print_status "Running on Render - checking for pre-built binaries..."
 
-components=("knirvoracle" "knirvchain" "knirvgraph" "knirvnexus" "knirvrouter" "knirvgateway")
+    # Check if binaries exist
+    missing_binaries=()
+    components=("knirvoracle" "knirvchain" "knirvgraph" "knirvnexus" "knirvrouter" "knirvgateway")
 
-for component in "${components[@]}"; do
-    print_status "Building $component..."
-    if ./scripts/build-$component.sh; then
-        print_success "$component built successfully"
+    for component in "${components[@]}"; do
+        if [ ! -f "bin/$component" ]; then
+            missing_binaries+=("$component")
+        else
+            print_success "$component binary found"
+        fi
+    done
+
+    if [ ${#missing_binaries[@]} -eq 0 ]; then
+        print_success "All pre-built binaries found, skipping build phase"
     else
-        print_error "Failed to build $component"
+        print_error "Missing binaries: ${missing_binaries[*]}"
+        print_error "Build phase failed during deployment. Check build logs."
         exit 1
     fi
-done
+else
+    print_step "Building all components..."
 
-print_success "All components built successfully"
+    components=("knirvoracle" "knirvchain" "knirvgraph" "knirvnexus" "knirvrouter" "knirvgateway")
+
+    for component in "${components[@]}"; do
+        print_status "Building $component..."
+        if ./scripts/build-$component.sh; then
+            print_success "$component built successfully"
+        else
+            print_error "Failed to build $component"
+            exit 1
+        fi
+    done
+
+    print_success "All components built successfully"
+fi
 
 # Start services in order
 print_step "Starting services..."
