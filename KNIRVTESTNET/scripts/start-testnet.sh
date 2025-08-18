@@ -96,6 +96,26 @@ run_smart_initialization() {
             process.exit(1);
           }
 
+          // Check for Go toolchain
+          try {
+            require('child_process').execSync('go version', { stdio: 'ignore' });
+            console.log('✅ Go toolchain available');
+          } catch (error) {
+            console.error('❌ Go toolchain not found');
+            console.log('Run: npm run install:toolchains');
+            process.exit(1);
+          }
+
+          // Check for Rust toolchain
+          try {
+            require('child_process').execSync('rustc --version', { stdio: 'ignore' });
+            console.log('✅ Rust toolchain available');
+          } catch (error) {
+            console.error('❌ Rust toolchain not found');
+            console.log('Run: npm run install:toolchains');
+            process.exit(1);
+          }
+
           console.log('✅ Smart initialization completed successfully');
         }
 
