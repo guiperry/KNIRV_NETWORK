@@ -1,3 +1,6 @@
+//go:build !no_webview
+// +build !no_webview
+
 package main
 
 import (
@@ -8,6 +11,7 @@ import (
 	"sync"
 
 	"KNIRVORACLE/config"
+
 	"github.com/getlantern/systray"
 
 	"github.com/skratchdot/open-golang/open"

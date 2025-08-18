@@ -16,7 +16,7 @@ go mod tidy
 
 # Build with all dependencies, testnet build tag, and no_webview for headless server (build entire package, not just main.go)
 echo "Compiling KNIRV-ORACLE..."
-go build -tags "testnet,no_webview" -o knirvoracle .
+CGO_ENABLED=0 go build -tags "testnet,no_webview" -o knirvoracle .
 
 # Copy to testnet bin directory
 cp knirvoracle ../KNIRVTESTNET/bin/knirvoracle
