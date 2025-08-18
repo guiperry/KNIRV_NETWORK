@@ -32,9 +32,10 @@ PORT=10000
 
 The `npm run build:render` command will automatically:
 
-- ✅ Install Go toolchain (v1.21.5)
+- ✅ Install Go toolchain (v1.23.4)
 - ✅ Install Rust toolchain (latest stable)
 - ✅ Install build essentials (if available)
+- ✅ Run `go mod tidy` for all Go applications
 - ✅ Build all KNIRV components
 - ✅ Build frontend applications
 - ✅ Load production endpoints

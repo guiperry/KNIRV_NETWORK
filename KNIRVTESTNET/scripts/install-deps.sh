@@ -67,7 +67,7 @@ install_go() {
     fi
     
     # Download and install Go
-    GO_VERSION="1.21.5"
+    GO_VERSION="1.23.4"
     GO_TARBALL="go${GO_VERSION}.${OS}-${ARCH}.tar.gz"
     GO_URL="https://golang.org/dl/${GO_TARBALL}"
     

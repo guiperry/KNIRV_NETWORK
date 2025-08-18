@@ -263,6 +263,7 @@ validate_testnet_environment() {
     if [[ ! -f "$TEST_ROOT/automation/orchestrator" ]]; then
         print_step "Building test orchestrator..."
         cd "$TEST_ROOT/automation"
+        go mod tidy
         go build -o orchestrator ./cmd/orchestrator
         cd - > /dev/null
     fi

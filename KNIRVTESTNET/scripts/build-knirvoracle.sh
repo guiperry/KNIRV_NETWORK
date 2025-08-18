@@ -10,6 +10,10 @@ cd ../KNIRVORACLE
 # Clean any previous builds
 rm -f knirvoracle KNIRVORACLE bin/knirvoracle
 
+# Download and tidy dependencies
+echo "Downloading dependencies..."
+go mod tidy
+
 # Build with all dependencies (build entire package, not just main.go)
 echo "Compiling KNIRV-ORACLE..."
 go build -o knirvoracle .
