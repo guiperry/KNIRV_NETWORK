@@ -27,6 +27,7 @@
     "health-report": "npm run check-health && npm run check-nexus-health"
   },
   "dependencies": {
+    "@netlify/functions": "^4.2.1",
     "adm-zip": "^0.5.10",
     "brace-expansion": "2.0.2",
     "http-proxy-middleware": "^2.0.6",

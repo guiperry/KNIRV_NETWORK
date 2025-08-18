@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        v4.25.7
-// source: proto/root_key.proto
+// source: root_key.proto
 
 package proto
 
@@ -34,7 +34,7 @@ type RootKeyFileContentProto struct {
 
 func (x *RootKeyFileContentProto) Reset() {
 	*x = RootKeyFileContentProto{}
-	mi := &file_proto_root_key_proto_msgTypes[0]
+	mi := &file_root_key_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -46,7 +46,7 @@ func (x *RootKeyFileContentProto) String() string {
 func (*RootKeyFileContentProto) ProtoMessage() {}
 
 func (x *RootKeyFileContentProto) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_root_key_proto_msgTypes[0]
+	mi := &file_root_key_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -59,7 +59,7 @@ func (x *RootKeyFileContentProto) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RootKeyFileContentProto.ProtoReflect.Descriptor instead.
 func (*RootKeyFileContentProto) Descriptor() ([]byte, []int) {
-	return file_proto_root_key_proto_rawDescGZIP(), []int{0}
+	return file_root_key_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *RootKeyFileContentProto) GetStripeSecretKey() string {
@@ -108,7 +108,7 @@ type EncryptedRootKeyFile struct {
 
 func (x *EncryptedRootKeyFile) Reset() {
 	*x = EncryptedRootKeyFile{}
-	mi := &file_proto_root_key_proto_msgTypes[1]
+	mi := &file_root_key_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -120,7 +120,7 @@ func (x *EncryptedRootKeyFile) String() string {
 func (*EncryptedRootKeyFile) ProtoMessage() {}
 
 func (x *EncryptedRootKeyFile) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_root_key_proto_msgTypes[1]
+	mi := &file_root_key_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -133,7 +133,7 @@ func (x *EncryptedRootKeyFile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EncryptedRootKeyFile.ProtoReflect.Descriptor instead.
 func (*EncryptedRootKeyFile) Descriptor() ([]byte, []int) {
-	return file_proto_root_key_proto_rawDescGZIP(), []int{1}
+	return file_root_key_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *EncryptedRootKeyFile) GetEncryptedContent() []byte {
@@ -157,11 +157,11 @@ func (x *EncryptedRootKeyFile) GetNonce() []byte {
 	return nil
 }
 
-var File_proto_root_key_proto protoreflect.FileDescriptor
+var File_root_key_proto protoreflect.FileDescriptor
 
-const file_proto_root_key_proto_rawDesc = "" +
+const file_root_key_proto_rawDesc = "" +
 	"\n" +
-	"\x14proto/root_key.proto\x12\tKNIRVORACLE\"\x8c\x02\n" +
+	"\x0eroot_key.proto\x12\vKNIRVORACLE\"\x8c\x02\n" +
 	"\x17RootKeyFileContentProto\x12*\n" +
 	"\x11stripe_secret_key\x18\x01 \x01(\tR\x0fstripeSecretKey\x122\n" +
 	"\x15stripe_webhook_secret\x18\x02 \x01(\tR\x13stripeWebhookSecret\x12(\n" +
@@ -175,23 +175,23 @@ const file_proto_root_key_proto_rawDesc = "" +
 	"Z\b./;protob\x06proto3"
 
 var (
-	file_proto_root_key_proto_rawDescOnce sync.Once
-	file_proto_root_key_proto_rawDescData []byte
+	file_root_key_proto_rawDescOnce sync.Once
+	file_root_key_proto_rawDescData []byte
 )
 
-func file_proto_root_key_proto_rawDescGZIP() []byte {
-	file_proto_root_key_proto_rawDescOnce.Do(func() {
-		file_proto_root_key_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_root_key_proto_rawDesc), len(file_proto_root_key_proto_rawDesc)))
+func file_root_key_proto_rawDescGZIP() []byte {
+	file_root_key_proto_rawDescOnce.Do(func() {
+		file_root_key_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_root_key_proto_rawDesc), len(file_root_key_proto_rawDesc)))
 	})
-	return file_proto_root_key_proto_rawDescData
+	return file_root_key_proto_rawDescData
 }
 
-var file_proto_root_key_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_proto_root_key_proto_goTypes = []any{
+var file_root_key_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_root_key_proto_goTypes = []any{
 	(*RootKeyFileContentProto)(nil), // 0: KNIRVORACLE.RootKeyFileContentProto
 	(*EncryptedRootKeyFile)(nil),    // 1: KNIRVORACLE.EncryptedRootKeyFile
 }
-var file_proto_root_key_proto_depIdxs = []int32{
+var file_root_key_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
 	0, // [0:0] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -199,26 +199,26 @@ var file_proto_root_key_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_proto_root_key_proto_init() }
-func file_proto_root_key_proto_init() {
-	if File_proto_root_key_proto != nil {
+func init() { file_root_key_proto_init() }
+func file_root_key_proto_init() {
+	if File_root_key_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_root_key_proto_rawDesc), len(file_proto_root_key_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_root_key_proto_rawDesc), len(file_root_key_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_proto_root_key_proto_goTypes,
-		DependencyIndexes: file_proto_root_key_proto_depIdxs,
-		MessageInfos:      file_proto_root_key_proto_msgTypes,
+		GoTypes:           file_root_key_proto_goTypes,
+		DependencyIndexes: file_root_key_proto_depIdxs,
+		MessageInfos:      file_root_key_proto_msgTypes,
 	}.Build()
-	File_proto_root_key_proto = out.File
-	file_proto_root_key_proto_goTypes = nil
-	file_proto_root_key_proto_depIdxs = nil
+	File_root_key_proto = out.File
+	file_root_key_proto_goTypes = nil
+	file_root_key_proto_depIdxs = nil
 }

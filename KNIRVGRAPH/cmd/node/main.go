@@ -16,6 +16,7 @@ func main() {
 		inMemory    = flag.Bool("memory", false, "Use in-memory storage")
 		prePopulate = flag.Bool("populate", false, "Pre-populate test data")
 		maxNodes    = flag.Int("max-nodes", 1000, "Maximum nodes in testnet mode")
+		headless    = flag.Bool("headless", true, "Run in headless mode (default: true)")
 	)
 	flag.Parse()
 
@@ -25,6 +26,11 @@ func main() {
 	}
 
 	ctx := context.Background()
+
+	// Log headless mode status
+	if *headless {
+		log.Println("Starting KNIRVGRAPH in headless mode (no frontend)")
+	}
 
 	// Create testnet configuration if enabled
 	var config *app.Config

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Step 3: Agent Configuration - KNIRV Developer Portal</title>
+    <meta name="description" content="Configure your agent's capabilities and settings">
+    <link rel="shortcut icon" href="favicon.png">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS with original design system -->
+    <link rel="stylesheet" href="css/portal.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="dashboard-title">
+                <h1>KNIRV Developer Portal</h1>
+                <p style="color: var(--transparent-white-7); font-size: 0.9rem;">D-TEN Network</p>
+            </div>
+
+            <!-- Navigation Items -->
+            <a href="index.html" class="nav-item">
+                <i class="fas fa-home"></i>
+                <span>Home Dashboard</span>
+            </a>
+            <a href="core-concepts.html" class="nav-item">
+                <i class="fas fa-brain"></i>
+                <span>Core Concepts</span>
+            </a>
+            <a href="getting-started.html" class="nav-item active">
+                <i class="fas fa-rocket"></i>
+                <span>Getting Started</span>
+            </a>
+            <a href="agent-management.html" class="nav-item">
+                <i class="fas fa-robot"></i>
+                <span>Agent Management</span>
+            </a>
+            <a href="skill-registry.html" class="nav-item">
+                <i class="fas fa-cogs"></i>
+                <span>Skill Registry</span>
+            </a>
+            <a href="udc-management.html" class="nav-item">
+                <i class="fas fa-certificate"></i>
+                <span>UDC Management</span>
+            </a>
+            <a href="agent-skill-exchange.html" class="nav-item">
+                <i class="fas fa-exchange-alt"></i>
+                <span>Agent/Skill Exchange</span>
+            </a>
+            <a href="error-node-explorer.html" class="nav-item">
+                <i class="fas fa-search"></i>
+                <span>ErrorNode Explorer</span>
+            </a>
+            <a href="api-sdk.html" class="nav-item">
+                <i class="fas fa-code"></i>
+                <span>API & SDK</span>
+            </a>
+            <a href="wallet-management.html" class="nav-item">
+                <i class="fas fa-wallet"></i>
+                <span>KNIRV Wallets</span>
+            </a>
+            <a href="tesnet-sandbox.html" class="nav-item">
+                <i class="fas fa-flask"></i>
+                <span>TESNET & Sandbox</span>
+            </a>
+            <a href="community-support.html" class="nav-item">
+                <i class="fas fa-users"></i>
+                <span>Community & Support</span>
+            </a>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Navigation -->
+            <div class="top-nav">
+                <div>
+                    <h1 class="page-title">Getting Started - Step 3</h1>
+                </div>
+                <div class="user-controls">
+                    <i class="control-icon fas fa-bell" title="Notifications"></i>
+                    <i class="control-icon fas fa-cog" title="Settings"></i>
+                    <i class="control-icon fas fa-user-circle" title="Profile"></i>
+                </div>
+            </div>
+
+            <!-- Progress Tracker -->
+            <div class="glass-card">
+                <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">Your Progress</h2>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                    <div style="text-align: center; flex: 1;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--bright-blue); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: white; font-weight: bold;">✓</div>
+                        <div style="font-size: 0.9em; color: var(--white);">Environment</div>
+                    </div>
+                    <div style="text-align: center; flex: 1;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--bright-blue); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: white; font-weight: bold;">✓</div>
+                        <div style="font-size: 0.9em; color: var(--white);">Agent Registration</div>
+                    </div>
+                    <div style="text-align: center; flex: 1;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--bright-blue); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: white; font-weight: bold;">3</div>
+                        <div style="font-size: 0.9em; color: var(--white);">Configuration</div>
+                    </div>
+                    <div style="text-align: center; flex: 1;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--transparent-white-2); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: var(--transparent-white-7); font-weight: bold;">4</div>
+                        <div style="font-size: 0.9em; color: var(--transparent-white-7);">Deploy</div>
+                    </div>
+                </div>
+                <div style="background-color: var(--transparent-white-1); height: 4px; border-radius: 2px; margin-bottom: 10px;">
+                    <div style="background-color: var(--bright-blue); height: 100%; width: 75%; border-radius: 2px;"></div>
+                </div>
+                <p style="color: var(--transparent-white-7); font-size: 0.9em; text-align: center;">Step 3 of 4 - Configure your agent's capabilities and settings</p>
+            </div>
+
+            <!-- Step 3: Agent Configuration -->
+            <div class="glass-card">
+                <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">
+                    <i class="fas fa-cogs" style="margin-right: 10px;"></i>Step 3: Agent Configuration
+                </h2>
+
+                <div style="margin-bottom: 30px;">
+                    <p style="color: var(--transparent-white-7); margin-bottom: 20px;">
+                        Configure your agent's capabilities, skills, and execution parameters. This determines how your agent will interact with the KNIRV D-TEN network.
+                    </p>
+                </div>
+
+                <!-- Configuration Tabs -->
+                <div style="margin-bottom: 30px;">
+                    <div style="display: flex; border-bottom: 1px solid var(--transparent-white-2); margin-bottom: 20px;">
+                        <button class="tab-button active" onclick="switchTab('skills')" data-tab="skills">
+                            <i class="fas fa-brain" style="margin-right: 8px;"></i>Skills & Capabilities
+                        </button>
+                        <button class="tab-button" onclick="switchTab('execution')" data-tab="execution">
+                            <i class="fas fa-server" style="margin-right: 8px;"></i>Execution Settings
+                        </button>
+                        <button class="tab-button" onclick="switchTab('wallet')" data-tab="wallet">
+                            <i class="fas fa-wallet" style="margin-right: 8px;"></i>Wallet Integration
+                        </button>
+                    </div>
+
+                    <!-- Skills & Capabilities Tab -->
+                    <div id="skills-tab" class="tab-content active">
+                        <h3 style="color: var(--white); margin-bottom: 15px;">Available Skills</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                            <div class="skill-card" onclick="toggleSkill('data-analysis')">
+                                <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                                    <input type="checkbox" id="skill-data-analysis" style="margin-right: 10px;">
+                                    <i class="fas fa-chart-bar" style="color: var(--bright-blue); margin-right: 10px;"></i>
+                                    <h4 style="color: var(--white); margin: 0;">Data Analysis</h4>
+                                </div>
+                                <p style="color: var(--transparent-white-7); font-size: 0.9em;">Process and analyze data sets, generate insights and reports</p>
+                            </div>
+                            <div class="skill-card" onclick="toggleSkill('text-processing')">
+                                <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                                    <input type="checkbox" id="skill-text-processing" style="margin-right: 10px;">
+                                    <i class="fas fa-file-text" style="color: var(--knirv-purple); margin-right: 10px;"></i>
+                                    <h4 style="color: var(--white); margin: 0;">Text Processing</h4>
+                                </div>
+                                <p style="color: var(--transparent-white-7); font-size: 0.9em;">Natural language processing, summarization, and text generation</p>
+                            </div>
+                            <div class="skill-card" onclick="toggleSkill('api-integration')">
+                                <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                                    <input type="checkbox" id="skill-api-integration" style="margin-right: 10px;">
+                                    <i class="fas fa-plug" style="color: var(--knirv-purple-light); margin-right: 10px;"></i>
+                                    <h4 style="color: var(--white); margin: 0;">API Integration</h4>
+                                </div>
+                                <p style="color: var(--transparent-white-7); font-size: 0.9em;">Connect and interact with external APIs and services</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Execution Settings Tab -->
+                    <div id="execution-tab" class="tab-content">
+                        <h3 style="color: var(--white); margin-bottom: 15px;">Execution Environment</h3>
+                        <div style="display: grid; gap: 20px;">
+                            <div>
+                                <label style="color: var(--white); display: block; margin-bottom: 5px;">Execution Mode</label>
+                                <select id="executionMode" style="width: 100%; padding: 10px; background-color: var(--transparent-white-1); border: 1px solid var(--transparent-white-2); border-radius: 5px; color: var(--white);">
+                                    <option value="sandbox">Sandbox (Recommended)</option>
+                                    <option value="tee">Trusted Execution Environment</option>
+                                    <option value="local">Local Development</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="color: var(--white); display: block; margin-bottom: 5px;">Resource Limits</label>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                    <div>
+                                        <label style="color: var(--transparent-white-7); font-size: 0.9em;">Max Memory (MB)</label>
+                                        <input type="number" id="maxMemory" value="512" style="width: 100%; padding: 8px; background-color: var(--transparent-white-1); border: 1px solid var(--transparent-white-2); border-radius: 5px; color: var(--white);">
+                                    </div>
+                                    <div>
+                                        <label style="color: var(--transparent-white-7); font-size: 0.9em;">Max CPU (%)</label>
+                                        <input type="number" id="maxCpu" value="50" style="width: 100%; padding: 8px; background-color: var(--transparent-white-1); border: 1px solid var(--transparent-white-2); border-radius: 5px; color: var(--white);">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Wallet Integration Tab -->
+                    <div id="wallet-tab" class="tab-content">
+                        <h3 style="color: var(--white); margin-bottom: 15px;">KNIRV Wallet Setup</h3>
+                        <div style="display: grid; gap: 20px;">
+                            <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--bright-blue);">
+                                <h4 style="color: var(--bright-blue); margin-bottom: 10px;">
+                                    <i class="fas fa-info-circle" style="margin-right: 8px;"></i>Wallet Integration
+                                </h4>
+                                <p style="color: var(--transparent-white-7); margin-bottom: 15px;">
+                                    Your agent will be connected to a KNIRV wallet for NRN token management and skill invocation payments.
+                                </p>
+                                <button class="btn-primary" onclick="connectWallet()">
+                                    <i class="fas fa-wallet" style="margin-right: 8px;"></i>Connect KNIRV Wallet
+                                </button>
+                            </div>
+                            <div id="walletStatus" style="display: none;">
+                                <!-- Wallet connection status will be shown here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configuration Actions -->
+                <div style="display: flex; gap: 15px; justify-content: center;">
+                    <button class="btn-secondary" onclick="goBack()">
+                        <i class="fas fa-arrow-left" style="margin-right: 8px;"></i>Back to Step 2
+                    </button>
+                    <button class="btn-primary" onclick="saveConfiguration()">
+                        <i class="fas fa-save" style="margin-right: 8px;"></i>Save Configuration
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="js/portal.js"></script>
+    <script>
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Add active class to selected tab button
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+        }
+
+        function toggleSkill(skillId) {
+            const checkbox = document.getElementById('skill-' + skillId);
+            checkbox.checked = !checkbox.checked;
+        }
+
+        function connectWallet() {
+            const walletStatus = document.getElementById('walletStatus');
+            walletStatus.style.display = 'block';
+            walletStatus.innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <div style="width: 60px; height: 60px; border: 4px solid var(--transparent-white-2); border-top: 4px solid var(--bright-blue); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px;"></div>
+                    <p style="color: var(--white);">Connecting to KNIRV Wallet...</p>
+                </div>
+            `;
+
+            setTimeout(() => {
+                walletStatus.innerHTML = `
+                    <div style="text-align: center; padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--bright-blue);">
+                        <div style="width: 60px; height: 60px; background-color: var(--bright-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                            <i class="fas fa-check" style="color: white; font-size: 1.5em;"></i>
+                        </div>
+                        <h4 style="color: var(--bright-blue); margin-bottom: 10px;">Wallet Connected!</h4>
+                        <p style="color: var(--white); margin-bottom: 5px;"><strong>Address:</strong> knirv1abc...def123</p>
+                        <p style="color: var(--white);"><strong>Balance:</strong> 100 NRN</p>
+                    </div>
+                `;
+            }, 2000);
+        }
+
+        function goBack() {
+            window.location.href = 'getting-started-step2.html';
+        }
+
+        function saveConfiguration() {
+            // Collect configuration data
+            const selectedSkills = [];
+            document.querySelectorAll('input[id^="skill-"]:checked').forEach(checkbox => {
+                selectedSkills.push(checkbox.id.replace('skill-', ''));
+            });
+
+            const config = {
+                skills: selectedSkills,
+                executionMode: document.getElementById('executionMode').value,
+                maxMemory: document.getElementById('maxMemory').value,
+                maxCpu: document.getElementById('maxCpu').value
+            };
+
+            // Show success message and proceed
+            window.knirvPortal.showNotification('Configuration saved successfully!', 'success');
+            
+            setTimeout(() => {
+                window.location.href = 'getting-started-step4.html';
+            }, 1500);
+        }
+    </script>
+</body>
+</html>

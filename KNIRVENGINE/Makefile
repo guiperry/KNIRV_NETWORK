@@ -11,9 +11,9 @@ help:
 	@echo "Available targets:"
 	@echo ""
 	@echo "📦 Build Commands:"
-	@echo "  build          - Build all components (desktop-host, mobile-tool, agent-core)"
+	@echo "  build          - Build all components (desktop-host, mobile-controller, agent-core)"
 	@echo "  build-desktop  - Build desktop-host with Electron wrapper"
-	@echo "  build-mobile   - Build mobile-tool for production"
+	@echo "  build-mobile   - Build mobile-controller for production"
 	@echo "  build-wasm     - Build agent-core WASM module"
 	@echo ""
 	@echo "🧪 Test Commands:"
@@ -43,7 +43,7 @@ help:
 install:
 	@echo "📦 Installing dependencies..."
 	@cd desktop-host && go mod download
-	@cd mobile-tool && npm install
+	@cd mobile-controller && npm install
 	@cd agent-core/rust-wasm && cargo fetch
 	@echo "✅ Dependencies installed"
 
@@ -63,10 +63,10 @@ build-desktop:
 	fi
 	@echo "✅ Desktop-host built"
 
-# Build mobile-tool
+# Build mobile-controller
 build-mobile:
-	@echo "📱 Building mobile-tool..."
-	@cd mobile-tool && npm run build
+	@echo "📱 Building mobile-controller..."
+	@cd mobile-controller && npm run build
 	@echo "✅ Mobile-tool built"
 
 # Build agent-core WASM module
@@ -94,27 +94,27 @@ test-system:
 # Start mobile development server
 mobile:
 	@echo "📱 Starting mobile development server..."
-	@cd mobile-tool && npm run dev
+	@cd mobile-controller && npm run dev
 
 # Build mobile app for production
 mobile-build:
 	@echo "📱 Building mobile app..."
-	@cd mobile-tool && ./deploy-mobile.sh 2
+	@cd mobile-controller && ./deploy-mobile.sh 2
 
 # Build Android app
 android:
 	@echo "🤖 Building Android app..."
-	@cd mobile-tool && ./deploy-mobile.sh 3
+	@cd mobile-controller && ./deploy-mobile.sh 3
 
 # Build iOS app
 ios:
 	@echo "🍎 Building iOS app..."
-	@cd mobile-tool && ./deploy-mobile.sh 4
+	@cd mobile-controller && ./deploy-mobile.sh 4
 
 # Setup Progressive Web App
 pwa:
 	@echo "📱 Setting up PWA..."
-	@cd mobile-tool && ./deploy-mobile.sh 5
+	@cd mobile-controller && ./deploy-mobile.sh 5
 
 # Full production deployment
 deploy:
@@ -126,8 +126,8 @@ dev:
 	@echo "🛠️  Starting development environment..."
 	@echo "Starting desktop-host in background..."
 	@cd desktop-host && ./desktop-host &
-	@echo "Starting mobile-tool development server..."
-	@cd mobile-tool && npm run dev
+	@echo "Starting mobile-controller development server..."
+	@cd mobile-controller && npm run dev
 
 # Start production system
 start:
@@ -142,9 +142,9 @@ clean:
 	@rm -f deploy.log
 	@cd desktop-host && rm -f desktop-host
 	@cd desktop-host && rm -rf electron/dist/
-	@cd mobile-tool && rm -rf dist/
-	@cd mobile-tool && rm -rf android/
-	@cd mobile-tool && rm -rf ios/
+	@cd mobile-controller && rm -rf dist/
+	@cd mobile-controller && rm -rf android/
+	@cd mobile-controller && rm -rf ios/
 	@cd agent-core/rust-wasm && cargo clean
 	@cd agent-core && rm -rf dist/
 	@echo "✅ Clean completed"
@@ -154,7 +154,7 @@ docs:
 	@echo "📚 Generating documentation..."
 	@echo "Documentation available in:"
 	@echo "  - README.md (main documentation)"
-	@echo "  - mobile-tool/MOBILE_DEPLOYMENT.md (mobile deployment)"
+	@echo "  - mobile-controller/MOBILE_DEPLOYMENT.md (mobile deployment)"
 	@echo "  - SYSTEM_STATUS.md (system status)"
 
 # Development shortcuts
@@ -164,7 +164,7 @@ docs:
 quick-build:
 	@echo "⚡ Quick build (Go binary only)..."
 	@cd desktop-host && go build -o desktop-host main.go
-	@cd mobile-tool && npm run build
+	@cd mobile-controller && npm run build
 	@cd agent-core/rust-wasm && cargo build --release --target wasm32-unknown-unknown
 	@echo "✅ Quick build completed"
 
@@ -176,9 +176,9 @@ quick-test:
 # Quick deploy (development)
 quick-deploy: quick-build
 	@echo "⚡ Quick deploy..."
-	@mkdir -p dist/desktop-host dist/mobile-tool dist/agent-core
+	@mkdir -p dist/desktop-host dist/mobile-controller dist/agent-core
 	@cp desktop-host/desktop-host dist/desktop-host/
-	@cp -r mobile-tool/dist/* dist/mobile-tool/
+	@cp -r mobile-controller/dist/* dist/mobile-controller/
 	@cp agent-core/rust-wasm/target/wasm32-unknown-unknown/release/knirv_cortex_wasm.wasm dist/agent-core/agent-core.wasm
 
 # Platform-specific builds

@@ -5,6 +5,7 @@ go 1.21
 require (
 	github.com/dgraph-io/badger/v3 v3.2103.5
 	github.com/gorilla/mux v1.8.0
+	github.com/gorilla/websocket v1.5.3
 	github.com/spf13/cobra v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
 	go.uber.org/zap v1.25.0

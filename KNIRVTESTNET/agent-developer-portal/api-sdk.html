@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API & SDK Reference - KNIRV Developer Portal</title>
+    <meta name="description" content="Comprehensive documentation for the KNIRV-SDK and network APIs">
+    <link rel="shortcut icon" href="favicon.png">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS with original design system -->
+    <link rel="stylesheet" href="css/portal.css">
+
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="dashboard-title">
+                <h1>KNIRV Developer Portal</h1>
+                <p style="color: var(--transparent-white-7); font-size: 0.9rem;">D-TEN Network</p>
+            </div>
+
+            <!-- Navigation Items -->
+            <a href="index.html" class="nav-item">
+                <i class="fas fa-home"></i>
+                <span>Home Dashboard</span>
+            </a>
+            <a href="core-concepts.html" class="nav-item">
+                <i class="fas fa-brain"></i>
+                <span>Core Concepts</span>
+            </a>
+            <a href="getting-started.html" class="nav-item">
+                <i class="fas fa-rocket"></i>
+                <span>Getting Started</span>
+            </a>
+            <a href="agent-management.html" class="nav-item">
+                <i class="fas fa-robot"></i>
+                <span>Agent Management</span>
+            </a>
+            <a href="skill-registry.html" class="nav-item">
+                <i class="fas fa-cogs"></i>
+                <span>Skill Registry</span>
+            </a>
+            <a href="udc-management.html" class="nav-item">
+                <i class="fas fa-certificate"></i>
+                <span>UDC Management</span>
+            </a>
+            <a href="agent-skill-exchange.html" class="nav-item">
+                <i class="fas fa-exchange-alt"></i>
+                <span>Agent/Skill Exchange</span>
+            </a>
+            <a href="error-node-explorer.html" class="nav-item">
+                <i class="fas fa-search"></i>
+                <span>ErrorNode Explorer</span>
+            </a>
+            <a href="api-sdk.html" class="nav-item active">
+                <i class="fas fa-code"></i>
+                <span>API & SDK</span>
+            </a>
+            <a href="wallet-management.html" class="nav-item">
+                <i class="fas fa-wallet"></i>
+                <span>KNIRV Wallets</span>
+            </a>
+            <a href="tesnet-sandbox.html" class="nav-item">
+                <i class="fas fa-flask"></i>
+                <span>TESNET & Sandbox</span>
+            </a>
+            <a href="community-support.html" class="nav-item">
+                <i class="fas fa-users"></i>
+                <span>Community & Support</span>
+            </a>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Navigation -->
+            <div class="top-nav">
+                <div>
+                    <h1 class="page-title">API & SDK</h1>
+                </div>
+                <div class="user-controls">
+                    <i class="control-icon fas fa-bell" title="Notifications"></i>
+                    <i class="control-icon fas fa-cog" title="Settings"></i>
+                    <i class="control-icon fas fa-user-circle" title="Profile"></i>
+                </div>
+            </div>
+
+            <!-- Page Header -->
+            <div class="glass-card">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--bright-blue) 0%, var(--knirv-purple-light) 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 2.5em;">
+                        <i class="fas fa-code" style="color: var(--white);"></i>
+                    </div>
+                    <h1 style="color: var(--bright-blue); margin-bottom: 10px; font-size: 2rem;">KNIRV API & SDK Documentation</h1>
+                    <p style="color: var(--transparent-white-7); max-width: 600px; margin: 0 auto;">
+                        Comprehensive documentation, interactive examples, and SDK references for building on the KNIRV D-TEN network.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Quick Start -->
+            <div class="glass-card">
+                <h2 style="color: var(--knirv-purple); margin-bottom: 20px; font-size: 1.3rem;">
+                    <i class="fas fa-rocket" style="margin-right: 10px;"></i>Quick Start
+                </h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <button class="btn-primary" onclick="installSDK()" style="padding: 20px; text-align: center;">
+                        <i class="fas fa-download" style="font-size: 1.5em; margin-bottom: 10px; display: block;"></i>
+                        <h4 style="margin-bottom: 5px;">Install SDK</h4>
+                        <p style="font-size: 0.9em; opacity: 0.8;">Get the KNIRV SDK</p>
+                    </button>
+                    <button class="btn-secondary" onclick="viewExamples()" style="padding: 20px; text-align: center;">
+                        <i class="fas fa-play" style="font-size: 1.5em; margin-bottom: 10px; display: block;"></i>
+                        <h4 style="margin-bottom: 5px;">Try Examples</h4>
+                        <p style="font-size: 0.9em; opacity: 0.8;">Interactive code samples</p>
+                    </button>
+                    <button class="btn-outline" onclick="apiReference()" style="padding: 20px; text-align: center;">
+                        <i class="fas fa-book" style="font-size: 1.5em; margin-bottom: 10px; display: block;"></i>
+                        <h4 style="margin-bottom: 5px;">API Reference</h4>
+                        <p style="font-size: 0.9em; opacity: 0.8;">Complete documentation</p>
+                    </button>
+                </div>
+            </div>
+
+            <!-- SDK Installation -->
+            <div class="glass-card">
+                <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">
+                    <i class="fas fa-terminal" style="margin-right: 10px;"></i>SDK Installation
+                </h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <!-- Node.js -->
+                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px;">
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <i class="fab fa-node-js" style="color: #68a063; font-size: 2em; margin-right: 15px;"></i>
+                            <h3 style="color: var(--bright-blue); margin: 0;">Node.js</h3>
+                        </div>
+                        <div class="code-block">
+                            <code>npm install @knirv/sdk</code>
+                        </div>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9rem; margin-top: 10px;">
+                            Full-featured SDK with TypeScript support
+                        </p>
+                    </div>
+
+                    <!-- Python -->
+                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px;">
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <i class="fab fa-python" style="color: #3776ab; font-size: 2em; margin-right: 15px;"></i>
+                            <h3 style="color: var(--knirv-purple); margin: 0;">Python</h3>
+                        </div>
+                        <div class="code-block">
+                            <code>pip install knirv-sdk</code>
+                        </div>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9rem; margin-top: 10px;">
+                            Python SDK for AI/ML development
+                        </p>
+                    </div>
+
+                    <!-- Go -->
+                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px;">
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <i class="fab fa-golang" style="color: #00add8; font-size: 2em; margin-right: 15px;"></i>
+                            <h3 style="color: var(--knirv-purple-light); margin: 0;">Go</h3>
+                        </div>
+                        <div class="code-block">
+                            <code>go get github.com/knirv/sdk-go</code>
+                        </div>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9rem; margin-top: 10px;">
+                            High-performance Go SDK
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Code Examples -->
+            <div class="glass-card">
+                <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">
+                    <i class="fas fa-code" style="margin-right: 10px;"></i>Code Examples
+                </h2>
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: var(--knirv-purple); margin-bottom: 10px;">Register an Agent</h3>
+                    <div class="code-block">
+                        <code>
+import { KNIRVClient } from '@knirv/sdk';<br><br>
+const client = new KNIRVClient({<br>
+&nbsp;&nbsp;apiKey: 'your-api-key',<br>
+&nbsp;&nbsp;network: 'mainnet'<br>
+});<br><br>
+const agent = await client.agents.register({<br>
+&nbsp;&nbsp;name: 'MyAgent',<br>
+&nbsp;&nbsp;capabilities: ['nlp', 'vision'],<br>
+&nbsp;&nbsp;description: 'AI agent for text and image processing'<br>
+});
+                        </code>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: var(--knirv-purple); margin-bottom: 10px;">Publish a Skill</h3>
+                    <div class="code-block">
+                        <code>
+const skill = await client.skills.publish({<br>
+&nbsp;&nbsp;name: 'sentiment-analysis',<br>
+&nbsp;&nbsp;category: 'nlp',<br>
+&nbsp;&nbsp;code: skillImplementation,<br>
+&nbsp;&nbsp;metadata: {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;version: '1.0.0',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;author: 'developer@example.com'<br>
+&nbsp;&nbsp;}<br>
+});
+                        </code>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="js/portal.js"></script>
+    <script>
+        function installSDK() {
+            window.knirvPortal.showNotification('SDK installation guide would open here', 'info');
+        }
+
+        function viewExamples() {
+            window.knirvPortal.showNotification('Interactive examples coming soon', 'info');
+        }
+
+        function apiReference() {
+            window.knirvPortal.showNotification('API reference documentation coming soon', 'info');
+        }
+    </script>
+</body>
+</html>

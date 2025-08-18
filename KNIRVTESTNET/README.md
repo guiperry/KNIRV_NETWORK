@@ -1,5 +1,33 @@
 # KNIRV Testnet
 
+## 🚀 Render Deployment (NEW)
+
+KNIRVTESTNET now includes unified web application hosting on Render, migrated from KNIRVGATEWAY to enable dynamic web services.
+
+### Applications Hosted
+- **GraphChain Explorer** - `/graphchain-explorer`
+- **Nexus Portal** - `/nexus-portal`
+- **Agent Developer Portal** - `/agent-developer-portal`
+- **NANDA ANS** - `/nanda-ans`
+
+### Render Configuration
+- **Root Directory**: `KNIRVTESTNET` (set in Render dashboard)
+- **Build Command**: `npm install && npm run build`
+- **Start Command**: `npm start`
+- **Health Check**: `/health`
+
+### Quick Start for Web Applications
+```bash
+cd KNIRVTESTNET
+npm install
+npm run load-endpoints:testnet
+npm start
+```
+
+Server runs on port 10000 with all applications accessible via Express.js routes.
+
+---
+
 ## Table of Contents
 
 - [Overview](#overview)

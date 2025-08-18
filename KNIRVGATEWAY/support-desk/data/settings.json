@@ -4,39 +4,39 @@
     "key": "site_title",
     "value": "KNIRV Support Desk",
     "description": "Main site title",
-    "created_at": "2025-08-17T15:33:36.225Z",
-    "updated_at": "2025-08-17T15:33:36.225Z"
+    "created_at": "2025-08-17T20:40:03.892Z",
+    "updated_at": "2025-08-17T20:40:03.892Z"
   },
   {
     "id": 2,
     "key": "admin_email",
     "value": "admin@knirv.com",
     "description": "Administrator email address",
-    "created_at": "2025-08-17T15:33:36.225Z",
-    "updated_at": "2025-08-17T15:33:36.225Z"
+    "created_at": "2025-08-17T20:40:03.892Z",
+    "updated_at": "2025-08-17T20:40:03.892Z"
   },
   {
     "id": 3,
     "key": "max_file_size",
     "value": "10485760",
     "description": "Maximum file upload size in bytes",
-    "created_at": "2025-08-17T15:33:36.225Z",
-    "updated_at": "2025-08-17T15:33:36.225Z"
+    "created_at": "2025-08-17T20:40:03.892Z",
+    "updated_at": "2025-08-17T20:40:03.892Z"
   },
   {
     "id": 4,
     "key": "allowed_file_types",
     "value": "image/jpeg,image/png,image/gif,text/plain,application/pdf",
     "description": "Allowed file types for uploads",
-    "created_at": "2025-08-17T15:33:36.225Z",
-    "updated_at": "2025-08-17T15:33:36.225Z"
+    "created_at": "2025-08-17T20:40:03.892Z",
+    "updated_at": "2025-08-17T20:40:03.892Z"
   },
   {
     "id": 5,
     "key": "auto_close_days",
     "value": "30",
     "description": "Days after which resolved tickets are auto-closed",
-    "created_at": "2025-08-17T15:33:36.225Z",
-    "updated_at": "2025-08-17T15:33:36.225Z"
+    "created_at": "2025-08-17T20:40:03.892Z",
+    "updated_at": "2025-08-17T20:40:03.892Z"
   }
 ]

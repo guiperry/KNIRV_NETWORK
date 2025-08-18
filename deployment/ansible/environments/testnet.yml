@@ -42,6 +42,7 @@ testnet_ports:
   knirvnexus_2: 8083
   knirvrouter: 8086
   knirvgateway: 8087
+  knirvana: 3000
 
 # =============================================================================
 # DNS CONFIGURATION
@@ -179,14 +180,26 @@ frontend_config:
   frontend_build_dir: KNIRVGATEWAY
   testnet_frontend_dir: knirvtestnet
 
-# API endpoints for frontend
+# API endpoints for frontend (testnet automatically updates KNIRVGATEWAY)
 api_endpoints:
   testnet_base: "https://testnet.knirv.com"
   chain_api: "https://testnet.knirv.com:8080"
   graph_api: "https://testnet.knirv.com:8081"
   nexus_api: "https://testnet.knirv.com:8082"
-  root_api: "https://testnet.knirv.com:1317"
+  oracle_api: "https://testnet.knirv.com:1317"
+  router_api: "https://testnet.knirv.com:8086"
   gateway_api: "https://testnet.knirv.com:8087"
+  knirvana_api: "https://testnet.knirv.com:3000"
+
+# KNIRVGATEWAY endpoint configuration (auto-updated for testnet)
+gateway_endpoints:
+  KNIRVCHAIN_API: "https://testnet.knirv.com:8080"
+  KNIRVGRAPH_API: "https://testnet.knirv.com:8081"
+  KNIRVNEXUS_API: "https://testnet.knirv.com:8082"
+  KNIRVORACLE_API: "https://testnet.knirv.com:1317"
+  KNIRVROUTER_API: "https://testnet.knirv.com:8086"
+  KNIRVANA_API: "https://testnet.knirv.com:3000"
+  KNIRVANA_INTERACTIVE_GRAPH: "https://testnet.knirv.com:3000"
 
 # =============================================================================
 # DEPLOYMENT CONFIGURATION
@@ -208,6 +221,7 @@ service_startup_order:
   - knirvnexus-1
   - knirvnexus-2
   - knirvrouter
+  - knirvana
   - knirvgateway
 
 # =============================================================================

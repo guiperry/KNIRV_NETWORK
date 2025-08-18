@@ -128,7 +128,7 @@ KNIRVENGINE has been successfully implemented as a three-engine cognitive archit
 ### ✅ Startup Scripts
 - `start-system.sh` - Complete system startup
 - `start-desktop-host.sh` - Desktop engine only
-- `start-mobile-tool.sh` - Mobile development server
+- `start-mobile-controller.sh` - Mobile development server
 
 ### ✅ Configuration Management
 - Environment-specific configurations

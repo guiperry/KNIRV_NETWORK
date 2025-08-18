@@ -7,7 +7,7 @@ cd "$(dirname "$0")"
 DESKTOP_PID=$!
 
 echo "Desktop Host started (PID: $DESKTOP_PID)"
-echo "Mobile Tool available at: ./mobile-tool/index.html"
+echo "Mobile Tool available at: ./mobile-controller/index.html"
 echo "API available at: http://localhost:8082"
 echo "MCP WebSocket at: ws://localhost:8082/api/mcp/ws"
 echo ""

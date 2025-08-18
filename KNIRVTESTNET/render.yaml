@@ -1,0 +1,49 @@
+services:
+  # KNIRVTESTNET Unified Web Service
+  # Serves all applications: GraphChain Explorer, Nexus Portal, Agent Developer Portal, NANDA ANS
+  # Root directory is set to KNIRVTESTNET in Render dashboard
+  - type: web
+    name: knirvtestnet
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: testnet
+      - key: DEPLOYMENT_ENV
+        value: testnet
+      - key: TESTNET_MODE
+        value: "true"
+      - key: DEBUG_MODE
+        value: "true"
+      - key: ENABLE_CORS
+        value: "true"
+      - key: PORT
+        value: 10000
+      # Service endpoints (will be updated by deployment)
+      - key: KNIRVCHAIN_API
+        value: http://localhost:8080
+      - key: KNIRVGRAPH_API
+        value: http://localhost:8081
+      - key: KNIRVNEXUS_API
+        value: http://localhost:8082
+      - key: KNIRVORACLE_API
+        value: http://localhost:1317
+      - key: KNIRVROUTER_API
+        value: http://localhost:8086
+      - key: KNIRVANA_API
+        value: http://localhost:3000
+    healthCheckPath: /health
+
+databases:
+  # PostgreSQL for NEXUS Portal and API functions
+  - name: knirvtestnet-postgres
+    plan: starter
+    region: oregon
+    
+  # Redis for caching and sessions
+  - name: knirvtestnet-redis
+    plan: starter
+    region: oregon

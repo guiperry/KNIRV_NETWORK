@@ -60,7 +60,7 @@ go build -o desktop-host main.go
 
 3. **Build Mobile-Tool**:
 ```bash
-cd mobile-tool
+cd mobile-controller
 npm install
 npm run build
 ```
@@ -81,7 +81,7 @@ cd desktop-host
 
 2. **Start Mobile Tool** (development):
 ```bash
-cd mobile-tool
+cd mobile-controller
 npm run dev
 ```
 
@@ -285,7 +285,7 @@ The system passes 8/10 comprehensive tests:
 ```
 KNIRVENGINE/
 ├── desktop-host/          # Go backend with HRM
-├── mobile-tool/           # React mobile client
+├── mobile-controller/           # React mobile client
 ├── agent-core/            # WASM cognitive shell
 ├── test_*.js             # Integration tests
 └── README.md             # This file

@@ -33,17 +33,27 @@ VERBOSE=false
 # PORTAL LOCATIONS
 # =============================================================================
 
-# Nexus Portal locations
+# Nexus Portal locations (migrated to KNIRVTESTNET only)
 declare -A NEXUS_PORTALS=(
-    ["knirvgateway"]="KNIRVGATEWAY/nexus-portal"
-    ["knirvtestnet"]="KNIRVTESTNET/data/knirvgateway/nexus-portal"
+    ["knirvtestnet"]="KNIRVTESTNET/nexus-portal"
     ["knirvnexus"]="KNIRVNEXUS"
 )
 
-# GraphChain Explorer locations
+# GraphChain Explorer locations (migrated to KNIRVTESTNET only)
 declare -A GRAPHCHAIN_EXPLORERS=(
-    ["knirvgateway"]="KNIRVGATEWAY/graphchain-explorer"
-    ["knirvtestnet"]="KNIRVTESTNET/data/knirvgateway/graphchain-explorer"
+    ["knirvtestnet"]="KNIRVTESTNET/graphchain-explorer"
+)
+
+# GraphChain CLI binary locations
+declare -A GRAPHCHAIN_CLI_BINARIES=(
+    ["knirvgraph"]="KNIRVGRAPH/bin"
+    ["knirvshell"]="KNIRVSHELL/bin"
+)
+
+# KNIRVGRAPH build binaries locations
+declare -A KNIRVGRAPH_BINARIES=(
+    ["knirvgraph"]="KNIRVGRAPH/build"
+    ["knirvana-rust"]="KNIRVANA/rust-client/bin"
 )
 
 # =============================================================================
@@ -508,6 +518,116 @@ sync_all_graphchain_explorers() {
     done
 }
 
+# =============================================================================
+# BINARY SYNC FUNCTIONS
+# =============================================================================
+
+sync_graphchain_cli_to_knirvshell() {
+    log "INFO" "Syncing GraphChain CLI binary to KNIRVSHELL"
+
+    local source_dir="$PROJECT_ROOT/KNIRVGRAPH/build"
+    local target_dir="$PROJECT_ROOT/KNIRVSHELL/bin"
+    local cli_binary="graphchain-cli"
+
+    # Ensure source binary exists
+    if [[ ! -f "$source_dir/$cli_binary" ]]; then
+        log "WARNING" "GraphChain CLI binary not found at $source_dir/$cli_binary"
+        log "INFO" "Building GraphChain CLI binary..."
+
+        # Build the CLI binary to build directory
+        cd "$PROJECT_ROOT/KNIRVGRAPH"
+        mkdir -p build
+        if ! go build -o "build/$cli_binary" ./cmd/cli/main.go; then
+            log "ERROR" "Failed to build GraphChain CLI binary"
+            return 1
+        fi
+        cd "$PROJECT_ROOT"
+    fi
+
+    # Create target directory
+    mkdir -p "$target_dir"
+
+    # Backup existing binary if it exists
+    if [[ -f "$target_dir/$cli_binary" ]]; then
+        local backup_file="$BACKUP_DIR/$(date +%Y%m%d_%H%M%S)_knirvshell_$cli_binary"
+        mkdir -p "$(dirname "$backup_file")"
+        cp "$target_dir/$cli_binary" "$backup_file"
+        log "INFO" "Backed up existing $cli_binary to $backup_file"
+    fi
+
+    # Sync the binary
+    if [[ "$DRY_RUN" == "true" ]]; then
+        log "INFO" "[DRY RUN] Would sync: $source_dir/$cli_binary -> $target_dir/$cli_binary"
+    else
+        cp "$source_dir/$cli_binary" "$target_dir/$cli_binary"
+        chmod +x "$target_dir/$cli_binary"
+        log "SUCCESS" "Synced GraphChain CLI binary to KNIRVSHELL"
+    fi
+}
+
+sync_knirvgraph_binaries_to_knirvana() {
+    log "INFO" "Syncing KNIRVGRAPH build binaries to KNIRVANA rust-client"
+
+    local source_dir="$PROJECT_ROOT/KNIRVGRAPH/build"
+    local target_dir="$PROJECT_ROOT/KNIRVANA/rust-client/bin"
+
+    # Ensure source directory exists
+    if [[ ! -d "$source_dir" ]]; then
+        log "WARNING" "KNIRVGRAPH build directory not found at $source_dir"
+        log "INFO" "Building KNIRVGRAPH binaries..."
+
+        # Build the binaries
+        cd "$PROJECT_ROOT/KNIRVGRAPH"
+        if ! make build; then
+            log "ERROR" "Failed to build KNIRVGRAPH binaries"
+            return 1
+        fi
+        cd "$PROJECT_ROOT"
+    fi
+
+    # Create target directory
+    mkdir -p "$target_dir"
+
+    # Backup existing binaries
+    if [[ -d "$target_dir" ]] && [[ "$(ls -A "$target_dir" 2>/dev/null)" ]]; then
+        local backup_dir="$BACKUP_DIR/$(date +%Y%m%d_%H%M%S)_knirvana_binaries"
+        mkdir -p "$backup_dir"
+        cp -r "$target_dir"/* "$backup_dir/" 2>/dev/null || true
+        log "INFO" "Backed up existing KNIRVANA binaries to $backup_dir"
+    fi
+
+    # Sync all binaries
+    if [[ "$DRY_RUN" == "true" ]]; then
+        log "INFO" "[DRY RUN] Would sync KNIRVGRAPH binaries from $source_dir to $target_dir"
+        if [[ -d "$source_dir" ]]; then
+            find "$source_dir" -type f -executable | while read -r binary; do
+                local binary_name=$(basename "$binary")
+                log "INFO" "[DRY RUN] Would sync: $binary -> $target_dir/$binary_name"
+            done
+        fi
+    else
+        # Copy all executable files from source to target
+        if [[ -d "$source_dir" ]]; then
+            find "$source_dir" -type f -executable | while read -r binary; do
+                local binary_name=$(basename "$binary")
+                cp "$binary" "$target_dir/$binary_name"
+                chmod +x "$target_dir/$binary_name"
+                log "SUCCESS" "Synced binary: $binary_name"
+            done
+        fi
+        log "SUCCESS" "Synced KNIRVGRAPH binaries to KNIRVANA rust-client"
+    fi
+}
+
+sync_all_binaries() {
+    local success=true
+
+    sync_graphchain_cli_to_knirvshell || success=false
+    sync_knirvgraph_binaries_to_knirvana || success=false
+
+    return $([[ "$success" == "true" ]] && echo 0 || echo 1)
+}
+
 show_usage() {
     cat << EOF
 KNIRV Portal Version Synchronization Script
@@ -515,16 +635,17 @@ KNIRV Portal Version Synchronization Script
 Usage: $0 [OPTIONS]
 
 OPTIONS:
-    -t, --type TYPE        Portal type to sync: nexus, graphchain, both (default: both)
+    -t, --type TYPE        Portal type to sync: nexus, graphchain, binaries, both (default: both)
     -n, --dry-run         Show what would be done without making changes
     -f, --force           Force sync even if target files are newer
     -v, --verbose         Enable verbose logging
     -h, --help            Show this help message
 
 EXAMPLES:
-    $0                           # Sync both portal types
+    $0                           # Sync both portal types and binaries
     $0 -t nexus                  # Sync only nexus-portal
     $0 -t graphchain -n          # Dry run for graphchain-explorer only
+    $0 -t binaries               # Sync only binaries (GraphChain CLI to KNIRVSHELL, KNIRVGRAPH to KNIRVANA)
     $0 -f -v                     # Force sync with verbose output
 
 EOF
@@ -578,9 +699,13 @@ main() {
         "graphchain")
             sync_all_graphchain_explorers || success=false
             ;;
+        "binaries")
+            sync_all_binaries || success=false
+            ;;
         "both")
             sync_all_nexus_portals || success=false
             sync_all_graphchain_explorers || success=false
+            sync_all_binaries || success=false
             ;;
         *)
             log "ERROR" "Invalid portal type: $PORTAL_TYPE"

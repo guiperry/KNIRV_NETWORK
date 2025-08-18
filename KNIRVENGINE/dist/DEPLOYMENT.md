@@ -10,13 +10,13 @@
 2. **Start individual components**:
    ```bash
    ./start-desktop-host.sh    # Desktop Host only
-   ./start-mobile-tool.sh     # Mobile Tool dev server
+   ./start-mobile-controller.sh     # Mobile Tool dev server
    ```
 
 ## System URLs
 
 - **Desktop Host API**: http://localhost:8082
-- **Mobile Tool**: ./mobile-tool/index.html
+- **Mobile Tool**: ./mobile-controller/index.html
 - **MCP WebSocket**: ws://localhost:8082/api/mcp/ws
 - **Health Check**: http://localhost:8082/api/health
 

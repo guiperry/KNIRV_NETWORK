@@ -1,0 +1,65 @@
+# Test Configuration for KNIRV Network Services
+# Configuration parameters for testing and development environments
+
+# Testnet Mode Configuration
+testnet:
+  mode: true
+  local_network_mode: true
+  simplified_consensus: true
+
+# Mock Services Configuration
+mocking:
+  nrn_minting: true
+  xion_bridge_disabled: true
+
+# KNIRVROUTER Test Configuration
+knirvrouter:
+  port: 5001
+  miners_address: "KNIRVROUTER_Testnet_Miner"
+  blockchain_name: "KNIRVROUTER_TESTNET"
+  currency_name: "NRN"
+  hex_prefix: "0x"
+  address_prefix: "KNIRVROUTER-"
+  
+  # Testnet Chain Configuration
+  chain_id: "knirvrouter-testnet-1"
+  validators: 3
+  initial_nrn: 1000000000000
+  
+  # Mining Configuration
+  mining_difficulty: 1
+  mining_reward: 100
+  decimal: 8
+  
+  # Consensus Configuration
+  consensus_pause_time: 30
+
+# Status Messages
+status_messages:
+  success: true
+  failed: false
+  pending: "pending"
+  txn_verification_success: "verified"
+  txn_verification_failure: "failed"
+  blockchain_status: "active"
+
+# Peer Configuration
+peers:
+  addresses: []  # Empty for local testnet
+
+# Installation Status
+installation:
+  complete: true
+
+# Test Environment Settings
+test_environment:
+  auto_start_services: true
+  cleanup_on_exit: true
+  verbose_logging: true
+  mock_external_apis: true
+  
+# Performance Testing
+performance:
+  max_concurrent_requests: 100
+  timeout_seconds: 30
+  retry_attempts: 3

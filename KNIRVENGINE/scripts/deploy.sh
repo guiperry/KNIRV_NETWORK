@@ -68,7 +68,7 @@ create_directories() {
     mkdir -p "$DEPLOY_DIR"
     mkdir -p "$BACKUP_DIR"
     mkdir -p "$DEPLOY_DIR/desktop-host"
-    mkdir -p "$DEPLOY_DIR/mobile-tool"
+    mkdir -p "$DEPLOY_DIR/mobile-controller"
     mkdir -p "$DEPLOY_DIR/agent-core"
     
     success "Deployment directories created"
@@ -130,7 +130,7 @@ build_desktop_host() {
 build_mobile_tool() {
     log "Building Mobile-Tool engine..."
     
-    cd ../mobile-tool
+    cd ../mobile-controller
     
     # Install dependencies
     npm ci --production=false
@@ -143,7 +143,7 @@ build_mobile_tool() {
     fi
     
     # Copy to deployment directory
-    cp -r dist/* "../$DEPLOY_DIR/mobile-tool/"
+    cp -r dist/* "../$DEPLOY_DIR/mobile-controller/"
     
     cd ..
     success "Mobile-Tool engine built successfully"
@@ -215,9 +215,9 @@ echo "Starting KNIRVENGINE Desktop Host..."
 EOF
     
     # Mobile Tool startup script (for development)
-    cat > "$DEPLOY_DIR/start-mobile-tool.sh" << 'EOF'
+    cat > "$DEPLOY_DIR/start-mobile-controller.sh" << 'EOF'
 #!/bin/bash
-cd "$(dirname "$0")/mobile-tool"
+cd "$(dirname "$0")/mobile-controller"
 echo "Starting KNIRVENGINE Mobile Tool development server..."
 python3 -m http.server 8080
 EOF
@@ -233,7 +233,7 @@ cd "$(dirname "$0")"
 DESKTOP_PID=$!
 
 echo "Desktop Host started (PID: $DESKTOP_PID)"
-echo "Mobile Tool available at: ./mobile-tool/index.html"
+echo "Mobile Tool available at: ./mobile-controller/index.html"
 echo "API available at: http://localhost:8082"
 echo "MCP WebSocket at: ws://localhost:8082/api/mcp/ws"
 echo ""
@@ -298,13 +298,13 @@ create_documentation() {
 2. **Start individual components**:
    ```bash
    ./start-desktop-host.sh    # Desktop Host only
-   ./start-mobile-tool.sh     # Mobile Tool dev server
+   ./start-mobile-controller.sh     # Mobile Tool dev server
    ```
 
 ## System URLs
 
 - **Desktop Host API**: http://localhost:8082
-- **Mobile Tool**: ./mobile-tool/index.html
+- **Mobile Tool**: ./mobile-controller/index.html
 - **MCP WebSocket**: ws://localhost:8082/api/mcp/ws
 - **Health Check**: http://localhost:8082/api/health
 
@@ -351,7 +351,7 @@ print_summary() {
     echo ""
     echo "🌐 System URLs:"
     echo "   • Desktop Host: http://localhost:8082"
-    echo "   • Mobile Tool: ./mobile-tool/index.html"
+    echo "   • Mobile Tool: ./mobile-controller/index.html"
     echo "   • MCP WebSocket: ws://localhost:8082/api/mcp/ws"
     echo ""
     echo "📚 Documentation:"

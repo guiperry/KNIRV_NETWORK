@@ -1,0 +1,129 @@
+# KNIRV Developer Portal Configuration
+# This file contains all links and navigation configuration for easy sitewide updates
+
+# Main Navigation Links
+navigation:
+  main_site: "https://knirv.com"
+  documentation: "../documentation/docsify/"
+  graphchain_explorer: "../graphchain-explorer/"
+  nexus_portal: "../nexus-portal/"
+  support_desk: "../support-desk/"
+  nanda_ans: "../nanda_ans/"
+
+# External Services
+external_services:
+  payment_gateway: "https://pay.knirv.com/add-funds"
+  knirv_website: "https://knirv.com"
+  testnet_access: "https://testnet.knirv.com"
+
+# Documentation Links
+documentation:
+  whitepapers:
+    knirv_oracle: "../documentation/docsify/#/whitepapers/KNIRVROOT_Whitepaper.md"
+    knirv_router: "../documentation/docsify/#/whitepapers/KNIRV-ROUTER_Whitepaper.md"
+    knirvgraph: "../documentation/docsify/#/whitepapers/KNIRV-GRAPH_Whitepaper.md"
+    knirvchain: "../documentation/docsify/#/whitepapers/KNIRVCHAIN_Whitepaper.md"
+    knirv_nexus: "../documentation/docsify/#/whitepapers/KNIRV-NEXUS_Whitepaper.md"
+    knirv_cortex: "../documentation/docsify/#/whitepapers/KNIRV-AGENTIFIER_Whitepaper.md"
+    knirv_wallet: "../documentation/docsify/#/whitepapers/KNIRV-WALLET_Whitepaper.md"
+    knirv_gateway: "../documentation/docsify/#/whitepapers/KNIRV-GATEWAY_Whitepaper.md"
+    knirv_shell: "../documentation/docsify/#/whitepapers/KNIRV-SHELL_Whitepapers.md"
+    knirv_sdk: "../documentation/docsify/#/whitepapers/KNIRV-SDK_Whitepaper.md"
+    knirv_testnet: "../documentation/docsify/#/guides/TESTNET_DEPLOYMENT.md"
+    knirvana: "../documentation/docsify/#/whitepapers/KNIRVANA_Whitepaper.md"
+  
+  guides:
+    getting_started: "../documentation/docsify/#/guides/getting-started.md"
+    api_reference: "../documentation/docsify/#/api/reference.md"
+    deployment: "../documentation/docsify/#/guides/deployment.md"
+
+# Business Documents
+business:
+  cde_pitch: "../docs/business_plan/CDE_Pitch.md"
+
+# Footer Links
+footer:
+  legal:
+    terms: "../documentation/docsify/#/legal/terms-of-service.md"
+    privacy: "../documentation/docsify/#/legal/privacy-policy.md"
+    contribution: "../documentation/docsify/#/contributing/contribution-guidelines.md"
+  
+  social:
+    github: "https://github.com/knirv-network"
+    discord: "https://discord.gg/knirv"
+    twitter: "https://twitter.com/knirvnetwork"
+    telegram: "https://t.me/knirvnetwork"
+  
+  resources:
+    documentation: "../documentation/docsify/"
+    support: "../support-desk/"
+    forum: "../forum/"
+    blog: "https://blog.knirv.com"
+
+# API Endpoints
+api:
+  base_url: "/.netlify/functions"
+  endpoints:
+    agents: "/agents"
+    skills: "/skills"
+    auth: "/auth"
+    payments: "/payments"
+    nexus: "/nexus"
+
+# Feature Flags
+features:
+  authentication_enabled: true
+  payment_gateway_enabled: true
+  nexus_integration_enabled: true
+  graphchain_explorer_enabled: true
+  nanda_ans_enabled: true
+  support_desk_enabled: true
+
+# UI Configuration
+ui:
+  theme:
+    primary_color: "#00c0fa"
+    secondary_color: "#2b56f5"
+    accent_color: "#8b5cf6"
+  
+  branding:
+    logo_url: "../logo/knirv-logo.png"
+    favicon_url: "favicon.png"
+    site_title: "KNIRV Developer Portal"
+    site_description: "Build on the Decentralized Trusted Execution Network"
+
+# Iframe Configuration
+iframes:
+  graphchain_explorer:
+    url: "../graphchain-explorer/"
+    title: "KNIRV Graphchain Explorer"
+    height: "800px"
+  
+  documentation:
+    url: "../documentation/docsify/"
+    title: "KNIRV Documentation"
+    height: "800px"
+  
+  nexus_portal:
+    url: "../nexus-portal/"
+    title: "KNIRV Nexus Portal"
+    height: "800px"
+  
+  support_desk:
+    url: "../support-desk/"
+    title: "KNIRV Support Desk"
+    height: "600px"
+
+# Notification Messages
+messages:
+  welcome: "Welcome to the KNIRV Developer Portal!"
+  authentication_required: "Please log in to access this feature."
+  feature_coming_soon: "This feature is coming soon!"
+  success_generic: "Operation completed successfully!"
+  error_generic: "An error occurred. Please try again."
+
+# Development Settings
+development:
+  debug_mode: false
+  mock_data_enabled: true
+  api_timeout: 30000

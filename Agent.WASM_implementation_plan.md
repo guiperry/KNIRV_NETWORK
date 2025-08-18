@@ -3,7 +3,7 @@
 
 ### Executive Summary
 
-This document outlines the implementation plan for the KNIRVENGINE ecosystem, featuring three integrated engines: **desktop-host** (host system), **mobile-tool** (wallet/UDC management + client components), and **agent-core** (pure cognitive WASM). The architecture enables seamless QR code-based linkage for target system assignment, transaction signing, and distributed AI agent operations while maintaining security boundaries between engines.
+This document outlines the implementation plan for the KNIRVENGINE ecosystem, featuring three integrated engines: **desktop-host** (host system), **mobile-controller** (wallet/UDC management + client components), and **agent-core** (pure cognitive WASM). The architecture enables seamless QR code-based linkage for target system assignment, transaction signing, and distributed AI agent operations while maintaining security boundaries between engines.
 
 ## KNIRVENGINE Architecture Overview
 
@@ -76,7 +76,7 @@ This document outlines the implementation plan for the KNIRVENGINE ecosystem, fe
 - **Agent Plugin System**: Dynamic loading of specialized agent capabilities
 - **TEE Security**: Trusted Execution Environment for secure operations
 - **MCP Integration**: Model Context Protocol with 689+ available servers
-- **QR Code Generation**: Create linkage codes for mobile-tool pairing
+- **QR Code Generation**: Create linkage codes for mobile-controller pairing
 - **HRM Model Hosting**: Load and serve 27M-parameter HRM WASM modules
 
 **Core Components**:
@@ -147,7 +147,7 @@ pub struct AgentCore {
     personality_adapter: PersonalityAdapter,
     fabric_algorithm: FabricAlgorithm,
     adaptive_learning: AdaptiveLearningPipeline,
-    // Note: No voice/visual processors - these are now in mobile-tool
+    // Note: No voice/visual processors - these are now in mobile-controller
     host_interface: DesktopHostInterface,
 }
 ```
@@ -549,7 +549,7 @@ impl HRMEngine {
 
 ### Linkage Protocol Architecture
 
-The QR code linkage system enables secure, seamless communication between desktop-host and mobile-tool for target system assignment and transaction signing.
+The QR code linkage system enables secure, seamless communication between desktop-host and mobile-controller for target system assignment and transaction signing.
 
 #### 1. QR Code Generation (Desktop-Host)
 ```go
@@ -1271,7 +1271,7 @@ func loadHRMWeights(weightsPath string) ([]byte, error) {
 
 #### 1.2 Mobile-Tool Enhanced Client Integration
 ```typescript
-// Enhanced mobile-tool App.tsx with migrated TypeScript components
+// Enhanced mobile-controller App.tsx with migrated TypeScript components
 import React, { useState, useEffect } from 'react';
 import { QRScannerService } from './services/QRScannerService';
 import { KNIRVWalletManager } from './services/KNIRVWalletManager';
@@ -1308,7 +1308,7 @@ const MobileToolApp: React.FC = () => {
         hrmProcessing: false
     });
 
-    // Core mobile-tool services
+    // Core mobile-controller services
     const [qrScanner] = useState(() => new QRScannerService(
         new CryptoManager(),
         new KNIRVWalletManager()
@@ -1769,7 +1769,7 @@ struct MobileConnection {
 
 #### 3.2 Mobile-Tool Client Bridge to Agent-Core
 ```typescript
-// mobile-tool/src/client/AgentCoreBridge.ts
+// mobile-controller/src/client/AgentCoreBridge.ts
 export class AgentCoreBridge {
     private desktopEndpoint: string;
     private sessionId: string;
@@ -1817,7 +1817,7 @@ export class AgentCoreBridge {
     }
 
     async processVisualInput(imageData: ImageData): Promise<any> {
-        // Process visual data locally in mobile-tool
+        // Process visual data locally in mobile-controller
         const visualAnalysis = await this.visualProcessor.analyze(imageData);
 
         // Send to agent-core for cognitive processing with HRM
@@ -1937,8 +1937,8 @@ cd KNIRVENGINE/desktop-host
 make build-production
 make build-electron
 
-# Build mobile-tool
-cd ../mobile-tool
+# Build mobile-controller
+cd ../mobile-controller
 npm run build:production
 
 # Build agent-core WASM modules with HRM
@@ -1959,8 +1959,8 @@ mkdir -p dist/knirvengine
 cp -r desktop-host/dist/* dist/knirvengine/desktop/
 cp -r desktop-host/electron/dist/* dist/knirvengine/desktop/
 
-# Copy mobile-tool
-cp -r mobile-tool/dist/* dist/knirvengine/mobile/
+# Copy mobile-controller
+cp -r mobile-controller/dist/* dist/knirvengine/mobile/
 
 # Copy agent-core WASM with HRM
 cp -r agent-core/dist/*.wasm dist/knirvengine/wasm/
@@ -2012,9 +2012,9 @@ services:
       - HRM_COGNITIVE_ENABLED=true
       - HRM_WEIGHTS_PATH=/app/hrm-models/weights.safetensors
 
-  mobile-tool:
+  mobile-controller:
     build:
-      context: ./mobile-tool
+      context: ./mobile-controller
       dockerfile: Dockerfile.mobile
     ports:
       - "3000:3000"
@@ -2087,7 +2087,7 @@ The KNIRVENGINE three-engine architecture with QR code linkage represents a brea
 
 ### **Key Innovations:**
 
-1. **Component Migration Strategy**: Moving TypeScript voice/visual components to mobile-tool eliminates WASM/JS bridge overhead while maintaining Web API access
+1. **Component Migration Strategy**: Moving TypeScript voice/visual components to mobile-controller eliminates WASM/JS bridge overhead while maintaining Web API access
 2. **HRM Integration Pipeline**: Complete PyTorch-to-WASM conversion of 27M-parameter HRM model using external-models/HRM repository
 3. **Pure WASM Cognitive Core**: Agent-core as compiled Rust WASM with embedded HRM provides maximum performance and portability
 4. **QR Code Linkage**: Secure, time-limited sessions for device coordination and transaction signing
@@ -2095,13 +2095,13 @@ The KNIRVENGINE three-engine architecture with QR code linkage represents a brea
 
 ### **Performance Advantages:**
 
-- **Reduced Latency**: Direct Web API access in mobile-tool eliminates WASM bridge overhead
+- **Reduced Latency**: Direct Web API access in mobile-controller eliminates WASM bridge overhead
 - **HRM Performance**: 27M-parameter model optimized to ~24MB WASM with sub-100ms processing
 - **Optimal Resource Usage**: Pure WASM cognitive processing with minimal memory footprint
 - **Scalable Communication**: WebSocket-based real-time coordination between engines
 - **Cross-Platform Consistency**: Identical cognitive behavior across all deployment scenarios
 
-This implementation enables truly autonomous AI agents powered by the 27M-parameter HRM model that can operate across multiple devices while maintaining strict security boundaries and providing exceptional user experiences. The component migration strategy ensures optimal performance by placing each component in its ideal execution environment: Web APIs in the browser (mobile-tool), system integration in native code (desktop-host), and HRM cognitive processing in high-performance WASM (agent-core).
+This implementation enables truly autonomous AI agents powered by the 27M-parameter HRM model that can operate across multiple devices while maintaining strict security boundaries and providing exceptional user experiences. The component migration strategy ensures optimal performance by placing each component in its ideal execution environment: Web APIs in the browser (mobile-controller), system integration in native code (desktop-host), and HRM cognitive processing in high-performance WASM (agent-core).
 ```yaml
 # OpenAPI specification for agent microservice
 openapi: 3.0.0

@@ -801,6 +801,13 @@ sync-portals-help: ## Show detailed help for portal synchronization commands
 	@echo ""
 	@echo "$(YELLOW)Examples:$(NC)"
 	@echo "  make sync-portals-dry-run        # Preview all portal changes"
+	@echo "  make sync-binaries               # Sync GraphChain CLI and KNIRVGRAPH binaries"
+	@echo "  make sync-binaries-dry-run       # Preview binary sync changes"
+	@echo ""
+	@echo "$(BLUE)Gateway Deployment:$(NC)"
+	@echo "  make deploy-testnet-gateway      # Deploy KNIRVGATEWAY with testnet endpoints"
+	@echo "  make generate-production-endpoints # Generate production endpoints.yaml"
+	@echo "  make deploy-production-gateway   # Deploy KNIRVGATEWAY with production endpoints"
 	@echo "  make sync-nexus-portal           # Sync only nexus-portal"
 	@echo "  make sync-graphchain-explorer    # Sync only graphchain-explorer"
 	@echo "  make sync-portals-status         # Check current versions"
@@ -811,6 +818,74 @@ sync-portals-help: ## Show detailed help for portal synchronization commands
 	@echo "  • Backups are created automatically before modifications"
 	@echo "  • Idempotent updates preserve target-specific implementations"
 	@echo "  • Force commands bypass version checks"
+
+# =============================================================================
+# BINARY SYNCHRONIZATION
+# =============================================================================
+
+.PHONY: sync-binaries
+sync-binaries: ## Synchronize GraphChain CLI and KNIRVGRAPH binaries
+	@echo "$(BLUE)Synchronizing KNIRV Binaries...$(NC)"
+	@$(SCRIPTS_DIR)/sync-portal-versions.sh --type binaries --verbose
+	@echo "$(GREEN)✓ Binary synchronization completed$(NC)"
+
+.PHONY: sync-binaries-dry-run
+sync-binaries-dry-run: ## Preview binary synchronization changes
+	@echo "$(BLUE)Previewing KNIRV Binary Synchronization...$(NC)"
+	@$(SCRIPTS_DIR)/sync-portal-versions.sh --type binaries --dry-run --verbose
+	@echo "$(GREEN)✓ Binary synchronization preview completed$(NC)"
+
+# =============================================================================
+# GATEWAY DEPLOYMENT
+# =============================================================================
+
+.PHONY: deploy-testnet-gateway
+deploy-testnet-gateway: ## Deploy KNIRVGATEWAY with testnet endpoints (automatic)
+	@echo "$(BLUE)Deploying KNIRVGATEWAY for Testnet...$(NC)"
+	@echo "$(YELLOW)⚠️  This will automatically update all endpoints to testnet versions$(NC)"
+	@ansible-playbook deployment/ansible/update-gateway-endpoints.yml \
+		-e environment=testnet \
+		-e @deployment/ansible/environments/testnet.yml
+	@cd KNIRVGATEWAY && npm run load-endpoints:testnet && npm run build && npm run deploy
+	@echo "$(GREEN)✅ KNIRVGATEWAY deployed to testnet successfully$(NC)"
+
+.PHONY: generate-production-endpoints
+generate-production-endpoints: ## Generate production endpoints.yaml file
+	@echo "$(BLUE)Generating Production Endpoints...$(NC)"
+	@ansible-playbook deployment/ansible/update-gateway-endpoints.yml \
+		-e environment=production \
+		-e @deployment/ansible/environments/production.yml
+	@echo "$(GREEN)✅ Production endpoints.yaml generated$(NC)"
+	@echo "$(YELLOW)⚠️  Review KNIRVGATEWAY/config/endpoints.yaml before deploying$(NC)"
+
+.PHONY: deploy-production-gateway
+deploy-production-gateway: ## Deploy KNIRVGATEWAY with production endpoints (manual control)
+	@echo "$(BLUE)Deploying KNIRVGATEWAY for Production...$(NC)"
+	@echo "$(YELLOW)⚠️  This requires manual verification of endpoints.yaml$(NC)"
+	@if [ ! -f KNIRVGATEWAY/config/endpoints.yaml ]; then \
+		echo "$(RED)❌ Production endpoints.yaml not found$(NC)"; \
+		echo "$(YELLOW)   Run 'make generate-production-endpoints' first$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(CYAN)📋 Current production endpoints:$(NC)"
+	@cat KNIRVGATEWAY/config/endpoints.yaml | grep -A 20 "endpoints:"
+	@echo ""
+	@read -p "$(YELLOW)Continue with production deployment? [y/N]: $(NC)" confirm; \
+	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
+		cd KNIRVGATEWAY && npm run load-endpoints:production && npm run build && npm run deploy; \
+		echo "$(GREEN)✅ KNIRVGATEWAY deployed to production successfully$(NC)"; \
+	else \
+		echo "$(YELLOW)⏸️  Production deployment cancelled$(NC)"; \
+	fi
+
+.PHONY: update-testnet-endpoints
+update-testnet-endpoints: ## Update KNIRVGATEWAY endpoints for testnet (without deploying)
+	@echo "$(BLUE)Updating KNIRVGATEWAY Testnet Endpoints...$(NC)"
+	@ansible-playbook deployment/ansible/update-gateway-endpoints.yml \
+		-e environment=testnet \
+		-e @deployment/ansible/environments/testnet.yml
+	@cd KNIRVGATEWAY && npm run load-endpoints:testnet
+	@echo "$(GREEN)✅ Testnet endpoints updated$(NC)"
 
 # =============================================================================
 # DEFAULT TARGET

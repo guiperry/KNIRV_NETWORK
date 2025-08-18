@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "npm run check-health && netlify dev",
     "start": "node scripts/smart-start.js",
-    "build": "npm run check-health && npm install && npm run check-function-deps --fix && npm run build:nexus && echo 'KNIRV Gateway built with Netlify Functions support'",
+    "build": "npm run load-endpoints && npm run check-health && npm install && npm run check-function-deps --fix && npm run build:nexus && echo 'KNIRV Gateway built with Netlify Functions support'",
     "build:nexus": "npm run check-nexus-health && cd nexus-portal && npm install && npm run build",
     "smart-build": "npm run check-health && npm run build || npm run auto-fix",
     "smart-build-with-apps": "npm run check-health && npm run init-apps && npm run build || npm run auto-fix",
@@ -30,22 +30,26 @@
     "reset": "npm run clean && npm cache clean --force && npm install",
     "start-unsafe": "npm run build && netlify dev",
     "force-fix": "./scripts/fix-netlify-cli.sh",
-    "health-report": "npm run check-health && npm run check-nexus-health"
+    "health-report": "npm run check-health && npm run check-nexus-health",
+    "load-endpoints": "node scripts/load-endpoints.js",
+    "load-endpoints:production": "node scripts/load-endpoints.js production",
+    "load-endpoints:testnet": "node scripts/load-endpoints.js testnet"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
     "adm-zip": "^0.5.10",
     "bcryptjs": "^2.4.3",
-    "http-proxy-middleware": "^2.0.6",
-    "@supabase/supabase-js": "^2.39.0",
-    "formidable": "^3.5.1",
-    "jsonwebtoken": "^9.0.2",
-    "nodemailer": "^6.9.8",
-    "uuid": "^9.0.1",
-    "mime-types": "^2.1.35",
-    "sharp": "^0.33.0",
-    "markdown-it": "^14.0.0",
     "dompurify": "^3.0.7",
-    "jsdom": "^23.0.1"
+    "formidable": "^3.5.1",
+    "http-proxy-middleware": "^2.0.6",
+    "js-yaml": "^4.1.0",
+    "jsdom": "^23.0.1",
+    "jsonwebtoken": "^9.0.2",
+    "markdown-it": "^14.0.0",
+    "mime-types": "^2.1.35",
+    "nodemailer": "^6.9.8",
+    "sharp": "^0.33.0",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "netlify-cli": "^23.1.4"

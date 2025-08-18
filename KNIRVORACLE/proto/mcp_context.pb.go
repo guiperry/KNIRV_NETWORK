@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        v4.25.7
-// source: proto/mcp_context.proto
+// source: mcp_context.proto
 
 package proto
 
@@ -75,11 +75,11 @@ func (x InteractionTypeProto) String() string {
 }
 
 func (InteractionTypeProto) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_mcp_context_proto_enumTypes[0].Descriptor()
+	return file_mcp_context_proto_enumTypes[0].Descriptor()
 }
 
 func (InteractionTypeProto) Type() protoreflect.EnumType {
-	return &file_proto_mcp_context_proto_enumTypes[0]
+	return &file_mcp_context_proto_enumTypes[0]
 }
 
 func (x InteractionTypeProto) Number() protoreflect.EnumNumber {
@@ -88,7 +88,7 @@ func (x InteractionTypeProto) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use InteractionTypeProto.Descriptor instead.
 func (InteractionTypeProto) EnumDescriptor() ([]byte, []int) {
-	return file_proto_mcp_context_proto_rawDescGZIP(), []int{0}
+	return file_mcp_context_proto_rawDescGZIP(), []int{0}
 }
 
 // ContextRecordProto corresponds to ContextRecord
@@ -109,7 +109,7 @@ type ContextRecordProto struct {
 
 func (x *ContextRecordProto) Reset() {
 	*x = ContextRecordProto{}
-	mi := &file_proto_mcp_context_proto_msgTypes[0]
+	mi := &file_mcp_context_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -121,7 +121,7 @@ func (x *ContextRecordProto) String() string {
 func (*ContextRecordProto) ProtoMessage() {}
 
 func (x *ContextRecordProto) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_mcp_context_proto_msgTypes[0]
+	mi := &file_mcp_context_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -134,7 +134,7 @@ func (x *ContextRecordProto) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContextRecordProto.ProtoReflect.Descriptor instead.
 func (*ContextRecordProto) Descriptor() ([]byte, []int) {
-	return file_proto_mcp_context_proto_rawDescGZIP(), []int{0}
+	return file_mcp_context_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ContextRecordProto) GetId() string {
@@ -210,7 +210,7 @@ type MCPInvokeCapabilityDataProto struct {
 
 func (x *MCPInvokeCapabilityDataProto) Reset() {
 	*x = MCPInvokeCapabilityDataProto{}
-	mi := &file_proto_mcp_context_proto_msgTypes[1]
+	mi := &file_mcp_context_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -222,7 +222,7 @@ func (x *MCPInvokeCapabilityDataProto) String() string {
 func (*MCPInvokeCapabilityDataProto) ProtoMessage() {}
 
 func (x *MCPInvokeCapabilityDataProto) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_mcp_context_proto_msgTypes[1]
+	mi := &file_mcp_context_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -235,7 +235,7 @@ func (x *MCPInvokeCapabilityDataProto) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MCPInvokeCapabilityDataProto.ProtoReflect.Descriptor instead.
 func (*MCPInvokeCapabilityDataProto) Descriptor() ([]byte, []int) {
-	return file_proto_mcp_context_proto_rawDescGZIP(), []int{1}
+	return file_mcp_context_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *MCPInvokeCapabilityDataProto) GetContextRecord() *ContextRecordProto {
@@ -245,15 +245,15 @@ func (x *MCPInvokeCapabilityDataProto) GetContextRecord() *ContextRecordProto {
 	return nil
 }
 
-var File_proto_mcp_context_proto protoreflect.FileDescriptor
+var File_mcp_context_proto protoreflect.FileDescriptor
 
-const file_proto_mcp_context_proto_rawDesc = "" +
+const file_mcp_context_proto_rawDesc = "" +
 	"\n" +
-	"\x17proto/mcp_context.proto\x12\tKNIRVORACLE\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xfe\x02\n" +
+	"\x11mcp_context.proto\x12\vKNIRVORACLE\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x80\x03\n" +
 	"\x12ContextRecordProto\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12#\n" +
-	"\rcapability_id\x18\x02 \x01(\tR\fcapabilityId\x12J\n" +
-	"\x10interaction_type\x18\x03 \x01(\x0e2\x1f.KNIRVORACLE.InteractionTypeProtoR\x0finteractionType\x12\x1c\n" +
+	"\rcapability_id\x18\x02 \x01(\tR\fcapabilityId\x12L\n" +
+	"\x10interaction_type\x18\x03 \x01(\x0e2!.KNIRVORACLE.InteractionTypeProtoR\x0finteractionType\x12\x1c\n" +
 	"\tinitiator\x18\x04 \x01(\tR\tinitiator\x128\n" +
 	"\ttimestamp\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12\x1d\n" +
 	"\n" +
@@ -261,9 +261,9 @@ const file_proto_mcp_context_proto_rawDesc = "" +
 	"\voutput_hash\x18\a \x01(\tR\n" +
 	"outputHash\x121\n" +
 	"\adetails\x18\b \x01(\v2\x17.google.protobuf.StructR\adetails\x12\x1c\n" +
-	"\tsignature\x18\t \x01(\fR\tsignature\"d\n" +
-	"\x1cMCPInvokeCapabilityDataProto\x12D\n" +
-	"\x0econtext_record\x18\x01 \x01(\v2\x1d.KNIRVORACLE.ContextRecordProtoR\rcontextRecord*\xb2\x03\n" +
+	"\tsignature\x18\t \x01(\fR\tsignature\"f\n" +
+	"\x1cMCPInvokeCapabilityDataProto\x12F\n" +
+	"\x0econtext_record\x18\x01 \x01(\v2\x1f.KNIRVORACLE.ContextRecordProtoR\rcontextRecord*\xb2\x03\n" +
 	"\x14InteractionTypeProto\x12&\n" +
 	"\"INTERACTION_TYPE_PROTO_UNSPECIFIED\x10\x00\x12*\n" +
 	"&INTERACTION_TYPE_PROTO_TOOL_INVOCATION\x10\x01\x12'\n" +
@@ -277,27 +277,27 @@ const file_proto_mcp_context_proto_rawDesc = "" +
 	"Z\b./;protob\x06proto3"
 
 var (
-	file_proto_mcp_context_proto_rawDescOnce sync.Once
-	file_proto_mcp_context_proto_rawDescData []byte
+	file_mcp_context_proto_rawDescOnce sync.Once
+	file_mcp_context_proto_rawDescData []byte
 )
 
-func file_proto_mcp_context_proto_rawDescGZIP() []byte {
-	file_proto_mcp_context_proto_rawDescOnce.Do(func() {
-		file_proto_mcp_context_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_mcp_context_proto_rawDesc), len(file_proto_mcp_context_proto_rawDesc)))
+func file_mcp_context_proto_rawDescGZIP() []byte {
+	file_mcp_context_proto_rawDescOnce.Do(func() {
+		file_mcp_context_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_mcp_context_proto_rawDesc), len(file_mcp_context_proto_rawDesc)))
 	})
-	return file_proto_mcp_context_proto_rawDescData
+	return file_mcp_context_proto_rawDescData
 }
 
-var file_proto_mcp_context_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_proto_mcp_context_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_proto_mcp_context_proto_goTypes = []any{
+var file_mcp_context_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_mcp_context_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_mcp_context_proto_goTypes = []any{
 	(InteractionTypeProto)(0),            // 0: KNIRVORACLE.InteractionTypeProto
 	(*ContextRecordProto)(nil),           // 1: KNIRVORACLE.ContextRecordProto
 	(*MCPInvokeCapabilityDataProto)(nil), // 2: KNIRVORACLE.MCPInvokeCapabilityDataProto
 	(*timestamppb.Timestamp)(nil),        // 3: google.protobuf.Timestamp
 	(*structpb.Struct)(nil),              // 4: google.protobuf.Struct
 }
-var file_proto_mcp_context_proto_depIdxs = []int32{
+var file_mcp_context_proto_depIdxs = []int32{
 	0, // 0: KNIRVORACLE.ContextRecordProto.interaction_type:type_name -> KNIRVORACLE.InteractionTypeProto
 	3, // 1: KNIRVORACLE.ContextRecordProto.timestamp:type_name -> google.protobuf.Timestamp
 	4, // 2: KNIRVORACLE.ContextRecordProto.details:type_name -> google.protobuf.Struct
@@ -309,27 +309,27 @@ var file_proto_mcp_context_proto_depIdxs = []int32{
 	0, // [0:4] is the sub-list for field type_name
 }
 
-func init() { file_proto_mcp_context_proto_init() }
-func file_proto_mcp_context_proto_init() {
-	if File_proto_mcp_context_proto != nil {
+func init() { file_mcp_context_proto_init() }
+func file_mcp_context_proto_init() {
+	if File_mcp_context_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_mcp_context_proto_rawDesc), len(file_proto_mcp_context_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_mcp_context_proto_rawDesc), len(file_mcp_context_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_proto_mcp_context_proto_goTypes,
-		DependencyIndexes: file_proto_mcp_context_proto_depIdxs,
-		EnumInfos:         file_proto_mcp_context_proto_enumTypes,
-		MessageInfos:      file_proto_mcp_context_proto_msgTypes,
+		GoTypes:           file_mcp_context_proto_goTypes,
+		DependencyIndexes: file_mcp_context_proto_depIdxs,
+		EnumInfos:         file_mcp_context_proto_enumTypes,
+		MessageInfos:      file_mcp_context_proto_msgTypes,
 	}.Build()
-	File_proto_mcp_context_proto = out.File
-	file_proto_mcp_context_proto_goTypes = nil
-	file_proto_mcp_context_proto_depIdxs = nil
+	File_mcp_context_proto = out.File
+	file_mcp_context_proto_goTypes = nil
+	file_mcp_context_proto_depIdxs = nil
 }

@@ -40,11 +40,13 @@ knirv_services:
   graph:
     port: 8081
     health_endpoint: /health
-    description: "KNIRV Graph Processing Service"
+    description: "KNIRV Graph Processing Service (Backend)"
+    frontend_url: "gateway/graphchain-explorer"
   nexus:
     port: 8082
     health_endpoint: /health
-    description: "KNIRV LLM Inference Engine"
+    description: "KNIRV LLM Inference Engine (Backend)"
+    frontend_url: "gateway/nexus-portal"
   root:
     port: 8083
     health_endpoint: /health
@@ -64,7 +66,7 @@ knirv_services:
   gateway:
     port: 8087
     health_endpoint: /health
-    description: "KNIRV API Gateway"
+    description: "KNIRV API Gateway (Hosts Nexus and Graph portals)"
 
 # Additional ports for infrastructure services
 infrastructure_ports:
@@ -87,15 +89,18 @@ subdomain_prefix: ""  # Empty for direct subdomains, or set to environment name
 # KNIRV service subdomains
 knirv_subdomains:
   - chain
-  - graph
-  - nexus
   - root
   - wallet
   - shell
   - router
-  - gateway
+  - gateway  # Hosts nexus and graph portals
   - api
   - www
+
+# CDN DNS configuration - redirect legacy subdomains to KNIRVGATEWAY
+cdn_dns_redirects:
+  graph: "gateway/graphchain-explorer"
+  nexus: "gateway/nexus-portal"
 
 # Environment-specific subdomain patterns
 subdomain_patterns:

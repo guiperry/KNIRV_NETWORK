@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        v4.25.7
-// source: proto/hashing.proto
+// source: hashing.proto
 
 package proto
 
@@ -44,7 +44,7 @@ type TransactionProto struct {
 
 func (x *TransactionProto) Reset() {
 	*x = TransactionProto{}
-	mi := &file_proto_hashing_proto_msgTypes[0]
+	mi := &file_hashing_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -56,7 +56,7 @@ func (x *TransactionProto) String() string {
 func (*TransactionProto) ProtoMessage() {}
 
 func (x *TransactionProto) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_hashing_proto_msgTypes[0]
+	mi := &file_hashing_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -69,7 +69,7 @@ func (x *TransactionProto) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TransactionProto.ProtoReflect.Descriptor instead.
 func (*TransactionProto) Descriptor() ([]byte, []int) {
-	return file_proto_hashing_proto_rawDescGZIP(), []int{0}
+	return file_hashing_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *TransactionProto) GetFrom() string {
@@ -152,7 +152,7 @@ type BlockProto struct {
 
 func (x *BlockProto) Reset() {
 	*x = BlockProto{}
-	mi := &file_proto_hashing_proto_msgTypes[1]
+	mi := &file_hashing_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -164,7 +164,7 @@ func (x *BlockProto) String() string {
 func (*BlockProto) ProtoMessage() {}
 
 func (x *BlockProto) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_hashing_proto_msgTypes[1]
+	mi := &file_hashing_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -177,7 +177,7 @@ func (x *BlockProto) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BlockProto.ProtoReflect.Descriptor instead.
 func (*BlockProto) Descriptor() ([]byte, []int) {
-	return file_proto_hashing_proto_rawDescGZIP(), []int{1}
+	return file_hashing_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *BlockProto) GetBlockNumber() uint64 {
@@ -222,11 +222,11 @@ func (x *BlockProto) GetProposerAddress() string {
 	return ""
 }
 
-var File_proto_hashing_proto protoreflect.FileDescriptor
+var File_hashing_proto protoreflect.FileDescriptor
 
-const file_proto_hashing_proto_rawDesc = "" +
+const file_hashing_proto_rawDesc = "" +
 	"\n" +
-	"\x13proto/hashing.proto\x12\tKNIRVORACLE\x1a\x1fgoogle/protobuf/timestamp.proto\"\xfd\x01\n" +
+	"\rhashing.proto\x12\vKNIRVORACLE\x1a\x1fgoogle/protobuf/timestamp.proto\"\xfd\x01\n" +
 	"\x10TransactionProto\x12\x12\n" +
 	"\x04from\x18\x01 \x01(\tR\x04from\x12\x0e\n" +
 	"\x02to\x18\x02 \x01(\tR\x02to\x12\x14\n" +
@@ -237,36 +237,36 @@ const file_proto_hashing_proto_rawDesc = "" +
 	"\x04type\x18\a \x01(\tR\x04type\x12\x1c\n" +
 	"\tsignature\x18\b \x01(\fR\tsignature\x12\x1d\n" +
 	"\n" +
-	"public_key\x18\t \x01(\fR\tpublicKey\"\x88\x02\n" +
+	"public_key\x18\t \x01(\fR\tpublicKey\"\x8a\x02\n" +
 	"\n" +
 	"BlockProto\x12!\n" +
 	"\fblock_number\x18\x01 \x01(\x04R\vblockNumber\x12\x1b\n" +
 	"\tprev_hash\x18\x02 \x01(\fR\bprevHash\x128\n" +
 	"\ttimestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12\x14\n" +
-	"\x05nonce\x18\x04 \x01(\x05R\x05nonce\x12?\n" +
-	"\ftransactions\x18\x05 \x03(\v2\x1b.KNIRVORACLE.TransactionProtoR\ftransactions\x12)\n" +
+	"\x05nonce\x18\x04 \x01(\x05R\x05nonce\x12A\n" +
+	"\ftransactions\x18\x05 \x03(\v2\x1d.KNIRVORACLE.TransactionProtoR\ftransactions\x12)\n" +
 	"\x10proposer_address\x18\x06 \x01(\tR\x0fproposerAddressB\n" +
 	"Z\b./;protob\x06proto3"
 
 var (
-	file_proto_hashing_proto_rawDescOnce sync.Once
-	file_proto_hashing_proto_rawDescData []byte
+	file_hashing_proto_rawDescOnce sync.Once
+	file_hashing_proto_rawDescData []byte
 )
 
-func file_proto_hashing_proto_rawDescGZIP() []byte {
-	file_proto_hashing_proto_rawDescOnce.Do(func() {
-		file_proto_hashing_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_hashing_proto_rawDesc), len(file_proto_hashing_proto_rawDesc)))
+func file_hashing_proto_rawDescGZIP() []byte {
+	file_hashing_proto_rawDescOnce.Do(func() {
+		file_hashing_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_hashing_proto_rawDesc), len(file_hashing_proto_rawDesc)))
 	})
-	return file_proto_hashing_proto_rawDescData
+	return file_hashing_proto_rawDescData
 }
 
-var file_proto_hashing_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_proto_hashing_proto_goTypes = []any{
+var file_hashing_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_hashing_proto_goTypes = []any{
 	(*TransactionProto)(nil),      // 0: KNIRVORACLE.TransactionProto
 	(*BlockProto)(nil),            // 1: KNIRVORACLE.BlockProto
 	(*timestamppb.Timestamp)(nil), // 2: google.protobuf.Timestamp
 }
-var file_proto_hashing_proto_depIdxs = []int32{
+var file_hashing_proto_depIdxs = []int32{
 	2, // 0: KNIRVORACLE.TransactionProto.timestamp:type_name -> google.protobuf.Timestamp
 	2, // 1: KNIRVORACLE.BlockProto.timestamp:type_name -> google.protobuf.Timestamp
 	0, // 2: KNIRVORACLE.BlockProto.transactions:type_name -> KNIRVORACLE.TransactionProto
@@ -277,26 +277,26 @@ var file_proto_hashing_proto_depIdxs = []int32{
 	0, // [0:3] is the sub-list for field type_name
 }
 
-func init() { file_proto_hashing_proto_init() }
-func file_proto_hashing_proto_init() {
-	if File_proto_hashing_proto != nil {
+func init() { file_hashing_proto_init() }
+func file_hashing_proto_init() {
+	if File_hashing_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_hashing_proto_rawDesc), len(file_proto_hashing_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hashing_proto_rawDesc), len(file_hashing_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_proto_hashing_proto_goTypes,
-		DependencyIndexes: file_proto_hashing_proto_depIdxs,
-		MessageInfos:      file_proto_hashing_proto_msgTypes,
+		GoTypes:           file_hashing_proto_goTypes,
+		DependencyIndexes: file_hashing_proto_depIdxs,
+		MessageInfos:      file_hashing_proto_msgTypes,
 	}.Build()
-	File_proto_hashing_proto = out.File
-	file_proto_hashing_proto_goTypes = nil
-	file_proto_hashing_proto_depIdxs = nil
+	File_hashing_proto = out.File
+	file_hashing_proto_goTypes = nil
+	file_hashing_proto_depIdxs = nil
 }

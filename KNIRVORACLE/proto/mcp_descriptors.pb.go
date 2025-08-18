@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        v4.25.7
-// source: proto/mcp_descriptors.proto
+// source: mcp_descriptors.proto
 
 package proto
 
@@ -63,11 +63,11 @@ func (x CapabilityTypeProto) String() string {
 }
 
 func (CapabilityTypeProto) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_mcp_descriptors_proto_enumTypes[0].Descriptor()
+	return file_mcp_descriptors_proto_enumTypes[0].Descriptor()
 }
 
 func (CapabilityTypeProto) Type() protoreflect.EnumType {
-	return &file_proto_mcp_descriptors_proto_enumTypes[0]
+	return &file_mcp_descriptors_proto_enumTypes[0]
 }
 
 func (x CapabilityTypeProto) Number() protoreflect.EnumNumber {
@@ -76,7 +76,7 @@ func (x CapabilityTypeProto) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CapabilityTypeProto.Descriptor instead.
 func (CapabilityTypeProto) EnumDescriptor() ([]byte, []int) {
-	return file_proto_mcp_descriptors_proto_rawDescGZIP(), []int{0}
+	return file_mcp_descriptors_proto_rawDescGZIP(), []int{0}
 }
 
 // Enum for DiscoveryResourceType (used within ResourceDescriptor)
@@ -128,11 +128,11 @@ func (x DiscoveryResourceTypeProto) String() string {
 }
 
 func (DiscoveryResourceTypeProto) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_mcp_descriptors_proto_enumTypes[1].Descriptor()
+	return file_mcp_descriptors_proto_enumTypes[1].Descriptor()
 }
 
 func (DiscoveryResourceTypeProto) Type() protoreflect.EnumType {
-	return &file_proto_mcp_descriptors_proto_enumTypes[1]
+	return &file_mcp_descriptors_proto_enumTypes[1]
 }
 
 func (x DiscoveryResourceTypeProto) Number() protoreflect.EnumNumber {
@@ -141,7 +141,7 @@ func (x DiscoveryResourceTypeProto) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DiscoveryResourceTypeProto.Descriptor instead.
 func (DiscoveryResourceTypeProto) EnumDescriptor() ([]byte, []int) {
-	return file_proto_mcp_descriptors_proto_rawDescGZIP(), []int{1}
+	return file_mcp_descriptors_proto_rawDescGZIP(), []int{1}
 }
 
 // BaseDescriptorProto corresponds to BaseDescriptor
@@ -162,7 +162,7 @@ type BaseDescriptorProto struct {
 
 func (x *BaseDescriptorProto) Reset() {
 	*x = BaseDescriptorProto{}
-	mi := &file_proto_mcp_descriptors_proto_msgTypes[0]
+	mi := &file_mcp_descriptors_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -174,7 +174,7 @@ func (x *BaseDescriptorProto) String() string {
 func (*BaseDescriptorProto) ProtoMessage() {}
 
 func (x *BaseDescriptorProto) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_mcp_descriptors_proto_msgTypes[0]
+	mi := &file_mcp_descriptors_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -187,7 +187,7 @@ func (x *BaseDescriptorProto) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BaseDescriptorProto.ProtoReflect.Descriptor instead.
 func (*BaseDescriptorProto) Descriptor() ([]byte, []int) {
-	return file_proto_mcp_descriptors_proto_rawDescGZIP(), []int{0}
+	return file_mcp_descriptors_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *BaseDescriptorProto) GetId() string {
@@ -268,7 +268,7 @@ type PluginSchemaDetailProto struct {
 
 func (x *PluginSchemaDetailProto) Reset() {
 	*x = PluginSchemaDetailProto{}
-	mi := &file_proto_mcp_descriptors_proto_msgTypes[1]
+	mi := &file_mcp_descriptors_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -280,7 +280,7 @@ func (x *PluginSchemaDetailProto) String() string {
 func (*PluginSchemaDetailProto) ProtoMessage() {}
 
 func (x *PluginSchemaDetailProto) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_mcp_descriptors_proto_msgTypes[1]
+	mi := &file_mcp_descriptors_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -293,7 +293,7 @@ func (x *PluginSchemaDetailProto) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PluginSchemaDetailProto.ProtoReflect.Descriptor instead.
 func (*PluginSchemaDetailProto) Descriptor() ([]byte, []int) {
-	return file_proto_mcp_descriptors_proto_rawDescGZIP(), []int{1}
+	return file_mcp_descriptors_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *PluginSchemaDetailProto) GetSummary() string {
@@ -351,7 +351,7 @@ type ResourceDescriptorProto struct {
 
 func (x *ResourceDescriptorProto) Reset() {
 	*x = ResourceDescriptorProto{}
-	mi := &file_proto_mcp_descriptors_proto_msgTypes[2]
+	mi := &file_mcp_descriptors_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -363,7 +363,7 @@ func (x *ResourceDescriptorProto) String() string {
 func (*ResourceDescriptorProto) ProtoMessage() {}
 
 func (x *ResourceDescriptorProto) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_mcp_descriptors_proto_msgTypes[2]
+	mi := &file_mcp_descriptors_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -376,7 +376,7 @@ func (x *ResourceDescriptorProto) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResourceDescriptorProto.ProtoReflect.Descriptor instead.
 func (*ResourceDescriptorProto) Descriptor() ([]byte, []int) {
-	return file_proto_mcp_descriptors_proto_rawDescGZIP(), []int{2}
+	return file_mcp_descriptors_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ResourceDescriptorProto) GetBaseDescriptor() *BaseDescriptorProto {
@@ -420,7 +420,7 @@ type ToolDescriptorProto struct {
 
 func (x *ToolDescriptorProto) Reset() {
 	*x = ToolDescriptorProto{}
-	mi := &file_proto_mcp_descriptors_proto_msgTypes[3]
+	mi := &file_mcp_descriptors_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -432,7 +432,7 @@ func (x *ToolDescriptorProto) String() string {
 func (*ToolDescriptorProto) ProtoMessage() {}
 
 func (x *ToolDescriptorProto) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_mcp_descriptors_proto_msgTypes[3]
+	mi := &file_mcp_descriptors_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -445,7 +445,7 @@ func (x *ToolDescriptorProto) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToolDescriptorProto.ProtoReflect.Descriptor instead.
 func (*ToolDescriptorProto) Descriptor() ([]byte, []int) {
-	return file_proto_mcp_descriptors_proto_rawDescGZIP(), []int{3}
+	return file_mcp_descriptors_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ToolDescriptorProto) GetBaseDescriptor() *BaseDescriptorProto {
@@ -488,7 +488,7 @@ type PromptDescriptorProto struct {
 
 func (x *PromptDescriptorProto) Reset() {
 	*x = PromptDescriptorProto{}
-	mi := &file_proto_mcp_descriptors_proto_msgTypes[4]
+	mi := &file_mcp_descriptors_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -500,7 +500,7 @@ func (x *PromptDescriptorProto) String() string {
 func (*PromptDescriptorProto) ProtoMessage() {}
 
 func (x *PromptDescriptorProto) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_mcp_descriptors_proto_msgTypes[4]
+	mi := &file_mcp_descriptors_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -513,7 +513,7 @@ func (x *PromptDescriptorProto) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PromptDescriptorProto.ProtoReflect.Descriptor instead.
 func (*PromptDescriptorProto) Descriptor() ([]byte, []int) {
-	return file_proto_mcp_descriptors_proto_rawDescGZIP(), []int{4}
+	return file_mcp_descriptors_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *PromptDescriptorProto) GetBaseDescriptor() *BaseDescriptorProto {
@@ -548,7 +548,7 @@ type MemoryServiceDescriptorProto struct {
 
 func (x *MemoryServiceDescriptorProto) Reset() {
 	*x = MemoryServiceDescriptorProto{}
-	mi := &file_proto_mcp_descriptors_proto_msgTypes[5]
+	mi := &file_mcp_descriptors_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -560,7 +560,7 @@ func (x *MemoryServiceDescriptorProto) String() string {
 func (*MemoryServiceDescriptorProto) ProtoMessage() {}
 
 func (x *MemoryServiceDescriptorProto) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_mcp_descriptors_proto_msgTypes[5]
+	mi := &file_mcp_descriptors_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -573,7 +573,7 @@ func (x *MemoryServiceDescriptorProto) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryServiceDescriptorProto.ProtoReflect.Descriptor instead.
 func (*MemoryServiceDescriptorProto) Descriptor() ([]byte, []int) {
-	return file_proto_mcp_descriptors_proto_rawDescGZIP(), []int{5}
+	return file_mcp_descriptors_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *MemoryServiceDescriptorProto) GetBaseDescriptor() *BaseDescriptorProto {
@@ -606,7 +606,7 @@ type CapabilityDescriptorContainerProto struct {
 
 func (x *CapabilityDescriptorContainerProto) Reset() {
 	*x = CapabilityDescriptorContainerProto{}
-	mi := &file_proto_mcp_descriptors_proto_msgTypes[6]
+	mi := &file_mcp_descriptors_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -618,7 +618,7 @@ func (x *CapabilityDescriptorContainerProto) String() string {
 func (*CapabilityDescriptorContainerProto) ProtoMessage() {}
 
 func (x *CapabilityDescriptorContainerProto) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_mcp_descriptors_proto_msgTypes[6]
+	mi := &file_mcp_descriptors_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -631,7 +631,7 @@ func (x *CapabilityDescriptorContainerProto) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use CapabilityDescriptorContainerProto.ProtoReflect.Descriptor instead.
 func (*CapabilityDescriptorContainerProto) Descriptor() ([]byte, []int) {
-	return file_proto_mcp_descriptors_proto_rawDescGZIP(), []int{6}
+	return file_mcp_descriptors_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *CapabilityDescriptorContainerProto) GetDescriptor_() isCapabilityDescriptorContainerProto_Descriptor_ {
@@ -723,7 +723,7 @@ type MCPRegisterCapabilityDataProto struct {
 
 func (x *MCPRegisterCapabilityDataProto) Reset() {
 	*x = MCPRegisterCapabilityDataProto{}
-	mi := &file_proto_mcp_descriptors_proto_msgTypes[7]
+	mi := &file_mcp_descriptors_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -735,7 +735,7 @@ func (x *MCPRegisterCapabilityDataProto) String() string {
 func (*MCPRegisterCapabilityDataProto) ProtoMessage() {}
 
 func (x *MCPRegisterCapabilityDataProto) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_mcp_descriptors_proto_msgTypes[7]
+	mi := &file_mcp_descriptors_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -748,7 +748,7 @@ func (x *MCPRegisterCapabilityDataProto) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MCPRegisterCapabilityDataProto.ProtoReflect.Descriptor instead.
 func (*MCPRegisterCapabilityDataProto) Descriptor() ([]byte, []int) {
-	return file_proto_mcp_descriptors_proto_rawDescGZIP(), []int{7}
+	return file_mcp_descriptors_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *MCPRegisterCapabilityDataProto) GetCapabilityId() string {
@@ -796,7 +796,7 @@ type MCPUpdateCapabilityDataProto struct {
 
 func (x *MCPUpdateCapabilityDataProto) Reset() {
 	*x = MCPUpdateCapabilityDataProto{}
-	mi := &file_proto_mcp_descriptors_proto_msgTypes[8]
+	mi := &file_mcp_descriptors_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -808,7 +808,7 @@ func (x *MCPUpdateCapabilityDataProto) String() string {
 func (*MCPUpdateCapabilityDataProto) ProtoMessage() {}
 
 func (x *MCPUpdateCapabilityDataProto) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_mcp_descriptors_proto_msgTypes[8]
+	mi := &file_mcp_descriptors_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -821,7 +821,7 @@ func (x *MCPUpdateCapabilityDataProto) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MCPUpdateCapabilityDataProto.ProtoReflect.Descriptor instead.
 func (*MCPUpdateCapabilityDataProto) Descriptor() ([]byte, []int) {
-	return file_proto_mcp_descriptors_proto_rawDescGZIP(), []int{8}
+	return file_mcp_descriptors_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *MCPUpdateCapabilityDataProto) GetCapabilityDescriptor() *CapabilityDescriptorContainerProto {
@@ -831,14 +831,14 @@ func (x *MCPUpdateCapabilityDataProto) GetCapabilityDescriptor() *CapabilityDesc
 	return nil
 }
 
-var File_proto_mcp_descriptors_proto protoreflect.FileDescriptor
+var File_mcp_descriptors_proto protoreflect.FileDescriptor
 
-const file_proto_mcp_descriptors_proto_rawDesc = "" +
+const file_mcp_descriptors_proto_rawDesc = "" +
 	"\n" +
-	"\x1bproto/mcp_descriptors.proto\x12\tKNIRVORACLE\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf0\x02\n" +
+	"\x15mcp_descriptors.proto\x12\vKNIRVORACLE\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf2\x02\n" +
 	"\x13BaseDescriptorProto\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12G\n" +
-	"\x0fcapability_type\x18\x02 \x01(\x0e2\x1e.KNIRVORACLE.CapabilityTypeProtoR\x0ecapabilityType\x12\x12\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12I\n" +
+	"\x0fcapability_type\x18\x02 \x01(\x0e2 .KNIRVORACLE.CapabilityTypeProtoR\x0ecapabilityType\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x14\n" +
 	"\x05owner\x18\x04 \x01(\tR\x05owner\x12\x18\n" +
 	"\aversion\x18\x05 \x01(\tR\aversion\x12 \n" +
@@ -853,39 +853,39 @@ const file_proto_mcp_descriptors_proto_rawDesc = "" +
 	"\x0elocation_hints\x18\x03 \x03(\tR\rlocationHints\x12#\n" +
 	"\rmanifest_file\x18\x04 \x01(\tR\fmanifestFile\x12'\n" +
 	"\x0fexecutable_file\x18\x05 \x01(\tR\x0eexecutableFile\x122\n" +
-	"\x15output_directory_hint\x18\x06 \x01(\tR\x13outputDirectoryHint\"\x8d\x02\n" +
-	"\x17ResourceDescriptorProto\x12G\n" +
-	"\x0fbase_descriptor\x18\x01 \x01(\v2\x1e.KNIRVORACLE.BaseDescriptorProtoR\x0ebaseDescriptor\x12J\n" +
-	"\rresource_type\x18\x02 \x01(\x0e2%.KNIRVORACLE.DiscoveryResourceTypeProtoR\fresourceType\x12!\n" +
-	"\fcontent_hash\x18\x03 \x01(\tR\vcontentHash\x12:\n" +
-	"\x06schema\x18\x04 \x01(\v2\".KNIRVORACLE.PluginSchemaDetailProtoR\x06schema\"\xe5\x01\n" +
-	"\x13ToolDescriptorProto\x12G\n" +
-	"\x0fbase_descriptor\x18\x01 \x01(\v2\x1e.KNIRVORACLE.BaseDescriptorProtoR\x0ebaseDescriptor\x12*\n" +
+	"\x15output_directory_hint\x18\x06 \x01(\tR\x13outputDirectoryHint\"\x93\x02\n" +
+	"\x17ResourceDescriptorProto\x12I\n" +
+	"\x0fbase_descriptor\x18\x01 \x01(\v2 .KNIRVORACLE.BaseDescriptorProtoR\x0ebaseDescriptor\x12L\n" +
+	"\rresource_type\x18\x02 \x01(\x0e2'.KNIRVORACLE.DiscoveryResourceTypeProtoR\fresourceType\x12!\n" +
+	"\fcontent_hash\x18\x03 \x01(\tR\vcontentHash\x12<\n" +
+	"\x06schema\x18\x04 \x01(\v2$.KNIRVORACLE.PluginSchemaDetailProtoR\x06schema\"\xe7\x01\n" +
+	"\x13ToolDescriptorProto\x12I\n" +
+	"\x0fbase_descriptor\x18\x01 \x01(\v2 .KNIRVORACLE.BaseDescriptorProtoR\x0ebaseDescriptor\x12*\n" +
 	"\x11input_schema_json\x18\x02 \x01(\tR\x0finputSchemaJson\x12,\n" +
 	"\x12output_schema_json\x18\x03 \x01(\tR\x10outputSchemaJson\x12+\n" +
-	"\x11execution_pointer\x18\x04 \x01(\tR\x10executionPointer\"\xb2\x01\n" +
-	"\x15PromptDescriptorProto\x12G\n" +
-	"\x0fbase_descriptor\x18\x01 \x01(\v2\x1e.KNIRVORACLE.BaseDescriptorProtoR\x0ebaseDescriptor\x12\x1a\n" +
+	"\x11execution_pointer\x18\x04 \x01(\tR\x10executionPointer\"\xb4\x01\n" +
+	"\x15PromptDescriptorProto\x12I\n" +
+	"\x0fbase_descriptor\x18\x01 \x01(\v2 .KNIRVORACLE.BaseDescriptorProtoR\x0ebaseDescriptor\x12\x1a\n" +
 	"\btemplate\x18\x02 \x01(\tR\btemplate\x124\n" +
-	"\x16parameters_schema_json\x18\x03 \x01(\tR\x14parametersSchemaJson\"\x8a\x01\n" +
-	"\x1cMemoryServiceDescriptorProto\x12G\n" +
-	"\x0fbase_descriptor\x18\x01 \x01(\v2\x1e.KNIRVORACLE.BaseDescriptorProtoR\x0ebaseDescriptor\x12!\n" +
-	"\fgraph_schema\x18\x02 \x01(\tR\vgraphSchema\"\xb8\x02\n" +
-	"\"CapabilityDescriptorContainerProto\x12@\n" +
-	"\bresource\x18\x01 \x01(\v2\".KNIRVORACLE.ResourceDescriptorProtoH\x00R\bresource\x124\n" +
-	"\x04tool\x18\x02 \x01(\v2\x1e.KNIRVORACLE.ToolDescriptorProtoH\x00R\x04tool\x12:\n" +
-	"\x06prompt\x18\x03 \x01(\v2 .KNIRVORACLE.PromptDescriptorProtoH\x00R\x06prompt\x12P\n" +
-	"\x0ememory_service\x18\x04 \x01(\v2'.KNIRVORACLE.MemoryServiceDescriptorProtoH\x00R\rmemoryServiceB\f\n" +
+	"\x16parameters_schema_json\x18\x03 \x01(\tR\x14parametersSchemaJson\"\x8c\x01\n" +
+	"\x1cMemoryServiceDescriptorProto\x12I\n" +
+	"\x0fbase_descriptor\x18\x01 \x01(\v2 .KNIRVORACLE.BaseDescriptorProtoR\x0ebaseDescriptor\x12!\n" +
+	"\fgraph_schema\x18\x02 \x01(\tR\vgraphSchema\"\xc0\x02\n" +
+	"\"CapabilityDescriptorContainerProto\x12B\n" +
+	"\bresource\x18\x01 \x01(\v2$.KNIRVORACLE.ResourceDescriptorProtoH\x00R\bresource\x126\n" +
+	"\x04tool\x18\x02 \x01(\v2 .KNIRVORACLE.ToolDescriptorProtoH\x00R\x04tool\x12<\n" +
+	"\x06prompt\x18\x03 \x01(\v2\".KNIRVORACLE.PromptDescriptorProtoH\x00R\x06prompt\x12R\n" +
+	"\x0ememory_service\x18\x04 \x01(\v2).KNIRVORACLE.MemoryServiceDescriptorProtoH\x00R\rmemoryServiceB\f\n" +
 	"\n" +
-	"descriptor\"\x89\x02\n" +
+	"descriptor\"\x8b\x02\n" +
 	"\x1eMCPRegisterCapabilityDataProto\x12#\n" +
 	"\rcapability_id\x18\x01 \x01(\tR\fcapabilityId\x12'\n" +
-	"\x0fcapability_type\x18\x02 \x01(\tR\x0ecapabilityType\x12b\n" +
-	"\x15capability_descriptor\x18\x03 \x01(\v2-.KNIRVORACLE.CapabilityDescriptorContainerProtoR\x14capabilityDescriptor\x12#\n" +
+	"\x0fcapability_type\x18\x02 \x01(\tR\x0ecapabilityType\x12d\n" +
+	"\x15capability_descriptor\x18\x03 \x01(\v2/.KNIRVORACLE.CapabilityDescriptorContainerProtoR\x14capabilityDescriptor\x12#\n" +
 	"\rowner_address\x18\x04 \x01(\tR\fownerAddress\x12\x10\n" +
-	"\x03fee\x18\x05 \x01(\x04R\x03fee\"\x82\x01\n" +
-	"\x1cMCPUpdateCapabilityDataProto\x12b\n" +
-	"\x15capability_descriptor\x18\x01 \x01(\v2-.KNIRVORACLE.CapabilityDescriptorContainerProtoR\x14capabilityDescriptor*\xcc\x01\n" +
+	"\x03fee\x18\x05 \x01(\x04R\x03fee\"\x84\x01\n" +
+	"\x1cMCPUpdateCapabilityDataProto\x12d\n" +
+	"\x15capability_descriptor\x18\x01 \x01(\v2/.KNIRVORACLE.CapabilityDescriptorContainerProtoR\x14capabilityDescriptor*\xcc\x01\n" +
 	"\x13CapabilityTypeProto\x12%\n" +
 	"!CAPABILITY_TYPE_PROTO_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eCAPABILITY_TYPE_PROTO_RESOURCE\x10\x01\x12\x1e\n" +
@@ -904,20 +904,20 @@ const file_proto_mcp_descriptors_proto_rawDesc = "" +
 	"Z\b./;protob\x06proto3"
 
 var (
-	file_proto_mcp_descriptors_proto_rawDescOnce sync.Once
-	file_proto_mcp_descriptors_proto_rawDescData []byte
+	file_mcp_descriptors_proto_rawDescOnce sync.Once
+	file_mcp_descriptors_proto_rawDescData []byte
 )
 
-func file_proto_mcp_descriptors_proto_rawDescGZIP() []byte {
-	file_proto_mcp_descriptors_proto_rawDescOnce.Do(func() {
-		file_proto_mcp_descriptors_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_mcp_descriptors_proto_rawDesc), len(file_proto_mcp_descriptors_proto_rawDesc)))
+func file_mcp_descriptors_proto_rawDescGZIP() []byte {
+	file_mcp_descriptors_proto_rawDescOnce.Do(func() {
+		file_mcp_descriptors_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_mcp_descriptors_proto_rawDesc), len(file_mcp_descriptors_proto_rawDesc)))
 	})
-	return file_proto_mcp_descriptors_proto_rawDescData
+	return file_mcp_descriptors_proto_rawDescData
 }
 
-var file_proto_mcp_descriptors_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_proto_mcp_descriptors_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
-var file_proto_mcp_descriptors_proto_goTypes = []any{
+var file_mcp_descriptors_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_mcp_descriptors_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_mcp_descriptors_proto_goTypes = []any{
 	(CapabilityTypeProto)(0),                   // 0: KNIRVORACLE.CapabilityTypeProto
 	(DiscoveryResourceTypeProto)(0),            // 1: KNIRVORACLE.DiscoveryResourceTypeProto
 	(*BaseDescriptorProto)(nil),                // 2: KNIRVORACLE.BaseDescriptorProto
@@ -932,7 +932,7 @@ var file_proto_mcp_descriptors_proto_goTypes = []any{
 	(*timestamppb.Timestamp)(nil),              // 11: google.protobuf.Timestamp
 	(*structpb.Struct)(nil),                    // 12: google.protobuf.Struct
 }
-var file_proto_mcp_descriptors_proto_depIdxs = []int32{
+var file_mcp_descriptors_proto_depIdxs = []int32{
 	0,  // 0: KNIRVORACLE.BaseDescriptorProto.capability_type:type_name -> KNIRVORACLE.CapabilityTypeProto
 	11, // 1: KNIRVORACLE.BaseDescriptorProto.timestamp:type_name -> google.protobuf.Timestamp
 	12, // 2: KNIRVORACLE.BaseDescriptorProto.custom_metadata:type_name -> google.protobuf.Struct
@@ -956,12 +956,12 @@ var file_proto_mcp_descriptors_proto_depIdxs = []int32{
 	0,  // [0:16] is the sub-list for field type_name
 }
 
-func init() { file_proto_mcp_descriptors_proto_init() }
-func file_proto_mcp_descriptors_proto_init() {
-	if File_proto_mcp_descriptors_proto != nil {
+func init() { file_mcp_descriptors_proto_init() }
+func file_mcp_descriptors_proto_init() {
+	if File_mcp_descriptors_proto != nil {
 		return
 	}
-	file_proto_mcp_descriptors_proto_msgTypes[6].OneofWrappers = []any{
+	file_mcp_descriptors_proto_msgTypes[6].OneofWrappers = []any{
 		(*CapabilityDescriptorContainerProto_Resource)(nil),
 		(*CapabilityDescriptorContainerProto_Tool)(nil),
 		(*CapabilityDescriptorContainerProto_Prompt)(nil),
@@ -971,18 +971,18 @@ func file_proto_mcp_descriptors_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_mcp_descriptors_proto_rawDesc), len(file_proto_mcp_descriptors_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_mcp_descriptors_proto_rawDesc), len(file_mcp_descriptors_proto_rawDesc)),
 			NumEnums:      2,
 			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_proto_mcp_descriptors_proto_goTypes,
-		DependencyIndexes: file_proto_mcp_descriptors_proto_depIdxs,
-		EnumInfos:         file_proto_mcp_descriptors_proto_enumTypes,
-		MessageInfos:      file_proto_mcp_descriptors_proto_msgTypes,
+		GoTypes:           file_mcp_descriptors_proto_goTypes,
+		DependencyIndexes: file_mcp_descriptors_proto_depIdxs,
+		EnumInfos:         file_mcp_descriptors_proto_enumTypes,
+		MessageInfos:      file_mcp_descriptors_proto_msgTypes,
 	}.Build()
-	File_proto_mcp_descriptors_proto = out.File
-	file_proto_mcp_descriptors_proto_goTypes = nil
-	file_proto_mcp_descriptors_proto_depIdxs = nil
+	File_mcp_descriptors_proto = out.File
+	file_mcp_descriptors_proto_goTypes = nil
+	file_mcp_descriptors_proto_depIdxs = nil
 }

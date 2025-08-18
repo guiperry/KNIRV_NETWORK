@@ -1,0 +1,84 @@
+# KNIRVTESTNET Configuration
+# Consolidated configuration parameters for testnet deployment
+
+# Service Endpoints
+endpoints:
+  knirvchain: "http://localhost:8080"
+  knirvgraph: "http://localhost:8081"
+  knirvnexus: "http://localhost:8082"
+  knirvoracle: "http://localhost:1317"
+  knirvrouter: "http://localhost:8086"
+  knirvana: "http://localhost:3000"
+  interactive_graph: "http://localhost:3000"
+
+# Testnet Configuration
+testnet:
+  mode: true
+  debug_mode: true
+  dev_mode: true
+  debug_enabled: true
+  mock_responses: true
+
+# Server Configuration
+server:
+  enable_cors: true
+  host: "0.0.0.0"
+  default_port: 10000
+  runtime_port: 10000
+
+# Authentication Configuration
+auth:
+  simplified: true
+  testnet_tokens: true
+  testnet_admin_token: "testnet-admin-123"
+  testnet_validator_token: "testnet-validator-456"
+  testnet_observer_token: "testnet-observer-789"
+
+# CORS Configuration
+cors:
+  origin: "*"
+  methods: "GET,POST,PUT,DELETE,OPTIONS"
+  headers: "Content-Type,Authorization"
+
+# Rate Limiting Configuration
+rate_limit:
+  enabled: false
+  requests: 1000
+  window: 60000
+
+# Logging Configuration
+logging:
+  level: "debug"
+  requests: true
+
+# Health Check Configuration
+health_check:
+  interval: 30000
+  timeout: 5000
+
+# Server-Sent Events Configuration
+sse:
+  enabled: true
+  heartbeat_interval: 30000
+
+# Database Configuration
+database:
+  postgres_url: "postgresql://localhost:5432/knirvtestnet"
+  redis_url: "redis://localhost:6379"
+  postgres_host: "localhost"
+  postgres_port: 5432
+  postgres_database: "knirvtestnet"
+  redis_host: "localhost"
+  redis_port: 6379
+
+# External Services Configuration
+external_services:
+  ipfs:
+    api_port: 5001
+    gateway_port: 8080
+  xion:
+    testnet_rpc: "https://testnet-rpc.xion.burnt.com"
+
+# Security Configuration
+security:
+  default_jwt_secret: "testnet-jwt-secret-change-in-production"
