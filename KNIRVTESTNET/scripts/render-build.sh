@@ -38,6 +38,25 @@ bash scripts/install-deps.sh
 print_status "Loading toolchain environment..."
 source scripts/load-env.sh
 
+# Export environment variables for all subsequent processes
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/.local/go/bin:$PATH"
+export GOROOT="$HOME/.local/go"
+export GOPATH="$HOME/.local/go-workspace"
+
+# Create a startup script that sets environment for npm start
+print_status "Creating startup environment script..."
+cat > start-with-env.sh << 'EOF'
+#!/bin/bash
+# Load environment and start the application
+source scripts/load-env.sh 2>/dev/null || true
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/.local/go/bin:$PATH"
+export GOROOT="$HOME/.local/go"
+export GOPATH="$HOME/.local/go-workspace"
+exec npm run server:start
+EOF
+
+chmod +x start-with-env.sh
+
 # Verify toolchains are available
 print_status "Verifying toolchains..."
 

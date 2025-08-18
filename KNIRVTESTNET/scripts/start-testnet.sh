@@ -96,38 +96,8 @@ run_smart_initialization() {
             process.exit(1);
           }
 
-          // Load environment variables for toolchains
-          const { execSync } = require('child_process');
-
-          // Source environment files if they exist
-          try {
-            if (fs.existsSync(path.join(process.env.HOME, '.knirv-env'))) {
-              console.log('Loading KNIRV environment...');
-              execSync('source ~/.knirv-env', { shell: '/bin/bash' });
-            }
-          } catch (error) {
-            // Ignore sourcing errors
-          }
-
-          // Check for Go toolchain
-          try {
-            execSync('go version', { stdio: 'ignore', env: { ...process.env, PATH: process.env.HOME + '/.local/bin:' + process.env.HOME + '/.cargo/bin:' + process.env.HOME + '/.local/go/bin:' + process.env.PATH } });
-            console.log('✅ Go toolchain available');
-          } catch (error) {
-            console.error('❌ Go toolchain not found');
-            console.log('Run: npm run install:toolchains');
-            process.exit(1);
-          }
-
-          // Check for Rust toolchain
-          try {
-            execSync('rustc --version', { stdio: 'ignore', env: { ...process.env, PATH: process.env.HOME + '/.local/bin:' + process.env.HOME + '/.cargo/bin:' + process.env.HOME + '/.local/go/bin:' + process.env.PATH } });
-            console.log('✅ Rust toolchain available');
-          } catch (error) {
-            console.error('❌ Rust toolchain not found');
-            console.log('Run: npm run install:toolchains');
-            process.exit(1);
-          }
+          // Toolchain check is now handled by pre-start.sh
+          console.log('✅ Toolchain check completed by pre-start script');
 
           console.log('✅ Smart initialization completed successfully');
         }
@@ -256,6 +226,18 @@ check_process() {
 # Create necessary directories
 print_step "Creating directories..."
 mkdir -p logs data bin config
+
+# Run pre-start toolchain check
+print_step "Pre-Start Toolchain Check..."
+if [ -f "scripts/pre-start.sh" ]; then
+    bash scripts/pre-start.sh
+    if [ $? -ne 0 ]; then
+        print_error "Pre-start check failed"
+        exit 1
+    fi
+else
+    print_warning "pre-start.sh not found, skipping toolchain check"
+fi
 
 # Run smart initialization (replaces static dependency and port checking)
 print_step "Smart Initialization..."

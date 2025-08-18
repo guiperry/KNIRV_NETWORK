@@ -16,6 +16,8 @@ npm run build:render
 npm start
 ```
 
+> **Note**: The start process now includes automatic toolchain detection and installation. If Go/Rust toolchains are missing, they will be installed automatically during startup.
+
 ### 2. Environment Variables
 
 Set these environment variables in your Render service:
@@ -58,7 +60,8 @@ The Render build process follows these steps:
 
 1. **Install Toolchains** - Go, Rust, build tools
 2. **Install Dependencies** - npm packages for all sub-projects
-3. **Build Backend Components**:
+3. **Pre-Start Check** - Verify toolchains are available, install if missing
+4. **Build Backend Components**:
    - KNIRV-ORACLE (Go)
    - KNIRVCHAIN (Rust)
    - KNIRVGRAPH (Go)
