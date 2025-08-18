@@ -14,13 +14,13 @@ rm -f knirvoracle KNIRVORACLE bin/knirvoracle
 echo "Downloading dependencies..."
 go mod tidy
 
-# Build with all dependencies and testnet build tag (build entire package, not just main.go)
+# Build with all dependencies, testnet build tag, and no_webview for headless server (build entire package, not just main.go)
 echo "Compiling KNIRV-ORACLE..."
-go build -tags testnet -o knirvoracle .
+go build -tags "testnet,no_webview" -o knirvoracle .
 
 # Copy to testnet bin directory
 cp knirvoracle ../KNIRVTESTNET/bin/knirvoracle
-echo "✅ Built and copied KNIRV-ORACLE binary with testnet build tag"
+echo "✅ Built and copied KNIRV-ORACLE binary with testnet and no_webview build tags (headless server)"
 
 cd ../KNIRVTESTNET
 
