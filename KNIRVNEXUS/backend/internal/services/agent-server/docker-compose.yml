@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  plugin-server:
+    build: .
+    container_name: agentchain-plugin-server
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./agents:/app/agents
+      - ./logs:/app/logs
+    environment:
+      - SERVER_NAME=AGENTCHAIN Plugin Server
+      - SERVER_PORT=8080
+      - CORS_ENABLED=true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - agentchain
+
+  # Optional: Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: agentchain-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - plugin-server
+    restart: unless-stopped
+    networks:
+      - agentchain
+    profiles:
+      - proxy
+
+networks:
+  agentchain:
+    driver: bridge
+
+volumes:
+  agents:
+    driver: local
+  logs:
+    driver: local

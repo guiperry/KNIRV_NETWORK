@@ -118,10 +118,21 @@ EOF
 main() {
     echo "Starting axios corruption fix process..."
     echo ""
-    
+
+    # Check if we're already in a fix process to prevent recursion
+    if [ "$KNIRV_AXIOS_FIX_IN_PROGRESS" = "true" ]; then
+        echo "⚠️  Axios fix already in progress, preventing recursion"
+        echo "✅ Skipping axios fix to avoid infinite loop"
+        exit 0
+    fi
+
+    # Set flag to prevent recursion
+    export KNIRV_AXIOS_FIX_IN_PROGRESS=true
+
     # Check current status
     if check_axios && test_axios; then
         echo "✅ Axios is already working correctly!"
+        unset KNIRV_AXIOS_FIX_IN_PROGRESS
         exit 0
     fi
     
@@ -133,20 +144,22 @@ main() {
     if fix_axios_corruption && test_axios; then
         echo ""
         echo "🎉 Axios corruption fixed successfully!"
+        unset KNIRV_AXIOS_FIX_IN_PROGRESS
         exit 0
     fi
-    
+
     echo ""
     echo "🔄 Primary fix failed, trying alternative approach..."
     echo ""
-    
+
     # Try alternative fix
     if alternative_axios_fix && test_axios; then
         echo ""
         echo "🎉 Axios corruption fixed with alternative method!"
+        unset KNIRV_AXIOS_FIX_IN_PROGRESS
         exit 0
     fi
-    
+
     echo ""
     echo "❌ All axios fix attempts failed!"
     echo ""
@@ -156,7 +169,8 @@ main() {
     echo "3. Try manual reinstall: rm -rf node_modules package-lock.json && npm install"
     echo "4. Check for permission issues"
     echo "5. Consider using a different axios version: npm install axios@1.6.8"
-    
+
+    unset KNIRV_AXIOS_FIX_IN_PROGRESS
     exit 1
 }
 

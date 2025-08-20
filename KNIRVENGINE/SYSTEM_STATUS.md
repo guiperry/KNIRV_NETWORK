@@ -239,8 +239,8 @@ KNIRVENGINE has been successfully implemented as a three-engine cognitive archit
 
 KNIRVENGINE represents a successful implementation of a three-engine cognitive architecture that combines:
 
-1. **Desktop-Host Engine**: Robust Go backend with HRM integration
-2. **Mobile-Tool Engine**: Advanced React client with sensory processing
+1. **Desktop-Client Engine**: Robust Go backend with HRM integration
+2. **Mobile-Controller Engine**: Advanced React client with sensory processing
 3. **Agent-Core Engine**: Pure WASM cognitive shell with personality adaptation
 
 The system is **production-ready** with 8/10 comprehensive tests passing and all core functionality operational. The remaining limitations are related to HRM model weights and can be resolved with actual model training completion.

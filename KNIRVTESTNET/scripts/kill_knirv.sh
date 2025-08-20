@@ -43,7 +43,8 @@ PORTS_TO_CHECK=(
 )
 
 TEMP_DIRS=("/tmp/go-build*" "/tmp/KNIRV*" "/tmp/knirvnexus*" "/tmp/economics*")
-LOCK_FILES=("*.lock" "*.pid")
+# Lock files to clean (excluding package-lock.json to prevent npm corruption)
+LOCK_FILES=("gateway.lock" "economics.lock" "*.pid" "knirv*.lock")
 
 # KNIRV service patterns to search for
 KNIRV_PATTERNS=(
@@ -163,6 +164,8 @@ kill_processes() {
 }
 
 # Cleanup temp files and lock files for all KNIRV services
+# NOTE: This function is designed to be safe and avoid corrupting npm installations
+# It specifically excludes package-lock.json files and node_modules directories
 cleanup() {
     echo -e "${YELLOW}Cleaning up temporary files and lock files for all KNIRV services...${NC}"
 
@@ -177,8 +180,9 @@ cleanup() {
     done
 
     # Clean lock and PID files in current directory and subdirectories
-    echo -e "${YELLOW}  Cleaning lock and PID files...${NC}"
-    find . -name '*.lock' -delete 2>/dev/null
+    # NOTE: Explicitly avoid package-lock.json files to prevent npm corruption
+    echo -e "${YELLOW}  Cleaning lock and PID files (excluding package-lock.json)...${NC}"
+    find . -name '*.lock' -not -name 'package-lock.json' -delete 2>/dev/null
     find . -name '*.pid' -delete 2>/dev/null
     find . -name 'gateway.pid' -delete 2>/dev/null
     find . -name 'economics.pid' -delete 2>/dev/null
@@ -193,11 +197,8 @@ cleanup() {
     find . -name '*.log' -size +100M -delete 2>/dev/null  # Only large log files
     rm -rf logs/*.log 2>/dev/null
 
-    # Clean Node.js cache and build artifacts
-    echo -e "${YELLOW}  Cleaning Node.js artifacts...${NC}"
-    find . -name 'node_modules/.cache' -exec rm -rf {} + 2>/dev/null
-    find . -name 'dist' -type d -exec rm -rf {} + 2>/dev/null
-    find . -name '.vite' -type d -exec rm -rf {} + 2>/dev/null
+    # NOTE: Node.js/npm cleanup removed to prevent corruption of package installations
+    # The script no longer touches node_modules, dist directories, or npm cache files
 
     # Clean Docker containers and volumes if any
     echo -e "${YELLOW}  Cleaning Docker resources...${NC}"

@@ -13,8 +13,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// DesktopHost represents the main desktop host system
-type DesktopHost struct {
+// DesktopClient represents the main desktop host system
+type DesktopClient struct {
 	// Core components
 	hrmEngine     *HRMEngine
 	qrLinkage     *QRLinkageService
@@ -96,8 +96,8 @@ type SecureChannel struct {
 	// Implementation details would go here
 }
 
-// NewDesktopHost creates a new desktop host instance
-func NewDesktopHost(port int) (*DesktopHost, error) {
+// NewDesktopClient creates a new desktop host instance
+func NewDesktopClient(port int) (*DesktopClient, error) {
 	desktopID := uuid.New().String()
 	endpoint := fmt.Sprintf("http://localhost:%d", port)
 	publicKey := "mock_public_key" // In production, generate real key pair
@@ -117,7 +117,7 @@ func NewDesktopHost(port int) (*DesktopHost, error) {
 	agentPlugins := NewAgentPluginManager()
 
 	// Initialize MCP server
-	mcpServer := NewMCPServer(nil, hrmEngine) // Will set desktopHost reference later
+	mcpServer := NewMCPServer(nil, hrmEngine) // Will set desktopClient reference later
 
 	// Setup router
 	router := mux.NewRouter()
@@ -129,7 +129,7 @@ func NewDesktopHost(port int) (*DesktopHost, error) {
 		},
 	}
 
-	host := &DesktopHost{
+	host := &DesktopClient{
 		hrmEngine:         hrmEngine,
 		qrLinkage:         qrLinkage,
 		secureBridge:      secureBridge,
@@ -148,7 +148,7 @@ func NewDesktopHost(port int) (*DesktopHost, error) {
 	}
 
 	// Set the desktop host reference in MCP server
-	mcpServer.desktopHost = host
+	mcpServer.desktopClient = host
 
 	// Setup HTTP server
 	host.httpServer = &http.Server{
@@ -165,7 +165,7 @@ func NewDesktopHost(port int) (*DesktopHost, error) {
 }
 
 // Initialize initializes the desktop host and loads required modules
-func (dh *DesktopHost) Initialize() error {
+func (dh *DesktopClient) Initialize() error {
 	log.Printf("Initializing desktop host...")
 
 	// Load HRM WASM module
@@ -201,7 +201,7 @@ func (dh *DesktopHost) Initialize() error {
 }
 
 // Start starts the desktop host server
-func (dh *DesktopHost) Start() error {
+func (dh *DesktopClient) Start() error {
 	dh.mutex.Lock()
 	defer dh.mutex.Unlock()
 
@@ -230,7 +230,7 @@ func (dh *DesktopHost) Start() error {
 }
 
 // Stop stops the desktop host server
-func (dh *DesktopHost) Stop() error {
+func (dh *DesktopClient) Stop() error {
 	dh.mutex.Lock()
 	defer dh.mutex.Unlock()
 
@@ -265,22 +265,22 @@ func (dh *DesktopHost) Stop() error {
 }
 
 // GetDesktopID returns the desktop host ID
-func (dh *DesktopHost) GetDesktopID() string {
+func (dh *DesktopClient) GetDesktopID() string {
 	return dh.desktopID
 }
 
 // GetHRMEngine returns the HRM engine instance
-func (dh *DesktopHost) GetHRMEngine() *HRMEngine {
+func (dh *DesktopClient) GetHRMEngine() *HRMEngine {
 	return dh.hrmEngine
 }
 
 // GetQRLinkage returns the QR linkage service instance
-func (dh *DesktopHost) GetQRLinkage() *QRLinkageService {
+func (dh *DesktopClient) GetQRLinkage() *QRLinkageService {
 	return dh.qrLinkage
 }
 
 // CreateAgentSession creates a new agent session
-func (dh *DesktopHost) CreateAgentSession(userID, mobileDeviceID string) (*AgentSession, error) {
+func (dh *DesktopClient) CreateAgentSession(userID, mobileDeviceID string) (*AgentSession, error) {
 	dh.mutex.Lock()
 	defer dh.mutex.Unlock()
 
@@ -307,7 +307,7 @@ func (dh *DesktopHost) CreateAgentSession(userID, mobileDeviceID string) (*Agent
 }
 
 // HandleMobileLinkage handles mobile device linkage
-func (dh *DesktopHost) HandleMobileLinkage(qrSessionID string, mobileData *MobileLinkageData) error {
+func (dh *DesktopClient) HandleMobileLinkage(qrSessionID string, mobileData *MobileLinkageData) error {
 	// Validate QR session
 	session, exists := dh.qrLinkage.GetSession(qrSessionID)
 	if !exists {
@@ -346,7 +346,7 @@ func (dh *DesktopHost) HandleMobileLinkage(qrSessionID string, mobileData *Mobil
 }
 
 // setupRoutes sets up HTTP routes for the desktop host
-func (dh *DesktopHost) setupRoutes() {
+func (dh *DesktopClient) setupRoutes() {
 	// QR code generation routes
 	dh.router.HandleFunc("/api/qr/target-assignment", dh.handleTargetAssignmentQR).Methods("POST")
 	dh.router.HandleFunc("/api/qr/transaction-sign", dh.handleTransactionSignQR).Methods("POST")

@@ -280,20 +280,20 @@ func main() {
 
 	// Initialize Desktop Host with HRM and QR linkage
 	log.Println("🧠 Initializing Desktop Host with HRM cognitive engine...")
-	desktopHost, err := desktop.NewDesktopHost(8082) // Use port 8082 for desktop host
+	desktopClient, err := desktop.NewDesktopClient(8082) // Use port 8082 for desktop host
 	if err != nil {
 		log.Fatalf("Failed to create desktop host: %v", err)
 	}
 
 	// Initialize desktop host components
-	if err := desktopHost.Initialize(); err != nil {
+	if err := desktopClient.Initialize(); err != nil {
 		log.Printf("⚠️  Warning: Desktop host initialization failed: %v", err)
 	} else {
 		log.Println("✅ Desktop host initialized successfully")
 	}
 
 	// Start desktop host server
-	if err := desktopHost.Start(); err != nil {
+	if err := desktopClient.Start(); err != nil {
 		log.Printf("⚠️  Warning: Failed to start desktop host server: %v", err)
 	} else {
 		log.Println("🚀 Desktop host server started on :8082")
@@ -301,7 +301,7 @@ func main() {
 
 	// Ensure desktop host is stopped on shutdown
 	defer func() {
-		if err := desktopHost.Stop(); err != nil {
+		if err := desktopClient.Stop(); err != nil {
 			log.Printf("Error stopping desktop host: %v", err)
 		}
 	}()

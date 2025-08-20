@@ -27,7 +27,7 @@ const { loadEndpoints } = require('../scripts/load-endpoints');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
-const NODE_ENV = process.env.NODE_ENV || 'testnet';
+const NODE_ENV = process.env.NODE_ENV || 'staging-testnet';
 
 // Load environment-specific endpoints
 const { endpoints, config } = loadEndpoints(NODE_ENV);
@@ -63,10 +63,23 @@ app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Serve static files
-app.use('/assets', express.static(path.join(__dirname, '../assets')));
-app.use('/images', express.static(path.join(__dirname, '../images')));
-app.use('/js', express.static(path.join(__dirname, '../js')));
+// Cache middleware for static assets
+const staticOptions = {
+  maxAge: '1d', // 1 day cache
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, path) => {
+    // Set cache headers based on file type
+    if (path.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/)) {
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 hours
+    }
+  }
+};
+
+// Serve static files with caching
+app.use('/assets', express.static(path.join(__dirname, '../assets'), staticOptions));
+app.use('/images', express.static(path.join(__dirname, '../images'), staticOptions));
+app.use('/js', express.static(path.join(__dirname, '../js'), staticOptions));
 
 // Environment detection
 const environment = {
@@ -96,6 +109,105 @@ app.get('/ping', (req, res) => {
     timestamp: new Date().toISOString(),
     port: process.env.PORT,
     environment: process.env.NODE_ENV
+  });
+});
+
+// Gateway routes for staging-testnet
+app.get('/gateway/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    service: 'KNIRVTESTNET Gateway',
+    timestamp: new Date().toISOString(),
+    environment: NODE_ENV,
+    version: '1.0.0',
+    endpoints: Object.keys(endpoints).length
+  });
+});
+
+app.get('/gateway/services', async (req, res) => {
+  try {
+    const services = {};
+    for (const [name, url] of Object.entries(endpoints)) {
+      try {
+        const axios = require('axios');
+        const response = await axios.get(`${url}/health`, { timeout: 3000 });
+        services[name] = {
+          url,
+          status: 'healthy',
+          response_time: response.headers['x-response-time'] || 'unknown'
+        };
+      } catch (error) {
+        services[name] = {
+          url,
+          status: 'unhealthy',
+          error: error.message
+        };
+      }
+    }
+
+    res.json({
+      timestamp: new Date().toISOString(),
+      environment: NODE_ENV,
+      services
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Service discovery failed',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+app.get('/gateway/testnet/status', async (req, res) => {
+  try {
+    const status = {
+      testnet: 'KNIRV TESTNET',
+      environment: NODE_ENV,
+      timestamp: new Date().toISOString(),
+      services: {},
+      summary: {
+        total: 0,
+        healthy: 0,
+        unhealthy: 0
+      }
+    };
+
+    // Check each service
+    for (const [name, url] of Object.entries(endpoints)) {
+      status.summary.total++;
+      try {
+        const axios = require('axios');
+        await axios.get(`${url}/health`, { timeout: 3000 });
+        status.services[name] = { status: 'healthy', url };
+        status.summary.healthy++;
+      } catch (error) {
+        status.services[name] = { status: 'unhealthy', url, error: error.message };
+        status.summary.unhealthy++;
+      }
+    }
+
+    res.json(status);
+  } catch (error) {
+    res.status(500).json({
+      error: 'Testnet status check failed',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+app.get('/auth/testnet-tokens', (req, res) => {
+  res.json({
+    message: 'Testnet authentication tokens',
+    environment: NODE_ENV,
+    timestamp: new Date().toISOString(),
+    tokens: {
+      testnet_access: 'testnet-access-token-placeholder',
+      api_key: 'testnet-api-key-placeholder',
+      session: 'testnet-session-token-placeholder'
+    },
+    note: 'These are mock tokens for testnet environment'
   });
 });
 
@@ -245,7 +357,17 @@ app.get('/diagnostics', (req, res) => {
 });
 
 app.get('/health-monitor', (req, res) => {
-  res.sendFile(path.join(__dirname, '../health-monitor.html'));
+  const gatewayHealthMonitor = path.join(__dirname, '../data/testnet-gateway/health-monitor.html');
+  const fallbackHealthMonitor = path.join(__dirname, '../health-monitor.html');
+
+  // Try testnet-gateway version first, then fallback
+  if (fs.existsSync(gatewayHealthMonitor)) {
+    res.sendFile(gatewayHealthMonitor);
+  } else if (fs.existsSync(fallbackHealthMonitor)) {
+    res.sendFile(fallbackHealthMonitor);
+  } else {
+    res.status(404).send('Health monitor not found');
+  }
 });
 
 // Health monitor API endpoint
@@ -292,23 +414,50 @@ app.get('/graphchain-explorer/*', (req, res) => {
 
 // Nexus Portal routes - Serve KNIRVNEXUS native frontend
 app.get('/nexus-portal', (req, res) => {
-  if (environment.isLocal) {
-    // Serve local NEXUS frontend
-    res.sendFile(path.join(__dirname, '../data/knirvnexus/portal/.next/server/app/page.html'));
+  const nexusIndexPath = path.join(__dirname, '../data/knirvnexus/portal/index.html');
+  const nexusNextPath = path.join(__dirname, '../data/knirvnexus/portal/.next/server/app/page.html');
+
+  // Try to serve local NEXUS frontend files
+  if (fs.existsSync(nexusIndexPath)) {
+    res.sendFile(nexusIndexPath);
+  } else if (fs.existsSync(nexusNextPath)) {
+    res.sendFile(nexusNextPath);
   } else {
-    // Redirect to testnet subdomain
-    res.redirect('https://nexus-test.knirv.com');
+    // Fallback: show nexus portal status
+    res.status(200).send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>KNIRV NEXUS Portal</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 40px; background: #1a1a1a; color: #fff; text-align: center; }
+          .container { max-width: 600px; margin: 0 auto; }
+          .status { background: #2a2a2a; padding: 20px; border-radius: 8px; margin: 20px 0; }
+          .warning { color: #FF9800; }
+          .info { color: #2196F3; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>🔧 KNIRV NEXUS Portal</h1>
+          <div class="status">
+            <h2 class="warning">⚠️ Portal Not Available</h2>
+            <p class="info">The NEXUS portal frontend is not built or deployed.</p>
+            <p>Expected paths:</p>
+            <p>• ${nexusIndexPath}</p>
+            <p>• ${nexusNextPath}</p>
+            <p><a href="/" style="color: #4CAF50;">← Back to Testnet</a></p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
   }
 });
 
 app.get('/nexus-portal/*', (req, res) => {
-  if (environment.isLocal) {
-    // Serve local NEXUS frontend (SPA routing)
-    res.sendFile(path.join(__dirname, '../data/knirvnexus/portal/.next/server/app/page.html'));
-  } else {
-    // Redirect to testnet subdomain
-    res.redirect('https://nexus-test.knirv.com');
-  }
+  // For SPA routing, redirect to main nexus-portal route
+  res.redirect('/nexus-portal');
 });
 
 // Agent Developer Portal routes

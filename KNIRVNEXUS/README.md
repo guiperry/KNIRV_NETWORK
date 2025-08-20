@@ -78,14 +78,39 @@ KNIRV-NEXUS implements a microservices architecture running on Kubernetes with t
 - **GUI Mode**: Local admin interface with built-in web dashboard (`-gui` flag)
 - **Configuration Management**: Viper-based configuration with YAML files
 - **Role-based Permissions**: Configurable user roles and access control
-## � Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- Kubernetes cluster (v1.25+)
+- Kubernetes cluster (v1.25+) for production deployment
 - kubectl configured
-- Docker or Podman
-- Go 1.21+ (for development)
+- Docker or Podman for containerization
+- Go 1.21+ (required for backend development)
+- Node.js 18+ and npm (for frontend development)
+
+### Quick Backend Development Setup
+
+**Get started with backend development in 5 minutes:**
+
+```bash
+# 1. Clone and navigate to backend
+git clone https://github.com/knirv/KNIRV_NETWORK.git
+cd KNIRV_NETWORK/KNIRVNEXUS
+
+# 2. Set up development environment
+export $(cat .env.development | xargs)
+
+# 3. Build and run DVE Manager
+cd backend
+mkdir -p data
+go mod tidy
+go build -o bin/dve-manager ./cmd/dve-manager/
+./bin/dve-manager --gui
+
+# 4. Access GUI at http://localhost:9080
+```
+
+**For production deployment:**
 
 ### Deployment
 
@@ -136,21 +161,132 @@ KNIRV-NEXUS implements a microservices architecture running on Kubernetes with t
    ```
 
 #### Backend Development
-1. **Install backend dependencies**:
+
+##### Prerequisites
+- Go 1.21+ installed
+- Git for version control
+- Optional: Docker for containerized builds
+
+##### Environment Setup
+
+1. **Set up environment variables**:
+   ```bash
+   # For development (GUI mode, no auth required)
+   cp .env.development .env
+
+   # OR for production (headless mode, auth required)
+   cp .env.production .env
+   # Then set JWT_SECRET environment variable:
+   export JWT_SECRET="your-secure-jwt-secret-here"
+   ```
+
+2. **Install backend dependencies**:
    ```bash
    cd backend
    go mod tidy
    ```
 
-2. **Run tests**:
+3. **Create required directories**:
    ```bash
+   mkdir -p data logs reports keys
+   ```
+
+##### Building the Backend
+
+1. **Quick development build**:
+   ```bash
+   cd backend
+
+   # Build DVE Manager
+   go build -o bin/dve-manager ./cmd/dve-manager/
+
+   # Build Validation Core
+   go build -o bin/validation-core ./cmd/validation-core/
+
+   # Build API Gateway (if available)
+   go build -o bin/api-gateway ./cmd/api-gateway/
+   ```
+
+2. **Production build (static linking)**:
+   ```bash
+   cd backend
+
+   # Build with static linking for containers
+   CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo \
+       -ldflags '-extldflags "-static" -s -w' \
+       -o bin/dve-manager ./cmd/dve-manager/
+
+   CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo \
+       -ldflags '-extldflags "-static" -s -w' \
+       -o bin/validation-core ./cmd/validation-core/
+   ```
+
+3. **Using the build script**:
+   ```bash
+   # Full build with Docker images
+   ./scripts/build.sh
+
+   # Build binaries only (skip Docker)
+   ./scripts/build.sh --skip-docker
+
+   # Skip tests and security checks
+   ./scripts/build.sh --skip-tests --skip-security
+   ```
+
+##### Running the Services
+
+1. **Development mode (with GUI)**:
+   ```bash
+   cd backend
+
+   # Load development environment
+   export $(cat ../.env.development | xargs)
+
+   # Run DVE Manager with GUI
+   ./bin/dve-manager --gui
+
+   # In another terminal, run Validation Core with GUI
+   ./bin/validation-core --gui
+   ```
+
+2. **Production mode (headless)**:
+   ```bash
+   cd backend
+
+   # Load production environment
+   export $(cat ../.env.production | xargs)
+   export JWT_SECRET="your-secure-jwt-secret"
+
+   # Run services
+   ./bin/dve-manager
+   ./bin/validation-core
+   ```
+
+3. **With custom configuration**:
+   ```bash
+   ./bin/dve-manager --config ./config/custom.yaml --port 8080
+   ./bin/validation-core --config ./config/custom.yaml --port 8081
+   ```
+
+##### Testing
+
+1. **Run unit tests**:
+   ```bash
+   cd backend
    go test ./tests/... -v
    ```
 
-3. **Build backend services**:
+2. **Run integration tests**:
    ```bash
-   go build -o bin/dve-manager ./cmd/dve-manager/
-   go build -o bin/validation-core ./cmd/validation-core/
+   cd backend
+   go test ./tests/integration_test.go -v
+   ```
+
+3. **Run with coverage**:
+   ```bash
+   cd backend
+   go test ./tests/... -v -coverprofile=coverage.out
+   go tool cover -html=coverage.out -o coverage.html
    ```
 
 #### Full Stack Development
@@ -516,12 +652,163 @@ go test ./tests/... -v
 
 ## 🛠️ Troubleshooting
 
-### Common Issues
+### Common Backend Issues
+
+#### 1. JWT Secret Configuration Error
+**Error**: `Failed to load configuration: invalid configuration: security.jwt_secret is required in headless mode with authentication`
+
+**Causes & Solutions**:
+- **Environment variable not set**:
+  ```bash
+  # Set JWT_SECRET environment variable
+  export JWT_SECRET="your-secure-jwt-secret-here"
+
+  # Or use development environment
+  cp .env.development .env
+  export $(cat .env | xargs)
+  ```
+
+- **Using GUI mode but auth still required**:
+  ```bash
+  # Use development environment for GUI mode
+  export KNIRV_MODE=gui
+  export KNIRV_AUTH_REQUIRED=false
+
+  # Or run with GUI flag
+  ./bin/dve-manager --gui
+  ```
+
+- **Shell variable expansion issue in .env file**:
+  ```bash
+  # Instead of KNIRV_JWT_SECRET=${JWT_SECRET}
+  # Use direct value: KNIRV_JWT_SECRET=your-actual-secret
+  ```
+
+#### 2. Build Failures
+**Error**: `go build` fails with dependency issues
+
+**Solutions**:
+```bash
+cd backend
+
+# Clean module cache
+go clean -modcache
+
+# Update dependencies
+go mod tidy
+
+# Verify dependencies
+go mod verify
+
+# Build with verbose output
+go build -v ./cmd/dve-manager/
+```
+
+#### 3. Database Connection Issues
+**Error**: Database path not accessible
+
+**Solutions**:
+```bash
+# Create data directory
+mkdir -p data
+
+# Check permissions
+chmod 755 data
+
+# Use absolute path in config
+export KNIRV_DATABASE_PATH="$(pwd)/data/nexus.db"
+```
+
+#### 4. Port Already in Use
+**Error**: `bind: address already in use`
+
+**Solutions**:
+```bash
+# Check what's using the port
+lsof -i :8080
+
+# Kill process using port
+kill -9 $(lsof -t -i:8080)
+
+# Use different port
+./bin/dve-manager --port 8081
+```
+
+#### 5. P2P Network Issues
+**Error**: P2P connection failures
+
+**Solutions**:
+```bash
+# Check firewall
+sudo ufw status
+
+# Allow P2P port
+sudo ufw allow 4001
+
+# Check if port is accessible
+nc -zv localhost 4001
+```
+
+### Configuration Troubleshooting
+
+#### Environment Variable Priority
+Configuration is loaded in this order (highest to lowest priority):
+1. CLI flags: `--gui`, `--port`, `--config`
+2. Environment variables: `KNIRV_*`
+3. Configuration file: `config/knirv-nexus.yaml`
+4. Default values
+
+#### Debug Configuration Loading
+```bash
+# Enable debug logging
+export KNIRV_LOG_LEVEL=debug
+
+# Run with verbose output
+./bin/dve-manager --gui 2>&1 | grep -i config
+```
+
+#### Validate Configuration
+```bash
+# Test configuration without starting service
+./bin/dve-manager --config ./config/development.yaml --help
+```
+
+### Development Environment Issues
+
+#### 1. Go Version Compatibility
+**Error**: Build fails with Go version issues
+
+**Solutions**:
+```bash
+# Check Go version
+go version
+
+# Should be 1.21+
+# Update Go if needed
+sudo rm -rf /usr/local/go
+wget https://golang.org/dl/go1.21.0.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.21.0.linux-amd64.tar.gz
+```
+
+#### 2. CGO Dependencies
+**Error**: CGO compilation fails
+
+**Solutions**:
+```bash
+# Install build essentials
+sudo apt-get update
+sudo apt-get install build-essential
+
+# For static builds
+sudo apt-get install musl-dev
+```
+
+### Kubernetes Deployment Issues
 
 1. **Pod startup failures**: Check resource limits and node capacity
 2. **P2P connectivity issues**: Verify firewall rules and port accessibility
 3. **Database errors**: Check persistent volume availability
-4. **Authentication failures**: Verify JWT secret configuration
+4. **Authentication failures**: Verify JWT secret configuration in secrets
 
 ### Debug Commands
 

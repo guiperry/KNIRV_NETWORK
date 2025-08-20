@@ -11,6 +11,7 @@
  *
  * Environment:
  *   - production: Reads config/endpoints.yaml
+ *   - staging-testnet: Reads config/endpoints-staging.yaml (single domain)
  *   - testnet: Uses .env.testnet (default for KNIRVTESTNET)
  *   - development: Uses default development endpoints
  */
@@ -65,6 +66,32 @@ function loadEndpoints(environment = 'testnet') {
       } else {
         console.warn('⚠️  Production endpoints.yaml not found - using defaults');
         console.warn('   Run "make generate-production-endpoints" first');
+      }
+
+    } else if (environment === 'staging-testnet') {
+      // Load from endpoints-staging.yaml for staging deployment
+      const stagingEndpointsFile = path.join(testnetRoot, 'config', 'endpoints-staging.yaml');
+
+      if (fs.existsSync(stagingEndpointsFile)) {
+        console.log('📄 Reading staging endpoints from config/endpoints-staging.yaml');
+        const yamlContent = fs.readFileSync(stagingEndpointsFile, 'utf8');
+        const yamlData = yaml.load(yamlContent);
+
+        if (yamlData && yamlData.endpoints) {
+          endpoints = { ...endpoints, ...yamlData.endpoints };
+          console.log('✅ Staging endpoints loaded successfully');
+        }
+
+        if (yamlData && yamlData.gateway_endpoints) {
+          endpoints = { ...endpoints, ...yamlData.gateway_endpoints };
+          console.log('✅ Gateway endpoints loaded successfully');
+        }
+
+        if (yamlData && yamlData.config) {
+          config = { ...config, ...yamlData.config };
+        }
+      } else {
+        console.warn('⚠️  Staging endpoints-staging.yaml not found - using defaults');
       }
 
     } else if (environment === 'testnet') {

@@ -12,7 +12,7 @@ import (
 )
 
 // handleTargetAssignmentQR handles target assignment QR code generation
-func (dh *DesktopHost) handleTargetAssignmentQR(w http.ResponseWriter, r *http.Request) {
+func (dh *DesktopClient) handleTargetAssignmentQR(w http.ResponseWriter, r *http.Request) {
 	var request struct {
 		TargetSystemID string   `json:"target_system_id"`
 		Capabilities   []string `json:"capabilities"`
@@ -50,7 +50,7 @@ func (dh *DesktopHost) handleTargetAssignmentQR(w http.ResponseWriter, r *http.R
 }
 
 // handleTransactionSignQR handles transaction signing QR code generation
-func (dh *DesktopHost) handleTransactionSignQR(w http.ResponseWriter, r *http.Request) {
+func (dh *DesktopClient) handleTransactionSignQR(w http.ResponseWriter, r *http.Request) {
 	var request struct {
 		TransactionHash string `json:"transaction_hash"`
 		Amount          string `json:"amount"`
@@ -94,7 +94,7 @@ func (dh *DesktopHost) handleTransactionSignQR(w http.ResponseWriter, r *http.Re
 }
 
 // handleQRSessionStatus handles QR session status requests
-func (dh *DesktopHost) handleQRSessionStatus(w http.ResponseWriter, r *http.Request) {
+func (dh *DesktopClient) handleQRSessionStatus(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	sessionID := vars["sessionId"]
 
@@ -119,7 +119,7 @@ func (dh *DesktopHost) handleQRSessionStatus(w http.ResponseWriter, r *http.Requ
 }
 
 // handleMobileConnect handles mobile device connection requests
-func (dh *DesktopHost) handleMobileConnect(w http.ResponseWriter, r *http.Request) {
+func (dh *DesktopClient) handleMobileConnect(w http.ResponseWriter, r *http.Request) {
 	var request struct {
 		SessionID     string   `json:"session_id"`
 		DeviceID      string   `json:"device_id"`
@@ -161,7 +161,7 @@ func (dh *DesktopHost) handleMobileConnect(w http.ResponseWriter, r *http.Reques
 }
 
 // handleHRMProcess handles HRM cognitive processing requests
-func (dh *DesktopHost) handleHRMProcess(w http.ResponseWriter, r *http.Request) {
+func (dh *DesktopClient) handleHRMProcess(w http.ResponseWriter, r *http.Request) {
 	var request struct {
 		SensoryData []float32 `json:"sensory_data"`
 		Context     string    `json:"context"`
@@ -190,7 +190,7 @@ func (dh *DesktopHost) handleHRMProcess(w http.ResponseWriter, r *http.Request) 
 }
 
 // handleHRMInfo handles HRM model information requests
-func (dh *DesktopHost) handleHRMInfo(w http.ResponseWriter, r *http.Request) {
+func (dh *DesktopClient) handleHRMInfo(w http.ResponseWriter, r *http.Request) {
 	info := dh.hrmEngine.GetModelInfo()
 
 	w.Header().Set("Content-Type", "application/json")
@@ -198,7 +198,7 @@ func (dh *DesktopHost) handleHRMInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleCreateAgentSession handles agent session creation requests
-func (dh *DesktopHost) handleCreateAgentSession(w http.ResponseWriter, r *http.Request) {
+func (dh *DesktopClient) handleCreateAgentSession(w http.ResponseWriter, r *http.Request) {
 	var request struct {
 		UserID         string `json:"user_id"`
 		MobileDeviceID string `json:"mobile_device_id"`
@@ -220,7 +220,7 @@ func (dh *DesktopHost) handleCreateAgentSession(w http.ResponseWriter, r *http.R
 }
 
 // handleAgentWebSocket handles WebSocket connections for agent communication
-func (dh *DesktopHost) handleAgentWebSocket(w http.ResponseWriter, r *http.Request) {
+func (dh *DesktopClient) handleAgentWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := dh.wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("WebSocket upgrade failed: %v", err)
@@ -262,7 +262,7 @@ func (dh *DesktopHost) handleAgentWebSocket(w http.ResponseWriter, r *http.Reque
 }
 
 // handleHealth handles health check requests
-func (dh *DesktopHost) handleHealth(w http.ResponseWriter, r *http.Request) {
+func (dh *DesktopClient) handleHealth(w http.ResponseWriter, r *http.Request) {
 	health := map[string]interface{}{
 		"status":             "healthy",
 		"desktop_id":         dh.desktopID,

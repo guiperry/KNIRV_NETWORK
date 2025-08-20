@@ -12,7 +12,7 @@ const path = require('path');
 
 class CompleteSystemTest {
     constructor() {
-        this.desktopHost = null;
+        this.desktopClient = null;
         this.testResults = [];
         this.mcpClient = null;
     }
@@ -22,7 +22,7 @@ class CompleteSystemTest {
 
         try {
             // Phase 1: Core System Tests
-            await this.testDesktopHostStartup();
+            await this.testDesktopClientStartup();
             await this.testHRMEngineInitialization();
             await this.testQRLinkageSystem();
             
@@ -48,12 +48,12 @@ class CompleteSystemTest {
         }
     }
 
-    async testDesktopHostStartup() {
+    async testDesktopClientStartup() {
         console.log('🖥️  Test 1: Desktop Host Startup');
         
         try {
             // Start desktop host
-            this.desktopHost = spawn('./desktop-client', [], {
+            this.desktopClient = spawn('./desktop-client', [], {
                 cwd: path.join(__dirname, 'desktop-client'),
                 stdio: ['pipe', 'pipe', 'pipe']
             });
@@ -564,8 +564,8 @@ class CompleteSystemTest {
             console.log('   MCP client disconnected');
         }
         
-        if (this.desktopHost) {
-            this.desktopHost.kill();
+        if (this.desktopClient) {
+            this.desktopClient.kill();
             console.log('   Desktop host stopped');
         }
     }

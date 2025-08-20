@@ -1,0 +1,10 @@
+/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVENGINE/agent-core/hrm-rust/target/wasm32-unknown-unknown/release/deps/libsafetensors-78bbb48cf1e47743.rmeta: /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/safetensors-0.4.5/src/lib.rs /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/safetensors-0.4.5/src/slice.rs /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/safetensors-0.4.5/src/tensor.rs /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/safetensors-0.4.5/src/../README.md
+
+/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVENGINE/agent-core/hrm-rust/target/wasm32-unknown-unknown/release/deps/libsafetensors-78bbb48cf1e47743.rlib: /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/safetensors-0.4.5/src/lib.rs /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/safetensors-0.4.5/src/slice.rs /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/safetensors-0.4.5/src/tensor.rs /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/safetensors-0.4.5/src/../README.md
+
+/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVENGINE/agent-core/hrm-rust/target/wasm32-unknown-unknown/release/deps/safetensors-78bbb48cf1e47743.d: /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/safetensors-0.4.5/src/lib.rs /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/safetensors-0.4.5/src/slice.rs /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/safetensors-0.4.5/src/tensor.rs /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/safetensors-0.4.5/src/../README.md
+
+/home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/safetensors-0.4.5/src/lib.rs:
+/home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/safetensors-0.4.5/src/slice.rs:
+/home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/safetensors-0.4.5/src/tensor.rs:
+/home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/safetensors-0.4.5/src/../README.md:

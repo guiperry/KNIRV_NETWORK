@@ -1,0 +1,257 @@
+---
+# CloudFlare DNS Management Playbook for KNIRV-NEXUS
+- name: Manage CloudFlare DNS Records for KNIRV-NEXUS
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    # CloudFlare Configuration
+    cloudflare_api_token: "{{ cloudflare_api_token }}"
+    cloudflare_zone: "{{ cloudflare_zone | default('knirv.com') }}"
+    
+    # Environment Configuration
+    environment: "{{ env | default('production') }}"
+    
+    # DNS Records Configuration
+    dns_records:
+      # Main application records
+      - name: "nexus.{{ cloudflare_zone }}"
+        type: "A"
+        content: "{{ main_server_ip }}"
+        ttl: 300
+        proxied: true
+        comment: "KNIRV-NEXUS Main Application"
+      
+      - name: "api.{{ cloudflare_zone }}"
+        type: "A"
+        content: "{{ main_server_ip }}"
+        ttl: 300
+        proxied: true
+        comment: "KNIRV-NEXUS API Endpoint"
+      
+      # Environment-specific records
+      - name: "{{ environment }}.nexus.{{ cloudflare_zone }}"
+        type: "A"
+        content: "{{ main_server_ip }}"
+        ttl: 300
+        proxied: false
+        comment: "KNIRV-NEXUS {{ environment | title }} Environment"
+      
+      # Load balancer record
+      - name: "lb.{{ cloudflare_zone }}"
+        type: "CNAME"
+        content: "{{ load_balancer_dns }}"
+        ttl: 300
+        proxied: false
+        comment: "KNIRV-NEXUS Load Balancer"
+      
+      # Worker nodes (if needed)
+      - name: "worker1.{{ cloudflare_zone }}"
+        type: "A"
+        content: "{{ worker1_ip | default('') }}"
+        ttl: 300
+        proxied: false
+        comment: "KNIRV-NEXUS Worker Node 1"
+        state: "{{ 'present' if worker1_ip is defined else 'absent' }}"
+      
+      - name: "worker2.{{ cloudflare_zone }}"
+        type: "A"
+        content: "{{ worker2_ip | default('') }}"
+        ttl: 300
+        proxied: false
+        comment: "KNIRV-NEXUS Worker Node 2"
+        state: "{{ 'present' if worker2_ip is defined else 'absent' }}"
+      
+      # Service-specific records
+      - name: "graph.{{ cloudflare_zone }}"
+        type: "CNAME"
+        content: "nexus.{{ cloudflare_zone }}"
+        ttl: 300
+        proxied: true
+        comment: "KNIRV GraphChain Service"
+      
+      - name: "gateway.{{ cloudflare_zone }}"
+        type: "CNAME"
+        content: "nexus.{{ cloudflare_zone }}"
+        ttl: 300
+        proxied: true
+        comment: "KNIRV Gateway Service"
+      
+      - name: "shell.{{ cloudflare_zone }}"
+        type: "CNAME"
+        content: "nexus.{{ cloudflare_zone }}"
+        ttl: 300
+        proxied: true
+        comment: "KNIRV Shell Service"
+      
+      # Monitoring and health check records
+      - name: "health.{{ cloudflare_zone }}"
+        type: "CNAME"
+        content: "nexus.{{ cloudflare_zone }}"
+        ttl: 60
+        proxied: false
+        comment: "KNIRV-NEXUS Health Check Endpoint"
+      
+      - name: "metrics.{{ cloudflare_zone }}"
+        type: "CNAME"
+        content: "nexus.{{ cloudflare_zone }}"
+        ttl: 300
+        proxied: false
+        comment: "KNIRV-NEXUS Metrics Endpoint"
+      
+      # Wildcard record for dynamic subdomains
+      - name: "*.dev.{{ cloudflare_zone }}"
+        type: "A"
+        content: "{{ main_server_ip }}"
+        ttl: 300
+        proxied: false
+        comment: "KNIRV-NEXUS Development Wildcard"
+
+  tasks:
+    - name: Validate required variables
+      assert:
+        that:
+          - cloudflare_api_token is defined
+          - cloudflare_zone is defined
+          - main_server_ip is defined
+        fail_msg: "Required variables not defined. Please set cloudflare_api_token, cloudflare_zone, and main_server_ip"
+
+    - name: Get CloudFlare zone information
+      uri:
+        url: "https://api.cloudflare.com/client/v4/zones?name={{ cloudflare_zone }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ cloudflare_api_token }}"
+          Content-Type: "application/json"
+        status_code: 200
+      register: zone_info
+
+    - name: Extract zone ID
+      set_fact:
+        zone_id: "{{ zone_info.json.result[0].id }}"
+      when: zone_info.json.result | length > 0
+
+    - name: Fail if zone not found
+      fail:
+        msg: "CloudFlare zone {{ cloudflare_zone }} not found"
+      when: zone_info.json.result | length == 0
+
+    - name: Get existing DNS records
+      uri:
+        url: "https://api.cloudflare.com/client/v4/zones/{{ zone_id }}/dns_records"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ cloudflare_api_token }}"
+          Content-Type: "application/json"
+        status_code: 200
+      register: existing_records
+
+    - name: Create or update DNS records
+      uri:
+        url: "https://api.cloudflare.com/client/v4/zones/{{ zone_id }}/dns_records{% if existing_record_id is defined %}/{{ existing_record_id }}{% endif %}"
+        method: "{{ 'PUT' if existing_record_id is defined else 'POST' }}"
+        headers:
+          Authorization: "Bearer {{ cloudflare_api_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          type: "{{ item.type }}"
+          name: "{{ item.name }}"
+          content: "{{ item.content }}"
+          ttl: "{{ item.ttl }}"
+          proxied: "{{ item.proxied | default(false) }}"
+          comment: "{{ item.comment | default('') }}"
+        status_code: 200
+      vars:
+        existing_record: "{{ existing_records.json.result | selectattr('name', 'equalto', item.name) | selectattr('type', 'equalto', item.type) | first | default({}) }}"
+        existing_record_id: "{{ existing_record.id | default(omit) }}"
+      loop: "{{ dns_records }}"
+      when: 
+        - item.state | default('present') == 'present'
+        - item.content != ''
+      register: dns_record_results
+
+    - name: Delete DNS records
+      uri:
+        url: "https://api.cloudflare.com/client/v4/zones/{{ zone_id }}/dns_records/{{ existing_record.id }}"
+        method: DELETE
+        headers:
+          Authorization: "Bearer {{ cloudflare_api_token }}"
+          Content-Type: "application/json"
+        status_code: 200
+      vars:
+        existing_record: "{{ existing_records.json.result | selectattr('name', 'equalto', item.name) | selectattr('type', 'equalto', item.type) | first | default({}) }}"
+      loop: "{{ dns_records }}"
+      when: 
+        - item.state | default('present') == 'absent'
+        - existing_record.id is defined
+
+    - name: Create CNAME record for load balancer
+      uri:
+        url: "https://api.cloudflare.com/client/v4/zones/{{ zone_id }}/dns_records{% if lb_record_id is defined %}/{{ lb_record_id }}{% endif %}"
+        method: "{{ 'PUT' if lb_record_id is defined else 'POST' }}"
+        headers:
+          Authorization: "Bearer {{ cloudflare_api_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          type: "CNAME"
+          name: "{{ cloudflare_zone }}"
+          content: "{{ load_balancer_dns }}"
+          ttl: 300
+          proxied: true
+          comment: "KNIRV-NEXUS Main Domain"
+        status_code: 200
+      vars:
+        lb_record: "{{ existing_records.json.result | selectattr('name', 'equalto', cloudflare_zone) | selectattr('type', 'equalto', 'CNAME') | first | default({}) }}"
+        lb_record_id: "{{ lb_record.id | default(omit) }}"
+      when: load_balancer_dns is defined
+
+    - name: Set up health check record
+      uri:
+        url: "https://api.cloudflare.com/client/v4/zones/{{ zone_id }}/dns_records{% if health_record_id is defined %}/{{ health_record_id }}{% endif %}"
+        method: "{{ 'PUT' if health_record_id is defined else 'POST' }}"
+        headers:
+          Authorization: "Bearer {{ cloudflare_api_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          type: "A"
+          name: "health.{{ cloudflare_zone }}"
+          content: "{{ main_server_ip }}"
+          ttl: 60
+          proxied: false
+          comment: "KNIRV-NEXUS Health Check - Updated {{ ansible_date_time.iso8601 }}"
+        status_code: 200
+      vars:
+        health_record: "{{ existing_records.json.result | selectattr('name', 'equalto', 'health.' + cloudflare_zone) | selectattr('type', 'equalto', 'A') | first | default({}) }}"
+        health_record_id: "{{ health_record.id | default(omit) }}"
+
+    - name: Display DNS record summary
+      debug:
+        msg:
+          - "CloudFlare DNS records updated for zone: {{ cloudflare_zone }}"
+          - "Zone ID: {{ zone_id }}"
+          - "Main server IP: {{ main_server_ip }}"
+          - "Load balancer DNS: {{ load_balancer_dns | default('Not configured') }}"
+          - "Environment: {{ environment }}"
+          - "Records created/updated: {{ dns_record_results.results | selectattr('status', 'equalto', 200) | list | length }}"
+
+    - name: Save DNS configuration
+      copy:
+        content: |
+          # KNIRV-NEXUS DNS Configuration
+          CLOUDFLARE_ZONE={{ cloudflare_zone }}
+          ZONE_ID={{ zone_id }}
+          MAIN_SERVER_IP={{ main_server_ip }}
+          LOAD_BALANCER_DNS={{ load_balancer_dns | default('') }}
+          ENVIRONMENT={{ environment }}
+          
+          # DNS Records
+          {% for record in dns_records %}
+          {% if record.state | default('present') == 'present' and record.content != '' %}
+          {{ record.name }}={{ record.content }} ({{ record.type }})
+          {% endif %}
+          {% endfor %}
+        dest: "./dns-{{ environment }}.env"
+        mode: '0644'

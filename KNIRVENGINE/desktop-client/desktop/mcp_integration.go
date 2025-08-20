@@ -14,8 +14,8 @@ import (
 // MCPServer implements Model Context Protocol for agent communication
 type MCPServer struct {
 	// Core components
-	desktopHost *DesktopHost
-	hrmEngine   *HRMEngine
+	desktopClient *DesktopClient
+	hrmEngine     *HRMEngine
 
 	// MCP protocol state
 	capabilities MCPCapabilities
@@ -123,10 +123,10 @@ type MCPClient struct {
 }
 
 // NewMCPServer creates a new MCP server
-func NewMCPServer(desktopHost *DesktopHost, hrmEngine *HRMEngine) *MCPServer {
+func NewMCPServer(desktopClient *DesktopClient, hrmEngine *HRMEngine) *MCPServer {
 	server := &MCPServer{
-		desktopHost: desktopHost,
-		hrmEngine:   hrmEngine,
+		desktopClient: desktopClient,
+		hrmEngine:     hrmEngine,
 		capabilities: MCPCapabilities{
 			Logging:   &MCPLoggingCapability{Level: "info"},
 			Prompts:   &MCPPromptsCapability{ListChanged: true},
@@ -429,7 +429,7 @@ func (mcp *MCPServer) handleGenerateQR(args map[string]interface{}) (*MCPToolRes
 		if targetID == "" {
 			targetID = "default_target"
 		}
-		qrCode, err = mcp.desktopHost.GetQRLinkage().GenerateTargetAssignmentQR(targetID, []string{"agent_deployment"})
+		qrCode, err = mcp.desktopClient.GetQRLinkage().GenerateTargetAssignmentQR(targetID, []string{"agent_deployment"})
 	case "transaction_sign":
 		// Mock transaction data for now
 		txData := &TransactionData{
@@ -439,7 +439,7 @@ func (mcp *MCPServer) handleGenerateQR(args map[string]interface{}) (*MCPToolRes
 			GasFee:    "0.001 ETH",
 			Timestamp: time.Now().Unix(),
 		}
-		qrCode, err = mcp.desktopHost.GetQRLinkage().GenerateTransactionSignQR(txData)
+		qrCode, err = mcp.desktopClient.GetQRLinkage().GenerateTransactionSignQR(txData)
 	default:
 		return &MCPToolResult{IsError: true, Content: []MCPContent{{Type: "text", Text: "Unknown QR type"}}}, nil
 	}
@@ -461,10 +461,10 @@ func (mcp *MCPServer) handleGenerateQR(args map[string]interface{}) (*MCPToolRes
 
 func (mcp *MCPServer) handleSystemStatus(args map[string]interface{}) (*MCPToolResult, error) {
 	status := map[string]interface{}{
-		"desktop_id":         mcp.desktopHost.GetDesktopID(),
+		"desktop_id":         mcp.desktopClient.GetDesktopID(),
 		"hrm_initialized":    mcp.hrmEngine.IsInitialized(),
-		"mobile_connections": len(mcp.desktopHost.mobileConnections),
-		"agent_sessions":     len(mcp.desktopHost.agentSessions),
+		"mobile_connections": len(mcp.desktopClient.mobileConnections),
+		"agent_sessions":     len(mcp.desktopClient.agentSessions),
 		"mcp_clients":        len(mcp.clients),
 		"timestamp":          time.Now().Unix(),
 	}

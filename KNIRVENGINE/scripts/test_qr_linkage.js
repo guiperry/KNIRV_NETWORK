@@ -11,7 +11,7 @@ const path = require('path');
 
 class QRLinkageTest {
     constructor() {
-        this.desktopHost = null;
+        this.desktopClient = null;
         this.mobileServer = null;
         this.testResults = [];
     }
@@ -21,7 +21,7 @@ class QRLinkageTest {
 
         try {
             // Test 1: Start Desktop Host
-            await this.testDesktopHostStartup();
+            await this.testDesktopClientStartup();
             
             // Test 2: Generate Target Assignment QR Code
             await this.testTargetAssignmentQR();
@@ -47,12 +47,12 @@ class QRLinkageTest {
         }
     }
 
-    async testDesktopHostStartup() {
+    async testDesktopClientStartup() {
         console.log('📡 Test 1: Desktop Host Startup');
         
         try {
             // Start desktop host
-            this.desktopHost = spawn('./desktop-client', [], {
+            this.desktopClient = spawn('./desktop-client', [], {
                 cwd: path.join(__dirname, 'desktop-client'),
                 stdio: ['pipe', 'pipe', 'pipe']
             });
@@ -342,8 +342,8 @@ class QRLinkageTest {
     async cleanup() {
         console.log('\n🧹 Cleaning up...');
         
-        if (this.desktopHost) {
-            this.desktopHost.kill();
+        if (this.desktopClient) {
+            this.desktopClient.kill();
             console.log('   Desktop host stopped');
         }
         

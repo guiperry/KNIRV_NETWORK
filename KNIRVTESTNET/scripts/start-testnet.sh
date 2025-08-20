@@ -349,7 +349,22 @@ fi
 
 # Run smart initialization (replaces static dependency and port checking)
 print_step "Smart Initialization..."
-run_smart_initialization
+
+# Use smart-start.js for initialization only (no server startup)
+if [ -f "scripts/smart-start.js" ]; then
+    print_status "Running smart initialization with smart-start.js..."
+
+    # Run smart initialization synchronously
+    if node scripts/smart-start.js --init-only; then
+        print_success "Smart initialization completed successfully"
+    else
+        print_error "Smart initialization failed"
+        exit 1
+    fi
+else
+    print_warning "smart-start.js not found, using fallback initialization"
+    run_smart_initialization
+fi
 
 # Build all components (skip on Render where binaries are pre-built)
 if [ "$RENDER" = "true" ] || [ -n "$RENDER_SERVICE_ID" ]; then
@@ -491,40 +506,33 @@ fi
 
 print_success "All services started successfully!"
 
-# Start KNIRVTESTNET Server using smart-start.js
-print_step "Starting KNIRVTESTNET Server with Smart Logic..."
+# Start KNIRVTESTNET Server directly (smart initialization already completed)
+print_step "Starting KNIRVTESTNET Server..."
 
-# Check if smart-start.js exists
-if [ ! -f "scripts/smart-start.js" ]; then
-    print_error "smart-start.js not found"
-    exit 1
-fi
+# Start the server directly using Node.js
+print_status "Starting KNIRVTESTNET server (initialization already completed)..."
 
-# Use smart-start.js for intelligent server startup
-print_status "Launching KNIRVTESTNET server with smart-start.js..."
-print_status "This includes: health checks, endpoint loading, dependency verification, and graceful startup"
-
-# Start the server using smart-start.js in background
-if node scripts/smart-start.js &
+# Start the server in background
+if node server/app.js &
 then
     # Store the server PID
     SERVER_PID=$!
     echo $SERVER_PID > data/knirvtestnet-server.pid
     print_success "KNIRVTESTNET server started with PID $SERVER_PID"
 
-    # Give the smart-start.js more time to complete its initialization
-    print_status "Waiting for smart initialization to complete..."
-    sleep 5
+    # Wait for server to be ready
+    print_status "Waiting for server to be ready..."
+    sleep 3
 
     # Use dynamic port discovery to check if server is responding
     if wait_for_service "KNIRVTESTNET-SERVER" "10000" "/health" "data/knirvtestnet-server.pid"; then
         print_success "KNIRVTESTNET server is ready and responding!"
     else
-        print_warning "KNIRVTESTNET server may still be initializing (smart-start.js handles this)"
+        print_warning "KNIRVTESTNET server may still be initializing"
         print_status "Check logs for detailed startup progress"
     fi
 else
-    print_error "Failed to start KNIRVTESTNET server with smart-start.js"
+    print_error "Failed to start KNIRVTESTNET server"
     exit 1
 fi
 

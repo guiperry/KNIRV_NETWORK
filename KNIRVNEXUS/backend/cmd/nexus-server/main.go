@@ -1,0 +1,376 @@
+package main
+
+import (
+	"context"
+	"flag"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"syscall"
+	"time"
+
+	"github.com/spf13/viper"
+	
+	"KNIRVNEXUS/backend/internal/api"
+	"KNIRVNEXUS/backend/internal/services/agent-server"
+	"KNIRVNEXUS/backend/internal/services/auth"
+	"KNIRVNEXUS/backend/internal/services/cde"
+	"KNIRVNEXUS/backend/internal/services/data-engine"
+	"KNIRVNEXUS/backend/internal/services/inference"
+	"KNIRVNEXUS/backend/pkg/host"
+)
+
+// ServerConfig represents the main server configuration
+type ServerConfig struct {
+	// Server settings
+	Host string `mapstructure:"host"`
+	Port int    `mapstructure:"port"`
+	
+	// Database settings
+	DatabasePath string `mapstructure:"database_path"`
+	
+	// Service configurations
+	API       api.APIConfig                    `mapstructure:"api"`
+	Host      host.HostConfig                  `mapstructure:"host_controller"`
+	DataEngine dataengine.DataEngineConfig    `mapstructure:"data_engine"`
+	AgentServer agentserver.AgentServerConfig `mapstructure:"agent_server"`
+	Inference inference.AdaptiveHostConfig    `mapstructure:"inference"`
+	CDE       cde.CDEConfig                    `mapstructure:"cde"`
+	Auth      auth.AuthConfig                  `mapstructure:"auth"`
+	
+	// Frontend settings
+	ServeFrontend bool   `mapstructure:"serve_frontend"`
+	FrontendPath  string `mapstructure:"frontend_path"`
+	
+	// Logging
+	LogLevel string `mapstructure:"log_level"`
+	LogFile  string `mapstructure:"log_file"`
+}
+
+// NexusServer represents the main KNIRV-NEXUS server
+type NexusServer struct {
+	config ServerConfig
+	
+	// Core services
+	hostController   *host.HostController
+	dataEngine       *dataengine.BuntDBDataEngine
+	agentServer      *agentserver.AgentServer
+	inferenceService *inference.AdaptiveHostService
+	cdeService       *cde.CDEService
+	authService      *auth.AuthService
+	
+	// API server
+	apiServer *api.APIServer
+	
+	// Frontend server
+	frontendServer *http.Server
+	
+	// Embedded frontend
+	embeddedFS *EmbeddedFS
+}
+
+func main() {
+	// Parse command line flags
+	var configFile = flag.String("config", "config/nexus.yaml", "Configuration file path")
+	var dbPath = flag.String("db", "data/nexus.db", "Database file path")
+	var port = flag.Int("port", 8080, "Server port")
+	var host = flag.String("host", "0.0.0.0", "Server host")
+	flag.Parse()
+	
+	// Load configuration
+	config, err := loadConfig(*configFile)
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
+	
+	// Override with command line flags
+	if *dbPath != "data/nexus.db" {
+		config.DatabasePath = *dbPath
+	}
+	if *port != 8080 {
+		config.Port = *port
+	}
+	if *host != "0.0.0.0" {
+		config.Host = *host
+	}
+	
+	// Create and start server
+	server, err := NewNexusServer(config)
+	if err != nil {
+		log.Fatalf("Failed to create server: %v", err)
+	}
+	
+	// Start server
+	if err := server.Start(); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	}
+	
+	// Wait for shutdown signal
+	waitForShutdown(server)
+}
+
+// NewNexusServer creates a new KNIRV-NEXUS server
+func NewNexusServer(config ServerConfig) (*NexusServer, error) {
+	server := &NexusServer{
+		config: config,
+	}
+	
+	// Initialize services in dependency order
+	if err := server.initializeServices(); err != nil {
+		return nil, fmt.Errorf("failed to initialize services: %w", err)
+	}
+	
+	// Initialize API server
+	if err := server.initializeAPI(); err != nil {
+		return nil, fmt.Errorf("failed to initialize API: %w", err)
+	}
+	
+	// Initialize frontend if enabled
+	if config.ServeFrontend {
+		if err := server.initializeFrontend(); err != nil {
+			return nil, fmt.Errorf("failed to initialize frontend: %w", err)
+		}
+	}
+	
+	return server, nil
+}
+
+// initializeServices initializes all core services
+func (ns *NexusServer) initializeServices() error {
+	log.Println("Initializing KNIRV-NEXUS services...")
+	
+	// 1. Initialize host controller
+	var err error
+	ns.hostController, err = host.NewHostController(ns.config.Host)
+	if err != nil {
+		return fmt.Errorf("failed to create host controller: %w", err)
+	}
+	
+	// 2. Initialize data engine
+	ns.dataEngine, err = dataengine.NewBuntDBDataEngine(ns.config.DatabasePath, ns.config.DataEngine)
+	if err != nil {
+		return fmt.Errorf("failed to create data engine: %w", err)
+	}
+	
+	// 3. Initialize agent server
+	ns.agentServer, err = agentserver.NewAgentServer(ns.hostController, ns.dataEngine, ns.config.AgentServer)
+	if err != nil {
+		return fmt.Errorf("failed to create agent server: %w", err)
+	}
+	
+	// 4. Initialize inference service
+	ns.inferenceService, err = inference.NewAdaptiveHostService(ns.hostController, ns.dataEngine, ns.config.Inference)
+	if err != nil {
+		return fmt.Errorf("failed to create inference service: %w", err)
+	}
+	
+	// 5. Initialize CDE service
+	ns.cdeService, err = cde.NewCDEService(ns.hostController, ns.dataEngine, ns.config.CDE)
+	if err != nil {
+		return fmt.Errorf("failed to create CDE service: %w", err)
+	}
+	
+	// 6. Initialize auth service
+	ns.authService = auth.NewAuthService(ns.dataEngine, ns.config.Auth)
+	
+	log.Println("All services initialized successfully")
+	return nil
+}
+
+// initializeAPI initializes the API server
+func (ns *NexusServer) initializeAPI() error {
+	log.Println("Initializing API server...")
+	
+	var err error
+	ns.apiServer, err = api.NewAPIServer(
+		ns.hostController,
+		ns.dataEngine,
+		ns.agentServer,
+		ns.inferenceService,
+		ns.cdeService,
+		ns.config.API,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create API server: %w", err)
+	}
+	
+	log.Println("API server initialized successfully")
+	return nil
+}
+
+// initializeFrontend initializes the frontend server
+func (ns *NexusServer) initializeFrontend() error {
+	log.Println("Initializing frontend server...")
+	
+	// Create embedded filesystem
+	var err error
+	ns.embeddedFS, err = NewEmbeddedFS()
+	if err != nil {
+		return fmt.Errorf("failed to create embedded filesystem: %w", err)
+	}
+	
+	// Create frontend server
+	mux := http.NewServeMux()
+	
+	// Serve API routes
+	mux.Handle("/api/", ns.apiServer.router)
+	
+	// Serve frontend files
+	mux.Handle("/", ns.embeddedFS)
+	
+	ns.frontendServer = &http.Server{
+		Addr:         fmt.Sprintf("%s:%d", ns.config.Host, ns.config.Port),
+		Handler:      mux,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+	
+	log.Println("Frontend server initialized successfully")
+	return nil
+}
+
+// Start starts all services
+func (ns *NexusServer) Start() error {
+	log.Println("Starting KNIRV-NEXUS server...")
+	
+	// Start core services
+	if err := ns.hostController.Start(); err != nil {
+		return fmt.Errorf("failed to start host controller: %w", err)
+	}
+	
+	if err := ns.dataEngine.Start(); err != nil {
+		return fmt.Errorf("failed to start data engine: %w", err)
+	}
+	
+	if err := ns.agentServer.Start(); err != nil {
+		return fmt.Errorf("failed to start agent server: %w", err)
+	}
+	
+	if err := ns.inferenceService.Start(); err != nil {
+		return fmt.Errorf("failed to start inference service: %w", err)
+	}
+	
+	if err := ns.cdeService.Start(); err != nil {
+		return fmt.Errorf("failed to start CDE service: %w", err)
+	}
+	
+	// Start API server
+	if ns.config.ServeFrontend {
+		// Start combined frontend + API server
+		go func() {
+			log.Printf("Starting combined server on %s:%d", ns.config.Host, ns.config.Port)
+			if err := ns.frontendServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				log.Printf("Frontend server error: %v", err)
+			}
+		}()
+	} else {
+		// Start API server only
+		if err := ns.apiServer.Start(); err != nil {
+			return fmt.Errorf("failed to start API server: %w", err)
+		}
+	}
+	
+	log.Printf("KNIRV-NEXUS server started successfully on %s:%d", ns.config.Host, ns.config.Port)
+	return nil
+}
+
+// Stop stops all services gracefully
+func (ns *NexusServer) Stop() error {
+	log.Println("Stopping KNIRV-NEXUS server...")
+	
+	// Stop frontend server if running
+	if ns.frontendServer != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		ns.frontendServer.Shutdown(ctx)
+	}
+	
+	// Stop API server
+	if ns.apiServer != nil {
+		ns.apiServer.Stop()
+	}
+	
+	// Stop core services in reverse order
+	if ns.cdeService != nil {
+		ns.cdeService.Stop()
+	}
+	
+	if ns.inferenceService != nil {
+		ns.inferenceService.Stop()
+	}
+	
+	if ns.agentServer != nil {
+		ns.agentServer.Stop()
+	}
+	
+	if ns.dataEngine != nil {
+		ns.dataEngine.Stop()
+	}
+	
+	if ns.hostController != nil {
+		ns.hostController.Stop()
+	}
+	
+	log.Println("KNIRV-NEXUS server stopped successfully")
+	return nil
+}
+
+// loadConfig loads configuration from file
+func loadConfig(configFile string) (ServerConfig, error) {
+	var config ServerConfig
+	
+	// Set default values
+	config.Host = "0.0.0.0"
+	config.Port = 8080
+	config.DatabasePath = "data/nexus.db"
+	config.ServeFrontend = true
+	config.LogLevel = "info"
+	
+	// Set up viper
+	viper.SetConfigFile(configFile)
+	viper.SetConfigType("yaml")
+	
+	// Set environment variable prefix
+	viper.SetEnvPrefix("NEXUS")
+	viper.AutomaticEnv()
+	
+	// Read config file if it exists
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			return config, fmt.Errorf("failed to read config file: %w", err)
+		}
+		log.Printf("Config file not found, using defaults")
+	}
+	
+	// Unmarshal config
+	if err := viper.Unmarshal(&config); err != nil {
+		return config, fmt.Errorf("failed to unmarshal config: %w", err)
+	}
+	
+	// Ensure database directory exists
+	if err := os.MkdirAll(filepath.Dir(config.DatabasePath), 0755); err != nil {
+		return config, fmt.Errorf("failed to create database directory: %w", err)
+	}
+	
+	return config, nil
+}
+
+// waitForShutdown waits for shutdown signal and stops the server gracefully
+func waitForShutdown(server *NexusServer) {
+	// Create channel to receive OS signals
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	
+	// Wait for signal
+	sig := <-sigChan
+	log.Printf("Received signal: %v", sig)
+	
+	// Stop server
+	if err := server.Stop(); err != nil {
+		log.Printf("Error stopping server: %v", err)
+	}
+}

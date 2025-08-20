@@ -60,7 +60,7 @@ This document outlines the implementation plan for the KNIRVENGINE ecosystem, fe
 │  │ │              Event Coordination Layer                           │ │    │
 │  │ │  ├── Browser Event System                                       │ │    │
 │  │ │  ├── Agent-Core Bridge                                          │ │    │
-│  │ │  └── Desktop-Host Communication                                 │ │    │
+│  │ │  └── Desktop-Client Communication                               │ │    │
 │  │ └─────────────────────────────────────────────────────────────────┘ │    │
 │  └─────────────────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -68,7 +68,7 @@ This document outlines the implementation plan for the KNIRVENGINE ecosystem, fe
 
 ## Engine Specifications
 
-### Desktop-Client (Host System)
+### Desktop-Client (Desktop Client + Host System)
 **Technology Stack**: Electron + Go Backend + React Frontend
 **Primary Responsibilities**:
 - **WASM Runtime Provision**: Load and execute agent-core WASM modules
@@ -81,8 +81,8 @@ This document outlines the implementation plan for the KNIRVENGINE ecosystem, fe
 
 **Core Components**:
 ```go
-// Desktop-Host Core Structure
-type DesktopHost struct {
+// Desktop-Client Core Structure
+type DesktopClient struct {
     electronApp     *ElectronApp
     goBackend       *GoBackend
     wasmRuntime     *WasmRuntime
@@ -95,7 +95,7 @@ type DesktopHost struct {
 }
 ```
 
-### Mobile-Controller (Client + Wallet/UDC Management)
+### Mobile-Controller (Mobile Client + Wallet/UDC Management)
 **Technology Stack**: React + TypeScript + Voice/Visual Processing
 **Primary Responsibilities**:
 - **KNIRV-WALLET Integration**: Asset management and transaction execution
@@ -109,7 +109,7 @@ type DesktopHost struct {
 
 **Core Components**:
 ```typescript
-// Mobile-Tool Core Structure (Enhanced with Client Components)
+// Mobile-Controller Core Structure (Enhanced with Client Components)
 interface MobileTool {
     // Wallet & UDC Management
     walletManager: KNIRVWalletManager;
@@ -148,7 +148,7 @@ pub struct AgentCore {
     fabric_algorithm: FabricAlgorithm,
     adaptive_learning: AdaptiveLearningPipeline,
     // Note: No voice/visual processors - these are now in mobile-controller
-    host_interface: DesktopHostInterface,
+    host_interface: DesktopClientInterface,
 }
 ```
 
@@ -551,7 +551,7 @@ impl HRMEngine {
 
 The QR code linkage system enables secure, seamless communication between desktop-client and mobile-controller for target system assignment and transaction signing.
 
-#### 1. QR Code Generation (Desktop-Host)
+#### 1. QR Code Generation (Desktop-Client)
 ```go
 // QR Linkage Service in Desktop-Engine
 type QRLinkageService struct {
@@ -706,9 +706,9 @@ func (qls *QRLinkageService) GenerateTransactionSignQR(transactionData *Transact
 }
 ```
 
-#### 2. QR Code Scanning (Mobile-Tool)
+#### 2. QR Code Scanning (Mobile-Controller)
 ```typescript
-// QR Scanner Service in Mobile-Tool
+// QR Scanner Service in Mobile-Controller
 interface QRPayload {
     version: string;
     type: string;
@@ -1187,12 +1187,12 @@ func (deh *DesktopEngineHost) RequestTransactionSigning(mobileDeviceID string, t
 
 ### Phase 1: KNIRVENGINE Foundation with HRM Integration (4-5 weeks)
 
-#### 1.1 Desktop-Host WASM Runtime Setup with HRM
+#### 1.1 Desktop-Client WASM Runtime Setup with HRM
 ```go
 // Enhanced desktop-client main.go integration
 func main() {
     // Initialize desktop-client
-    desktopHost := &DesktopHost{
+    desktopClient := &DesktopClient{
         electronApp:       initializeElectronApp(),
         goBackend:        initializeGoBackend(),
         wasmRuntime:      wasmtime.NewEngine(),
@@ -1210,7 +1210,7 @@ func main() {
         log.Fatal("Failed to load agent-core:", err)
     }
 
-    err = desktopHost.LoadAgentCore(agentCoreWasm)
+    err = desktopClient.LoadAgentCore(agentCoreWasm)
     if err != nil {
         log.Fatal("Failed to initialize agent-core:", err)
     }
@@ -1221,7 +1221,7 @@ func main() {
         log.Fatal("Failed to load HRM WASM:", err)
     }
 
-    err = desktopHost.hrmEngine.LoadHRMModule(hrmWasm)
+    err = desktopClient.hrmEngine.LoadHRMModule(hrmWasm)
     if err != nil {
         log.Fatal("Failed to initialize HRM engine:", err)
     }
@@ -1232,7 +1232,7 @@ func main() {
         log.Fatal("Failed to load HRM weights:", err)
     }
 
-    err = desktopHost.hrmEngine.LoadWeights(hrmWeights)
+    err = desktopClient.hrmEngine.LoadWeights(hrmWeights)
     if err != nil {
         log.Fatal("Failed to load HRM weights into engine:", err)
     }
@@ -1243,18 +1243,18 @@ func main() {
         log.Fatal("Failed to load personality adapter:", err)
     }
 
-    err = desktopHost.LoadPersonalityAdapter(personalityWasm)
+    err = desktopClient.LoadPersonalityAdapter(personalityWasm)
     if err != nil {
         log.Fatal("Failed to initialize personality adapter:", err)
     }
 
     // Start QR linkage service
-    go desktopHost.qrLinkage.StartService()
+    go desktopClient.qrLinkage.StartService()
 
     // Start secure bridge for mobile communication
-    go desktopHost.secureBridge.StartBridge()
+    go desktopClient.secureBridge.StartBridge()
 
-    log.Println("KNIRVENGINE Desktop-Host initialized successfully with HRM-27M")
+    log.Println("KNIRVENGINE Desktop-Client initialized successfully with HRM-27M")
 }
 
 func loadHRMWeights(weightsPath string) ([]byte, error) {
@@ -1269,7 +1269,7 @@ func loadHRMWeights(weightsPath string) ([]byte, error) {
 }
 ```
 
-#### 1.2 Mobile-Tool Enhanced Client Integration
+#### 1.2 Mobile-Controller Enhanced Client Integration
 ```typescript
 // Enhanced mobile-controller App.tsx with migrated TypeScript components
 import React, { useState, useEffect } from 'react';
@@ -1486,7 +1486,7 @@ echo "Agent-Core WASM modules built successfully with HRM integration"
 
 ### Phase 2: QR Code Linkage System (2-3 weeks)
 
-#### 2.1 Desktop-Host QR Generation API
+#### 2.1 Desktop-Client QR Generation API
 ```go
 // QR Code API endpoints in desktop-client
 func (api *APIServer) setupQRLinkageRoutes() {
@@ -1509,7 +1509,7 @@ func (api *APIServer) handleTargetAssignmentQR(w http.ResponseWriter, r *http.Re
     }
 
     // Generate QR code for target assignment
-    qrCode, err := api.desktopHost.qrLinkage.GenerateTargetAssignmentQR(
+    qrCode, err := api.desktopClient.qrLinkage.GenerateTargetAssignmentQR(
         request.TargetSystemID,
         request.Capabilities,
     )
@@ -1524,8 +1524,8 @@ func (api *APIServer) handleTargetAssignmentQR(w http.ResponseWriter, r *http.Re
         "expires_at":   qrCode.ExpiresAt,
         "target_info": map[string]interface{}{
             "id":   request.TargetSystemID,
-            "name": api.desktopHost.targetSystems.GetTargetName(request.TargetSystemID),
-            "type": api.desktopHost.targetSystems.GetTargetType(request.TargetSystemID),
+            "name": api.desktopClient.targetSystems.GetTargetName(request.TargetSystemID),
+            "type": api.desktopClient.targetSystems.GetTargetType(request.TargetSystemID),
         },
     }
 
@@ -1549,7 +1549,7 @@ func (api *APIServer) handleMobileConnect(w http.ResponseWriter, r *http.Request
     }
 
     // Verify mobile device signature
-    if !api.desktopHost.cryptoManager.VerifyMobileSignature(request) {
+    if !api.desktopClient.cryptoManager.VerifyMobileSignature(request) {
         http.Error(w, "Invalid signature", http.StatusUnauthorized)
         return
     }
@@ -1562,7 +1562,7 @@ func (api *APIServer) handleMobileConnect(w http.ResponseWriter, r *http.Request
         Capabilities:  request.Capabilities,
     }
 
-    err := api.desktopHost.HandleMobileLinkage(request.SessionID, mobileData)
+    err := api.desktopClient.HandleMobileLinkage(request.SessionID, mobileData)
     if err != nil {
         http.Error(w, fmt.Sprintf("Failed to establish mobile connection: %v", err), http.StatusInternalServerError)
         return
@@ -1570,9 +1570,9 @@ func (api *APIServer) handleMobileConnect(w http.ResponseWriter, r *http.Request
 
     response := map[string]interface{}{
         "status":           "connected",
-        "desktop_id":       api.desktopHost.getDesktopID(),
-        "secure_endpoint":  api.desktopHost.getSecureEndpoint(),
-        "session_key":      api.desktopHost.generateSessionKey(request.DeviceID),
+        "desktop_id":       api.desktopClient.getDesktopID(),
+        "secure_endpoint":  api.desktopClient.getSecureEndpoint(),
+        "session_key":      api.desktopClient.generateSessionKey(request.DeviceID),
     }
 
     w.Header().Set("Content-Type", "application/json")
@@ -1767,7 +1767,7 @@ struct MobileConnection {
 }
 ```
 
-#### 3.2 Mobile-Tool Client Bridge to Agent-Core
+#### 3.2 Mobile-Controller Client Bridge to Agent-Core
 ```typescript
 // mobile-controller/src/client/AgentCoreBridge.ts
 export class AgentCoreBridge {
@@ -2065,13 +2065,13 @@ The KNIRVENGINE three-engine architecture with QR code linkage represents a brea
 
 ### **Architecture Benefits:**
 
-1. **Desktop-Host (Host System)**:
+1. **Desktop-Client (Host System)**:
    - **Pure Host Functions**: WASM runtime, target system management, TEE security
    - **Agent Orchestration**: Plugin system with 689+ MCP servers
    - **QR Code Generation**: Secure linkage protocols for mobile coordination
    - **HRM Model Hosting**: 27M-parameter HRM WASM module management and execution
 
-2. **Mobile-Tool (Enhanced Client + Wallet)**:
+2. **Mobile-Controller (Enhanced Client + Wallet)**:
    - **Client Components**: Voice/Visual processing moved from agent-core for optimal Web API access
    - **Financial Security**: Wallet and UDC operations isolated to mobile-only environment
    - **User Interface**: React components, event coordination, and browser integration
