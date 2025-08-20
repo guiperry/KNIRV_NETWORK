@@ -41,11 +41,6 @@ check_netlify_cli() {
 clean_and_reinstall() {
     echo "🧹 Cleaning up corrupted dependencies..."
 
-    # Kill any hanging netlify processes
-    echo "🔪 Killing any hanging netlify processes..."
-    pkill -f "netlify" || true
-    pkill -f "npx" || true
-
     # Remove node_modules and package-lock.json
     echo "🗑️  Removing corrupted node_modules..."
     rm -rf node_modules package-lock.json
@@ -73,14 +68,7 @@ clean_and_reinstall() {
         return 1
     fi
 
-    # Check if running in testnet mode
-    if [ "$TESTNET_MODE" = "true" ] || [ "$NODE_ENV" = "testnet" ] || [ ! -d "nexus-portal" ]; then
-        echo "ℹ️  No nexus-portal directory found, skipping build (testnet mode)"
-    else
-        # Build nexus-portal
-        echo "🏗️  Building nexus-portal..."
-        npm run build:nexus
-    fi
+    
 }
 
 # Function to check Node.js version compatibility
