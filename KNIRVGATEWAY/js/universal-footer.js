@@ -283,22 +283,7 @@ class KNIRVUniversalFooter {
                 }
             }
 
-            /* Ensure footer sticks to bottom */
-            body {
-                display: flex;
-                flex-direction: column;
-                min-height: 100vh;
-            }
 
-            .dashboard-container {
-                flex: 1;
-                display: flex;
-                flex-direction: column;
-            }
-
-            .main-content {
-                flex: 1;
-            }
         `;
         
         document.head.appendChild(styles);

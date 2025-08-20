@@ -156,7 +156,7 @@
                         </p>
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="color: var(--transparent-white-7); font-size: 0.9rem;">3,156 topics</span>
-                            <button class="btn-outline" style="padding: 8px 16px; font-size: 0.9rem;">Visit Forum</button>
+                            <button class="btn-outline" style="padding: 8px 16px; font-size: 0.9rem;" onclick="visitForum()">Visit Forum</button>
                         </div>
                     </div>
                 </div>
@@ -282,17 +282,19 @@
     <!-- JavaScript -->
     <script src="js/config-loader.js"></script>
     <script src="js/portal.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="../js/universal-footer.js"></script>
     <script>
         function openSupportDesk() {
-            openSupportModal('KNIRV Support Desk', '../support-desk/');
+            openSupportModal('KNIRV Support Desk', '/support-desk/');
         }
 
         function openDocumentation() {
-            openSupportModal('KNIRV Documentation', '../documentation/docsify/');
+            openSupportModal('KNIRV Documentation', '/documentation/docsify/');
         }
 
         function createTicket() {
-            openSupportModal('Create Support Ticket', '../support-desk/create-ticket');
+            openSupportModal('Create Support Ticket', '/support-desk/create-ticket');
         }
 
         function openSupportModal(title, url) {
@@ -315,7 +317,7 @@
         }
 
         function visitForum() {
-            window.knirvPortal.showNotification('Forum functionality coming soon', 'info');
+            openSupportModal('KNIRV Community Forum', '/forum/');
         }
 
         function scheduleOfficeHours() {

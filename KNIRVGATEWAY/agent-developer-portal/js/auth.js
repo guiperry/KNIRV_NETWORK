@@ -10,7 +10,7 @@ class KNIRVAuth {
         // Check for existing session
         const storedUser = localStorage.getItem('knirv_dev_user');
         const storedToken = localStorage.getItem('knirv_dev_token');
-        
+
         if (storedUser && storedToken) {
             try {
                 this.currentUser = JSON.parse(storedUser);
@@ -21,7 +21,10 @@ class KNIRVAuth {
                 this.logout();
             }
         } else {
-            this.showLoginModal();
+            // Don't show modal immediately, wait for page to fully load
+            setTimeout(() => {
+                this.showLoginModal();
+            }, 500);
         }
     }
 
@@ -151,24 +154,32 @@ class KNIRVAuth {
         if (!document.getElementById('authModal')) {
             this.createAuthModal();
         }
-        document.getElementById('authModal').style.display = 'block';
+        const modal = document.getElementById('authModal');
+        modal.style.display = 'flex';
+        // Only prevent body scrolling if modal is actually visible and not just being initialized
+        if (modal.offsetParent !== null) {
+            document.body.style.overflow = 'hidden';
+        }
     }
 
     hideLoginModal() {
         const modal = document.getElementById('authModal');
         if (modal) {
             modal.style.display = 'none';
+            // Always restore body scrolling when hiding modal
+            document.body.style.overflow = 'auto';
         }
     }
 
     createAuthModal() {
         const modalHTML = `
-            <div id="authModal" class="modal" style="display: none; z-index: 10000;">
-                <div class="modal-content" style="max-width: 400px;">
-                    <div class="modal-header">
+            <div id="authModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.8); z-index: 10000; backdrop-filter: blur(5px); align-items: center; justify-content: center; pointer-events: auto;">
+                <div class="modal-content" style="max-width: 400px; background-color: var(--dark-blue); border: 1px solid var(--transparent-white-2); border-radius: 15px; padding: 30px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); position: relative;">
+                    <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--transparent-white-2);">
                         <h2 style="color: var(--bright-blue); margin: 0;">
                             <i class="fas fa-shield-alt" style="margin-right: 10px;"></i>KNIRV Developer Portal
                         </h2>
+                        <span class="close" onclick="window.knirvAuth.hideLoginModal()" style="color: var(--transparent-white-7); font-size: 28px; font-weight: bold; cursor: pointer; transition: color 0.3s ease;">&times;</span>
                     </div>
                     <div class="modal-body">
                         <div id="authTabs" style="display: flex; margin-bottom: 20px; border-bottom: 1px solid var(--transparent-white-2);">
