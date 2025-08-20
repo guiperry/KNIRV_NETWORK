@@ -10,7 +10,7 @@
     "build:nexus": "npm run check-nexus-health && if [ -d \"nexus-portal\" ]; then cd nexus-portal && npm install && npm run build; else echo 'No nexus-portal directory found, skipping build (testnet mode)'; fi",
     "smart-build": "npm run check-health && npm run build || npm run auto-fix",
     "smart-build-with-apps": "npm run check-health && npm run init-apps && npm run build || npm run auto-fix",
-    "smart-build-no-recursion": "npm run check-health && npm run init-apps && npm run load-endpoints && npm install && npm run check-function-deps && npm run build:nexus && echo 'KNIRV Gateway built with Netlify Functions support'",
+    "smart-build-no-recursion": "npm run check-health && npm run init-apps && npm run load-endpoints && npm install && npm run validate-function-names && npm run check-function-deps && npm run build:nexus && echo 'KNIRV Gateway built with Netlify Functions support'",
     "install-function-deps": "node scripts/ensure-function-deps.js",
     "install-function-deps-direct": "cd netlify/functions && npm install",
     "init-apps": "npm run init-forum && npm run init-support-desk",
@@ -36,7 +36,8 @@
     "load-endpoints": "node scripts/load-endpoints.js",
     "load-endpoints:production": "node scripts/load-endpoints.js production",
     "load-endpoints:testnet": "node scripts/load-endpoints.js testnet",
-    "reset-init-markers": "node scripts/reset-init-markers.js"
+    "reset-init-markers": "node scripts/reset-init-markers.js",
+    "validate-function-names": "node scripts/validate-function-names.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
