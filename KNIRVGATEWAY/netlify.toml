@@ -1,7 +1,7 @@
 [build]
   # Static site with Netlify Functions - smart build with health monitoring and app initialization
   publish = "."
-  command = "npm run smart-build-with-apps && npm run install-function-deps && npm run check-function-deps"
+  command = "npm run install-function-deps && npm run smart-build-no-recursion"
   functions = "netlify/functions"
 
 # Documentation build context

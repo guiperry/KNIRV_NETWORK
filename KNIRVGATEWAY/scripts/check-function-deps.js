@@ -106,17 +106,42 @@ class FunctionDependencyChecker {
             const supabaseModulePath = path.join(this.nodeModulesPath, '@supabase', 'supabase-js');
 
             if (fs.existsSync(supabaseModulePath)) {
-                // Try to require the main file
+                // Check for package.json first
                 const packageJsonPath = path.join(supabaseModulePath, 'package.json');
                 if (fs.existsSync(packageJsonPath)) {
-                    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-                    const mainFile = path.join(supabaseModulePath, packageJson.main || 'index.js');
+                    try {
+                        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+                        // Check for multiple possible entry points
+                        const possibleMains = [
+                            packageJson.main,
+                            packageJson.module,
+                            'index.js',
+                            'dist/index.js',
+                            'dist/main/index.js'
+                        ].filter(Boolean);
 
-                    if (fs.existsSync(mainFile)) {
-                        this.log('Supabase module structure verified', 'success');
+                        let mainFileFound = false;
+                        for (const mainFile of possibleMains) {
+                            const fullPath = path.join(supabaseModulePath, mainFile);
+                            if (fs.existsSync(fullPath)) {
+                                this.log(`Supabase module structure verified (entry: ${mainFile})`, 'success');
+                                mainFileFound = true;
+                                break;
+                            }
+                        }
+
+                        if (!mainFileFound) {
+                            // Check if dist directory exists (common for compiled packages)
+                            const distPath = path.join(supabaseModulePath, 'dist');
+                            if (fs.existsSync(distPath)) {
+                                this.log('Supabase module dist directory found', 'success');
+                                return true;
+                            }
+                            throw new Error(`No valid entry point found. Checked: ${possibleMains.join(', ')}`);
+                        }
                         return true;
-                    } else {
-                        throw new Error(`Main file not found: ${mainFile}`);
+                    } catch (parseError) {
+                        throw new Error(`Failed to parse Supabase package.json: ${parseError.message}`);
                     }
                 } else {
                     throw new Error('Supabase package.json not found');
@@ -181,6 +206,12 @@ class FunctionDependencyChecker {
         this.log('🏥 Starting KNIRV Gateway Function Dependencies Check...');
         this.log('='.repeat(60));
 
+        // If autoFix is enabled, try to install dependencies first
+        if (autoFix) {
+            this.log('Auto-fix enabled, installing function dependencies first...', 'info');
+            await this.installFunctionDependencies();
+        }
+
         const checks = [
             () => this.checkMainPackageJson(),
             () => this.checkFunctionPackageJson(),
@@ -194,16 +225,14 @@ class FunctionDependencyChecker {
             const result = await check();
             if (!result) {
                 allPassed = false;
-                if (autoFix) {
-                    this.log('Attempting to fix issues...', 'warning');
-                    await this.installFunctionDependencies();
-                    break;
+                if (!autoFix) {
+                    this.log('Issues found but auto-fix not enabled', 'warning');
                 }
             }
         }
 
         this.log('='.repeat(60));
-        
+
         if (this.warnings.length > 0) {
             this.log('Warnings found:', 'warning');
             this.warnings.forEach(warning => this.log(`  - ${warning}`, 'warning'));
@@ -212,13 +241,13 @@ class FunctionDependencyChecker {
         if (this.errors.length > 0) {
             this.log('Errors found:', 'error');
             this.errors.forEach(error => this.log(`  - ${error}`, 'error'));
-            
+
             this.log('='.repeat(60));
             this.log('💡 Suggested fixes:', 'info');
             this.log('  1. Run: cd netlify/functions && npm install', 'info');
             this.log('  2. Or run: npm run install-function-deps', 'info');
             this.log('  3. Or add dependencies to main package.json', 'info');
-            
+
             process.exit(1);
         } else {
             this.log('All function dependency checks passed!', 'success');

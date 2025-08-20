@@ -11,6 +11,19 @@ const fs = require('fs').promises;
 const path = require('path');
 const bcrypt = require('bcryptjs');
 
+// Check if already initialized to prevent multiple runs
+const INIT_MARKER_FILE = path.join(__dirname, '..', 'forum', 'data', '.initialized');
+
+async function checkIfInitialized() {
+    try {
+        await fs.access(INIT_MARKER_FILE);
+        console.log('✅ Discourse database already initialized, skipping...');
+        process.exit(0);
+    } catch (error) {
+        // File doesn't exist, continue with initialization
+    }
+}
+
 class DiscourseDBInitializer {
     constructor() {
         this.dataDir = path.join(__dirname, '..', 'forum', 'data');
@@ -503,17 +516,23 @@ class DiscourseDBInitializer {
 
 // Main execution
 if (require.main === module) {
-    // Check if bcrypt is available
-    try {
-        require('bcryptjs');
-    } catch (error) {
-        console.error('❌ bcryptjs is required but not installed.');
-        console.error('Please run: npm install bcryptjs');
-        process.exit(1);
-    }
-    
-    const initializer = new DiscourseDBInitializer();
-    initializer.initialize().catch(console.error);
+    // Check if already initialized first
+    checkIfInitialized().then(() => {
+        // Check if bcrypt is available
+        try {
+            require('bcryptjs');
+        } catch (error) {
+            console.error('❌ bcryptjs is required but not installed.');
+            console.error('Please run: npm install bcryptjs');
+            process.exit(1);
+        }
+
+        const initializer = new DiscourseDBInitializer();
+        initializer.initialize().then(async () => {
+            // Create initialization marker
+            await fs.writeFile(INIT_MARKER_FILE, new Date().toISOString());
+        }).catch(console.error);
+    });
 }
 
 module.exports = DiscourseDBInitializer;

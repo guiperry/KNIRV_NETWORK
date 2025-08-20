@@ -6,18 +6,20 @@
   "scripts": {
     "dev": "npm run check-health && netlify dev",
     "start": "node scripts/smart-start.js",
-    "build": "npm run load-endpoints && npm run check-health && npm install && npm run check-function-deps --fix && npm run build:nexus && echo 'KNIRV Gateway built with Netlify Functions support'",
+    "build": "npm run load-endpoints && npm run check-health && npm install && npm run check-function-deps && npm run build:nexus && echo 'KNIRV Gateway built with Netlify Functions support'",
     "build:nexus": "npm run check-nexus-health && if [ -d \"nexus-portal\" ]; then cd nexus-portal && npm install && npm run build; else echo 'No nexus-portal directory found, skipping build (testnet mode)'; fi",
     "smart-build": "npm run check-health && npm run build || npm run auto-fix",
     "smart-build-with-apps": "npm run check-health && npm run init-apps && npm run build || npm run auto-fix",
-    "install-function-deps": "cd netlify/functions && npm install",
+    "smart-build-no-recursion": "npm run check-health && npm run init-apps && npm run load-endpoints && npm install && npm run check-function-deps && npm run build:nexus && echo 'KNIRV Gateway built with Netlify Functions support'",
+    "install-function-deps": "node scripts/ensure-function-deps.js",
+    "install-function-deps-direct": "cd netlify/functions && npm install",
     "init-apps": "npm run init-forum && npm run init-support-desk",
     "init-forum": "node scripts/init_discourse_database.js",
     "init-support-desk": "node scripts/init_support_database.js",
     "check-health": "node scripts/check-health.js",
     "check-nexus-health": "node scripts/check-nexus-health.js",
     "check-function-deps": "node scripts/check-function-deps.js",
-    "auto-fix": "echo '🔧 Auto-fixing detected issues...' && ./scripts/fix-netlify-cli.sh --auto && npm run build",
+    "auto-fix": "echo '🔧 Auto-fixing detected issues...' && ./scripts/fix-netlify-cli.sh --auto",
     "test": "npm run validate",
     "deploy": "netlify deploy --prod",
     "deploy:preview": "netlify deploy",
@@ -33,7 +35,8 @@
     "health-report": "npm run check-health && npm run check-nexus-health",
     "load-endpoints": "node scripts/load-endpoints.js",
     "load-endpoints:production": "node scripts/load-endpoints.js production",
-    "load-endpoints:testnet": "node scripts/load-endpoints.js testnet"
+    "load-endpoints:testnet": "node scripts/load-endpoints.js testnet",
+    "reset-init-markers": "node scripts/reset-init-markers.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",

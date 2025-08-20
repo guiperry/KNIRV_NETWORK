@@ -4,79 +4,79 @@
     "name": "title",
     "data_type": 1,
     "value": "KNIRV Forum",
-    "created_at": "2025-08-17T20:40:03.180Z",
-    "updated_at": "2025-08-17T20:40:03.180Z"
+    "created_at": "2025-08-20T06:57:47.653Z",
+    "updated_at": "2025-08-20T06:57:47.653Z"
   },
   {
     "id": 2,
     "name": "site_description",
     "data_type": 1,
     "value": "KNIRV Network Community Forum",
-    "created_at": "2025-08-17T20:40:03.180Z",
-    "updated_at": "2025-08-17T20:40:03.180Z"
+    "created_at": "2025-08-20T06:57:47.653Z",
+    "updated_at": "2025-08-20T06:57:47.653Z"
   },
   {
     "id": 3,
     "name": "contact_email",
     "data_type": 1,
     "value": "admin@knirv.com",
-    "created_at": "2025-08-17T20:40:03.180Z",
-    "updated_at": "2025-08-17T20:40:03.180Z"
+    "created_at": "2025-08-20T06:57:47.653Z",
+    "updated_at": "2025-08-20T06:57:47.653Z"
   },
   {
     "id": 4,
     "name": "company_name",
     "data_type": 1,
     "value": "KNIRV Network",
-    "created_at": "2025-08-17T20:40:03.180Z",
-    "updated_at": "2025-08-17T20:40:03.180Z"
+    "created_at": "2025-08-20T06:57:47.653Z",
+    "updated_at": "2025-08-20T06:57:47.653Z"
   },
   {
     "id": 5,
     "name": "logo_url",
     "data_type": 1,
     "value": "/img/logo.png",
-    "created_at": "2025-08-17T20:40:03.180Z",
-    "updated_at": "2025-08-17T20:40:03.180Z"
+    "created_at": "2025-08-20T06:57:47.653Z",
+    "updated_at": "2025-08-20T06:57:47.653Z"
   },
   {
     "id": 6,
     "name": "favicon_url",
     "data_type": 1,
     "value": "/img/favicon.png",
-    "created_at": "2025-08-17T20:40:03.180Z",
-    "updated_at": "2025-08-17T20:40:03.180Z"
+    "created_at": "2025-08-20T06:57:47.653Z",
+    "updated_at": "2025-08-20T06:57:47.653Z"
   },
   {
     "id": 7,
     "name": "allow_user_registration",
     "data_type": 5,
     "value": "true",
-    "created_at": "2025-08-17T20:40:03.180Z",
-    "updated_at": "2025-08-17T20:40:03.180Z"
+    "created_at": "2025-08-20T06:57:47.653Z",
+    "updated_at": "2025-08-20T06:57:47.653Z"
   },
   {
     "id": 8,
     "name": "min_password_length",
     "data_type": 3,
     "value": "8",
-    "created_at": "2025-08-17T20:40:03.180Z",
-    "updated_at": "2025-08-17T20:40:03.180Z"
+    "created_at": "2025-08-20T06:57:47.653Z",
+    "updated_at": "2025-08-20T06:57:47.653Z"
   },
   {
     "id": 9,
     "name": "topics_per_page",
     "data_type": 3,
     "value": "30",
-    "created_at": "2025-08-17T20:40:03.180Z",
-    "updated_at": "2025-08-17T20:40:03.180Z"
+    "created_at": "2025-08-20T06:57:47.653Z",
+    "updated_at": "2025-08-20T06:57:47.653Z"
   },
   {
     "id": 10,
     "name": "posts_per_page",
     "data_type": 3,
     "value": "20",
-    "created_at": "2025-08-17T20:40:03.180Z",
-    "updated_at": "2025-08-17T20:40:03.180Z"
+    "created_at": "2025-08-20T06:57:47.653Z",
+    "updated_at": "2025-08-20T06:57:47.653Z"
   }
 ]
