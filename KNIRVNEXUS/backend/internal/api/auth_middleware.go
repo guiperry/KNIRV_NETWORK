@@ -12,7 +12,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	dataengine "KNIRVNEXUS/backend/internal/services/data-engine"
+	dataengine "nexus-backend/internal/services/data-engine"
 )
 
 // AuthMiddleware handles authentication and authorization

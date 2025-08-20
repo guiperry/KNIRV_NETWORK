@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	dataengine "KNIRVNEXUS/backend/internal/services/data-engine"
+	dataengine "nexus-backend/internal/services/data-engine"
 )
 
 // FineTuningManager manages fine-tuning workflows and model adaptation

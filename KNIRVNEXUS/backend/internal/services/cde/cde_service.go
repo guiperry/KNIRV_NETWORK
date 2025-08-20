@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	dataengine "KNIRVNEXUS/backend/internal/services/data-engine"
-	"KNIRVNEXUS/backend/pkg/host"
+	dataengine "nexus-backend/internal/services/data-engine"
+	"nexus-backend/pkg/host"
 )
 
 // CDEService manages Cloud Development Environments

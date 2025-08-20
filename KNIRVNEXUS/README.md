@@ -33,6 +33,80 @@ KNIRV-NEXUS implements a microservices architecture running on Kubernetes with t
 - **Networking**: libp2p (aligned with KNIRV-ORACLE protocols)
 - **Configuration**: Viper for professional configuration management
 
+## 🛠️ Build System
+
+KNIRV-NEXUS uses a comprehensive Makefile for build orchestration that follows the NEXUS_MERGE.md specification:
+
+### Core Build Commands
+
+```bash
+# Development
+make dev              # Start development environment
+make dev-backend      # Start backend only
+make dev-frontend     # Start frontend only
+
+# Building
+make all              # Full build (frontend + backend + binary)
+make frontend         # Build Next.js frontend
+make backend          # Build Go backend
+make binary           # Create unified binary
+
+# Testing
+make test             # Run all tests
+make test-go          # Run Go unit tests
+make test-frontend    # Run frontend tests
+make test-integration # Run integration tests
+make test-e2e         # Run end-to-end tests
+
+# Quality Assurance
+make lint             # Run all linters
+make format           # Format all code
+make security         # Run security scans
+
+# Deployment
+make deploy           # Full deployment
+make deploy-infrastructure  # Deploy AWS infrastructure
+make deploy-dns       # Configure DNS
+make deploy-application    # Deploy application
+make deploy-monitoring     # Deploy monitoring stack
+make deploy-security       # Apply security hardening
+```
+
+### Advanced Commands
+
+```bash
+# Docker Operations
+make docker           # Build Docker image
+make docker-run       # Run Docker container
+
+# Database Operations
+make db-migrate       # Run database migrations
+make db-seed          # Seed test data
+
+# Utilities
+make clean            # Clean build artifacts
+make install          # Install binary to system
+make health           # Check system health
+make version          # Show version info
+make setup            # Setup development environment
+```
+
+### Quick Start
+
+```bash
+# Setup development environment
+make setup
+
+# Build everything
+make all
+
+# Run in development mode
+make dev
+
+# Deploy to production
+make deploy-full
+```
+
 ## 🚀 Features
 
 ### Frontend (Next.js with shadcn/ui)

@@ -8,7 +8,7 @@ import (
 
 	"github.com/segmentio/kafka-go"
 
-	"KNIRVORACLE/messages"
+	"nexus-backend/internal/messages"
 )
 
 // EventType represents different types of events that can be produced

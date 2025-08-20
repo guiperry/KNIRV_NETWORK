@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
-	
-	dataengine "KNIRVNEXUS/backend/internal/services/data-engine"
+
+	dataengine "nexus-backend/internal/services/data-engine"
 )
 
 // AuthService handles authentication and user management
@@ -22,17 +22,17 @@ type AuthService struct {
 
 // AuthConfig contains authentication configuration
 type AuthConfig struct {
-	PasswordMinLength    int           `yaml:"password_min_length"`
-	PasswordRequireUpper bool          `yaml:"password_require_upper"`
-	PasswordRequireLower bool          `yaml:"password_require_lower"`
-	PasswordRequireDigit bool          `yaml:"password_require_digit"`
-	PasswordRequireSpecial bool        `yaml:"password_require_special"`
-	TokenExpiration      time.Duration `yaml:"token_expiration"`
+	PasswordMinLength      int           `yaml:"password_min_length"`
+	PasswordRequireUpper   bool          `yaml:"password_require_upper"`
+	PasswordRequireLower   bool          `yaml:"password_require_lower"`
+	PasswordRequireDigit   bool          `yaml:"password_require_digit"`
+	PasswordRequireSpecial bool          `yaml:"password_require_special"`
+	TokenExpiration        time.Duration `yaml:"token_expiration"`
 	RefreshTokenExpiration time.Duration `yaml:"refresh_token_expiration"`
-	MaxLoginAttempts     int           `yaml:"max_login_attempts"`
-	LockoutDuration      time.Duration `yaml:"lockout_duration"`
-	SessionTimeout       time.Duration `yaml:"session_timeout"`
-	EnableTwoFactor      bool          `yaml:"enable_two_factor"`
+	MaxLoginAttempts       int           `yaml:"max_login_attempts"`
+	LockoutDuration        time.Duration `yaml:"lockout_duration"`
+	SessionTimeout         time.Duration `yaml:"session_timeout"`
+	EnableTwoFactor        bool          `yaml:"enable_two_factor"`
 }
 
 // LoginAttempt tracks login attempts for rate limiting
@@ -88,7 +88,7 @@ func NewAuthService(dataEngine *dataengine.BuntDBDataEngine, config AuthConfig) 
 	if config.SessionTimeout == 0 {
 		config.SessionTimeout = 30 * time.Minute
 	}
-	
+
 	return &AuthService{
 		dataEngine: dataEngine,
 		config:     config,
@@ -101,18 +101,18 @@ func (as *AuthService) CreateUser(username, email, password, firstName, lastName
 	if err := as.validatePassword(password); err != nil {
 		return nil, err
 	}
-	
+
 	// Check if user already exists
 	if _, err := as.dataEngine.GetBuntDBManager().GetUserByUsername(username); err == nil {
 		return nil, fmt.Errorf("username already exists")
 	}
-	
+
 	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
-	
+
 	// Create user
 	user := &dataengine.UserEntry{
 		ID:           as.generateID("user"),
@@ -127,13 +127,13 @@ func (as *AuthService) CreateUser(username, email, password, firstName, lastName
 		UpdatedAt:    time.Now(),
 		Metadata:     make(map[string]interface{}),
 	}
-	
+
 	if err := as.dataEngine.GetBuntDBManager().CreateUser(user); err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
-	
+
 	log.Printf("AuthService: Created user %s (%s)", user.Username, user.ID)
-	
+
 	return user, nil
 }
 
@@ -143,36 +143,36 @@ func (as *AuthService) AuthenticateUser(username, password, ipAddress string) (*
 	if as.isUserLockedOut(username, ipAddress) {
 		return nil, fmt.Errorf("account temporarily locked due to too many failed attempts")
 	}
-	
+
 	// Get user
 	user, err := as.dataEngine.GetBuntDBManager().GetUserByUsername(username)
 	if err != nil {
 		as.recordLoginAttempt(username, ipAddress, false)
 		return nil, fmt.Errorf("invalid credentials")
 	}
-	
+
 	// Check user status
 	if user.Status != "active" {
 		as.recordLoginAttempt(username, ipAddress, false)
 		return nil, fmt.Errorf("account is not active")
 	}
-	
+
 	// Verify password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
 		as.recordLoginAttempt(username, ipAddress, false)
 		return nil, fmt.Errorf("invalid credentials")
 	}
-	
+
 	// Record successful login
 	as.recordLoginAttempt(username, ipAddress, true)
-	
+
 	// Update last login
 	now := time.Now()
 	user.LastLogin = &now
 	as.dataEngine.GetBuntDBManager().UpdateUser(user)
-	
+
 	log.Printf("AuthService: User %s authenticated successfully", username)
-	
+
 	return user, nil
 }
 
@@ -183,33 +183,33 @@ func (as *AuthService) ChangePassword(userID, currentPassword, newPassword strin
 	if err != nil {
 		return fmt.Errorf("user not found")
 	}
-	
+
 	// Verify current password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(currentPassword)); err != nil {
 		return fmt.Errorf("current password is incorrect")
 	}
-	
+
 	// Validate new password
 	if err := as.validatePassword(newPassword); err != nil {
 		return err
 	}
-	
+
 	// Hash new password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("failed to hash password: %w", err)
 	}
-	
+
 	// Update user
 	user.PasswordHash = string(hashedPassword)
 	user.UpdatedAt = time.Now()
-	
+
 	if err := as.dataEngine.GetBuntDBManager().UpdateUser(user); err != nil {
 		return fmt.Errorf("failed to update password: %w", err)
 	}
-	
+
 	log.Printf("AuthService: Password changed for user %s", user.Username)
-	
+
 	return nil
 }
 
@@ -220,7 +220,7 @@ func (as *AuthService) CreatePasswordResetToken(email string) (*PasswordResetTok
 	if err != nil {
 		return nil, fmt.Errorf("failed to search users: %w", err)
 	}
-	
+
 	var user *dataengine.UserEntry
 	for _, u := range users {
 		if u.Email == email {
@@ -228,17 +228,17 @@ func (as *AuthService) CreatePasswordResetToken(email string) (*PasswordResetTok
 			break
 		}
 	}
-	
+
 	if user == nil {
 		return nil, fmt.Errorf("user not found")
 	}
-	
+
 	// Generate reset token
 	token, err := as.generateSecureToken(32)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}
-	
+
 	resetToken := &PasswordResetToken{
 		ID:        as.generateID("reset"),
 		UserID:    user.ID,
@@ -247,10 +247,10 @@ func (as *AuthService) CreatePasswordResetToken(email string) (*PasswordResetTok
 		Used:      false,
 		CreatedAt: time.Now(),
 	}
-	
+
 	// Store token (would need to implement storage for reset tokens)
 	log.Printf("AuthService: Password reset token created for user %s", user.Username)
-	
+
 	return resetToken, nil
 }
 
@@ -260,11 +260,11 @@ func (as *AuthService) ResetPassword(token, newPassword string) error {
 	if err := as.validatePassword(newPassword); err != nil {
 		return err
 	}
-	
+
 	// This would need to be implemented with proper token storage
 	// For now, return success
 	log.Printf("AuthService: Password reset completed")
-	
+
 	return nil
 }
 
@@ -275,23 +275,23 @@ func (as *AuthService) validatePassword(password string) error {
 	if len(password) < as.config.PasswordMinLength {
 		return fmt.Errorf("password must be at least %d characters long", as.config.PasswordMinLength)
 	}
-	
+
 	if as.config.PasswordRequireUpper && !strings.ContainsAny(password, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") {
 		return fmt.Errorf("password must contain at least one uppercase letter")
 	}
-	
+
 	if as.config.PasswordRequireLower && !strings.ContainsAny(password, "abcdefghijklmnopqrstuvwxyz") {
 		return fmt.Errorf("password must contain at least one lowercase letter")
 	}
-	
+
 	if as.config.PasswordRequireDigit && !strings.ContainsAny(password, "0123456789") {
 		return fmt.Errorf("password must contain at least one digit")
 	}
-	
+
 	if as.config.PasswordRequireSpecial && !strings.ContainsAny(password, "!@#$%^&*()_+-=[]{}|;:,.<>?") {
 		return fmt.Errorf("password must contain at least one special character")
 	}
-	
+
 	return nil
 }
 
@@ -310,7 +310,7 @@ func (as *AuthService) recordLoginAttempt(username, ipAddress string, success bo
 		Timestamp: time.Now(),
 		Success:   success,
 	}
-	
+
 	// This would need to be implemented with proper storage
 	log.Printf("AuthService: Login attempt recorded for %s from %s (success: %v)", username, ipAddress, success)
 	_ = attempt
@@ -327,7 +327,7 @@ func (as *AuthService) generateSecureToken(length int) (string, error) {
 	if _, err := rand.Read(bytes); err != nil {
 		return "", err
 	}
-	
+
 	hash := sha256.Sum256(bytes)
 	return hex.EncodeToString(hash[:])[:length], nil
 }

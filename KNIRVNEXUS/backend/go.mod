@@ -23,6 +23,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/tidwall/buntdb v1.3.0
 	github.com/wk8/go-ordered-map/v2 v2.1.8
+	golang.org/x/crypto v0.36.0
 )
 
 require (
@@ -171,7 +172,6 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/arch v0.3.0 // indirect
-	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.37.0 // indirect

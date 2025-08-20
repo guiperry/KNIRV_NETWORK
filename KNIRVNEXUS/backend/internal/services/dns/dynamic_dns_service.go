@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"KNIRVNEXUS/backend/pkg/cloudflare"
-	dataengine "KNIRVNEXUS/backend/internal/services/data-engine"
+	dataengine "nexus-backend/internal/services/data-engine"
+	"nexus-backend/pkg/cloudflare"
 )
 
 // DynamicDNSService manages dynamic DNS updates
@@ -16,21 +16,21 @@ type DynamicDNSService struct {
 	// CloudFlare DNS manager
 	dnsManager *cloudflare.DNSManager
 	dataEngine *dataengine.BuntDBDataEngine
-	
+
 	// Configuration
 	config DNSConfig
-	
+
 	// State management
 	isRunning bool
 	mu        sync.RWMutex
 	ctx       context.Context
 	cancel    context.CancelFunc
-	
+
 	// Current state
-	currentIP    string
-	lastUpdate   time.Time
-	updateCount  int64
-	errorCount   int64
+	currentIP   string
+	lastUpdate  time.Time
+	updateCount int64
+	errorCount  int64
 }
 
 // DNSConfig contains configuration for the DNS service
@@ -38,23 +38,23 @@ type DNSConfig struct {
 	// CloudFlare settings
 	CloudFlareAPIToken string `yaml:"cloudflare_api_token"`
 	ZoneName           string `yaml:"zone_name"`
-	
+
 	// Update settings
-	UpdateInterval     time.Duration `yaml:"update_interval"`
+	UpdateInterval      time.Duration `yaml:"update_interval"`
 	ForceUpdateInterval time.Duration `yaml:"force_update_interval"`
-	
+
 	// DNS records to manage
 	Records []DNSRecordConfig `yaml:"records"`
-	
+
 	// Health check settings
-	EnableHealthCheck  bool          `yaml:"enable_health_check"`
-	HealthCheckURL     string        `yaml:"health_check_url"`
+	EnableHealthCheck   bool          `yaml:"enable_health_check"`
+	HealthCheckURL      string        `yaml:"health_check_url"`
 	HealthCheckInterval time.Duration `yaml:"health_check_interval"`
-	
+
 	// Retry settings
-	MaxRetries     int           `yaml:"max_retries"`
-	RetryDelay     time.Duration `yaml:"retry_delay"`
-	BackoffFactor  float64       `yaml:"backoff_factor"`
+	MaxRetries    int           `yaml:"max_retries"`
+	RetryDelay    time.Duration `yaml:"retry_delay"`
+	BackoffFactor float64       `yaml:"backoff_factor"`
 }
 
 // DNSRecordConfig represents a DNS record configuration
@@ -65,9 +65,9 @@ type DNSRecordConfig struct {
 	Proxied  bool   `yaml:"proxied"`
 	Priority int    `yaml:"priority,omitempty"`
 	Comment  string `yaml:"comment"`
-	
+
 	// Dynamic update settings
-	UpdateWithIP bool `yaml:"update_with_ip"`
+	UpdateWithIP  bool   `yaml:"update_with_ip"`
 	StaticContent string `yaml:"static_content,omitempty"`
 }
 
@@ -76,11 +76,11 @@ func NewDynamicDNSService(dataEngine *dataengine.BuntDBDataEngine, config DNSCon
 	if config.CloudFlareAPIToken == "" {
 		return nil, fmt.Errorf("CloudFlare API token is required")
 	}
-	
+
 	if config.ZoneName == "" {
 		return nil, fmt.Errorf("zone name is required")
 	}
-	
+
 	// Set default values
 	if config.UpdateInterval == 0 {
 		config.UpdateInterval = 5 * time.Minute
@@ -100,9 +100,9 @@ func NewDynamicDNSService(dataEngine *dataengine.BuntDBDataEngine, config DNSCon
 	if config.BackoffFactor == 0 {
 		config.BackoffFactor = 2.0
 	}
-	
+
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	service := &DynamicDNSService{
 		dnsManager: cloudflare.NewDNSManager(config.CloudFlareAPIToken),
 		dataEngine: dataEngine,
@@ -110,7 +110,7 @@ func NewDynamicDNSService(dataEngine *dataengine.BuntDBDataEngine, config DNSCon
 		ctx:        ctx,
 		cancel:     cancel,
 	}
-	
+
 	return service, nil
 }
 
@@ -118,19 +118,19 @@ func NewDynamicDNSService(dataEngine *dataengine.BuntDBDataEngine, config DNSCon
 func (dds *DynamicDNSService) Start() error {
 	dds.mu.Lock()
 	defer dds.mu.Unlock()
-	
+
 	if dds.isRunning {
 		return fmt.Errorf("dynamic DNS service is already running")
 	}
-	
+
 	// Start monitoring loops
 	go dds.ipMonitoringLoop()
 	go dds.healthCheckLoop()
 	go dds.forceUpdateLoop()
-	
+
 	dds.isRunning = true
 	log.Println("DynamicDNSService: Started successfully")
-	
+
 	return nil
 }
 
@@ -138,16 +138,16 @@ func (dds *DynamicDNSService) Start() error {
 func (dds *DynamicDNSService) Stop() error {
 	dds.mu.Lock()
 	defer dds.mu.Unlock()
-	
+
 	if !dds.isRunning {
 		return nil
 	}
-	
+
 	dds.cancel()
 	dds.isRunning = false
-	
+
 	log.Println("DynamicDNSService: Stopped successfully")
-	
+
 	return nil
 }
 
@@ -155,7 +155,7 @@ func (dds *DynamicDNSService) Stop() error {
 func (dds *DynamicDNSService) ipMonitoringLoop() {
 	ticker := time.NewTicker(dds.config.UpdateInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-dds.ctx.Done():
@@ -175,12 +175,12 @@ func (dds *DynamicDNSService) checkAndUpdateIP() {
 		dds.errorCount++
 		return
 	}
-	
+
 	dds.mu.Lock()
 	ipChanged := currentIP != dds.currentIP
 	dds.currentIP = currentIP
 	dds.mu.Unlock()
-	
+
 	if ipChanged {
 		log.Printf("DynamicDNSService: IP changed to %s, updating DNS records", currentIP)
 		if err := dds.updateDNSRecords(currentIP); err != nil {
@@ -191,7 +191,7 @@ func (dds *DynamicDNSService) checkAndUpdateIP() {
 			dds.lastUpdate = time.Now()
 			dds.updateCount++
 			dds.mu.Unlock()
-			
+
 			// Log metrics
 			if dds.dataEngine != nil {
 				dds.dataEngine.ProcessMetricEvent(
@@ -216,7 +216,7 @@ func (dds *DynamicDNSService) updateDNSRecords(newIP string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get zone: %w", err)
 	}
-	
+
 	// Update each configured record
 	for _, recordConfig := range dds.config.Records {
 		var content string
@@ -227,7 +227,7 @@ func (dds *DynamicDNSService) updateDNSRecords(newIP string) error {
 		} else {
 			continue // Skip records without content
 		}
-		
+
 		record := cloudflare.DNSRecord{
 			Type:     recordConfig.Type,
 			Name:     recordConfig.Name,
@@ -236,15 +236,15 @@ func (dds *DynamicDNSService) updateDNSRecords(newIP string) error {
 			Proxied:  recordConfig.Proxied,
 			Priority: recordConfig.Priority,
 		}
-		
+
 		if err := dds.updateRecordWithRetry(zone.ID, record); err != nil {
 			log.Printf("DynamicDNSService: Failed to update record %s: %v", recordConfig.Name, err)
 			continue
 		}
-		
+
 		log.Printf("DynamicDNSService: Updated record %s (%s) to %s", recordConfig.Name, recordConfig.Type, content)
 	}
-	
+
 	return nil
 }
 
@@ -252,22 +252,22 @@ func (dds *DynamicDNSService) updateDNSRecords(newIP string) error {
 func (dds *DynamicDNSService) updateRecordWithRetry(zoneID string, record cloudflare.DNSRecord) error {
 	var lastErr error
 	delay := dds.config.RetryDelay
-	
+
 	for attempt := 0; attempt <= dds.config.MaxRetries; attempt++ {
 		if attempt > 0 {
 			time.Sleep(delay)
 			delay = time.Duration(float64(delay) * dds.config.BackoffFactor)
 		}
-		
+
 		_, err := dds.dnsManager.UpdateOrCreateDNSRecord(zoneID, record)
 		if err == nil {
 			return nil
 		}
-		
+
 		lastErr = err
 		log.Printf("DynamicDNSService: Attempt %d failed for record %s: %v", attempt+1, record.Name, err)
 	}
-	
+
 	return fmt.Errorf("failed after %d attempts: %w", dds.config.MaxRetries+1, lastErr)
 }
 
@@ -276,10 +276,10 @@ func (dds *DynamicDNSService) healthCheckLoop() {
 	if !dds.config.EnableHealthCheck || dds.config.HealthCheckURL == "" {
 		return
 	}
-	
+
 	ticker := time.NewTicker(dds.config.HealthCheckInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-dds.ctx.Done():
@@ -295,7 +295,7 @@ func (dds *DynamicDNSService) performHealthCheck() {
 	// This would implement actual health checking logic
 	// For now, just log that it's running
 	log.Printf("DynamicDNSService: Health check performed")
-	
+
 	// Log metrics
 	if dds.dataEngine != nil {
 		dds.dataEngine.ProcessMetricEvent(
@@ -314,7 +314,7 @@ func (dds *DynamicDNSService) performHealthCheck() {
 func (dds *DynamicDNSService) forceUpdateLoop() {
 	ticker := time.NewTicker(dds.config.ForceUpdateInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-dds.ctx.Done():
@@ -328,13 +328,13 @@ func (dds *DynamicDNSService) forceUpdateLoop() {
 // forceUpdate forces an update of all DNS records
 func (dds *DynamicDNSService) forceUpdate() {
 	log.Println("DynamicDNSService: Performing forced update")
-	
+
 	currentIP, err := dds.getCurrentPublicIP()
 	if err != nil {
 		log.Printf("DynamicDNSService: Failed to get current IP for forced update: %v", err)
 		return
 	}
-	
+
 	if err := dds.updateDNSRecords(currentIP); err != nil {
 		log.Printf("DynamicDNSService: Failed forced update: %v", err)
 		dds.errorCount++
@@ -357,15 +357,15 @@ func (dds *DynamicDNSService) getCurrentPublicIP() (string, error) {
 func (dds *DynamicDNSService) GetStatus() map[string]interface{} {
 	dds.mu.RLock()
 	defer dds.mu.RUnlock()
-	
+
 	return map[string]interface{}{
-		"running":       dds.isRunning,
-		"current_ip":    dds.currentIP,
-		"last_update":   dds.lastUpdate,
-		"update_count":  dds.updateCount,
-		"error_count":   dds.errorCount,
-		"zone_name":     dds.config.ZoneName,
-		"record_count":  len(dds.config.Records),
+		"running":      dds.isRunning,
+		"current_ip":   dds.currentIP,
+		"last_update":  dds.lastUpdate,
+		"update_count": dds.updateCount,
+		"error_count":  dds.errorCount,
+		"zone_name":    dds.config.ZoneName,
+		"record_count": len(dds.config.Records),
 	}
 }
 
