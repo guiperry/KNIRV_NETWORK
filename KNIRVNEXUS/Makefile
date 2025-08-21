@@ -83,21 +83,30 @@ frontend-dev: deps-node ## Start frontend development server
 	@echo "$(BLUE)Starting frontend development server...$(NC)"
 	$(NPM_CMD) run dev
 
-# Backend Build (Unified single binary)
-backend: deps-go ## Build unified Go backend service
-	@echo "$(BLUE)Building unified backend binary...$(NC)"
-	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o bin/nexus-server ./cmd/nexus-server
+# Backend Build (Complete package binary)
+backend: deps-go ## Build complete Go backend service package
+	@echo "$(BLUE)Building complete backend package binary...$(NC)"
+	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o bin/nexus-backend .
 	@echo "$(BLUE)Copying backend binary to root...$(NC)"
 	@mkdir -p bin
-	cp $(BACKEND_DIR)/bin/nexus-server bin/
+	cp $(BACKEND_DIR)/bin/nexus-backend bin/
 	@echo "$(GREEN)Backend build completed$(NC)"
+
+# Legacy Backend Build (cmd/nexus-server only)
+backend-legacy: deps-go ## Build legacy cmd/nexus-server binary
+	@echo "$(BLUE)Building legacy backend binary...$(NC)"
+	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o bin/nexus-server ./cmd/nexus-server
+	@echo "$(BLUE)Copying legacy backend binary to root...$(NC)"
+	@mkdir -p bin
+	cp $(BACKEND_DIR)/bin/nexus-server bin/
+	@echo "$(GREEN)Legacy backend build completed$(NC)"
 
 # Unified Binary (Frontend + Unified Backend)
 binary: frontend backend ## Build unified binary with embedded frontend and backend
 	@echo "$(BLUE)Creating unified binary...$(NC)"
 	@mkdir -p $(DIST_DIR)
-	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/nexus-server .
-	@echo "$(GREEN)Unified binary created: $(DIST_DIR)/nexus-server$(NC)"
+	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-nexus .
+	@echo "$(GREEN)Unified binary created: $(DIST_DIR)/knirv-nexus$(NC)"
 
 # Testing
 test: test-go test-frontend test-architecture ## Run all tests
@@ -224,12 +233,12 @@ clean-all: clean ## Clean everything including dependencies
 
 install: binary ## Install binary to system
 	@echo "$(BLUE)Installing binary...$(NC)"
-	sudo cp $(DIST_DIR)/nexus-server /usr/local/bin/
-	sudo chmod +x /usr/local/bin/nexus-server
+	sudo cp $(DIST_DIR)/knirv-nexus /usr/local/bin/
+	sudo chmod +x /usr/local/bin/knirv-nexus
 
 uninstall: ## Uninstall binary from system
 	@echo "$(BLUE)Uninstalling binary...$(NC)"
-	sudo rm -f /usr/local/bin/nexus-server
+	sudo rm -f /usr/local/bin/knirv-nexus
 
 # Health checks
 health: ## Check system health

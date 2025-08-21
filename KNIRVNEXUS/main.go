@@ -27,7 +27,7 @@ var embeddedFiles embed.FS
 
 // Embed the unified backend binary
 //
-//go:embed bin/nexus-server
+//go:embed bin/nexus-backend
 var backendBinary []byte
 
 // Version information (set by build flags)
@@ -292,10 +292,20 @@ func (app *NexusApp) setupRoutes() error {
 func (app *NexusApp) startBackend() error {
 	log.Printf("Starting unified backend service on port %d...", app.config.BackendPort)
 
-	app.backendCmd = exec.Command(app.backendPath)
+	// Pass the config file path used by the wrapper to the backend.
+	// This ensures the backend uses the same configuration.
+	configFile := viper.ConfigFileUsed()
+	if configFile != "" {
+		log.Printf("Passing config file to backend: %s", configFile)
+		app.backendCmd = exec.Command(app.backendPath, "--config", configFile)
+	} else {
+		app.backendCmd = exec.Command(app.backendPath)
+	}
+
 	app.backendCmd.Env = append(os.Environ(),
-		fmt.Sprintf("NEXUS_API_PORT=%d", app.config.BackendPort),
-		fmt.Sprintf("NEXUS_API_BIND_ADDRESS=127.0.0.1"),
+		fmt.Sprintf("KNIRV_API_PORT=%d", app.config.BackendPort),
+		"KNIRV_API_HOST=127.0.0.1",
+		"KNIRV_SECURITY_JWT_SECRET=your-jwt-secret-key-change-this-in-production",
 	)
 	app.backendCmd.Stdout = os.Stdout
 	app.backendCmd.Stderr = os.Stderr
@@ -375,8 +385,8 @@ func (app *NexusApp) Stop() error {
 func loadConfig() (*Config, error) {
 	// Set default values
 	viper.SetDefault("host", "0.0.0.0")
-	viper.SetDefault("port", 8080)
-	viper.SetDefault("backend_port", 8081)
+	viper.SetDefault("port", 8090)
+	viper.SetDefault("backend_port", 8080)
 	viper.SetDefault("log_level", "info")
 
 	// Set config file name and paths

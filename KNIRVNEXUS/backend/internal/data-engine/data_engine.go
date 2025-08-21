@@ -16,8 +16,6 @@ type DataEngine struct {
 	aggregator *WindowedAggregator
 	chromaDB   *ChromaDB
 	alerting   *AlertingSystem
-	websocket  *WebSocketServer
-	restAPI    *RESTAPIServer
 
 	config    DataEngineConfig
 	isRunning bool
@@ -134,38 +132,8 @@ func (d *DataEngine) Start() error {
 	// Register default alert rules
 	d.registerDefaultAlertRules()
 
-	// Create WebSocket server if enabled and not embedded in reverse proxy
-	if d.config.EnableWebSocket {
-		d.websocket = NewWebSocketServer(WebSocketConfig{
-			Port:            d.config.WebSocketPort,
-			ReadBufferSize:  1024,
-			WriteBufferSize: 1024,
-			CheckOrigin:     true,
-		}, d)
-
-		// Start WebSocket server
-		err := d.websocket.Start()
-		if err != nil {
-			return fmt.Errorf("failed to start WebSocket server: %w", err)
-		}
-	}
-
-	// Create REST API server if enabled and not embedded in reverse proxy
-	if d.config.EnableRESTAPI {
-		d.restAPI = NewRESTAPIServer(RESTAPIConfig{
-			Port:           d.config.RESTAPIPort,
-			EnableCORS:     true,
-			ReadTimeout:    10 * time.Second,
-			WriteTimeout:   10 * time.Second,
-			MaxHeaderBytes: 1 << 20, // 1MB
-		}, d)
-
-		// Start REST API server
-		err := d.restAPI.Start()
-		if err != nil {
-			return fmt.Errorf("failed to start REST API server: %w", err)
-		}
-	}
+	// Note: WebSocket and REST API endpoints are now handled by the unified server
+	// Data-engine registers its routes with the main server instead of starting its own servers
 
 	// Start metrics reporting
 	go d.reportMetrics()
@@ -203,21 +171,7 @@ func (d *DataEngine) Stop() error {
 		d.alerting.Close()
 	}
 
-	// Stop WebSocket server
-	if d.websocket != nil {
-		err := d.websocket.Stop()
-		if err != nil {
-			fmt.Printf("Failed to stop WebSocket server: %s\n", err.Error())
-		}
-	}
-
-	// Stop REST API server
-	if d.restAPI != nil {
-		err := d.restAPI.Stop()
-		if err != nil {
-			fmt.Printf("Failed to stop REST API server: %s\n", err.Error())
-		}
-	}
+	// Note: WebSocket and REST API endpoints are handled by the unified server
 
 	d.isRunning = false
 	return nil
@@ -257,13 +211,7 @@ func (d *DataEngine) ProcessEvent(event Event) error {
 		}
 	}
 
-	// Broadcast to WebSocket clients if enabled
-	if d.config.EnableWebSocket && d.websocket != nil && d.websocket.IsRunning() {
-		d.websocket.Broadcast(map[string]interface{}{
-			"type":  "event",
-			"event": event,
-		})
-	}
+	// Note: WebSocket broadcasting is handled by the unified server
 
 	return nil
 }
@@ -296,14 +244,6 @@ func (d *DataEngine) handleAlert(alert Alert) {
 		// Channel is full, log and continue
 		fmt.Printf("Alert channel is full, dropping alert: %s\n", alert.Title)
 	}
-
-	// Broadcast to WebSocket clients if enabled
-	if d.config.EnableWebSocket && d.websocket != nil && d.websocket.IsRunning() {
-		d.websocket.Broadcast(map[string]interface{}{
-			"type":  "alert",
-			"alert": alert,
-		})
-	}
 }
 
 // reportMetrics periodically reports metrics
@@ -326,14 +266,6 @@ func (d *DataEngine) reportMetrics() {
 					// Metrics sent successfully
 				default:
 					// Channel is full, skip this update
-				}
-
-				// Broadcast to WebSocket clients if enabled
-				if d.config.EnableWebSocket && d.websocket != nil && d.websocket.IsRunning() {
-					d.websocket.Broadcast(map[string]interface{}{
-						"type":    "metrics",
-						"metrics": metrics,
-					})
 				}
 			}
 		}
@@ -415,14 +347,6 @@ func (d *DataEngine) ResolveAlert(alertID string) bool {
 
 	resolved := d.alerting.ResolveAlert(alertID)
 
-	// Broadcast to WebSocket clients if enabled
-	if resolved && d.config.EnableWebSocket && d.websocket != nil && d.websocket.IsRunning() {
-		d.websocket.Broadcast(map[string]interface{}{
-			"type":     "alert_resolved",
-			"alert_id": alertID,
-		})
-	}
-
 	return resolved
 }
 
@@ -463,29 +387,4 @@ func (d *DataEngine) GetMetrics() *MetricsSnapshot {
 	return d.processor.GetMetrics()
 }
 
-// GetWebSocketClientCount returns the number of connected WebSocket clients
-func (d *DataEngine) GetWebSocketClientCount() int {
-	if d.websocket == nil {
-		return 0
-	}
-
-	return d.websocket.GetClientCount()
-}
-
-// IsWebSocketRunning returns whether the WebSocket server is running
-func (d *DataEngine) IsWebSocketRunning() bool {
-	if d.websocket == nil {
-		return false
-	}
-
-	return d.websocket.IsRunning()
-}
-
-// IsRESTAPIRunning returns whether the REST API server is running
-func (d *DataEngine) IsRESTAPIRunning() bool {
-	if d.restAPI == nil {
-		return false
-	}
-
-	return d.restAPI.IsRunning()
-}
+// Note: WebSocket and REST API methods are handled by the unified server

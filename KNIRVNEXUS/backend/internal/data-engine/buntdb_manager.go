@@ -61,6 +61,7 @@ type MetricEntry struct {
 	ID        string                 `json:"id"`
 	Timestamp time.Time              `json:"timestamp"`
 	Source    string                 `json:"source"`
+	Name      string                 `json:"name"`
 	Type      string                 `json:"type"`
 	Value     float64                `json:"value"`
 	Unit      string                 `json:"unit"`
@@ -72,11 +73,14 @@ type MetricEntry struct {
 type AlertEntry struct {
 	ID          string                 `json:"id"`
 	Timestamp   time.Time              `json:"timestamp"`
+	Type        string                 `json:"type"`
 	Title       string                 `json:"title"`
 	Description string                 `json:"description"`
+	Message     string                 `json:"message"`
 	Severity    string                 `json:"severity"`
 	Source      string                 `json:"source"`
 	Status      string                 `json:"status"`
+	Resolved    bool                   `json:"resolved"`
 	Tags        map[string]string      `json:"tags"`
 	Metadata    map[string]interface{} `json:"metadata"`
 	ResolvedAt  *time.Time             `json:"resolved_at,omitempty"`
@@ -411,6 +415,38 @@ func (m *BuntDBManager) GetAlerts(severity, status string, since time.Time, limi
 	return alerts, err
 }
 
+// ResolveAlert marks an alert as resolved
+func (m *BuntDBManager) ResolveAlert(alertID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	key := fmt.Sprintf("%s%s", AlertsCollection, alertID)
+	return m.db.Update(func(tx *buntdb.Tx) error {
+		val, err := tx.Get(key)
+		if err != nil {
+			return err
+		}
+
+		var alert AlertEntry
+		if err := json.Unmarshal([]byte(val), &alert); err != nil {
+			return err
+		}
+
+		// Mark as resolved
+		now := time.Now()
+		alert.Resolved = true
+		alert.ResolvedAt = &now
+
+		data, err := json.Marshal(alert)
+		if err != nil {
+			return err
+		}
+
+		_, _, err = tx.Set(key, string(data), nil)
+		return err
+	})
+}
+
 // StoreReport stores a report entry
 func (m *BuntDBManager) StoreReport(report *ReportEntry, isUserReport bool) error {
 	m.mu.Lock()
@@ -481,6 +517,119 @@ func (m *BuntDBManager) GetReports(reportType string, isUserReport bool, since t
 	return reports, err
 }
 
+// UserReportEntry represents a user-specific report entry
+type UserReportEntry struct {
+	ID        string                 `json:"id"`
+	UserID    string                 `json:"user_id"`
+	Type      string                 `json:"type"`
+	Data      map[string]interface{} `json:"data"`
+	Timestamp time.Time              `json:"timestamp"`
+	Metadata  map[string]interface{} `json:"metadata"`
+}
+
+// SystemReportEntry represents a system-wide report entry
+type SystemReportEntry struct {
+	ID        string                 `json:"id"`
+	Type      string                 `json:"type"`
+	Data      map[string]interface{} `json:"data"`
+	Timestamp time.Time              `json:"timestamp"`
+	Metadata  map[string]interface{} `json:"metadata"`
+}
+
+// StoreUserReport stores a user-specific report entry
+func (m *BuntDBManager) StoreUserReport(report *UserReportEntry) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	key := fmt.Sprintf("%suser:%s", UserReportsCollection, report.ID)
+	data, err := json.Marshal(report)
+	if err != nil {
+		return err
+	}
+
+	return m.db.Update(func(tx *buntdb.Tx) error {
+		_, _, err := tx.Set(key, string(data), nil)
+		return err
+	})
+}
+
+// StoreSystemReport stores a system-wide report entry
+func (m *BuntDBManager) StoreSystemReport(report *SystemReportEntry) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	key := fmt.Sprintf("%ssystem:%s", SystemReportsCollection, report.ID)
+	data, err := json.Marshal(report)
+	if err != nil {
+		return err
+	}
+
+	return m.db.Update(func(tx *buntdb.Tx) error {
+		_, _, err := tx.Set(key, string(data), nil)
+		return err
+	})
+}
+
+// GetUserReports retrieves user reports with filtering
+func (m *BuntDBManager) GetUserReports(userID string, since time.Time, until time.Time) ([]*UserReportEntry, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var reports []*UserReportEntry
+	err := m.db.View(func(tx *buntdb.Tx) error {
+		return tx.Ascend("", func(key, value string) bool {
+			// Only process user report keys
+			if !strings.HasPrefix(key, UserReportsCollection+"user:") {
+				return true
+			}
+
+			var report UserReportEntry
+			if err := json.Unmarshal([]byte(value), &report); err != nil {
+				return true // Continue iteration
+			}
+
+			// Filter by user ID and time range
+			if report.UserID == userID &&
+				report.Timestamp.After(since) &&
+				report.Timestamp.Before(until) {
+				reports = append(reports, &report)
+			}
+			return true
+		})
+	})
+
+	return reports, err
+}
+
+// GetSystemReports retrieves system reports with filtering
+func (m *BuntDBManager) GetSystemReports(since time.Time, until time.Time) ([]*SystemReportEntry, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var reports []*SystemReportEntry
+	err := m.db.View(func(tx *buntdb.Tx) error {
+		return tx.Ascend("", func(key, value string) bool {
+			// Only process system report keys
+			if !strings.HasPrefix(key, SystemReportsCollection+"system:") {
+				return true
+			}
+
+			var report SystemReportEntry
+			if err := json.Unmarshal([]byte(value), &report); err != nil {
+				return true // Continue iteration
+			}
+
+			// Filter by time range
+			if report.Timestamp.After(since) && report.Timestamp.Before(until) {
+				reports = append(reports, &report)
+			}
+			return true
+		})
+	})
+
+	return reports, err
+}
+
 // StoreEvent stores an event entry
 func (m *BuntDBManager) StoreEvent(event *EventEntry) error {
 	m.mu.Lock()
@@ -542,6 +691,94 @@ func (m *BuntDBManager) GetEvents(eventType, source string, since time.Time, lim
 	})
 
 	return events, err
+}
+
+// CleanupOldMetrics removes metrics older than the specified duration
+func (m *BuntDBManager) CleanupOldMetrics(maxAge time.Duration) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	cutoff := time.Now().Add(-maxAge)
+	var keysToDelete []string
+
+	err := m.db.View(func(tx *buntdb.Tx) error {
+		return tx.Ascend("", func(key, value string) bool {
+			// Only process metric keys
+			if !strings.HasPrefix(key, MetricsCollection) {
+				return true
+			}
+
+			var metric MetricEntry
+			if err := json.Unmarshal([]byte(value), &metric); err != nil {
+				return true // Continue iteration
+			}
+
+			if metric.Timestamp.Before(cutoff) {
+				keysToDelete = append(keysToDelete, key)
+			}
+			return true
+		})
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// Delete old metrics
+	return m.db.Update(func(tx *buntdb.Tx) error {
+		for _, key := range keysToDelete {
+			_, err := tx.Delete(key)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// GetStats returns database statistics
+func (m *BuntDBManager) GetStats() (map[string]interface{}, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	stats := make(map[string]interface{})
+
+	// Count total keys
+	totalKeys := 0
+	err := m.db.View(func(tx *buntdb.Tx) error {
+		return tx.Ascend("", func(key, value string) bool {
+			totalKeys++
+			return true
+		})
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	stats["total_keys"] = totalKeys
+	stats["database_path"] = m.dbPath
+	stats["collections"] = map[string]int{
+		"metrics":   m.countKeysWithPrefix(MetricsCollection),
+		"alerts":    m.countKeysWithPrefix(AlertsCollection),
+		"users":     m.countKeysWithPrefix(UsersCollection),
+		"agents":    m.countKeysWithPrefix(AgentsCollection),
+		"dve_nodes": m.countKeysWithPrefix(DVENodesCollection),
+	}
+
+	return stats, nil
+}
+
+// countKeysWithPrefix counts keys with a specific prefix
+func (m *BuntDBManager) countKeysWithPrefix(prefix string) int {
+	count := 0
+	m.db.View(func(tx *buntdb.Tx) error {
+		return tx.Ascend(prefix+"*", func(key, value string) bool {
+			count++
+			return true
+		})
+	})
+	return count
 }
 
 // GetDatabaseStats returns database statistics

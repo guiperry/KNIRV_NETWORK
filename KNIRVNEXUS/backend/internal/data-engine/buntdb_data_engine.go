@@ -127,6 +127,11 @@ func (d *BuntDBDataEngine) Stop() error {
 	return nil
 }
 
+// GetBuntDBManager returns the BuntDB manager instance
+func (d *BuntDBDataEngine) GetBuntDBManager() *BuntDBManager {
+	return d.db
+}
+
 // ProcessEvent processes an event through the data engine
 func (d *BuntDBDataEngine) ProcessEvent(event Event) error {
 	d.mutex.RLock()
@@ -233,7 +238,7 @@ func (d *BuntDBDataEngine) handleAlert(alert Alert) {
 		Timestamp:   alert.Timestamp,
 		Title:       alert.Title,
 		Description: alert.Description,
-		Severity:    string(alert.Level),
+		Severity:    alert.Level.String(),
 		Source:      alert.Source,
 		Status:      "active",
 		Tags:        make(map[string]string), // Alert doesn't have Tags, use empty map

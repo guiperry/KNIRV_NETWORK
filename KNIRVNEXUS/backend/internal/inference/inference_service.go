@@ -54,7 +54,7 @@ type InferenceService struct {
 }
 
 // NewInferenceService creates a new instance of InferenceService.
-func NewInferenceService(db *database.SimpleDomainDB) (*InferenceService, error) {
+func NewInferenceService(db *database.BuntDBManager) (*InferenceService, error) {
 	return &InferenceService{
 		// Initialize slices
 		primaryAttempts:  make([]LLMAttempt, 0),

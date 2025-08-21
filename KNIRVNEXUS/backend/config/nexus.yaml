@@ -10,7 +10,7 @@ log_file: "logs/nexus.log"
 
 # API Configuration
 api:
-  port: 8080
+  port: 8081
   host: "0.0.0.0"
   enable_cors: true
   cors_origins:

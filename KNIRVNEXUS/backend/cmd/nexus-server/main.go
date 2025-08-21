@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"nexus-backend/internal/config"
+	dataengine "nexus-backend/internal/data-engine"
 	"nexus-backend/internal/database"
 	agentserver "nexus-backend/internal/services/agent-server"
 	"nexus-backend/internal/services/cde"
@@ -47,6 +48,7 @@ type Server struct {
 	cdeService     *cde.CDEService
 	dnsService     *dns.DynamicDNSService
 	agentServer    *agentserver.AgentServer
+	dataEngine     *dataengine.BuntDBDataEngine
 
 	// State management
 	running bool
@@ -87,6 +89,25 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize agent server: %w", err)
 	}
 
+	// Initialize BuntDB data engine
+	dataEngineConfig := dataengine.BuntDBDataEngineConfig{
+		DatabasePath:     cfg.Database.Path,
+		EnableWebSocket:  false, // Handled by unified server
+		EnableRESTAPI:    false, // Handled by unified server
+		WindowSize:       5 * time.Minute,
+		MetricsInterval:  30 * time.Second,
+		MetricsRetention: 24 * time.Hour,
+		AlertsRetention:  7 * 24 * time.Hour,
+		EventsRetention:  24 * time.Hour,
+		BatchSize:        100,
+		FlushInterval:    10 * time.Second,
+		MaxMemoryUsage:   100 * 1024 * 1024, // 100MB
+	}
+	dataEngine, err := dataengine.NewBuntDBDataEngine(dataEngineConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize data engine: %w", err)
+	}
+
 	server := &Server{
 		config:         cfg,
 		db:             dbManager,
@@ -97,6 +118,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		cdeService:     nil, // TODO: Initialize when configuration is available
 		dnsService:     nil, // TODO: Initialize when configuration is available
 		agentServer:    agentServer,
+		dataEngine:     dataEngine,
 		running:        false,
 	}
 
@@ -145,6 +167,10 @@ func (s *Server) setupRoutes() {
 	if s.dnsService != nil && authMiddleware != nil {
 		s.dnsService.RegisterRoutes(api, authMiddleware)
 	}
+
+	if s.dataEngine != nil {
+		s.dataEngine.RegisterRoutes(api)
+	}
 }
 
 // corsMiddleware provides CORS support
@@ -166,7 +192,7 @@ func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 // handleHealth handles the /health endpoint
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	response := map[string]interface{}{
+	response := map[string]any{
 		"status":     "healthy",
 		"version":    Version,
 		"build_time": BuildTime,
@@ -228,6 +254,13 @@ func (s *Server) Start() error {
 
 	if s.dnsService != nil {
 		// DNS service start will be implemented when available
+	}
+
+	if s.dataEngine != nil {
+		if err := s.dataEngine.Start(); err != nil {
+			return fmt.Errorf("failed to start data engine: %w", err)
+		}
+		log.Println("Data Engine started")
 	}
 
 	// Create HTTP server
@@ -293,6 +326,12 @@ func (s *Server) Stop() error {
 	if s.dveManager != nil {
 		if err := s.dveManager.Stop(ctx); err != nil {
 			log.Printf("Error stopping DVE manager: %v", err)
+		}
+	}
+
+	if s.dataEngine != nil {
+		if err := s.dataEngine.Stop(); err != nil {
+			log.Printf("Error stopping data engine: %v", err)
 		}
 	}
 

@@ -51,7 +51,7 @@ func TestBuntDBManagerMetrics(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Test retrieving metrics
-	metrics, err := manager.GetMetrics("test-source", time.Now().Add(-1*time.Hour), time.Now().Add(1*time.Hour))
+	metrics, err := manager.GetMetrics("test-source", "", time.Now().Add(-1*time.Hour), 100)
 	assert.NoError(t, err)
 	assert.Len(t, metrics, 1)
 	assert.Equal(t, metric.ID, metrics[0].ID)
@@ -84,7 +84,7 @@ func TestBuntDBManagerAlerts(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Test retrieving alerts
-	alerts, err := manager.GetAlerts("test-source", time.Now().Add(-1*time.Hour), time.Now().Add(1*time.Hour))
+	alerts, err := manager.GetAlerts("", "", time.Now().Add(-1*time.Hour), 100)
 	assert.NoError(t, err)
 	assert.Len(t, alerts, 1)
 	assert.Equal(t, alert.ID, alerts[0].ID)
@@ -96,7 +96,7 @@ func TestBuntDBManagerAlerts(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify alert is resolved
-	alerts, err = manager.GetAlerts("test-source", time.Now().Add(-1*time.Hour), time.Now().Add(1*time.Hour))
+	alerts, err = manager.GetAlerts("", "", time.Now().Add(-1*time.Hour), 100)
 	assert.NoError(t, err)
 	assert.Len(t, alerts, 1)
 	assert.True(t, alerts[0].Resolved)
@@ -276,7 +276,7 @@ func TestBuntDBManagerEvents(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Test retrieving events
-	events, err := manager.GetEvents("web-ui", time.Now().Add(-1*time.Hour), time.Now().Add(1*time.Hour))
+	events, err := manager.GetEvents("user_action", "web-ui", time.Now().Add(-1*time.Hour), 100)
 	assert.NoError(t, err)
 	assert.Len(t, events, 1)
 	assert.Equal(t, event.ID, events[0].ID)
@@ -319,7 +319,7 @@ func TestBuntDBManagerConcurrency(t *testing.T) {
 	}
 
 	// Verify all metrics were stored
-	metrics, err := manager.GetMetrics("test-source", time.Now().Add(-1*time.Hour), time.Now().Add(1*time.Hour))
+	metrics, err := manager.GetMetrics("test-source", "", time.Now().Add(-1*time.Hour), 100)
 	assert.NoError(t, err)
 	assert.Len(t, metrics, 10)
 }
@@ -367,7 +367,7 @@ func TestBuntDBManagerCleanup(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify only recent metric remains
-	metrics, err := manager.GetMetrics("test-source", time.Now().Add(-72*time.Hour), time.Now().Add(1*time.Hour))
+	metrics, err := manager.GetMetrics("test-source", "", time.Now().Add(-72*time.Hour), 100)
 	assert.NoError(t, err)
 	assert.Len(t, metrics, 1)
 	assert.Equal(t, recentMetric.ID, metrics[0].ID)

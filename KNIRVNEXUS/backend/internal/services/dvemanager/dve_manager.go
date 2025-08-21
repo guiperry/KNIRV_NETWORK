@@ -23,7 +23,6 @@ type DVEManager struct {
 	config       *config.Config
 	nodeTracker  *NodeTracker
 	loadBalancer *LoadBalancer
-	apiServer    *APIServer
 	ctx          context.Context
 	cancel       context.CancelFunc
 	mu           sync.RWMutex
@@ -59,8 +58,7 @@ func NewDVEManager(db *buntdb.DB, p2pManager *p2p.DVEP2PManager, cfg *config.Con
 		cancel: cancel,
 	}
 
-	// Initialize API server
-	manager.apiServer = NewAPIServer(manager, cfg)
+	// Note: API routes are registered with the unified server
 
 	// Register P2P message handlers
 	p2pManager.RegisterMessageHandler(p2p.MessageTypeNodeAnnouncement, manager)
@@ -73,10 +71,7 @@ func NewDVEManager(db *buntdb.DB, p2pManager *p2p.DVEP2PManager, cfg *config.Con
 func (dm *DVEManager) Start(ctx context.Context) error {
 	log.Println("Starting DVE Manager service...")
 
-	// Start API server
-	if err := dm.apiServer.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start API server: %w", err)
-	}
+	// Note: API routes are registered with the unified server, no separate server needed
 
 	// Start periodic tasks
 	go dm.monitorNodes()
@@ -96,12 +91,7 @@ func (dm *DVEManager) Start(ctx context.Context) error {
 func (dm *DVEManager) Stop(ctx context.Context) error {
 	log.Println("Stopping DVE Manager service...")
 
-	// Stop API server
-	if dm.apiServer != nil {
-		if err := dm.apiServer.Stop(ctx); err != nil {
-			log.Printf("Error stopping API server: %v", err)
-		}
-	}
+	// Note: API routes are handled by the unified server
 
 	dm.cancel()
 	log.Println("DVE Manager service stopped")

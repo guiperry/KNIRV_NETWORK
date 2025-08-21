@@ -17,7 +17,6 @@ require (
 	github.com/libp2p/go-libp2p-kad-dht v0.25.0
 	github.com/libp2p/go-libp2p-pubsub v0.10.0
 	github.com/pkoukk/tiktoken-go v0.1.7
-	github.com/rs/cors v1.10.1
 	github.com/segmentio/kafka-go v0.4.48
 	github.com/spf13/viper v1.16.0
 	github.com/stretchr/testify v1.10.0
