@@ -7,7 +7,8 @@ import (
 	"sync"
 	"time"
 
-	dataengine "nexus-backend/internal/services/data-engine"
+	// dataengine "nexus-backend/internal/services/data-engine" // TODO: Re-enable when data-engine is available
+	dataengine "nexus-backend/internal/data-engine"
 	"nexus-backend/pkg/cloudflare"
 )
 

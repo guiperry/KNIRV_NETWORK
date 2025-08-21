@@ -1,4 +1,4 @@
-package main
+package agentserver
 
 import (
 	"context"
@@ -194,8 +194,6 @@ type ProcessInfo struct {
 
 // CgroupManager manages cgroup-based resource isolation
 type CgroupManager struct {
-	mu sync.RWMutex
-
 	cgroupRoot    string
 	cgroupVersion int // 1 or 2
 	enabled       bool
@@ -454,7 +452,7 @@ func (rm *RuntimeManager) startAgentProcess(agent *AgentInstance) error {
 
 	// Setup resource isolation if available
 	if rm.processMgr.cgroupManager.enabled {
-		if err := rm.setupResourceIsolation(agent, cmd); err != nil {
+		if err := rm.setupResourceIsolation(agent); err != nil {
 			return fmt.Errorf("failed to setup resource isolation: %w", err)
 		}
 	}
@@ -543,7 +541,7 @@ func (rm *RuntimeManager) stopAgentInternal(agent *AgentInstance) error {
 }
 
 // setupResourceIsolation sets up cgroup-based resource isolation
-func (rm *RuntimeManager) setupResourceIsolation(agent *AgentInstance, cmd *exec.Cmd) error {
+func (rm *RuntimeManager) setupResourceIsolation(agent *AgentInstance) error {
 	// Create cgroup for the agent
 	cgroupPath := fmt.Sprintf("/sys/fs/cgroup/knirv-agents/%s", agent.ID)
 	agent.Resources.CgroupPath = cgroupPath

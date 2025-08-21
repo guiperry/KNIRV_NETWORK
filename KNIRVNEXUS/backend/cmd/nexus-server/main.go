@@ -2,19 +2,27 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"nexus-backend/internal/config"
+	"nexus-backend/internal/database"
+	agentserver "nexus-backend/internal/services/agent-server"
+	"nexus-backend/internal/services/cde"
+	"nexus-backend/internal/services/dns"
+	"nexus-backend/internal/services/dvemanager"
+	"nexus-backend/internal/services/validation"
+	"nexus-backend/internal/web/middleware"
+	"nexus-backend/pkg/p2p"
+
+	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
 )
 
@@ -25,254 +33,278 @@ var (
 	GitCommit = "unknown"
 )
 
-// ServerConfig represents the API gateway configuration
-type ServerConfig struct {
-	// Server settings
-	Host string `mapstructure:"host"`
-	Port int    `mapstructure:"port"`
+// Server represents the unified KNIRV-NEXUS server
+type Server struct {
+	config     *config.Config
+	db         *database.BuntDBManager
+	router     *mux.Router
+	httpServer *http.Server
+	p2pManager *p2p.DVEP2PManager
 
-	// Service ports
-	DVEManagerPort     int `mapstructure:"dve_manager_port"`
-	ValidationCorePort int `mapstructure:"validation_core_port"`
+	// All services are held here
+	dveManager     *dvemanager.DVEManager
+	validationCore *validation.ValidationCore
+	cdeService     *cde.CDEService
+	dnsService     *dns.DynamicDNSService
+	agentServer    *agentserver.AgentServer
 
-	// Logging
-	LogLevel string `mapstructure:"log_level"`
+	// State management
+	running bool
 }
 
-// APIGateway represents the main API gateway server
-type APIGateway struct {
-	config *ServerConfig
-	router *gin.Engine
-	server *http.Server
+// NewServer creates a new unified KNIRV-NEXUS server instance
+func NewServer(cfg *config.Config) (*Server, error) {
+	// Initialize database
+	dbManager, err := database.NewBuntDB(cfg.Database.Path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize database: %w", err)
+	}
 
-	// Service proxies for domain services (managed by backend orchestrator)
-	dveManagerProxy     *httputil.ReverseProxy
-	validationCoreProxy *httputil.ReverseProxy
+	// Initialize P2P manager
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, cfg.NodeRole, dbManager.GetDB())
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize P2P manager: %w", err)
+	}
+
+	// Create router
+	router := mux.NewRouter()
+
+	// Initialize services
+	dveManager, err := dvemanager.NewDVEManager(dbManager.GetDB(), p2pManager, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize DVE manager: %w", err)
+	}
+
+	validationCore, err := validation.NewValidationCore(dbManager.GetDB(), p2pManager, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize validation core: %w", err)
+	}
+
+	// For now, initialize CDE and DNS services with minimal configuration
+	// TODO: Add proper configuration support
+	agentServer, err := agentserver.NewAgentServer(cfg, dbManager)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize agent server: %w", err)
+	}
+
+	server := &Server{
+		config:         cfg,
+		db:             dbManager,
+		router:         router,
+		p2pManager:     p2pManager,
+		dveManager:     dveManager,
+		validationCore: validationCore,
+		cdeService:     nil, // TODO: Initialize when configuration is available
+		dnsService:     nil, // TODO: Initialize when configuration is available
+		agentServer:    agentServer,
+		running:        false,
+	}
+
+	// Setup routes for all services
+	server.setupRoutes()
+
+	return server, nil
 }
 
-// NewAPIGateway creates a new API gateway instance
-func NewAPIGateway(config *ServerConfig) (*APIGateway, error) {
-	// Set Gin mode
-	if config.LogLevel == "debug" {
-		gin.SetMode(gin.DebugMode)
-	} else {
-		gin.SetMode(gin.ReleaseMode)
+// setupRoutes configures all routes for the unified server
+func (s *Server) setupRoutes() {
+	// Setup CORS middleware
+	s.router.Use(s.corsMiddleware)
+
+	// Health check endpoint
+	s.router.HandleFunc("/health", s.handleHealth).Methods("GET")
+	s.router.HandleFunc("/version", s.handleVersion).Methods("GET")
+
+	// API routes
+	api := s.router.PathPrefix("/api/v1").Subrouter()
+
+	// Create auth middleware
+	authMiddleware, err := middleware.NewAuthMiddleware(s.db, s.config.Security.JWTSecret)
+	if err != nil {
+		log.Printf("Warning: Failed to create auth middleware: %v", err)
+		// Continue without auth middleware for now
 	}
 
-	gateway := &APIGateway{
-		config: config,
-		router: gin.New(),
+	// Register service routes
+	if s.dveManager != nil && authMiddleware != nil {
+		s.dveManager.RegisterRoutes(api, authMiddleware)
 	}
 
-	// Setup middleware
-	gateway.router.Use(gin.Logger())
-	gateway.router.Use(gin.Recovery())
+	if s.validationCore != nil && authMiddleware != nil {
+		s.validationCore.RegisterRoutes(api, authMiddleware)
+	}
 
-	// CORS middleware
-	gateway.router.Use(func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization")
+	if s.agentServer != nil {
+		s.agentServer.RegisterRoutes(api)
+	}
 
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
+	if s.cdeService != nil && authMiddleware != nil {
+		s.cdeService.RegisterRoutes(api, authMiddleware)
+	}
+
+	if s.dnsService != nil && authMiddleware != nil {
+		s.dnsService.RegisterRoutes(api, authMiddleware)
+	}
+}
+
+// corsMiddleware provides CORS support
+func (s *Server) corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
 			return
 		}
 
-		c.Next()
+		next.ServeHTTP(w, r)
 	})
-
-	// Setup service proxies
-	if err := gateway.setupProxies(); err != nil {
-		return nil, fmt.Errorf("failed to setup proxies: %w", err)
-	}
-
-	// Setup routes
-	gateway.setupRoutes()
-
-	return gateway, nil
 }
 
-// setupProxies creates reverse proxies for the domain services
-func (g *APIGateway) setupProxies() error {
-	// DVE Manager proxy
-	dveURL, err := url.Parse(fmt.Sprintf("http://localhost:%d", g.config.DVEManagerPort))
-	if err != nil {
-		return fmt.Errorf("invalid DVE manager URL: %w", err)
+// handleHealth handles the /health endpoint
+func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	response := map[string]interface{}{
+		"status":     "healthy",
+		"version":    Version,
+		"build_time": BuildTime,
+		"git_commit": GitCommit,
+		"timestamp":  time.Now().UTC().Format(time.RFC3339),
+		"services": map[string]bool{
+			"dve_manager":     s.dveManager != nil,
+			"validation_core": s.validationCore != nil,
+			"agent_server":    s.agentServer != nil && s.agentServer.IsRunning(),
+			"cde_service":     s.cdeService != nil,
+			"dns_service":     s.dnsService != nil,
+		},
 	}
-	g.dveManagerProxy = httputil.NewSingleHostReverseProxy(dveURL)
-
-	// Validation Core proxy
-	validationURL, err := url.Parse(fmt.Sprintf("http://localhost:%d", g.config.ValidationCorePort))
-	if err != nil {
-		return fmt.Errorf("invalid validation core URL: %w", err)
-	}
-	g.validationCoreProxy = httputil.NewSingleHostReverseProxy(validationURL)
-
-	return nil
+	json.NewEncoder(w).Encode(response)
 }
 
-// setupRoutes configures the API routes
-func (g *APIGateway) setupRoutes() {
-	// Health check
-	g.router.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"status":     "healthy",
-			"version":    Version,
-			"build_time": BuildTime,
-			"git_commit": GitCommit,
-			"timestamp":  time.Now().UTC().Format(time.RFC3339),
-		})
-	})
-
-	// Version endpoint
-	g.router.GET("/version", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"version":    Version,
-			"build_time": BuildTime,
-			"git_commit": GitCommit,
-		})
-	})
-
-	// API routes
-	api := g.router.Group("/api/v1")
-	{
-		// DVE Manager routes
-		api.Any("/dve/*path", func(c *gin.Context) {
-			g.dveManagerProxy.ServeHTTP(c.Writer, c.Request)
-		})
-
-		// Validation Core routes
-		api.Any("/validation/*path", func(c *gin.Context) {
-			g.validationCoreProxy.ServeHTTP(c.Writer, c.Request)
-		})
-
-		// Gateway-specific routes
-		api.GET("/status", func(c *gin.Context) {
-			c.JSON(200, gin.H{
-				"gateway": "running",
-				"services": gin.H{
-					"dve_manager":     g.isServiceRunning(g.config.DVEManagerPort),
-					"validation_core": g.isServiceRunning(g.config.ValidationCorePort),
-				},
-			})
-		})
+// handleVersion handles the /version endpoint
+func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	response := map[string]string{
+		"version":    Version,
+		"build_time": BuildTime,
+		"git_commit": GitCommit,
 	}
+	json.NewEncoder(w).Encode(response)
 }
 
-// isServiceRunning checks if a service is running on the given port
-func (g *APIGateway) isServiceRunning(port int) bool {
-	conn, err := net.DialTimeout("tcp", fmt.Sprintf("localhost:%d", port), 1*time.Second)
-	if err != nil {
-		return false
-	}
-	conn.Close()
-	return true
-}
+// Start starts the unified server
+func (s *Server) Start() error {
+	log.Println("Starting KNIRV-NEXUS unified server...")
 
-// waitForServices waits for the domain services to be available
-func (g *APIGateway) waitForServices() error {
-	log.Println("Waiting for domain services to be available...")
+	// Start all services
+	ctx := context.Background()
 
-	// Wait for DVE Manager
-	for i := 0; i < 30; i++ {
-		if g.isServiceRunning(g.config.DVEManagerPort) {
-			log.Printf("DVE Manager is available on port %d", g.config.DVEManagerPort)
-			break
+	if s.dveManager != nil {
+		if err := s.dveManager.Start(ctx); err != nil {
+			return fmt.Errorf("failed to start DVE manager: %w", err)
 		}
-		time.Sleep(1 * time.Second)
+		log.Println("DVE Manager started")
 	}
 
-	// Wait for Validation Core
-	for i := 0; i < 30; i++ {
-		if g.isServiceRunning(g.config.ValidationCorePort) {
-			log.Printf("Validation Core is available on port %d", g.config.ValidationCorePort)
-			break
+	if s.validationCore != nil {
+		if err := s.validationCore.Start(ctx); err != nil {
+			return fmt.Errorf("failed to start validation core: %w", err)
 		}
-		time.Sleep(1 * time.Second)
+		log.Println("Validation Core started")
 	}
 
-	log.Println("Domain services are ready")
-	return nil
-}
+	if s.agentServer != nil {
+		if err := s.agentServer.Start(); err != nil {
+			return fmt.Errorf("failed to start agent server: %w", err)
+		}
+		log.Println("Agent Server started")
+	}
 
-// Start starts the API gateway server
-func (g *APIGateway) Start() error {
-	// Wait for domain services to be available (managed by backend orchestrator)
-	if err := g.waitForServices(); err != nil {
-		return err
+	if s.cdeService != nil {
+		// CDE service start will be implemented when available
+	}
+
+	if s.dnsService != nil {
+		// DNS service start will be implemented when available
 	}
 
 	// Create HTTP server
-	g.server = &http.Server{
-		Addr:         fmt.Sprintf("%s:%d", g.config.Host, g.config.Port),
-		Handler:      g.router,
+	s.httpServer = &http.Server{
+		Addr:         fmt.Sprintf("%s:%d", s.config.API.BindAddress, s.config.API.Port),
+		Handler:      s.router,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
 
-	// Start server in goroutine
+	// Start HTTP server in goroutine
 	go func() {
-		log.Printf("Starting API Gateway on %s:%d", g.config.Host, g.config.Port)
-		if err := g.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Failed to start server: %v", err)
+		log.Printf("Starting HTTP server on %s:%d", s.config.API.BindAddress, s.config.API.Port)
+		if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Failed to start HTTP server: %v", err)
 		}
 	}()
 
+	s.running = true
+	log.Println("KNIRV-NEXUS unified server started successfully")
 	return nil
 }
 
-// Stop stops the API gateway server
-func (g *APIGateway) Stop() error {
+// Stop stops the unified server
+func (s *Server) Stop() error {
+	log.Println("Stopping KNIRV-NEXUS unified server...")
+
+	s.running = false
+
+	// Create context for shutdown operations
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	// Stop HTTP server
-	if g.server != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
-		if err := g.server.Shutdown(ctx); err != nil {
-			log.Printf("Server shutdown error: %v", err)
+	if s.httpServer != nil {
+		if err := s.httpServer.Shutdown(ctx); err != nil {
+			log.Printf("HTTP server shutdown error: %v", err)
 		}
 	}
 
-	// Note: Domain services are managed by backend orchestrator, not by this gateway
+	// Stop all services in reverse order
+	if s.agentServer != nil {
+		if err := s.agentServer.Stop(); err != nil {
+			log.Printf("Error stopping agent server: %v", err)
+		}
+	}
 
+	if s.dnsService != nil {
+		// DNS service stop will be implemented when available
+	}
+
+	if s.cdeService != nil {
+		// CDE service stop will be implemented when available
+	}
+
+	if s.validationCore != nil {
+		if err := s.validationCore.Stop(ctx); err != nil {
+			log.Printf("Error stopping validation core: %v", err)
+		}
+	}
+
+	if s.dveManager != nil {
+		if err := s.dveManager.Stop(ctx); err != nil {
+			log.Printf("Error stopping DVE manager: %v", err)
+		}
+	}
+
+	// Close database
+	if s.db != nil {
+		if err := s.db.Close(); err != nil {
+			log.Printf("Error closing database: %v", err)
+		}
+	}
+
+	log.Println("KNIRV-NEXUS unified server stopped")
 	return nil
-}
-
-// loadConfig loads configuration from file and environment
-func loadConfig() (*ServerConfig, error) {
-	// Set default values
-	viper.SetDefault("host", "0.0.0.0")
-	viper.SetDefault("port", 8081)
-	viper.SetDefault("dve_manager_port", 8082)
-	viper.SetDefault("validation_core_port", 8083)
-	viper.SetDefault("log_level", "info")
-
-	// Set config file name and paths
-	viper.SetConfigName("nexus-server")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./config")
-	viper.AddConfigPath(".")
-
-	// Enable environment variable support
-	viper.AutomaticEnv()
-	viper.SetEnvPrefix("NEXUS")
-
-	// Try to read config file
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			return nil, fmt.Errorf("error reading config file: %w", err)
-		}
-		log.Println("No config file found, using defaults and environment variables")
-	}
-
-	var config ServerConfig
-	if err := viper.Unmarshal(&config); err != nil {
-		return nil, fmt.Errorf("error unmarshaling config: %w", err)
-	}
-
-	return &config, nil
 }
 
 func main() {
@@ -281,7 +313,7 @@ func main() {
 	flag.Parse()
 
 	// Print version information
-	fmt.Printf("KNIRV-NEXUS API Gateway v%s (built %s, commit %s)\n", Version, BuildTime, GitCommit)
+	fmt.Printf("KNIRV-NEXUS Unified Server v%s (built %s, commit %s)\n", Version, BuildTime, GitCommit)
 
 	// Set config file if provided
 	if *configFile != "" {
@@ -289,20 +321,20 @@ func main() {
 	}
 
 	// Load configuration
-	config, err := loadConfig()
+	config, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// Create API gateway
-	gateway, err := NewAPIGateway(config)
+	// Create unified server
+	server, err := NewServer(config)
 	if err != nil {
-		log.Fatalf("Failed to create API gateway: %v", err)
+		log.Fatalf("Failed to create server: %v", err)
 	}
 
-	// Start the gateway
-	if err := gateway.Start(); err != nil {
-		log.Fatalf("Failed to start API gateway: %v", err)
+	// Start the server
+	if err := server.Start(); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
 	}
 
 	// Wait for interrupt signal
@@ -310,9 +342,9 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("Shutting down API gateway...")
-	if err := gateway.Stop(); err != nil {
+	log.Println("Shutting down server...")
+	if err := server.Stop(); err != nil {
 		log.Printf("Error during shutdown: %v", err)
 	}
-	log.Println("API gateway stopped")
+	log.Println("Server stopped")
 }

@@ -83,20 +83,16 @@ frontend-dev: deps-node ## Start frontend development server
 	@echo "$(BLUE)Starting frontend development server...$(NC)"
 	$(NPM_CMD) run dev
 
-# Backend Build (Domain-specific binaries + orchestrator)
-backend: deps-go ## Build Go backend services
-	@echo "$(BLUE)Building domain-specific binaries...$(NC)"
-	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o bin/dve-manager ./cmd/dve-manager
-	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o bin/validation-core ./cmd/validation-core
+# Backend Build (Unified single binary)
+backend: deps-go ## Build unified Go backend service
+	@echo "$(BLUE)Building unified backend binary...$(NC)"
 	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o bin/nexus-server ./cmd/nexus-server
-	@echo "$(BLUE)Building backend orchestrator...$(NC)"
-	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o bin/nexus-backend .
 	@echo "$(BLUE)Copying backend binary to root...$(NC)"
 	@mkdir -p bin
-	cp $(BACKEND_DIR)/bin/nexus-backend bin/
+	cp $(BACKEND_DIR)/bin/nexus-server bin/
 	@echo "$(GREEN)Backend build completed$(NC)"
 
-# Unified Binary (Frontend + Backend orchestrator)
+# Unified Binary (Frontend + Unified Backend)
 binary: frontend backend ## Build unified binary with embedded frontend and backend
 	@echo "$(BLUE)Creating unified binary...$(NC)"
 	@mkdir -p $(DIST_DIR)
@@ -155,8 +151,8 @@ dev: ## Start development environment
 	@echo "$(BLUE)Starting development environment...$(NC)"
 	$(MAKE) -j2 dev-backend dev-frontend
 
-dev-backend: backend ## Start backend development server
-	@echo "$(BLUE)Starting backend development server...$(NC)"
+dev-backend: backend ## Start unified backend development server
+	@echo "$(BLUE)Starting unified backend development server...$(NC)"
 	cd $(BACKEND_DIR) && ./bin/nexus-server --config config/development.yaml
 
 dev-frontend: ## Start frontend development server

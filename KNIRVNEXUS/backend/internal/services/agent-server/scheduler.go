@@ -1,10 +1,8 @@
-package main
+package agentserver
 
 import (
-	"context"
 	"fmt"
 	"sort"
-	"sync"
 	"time"
 )
 
@@ -12,8 +10,8 @@ import (
 func NewAgentScheduler() (*AgentScheduler, error) {
 	return &AgentScheduler{
 		schedulingPolicy: "resource-aware",
-		queue:           make([]*AgentScheduleRequest, 0),
-		running:         false,
+		queue:            make([]*AgentScheduleRequest, 0),
+		running:          false,
 	}, nil
 }
 
@@ -21,11 +19,11 @@ func NewAgentScheduler() (*AgentScheduler, error) {
 func (as *AgentScheduler) Start() error {
 	as.mu.Lock()
 	defer as.mu.Unlock()
-	
+
 	if as.running {
 		return fmt.Errorf("scheduler is already running")
 	}
-	
+
 	as.running = true
 	return nil
 }
@@ -34,7 +32,7 @@ func (as *AgentScheduler) Start() error {
 func (as *AgentScheduler) Stop() error {
 	as.mu.Lock()
 	defer as.mu.Unlock()
-	
+
 	as.running = false
 	return nil
 }
@@ -43,17 +41,17 @@ func (as *AgentScheduler) Stop() error {
 func (as *AgentScheduler) ScheduleAgent(request *AgentScheduleRequest) error {
 	as.mu.Lock()
 	defer as.mu.Unlock()
-	
+
 	if !as.running {
 		return fmt.Errorf("scheduler is not running")
 	}
-	
+
 	// Add to queue
 	as.queue = append(as.queue, request)
-	
+
 	// Sort queue based on scheduling policy
 	as.sortQueue()
-	
+
 	return nil
 }
 
@@ -61,11 +59,11 @@ func (as *AgentScheduler) ScheduleAgent(request *AgentScheduleRequest) error {
 func (as *AgentScheduler) ProcessQueue() {
 	as.mu.Lock()
 	defer as.mu.Unlock()
-	
+
 	if !as.running || len(as.queue) == 0 {
 		return
 	}
-	
+
 	// Process requests based on scheduling policy
 	switch as.schedulingPolicy {
 	case "round-robin":
@@ -107,13 +105,13 @@ func (as *AgentScheduler) calculateResourceScore(resources *ResourceAllocation) 
 	if resources == nil {
 		return 0
 	}
-	
+
 	// Simple scoring: normalize and sum all resource requirements
 	// This is a simplified approach - real implementations would be more sophisticated
-	cpuScore := resources.CPUCores / 8.0      // Assume max 8 cores
-	memScore := float64(resources.MemoryBytes) / (8 * 1024 * 1024 * 1024) // Assume max 8GB
+	cpuScore := resources.CPUCores / 8.0                                   // Assume max 8 cores
+	memScore := float64(resources.MemoryBytes) / (8 * 1024 * 1024 * 1024)  // Assume max 8GB
 	diskScore := float64(resources.DiskBytes) / (100 * 1024 * 1024 * 1024) // Assume max 100GB
-	
+
 	return cpuScore + memScore + diskScore
 }
 
@@ -131,7 +129,7 @@ func (as *AgentScheduler) processRoundRobin() {
 func (as *AgentScheduler) processResourceAware() {
 	// This would integrate with the resource pool to check availability
 	// For now, just process the first request that can fit
-	
+
 	for i, request := range as.queue {
 		// Check if resources are available (simplified)
 		if as.canSchedule(request) {
@@ -156,15 +154,15 @@ func (as *AgentScheduler) canSchedule(request *AgentScheduleRequest) bool {
 	// This is a simplified check
 	// In a real implementation, this would check with the resource pool
 	return request.Resources != nil &&
-		   request.Resources.CPUCores > 0 &&
-		   request.Resources.MemoryBytes > 0
+		request.Resources.CPUCores > 0 &&
+		request.Resources.MemoryBytes > 0
 }
 
 // GetQueueStatus returns the current queue status
 func (as *AgentScheduler) GetQueueStatus() map[string]interface{} {
 	as.mu.RLock()
 	defer as.mu.RUnlock()
-	
+
 	queueInfo := make([]map[string]interface{}, len(as.queue))
 	for i, request := range as.queue {
 		queueInfo[i] = map[string]interface{}{
@@ -179,12 +177,12 @@ func (as *AgentScheduler) GetQueueStatus() map[string]interface{} {
 			},
 		}
 	}
-	
+
 	return map[string]interface{}{
-		"policy":      as.schedulingPolicy,
-		"queue_size":  len(as.queue),
-		"running":     as.running,
-		"queue":       queueInfo,
+		"policy":     as.schedulingPolicy,
+		"queue_size": len(as.queue),
+		"running":    as.running,
+		"queue":      queueInfo,
 	}
 }
 
@@ -192,7 +190,7 @@ func (as *AgentScheduler) GetQueueStatus() map[string]interface{} {
 func (as *AgentScheduler) SetSchedulingPolicy(policy string) error {
 	as.mu.Lock()
 	defer as.mu.Unlock()
-	
+
 	validPolicies := []string{"round-robin", "resource-aware", "priority"}
 	for _, validPolicy := range validPolicies {
 		if policy == validPolicy {
@@ -201,7 +199,7 @@ func (as *AgentScheduler) SetSchedulingPolicy(policy string) error {
 			return nil
 		}
 	}
-	
+
 	return fmt.Errorf("invalid scheduling policy: %s", policy)
 }
 
@@ -223,14 +221,14 @@ func (as *AgentScheduler) ClearQueue() {
 func (as *AgentScheduler) RemoveFromQueue(agentName string) bool {
 	as.mu.Lock()
 	defer as.mu.Unlock()
-	
+
 	for i, request := range as.queue {
 		if request.AgentName == agentName {
 			as.queue = append(as.queue[:i], as.queue[i+1:]...)
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -264,10 +262,10 @@ func NewAgentScheduleRequest(agentName, binary string, resources *ResourceAlloca
 func (as *AgentScheduler) ScheduleAgentWithDefaults(agentName, binary string, config map[string]interface{}) error {
 	defaultResources := &ResourceAllocation{
 		CPUCores:    0.5,
-		MemoryBytes: 256 * 1024 * 1024, // 256MB
+		MemoryBytes: 256 * 1024 * 1024,  // 256MB
 		DiskBytes:   1024 * 1024 * 1024, // 1GB
 	}
-	
+
 	request := NewAgentScheduleRequest(agentName, binary, defaultResources, config, 0)
 	return as.ScheduleAgent(request)
 }

@@ -9,7 +9,8 @@ import (
 	"sync"
 	"time"
 
-	dataengine "nexus-backend/internal/services/data-engine"
+	// dataengine "nexus-backend/internal/data-engine" // TODO: Fix data-engine compilation issues
+	dataengine "nexus-backend/internal/data-engine"
 	"nexus-backend/pkg/host"
 )
 

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"embed"
-	_ "embed"
 	"fmt"
 	"io"
 	"io/fs"
@@ -26,9 +25,9 @@ import (
 //go:embed all:out
 var embeddedFiles embed.FS
 
-// Embed the backend binary
+// Embed the unified backend binary
 //
-//go:embed bin/nexus-backend
+//go:embed bin/nexus-server
 var backendBinary []byte
 
 // Version information (set by build flags)
@@ -181,7 +180,7 @@ func NewNexusApp(config *Config) (*NexusApp, error) {
 	return app, nil
 }
 
-// extractBackend extracts the embedded backend binary
+// extractBackend extracts the embedded unified backend binary
 func (app *NexusApp) extractBackend() error {
 	// Create temporary directory
 	tempDir, err := os.MkdirTemp("", "knirv-nexus-*")
@@ -190,8 +189,8 @@ func (app *NexusApp) extractBackend() error {
 	}
 	app.tempDir = tempDir
 
-	// Extract backend binary
-	app.backendPath = filepath.Join(tempDir, "nexus-backend")
+	// Extract unified backend binary
+	app.backendPath = filepath.Join(tempDir, "nexus-server")
 	file, err := os.Create(app.backendPath)
 	if err != nil {
 		return fmt.Errorf("failed to create backend file: %w", err)
@@ -289,22 +288,23 @@ func (app *NexusApp) setupRoutes() error {
 	return nil
 }
 
-// startBackend starts the embedded backend service
+// startBackend starts the embedded unified backend service
 func (app *NexusApp) startBackend() error {
-	log.Printf("Starting backend service on port %d...", app.config.BackendPort)
+	log.Printf("Starting unified backend service on port %d...", app.config.BackendPort)
 
 	app.backendCmd = exec.Command(app.backendPath)
 	app.backendCmd.Env = append(os.Environ(),
-		fmt.Sprintf("NEXUS_PORT=%d", app.config.BackendPort),
+		fmt.Sprintf("NEXUS_API_PORT=%d", app.config.BackendPort),
+		fmt.Sprintf("NEXUS_API_BIND_ADDRESS=127.0.0.1"),
 	)
 	app.backendCmd.Stdout = os.Stdout
 	app.backendCmd.Stderr = os.Stderr
 
 	if err := app.backendCmd.Start(); err != nil {
-		return fmt.Errorf("failed to start backend: %w", err)
+		return fmt.Errorf("failed to start unified backend: %w", err)
 	}
 
-	log.Printf("Backend started (PID: %d)", app.backendCmd.Process.Pid)
+	log.Printf("Unified backend started (PID: %d)", app.backendCmd.Process.Pid)
 
 	// Wait for backend to be ready
 	time.Sleep(3 * time.Second)
@@ -312,10 +312,10 @@ func (app *NexusApp) startBackend() error {
 	return nil
 }
 
-// stopBackend stops the backend service
+// stopBackend stops the unified backend service
 func (app *NexusApp) stopBackend() {
 	if app.backendCmd != nil && app.backendCmd.Process != nil {
-		log.Printf("Stopping backend (PID: %d)", app.backendCmd.Process.Pid)
+		log.Printf("Stopping unified backend (PID: %d)", app.backendCmd.Process.Pid)
 		app.backendCmd.Process.Signal(syscall.SIGTERM)
 		app.backendCmd.Wait()
 	}
