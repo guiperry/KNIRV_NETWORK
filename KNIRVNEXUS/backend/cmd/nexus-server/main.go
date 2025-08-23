@@ -20,6 +20,7 @@ import (
 	"nexus-backend/internal/services/dns"
 	"nexus-backend/internal/services/dvemanager"
 	"nexus-backend/internal/services/validation"
+	"nexus-backend/internal/web"
 	"nexus-backend/internal/web/middleware"
 	"nexus-backend/pkg/p2p"
 
@@ -145,6 +146,16 @@ func (s *Server) setupRoutes() {
 	if err != nil {
 		log.Printf("Warning: Failed to create auth middleware: %v", err)
 		// Continue without auth middleware for now
+	}
+
+	// Auth routes (before other protected routes)
+	if authMiddleware != nil {
+		authHandlers := web.NewAuthHandlers(s.db, authMiddleware)
+		api.HandleFunc("/auth/login", authHandlers.Login).Methods("POST")
+		api.HandleFunc("/auth/refresh", authHandlers.Refresh).Methods("POST")
+		api.HandleFunc("/auth/revoke", authHandlers.Revoke).Methods("POST")
+		api.HandleFunc("/auth/me", authHandlers.Me).Methods("GET")
+		log.Println("Auth routes configured")
 	}
 
 	// Register service routes

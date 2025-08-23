@@ -1,0 +1,1 @@
+/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/frontend/rust-wasm/target/wasm32-unknown-unknown/release/knirv_cortex_wasm.wasm: /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/frontend/rust-wasm/src/lib.rs

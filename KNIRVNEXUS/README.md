@@ -1,17 +1,30 @@
 # KNIRV-NEXUS: Decentralized Validation Environment
 
-KNIRV-NEXUS is a production-ready implementation of the Decentralized Validation Environment (DVE) for the KNIRV Network. It provides a secure, scalable, and distributed platform for validating SkillNodes and Base LLMs using Trusted Execution Environments (TEE) and P2P networking.
+KNIRV-NEXUS is a unified implementation of the Decentralized Validation Environment (DVE) for the KNIRV Network. It provides a secure, scalable platform for validating SkillNodes and Base LLMs using a modern architecture that combines Next.js frontend with Go backend services in a single deployable binary.
 
 ## 🏗️ Architecture Overview
 
-KNIRV-NEXUS implements a microservices architecture running on Kubernetes with the following core components:
+KNIRV-NEXUS implements a **unified architecture** with embedded frontend and backend services:
 
-### Core Services
+### Unified Binary Architecture
+
+- **Main Wrapper** (`main.go`): Embeds both frontend and backend into a single executable
+- **Frontend Embedding**: Next.js build output embedded via `//go:embed all:out`
+- **Backend Embedding**: Unified backend binary embedded via `//go:embed bin/nexus-backend`
+- **API Proxy**: Gin-based proxy routing `/api/*` requests to embedded backend
+- **Static Serving**: Embedded filesystem serving Next.js static assets
+
+### Core Backend Services
 
 - **DVE Manager**: Orchestrates DVE nodes, manages task allocation, and monitors system health
 - **Validation Core**: Executes validation tasks with TEE support and cryptographic proofs
+- **Agent Server**: Manages WASM plugin agents and runtime execution
+- **Data Engine**: BuntDB-based data processing, metrics aggregation, and alerting
+- **CDE Service**: Cloud Development Environments for isolated execution
+- **DNS Service**: Dynamic DNS management for distributed nodes
+- **P2P Manager**: libp2p-based networking for node discovery and communication
 
-> **Note**: KNIRV-NEXUS integrates with the primary KNIRVGATEWAY for API routing and frontend hosting. See `NEXUS_GATEWAY_MIGRATION.md` for integration details.
+> **Note**: KNIRV-NEXUS integrates with KNIRVGATEWAY for production routing. The unified architecture enables both standalone deployment and gateway integration.
 
 ### Frontend Technology Stack
 
@@ -21,170 +34,191 @@ KNIRV-NEXUS implements a microservices architecture running on Kubernetes with t
 - **Real-time**: Socket.io for live updates and notifications
 - **State Management**: React hooks and context
 - **Type Safety**: TypeScript with strict configuration
-- **Database**: Prisma ORM for data modeling
-- **Authentication**: NextAuth.js integration ready
+- **Authentication**: Role-based access control with JWT
+- **Embedding**: Static build output embedded in Go binary
 
 ### Backend Infrastructure
 
-- **Base OS**: Kali Linux (as specified in KALI_LINUX_FOUNDATION.md)
-- **Container Runtime**: Podman (rootless containers)
-- **Orchestration**: Kubernetes with production-ready configurations
+- **Language**: Go 1.21+ with modern concurrency patterns
 - **Database**: BuntDB (embedded key-value store with custom indexes)
-- **Networking**: libp2p (aligned with KNIRV-ORACLE protocols)
-- **Configuration**: Viper for professional configuration management
+- **Networking**: libp2p for P2P communication and node discovery
+- **Configuration**: Viper for hierarchical configuration management
+- **Web Framework**: Gorilla Mux for HTTP routing and middleware
+- **Real-time**: WebSocket support for live data streaming
+- **Container Runtime**: Podman (rootless containers) for production
+- **Orchestration**: Kubernetes with production-ready configurations
 
 ## 🛠️ Build System
 
-KNIRV-NEXUS uses a comprehensive Makefile for build orchestration that follows the NEXUS_MERGE.md specification:
+KNIRV-NEXUS uses a unified build process that creates a single deployable binary containing both frontend and backend:
+
+### Build Process Overview
+
+1. **Frontend Build**: Next.js builds static output to `out/` directory
+2. **Backend Build**: Go builds unified backend binary to `bin/nexus-backend`
+3. **Embedding**: Main wrapper embeds both frontend and backend using `go:embed`
+4. **Final Binary**: Single executable containing complete application
 
 ### Core Build Commands
 
 ```bash
-# Development
-make dev              # Start development environment
-make dev-backend      # Start backend only
-make dev-frontend     # Start frontend only
+# Quick Development Setup
+npm install              # Install frontend dependencies
+npm run build           # Build Next.js frontend
+cd backend && go build -o ../bin/nexus-backend ./main.go  # Build backend
+go build -o knirv-nexus main.go  # Build unified binary
 
-# Building
-make all              # Full build (frontend + backend + binary)
-make frontend         # Build Next.js frontend
-make backend          # Build Go backend
-make binary           # Create unified binary
+# Development Mode
+npm run dev             # Start Next.js dev server (port 3000)
+cd backend && go run main.go --config config/development.yaml  # Backend only
+
+# Production Build
+npm run build           # Build optimized frontend
+cd backend && CGO_ENABLED=1 go build -ldflags="-s -w" -o ../bin/nexus-backend ./main.go
+go build -ldflags="-s -w -X main.Version=v1.0.0" -o knirv-nexus main.go
 
 # Testing
-make test             # Run all tests
-make test-go          # Run Go unit tests
-make test-frontend    # Run frontend tests
-make test-integration # Run integration tests
-make test-e2e         # Run end-to-end tests
-
-# Quality Assurance
-make lint             # Run all linters
-make format           # Format all code
-make security         # Run security scans
-
-# Deployment
-make deploy           # Full deployment
-make deploy-infrastructure  # Deploy AWS infrastructure
-make deploy-dns       # Configure DNS
-make deploy-application    # Deploy application
-make deploy-monitoring     # Deploy monitoring stack
-make deploy-security       # Apply security hardening
+npm test                # Frontend tests
+cd backend && go test ./...  # Backend tests
 ```
 
-### Advanced Commands
+### Deployment Options
 
 ```bash
-# Docker Operations
-make docker           # Build Docker image
-make docker-run       # Run Docker container
+# Standalone Binary
+./knirv-nexus           # Runs on port 8090 (configurable)
 
-# Database Operations
-make db-migrate       # Run database migrations
-make db-seed          # Seed test data
+# With Custom Configuration
+./knirv-nexus --config config/production.yaml
 
-# Utilities
-make clean            # Clean build artifacts
-make install          # Install binary to system
-make health           # Check system health
-make version          # Show version info
-make setup            # Setup development environment
+# Environment Variables
+NEXUS_PORT=8080 NEXUS_BACKEND_PORT=8081 ./knirv-nexus
+
+# Docker Deployment
+docker build -t knirv/nexus:latest .
+docker run -p 8090:8090 knirv/nexus:latest
 ```
 
-### Quick Start
+## 🚀 Current Implementation Status
 
-```bash
-# Setup development environment
-make setup
+### ✅ Fully Implemented Features
 
-# Build everything
-make all
+#### Unified Architecture
+- **Single Binary Deployment**: Frontend and backend embedded in one executable
+- **Embedded Frontend**: Next.js build output served via Go's embed filesystem
+- **API Proxy**: Gin-based routing of `/api/*` requests to embedded backend
+- **Configuration Management**: Viper-based hierarchical configuration with YAML support
 
-# Run in development mode
-make dev
+#### Frontend (Next.js with shadcn/ui)
+- **Modern UI Framework**: Next.js 15 with App Router and TypeScript
+- **Component Library**: Complete shadcn/ui component set built on Radix UI
+- **Dashboard Interface**: Comprehensive dashboard with tabs for all major functions
+- **Responsive Design**: Mobile-first design with Tailwind CSS and KNIRV theme
+- **Authentication UI**: Role-based components and user profile management
 
-# Deploy to production
-make deploy-full
-```
+#### Backend Services
+- **DVE Manager**: Node orchestration and task allocation service
+- **Validation Core**: Task queue and validation execution framework
+- **Agent Server**: WASM plugin agent management and runtime execution
+- **Data Engine**: BuntDB-based metrics, alerts, and event processing
+- **CDE Service**: Cloud Development Environment management
+- **DNS Service**: Dynamic DNS management for distributed nodes
 
-## 🚀 Features
+#### Database & Storage
+- **BuntDB Integration**: Embedded key-value store with custom indexes
+- **Data Engine**: Comprehensive metrics aggregation and alerting system
+- **Event Processing**: Real-time event ingestion and processing pipeline
+- **Report Generation**: User and system report storage and retrieval
 
-### Frontend (Next.js with shadcn/ui)
-- **Modern UI Framework**: Next.js 15 with App Router
-- **Component Library**: shadcn/ui components built on Radix UI
-- **Real-time Updates**: Socket.io integration for live data
-- **Responsive Design**: Mobile-first design with Tailwind CSS
-- **Type Safety**: Full TypeScript implementation
-- **Role-based Access**: Dynamic UI based on user permissions
+### ⚠️ Partially Implemented Features
 
-### DVE Node Management
-- Node registration with TEE type and capabilities
-- Health monitoring with heartbeat tracking
-- Load balancing with multiple algorithms (reputation, resource, geographic)
-- Geographic distribution support
+#### P2P Networking (30% Complete)
+- **Basic Structure**: libp2p manager framework in place
+- **Missing**: DHT integration, GossipSub messaging, active node discovery
+- **Status**: Foundation exists but not operational
 
-### Validation Engine
-- SkillNode validation with test case execution
-- Base LLM validation framework
-- Custom validation types support
-- Cryptographic proof generation
+#### Validation Engine (40% Complete)
+- **Task Management**: Queue system and basic task structures
+- **Missing**: Actual validation logic, cryptographic proof generation
+- **Status**: Framework ready but core functionality incomplete
 
-### P2P Networking
-- KNIRV-ORACLE aligned libp2p implementation
-- DHT-based node discovery
-- GossipSub message distribution
-- Network topology monitoring
+#### API Endpoints (50% Complete)
+- **Route Structure**: All service routes defined with proper handlers
+- **Missing**: Complete CRUD operations, many endpoints return placeholder data
+- **Status**: Infrastructure ready but implementations incomplete
 
-### Security & TEE
-- Software TEE simulation for development
-- Hardware TEE support framework (SGX, SEV-SNP, TDX)
-- Attestation and proof verification
-- Secure key management
+### ❌ Missing Critical Features
 
-### API & Real-time Updates
-- RESTful API with JWT authentication
-- Server-Sent Events for real-time updates
-- Role-based access control
-- Report generation and sharing
+#### TEE (Trusted Execution Environment)
+- **Status**: Only basic type definitions exist
+- **Missing**: SGX/SEV-SNP/TDX integration, attestation, secure execution
+- **Impact**: Core security guarantees not implemented
 
-### Operational Modes
-- **Headless Mode**: Production deployment without GUI (default)
-- **GUI Mode**: Local admin interface with built-in web dashboard (`-gui` flag)
-- **Configuration Management**: Viper-based configuration with YAML files
-- **Role-based Permissions**: Configurable user roles and access control
+#### JWT Authentication System
+- **Status**: Frontend auth components exist but no backend implementation
+- **Missing**: JWT middleware, user management, role-based access control
+- **Impact**: Security model incomplete
+
+#### Real-time Updates
+- **Status**: Frontend expects Socket.io, backend has basic WebSocket stubs
+- **Missing**: Functional Socket.io server, SSE implementation
+- **Impact**: Dashboard real-time features non-functional
+
+#### Operational Modes (GUI/Headless)
+- **Status**: Documented but not implemented
+- **Missing**: Mode switching logic, GUI-specific configurations
+- **Impact**: Deployment flexibility limited
+
+> **Note**: See `Nexus_Gap_Analysis.md` for detailed analysis of implementation gaps and recommended actions.
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Kubernetes cluster (v1.25+) for production deployment
-- kubectl configured
-- Docker or Podman for containerization
-- Go 1.21+ (required for backend development)
-- Node.js 18+ and npm (for frontend development)
+- **Go 1.21+**: Required for backend compilation
+- **Node.js 18+**: Required for frontend development and building
+- **npm**: Package manager for frontend dependencies
+- **Git**: Version control for cloning repository
 
-### Quick Backend Development Setup
+### Quick Development Setup
 
-**Get started with backend development in 5 minutes:**
+**Get started in 5 minutes:**
 
 ```bash
-# 1. Clone and navigate to backend
+# 1. Clone repository
 git clone https://github.com/knirv/KNIRV_NETWORK.git
 cd KNIRV_NETWORK/KNIRVNEXUS
 
-# 2. Set up development environment
-export $(cat .env.development | xargs)
+# 2. Install frontend dependencies
+npm install
 
-# 3. Build and run DVE Manager
+# 3. Build frontend
+npm run build
+
+# 4. Build backend
 cd backend
-mkdir -p data
 go mod tidy
-go build -o bin/dve-manager ./cmd/dve-manager/
-./bin/dve-manager --gui
+go build -o ../bin/nexus-backend ./main.go
+cd ..
 
-# 4. Access GUI at http://localhost:9080
+# 5. Build unified binary
+go build -o knirv-nexus main.go
+
+# 6. Run application
+./knirv-nexus
+
+# 7. Access application at http://localhost:8090
 ```
 
-**For production deployment:**
+**For development with hot reload:**
+
+```bash
+# Terminal 1: Frontend development server
+npm run dev  # Runs on http://localhost:3000
+
+# Terminal 2: Backend development server
+cd backend
+go run main.go --config config/development.yaml  # Runs on http://localhost:8080
+```
 
 ### Deployment
 

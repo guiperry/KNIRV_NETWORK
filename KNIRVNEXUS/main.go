@@ -190,7 +190,7 @@ func (app *NexusApp) extractBackend() error {
 	app.tempDir = tempDir
 
 	// Extract unified backend binary
-	app.backendPath = filepath.Join(tempDir, "nexus-server")
+	app.backendPath = filepath.Join(tempDir, "nexus-backend")
 	file, err := os.Create(app.backendPath)
 	if err != nil {
 		return fmt.Errorf("failed to create backend file: %w", err)

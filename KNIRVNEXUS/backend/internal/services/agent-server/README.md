@@ -1,4 +1,4 @@
-# AGENTCHAIN Plugin Agent Server
+# Agent Server
 
 A standalone HTTP server for serving, uploading, and managing WASM Plugin Agent files in the AGENTCHAIN ecosystem.
 

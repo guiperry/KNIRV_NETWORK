@@ -1,0 +1,140 @@
+/**
+ * Cognitive Shell Template: EventEmitter.ts
+ * Generated from: KNIRVCONTROLLER/receiver/src/sensory-shell/EventEmitter.ts
+ * 
+ * This template is compiled into agent.wasm for embedded cognitive processing
+ * Communication with sensory-shell happens through WASM interface
+ */
+
+export type EventListener = (...args: any[]) => void;
+
+/**
+ * Event Emitter for cognitive shell components
+ */
+export class EventEmitter {
+  private events: Map<string, EventListener[]> = new Map();
+  private maxListeners: number = 100;
+
+  /**
+   * Add event listener
+   */
+  on(event: string, listener: EventListener): this {
+    if (!this.events.has(event)) {
+      this.events.set(event, []);
+    }
+
+    const listeners = this.events.get(event)!;
+    if (listeners.length >= this.maxListeners) {
+      console.warn(`Max listeners (${this.maxListeners}) exceeded for event: ${event}`);
+    }
+
+    listeners.push(listener);
+    return this;
+  }
+
+  /**
+   * Add one-time event listener
+   */
+  once(event: string, listener: EventListener): this {
+    const onceWrapper = (...args: any[]) => {
+      this.off(event, onceWrapper);
+      listener(...args);
+    };
+
+    return this.on(event, onceWrapper);
+  }
+
+  /**
+   * Remove event listener
+   */
+  off(event: string, listener: EventListener): this {
+    const listeners = this.events.get(event);
+    if (!listeners) return this;
+
+    const index = listeners.indexOf(listener);
+    if (index !== -1) {
+      listeners.splice(index, 1);
+    }
+
+    if (listeners.length === 0) {
+      this.events.delete(event);
+    }
+
+    return this;
+  }
+
+  /**
+   * Remove all listeners for an event
+   */
+  removeAllListeners(event?: string): this {
+    if (event) {
+      this.events.delete(event);
+    } else {
+      this.events.clear();
+    }
+    return this;
+  }
+
+  /**
+   * Emit event to all listeners
+   */
+  emit(event: string, ...args: any[]): boolean {
+    const listeners = this.events.get(event);
+    if (!listeners || listeners.length === 0) {
+      return false;
+    }
+
+    // Create a copy to avoid issues if listeners are modified during emission
+    const listenersCopy = [...listeners];
+    
+    for (const listener of listenersCopy) {
+      try {
+        listener(...args);
+      } catch (error) {
+        console.error(`Error in event listener for '${event}':`, error);
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Get listener count for an event
+   */
+  listenerCount(event: string): number {
+    const listeners = this.events.get(event);
+    return listeners ? listeners.length : 0;
+  }
+
+  /**
+   * Get all event names
+   */
+  eventNames(): string[] {
+    return Array.from(this.events.keys());
+  }
+
+  /**
+   * Get listeners for an event
+   */
+  listeners(event: string): EventListener[] {
+    const listeners = this.events.get(event);
+    return listeners ? [...listeners] : [];
+  }
+
+  /**
+   * Set max listeners limit
+   */
+  setMaxListeners(n: number): this {
+    this.maxListeners = n;
+    return this;
+  }
+
+  /**
+   * Get max listeners limit
+   */
+  getMaxListeners(): number {
+    return this.maxListeners;
+  }
+}
+
+export default EventEmitter;

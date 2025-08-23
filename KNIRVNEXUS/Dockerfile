@@ -54,8 +54,8 @@ ENV GOARCH=amd64
 # Build the unified binary
 RUN go build \
     -ldflags="-w -s -X main.Version=${VERSION} -X main.BuildTime=${BUILD_TIME} -X main.GitCommit=${GIT_COMMIT}" \
-    -o bin/nexus-server \
-    ./cmd/nexus-server
+    -o bin/knirv-nexus \
+    ./knirv-nexus
 
 # Stage 3: Production Image
 FROM alpine:3.19
@@ -81,13 +81,13 @@ RUN mkdir -p /opt/knirv-nexus/{bin,config,data,logs} && \
 WORKDIR /opt/knirv-nexus
 
 # Copy binary from builder
-COPY --from=backend-builder /app/bin/nexus-server ./bin/
+COPY --from=backend-builder /app/bin/knirv-nexus ./bin/
 
 # Copy configuration files
 COPY backend/config/ ./config/
 
 # Set permissions
-RUN chmod +x ./bin/nexus-server && \
+RUN chmod +x ./bin/knirv-nexus && \
     chown -R nexus:nexus /opt/knirv-nexus
 
 # Switch to non-root user
@@ -110,7 +110,7 @@ EXPOSE 8080 9090 4001
 VOLUME ["/var/lib/knirv-nexus"]
 
 # Default command
-CMD ["./bin/nexus-server", "--config", "/opt/knirv-nexus/config/nexus.yaml"]
+CMD ["./bin/knirv-nexus", "--config", "/opt/knirv-nexus/config/nexus.yaml"]
 
 # Labels
 LABEL maintainer="KNIRV Team <team@knirv.com>"

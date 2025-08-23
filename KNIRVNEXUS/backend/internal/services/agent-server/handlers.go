@@ -19,10 +19,10 @@ func (as *AgentServer) HandleServerInfo(w http.ResponseWriter, r *http.Request) 
 
 // HandleListAgents handles the /list endpoint
 func (as *AgentServer) HandleListAgents(w http.ResponseWriter, r *http.Request) {
-	// Get all files in the plugin directory
+	// Get all files in the agent directory
 	files, err := os.ReadDir(as.agentDir)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Error reading plugin directory: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error reading agent directory: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -56,7 +56,7 @@ func (as *AgentServer) HandleListAgents(w http.ResponseWriter, r *http.Request) 
 
 // HandleDownloadAgent handles the /agents/{name} endpoint
 func (as *AgentServer) HandleDownloadAgent(w http.ResponseWriter, r *http.Request) {
-	// Extract the plugin agent name from the URL
+	// Extract the agent name from the URL
 	agentName := strings.TrimPrefix(r.URL.Path, "/agents/")
 	if agentName == "" {
 		http.Error(w, "Agent name is required", http.StatusBadRequest)
@@ -66,7 +66,7 @@ func (as *AgentServer) HandleDownloadAgent(w http.ResponseWriter, r *http.Reques
 	// Sanitize the agent name to prevent directory traversal
 	agentName = filepath.Base(agentName)
 
-	// Construct the full path to the plugin file
+	// Construct the full path to the agent file
 	agentPath := filepath.Join(as.agentDir, agentName)
 
 	// Check if the file exists
@@ -86,10 +86,10 @@ func (as *AgentServer) HandleDownloadAgent(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Open the plugin file
+	// Open the agent file
 	file, err := os.Open(agentPath)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Error opening plugin agent file: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error opening agent file: %v", err), http.StatusInternalServerError)
 		return
 	}
 	defer file.Close()
@@ -101,7 +101,7 @@ func (as *AgentServer) HandleDownloadAgent(w http.ResponseWriter, r *http.Reques
 
 	// Copy the file to the response
 	if _, err := io.Copy(w, file); err != nil {
-		log.Printf("Error serving plugin agent file %s: %v", agentName, err)
+		log.Printf("Error serving agent file %s: %v", agentName, err)
 		return
 	}
 
@@ -123,7 +123,7 @@ func (as *AgentServer) HandleUploadAgent(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Get the file from the form
-	file, header, err := r.FormFile("plugin-agent")
+	file, header, err := r.FormFile("agent")
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error getting file: %v", err), http.StatusBadRequest)
 		return
@@ -158,14 +158,14 @@ func (as *AgentServer) HandleUploadAgent(w http.ResponseWriter, r *http.Request)
 		Success:  true,
 		Filename: filename,
 		Size:     size,
-		Message:  "Plugin agent uploaded successfully",
+		Message:  "Agent file uploaded successfully",
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 
 	// Log the upload
-	log.Printf("Uploaded plugin agent %s (%d bytes) from %s", filename, size, r.RemoteAddr)
+	log.Printf("Uploaded agent file %s (%d bytes) from %s", filename, size, r.RemoteAddr)
 }
 
 // HandleDeleteAgent handles the /delete/{name} endpoint
@@ -175,7 +175,7 @@ func (as *AgentServer) HandleDeleteAgent(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Extract the plugin agent name from the URL
+	// Extract the agent name from the URL
 	agentName := strings.TrimPrefix(r.URL.Path, "/delete/")
 	if agentName == "" {
 		http.Error(w, "Agent name is required", http.StatusBadRequest)
@@ -185,12 +185,12 @@ func (as *AgentServer) HandleDeleteAgent(w http.ResponseWriter, r *http.Request)
 	// Sanitize the agent name
 	agentName = filepath.Base(agentName)
 
-	// Construct the full path to the plugin file
+	// Construct the full path to the agent file
 	agentPath := filepath.Join(as.agentDir, agentName)
 
 	// Check if the file exists
 	if _, err := os.Stat(agentPath); os.IsNotExist(err) {
-		http.Error(w, "Agent not found", http.StatusNotFound)
+		http.Error(w, "Agent file not found", http.StatusNotFound)
 		return
 	}
 

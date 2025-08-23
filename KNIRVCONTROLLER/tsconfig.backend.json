@@ -1,0 +1,24 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "outDir": "dist/backend",
+    "rootDir": "src/backend",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "src/backend/**/*"
+  ],
+  "exclude": [
+    "src/backend/**/*.test.ts",
+    "src/backend/**/*.spec.ts"
+  ]
+}

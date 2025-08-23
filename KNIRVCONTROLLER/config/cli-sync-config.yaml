@@ -1,0 +1,184 @@
+# CLI Synchronization Configuration
+# Defines how KNIRVCONTROLLER/cli and KNIRVSDK/cli instances are synchronized
+
+sync_strategy:
+  mode: "bidirectional"  # bidirectional, controller-to-sdk, sdk-to-controller
+  auto_sync: true
+  sync_interval: 300  # seconds (5 minutes)
+  conflict_resolution: "timestamp"  # timestamp, manual, controller-priority, sdk-priority
+
+# Files and directories to synchronize
+sync_rules:
+  # Controller CLI → SDK CLI (Controller-specific features)
+  controller_to_sdk:
+    - path: "cmd/agent.go"
+      description: "Agent management commands"
+      priority: "high"
+    - path: "cmd/network.go"
+      description: "Network management commands"
+      priority: "high"
+    - path: "cmd/system.go"
+      description: "System control commands"
+      priority: "medium"
+    - path: "core/health_monitor.go"
+      description: "Health monitoring functionality"
+      priority: "high"
+    - path: "core/service_registry.go"
+      description: "Service registry management"
+      priority: "medium"
+    - path: "ui/components/"
+      description: "UI components for terminal interface"
+      priority: "low"
+      recursive: true
+    - path: "ui/screens/"
+      description: "Terminal screen definitions"
+      priority: "low"
+      recursive: true
+
+  # SDK CLI → Controller CLI (SDK-specific features)
+  sdk_to_controller:
+    - path: "cmd/economics.go"
+      description: "Economics and tokenomics commands"
+      priority: "high"
+    - path: "cmd/wallet.go"
+      description: "Wallet management commands"
+      priority: "high"
+    - path: "core/wallet_manager.go"
+      description: "Wallet management core functionality"
+      priority: "high"
+    - path: "core/nrn_token_manager.go"
+      description: "NRN token management"
+      priority: "high"
+    - path: "core/xion_wallet_manager.go"
+      description: "XION wallet integration"
+      priority: "medium"
+    - path: "pkg/inference/"
+      description: "Inference engine packages"
+      priority: "medium"
+      recursive: true
+    - path: "pkg/tui/"
+      description: "Terminal UI packages"
+      priority: "low"
+      recursive: true
+
+  # Bidirectional sync (shared functionality)
+  bidirectional:
+    - path: "cmd/root.go"
+      description: "Root command definition"
+      priority: "critical"
+      conflict_resolution: "manual"
+    - path: "cmd/utils.go"
+      description: "Utility commands"
+      priority: "high"
+    - path: "config/config.go"
+      description: "Configuration management"
+      priority: "critical"
+      conflict_resolution: "manual"
+    - path: "config/defaults.go"
+      description: "Default configuration values"
+      priority: "high"
+    - path: "core/api_client.go"
+      description: "API client functionality"
+      priority: "critical"
+    - path: "core/event_bus.go"
+      description: "Event bus system"
+      priority: "high"
+    - path: "core/file_manager.go"
+      description: "File management utilities"
+      priority: "medium"
+    - path: "core/websocket_manager.go"
+      description: "WebSocket management"
+      priority: "medium"
+    - path: "core/sse_client.go"
+      description: "Server-Sent Events client"
+      priority: "medium"
+
+# Files and directories to exclude from synchronization
+exclusions:
+  - "go.mod"
+  - "go.sum"
+  - "main.go"
+  - "README.md"
+  - "Dockerfile"
+  - "Makefile"
+  - "bin/"
+  - "test/"
+  - "docs/"
+  - "release_assets/"
+  - "knirv"
+  - ".git/"
+  - "*.log"
+  - "*.tmp"
+  - "target/"
+
+# Validation rules
+validation:
+  # Files that must exist in both locations after sync
+  required_files:
+    - "cmd/root.go"
+    - "config/config.go"
+    - "core/api_client.go"
+    - "main.go"
+
+  # Files that must have matching checksums
+  checksum_validation:
+    - "cmd/root.go"
+    - "config/config.go"
+    - "core/api_client.go"
+    - "core/event_bus.go"
+
+  # Go module validation
+  go_validation:
+    check_syntax: true
+    check_imports: true
+    run_tests: false  # Set to true for thorough validation
+
+# Backup configuration
+backup:
+  enabled: true
+  retention_days: 30
+  backup_location: "../../backups/cli-sync"
+  compress: true
+
+# Logging configuration
+logging:
+  level: "info"  # debug, info, warn, error
+  log_file: "cli-sync.log"
+  max_log_size: "10MB"
+  max_log_files: 5
+
+# Notification configuration
+notifications:
+  enabled: true
+  on_sync_complete: true
+  on_sync_error: true
+  on_conflict: true
+  webhook_url: null  # Optional webhook for notifications
+
+# Development settings
+development:
+  dry_run: false
+  verbose: true
+  skip_backup: false
+  force_sync: false
+
+# Version tracking
+version_tracking:
+  enabled: true
+  track_checksums: true
+  track_timestamps: true
+  version_file: "cli-sync-version.json"
+
+# Automated sync triggers
+triggers:
+  file_watch: true
+  git_hooks: true
+  scheduled: true
+  manual: true
+
+# Performance settings
+performance:
+  parallel_sync: true
+  max_concurrent_files: 5
+  chunk_size: "1MB"
+  timeout: 30  # seconds per file operation

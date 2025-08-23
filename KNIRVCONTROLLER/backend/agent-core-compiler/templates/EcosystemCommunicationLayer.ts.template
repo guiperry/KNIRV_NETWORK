@@ -1,0 +1,493 @@
+/**
+ * Cognitive Shell Template: EcosystemCommunicationLayer.ts
+ * Generated from: KNIRVCONTROLLER/receiver/src/sensory-shell/EcosystemCommunicationLayer.ts
+ * 
+ * This template is compiled into agent.wasm for embedded cognitive processing
+ * Communication with sensory-shell happens through WASM interface
+ */
+
+import { EventEmitter } from './EventEmitter';
+
+export interface EcosystemConfig {
+  networkEnabled: boolean;
+  p2pEnabled: boolean;
+  blockchainEnabled: boolean;
+  maxConnections: number;
+  heartbeatInterval: number;
+}
+
+export interface NetworkMessage {
+  id: string;
+  type: 'request' | 'response' | 'broadcast' | 'heartbeat';
+  source: string;
+  target?: string;
+  payload: any;
+  timestamp: Date;
+  signature?: string;
+}
+
+export interface PeerInfo {
+  id: string;
+  address: string;
+  capabilities: string[];
+  lastSeen: Date;
+  reputation: number;
+}
+
+/**
+ * Ecosystem Communication Layer
+ * Handles communication with other agents and network components
+ */
+export class EcosystemCommunicationLayer extends EventEmitter {
+  private config: EcosystemConfig;
+  private peers: Map<string, PeerInfo> = new Map();
+  private messageQueue: NetworkMessage[] = [];
+  private isInitialized = false;
+  private heartbeatTimer: any = null;
+
+  constructor(config?: Partial<EcosystemConfig>) {
+    super();
+    this.config = {
+      networkEnabled: {{cognitiveCapabilities.ecosystem}},
+      p2pEnabled: true,
+      blockchainEnabled: {{cognitiveCapabilities.chain}},
+      maxConnections: 50,
+      heartbeatInterval: 30000, // 30 seconds
+      ...config
+    };
+  }
+
+  async initialize(): Promise<void> {
+    try {
+      this.emit('ecosystem_initialization_started');
+      
+      // Initialize peer storage
+      this.peers.clear();
+      this.messageQueue = [];
+      
+      // Start heartbeat if network is enabled
+      if (this.config.networkEnabled) {
+        this.startHeartbeat();
+      }
+      
+      this.isInitialized = true;
+      this.emit('ecosystem_initialized');
+    } catch (error) {
+      this.emit('ecosystem_initialization_failed', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Send message to peer or broadcast
+   */
+  async sendMessage(message: Omit<NetworkMessage, 'id' | 'timestamp'>): Promise<boolean> {
+    if (!this.isInitialized || !this.config.networkEnabled) {
+      return false;
+    }
+
+    try {
+      const fullMessage: NetworkMessage = {
+        ...message,
+        id: this.generateMessageId(),
+        timestamp: new Date()
+      };
+
+      // Add to queue for processing
+      this.messageQueue.push(fullMessage);
+      
+      // Process message based on type
+      await this.processOutgoingMessage(fullMessage);
+      
+      this.emit('message_sent', { message: fullMessage });
+      return true;
+
+    } catch (error) {
+      this.emit('message_send_failed', { error: error.message, message });
+      return false;
+    }
+  }
+
+  /**
+   * Receive and process incoming message
+   */
+  async receiveMessage(message: NetworkMessage): Promise<void> {
+    if (!this.isInitialized) {
+      return;
+    }
+
+    try {
+      this.emit('message_received', { message });
+
+      // Validate message
+      if (!this.validateMessage(message)) {
+        throw new Error('Invalid message format');
+      }
+
+      // Update peer information
+      if (message.source !== '{{agentId}}') {
+        this.updatePeerInfo(message.source, message);
+      }
+
+      // Process message based on type
+      await this.processIncomingMessage(message);
+
+    } catch (error) {
+      this.emit('message_processing_failed', { error: error.message, message });
+    }
+  }
+
+  /**
+   * Register peer in the network
+   */
+  async registerPeer(peerInfo: PeerInfo): Promise<boolean> {
+    try {
+      this.peers.set(peerInfo.id, peerInfo);
+      
+      // Send introduction message
+      if (this.config.networkEnabled) {
+        await this.sendMessage({
+          type: 'broadcast',
+          source: '{{agentId}}',
+          payload: {
+            action: 'peer_introduction',
+            agentId: '{{agentId}}',
+            capabilities: ['cognitive-processing', 'lora-adaptation', 'skill-execution']
+          }
+        });
+      }
+
+      this.emit('peer_registered', { peerInfo });
+      return true;
+
+    } catch (error) {
+      this.emit('peer_registration_failed', { error: error.message, peerInfo });
+      return false;
+    }
+  }
+
+  /**
+   * Request skill from peer
+   */
+  async requestSkill(peerId: string, skillName: string, parameters: any): Promise<any> {
+    if (!this.peers.has(peerId)) {
+      throw new Error(`Peer ${peerId} not found`);
+    }
+
+    try {
+      const message: Omit<NetworkMessage, 'id' | 'timestamp'> = {
+        type: 'request',
+        source: '{{agentId}}',
+        target: peerId,
+        payload: {
+          action: 'skill_request',
+          skillName,
+          parameters,
+          requestId: this.generateMessageId()
+        }
+      };
+
+      const success = await this.sendMessage(message);
+      if (success) {
+        this.emit('skill_requested', { peerId, skillName, parameters });
+        
+        // Wait for response (simplified - in practice would use proper async handling)
+        return new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Skill request timeout'));
+          }, 10000);
+
+          const responseHandler = (data: any) => {
+            if (data.message.payload.requestId === message.payload.requestId) {
+              clearTimeout(timeout);
+              this.off('message_received', responseHandler);
+              resolve(data.message.payload.result);
+            }
+          };
+
+          this.on('message_received', responseHandler);
+        });
+      }
+
+      throw new Error('Failed to send skill request');
+
+    } catch (error) {
+      this.emit('skill_request_failed', { error: error.message, peerId, skillName });
+      throw error;
+    }
+  }
+
+  /**
+   * Share skill with network
+   */
+  async shareSkill(skillName: string, skillData: any): Promise<boolean> {
+    try {
+      const message: Omit<NetworkMessage, 'id' | 'timestamp'> = {
+        type: 'broadcast',
+        source: '{{agentId}}',
+        payload: {
+          action: 'skill_share',
+          skillName,
+          skillData,
+          agentId: '{{agentId}}'
+        }
+      };
+
+      const success = await this.sendMessage(message);
+      if (success) {
+        this.emit('skill_shared', { skillName, skillData });
+      }
+
+      return success;
+
+    } catch (error) {
+      this.emit('skill_sharing_failed', { error: error.message, skillName });
+      return false;
+    }
+  }
+
+  /**
+   * Process outgoing message
+   */
+  private async processOutgoingMessage(message: NetworkMessage): Promise<void> {
+    switch (message.type) {
+      case 'broadcast':
+        await this.broadcastMessage(message);
+        break;
+      case 'request':
+        await this.sendDirectMessage(message);
+        break;
+      case 'response':
+        await this.sendDirectMessage(message);
+        break;
+      case 'heartbeat':
+        await this.sendHeartbeat(message);
+        break;
+    }
+  }
+
+  /**
+   * Process incoming message
+   */
+  private async processIncomingMessage(message: NetworkMessage): Promise<void> {
+    switch (message.payload.action) {
+      case 'peer_introduction':
+        await this.handlePeerIntroduction(message);
+        break;
+      case 'skill_request':
+        await this.handleSkillRequest(message);
+        break;
+      case 'skill_share':
+        await this.handleSkillShare(message);
+        break;
+      case 'heartbeat':
+        await this.handleHeartbeat(message);
+        break;
+      default:
+        this.emit('unknown_message_type', { message });
+    }
+  }
+
+  /**
+   * Handle peer introduction
+   */
+  private async handlePeerIntroduction(message: NetworkMessage): Promise<void> {
+    const { agentId, capabilities } = message.payload;
+    
+    const peerInfo: PeerInfo = {
+      id: agentId,
+      address: message.source,
+      capabilities: capabilities || [],
+      lastSeen: new Date(),
+      reputation: 0.5 // Initial neutral reputation
+    };
+
+    this.peers.set(agentId, peerInfo);
+    this.emit('peer_discovered', { peerInfo });
+  }
+
+  /**
+   * Handle skill request
+   */
+  private async handleSkillRequest(message: NetworkMessage): Promise<void> {
+    const { skillName, parameters, requestId } = message.payload;
+    
+    try {
+      // This would integrate with the cognitive engine to execute the skill
+      // For now, return a placeholder response
+      const result = {
+        success: true,
+        result: `Skill ${skillName} executed with parameters: ${JSON.stringify(parameters)}`,
+        executedBy: '{{agentId}}'
+      };
+
+      // Send response back
+      await this.sendMessage({
+        type: 'response',
+        source: '{{agentId}}',
+        target: message.source,
+        payload: {
+          action: 'skill_response',
+          requestId,
+          result
+        }
+      });
+
+      this.emit('skill_executed_for_peer', { skillName, parameters, peerId: message.source });
+
+    } catch (error) {
+      // Send error response
+      await this.sendMessage({
+        type: 'response',
+        source: '{{agentId}}',
+        target: message.source,
+        payload: {
+          action: 'skill_response',
+          requestId,
+          error: error.message
+        }
+      });
+    }
+  }
+
+  /**
+   * Handle skill sharing
+   */
+  private async handleSkillShare(message: NetworkMessage): Promise<void> {
+    const { skillName, skillData, agentId } = message.payload;
+    
+    this.emit('skill_received_from_peer', { 
+      skillName, 
+      skillData, 
+      fromAgent: agentId 
+    });
+  }
+
+  /**
+   * Handle heartbeat
+   */
+  private async handleHeartbeat(message: NetworkMessage): Promise<void> {
+    this.updatePeerInfo(message.source, message);
+  }
+
+  /**
+   * Broadcast message to all peers
+   */
+  private async broadcastMessage(message: NetworkMessage): Promise<void> {
+    // In a real implementation, this would send to all connected peers
+    this.emit('message_broadcasted', { message });
+  }
+
+  /**
+   * Send direct message to specific peer
+   */
+  private async sendDirectMessage(message: NetworkMessage): Promise<void> {
+    // In a real implementation, this would send to the specific peer
+    this.emit('direct_message_sent', { message });
+  }
+
+  /**
+   * Send heartbeat message
+   */
+  private async sendHeartbeat(message: NetworkMessage): Promise<void> {
+    // In a real implementation, this would send heartbeat to network
+    this.emit('heartbeat_sent', { message });
+  }
+
+  /**
+   * Start heartbeat timer
+   */
+  private startHeartbeat(): void {
+    this.heartbeatTimer = setInterval(async () => {
+      await this.sendMessage({
+        type: 'heartbeat',
+        source: '{{agentId}}',
+        payload: {
+          action: 'heartbeat',
+          agentId: '{{agentId}}',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }, this.config.heartbeatInterval);
+  }
+
+  /**
+   * Stop heartbeat timer
+   */
+  private stopHeartbeat(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+  }
+
+  /**
+   * Update peer information
+   */
+  private updatePeerInfo(peerId: string, message: NetworkMessage): void {
+    const existingPeer = this.peers.get(peerId);
+    if (existingPeer) {
+      existingPeer.lastSeen = new Date();
+      // Update reputation based on message quality/frequency
+      existingPeer.reputation = Math.min(1.0, existingPeer.reputation + 0.01);
+    }
+  }
+
+  /**
+   * Validate message format
+   */
+  private validateMessage(message: NetworkMessage): boolean {
+    return message.id && 
+           message.type && 
+           message.source && 
+           message.payload && 
+           message.timestamp;
+  }
+
+  /**
+   * Generate unique message ID
+   */
+  private generateMessageId(): string {
+    return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * Get peer list
+   */
+  getPeers(): PeerInfo[] {
+    return Array.from(this.peers.values());
+  }
+
+  /**
+   * Get network statistics
+   */
+  getNetworkStats(): any {
+    return {
+      totalPeers: this.peers.size,
+      messagesSent: this.messageQueue.length,
+      networkEnabled: this.config.networkEnabled,
+      p2pEnabled: this.config.p2pEnabled,
+      blockchainEnabled: this.config.blockchainEnabled
+    };
+  }
+
+  /**
+   * Check if layer is ready
+   */
+  isReady(): boolean {
+    return this.isInitialized;
+  }
+
+  /**
+   * Cleanup resources
+   */
+  async dispose(): Promise<void> {
+    this.stopHeartbeat();
+    this.peers.clear();
+    this.messageQueue = [];
+    this.isInitialized = false;
+    this.emit('ecosystem_disposed');
+  }
+}
+
+export default EcosystemCommunicationLayer;

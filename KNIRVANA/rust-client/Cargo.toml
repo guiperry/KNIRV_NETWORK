@@ -71,11 +71,3 @@ path = "examples/basic_game.rs"
 [[bench]]
 name = "game_performance"
 harness = false
-
-[[bench]]
-name = "networking_performance"
-harness = false
-
-[[bench]]
-name = "mobile_performance"
-harness = false

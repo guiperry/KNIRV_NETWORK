@@ -1,0 +1,189 @@
+{
+  "orchestrator": {
+    "name": "KNIRV-CONTROLLER Unified System",
+    "version": "1.0.0",
+    "environment": "development",
+    "logLevel": "info"
+  },
+  "components": {
+    "manager": {
+      "enabled": true,
+      "name": "Mobile Manager",
+      "description": "Mobile-first management interface with QR code scanning",
+      "port": 3001,
+      "path": "manager",
+      "type": "react-vite",
+      "dependencies": ["receiver"],
+      "features": {
+        "qrScanning": true,
+        "walletIntegration": true,
+        "voiceControl": true,
+        "mobileOptimized": true
+      },
+      "endpoints": {
+        "health": "/health",
+        "api": "/api",
+        "wallet": "/wallet",
+        "qr": "/qr"
+      }
+    },
+    "receiver": {
+      "enabled": true,
+      "name": "Cognitive Receiver",
+      "description": "Primary user interface with cognitive shell and WASM integration",
+      "port": 3002,
+      "path": "receiver",
+      "type": "react-vite",
+      "dependencies": [],
+      "features": {
+        "cognitiveShell": true,
+        "wasmIntegration": true,
+        "hrmCore": true,
+        "loraAdapters": true,
+        "neuralNetworks": true,
+        "adaptiveLearning": true
+      },
+      "endpoints": {
+        "health": "/health",
+        "api": "/api",
+        "cognitive": "/cognitive",
+        "wasm": "/wasm",
+        "skills": "/skills"
+      }
+    },
+    "cli": {
+      "enabled": true,
+      "name": "Interactive CLI",
+      "description": "Slide-out terminal functionality for advanced operations",
+      "port": 3003,
+      "path": "cli",
+      "type": "go-binary",
+      "dependencies": [],
+      "features": {
+        "interactiveTerminal": true,
+        "slideOutInterface": true,
+        "blockchainOps": true,
+        "networkManagement": true,
+        "skillManagement": true,
+        "synchronization": true
+      },
+      "endpoints": {
+        "health": "/health",
+        "api": "/api",
+        "terminal": "/terminal",
+        "blockchain": "/blockchain"
+      },
+      "synchronization": {
+        "enabled": true,
+        "target": "KNIRVSDK/cli",
+        "mode": "bidirectional",
+        "autoSync": true,
+        "syncInterval": 300,
+        "configFile": "config/cli-sync-config.yaml"
+      }
+    }
+  },
+  "communication": {
+    "protocol": "websocket",
+    "messageFormat": "json",
+    "channels": {
+      "system": "system-events",
+      "cognitive": "cognitive-processing",
+      "wallet": "wallet-operations",
+      "blockchain": "blockchain-events",
+      "skills": "skill-management"
+    },
+    "security": {
+      "authentication": true,
+      "encryption": true,
+      "cors": {
+        "enabled": true,
+        "origins": ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002"]
+      }
+    }
+  },
+  "integration": {
+    "sharedState": {
+      "enabled": true,
+      "storage": "memory",
+      "syncInterval": 1000
+    },
+    "eventBus": {
+      "enabled": true,
+      "type": "websocket",
+      "bufferSize": 1000
+    },
+    "crossComponentCalls": {
+      "enabled": true,
+      "timeout": 5000,
+      "retries": 3
+    }
+  },
+  "cognitive": {
+    "hrmCore": {
+      "enabled": true,
+      "modelSize": "27M",
+      "lModules": 8,
+      "hModules": 4,
+      "wasmPath": "receiver/rust-wasm/pkg"
+    },
+    "loraAdapters": {
+      "enabled": true,
+      "maxAdapters": 10,
+      "adaptationThreshold": 0.6,
+      "realTimeUpdates": true
+    },
+    "neuralNetworks": {
+      "enabled": true,
+      "backend": "tensorflow.js",
+      "inputDim": 512,
+      "hiddenDim": 256,
+      "outputDim": 512
+    }
+  },
+  "wallet": {
+    "crossPlatform": {
+      "enabled": true,
+      "mobileSupport": true,
+      "browserSupport": true,
+      "qrConnectivity": true
+    },
+    "features": {
+      "nrnTokens": true,
+      "assetManagement": true,
+      "transactionHistory": true,
+      "secureStorage": true
+    }
+  },
+  "development": {
+    "hotReload": true,
+    "debugging": true,
+    "logging": {
+      "level": "debug",
+      "components": true,
+      "performance": true
+    },
+    "testing": {
+      "unitTests": true,
+      "integrationTests": true,
+      "e2eTests": true
+    }
+  },
+  "production": {
+    "optimization": {
+      "bundleSize": true,
+      "codesplitting": true,
+      "compression": true
+    },
+    "monitoring": {
+      "performance": true,
+      "errors": true,
+      "usage": true
+    },
+    "security": {
+      "helmet": true,
+      "rateLimit": true,
+      "inputValidation": true
+    }
+  }
+}

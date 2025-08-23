@@ -1,0 +1,360 @@
+/**
+ * Cognitive Shell Template: AdaptiveLearningPipeline.ts
+ * Generated from: KNIRVCONTROLLER/receiver/src/sensory-shell/AdaptiveLearningPipeline.ts
+ * 
+ * This template is compiled into agent.wasm for embedded cognitive processing
+ * Communication with sensory-shell happens through WASM interface
+ */
+
+import { EventEmitter } from './EventEmitter';
+
+export interface LearningPattern {
+  id: string;
+  pattern: any;
+  frequency: number;
+  confidence: number;
+  lastSeen: Date;
+  adaptations: AdaptationRecord[];
+}
+
+export interface AdaptationRecord {
+  timestamp: Date;
+  inputPattern: any;
+  outputPattern: any;
+  improvement: number;
+  applied: boolean;
+}
+
+export interface LearningMetrics {
+  totalPatterns: number;
+  adaptationRate: number;
+  averageImprovement: number;
+  learningVelocity: number;
+}
+
+/**
+ * Adaptive Learning Pipeline
+ * Learns from interactions and improves agent performance over time
+ */
+export class AdaptiveLearningPipeline extends EventEmitter {
+  private patterns: Map<string, LearningPattern> = new Map();
+  private learningRate: number = {{cognitiveConfig.learningRate}};
+  private adaptationThreshold: number = {{cognitiveConfig.adaptationThreshold}};
+  private maxPatterns: number = 10000;
+  private isInitialized = false;
+
+  constructor() {
+    super();
+  }
+
+  async initialize(): Promise<void> {
+    try {
+      this.emit('learning_pipeline_initialization_started');
+      
+      // Initialize learning patterns storage
+      this.patterns.clear();
+      
+      this.isInitialized = true;
+      this.emit('learning_pipeline_initialized');
+    } catch (error) {
+      this.emit('learning_pipeline_initialization_failed', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Learn from input-output pairs
+   */
+  async learn(input: any, output: any, context: any): Promise<void> {
+    if (!this.isInitialized) {
+      throw new Error('Learning pipeline not initialized');
+    }
+
+    try {
+      const patternId = this.generatePatternId(input, context);
+      const existingPattern = this.patterns.get(patternId);
+
+      if (existingPattern) {
+        // Update existing pattern
+        await this.updatePattern(existingPattern, input, output, context);
+      } else {
+        // Create new pattern
+        await this.createPattern(patternId, input, output, context);
+      }
+
+      this.emit('learning_completed', { patternId, input, output });
+    } catch (error) {
+      this.emit('learning_failed', { error: error.message, input, output });
+    }
+  }
+
+  /**
+   * Apply learned adaptations to improve processing
+   */
+  async adapt(input: any, context: any): Promise<any> {
+    const patternId = this.generatePatternId(input, context);
+    const pattern = this.patterns.get(patternId);
+
+    if (!pattern || pattern.confidence < this.adaptationThreshold) {
+      return input; // No adaptation available
+    }
+
+    try {
+      // Apply the most successful adaptation
+      const bestAdaptation = this.getBestAdaptation(pattern);
+      if (bestAdaptation) {
+        const adaptedInput = this.applyAdaptation(input, bestAdaptation);
+        this.emit('adaptation_applied', { patternId, adaptation: bestAdaptation });
+        return adaptedInput;
+      }
+
+      return input;
+    } catch (error) {
+      this.emit('adaptation_failed', { error: error.message, patternId });
+      return input;
+    }
+  }
+
+  /**
+   * Get learning metrics
+   */
+  getMetrics(): LearningMetrics {
+    const patterns = Array.from(this.patterns.values());
+    const totalAdaptations = patterns.reduce((sum, p) => sum + p.adaptations.length, 0);
+    const successfulAdaptations = patterns.reduce((sum, p) => 
+      sum + p.adaptations.filter(a => a.improvement > 0).length, 0);
+
+    return {
+      totalPatterns: patterns.length,
+      adaptationRate: totalAdaptations > 0 ? successfulAdaptations / totalAdaptations : 0,
+      averageImprovement: this.calculateAverageImprovement(patterns),
+      learningVelocity: this.calculateLearningVelocity(patterns)
+    };
+  }
+
+  /**
+   * Generate pattern ID from input and context
+   */
+  private generatePatternId(input: any, context: any): string {
+    const inputHash = this.hashObject(input);
+    const contextHash = this.hashObject(context);
+    return `pattern_${inputHash}_${contextHash}`;
+  }
+
+  /**
+   * Create new learning pattern
+   */
+  private async createPattern(patternId: string, input: any, output: any, context: any): Promise<void> {
+    const pattern: LearningPattern = {
+      id: patternId,
+      pattern: { input, output, context },
+      frequency: 1,
+      confidence: 0.1,
+      lastSeen: new Date(),
+      adaptations: []
+    };
+
+    this.patterns.set(patternId, pattern);
+    
+    // Maintain pattern limit
+    if (this.patterns.size > this.maxPatterns) {
+      this.pruneOldPatterns();
+    }
+
+    this.emit('pattern_created', { patternId, pattern });
+  }
+
+  /**
+   * Update existing learning pattern
+   */
+  private async updatePattern(pattern: LearningPattern, input: any, output: any, context: any): Promise<void> {
+    pattern.frequency += 1;
+    pattern.lastSeen = new Date();
+    
+    // Update confidence based on frequency
+    pattern.confidence = Math.min(1.0, pattern.confidence + this.learningRate);
+
+    // Create adaptation record
+    const adaptation: AdaptationRecord = {
+      timestamp: new Date(),
+      inputPattern: input,
+      outputPattern: output,
+      improvement: this.calculateImprovement(pattern, output),
+      applied: false
+    };
+
+    pattern.adaptations.push(adaptation);
+
+    // Limit adaptation history
+    if (pattern.adaptations.length > 100) {
+      pattern.adaptations.shift();
+    }
+
+    this.emit('pattern_updated', { patternId: pattern.id, pattern });
+  }
+
+  /**
+   * Get the best adaptation for a pattern
+   */
+  private getBestAdaptation(pattern: LearningPattern): AdaptationRecord | null {
+    if (pattern.adaptations.length === 0) return null;
+
+    return pattern.adaptations.reduce((best, current) => 
+      current.improvement > best.improvement ? current : best
+    );
+  }
+
+  /**
+   * Apply adaptation to input
+   */
+  private applyAdaptation(input: any, adaptation: AdaptationRecord): any {
+    // Simple adaptation application - can be enhanced
+    if (typeof input === 'string' && typeof adaptation.inputPattern === 'string') {
+      // String pattern matching and replacement
+      return input.replace(adaptation.inputPattern, adaptation.outputPattern);
+    }
+
+    if (typeof input === 'object' && typeof adaptation.inputPattern === 'object') {
+      // Object pattern merging
+      return { ...input, ...adaptation.outputPattern };
+    }
+
+    return input;
+  }
+
+  /**
+   * Calculate improvement score for an adaptation
+   */
+  private calculateImprovement(pattern: LearningPattern, output: any): number {
+    // Simple improvement calculation based on output quality
+    if (!output) return -0.5;
+    
+    if (typeof output === 'string') {
+      return output.length > 10 ? 0.3 : 0.1;
+    }
+    
+    if (typeof output === 'object') {
+      const keys = Object.keys(output);
+      return keys.length > 0 ? 0.5 : 0.1;
+    }
+    
+    return 0.1;
+  }
+
+  /**
+   * Calculate average improvement across all patterns
+   */
+  private calculateAverageImprovement(patterns: LearningPattern[]): number {
+    const allAdaptations = patterns.flatMap(p => p.adaptations);
+    if (allAdaptations.length === 0) return 0;
+
+    const totalImprovement = allAdaptations.reduce((sum, a) => sum + a.improvement, 0);
+    return totalImprovement / allAdaptations.length;
+  }
+
+  /**
+   * Calculate learning velocity (patterns learned per time unit)
+   */
+  private calculateLearningVelocity(patterns: LearningPattern[]): number {
+    if (patterns.length === 0) return 0;
+
+    const now = new Date();
+    const recentPatterns = patterns.filter(p => {
+      const timeDiff = now.getTime() - p.lastSeen.getTime();
+      return timeDiff < 24 * 60 * 60 * 1000; // Last 24 hours
+    });
+
+    return recentPatterns.length / 24; // Patterns per hour
+  }
+
+  /**
+   * Remove old patterns to maintain memory limits
+   */
+  private pruneOldPatterns(): void {
+    const patterns = Array.from(this.patterns.entries());
+    
+    // Sort by last seen date (oldest first)
+    patterns.sort((a, b) => a[1].lastSeen.getTime() - b[1].lastSeen.getTime());
+    
+    // Remove oldest 10%
+    const toRemove = Math.floor(patterns.length * 0.1);
+    for (let i = 0; i < toRemove; i++) {
+      this.patterns.delete(patterns[i][0]);
+    }
+
+    this.emit('patterns_pruned', { removedCount: toRemove });
+  }
+
+  /**
+   * Simple hash function for objects
+   */
+  private hashObject(obj: any): string {
+    const str = JSON.stringify(obj);
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(36);
+  }
+
+  /**
+   * Export learning data
+   */
+  exportLearningData(): any {
+    return {
+      patterns: Array.from(this.patterns.entries()),
+      metrics: this.getMetrics(),
+      config: {
+        learningRate: this.learningRate,
+        adaptationThreshold: this.adaptationThreshold,
+        maxPatterns: this.maxPatterns
+      },
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  /**
+   * Import learning data
+   */
+  importLearningData(data: any): void {
+    if (data.patterns) {
+      this.patterns = new Map(data.patterns);
+    }
+    
+    if (data.config) {
+      this.learningRate = data.config.learningRate || this.learningRate;
+      this.adaptationThreshold = data.config.adaptationThreshold || this.adaptationThreshold;
+      this.maxPatterns = data.config.maxPatterns || this.maxPatterns;
+    }
+
+    this.emit('learning_data_imported', { patternCount: this.patterns.size });
+  }
+
+  /**
+   * Reset learning pipeline
+   */
+  reset(): void {
+    this.patterns.clear();
+    this.emit('learning_pipeline_reset');
+  }
+
+  /**
+   * Check if pipeline is ready
+   */
+  isReady(): boolean {
+    return this.isInitialized;
+  }
+
+  /**
+   * Cleanup resources
+   */
+  async dispose(): Promise<void> {
+    this.patterns.clear();
+    this.isInitialized = false;
+    this.emit('learning_pipeline_disposed');
+  }
+}
+
+export default AdaptiveLearningPipeline;

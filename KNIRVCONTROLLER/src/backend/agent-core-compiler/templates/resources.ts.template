@@ -1,0 +1,92 @@
+/**
+ * Resources Module Template
+ * Generated from Go template: resources.go.template
+ * Manages embedded resources and prompts
+ */
+
+// Embedded resources
+const EMBEDDED_RESOURCES = new Map<string, string>([
+  {{#each resources}}
+  ['{{name}}', `{{content}}`],
+  {{/each}}
+]);
+
+// Embedded prompts
+const EMBEDDED_PROMPTS = new Map<string, string>([
+  {{#each prompts}}
+  ['{{name}}', `{{content}}`],
+  {{/each}}
+]);
+
+// Embedded Python agent service script
+const pythonAgentServiceScript = `{{pythonAgentServiceScript}}`;
+
+// Embedded Python requirements
+const pythonRequirements = `{{pythonRequirements}}`;
+
+/**
+ * Get a resource by name
+ */
+export function getResource(name: string): string | null {
+  return EMBEDDED_RESOURCES.get(name) || null;
+}
+
+/**
+ * Get a prompt by name
+ */
+export function getPrompt(name: string): string | null {
+  return EMBEDDED_PROMPTS.get(name) || null;
+}
+
+/**
+ * Get all available resource names
+ */
+export function getResourceNames(): string[] {
+  return Array.from(EMBEDDED_RESOURCES.keys());
+}
+
+/**
+ * Get all available prompt names
+ */
+export function getPromptNames(): string[] {
+  return Array.from(EMBEDDED_PROMPTS.keys());
+}
+
+/**
+ * Check if a resource exists
+ */
+export function hasResource(name: string): boolean {
+  return EMBEDDED_RESOURCES.has(name);
+}
+
+/**
+ * Check if a prompt exists
+ */
+export function hasPrompt(name: string): boolean {
+  return EMBEDDED_PROMPTS.has(name);
+}
+
+/**
+ * Get Python agent service script
+ */
+export function getPythonAgentServiceScript(): string {
+  return pythonAgentServiceScript;
+}
+
+/**
+ * Get Python requirements
+ */
+export function getPythonRequirements(): string {
+  return pythonRequirements;
+}
+
+export default {
+  getResource,
+  getPrompt,
+  getResourceNames,
+  getPromptNames,
+  hasResource,
+  hasPrompt,
+  getPythonAgentServiceScript,
+  getPythonRequirements
+};
