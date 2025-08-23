@@ -100,10 +100,10 @@ class BackendBuilder {
       exclude: ['node_modules', 'dist', 'src', 'coverage', 'test-reports']
     };
 
-    const tsConfigPath = join(rootDir, 'tsconfig.backend.json');
+    const tsConfigPath = join(rootDir, 'tsconfig.build.json');
     await fs.writeFile(tsConfigPath, JSON.stringify(tsConfig, null, 2));
 
-    await this.run('npx', ['tsc', '--project', 'tsconfig.backend.json'], {
+    await this.run('npx', ['tsc', '--project', 'tsconfig.build.json'], {
       cwd: rootDir
     });
 

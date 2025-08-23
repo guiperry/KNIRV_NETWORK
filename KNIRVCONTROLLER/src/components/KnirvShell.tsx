@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Monitor, Zap, Camera, Cpu, Network, Brain } from 'lucide-react';
+import { Zap, Cpu } from 'lucide-react';
 
 interface KnirvShellProps {
   status: 'idle' | 'processing' | 'listening' | 'error';
   nrnBalance: number;
   onScreenshotCapture: () => void;
-  onAnalyze: () => void;
-  onNetworkToggle: () => void;
+  cognitiveMode: boolean;
 }
 
 export const KnirvShell: React.FC<KnirvShellProps> = ({
   status,
   nrnBalance,
   onScreenshotCapture,
-  onAnalyze,
-  onNetworkToggle
+  cognitiveMode
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -33,7 +31,7 @@ export const KnirvShell: React.FC<KnirvShellProps> = ({
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-teal-500 rounded-lg flex items-center justify-center">
-              <Brain className="w-5 h-5 text-white" />
+              <Cpu className="w-5 h-5 text-white" />
             </div>
             <div>
               <h1 className="text-lg font-bold text-white">KNIRV Cortex</h1>
@@ -60,22 +58,25 @@ export const KnirvShell: React.FC<KnirvShellProps> = ({
           {/* Central Interface */}
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center space-y-6">
-              {/* Status Indicator */}
-              <div className="relative w-32 h-32 mx-auto">
+              {/* Status Indicator - Now Clickable */}
+              <button
+                onClick={onScreenshotCapture}
+                className="relative w-32 h-32 mx-auto group cursor-pointer transition-transform hover:scale-105"
+              >
                 <div className={`absolute inset-0 rounded-full transition-all duration-1000 ${
-                  status === 'idle' ? 'bg-green-500/20 border-2 border-green-500/50' :
+                  status === 'idle' ? 'bg-green-500/20 border-2 border-green-500/50 group-hover:bg-green-500/30' :
                   status === 'processing' ? 'bg-blue-500/20 border-2 border-blue-500/50 animate-pulse' :
                   status === 'listening' ? 'bg-teal-500/20 border-2 border-teal-500/50 animate-pulse' :
                   'bg-red-500/20 border-2 border-red-500/50'
                 }`}>
-                  <div className="absolute inset-4 rounded-full bg-gradient-to-r from-blue-500 to-teal-500 flex items-center justify-center">
+                  <div className="absolute inset-4 rounded-full bg-gradient-to-r from-blue-500 to-teal-500 flex items-center justify-center group-hover:from-blue-400 group-hover:to-teal-400 transition-all">
                     <Cpu className="w-8 h-8 text-white" />
                   </div>
                 </div>
                 {status === 'processing' && (
                   <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 animate-spin"></div>
                 )}
-              </div>
+              </button>
 
               {/* Status Message */}
               <div className="space-y-2">
@@ -93,37 +94,20 @@ export const KnirvShell: React.FC<KnirvShellProps> = ({
                 </p>
               </div>
 
-              {/* Quick Actions */}
-              <div className="flex justify-center space-x-4 mt-8">
-                <button
-                  onClick={onScreenshotCapture}
-                  className="flex items-center space-x-2 px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg border border-blue-500/30 hover:bg-blue-500/30 transition-colors"
-                >
-                  <Camera className="w-4 h-4" />
-                  <span>Capture</span>
-                </button>
-                <button
-                  onClick={onAnalyze}
-                  className="flex items-center space-x-2 px-4 py-2 bg-teal-500/20 text-teal-400 rounded-lg border border-teal-500/30 hover:bg-teal-500/30 transition-colors"
-                >
-                  <Monitor className="w-4 h-4" />
-                  <span>Analyze</span>
-                </button>
-                <button
-                  onClick={onNetworkToggle}
-                  className="flex items-center space-x-2 px-4 py-2 bg-orange-500/20 text-orange-400 rounded-lg border border-orange-500/30 hover:bg-orange-500/30 transition-colors"
-                >
-                  <Network className="w-4 h-4" />
-                  <span>Network</span>
-                </button>
-              </div>
+
             </div>
           </div>
 
-          {/* Floating Elements */}
-          <div className="absolute top-6 right-6 flex flex-col space-y-4">
-            <div className="w-12 h-12 bg-gray-700/50 rounded-lg flex items-center justify-center backdrop-blur-sm">
-              <Zap className="w-6 h-6 text-yellow-400" />
+          {/* Floating Lightning Icon */}
+          <div className="absolute top-6 left-6 flex flex-col space-y-4">
+            <div className={`w-12 h-12 rounded-lg flex items-center justify-center backdrop-blur-sm transition-all duration-300 ${
+              cognitiveMode
+                ? 'bg-yellow-500/30 border border-yellow-500/50'
+                : 'bg-gray-700/50'
+            }`}>
+              <Zap className={`w-6 h-6 transition-all duration-300 ${
+                cognitiveMode ? 'text-yellow-300' : 'text-yellow-400'
+              }`} fill={cognitiveMode ? 'currentColor' : 'none'} />
             </div>
           </div>
         </div>

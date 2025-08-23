@@ -36,25 +36,19 @@ export const SlidingPanel: React.FC<SlidingPanelProps> = ({
     };
   }, [isOpen, onClose]);
 
+  if (!isOpen) return null;
+
   return (
     <>
       {/* Backdrop */}
-      <div 
-        className={`absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 z-40 ${
-          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
+      <div
+        className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 z-40"
       />
-      
+
       {/* Panel */}
       <div
         ref={panelRef}
-        className={`absolute top-0 ${side === 'left' ? 'left-0' : 'right-0'} h-full w-96 bg-gray-900/95 backdrop-blur-sm border-${side === 'left' ? 'r' : 'l'} border-gray-700/50 z-50 transition-transform duration-300 ease-in-out ${
-          isOpen 
-            ? 'transform translate-x-0' 
-            : side === 'left' 
-              ? 'transform -translate-x-full' 
-              : 'transform translate-x-full'
-        }`}
+        className={`fixed top-0 ${side === 'left' ? 'left-0' : 'right-0'} h-full w-96 bg-gray-900/95 backdrop-blur-sm border-${side === 'left' ? 'r' : 'l'} border-gray-700/50 z-50 transition-transform duration-300 ease-in-out transform translate-x-0`}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-700/50">

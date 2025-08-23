@@ -1,5 +1,6 @@
 import React from 'react';
 import { Bot, Zap, Shield, Users, Coins } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Agent, NRV } from '../App';
 
 interface AgentManagerProps {
@@ -17,6 +18,7 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
   onAgentAssignment,
   nrnBalance
 }) => {
+  const navigate = useNavigate();
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'KNIRV-CORTEX': return <Bot className="w-4 h-4" />;
@@ -33,6 +35,15 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
       case 'Offline': return 'text-red-400';
       default: return 'text-gray-400';
     }
+  };
+
+  const getAgentId = (agentName: string) => {
+    return agentName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  };
+
+  const handleAgentClick = (agent: Agent) => {
+    const agentId = getAgentId(agent.name);
+    navigate(`/manager/agent/${agentId}`);
   };
 
   const getTypeColor = (type: string) => {
@@ -98,7 +109,12 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
                 <div className={`p-1 rounded ${getTypeColor(agent.type)}`}>
                   {getTypeIcon(agent.type)}
                 </div>
-                <span className="text-white font-medium">{agent.name}</span>
+                <button
+                  onClick={() => handleAgentClick(agent)}
+                  className="text-white font-medium hover:text-blue-400 transition-colors cursor-pointer"
+                >
+                  {agent.name}
+                </button>
               </div>
               <span className={`text-sm font-medium ${getStatusColor(agent.status)}`}>
                 {agent.status}

@@ -175,30 +175,26 @@ export default defineConfig({
         'coverage',
         'backups'
       ],
-      references: [
-        { path: './tsconfig.backend.json' }
-      ]
+
     };
     
     await fs.writeFile(path.join(this.rootDir, 'tsconfig.json'), JSON.stringify(tsConfig, null, 2));
     this.log('tsconfig.json created', 'success');
   }
 
-  async createBackendTsConfig() {
-    this.log('Creating tsconfig.backend.json...');
-    
-    const backendTsConfig = {
+  async createBuildTsConfig() {
+    this.log('Creating tsconfig.build.json...');
+
+    const buildTsConfig = {
       extends: './tsconfig.json',
       compilerOptions: {
-        target: 'ES2022',
-        module: 'ESNext',
-        moduleResolution: 'node',
         noEmit: false,
         outDir: 'dist/backend',
         rootDir: 'src/backend',
         declaration: true,
         declarationMap: true,
         sourceMap: true,
+        moduleResolution: 'node',
         types: ['node']
       },
       include: [
@@ -206,12 +202,14 @@ export default defineConfig({
       ],
       exclude: [
         'src/backend/**/*.test.ts',
-        'src/backend/**/*.spec.ts'
+        'src/backend/**/*.spec.ts',
+        'node_modules',
+        'dist'
       ]
     };
-    
-    await fs.writeFile(path.join(this.rootDir, 'tsconfig.backend.json'), JSON.stringify(backendTsConfig, null, 2));
-    this.log('tsconfig.backend.json created', 'success');
+
+    await fs.writeFile(path.join(this.rootDir, 'tsconfig.build.json'), JSON.stringify(buildTsConfig, null, 2));
+    this.log('tsconfig.build.json created', 'success');
   }
 
   async createIndexHtml() {
@@ -569,7 +567,7 @@ body {
       
       await this.createViteConfig();
       await this.createTsConfig();
-      await this.createBackendTsConfig();
+      await this.createBuildTsConfig();
       await this.createIndexHtml();
       await this.createMainTsx();
       await this.createIndexCss();
@@ -579,7 +577,7 @@ body {
       this.log('📁 Created files:');
       this.log('  - vite.config.ts (unified Vite configuration)');
       this.log('  - tsconfig.json (main TypeScript config)');
-      this.log('  - tsconfig.backend.json (backend-specific config)');
+      this.log('  - tsconfig.build.json (backend build config)');
       this.log('  - index.html (root HTML entry point)');
       this.log('  - src/main.tsx (application entry point)');
       this.log('  - src/index.css (global styles)');

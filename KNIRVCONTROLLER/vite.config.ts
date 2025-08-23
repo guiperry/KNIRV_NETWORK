@@ -83,7 +83,7 @@ export default defineConfig({
   // WASM support
   worker: {
     format: 'es',
-    plugins: [wasm(), topLevelAwait()]
+    plugins: () => [wasm(), topLevelAwait()]
   },
   
   // Environment variables

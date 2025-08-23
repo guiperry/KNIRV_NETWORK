@@ -323,7 +323,7 @@ impl HRMCognitive {
         console_log!("Loading HRM weights from URL: {}", url);
 
         // Return a promise that will load weights asynchronously
-        let promise = js_sys::Promise::new(&mut |resolve, reject| {
+        let promise = js_sys::Promise::new(&mut |resolve, _reject| {
             // In a real implementation, this would fetch the weights from the URL
             // For now, we'll simulate successful loading
 

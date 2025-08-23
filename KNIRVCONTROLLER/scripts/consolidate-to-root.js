@@ -319,7 +319,7 @@ class RootConsolidator {
         // Building
         'build': 'npm run build:wasm && npm run build:backend && vite build',
         'build:wasm': './scripts/build-wasm.sh',
-        'build:backend': 'tsc -p tsconfig.backend.json',
+        'build:backend': 'tsc -p tsconfig.build.json',
         'build:frontend': 'vite build',
         
         // Production

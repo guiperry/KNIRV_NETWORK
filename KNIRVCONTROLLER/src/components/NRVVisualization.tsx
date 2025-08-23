@@ -7,13 +7,15 @@ interface NRVVisualizationProps {
   onNRVSelect: (nrv: NRV) => void;
   onNRVMapping: (nrv: NRV) => void;
   onNRVClose: (nrv: NRV) => void;
+  onAnalyze: () => void;
 }
 
 export const NRVVisualization: React.FC<NRVVisualizationProps> = ({
   nrvs,
   onNRVSelect,
   onNRVMapping,
-  onNRVClose
+  onNRVClose,
+  onAnalyze
 }) => {
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -82,15 +84,26 @@ export const NRVVisualization: React.FC<NRVVisualizationProps> = ({
             </span>
             <div className="flex space-x-1">
               {nrv.status === 'Identified' && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onNRVMapping(nrv);
-                  }}
-                  className="text-xs px-2 py-1 bg-teal-500/20 text-teal-400 rounded hover:bg-teal-500/30 transition-colors"
-                >
-                  Map
-                </button>
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onNRVMapping(nrv);
+                    }}
+                    className="text-xs px-2 py-1 bg-teal-500/20 text-teal-400 rounded hover:bg-teal-500/30 transition-colors"
+                  >
+                    Map
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAnalyze();
+                    }}
+                    className="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/30 transition-colors"
+                  >
+                    Analyze
+                  </button>
+                </>
               )}
               <span className={`text-xs px-2 py-1 rounded ${getStatusColor(nrv.status)} bg-current bg-opacity-20`}>
                 {nrv.status}

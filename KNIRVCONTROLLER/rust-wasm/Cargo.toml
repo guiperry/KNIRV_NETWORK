@@ -2,6 +2,9 @@
 name = "knirv-cortex-wasm"
 version = "0.1.0"
 edition = "2021"
+description = "KNIRV Cortex WASM module for AI agent cognitive processing and HRM weight management"
+repository = "https://github.com/guiperry/KNIRV_NETWORK"
+license = "MIT"
 
 [lib]
 crate-type = ["cdylib"]

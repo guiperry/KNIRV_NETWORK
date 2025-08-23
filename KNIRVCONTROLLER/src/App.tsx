@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
+import { QrCode, X } from 'lucide-react';
 
 // Receiver components
 import { KnirvShell } from './components/KnirvShell';
@@ -124,6 +125,7 @@ const MenuItem = ({ onClick, children, icon, className = '' }) => {
 
 // Receiver Interface Component
 const ReceiverInterface = () => {
+  const navigate = useNavigate();
   const [shellStatus, setShellStatus] = useState<'idle' | 'processing' | 'listening' | 'error'>('idle');
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [currentNRVs, setCurrentNRVs] = useState<NRV[]>([]);
@@ -285,6 +287,13 @@ const ReceiverInterface = () => {
     ));
     setShellStatus('processing');
 
+    // Open Fabric Algorithm slideout
+    setActivePanels(prev =>
+      prev.includes('fabric-algorithm')
+        ? prev
+        : [...prev, 'fabric-algorithm']
+    );
+
     setTimeout(() => {
       setShellStatus('idle');
     }, 1000);
@@ -324,6 +333,8 @@ const ReceiverInterface = () => {
 
   const handleCognitiveStateChange = (state: CognitiveState) => {
     setCognitiveState(state);
+    // Set cognitive mode based on whether the cognitive shell is active
+    setCognitiveMode(state.status === 'active' || state.status === 'learning');
   };
 
   const handleSkillInvoked = (skillId: string, result: SkillResult) => {
@@ -361,9 +372,9 @@ const ReceiverInterface = () => {
   };
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showQRScanner, setShowQRScanner] = useState(false);
 
   const openCognitiveShell = () => {
-    setCognitiveMode(true);
     setActivePanels(prev =>
       prev.includes('cognitive-shell')
         ? prev
@@ -390,12 +401,9 @@ const ReceiverInterface = () => {
     setMenuOpen(false);
   };
 
-  const navigateToManager = () => {
+  const handleQRScan = () => {
+    setShowQRScanner(true);
     setMenuOpen(false);
-    // Small delay to allow menu to close before navigation
-    setTimeout(() => {
-      window.location.href = '/manager';
-    }, 100);
   };
 
   return (
@@ -405,8 +413,17 @@ const ReceiverInterface = () => {
       {/* Burger Menu Navigation - positioned to avoid time metrics */}
       <div className="absolute top-20 right-4 z-50">
         <BurgerMenu isOpen={menuOpen} onToggle={() => setMenuOpen(!menuOpen)}>
-          <MenuItem onClick={navigateToManager} icon="🔧">
-            Manager Interface
+          <MenuItem onClick={() => { navigate('/manager/skills'); setMenuOpen(false); }} icon="⚡">
+            Skills
+          </MenuItem>
+          <MenuItem onClick={() => { navigate('/manager/udc'); setMenuOpen(false); }} icon="🔐">
+            UDC
+          </MenuItem>
+          <MenuItem onClick={() => { navigate('/manager/wallet'); setMenuOpen(false); }} icon="💰">
+            Wallet
+          </MenuItem>
+          <MenuItem onClick={handleQRScan} icon="📱">
+            QR Scanner
           </MenuItem>
           <MenuItem onClick={openCognitiveShell} icon="🧠">
             Cognitive Shell
@@ -425,8 +442,7 @@ const ReceiverInterface = () => {
           status={shellStatus}
           nrnBalance={nrnBalance}
           onScreenshotCapture={handleScreenshotCapture}
-          onAnalyze={handleAnalyze}
-          onNetworkToggle={handleNetworkToggle}
+          cognitiveMode={cognitiveMode}
         />
 
         <VoiceControl
@@ -441,11 +457,7 @@ const ReceiverInterface = () => {
           onNRVSelect={setSelectedNRV}
           onNRVMapping={handleNRVMapping}
           onNRVClose={handleNRVClose}
-        />
-
-        <FabricAlgorithm
-          status={shellStatus}
-          nrvCount={currentNRVs.length}
+          onAnalyze={handleAnalyze}
         />
 
         {/* Sliding Panels */}
@@ -489,6 +501,19 @@ const ReceiverInterface = () => {
           />
         </SlidingPanel>
 
+        <SlidingPanel
+          id="fabric-algorithm"
+          isOpen={activePanels.includes('fabric-algorithm')}
+          onClose={() => closePanel('fabric-algorithm')}
+          title="Fabric Algorithm"
+          side="right"
+        >
+          <FabricAlgorithm
+            status={shellStatus}
+            nrvCount={currentNRVs.length}
+          />
+        </SlidingPanel>
+
         {/* Voice Status Indicator */}
         {isVoiceActive && (
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50">
@@ -502,128 +527,318 @@ const ReceiverInterface = () => {
           </div>
         )}
 
-        {/* Cognitive Mode Indicator */}
-        {cognitiveMode && (
-          <div className="absolute top-4 right-20 z-50">
-            <div className="bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-medium shadow-lg">
+        {/* Status Indicator - Shows Cognitive Mode when active, otherwise shows shell status */}
+        <div className="absolute bottom-4 left-4 z-40">
+          {cognitiveMode ? (
+            <div className="bg-purple-500/20 text-purple-400 border border-purple-500/30 px-3 py-1 rounded-full text-xs font-medium shadow-lg">
               <div className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
                 <span>Cognitive Mode</span>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Status Indicator */}
-        <div className="absolute bottom-4 left-4 z-40">
-          <div className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
-            shellStatus === 'idle' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
-            shellStatus === 'processing' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
-            shellStatus === 'listening' ? 'bg-teal-500/20 text-teal-400 border border-teal-500/30' :
-            'bg-red-500/20 text-red-400 border border-red-500/30'
-          }`}>
-            {shellStatus.charAt(0).toUpperCase() + shellStatus.slice(1)}
-          </div>
+          ) : (
+            <div className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
+              shellStatus === 'idle' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+              shellStatus === 'processing' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+              shellStatus === 'listening' ? 'bg-teal-500/20 text-teal-400 border border-teal-500/30' :
+              'bg-red-500/20 text-red-400 border border-red-500/30'
+            }`}>
+              {shellStatus.charAt(0).toUpperCase() + shellStatus.slice(1)}
+            </div>
+          )}
         </div>
       </main>
+
+      {/* QR Scanner Modal */}
+      {showQRScanner && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4 border border-gray-600">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-white">QR Code Scanner</h3>
+              <button
+                onClick={() => setShowQRScanner(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="aspect-square bg-gray-700 rounded-lg flex items-center justify-center">
+              <div className="text-center">
+                <QrCode size={48} className="text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-400">QR Scanner Component</p>
+                <p className="text-gray-500 text-sm mt-1">Camera access required</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-// Simple Manager Interface Fallback
-const SimpleManagerInterface = () => {
+// Agent Profile Component
+const AgentProfile = () => {
   const navigate = useNavigate();
+  const { agentId } = useParams();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showQRScanner, setShowQRScanner] = useState(false);
 
+  // Mock agent data - in real app this would come from API
+  const agent = {
+    id: agentId,
+    name: agentId === 'codet5-alpha' ? 'CodeT5-Alpha' :
+          agentId === 'seal-beta' ? 'SEAL-Beta' :
+          agentId === 'lora-gamma' ? 'LoRA-Gamma' : 'Unknown Agent',
+    type: agentId === 'codet5-alpha' ? 'KNIRV-CORTEX' :
+          agentId === 'seal-beta' ? 'KNIRVANA' :
+          agentId === 'lora-gamma' ? 'DVE' : 'Unknown',
+    status: agentId === 'codet5-alpha' ? 'active' :
+            agentId === 'seal-beta' ? 'active' :
+            agentId === 'lora-gamma' ? 'idle' : 'offline',
+    performance: agentId === 'codet5-alpha' ? 94 :
+                 agentId === 'seal-beta' ? 87 :
+                 agentId === 'lora-gamma' ? 91 : 78,
+    tasks: agentId === 'codet5-alpha' ? 12 :
+           agentId === 'seal-beta' ? 8 :
+           agentId === 'lora-gamma' ? 0 : 0,
+    lastActive: agentId === 'codet5-alpha' ? '2 min ago' :
+                agentId === 'seal-beta' ? '5 min ago' :
+                agentId === 'lora-gamma' ? '1 hour ago' : '3 hours ago',
+    specialization: agentId === 'codet5-alpha' ? ['code-generation', 'optimization'] :
+                    agentId === 'seal-beta' ? ['learning', 'adaptation'] :
+                    agentId === 'lora-gamma' ? ['fine-tuning', 'model-adaptation'] : ['unknown'],
+    nrnCost: agentId === 'codet5-alpha' ? 85 :
+             agentId === 'seal-beta' ? 90 :
+             agentId === 'lora-gamma' ? 120 : 100,
+    description: agentId === 'codet5-alpha' ? 'Advanced code generation and optimization agent powered by CodeT5 architecture.' :
+                 agentId === 'seal-beta' ? 'Self-evolving adaptive learning agent with continuous improvement capabilities.' :
+                 agentId === 'lora-gamma' ? 'Low-rank adaptation specialist for fine-tuning large language models.' : 'Unknown agent type.',
+    capabilities: agentId === 'codet5-alpha' ? ['Code Generation', 'Bug Detection', 'Performance Optimization', 'Documentation'] :
+                  agentId === 'seal-beta' ? ['Adaptive Learning', 'Pattern Recognition', 'Behavior Modeling', 'Prediction'] :
+                  agentId === 'lora-gamma' ? ['Model Fine-tuning', 'Parameter Optimization', 'Transfer Learning', 'Efficiency'] : ['Unknown'],
+    metrics: {
+      uptime: agentId === 'codet5-alpha' ? '99.2%' :
+              agentId === 'seal-beta' ? '98.7%' :
+              agentId === 'lora-gamma' ? '95.1%' : '89.3%',
+      accuracy: agentId === 'codet5-alpha' ? '94.8%' :
+                agentId === 'seal-beta' ? '92.3%' :
+                agentId === 'lora-gamma' ? '96.7%' : '78.2%',
+      responseTime: agentId === 'codet5-alpha' ? '1.2s' :
+                    agentId === 'seal-beta' ? '0.8s' :
+                    agentId === 'lora-gamma' ? '2.1s' : '3.4s',
+      totalTasks: agentId === 'codet5-alpha' ? 1247 :
+                  agentId === 'seal-beta' ? 892 :
+                  agentId === 'lora-gamma' ? 634 : 234
+    }
+  };
 
+  const handleQRScan = () => {
+    setShowQRScanner(true);
+    setMenuOpen(false);
+  };
+
+  // Burger Menu Component
+  const BurgerMenu = ({ isOpen, onToggle, children }) => {
+    return (
+      <div className="relative">
+        <button
+          onClick={onToggle}
+          className="bg-gray-800/80 hover:bg-gray-700/80 text-white p-3 rounded-lg shadow-lg transition-all duration-200 border border-gray-600/50 backdrop-blur-sm"
+          aria-label="Navigation menu"
+        >
+          <div className="w-5 h-5 flex flex-col justify-center items-center">
+            <div className={`w-5 h-0.5 bg-white transition-all duration-300 ${isOpen ? 'rotate-45 translate-y-1' : ''}`}></div>
+            <div className={`w-5 h-0.5 bg-white transition-all duration-300 mt-1 ${isOpen ? 'opacity-0' : ''}`}></div>
+            <div className={`w-5 h-0.5 bg-white transition-all duration-300 mt-1 ${isOpen ? '-rotate-45 -translate-y-1' : ''}`}></div>
+          </div>
+        </button>
+
+        {isOpen && (
+          <div className="absolute top-full right-0 mt-2 w-64 bg-gray-800/95 backdrop-blur-xl rounded-lg shadow-xl border border-gray-600/50 py-2 z-50">
+            {children}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const MenuItem = ({ onClick, icon, children }) => {
+    return (
+      <button
+        onClick={onClick}
+        className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-gray-700/50 transition-colors text-white"
+      >
+        <span className="text-lg">{icon}</span>
+        <span className="font-medium">{children}</span>
+      </button>
+    );
+  };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4">KNIRV Manager Interface</h1>
-          <p className="text-gray-400">Unified management interface for KNIRV Controller</p>
-        </div>
+    <div className="min-h-screen bg-gray-900 text-white relative overflow-hidden">
+      {/* Burger Menu Navigation */}
+      <div className="absolute top-4 right-4 z-50">
+        <BurgerMenu isOpen={menuOpen} onToggle={() => setMenuOpen(!menuOpen)}>
+          <MenuItem onClick={() => { navigate('/manager/skills'); setMenuOpen(false); }} icon="⚡">
+            Skills
+          </MenuItem>
+          <MenuItem onClick={() => { navigate('/manager/udc'); setMenuOpen(false); }} icon="🔐">
+            UDC
+          </MenuItem>
+          <MenuItem onClick={() => { navigate('/manager/wallet'); setMenuOpen(false); }} icon="💰">
+            Wallet
+          </MenuItem>
+          <MenuItem onClick={handleQRScan} icon="📱">
+            QR Scanner
+          </MenuItem>
+          <MenuItem onClick={() => { navigate('/'); setMenuOpen(false); }} icon="🏠">
+            Input Interface
+          </MenuItem>
+        </BurgerMenu>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div
-            onClick={() => navigate('/manager/skills')}
-            className="bg-gray-800/80 border border-gray-600/50 rounded-lg p-6 hover:bg-gray-700/80 transition-all duration-200 cursor-pointer"
-          >
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mr-4">
-                <span className="text-2xl">🧠</span>
-              </div>
-              <h3 className="text-xl font-semibold">Skills Management</h3>
+      <div className="max-w-6xl mx-auto p-4 pb-24 overflow-y-auto h-screen">
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center space-x-4 mb-6">
+            <button
+              onClick={() => navigate('/')}
+              className="bg-gray-800/80 hover:bg-gray-700/80 text-white px-4 py-2 rounded-lg shadow-lg transition-all duration-200 font-medium border border-gray-600/50"
+            >
+              ← Back
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-white">{agent.name}</h1>
+              <p className="text-gray-400">{agent.type} Agent Profile</p>
             </div>
-            <p className="text-gray-400">Manage and configure AI skills and capabilities</p>
           </div>
 
-          <div
-            onClick={() => navigate('/manager/udc')}
-            className="bg-gray-800/80 border border-gray-600/50 rounded-lg p-6 hover:bg-gray-700/80 transition-all duration-200 cursor-pointer"
-          >
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center mr-4">
-                <span className="text-2xl">🔐</span>
+          {/* Status Card */}
+          <div className="bg-gray-800/80 border border-gray-600/50 rounded-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className={`w-4 h-4 rounded-full ${
+                  agent.status === 'active' ? 'bg-green-400 animate-pulse' :
+                  agent.status === 'idle' ? 'bg-yellow-400' : 'bg-red-400'
+                }`}></div>
+                <h2 className="text-xl font-semibold text-white">Status: {agent.status}</h2>
               </div>
-              <h3 className="text-xl font-semibold">UDC Management</h3>
+              <div className="text-right">
+                <p className="text-lg font-semibold text-white">{agent.nrnCost} NRN/hour</p>
+                <p className="text-gray-400 text-sm">Operating cost</p>
+              </div>
             </div>
-            <p className="text-gray-400">Universal Data Connector configuration and monitoring</p>
+            <p className="text-gray-300 mb-4">{agent.description}</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-400">{agent.tasks}</div>
+                <div className="text-gray-400 text-sm">Active Tasks</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-400">{agent.performance}%</div>
+                <div className="text-gray-400 text-sm">Performance</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-400">{agent.metrics.uptime}</div>
+                <div className="text-gray-400 text-sm">Uptime</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-cyan-400">{agent.metrics.totalTasks}</div>
+                <div className="text-gray-400 text-sm">Total Tasks</div>
+              </div>
+            </div>
           </div>
 
-          <div
-            onClick={() => navigate('/manager/wallet')}
-            className="bg-gray-800/80 border border-gray-600/50 rounded-lg p-6 hover:bg-gray-700/80 transition-all duration-200 cursor-pointer"
-          >
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center mr-4">
-                <span className="text-2xl">💰</span>
-              </div>
-              <h3 className="text-xl font-semibold">Wallet Operations</h3>
+          {/* Capabilities */}
+          <div className="bg-gray-800/80 border border-gray-600/50 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Capabilities</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {agent.capabilities.map((capability, index) => (
+                <div key={index} className="bg-gray-700/50 border border-gray-600/30 rounded-lg p-3">
+                  <p className="text-white font-medium">{capability}</p>
+                </div>
+              ))}
             </div>
-            <p className="text-gray-400">Manage NRN tokens and wallet operations</p>
           </div>
-        </div>
 
-        <div className="mt-8 bg-gray-800/80 border border-gray-600/50 rounded-lg p-6">
-          <h2 className="text-2xl font-semibold mb-4">System Status</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-green-400">Online</div>
-              <div className="text-gray-400">System Status</div>
+          {/* Performance Metrics */}
+          <div className="bg-gray-800/80 border border-gray-600/50 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Performance Metrics</h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Accuracy</span>
+                <span className="text-white font-semibold">{agent.metrics.accuracy}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Response Time</span>
+                <span className="text-white font-semibold">{agent.metrics.responseTime}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Last Active</span>
+                <span className="text-white font-semibold">{agent.lastActive}</span>
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-blue-400">1,250</div>
-              <div className="text-gray-400">NRN Balance</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-purple-400">3</div>
-              <div className="text-gray-400">Active Agents</div>
+          </div>
+
+          {/* Specializations */}
+          <div className="bg-gray-800/80 border border-gray-600/50 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Specializations</h3>
+            <div className="flex flex-wrap gap-2">
+              {agent.specialization.map((spec, index) => (
+                <span key={index} className="bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full text-sm">
+                  {spec}
+                </span>
+              ))}
             </div>
           </div>
         </div>
       </div>
+
+      {/* QR Scanner Modal */}
+      {showQRScanner && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4 border border-gray-600">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-white">QR Code Scanner</h3>
+              <button
+                onClick={() => setShowQRScanner(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="aspect-square bg-gray-700 rounded-lg flex items-center justify-center">
+              <div className="text-center">
+                <QrCode size={48} className="text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-400">QR Scanner Component</p>
+                <p className="text-gray-500 text-sm mt-1">Camera access required</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 // Manager Interface Wrapper
 const ManagerInterface = () => {
+  const navigate = useNavigate();
 
+  // Redirect to skills page by default
+  React.useEffect(() => {
+    if (window.location.pathname === '/manager' || window.location.pathname === '/manager/') {
+      navigate('/manager/skills', { replace: true });
+    }
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white relative">
-      <div className="absolute top-4 right-4 z-50">
-        <NavigationButton to="/" className="bg-gray-800/80 hover:bg-gray-700/80 border border-gray-600/50">
-          ← Receiver Interface
-        </NavigationButton>
-      </div>
-
       <Routes>
-        <Route path="/" element={<SimpleManagerInterface />} />
         <Route path="/skills" element={<Skills />} />
         <Route path="/udc" element={<UDC />} />
         <Route path="/wallet" element={<WalletPage />} />
+        <Route path="/agent/:agentId" element={<AgentProfile />} />
       </Routes>
     </div>
   );

@@ -337,10 +337,10 @@ fn main() -> Result<()> {
 **Dependencies: 1.1, 1.2**
 
 #### Tasks:
-- [ ] Disconnect default/included hrm-rust from receiver
-- [ ] Enable receiver to upload and compile agent WASM files
+- [x] Disconnect default/included hrm-rust from receiver
+- [x] Enable receiver to upload and compile agent WASM files
 - [ ] Implement cognitive shell with uploaded agent.wasm integration
-- [ ] Create separation of concerns between cognitive shell and agent-core
+- [x] Create separation of concerns between cognitive shell and agent-core
 - [ ] Implement agent export functionality (agent.wasm only)
 - [ ] Establish primary agent designation system
 
@@ -384,12 +384,12 @@ fn main() -> Result<()> {
 **Dependencies: 2.1**
 
 #### Tasks:
-- [ ] Clone KNIRVCONTROLLER/receiver directory to root KNIRVCONTROLLER directory
-- [ ] Integrate receiver view as default in manager
-- [ ] Implement QR code scanning (from KNIRVCONTROLLER/wallet/agentic-wallet app) functionality for receiver connectivity to other services in the network
-- [ ] Ensure style consistency across application
-- [ ] Align styling closer to receiver design
-- [ ] Implement cross-component wallet functionality
+- [x] Clone KNIRVCONTROLLER/receiver directory to root KNIRVCONTROLLER directory
+- [x] Integrate receiver view as default in manager
+- [ ] Implement QR code scanning (from KNIRVENGINE/agentic-wallet app) functionality for KNIRVCONTROLLER connectivity to other services in the network (Partially done - QR Code Viewer, but no functionality)
+- [x] Ensure style consistency across application
+- [x] Align styling closer to receiver design
+- [ ] Implement cross-component wallet functionality in the KNIRVCONTROLLER/src/manager/react-app/pages/Wallet.tsx (from KNIRVENGINE/agentic-wallet app)
 
 #### Testing Requirements:
 - [ ] Wallet integration tests
