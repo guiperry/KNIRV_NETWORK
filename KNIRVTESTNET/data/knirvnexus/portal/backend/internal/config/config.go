@@ -210,7 +210,7 @@ func setDefaults() {
 	viper.SetDefault("gui.bind_address", "127.0.0.1")
 
 	// Service defaults
-	viper.SetDefault("api.port", 8080)
+	viper.SetDefault("api.port", 8082)
 	viper.SetDefault("api.bind_address", "0.0.0.0")
 	viper.SetDefault("api.address", "0.0.0.0")
 
