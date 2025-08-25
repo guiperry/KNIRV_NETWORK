@@ -1,32 +1,55 @@
 #!/bin/bash
 set -e
 
-echo "Building KNIRV-NEXUS for testnet..."
+echo "Building KNIRV-NEXUS unified binary for testnet..."
 
-# Build KNIRV-NEXUS backend services
-echo "Building KNIRV-NEXUS backend services..."
-if [ -d "../KNIRVNEXUS/backend" ]; then
-    cd ../KNIRVNEXUS/backend
-
-    # Build DVE Manager
-    echo "Building DVE Manager..."
-    go mod tidy
-    go build -tags testnet -o dve-manager ./cmd/dve-manager/main.go
-
-    # Build Validation Core
-    echo "Building Validation Core..."
-    go build -tags testnet -o validation-core ./cmd/validation-core/main.go
-
-    # Copy binaries to testnet bin directory
-    cp dve-manager ../../KNIRVTESTNET/bin/knirvnexus-dve-manager
-    cp validation-core ../../KNIRVTESTNET/bin/knirvnexus-validation-core
-
-    cd ../../KNIRVTESTNET
-    echo "✅ Built and copied KNIRV-NEXUS backend services"
-else
-    echo "❌ KNIRV-NEXUS backend directory not found"
+# Check if KNIRVNEXUS directory exists
+if [ ! -d "../KNIRVNEXUS" ]; then
+    echo "❌ KNIRVNEXUS directory not found"
     exit 1
 fi
+
+cd ../KNIRVNEXUS
+
+# Install frontend dependencies
+echo "Installing frontend dependencies..."
+if [ -f "package.json" ]; then
+    npm install
+else
+    echo "⚠️  No package.json found, skipping npm install"
+fi
+
+# Build frontend
+echo "Building frontend..."
+if [ -f "package.json" ]; then
+    npm run build
+else
+    echo "⚠️  No package.json found, skipping frontend build"
+fi
+
+# Build backend
+echo "Building unified backend..."
+if [ -d "backend" ]; then
+    cd backend
+    go mod tidy
+    go build -tags testnet -o ../bin/nexus-backend ./main.go
+    cd ..
+else
+    echo "❌ Backend directory not found"
+    exit 1
+fi
+
+# Build unified binary with embedded frontend and backend
+echo "Building unified KNIRV-NEXUS binary..."
+go mod tidy
+go build -tags testnet -ldflags="-s -w" -o knirv-nexus main.go
+
+# Copy unified binary to testnet bin directory
+echo "Copying unified binary to testnet..."
+cp knirv-nexus ../KNIRVTESTNET/bin/knirvnexus
+
+cd ../KNIRVTESTNET
+echo "✅ Built and copied KNIRV-NEXUS unified binary"
 
 # Create testnet data directories
 echo "Setting up testnet data directories..."

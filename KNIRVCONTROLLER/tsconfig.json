@@ -29,8 +29,17 @@
       "@pages/*": [
         "src/pages/*"
       ],
-      "@backend/*": [
-        "src/backend/*"
+      "@hooks/*": [
+        "src/hooks/*"
+      ],
+      "@services/*": [
+        "src/services/*"
+      ],
+      "@types/*": [
+        "src/types/*"
+      ],
+      "@core/*": [
+        "src/core/*"
       ],
       "@manager/*": [
         "src/manager/*"

@@ -59,8 +59,8 @@ export NODE_ENV=testnet
 export KNIRVORACLE_URL=http://localhost:1317
 export KNIRVCHAIN_URL=http://localhost:8090
 export KNIRVGRAPH_URL=http://localhost:8082
-export KNIRVNEXUS_DVE_URL=http://localhost:8084
-export KNIRVNEXUS_VAL_URL=http://localhost:8085
+export KNIRVNEXUS_URL=http://localhost:8084
+export KNIRVNEXUS_API_URL=http://localhost:8084/api
 export KNIRVROUTER_URL=http://localhost:8086
 
 # Start KNIRV-GATEWAY using npm start with specified port and memory limit (136MB optimized)

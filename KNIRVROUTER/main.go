@@ -1,5 +1,5 @@
-//go:build !headless
-// +build !headless
+//go:build !headless && !wasmloader
+// +build !headless,!wasmloader
 
 package main
 

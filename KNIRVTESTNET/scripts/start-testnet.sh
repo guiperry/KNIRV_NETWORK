@@ -457,21 +457,12 @@ else
     exit 1
 fi
 
-# 4. Start KNIRV-NEXUS (TEE simulation)
-print_status "Starting KNIRV-NEXUS..."
+# 4. Start KNIRV-NEXUS (unified binary with embedded frontend)
+print_status "Starting KNIRV-NEXUS unified service..."
 if ./scripts/start-knirvnexus.sh; then
-    wait_for_service "KNIRV-NEXUS" "8084" "/health" "data/knirvnexus.pid" || exit 1
+    wait_for_service "KNIRV-NEXUS" "8084" "/" "data/knirvnexus.pid" || exit 1
 else
     print_error "Failed to start KNIRV-NEXUS"
-    exit 1
-fi
-
-# 4b. Start KNIRV-NEXUS Frontend
-print_status "Starting KNIRV-NEXUS Frontend..."
-if ./scripts/start-knirvnexus-frontend.sh; then
-    wait_for_service "KNIRV-NEXUS Frontend" "8083" "/" "data/knirvnexus-frontend.pid" || exit 1
-else
-    print_error "Failed to start KNIRV-NEXUS Frontend"
     exit 1
 fi
 
@@ -542,8 +533,8 @@ echo "🎉 KNIRV TESTNET IS FULLY RUNNING!"
 echo "=================================="
 echo ""
 echo "Core Services:"
-echo "  🔗 KNIRV-ORACLE:    http://localhost:1317"
-echo "  ⛓️  KNIRVCHAIN:   http://localhost:8090"
+echo "  🔗 KNIRV-ORACLE:  http://localhost:1317"
+echo "  ⛓️ KNIRVCHAIN:    http://localhost:8090"
 echo "  📊 KNIRVGRAPH:    http://localhost:8082"
 echo "  🔒 KNIRV-NEXUS:   http://localhost:8084 (API) / http://localhost:8083 (GUI)"
 echo "  🌐 KNIRV-ROUTER:  http://localhost:8086"

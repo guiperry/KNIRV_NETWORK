@@ -28,12 +28,12 @@
 PORTS_TO_CHECK=(
     # Core KNIRV Services
     8000    # KNIRVGATEWAY API Gateway
-    8080    # KNIRVCHAIN / KNIRVNEXUS Frontend
-    8081    # KNIRVNEXUS API
-    8082    # KNIRVORACLE
-    8083    # KNIRVGRAPH
+    8080    # KNIRVCHAIN
+    8082    # KNIRVGRAPH
+    8084    # KNIRVNEXUS Unified Service (Frontend + API)
+    8086    # KNIRVROUTER
     8090    # Economics Service
-    8091    # KNIRVROUTER
+    1317    # KNIRVORACLE
 
     # Legacy/Alternative ports
     5000 5001 6000 6001    # KNIRVORACLE legacy ports

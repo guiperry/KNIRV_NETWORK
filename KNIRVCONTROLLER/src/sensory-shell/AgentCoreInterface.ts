@@ -6,12 +6,14 @@
  */
 
 import { EventEmitter } from './EventEmitter';
+import ProtobufHandler from '../core/protobuf/ProtobufHandler';
 
 export interface AgentCoreWASM {
   // WASM exported functions
   agentCoreExecute: (input: string, context: string) => Promise<string>;
   agentCoreExecuteTool: (toolName: string, parameters: string, context: string) => Promise<string>;
   agentCoreLoadLoRA: (adapter: string) => Promise<boolean>;
+  agentCoreApplySkill: (protoBytes: Uint8Array) => Promise<boolean>;
   agentCoreGetStatus: () => string;
 }
 
@@ -111,9 +113,10 @@ export class AgentCoreInterface extends EventEmitter {
       this.agentCore = this.wasmInstance.exports as any;
 
       // Verify required functions exist
-      if (!this.agentCore?.agentCoreExecute || 
+      if (!this.agentCore?.agentCoreExecute ||
           !this.agentCore?.agentCoreExecuteTool ||
           !this.agentCore?.agentCoreLoadLoRA ||
+          !this.agentCore?.agentCoreApplySkill ||
           !this.agentCore?.agentCoreGetStatus) {
         throw new Error('Required agent-core functions not found in WASM module');
       }
@@ -303,6 +306,107 @@ export class AgentCoreInterface extends EventEmitter {
       this.emit('lora_loading_failed', { skillId: adapter.skillId, error: error.message });
       return false;
     }
+  }
+
+  /**
+   * Apply LoRA skill to agent-core (TypeScript equivalent of Rust apply_skill)
+   * Deserializes protobuf message and applies LoRA weights to base model
+   */
+  async applySkill(protoBytes: Uint8Array): Promise<boolean> {
+    if (!this.isInitialized || !this.agentCore) {
+      throw new Error('Agent-core not initialized');
+    }
+
+    try {
+      this.emit('skill_application_started', { protoSize: protoBytes.length });
+
+      // Use real ProtobufHandler for deserialization
+
+      const protobufHandler = new ProtobufHandler();
+      await protobufHandler.initialize();
+
+      // 1. DESERIALIZE THE PROTOBUF PAYLOAD
+      // =======================================
+      const response = await protobufHandler.deserialize(protoBytes, 'SkillInvocationResponse');
+
+      if (!response.skill) {
+        throw new Error('Skill payload was empty in the response');
+      }
+
+      const skill = response.skill;
+      console.log(`Applying skill: '${skill.skill_name}' (ID: ${skill.skill_id})`);
+
+      // 2. CONVERT WEIGHTS FROM BYTES TO FLOAT32ARRAYS
+      // ===============================================
+      const weightsA = this.bytesToFloat32Array(skill.weights_a);
+      const weightsB = this.bytesToFloat32Array(skill.weights_b);
+
+      // 3. APPLY THE LORA UPDATE
+      // ========================
+      // The LoRA update formula is: W_new = W_original + (alpha/rank) * (B * A)
+      const scaling = skill.alpha / skill.rank;
+
+      // Create LoRA adapter from protobuf data
+      const adapter: LoRAAdapter = {
+        skillId: skill.skill_id,
+        skillName: skill.skill_name,
+        weightsA,
+        weightsB,
+        rank: skill.rank,
+        alpha: skill.alpha,
+        metadata: {
+          description: skill.description,
+          baseModelCompatibility: skill.base_model_compatibility,
+          version: skill.version.toString(),
+          scaling: scaling.toString(),
+          ...skill.additional_metadata
+        }
+      };
+
+      // Load the adapter into agent-core
+      const success = await this.loadLoRAAdapter(adapter);
+
+      if (success) {
+        console.log('✅ Skill applied successfully. Model weights have been updated.');
+        this.emit('skill_applied', {
+          skillId: skill.skill_id,
+          skillName: skill.skill_name,
+          invocationId: response.invocation_id
+        });
+      } else {
+        this.emit('skill_application_failed', {
+          skillId: skill.skill_id,
+          error: 'Failed to load adapter into agent-core'
+        });
+      }
+
+      await protobufHandler.cleanup();
+      return success;
+
+    } catch (error) {
+      this.emit('skill_application_failed', { error: error.message });
+      console.error('Failed to apply skill:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Helper function to convert byte array to Float32Array
+   * Protobuf bytes are just Uint8Array, so we read them in 4-byte chunks
+   */
+  private bytesToFloat32Array(bytes: Uint8Array): Float32Array {
+    if (bytes.length % 4 !== 0) {
+      throw new Error('Byte array length is not a multiple of 4');
+    }
+
+    const float32Array = new Float32Array(bytes.length / 4);
+    const dataView = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+
+    for (let i = 0; i < float32Array.length; i++) {
+      float32Array[i] = dataView.getFloat32(i * 4, false); // false for big-endian (IEEE 754 standard)
+    }
+
+    return float32Array;
   }
 
   /**

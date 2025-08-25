@@ -2,14 +2,15 @@ package benchmarking
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"testing"
 	"time"
+	// Helper function for random number generation
+	"math/rand"
+	"sort"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // BenchmarkSuite manages performance benchmarking for the testnet
@@ -476,7 +477,3 @@ Percentiles:
 	// Save report to file
 	fmt.Println(report)
 }
-
-// Helper function for random number generation
-import "math/rand"
-import "sort"

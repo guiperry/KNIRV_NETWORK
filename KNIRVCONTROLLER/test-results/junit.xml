@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="KNIRVWALLET Tests" tests="23" failures="0" errors="0" time="8.243">
+  <testsuite name="Phase 3.3 - Consensus Mechanism" errors="0" failures="0" skipped="0" timestamp="2025-08-25T06:20:52" time="8.053" tests="23">
+    <testcase classname="Phase 3.3 - Consensus Mechanism Initialization should initialize successfully" name="Phase 3.3 - Consensus Mechanism Initialization should initialize successfully" time="0.035">
+    </testcase>
+    <testcase classname="Phase 3.3 - Consensus Mechanism Node Management should register nodes successfully" name="Phase 3.3 - Consensus Mechanism Node Management should register nodes successfully" time="0.021">
+    </testcase>
+    <testcase classname="Phase 3.3 - Consensus Mechanism Node Management should update node heartbeat" name="Phase 3.3 - Consensus Mechanism Node Management should update node heartbeat" time="0.007">
+    </testcase>
+    <testcase classname="Phase 3.3 - Consensus Mechanism Node Management should handle heartbeat for non-existent node" name="Phase 3.3 - Consensus Mechanism Node Management should handle heartbeat for non-existent node" time="0.004">
+    </testcase>
+    <testcase classname="Phase 3.3 - Consensus Mechanism Proposal Submission should submit proposal successfully" name="Phase 3.3 - Consensus Mechanism Proposal Submission should submit proposal successfully" time="0.314">
+    </testcase>
+    <testcase classname="Phase 3.3 - Consensus Mechanism Proposal Submission should calculate required votes correctly" name="Phase 3.3 - Consensus Mechanism Proposal Submission should calculate required votes correctly" time="0.321">
+    </testcase>
+    <testcase classname="Phase 3.3 - Consensus Mechanism Proposal Submission should fail when max concurrent proposals reached" name="Phase 3.3 - Consensus Mechanism Proposal Submission should fail when max concurrent proposals reached" time="0.486">
+    </testcase>
+    <testcase classname="Phase 3.3 - Consensus Mechanism Proposal Submission should fail when not initialized" name="Phase 3.3 - Consensus Mechanism Proposal Submission should fail when not initialized" time="0.014">
+    </testcase>
+    <testcase classname="Phase 3.3 - Consensus Mechanism Voting Process should submit vote successfully" name="Phase 3.3 - Consensus Mechanism Voting Process should submit vote successfully" time="0.318">
+    </testcase>
+    <testcase classname="Phase 3.3 - Consensus Mechanism Voting Process should prevent duplicate voting" name="Phase 3.3 - Consensus Mechanism Voting Process should prevent duplicate voting" time="0.323">
+    </testcase>
+    <testcase classname="Phase 3.3 - Consensus Mechanism Voting Process should fail voting on non-existent proposal" name="Phase 3.3 - Consensus Mechanism Voting Process should fail voting on non-existent proposal" time="0.316">
+    </testcase>
+    <testcase classname="Phase 3.3 - Consensus Mechanism Voting Process should fail voting with unregistered node" name="Phase 3.3 - Consensus Mechanism Voting Process should fail voting with unregistered node" time="0.308">
+    </testcase>
+    <testcase classname="Phase 3.3 - Consensus Mechanism Voting Process should fail voting with low reputation node" name="Phase 3.3 - Consensus Mechanism Voting Process should fail voting with low reputation node" time="0.304">
+    </testcase>
+    <testcase classname="Phase 3.3 - Consensus Mechanism Consensus Resolution should reach consensus with sufficient approval votes" name="Phase 3.3 - Consensus Mechanism Consensus Resolution should reach consensus with sufficient approval votes" time="0.408">
+    </testcase>
+    <testcase classname="Phase 3.3 - Consensus Mechanism Consensus Resolution should reject with insufficient approval votes" name="Phase 3.3 - Consensus Mechanism Consensus Resolution should reject with insufficient approval votes" time="0.41">
+    </testcase>
+    <testcase classname="Phase 3.3 - Consensus Mechanism Consensus Resolution should handle abstain votes correctly" name="Phase 3.3 - Consensus Mechanism Consensus Resolution should handle abstain votes correctly" time="0.412">
+    </testcase>
+    <testcase classname="Phase 3.3 - Consensus Mechanism Consensus Resolution should timeout proposals after deadline" name="Phase 3.3 - Consensus Mechanism Consensus Resolution should timeout proposals after deadline" time="0.613">
+    </testcase>
+    <testcase classname="Phase 3.3 - Consensus Mechanism Event Handling should emit node registration events" name="Phase 3.3 - Consensus Mechanism Event Handling should emit node registration events" time="0.01">
+    </testcase>
+    <testcase classname="Phase 3.3 - Consensus Mechanism Event Handling should emit proposal events" name="Phase 3.3 - Consensus Mechanism Event Handling should emit proposal events" time="0.318">
+    </testcase>
+    <testcase classname="Phase 3.3 - Consensus Mechanism Event Handling should emit vote events" name="Phase 3.3 - Consensus Mechanism Event Handling should emit vote events" time="0.312">
+    </testcase>
+    <testcase classname="Phase 3.3 - Consensus Mechanism Event Handling should emit consensus events" name="Phase 3.3 - Consensus Mechanism Event Handling should emit consensus events" time="0.405">
+    </testcase>
+    <testcase classname="Phase 3.3 - Consensus Mechanism Reputation Management should update node reputations based on voting behavior" name="Phase 3.3 - Consensus Mechanism Reputation Management should update node reputations based on voting behavior" time="0.512">
+    </testcase>
+    <testcase classname="Phase 3.3 - Consensus Mechanism Configuration should respect custom configuration" name="Phase 3.3 - Consensus Mechanism Configuration should respect custom configuration" time="0.204">
+    </testcase>
+  </testsuite>
+</testsuites>

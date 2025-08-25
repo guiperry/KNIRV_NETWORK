@@ -1,0 +1,110 @@
+syntax = "proto3";
+
+package knirv.chain.v1;
+
+option go_package = "github.com/guiperry/KNIRV_NETWORK/pkg/gen/knirv/chain/v1;chainv1";
+
+// Represents a LoRA (Low-Rank Adaptation) adapter, which embodies a skill.
+// This message contains the necessary weights and biases to train or augment an agent-core.
+message LoRaAdapterSkill {
+  // --- Metadata ---
+  // Unique identifier for the skill, likely a hash of its contents.
+  string skill_id = 1;
+  // Human-readable name of the skill.
+  string skill_name = 2;
+  // Description of what the skill does.
+  string description = 3;
+  // The base model this adapter is compatible with (e.g., "CodeT5-base").
+  string base_model_compatibility = 4;
+  // Version of the skill for evolution and updates.
+  uint32 version = 5;
+
+  // --- LoRA Parameters ---
+  // The rank of the low-rank adaptation.
+  int32 rank = 6;
+  // The alpha scaling factor for the LoRA weights.
+  float alpha = 7;
+
+  // The actual LoRA weights. Using 'bytes' is highly efficient for sending
+  // a packed array of floats, which can be decoded on the client side.
+  // This is more compact than a 'repeated float'.
+  bytes weights_a = 8; // Represents matrix A
+  bytes weights_b = 9; // Represents matrix B
+
+  // Optional metadata for more complex skills, like required capabilities or performance hints.
+  map<string, string> additional_metadata = 10;
+}
+
+// The response from an /invoke call on the embedded KNIRVCHAIN,
+// delivering the requested skill to the agent-core.
+message SkillInvocationResponse {
+  // Unique ID for this specific invocation.
+  string invocation_id = 1;
+  // Status of the invocation request.
+  Status status = 2;
+  // Error message if the status is a failure.
+  string error_message = 3;
+  // The LoRA adapter skill payload. This is only present on success.
+  LoRaAdapterSkill skill = 4;
+}
+
+// Request to invoke a skill by ID
+message SkillInvocationRequest {
+  // Unique ID for this invocation request
+  string invocation_id = 1;
+  // ID of the skill to invoke
+  string skill_id = 2;
+  // Parameters for skill execution
+  map<string, string> parameters = 3;
+  // Agent core ID making the request
+  string agent_core_id = 4;
+}
+
+// Request to compile a new skill from solutions and errors
+message SkillCompilationRequest {
+  // Unique ID for this compilation request
+  string compilation_id = 1;
+  // Skill metadata
+  SkillMetadata metadata = 2;
+  // Solutions and errors data
+  SkillTrainingData training_data = 3;
+}
+
+message SkillMetadata {
+  string skill_name = 1;
+  string description = 2;
+  string base_model = 3;
+  int32 rank = 4;
+  float alpha = 5;
+  map<string, string> additional_metadata = 6;
+}
+
+message SkillTrainingData {
+  repeated Solution solutions = 1;
+  repeated ErrorNode errors = 2;
+}
+
+message Solution {
+  string error_id = 1;
+  string solution = 2;
+  float confidence = 3;
+  string agent_id = 4;
+  int64 timestamp = 5;
+}
+
+message ErrorNode {
+  string error_id = 1;
+  string description = 2;
+  string context = 3;
+  string cluster_id = 4;
+  int64 timestamp = 5;
+}
+
+// Enum for the status of the skill invocation.
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  SUCCESS = 1;
+  FAILURE = 2;
+  NOT_FOUND = 3;
+  COMPILATION_IN_PROGRESS = 4;
+}

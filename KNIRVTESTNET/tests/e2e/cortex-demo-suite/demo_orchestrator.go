@@ -2,13 +2,12 @@ package cortexdemo
 
 import (
 	"context"
-	"encoding/json"
+	
 	"fmt"
 	"log"
 	"sync"
 	"time"
 
-	"gopkg.in/yaml.v2"
 )
 
 // DemoOrchestrator manages automated CORTEX demonstrations

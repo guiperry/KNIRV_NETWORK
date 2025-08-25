@@ -110,10 +110,57 @@ pub struct ModelInfo {
     pub supported_tasks: Vec<String>,
 }
 
+// Enum to hold different model types instead of trait objects
+#[derive(Debug)]
+pub enum LLMModelInstance {
+    CodeT5(CodeT5Model),
+    Deepseek(DeepseekModel),
+    Gemini(GeminiModel),
+    Custom(CustomModel),
+}
+
+impl LLMModelInstance {
+    pub async fn generate(&self, prompt: &str) -> Result<String> {
+        match self {
+            LLMModelInstance::CodeT5(model) => model.generate(prompt).await,
+            LLMModelInstance::Deepseek(model) => model.generate(prompt).await,
+            LLMModelInstance::Gemini(model) => model.generate(prompt).await,
+            LLMModelInstance::Custom(model) => model.generate(prompt).await,
+        }
+    }
+
+    pub async fn generate_with_config(&self, prompt: &str, config: &GenerationConfig) -> Result<String> {
+        match self {
+            LLMModelInstance::CodeT5(model) => model.generate_with_config(prompt, config).await,
+            LLMModelInstance::Deepseek(model) => model.generate_with_config(prompt, config).await,
+            LLMModelInstance::Gemini(model) => model.generate_with_config(prompt, config).await,
+            LLMModelInstance::Custom(model) => model.generate_with_config(prompt, config).await,
+        }
+    }
+
+    pub async fn health_check(&self) -> Result<bool> {
+        match self {
+            LLMModelInstance::CodeT5(model) => model.health_check().await,
+            LLMModelInstance::Deepseek(model) => model.health_check().await,
+            LLMModelInstance::Gemini(model) => model.health_check().await,
+            LLMModelInstance::Custom(model) => model.health_check().await,
+        }
+    }
+
+    pub fn get_model_info(&self) -> ModelInfo {
+        match self {
+            LLMModelInstance::CodeT5(model) => model.get_model_info(),
+            LLMModelInstance::Deepseek(model) => model.get_model_info(),
+            LLMModelInstance::Gemini(model) => model.get_model_info(),
+            LLMModelInstance::Custom(model) => model.get_model_info(),
+        }
+    }
+}
+
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct MultiModelEngine {
-    active_model: Option<Box<dyn LLMModel>>,
+    active_model: Option<LLMModelInstance>,
     model_registry: Arc<Mutex<HashMap<String, ModelMetadata>>>,
     ipfs_client: Arc<IpfsClient>,
     current_model_hash: Option<String>,
@@ -228,19 +275,19 @@ impl MultiModelEngine {
     }
 
     /// Load a model based on its metadata
-    async fn load_model(&self, metadata: ModelMetadata) -> Result<Box<dyn LLMModel>> {
+    async fn load_model(&self, metadata: ModelMetadata) -> Result<LLMModelInstance> {
         match metadata.model_type {
             ModelType::CodeT5(config) => {
                 if let Some(ipfs_hash) = &metadata.ipfs_hash {
                     let model_data = self.ipfs_client.retrieve_model(ipfs_hash).await?;
-                    Ok(Box::new(CodeT5Model::from_data(model_data, config)?))
+                    Ok(LLMModelInstance::CodeT5(CodeT5Model::from_data(model_data, config)?))
                 } else {
-                    Ok(Box::new(CodeT5Model::new(config)?))
+                    Ok(LLMModelInstance::CodeT5(CodeT5Model::new(config)?))
                 }
             }
-            ModelType::Deepseek(config) => Ok(Box::new(DeepseekModel::new(config)?)),
-            ModelType::Gemini(config) => Ok(Box::new(GeminiModel::new(config)?)),
-            ModelType::Custom(config) => Ok(Box::new(CustomModel::new(config)?)),
+            ModelType::Deepseek(config) => Ok(LLMModelInstance::Deepseek(DeepseekModel::new(config)?)),
+            ModelType::Gemini(config) => Ok(LLMModelInstance::Gemini(GeminiModel::new(config)?)),
+            ModelType::Custom(config) => Ok(LLMModelInstance::Custom(CustomModel::new(config)?)),
         }
     }
 

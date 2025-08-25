@@ -1,5 +1,5 @@
-//go:build fyne_gui
-// +build fyne_gui
+//go:build fyne_gui && !wasmloader
+// +build fyne_gui,!wasmloader
 
 package gui
 

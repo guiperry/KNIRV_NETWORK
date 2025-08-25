@@ -23,10 +23,12 @@ import (
 	"KNIRVROUTER_GO_Verifyer/blockchainserver"
 	"KNIRVROUTER_GO_Verifyer/connectivity"
 	constants "KNIRVROUTER_GO_Verifyer/constants"
+	"KNIRVROUTER_GO_Verifyer/embedded_knirvchain"
 	"KNIRVROUTER_GO_Verifyer/p2p"
 	"KNIRVROUTER_GO_Verifyer/transaction_turnserver"
 	"KNIRVROUTER_GO_Verifyer/utils"
 	"KNIRVROUTER_GO_Verifyer/walletserver"
+	"KNIRVROUTER_GO_Verifyer/wasm_integration"
 
 	"math/big"
 
@@ -405,6 +407,8 @@ func StartRootBlockchain(port uint64, minerAddress string) {
 	miningStopped := make(chan bool)
 
 	var bcs *blockchainserver.BlockchainServer
+	var routerIntegration *embedded_knirvchain.RouterIntegration
+	var wasmIntegration *wasm_integration.WASMIntegration
 
 	// Initialize core components for the root node
 	genesisBlock := blockchain.NewBlock("0x0", 0, 0)
@@ -488,6 +492,63 @@ func StartRootBlockchain(port uint64, minerAddress string) {
 
 	// Create the blockchain server
 	bcs = blockchainserver.NewBlockchainServer(port, blockchain1)
+
+	// Initialize Revolutionary Embedded KNIRVCHAIN
+	log.Printf("🚀 Initializing Revolutionary Embedded KNIRVCHAIN...")
+	embeddedChainConfig := embedded_knirvchain.GetDefaultConfig()
+	embeddedChainConfig.ModelKernel = "hrm"
+	embeddedChainConfig.MaxMemoryMB = 1024
+	embeddedChainConfig.ConsensusThreshold = 0.75
+	embeddedChainConfig.LoRAAdapterCacheSize = 200
+	embeddedChainConfig.SkillChainDepth = 15
+	embeddedChainConfig.EnableRealTimeUpdates = true
+
+	routerIntegration = embedded_knirvchain.NewRouterIntegration(embeddedChainConfig)
+	if err := routerIntegration.Initialize(); err != nil {
+		log.Printf("Warning: Failed to initialize embedded KNIRVCHAIN: %v", err)
+	} else {
+		// Create default skills for testing
+		if err := routerIntegration.CreateDefaultSkills(); err != nil {
+			log.Printf("Warning: Failed to create default skills: %v", err)
+		}
+
+		// Start embedded KNIRVCHAIN HTTP server on a different port
+		embeddedChainPort := "8081"
+		go func() {
+			if err := routerIntegration.StartHTTPServer(embeddedChainPort); err != nil {
+				log.Printf("Warning: Failed to start embedded KNIRVCHAIN server: %v", err)
+			}
+		}()
+		log.Printf("🚀 Revolutionary Embedded KNIRVCHAIN started on port %s", embeddedChainPort)
+		log.Printf("🔗 Embedded KNIRVCHAIN endpoints available at: http://localhost:%s/embedded-chain/", embeddedChainPort)
+		log.Printf("🎯 Revolutionary /invoke endpoint: http://localhost:%s/embedded-chain/invoke", embeddedChainPort)
+		log.Printf("🎯 Revolutionary /invoke/protobuf endpoint: http://localhost:%s/embedded-chain/invoke/protobuf", embeddedChainPort)
+	}
+
+	// Check if WASM integration should be enabled
+	enableWASM := os.Getenv("KNIRV_ENABLE_WASM")
+	if enableWASM == "true" || enableWASM == "1" {
+		log.Printf("🚀 Initializing Revolutionary WASM KNIRVCHAIN Integration...")
+
+		wasmIntegration = wasm_integration.NewWASMIntegration(wasm_integration.GetAssetsPath())
+		if err := wasmIntegration.Initialize(); err != nil {
+			log.Printf("Warning: Failed to initialize WASM integration: %v", err)
+		} else {
+			// Start WASM integration HTTP server on a different port
+			wasmPort := "8082"
+			go func() {
+				if err := wasmIntegration.StartHTTPServer(wasmPort); err != nil {
+					log.Printf("Warning: Failed to start WASM integration server: %v", err)
+				}
+			}()
+			log.Printf("🚀 Revolutionary WASM KNIRVCHAIN started on port %s", wasmPort)
+			log.Printf("🔗 WASM KNIRVCHAIN endpoints available at: http://localhost:%s/wasm/", wasmPort)
+			log.Printf("🎯 Revolutionary WASM /invoke endpoint: http://localhost:%s/wasm/invoke", wasmPort)
+			log.Printf("📊 WASM status endpoint: http://localhost:%s/wasm/status", wasmPort)
+		}
+	} else {
+		log.Printf("ℹ️  WASM integration disabled. Set KNIRV_ENABLE_WASM=true to enable")
+	}
 
 	// Connect blockchain to P2P manager
 	log.Printf("Connecting blockchain to P2P manager")
@@ -577,6 +638,24 @@ func StartRootBlockchain(port uint64, minerAddress string) {
 			log.Printf("Error stopping TURN server: %v", err)
 		}
 		log.Println("TURN server stopped.")
+	}
+
+	// Stop embedded KNIRVCHAIN
+	if routerIntegration != nil {
+		log.Println("Stopping Revolutionary Embedded KNIRVCHAIN...")
+		if err := routerIntegration.Shutdown(); err != nil {
+			log.Printf("Error stopping embedded KNIRVCHAIN: %v", err)
+		}
+		log.Println("Revolutionary Embedded KNIRVCHAIN stopped.")
+	}
+
+	// Stop WASM integration
+	if wasmIntegration != nil {
+		log.Println("Stopping Revolutionary WASM KNIRVCHAIN Integration...")
+		if err := wasmIntegration.Shutdown(); err != nil {
+			log.Printf("Error stopping WASM integration: %v", err)
+		}
+		log.Println("Revolutionary WASM KNIRVCHAIN Integration stopped.")
 	}
 
 	// Add bcs.Stop() if implemented

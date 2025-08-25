@@ -1,3 +1,6 @@
+//go:build !wasmloader
+// +build !wasmloader
+
 package gui
 
 import (

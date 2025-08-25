@@ -1,11 +1,12 @@
 #!/bin/bash
 set -e
 
-# Render-specific startup script
-# This script starts only the web server components for Render deployment
+# KNIRV Wizened Environment - Render Deployment Script
+# This script starts the wizened WASM module with instant startup
 
-echo "🚀 KNIRV TESTNET - RENDER DEPLOYMENT"
-echo "===================================="
+echo "🚀 KNIRV WIZENED TESTNET - RENDER DEPLOYMENT"
+echo "============================================="
+echo "Using WizenedEnvironmentGuide approach with pre-initialized WASM module"
 
 # Color codes for output
 RED='\033[0;31m'
@@ -37,8 +38,8 @@ if [ "$RENDER" != "true" ] && [ -z "$RENDER_SERVICE_ID" ]; then
     print_warning "For full testnet, use: npm run testnet:start"
 fi
 
-# Set environment variables for Render
-export NODE_ENV=staging-testnet
+# Set environment variables for wizened deployment
+export KNIRV_ENV=wizened-testnet
 export TESTNET_MODE=true
 
 # Render.com sets PORT automatically - don't override it
@@ -50,92 +51,40 @@ else
     print_success "Render provided PORT=$PORT"
 fi
 
-print_status "Starting KNIRV Testnet Web Server for Render..."
-print_status "Environment: $NODE_ENV"
+print_status "Starting KNIRV Wizened Testnet for Render..."
+print_status "Environment: $KNIRV_ENV"
 print_status "Port: $PORT"
 print_status "Render Service ID: ${RENDER_SERVICE_ID:-'not set'}"
 print_status "Render External URL: ${RENDER_EXTERNAL_URL:-'not set'}"
 
+# Verify wizened artifacts
+print_status "Verifying wizened artifacts..."
+if [ ! -f "bin/knirv-server.wasm" ]; then
+    print_error "knirv-server.wasm not found!"
+    print_error "Please run 'scripts/build-local-release.sh' locally and commit the bin/ directory."
+    exit 1
+fi
+
+if [ ! -f "bin/wasmtime" ]; then
+    print_error "wasmtime runtime not found!"
+    print_error "Please run 'scripts/build-local-release.sh' locally and commit the bin/ directory."
+    exit 1
+fi
+
+print_success "All wizened artifacts verified."
+
 # Create necessary directories
-mkdir -p logs data bin config
+mkdir -p logs data
 
-# Run smart initialization for Render deployment
-print_status "Running smart initialization for Render deployment..."
-if [ -f "scripts/smart-start.js" ]; then
-    # Set environment for staging-testnet
-    export NODE_ENV=staging-testnet
+# The wizened approach doesn't need mock services - everything runs inside WASM
+print_status "Wizened deployment detected - skipping mock service initialization"
+print_status "All services will be orchestrated by the wizened WASM module"
 
-    # Run smart initialization (includes axios fix, health check, endpoint loading)
-    if node scripts/smart-start.js --init-only; then
-        print_success "Smart initialization completed for Render deployment"
-    else
-        print_error "Smart initialization failed"
-        exit 1
-    fi
-else
-    print_warning "smart-start.js not found, using basic initialization"
+# Start the native KNIRV orchestrator
+print_status "Starting KNIRV Native Orchestrator..."
+print_status "Native orchestrator manages KNIRV services on host"
+print_status "VFS toolchain available separately for development tools"
 
-    # Load endpoints configuration
-    print_status "Loading staging endpoint configuration..."
-    node scripts/load-endpoints.js staging-testnet
-fi
-
-# Initialize testnet services for Render deployment
-print_status "Initializing testnet services for Render deployment..."
-
-# Check if we're on Render and need to start mock services
-if [ "$RENDER" = "true" ] || [ -n "$RENDER_SERVICE_ID" ]; then
-    print_status "Running on Render - starting mock services for testnet simulation..."
-
-    # Start mock services in background for Render deployment
-    print_status "Starting mock KNIRV services..."
-
-    # Start mock services using Python scripts (lightweight for Render)
-    if [ -f "scripts/mock-knirvoracle.py" ]; then
-        python3 scripts/mock-knirvoracle.py &
-        echo $! > data/mock-knirvoracle.pid
-        print_success "Mock KNIRV-ORACLE started"
-    fi
-
-    if [ -f "scripts/mock-knirvchain.py" ]; then
-        python3 scripts/mock-knirvchain.py &
-        echo $! > data/mock-knirvchain.pid
-        print_success "Mock KNIRVCHAIN started"
-    fi
-
-    if [ -f "scripts/mock-knirvgraph.py" ]; then
-        python3 scripts/mock-knirvgraph.py &
-        echo $! > data/mock-knirvgraph.pid
-        print_success "Mock KNIRVGRAPH started"
-    fi
-
-    if [ -f "scripts/mock-knirvnexus.py" ]; then
-        python3 scripts/mock-knirvnexus.py &
-        echo $! > data/mock-knirvnexus.pid
-        print_success "Mock KNIRV-NEXUS started"
-    fi
-
-    if [ -f "scripts/mock-knirvrouter.py" ]; then
-        python3 scripts/mock-knirvrouter.py &
-        echo $! > data/mock-knirvrouter.pid
-        print_success "Mock KNIRV-ROUTER started"
-    fi
-
-    if [ -f "scripts/mock-knirvgateway.py" ]; then
-        python3 scripts/mock-knirvgateway.py &
-        echo $! > data/mock-knirvgateway.pid
-        print_success "Mock KNIRV-GATEWAY started"
-    fi
-
-    print_success "Mock testnet services initialized for Render deployment"
-
-    # Give mock services time to start
-    print_status "Waiting for mock services to initialize..."
-    sleep 5
-else
-    print_status "Local development mode - skipping mock service initialization"
-fi
-
-# Start the main web server
-print_status "Starting KNIRVTESTNET Express server..."
-exec node server/app.js
+# Execute the native orchestrator
+print_status "Executing: ./bin/knirv-orchestrator"
+exec ./bin/knirv-orchestrator

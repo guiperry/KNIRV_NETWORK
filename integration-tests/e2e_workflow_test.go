@@ -618,4 +618,90 @@ func (suite *E2ETestSuite) TestDataConsistency() {
 
 		suite.T().Log("Data consistency test completed")
 	})
+
+	// Test 12: Phase 3.6 End-to-End Skill Invocation Lifecycle
+	suite.Run("Phase36_EndToEndSkillInvocation", func() {
+		suite.T().Log("🚀 Starting Phase 3.6 End-to-End Skill Invocation Lifecycle Test")
+
+		// Step 1: Test WASM KNIRVCHAIN Status
+		wasmStatusResp := suite.makeAuthenticatedRequest("GET", "/knirvrouter/wasm/status", nil)
+		assert.True(suite.T(), wasmStatusResp.Success, "WASM status check failed")
+
+		wasmStatus := wasmStatusResp.Data
+		assert.Equal(suite.T(), true, wasmStatus["initialized"])
+		assert.Equal(suite.T(), "wasm", wasmStatus["engine"])
+		suite.T().Logf("✅ WASM KNIRVCHAIN Status: %+v", wasmStatus)
+
+		// Step 2: Create ErrorContext for Phase 3.6
+		errorContext := map[string]interface{}{
+			"agent_id":            "test-agent-phase36",
+			"agent_version":       "1.0.0",
+			"base_model_id":       "hrm-cognitive-v1",
+			"os":                  "linux",
+			"architecture":        "x86_64",
+			"runtime_environment": "browser",
+			"error_type":          "TypeError",
+			"error_message":       "Cannot read property 'length' of undefined",
+			"stack_trace":         "at processData (test.js:42:15)",
+			"source_code_snippet": "const length = data.length;",
+			"task_description":    "Processing user input data for validation",
+			"input_data_hash":     "sha256:abc123def456",
+			"agent_state_hash":    "sha256:state789xyz",
+			"timestamp":           time.Now().Unix(),
+			"additional_context": map[string]interface{}{
+				"function": "processData",
+				"line":     42,
+				"file":     "test.js",
+			},
+		}
+
+		// Validate ErrorContext structure
+		assert.Equal(suite.T(), "test-agent-phase36", errorContext["agent_id"])
+		assert.Equal(suite.T(), "TypeError", errorContext["error_type"])
+		assert.NotEmpty(suite.T(), errorContext["task_description"])
+		suite.T().Logf("✅ ErrorContext created and validated")
+
+		// Step 3: Test WASM Skill Invocation
+		wasmInvocationData := map[string]interface{}{
+			"invocation_id": fmt.Sprintf("inv_wasm_%d", time.Now().Unix()),
+			"agent_id":      "test-agent-phase36",
+			"skill_uri":     "knirv://skill/javascript-type-checker-v1",
+			"nrn_token":     fmt.Sprintf("nrn_token_%d", time.Now().Unix()),
+			"parameters": map[string]interface{}{
+				"error_type": "TypeError",
+				"context":    "javascript",
+			},
+			"priority":  "normal",
+			"timestamp": time.Now().Unix(),
+		}
+
+		wasmInvocationResp := suite.makeAuthenticatedRequest("POST", "/knirvrouter/wasm/invoke", wasmInvocationData)
+		assert.True(suite.T(), wasmInvocationResp.Success, "WASM skill invocation failed: %s", wasmInvocationResp.Error)
+
+		wasmResponse := wasmInvocationResp.Data
+		assert.Equal(suite.T(), "SUCCESS", wasmResponse["status"])
+		assert.NotEmpty(suite.T(), wasmResponse["invocation_id"])
+		assert.Greater(suite.T(), wasmResponse["execution_time"], float64(0))
+		assert.Equal(suite.T(), true, wasmResponse["consensus_reached"])
+		assert.NotEmpty(suite.T(), wasmResponse["skill_data"])
+
+		suite.T().Logf("✅ Phase 3.6 WASM skill invocation successful: %+v", wasmResponse)
+
+		// Step 4: Test Skill Count via WASM
+		wasmSkillCountResp := suite.makeAuthenticatedRequest("GET", "/knirvrouter/wasm/skills/count", nil)
+		assert.True(suite.T(), wasmSkillCountResp.Success, "WASM skill count failed")
+
+		skillCountData := wasmSkillCountResp.Data
+		skillCount := int(skillCountData["skill_count"].(float64))
+		assert.Greater(suite.T(), skillCount, 0)
+		assert.Equal(suite.T(), "wasm", skillCountData["engine"])
+		suite.T().Logf("✅ WASM Skill Count: %d", skillCount)
+
+		// Step 5: Test NRN Token Validation (Mock)
+		nrnToken := wasmInvocationData["nrn_token"].(string)
+		assert.Greater(suite.T(), len(nrnToken), 10)
+		suite.T().Logf("✅ NRN Token Validated: %s...", nrnToken[:20])
+
+		suite.T().Log("🎉 Phase 3.6 End-to-End Skill Invocation Lifecycle Test Completed Successfully!")
+	})
 }

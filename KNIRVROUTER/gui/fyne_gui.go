@@ -1,4 +1,7 @@
 // /home/gperry/Documents/GitHub/KNIRVROUTER_GO_Verifyer/gui/fyne_gui.go
+//go:build !wasmloader
+// +build !wasmloader
+
 package gui
 
 import (

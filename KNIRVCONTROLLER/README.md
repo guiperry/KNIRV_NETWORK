@@ -22,6 +22,32 @@ Purpose: A sophisticated AI system that combines a 27M-parameter Hierarchical Re
 - **🌐 Ecosystem Communication**: Unified coordination layer connecting all KNIRV components with real-time monitoring
 - **⚡ Real-Time Processing**: Live cognitive processing with sub-second response times across the entire ecosystem
 
+## 🔄 Recent Migration (August 2025)
+
+### ✅ Unified Structure Migration Completed
+The KNIRVCONTROLLER has been successfully migrated from a complex nested structure to a clean, unified architecture:
+
+- **🗂️ Simplified Structure**: Migrated from nested `src/manager/react-app/` to flat `src/` structure
+- **🧹 Dead Code Removal**: Eliminated duplicate components and configuration files
+- **🔗 Updated Imports**: All import statements updated to use new alias paths (@components, @pages, @hooks, @services, @core)
+- **⚙️ Configuration Cleanup**: Consolidated vite.config.ts and tsconfig.json with proper path mappings
+- **🔄 Backend to Core**: Renamed backend directory to core for better semantic clarity
+- **✅ Full Functionality**: All receiver and manager features preserved and working correctly
+
+### 📁 New Structure
+```
+src/
+├── components/          # All UI components (unified from both receiver and manager)
+├── pages/              # All page components (Skills, UDC, Wallet, Home)
+├── hooks/              # Custom React hooks (useVoiceIntegration, etc.)
+├── services/           # Service modules (DesktopConnection, etc.)
+├── types/              # TypeScript type definitions
+├── core/               # Core API and server logic (renamed from backend)
+├── shared/             # Shared utilities and bridges
+├── sensory-shell/      # Cognitive engine and AI processing
+└── wasm-pkg/           # WebAssembly modules
+```
+
 ## 🎯 Key Features
 
 ### 🧠 AI Core (PRODUCTION READY)
@@ -31,6 +57,15 @@ Purpose: A sophisticated AI system that combines a 27M-parameter Hierarchical Re
 - **Adaptive Learning Pipeline**: Real-time learning from user interactions with pattern recognition
 - **HRM-LoRA Bridge**: Bidirectional synchronization between cognitive insights and neural adaptations
 - **WASM Performance**: Rust-powered WebAssembly modules for high-performance processing
+
+### 🤝 Consensus Mechanism (PRODUCTION READY)
+- **Distributed Decision Making**: Complete consensus engine for network-wide agreement
+- **Real-time Reputation System**: Dynamic node reputation updates based on voting accuracy
+- **Proposal Management**: Full lifecycle management from submission to finalization
+- **Early Consensus Detection**: Mathematical optimization for immediate finalization when outcome is determined
+- **Timeout Handling**: Automatic proposal expiration and cleanup mechanisms
+- **Event-Driven Architecture**: Comprehensive event emission for all consensus activities
+- **Configurable Parameters**: Customizable approval thresholds, timeouts, and voting requirements
 
 ### 🔄 Cognitive Processing
 - **SEAL Framework**: Self-Evolving Agent Loop with HRM-enhanced agent selection
@@ -101,7 +136,14 @@ Purpose: A sophisticated AI system that combines a 27M-parameter Hierarchical Re
 
 ### 🔧 Core Components
 ```
-src/cognitive-shell/
+src/core/knirvgraph/
+├── ConsensusMechanism.ts        # Distributed consensus engine with voting and reputation
+├── AgentAssignmentSystem.ts     # Agent assignment to error clusters
+├── ErrorNodeClustering.ts       # Error clustering and similarity analysis
+├── PerformanceMetrics.ts        # Performance tracking and analytics
+└── SkillMintingProcess.ts       # Skill creation and validation
+
+src/sensory-shell/
 ├── HRMBridge.ts                 # HRM WASM integration and TypeScript bridge
 ├── EnhancedLoRAAdapter.ts       # Real neural network LoRA implementation
 ├── HRMLoRABridge.ts             # Bidirectional HRM-LoRA synchronization
@@ -247,6 +289,17 @@ The system includes comprehensive AI testing:
 - **Adaptive Learning**: Pattern recognition and learning from interactions
 - **Multi-Modal Processing**: Text, voice, and visual input handling
 - **Performance Monitoring**: Real-time metrics and memory management
+
+### 🤝 Consensus Mechanism Testing
+The system includes comprehensive consensus testing:
+- **Proposal Lifecycle**: Complete proposal submission, voting, and finalization testing
+- **Reputation System**: Dynamic reputation updates and accuracy validation
+- **Timeout Handling**: Automatic proposal expiration and cleanup testing
+- **Early Consensus**: Mathematical optimization for immediate finalization
+- **Event System**: Comprehensive event emission and handling validation
+- **Error Recovery**: Robust error handling and validation testing
+- **Performance**: Load testing with multiple concurrent proposals and votes
+- **Integration**: Full integration with KNIRVGRAPH and broader ecosystem
 
 ### Voice Integration Testing
 - Real-time speech recognition

@@ -20,3 +20,7 @@ pub mod tee_skill_distributor;
 
 // Cloud model integration
 pub mod cloud_models;
+
+// WASM interface (only compiled when wasm feature is enabled)
+#[cfg(feature = "wasm")]
+pub mod wasm_interface;

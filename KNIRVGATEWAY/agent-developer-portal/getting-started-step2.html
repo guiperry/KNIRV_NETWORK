@@ -144,6 +144,19 @@
                             <label style="color: var(--white); display: block; margin-bottom: 5px;">Description</label>
                             <textarea id="description" placeholder="Describe your agent's purpose and capabilities..." rows="3" style="width: 100%; padding: 10px; background-color: var(--transparent-white-1); border: 1px solid var(--transparent-white-2); border-radius: 5px; color: var(--white); resize: vertical;"></textarea>
                         </div>
+                        <div>
+                            <label style="color: var(--white); display: block; margin-bottom: 5px;">Agent Core Model</label>
+                            <select id="agentModel" style="width: 100%; padding: 10px; background-color: var(--transparent-white-1); border: 1px solid var(--transparent-white-2); border-radius: 5px; color: var(--white);">
+                                <option value="phi-3-mini">Phi-3 Mini (3.8B) - Recommended</option>
+                                <option value="recurrentgemma">RecurrentGemma (2.7B) - Efficient</option>
+                                <option value="tinyllama">TinyLlama (1.1B) - Lightweight</option>
+                            </select>
+                            <div style="margin-top: 8px; padding: 10px; background-color: var(--transparent-white-05); border-radius: 5px;">
+                                <div id="modelDescription" style="color: var(--transparent-white-7); font-size: 0.9em;">
+                                    <strong>Phi-3 Mini:</strong> Best overall performance with 3.8B parameters. Excellent for complex reasoning tasks and general-purpose AI applications. MIT licensed.
+                                </div>
+                            </div>
+                        </div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                             <div>
                                 <label style="color: var(--white); display: block; margin-bottom: 5px;">Provider Name</label>
@@ -181,6 +194,20 @@
     <!-- JavaScript -->
     <script src="js/portal.js"></script>
     <script>
+        // Model descriptions
+        const modelDescriptions = {
+            'phi-3-mini': '<strong>Phi-3 Mini:</strong> Best overall performance with 3.8B parameters. Excellent for complex reasoning tasks and general-purpose AI applications. MIT licensed.',
+            'recurrentgemma': '<strong>RecurrentGemma:</strong> Novel recurrent architecture with 2.7B parameters. Highly efficient for long sequences and stateful tasks. Perfect for memory-intensive applications.',
+            'tinyllama': '<strong>TinyLlama:</strong> Ultra-lightweight with 1.1B parameters. Ideal for resource-constrained environments and edge deployment. Apache 2.0 licensed.'
+        };
+
+        // Update model description when selection changes
+        document.getElementById('agentModel').addEventListener('change', function() {
+            const selectedModel = this.value;
+            const descriptionDiv = document.getElementById('modelDescription');
+            descriptionDiv.innerHTML = modelDescriptions[selectedModel];
+        });
+
         function goBack() {
             window.location.href = 'getting-started.html';
         }
@@ -191,6 +218,7 @@
             const description = document.getElementById('description').value || 'A versatile AI agent for various tasks';
             const providerName = document.getElementById('providerName').value || 'Independent Developer';
             const version = document.getElementById('version').value || '1.0.0';
+            const agentModel = document.getElementById('agentModel').value;
 
             // Show registration status
             const statusDiv = document.getElementById('registrationStatus');
@@ -205,24 +233,105 @@
                 </div>
             `;
 
-            // Simulate registration process
-            setTimeout(() => {
-                const agentId = `did:knirv:agent-${Date.now()}`;
-                statusContent.innerHTML = `
-                    <div style="text-align: center; padding: 20px;">
-                        <div style="width: 60px; height: 60px; background-color: var(--bright-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
-                            <i class="fas fa-check" style="color: white; font-size: 1.5em;"></i>
-                        </div>
-                        <h4 style="color: var(--bright-blue); margin-bottom: 10px;">Registration Successful!</h4>
-                        <p style="color: var(--white); margin-bottom: 5px;"><strong>Agent Name:</strong> ${agentName}</p>
-                        <p style="color: var(--white); margin-bottom: 5px;"><strong>Agent ID:</strong> ${agentId}</p>
-                        <p style="color: var(--white); margin-bottom: 20px;"><strong>Capability:</strong> ${capability}</p>
-                        <button class="btn-primary" onclick="proceedToStep3()">
-                            <i class="fas fa-arrow-right" style="margin-right: 8px;"></i>Continue to Configuration
-                        </button>
+            // Simulate registration process with KNIRVORACLE transaction
+            registerAgentWithOracle(agentName, capability, description, providerName, version, agentModel)
+                .then(result => {
+                    const agentId = result.agentId;
+                    const agentHash = result.agentHash;
+                    statusContent.innerHTML = `
+                        <div style="text-align: center; padding: 20px;">
+                            <div style="width: 60px; height: 60px; background-color: var(--bright-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                                <i class="fas fa-check" style="color: white; font-size: 1.5em;"></i>
+                            </div>
+                            <h4 style="color: var(--bright-blue); margin-bottom: 10px;">Registration Successful!</h4>
+                            <div style="text-align: left; background-color: var(--transparent-white-05); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                                <p style="color: var(--white); margin-bottom: 5px;"><strong>Agent Name:</strong> ${agentName}</p>
+                                <p style="color: var(--white); margin-bottom: 5px;"><strong>Agent ID:</strong> ${agentId}</p>
+                                <p style="color: var(--white); margin-bottom: 5px;"><strong>Agent Hash:</strong> <span style="font-family: monospace; font-size: 0.9em;">${agentHash}</span></p>
+                                <p style="color: var(--white); margin-bottom: 5px;"><strong>Core Model:</strong> ${getModelDisplayName(agentModel)}</p>
+                                <p style="color: var(--white); margin-bottom: 5px;"><strong>Capability:</strong> ${capability}</p>
+                                <p style="color: var(--white); margin-bottom: 0;"><strong>Provider:</strong> ${providerName}</p>
+                            </div>
+                            <button class="btn-primary" onclick="proceedToStep3()">
+                                <i class="fas fa-arrow-right" style="margin-right: 8px;"></i>Continue to Configuration
+                            </button>
                     </div>
                 `;
-            }, 3000);
+                })
+                .catch(error => {
+                    statusContent.innerHTML = `
+                        <div style="text-align: center; padding: 20px;">
+                            <div style="width: 60px; height: 60px; background-color: #dc3545; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                                <i class="fas fa-times" style="color: white; font-size: 1.5em;"></i>
+                            </div>
+                            <h4 style="color: #dc3545; margin-bottom: 10px;">Registration Failed</h4>
+                            <p style="color: var(--white); margin-bottom: 20px;">${error.message}</p>
+                            <button class="btn-secondary" onclick="hideRegistrationStatus()">
+                                <i class="fas fa-arrow-left" style="margin-right: 8px;"></i>Try Again
+                            </button>
+                        </div>
+                    `;
+                });
+        }
+
+        function hideRegistrationStatus() {
+            document.getElementById('registrationStatus').style.display = 'none';
+        }
+
+        // Helper function to get display name for model
+        function getModelDisplayName(modelValue) {
+            const modelNames = {
+                'phi-3-mini': 'Phi-3 Mini (3.8B)',
+                'recurrentgemma': 'RecurrentGemma (2.7B)',
+                'tinyllama': 'TinyLlama (1.1B)'
+            };
+            return modelNames[modelValue] || modelValue;
+        }
+
+        // Function to register agent with KNIRVORACLE
+        async function registerAgentWithOracle(name, capability, description, provider, version, model) {
+            try {
+                // Simulate API call to KNIRVORACLE
+                const registrationData = {
+                    name,
+                    capability,
+                    description,
+                    provider,
+                    version,
+                    model,
+                    timestamp: new Date().toISOString(),
+                    network: 'knirv-testnet'
+                };
+
+                // In a real implementation, this would make an actual API call to KNIRVORACLE
+                // For now, we simulate the response
+                await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate network delay
+
+                const agentId = `did:knirv:agent-${Date.now()}`;
+                const agentHash = generateAgentHash(registrationData);
+
+                return {
+                    success: true,
+                    agentId,
+                    agentHash,
+                    transactionId: `tx_${Date.now()}`,
+                    blockHeight: Math.floor(Math.random() * 1000000) + 500000
+                };
+            } catch (error) {
+                throw new Error('Failed to register agent with KNIRVORACLE: ' + error.message);
+            }
+        }
+
+        // Generate a mock agent hash
+        function generateAgentHash(data) {
+            const str = JSON.stringify(data);
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Convert to 32-bit integer
+            }
+            return 'knirv_' + Math.abs(hash).toString(16).padStart(8, '0') + '_' + Date.now().toString(16);
         }
 
         function proceedToStep3() {

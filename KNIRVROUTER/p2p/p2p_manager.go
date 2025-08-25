@@ -333,7 +333,7 @@ func (pm *P2PManager) BroadcastBlock(block *blockchain.Block) error {
 		return fmt.Errorf("failed to publish block: %w", err)
 	}
 
-	log.Printf("Block #%d broadcast to the network", block.BlockNumber)
+	log.Printf("Block #%d broadcast to the network", block.BlockNumber())
 	return nil
 }
 
@@ -392,7 +392,7 @@ func (pm *P2PManager) handleBlocks() {
 			continue
 		}
 
-		log.Printf("Received block #%d from peer %s", block.BlockNumber, msg.ReceivedFrom.String())
+		log.Printf("Received block #%d from peer %s", block.BlockNumber(), msg.ReceivedFrom.String())
 
 		// Process the block using the internal method
 		pm.processReceivedBlockInternal(block)

@@ -1,17 +1,20 @@
 services:
-  # KNIRVTESTNET Unified Web Service
-  # Serves all applications: GraphChain Explorer, Nexus Portal, Agent Developer Portal, NANDA ANS
+  # KNIRVTESTNET Wizened Web Service
+  # Uses the WizenedEnvironmentGuide approach with pre-initialized WASM module
   # Root directory is set to KNIRVTESTNET in Render dashboard
   - type: web
-    name: knirvtestnet
-    runtime: node
+    name: knirvtestnet-wizened
+    runtime: docker
     plan: starter
     region: oregon
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+
     envVars:
-      - key: NODE_ENV
-        value: testnet
+      - key: NODE_VERSION
+        value: "v18.18.0"
+      - key: WASMTIME_VERSION
+        value: v22.0.0
+      - key: KNIRV_ENV
+        value: wizened-testnet
       - key: DEPLOYMENT_ENV
         value: testnet
       - key: TESTNET_MODE
@@ -20,9 +23,7 @@ services:
         value: "true"
       - key: ENABLE_CORS
         value: "true"
-      - key: PORT
-        value: 10000
-      # Service endpoints (will be updated by deployment)
+      # Service endpoints (internal to WASM module)
       - key: KNIRVCHAIN_API
         value: http://localhost:8080
       - key: KNIRVGRAPH_API
@@ -33,8 +34,10 @@ services:
         value: http://localhost:1317
       - key: KNIRVROUTER_API
         value: http://localhost:8086
-      - key: KNIRVANA_API
-        value: http://localhost:3000
+
+    # Docker build uses the Dockerfile which implements the WizenedEnvironmentGuide approach
+    # The Dockerfile expects pre-built artifacts from running build-local-release.sh locally
+
     healthCheckPath: /health
 
 databases:

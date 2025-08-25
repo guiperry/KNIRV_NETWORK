@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"embed"
+	"flag"
 	"fmt"
 	"io"
 	"io/fs"
@@ -43,6 +44,7 @@ type Config struct {
 	Port        int    `mapstructure:"port"`
 	BackendPort int    `mapstructure:"backend_port"`
 	LogLevel    string `mapstructure:"log_level"`
+	Testnet     bool   `mapstructure:"testnet"`
 }
 
 // EmbeddedFS wraps the embedded filesystem for serving static files
@@ -302,11 +304,25 @@ func (app *NexusApp) startBackend() error {
 		app.backendCmd = exec.Command(app.backendPath)
 	}
 
-	app.backendCmd.Env = append(os.Environ(),
+	// Set environment variables for backend
+	env := append(os.Environ(),
 		fmt.Sprintf("KNIRV_API_PORT=%d", app.config.BackendPort),
 		"KNIRV_API_HOST=127.0.0.1",
-		"KNIRV_SECURITY_JWT_SECRET=your-jwt-secret-key-change-this-in-production",
+		"KNIRV_SECURITY_JWT_SECRET=testnet-jwt-secret-change-this-in-production",
+		"KNIRV_JWT_SECRET=testnet-jwt-secret-change-this-in-production",
 	)
+
+	// Add testnet environment variable if enabled
+	if app.config.Testnet {
+		env = append(env,
+			"KNIRV_TESTNET=true",
+			"KNIRV_SECURITY_AUTH_REQUIRED=false",
+			"KNIRV_MODE=headless",
+		)
+		log.Println("Starting backend in testnet mode with simplified security")
+	}
+
+	app.backendCmd.Env = env
 	app.backendCmd.Stdout = os.Stdout
 	app.backendCmd.Stderr = os.Stderr
 
@@ -383,17 +399,32 @@ func (app *NexusApp) Stop() error {
 
 // loadConfig loads configuration from file and environment
 func loadConfig() (*Config, error) {
+	// Parse command line flags
+	var (
+		configFile = flag.String("config", "", "Path to configuration file")
+		testnet    = flag.Bool("testnet", false, "Enable testnet mode")
+		port       = flag.Int("port", 0, "Server port (overrides config)")
+		host       = flag.String("host", "", "Server host (overrides config)")
+	)
+	flag.Parse()
+
+	// Set config file if provided
+	if *configFile != "" {
+		viper.SetConfigFile(*configFile)
+	} else {
+		// Set config file name and paths
+		viper.SetConfigName("nexus")
+		viper.SetConfigType("yaml")
+		viper.AddConfigPath("./config")
+		viper.AddConfigPath(".")
+	}
+
 	// Set default values
 	viper.SetDefault("host", "0.0.0.0")
 	viper.SetDefault("port", 8090)
 	viper.SetDefault("backend_port", 8080)
 	viper.SetDefault("log_level", "info")
-
-	// Set config file name and paths
-	viper.SetConfigName("nexus")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./config")
-	viper.AddConfigPath(".")
+	viper.SetDefault("testnet", false)
 
 	// Enable environment variable support
 	viper.AutomaticEnv()
@@ -412,6 +443,17 @@ func loadConfig() (*Config, error) {
 		return nil, fmt.Errorf("error unmarshaling config: %w", err)
 	}
 
+	// Override with command line flags
+	if *testnet {
+		config.Testnet = true
+	}
+	if *port != 0 {
+		config.Port = *port
+	}
+	if *host != "" {
+		config.Host = *host
+	}
+
 	return &config, nil
 }
 
@@ -423,6 +465,11 @@ func main() {
 	config, err := loadConfig()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
+	}
+
+	// Log testnet mode if enabled
+	if config.Testnet {
+		log.Println("🧪 Starting KNIRV-NEXUS in testnet mode")
 	}
 
 	// Create application

@@ -15,15 +15,15 @@ import { CognitiveShellInterface } from './components/CognitiveShellInterface';
 import { CognitiveState } from './sensory-shell/CognitiveEngine';
 
 // Manager components
-import UnifiedInterface from './manager/react-app/components/UnifiedInterface';
-import Skills from './manager/react-app/pages/Skills';
-import UDC from './manager/react-app/pages/UDC';
-import WalletPage from './manager/react-app/pages/Wallet';
+import UnifiedInterface from './components/UnifiedInterface';
+import Skills from './pages/Skills';
+import UDC from './pages/UDC';
+import WalletPage from './pages/Wallet';
 
-import { backendAPI } from './backend/api';
-import { loraEngine } from './backend/loraEngine';
-import { wasmCompiler } from './backend/wasmCompiler';
-import { protobufHandler } from './backend/protobufHandler';
+import { backendAPI } from './core/api';
+import { loraEngine } from './core/loraEngine';
+import { wasmCompiler } from './core/wasmCompiler';
+import { protobufHandler } from './core/protobufHandler';
 import { ComponentBridge, ComponentConfig } from './shared/ComponentBridge';
 
 // Types from receiver

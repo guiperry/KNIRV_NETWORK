@@ -12,7 +12,7 @@ import (
 func ConnectBlockchainToP2P(bc *blockchain.BlockchainStruct, p2pManager *P2PManager) {
 	// Set up callbacks from blockchain to P2P manager
 	bc.OnBlockMined = func(block *blockchain.Block) error {
-		log.Printf("Block mined callback: Broadcasting block #%d", block.BlockNumber)
+		log.Printf("Block mined callback: Broadcasting block #%d", block.BlockNumber())
 		return p2pManager.BroadcastBlock(block)
 	}
 

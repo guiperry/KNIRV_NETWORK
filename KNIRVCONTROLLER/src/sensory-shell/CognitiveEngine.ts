@@ -13,6 +13,7 @@ import { AdaptiveLearningPipeline } from './AdaptiveLearningPipeline';
 import { KNIRVWalletIntegration } from './KNIRVWalletIntegration';
 import { KNIRVChainIntegration } from './KNIRVChainIntegration';
 import { EcosystemCommunicationLayer } from './EcosystemCommunicationLayer';
+import { ErrorContextManager, AgentConfiguration, SkillDiscoveryResult, SkillInvocationResult } from '../core/cortex/ErrorContextManager';
 
 // Define comprehensive type system for cognitive processing
 export type CognitiveInput = string | ArrayBuffer | Record<string, unknown> | unknown[];
@@ -66,6 +67,16 @@ export interface CognitiveConfig {
   walletIntegrationEnabled: boolean;
   chainIntegrationEnabled: boolean;
   ecosystemCommunicationEnabled: boolean;
+  // Phase 3.6 Error Context Management
+  errorContextEnabled: boolean;
+  errorContextConfig?: {
+    agentId: string;
+    agentVersion: string;
+    baseModelId: string;
+    knirvgraphEndpoint: string;
+    knirvRouterEndpoint: string;
+    nrnWalletAddress?: string;
+  };
 }
 
 export class CognitiveEngine extends EventEmitter {
@@ -85,6 +96,7 @@ export class CognitiveEngine extends EventEmitter {
   private walletIntegration: KNIRVWalletIntegration;
   private chainIntegration: KNIRVChainIntegration;
   private ecosystemCommunication: EcosystemCommunicationLayer;
+  private errorContextManager: ErrorContextManager | null = null;
   private isRunning: boolean = false;
   private adaptationTimer: NodeJS.Timeout | null = null;
 
@@ -330,6 +342,28 @@ export class CognitiveEngine extends EventEmitter {
         timeoutDuration: 10000,
         retryAttempts: 3,
       });
+    }
+
+    // Initialize Error Context Manager (Phase 3.6)
+    if (this.config.errorContextEnabled && this.config.errorContextConfig) {
+      const errorContextConfig: AgentConfiguration = {
+        agentId: this.config.errorContextConfig.agentId,
+        agentVersion: this.config.errorContextConfig.agentVersion,
+        baseModelId: this.config.errorContextConfig.baseModelId,
+        knirvgraphEndpoint: this.config.errorContextConfig.knirvgraphEndpoint,
+        knirvRouterEndpoint: this.config.errorContextConfig.knirvRouterEndpoint,
+        nrnWalletAddress: this.config.errorContextConfig.nrnWalletAddress,
+      };
+
+      this.errorContextManager = new ErrorContextManager(errorContextConfig);
+
+      // Initialize the error context manager
+      try {
+        await this.errorContextManager.initialize();
+        console.log('Error Context Manager initialized successfully');
+      } catch (error) {
+        console.error('Failed to initialize Error Context Manager:', error);
+      }
     }
 
     this.setupEventHandlers();
@@ -776,6 +810,42 @@ export class CognitiveEngine extends EventEmitter {
         inputType,
         error: error.message,
       });
+
+      // Phase 3.6: Handle error through ErrorContextManager
+      if (this.errorContextManager && error instanceof Error) {
+        try {
+          const taskDescription = `Processing ${inputType} input: ${typeof input === 'string' ? input.substring(0, 100) : 'complex input'}`;
+          const discoveryResult = await this.errorContextManager.handleError(
+            error,
+            taskDescription,
+            {
+              inputType,
+              inputData: typeof input === 'string' ? input : JSON.stringify(input).substring(0, 500),
+              agentState: {
+                confidenceLevel: this.state.confidenceLevel,
+                activeSkills: this.state.activeSkills,
+                contextSize: this.state.currentContext.size
+              }
+            }
+          );
+
+          this.emit('errorContextHandled', {
+            inputType,
+            error: error.message,
+            skillFound: discoveryResult.skillFound,
+            skillUri: discoveryResult.skillUri,
+            errorNodeId: discoveryResult.errorNodeId
+          });
+
+          // If a skill was found, we could potentially retry the operation
+          if (discoveryResult.skillFound && discoveryResult.skillUri) {
+            console.log(`Skill discovered for error: ${discoveryResult.skillUri}`);
+          }
+        } catch (contextError) {
+          console.error('Failed to handle error through ErrorContextManager:', contextError);
+        }
+      }
+
       throw error;
     }
   }
@@ -3179,5 +3249,124 @@ export class CognitiveEngine extends EventEmitter {
         adaptationLevel: 0.0,
       };
     }
+  }
+
+  // Phase 3.6: End-to-End Skill Invocation Lifecycle Methods
+
+  /**
+   * Handle an error and discover/invoke skills through Phase 3.6 lifecycle
+   */
+  public async handleErrorAndInvokeSkill(
+    error: Error,
+    taskDescription: string,
+    nrnToken?: string,
+    additionalContext?: Record<string, any>
+  ): Promise<{ discoveryResult: SkillDiscoveryResult; invocationResult?: SkillInvocationResult }> {
+    if (!this.errorContextManager) {
+      throw new Error('Error Context Manager not initialized. Enable errorContextEnabled in config.');
+    }
+
+    try {
+      // Use the ErrorContextManager for complete lifecycle
+      const result = await this.errorContextManager.handleErrorAndInvokeSkill(
+        error,
+        taskDescription,
+        nrnToken || this.getDefaultNRNToken(),
+        additionalContext
+      );
+
+      this.emit('phase36LifecycleCompleted', {
+        error: error.message,
+        taskDescription,
+        discoveryResult: result.discoveryResult,
+        invocationResult: result.invocationResult,
+        timestamp: Date.now()
+      });
+
+      return result;
+
+    } catch (lifecycleError) {
+      console.error('Phase 3.6 lifecycle failed:', lifecycleError);
+      throw lifecycleError;
+    }
+  }
+
+  /**
+   * Discover skills for a specific error
+   */
+  public async discoverSkillForError(
+    error: Error,
+    taskDescription: string,
+    additionalContext?: Record<string, any>
+  ): Promise<SkillDiscoveryResult> {
+    if (!this.errorContextManager) {
+      throw new Error('Error Context Manager not initialized. Enable errorContextEnabled in config.');
+    }
+
+    try {
+      const result = await this.errorContextManager.handleError(error, taskDescription, additionalContext);
+
+      this.emit('skillDiscoveryCompleted', {
+        error: error.message,
+        taskDescription,
+        result,
+        timestamp: Date.now()
+      });
+
+      return result;
+
+    } catch (discoveryError) {
+      console.error('Skill discovery failed:', discoveryError);
+      throw discoveryError;
+    }
+  }
+
+  /**
+   * Invoke a skill by URI through KNIRVROUTER
+   */
+  public async invokeSkillByUri(
+    skillUri: string,
+    nrnToken?: string,
+    parameters?: Record<string, any>
+  ): Promise<SkillInvocationResult> {
+    if (!this.errorContextManager) {
+      throw new Error('Error Context Manager not initialized. Enable errorContextEnabled in config.');
+    }
+
+    try {
+      const result = await this.errorContextManager.invokeSkill(
+        skillUri,
+        nrnToken || this.getDefaultNRNToken(),
+        parameters
+      );
+
+      this.emit('skillInvocationCompleted', {
+        skillUri,
+        result,
+        timestamp: Date.now()
+      });
+
+      return result;
+
+    } catch (invocationError) {
+      console.error('Skill invocation failed:', invocationError);
+      throw invocationError;
+    }
+  }
+
+  /**
+   * Get default NRN token from wallet integration
+   */
+  private getDefaultNRNToken(): string {
+    // In a real implementation, this would get an actual NRN token from the wallet
+    // For now, return a mock token
+    return `nrn_token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * Get ErrorContextManager instance
+   */
+  public getErrorContextManager(): ErrorContextManager | null {
+    return this.errorContextManager;
   }
 }

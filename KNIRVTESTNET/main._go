@@ -1,0 +1,131 @@
+package main
+
+import (
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/exec"
+	"os/signal"
+	"path/filepath"
+	"sync"
+	"syscall"
+)
+
+// ExecutionMode defines how a service should be run.
+type ExecutionMode string
+
+const (
+	ModeNative ExecutionMode = "native"
+	ModeWasm   ExecutionMode = "wasm"
+)
+
+// Service represents a binary to be run by the orchestrator.
+type Service struct {
+	Name    string        `json:"name"`
+	Mode    ExecutionMode `json:"mode"`
+	Path    string        `json:"path"`    // Path to the binary (for native) or script (for wasm)
+	Args    []string      `json:"args"`    // Arguments for the command
+	LogFile string        `json:"log_file"`
+}
+
+// main is the entry point for the wizened orchestrator.
+func main() {
+	fmt.Println("🚀 KNIRV Wizened Orchestrator starting inside WASM...")
+
+	// The environment variables from 'setup.sh' are already set thanks to Wizer.
+	// This is no longer relevant as the orchestrator is native, but we keep the log for context.
+	log.Printf("Orchestrator starting on host: %s", os.Getenv("RENDER_INSTANCE_ID"))
+
+	// Define the services to be orchestrated.
+	// These paths are relative to the execution directory.
+	services := []Service{
+		{Name: "KNIRV-ORACLE", Mode: ModeNative, Path: "./bin/knirvoracle", LogFile: "./logs/knirvoracle.log"},
+		{Name: "KNIRVCHAIN", Mode: ModeNative, Path: "./bin/knirvchain", LogFile: "./logs/knirvchain.log"},
+		{Name: "KNIRVGRAPH", Mode: ModeNative, Path: "./bin/knirvgraph", LogFile: "./logs/knirvgraph.log"},
+		{Name: "KNIRV-NEXUS", Mode: ModeNative, Path: "./bin/knirvnexus", LogFile: "./logs/knirvnexus.log"},
+		{Name: "KNIRV-ROUTER", Mode: ModeNative, Path: "./bin/knirvrouter", LogFile: "./logs/knirvrouter.log"},
+		// Example of a service running a Python script inside the toolchain WASM
+		{Name: "DATA-PROCESSOR", Mode: ModeWasm, Path: "/scripts/data_processor.py", Args: []string{"--interval", "60"}, LogFile: "./logs/data-processor.log"},
+	}
+
+	var wg sync.WaitGroup
+	for _, s := range services {
+		wg.Add(1)
+		go startService(s, &wg)
+	}
+
+	// Start a simple health check server for the orchestrator itself.
+	go startHealthCheckServer()
+
+	// Wait for a signal to gracefully shut down.
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	<-c
+
+	fmt.Println("🛑 Shutting down orchestrator and all services...")
+	// In a real scenario, you would signal child processes to stop gracefully here before exiting.
+}
+
+// startService launches and monitors a single service.
+func startService(s Service, wg *sync.WaitGroup) {
+	defer wg.Done()
+	fmt.Printf("Starting service: %s\n", s.Name)
+
+	// Ensure log directory exists. This will be mapped to the host.
+	logDir := filepath.Dir(s.LogFile)
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		log.Printf("Error creating log directory for %s: %v", s.Name, err)
+		return
+	}
+
+	logFile, err := os.Create(s.LogFile)
+	if err != nil {
+		log.Printf("Error creating log file for %s: %v", s.Name, err)
+		return
+	}
+	defer logFile.Close()
+
+	var cmd *exec.Cmd
+	if s.Mode == ModeNative {
+		// Execute a native binary directly
+		cmd = exec.Command(s.Path, s.Args...)
+		log.Printf("Executing native command: %s %v", s.Path, s.Args)
+	} else if s.Mode == ModeWasm {
+		// Execute a script inside the toolchain WASM using wasmtime
+		wasmArgs := append([]string{"run", "--", "./bin/knirv-tools.wasm", s.Path}, s.Args...)
+		cmd = exec.Command("./bin/wasmtime", wasmArgs...)
+		log.Printf("Executing WASM command: ./bin/wasmtime %v", wasmArgs)
+	} else {
+		log.Printf("Error: Unknown execution mode '%s' for service %s", s.Mode, s.Name)
+		return
+	}
+
+	cmd.Stdout = logFile
+	cmd.Stderr = logFile
+
+	if err := cmd.Start(); err != nil {
+		log.Printf("Error starting service %s: %v", s.Name, err)
+		return
+	}
+
+	log.Printf("✅ Service %s started with PID %d. Logs at %s", s.Name, cmd.Process.Pid, s.LogFile)
+	err = cmd.Wait()
+	log.Printf("Service %s exited. Error: %v", s.Name, err)
+}
+
+// startHealthCheckServer runs a simple HTTP server for Render health checks.
+func startHealthCheckServer() {
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, `{"status": "healthy", "server": "wizened-orchestrator"}`)
+	})
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "10000" // Default orchestrator port
+	}
+	log.Printf("Orchestrator health check listening on port %s", port)
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
+		log.Fatalf("Health check server failed: %v", err)
+	}
+}
