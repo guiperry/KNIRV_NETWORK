@@ -5,6 +5,7 @@ echo "🚀 KNIRV Testnet Pre-built Artifact Deployment"
 echo "============================================="
 
 # Color codes for output
+RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
@@ -23,8 +24,8 @@ print_status "All binaries are pre-built and checked into the repository."
 # --- Phase 1: Verify Artifacts ---
 print_status "Phase 1: Verifying pre-built artifacts..."
 
-if [ ! -f "bin/orchestrator" ] || [ ! -f "bin/knirv-tools.wasm" ]; then
-    echo -e "${RED}[ERROR]${NC} Core artifacts 'bin/orchestrator' or 'bin/knirv-tools.wasm' not found!"
+if [ ! -f "bin/knirv-orchestrator" ] || ([ ! -f "bin/knirv-server.wasm" ] && [ ! -f "bin/knirv-toolchain.wasm" ]); then
+    echo -e "${RED}[ERROR]${NC} Core artifacts 'bin/knirv-orchestrator' or WASM module not found!"
     echo "Please run 'scripts/build-local-release.sh' locally and commit the 'bin' directory."
     exit 1
 fi
@@ -49,8 +50,12 @@ print_success "Render build step complete. Ready for startup."
 echo ""
 echo "📋 Build Summary:"
 echo "=================="
-print_success "Native Orchestrator: bin/orchestrator"
-print_success "Toolchain WASM:      bin/knirv-tools.wasm"
+print_success "Native Orchestrator: bin/knirv-orchestrator"
+if [ -f "bin/knirv-server.wasm" ]; then
+    print_success "Server WASM:         bin/knirv-server.wasm"
+elif [ -f "bin/knirv-toolchain.wasm" ]; then
+    print_success "Toolchain WASM:      bin/knirv-toolchain.wasm"
+fi
 print_success "WASM Runtime:        bin/wasmtime"
 echo ""
 print_status "Build artifacts ready for deployment"
