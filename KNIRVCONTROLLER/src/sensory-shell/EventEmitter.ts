@@ -10,12 +10,21 @@ export class EventEmitter {
     return this;
   }
 
-  off(event: string, listener: Function): this {
-    const listeners = this.events.get(event);
-    if (listeners) {
-      const index = listeners.indexOf(listener);
-      if (index > -1) {
-        listeners.splice(index, 1);
+  off(event: string, listener?: Function): this {
+    if (!listener) {
+      // Remove all listeners for this event
+      this.events.delete(event);
+    } else {
+      const listeners = this.events.get(event);
+      if (listeners) {
+        const index = listeners.indexOf(listener);
+        if (index > -1) {
+          listeners.splice(index, 1);
+          // Clean up empty event arrays
+          if (listeners.length === 0) {
+            this.events.delete(event);
+          }
+        }
       }
     }
     return this;
@@ -24,7 +33,9 @@ export class EventEmitter {
   emit(event: string, ...args: any[]): boolean {
     const listeners = this.events.get(event);
     if (listeners) {
-      listeners.forEach(listener => {
+      // Create a copy to avoid issues with concurrent modification during iteration
+      const listenersCopy = [...listeners];
+      listenersCopy.forEach(listener => {
         try {
           listener(...args);
         } catch (error) {
@@ -60,5 +71,9 @@ export class EventEmitter {
 
   listeners(event: string): Function[] {
     return this.events.get(event) || [];
+  }
+
+  eventNames(): string[] {
+    return Array.from(this.events.keys());
   }
 }

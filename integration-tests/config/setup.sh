@@ -201,7 +201,7 @@ start_services() {
     print_status "Starting KNIRV services..."
     
     # Check if ports are available
-    local ports=(8080 8081 8082 8083 8084 8085 8086)
+    local ports=(3000 8080 8081 8082 8083 8084 8085 8086)
     for port in "${ports[@]}"; do
         if port_in_use "$port"; then
             print_warning "Port $port is already in use"
@@ -263,13 +263,20 @@ start_services() {
     ./bin/knirvrouter --port 8085 > "$TEST_DIR/logs/knirvrouter.log" 2>&1 &
     echo $! > "$TEST_DIR/pids/knirvrouter.pid"
 
+    # Start KNIRVCONTROLLER
+    print_status "Starting KNIRVCONTROLLER on port 3000..."
+    cd "$PROJECT_ROOT/KNIRVCONTROLLER"
+    npm run start > "$TEST_DIR/logs/knirvcontroller.log" 2>&1 &
+    echo $! > "$TEST_DIR/pids/knirvcontroller.pid"
+
     # Wait for services to be ready
-    sleep 5
+    sleep 10
     
     # Check service health
     wait_for_service "http://localhost:8080/health" 60
     wait_for_service "http://localhost:8081/health" 60
     wait_for_service "http://localhost:8083/api/v1/health" 60
+    wait_for_service "http://localhost:3000/health" 60
     # Skip KNIRVROUTER and KNIRVORACLE health checks for now due to build/runtime issues
     # wait_for_service "http://localhost:8085/status" 60
     # wait_for_service "http://localhost:8086/health" 60
@@ -288,6 +295,7 @@ run_health_checks() {
         "KNIRVNEXUS-DVE-MANAGER:http://localhost:8081/health"
         "KNIRVNEXUS-VALIDATION-CORE:http://localhost:8082/health"
         "KNIRVNEXUS-FRONTEND:http://localhost:3000/api/health"
+        "KNIRVCONTROLLER:http://localhost:3000/health"
         # Skip KNIRVROUTER and KNIRVORACLE health checks for now due to build/runtime issues
         # "KNIRVROUTER:http://localhost:8085/status"
         # "KNIRVORACLE:http://localhost:8086/health"

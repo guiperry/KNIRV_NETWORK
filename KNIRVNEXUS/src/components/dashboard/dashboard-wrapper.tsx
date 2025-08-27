@@ -13,6 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { CDEAccessModal } from '@/components/cde/cde-access-modal';
 import { KNIRVEngineModal } from '@/components/knirvengine/knirvengine-modal';
+import { CognitiveEnginePanel } from '@/components/dashboard/cognitive-engine-panel';
+import { DVENodesPanel } from '@/components/dashboard/dve-nodes-panel';
 import {
   Shield,
   Server,
@@ -215,63 +217,7 @@ export function DashboardWrapper({ children }: DashboardWrapperProps) {
                       </TabsList>
 
                       <TabsContent value="nodes" className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-semibold">DVE Node Status</h3>
-                          <div className="flex space-x-2">
-                            <Button variant="outline" size="sm">
-                              <Download className="w-4 h-4 mr-2" />
-                              Export
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Share2 className="w-4 h-4 mr-2" />
-                              Share
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {[1, 2, 3, 4, 5, 6].map((node) => {
-                            const nodeId = `dve-${node.toString().padStart(3, '0')}`;
-                            const nodeName = `KNIRV-Node-${node.toString().padStart(3, '0')}`;
-                            return (
-                              <Card key={node} className="knirv-card-gradient">
-                                <CardHeader className="pb-2">
-                                  <div className="flex items-center justify-between">
-                                    <CardTitle className="text-sm">{nodeName}</CardTitle>
-                                    <div className="flex space-x-2">
-                                      <Badge variant="secondary" className="text-xs">Online</Badge>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-6 px-2 text-xs"
-                                        onClick={() => handleNodeAccess(nodeId, nodeName)}
-                                      >
-                                        Access
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </CardHeader>
-                                <CardContent className="space-y-2">
-                                  <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">CPU:</span>
-                                    <span>{Math.floor(Math.random() * 40 + 30)}%</span>
-                                  </div>
-                                  <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Memory:</span>
-                                    <span>{Math.floor(Math.random() * 30 + 50)}%</span>
-                                  </div>
-                                  <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">TEE:</span>
-                                    <span>SGX</span>
-                                  </div>
-                                  <Button variant="outline" size="sm" className="w-full mt-2">
-                                    <Download className="w-3 h-3 mr-1" />
-                                    Reports
-                                  </Button>
-                                </CardContent>
-                              </Card>
-                            );
-                          })}
-                        </div>
+                        <DVENodesPanel />
                       </TabsContent>
 
                       <TabsContent value="validation" className="space-y-4">
@@ -391,77 +337,7 @@ export function DashboardWrapper({ children }: DashboardWrapperProps) {
                       </TabsContent>
 
                       <TabsContent value="cognitive" className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-semibold">Cognitive Engine Status</h3>
-                          <div className="flex space-x-2">
-                            <Button variant="outline" size="sm">
-                              <Download className="w-4 h-4 mr-2" />
-                              Export
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Share2 className="w-4 h-4 mr-2" />
-                              Share
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <Card className="knirv-card-gradient">
-                            <CardHeader>
-                              <CardTitle className="flex items-center space-x-2">
-                                <Database className="w-5 h-5" />
-                                <span>Model Performance</span>
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="space-y-2">
-                                <div className="flex justify-between">
-                                  <span className="text-sm">Accuracy:</span>
-                                  <span className="text-sm font-medium">94.7%</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-sm">Latency:</span>
-                                  <span className="text-sm font-medium">23ms</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-sm">Throughput:</span>
-                                  <span className="text-sm font-medium">1.2k req/s</span>
-                                </div>
-                              </div>
-                              <Button variant="outline" size="sm" className="w-full mt-4">
-                                <Download className="w-3 h-3 mr-1" />
-                                AI Reports
-                              </Button>
-                            </CardContent>
-                          </Card>
-                          <Card className="knirv-card-gradient">
-                            <CardHeader>
-                              <CardTitle className="flex items-center space-x-2">
-                                <Monitor className="w-5 h-5" />
-                                <span>Resource Usage</span>
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="space-y-2">
-                                <div className="flex justify-between">
-                                  <span className="text-sm">GPU Utilization:</span>
-                                  <span className="text-sm font-medium">78%</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-sm">Memory:</span>
-                                  <span className="text-sm font-medium">12.4GB</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-sm">Active Models:</span>
-                                  <span className="text-sm font-medium">4</span>
-                                </div>
-                              </div>
-                              <Button variant="outline" size="sm" className="w-full mt-4">
-                                <Download className="w-3 h-3 mr-1" />
-                                Resource Reports
-                              </Button>
-                            </CardContent>
-                          </Card>
-                        </div>
+                        <CognitiveEnginePanel />
                       </TabsContent>
                     </Tabs>
                   </div>

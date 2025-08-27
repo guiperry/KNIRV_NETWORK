@@ -92,7 +92,7 @@ stop_service() {
 stop_services_by_port() {
     print_status "Stopping services by port..."
     
-    local ports=(8080 8081 8082 8083 8084 8085 8086)
+    local ports=(3000 8080 8081 8082 8083 8084 8085 8086)
     
     for port in "${ports[@]}"; do
         local pids=$(lsof -ti :"$port" 2>/dev/null || true)
@@ -117,7 +117,7 @@ stop_services() {
     print_status "Stopping KNIRV services..."
     
     # Stop services by PID files
-    local services=("knirvchain" "knirvgraph" "knirvnexus-frontend" "knirvnexus-api-gateway" "knirvnexus-dve-manager" "knirvnexus-validation-core" "knirvoracle" "knirvrouter")
+    local services=("knirvchain" "knirvgraph" "knirvnexus-frontend" "knirvnexus-api-gateway" "knirvnexus-dve-manager" "knirvnexus-validation-core" "knirvoracle" "knirvrouter" "knirvcontroller")
     
     for service in "${services[@]}"; do
         stop_service "$service"
@@ -162,6 +162,9 @@ cleanup_test_data() {
     rm -rf "$PROJECT_ROOT/KNIRVNEXUS/node_modules/.cache" 2>/dev/null || true
     rm -rf "$PROJECT_ROOT/KNIRVORACLE/data" 2>/dev/null || true
     rm -rf "$PROJECT_ROOT/KNIRVROUTER/data" 2>/dev/null || true
+    rm -rf "$PROJECT_ROOT/KNIRVCONTROLLER/dist" 2>/dev/null || true
+    rm -rf "$PROJECT_ROOT/KNIRVCONTROLLER/temp" 2>/dev/null || true
+    rm -rf "$PROJECT_ROOT/KNIRVCONTROLLER/node_modules/.cache" 2>/dev/null || true
     
     # Remove temporary files and directories
     find "$TEST_DIR" -name "*.tmp" -delete 2>/dev/null || true

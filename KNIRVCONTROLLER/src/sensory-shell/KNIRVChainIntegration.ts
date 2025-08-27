@@ -1,4 +1,5 @@
 import { EventEmitter } from './EventEmitter';
+import { KNIRVRouterIntegration, KNIRVRouterConfig, ErrorContext, SkillNodeURI, KNIRVRouterRequest, KNIRVRouterResponse, LoRAAdapterData } from './KNIRVRouterIntegration';
 
 export interface ChainConfig {
   rpcUrl: string;
@@ -11,9 +12,10 @@ export interface ChainConfig {
   };
   gasPrice: string;
   gasLimit: string;
-  // New embedded chain configuration
-  embeddedChainUrl?: string;
-  useEmbeddedChain?: boolean;
+  // KNIRVROUTER network configuration
+  knirvRouterUrl?: string;
+  knirvGraphUrl?: string;
+  useKnirvRouter?: boolean;
 }
 
 export interface SkillMetadata {
@@ -80,29 +82,50 @@ export interface NetworkConsensus {
   timestamp: number;
 }
 
-// New interfaces for embedded KNIRVCHAIN
-export interface EmbeddedSkillInvocationRequest {
-  invocationId: string;
-  skillId: string;
-  parameters: Record<string, any>;
+// KNIRVROUTER network integration interfaces
+export interface ErrorContext {
+  errorId: string;
+  errorType: string;
+  errorMessage: string;
+  stackTrace: string;
   userContext: any;
+  agentId: string;
+  timestamp: number;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+}
+
+export interface SkillNodeURI {
+  nodeId: string;
+  skillId: string;
+  routerAddress: string;
+  networkPath: string;
+  capabilities: string[];
+  confidence: number;
+}
+
+export interface KNIRVRouterRequest {
+  requestId: string;
+  errorContext: ErrorContext;
+  requiredCapabilities: string[];
+  nrnToken: string;
+  agentId: string;
   priority: 'low' | 'normal' | 'high';
   timestamp: number;
 }
 
-export interface EmbeddedSkillInvocationResponse {
-  invocationId: string;
+export interface KNIRVRouterResponse {
+  requestId: string;
   status: 'SUCCESS' | 'FAILURE' | 'NOT_FOUND';
-  errorMessage: string;
-  skill?: any;
+  skillNodeUri?: SkillNodeURI;
+  loraAdapter?: LoRAAdapterData;
+  errorMessage?: string;
   executionTime: number;
-  memoryUsed: number;
-  consensusReached: boolean;
+  networkLatency: number;
 }
 
-export interface EmbeddedLoRAAdapterSkill {
-  skillId: string;
-  skillName: string;
+export interface LoRAAdapterData {
+  adapterId: string;
+  adapterName: string;
   description: string;
   baseModelCompatibility: string;
   version: number;
@@ -110,11 +133,11 @@ export interface EmbeddedLoRAAdapterSkill {
   alpha: number;
   weightsA: Float32Array;
   weightsB: Float32Array;
-  additionalMetadata: Record<string, string>;
+  metadata: Record<string, string>;
   createdAt: Date;
   lastUsed: Date;
   usageCount: number;
-  consensusScore: number;
+  networkScore: number;
 }
 
 export class KNIRVChainIntegration extends EventEmitter {
@@ -123,11 +146,12 @@ export class KNIRVChainIntegration extends EventEmitter {
   private skills: Map<string, SkillMetadata> = new Map();
   private llmModels: Map<string, LLMMetadata> = new Map();
   private skillInvocations: Map<string, SkillInvocation[]> = new Map();
+  private knirvRouter: KNIRVRouterIntegration;
   private lastBlockHeight: number = 0;
 
   constructor(config: Partial<ChainConfig>) {
     super();
-    
+
     this.config = {
       rpcUrl: 'http://localhost:8080',
       chainId: 'knirv-chain-1',
@@ -139,11 +163,66 @@ export class KNIRVChainIntegration extends EventEmitter {
       },
       gasPrice: '20000000000', // 20 gwei
       gasLimit: '500000',
-      // New embedded chain defaults
-      embeddedChainUrl: 'http://localhost:5000/embedded-chain',
-      useEmbeddedChain: true,
+      // KNIRVROUTER network defaults
+      knirvRouterUrl: 'http://localhost:5000/knirv-router',
+      knirvGraphUrl: 'http://localhost:5001/knirv-graph',
+      useKnirvRouter: true,
       ...config,
     };
+
+    // Initialize KNIRVROUTER integration
+    this.knirvRouter = new KNIRVRouterIntegration({
+      routerUrl: this.config.knirvRouterUrl || 'http://localhost:5000',
+      graphUrl: this.config.knirvGraphUrl || 'http://localhost:5001',
+      oracleUrl: 'http://localhost:5002',
+      timeout: 30000,
+      retryAttempts: 3,
+      enableP2P: true,
+      enableWASM: true
+    });
+
+    // Set up KNIRVROUTER event handlers
+    this.setupKNIRVRouterEventHandlers();
+  }
+
+  /**
+   * Set up KNIRVROUTER event handlers
+   */
+  private setupKNIRVRouterEventHandlers(): void {
+    this.knirvRouter.on('connected', (data) => {
+      console.log('KNIRVROUTER connected:', data);
+      this.emit('knirvRouterConnected', data);
+    });
+
+    this.knirvRouter.on('disconnected', (data) => {
+      console.log('KNIRVROUTER disconnected:', data);
+      this.emit('knirvRouterDisconnected', data);
+    });
+
+    this.knirvRouter.on('skillResolved', (data) => {
+      console.log('Skill resolved via KNIRVROUTER:', data);
+      this.emit('skillResolvedViaKNIRVRouter', data);
+    });
+
+    this.knirvRouter.on('skillNodeDiscovered', (data) => {
+      console.log('Skill node discovered:', data);
+      this.emit('skillNodeDiscovered', data);
+    });
+
+    this.knirvRouter.on('p2pConnected', (data) => {
+      console.log('P2P connection established:', data);
+      this.emit('p2pConnected', data);
+    });
+
+    this.knirvRouter.on('wasmSkillExecuted', (data) => {
+      console.log('WASM skill executed:', data);
+      this.emit('wasmSkillExecuted', data);
+    });
+
+    this.knirvRouter.on('loraAdapterRegistered', (data) => {
+      console.log('LoRA adapter registered:', data);
+      this.emit('loraAdapterRegistered', data);
+    });
   }
 
   public async initialize(): Promise<void> {
@@ -330,8 +409,8 @@ export class KNIRVChainIntegration extends EventEmitter {
   }
 
   /**
-   * Revolutionary /invoke endpoint - activates a skill via agent-core by loading and applying LoRA adapter weights
-   * This replaces traditional skill generation with direct LoRA adapter application
+   * Revolutionary ErrorContext → KNIRVGRAPH → KNIRVROUTER skill invocation
+   * This replaces embedded skill invocation with external network integration
    */
   public async invokeSkillOnChain(
     skillId: string,
@@ -340,77 +419,75 @@ export class KNIRVChainIntegration extends EventEmitter {
     parameters: any
   ): Promise<string> {
     try {
-      console.log(`Invoking skill ${skillId} on embedded chain...`);
+      console.log(`Invoking skill ${skillId} via KNIRVROUTER network...`);
 
-      // Use embedded KNIRVCHAIN if enabled
-      if (this.config.useEmbeddedChain) {
-        return await this.invokeSkillOnEmbeddedChain(skillId, userAddress, nrnAmount, parameters);
+      // Use KNIRVROUTER if enabled
+      if (this.config.useKnirvRouter) {
+        return await this.invokeSkillViaKNIRVRouter(skillId, userAddress, nrnAmount, parameters);
       }
 
       // Fallback to traditional blockchain invocation
       return await this.invokeSkillOnTraditionalChain(skillId, userAddress, nrnAmount, parameters);
 
     } catch (error) {
-      console.error('Failed to invoke skill on chain:', error);
+      console.error('Failed to invoke skill via KNIRVROUTER:', error);
       throw error;
     }
   }
 
   /**
-   * Invoke skill on embedded KNIRVCHAIN (new revolutionary approach)
+   * Invoke skill via KNIRVROUTER network (revolutionary ErrorContext → KNIRVGRAPH → SkillNode approach)
    */
-  private async invokeSkillOnEmbeddedChain(
+  private async invokeSkillViaKNIRVRouter(
     skillId: string,
     userAddress: string,
     nrnAmount: string,
     parameters: any
   ): Promise<string> {
-    const invocationRequest: EmbeddedSkillInvocationRequest = {
-      invocationId: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      skillId,
-      parameters: {
-        ...parameters,
-        userAddress,
-        nrnAmount,
-        requiredCapabilities: parameters.capabilities || [],
-        baseModel: parameters.baseModel || 'hrm'
-      },
-      userContext: { userAddress, nrnAmount },
-      priority: parameters.priority || 'normal',
-      timestamp: Date.now()
+    // Generate ErrorContext for the skill request
+    const errorContext: ErrorContext = {
+      errorId: `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      errorType: 'skill_invocation_request',
+      errorMessage: `Skill invocation requested: ${skillId}`,
+      stackTrace: `Skill: ${skillId}, User: ${userAddress}, NRN: ${nrnAmount}`,
+      userContext: { userAddress, nrnAmount, parameters },
+      agentId: parameters.agentId || 'unknown-agent',
+      timestamp: Date.now(),
+      severity: parameters.priority === 'high' ? 'high' : 'medium'
     };
 
-    const response = await fetch(`${this.config.embeddedChainUrl}/invoke`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(invocationRequest),
-    });
+    // Use the KNIRVRouterIntegration for skill resolution
+    const routerResponse = await this.knirvRouter.resolveSkillViaErrorContext(
+      errorContext,
+      parameters.capabilities || [],
+      {
+        priority: parameters.priority || 'normal',
+        useP2P: parameters.useP2P !== false,
+        useWASM: parameters.useWASM !== false,
+        nrnToken: nrnAmount
+      }
+    );
 
-    if (!response.ok) {
-      throw new Error(`Embedded chain invocation failed: ${response.statusText}`);
+    if (routerResponse.status !== 'SUCCESS') {
+      throw new Error(`Skill resolution failed: ${routerResponse.errorMessage}`);
     }
 
-    const invocationResponse: EmbeddedSkillInvocationResponse = await response.json();
-
-    if (invocationResponse.status !== 'SUCCESS') {
-      throw new Error(`Skill invocation failed: ${invocationResponse.errorMessage}`);
-    }
-
-    this.emit('skillInvokedOnEmbeddedChain', {
-      invocationId: invocationResponse.invocationId,
+    // Emit the event for backward compatibility
+    this.emit('skillResolvedViaKNIRVRouter', {
+      requestId: routerResponse.requestId,
       skillId,
+      skillNodeUri: routerResponse.skillNodeUri,
       userAddress,
       nrnAmount,
-      executionTime: invocationResponse.executionTime,
-      memoryUsed: invocationResponse.memoryUsed,
-      consensusReached: invocationResponse.consensusReached,
+      executionTime: routerResponse.executionTime,
+      networkLatency: routerResponse.networkLatency,
       timestamp: Date.now(),
     });
 
-    return invocationResponse.invocationId;
+    return routerResponse.requestId;
   }
+
+
 
   /**
    * Invoke skill on traditional blockchain (fallback)
@@ -642,18 +719,18 @@ export class KNIRVChainIntegration extends EventEmitter {
   public async findSkillsWithFiltering(filter: {
     skillType?: string;
     baseModel?: string;
-    minConsensusScore?: number;
+    minNetworkScore?: number;
     maxRank?: number;
     capabilities?: string[];
     excludeSkills?: string[];
-  }): Promise<EmbeddedLoRAAdapterSkill[]> {
-    if (!this.config.useEmbeddedChain) {
-      console.warn('LoRA adapter filtering only available with embedded chain');
+  }): Promise<LoRAAdapterData[]> {
+    if (!this.config.useKnirvRouter) {
+      console.warn('LoRA adapter filtering only available with KNIRVROUTER');
       return [];
     }
 
     try {
-      const response = await fetch(`${this.config.embeddedChainUrl}/skills/filter`, {
+      const response = await fetch(`${this.config.knirvRouterUrl}/lora-adapters/filter`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -666,24 +743,24 @@ export class KNIRVChainIntegration extends EventEmitter {
       }
 
       const result = await response.json();
-      return result.skills || [];
+      return result.adapters || [];
 
     } catch (error) {
-      console.error('Failed to filter skills:', error);
+      console.error('Failed to filter LoRA adapters:', error);
       throw error;
     }
   }
 
   /**
-   * Create skill chain as serialized LoRA adapter vectors from KNIRVGRAPH
+   * Create skill chain via KNIRVROUTER network using LoRA adapter composition
    */
   public async createSkillChain(skillIds: string[]): Promise<any> {
-    if (!this.config.useEmbeddedChain) {
-      throw new Error('Skill chains only available with embedded chain');
+    if (!this.config.useKnirvRouter) {
+      throw new Error('Skill chains only available with KNIRVROUTER');
     }
 
     try {
-      const response = await fetch(`${this.config.embeddedChainUrl}/chains`, {
+      const response = await fetch(`${this.config.knirvRouterUrl}/skill-chains`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -692,7 +769,7 @@ export class KNIRVChainIntegration extends EventEmitter {
       });
 
       if (!response.ok) {
-        throw new Error(`Chain creation failed: ${response.statusText}`);
+        throw new Error(`Skill chain creation failed: ${response.statusText}`);
       }
 
       const skillChain = await response.json();
@@ -700,94 +777,47 @@ export class KNIRVChainIntegration extends EventEmitter {
       this.emit('skillChainCreated', {
         chainId: skillChain.chain_id,
         skillIds,
-        skillCount: skillChain.skills?.length || 0,
+        adapterCount: skillChain.adapters?.length || 0,
         timestamp: Date.now(),
       });
 
       return skillChain;
 
     } catch (error) {
-      console.error('Failed to create skill chain:', error);
+      console.error('Failed to create skill chain via KNIRVROUTER:', error);
       throw error;
     }
   }
 
   /**
-   * Get all available LoRA adapter skills
+   * Get all available LoRA adapter skills from KNIRVROUTER network
    */
-  public async getLoRAAdapterSkills(filter?: any): Promise<EmbeddedLoRAAdapterSkill[]> {
-    if (!this.config.useEmbeddedChain) {
-      console.warn('LoRA adapter skills only available with embedded chain');
+  public async getLoRAAdapterSkills(filter?: any): Promise<LoRAAdapterData[]> {
+    if (!this.config.useKnirvRouter) {
+      console.warn('LoRA adapter skills only available with KNIRVROUTER');
       return [];
     }
 
     try {
-      let url = `${this.config.embeddedChainUrl}/skills`;
-
-      if (filter) {
-        const params = new URLSearchParams();
-        Object.keys(filter).forEach(key => {
-          if (filter[key] !== undefined) {
-            if (Array.isArray(filter[key])) {
-              filter[key].forEach((value: string) => params.append(key, value));
-            } else {
-              params.append(key, filter[key].toString());
-            }
-          }
-        });
-        if (params.toString()) {
-          url += `?${params.toString()}`;
-        }
-      }
-
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        throw new Error(`Failed to get skills: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      return result.skills || [];
-
+      return await this.knirvRouter.getLoRAAdapters(filter);
     } catch (error) {
-      console.error('Failed to get LoRA adapter skills:', error);
+      console.error('Failed to get LoRA adapters from KNIRVROUTER:', error);
       throw error;
     }
   }
 
   /**
-   * Register a new LoRA adapter skill
+   * Register a new LoRA adapter skill via KNIRVROUTER network
    */
-  public async registerLoRAAdapterSkill(skill: Omit<EmbeddedLoRAAdapterSkill, 'createdAt' | 'lastUsed' | 'usageCount' | 'consensusScore'>): Promise<string> {
-    if (!this.config.useEmbeddedChain) {
-      throw new Error('LoRA adapter skill registration only available with embedded chain');
+  public async registerLoRAAdapterSkill(skill: Omit<LoRAAdapterData, 'createdAt' | 'lastUsed' | 'usageCount' | 'networkScore' | 'routerNodes'>): Promise<string> {
+    if (!this.config.useKnirvRouter) {
+      throw new Error('LoRA adapter skill registration only available with KNIRVROUTER');
     }
 
     try {
-      const response = await fetch(`${this.config.embeddedChainUrl}/skills`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(skill),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Skill registration failed: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-
-      this.emit('loraSkillRegistered', {
-        skillId: result.skill_id,
-        skillName: skill.skillName,
-        timestamp: Date.now(),
-      });
-
-      return result.skill_id;
-
+      return await this.knirvRouter.registerLoRAAdapter(skill);
     } catch (error) {
-      console.error('Failed to register LoRA adapter skill:', error);
+      console.error('Failed to register LoRA adapter via KNIRVROUTER:', error);
       throw error;
     }
   }

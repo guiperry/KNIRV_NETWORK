@@ -1138,20 +1138,52 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      // This would integrate with KNIRVCHAIN for skill invocation
-      // Invoke skill through SEAL framework if method exists
+      // Revolutionary ErrorContext → KNIRVGRAPH → KNIRVROUTER skill invocation
       let result;
+
+      // First try SEAL framework if available
       if (this.sealFramework?.invokeSkill) {
         result = await this.sealFramework.invokeSkill(skillId, parameters);
-      } else {
-        // Fallback implementation for skill invocation
-        result = {
-          skillId,
-          parameters,
-          success: true,
-          output: `Mock skill execution result for ${skillId}`,
-          timestamp: Date.now()
-        };
+      }
+      // Then try KNIRVROUTER integration via chain integration
+      else if (this.chainIntegration && this.config.chainIntegrationEnabled) {
+        try {
+          // Generate ErrorContext for skill resolution
+          const errorContext = {
+            errorId: `skill_request_${Date.now()}`,
+            errorType: 'skill_invocation',
+            errorMessage: `Requesting skill execution: ${skillId}`,
+            stackTrace: new Error().stack || '',
+            userContext: parameters,
+            agentId: this.state.agentId || 'cognitive_engine',
+            timestamp: Date.now(),
+            severity: 'normal' as const
+          };
+
+          // Invoke skill via KNIRVROUTER network
+          const skillResult = await this.chainIntegration.invokeSkillOnChain(
+            skillId,
+            'user_address', // TODO: Get from wallet integration
+            '1000', // TODO: Calculate NRN amount
+            parameters
+          );
+
+          result = {
+            skillId,
+            parameters,
+            success: true,
+            output: skillResult,
+            timestamp: Date.now(),
+            source: 'knirvrouter'
+          };
+        } catch (routerError) {
+          console.warn(`KNIRVROUTER skill invocation failed for ${skillId}:`, routerError);
+          throw new Error(`Skill invocation failed: ${routerError.message}`);
+        }
+      }
+      // No available skill execution method
+      else {
+        throw new Error(`No skill execution method available for ${skillId}. Please ensure SEAL framework or KNIRVROUTER integration is properly configured.`);
       }
 
       this.emit('skillInvoked', {
@@ -2153,14 +2185,8 @@ export class CognitiveEngine extends EventEmitter {
         console.log(`Executed contract call: ${call.contract}.${call.method}`);
         return result;
       } else {
-        // Return mock result if method returns undefined
-        return {
-          success: true,
-          transactionHash: `mock-tx-${Date.now()}`,
-          result: { value: 'mock contract result' },
-          gasUsed: '21000',
-          blockNumber: 12345
-        };
+        // No mock results - throw error for proper error handling
+        throw new Error(`Contract call ${call.contract}.${call.method} returned undefined result`);
       }
     } catch (error) {
       console.error('Failed to execute contract call:', error);

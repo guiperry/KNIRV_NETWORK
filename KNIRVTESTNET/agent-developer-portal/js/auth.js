@@ -7,35 +7,6 @@ class KNIRVAuth {
     }
 
     init() {
-        // For testnet, auto-login with demo user to avoid authentication issues
-        const isTestnet = window.location.hostname.includes('testnet') ||
-                         window.location.hostname.includes('localhost') ||
-                         window.location.pathname.includes('testnet');
-
-        if (isTestnet) {
-            // Auto-login with demo admin user for testnet
-            this.currentUser = {
-                id: 'demo-admin',
-                username: 'testnet-admin',
-                email: 'admin@testnet.knirv.com',
-                role: 'admin',
-                joinDate: new Date().toISOString(),
-                permissions: ['read', 'write', 'admin']
-            };
-
-            const token = this.generateToken();
-            localStorage.setItem('knirv_dev_user', JSON.stringify(this.currentUser));
-            localStorage.setItem('knirv_dev_token', token);
-
-            this.isAuthenticated = true;
-            this.updateUIForAuthenticatedUser();
-            this.showMainContent();
-            return;
-        }
-
-        // Hide main content initially for production
-        this.hideMainContent();
-
         // Check for existing session
         const storedUser = localStorage.getItem('knirv_dev_user');
         const storedToken = localStorage.getItem('knirv_dev_token');
@@ -45,13 +16,15 @@ class KNIRVAuth {
                 this.currentUser = JSON.parse(storedUser);
                 this.isAuthenticated = true;
                 this.updateUIForAuthenticatedUser();
-                this.showMainContent();
             } catch (error) {
                 console.error('Error parsing stored user data:', error);
                 this.logout();
             }
         } else {
-            this.showLoginModal();
+            // Don't show modal immediately, wait for page to fully load
+            setTimeout(() => {
+                this.showLoginModal();
+            }, 500);
         }
     }
 
@@ -82,8 +55,7 @@ class KNIRVAuth {
                 this.isAuthenticated = true;
                 this.updateUIForAuthenticatedUser();
                 this.hideLoginModal();
-                this.showMainContent();
-
+                
                 return { success: true, user: this.currentUser };
             } else {
                 return { success: false, error: 'Invalid username or password' };
@@ -139,40 +111,12 @@ class KNIRVAuth {
         this.isAuthenticated = false;
         localStorage.removeItem('knirv_dev_user');
         localStorage.removeItem('knirv_dev_token');
-        this.hideMainContent();
         this.showLoginModal();
     }
 
     getStoredUsers() {
         const stored = localStorage.getItem('knirv_dev_users');
-        let users = stored ? JSON.parse(stored) : [];
-
-        // Add default demo users if none exist
-        if (users.length === 0) {
-            users = [
-                {
-                    id: 'demo-admin',
-                    username: 'admin',
-                    email: 'admin@knirv.com',
-                    password: 'admin123',
-                    role: 'admin',
-                    joinDate: new Date().toISOString(),
-                    permissions: ['read', 'write', 'admin']
-                },
-                {
-                    id: 'demo-dev',
-                    username: 'developer',
-                    email: 'dev@knirv.com',
-                    password: 'dev123',
-                    role: 'developer',
-                    joinDate: new Date().toISOString(),
-                    permissions: ['read', 'write']
-                }
-            ];
-            localStorage.setItem('knirv_dev_users', JSON.stringify(users));
-        }
-
-        return users;
+        return stored ? JSON.parse(stored) : [];
     }
 
     generateToken() {
@@ -212,37 +156,30 @@ class KNIRVAuth {
         }
         const modal = document.getElementById('authModal');
         modal.style.display = 'flex';
+        // Only prevent body scrolling if modal is actually visible and not just being initialized
+        if (modal.offsetParent !== null) {
+            document.body.style.overflow = 'hidden';
+        }
     }
 
     hideLoginModal() {
         const modal = document.getElementById('authModal');
         if (modal) {
             modal.style.display = 'none';
-        }
-    }
-
-    showMainContent() {
-        const dashboardContainer = document.querySelector('.dashboard-container');
-        if (dashboardContainer) {
-            dashboardContainer.style.display = 'flex';
-        }
-    }
-
-    hideMainContent() {
-        const dashboardContainer = document.querySelector('.dashboard-container');
-        if (dashboardContainer) {
-            dashboardContainer.style.display = 'none';
+            // Always restore body scrolling when hiding modal
+            document.body.style.overflow = 'auto';
         }
     }
 
     createAuthModal() {
         const modalHTML = `
-            <div id="authModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--dark-blue); z-index: 10000; align-items: center; justify-content: center;">
-                <div class="modal-content" style="max-width: 400px; width: 90%; max-height: 90vh; overflow-y: auto;">
-                    <div class="modal-header">
+            <div id="authModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.8); z-index: 10000; backdrop-filter: blur(5px); align-items: center; justify-content: center; pointer-events: auto;">
+                <div class="modal-content" style="max-width: 400px; background-color: var(--dark-blue); border: 1px solid var(--transparent-white-2); border-radius: 15px; padding: 30px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); position: relative;">
+                    <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--transparent-white-2);">
                         <h2 style="color: var(--bright-blue); margin: 0;">
                             <i class="fas fa-shield-alt" style="margin-right: 10px;"></i>KNIRV Developer Portal
                         </h2>
+                        <span class="close" onclick="window.knirvAuth.hideLoginModal()" style="color: var(--transparent-white-7); font-size: 28px; font-weight: bold; cursor: pointer; transition: color 0.3s ease;">&times;</span>
                     </div>
                     <div class="modal-body">
                         <div id="authTabs" style="display: flex; margin-bottom: 20px; border-bottom: 1px solid var(--transparent-white-2);">
@@ -252,13 +189,6 @@ class KNIRVAuth {
                         
                         <!-- Login Form -->
                         <div id="loginForm" class="auth-form">
-                            <div style="background-color: var(--transparent-white-05); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--transparent-white-2);">
-                                <h4 style="color: var(--bright-blue); margin: 0 0 10px 0; font-size: 0.9rem;">Demo Credentials</h4>
-                                <div style="color: var(--transparent-white-7); font-size: 0.8rem; line-height: 1.4;">
-                                    <strong>Admin:</strong> admin / admin123<br>
-                                    <strong>Developer:</strong> developer / dev123
-                                </div>
-                            </div>
                             <form onsubmit="window.knirvAuth.handleLogin(event)">
                                 <div style="margin-bottom: 15px;">
                                     <label style="color: var(--white); display: block; margin-bottom: 5px;">Username</label>
@@ -325,16 +255,9 @@ class KNIRVAuth {
         event.preventDefault();
         const username = document.getElementById('loginUsername').value;
         const password = document.getElementById('loginPassword').value;
-
+        
         const result = await this.login({ username, password });
-
-        if (result.success) {
-            // Login successful - form will be hidden by the login method
-            console.log('Login successful for user:', result.user.username);
-        } else {
-            // Show error message
-            this.showAuthMessage('error', result.error || 'Login failed');
-        }
+        this.showAuthMessage(result.success ? 'success' : 'error', result.error || 'Login successful!');
     }
 
     async handleRegister(event) {

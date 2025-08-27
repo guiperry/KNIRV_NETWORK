@@ -478,7 +478,7 @@ export class {{skillClassName}}WASMWrapper {
     }
 
     // Simple template processing (in a real implementation, use a proper template engine)
-    let code = mainTemplate
+    const code = mainTemplate
       .replace(/\{\{skillName\}\}/g, config.skillName)
       .replace(/\{\{skillClassName\}\}/g, this.toPascalCase(config.skillName))
       .replace(/\{\{skillId\}\}/g, config.skillId)

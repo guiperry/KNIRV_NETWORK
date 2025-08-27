@@ -21,23 +21,37 @@ endpoints:
     timeout: "30s"
   
   knirvnexus:
-    frontend:
-      url: "http://localhost:3000"
-      health_endpoint: "/api/health"
+    # Phase 6 Unified Binary Architecture - Single service on port 8084
+    unified_binary:
+      url: "http://localhost:8084"
+      health_endpoint: "/health"
+      api_base: "/api"
       timeout: "30s"
-    backend:
-      api_gateway:
-        url: "http://localhost:8080"
-        health_endpoint: "/health"
+      architecture: "unified"
+      services: ["frontend", "backend", "api", "websocket"]
+    # Legacy endpoints (deprecated in Phase 6)
+    legacy:
+      frontend:
+        url: "http://localhost:3000"
+        health_endpoint: "/api/health"
         timeout: "30s"
-      dve_manager:
-        url: "http://localhost:8081"
-        health_endpoint: "/health"
-        timeout: "30s"
-      validation_core:
-        url: "http://localhost:8082"
-        health_endpoint: "/health"
-        timeout: "30s"
+        deprecated: true
+      backend:
+        api_gateway:
+          url: "http://localhost:8080"
+          health_endpoint: "/health"
+          timeout: "30s"
+          deprecated: true
+        dve_manager:
+          url: "http://localhost:8081"
+          health_endpoint: "/health"
+          timeout: "30s"
+          deprecated: true
+        validation_core:
+          url: "http://localhost:8082"
+          health_endpoint: "/health"
+          timeout: "30s"
+          deprecated: true
   
   knirvwallet:
     url: "http://localhost:8083"
@@ -58,6 +72,14 @@ endpoints:
     url: "http://localhost:8086"
     health_endpoint: "/health"
     timeout: "30s"
+
+  knirvcontroller:
+    url: "http://localhost:3000"
+    health_endpoint: "/health"
+    api_base: "/api"
+    timeout: "30s"
+    architecture: "unified"
+    services: ["frontend", "backend", "wasm-compiler", "lora-engine", "protobuf-handler"]
 
 # External Services
 external_services:
@@ -87,6 +109,21 @@ test_data:
     default_confidence: 0.8
     default_latency: "5s"
     test_capabilities: ["javascript", "syntax_repair"]
+
+  knirvcontroller:
+    test_agent_id: "integration-test-agent"
+    test_skill_id: "integration-test-skill"
+    lora_adapter:
+      name: "test-integration-adapter"
+      rank: 16
+      alpha: 0.5
+      base_model: "hrm-v1"
+    wasm_compilation:
+      timeout: "60s"
+      optimization_level: "O2"
+    error_context:
+      test_error_type: "skill_invocation_request"
+      severity: "medium"
 
 # Performance Test Configuration
 performance:
@@ -183,13 +220,16 @@ production_deployment:
       services:
         knirvchain: "http://localhost:8080"
         knirvgraph: "http://localhost:8081"
-        knirvnexus_frontend: "http://localhost:3000"
-        knirvnexus_api_gateway: "http://localhost:8080"
-        knirvnexus_dve_manager: "http://localhost:8081"
-        knirvnexus_validation_core: "http://localhost:8082"
+        knirvnexus: "http://localhost:8084"  # Phase 6 Unified Binary
         knirvoracle: "http://localhost:8083"
-        knirvrouter: "http://localhost:8084"
+        knirvrouter: "http://localhost:8085"
         knirvrouter_api: "http://localhost:9090"
+        knirvcontroller: "http://localhost:3000"  # Unified Frontend + Backend
+        # Legacy KNIRVNEXUS endpoints (deprecated in Phase 6)
+        knirvnexus_frontend_legacy: "http://localhost:3000"
+        knirvnexus_api_gateway_legacy: "http://localhost:8080"
+        knirvnexus_dve_manager_legacy: "http://localhost:8081"
+        knirvnexus_validation_core_legacy: "http://localhost:8082"
 
     kubernetes:
       enabled: false

@@ -40,11 +40,11 @@ class KNIRVConfigLoader {
         return {
             navigation: {
                 main_site: "https://knirv.com",
-                documentation: "../documentation/docsify/",
-                graphchain_explorer: "../graphchain-explorer/",
-                nexus_portal: "../nexus-portal/",
-                support_desk: "../support-desk/",
-                nanda_ans: "../nanda_ans/"
+                documentation: "/documentation/docsify/",
+                graphchain_explorer: "/graphchain-explorer/",
+                nexus_portal: "/nexus-portal/",
+                support_desk: "/support-desk/",
+                nanda_ans: "/nanda_ans/"
             },
             external_services: {
                 payment_gateway: "https://pay.knirv.com/add-funds",
@@ -53,25 +53,25 @@ class KNIRVConfigLoader {
             },
             documentation: {
                 whitepapers: {
-                    knirv_oracle: "../documentation/docsify/#/whitepapers/KNIRVROOT_Whitepaper.md",
-                    knirv_router: "../documentation/docsify/#/whitepapers/KNIRV-ROUTER_Whitepaper.md",
-                    knirvgraph: "../documentation/docsify/#/whitepapers/KNIRV-GRAPH_Whitepaper.md",
-                    knirvchain: "../documentation/docsify/#/whitepapers/KNIRVCHAIN_Whitepaper.md",
-                    knirv_nexus: "../documentation/docsify/#/whitepapers/KNIRV-NEXUS_Whitepaper.md",
-                    knirv_cortex: "../documentation/docsify/#/whitepapers/KNIRV-AGENTIFIER_Whitepaper.md",
-                    knirv_wallet: "../documentation/docsify/#/whitepapers/KNIRV-WALLET_Whitepaper.md",
-                    knirv_gateway: "../documentation/docsify/#/whitepapers/KNIRV-GATEWAY_Whitepaper.md",
-                    knirv_shell: "../documentation/docsify/#/whitepapers/KNIRV-SHELL_Whitepapers.md",
-                    knirv_sdk: "../documentation/docsify/#/whitepapers/KNIRV-SDK_Whitepaper.md",
-                    knirv_testnet: "../documentation/docsify/#/guides/TESTNET_DEPLOYMENT.md",
-                    knirvana: "../documentation/docsify/#/whitepapers/KNIRVANA_Whitepaper.md"
+                    knirv_oracle: "/documentation/docsify/#/whitepapers/KNIRVROOT_Whitepaper.md",
+                    knirv_router: "/documentation/docsify/#/whitepapers/KNIRV-ROUTER_Whitepaper.md",
+                    knirvgraph: "/documentation/docsify/#/whitepapers/KNIRV-GRAPH_Whitepaper.md",
+                    knirvchain: "/documentation/docsify/#/whitepapers/KNIRVCHAIN_Whitepaper.md",
+                    knirv_nexus: "/documentation/docsify/#/whitepapers/KNIRV-NEXUS_Whitepaper.md",
+                    knirv_cortex: "/documentation/docsify/#/whitepapers/KNIRV-AGENTIFIER_Whitepaper.md",
+                    knirv_wallet: "/documentation/docsify/#/whitepapers/KNIRV-WALLET_Whitepaper.md",
+                    knirv_gateway: "/documentation/docsify/#/whitepapers/KNIRV-GATEWAY_Whitepaper.md",
+                    knirv_shell: "/documentation/docsify/#/whitepapers/KNIRV-SHELL_Whitepapers.md",
+                    knirv_sdk: "/documentation/docsify/#/whitepapers/KNIRV-SDK_Whitepaper.md",
+                    knirv_testnet: "/documentation/docsify/#/guides/TESTNET_DEPLOYMENT.md",
+                    knirvana: "/documentation/docsify/#/whitepapers/KNIRVANA_Whitepaper.md"
                 }
             },
             footer: {
                 legal: {
-                    terms: "../documentation/docsify/#/legal/terms-of-service.md",
-                    privacy: "../documentation/docsify/#/legal/privacy-policy.md",
-                    contribution: "../documentation/docsify/#/contributing/contribution-guidelines.md"
+                    terms: "/documentation/docsify/#/legal/terms-of-service.md",
+                    privacy: "/documentation/docsify/#/legal/privacy-policy.md",
+                    contribution: "/documentation/docsify/#/contributing/contribution-guidelines.md"
                 },
                 social: {
                     github: "https://github.com/knirv-network",
@@ -90,17 +90,17 @@ class KNIRVConfigLoader {
             },
             iframes: {
                 graphchain_explorer: {
-                    url: "../graphchain-explorer/",
+                    url: "/graphchain-explorer/",
                     title: "KNIRV Graphchain Explorer",
                     height: "800px"
                 },
                 documentation: {
-                    url: "../documentation/docsify/",
+                    url: "/documentation/docsify/",
                     title: "KNIRV Documentation",
                     height: "800px"
                 },
                 nexus_portal: {
-                    url: "../nexus-portal/",
+                    url: "/nexus-portal/",
                     title: "KNIRV Nexus Portal",
                     height: "800px"
                 }

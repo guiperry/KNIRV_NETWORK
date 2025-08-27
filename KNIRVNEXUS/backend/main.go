@@ -16,11 +16,18 @@ import (
 	"nexus-backend/internal/config"
 	dataengine "nexus-backend/internal/data-engine"
 	"nexus-backend/internal/database"
+	"nexus-backend/internal/inference"
 	agentserver "nexus-backend/internal/services/agent-server"
+	"nexus-backend/internal/services/agentmanagement"
 	"nexus-backend/internal/services/cde"
+	"nexus-backend/internal/services/controllerintegration"
 	"nexus-backend/internal/services/dns"
 	"nexus-backend/internal/services/dvemanager"
+	"nexus-backend/internal/services/dverental"
+	"nexus-backend/internal/services/systemhealth"
+	"nexus-backend/internal/services/teesecurity"
 	"nexus-backend/internal/services/validation"
+	"nexus-backend/internal/services/websocket"
 	"nexus-backend/internal/web"
 	"nexus-backend/internal/web/middleware"
 	"nexus-backend/pkg/p2p"
@@ -45,12 +52,19 @@ type Server struct {
 	p2pManager *p2p.DVEP2PManager
 
 	// All services are held here
-	dveManager     *dvemanager.DVEManager
-	validationCore *validation.ValidationCore
-	cdeService     *cde.CDEService
-	dnsService     *dns.DynamicDNSService
-	agentServer    *agentserver.AgentServer
-	dataEngine     *dataengine.BuntDBDataEngine
+	dveManager                   *dvemanager.DVEManager
+	validationCore               *validation.ValidationCore
+	cdeService                   *cde.CDEService
+	dnsService                   *dns.DynamicDNSService
+	agentServer                  *agentserver.AgentServer
+	dataEngine                   *dataengine.BuntDBDataEngine
+	inferenceService             *inference.InferenceService
+	websocketService             *websocket.WebSocketService
+	teeSecurityService           *teesecurity.TEESecurityService
+	systemHealthService          *systemhealth.SystemHealthService
+	agentManagementService       *agentmanagement.AgentManagementService
+	controllerIntegrationService *controllerintegration.ControllerIntegrationService
+	dveRentalService             *dverental.DVERentalService
 
 	// Context for managing service lifecycle
 	ctx    context.Context
@@ -114,31 +128,85 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize data engine: %w", err)
 	}
 
-	// Initialize CDE service (if configuration is available)
-	var cdeService *cde.CDEService
-	// TODO: Initialize when CDE configuration is available
+	// Initialize inference service
+	inferenceService, err := inference.NewInferenceService(dbManager)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize inference service: %w", err)
+	}
+
+	// Initialize TEE Security service
+	teeSecurityService := teesecurity.NewTEESecurityService(dbManager.GetDB())
+
+	// Initialize System Health service
+	systemHealthService := systemhealth.NewSystemHealthService(dbManager.GetDB())
+	systemHealthService.SetServiceReferences(dveManager, validationCore, inferenceService, teeSecurityService)
+
+	// Initialize Agent Management service
+	agentManagementService := agentmanagement.NewAgentManagementService(dbManager.GetDB())
+	agentManagementService.SetAgentServerReference(agentServer)
+
+	// Initialize Controller Integration service
+	controllerIntegrationService := controllerintegration.NewControllerIntegrationService(dbManager.GetDB())
+
+	// Initialize WebSocket service
+	websocketService := websocket.NewWebSocketService(inferenceService, dveManager, validationCore, teeSecurityService)
+
+	// Initialize CDE service
+	cdeService, err := cde.NewCDEService(nil, dataEngine, cde.CDEConfig{
+		BaseImagePath:          cfg.CDE.BaseImagePath,
+		WorkspaceRoot:          cfg.CDE.WorkspaceRoot,
+		MaxEnvironments:        cfg.CDE.MaxEnvironments,
+		DefaultTimeout:         cfg.CDE.DefaultTimeout,
+		MaxCPUPerEnv:           cfg.CDE.MaxCPUPerEnv,
+		MaxMemoryPerEnv:        cfg.CDE.MaxMemoryPerEnv,
+		MaxDiskPerEnv:          cfg.CDE.MaxDiskPerEnv,
+		EnableSandboxing:       cfg.CDE.EnableSandboxing,
+		EnableNetworkIsolation: cfg.CDE.EnableNetworkIsolation,
+		AllowedPorts:           cfg.CDE.AllowedPorts,
+		SessionTimeout:         cfg.CDE.SessionTimeout,
+		MaxSessionsPerUser:     cfg.CDE.MaxSessionsPerUser,
+		MaxProjectsPerUser:     cfg.CDE.MaxProjectsPerUser,
+		ProjectStoragePath:     cfg.CDE.ProjectStoragePath,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize CDE service: %w", err)
+	}
 
 	// Initialize DNS service (if configuration is available)
 	var dnsService *dns.DynamicDNSService
 	// TODO: Initialize when DNS configuration is available
 
+	// Initialize DVE Rental service
+	dveRentalService, err := dverental.NewDVERentalService(dbManager.GetDB())
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize DVE rental service: %w", err)
+	}
+	dveRentalService.SetServiceReferences(dveManager, cdeService)
+
 	// Create context for service lifecycle management
 	ctx, cancel := context.WithCancel(context.Background())
 
 	server := &Server{
-		config:         cfg,
-		db:             dbManager,
-		router:         router,
-		p2pManager:     p2pManager,
-		dveManager:     dveManager,
-		validationCore: validationCore,
-		cdeService:     cdeService,
-		dnsService:     dnsService,
-		agentServer:    agentServer,
-		dataEngine:     dataEngine,
-		ctx:            ctx,
-		cancel:         cancel,
-		running:        false,
+		config:                       cfg,
+		db:                           dbManager,
+		router:                       router,
+		p2pManager:                   p2pManager,
+		dveManager:                   dveManager,
+		validationCore:               validationCore,
+		cdeService:                   cdeService,
+		dnsService:                   dnsService,
+		agentServer:                  agentServer,
+		dataEngine:                   dataEngine,
+		inferenceService:             inferenceService,
+		websocketService:             websocketService,
+		teeSecurityService:           teeSecurityService,
+		systemHealthService:          systemHealthService,
+		agentManagementService:       agentManagementService,
+		controllerIntegrationService: controllerIntegrationService,
+		dveRentalService:             dveRentalService,
+		ctx:                          ctx,
+		cancel:                       cancel,
+		running:                      false,
 	}
 
 	// Setup routes for all services
@@ -203,6 +271,68 @@ func (s *Server) setupRoutes() {
 		s.dnsService.RegisterRoutes(s.router, authMiddleware)
 	}
 
+	// Register inference service routes
+	if s.inferenceService != nil {
+		inferenceHandlers := web.NewInferenceHandlers(s.inferenceService)
+		inferenceHandlers.RegisterRoutes(s.router, authMiddleware)
+		log.Println("Inference service routes configured")
+	}
+
+	// Register WebSocket service routes
+	if s.websocketService != nil {
+		s.websocketService.RegisterRoutes(s.router)
+		log.Println("WebSocket service routes configured")
+	}
+
+	// Register DVE manager routes
+	if s.dveManager != nil {
+		dveHandlers := web.NewDVEHandlers(s.dveManager)
+		dveHandlers.RegisterRoutes(s.router, authMiddleware)
+		log.Println("DVE manager routes configured")
+	}
+
+	// Register validation service routes
+	if s.validationCore != nil {
+		validationHandlers := web.NewValidationHandlers(s.validationCore)
+		validationHandlers.RegisterRoutes(s.router, authMiddleware)
+		log.Println("Validation service routes configured")
+	}
+
+	// Register TEE security service routes
+	if s.teeSecurityService != nil {
+		teeSecurityHandlers := web.NewTEESecurityHandlers(s.teeSecurityService)
+		teeSecurityHandlers.RegisterRoutes(s.router, authMiddleware)
+		log.Println("TEE security service routes configured")
+	}
+
+	// Register system health service routes
+	if s.systemHealthService != nil {
+		systemHealthHandlers := web.NewSystemHealthHandlers(s.systemHealthService)
+		systemHealthHandlers.RegisterRoutes(s.router, authMiddleware)
+		log.Println("System health service routes configured")
+	}
+
+	// Register agent management service routes
+	if s.agentManagementService != nil {
+		agentManagementHandlers := web.NewAgentManagementHandlers(s.agentManagementService)
+		agentManagementHandlers.RegisterRoutes(s.router, authMiddleware)
+		log.Println("Agent management service routes configured")
+	}
+
+	// Register controller integration service routes
+	if s.controllerIntegrationService != nil {
+		controllerIntegrationHandlers := web.NewControllerIntegrationHandlers(s.controllerIntegrationService)
+		controllerIntegrationHandlers.RegisterRoutes(s.router, authMiddleware)
+		log.Println("Controller integration service routes configured")
+	}
+
+	// Register DVE rental service routes
+	if s.dveRentalService != nil {
+		dveRentalHandlers := web.NewDVERentalHandlers(s.dveRentalService)
+		dveRentalHandlers.RegisterRoutes(s.router, authMiddleware)
+		log.Println("DVE rental service routes configured")
+	}
+
 	log.Println("All routes configured successfully")
 }
 
@@ -242,9 +372,12 @@ func (s *Server) Start() error {
 		log.Println("Agent Server started")
 	}
 
-	// Start CDE service (when available)
+	// Start CDE service
 	if s.cdeService != nil {
-		// CDE service start will be implemented when available
+		if err := s.cdeService.Start(); err != nil {
+			return fmt.Errorf("failed to start CDE service: %w", err)
+		}
+		log.Println("CDE Service started")
 	}
 
 	// Start DNS service (when available)
@@ -258,6 +391,62 @@ func (s *Server) Start() error {
 			return fmt.Errorf("failed to start data engine: %w", err)
 		}
 		log.Println("Data Engine started")
+	}
+
+	// Start inference service
+	if s.inferenceService != nil {
+		if err := s.inferenceService.Start(); err != nil {
+			return fmt.Errorf("failed to start inference service: %w", err)
+		}
+		log.Println("Inference Service started")
+	}
+
+	// Start TEE Security service
+	if s.teeSecurityService != nil {
+		if err := s.teeSecurityService.Start(); err != nil {
+			return fmt.Errorf("failed to start TEE Security service: %w", err)
+		}
+		log.Println("TEE Security Service started")
+	}
+
+	// Start System Health service
+	if s.systemHealthService != nil {
+		if err := s.systemHealthService.Start(); err != nil {
+			return fmt.Errorf("failed to start System Health service: %w", err)
+		}
+		log.Println("System Health Service started")
+	}
+
+	// Start Agent Management service
+	if s.agentManagementService != nil {
+		if err := s.agentManagementService.Start(); err != nil {
+			return fmt.Errorf("failed to start Agent Management service: %w", err)
+		}
+		log.Println("Agent Management Service started")
+	}
+
+	// Start Controller Integration service
+	if s.controllerIntegrationService != nil {
+		if err := s.controllerIntegrationService.Start(); err != nil {
+			return fmt.Errorf("failed to start Controller Integration service: %w", err)
+		}
+		log.Println("Controller Integration Service started")
+	}
+
+	// Start DVE Rental service
+	if s.dveRentalService != nil {
+		if err := s.dveRentalService.Start(); err != nil {
+			return fmt.Errorf("failed to start DVE Rental service: %w", err)
+		}
+		log.Println("DVE Rental Service started")
+	}
+
+	// Start WebSocket service
+	if s.websocketService != nil {
+		if err := s.websocketService.Start(); err != nil {
+			return fmt.Errorf("failed to start WebSocket service: %w", err)
+		}
+		log.Println("WebSocket Service started")
 	}
 
 	// Create HTTP server
@@ -305,6 +494,54 @@ func (s *Server) Stop() error {
 	}
 
 	// Stop services in reverse order
+	if s.websocketService != nil {
+		if err := s.websocketService.Stop(); err != nil {
+			log.Printf("Error stopping WebSocket service: %v", err)
+		}
+	}
+
+	if s.teeSecurityService != nil {
+		if err := s.teeSecurityService.Stop(); err != nil {
+			log.Printf("Error stopping TEE Security service: %v", err)
+		}
+	}
+
+	if s.systemHealthService != nil {
+		if err := s.systemHealthService.Stop(); err != nil {
+			log.Printf("Error stopping System Health service: %v", err)
+		}
+	}
+
+	if s.agentManagementService != nil {
+		if err := s.agentManagementService.Stop(); err != nil {
+			log.Printf("Error stopping Agent Management service: %v", err)
+		}
+	}
+
+	if s.controllerIntegrationService != nil {
+		if err := s.controllerIntegrationService.Stop(); err != nil {
+			log.Printf("Error stopping Controller Integration service: %v", err)
+		}
+	}
+
+	if s.dveRentalService != nil {
+		if err := s.dveRentalService.Stop(); err != nil {
+			log.Printf("Error stopping DVE Rental service: %v", err)
+		}
+	}
+
+	if s.cdeService != nil {
+		if err := s.cdeService.Stop(); err != nil {
+			log.Printf("Error stopping CDE service: %v", err)
+		}
+	}
+
+	if s.inferenceService != nil {
+		if err := s.inferenceService.Stop(); err != nil {
+			log.Printf("Error stopping inference service: %v", err)
+		}
+	}
+
 	if s.dataEngine != nil {
 		if err := s.dataEngine.Stop(); err != nil {
 			log.Printf("Error stopping data engine: %v", err)
@@ -358,14 +595,16 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"build_time": BuildTime,
 		"git_commit": GitCommit,
 		"services": map[string]bool{
-			"database":        s.db != nil,
-			"p2p_manager":     s.p2pManager != nil,
-			"dve_manager":     s.dveManager != nil,
-			"validation_core": s.validationCore != nil,
-			"agent_server":    s.agentServer != nil,
-			"data_engine":     s.dataEngine != nil,
-			"cde_service":     s.cdeService != nil,
-			"dns_service":     s.dnsService != nil,
+			"database":          s.db != nil,
+			"p2p_manager":       s.p2pManager != nil,
+			"dve_manager":       s.dveManager != nil,
+			"validation_core":   s.validationCore != nil,
+			"agent_server":      s.agentServer != nil,
+			"data_engine":       s.dataEngine != nil,
+			"inference_service": s.inferenceService != nil,
+			"websocket_service": s.websocketService != nil,
+			"cde_service":       s.cdeService != nil,
+			"dns_service":       s.dnsService != nil,
 		},
 	}
 
@@ -415,8 +654,32 @@ func main() {
 	<-quit
 
 	log.Println("Shutting down server...")
-	if err := server.Stop(); err != nil {
-		log.Printf("Error during shutdown: %v", err)
+
+	// Create a context with timeout for graceful shutdown
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+
+	// Channel to signal when shutdown is complete
+	shutdownComplete := make(chan error, 1)
+
+	// Start shutdown in a goroutine
+	go func() {
+		shutdownComplete <- server.Stop()
+	}()
+
+	// Wait for either shutdown completion or timeout
+	select {
+	case err := <-shutdownComplete:
+		if err != nil {
+			log.Printf("Error during shutdown: %v", err)
+		} else {
+			log.Println("Server stopped gracefully")
+		}
+	case <-shutdownCtx.Done():
+		log.Println("Shutdown timeout reached, forcing exit")
+		// Cancel the server context to force stop all services
+		server.cancel()
+		// Give a brief moment for forced shutdown
+		time.Sleep(1 * time.Second)
 	}
-	log.Println("Server stopped")
 }

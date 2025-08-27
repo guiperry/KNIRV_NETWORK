@@ -45,6 +45,41 @@ export class ModelManager extends EventEmitter {
     this.initializeBuiltinModels();
   }
 
+  /**
+   * Initialize the model manager
+   */
+  async initialize(): Promise<boolean> {
+    try {
+      this.emit('model_manager_initializing');
+
+      // Check availability of builtin models
+      const builtinModels = this.getModelsBySource('builtin');
+      for (const model of builtinModels) {
+        const available = await this.isModelAvailable(model.id);
+        this.updateModelStatus(model.id, {
+          loaded: available,
+          initialized: available
+        });
+      }
+
+      // Set default model if none is set
+      if (!this.currentModel) {
+        try {
+          const defaultModel = this.getDefaultModel();
+          this.setCurrentModel(defaultModel.id);
+        } catch (error) {
+          // No models available, that's okay for now
+        }
+      }
+
+      this.emit('model_manager_initialized');
+      return true;
+    } catch (error) {
+      this.emit('model_manager_initialization_failed', { error: error.message });
+      return false;
+    }
+  }
+
   private initializeBuiltinModels(): void {
     // Default KNIRV models
     this.registerModel({

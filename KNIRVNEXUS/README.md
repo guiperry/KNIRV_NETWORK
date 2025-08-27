@@ -48,6 +48,50 @@ KNIRV-NEXUS implements a **unified architecture** with embedded frontend and bac
 - **Container Runtime**: Podman (rootless containers) for production
 - **Orchestration**: Kubernetes with production-ready configurations
 
+## 🧪 Phase 7 Testing Infrastructure
+
+### Testing Architecture
+KNIRVNEXUS implements comprehensive testing across multiple layers:
+
+#### Backend Testing (Go)
+```bash
+# Run backend unit tests
+cd backend && go test -v ./tests/...
+
+# Run specific test suites
+go test -v ./tests/phase6_comprehensive_unit_test.go
+go test -v ./tests/integration_test.go
+go test -v ./tests/architecture_test.go
+```
+
+#### Frontend Testing (Next.js)
+```bash
+# Run frontend tests
+npm test
+
+# Type checking
+npm run type-check
+
+# Linting
+npm run lint
+```
+
+#### Integration with Network Tests
+```bash
+# From project root - run KNIRVNEXUS network integration tests
+cd integration-tests && go test -v -run TestKNIRVNEXUS
+
+# Run comprehensive KNIRVNEXUS test suite
+make test-nexus
+
+# Run specific test categories
+make test-nexus-unit          # Unit tests only
+make test-nexus-integration   # Integration tests only
+make test-nexus-e2e          # End-to-end tests only
+make test-nexus-performance  # Performance tests only
+make test-nexus-security     # Security tests only
+```
+
 ## 🛠️ Build System
 
 KNIRV-NEXUS uses a unified build process that creates a single deployable binary containing both frontend and backend:

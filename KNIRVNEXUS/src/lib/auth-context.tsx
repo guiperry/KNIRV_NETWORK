@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { API_BASE_URL } from '@/lib/api';
 
 // Role definitions matching the backend
 export const ROLES = {
@@ -35,6 +36,7 @@ export interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null;
   login: (token: string) => Promise<boolean>;
+  loginWithCredentials: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   hasPermission: (service: string, operation: string) => boolean;
   hasNodeAccess: (nodeId?: string) => boolean;
@@ -71,8 +73,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const validateToken = async (token: string) => {
     try {
-      const response = await fetch('/auth/validate', {
-        method: 'POST',
+      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -82,7 +84,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (response.ok) {
         const userData = await response.json();
         setUser({
-          ...userData,
+          user: userData.username,
+          role: userData.role as Role,
+          permissions: ROLES[userData.role as Role]?.permissions || [],
+          nexus_access: ROLES[userData.role as Role]?.nexus_access || [],
           authenticated: true
         });
       } else {
@@ -96,10 +101,58 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const loginWithCredentials = async (username: string, password: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (response.ok) {
+        const loginData = await response.json();
+        const token = loginData.token;
+
+        // Get user details with the token
+        const userResponse = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          setUser({
+            user: userData.username,
+            role: userData.role as Role,
+            permissions: ROLES[userData.role as Role]?.permissions || [],
+            nexus_access: ROLES[userData.role as Role]?.nexus_access || [],
+            authenticated: true
+          });
+          localStorage.setItem('knirv_nexus_token', token);
+          return true;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Login with credentials failed:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const login = async (token: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      
+
       // For testnet mode, use predefined tokens
       const testnetTokens: Record<string, AuthUser> = {
         'testnet-admin-123': {
@@ -134,8 +187,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       // Validate with backend
-      const response = await fetch('/auth/validate', {
-        method: 'POST',
+      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -145,7 +198,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (response.ok) {
         const userData = await response.json();
         setUser({
-          ...userData,
+          user: userData.username,
+          role: userData.role as Role,
+          permissions: ROLES[userData.role as Role]?.permissions || [],
+          nexus_access: ROLES[userData.role as Role]?.nexus_access || [],
           authenticated: true
         });
         localStorage.setItem('knirv_nexus_token', token);
@@ -197,6 +253,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const value: AuthContextType = {
     user,
     login,
+    loginWithCredentials,
     logout,
     hasPermission,
     hasNodeAccess,

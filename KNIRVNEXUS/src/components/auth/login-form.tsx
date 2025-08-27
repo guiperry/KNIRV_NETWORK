@@ -11,25 +11,44 @@ import { Badge } from '@/components/ui/badge';
 import { Shield, Key, User, Eye } from 'lucide-react';
 
 export function LoginForm() {
-  const { login, isLoading } = useAuth();
+  const { login, loginWithCredentials, isLoading } = useAuth();
+  const [loginMode, setLoginMode] = useState<'credentials' | 'token'>('credentials');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [token, setToken] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token.trim()) {
-      setError('Please enter a token');
-      return;
+
+    if (loginMode === 'credentials') {
+      if (!username.trim() || !password.trim()) {
+        setError('Please enter both username and password');
+        return;
+      }
+    } else {
+      if (!token.trim()) {
+        setError('Please enter a token');
+        return;
+      }
     }
 
     setIsSubmitting(true);
     setError('');
 
     try {
-      const success = await login(token.trim());
-      if (!success) {
-        setError('Invalid token. Please check your credentials.');
+      let success = false;
+      if (loginMode === 'credentials') {
+        success = await loginWithCredentials(username.trim(), password.trim());
+        if (!success) {
+          setError('Invalid username or password. Please check your credentials.');
+        }
+      } else {
+        success = await login(token.trim());
+        if (!success) {
+          setError('Invalid token. Please check your credentials.');
+        }
       }
     } catch (err) {
       setError('Login failed. Please try again.');
@@ -65,18 +84,71 @@ export function LoginForm() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Login Mode Toggle */}
+            <div className="flex space-x-1 mb-6 p-1 bg-muted rounded-lg">
+              <button
+                type="button"
+                onClick={() => setLoginMode('credentials')}
+                className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+                  loginMode === 'credentials'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Username & Password
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginMode('token')}
+                className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+                  loginMode === 'token'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Access Token
+              </button>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="token">Access Token</Label>
-                <Input
-                  id="token"
-                  type="password"
-                  placeholder="Enter your access token"
-                  value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                  disabled={isSubmitting}
-                />
-              </div>
+              {loginMode === 'credentials' ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="username">Username</Label>
+                    <Input
+                      id="username"
+                      type="text"
+                      placeholder="Enter your username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      disabled={isSubmitting || isLoading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={isSubmitting || isLoading}
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="token">Access Token</Label>
+                  <Input
+                    id="token"
+                    type="password"
+                    placeholder="Enter your access token"
+                    value={token}
+                    onChange={(e) => setToken(e.target.value)}
+                    disabled={isSubmitting || isLoading}
+                  />
+                </div>
+              )}
 
               {error && (
                 <Alert className="border-destructive">
@@ -84,20 +156,21 @@ export function LoginForm() {
                 </Alert>
               )}
 
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={isSubmitting || !token.trim()}
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isSubmitting || (loginMode === 'credentials' ? (!username.trim() || !password.trim()) : !token.trim())}
               >
                 {isSubmitting ? 'Authenticating...' : 'Login'}
               </Button>
             </form>
 
-            {/* Testnet tokens for development */}
-            <div className="mt-6 pt-6 border-t">
-              <h3 className="text-sm font-medium mb-3 text-center text-muted-foreground">
-                Testnet Tokens (Development)
-              </h3>
+            {/* Testnet tokens for development - only show in token mode */}
+            {loginMode === 'token' && (
+              <div className="mt-6 pt-6 border-t">
+                <h3 className="text-sm font-medium mb-3 text-center text-muted-foreground">
+                  Testnet Tokens (Development)
+                </h3>
               <div className="space-y-2">
                 <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
                   <div className="flex items-center space-x-2">
@@ -147,7 +220,8 @@ export function LoginForm() {
                   </Button>
                 </div>
               </div>
-            </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

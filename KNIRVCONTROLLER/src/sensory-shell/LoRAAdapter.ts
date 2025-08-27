@@ -309,7 +309,7 @@ export class LoRAAdapter extends EventEmitter {
     // This is a simplified version - in reality, this would involve
     // matrix operations with the base model
 
-    let adaptedInput = { ...input };
+    const adaptedInput = { ...input };
 
     for (const [moduleName, weights] of this.weights) {
       // Simulate adaptation effect

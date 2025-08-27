@@ -178,6 +178,68 @@
                 </div>
             </div>
 
+            <!-- KNIRVNEXUS Deployment Options -->
+            <div class="glass-card">
+                <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">
+                    <i class="fas fa-cloud" style="margin-right: 10px;"></i>Optional: KNIRVNEXUS Deployment
+                </h2>
+
+                <div style="margin-bottom: 20px;">
+                    <p style="color: var(--transparent-white-7); margin-bottom: 15px;">
+                        For advanced developers, KNIRVNEXUS provides cloud development environments (DVE) and enhanced deployment options for your agents.
+                    </p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--bright-blue);">
+                        <h4 style="color: var(--white); margin-bottom: 10px;">
+                            <i class="fas fa-desktop" style="color: var(--bright-blue); margin-right: 8px;"></i>
+                            Cloud Development Environment
+                        </h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em; margin-bottom: 15px;">
+                            Access a fully configured development environment in the cloud with pre-installed KNIRV tools and dependencies.
+                        </p>
+                        <ul style="color: var(--transparent-white-7); font-size: 0.9em; margin-left: 20px;">
+                            <li>Pre-configured KNIRV SDK</li>
+                            <li>Integrated testing environment</li>
+                            <li>Direct KNIRV-ORACLE connectivity</li>
+                            <li>Collaborative development tools</li>
+                        </ul>
+                    </div>
+
+                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--knirv-purple);">
+                        <h4 style="color: var(--white); margin-bottom: 10px;">
+                            <i class="fas fa-rocket" style="color: var(--knirv-purple); margin-right: 8px;"></i>
+                            Enhanced Deployment
+                        </h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em; margin-bottom: 15px;">
+                            Deploy your agents with advanced features including auto-scaling, monitoring, and distributed execution.
+                        </p>
+                        <ul style="color: var(--transparent-white-7); font-size: 0.9em; margin-left: 20px;">
+                            <li>Auto-scaling agent instances</li>
+                            <li>Real-time performance monitoring</li>
+                            <li>Distributed skill execution</li>
+                            <li>Advanced error tracking</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div style="text-align: center; padding: 20px; background-color: var(--transparent-white-1); border-radius: 10px;">
+                    <h4 style="color: var(--white); margin-bottom: 10px;">Getting Started with KNIRVNEXUS</h4>
+                    <p style="color: var(--transparent-white-7); font-size: 0.9em; margin-bottom: 15px;">
+                        KNIRVNEXUS deployment is optional but recommended for production agents and collaborative development.
+                    </p>
+                    <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                        <a href="../nexus-portal/index.html" class="btn-secondary" style="text-decoration: none;">
+                            <i class="fas fa-external-link-alt" style="margin-right: 8px;"></i>Visit NEXUS Portal
+                        </a>
+                        <a href="tesnet-sandbox.html" class="btn-primary" style="text-decoration: none;">
+                            <i class="fas fa-flask" style="margin-right: 8px;"></i>Try Sandbox Environment
+                        </a>
+                    </div>
+                </div>
+            </div>
+
             <!-- Quick Actions -->
             <div class="glass-card">
                 <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">Next Steps</h2>
@@ -203,19 +265,110 @@
     </div>
 
     <!-- JavaScript -->
+    <script src="js/config-loader.js"></script>
     <script src="js/portal.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="../js/universal-footer.js"></script>
     <script>
+        // Progress tracking
+        let currentStep = 1;
+        const totalSteps = 4;
+
         function completeStep(step) {
-            // Update progress
+            // Store progress in localStorage
+            localStorage.setItem('knirv_getting_started_step', step);
+
+            // Update progress bar
             const progressBar = document.querySelector('[style*="width: 25%"]');
-            const stepIndicator = document.querySelector(`[style*="background-color: var(--bright-blue)"]`);
+            const progressText = document.querySelector('p[style*="text-align: center"]');
+
+            // Update step indicators
+            updateStepIndicators(step);
 
             if (step === 1) {
-                // Mark step 1 as complete and activate step 2
                 progressBar.style.width = '50%';
-                // Add completion logic here
-                alert('Step 1 completed! Proceed to register your first agent.');
+                progressText.textContent = 'Step 2 of 4 - Registering your first agent';
+                currentStep = 2;
+
+                // Show success message and redirect
+                showSuccessMessage('Step 1 completed! Proceeding to agent registration...', () => {
+                    window.location.href = 'getting-started-step2.html';
+                });
             }
+        }
+
+        function updateStepIndicators(completedStep) {
+            // Reset all step indicators
+            const stepIndicators = document.querySelectorAll('[style*="border-radius: 50%"]');
+
+            stepIndicators.forEach((indicator, index) => {
+                const stepNumber = index + 1;
+                if (stepNumber <= completedStep) {
+                    // Completed step
+                    indicator.style.backgroundColor = 'var(--bright-blue)';
+                    indicator.style.color = 'white';
+                } else if (stepNumber === completedStep + 1) {
+                    // Current step
+                    indicator.style.backgroundColor = 'var(--knirv-purple)';
+                    indicator.style.color = 'white';
+                } else {
+                    // Future step
+                    indicator.style.backgroundColor = 'var(--transparent-white-2)';
+                    indicator.style.color = 'var(--transparent-white-7)';
+                }
+            });
+        }
+
+        function showSuccessMessage(message, callback) {
+            const messageDiv = document.createElement('div');
+            messageDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, var(--bright-blue) 0%, var(--knirv-purple) 100%);
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(0, 192, 250, 0.3);
+                z-index: 1000;
+                font-weight: 600;
+                max-width: 300px;
+            `;
+            messageDiv.textContent = message;
+            document.body.appendChild(messageDiv);
+
+            setTimeout(() => {
+                messageDiv.remove();
+                if (callback) callback();
+            }, 2000);
+        }
+
+        // Initialize progress on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedStep = localStorage.getItem('knirv_getting_started_step');
+            if (savedStep) {
+                const step = parseInt(savedStep);
+                updateStepIndicators(step);
+
+                // Update progress bar based on saved step
+                const progressBar = document.querySelector('[style*="width: 25%"]');
+                const progressText = document.querySelector('p[style*="text-align: center"]');
+
+                if (step >= 1) {
+                    progressBar.style.width = `${(step / totalSteps) * 100}%`;
+                    progressText.textContent = `Step ${Math.min(step + 1, totalSteps)} of ${totalSteps} - ${getStepDescription(step + 1)}`;
+                }
+            }
+        });
+
+        function getStepDescription(step) {
+            const descriptions = {
+                1: 'Setting up your development environment',
+                2: 'Registering your first agent',
+                3: 'Setting up your wallet',
+                4: 'Deploying your agent'
+            };
+            return descriptions[step] || 'Complete!';
         }
     </script>
 </body>

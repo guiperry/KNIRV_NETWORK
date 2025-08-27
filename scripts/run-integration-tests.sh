@@ -210,26 +210,64 @@ display_test_summary() {
     echo -e "${GREEN}Integration test lifecycle completed!${NC}"
 }
 
+# Function to run KNIRVCONTROLLER-KNIRVROUTER integration tests
+run_controller_router_tests() {
+    print_step "Running KNIRVCONTROLLER-KNIRVROUTER integration tests..."
+
+    local controller_dir="$PROJECT_ROOT/KNIRVCONTROLLER"
+    local go_test_file="$PROJECT_ROOT/integration-tests/knirvcontroller_router_integration_test.go"
+
+    # Run TypeScript tests first
+    if [ -d "$controller_dir/tests/integration" ]; then
+        print_status "Running TypeScript integration tests..."
+        cd "$controller_dir" || return 1
+
+        if npm test -- --testPathPattern="integration/knirvrouter-integration.test.ts" --verbose; then
+            print_success "TypeScript KNIRVROUTER integration tests passed"
+        else
+            print_error "TypeScript KNIRVROUTER integration tests failed"
+            return 1
+        fi
+    fi
+
+    # Run Go integration tests
+    if [ -f "$go_test_file" ]; then
+        print_status "Running Go integration tests..."
+        cd "$PROJECT_ROOT/integration-tests" || return 1
+
+        if go test -v -timeout 300s ./knirvcontroller_router_integration_test.go; then
+            print_success "Go KNIRVROUTER integration tests passed"
+        else
+            print_error "Go KNIRVROUTER integration tests failed"
+            return 1
+        fi
+    else
+        print_warning "Go integration test file not found: $go_test_file"
+    fi
+
+    return 0
+}
+
 # Function to run KNIRVTestnet integration tests
 run_testnet_tests() {
     print_step "Running KNIRVTestnet integration tests..."
-    
+
     local testnet_dir="$PROJECT_ROOT/KNIRVGATEWAY/knirvtestnet"
     local test_script="$testnet_dir/test-integration.sh"
-    
+
     if [ ! -f "$test_script" ]; then
         print_warning "KNIRVTestnet test script not found: $test_script"
         return 1
     fi
-    
+
     if [ ! -x "$test_script" ]; then
         print_status "Making test script executable..."
         chmod +x "$test_script"
     fi
-    
+
     print_status "Executing: $test_script"
     cd "$testnet_dir" || return 1
-    
+
     if "$test_script"; then
         print_success "KNIRVTestnet integration tests completed successfully"
         return 0
@@ -365,8 +403,13 @@ main() {
     
     local test_result=0
     run_integration_tests || test_result=$?
-    
-    # Run testnet tests only if main tests succeeded
+
+    # Run KNIRVCONTROLLER-KNIRVROUTER tests if main tests succeeded
+    if [ $test_result -eq 0 ]; then
+        run_controller_router_tests || test_result=$?
+    fi
+
+    # Run testnet tests only if previous tests succeeded
     if [ $test_result -eq 0 ]; then
         run_testnet_tests || test_result=$?
     fi

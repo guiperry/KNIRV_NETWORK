@@ -4,11 +4,11 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
-import ProtobufHandler from '../../src/core/protobuf/ProtobufHandler.js';
-import { loraEngine } from '../../src/core/loraEngine.js';
-import AgentCoreCompiler from '../../src/core/agent-core-compiler/src/AgentCoreCompiler.js';
-import { WASMOrchestrator } from '../../src/sensory-shell/WASMOrchestrator.js';
-import { ModelManager } from '../../src/sensory-shell/ModelManager.js';
+import ProtobufHandler from '../../src/core/protobuf/ProtobufHandler';
+import { loraEngine } from '../../src/core/loraEngine';
+import AgentCoreCompiler from '../../src/core/agent-core-compiler/src/AgentCoreCompiler';
+import { WASMOrchestrator } from '../../src/sensory-shell/WASMOrchestrator';
+import { ModelManager } from '../../src/sensory-shell/ModelManager';
 
 describe('Phase 1: Component Integration Tests', () => {
   let protobufHandler: ProtobufHandler;

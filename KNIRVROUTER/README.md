@@ -26,6 +26,55 @@ KNIRVROUTER Verifier Node is a specialized blockchain application written in Go,
     -   Flexible database path configuration using standard OS application data directories, environment variables, or command-line flags.
     -   Environment variable support via `.env` files.
 
+## 🧪 Phase 7 Testing Infrastructure
+
+### Testing Architecture
+KNIRVROUTER implements comprehensive testing for network verification and P2P functionality:
+
+#### Unit Testing (Go)
+```bash
+# Run all unit tests
+go test -v ./...
+
+# Run specific test packages
+go test -v ./blockchain/...
+go test -v ./p2p/...
+go test -v ./wallet/...
+
+# Run tests with coverage
+go test -v -cover ./...
+```
+
+#### Integration with Network Tests
+```bash
+# From project root - run KNIRVROUTER network integration tests
+cd integration-tests && go test -v -run TestKNIRVROUTER
+
+# Run KNIRVROUTER specific tests
+cd KNIRVROUTER && go test -v ./...
+```
+
+#### Test Categories
+- **Blockchain Tests**: Block creation, mining, transaction processing
+- **P2P Network Tests**: Peer discovery, communication, TURN server functionality
+- **Wallet Tests**: Key generation, transaction signing, address creation
+- **Connectivity Tests**: Proof-of-connectivity validation and NRN minting
+- **Integration Tests**: Federation with root chain, cross-component communication
+
+#### Test Structure
+```
+KNIRVROUTER/
+├── blockchain/
+│   └── *_test.go          # Blockchain functionality tests
+├── p2p/
+│   └── *_test.go          # P2P networking tests
+├── wallet/
+│   └── *_test.go          # Wallet system tests
+├── connectivity/
+│   └── *_test.go          # Connectivity proof tests
+└── test_helper.go         # Test utilities and helpers
+```
+
 ## System Requirements
 
 -   Go 1.21 or higher

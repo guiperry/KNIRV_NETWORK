@@ -9,6 +9,17 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useKnirvSocket } from "@/hooks/use-knirv-socket";
+import { useDVENodes } from "@/hooks/use-dve-nodes";
+import { useDVERental } from "@/hooks/use-dve-rental";
+import { useValidationTasks } from "@/hooks/use-validation-tasks";
+import { useCognitiveEngine } from "@/hooks/use-cognitive-engine";
+import { useTEESecurity } from "@/hooks/use-tee-security";
+import { useSystemHealth } from "@/hooks/use-system-health";
+import QRCodeDisplay from "@/components/controller/qr-code-display";
+import DNSManagement from "@/components/dns/dns-management";
+import AgentManagement from "@/components/agents/agent-management";
+import DVERentalManagement from "@/components/dve-rental/dve-rental-management";
+import { useAuth } from "@/lib/auth-context";
 import { DashboardWrapper } from "@/components/dashboard/dashboard-wrapper";
 import {
   Activity,
@@ -25,7 +36,11 @@ import {
   TrendingUp,
   Wifi,
   WifiOff,
-  Bell
+  Bell,
+  QrCode,
+  Globe,
+  Bot,
+  CreditCard
 } from "lucide-react";
 
 interface DVENode {
@@ -76,12 +91,20 @@ interface NRNStaking {
 }
 
 export default function Dashboard() {
-  const [dveNodes, setDveNodes] = useState<DVENode[]>([]);
-  const [validationTasks, setValidationTasks] = useState<ValidationTask[]>([]);
-  const [cognitiveEngine, setCognitiveEngine] = useState<CognitiveEngine | null>(null);
-  const [teeSecurity, setTeeSecurity] = useState<TEESecurity | null>(null);
-  const [nrnStaking, setNrnStaking] = useState<NRNStaking | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [showQRCode, setShowQRCode] = useState(false);
+  const [showDNSManagement, setShowDNSManagement] = useState(false);
+  const [showAgentManagement, setShowAgentManagement] = useState(false);
+  const [showDVERentalManagement, setShowDVERentalManagement] = useState(false);
+
+  // Use real backend hooks instead of mock data
+  const { nodes: dveNodes, isLoading: dveLoading, error: dveError } = useDVENodes();
+  const { rentals, stats: rentalStats, isLoading: rentalLoading } = useDVERental();
+  const { tasks: validationTasks, isLoading: tasksLoading } = useValidationTasks();
+  const { cognitiveEngine, isLoading: cognitiveLoading } = useCognitiveEngine();
+  const { securityStatus: teeSecurityStatus, isLoading: teeLoading } = useTEESecurity();
+  const { systemHealth, isLoading: healthLoading } = useSystemHealth();
   
   const {
     isConnected,
@@ -95,147 +118,21 @@ export default function Dashboard() {
     clearUpdates
   } = useKnirvSocket();
 
+  // Error handling for backend connections
   useEffect(() => {
-    // Initialize with mock data
-    const mockData = {
-      dveNodes: [
-        {
-          id: "dve-001",
-          name: "KNIRV-Node-Alpha",
-          status: "online" as const,
-          cpu_usage: 45,
-          memory_usage: 62,
-          tee_type: "SGX" as const,
-          stake_amount: 50000,
-          reputation_score: 98,
-          last_heartbeat: new Date().toISOString()
-        },
-        {
-          id: "dve-002",
-          name: "KNIRV-Node-Beta",
-          status: "online" as const,
-          cpu_usage: 78,
-          memory_usage: 85,
-          tee_type: "SEV-SNP" as const,
-          stake_amount: 75000,
-          reputation_score: 95,
-          last_heartbeat: new Date().toISOString()
-        },
-        {
-          id: "dve-003",
-          name: "KNIRV-Node-Gamma",
-          status: "maintenance" as const,
-          cpu_usage: 0,
-          memory_usage: 0,
-          tee_type: "TDX" as const,
-          stake_amount: 60000,
-          reputation_score: 92,
-          last_heartbeat: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-        }
-      ],
-      validationTasks: [
-        {
-          id: "task-001",
-          type: "skill_validation" as const,
-          status: "running" as const,
-          priority: "high" as const,
-          assigned_node: "dve-001",
-          progress: 75,
-          created_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-          estimated_completion: new Date(Date.now() + 30 * 60 * 1000).toISOString()
-        },
-        {
-          id: "task-002",
-          type: "llm_update" as const,
-          status: "pending" as const,
-          priority: "critical" as const,
-          assigned_node: "",
-          progress: 0,
-          created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-          estimated_completion: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: "task-003",
-          type: "security_audit" as const,
-          status: "completed" as const,
-          priority: "medium" as const,
-          assigned_node: "dve-002",
-          progress: 100,
-          created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          estimated_completion: new Date(Date.now() - 30 * 60 * 1000).toISOString()
-        }
-      ],
-      cognitiveEngine: {
-        status: "active" as const,
-        accuracy: 94.5,
-        tasks_processed: 15420,
-        adaptation_rate: 0.85,
-        model_version: "CLEAN-v2.0.1"
-      },
-      teeSecurity: {
-        attestation_status: "verified" as const,
-        enclave_count: 12,
-        security_score: 98,
-        last_audit: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-        threats_detected: 0
-      },
-      nrnStaking: {
-        total_staked: 2500000,
-        apy: 12.5,
-        rewards_24h: 856.25,
-        validators_count: 45,
-        slashing_events: 0
-      }
-    };
+    if (dveError) {
+      toast({
+        title: "DVE Nodes Error",
+        description: dveError,
+        variant: "destructive",
+      });
+    }
+  }, [dveError, toast]);
 
-    setDveNodes(mockData.dveNodes);
-    setValidationTasks(mockData.validationTasks);
-    setCognitiveEngine(mockData.cognitiveEngine);
-    setTeeSecurity(mockData.teeSecurity);
-    setNrnStaking(mockData.nrnStaking);
-  }, []);
 
-  // Handle real-time updates
+
+  // Handle security alerts and system notifications
   useEffect(() => {
-    // Update DVE nodes with real-time data
-    dveNodeUpdates.forEach(update => {
-      setDveNodes(prev => prev.map(node => 
-        node.id === update.id 
-          ? { ...node, ...update, last_heartbeat: update.last_heartbeat }
-          : node
-      ));
-    });
-
-    // Update validation tasks with real-time data
-    validationTaskUpdates.forEach(update => {
-      setValidationTasks(prev => prev.map(task => 
-        task.id === update.id 
-          ? { ...task, ...update }
-          : task
-      ));
-    });
-
-    // Update cognitive engine with real-time data
-    cognitiveEngineUpdates.forEach(update => {
-      if (cognitiveEngine) {
-        setCognitiveEngine(prev => prev ? { ...prev, ...update } : null);
-      }
-    });
-
-    // Update TEE security with real-time data
-    teeSecurityUpdates.forEach(update => {
-      if (teeSecurity) {
-        setTeeSecurity(prev => prev ? { ...prev, ...update } : null);
-      }
-    });
-
-    // Update NRN staking with real-time data
-    nrnStakingUpdates.forEach(update => {
-      if (nrnStaking) {
-        setNrnStaking(prev => prev ? { ...prev, ...update } : null);
-      }
-    });
-
     // Show security alerts as toasts
     securityAlerts.forEach(alert => {
       toast({
@@ -250,23 +147,11 @@ export default function Dashboard() {
       toast({
         title: notification.title,
         description: notification.message,
-        variant: notification.type === 'error' ? 'destructive' : 
+        variant: notification.type === 'error' ? 'destructive' :
                 notification.type === 'success' ? 'default' : 'default'
       });
     });
-  }, [
-    dveNodeUpdates,
-    validationTaskUpdates,
-    cognitiveEngineUpdates,
-    teeSecurityUpdates,
-    nrnStakingUpdates,
-    securityAlerts,
-    systemNotifications,
-    cognitiveEngine,
-    teeSecurity,
-    nrnStaking,
-    toast
-  ]);
+  }, [securityAlerts, systemNotifications, toast]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -320,6 +205,42 @@ export default function Dashboard() {
               {securityAlerts.length > 0 && (
                 <Badge className="bg-red-500"><Bell className="w-3 h-3 mr-1" /> {securityAlerts.length}</Badge>
               )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowQRCode(true)}
+                className="ml-2"
+              >
+                <QrCode className="w-4 h-4 mr-2" />
+                Pair Device
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDNSManagement(true)}
+                className="ml-2"
+              >
+                <Globe className="w-4 h-4 mr-2" />
+                DNS
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAgentManagement(true)}
+                className="ml-2"
+              >
+                <Bot className="w-4 h-4 mr-2" />
+                Agents
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDVERentalManagement(true)}
+                className="ml-2"
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                DVE Rental
+              </Button>
             </div>
           </div>
           <p className="text-lg text-muted-foreground">
@@ -361,22 +282,22 @@ export default function Dashboard() {
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{teeSecurity?.security_score || 0}%</div>
+            <div className="text-2xl font-bold">{teeSecurityStatus?.security_score || 0}%</div>
             <p className="text-xs text-muted-foreground">
-              {teeSecurity?.enclave_count || 0} active enclaves
+              {teeSecurityStatus?.enclave_count || 0} active enclaves
             </p>
           </CardContent>
         </Card>
 
         <Card className="knirv-card-gradient">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">NRN Staked</CardTitle>
+            <CardTitle className="text-sm font-medium">DVE Rentals</CardTitle>
             <Coins className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{((nrnStaking?.total_staked || 0) / 1000000).toFixed(1)}M</div>
+            <div className="text-2xl font-bold">{rentalStats?.active_rentals || 0}</div>
             <p className="text-xs text-muted-foreground">
-              {nrnStaking?.apy || 0}% APY
+              {rentalStats?.total_rentals || 0} total rentals
             </p>
           </CardContent>
         </Card>
@@ -389,7 +310,7 @@ export default function Dashboard() {
           <TabsTrigger value="tasks">Validation Tasks</TabsTrigger>
           <TabsTrigger value="cognitive">Cognitive Engine</TabsTrigger>
           <TabsTrigger value="security">TEE Security</TabsTrigger>
-          <TabsTrigger value="staking">NRN Staking</TabsTrigger>
+          <TabsTrigger value="staking">DVE Rentals</TabsTrigger>
         </TabsList>
 
         <TabsContent value="nodes" className="space-y-4">
@@ -466,7 +387,7 @@ export default function Dashboard() {
                       <CardDescription>{task.type.replace('_', ' ').toUpperCase()}</CardDescription>
                     </div>
                     <div className="flex gap-2">
-                      {getPriorityBadge(task.priority)}
+                      {getPriorityBadge(task.priority.toString())}
                       {getStatusBadge(task.status)}
                     </div>
                   </div>
@@ -476,23 +397,23 @@ export default function Dashboard() {
                     <div>
                       <p className="text-sm text-muted-foreground">Progress</p>
                       <div className="flex items-center gap-2">
-                        <Progress value={task.progress} className="flex-1" />
-                        <span className="text-sm">{task.progress}%</span>
+                        <Progress value={task.completion_percentage || 0} className="flex-1" />
+                        <span className="text-sm">{task.completion_percentage || 0}%</span>
                       </div>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Assigned Node</p>
-                      <p className="font-semibold">{task.assigned_node || "Unassigned"}</p>
+                      <p className="font-semibold">{task.assigned_node_id || "Unassigned"}</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Created</p>
                       <p className="font-semibold">{new Date(task.created_at).toLocaleString()}</p>
                     </div>
                   </div>
-                  {task.estimated_completion && (
+                  {task.estimated_completion_time && (
                     <div className="mt-4">
                       <p className="text-sm text-muted-foreground">Estimated Completion</p>
-                      <p className="font-semibold">{new Date(task.estimated_completion).toLocaleString()}</p>
+                      <p className="font-semibold">{new Date(task.estimated_completion_time).toLocaleString()}</p>
                     </div>
                   )}
                 </CardContent>
@@ -547,7 +468,7 @@ export default function Dashboard() {
         </TabsContent>
 
         <TabsContent value="security" className="space-y-4">
-          {teeSecurity && (
+          {teeSecurityStatus && (
             <div className="grid gap-4">
               <Card className="knirv-card-gradient">
                 <CardHeader>
@@ -560,38 +481,38 @@ export default function Dashboard() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground">Attestation Status</p>
-                      {getStatusBadge(teeSecurity.attestation_status)}
+                      {getStatusBadge(teeSecurityStatus.attestation_status)}
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Security Score</p>
                       <div className="flex items-center gap-2">
-                        <Progress value={teeSecurity.security_score} className="flex-1" />
-                        <span className="text-sm">{teeSecurity.security_score}%</span>
+                        <Progress value={teeSecurityStatus.security_score} className="flex-1" />
+                        <span className="text-sm">{teeSecurityStatus.security_score}%</span>
                       </div>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Active Enclaves</p>
-                      <p className="text-2xl font-bold">{teeSecurity.enclave_count}</p>
+                      <p className="text-2xl font-bold">{teeSecurityStatus.enclave_count}</p>
                     </div>
                   </div>
                   <div className="mt-4 grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground">Last Audit</p>
-                      <p className="font-semibold">{new Date(teeSecurity.last_audit).toLocaleString()}</p>
+                      <p className="font-semibold">{new Date(teeSecurityStatus.last_audit).toLocaleString()}</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Threats Detected</p>
-                      <p className="font-semibold">{teeSecurity.threats_detected}</p>
+                      <p className="font-semibold">{teeSecurityStatus.threats_detected}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
               
-              {teeSecurity.threats_detected > 0 && (
+              {teeSecurityStatus.threats_detected > 0 && (
                 <Alert>
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    {teeSecurity.threats_detected} potential threats detected. Security team has been notified.
+                    {teeSecurityStatus.threats_detected} potential threats detected. Security team has been notified.
                   </AlertDescription>
                 </Alert>
               )}
@@ -600,38 +521,47 @@ export default function Dashboard() {
         </TabsContent>
 
         <TabsContent value="staking" className="space-y-4">
-          {nrnStaking && (
+          {rentalStats && (
             <div className="grid gap-4">
               <Card className="knirv-card-gradient">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Coins className="h-5 w-5" />
-                    NRN Staking Overview
+                    DVE Rental Overview
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
-                      <p className="text-sm text-muted-foreground">Total Staked</p>
-                      <p className="text-2xl font-bold">{(nrnStaking.total_staked / 1000000).toFixed(1)}M NRN</p>
+                      <p className="text-sm text-muted-foreground">Total Rentals</p>
+                      <p className="text-2xl font-bold">{rentalStats.total_rentals}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">APY</p>
-                      <p className="text-2xl font-bold">{nrnStaking.apy}%</p>
+                      <p className="text-sm text-muted-foreground">Active Rentals</p>
+                      <p className="text-2xl font-bold">{rentalStats.active_rentals}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">24h Rewards</p>
-                      <p className="text-2xl font-bold">{nrnStaking.rewards_24h.toFixed(2)} NRN</p>
+                      <p className="text-sm text-muted-foreground">Total Revenue</p>
+                      <p className="text-2xl font-bold">{rentalStats.total_revenue.toFixed(0)} NRN</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Validators</p>
-                      <p className="text-2xl font-bold">{nrnStaking.validators_count}</p>
+                      <p className="text-sm text-muted-foreground">Avg Duration</p>
+                      <p className="text-2xl font-bold">{rentalStats.average_duration.toFixed(1)}h</p>
                     </div>
                   </div>
-                  <div className="mt-4">
-                    <p className="text-sm text-muted-foreground">Slashing Events (24h)</p>
-                    <p className="font-semibold">{nrnStaking.slashing_events}</p>
-                  </div>
+                  {rentalStats.popular_plans.length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-sm text-muted-foreground mb-2">Popular Plans</p>
+                      <div className="space-y-1">
+                        {rentalStats.popular_plans.slice(0, 3).map((plan, index) => (
+                          <div key={plan.plan_id} className="flex justify-between text-sm">
+                            <span>{plan.plan_name}</span>
+                            <span className="font-semibold">{plan.rental_count} rentals</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -639,6 +569,33 @@ export default function Dashboard() {
         </TabsContent>
       </Tabs>
       </div>
+
+      {/* QR Code Display Modal */}
+      <QRCodeDisplay
+        isOpen={showQRCode}
+        onClose={() => setShowQRCode(false)}
+        userId={user?.user || 'anonymous'}
+        deviceType="desktop"
+        capabilities={['remote_control', 'file_transfer', 'screen_share', 'dve_access']}
+      />
+
+      {/* DNS Management Modal */}
+      <DNSManagement
+        isOpen={showDNSManagement}
+        onClose={() => setShowDNSManagement(false)}
+      />
+
+      {/* Agent Management Modal */}
+      <AgentManagement
+        isOpen={showAgentManagement}
+        onClose={() => setShowAgentManagement(false)}
+      />
+
+      {/* DVE Rental Management Modal */}
+      <DVERentalManagement
+        isOpen={showDVERentalManagement}
+        onClose={() => setShowDVERentalManagement(false)}
+      />
     </DashboardWrapper>
   );
 }

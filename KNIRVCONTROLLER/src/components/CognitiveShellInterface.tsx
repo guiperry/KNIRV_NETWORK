@@ -1,17 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Brain, Activity, Zap, Eye, Mic, Settings, BarChart3 } from 'lucide-react';
+import { Brain, Activity, Zap, Eye, Mic, Settings, BarChart3, MessageSquare, Send, Cpu } from 'lucide-react';
 import { CognitiveEngine, CognitiveConfig, CognitiveState } from '../sensory-shell/CognitiveEngine';
+import { HRMBridge } from '../sensory-shell/HRMBridge';
+import { WASMOrchestrator } from '../sensory-shell/WASMOrchestrator';
+
+interface ConversationMessage {
+  id: string;
+  type: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: Date;
+  processingTime?: number;
+  hrmResponse?: any;
+  skillsInvoked?: string[];
+}
 
 interface CognitiveShellInterfaceProps {
   onStateChange?: (state: CognitiveState) => void;
   onSkillInvoked?: (skillId: string, result: any) => void;
   onAdaptationTriggered?: (adaptation: any) => void;
+  onConversationUpdate?: (messages: ConversationMessage[]) => void;
 }
 
 export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = ({
   onStateChange,
   onSkillInvoked,
   onAdaptationTriggered,
+  onConversationUpdate,
 }) => {
   const [cognitiveEngine, setCognitiveEngine] = useState<CognitiveEngine | null>(null);
   const [engineState, setEngineState] = useState<CognitiveState | null>(null);
@@ -20,6 +34,14 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
   const [learningMode, setLearningMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [commandHistory, setCommandHistory] = useState<Array<{input: string, output: string}>>([]);
+
+  // Real-time conversation state
+  const [conversationMessages, setConversationMessages] = useState<ConversationMessage[]>([]);
+  const [currentInput, setCurrentInput] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [hrmBridge, setHrmBridge] = useState<HRMBridge | null>(null);
+  const [wasmOrchestrator, setWasmOrchestrator] = useState<WASMOrchestrator | null>(null);
+  const [showConversation, setShowConversation] = useState(true);
   const [config, setConfig] = useState<CognitiveConfig>({
     maxContextSize: 100,
     learningRate: 0.01,
@@ -43,6 +65,8 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
 
   useEffect(() => {
     initializeCognitiveEngine();
+    initializeHRMBridge();
+    initializeWASMOrchestrator();
     return () => {
       if (engineRef.current) {
         // Force stop engine immediately
@@ -234,6 +258,123 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
     }
   };
 
+  const initializeHRMBridge = async () => {
+    try {
+      const bridge = new HRMBridge({
+        modelPath: '/models/hrm-core.wasm',
+        maxMemoryMB: 512,
+        enableGPU: false,
+        batchSize: 1,
+        sequenceLength: 2048,
+        temperature: 0.7,
+        topP: 0.9,
+        enableLoRA: true,
+        enableQuantization: false
+      });
+
+      await bridge.initialize();
+      setHrmBridge(bridge);
+      console.log('HRM Bridge initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize HRM Bridge:', error);
+    }
+  };
+
+  const initializeWASMOrchestrator = async () => {
+    try {
+      const orchestrator = new WASMOrchestrator();
+      await orchestrator.initialize();
+      setWasmOrchestrator(orchestrator);
+      console.log('WASM Orchestrator initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize WASM Orchestrator:', error);
+    }
+  };
+
+  // Handle real-time conversation
+  const handleConversationInput = async (input: string) => {
+    if (!input.trim() || isProcessing) return;
+
+    setIsProcessing(true);
+    const startTime = Date.now();
+
+    // Add user message
+    const userMessage: ConversationMessage = {
+      id: `user-${Date.now()}`,
+      type: 'user',
+      content: input.trim(),
+      timestamp: new Date()
+    };
+
+    const updatedMessages = [...conversationMessages, userMessage];
+    setConversationMessages(updatedMessages);
+    setCurrentInput('');
+
+    try {
+      let response = '';
+      let skillsInvoked: string[] = [];
+      let hrmResponse: any = null;
+
+      // Process through cognitive engine if available
+      if (cognitiveEngine) {
+        const result = await cognitiveEngine.processInput(input);
+        response = result.output || 'No response generated';
+        skillsInvoked = result.skillsInvoked || [];
+      }
+      // Fallback to HRM Bridge if cognitive engine not available
+      else if (hrmBridge) {
+        hrmResponse = await hrmBridge.processCognitiveInput({
+          inputText: input,
+          contextHistory: conversationMessages.slice(-5).map(m => m.content),
+          taskType: 'conversation',
+          requiresSkillInvocation: false,
+          metadata: {}
+        });
+        response = hrmResponse.outputText || 'HRM processing completed';
+      }
+      // Final fallback
+      else {
+        response = 'Cognitive processing not available. Please ensure the engine is properly initialized.';
+      }
+
+      const processingTime = Date.now() - startTime;
+
+      // Add assistant response
+      const assistantMessage: ConversationMessage = {
+        id: `assistant-${Date.now()}`,
+        type: 'assistant',
+        content: response,
+        timestamp: new Date(),
+        processingTime,
+        hrmResponse,
+        skillsInvoked
+      };
+
+      const finalMessages = [...updatedMessages, assistantMessage];
+      setConversationMessages(finalMessages);
+
+      if (onConversationUpdate) {
+        onConversationUpdate(finalMessages);
+      }
+
+    } catch (error) {
+      console.error('Error processing conversation input:', error);
+
+      const errorMessage: ConversationMessage = {
+        id: `error-${Date.now()}`,
+        type: 'system',
+        content: `Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`,
+        timestamp: new Date(),
+        processingTime: Date.now() - startTime
+      };
+
+      const finalMessages = [...updatedMessages, errorMessage];
+      setConversationMessages(finalMessages);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const updateMetrics = () => {
     if (cognitiveEngine) {
       const newMetrics = cognitiveEngine.getMetrics();
@@ -386,6 +527,112 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
             {metrics?.learningEvents || 0}
           </div>
         </div>
+      </div>
+
+      {/* Real-time Conversation Interface */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center space-x-2">
+            <MessageSquare className="w-4 h-4 text-purple-400" />
+            <span className="text-sm font-medium text-white">Live Conversation</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            {hrmBridge && (
+              <div className="flex items-center space-x-1 px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded">
+                <Cpu className="w-3 h-3" />
+                <span>HRM</span>
+              </div>
+            )}
+            {wasmOrchestrator && (
+              <div className="flex items-center space-x-1 px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded">
+                <Zap className="w-3 h-3" />
+                <span>WASM</span>
+              </div>
+            )}
+            <button
+              onClick={() => setShowConversation(!showConversation)}
+              className="text-xs text-gray-400 hover:text-white transition-colors"
+            >
+              {showConversation ? 'Hide' : 'Show'}
+            </button>
+          </div>
+        </div>
+
+        {showConversation && (
+          <div className="bg-gray-700/30 rounded-lg border border-gray-600/50">
+            {/* Conversation Messages */}
+            <div className="h-48 overflow-y-auto p-3 space-y-2">
+              {conversationMessages.length === 0 ? (
+                <div className="text-center text-gray-500 py-6">
+                  <MessageSquare className="w-6 h-6 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Start a conversation with the cognitive engine</p>
+                </div>
+              ) : (
+                conversationMessages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-xs px-3 py-2 rounded-lg ${
+                        message.type === 'user'
+                          ? 'bg-blue-500/20 text-blue-100'
+                          : message.type === 'system'
+                          ? 'bg-red-500/20 text-red-100'
+                          : 'bg-gray-600/50 text-gray-100'
+                      }`}
+                    >
+                      <p className="text-sm">{message.content}</p>
+                      <div className="flex items-center justify-between mt-1 text-xs opacity-70">
+                        <span>{message.timestamp.toLocaleTimeString()}</span>
+                        {message.processingTime && (
+                          <span>{message.processingTime}ms</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+              {isProcessing && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-600/50 text-gray-100 px-3 py-2 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-purple-400"></div>
+                      <span className="text-sm">Processing...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Input Area */}
+            <div className="border-t border-gray-600/50 p-3">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  value={currentInput}
+                  onChange={(e) => setCurrentInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleConversationInput(currentInput);
+                    }
+                  }}
+                  placeholder={isRunning ? "Type your message..." : "Start the engine to begin conversation"}
+                  disabled={!isRunning || isProcessing}
+                  className="flex-1 bg-gray-800/50 text-white placeholder-gray-400 border border-gray-600/50 rounded px-3 py-2 text-sm focus:outline-none focus:border-purple-500/50"
+                />
+                <button
+                  onClick={() => handleConversationInput(currentInput)}
+                  disabled={!isRunning || isProcessing || !currentInput.trim()}
+                  className="p-2 bg-purple-500/20 text-purple-400 rounded hover:bg-purple-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Skill Panel */}

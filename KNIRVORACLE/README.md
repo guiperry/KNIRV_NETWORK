@@ -46,6 +46,55 @@ KNIRVORACLE is a blockchain-based platform designed to facilitate a transparent,
         *   It also includes the NRN `Fee` specified by the capability.
         *   This transaction is submitted to the KNIRVORACLE, creating an on-chain audit log.
 
+## 🧪 Phase 7 Testing Infrastructure
+
+### Testing Architecture
+KNIRVORACLE implements comprehensive testing for the core blockchain and MCP functionality:
+
+#### Unit Testing (Go)
+```bash
+# Run all unit tests
+go test -v ./...
+
+# Run specific test packages
+go test -v ./agent_manager_test.go
+go test -v ./agent_integration_test.go
+go test -v ./economics_integration_test.go
+
+# Run tests with coverage
+go test -v -cover ./...
+```
+
+#### Integration with Network Tests
+```bash
+# From project root - run KNIRVORACLE network integration tests
+cd integration-tests && go test -v -run TestKNIRVORACLE
+
+# Run comprehensive KNIRVORACLE test suite
+make test-root
+
+# Run KNIRVORACLE specific tests
+cd KNIRVORACLE && go test -v ./...
+```
+
+#### Test Categories
+- **Agent Management Tests**: Agent registration, capability testing, badge systems
+- **Economics Integration Tests**: NRN token operations, fee processing, reward distribution
+- **Blockchain Tests**: Block creation, transaction processing, consensus validation
+- **MCP Protocol Tests**: Capability registration, discovery, invocation
+- **Integration Tests**: Cross-component communication and data flow
+
+#### Test Structure
+```
+KNIRVORACLE/
+├── agent_manager_test.go           # Agent management functionality
+├── agent_integration_test.go       # Agent integration scenarios
+├── economics_integration_test.go   # Economic model testing
+├── blockchain_server_test.go       # Core blockchain functionality
+├── bootnode_test.go               # Network bootstrap testing
+└── *_test.go                      # Component-specific tests
+```
+
 ## Key Features
 
 *   **Decentralized Registry:** Immutable, transparent record of all registered MCP capabilities.

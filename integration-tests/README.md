@@ -32,6 +32,12 @@ This directory contains the complete integration testing suite for the KNIRV D-T
 # Run KNIRVGATEWAY NEXUS Integration tests only
 ./config/run-tests.sh gateway-nexus
 
+# Run KNIRVCONTROLLER real network integration tests
+./config/run-tests.sh knirvcontroller
+
+# Run KNIRVCONTROLLER demo workflows
+./config/run-tests.sh knirvcontroller-demo
+
 # Run with verbose output
 ./config/run-tests.sh --verbose
 ```
@@ -126,6 +132,20 @@ node validate-portal.js
 - **Key Tests**: Service endpoints, testnet-specific functionality, service discovery
 - **Validation**: Testnet readiness, standalone operation, mirrored production behavior
 - **Execution**: Can be run independently or as part of full test suite via `run-integration-tests.sh`
+
+### 12. KNIRVCONTROLLER Real Network Integration Testing (`knirvcontroller_real_network_test.go`) ⭐ NEW
+- **Purpose**: Validate KNIRVCONTROLLER integration with real KNIRV network services for demos
+- **Coverage**: Unified server health, skill invocation, LoRA adapters, WASM compilation, network integration
+- **Key Tests**: Health checks, ErrorContext processing, cross-service communication, real-time monitoring
+- **Validation**: Real network connectivity, service integration, demo readiness
+- **Execution**: Connects to actual running services (no mocks)
+
+### 13. KNIRVCONTROLLER Demo Workflows (`knirvcontroller_demo_workflows_test.go`) ⭐ NEW
+- **Purpose**: Demonstrate real-world KNIRVCONTROLLER usage scenarios for live presentations
+- **Coverage**: Agent development, skill invocation, error fixing, LoRA workflows, network monitoring
+- **Key Tests**: 6 comprehensive demo workflows showcasing all major features
+- **Validation**: End-to-end functionality, real-world scenarios, presentation readiness
+- **Execution**: Designed for live demonstrations and real-world testing
 
 ## Architecture
 

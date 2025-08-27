@@ -201,6 +201,157 @@
                     </div>
                 </div>
 
+                <!-- WASM Agent Core Build Deployment Sequence -->
+                <div class="glass-card" style="margin-bottom: 30px;">
+                    <h3 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.2rem;">
+                        <i class="fas fa-cogs" style="margin-right: 10px;"></i>WASM Agent Core Build Deployment Sequence
+                    </h3>
+
+                    <div style="margin-bottom: 25px;">
+                        <p style="color: var(--transparent-white-7); margin-bottom: 15px;">
+                            The KNIRV agent deployment process involves compiling your agent-core to WebAssembly (WASM) and deploying it through a secure, multi-stage pipeline. This ensures optimal performance and security across the D-TEN network.
+                        </p>
+                    </div>
+
+                    <!-- Build Pipeline Steps -->
+                    <div style="margin-bottom: 25px;">
+                        <h4 style="color: var(--white); margin-bottom: 15px;">Build Pipeline Overview</h4>
+                        <div style="display: grid; gap: 15px;">
+
+                            <!-- Step 1: Agent Core Compilation -->
+                            <div style="display: flex; align-items: flex-start; padding: 15px; background-color: var(--transparent-white-05); border-radius: 8px; border-left: 4px solid var(--bright-blue);">
+                                <div style="width: 30px; height: 30px; background-color: var(--bright-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; flex-shrink: 0;">
+                                    <span style="color: white; font-weight: bold; font-size: 0.9em;">1</span>
+                                </div>
+                                <div style="flex: 1;">
+                                    <h5 style="color: var(--white); margin-bottom: 8px;">Agent Core Compilation</h5>
+                                    <p style="color: var(--transparent-white-7); font-size: 0.9em; margin-bottom: 10px;">
+                                        Your TypeScript agent-core is compiled to WebAssembly using the KNIRVCONTROLLER build pipeline.
+                                    </p>
+                                    <div style="background-color: var(--transparent-white-1); padding: 10px; border-radius: 5px; font-family: monospace; font-size: 0.8em; color: var(--transparent-white-8);">
+                                        <div>$ knirv build --target=wasm --model=<span style="color: var(--bright-blue);">[selected-model]</span></div>
+                                        <div style="color: var(--transparent-white-6);">→ Compiling cognitive shell templates...</div>
+                                        <div style="color: var(--transparent-white-6);">→ Embedding model weights...</div>
+                                        <div style="color: var(--transparent-white-6);">→ Generating agent.wasm</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 2: WASM Optimization -->
+                            <div style="display: flex; align-items: flex-start; padding: 15px; background-color: var(--transparent-white-05); border-radius: 8px; border-left: 4px solid var(--knirv-purple);">
+                                <div style="width: 30px; height: 30px; background-color: var(--knirv-purple); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; flex-shrink: 0;">
+                                    <span style="color: white; font-weight: bold; font-size: 0.9em;">2</span>
+                                </div>
+                                <div style="flex: 1;">
+                                    <h5 style="color: var(--white); margin-bottom: 8px;">WASM Optimization & Validation</h5>
+                                    <p style="color: var(--transparent-white-7); font-size: 0.9em; margin-bottom: 10px;">
+                                        The compiled WASM is optimized for size and performance, then validated for security and compatibility.
+                                    </p>
+                                    <ul style="color: var(--transparent-white-7); font-size: 0.9em; margin-left: 20px;">
+                                        <li>Size optimization using wasm-opt</li>
+                                        <li>Security validation and sandboxing checks</li>
+                                        <li>D-TEN network compatibility verification</li>
+                                        <li>LoRA adapter integration validation</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <!-- Step 3: Package Creation -->
+                            <div style="display: flex; align-items: flex-start; padding: 15px; background-color: var(--transparent-white-05); border-radius: 8px; border-left: 4px solid #28a745;">
+                                <div style="width: 30px; height: 30px; background-color: #28a745; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; flex-shrink: 0;">
+                                    <span style="color: white; font-weight: bold; font-size: 0.9em;">3</span>
+                                </div>
+                                <div style="flex: 1;">
+                                    <h5 style="color: var(--white); margin-bottom: 8px;">Deployment Package Creation</h5>
+                                    <p style="color: var(--transparent-white-7); font-size: 0.9em; margin-bottom: 10px;">
+                                        A complete deployment package is created containing the WASM binary, metadata, and configuration.
+                                    </p>
+                                    <div style="background-color: var(--transparent-white-1); padding: 10px; border-radius: 5px;">
+                                        <div style="font-family: monospace; font-size: 0.8em; color: var(--transparent-white-8);">
+                                            <div>📦 agent-deployment.tar.gz</div>
+                                            <div style="margin-left: 15px; color: var(--transparent-white-6);">├── agent.wasm</div>
+                                            <div style="margin-left: 15px; color: var(--transparent-white-6);">├── manifest.json</div>
+                                            <div style="margin-left: 15px; color: var(--transparent-white-6);">├── config/</div>
+                                            <div style="margin-left: 15px; color: var(--transparent-white-6);">└── metadata.json</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 4: Network Deployment -->
+                            <div style="display: flex; align-items: flex-start; padding: 15px; background-color: var(--transparent-white-05); border-radius: 8px; border-left: 4px solid #ffc107;">
+                                <div style="width: 30px; height: 30px; background-color: #ffc107; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; flex-shrink: 0;">
+                                    <span style="color: white; font-weight: bold; font-size: 0.9em;">4</span>
+                                </div>
+                                <div style="flex: 1;">
+                                    <h5 style="color: var(--white); margin-bottom: 8px;">Network Deployment & Registration</h5>
+                                    <p style="color: var(--transparent-white-7); font-size: 0.9em; margin-bottom: 10px;">
+                                        The package is deployed to KNIRVNEXUS DVE and registered with KNIRVORACLE for network discovery.
+                                    </p>
+                                    <ul style="color: var(--transparent-white-7); font-size: 0.9em; margin-left: 20px;">
+                                        <li>Upload to secure KNIRVNEXUS environment</li>
+                                        <li>Agent registration with KNIRVORACLE</li>
+                                        <li>Network capability announcement</li>
+                                        <li>Health check and monitoring setup</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Technical Requirements -->
+                    <div style="margin-bottom: 25px;">
+                        <h4 style="color: var(--white); margin-bottom: 15px;">Technical Requirements</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                            <div style="padding: 15px; background-color: var(--transparent-white-1); border-radius: 8px;">
+                                <h5 style="color: var(--bright-blue); margin-bottom: 10px;">
+                                    <i class="fas fa-microchip" style="margin-right: 8px;"></i>WASM Runtime
+                                </h5>
+                                <ul style="color: var(--transparent-white-7); font-size: 0.9em; margin-left: 20px;">
+                                    <li>WebAssembly System Interface (WASI)</li>
+                                    <li>Memory limit: 512MB - 2GB</li>
+                                    <li>Execution timeout: 30s per invocation</li>
+                                </ul>
+                            </div>
+                            <div style="padding: 15px; background-color: var(--transparent-white-1); border-radius: 8px;">
+                                <h5 style="color: var(--knirv-purple); margin-bottom: 10px;">
+                                    <i class="fas fa-shield-alt" style="margin-right: 8px;"></i>Security
+                                </h5>
+                                <ul style="color: var(--transparent-white-7); font-size: 0.9em; margin-left: 20px;">
+                                    <li>Sandboxed execution environment</li>
+                                    <li>No direct file system access</li>
+                                    <li>Network access via KNIRV APIs only</li>
+                                </ul>
+                            </div>
+                            <div style="padding: 15px; background-color: var(--transparent-white-1); border-radius: 8px;">
+                                <h5 style="color: #28a745; margin-bottom: 10px;">
+                                    <i class="fas fa-network-wired" style="margin-right: 8px;"></i>Network Integration
+                                </h5>
+                                <ul style="color: var(--transparent-white-7); font-size: 0.9em; margin-left: 20px;">
+                                    <li>KNIRVORACLE registration required</li>
+                                    <li>LoRA adapter compatibility</li>
+                                    <li>Real-time skill invocation support</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Deployment Commands -->
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: var(--white); margin-bottom: 15px;">Command Reference</h4>
+                        <div style="background-color: var(--transparent-white-1); padding: 15px; border-radius: 8px; font-family: monospace; font-size: 0.9em;">
+                            <div style="color: var(--transparent-white-6); margin-bottom: 10px;"># Build agent for deployment</div>
+                            <div style="color: var(--white); margin-bottom: 15px;">knirv build --target=wasm --model=phi-3-mini --optimize</div>
+
+                            <div style="color: var(--transparent-white-6); margin-bottom: 10px;"># Deploy to testnet</div>
+                            <div style="color: var(--white); margin-bottom: 15px;">knirv deploy --env=testnet --region=us-east</div>
+
+                            <div style="color: var(--transparent-white-6); margin-bottom: 10px;"># Monitor deployment status</div>
+                            <div style="color: var(--white);">knirv status --deployment-id=[deployment-id]</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Deployment Actions -->
                 <div style="display: flex; gap: 15px; justify-content: center;">
                     <button class="btn-secondary" onclick="goBack()">
@@ -328,5 +479,9 @@
             }, 2000);
         }
     </script>
+    <!-- Additional Scripts -->
+    <script src="js/config-loader.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="../js/universal-footer.js"></script>
 </body>
 </html>
