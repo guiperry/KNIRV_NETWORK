@@ -10,8 +10,8 @@ export const getApiBaseUrl = (): string => {
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
     return '';
   }
-  // In development, use the backend API port (8082 as shown in server startup)
-  return 'http://localhost:8082';
+  // In development, use the backend API port (8080 as currently running)
+  return 'http://localhost:8080';
 };
 
 export const API_BASE_URL = getApiBaseUrl();
@@ -163,9 +163,12 @@ export class StandardWebSocket {
         
         // Resubscribe to topics
         if (this.subscriptions.size > 0) {
-          this.send({
-            type: 'subscribe',
-            payload: { topics: Array.from(this.subscriptions) }
+          Array.from(this.subscriptions).forEach(topic => {
+            this.ws!.send(JSON.stringify({
+              type: 'subscribe',
+              topic: topic,
+              timestamp: new Date().toISOString()
+            }));
           });
         }
         
@@ -232,22 +235,30 @@ export class StandardWebSocket {
 
   public subscribe(topics: string[]): void {
     topics.forEach(topic => this.subscriptions.add(topic));
-    
+
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.send({
-        type: 'subscribe',
-        payload: { topics }
+      // Send individual subscription messages for each topic (backend expects this format)
+      topics.forEach(topic => {
+        this.ws!.send(JSON.stringify({
+          type: 'subscribe',
+          topic: topic,
+          timestamp: new Date().toISOString()
+        }));
       });
     }
   }
 
   public unsubscribe(topics: string[]): void {
     topics.forEach(topic => this.subscriptions.delete(topic));
-    
+
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.send({
-        type: 'unsubscribe',
-        payload: { topics }
+      // Send individual unsubscription messages for each topic (backend expects this format)
+      topics.forEach(topic => {
+        this.ws!.send(JSON.stringify({
+          type: 'unsubscribe',
+          topic: topic,
+          timestamp: new Date().toISOString()
+        }));
       });
     }
   }

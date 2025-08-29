@@ -90,7 +90,9 @@ export default function AIAgent({
     }
   });
 
-  const handleClick = () => {
+  const handleClick = (event: any) => {
+    // Prevent event from bubbling to camera controller
+    event.stopPropagation();
     console.log(`AI Agent ${id} (${type}) clicked - Status: ${status}`);
     selectAgent(id);
     setShowThoughts(!showThoughts);
@@ -185,7 +187,6 @@ export default function AIAgent({
           color="#ffffff"
           anchorX="center"
           anchorY="middle"
-          font="/fonts/Inter-Bold.woff"
         >
           {type} Agent
         </Text>

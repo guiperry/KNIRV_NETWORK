@@ -1,5 +1,5 @@
 import { useFrame } from "@react-three/fiber";
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import * as THREE from "three";
 import GameLights from "./GameLights";
 import KnirvGraph from "./KnirvGraph";
@@ -8,15 +8,23 @@ import { useKnirvana } from "../../lib/stores/useKnirvana";
 
 export default function GameScene() {
   const sceneRef = useRef<THREE.Group>(null);
-  const { gameTime } = useKnirvana();
+  const { gameTime, selectedAgent } = useKnirvana();
+
+
 
   useFrame((state, delta) => {
     // Update game time
     useKnirvana.getState().updateGameTime(delta);
-    
-    // Subtle scene rotation for dynamic feel
+
+    // Subtle scene rotation for dynamic feel (slower when agent is selected)
     if (sceneRef.current) {
-      sceneRef.current.rotation.y += delta * 0.02;
+      const rotationSpeed = selectedAgent ? 0.01 : 0.02;
+      sceneRef.current.rotation.y += delta * rotationSpeed;
+    }
+
+    // Ensure scene is always visible
+    if (sceneRef.current) {
+      sceneRef.current.visible = true;
     }
   });
 
@@ -24,12 +32,14 @@ export default function GameScene() {
     <group ref={sceneRef}>
       <GameLights />
       <CameraController />
-      
+
+
+
       {/* Dark TRON grid floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]} receiveShadow>
         <planeGeometry args={[100, 100, 50, 50]} />
-        <meshStandardMaterial 
-          color="#000008" 
+        <meshStandardMaterial
+          color="#000008"
           wireframe={true}
           transparent={true}
           opacity={0.4}

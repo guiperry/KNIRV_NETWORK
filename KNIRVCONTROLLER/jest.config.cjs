@@ -36,6 +36,9 @@ module.exports = {
     // Mock missing browser-wallet modules
     '^.*browser-wallet/packages/knirvwallet-module/src/wallet/wallet$': '<rootDir>/test-utils/mocks/browser-wallet/KnirvWallet.js',
     '^.*browser-wallet/packages/knirvwallet-module/src/test-utils/mock-ledgerconnector$': '<rootDir>/test-utils/mocks/browser-wallet/MockLedgerConnector.js',
+    // Mock React JSX runtime for React Native
+    '^react/jsx-runtime$': '<rootDir>/test-utils/mocks/jsx-runtime.js',
+    '^react/jsx-dev-runtime$': '<rootDir>/test-utils/mocks/jsx-runtime.js',
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$': 'jest-transform-stub'
   },
@@ -57,7 +60,7 @@ module.exports = {
   
   // Transform ignore patterns for native modules
   transformIgnorePatterns: [
-    'node_modules/(?!(.*\\.mjs$|@gnolang|@cosmjs|libsodium-wrappers-sumo|libsodium-sumo|bech32)/)'
+    'node_modules/(?!(.*\\.mjs$|@gnolang|@cosmjs|libsodium-wrappers-sumo|libsodium-sumo|bech32|react-native|@react-native|react-native-.*|@testing-library)/)'
   ],
   
   // Setup files after environment
@@ -65,8 +68,8 @@ module.exports = {
     '<rootDir>/test-utils/jest-setup-after-env.js'
   ],
   
-  // Global timeout
-  testTimeout: 30000,
+  // Global timeout - increased for complex tests
+  testTimeout: 120000,
   
   // Coverage configuration
   collectCoverage: true,

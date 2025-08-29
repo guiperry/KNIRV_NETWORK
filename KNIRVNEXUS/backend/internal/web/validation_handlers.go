@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"nexus-backend/internal/services/validation"
@@ -56,6 +57,20 @@ func (h *ValidationHandlers) GetValidationTasks(w http.ResponseWriter, r *http.R
 
 	tasks, err := h.validationCore.GetValidationTasks(filter)
 	if err != nil {
+		// If error is "not found", return empty array instead of 500 error
+		if strings.Contains(err.Error(), "not found") {
+			response := ValidationTaskResponse{
+				Success:   true,
+				Data:      []interface{}{}, // Empty array
+				Total:     0,
+				Timestamp: time.Now().Format(time.RFC3339),
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+
+		// For other errors, still return 500
 		response := ValidationTaskResponse{
 			Success:   false,
 			Error:     "Failed to fetch validation tasks: " + err.Error(),

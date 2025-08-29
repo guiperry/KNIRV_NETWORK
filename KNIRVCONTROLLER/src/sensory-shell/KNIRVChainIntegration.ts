@@ -1,5 +1,5 @@
 import { EventEmitter } from './EventEmitter';
-import { KNIRVRouterIntegration, KNIRVRouterConfig, ErrorContext, SkillNodeURI, KNIRVRouterRequest, KNIRVRouterResponse, LoRAAdapterData } from './KNIRVRouterIntegration';
+import { KNIRVRouterIntegration, ErrorContext, SkillNodeURI, KNIRVRouterRequest, KNIRVRouterResponse, LoRAAdapterData } from './KNIRVRouterIntegration';
 
 export interface ChainConfig {
   rpcUrl: string;
@@ -63,12 +63,12 @@ export interface SkillInvocation {
 export interface ContractCall {
   contract: string;
   method: string;
-  params: any;
+  params: unknown;
 }
 
 export interface ContractResponse {
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
   transactionHash?: string;
   gasUsed?: string;
@@ -88,7 +88,7 @@ export interface ErrorContext {
   errorType: string;
   errorMessage: string;
   stackTrace: string;
-  userContext: any;
+  userContext: unknown;
   agentId: string;
   timestamp: number;
   severity: 'low' | 'medium' | 'high' | 'critical';
@@ -416,7 +416,7 @@ export class KNIRVChainIntegration extends EventEmitter {
     skillId: string,
     userAddress: string,
     nrnAmount: string,
-    parameters: any
+    parameters: unknown
   ): Promise<string> {
     try {
       console.log(`Invoking skill ${skillId} via KNIRVROUTER network...`);
@@ -442,7 +442,7 @@ export class KNIRVChainIntegration extends EventEmitter {
     skillId: string,
     userAddress: string,
     nrnAmount: string,
-    parameters: any
+    parameters: unknown
   ): Promise<string> {
     // Generate ErrorContext for the skill request
     const errorContext: ErrorContext = {
@@ -496,7 +496,7 @@ export class KNIRVChainIntegration extends EventEmitter {
     skillId: string,
     userAddress: string,
     nrnAmount: string,
-    parameters: any
+    parameters: unknown
   ): Promise<string> {
     // First, burn NRN tokens for skill usage
     const burnResponse = await this.executeContractCall({
@@ -792,7 +792,7 @@ export class KNIRVChainIntegration extends EventEmitter {
   /**
    * Get all available LoRA adapter skills from KNIRVROUTER network
    */
-  public async getLoRAAdapterSkills(filter?: any): Promise<LoRAAdapterData[]> {
+  public async getLoRAAdapterSkills(filter?: unknown): Promise<LoRAAdapterData[]> {
     if (!this.config.useKnirvRouter) {
       console.warn('LoRA adapter skills only available with KNIRVROUTER');
       return [];
@@ -927,7 +927,7 @@ export class KNIRVChainIntegration extends EventEmitter {
     this.emit('configUpdated', this.config);
   }
 
-  public getStatus(): any {
+  public getStatus(): unknown {
     return {
       isConnected: this.isConnected,
       chainId: this.config.chainId,

@@ -66,7 +66,7 @@ export class CognitiveShellDemo {
       console.log('📚 Learning Mode: ACTIVE');
     });
 
-    this.engine.on('cognitiveEvent', (event) => {
+    this.engine.on('cognitiveEvent', (_event) => {
       console.log('🧠 Cognitive Event:', event.type, event.data);
     });
   }

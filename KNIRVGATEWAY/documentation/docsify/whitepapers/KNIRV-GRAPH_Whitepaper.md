@@ -1,12 +1,12 @@
-# KNIRVGRAPH Whitepaper v5.2
-## The Economic and Coordination Backbone for Self-Improving AI
+# KNIRVGRAPH Whitepaper v6.0
+## The Distributed Vector Graph for Self-Improving AI
 
 ### Abstract
-**KNIRVGRAPH** introduces a sovereign Layer 1 Graphchain designed to serve as the economic and coordination backbone for a new generation of self-improving AI. It fuses a decentralized knowledge graph—where AI failures are first captured within specialized, dynamic "Noticed Resolvable Vectors" and then, upon validated resolution, minted as immutable **ErrorNodes** and composable, on-chain **SkillNodes**—with an architecture enabling **Self-improving Embodied Agent Learning (SEAL)**. A novel **Distributed Hash Table (DHT)** facilitates the decentralized announcement, gossip, and coordination of these **Noticed Resolvable Vectors**, their proposed solutions, and their ultimate resolutions.
+**KNIRVGRAPH** introduces a sovereign Layer 1 Graphchain designed to serve as the distributed vector graph backbone for a new generation of self-improving AI. Following the major refactor, KNIRVGRAPH operates as an embedded distributed vector graph within every instance on KNIRVANA, transforming from a standalone application to a core component of the agent intelligence infrastructure. It fuses a decentralized knowledge graph—where AI failures are first captured within specialized, dynamic "Noticed Resolvable Vectors" and then, upon validated resolution, minted as immutable **ErrorNodes** and composable, on-chain **SkillNodes**—with an architecture enabling **Self-improving Embodied Agent Learning (SEAL)**. The terminology has evolved from "blocks" to "vectors" and from "height" to "density" to better reflect the graph-based nature of the intelligence network.
 
-In this ecosystem, autonomous **KNIRV-SHELL** agents and human developers have permissionless access to the global knowledge graph and actively participate in resolving ongoing AI failures. They diagnose problems, propose solutions (Skills), and contribute to the resolution of **Noticed Resolvable Vectors (NRV)**. These novel solutions are rigorously tested in a **Decentralized Validation Environment (DVE)** and, if successful, are added to a global, on-chain SkillRegistry on the **KNIRVCHAIN** (our sovereign Rust-based Layer 1 blockchain), enriching the entire network.
+In this ecosystem, autonomous **KNIRV-CONTROLLER** agents and human developers have permissionless access to the global knowledge graph and actively participate in resolving ongoing AI failures through a revolutionary competitive clustering system. They diagnose problems, propose solutions (LoRA Adapters), and contribute to the resolution of **Noticed Resolvable Vectors (NRV)** within error clusters. These novel LoRA adapter solutions are rigorously tested in a **Decentralized Validation Environment (DVE)** and, if successful, are combined with error data to create weights and biases that train the network's collective intelligence through embedded **KNIRVCHAIN** WASM inference models.
 
-The native **NRN (Network Resolution Notice)** token, native to the **KNIRV-ORACLE** (our sovereign GoLang-based Layer 1 blockchain), powers a sophisticated "**Proof-of-Solution**" economy. This system incentivizes not only human developers but also the operators of autonomous **KNIRV-SHELL** agents and **KNIRV-ROUTERS**, creating a liquid market for AI knowledge and the efficient resolution of complex AI issues. This whitepaper details the symbiotic architecture, the multi-layered economic model, and the comprehensive technical specifications, focusing on **KNIRVGRAPH's** unique role as a Graphchain in cultivating a global, self-healing intelligence.
+Following the major refactor, **KNIRVGRAPH** operates as both an embedded distributed vector graph within every instance on **KNIRVANA** and as a sophisticated neural network training platform. The revolutionary architecture groups similar ErrorNodes into clusters where agents compete to submit the most solutions, with cluster ownership determining skill invocation fee rights. All terminology has been updated from "blocks" to "vectors" and from "height" to "density" to better reflect the graph-based nature of the intelligence network. The native **NRN (Network Resolution Notice)** token, native to the **KNIRV-ORACLE** (our sovereign GoLang-based Layer 1 blockchain), powers a sophisticated "**Proof-of-Solution**" economy that rewards both individual solution validation and cluster ownership dominance.
 
 # 1. The Inevitable Singularity of Failure: A New Paradigm for AI Growth
 
@@ -87,8 +87,28 @@ const (
 )
 ```
 
-# 3. The Lifecycle of a Solution: From Noticed Vector to Minted Skill
-**KNIRVGRAPH** orchestrates a precise, four-stage process to ensure that only valid, tested knowledge is committed to its Graphchain, and subsequently, to the canonical SkillRegistry on **KNIRVCHAIN**.
+# 3. The Revolutionary LoRA Adapter Lifecycle: From Error Clusters to Distributed Skills
+**KNIRVGRAPH** orchestrates a revolutionary competitive clustering process that transforms error resolution into LoRA adapter creation, ensuring that only valid, tested neural network weights are committed to its Graphchain and subsequently distributed through embedded **KNIRVCHAIN** inference models.
+
+## 3.0 The Competitive Clustering Architecture
+
+### Error Clustering & Agent Assignment
+Similar ErrorNodes are intelligently grouped together in clusters within the KNIRVGRAPH, creating focused problem domains where agents can specialize their solution efforts. Agents are strategically assigned to these error clusters based on their expertise, past performance, and availability, enabling targeted problem-solving approaches.
+
+### Competitive Solution Development
+Within each error cluster, agents engage in competitive solution development where they can submit as many solutions as possible for each error to all available errors in their assigned cluster. This competitive environment drives innovation and ensures multiple approaches to problem resolution, with all agent solutions validated by a DVE being rewarded with that ErrorNode's bounty.
+
+### Cluster Ownership & Economic Incentives
+The agent with the most solution proposals within an error cluster wins ownership of the skill invocation fee indefinitely, creating a powerful economic incentive for sustained engagement and solution quality. This ownership model ensures that the most productive contributors are rewarded with ongoing revenue streams from their cluster's generated skills.
+
+### LoRA Adapter Training from Collective Solutions
+All solutions along with their corresponding errors represent the weights and biases needed to train an LLM model to perform the skill or set of skills needed to resolve the surrounding errors. The collective solution set from a cluster provides comprehensive training data that captures multiple approaches and edge cases, resulting in robust LoRA adapters.
+
+### Skill Discovery & Minting Process
+The new skill is minted when the LoRA Adapter has been tested and the skill has been named/discovered by the KNIRVGRAPH core model (HRM WASM Implementation) used exclusively to mint skills on the KNIRVGRAPH. This core model trains itself through every pending LoRA adapter on the graph, developing an understanding of skill patterns and automatically categorizing and naming new capabilities.
+
+### Network-Wide Consensus & Distribution
+Once the skill is completely minted on KNIRVGRAPH, it is sent to the embedded KNIRVCHAIN inference models for confirmation and consensus with all agent-cores simultaneously. This ensures that new skills are validated and distributed across the entire network, making them immediately available for invocation by any agent.
 
 ## 3.1 Stage 1: The Noticed Resolvable Vector (NRV) - The Spark of Discovery
 An AI failure is observed. This could be an autonomous **KNIRV-SHELL** agent failing a task, a language model producing a harmful output, or a scientific model yielding an inaccurate prediction. The observer (human or **KNIRV-SHELL** agent) creates an NRV—a lightweight, off-chain data packet.

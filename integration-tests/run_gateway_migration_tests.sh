@@ -161,7 +161,7 @@ else
     echo ""
     echo "To start required services:"
     echo "1. Start KNIRVORACLE: ./scripts/start-with-economics.sh"
-    echo "2. Start Netlify dev: cd KNIRVWEBSITE && netlify dev"
+    echo "2. Start Netlify dev: cd KNIRVGATEWAY && netlify dev"
     echo ""
     echo "Then re-run this test suite."
     

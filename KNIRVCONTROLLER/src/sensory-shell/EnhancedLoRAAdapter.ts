@@ -1,6 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
 import { EventEmitter } from './EventEmitter';
-import { LoRAConfig, LoRAWeights, TrainingData, AdaptationMetrics } from './LoRAAdapter';
+import { LoRAConfig, TrainingData, AdaptationMetrics } from './LoRAAdapter';
 
 export interface TensorFlowLoRAWeights {
   layerName: string;
@@ -35,7 +35,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
   private trainingData: TrainingData[] = [];
   private metrics: AdaptationMetrics;
   private isRunning: boolean = false;
-  private hrmBridge: any = null;
+  private hrmBridge: unknown = null;
 
   constructor(
     config: LoRAConfig,
@@ -174,7 +174,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     console.log(`Initialized LoRA weights for ${this.config.targetModules.length} modules`);
   }
 
-  public setHRMBridge(hrmBridge: any): void {
+  public setHRMBridge(hrmBridge: unknown): void {
     this.hrmBridge = hrmBridge;
     console.log('HRM bridge connected to Enhanced LoRA Adapter');
   }
@@ -265,7 +265,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     return { inputs, targets };
   }
 
-  private convertToVector(data: any): number[] {
+  private convertToVector(data: unknown): number[] {
     // Convert various data types to fixed-size numerical vectors
     if (typeof data === 'string') {
       const encoder = new TextEncoder();
@@ -333,7 +333,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
   private async trainWithLoRA(
     inputs: tf.Tensor2D,
     targets: tf.Tensor2D,
-    hrmGuidance: any
+    hrmGuidance: unknown
   ): Promise<tf.History> {
     // Apply LoRA adaptation to the base model
     const adaptedModel = await this.applyLoRAToModel(hrmGuidance);
@@ -359,7 +359,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     return history;
   }
 
-  private async applyLoRAToModel(hrmGuidance: any): Promise<tf.LayersModel> {
+  private async applyLoRAToModel(hrmGuidance: unknown): Promise<tf.LayersModel> {
     if (!this.baseModel) {
       throw new Error('Base model not initialized');
     }
@@ -390,7 +390,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     model: tf.LayersModel,
     layerName: string,
     loraWeights: TensorFlowLoRAWeights,
-    hrmGuidance: any
+    hrmGuidance: unknown
   ): Promise<void> {
     try {
       const layer = model.getLayer(layerName);
@@ -429,7 +429,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     }
   }
 
-  private async extractLoRAUpdates(adaptedModel: tf.LayersModel, hrmGuidance: any): Promise<void> {
+  private async extractLoRAUpdates(adaptedModel: tf.LayersModel, hrmGuidance: unknown): Promise<void> {
     // Extract the learned adaptations and update LoRA matrices
     for (const [moduleName, loraWeights] of this.weights) {
       try {
@@ -458,7 +458,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
   private async updateLoRAMatrices(
     loraWeights: TensorFlowLoRAWeights,
     weightDiff: tf.Tensor,
-    hrmGuidance: any
+    hrmGuidance: unknown
   ): Promise<void> {
     // Simplified LoRA matrix update using gradient-based approach
     const learningRate = this.nnConfig.learningRate;
@@ -512,7 +512,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     await this.trainOnBatch(batchData);
   }
 
-  public async adapt(input: any, expectedOutput: any, feedback: number): Promise<any> {
+  public async adapt(input: unknown, expectedOutput: unknown, feedback: number): Promise<any> {
     if (!this.isRunning || !this.baseModel) {
       console.warn('Enhanced LoRA Adapter not ready');
       return input;
@@ -532,7 +532,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     return this.applyNeuralAdaptation(input);
   }
 
-  private async applyNeuralAdaptation(input: any): Promise<any> {
+  private async applyNeuralAdaptation(input: unknown): Promise<any> {
     if (!this.baseModel) return input;
 
     try {
@@ -561,7 +561,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     }
   }
 
-  private convertFromVector(vector: number[], originalInput: any): any {
+  private convertFromVector(vector: number[], originalInput: unknown): unknown {
     // Convert vector back to original input format
     if (typeof originalInput === 'string') {
       // For text, we might return enhanced metadata
@@ -596,8 +596,8 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     this.weights.clear();
   }
 
-  public exportWeights(): any {
-    const exportData: any = {};
+  public exportWeights(): unknown {
+    const exportData: unknown = {};
     
     for (const [moduleName, weights] of this.weights) {
       exportData[moduleName] = {
@@ -611,7 +611,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     return exportData;
   }
 
-  public async importWeights(weightsData: any): Promise<void> {
+  public async importWeights(weightsData: unknown): Promise<void> {
     this.disposeTensors();
 
     for (const [moduleName, moduleData] of Object.entries(weightsData)) {
@@ -634,7 +634,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     return { ...this.metrics };
   }
 
-  public getEnhancedMetrics(): any {
+  public getEnhancedMetrics(): unknown {
     return {
       ...this.metrics,
       tensorflowBackend: tf.getBackend(),
@@ -656,7 +656,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     return this.isRunning && this.baseModel !== null;
   }
 
-  public getConfig(): any {
+  public getConfig(): unknown {
     return {
       lora: { ...this.config },
       neuralNetwork: { ...this.nnConfig },
@@ -715,7 +715,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     return this.trainingData.length;
   }
 
-  public getTensorFlowInfo(): any {
+  public getTensorFlowInfo(): unknown {
     return {
       backend: tf.getBackend(),
       memory: tf.memory(),

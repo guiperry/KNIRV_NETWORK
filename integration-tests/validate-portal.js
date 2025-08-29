@@ -12,8 +12,8 @@ const path = require('path');
 
 class PortalValidator {
     constructor() {
-        this.portalPath = path.join(__dirname, '../KNIRVWEBSITE/agent-developer-portal/static');
-        this.websitePath = path.join(__dirname, '../KNIRVWEBSITE');
+        this.portalPath = path.join(__dirname, '../KNIRVGATEWAY/agent-developer-portal/static');
+        this.websitePath = path.join(__dirname, '../KNIRVGATEWAY');
         this.issues = [];
         this.warnings = [];
     }
@@ -230,7 +230,7 @@ class PortalValidator {
     validatePackageConfig() {
         this.log('Validating package.json configuration...');
 
-        const packagePath = path.join(__dirname, '../KNIRVWEBSITE/agent-developer-portal/package.json');
+        const packagePath = path.join(__dirname, '../KNIRVGATEWAY/agent-developer-portal/package.json');
         if (!fs.existsSync(packagePath)) {
             this.addIssue('package.json not found');
             return false;
@@ -268,7 +268,7 @@ class PortalValidator {
         this.log('Checking for legacy files...');
 
         const legacyFiles = [
-            path.join(__dirname, '../KNIRVWEBSITE/agent-developer-portal/server.js'),
+            path.join(__dirname, '../KNIRVGATEWAY/agent-developer-portal/server.js'),
             path.join(this.portalPath, 'dashboard.html'),
             path.join(this.portalPath, 'inventory.html'),
             path.join(this.portalPath, 'dex.html'),

@@ -67,7 +67,7 @@ export class ModelManager extends EventEmitter {
         try {
           const defaultModel = this.getDefaultModel();
           this.setCurrentModel(defaultModel.id);
-        } catch (error) {
+        } catch {
           // No models available, that's okay for now
         }
       }
@@ -315,7 +315,7 @@ export class ModelManager extends EventEmitter {
       }
 
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -463,7 +463,7 @@ export class ModelManager extends EventEmitter {
   /**
    * Export model configuration
    */
-  exportConfiguration(): any {
+  exportConfiguration(): unknown {
     return {
       availableModels: Array.from(this.availableModels.values()),
       currentModel: this.currentModel,
@@ -475,7 +475,7 @@ export class ModelManager extends EventEmitter {
   /**
    * Import model configuration
    */
-  importConfiguration(config: any): void {
+  importConfiguration(config: unknown): void {
     if (config.availableModels) {
       for (const model of config.availableModels) {
         this.registerModel(model);
@@ -487,6 +487,13 @@ export class ModelManager extends EventEmitter {
     }
 
     this.emit('configuration_imported', { config });
+  }
+
+  /**
+   * Check if the model manager is initialized
+   */
+  isInitialized(): boolean {
+    return this.availableModels.size > 0;
   }
 }
 

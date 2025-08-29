@@ -36,6 +36,7 @@ export interface CognitiveEngineAction {
 }
 
 import { apiRequest, API_BASE_URL } from '@/lib/api';
+import { webSocketService } from '@/lib/websocket-service';
 
 
 
@@ -45,7 +46,6 @@ export const useCognitiveEngine = () => {
   const [error, setError] = useState<string | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const [socket, setSocket] = useState<WebSocket | null>(null);
 
   // Fetch cognitive engine status
   const fetchCognitiveEngine = useCallback(async () => {
@@ -111,65 +111,48 @@ export const useCognitiveEngine = () => {
 
   // WebSocket connection management
   const connectWebSocket = useCallback(() => {
-    if (socket?.readyState === WebSocket.OPEN) return;
-
-    const wsUrl = `${API_BASE_URL.replace('http', 'ws')}/ws`;
-    const ws = new WebSocket(wsUrl);
-
-    ws.onopen = () => {
-      console.log('WebSocket connected to KNIRV-NEXUS');
-      setIsConnected(true);
-      setError(null);
-
-      // Subscribe to cognitive engine updates
-      ws.send(JSON.stringify({
-        type: 'subscribe',
-        topics: ['cognitive-engine-updated', 'system-notification']
-      }));
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-
-        if (message.event === 'cognitive-engine-updated' && message.payload) {
-          setCognitiveEngine(message.payload);
-        } else if (message.event === 'connected') {
-          console.log('WebSocket welcome:', message.payload);
-        }
-      } catch (err) {
-        console.error('Failed to parse WebSocket message:', err);
+    // Set up event handlers
+    const handleConnection = (data: { connected: boolean }) => {
+      setIsConnected(data.connected);
+      if (data.connected) {
+        console.log('Cognitive Engine WebSocket connected');
+        setError(null);
+      } else {
+        console.log('Cognitive Engine WebSocket disconnected');
       }
     };
 
-    ws.onclose = () => {
-      console.log('WebSocket disconnected');
-      setIsConnected(false);
-      setSocket(null);
-
-      // Attempt to reconnect after 5 seconds
-      setTimeout(() => {
-        if (!socket || socket.readyState === WebSocket.CLOSED) {
-          connectWebSocket();
-        }
-      }, 5000);
+    const handleCognitiveEngineUpdate = (payload: any) => {
+      setCognitiveEngine(payload);
     };
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      setError('WebSocket connection failed');
+    const handleSystemNotification = (payload: any) => {
+      console.log('Cognitive Engine system notification:', payload);
     };
 
-    setSocket(ws);
-  }, [socket]);
+    // Register event handlers
+    webSocketService.on('connection', handleConnection);
+    webSocketService.on('cognitive-engine-updated', handleCognitiveEngineUpdate);
+    webSocketService.on('system-notification', handleSystemNotification);
+
+    // Subscribe to events
+    webSocketService.subscribe(['cognitive-engine-updated', 'system-notification']);
+
+    // Set initial connection status
+    setIsConnected(webSocketService.getConnectionStatus());
+
+    // Return cleanup function
+    return () => {
+      webSocketService.off('connection', handleConnection);
+      webSocketService.off('cognitive-engine-updated', handleCognitiveEngineUpdate);
+      webSocketService.off('system-notification', handleSystemNotification);
+    };
+  }, []);
 
   const disconnectWebSocket = useCallback(() => {
-    if (socket) {
-      socket.close();
-      setSocket(null);
-      setIsConnected(false);
-    }
-  }, [socket]);
+    // Individual hooks don't disconnect the shared service
+    setIsConnected(false);
+  }, []);
 
   // Start/stop polling for real-time updates
   const startPolling = useCallback((interval: number = 5000) => {
@@ -198,16 +181,12 @@ export const useCognitiveEngine = () => {
   // Initial fetch and WebSocket connection on mount
   useEffect(() => {
     fetchCognitiveEngine();
-    connectWebSocket();
-  }, [fetchCognitiveEngine, connectWebSocket]);
-
-  // Cleanup on unmount
-  useEffect(() => {
+    const cleanup = connectWebSocket();
     return () => {
       stopPolling();
-      disconnectWebSocket();
+      if (cleanup) cleanup();
     };
-  }, [stopPolling, disconnectWebSocket]);
+  }, [fetchCognitiveEngine, connectWebSocket, stopPolling]);
 
   return {
     cognitiveEngine,

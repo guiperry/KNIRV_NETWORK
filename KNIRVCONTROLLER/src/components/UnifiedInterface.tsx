@@ -25,7 +25,7 @@ const UnifiedInterface: React.FC<UnifiedInterfaceProps> = ({ bridge }) => {
 
   useEffect(() => {
     // Subscribe to system state updates
-    bridge.onMessage('*', (message: ComponentMessage) => {
+    bridge.onMessage('*', (_message: ComponentMessage) => {
       setSystemState(bridge.getState());
     });
 
@@ -40,6 +40,29 @@ const UnifiedInterface: React.FC<UnifiedInterfaceProps> = ({ bridge }) => {
     // Request initial receiver status
     bridge.sendMessage('status_request', 'receiver', 'get_status');
 
+    const waitForComponent = (componentName: string, timeout: number): Promise<boolean> => {
+      return new Promise((resolve) => {
+        const startTime = Date.now();
+        
+        const check = () => {
+          const state = bridge.getState();
+          if (state.components[componentName] === 'running') {
+            resolve(true);
+            return;
+          }
+          
+          if (Date.now() - startTime > timeout) {
+            resolve(false);
+            return;
+          }
+          
+          setTimeout(check, 500);
+        };
+        
+        check();
+      });
+    };
+
     // Wait for receiver component to be ready
     const checkReceiver = async () => {
       try {
@@ -47,17 +70,17 @@ const UnifiedInterface: React.FC<UnifiedInterfaceProps> = ({ bridge }) => {
         if (receiverReady) {
           setReceiverState(prev => ({ ...prev, loaded: true }));
         } else {
-          setReceiverState(prev => ({ 
-            ...prev, 
-            loaded: false, 
-            error: 'Receiver component failed to load' 
+          setReceiverState(prev => ({
+            ...prev,
+            loaded: false,
+            error: 'Receiver component failed to load'
           }));
         }
       } catch (error) {
-        setReceiverState(prev => ({ 
-          ...prev, 
-          loaded: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
+        setReceiverState(prev => ({
+          ...prev,
+          loaded: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
         }));
       }
     };
@@ -65,33 +88,12 @@ const UnifiedInterface: React.FC<UnifiedInterfaceProps> = ({ bridge }) => {
     checkReceiver();
   }, [bridge]);
 
-  const waitForComponent = (componentName: string, timeout: number): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const startTime = Date.now();
-      
-      const check = () => {
-        const state = bridge.getState();
-        if (state.components[componentName] === 'running') {
-          resolve(true);
-          return;
-        }
-        
-        if (Date.now() - startTime > timeout) {
-          resolve(false);
-          return;
-        }
-        
-        setTimeout(check, 500);
-      };
-      
-      check();
-    });
-  };
 
   const handleQRScan = () => {
     setShowQRScanner(true);
     bridge.requestQRScan();
   };
+
 
   const handleCLIToggle = () => {
     setShowCLI(!showCLI);
@@ -100,9 +102,6 @@ const UnifiedInterface: React.FC<UnifiedInterfaceProps> = ({ bridge }) => {
     }
   };
 
-  const handleSkillInvocation = (skillName: string) => {
-    bridge.invokeSkill(skillName);
-  };
 
   const renderReceiverInterface = () => {
     if (!receiverState.loaded) {

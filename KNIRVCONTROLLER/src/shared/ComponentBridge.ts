@@ -8,7 +8,7 @@ export interface ComponentMessage {
   type: string;
   source: string;
   target: string;
-  payload: any;
+  payload: unknown;
   timestamp: number;
 }
 
@@ -31,7 +31,7 @@ export interface WalletState {
   connected: boolean;
   balance: number;
   address?: string;
-  transactions: any[];
+  transactions: unknown[];
 }
 
 export interface SystemState {
@@ -94,7 +94,7 @@ export class ComponentBridge {
         });
       };
 
-      this.ws.onmessage = (event) => {
+      this.ws.onmessage = (_event) => {
         try {
           const message: ComponentMessage = JSON.parse(event.data);
           this.handleMessage(message);
@@ -163,7 +163,7 @@ export class ComponentBridge {
     }
   }
 
-  public sendMessage(type: string, target: string, action: string, payload: any = {}) {
+  public sendMessage(type: string, target: string, action: string, payload: unknown = {}) {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       console.warn(`[${this.config.name}] Cannot send message - not connected`);
       return;
@@ -199,7 +199,7 @@ export class ComponentBridge {
     this.sendMessage('wallet_update', 'broadcast', 'state_change', updates);
   }
 
-  public invokeSkill(skillName: string, parameters: any = {}) {
+  public invokeSkill(skillName: string, parameters: unknown = {}) {
     this.sendMessage('skill_invocation', 'receiver', 'invoke', {
       skill: skillName,
       parameters
@@ -255,7 +255,7 @@ export class ComponentIntegration {
     });
   }
 
-  static createCrossComponentCall(bridge: ComponentBridge, target: string, method: string, params: any = {}) {
+  static createCrossComponentCall(bridge: ComponentBridge, target: string, method: string, params: unknown = {}) {
     return new Promise((resolve, reject) => {
       const callId = `call-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       

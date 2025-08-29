@@ -6,7 +6,7 @@
 
 import express from 'express';
 import { createServer } from 'http';
-import { WebSocketServer } from 'ws';
+
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -16,7 +16,24 @@ import pino from 'pino';
 import { KNIRVCortexBackend } from './index.js';
 import { TemplateExporter } from './utils/templateExporter.js';
 
-const __filename = fileURLToPath(import.meta.url);
+// Jest-compatible module URL resolution
+const getModuleUrl = () => {
+  if (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') {
+    return 'file://' + process.cwd() + '/src/core/unifiedServer.ts';
+  }
+  try {
+    const importMeta = eval('import.meta');
+    if (importMeta && importMeta.url) {
+      return importMeta.url;
+    }
+  } catch {
+    // Fallback for CommonJS
+    return 'file://' + __filename;
+  }
+  return 'file://' + process.cwd();
+};
+
+const __filename = fileURLToPath(getModuleUrl());
 const __dirname = path.dirname(__filename);
 const rootDir = path.join(__dirname, '..');
 
@@ -25,7 +42,7 @@ const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
   transport: {
     target: 'pino-pretty',
-    options: {
+    _options: {
       colorize: true
     }
   }
@@ -33,7 +50,7 @@ const logger = pino({
 
 export class KNIRVControllerUnifiedServer {
   private app: express.Application;
-  private server: any;
+  private server: unknown;
   private backend: KNIRVCortexBackend;
   private templateExporter: TemplateExporter;
   private port: number;
@@ -150,7 +167,7 @@ export class KNIRVControllerUnifiedServer {
 
     // Serve receiver frontend static files
     this.app.use(express.static(this.receiverDistPath, {
-      index: false, // Don't serve index.html automatically
+      _index: false, // Don't serve index.html automatically
       setHeaders: (res, path) => {
         // Set appropriate headers for different file types
         if (path.endsWith('.js')) {
@@ -234,8 +251,8 @@ export class KNIRVControllerUnifiedServer {
     // WASM compilation endpoints
     this.app.post('/wasm/compile', async (req, res) => {
       try {
-        const { rustCode, options } = req.body;
-        const wasmModule = await this.backend.wasmCompiler.compile(rustCode, options);
+        const { rustCode, options: _options } = req.body;
+        const wasmModule = await this.backend.wasmCompiler.compile(rustCode, _options);
         res.json({ success: true, wasmModule });
       } catch (error) {
         logger.error('WASM compilation failed:', error);
@@ -330,7 +347,7 @@ export class KNIRVControllerUnifiedServer {
 }
 
 // Start the unified server if this file is run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (getModuleUrl() === `file://${process.argv[1]}`) {
   const server = new KNIRVControllerUnifiedServer();
   server.start().catch((error) => {
     logger.error('Failed to start KNIRV-CONTROLLER Unified Server:', error);

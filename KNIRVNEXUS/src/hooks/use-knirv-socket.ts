@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { useEffect, useState, useCallback } from 'react';
+import { webSocketService } from '@/lib/websocket-service';
 
 interface DVENodeUpdate {
   id: string;
@@ -55,7 +55,6 @@ interface SystemNotification {
 }
 
 export const useKnirvSocket = () => {
-  const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [dveNodeUpdates, setDveNodeUpdates] = useState<DVENodeUpdate[]>([]);
   const [validationTaskUpdates, setValidationTaskUpdates] = useState<ValidationTaskUpdate[]>([]);
@@ -66,149 +65,184 @@ export const useKnirvSocket = () => {
   const [systemNotifications, setSystemNotifications] = useState<SystemNotification[]>([]);
 
   useEffect(() => {
-    // Initialize socket connection
-    const socketInstance = io('http://localhost:3001', {
-      transports: ['websocket', 'polling']
-    });
+    // Set initial connection status
+    setIsConnected(webSocketService.getConnectionStatus());
 
-    socketInstance.on('connect', () => {
-      console.log('Connected to KNIRV-NEXUS DVE WebSocket');
-      setIsConnected(true);
-      
-      // Join monitoring room
-      socketInstance.emit('join-room', 'dve-monitoring');
-      
-      // Request initial sync
-      socketInstance.emit('request-sync');
-      
-      // Subscribe to all metrics
-      socketInstance.emit('subscribe-metrics', ['dve-nodes', 'validation-tasks', 'cognitive-engine', 'tee-security', 'nrn-staking']);
-    });
+    // Connection status handler
+    const handleConnection = (data: { connected: boolean }) => {
+      setIsConnected(data.connected);
+      if (data.connected) {
+        console.log('Connected to KNIRV-NEXUS DVE WebSocket');
+        // Request initial sync
+        webSocketService.send({
+          type: 'request-sync',
+          payload: { timestamp: new Date().toISOString() }
+        });
+      } else {
+        console.log('Disconnected from KNIRV-NEXUS DVE WebSocket');
+      }
+    };
 
-    socketInstance.on('disconnect', () => {
-      console.log('Disconnected from KNIRV-NEXUS DVE WebSocket');
-      setIsConnected(false);
-    });
-
-    // Listen for DVE node updates
-    socketInstance.on('dve-node-updated', (update: DVENodeUpdate) => {
+    // Event handlers
+    const handleDVENodeUpdate = (nodeUpdate: DVENodeUpdate) => {
       setDveNodeUpdates(prev => {
-        const existing = prev.find(u => u.id === update.id);
+        const existing = prev.find(u => u.id === nodeUpdate.id);
         if (existing) {
-          return prev.map(u => u.id === update.id ? update : u);
+          return prev.map(u => u.id === nodeUpdate.id ? nodeUpdate : u);
         }
-        return [...prev, update];
+        return [...prev, nodeUpdate];
       });
-    });
+    };
 
-    // Listen for validation task updates
-    socketInstance.on('validation-task-updated', (update: ValidationTaskUpdate) => {
+    const handleValidationTaskUpdate = (taskUpdate: ValidationTaskUpdate) => {
       setValidationTaskUpdates(prev => {
-        const existing = prev.find(u => u.id === update.id);
+        const existing = prev.find(u => u.id === taskUpdate.id);
         if (existing) {
-          return prev.map(u => u.id === update.id ? update : u);
+          return prev.map(u => u.id === taskUpdate.id ? taskUpdate : u);
         }
-        return [...prev, update];
+        return [...prev, taskUpdate];
       });
-    });
+    };
 
-    // Listen for cognitive engine updates
-    socketInstance.on('cognitive-engine-updated', (update: CognitiveEngineUpdate) => {
+    const handleCognitiveEngineUpdate = (cognitiveUpdate: CognitiveEngineUpdate) => {
       setCognitiveEngineUpdates(prev => {
-        const existing = prev.find(u => u.status === update.status);
+        const existing = prev.find(u => u.status === cognitiveUpdate.status);
         if (existing) {
-          return prev.map(u => u.status === update.status ? update : u);
+          return prev.map(u => u.status === cognitiveUpdate.status ? cognitiveUpdate : u);
         }
-        return [...prev, update];
+        return [...prev, cognitiveUpdate];
       });
-    });
+    };
 
-    // Listen for TEE security updates
-    socketInstance.on('tee-security-updated', (update: TEESecurityUpdate) => {
+    const handleTEESecurityUpdate = (teeUpdate: TEESecurityUpdate) => {
       setTeeSecurityUpdates(prev => {
-        const existing = prev.find(u => u.attestation_status === update.attestation_status);
+        const existing = prev.find(u => u.attestation_status === teeUpdate.attestation_status);
         if (existing) {
-          return prev.map(u => u.attestation_status === update.attestation_status ? update : u);
+          return prev.map(u => u.attestation_status === teeUpdate.attestation_status ? teeUpdate : u);
         }
-        return [...prev, update];
+        return [...prev, teeUpdate];
       });
-    });
+    };
 
-    // Listen for NRN staking updates
-    socketInstance.on('nrn-staking-updated', (update: NRNStakingUpdate) => {
+    const handleNRNStakingUpdate = (stakingUpdate: NRNStakingUpdate) => {
       setNrnStakingUpdates(prev => {
-        const existing = prev.find(u => u.total_staked === update.total_staked);
+        const existing = prev.find(u => u.total_staked === stakingUpdate.total_staked);
         if (existing) {
-          return prev.map(u => u.total_staked === update.total_staked ? update : u);
+          return prev.map(u => u.total_staked === stakingUpdate.total_staked ? stakingUpdate : u);
         }
-        return [...prev, update];
+        return [...prev, stakingUpdate];
       });
-    });
+    };
 
-    // Listen for security alerts
-    socketInstance.on('security-alert', (alert: SecurityAlert) => {
+    const handleSecurityAlert = (alert: SecurityAlert) => {
       setSecurityAlerts(prev => [alert, ...prev].slice(0, 50)); // Keep last 50 alerts
-    });
+    };
 
-    // Listen for system notifications
-    socketInstance.on('system-notification', (notification: SystemNotification) => {
+    const handleSystemNotification = (notification: SystemNotification) => {
       setSystemNotifications(prev => [notification, ...prev].slice(0, 20)); // Keep last 20 notifications
-    });
+    };
 
-    setSocket(socketInstance);
+    // Register event handlers
+    webSocketService.on('connection', handleConnection);
+    webSocketService.on('dve-node-updated', handleDVENodeUpdate);
+    webSocketService.on('validation-task-updated', handleValidationTaskUpdate);
+    webSocketService.on('cognitive-engine-updated', handleCognitiveEngineUpdate);
+    webSocketService.on('tee-security-updated', handleTEESecurityUpdate);
+    webSocketService.on('nrn-staking-updated', handleNRNStakingUpdate);
+    webSocketService.on('security-alert', handleSecurityAlert);
+    webSocketService.on('system-notification', handleSystemNotification);
+
+    // Subscribe to events
+    webSocketService.subscribe([
+      'dve-node-updated',
+      'validation-task-updated',
+      'cognitive-engine-updated',
+      'tee-security-updated',
+      'nrn-staking-updated',
+      'security-alert',
+      'system-notification'
+    ]);
 
     // Cleanup on unmount
     return () => {
-      socketInstance.disconnect();
+      webSocketService.off('connection', handleConnection);
+      webSocketService.off('dve-node-updated', handleDVENodeUpdate);
+      webSocketService.off('validation-task-updated', handleValidationTaskUpdate);
+      webSocketService.off('cognitive-engine-updated', handleCognitiveEngineUpdate);
+      webSocketService.off('tee-security-updated', handleTEESecurityUpdate);
+      webSocketService.off('nrn-staking-updated', handleNRNStakingUpdate);
+      webSocketService.off('security-alert', handleSecurityAlert);
+      webSocketService.off('system-notification', handleSystemNotification);
     };
   }, []);
 
   // Function to send DVE node update
   const sendDVENodeUpdate = (update: DVENodeUpdate) => {
-    if (socket && isConnected) {
-      socket.emit('dve-node-update', update);
+    if (isConnected) {
+      webSocketService.send({
+        type: 'dve-node-update',
+        payload: update
+      });
     }
   };
 
   // Function to send validation task update
   const sendValidationTaskUpdate = (update: ValidationTaskUpdate) => {
-    if (socket && isConnected) {
-      socket.emit('validation-task-update', update);
+    if (isConnected) {
+      webSocketService.send({
+        type: 'validation-task-update',
+        payload: update
+      });
     }
   };
 
   // Function to send cognitive engine update
   const sendCognitiveEngineUpdate = (update: CognitiveEngineUpdate) => {
-    if (socket && isConnected) {
-      socket.emit('cognitive-engine-update', update);
+    if (isConnected) {
+      webSocketService.send({
+        type: 'cognitive-engine-update',
+        payload: update
+      });
     }
   };
 
   // Function to send TEE security update
   const sendTEESecurityUpdate = (update: TEESecurityUpdate) => {
-    if (socket && isConnected) {
-      socket.emit('tee-security-update', update);
+    if (isConnected) {
+      webSocketService.send({
+        type: 'tee-security-update',
+        payload: update
+      });
     }
   };
 
   // Function to send NRN staking update
   const sendNRNStakingUpdate = (update: NRNStakingUpdate) => {
-    if (socket && isConnected) {
-      socket.emit('nrn-staking-update', update);
+    if (isConnected) {
+      webSocketService.send({
+        type: 'nrn-staking-update',
+        payload: update
+      });
     }
   };
 
   // Function to send security alert
   const sendSecurityAlert = (alert: SecurityAlert) => {
-    if (socket && isConnected) {
-      socket.emit('security-alert', alert);
+    if (isConnected) {
+      webSocketService.send({
+        type: 'security-alert',
+        payload: alert
+      });
     }
   };
 
   // Function to send system notification
   const sendSystemNotification = (notification: SystemNotification) => {
-    if (socket && isConnected) {
-      socket.emit('system-notification', notification);
+    if (isConnected) {
+      webSocketService.send({
+        type: 'system-notification',
+        payload: notification
+      });
     }
   };
 
@@ -224,7 +258,6 @@ export const useKnirvSocket = () => {
   };
 
   return {
-    socket,
     isConnected,
     dveNodeUpdates,
     validationTaskUpdates,

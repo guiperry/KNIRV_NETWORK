@@ -74,9 +74,8 @@ export const useVoiceIntegration = () => {
     }
 
     // Skill-specific commands
-    else if (lowerCommand.includes('activate') && lowerCommand.includes('skill')) {
+    else if (lowerCommand.includes('activate skill') || lowerCommand.includes('deactivate skill')) {
       console.log('Skill activation requested:', command);
-    } else if (lowerCommand.includes('deactivate') && lowerCommand.includes('skill')) {
       console.log('Skill deactivation requested:', command);
     }
 

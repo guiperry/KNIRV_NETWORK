@@ -16,7 +16,7 @@ export interface ErrorContext {
   errorType: string;
   errorMessage: string;
   stackTrace: string;
-  userContext: any;
+  userContext: unknown;
   agentId: string;
   timestamp: number;
   severity: 'low' | 'medium' | 'high' | 'critical';
@@ -54,7 +54,7 @@ export interface KNIRVRouterResponse {
   executionTime: number;
   networkLatency: number;
   routingPath?: string[];
-  wasmResult?: any;
+  wasmResult?: unknown;
 }
 
 export interface LoRAAdapterData {
@@ -86,7 +86,7 @@ export interface P2PRoutingInfo {
 export interface WASMExecutionContext {
   wasmModule: string;
   functionName: string;
-  parameters: any;
+  parameters: unknown;
   memoryLimit: number;
   timeoutMs: number;
 }
@@ -190,7 +190,7 @@ export class KNIRVRouterIntegration extends EventEmitter {
         this.emit('p2pConnected', { endpoint: p2pEndpoint });
       };
       
-      ws.onmessage = (event) => {
+      ws.onmessage = (_event) => {
         this.handleP2PMessage(JSON.parse(event.data));
       };
       
@@ -207,7 +207,7 @@ export class KNIRVRouterIntegration extends EventEmitter {
   /**
    * Handle P2P messages for direct routing
    */
-  private handleP2PMessage(message: any): void {
+  private handleP2PMessage(message: unknown): void {
     try {
       switch (message.type) {
         case 'skill_node_discovered':
@@ -340,7 +340,7 @@ export class KNIRVRouterIntegration extends EventEmitter {
    */
   private async submitToKNIRVRouter(
     request: KNIRVRouterRequest,
-    graphResults: any
+    graphResults: unknown
   ): Promise<KNIRVRouterResponse> {
     const startTime = Date.now();
 
@@ -381,7 +381,7 @@ export class KNIRVRouterIntegration extends EventEmitter {
         networkLatency: result.networkLatency || executionTime
       };
     } catch (error) {
-      const executionTime = Date.now() - startTime;
+
       throw new Error(`KNIRVROUTER submission failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -406,7 +406,7 @@ export class KNIRVRouterIntegration extends EventEmitter {
         this.emit('p2pRouteEstablished', { skillNode });
       };
 
-      p2pWs.onmessage = (event) => {
+      p2pWs.onmessage = (_event) => {
         const message = JSON.parse(event.data);
         this.emit('p2pSkillMessage', { skillNode, message });
       };
@@ -468,7 +468,7 @@ export class KNIRVRouterIntegration extends EventEmitter {
   /**
    * Handle skill node discovery from P2P network
    */
-  private handleSkillNodeDiscovery(data: any): void {
+  private handleSkillNodeDiscovery(data: unknown): void {
     try {
       const skillNode: SkillNodeURI = data.skillNode;
 
@@ -490,7 +490,7 @@ export class KNIRVRouterIntegration extends EventEmitter {
   /**
    * Handle routing updates from P2P network
    */
-  private handleRoutingUpdate(data: any): void {
+  private handleRoutingUpdate(data: unknown): void {
     try {
       const routingInfo: P2PRoutingInfo = data.routingInfo;
 
@@ -505,7 +505,7 @@ export class KNIRVRouterIntegration extends EventEmitter {
   /**
    * Handle WASM execution results from P2P network
    */
-  private handleWASMExecutionResult(data: any): void {
+  private handleWASMExecutionResult(data: unknown): void {
     try {
       const { requestId, result, error } = data;
 
@@ -552,7 +552,7 @@ export class KNIRVRouterIntegration extends EventEmitter {
   /**
    * Get LoRA adapters from KNIRVROUTER network
    */
-  public async getLoRAAdapters(filter?: any): Promise<LoRAAdapterData[]> {
+  public async getLoRAAdapters(filter?: unknown): Promise<LoRAAdapterData[]> {
     if (!this.isConnected) {
       throw new Error('KNIRVROUTER not connected');
     }

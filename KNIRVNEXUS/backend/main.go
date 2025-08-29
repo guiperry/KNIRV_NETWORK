@@ -172,9 +172,32 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize CDE service: %w", err)
 	}
 
-	// Initialize DNS service (if configuration is available)
-	var dnsService *dns.DynamicDNSService
-	// TODO: Initialize when DNS configuration is available
+	// Initialize DNS service with minimal configuration for development
+	dnsConfig := dns.DNSConfig{
+		CloudFlareAPIToken: "dev-token", // Placeholder for development
+		ZoneName:          "knirv.com",
+		UpdateInterval:    time.Minute * 5,
+		ForceUpdateInterval: time.Hour,
+		Records: []dns.DNSRecordConfig{
+			{
+				Name:         "nexus.knirv.com",
+				Type:         "A",
+				TTL:          300,
+				UpdateWithIP: true,
+			},
+		},
+		EnableHealthCheck: false, // Disable for development
+		MaxRetries:       3,
+		RetryDelay:       time.Second * 5,
+		BackoffFactor:    2.0,
+	}
+
+	dnsService, err := dns.NewDynamicDNSService(dataEngine, dnsConfig)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize DNS service: %v", err)
+		// Continue without DNS service for now
+		dnsService = nil
+	}
 
 	// Initialize DVE Rental service
 	dveRentalService, err := dverental.NewDVERentalService(dbManager.GetDB())

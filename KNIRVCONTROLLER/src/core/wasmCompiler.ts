@@ -11,7 +11,7 @@ export class WASMCompiler {
     console.log('WASM Compiler initialized (frontend mode)');
   }
   
-  async compileRust(sourceCode: string): Promise<Uint8Array> {
+  async compileRust(_sourceCode: string): Promise<Uint8Array> {
     if (!this.isInitialized) {
       throw new Error('WASM Compiler not initialized');
     }
@@ -21,7 +21,7 @@ export class WASMCompiler {
     return new Uint8Array([0, 97, 115, 109]); // Mock WASM header
   }
   
-  async loadWASM(wasmBytes: Uint8Array): Promise<WebAssembly.Module> {
+  async loadWASM(_wasmBytes: Uint8Array): Promise<WebAssembly.Module> {
     console.log('Loading WASM module');
     // Mock WASM module loading
     return {} as WebAssembly.Module;

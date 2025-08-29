@@ -11,6 +11,10 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 import { ProtobufHandler } from '../protobuf/ProtobufHandler.js';
+import { analyticsService } from '../../services/AnalyticsService.js';
+import { taskSchedulingService } from '../../services/TaskSchedulingService.js';
+import { udcManagementService } from '../../services/UDCManagementService.js';
+import { settingsService } from '../../services/SettingsService.js';
 import pino from 'pino';
 
 const logger = pino({ name: 'cortex-api' });
@@ -451,6 +455,18 @@ export class CortexAPI {
         res.status(500).json({ success: false, error: getErrorMessage(error) });
       }
     });
+
+    // Analytics Service endpoints
+    this.setupAnalyticsRoutes();
+
+    // Task Scheduling Service endpoints
+    this.setupSchedulingRoutes();
+
+    // UDC Management Service endpoints
+    this.setupUDCRoutes();
+
+    // Settings Service endpoints
+    this.setupSettingsRoutes();
   }
 
   /**
@@ -458,9 +474,9 @@ export class CortexAPI {
    */
   private async prepareLoRAAdapterForTEE(
     skillId: string,
-    teeInfo: any,
-    loraAdapterConfig: any
-  ): Promise<any> {
+    teeInfo: unknown,
+    _loraAdapterConfig: unknown
+  ): Promise<unknown> {
     logger.info({ skillId }, 'Preparing LoRA adapter for TEE execution...');
 
     try {
@@ -520,7 +536,7 @@ export class CortexAPI {
   /**
    * Establish connection to NEXUS TEE infrastructure
    */
-  private async establishNexusTEEConnection(teePackage: any): Promise<void> {
+  private async establishNexusTEEConnection(teePackage: unknown): Promise<void> {
     logger.info('Establishing connection to NEXUS TEE...');
 
     try {
@@ -562,7 +578,7 @@ export class CortexAPI {
   /**
    * Get TEE connectivity status
    */
-  private async getTEEConnectivityStatus(): Promise<any> {
+  private async getTEEConnectivityStatus(): Promise<unknown> {
     try {
       const nexusEndpoint = process.env.KNIRVNEXUS_TEE_ENDPOINT || 'https://nexus-tee.knirv.com';
 
@@ -594,28 +610,28 @@ export class CortexAPI {
    */
   private async performPreTraining(
     baseModel: string,
-    loraAdapterInsights: any,
-    trainingConfig: any
-  ): Promise<any> {
+    loraAdapterInsights: unknown,
+    _trainingConfig: unknown
+  ): Promise<unknown> {
     logger.info({ baseModel }, 'Performing pre-training using LoRA adapter insights...');
 
     try {
       // Aggregate insights from multiple LoRA adapters
       const aggregatedInsights = this.aggregateLoRAInsights(loraAdapterInsights);
 
-      // Create pre-training dataset
-      const pretrainingDataset = {
-        baseModel,
-        insights: aggregatedInsights,
-        trainingConfig: {
-          learningRate: trainingConfig?.learningRate || 0.0001,
-          batchSize: trainingConfig?.batchSize || 32,
-          epochs: trainingConfig?.epochs || 10,
-          warmupSteps: trainingConfig?.warmupSteps || 1000,
-          ...trainingConfig
-        },
-        timestamp: new Date().toISOString()
-      };
+      // Create pre-training dataset (currently unused)
+      // const pretrainingDataset = {
+      //   baseModel,
+      //   insights: aggregatedInsights,
+      //   trainingConfig: {
+      //     learningRate: trainingConfig?.learningRate || 0.0001,
+      //     batchSize: trainingConfig?.batchSize || 32,
+      //     epochs: trainingConfig?.epochs || 10,
+      //     warmupSteps: trainingConfig?.warmupSteps || 1000,
+      //     ...trainingConfig
+      //   },
+      //   timestamp: new Date().toISOString()
+      // };
 
       // Simulate pre-training process (in real implementation, this would use actual ML frameworks)
       const pretrainingResult = {
@@ -654,7 +670,7 @@ export class CortexAPI {
   /**
    * Aggregate insights from multiple LoRA adapters
    */
-  private aggregateLoRAInsights(loraAdapterInsights: any): any {
+  private aggregateLoRAInsights(loraAdapterInsights: unknown): unknown {
     const insights = Array.isArray(loraAdapterInsights) ? loraAdapterInsights : [loraAdapterInsights];
 
     return {
@@ -670,7 +686,7 @@ export class CortexAPI {
   /**
    * Extract common patterns from LoRA adapters
    */
-  private extractCommonPatterns(insights: any[]): any {
+  private extractCommonPatterns(insights: unknown[]): unknown {
     // Simplified pattern extraction
     const patterns = {
       frequentErrorTypes: new Map(),
@@ -707,7 +723,7 @@ export class CortexAPI {
   /**
    * Analyze weight distributions
    */
-  private analyzeWeightDistributions(insights: any[]): any {
+  private analyzeWeightDistributions(insights: unknown[]): unknown {
     return {
       totalWeights: insights.reduce((sum, insight) => sum + (insight.weightCount || 0), 0),
       averageWeightMagnitude: 0.05, // Simplified
@@ -719,7 +735,7 @@ export class CortexAPI {
   /**
    * Aggregate performance metrics
    */
-  private aggregatePerformanceMetrics(insights: any[]): any {
+  private aggregatePerformanceMetrics(insights: unknown[]): unknown {
     return {
       averageAccuracy: insights.reduce((sum, insight) => sum + (insight.accuracy || 0), 0) / insights.length,
       averageLatency: insights.reduce((sum, insight) => sum + (insight.latency || 0), 0) / insights.length,
@@ -738,6 +754,498 @@ export class CortexAPI {
       hash = ((hash << 5) - hash + wasmBytes[i]) & 0xffffffff;
     }
     return Math.abs(hash).toString(16);
+  }
+
+  /**
+   * Setup Analytics Service routes
+   */
+  private setupAnalyticsRoutes() {
+    // Start/stop analytics collection
+    this.router.post('/analytics/start', async (req, res) => {
+      try {
+        await analyticsService.startCollection();
+        res.json({ success: true, message: 'Analytics collection started' });
+      } catch (error) {
+        logger.error({ error }, 'Failed to start analytics collection');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    this.router.post('/analytics/stop', async (req, res) => {
+      try {
+        await analyticsService.stopCollection();
+        res.json({ success: true, message: 'Analytics collection stopped' });
+      } catch (error) {
+        logger.error({ error }, 'Failed to stop analytics collection');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Dashboard statistics
+    this.router.get('/analytics/dashboard', async (req, res) => {
+      try {
+        const stats = await analyticsService.getDashboardStats();
+        res.json(stats);
+      } catch (error) {
+        logger.error({ error }, 'Failed to get dashboard stats');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Performance metrics
+    this.router.get('/analytics/performance', async (req, res) => {
+      try {
+        const metrics = await analyticsService.getPerformanceMetrics();
+        res.json(metrics);
+      } catch (error) {
+        logger.error({ error }, 'Failed to get performance metrics');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Usage analytics
+    this.router.get('/analytics/usage', async (req, res) => {
+      try {
+        const analytics = await analyticsService.getUsageAnalytics();
+        res.json(analytics);
+      } catch (error) {
+        logger.error({ error }, 'Failed to get usage analytics');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Agent analytics
+    this.router.get('/analytics/agents', async (req, res) => {
+      try {
+        const analytics = await analyticsService.getAgentAnalytics();
+        res.json(analytics);
+      } catch (error) {
+        logger.error({ error }, 'Failed to get agent analytics');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Record metric
+    this.router.post('/analytics/metrics', async (req, res) => {
+      try {
+        await analyticsService.recordMetric(req.body);
+        res.json({ success: true, message: 'Metric recorded' });
+      } catch (error) {
+        logger.error({ error }, 'Failed to record metric');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Export analytics data
+    this.router.get('/analytics/export', async (req, res) => {
+      try {
+        const format = req.query.format as string || 'json';
+        const data = await analyticsService.exportData(format as 'json' | 'csv');
+
+        if (format === 'csv') {
+          res.setHeader('Content-Type', 'text/csv');
+          res.setHeader('Content-Disposition', 'attachment; filename=analytics.csv');
+        } else {
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Content-Disposition', 'attachment; filename=analytics.json');
+        }
+
+        res.send(data);
+      } catch (error) {
+        logger.error({ error }, 'Failed to export analytics data');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+  }
+
+  /**
+   * Setup Task Scheduling Service routes
+   */
+  private setupSchedulingRoutes() {
+    // Start/stop scheduler
+    this.router.post('/scheduler/start', async (req, res) => {
+      try {
+        await taskSchedulingService.start();
+        res.json({ success: true, message: 'Task scheduler started' });
+      } catch (error) {
+        logger.error({ error }, 'Failed to start task scheduler');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    this.router.post('/scheduler/stop', async (req, res) => {
+      try {
+        await taskSchedulingService.stop();
+        res.json({ success: true, message: 'Task scheduler stopped' });
+      } catch (error) {
+        logger.error({ error }, 'Failed to stop task scheduler');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Task management
+    this.router.post('/scheduler/tasks', async (req, res) => {
+      try {
+        const task = await taskSchedulingService.createTask(req.body);
+        res.json({ success: true, task });
+      } catch (error) {
+        logger.error({ error }, 'Failed to create task');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    this.router.get('/scheduler/tasks', (req, res) => {
+      try {
+        const tasks = taskSchedulingService.getAllTasks();
+        res.json({ success: true, tasks });
+      } catch (error) {
+        logger.error({ error }, 'Failed to get tasks');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    this.router.get('/scheduler/tasks/:taskId', (req, res) => {
+      try {
+        const task = taskSchedulingService.getTask(req.params.taskId);
+        if (!task) {
+          return res.status(404).json({ success: false, error: 'Task not found' });
+        }
+        res.json({ success: true, task });
+      } catch (error) {
+        logger.error({ error }, 'Failed to get task');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    this.router.put('/scheduler/tasks/:taskId', async (req, res) => {
+      try {
+        const task = await taskSchedulingService.updateTask(req.params.taskId, req.body);
+        res.json({ success: true, task });
+      } catch (error) {
+        logger.error({ error }, 'Failed to update task');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    this.router.delete('/scheduler/tasks/:taskId', async (req, res) => {
+      try {
+        await taskSchedulingService.deleteTask(req.params.taskId);
+        res.json({ success: true, message: 'Task deleted' });
+      } catch (error) {
+        logger.error({ error }, 'Failed to delete task');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Execute task immediately
+    this.router.post('/scheduler/tasks/:taskId/execute', async (req, res) => {
+      try {
+        const execution = await taskSchedulingService.executeTask(req.params.taskId);
+        res.json({ success: true, execution });
+      } catch (error) {
+        logger.error({ error }, 'Failed to execute task');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Get task executions
+    this.router.get('/scheduler/tasks/:taskId/executions', (req, res) => {
+      try {
+        const executions = taskSchedulingService.getTaskExecutions(req.params.taskId);
+        res.json({ success: true, executions });
+      } catch (error) {
+        logger.error({ error }, 'Failed to get task executions');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Workflow management
+    this.router.post('/scheduler/workflows', async (req, res) => {
+      try {
+        const workflow = await taskSchedulingService.createWorkflow(req.body);
+        res.json({ success: true, workflow });
+      } catch (error) {
+        logger.error({ error }, 'Failed to create workflow');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    this.router.post('/scheduler/workflows/:workflowId/execute', async (req, res) => {
+      try {
+        const taskId = await taskSchedulingService.executeWorkflow(req.params.workflowId, req.body.variables);
+        res.json({ success: true, taskId, message: 'Workflow execution started' });
+      } catch (error) {
+        logger.error({ error }, 'Failed to execute workflow');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+  }
+
+  /**
+   * Setup UDC Management Service routes
+   */
+  private setupUDCRoutes() {
+    // Create UDC
+    this.router.post('/udc/create', async (req, res) => {
+      try {
+        const udc = await udcManagementService.createUDC(req.body);
+        res.json({ success: true, udc });
+      } catch (error) {
+        logger.error({ error }, 'Failed to create UDC');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Renew UDC
+    this.router.post('/udc/:udcId/renew', async (req, res) => {
+      try {
+        const { extensionDays } = req.body;
+        const udc = await udcManagementService.renewUDC(req.params.udcId, extensionDays);
+        res.json({ success: true, udc });
+      } catch (error) {
+        logger.error({ error }, 'Failed to renew UDC');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Validate UDC
+    this.router.post('/udc/:udcId/validate', async (req, res) => {
+      try {
+        const { action } = req.body;
+        const validation = await udcManagementService.validateUDC(req.params.udcId, action);
+        res.json({ success: true, validation });
+      } catch (error) {
+        logger.error({ error }, 'Failed to validate UDC');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Revoke UDC
+    this.router.post('/udc/:udcId/revoke', async (req, res) => {
+      try {
+        const { reason } = req.body;
+        await udcManagementService.revokeUDC(req.params.udcId, reason);
+        res.json({ success: true, message: 'UDC revoked successfully' });
+      } catch (error) {
+        logger.error({ error }, 'Failed to revoke UDC');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Record UDC usage
+    this.router.post('/udc/:udcId/usage', async (req, res) => {
+      try {
+        const { action, result, details } = req.body;
+        await udcManagementService.recordUsage(req.params.udcId, action, result, details);
+        res.json({ success: true, message: 'Usage recorded' });
+      } catch (error) {
+        logger.error({ error }, 'Failed to record UDC usage');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Get all UDCs
+    this.router.get('/udc/list', (req, res) => {
+      try {
+        const udcs = udcManagementService.getAllUDCs();
+        res.json({ success: true, udcs });
+      } catch (error) {
+        logger.error({ error }, 'Failed to get UDCs');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Get UDC by ID
+    this.router.get('/udc/:udcId', (req, res) => {
+      try {
+        const udc = udcManagementService.getUDC(req.params.udcId);
+        if (!udc) {
+          return res.status(404).json({ success: false, error: 'UDC not found' });
+        }
+        res.json({ success: true, udc });
+      } catch (error) {
+        logger.error({ error }, 'Failed to get UDC');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Get UDCs by agent
+    this.router.get('/udc/agent/:agentId', (req, res) => {
+      try {
+        const udcs = udcManagementService.getUDCsByAgent(req.params.agentId);
+        res.json({ success: true, udcs });
+      } catch (error) {
+        logger.error({ error }, 'Failed to get UDCs by agent');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Get UDCs by status
+    this.router.get('/udc/status/:status', (req, res) => {
+      try {
+        const udcs = udcManagementService.getUDCsByStatus(req.params.status as any);
+        res.json({ success: true, udcs });
+      } catch (error) {
+        logger.error({ error }, 'Failed to get UDCs by status');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Get expiring UDCs
+    this.router.get('/udc/expiring/:days', (req, res) => {
+      try {
+        const days = parseInt(req.params.days);
+        const udcs = udcManagementService.getExpiringUDCs(days);
+        res.json({ success: true, udcs });
+      } catch (error) {
+        logger.error({ error }, 'Failed to get expiring UDCs');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Save UDC (for persistence)
+    this.router.post('/udc/save', async (req, res) => {
+      try {
+        // This endpoint is used by the service for persistence
+        res.json({ success: true, message: 'UDC saved' });
+      } catch (error) {
+        logger.error({ error }, 'Failed to save UDC');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+  }
+
+  /**
+   * Setup Settings Service routes
+   */
+  private setupSettingsRoutes() {
+    // Get current settings
+    this.router.get('/settings/load', (req, res) => {
+      try {
+        const settings = settingsService.getSettings();
+        const profiles = settingsService.getProfiles();
+        const activeProfile = settingsService.getActiveProfile();
+        res.json({
+          success: true,
+          settings,
+          profiles: Object.fromEntries(profiles.map(p => [p.id, p])),
+          activeProfile: activeProfile?.id
+        });
+      } catch (error) {
+        logger.error({ error }, 'Failed to load settings');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Update settings
+    this.router.post('/settings/save', async (req, res) => {
+      try {
+        await settingsService.updateSettings(req.body.settings);
+        res.json({ success: true, message: 'Settings saved' });
+      } catch (error) {
+        logger.error({ error }, 'Failed to save settings');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Reset settings to defaults
+    this.router.post('/settings/reset', async (req, res) => {
+      try {
+        await settingsService.resetSettings();
+        res.json({ success: true, message: 'Settings reset to defaults' });
+      } catch (error) {
+        logger.error({ error }, 'Failed to reset settings');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Profile management
+    this.router.post('/settings/profiles', async (req, res) => {
+      try {
+        // Save profiles (used by service for persistence)
+        res.json({ success: true, message: 'Profiles saved' });
+      } catch (error) {
+        logger.error({ error }, 'Failed to save profiles');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    this.router.post('/settings/profiles/create', async (req, res) => {
+      try {
+        const { name, description, settings } = req.body;
+        const profile = await settingsService.createProfile(name, description, settings);
+        res.json({ success: true, profile });
+      } catch (error) {
+        logger.error({ error }, 'Failed to create profile');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    this.router.post('/settings/profiles/:profileId/load', async (req, res) => {
+      try {
+        await settingsService.loadProfile(req.params.profileId);
+        res.json({ success: true, message: 'Profile loaded' });
+      } catch (error) {
+        logger.error({ error }, 'Failed to load profile');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    this.router.delete('/settings/profiles/:profileId', async (req, res) => {
+      try {
+        await settingsService.deleteProfile(req.params.profileId);
+        res.json({ success: true, message: 'Profile deleted' });
+      } catch (error) {
+        logger.error({ error }, 'Failed to delete profile');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Export/import settings
+    this.router.get('/settings/export', (req, res) => {
+      try {
+        const includeProfiles = req.query.includeProfiles === 'true';
+        const data = settingsService.exportSettings(includeProfiles);
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', 'attachment; filename=knirv-settings.json');
+        res.send(data);
+      } catch (error) {
+        logger.error({ error }, 'Failed to export settings');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    this.router.post('/settings/import', async (req, res) => {
+      try {
+        const { settingsData, overwrite } = req.body;
+        await settingsService.importSettings(settingsData, overwrite);
+        res.json({ success: true, message: 'Settings imported successfully' });
+      } catch (error) {
+        logger.error({ error }, 'Failed to import settings');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    // Get/set individual settings
+    this.router.get('/settings/get/:path', (req, res) => {
+      try {
+        const value = settingsService.getSetting(req.params.path);
+        res.json({ success: true, value });
+      } catch (error) {
+        logger.error({ error }, 'Failed to get setting');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
+
+    this.router.post('/settings/set/:path', async (req, res) => {
+      try {
+        await settingsService.setSetting(req.params.path, req.body.value);
+        res.json({ success: true, message: 'Setting updated' });
+      } catch (error) {
+        logger.error({ error }, 'Failed to set setting');
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+      }
+    });
   }
 
   getRouter(): Router {

@@ -38,7 +38,7 @@ export interface GestureEvent {
   coordinates: { x: number; y: number };
   direction?: string;
   scale?: number;
-  target?: any;
+  target?: unknown;
   timestamp: Date;
 }
 
@@ -96,12 +96,12 @@ export class VisualProcessor extends EventEmitter {
   private stream: MediaStream | null = null;
   private isProcessing: boolean = false;
   private models: Map<string, tf.LayersModel> = new Map();
-  private hrmBridge: any = null;
+  private hrmBridge: unknown = null;
   private isInitialized: boolean = false;
-  private processingQueue: Array<{ imageData: ImageData; resolve: Function; reject: Function }> = [];
+  private processingQueue: Array<{ imageData: ImageData; resolve: (...args: unknown[]) => unknown; reject: (...args: unknown[]) => unknown }> = [];
   private processingInterval: number | null = null;
-  private objectDetectionModel: any = null;
-  private gestureRecognizer: any = null;
+  private objectDetectionModel: unknown = null;
+  private gestureRecognizer: unknown = null;
 
   constructor(config?: Partial<VisualConfig>) {
     super();
@@ -138,7 +138,7 @@ export class VisualProcessor extends EventEmitter {
     this.canvas.height = height;
   }
 
-  public setHRMBridge(hrmBridge: any): void {
+  public setHRMBridge(hrmBridge: unknown): void {
     this.hrmBridge = hrmBridge;
     console.log('HRM bridge connected to Visual Processor');
   }
@@ -504,7 +504,7 @@ export class VisualProcessor extends EventEmitter {
     }
   }
 
-  private async recognizeGestures(imageData: any): Promise<GestureEvent[]> {
+  private async recognizeGestures(imageData: unknown): Promise<GestureEvent[]> {
     if (!this.gestureRecognizer) return [];
 
     try {
@@ -534,7 +534,7 @@ export class VisualProcessor extends EventEmitter {
     }
   }
 
-  private async simulateObjectDetection(imageData: ImageData): Promise<DetectedObject[]> {
+  private async simulateObjectDetection(_imageData: ImageData): Promise<DetectedObject[]> {
     // Simulate object detection processing
     await new Promise(resolve => setTimeout(resolve, 50));
 
@@ -563,7 +563,7 @@ export class VisualProcessor extends EventEmitter {
     return [];
   }
 
-  private async simulateGestureRecognition(imageData: ImageData): Promise<GestureEvent[]> {
+  private async simulateGestureRecognition(_imageData: ImageData): Promise<GestureEvent[]> {
     // Simulate gesture recognition processing
     await new Promise(resolve => setTimeout(resolve, 30));
 
@@ -601,7 +601,7 @@ export class VisualProcessor extends EventEmitter {
     return [];
   }
 
-  private async simulateOCR(imageData: ImageData): Promise<OCRResult[]> {
+  private async simulateOCR(_imageData: ImageData): Promise<OCRResult[]> {
     // Simulate OCR processing
     await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -653,7 +653,7 @@ export class VisualProcessor extends EventEmitter {
     return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
   }
 
-  public getMetrics(): any {
+  public getMetrics(): unknown {
     return {
       isProcessing: this.isProcessing,
       isSupported: this.isSupported(),
@@ -802,7 +802,7 @@ export class VisualProcessor extends EventEmitter {
     }
   }
 
-  private async recognizeTextWithAI(image: tf.Tensor): Promise<OCRResult[]> {
+  private async recognizeTextWithAI(_image: tf.Tensor): Promise<OCRResult[]> {
     // Enhanced text recognition with AI
     const textRegions: OCRResult[] = [];
 

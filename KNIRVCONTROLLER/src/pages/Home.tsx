@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Bot, Zap, Shield, Activity, TrendingUp, Clock, QrCode, Mic, Eye } from 'lucide-react';
+import { Bot, Shield, Activity, TrendingUp, QrCode, Mic, Eye, Calendar } from 'lucide-react';
 import Layout from './components/Layout';
 import StatsCard from './components/StatsCard';
 import AgentCard from './components/AgentCard';
 import QRScanner from './components/QRScanner';
 import VoiceProcessor from './components/VoiceProcessor';
 import VisualProcessor from './components/VisualProcessor';
+import AnalyticsDashboard from '../components/AnalyticsDashboard';
+import TaskScheduler from '../components/TaskScheduler';
+import UDCManager from '../components/UDCManager';
 import { desktopConnection } from '@/react-app/services/DesktopConnection';
+import { agentManagementService } from '../services/AgentManagementService';
 
 export default function Home() {
   const [showQRScanner, setShowQRScanner] = useState(false);
@@ -14,6 +18,9 @@ export default function Home() {
   const [visualActive, setVisualActive] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState(desktopConnection.getConnectionStatus());
   const [hrmResponse, setHrmResponse] = useState<any>(null);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showTaskScheduler, setShowTaskScheduler] = useState(false);
+  const [showUDCManager, setShowUDCManager] = useState(false);
 
   useEffect(() => {
     // Set up desktop connection event handlers
@@ -78,8 +85,28 @@ export default function Home() {
     }
   };
 
-  const handleObjectDetection = (objects: any[]) => {
+  const handleObjectDetection = (objects: unknown[]) => {
     console.log('Detected objects:', objects);
+  };
+
+  // Action button handlers
+  const handleDeployAgent = () => {
+    // Navigate to agent management or open agent deployment modal
+    // For now, we'll show a simple alert - in a full implementation,
+    // this would open an agent deployment interface
+    alert('Deploy Agent functionality - would open agent deployment interface');
+  };
+
+  const handleViewAnalytics = () => {
+    setShowAnalytics(true);
+  };
+
+  const handleScheduleTask = () => {
+    setShowTaskScheduler(true);
+  };
+
+  const handleRenewUDC = () => {
+    setShowUDCManager(true);
   };
 
   const agents = [
@@ -225,7 +252,7 @@ export default function Home() {
             title="NRN Balance"
             value="1,247"
             change="-12 NRN consumed"
-            icon={Zap}
+            icon={TrendingUp}
             trend="down"
           />
           <StatsCard
@@ -288,21 +315,25 @@ export default function Home() {
               icon={Bot}
               title="Deploy Agent"
               description="Launch new AI agent"
+              onClick={handleDeployAgent}
             />
             <ActionButton
               icon={TrendingUp}
               title="View Analytics"
               description="Performance insights"
+              onClick={handleViewAnalytics}
             />
             <ActionButton
-              icon={Clock}
+              icon={Calendar}
               title="Schedule Task"
               description="Automate workflows"
+              onClick={handleScheduleTask}
             />
             <ActionButton
               icon={Shield}
               title="Renew UDC"
               description="Extend certificate"
+              onClick={handleRenewUDC}
             />
           </div>
         </div>
@@ -353,6 +384,24 @@ export default function Home() {
         onScan={handleQRScan}
         onClose={() => setShowQRScanner(false)}
       />
+
+      {/* Analytics Dashboard Modal */}
+      <AnalyticsDashboard
+        isOpen={showAnalytics}
+        onClose={() => setShowAnalytics(false)}
+      />
+
+      {/* Task Scheduler Modal */}
+      <TaskScheduler
+        isOpen={showTaskScheduler}
+        onClose={() => setShowTaskScheduler(false)}
+      />
+
+      {/* UDC Manager Modal */}
+      <UDCManager
+        isOpen={showUDCManager}
+        onClose={() => setShowUDCManager(false)}
+      />
     </Layout>
   );
 }
@@ -361,11 +410,12 @@ interface ActionButtonProps {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   description: string;
+  onClick?: () => void;
 }
 
-function ActionButton({ icon: Icon, title, description }: ActionButtonProps) {
+function ActionButton({ icon: Icon, title, description, onClick }: ActionButtonProps) {
   return (
-    <button className="relative group">
+    <button className="relative group" onClick={onClick}>
       <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600/30 to-cyan-600/30 rounded-xl blur opacity-20 group-hover:opacity-50 group-active:opacity-75 transition duration-200"></div>
       <div className="relative bg-slate-800/60 backdrop-blur-xl rounded-xl p-4 border border-slate-700/50 hover:border-purple-500/50 group-active:scale-95 transition-all text-left">
         <div className="flex items-center space-x-3">

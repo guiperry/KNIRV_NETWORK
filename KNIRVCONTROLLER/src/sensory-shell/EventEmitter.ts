@@ -1,8 +1,8 @@
 // Browser-compatible EventEmitter implementation
 export class EventEmitter {
-  private events: Map<string, Function[]> = new Map();
+  private events: Map<string, ((...args: unknown[]) => unknown)[]> = new Map();
 
-  on(event: string, listener: Function): this {
+  on(event: string, listener: (...args: unknown[]) => unknown): this {
     if (!this.events.has(event)) {
       this.events.set(event, []);
     }
@@ -10,7 +10,7 @@ export class EventEmitter {
     return this;
   }
 
-  off(event: string, listener?: Function): this {
+  off(event: string, listener?: (...args: unknown[]) => unknown): this {
     if (!listener) {
       // Remove all listeners for this event
       this.events.delete(event);
@@ -30,7 +30,7 @@ export class EventEmitter {
     return this;
   }
 
-  emit(event: string, ...args: any[]): boolean {
+  emit(event: string, ...args: unknown[]): boolean {
     const listeners = this.events.get(event);
     if (listeners) {
       // Create a copy to avoid issues with concurrent modification during iteration
@@ -47,8 +47,8 @@ export class EventEmitter {
     return false;
   }
 
-  once(event: string, listener: Function): this {
-    const onceWrapper = (...args: any[]) => {
+  once(event: string, listener: (...args: unknown[]) => unknown): this {
+    const onceWrapper = (...args: unknown[]) => {
       this.off(event, onceWrapper);
       listener(...args);
     };
@@ -69,7 +69,7 @@ export class EventEmitter {
     return listeners ? listeners.length : 0;
   }
 
-  listeners(event: string): Function[] {
+  listeners(event: string): (...args: unknown[]) => unknown[] {
     return this.events.get(event) || [];
   }
 

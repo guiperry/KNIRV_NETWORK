@@ -25,7 +25,9 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html')
       }
-    }
+    },
+    // Copy AssemblyScript WASM files
+    copyPublicDir: true
   },
   
   // Development server

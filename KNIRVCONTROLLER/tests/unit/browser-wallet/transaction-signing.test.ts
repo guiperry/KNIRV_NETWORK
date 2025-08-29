@@ -1,5 +1,5 @@
 // Comprehensive Unit Tests for KNIRVWALLET Browser Module - Transaction Signing
-import { KnirvWallet } from '../../../browser-wallet/packages/knirvwallet-module/src/wallet/wallet';
+import { KnirvWallet } from '../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/wallet/wallet';
 import { JSONRPCProvider } from '@gnolang/tm2-js-client';
 import { 
   TEST_MNEMONICS, 

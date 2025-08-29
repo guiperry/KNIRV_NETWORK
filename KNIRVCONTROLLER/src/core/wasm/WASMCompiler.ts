@@ -11,7 +11,24 @@ import pino from 'pino';
 
 const logger = pino({ name: 'wasm-compiler' });
 
-const __filename = fileURLToPath(import.meta.url);
+// Jest-compatible module URL resolution
+const getModuleUrl = () => {
+  if (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') {
+    return 'file://' + process.cwd() + '/src/core/wasm/WASMCompiler.ts';
+  }
+  try {
+    const importMeta = eval('import.meta');
+    if (importMeta && importMeta.url) {
+      return importMeta.url;
+    }
+  } catch {
+    // Fallback for CommonJS
+    return 'file://' + __filename;
+  }
+  return 'file://' + process.cwd();
+};
+
+const __filename = fileURLToPath(getModuleUrl());
 const __dirname = dirname(__filename);
 
 export interface WASMCompilationOptions {
@@ -129,7 +146,7 @@ export class WASMCompiler {
   /**
    * Compile Rust code to WebAssembly
    */
-  async compile(rustCode: string, options: WASMCompilationOptions = {}): Promise<WASMModule> {
+  async compile(rustCode: string, _options: WASMCompilationOptions = {}): Promise<WASMModule> {
     if (!this.ready) {
       throw new Error('WASM Compiler not initialized');
     }
@@ -150,11 +167,11 @@ export class WASMCompiler {
       await fs.writeFile(join(srcDir, 'lib.rs'), rustCode);
 
       // Create Cargo.toml
-      const cargoToml = this.generateCargoToml(options);
+      const cargoToml = this.generateCargoToml(_options);
       await fs.writeFile(join(projectDir, 'Cargo.toml'), cargoToml);
 
       // Compile with wasm-pack
-      const wasmModule = await this.runWasmPack(projectDir, options);
+      const wasmModule = await this.runWasmPack(projectDir, _options);
 
       // Cleanup temporary directory
       await fs.rm(projectDir, { recursive: true, force: true });
@@ -176,8 +193,8 @@ export class WASMCompiler {
     }
   }
 
-  private generateCargoToml(options: WASMCompilationOptions): string {
-    const features = options.features || [];
+  private generateCargoToml(_options: WASMCompilationOptions): string {
+    const features = _options.features || [];
     const featureList = features.length > 0 ? `\ndefault = [${features.map(f => `"${f}"`).join(', ')}]` : '';
 
     return `[package]
@@ -214,10 +231,10 @@ panic = "abort"
 `;
   }
 
-  private async runWasmPack(projectDir: string, options: WASMCompilationOptions): Promise<WASMModule> {
-    const target = options.target || 'web';
-    const outputDir = options.outputDir || 'pkg';
-    const mode = options.debug ? 'dev' : 'release';
+  private async runWasmPack(projectDir: string, _options: WASMCompilationOptions): Promise<WASMModule> {
+    const target = _options.target || 'web';
+    const outputDir = _options.outputDir || 'pkg';
+
 
     const args = [
       'build',
@@ -226,7 +243,7 @@ panic = "abort"
       '--scope', 'knirv'
     ];
 
-    if (!options.debug) {
+    if (!_options.debug) {
       args.push('--release');
     }
 
@@ -250,7 +267,7 @@ panic = "abort"
       process.on('close', async (code) => {
         if (code === 0) {
           try {
-            const wasmModule = await this.loadCompiledModule(projectDir, outputDir, options);
+            const wasmModule = await this.loadCompiledModule(projectDir, outputDir, _options);
             resolve(wasmModule);
           } catch (error) {
             reject(error);
@@ -267,7 +284,7 @@ panic = "abort"
     });
   }
 
-  private async loadCompiledModule(projectDir: string, outputDir: string, options: WASMCompilationOptions): Promise<WASMModule> {
+  private async loadCompiledModule(projectDir: string, outputDir: string, _options: WASMCompilationOptions): Promise<WASMModule> {
     const pkgDir = join(projectDir, outputDir);
 
     // Read WASM binary
@@ -283,7 +300,7 @@ panic = "abort"
     let typeDefinitions = '';
     try {
       typeDefinitions = await fs.readFile(dtsPath, 'utf-8');
-    } catch (error) {
+    } catch {
       logger.warn('TypeScript definitions not found');
     }
 
@@ -294,8 +311,8 @@ panic = "abort"
       metadata: {
         size: wasmBytes.length,
         compilationTime: 0, // Will be set by caller
-        features: options.features || [],
-        target: options.target || 'web'
+        features: _options.features || [],
+        target: _options.target || 'web'
       }
     };
   }
@@ -303,7 +320,7 @@ panic = "abort"
   /**
    * Compile the default agent-core WASM module
    */
-  async compileAgentCore(options: WASMCompilationOptions = {}): Promise<WASMModule> {
+  async compileAgentCore(_options: WASMCompilationOptions = {}): Promise<WASMModule> {
     logger.info('Compiling agent-core WASM module...');
 
     try {
@@ -331,7 +348,7 @@ panic = "abort"
     logger.info({ adapterId: request.adapterId }, 'Compiling LoRA adapter to WASM...');
 
     const startTime = Date.now();
-    const compilationId = `lora_${request.adapterId}_${Date.now()}`;
+
 
     try {
       // Generate Rust code for LoRA adapter
@@ -621,7 +638,7 @@ pub fn main() {
   /**
    * Get compilation status and metrics
    */
-  getCompilationMetrics(): any {
+  getCompilationMetrics(): unknown {
     return {
       isReady: this.ready,
       tempDir: this.tempDir,

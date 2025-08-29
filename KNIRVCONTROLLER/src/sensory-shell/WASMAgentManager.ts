@@ -195,7 +195,7 @@ export class WASMAgentManager extends EventEmitter {
   /**
    * Process input through the cognitive agent
    */
-  async processInput(input: string, context: any = {}): Promise<string> {
+  async processInput(input: string, context: unknown = {}): Promise<string> {
     if (!this.isInitialized || !this.agentModule) {
       throw new Error('Agent not initialized');
     }

@@ -26,7 +26,7 @@ Welcome to the KNIRV Network documentation. This comprehensive guide provides in
 
 ### KNIRVORACLE Documentation
 
-* [KNIRVORACLE User Guide](knirvoracle/README.md) - KNIRVORACLE facilitates a transparent AI ecosystem.  Register, discover, and use AI capabilities on a blockchain.
+* [KNIRVORACLE User Guide](knirvoracle/README.md) - User guide for KNIRVORACLE
 
 ### KNIRVROUTER Documentation
 
@@ -35,15 +35,6 @@ Welcome to the KNIRV Network documentation. This comprehensive guide provides in
 ### KNIRVSDK Documentation
 
 * [KNIRVSDK User Guide](knirvsdk/README.md) - User guide for KNIRVSDK
-
-### KNIRVCORTEX Documentation
-
-* [KNIRVSHELL User Guide](knirvshell/README.md) - User guide for KNIRVCORTEX
-* [KNIRVSHELL User Guide](knirvshell/README.md) - User guide for KNIRVSHELL
-
-### KNIRVWALLET Documentation
-
-* [KNIRVWALLET User Guide](knirvwallet/README.md) - User guide for KNIRVWALLET
 
 ## 📄 Technical Whitepapers
 

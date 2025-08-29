@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { APIResponse } from '@/types/api';
-import { apiRequest, API_BASE_URL, StandardWebSocket } from '@/lib/api';
+import { apiRequest, API_BASE_URL } from '@/lib/api';
+import { webSocketService } from '@/lib/websocket-service';
 
 export interface SystemHealth {
   overall_status: "healthy" | "degraded" | "critical";
@@ -78,7 +79,6 @@ export const useSystemHealth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [socket, setSocket] = useState<StandardWebSocket | null>(null);
 
   // Fetch system health status
   const fetchSystemHealth = useCallback(async (detailed: boolean = true) => {
@@ -269,59 +269,64 @@ export const useSystemHealth = () => {
 
   // WebSocket connection management
   const connectWebSocket = useCallback(() => {
-    if (socket?.isConnected()) return;
-
-    const ws = new StandardWebSocket();
-    
-    ws.onOpen = () => {
-      console.log('System Health WebSocket connected');
-      setIsConnected(true);
-      setError(null);
-      
-      // Subscribe to system health updates
-      ws.subscribe(['system-health-updated', 'system-alert-added', 'system-notification']);
-    };
-
-    ws.onMessage = (message) => {
-      if (message.event === 'system-health-updated' && message.payload) {
-        // Update system health data
-        setSystemHealth(prevHealth => {
-          if (!prevHealth) return prevHealth;
-          return {
-            ...prevHealth,
-            overall_status: message.payload.overall_status || prevHealth.overall_status,
-            metrics: message.payload.metrics || prevHealth.metrics,
-            components: message.payload.components || prevHealth.components,
-          };
-        });
-      } else if (message.event === 'system-alert-added' && message.payload) {
-        // Add new alert
-        setAlerts(prevAlerts => [message.payload, ...prevAlerts]);
-      } else if (message.event === 'connected') {
-        console.log('System Health WebSocket welcome:', message.payload);
+    // Set up event handlers
+    const handleConnection = (data: { connected: boolean }) => {
+      setIsConnected(data.connected);
+      if (data.connected) {
+        console.log('System Health WebSocket connected');
+        setError(null);
+      } else {
+        console.log('System Health WebSocket disconnected');
       }
     };
 
-    ws.onClose = () => {
-      console.log('System Health WebSocket disconnected');
-      setIsConnected(false);
+    const handleSystemHealthUpdate = (payload: any) => {
+      // Update system health data
+      setSystemHealth(prevHealth => {
+        if (!prevHealth) return prevHealth;
+        return {
+          ...prevHealth,
+          overall_status: payload.overall_status || prevHealth.overall_status,
+          metrics: payload.metrics || prevHealth.metrics,
+          components: payload.components || prevHealth.components,
+        };
+      });
     };
 
-    ws.onError = (error) => {
-      console.error('System Health WebSocket error:', error);
-      setError('WebSocket connection failed');
+    const handleSystemAlertAdded = (payload: any) => {
+      // Add new alert
+      setAlerts(prevAlerts => [payload, ...prevAlerts]);
     };
 
-    setSocket(ws);
-  }, [socket]);
+    const handleSystemNotification = (payload: any) => {
+      console.log('System Health system notification:', payload);
+    };
+
+    // Register event handlers
+    webSocketService.on('connection', handleConnection);
+    webSocketService.on('system-health-updated', handleSystemHealthUpdate);
+    webSocketService.on('system-alert-added', handleSystemAlertAdded);
+    webSocketService.on('system-notification', handleSystemNotification);
+
+    // Subscribe to events
+    webSocketService.subscribe(['system-health-updated', 'system-alert-added', 'system-notification']);
+
+    // Set initial connection status
+    setIsConnected(webSocketService.getConnectionStatus());
+
+    // Return cleanup function
+    return () => {
+      webSocketService.off('connection', handleConnection);
+      webSocketService.off('system-health-updated', handleSystemHealthUpdate);
+      webSocketService.off('system-alert-added', handleSystemAlertAdded);
+      webSocketService.off('system-notification', handleSystemNotification);
+    };
+  }, []);
 
   const disconnectWebSocket = useCallback(() => {
-    if (socket) {
-      socket.close();
-      setSocket(null);
-      setIsConnected(false);
-    }
-  }, [socket]);
+    // Individual hooks don't disconnect the shared service
+    setIsConnected(false);
+  }, []);
 
   // Refresh all data
   const refreshAll = useCallback(async () => {
@@ -336,15 +341,8 @@ export const useSystemHealth = () => {
   // Initial fetch and WebSocket connection on mount
   useEffect(() => {
     fetchSystemHealth();
-    connectWebSocket();
+    return connectWebSocket();
   }, [fetchSystemHealth, connectWebSocket]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      disconnectWebSocket();
-    };
-  }, [disconnectWebSocket]);
 
   return {
     systemHealth,

@@ -12,7 +12,7 @@ export interface SEALAgent {
   id: string;
   type: string;
   capabilities: string[];
-  state: any;
+  state: unknown;
   performance: AgentPerformance;
   created: Date;
   lastActive: Date;
@@ -27,11 +27,11 @@ export interface AgentPerformance {
 
 export interface SkillInvocation {
   skillId: string;
-  parameters: any;
+  parameters: unknown;
   agent?: SEALAgent;
   startTime: Date;
   endTime?: Date;
-  result?: any;
+  result?: unknown;
   error?: string;
 }
 
@@ -41,7 +41,7 @@ export class SEALFramework extends EventEmitter {
   private activeInvocations: Map<string, SkillInvocation> = new Map();
   private learningMode: boolean = false;
   private isRunning: boolean = false;
-  private hrmBridge: any = null; // Will be injected from CognitiveEngine
+  private hrmBridge: unknown = null; // Will be injected from CognitiveEngine
 
   constructor(config: SEALConfig) {
     super();
@@ -62,7 +62,7 @@ export class SEALFramework extends EventEmitter {
     console.log('Stopping SEAL Framework...');
 
     // Stop all active invocations
-    for (const [id, invocation] of this.activeInvocations) {
+    for (const [id] of this.activeInvocations) {
       await this.cancelInvocation(id);
     }
 
@@ -125,7 +125,7 @@ export class SEALFramework extends EventEmitter {
     return agent;
   }
 
-  public async generateResponse(input: any, context: any): Promise<any> {
+  public async generateResponse(input: unknown, context: unknown): Promise<any> {
     const startTime = Date.now();
 
     try {
@@ -155,7 +155,7 @@ export class SEALFramework extends EventEmitter {
     }
   }
 
-  private async generateHRMEnhancedResponse(input: any, context: any): Promise<any> {
+  private async generateHRMEnhancedResponse(input: unknown, context: unknown): Promise<any> {
     console.log('Generating HRM-enhanced SEAL response...');
 
     try {
@@ -191,7 +191,7 @@ export class SEALFramework extends EventEmitter {
     }
   }
 
-  private convertInputToSensoryData(input: any): number[] {
+  private convertInputToSensoryData(input: unknown): number[] {
     // Convert various input types to numerical data for HRM
     if (typeof input === 'string') {
       const encoder = new TextEncoder();
@@ -213,7 +213,7 @@ export class SEALFramework extends EventEmitter {
     return new Array(512).fill(0);
   }
 
-  private determineTaskType(input: any, context: any): string {
+  private determineTaskType(input: unknown, context: unknown): string {
     if (context.inputType) {
       return context.inputType + '_processing';
     }
@@ -228,7 +228,7 @@ export class SEALFramework extends EventEmitter {
     return 'general_processing';
   }
 
-  private async selectAgentWithHRMGuidance(input: any, context: any, hrmOutput: any): Promise<SEALAgent | null> {
+  private async selectAgentWithHRMGuidance(input: unknown, context: unknown, hrmOutput: unknown): Promise<SEALAgent | null> {
     // Use HRM activations to guide agent selection
     const requiredCapabilities = this.analyzeRequiredCapabilities(input, context);
 
@@ -253,7 +253,7 @@ export class SEALFramework extends EventEmitter {
     return bestAgent;
   }
 
-  private formatHRMResponse(hrmOutput: any, context: any): any {
+  private formatHRMResponse(hrmOutput: unknown, context: unknown): unknown {
     return {
       type: 'hrm_response',
       content: hrmOutput.reasoning_result,
@@ -269,7 +269,7 @@ export class SEALFramework extends EventEmitter {
     };
   }
 
-  private async executeAgentWithHRMGuidance(agent: SEALAgent, input: any, context: any, hrmOutput: any): Promise<any> {
+  private async executeAgentWithHRMGuidance(agent: SEALAgent, input: unknown, context: unknown, hrmOutput: unknown): Promise<any> {
     agent.lastActive = new Date();
     agent.performance.totalInvocations++;
 
@@ -296,7 +296,7 @@ export class SEALFramework extends EventEmitter {
     };
   }
 
-  private async selectAgent(input: any, context: any): Promise<SEALAgent | null> {
+  private async selectAgent(input: unknown, context: unknown): Promise<SEALAgent | null> {
     const requiredCapabilities = this.analyzeRequiredCapabilities(input, context);
 
     let bestAgent: SEALAgent | null = null;
@@ -314,7 +314,7 @@ export class SEALFramework extends EventEmitter {
     return bestAgent;
   }
 
-  private analyzeRequiredCapabilities(input: any, context: any): string[] {
+  private analyzeRequiredCapabilities(input: unknown, context: unknown): string[] {
     const capabilities: string[] = [];
 
     // Analyze input type and content to determine required capabilities
@@ -358,7 +358,7 @@ export class SEALFramework extends EventEmitter {
     return score;
   }
 
-  private async executeWithAgent(agent: SEALAgent, input: any, context: any): Promise<any> {
+  private async executeWithAgent(agent: SEALAgent, input: unknown, context: unknown): Promise<any> {
     agent.lastActive = new Date();
     agent.performance.totalInvocations++;
 
@@ -369,7 +369,7 @@ export class SEALFramework extends EventEmitter {
     return response;
   }
 
-  private async simulateAgentProcessing(agent: SEALAgent, input: any, context: any): Promise<any> {
+  private async simulateAgentProcessing(agent: SEALAgent, input: unknown, context: unknown): Promise<any> {
     // Simulate processing delay
     await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 500));
 
@@ -431,7 +431,7 @@ export class SEALFramework extends EventEmitter {
     }
   }
 
-  public async invokeSkill(skillId: string, parameters: any): Promise<any> {
+  public async invokeSkill(skillId: string, parameters: unknown): Promise<any> {
     const invocationId = `invocation_${Date.now()}`;
 
     const invocation: SkillInvocation = {
@@ -493,7 +493,7 @@ export class SEALFramework extends EventEmitter {
     return null;
   }
 
-  private async executeSkill(skillId: string, parameters: any, agent?: SEALAgent): Promise<any> {
+  private async executeSkill(skillId: string, parameters: unknown, agent?: SEALAgent): Promise<any> {
     console.log(`Executing skill: ${skillId}`, parameters);
 
     // Simulate skill execution
@@ -508,7 +508,7 @@ export class SEALFramework extends EventEmitter {
     };
   }
 
-  public async generateAdaptation(learningHistory: any[]): Promise<any> {
+  public async generateAdaptation(learningHistory: unknown[]): Promise<any> {
     if (!this.learningMode) {
       return null;
     }
@@ -548,7 +548,7 @@ export class SEALFramework extends EventEmitter {
     return adaptation;
   }
 
-  private analyzeErrorPatterns(history: any[]): any[] {
+  private analyzeErrorPatterns(history: unknown[]): unknown[] {
     return history
       .filter(event => event.feedback < 0)
       .map(event => ({
@@ -559,7 +559,7 @@ export class SEALFramework extends EventEmitter {
       }));
   }
 
-  private analyzeSuccessPatterns(history: any[]): any[] {
+  private analyzeSuccessPatterns(history: unknown[]): unknown[] {
     return history
       .filter(event => event.feedback > 0.5)
       .map(event => ({
@@ -570,7 +570,7 @@ export class SEALFramework extends EventEmitter {
       }));
   }
 
-  private generateErrorAdjustments(patterns: any[]): any[] {
+  private generateErrorAdjustments(patterns: unknown[]): unknown[] {
     return patterns.map(pattern => ({
       target: pattern.inputType,
       adjustment: 'reduce_confidence',
@@ -578,7 +578,7 @@ export class SEALFramework extends EventEmitter {
     }));
   }
 
-  private generateSuccessAdjustments(patterns: any[]): any[] {
+  private generateSuccessAdjustments(patterns: unknown[]): unknown[] {
     return patterns.map(pattern => ({
       target: pattern.inputType,
       adjustment: 'increase_confidence',
@@ -637,7 +637,7 @@ export class SEALFramework extends EventEmitter {
     return Array.from(this.activeInvocations.values());
   }
 
-  public getMetrics(): any {
+  public getMetrics(): unknown {
     const agents = Array.from(this.agents.values());
 
     return {
@@ -652,7 +652,7 @@ export class SEALFramework extends EventEmitter {
   }
 
   // HRM Integration methods
-  public setHRMBridge(hrmBridge: any): void {
+  public setHRMBridge(hrmBridge: unknown): void {
     this.hrmBridge = hrmBridge;
     console.log('HRM bridge injected into SEAL Framework');
   }
@@ -671,7 +671,7 @@ export class SEALFramework extends EventEmitter {
     return this.config.hrmIntegration === true;
   }
 
-  public getHRMStatus(): any {
+  public getHRMStatus(): unknown {
     return {
       enabled: this.config.hrmIntegration,
       bridgeAvailable: this.hrmBridge !== null,

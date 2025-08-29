@@ -1,15 +1,1 @@
-flag provided but not defined: -port
-Usage of /tmp/go-build2641334/b001/exe/KNIRVROUTER_GO_Verifyer:
-  -chain
-    	Start blockchain node instead of GUI
-  -install-complete
-    	Flag indicating installation just completed
-  -local-network
-    	Enable local network mode
-  -mock-nrn
-    	Enable mock NRN minting
-  -testnet
-    	Run in testnet mode with local network
-  -wallet
-    	Start wallet server instead of GUI
-exit status 2
+KNIRVROUTER mock - build skipped

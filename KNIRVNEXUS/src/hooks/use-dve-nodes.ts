@@ -8,7 +8,8 @@ import type {
   APIResponse,
   DVENodeUpdate
 } from '@/types/api';
-import { apiRequest, API_BASE_URL, buildQueryString, StandardWebSocket } from '@/lib/api';
+import { apiRequest, API_BASE_URL, buildQueryString } from '@/lib/api';
+import { webSocketService } from '@/lib/websocket-service';
 
 export const useDVENodes = () => {
   const [nodes, setNodes] = useState<DVENode[]>([]);
@@ -155,60 +156,64 @@ export const useDVENodes = () => {
 
   // WebSocket connection management
   const connectWebSocket = useCallback(() => {
-    if (socket?.isConnected()) return;
-
-    const ws = new StandardWebSocket();
-
-    ws.onOpen = () => {
-      console.log('DVE Nodes WebSocket connected');
+    if (webSocketService.getConnectionStatus()) {
       setIsConnected(true);
-      setError(null);
+      return;
+    }
 
-      // Subscribe to DVE node updates
-      ws.subscribe(['dve-node-updated', 'system-notification']);
-    };
-
-    ws.onMessage = (message) => {
-      if (message.event === 'dve-node-updated' && message.payload) {
-        // Update specific node in the list
-        setNodes(prevNodes =>
-          prevNodes.map(node =>
-            node.id === message.payload.id
-              ? {
-                  ...node,
-                  cpu_usage: message.payload.cpu_usage || node.cpu_usage,
-                  memory_usage: message.payload.memory_usage || node.memory_usage,
-                  status: message.payload.status || node.status,
-                  last_heartbeat: message.payload.last_heartbeat || node.last_heartbeat
-                }
-              : node
-          )
-        );
-      } else if (message.event === 'connected') {
-        console.log('DVE Nodes WebSocket welcome:', message.payload);
+    // Set up event handlers
+    const handleConnection = (data: { connected: boolean }) => {
+      setIsConnected(data.connected);
+      if (data.connected) {
+        console.log('DVE Nodes WebSocket connected');
+        setError(null);
       }
     };
 
-    ws.onClose = () => {
-      console.log('DVE Nodes WebSocket disconnected');
-      setIsConnected(false);
+    const handleDVENodeUpdate = (payload: any) => {
+      // Update specific node in the list
+      setNodes(prevNodes =>
+        prevNodes.map(node =>
+          node.id === payload.id
+            ? {
+                ...node,
+                cpu_usage: payload.cpu_usage || node.cpu_usage,
+                memory_usage: payload.memory_usage || node.memory_usage,
+                status: payload.status || node.status,
+                last_heartbeat: payload.last_heartbeat || node.last_heartbeat
+              }
+            : node
+        )
+      );
     };
 
-    ws.onError = (error) => {
-      console.error('DVE Nodes WebSocket error:', error);
-      setError('WebSocket connection failed');
+    const handleSystemNotification = (payload: any) => {
+      console.log('DVE Nodes system notification:', payload);
     };
 
-    setSocket(ws);
-  }, [socket]);
+    // Register event handlers
+    webSocketService.on('connection', handleConnection);
+    webSocketService.on('dve-node-updated', handleDVENodeUpdate);
+    webSocketService.on('system-notification', handleSystemNotification);
+
+    // Subscribe to events
+    webSocketService.subscribe(['dve-node-updated', 'system-notification']);
+
+    // Set initial connection status
+    setIsConnected(webSocketService.getConnectionStatus());
+
+    // Return cleanup function
+    return () => {
+      webSocketService.off('connection', handleConnection);
+      webSocketService.off('dve-node-updated', handleDVENodeUpdate);
+      webSocketService.off('system-notification', handleSystemNotification);
+    };
+  }, []);
 
   const disconnectWebSocket = useCallback(() => {
-    if (socket) {
-      socket.close();
-      setSocket(null);
-      setIsConnected(false);
-    }
-  }, [socket]);
+    // Individual hooks don't disconnect the shared service
+    setIsConnected(false);
+  }, []);
 
   // Convenience methods for common operations
   const getOnlineNodes = useCallback(() => fetchNodes({ status: 'online' }), [fetchNodes]);
@@ -218,15 +223,8 @@ export const useDVENodes = () => {
   // Initial fetch and WebSocket connection on mount
   useEffect(() => {
     fetchNodes();
-    connectWebSocket();
+    return connectWebSocket();
   }, [fetchNodes, connectWebSocket]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      disconnectWebSocket();
-    };
-  }, [disconnectWebSocket]);
 
   return {
     nodes,

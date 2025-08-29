@@ -1,4 +1,4 @@
-import { Search, Filter, Plus, Cpu, Zap, Shield, Wallet, QrCode, X, Download, Upload, Activity } from 'lucide-react';
+import { Search, Zap, Shield, Wallet, Download, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import SkillCard from '@components/SkillCard';
@@ -27,14 +27,10 @@ interface LoRASkill {
 export default function Skills() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showQRScanner, setShowQRScanner] = useState(false);
   const [activePanels, setActivePanels] = useState<string[]>([]);
-  const [cognitiveMode, setCognitiveMode] = useState(false);
-  const [cognitiveState, setCognitiveState] = useState<any>(null);
 
   // Real LoRA adapter integration
   const [knirvRouter, setKnirvRouter] = useState<KNIRVRouterIntegration | null>(null);
-  const [cognitiveEngine, setCognitiveEngine] = useState<CognitiveEngine | null>(null);
   const [loraAdapters, setLoraAdapters] = useState<LoRAAdapterData[]>([]);
   const [skills, setSkills] = useState<LoRASkill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -71,7 +67,7 @@ export default function Skills() {
   ]);
 
   const [currentNRVs] = useState([]);
-  const [selectedNRV, setSelectedNRV] = useState(null);
+  const [selectedNRV] = useState(null);
   const [nrnBalance] = useState(1250);
 
   // Initialize KNIRVROUTER and Cognitive Engine
@@ -121,7 +117,7 @@ export default function Skills() {
     };
 
     initializeIntegrations();
-  }, []);
+  }, [loadLoRAAdapters]);
 
   // Load LoRA adapters from KNIRVROUTER network
   const loadLoRAAdapters = async (router: KNIRVRouterIntegration) => {
@@ -134,7 +130,7 @@ export default function Skills() {
       setLoraAdapters(adapters);
 
       // Convert LoRA adapters to skills
-      const convertedSkills: LoRASkill[] = adapters.map((adapter, index) => ({
+      const convertedSkills: LoRASkill[] = adapters.map((adapter, _index) => ({
         id: adapter.adapterId,
         name: adapter.adapterName,
         description: adapter.description,
@@ -322,12 +318,12 @@ export default function Skills() {
     setMenuOpen(false);
   };
 
-  const handleCognitiveStateChange = (state: any) => {
+  const handleCognitiveStateChange = (state: unknown) => {
     setCognitiveState(state);
     setCognitiveMode(state.status === 'active' || state.status === 'learning');
   };
 
-  const handleSkillInvoked = (skillId: string, result: any) => {
+  const handleSkillInvoked = (skillId: string, result: unknown) => {
     console.log('Skill invoked:', skillId, result);
   };
 
@@ -335,7 +331,7 @@ export default function Skills() {
     console.log('Adaptation triggered:', adaptationType);
   };
 
-  const handleAgentAssignment = (nrv: any, agent: any) => {
+  const handleAgentAssignment = (nrv: unknown, agent: unknown) => {
     console.log('Agent assigned:', agent, 'to NRV:', nrv);
   };
 

@@ -19,7 +19,7 @@ export class ProtobufHandler {
     });
   }
   
-  serialize(schemaName: string, data: any): Uint8Array {
+  serialize(schemaName: string, data: unknown): Uint8Array {
     const schema = this.schemas.get(schemaName);
     if (!schema) {
       throw new Error(`Schema ${schemaName} not found`);
@@ -29,7 +29,7 @@ export class ProtobufHandler {
     return new TextEncoder().encode(JSON.stringify(data));
   }
   
-  deserialize(schemaName: string, data: Uint8Array): any {
+  deserialize(schemaName: string, data: Uint8Array): unknown {
     const schema = this.schemas.get(schemaName);
     if (!schema) {
       throw new Error(`Schema ${schemaName} not found`);

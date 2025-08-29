@@ -19,7 +19,7 @@ export interface SpeechRecognitionResult {
 
 export interface VoiceCommand {
   type: string;
-  parameters: any;
+  parameters: unknown;
   confidence: number;
   originalText: string;
 }
@@ -30,7 +30,7 @@ export class VoiceProcessor extends EventEmitter {
   private isRecording: boolean = false;
   private mediaRecorder: MediaRecorder | null = null;
   private audioContext: AudioContext | null = null;
-  private recognition: any = null; // SpeechRecognition
+  private recognition: unknown = null; // SpeechRecognition
   private synthesis: SpeechSynthesis | null = null;
 
   constructor(config: VoiceConfig) {
@@ -72,7 +72,7 @@ export class VoiceProcessor extends EventEmitter {
       this.emit('recognitionStarted');
     };
 
-    this.recognition.onresult = (event: any) => {
+    this.recognition.onresult = (_event: unknown) => {
       const results = Array.from(event.results);
       const latestResult = results[results.length - 1] as any;
 
@@ -89,7 +89,7 @@ export class VoiceProcessor extends EventEmitter {
       }
     };
 
-    this.recognition.onerror = (event: any) => {
+    this.recognition.onerror = (_event: unknown) => {
       console.error('Speech recognition error:', event.error);
       this.emit('recognitionError', event.error);
     };
@@ -166,7 +166,7 @@ export class VoiceProcessor extends EventEmitter {
   private setupMediaRecorderHandlers(): void {
     if (!this.mediaRecorder) return;
 
-    this.mediaRecorder.ondataavailable = (event) => {
+    this.mediaRecorder.ondataavailable = (_event) => {
       if (event.data.size > 0) {
         this.processAudioData(event.data);
       }
@@ -286,7 +286,7 @@ export class VoiceProcessor extends EventEmitter {
     return null;
   }
 
-  public async speak(text: string, options: any = {}): Promise<void> {
+  public async speak(text: string, options: unknown = {}): Promise<void> {
     if (!this.synthesis) {
       throw new Error('Speech synthesis not available');
     }
@@ -304,8 +304,8 @@ export class VoiceProcessor extends EventEmitter {
         resolve();
       };
 
-      utterance.onerror = (event) => {
-        this.emit('speechError', event);
+      utterance.onerror = (_event) => {
+        this.emit('speechError', _event);
         reject(new Error(`Speech synthesis error: ${event.error}`));
       };
 
@@ -357,7 +357,7 @@ export class VoiceProcessor extends EventEmitter {
     return !!(this.recognition && this.synthesis && this.audioContext);
   }
 
-  public getMetrics(): any {
+  public getMetrics(): unknown {
     return {
       isListening: this.isListening,
       isRecording: this.isRecording,

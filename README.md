@@ -366,8 +366,8 @@ cd KNIRVROUTER && go run main.go --port 3478
 - **[API Documentation](docs/api/)**: Comprehensive API reference
 
 ### Developer Resources
-- **[KNIRV Developer Portal](KNIRVWEBSITE/agent-developer-portal/)**: Complete developer experience with tutorials, API docs, and tools
-- **[Portal Documentation](KNIRVWEBSITE/agent-developer-portal/README.md)**: Developer portal setup and usage guide
+- **[KNIRV Developer Portal](KNIRVGATEWAY/agent-developer-portal/)**: Complete developer experience with tutorials, API docs, and tools
+- **[Portal Documentation](KNIRVGATEWAY/agent-developer-portal/README.md)**: Developer portal setup and usage guide
 - **[Getting Started Guide](https://knirv.netlify.app/agent-developer-portal/)**: Interactive tutorial for new developers
 
 ### Deployment & Operations
@@ -377,7 +377,7 @@ cd KNIRVROUTER && go run main.go --port 3478
 - **[Integration Summary](docs/INTEGRATION_SUMMARY.md)**: Complete integration overview
 
 ### Web Interface
-- **[KNIRV Website](KNIRVWEBSITE/)**: Main website with integrated developer portal
+- **[KNIRV Website](KNIRVGATEWAY/)**: Main website with integrated developer portal
 - **[Netlify Deployment Guide](docs/NETLIFY_DEPLOYMENT.md)**: Web interface deployment
 
 ## 🧪 Comprehensive Testing Infrastructure

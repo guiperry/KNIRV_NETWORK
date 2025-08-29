@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"testing"
 	"time"
 
@@ -302,15 +301,5 @@ func testErrorContextGeneration(t *testing.T) {
 	t.Logf("ErrorContext processing successful: %+v", response)
 }
 
-func TestMain(m *testing.M) {
-	// Setup
-	fmt.Println("Starting KNIRVCONTROLLER-KNIRVROUTER Integration Tests...")
-
-	// Run tests
-	code := m.Run()
-
-	// Cleanup
-	fmt.Println("Integration tests completed.")
-
-	os.Exit(code)
-}
+// TestMain removed to avoid conflict with knirvnexus_phase6_comprehensive_test.go
+// Test setup is handled by the main TestMain function

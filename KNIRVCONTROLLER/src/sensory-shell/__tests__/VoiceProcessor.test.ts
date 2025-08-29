@@ -64,6 +64,28 @@ describe('VoiceProcessor', () => {
       },
     });
 
+    // Mock MediaRecorder
+    (global as any).MediaRecorder = jest.fn().mockImplementation(() => ({
+      start: jest.fn(),
+      stop: jest.fn(),
+      pause: jest.fn(),
+      resume: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      state: 'inactive',
+      stream: mockMediaStream,
+      mimeType: 'audio/webm',
+      ondataavailable: null,
+      onerror: null,
+      onpause: null,
+      onresume: null,
+      onstart: null,
+      onstop: null
+    }));
+
+    // Mock MediaRecorder.isTypeSupported
+    (global as any).MediaRecorder.isTypeSupported = jest.fn(() => true);
+
     voiceProcessor = new VoiceProcessor();
   });
 

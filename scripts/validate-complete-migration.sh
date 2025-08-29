@@ -108,7 +108,7 @@ echo "========================================"
 
 # Check migration artifacts
 echo -n "Checking migration artifacts... "
-if [ -f "$PROJECT_ROOT/docs/GATEWAY_MIGRATION_GUIDE.md" ] && [ -f "$SCRIPT_DIR/test-gateway-migration.sh" ] && [ -f "$PROJECT_ROOT/KNIRVWEBSITE/assets/js/gateway-sse-client.js" ]; then
+if [ -f "$PROJECT_ROOT/docs/GATEWAY_MIGRATION_GUIDE.md" ] && [ -f "$SCRIPT_DIR/test-gateway-migration.sh" ] && [ -f "$PROJECT_ROOT/KNIRVGATEWAY/assets/js/gateway-sse-client.js" ]; then
     echo -e "${GREEN}✅ PASS${NC}"
     PASSED_TESTS=$((PASSED_TESTS + 1))
 else

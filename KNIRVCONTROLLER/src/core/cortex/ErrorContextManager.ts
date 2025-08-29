@@ -37,7 +37,7 @@ export interface SkillInvocationRequest {
 
 export interface SkillInvocationResult {
   success: boolean;
-  skillData?: any;
+  skillData?: unknown;
   errorMessage?: string;
   invocationId?: string;
 }

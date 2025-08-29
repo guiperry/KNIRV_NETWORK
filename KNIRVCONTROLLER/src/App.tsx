@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import { QrCode, X } from 'lucide-react';
 
 // Receiver components
@@ -15,16 +15,15 @@ import { CognitiveShellInterface } from './components/CognitiveShellInterface';
 import { CognitiveState } from './sensory-shell/CognitiveEngine';
 
 // Manager components
-import UnifiedInterface from './components/UnifiedInterface';
 import Skills from './pages/Skills';
 import UDC from './pages/UDC';
 import WalletPage from './pages/Wallet';
 
-import { backendAPI } from './core/api';
-import { loraEngine } from './core/loraEngine';
-import { wasmCompiler } from './core/wasmCompiler';
-import { protobufHandler } from './core/protobufHandler';
-import { ComponentBridge, ComponentConfig } from './shared/ComponentBridge';
+
+
+
+
+
 
 // Types from receiver
 export interface Adaptation {
@@ -67,19 +66,6 @@ export interface Agent {
   nrnCost: number;
 }
 
-// Navigation Button Component
-const NavigationButton = ({ to, children, className = '' }) => {
-  const navigate = useNavigate();
-
-  return (
-    <button
-      onClick={() => navigate(to)}
-      className={`bg-gray-800/80 hover:bg-gray-700/80 text-white px-4 py-2 rounded-lg shadow-lg transition-all duration-200 font-medium border border-gray-600/50 backdrop-blur-sm ${className}`}
-    >
-      {children}
-    </button>
-  );
-};
 
 // Burger Menu Component
 const BurgerMenu = ({ isOpen, onToggle, children }) => {
@@ -134,7 +120,6 @@ const ReceiverInterface = () => {
   const [activePanels, setActivePanels] = useState<string[]>([]);
   const [nrnBalance, setNrnBalance] = useState(1250);
   const [cognitiveMode, setCognitiveMode] = useState(false);
-  const [cognitiveState, setCognitiveState] = useState<CognitiveState | null>(null);
   const [networkConnections] = useState<{
     [key: string]: 'connected' | 'disconnected' | 'connecting';
   }>({
@@ -332,9 +317,8 @@ const ReceiverInterface = () => {
   };
 
   const handleCognitiveStateChange = (state: CognitiveState) => {
-    setCognitiveState(state);
-    // Set cognitive mode based on whether the cognitive shell is active
-    setCognitiveMode(state.status === 'active' || state.status === 'learning');
+    // Set cognitive mode based on whether the cognitive shell has active skills or confidence
+    setCognitiveMode(state.activeSkills.length > 0 || state.confidenceLevel > 0.5);
   };
 
   const handleSkillInvoked = (skillId: string, result: SkillResult) => {
@@ -753,7 +737,7 @@ const AgentProfile = () => {
           <div className="bg-gray-800/80 border border-gray-600/50 rounded-lg p-6">
             <h3 className="text-lg font-semibold text-white mb-4">Capabilities</h3>
             <div className="grid grid-cols-2 gap-3">
-              {agent.capabilities.map((capability, index) => (
+              {agent.capabilities.map((capability, _index) => (
                 <div key={index} className="bg-gray-700/50 border border-gray-600/30 rounded-lg p-3">
                   <p className="text-white font-medium">{capability}</p>
                 </div>
@@ -784,7 +768,7 @@ const AgentProfile = () => {
           <div className="bg-gray-800/80 border border-gray-600/50 rounded-lg p-6">
             <h3 className="text-lg font-semibold text-white mb-4">Specializations</h3>
             <div className="flex flex-wrap gap-2">
-              {agent.specialization.map((spec, index) => (
+              {agent.specialization.map((spec, _index) => (
                 <span key={index} className="bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full text-sm">
                   {spec}
                 </span>

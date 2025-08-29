@@ -384,8 +384,8 @@ All notable changes to the KNIRV Gateway project will be documented in this sect
 
 ## Migration History
 
-### From KNIRVWEBSITE to KNIRVGATEWAY
-- **Renamed**: Project renamed from KNIRVWEBSITE to KNIRVGATEWAY to better reflect its role
+### From KNIRVGATEWAY to KNIRVGATEWAY
+- **Renamed**: Project renamed from KNIRVGATEWAY to KNIRVGATEWAY to better reflect its role
 - **Enhanced**: Added comprehensive API gateway functionality
 - **Unified**: Combined web portal and API gateway into single project
 - **Modernized**: Updated architecture for serverless deployment

@@ -448,7 +448,7 @@ export class HRMCoreModel {
   /**
    * Find related skills
    */
-  private findRelatedSkills(category: string, capabilities: string[]): string[] {
+  private findRelatedSkills(category: string, _capabilities: string[]): string[] {
     // This would typically query existing skills database
     // For now, return placeholder related skills
     const relatedSkills: string[] = [];

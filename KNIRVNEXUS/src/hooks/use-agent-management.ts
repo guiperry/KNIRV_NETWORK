@@ -15,7 +15,8 @@ import type {
   AgentTemplate,
   AgentAction
 } from '@/types/api';
-import { apiRequest, API_BASE_URL, StandardWebSocket } from '@/lib/api';
+import { apiRequest, API_BASE_URL } from '@/lib/api';
+import { webSocketService } from '@/lib/websocket-service';
 
 // Additional interfaces not in main types file
 export interface AgentFilter {
@@ -42,7 +43,6 @@ export const useAgentManagement = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [socket, setSocket] = useState<StandardWebSocket | null>(null);
 
   // Fetch all agents with optional filtering
   const fetchAgents = useCallback(async (filter?: AgentFilter) => {
@@ -358,66 +358,71 @@ export const useAgentManagement = () => {
 
   // WebSocket connection management
   const connectWebSocket = useCallback(() => {
-    if (socket?.isConnected()) return;
-
-    const ws = new StandardWebSocket();
-    
-    ws.onOpen = () => {
-      console.log('Agent Management WebSocket connected');
-      setIsConnected(true);
-      setError(null);
-      
-      // Subscribe to agent management updates
-      ws.subscribe(['agent-updated', 'agent-status-changed', 'system-notification']);
-    };
-
-    ws.onMessage = (message) => {
-      if (message.event === 'agent-updated' && message.payload) {
-        // Update agent in the list
-        setAgents(prevAgents => 
-          prevAgents.map(agent => 
-            agent.id === message.payload.id ? { ...agent, ...message.payload } : agent
-          )
-        );
-        
-        // Update selected agent if it matches
-        if (selectedAgent?.id === message.payload.id) {
-          setSelectedAgent(prev => prev ? { ...prev, ...message.payload } : null);
-        }
-      } else if (message.event === 'agent-status-changed' && message.payload) {
-        // Update agent status
-        setAgents(prevAgents => 
-          prevAgents.map(agent => 
-            agent.id === message.payload.agent_id 
-              ? { ...agent, status: message.payload.status }
-              : agent
-          )
-        );
-      } else if (message.event === 'connected') {
-        console.log('Agent Management WebSocket welcome:', message.payload);
+    // Set up event handlers
+    const handleConnection = (data: { connected: boolean }) => {
+      setIsConnected(data.connected);
+      if (data.connected) {
+        console.log('Agent Management WebSocket connected');
+        setError(null);
+      } else {
+        console.log('Agent Management WebSocket disconnected');
       }
     };
 
-    ws.onClose = () => {
-      console.log('Agent Management WebSocket disconnected');
-      setIsConnected(false);
+    const handleAgentUpdate = (payload: any) => {
+      // Update agent in the list
+      setAgents(prevAgents =>
+        prevAgents.map(agent =>
+          agent.id === payload.id ? { ...agent, ...payload } : agent
+        )
+      );
+
+      // Update selected agent if it matches
+      if (selectedAgent?.id === payload.id) {
+        setSelectedAgent(prev => prev ? { ...prev, ...payload } : null);
+      }
     };
 
-    ws.onError = (error) => {
-      console.error('Agent Management WebSocket error:', error);
-      setError('WebSocket connection failed');
+    const handleAgentStatusChange = (payload: any) => {
+      // Update agent status
+      setAgents(prevAgents =>
+        prevAgents.map(agent =>
+          agent.id === payload.agent_id
+            ? { ...agent, status: payload.status }
+            : agent
+        )
+      );
     };
 
-    setSocket(ws);
-  }, [socket, selectedAgent]);
+    const handleSystemNotification = (payload: any) => {
+      console.log('Agent Management system notification:', payload);
+    };
+
+    // Register event handlers
+    webSocketService.on('connection', handleConnection);
+    webSocketService.on('agent-updated', handleAgentUpdate);
+    webSocketService.on('agent-status-changed', handleAgentStatusChange);
+    webSocketService.on('system-notification', handleSystemNotification);
+
+    // Subscribe to events
+    webSocketService.subscribe(['agent-updated', 'agent-status-changed', 'system-notification']);
+
+    // Set initial connection status
+    setIsConnected(webSocketService.getConnectionStatus());
+
+    // Return cleanup function
+    return () => {
+      webSocketService.off('connection', handleConnection);
+      webSocketService.off('agent-updated', handleAgentUpdate);
+      webSocketService.off('agent-status-changed', handleAgentStatusChange);
+      webSocketService.off('system-notification', handleSystemNotification);
+    };
+  }, [selectedAgent]);
 
   const disconnectWebSocket = useCallback(() => {
-    if (socket) {
-      socket.close();
-      setSocket(null);
-      setIsConnected(false);
-    }
-  }, [socket]);
+    // Individual hooks don't disconnect the shared service
+    setIsConnected(false);
+  }, []);
 
   // Refresh all data
   const refreshAll = useCallback(async () => {
@@ -433,15 +438,8 @@ export const useAgentManagement = () => {
   useEffect(() => {
     fetchAgents();
     fetchSummary();
-    connectWebSocket();
+    return connectWebSocket();
   }, [fetchAgents, fetchSummary, connectWebSocket]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      disconnectWebSocket();
-    };
-  }, [disconnectWebSocket]);
 
   return {
     agents,

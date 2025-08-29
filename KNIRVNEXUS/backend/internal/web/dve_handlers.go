@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"nexus-backend/internal/services/dvemanager"
@@ -53,6 +54,20 @@ func (h *DVEHandlers) GetDVENodes(w http.ResponseWriter, r *http.Request) {
 
 	nodes, err := h.dveManager.GetNodes(filter)
 	if err != nil {
+		// If error is "not found", return empty array instead of 500 error
+		if strings.Contains(err.Error(), "not found") {
+			response := DVENodeResponse{
+				Success:   true,
+				Data:      []interface{}{}, // Empty array
+				Total:     0,
+				Timestamp: getCurrentTimestamp(),
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+
+		// For other errors, still return 500
 		response := DVENodeResponse{
 			Success:   false,
 			Error:     "Failed to fetch DVE nodes: " + err.Error(),

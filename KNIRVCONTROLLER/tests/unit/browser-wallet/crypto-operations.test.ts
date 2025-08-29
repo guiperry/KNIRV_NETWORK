@@ -1,12 +1,12 @@
 // Comprehensive Unit Tests for KNIRVWALLET Browser Module - Cryptographic Operations
-import { 
-  encryptAES, 
-  decryptAES, 
-  encryptSha256, 
-  executeKdf, 
-  makeCryptKey 
-} from '../../../browser-wallet/packages/knirvwallet-module/src/wallet/wallet-crypto-util';
-import { toHex } from '../../../browser-wallet/packages/knirvwallet-module/src/encoding';
+import {
+  encryptAES,
+  decryptAES,
+  encryptSha256,
+  executeKdf,
+  makeCryptKey
+} from '../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/wallet/wallet-crypto-util';
+import { toHex } from '../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/encoding';
 import { 
   TEST_ENCRYPTION_DATA,
   TEST_MNEMONICS,

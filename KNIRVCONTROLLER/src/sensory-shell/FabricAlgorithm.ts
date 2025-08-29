@@ -10,10 +10,10 @@ export interface FabricConfig {
 }
 
 export interface FabricContext {
-  inputHistory: any[];
-  outputHistory: any[];
+  inputHistory: unknown[];
+  outputHistory: unknown[];
   attentionWeights: Map<string, number>;
-  memoryState: any;
+  memoryState: unknown;
   processingMetrics: ProcessingMetrics;
 }
 
@@ -36,8 +36,8 @@ export class FabricAlgorithm extends EventEmitter {
   private context: FabricContext;
   private attentionMechanism: AttentionMechanism;
   private isRunning: boolean = false;
-  private processingQueue: any[] = [];
-  private hrmBridge: any = null; // Will be injected from CognitiveEngine
+  private processingQueue: unknown[] = [];
+  private hrmBridge: unknown = null; // Will be injected from CognitiveEngine
 
   constructor(config: FabricConfig) {
     super();
@@ -83,7 +83,7 @@ export class FabricAlgorithm extends EventEmitter {
     this.emit('fabricStopped');
   }
 
-  public async process(input: any, options: any = {}): Promise<any> {
+  public async process(input: unknown, options: unknown = {}): Promise<any> {
     const startTime = Date.now();
 
     try {
@@ -108,7 +108,7 @@ export class FabricAlgorithm extends EventEmitter {
     }
   }
 
-  private async hrmEnhancedProcess(input: any, options: any): Promise<any> {
+  private async hrmEnhancedProcess(input: unknown, options: unknown): Promise<any> {
     console.log('Processing with HRM-enhanced Fabric Algorithm...');
 
     try {
@@ -172,7 +172,7 @@ export class FabricAlgorithm extends EventEmitter {
     }
   }
 
-  private convertToSensoryData(input: any): number[] {
+  private convertToSensoryData(input: unknown): number[] {
     // Convert input to numerical representation for HRM processing
     if (typeof input === 'string') {
       const encoder = new TextEncoder();
@@ -194,7 +194,7 @@ export class FabricAlgorithm extends EventEmitter {
     return new Array(512).fill(0);
   }
 
-  private determineTaskType(input: any, options: any): string {
+  private determineTaskType(input: unknown, options: unknown): string {
     if (options.inputType) {
       return `fabric_${options.inputType}`;
     }
@@ -206,7 +206,7 @@ export class FabricAlgorithm extends EventEmitter {
     return 'fabric_general';
   }
 
-  private selectStrategyWithHRM(input: any, hrmOutput: any): string {
+  private selectStrategyWithHRM(input: unknown, hrmOutput: unknown): string {
     // Use HRM confidence and activations to select processing strategy
     const confidence = hrmOutput.confidence;
     const avgHActivation = hrmOutput.h_module_activations.reduce((a: number, b: number) => a + b, 0) / hrmOutput.h_module_activations.length;
@@ -220,7 +220,7 @@ export class FabricAlgorithm extends EventEmitter {
     }
   }
 
-  private async applyHRMGuidedAttention(input: any, context: any, hrmOutput: any): Promise<any> {
+  private async applyHRMGuidedAttention(input: unknown, context: unknown, hrmOutput: unknown): Promise<any> {
     // Traditional attention mechanism
     const traditionalAttention = await this.applyAttention(input, context);
 
@@ -229,14 +229,14 @@ export class FabricAlgorithm extends EventEmitter {
 
     // Use L-module activations to guide sensory attention
     if (hrmOutput.l_module_activations) {
-      hrmOutput.l_module_activations.forEach((activation: number, index: number) => {
+      hrmOutput.l_module_activations.forEach((activation: number, _index: number) => {
         hrmGuidedWeights.set(`l_module_${index}`, activation);
       });
     }
 
     // Use H-module activations to guide planning attention
     if (hrmOutput.h_module_activations) {
-      hrmOutput.h_module_activations.forEach((activation: number, index: number) => {
+      hrmOutput.h_module_activations.forEach((activation: number, _index: number) => {
         hrmGuidedWeights.set(`h_module_${index}`, activation);
       });
     }
@@ -252,7 +252,7 @@ export class FabricAlgorithm extends EventEmitter {
     };
   }
 
-  private generateNRVWithHRM(result: any, hrmOutput: any): any {
+  private generateNRVWithHRM(result: unknown, hrmOutput: unknown): unknown {
     // Generate Neural Reasoning Vector combining Fabric and HRM insights
     return {
       fabricVector: this.generateTraditionalNRV(result),
@@ -268,7 +268,7 @@ export class FabricAlgorithm extends EventEmitter {
     };
   }
 
-  private generateTraditionalNRV(result: any): any {
+  private generateTraditionalNRV(result: unknown): unknown {
     // Traditional NRV generation (existing logic)
     return {
       confidence: result.confidence || 0.5,
@@ -278,7 +278,7 @@ export class FabricAlgorithm extends EventEmitter {
     };
   }
 
-  private updateContextWithHRM(input: any, result: any, options: any, hrmOutput: any): void {
+  private updateContextWithHRM(input: unknown, result: unknown, options: unknown, hrmOutput: unknown): void {
     // Traditional context update
     this.updateContext(input, result, options);
 
@@ -299,8 +299,8 @@ export class FabricAlgorithm extends EventEmitter {
 
   private async executeHRMEnhancedStrategy(
     strategy: string,
-    attentionResult: any,
-    options: any
+    attentionResult: unknown,
+    options: unknown
   ): Promise<any> {
     console.log(`Executing HRM-enhanced strategy: ${strategy}`);
 
@@ -321,7 +321,7 @@ export class FabricAlgorithm extends EventEmitter {
     }
   }
 
-  private async hrmDeepAnalysisProcessing(attentionResult: any, options: any, hrmGuidance: any): Promise<any> {
+  private async hrmDeepAnalysisProcessing(attentionResult: unknown, options: unknown, hrmGuidance: unknown): Promise<any> {
     // Deep analysis with HRM cognitive insights
     const result = await this.deepAnalysisProcessing(attentionResult, options);
 
@@ -338,7 +338,7 @@ export class FabricAlgorithm extends EventEmitter {
     };
   }
 
-  private async hrmStandardProcessing(attentionResult: any, options: any, hrmGuidance: any): Promise<any> {
+  private async hrmStandardProcessing(attentionResult: unknown, options: unknown, hrmGuidance: unknown): Promise<any> {
     // Standard processing with HRM guidance
     const result = await this.standardProcessing(attentionResult, options);
 
@@ -351,7 +351,7 @@ export class FabricAlgorithm extends EventEmitter {
     };
   }
 
-  private async hrmFastProcessing(attentionResult: any, options: any, hrmGuidance: any): Promise<any> {
+  private async hrmFastProcessing(attentionResult: unknown, options: unknown, hrmGuidance: unknown): Promise<any> {
     // Fast processing with minimal HRM overhead
     const result = await this.fastProcessing(attentionResult, options);
 
@@ -363,10 +363,10 @@ export class FabricAlgorithm extends EventEmitter {
     };
   }
 
-  private async adaptiveProcess(input: any, options: any): Promise<any> {
+  private async adaptiveProcess(input: unknown, options: unknown): Promise<any> {
     // Analyze input complexity and context
     const complexity = this.analyzeComplexity(input);
-    const contextRelevance = this.calculateContextRelevance(input, options.context);
+
 
     // Adjust processing strategy based on complexity
     let processingStrategy: string;
@@ -394,14 +394,14 @@ export class FabricAlgorithm extends EventEmitter {
     return result;
   }
 
-  private async directProcess(input: any, options: any): Promise<any> {
+  private async directProcess(input: unknown, options: unknown): Promise<any> {
     // Direct processing without adaptive mechanisms
     const result = await this.executeBasicProcessing(input, options);
     this.updateContext(input, result, options);
     return result;
   }
 
-  private analyzeComplexity(input: any): number {
+  private analyzeComplexity(input: unknown): number {
     let complexity = 0;
 
     // Analyze input structure
@@ -428,7 +428,7 @@ export class FabricAlgorithm extends EventEmitter {
     return Math.min(complexity, 1.0);
   }
 
-  private calculateContextRelevance(input: any, context: any): number {
+  private calculateContextRelevance(input: unknown, context: unknown): number {
     if (!context) return 0.5;
 
     let relevance = 0;
@@ -442,7 +442,7 @@ export class FabricAlgorithm extends EventEmitter {
     }
 
     // Check against context data
-    for (const [key, value] of context) {
+    for (const [, value] of context) {
       const contextStr = JSON.stringify(value).toLowerCase();
       const similarity = this.calculateSimilarity(inputStr, contextStr);
       relevance += similarity * 0.1;
@@ -462,7 +462,7 @@ export class FabricAlgorithm extends EventEmitter {
     return totalWords > 0 ? commonWords.length / totalWords : 0;
   }
 
-  private async applyAttention(input: any, context: any): Promise<any> {
+  private async applyAttention(input: unknown, context: unknown): Promise<any> {
     // Update attention weights based on input and context
     this.updateAttentionWeights(input, context);
 
@@ -477,7 +477,7 @@ export class FabricAlgorithm extends EventEmitter {
     return attentionResult;
   }
 
-  private updateAttentionWeights(input: any, context: any): void {
+  private updateAttentionWeights(input: unknown, context: unknown): void {
     // Clear old weights
     this.attentionMechanism.weights.clear();
     this.attentionMechanism.focusAreas = [];
@@ -498,7 +498,7 @@ export class FabricAlgorithm extends EventEmitter {
     this.attentionMechanism.contextRelevance = this.calculateContextRelevance(input, context);
   }
 
-  private calculateAttentionWeight(key: string, value: any, context: any): number {
+  private calculateAttentionWeight(key: string, value: unknown, context: unknown): number {
     let weight = 0.5; // Base weight
 
     // Increase weight for certain key patterns
@@ -520,12 +520,12 @@ export class FabricAlgorithm extends EventEmitter {
     return Math.min(weight, 1.0);
   }
 
-  private applyAttentionToInput(input: any): any {
+  private applyAttentionToInput(input: unknown): unknown {
     if (typeof input !== 'object') {
       return input;
     }
 
-    const focusedInput: any = {};
+    const focusedInput: unknown = {};
 
     for (const [key, value] of Object.entries(input)) {
       const weight = this.attentionMechanism.weights.get(key) || 0.5;
@@ -544,8 +544,8 @@ export class FabricAlgorithm extends EventEmitter {
 
   private async executeProcessingStrategy(
     strategy: string,
-    attentionResult: any,
-    options: any
+    attentionResult: unknown,
+    options: unknown
   ): Promise<any> {
     console.log(`Executing processing strategy: ${strategy}`);
 
@@ -564,7 +564,7 @@ export class FabricAlgorithm extends EventEmitter {
     }
   }
 
-  private async deepAnalysisProcessing(attentionResult: any, options: any): Promise<any> {
+  private async deepAnalysisProcessing(attentionResult: unknown, options: unknown): Promise<any> {
     // Simulate deep analysis with multiple passes
     const passes = 3;
     let result = attentionResult.focusedInput;
@@ -586,7 +586,7 @@ export class FabricAlgorithm extends EventEmitter {
     };
   }
 
-  private async standardProcessing(attentionResult: any, options: any): Promise<any> {
+  private async standardProcessing(attentionResult: unknown, options: unknown): Promise<any> {
     const result = await this.processPass(attentionResult.focusedInput, 'standard', options);
 
     return {
@@ -598,7 +598,7 @@ export class FabricAlgorithm extends EventEmitter {
     };
   }
 
-  private async fastProcessing(attentionResult: any, options: any): Promise<any> {
+  private async fastProcessing(attentionResult: unknown, _options: unknown): Promise<any> {
     // Quick processing with minimal analysis
     const result = {
       processed: true,
@@ -615,7 +615,7 @@ export class FabricAlgorithm extends EventEmitter {
     };
   }
 
-  private async executeBasicProcessing(input: any, options: any): Promise<any> {
+  private async executeBasicProcessing(input: unknown, options: unknown): Promise<any> {
     const result = await this.processPass(input, 'basic', options);
 
     return {
@@ -627,7 +627,7 @@ export class FabricAlgorithm extends EventEmitter {
     };
   }
 
-  private async processPass(input: any, passType: string, options: any): Promise<any> {
+  private async processPass(input: unknown, passType: string, options: unknown): Promise<any> {
     // Simulate processing pass
     await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -641,7 +641,7 @@ export class FabricAlgorithm extends EventEmitter {
     };
   }
 
-  private updateContext(input: any, result: any, options: any): void {
+  private updateContext(input: unknown, result: unknown, options: unknown): void {
     // Add to input history
     this.context.inputHistory.push({
       input,
@@ -673,7 +673,7 @@ export class FabricAlgorithm extends EventEmitter {
     });
   }
 
-  private updateMemoryState(input: any, result: any): void {
+  private updateMemoryState(input: unknown, result: unknown): void {
     // Update memory with key patterns and relationships
     const inputKey = this.generateMemoryKey(input);
     const resultKey = this.generateMemoryKey(result);
@@ -692,7 +692,7 @@ export class FabricAlgorithm extends EventEmitter {
     }
   }
 
-  private generateMemoryKey(data: any): string {
+  private generateMemoryKey(data: unknown): string {
     // Generate a key for memory storage
     if (typeof data === 'string') {
       return data.substring(0, 50);
@@ -731,7 +731,7 @@ export class FabricAlgorithm extends EventEmitter {
     processLoop();
   }
 
-  public queueForProcessing(input: any, options: any = {}): void {
+  public queueForProcessing(input: unknown, options: unknown = {}): void {
     this.processingQueue.push({ input, options });
   }
 
@@ -752,17 +752,17 @@ export class FabricAlgorithm extends EventEmitter {
     this.emit('contextCleared');
   }
 
-  public exportMemoryState(): any {
+  public exportMemoryState(): unknown {
     return { ...this.context.memoryState };
   }
 
-  public importMemoryState(memoryState: any): void {
+  public importMemoryState(memoryState: unknown): void {
     this.context.memoryState = { ...memoryState };
     this.emit('memoryStateImported');
   }
 
   // HRM Integration methods
-  public setHRMBridge(hrmBridge: any): void {
+  public setHRMBridge(hrmBridge: unknown): void {
     this.hrmBridge = hrmBridge;
     console.log('HRM bridge injected into Fabric Algorithm');
   }
@@ -781,7 +781,7 @@ export class FabricAlgorithm extends EventEmitter {
     return this.config.hrmIntegration === true;
   }
 
-  public getHRMStatus(): any {
+  public getHRMStatus(): unknown {
     return {
       enabled: this.config.hrmIntegration,
       bridgeAvailable: this.hrmBridge !== null,
@@ -789,7 +789,7 @@ export class FabricAlgorithm extends EventEmitter {
     };
   }
 
-  public getHRMHistory(): any[] {
+  public getHRMHistory(): unknown[] {
     return this.context.memoryState.hrmHistory || [];
   }
 
@@ -800,7 +800,7 @@ export class FabricAlgorithm extends EventEmitter {
     }
   }
 
-  public getEnhancedMetrics(): any {
+  public getEnhancedMetrics(): unknown {
     const baseMetrics = this.getMetrics();
     const hrmHistory = this.getHRMHistory();
 

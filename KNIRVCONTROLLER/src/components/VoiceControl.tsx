@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Mic, MicOff, Volume2, Brain } from 'lucide-react';
 import { VoiceProcessor, VoiceConfig } from '../sensory-shell/VoiceProcessor';
 
@@ -33,9 +33,9 @@ export const VoiceControl: React.FC<VoiceControlProps> = ({
         processorRef.current.stop();
       }
     };
-  }, [cognitiveMode]);
+  }, [cognitiveMode, initializeVoiceProcessor, voiceProcessor]);
 
-  const initializeVoiceProcessor = async () => {
+  const initializeVoiceProcessor = useCallback(async () => {
     try {
       const config: VoiceConfig = {
         sampleRate: 16000,
@@ -81,9 +81,9 @@ export const VoiceControl: React.FC<VoiceControlProps> = ({
       console.error('Failed to initialize voice processor:', error);
       setIsSupported(false);
     }
-  };
+  }, [cognitiveMode, onVoiceCommand]);
 
-  const simulateVoiceRecognition = () => {
+  const simulateVoiceRecognition = useCallback(() => {
     if (!isActive) return;
 
     setIsListening(true);
@@ -128,7 +128,7 @@ export const VoiceControl: React.FC<VoiceControlProps> = ({
     };
 
     setTimeout(addWord, 500);
-  };
+  }, [isActive, onVoiceCommand]);
 
   useEffect(() => {
     if (isActive) {
@@ -148,9 +148,9 @@ export const VoiceControl: React.FC<VoiceControlProps> = ({
     } else if (voiceProcessor) {
       handleRealVoiceToggle(false);
     }
-  }, [isActive, cognitiveMode, voiceProcessor]);
+  }, [isActive, cognitiveMode, voiceProcessor, handleRealVoiceToggle, simulateVoiceRecognition]);
 
-  const handleRealVoiceToggle = async (active: boolean) => {
+  const handleRealVoiceToggle = useCallback(async (active: boolean) => {
     if (!voiceProcessor) return;
 
     try {
@@ -162,7 +162,7 @@ export const VoiceControl: React.FC<VoiceControlProps> = ({
     } catch (error) {
       console.error('Voice processor toggle error:', error);
     }
-  };
+  }, [voiceProcessor]);
 
   return (
     <div className="absolute bottom-4 right-4 z-40" data-testid="voice-control">

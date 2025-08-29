@@ -177,7 +177,7 @@ export class HRMBridge extends EventEmitter {
   }
 
   // Helper methods for integration with existing cognitive engine
-  public async processTextInput(text: string, context?: any): Promise<HRMCognitiveOutput> {
+  public async processTextInput(text: string, context?: unknown): Promise<HRMCognitiveOutput> {
     const input: HRMCognitiveInput = {
       sensory_data: this.textToSensoryData(text),
       context: JSON.stringify(context || {}),
@@ -187,7 +187,7 @@ export class HRMBridge extends EventEmitter {
     return this.processCognitiveInput(input);
   }
 
-  public async processVoiceInput(audioData: number[], context?: any): Promise<HRMCognitiveOutput> {
+  public async processVoiceInput(audioData: number[], context?: unknown): Promise<HRMCognitiveOutput> {
     const input: HRMCognitiveInput = {
       sensory_data: audioData,
       context: JSON.stringify(context || {}),
@@ -197,7 +197,7 @@ export class HRMBridge extends EventEmitter {
     return this.processCognitiveInput(input);
   }
 
-  public async processVisualInput(visualData: number[], context?: any): Promise<HRMCognitiveOutput> {
+  public async processVisualInput(visualData: number[], context?: unknown): Promise<HRMCognitiveOutput> {
     const input: HRMCognitiveInput = {
       sensory_data: visualData,
       context: JSON.stringify(context || {}),

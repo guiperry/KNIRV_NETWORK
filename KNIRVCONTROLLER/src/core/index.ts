@@ -33,7 +33,7 @@ const logger = pino({
 
 class KNIRVCortexBackend {
   private app: express.Application;
-  private server: any;
+  private server: unknown;
   private wss: WebSocketServer | null = null;
   public loraEngine!: LoRAAdapterEngine;
   public wasmCompiler!: WASMCompiler;
@@ -170,7 +170,7 @@ class KNIRVCortexBackend {
     });
 
     // Error handling
-    this.app.use((error: any, req: any, res: any, next: any) => {
+    this.app.use((error: unknown, req: unknown, res: unknown, _next: unknown) => {
       logger.error({ error, url: req.url, method: req.method }, 'Unhandled error');
       res.status(500).json({
         success: false,
@@ -221,7 +221,7 @@ class KNIRVCortexBackend {
     });
   }
 
-  private async handleWebSocketMessage(ws: any, data: any) {
+  private async handleWebSocketMessage(ws: unknown, data: unknown) {
     switch (data.type) {
       case 'lora_compile':
         try {
@@ -322,8 +322,25 @@ class KNIRVCortexBackend {
   }
 }
 
+// Jest-compatible module URL resolution
+const getModuleUrl = () => {
+  if (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') {
+    return 'file://' + process.cwd() + '/src/core/index.ts';
+  }
+  try {
+    const importMeta = eval('import.meta');
+    if (importMeta && importMeta.url) {
+      return importMeta.url;
+    }
+  } catch {
+    // Fallback for CommonJS
+    return 'file://' + process.cwd() + '/src/core/index.ts';
+  }
+  return 'file://' + process.cwd();
+};
+
 // Start the backend if this file is run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (getModuleUrl() === `file://${process.argv[1]}`) {
   const backend = new KNIRVCortexBackend();
   backend.start().catch((error) => {
     logger.error({ error }, 'Failed to start KNIRV-CORTEX backend');

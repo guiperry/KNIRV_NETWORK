@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 
 interface VoiceProcessorProps {
@@ -23,21 +23,21 @@ interface SpeechRecognition extends EventTarget {
   lang: string;
   maxAlternatives: number;
   serviceURI: string;
-  grammars: any; // SpeechGrammarList not widely supported
+  grammars: unknown; // SpeechGrammarList not widely supported
   start(): void;
   stop(): void;
   abort(): void;
-  onaudiostart: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onaudioend: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onend: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onerror: ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => any) | null;
-  onnomatch: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null;
-  onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null;
-  onsoundstart: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onsoundend: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onspeechstart: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onspeechend: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onstart: ((this: SpeechRecognition, ev: Event) => any) | null;
+  onaudiostart: ((this: SpeechRecognition, ev: Event) => void) | null;
+  onaudioend: ((this: SpeechRecognition, ev: Event) => void) | null;
+  onend: ((this: SpeechRecognition, ev: Event) => void) | null;
+  onerror: ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => void) | null;
+  onnomatch: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => void) | null;
+  onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => void) | null;
+  onsoundstart: ((this: SpeechRecognition, ev: Event) => void) | null;
+  onsoundend: ((this: SpeechRecognition, ev: Event) => void) | null;
+  onspeechstart: ((this: SpeechRecognition, ev: Event) => void) | null;
+  onspeechend: ((this: SpeechRecognition, ev: Event) => void) | null;
+  onstart: ((this: SpeechRecognition, ev: Event) => void) | null;
 }
 
 declare global {
@@ -55,7 +55,7 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
   const [isListening, setIsListening] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+
   const [lastCommand, setLastCommand] = useState<string>('');
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -76,9 +76,9 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
     return () => {
       cleanup();
     };
-  }, [isActive]);
+  }, [isActive, cleanup, initializeAudioAnalysis, initializeVoiceRecognition]);
 
-  const initializeVoiceRecognition = () => {
+  const initializeVoiceRecognition = useCallback(() => {
     if (!('SpeechRecognition' in window) && !('webkitSpeechRecognition' in window)) {
       setError('Speech recognition not supported in this browser');
       return;
@@ -98,9 +98,8 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
       console.log('Voice recognition started');
     };
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (_event: SpeechRecognitionEvent) => {
       let finalTranscript = '';
-      let interimTranscript = '';
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
@@ -110,12 +109,11 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
         if (result.isFinal) {
           finalTranscript += transcript;
           console.log('Final transcript:', transcript, 'Confidence:', confidence);
-          
+
           // Process voice command
           processVoiceCommand(transcript, confidence);
-        } else {
-          interimTranscript += transcript;
         }
+        // Interim results are ignored for now
       }
 
       if (finalTranscript) {
@@ -124,7 +122,7 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
       }
     };
 
-    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+    recognition.onerror = (_event: SpeechRecognitionErrorEvent) => {
       console.error('Speech recognition error:', event.error);
       setError(`Voice recognition error: ${event.error}`);
       setIsListening(false);
@@ -146,9 +144,9 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
 
     recognitionRef.current = recognition;
     recognition.start();
-  };
+  }, [isActive, onVoiceCommand, processVoiceCommand]);
 
-  const initializeAudioAnalysis = async () => {
+  const initializeAudioAnalysis = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
@@ -160,7 +158,7 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
       
       streamRef.current = stream;
       
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioContext = new (window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
       const analyser = audioContext.createAnalyser();
       const microphone = audioContext.createMediaStreamSource(stream);
       
@@ -178,7 +176,7 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
       console.error('Failed to initialize audio analysis:', err);
       setError('Failed to access microphone');
     }
-  };
+  }, [onAudioData]);
 
   const startAudioLevelMonitoring = () => {
     if (!analyserRef.current) return;
@@ -248,10 +246,10 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
     setAudioLevel(0);
   };
 
-  const cleanup = () => {
+  const cleanup = useCallback(() => {
     stopVoiceRecognition();
     stopAudioAnalysis();
-  };
+  }, []);
 
   const toggleVoiceRecognition = () => {
     if (isListening) {

@@ -1,8 +1,6 @@
 import { Hono } from "hono";
 
-interface Env {
-  // Add environment variables here as needed
-}
+type Env = Record<string, unknown>;
 
 const app = new Hono<{ Bindings: Env }>();
 

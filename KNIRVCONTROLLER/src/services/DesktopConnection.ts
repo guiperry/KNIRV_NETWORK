@@ -54,7 +54,7 @@ export class DesktopConnectionService {
   // Event handlers
   private onConnectionChange: ((status: ConnectionStatus) => void) | null = null;
   private onHRMResponse: ((response: HRMProcessingResponse) => void) | null = null;
-  private onMessage: ((message: any) => void) | null = null;
+  private onMessage: ((message: unknown) => void) | null = null;
 
   constructor() {
     this.generateDeviceId();
@@ -79,7 +79,7 @@ export class DesktopConnectionService {
     this.onHRMResponse = handler;
   }
 
-  setMessageHandler(handler: (message: any) => void) {
+  setMessageHandler(handler: (message: unknown) => void) {
     this.onMessage = handler;
   }
 
@@ -170,7 +170,7 @@ export class DesktopConnectionService {
         resolve();
       };
 
-      this.websocket.onmessage = (event) => {
+      this.websocket.onmessage = (_event) => {
         try {
           const message = JSON.parse(event.data);
           this.handleWebSocketMessage(message);
@@ -193,7 +193,7 @@ export class DesktopConnectionService {
   }
 
   // Handle incoming WebSocket messages
-  private handleWebSocketMessage(message: any) {
+  private handleWebSocketMessage(message: unknown) {
     console.log('Received WebSocket message:', message);
 
     switch (message.type) {
@@ -239,7 +239,7 @@ export class DesktopConnectionService {
   }
 
   // Send message via WebSocket
-  sendWebSocketMessage(message: any) {
+  sendWebSocketMessage(message: unknown) {
     if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
       this.websocket.send(JSON.stringify(message));
     } else {

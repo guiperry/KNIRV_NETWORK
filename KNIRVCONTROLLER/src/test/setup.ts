@@ -453,7 +453,7 @@ afterEach(() => {
 
 // Global test utilities
 declare global {
-  var testUtils: {
+  const testUtils: {
     createMockEvent: (type: string, data?: unknown) => Event;
     waitFor: (condition: () => boolean, timeout?: number) => Promise<void>;
     mockComponent: (name: string) => React.ComponentType<Record<string, unknown>>;

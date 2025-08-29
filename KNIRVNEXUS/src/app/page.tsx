@@ -21,6 +21,8 @@ import AgentManagement from "@/components/agents/agent-management";
 import DVERentalManagement from "@/components/dve-rental/dve-rental-management";
 import { useAuth } from "@/lib/auth-context";
 import { DashboardWrapper } from "@/components/dashboard/dashboard-wrapper";
+import { DemoModeToggle } from "@/components/admin/demo-mode-toggle";
+import { useDemoMode } from "@/contexts/demo-mode-context";
 import {
   Activity,
   Shield,
@@ -305,12 +307,13 @@ export default function Dashboard() {
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="nodes" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="nodes">DVE Nodes</TabsTrigger>
           <TabsTrigger value="tasks">Validation Tasks</TabsTrigger>
           <TabsTrigger value="cognitive">Cognitive Engine</TabsTrigger>
           <TabsTrigger value="security">TEE Security</TabsTrigger>
           <TabsTrigger value="staking">DVE Rentals</TabsTrigger>
+          <TabsTrigger value="admin">Admin</TabsTrigger>
         </TabsList>
 
         <TabsContent value="nodes" className="space-y-4">
@@ -566,6 +569,43 @@ export default function Dashboard() {
               </Card>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="admin" className="space-y-4">
+          <div className="grid gap-4">
+            <DemoModeToggle />
+
+            <Card className="knirv-card-gradient">
+              <CardHeader>
+                <CardTitle>System Information</CardTitle>
+                <CardDescription>
+                  Current system status and configuration
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">WebSocket Status:</span>
+                    <Badge variant={isConnected ? "default" : "destructive"} className="ml-2">
+                      {isConnected ? "Connected" : "Disconnected"}
+                    </Badge>
+                  </div>
+                  <div>
+                    <span className="font-medium">Backend URL:</span>
+                    <span className="ml-2 text-muted-foreground">http://localhost:8080</span>
+                  </div>
+                  <div>
+                    <span className="font-medium">DVE Nodes:</span>
+                    <span className="ml-2">{dveNodes.length} registered</span>
+                  </div>
+                  <div>
+                    <span className="font-medium">Active Tasks:</span>
+                    <span className="ml-2">{validationTasks.length} tasks</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
       </div>

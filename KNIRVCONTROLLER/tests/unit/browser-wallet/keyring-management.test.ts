@@ -1,6 +1,6 @@
 // Comprehensive Unit Tests for KNIRVWALLET Browser Module - Keyring Management
-import { KnirvWallet } from '../../../browser-wallet/packages/knirvwallet-module/src/wallet/wallet';
-import { MockLedgerConnector } from '../../../browser-wallet/packages/knirvwallet-module/src/test-utils/mock-ledgerconnector';
+import { KnirvWallet } from '../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/wallet/wallet';
+import { MockLedgerConnector } from '../../../test-utils/mock-ledger-connector';
 import { 
   TEST_MNEMONICS, 
   TEST_PRIVATE_KEYS, 

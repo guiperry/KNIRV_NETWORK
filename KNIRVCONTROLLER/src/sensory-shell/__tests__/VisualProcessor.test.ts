@@ -7,45 +7,7 @@ global.ImageData = jest.fn().mockImplementation((width, height) => ({
   height,
 }));
 
-// Mock TensorFlow.js
-const mockTensorFlow = {
-  tensor: jest.fn(),
-  sequential: jest.fn(() => ({
-    add: jest.fn(),
-    compile: jest.fn(),
-    fit: jest.fn(),
-    predict: jest.fn(() => ({
-      dataSync: jest.fn(() => [0.1, 0.2, 0.7]),
-      dispose: jest.fn(),
-    })),
-  })),
-  layers: {
-    dense: jest.fn(),
-    conv2d: jest.fn(),
-    maxPooling2d: jest.fn(),
-    flatten: jest.fn(),
-    dropout: jest.fn(),
-  },
-  loadLayersModel: jest.fn(() => Promise.resolve({
-    predict: jest.fn(() => ({
-      dataSync: jest.fn(() => [0.1, 0.2, 0.7]),
-      dispose: jest.fn(),
-    })),
-  })),
-  ready: jest.fn(() => Promise.resolve()),
-  browser: {
-    fromPixels: jest.fn(() => ({
-      resizeNearestNeighbor: jest.fn(() => ({
-        cast: jest.fn(() => ({
-          div: jest.fn(() => ({
-            expandDims: jest.fn(() => 'mock-tensor'),
-          })),
-        })),
-      })),
-      dispose: jest.fn(),
-    })),
-  },
-};
+// Mock TensorFlow.js (unused mock removed)
 
 jest.mock('@tensorflow/tfjs', () => ({
   tensor: jest.fn(),

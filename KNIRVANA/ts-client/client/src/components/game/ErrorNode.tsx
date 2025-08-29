@@ -51,7 +51,9 @@ export default function ErrorNode({
     }
   });
 
-  const handleClick = () => {
+  const handleClick = (event: any) => {
+    // Prevent event from bubbling to camera controller
+    event.stopPropagation();
     console.log(`ErrorNode ${id} clicked`);
     selectErrorNode(id);
   };

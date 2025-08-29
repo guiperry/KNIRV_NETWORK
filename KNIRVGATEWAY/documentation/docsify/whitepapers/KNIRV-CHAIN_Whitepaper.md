@@ -9,29 +9,35 @@
 
 ## Abstract
 
-The proliferation of autonomous AI agents demands a robust, verifiable, and continuously evolving foundation for their collective intelligence and capabilities. This whitepaper introduces KNIRVCHAIN, a novel, open-source sovereign Rust-based Layer 1 blockchain. KNIRVCHAIN transcends the role of a mere transaction ledger; it serves as the immutable, consensus-validated ledger for the network's evolving Base Large Language Model (LLM), specifically utilizing `CodeT5` as its foundational model, and the authoritative registry for verifiable AI agent skills.
+The evolution of autonomous AI agents requires a revolutionary approach to skill development and deployment that transcends traditional blockchain architectures. This whitepaper introduces KNIRVCHAIN, a novel Rust-based WASM-compiled inference model that operates as an embedded component within agent-core cognitive shells. Following the major refactor, KNIRVCHAIN has transformed from a standalone blockchain to an active participant in agent intelligence, serving as an embedded inference model that programmatically filters through skill chains to invoke relevant solutions.
 
-KNIRVCHAIN enables the network to:
+KNIRVCHAIN now operates as:
 
-*   **Maintain the Canonical Base LLM:** Record cryptographic hashes and metadata of the collective Base LLM's versions, representing its continuous evolution through validated learning. The actual `CodeT5` model binaries are stored off-chain, with their integrity verified by on-chain hashes.
-*   **Certify Agent Skills:** Register and validate SkillNodes (proven solutions to Network Resolution Vectors or NRVs) contributed by `KNIRV-SHELL` agents, after their initial minting and verification on `KNIRVGRAPH` and `KNIRV-ORACLE`.
-*   **Enforce the NRN Economy:** Manage the lifecycle of Network Resolution Notice (`NRN`) token consumption, triggering burns on `KNIRV-ORACLE` for Skill invocation.
-*   **Orchestrate Decentralized Learning:** Act as the final consensus layer for the network's "active machine" learning loop, driven by `KNIRV-SHELL` agents, `KNIRVGRAPH` data, and `KNIRV-NEXUS` DVE validations, translating collective experience into Base LLM evolution.
+*   **Embedded Inference Model**: A Rust-compiled WASM module that operates within agent-core cognitive shells, providing direct skill invocation and LoRA adapter chain traversal capabilities.
+*   **LoRA Adapter Chain**: A revolutionary architecture where each skill IS a LoRA (Low-Rank Adaptation) adapter containing specific weights and biases that directly train agent-cores on skill execution, eliminating traditional code-based skill implementations.
+*   **Cluster-Derived Skills**: Skills emerge from KNIRVGRAPH error cluster competitions where multiple agent solutions are combined with error data to create comprehensive LoRA adapters representing collective intelligence.
+*   **Autonomous Skill Execution**: A self-contained system that programmatically filters through LoRA adapter chains to invoke relevant neural network modifications, with each invocation applying weights and biases directly to the agent's inference process.
+*   **Embedded WASM Compilation**: Integration of a small WASM compiler toolchain within every agent-core, enabling dynamic compilation and execution of LoRA adapter WASM files.
+*   **Simultaneous Consensus**: Network-wide consensus mechanisms that ensure all agent-cores receive and validate new LoRA adapter skills simultaneously, maintaining consistency across the distributed intelligence network.
+*   **HRM Integration**: Deep integration with the HRM (Hierarchical Reasoning Model) WASM Implementation that serves as the skill discovery and naming engine within KNIRVGRAPH.
 
-By leveraging its own robust `Tendermint/CometBFT` consensus, `KNIRVCHAIN` provides a secure, efficient, and transparent foundation for a self-improving, decentralized intelligence network, empowering truly trusted execution for AI agents.
+This revolutionary architecture transforms KNIRVCHAIN from a passive ledger into an active intelligence component, enabling agents to continuously self-improve through skill-based LoRA adapters while maintaining decentralized consensus and validation.
 
 ## 1. Introduction
 
-The rapid advancement of AI agents necessitates a paradigm shift from static, pre-trained models to dynamic, continuously learning systems. The KNIRV Decentralized Trusted Execution Network (D-TEN) is designed to facilitate this evolution, with `KNIRVCHAIN` at its very core. `KNIRVCHAIN` is a strategic evolution, positioning itself as a highly integrated, performant, and scalable component within the broader KNIRV ecosystem by serving as the ultimate arbiter of the network's collective intelligence.
+The evolution of AI agents demands a fundamental reimagining of how skills are developed, deployed, and executed. The KNIRV Decentralized Trusted Execution Network (D-TEN) has undergone a major refactor that transforms `KNIRVCHAIN` from a traditional blockchain into an embedded inference model that operates within agent-core cognitive shells. This revolutionary approach enables agents to carry their own skill execution environment, creating truly autonomous and self-improving AI systems.
 
-This architecture addresses critical challenges in decentralized AI:
+This embedded architecture addresses critical challenges in agent-based AI:
 
-*   **Verifiable Intelligence Evolution:** How can a collective AI model continuously learn and update in a trust-minimized, auditable manner across a distributed network?
-*   **Trusted Skill Certification:** How are AI agent capabilities formally recognized, validated, and made available across a decentralized network in a canonical, immutable way?
-*   **Sustainable Economic Loop:** How is the network's utility token (`NRN`) intrinsically linked to core operations, ensuring continuous demand and supply, particularly through Skill invocation?
-*   **Scalable Knowledge Integration:** How do the lessons learned from individual agent experiences (`KNIRV-SHELL`s) and collective problem-solving (`KNIRVGRAPH`) translate into a continuously improving foundational model?
+*   **Embedded Skill Execution:** How can agents carry their own skill execution environment without relying on external blockchain calls or centralized services?
+*   **Dynamic Weight Updates:** How can agent weights and biases be updated in real-time during skill execution without requiring full model retraining?
+*   **LoRA-Based Skills:** How can skills be implemented as lightweight LoRA adapters that provide specific capabilities while maintaining minimal computational overhead?
+*   **Competitive Skill Development:** How can multiple agents collaborate competitively to create superior LoRA adapters through error cluster competitions?
+*   **Collective Intelligence Training:** How can solutions from multiple agents be combined with error data to create comprehensive neural network weights that represent collective problem-solving intelligence?
+*   **Autonomous Skill Discovery:** How can the network automatically discover, name, and categorize new skills emerging from agent competitions without human intervention?
+*   **Simultaneous Network Updates:** How can all agent-cores across the network receive and validate new skills simultaneously while maintaining consensus and consistency?
 
-`KNIRVCHAIN` solves these by becoming the immutable record of the network's intelligence, built upon its own sovereign Rust-based blockchain.
+`KNIRVCHAIN` solves these challenges by becoming an active participant in agent intelligence, embedded directly within the cognitive shell as a Rust-compiled WASM inference model.
 
 ## 2. Architectural Overview
 

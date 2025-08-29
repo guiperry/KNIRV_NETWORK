@@ -80,7 +80,7 @@ fi
 # Check if Netlify dev server is running
 if ! curl -s "$GATEWAY_URL/gateway/health" > /dev/null 2>&1; then
     echo -e "${RED}❌ Netlify dev server is not running at $GATEWAY_URL${NC}"
-    echo "Please start it with: cd KNIRVWEBSITE && netlify dev"
+    echo "Please start it with: cd KNIRVGATEWAY && netlify dev"
     exit 1
 fi
 

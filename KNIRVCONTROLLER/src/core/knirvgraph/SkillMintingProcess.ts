@@ -451,7 +451,7 @@ export class SkillMintingProcess extends EventEmitter {
   /**
    * Perform performance validation
    */
-  private async performPerformanceValidation(loraAdapter: LoRAAdapterSkill): Promise<PerformanceValidation> {
+  private async performPerformanceValidation(_loraAdapter: LoRAAdapterSkill): Promise<PerformanceValidation> {
     // Simulate performance metrics (in real implementation, this would run actual tests)
     return {
       expectedAccuracy: 0.85 + Math.random() * 0.1,
@@ -465,7 +465,7 @@ export class SkillMintingProcess extends EventEmitter {
   /**
    * Perform security validation
    */
-  private async performSecurityValidation(loraAdapter: LoRAAdapterSkill): Promise<SecurityValidation> {
+  private async performSecurityValidation(_loraAdapter: LoRAAdapterSkill): Promise<SecurityValidation> {
     return {
       maliciousCodeDetection: true, // No malicious patterns detected
       dataLeakageRisk: Math.random() * 0.1, // Low risk
@@ -619,7 +619,7 @@ export class SkillMintingProcess extends EventEmitter {
         throw new Error(`Blockchain connectivity test failed: ${response.statusText}`);
       }
       logger.info('Blockchain connectivity verified');
-    } catch (error) {
+    } catch {
       logger.warn('Blockchain connectivity test failed, using simulation mode');
       // Continue in simulation mode
     }

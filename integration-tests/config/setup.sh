@@ -139,18 +139,10 @@ build_components() {
     cd "$PROJECT_ROOT/KNIRVGRAPH"
     make build
     
-    # Build KNIRVNEXUS Backend
-    print_status "Building KNIRVNEXUS Backend..."
-    cd "$PROJECT_ROOT/KNIRVNEXUS/backend"
-    go build -o bin/api-gateway ./cmd/api-gateway
-    go build -o bin/dve-manager ./cmd/dve-manager
-    go build -o bin/validation-core ./cmd/validation-core
-
-    # Build KNIRVNEXUS Frontend
-    print_status "Building KNIRVNEXUS Frontend..."
+    # Build KNIRVNEXUS using Makefile (unified binary)
+    print_status "Building KNIRVNEXUS using make binary..."
     cd "$PROJECT_ROOT/KNIRVNEXUS"
-    npm install
-    npm run build
+    make binary
     
     # Build KNIRVORACLE
     print_status "Building KNIRVORACLE..."
@@ -231,25 +223,11 @@ start_services() {
     ./build/graphchain-node -rpc-port 8081 > "$TEST_DIR/logs/knirvgraph.log" 2>&1 &
     echo $! > "$TEST_DIR/pids/knirvgraph.pid"
     
-    # Start KNIRVNEXUS Backend Services
-    print_status "Starting KNIRVNEXUS API Gateway on port 8080..."
-    cd "$PROJECT_ROOT/KNIRVNEXUS/backend"
-    ./bin/api-gateway > "$TEST_DIR/logs/knirvnexus-api-gateway.log" 2>&1 &
-    echo $! > "$TEST_DIR/pids/knirvnexus-api-gateway.pid"
-
-    print_status "Starting KNIRVNEXUS DVE Manager on port 8081..."
-    ./bin/dve-manager > "$TEST_DIR/logs/knirvnexus-dve-manager.log" 2>&1 &
-    echo $! > "$TEST_DIR/pids/knirvnexus-dve-manager.pid"
-
-    print_status "Starting KNIRVNEXUS Validation Core on port 8082..."
-    ./bin/validation-core > "$TEST_DIR/logs/knirvnexus-validation-core.log" 2>&1 &
-    echo $! > "$TEST_DIR/pids/knirvnexus-validation-core.pid"
-
-    # Start KNIRVNEXUS Frontend
-    print_status "Starting KNIRVNEXUS Frontend on port 3000..."
+    # Start KNIRVNEXUS Unified Binary
+    print_status "Starting KNIRVNEXUS unified binary on port 8090..."
     cd "$PROJECT_ROOT/KNIRVNEXUS"
-    npm run start > "$TEST_DIR/logs/knirvnexus-frontend.log" 2>&1 &
-    echo $! > "$TEST_DIR/pids/knirvnexus-frontend.pid"
+    KNIRV_NEXUS_PORT=8090 ./dist/knirv-nexus > "$TEST_DIR/logs/knirvnexus.log" 2>&1 &
+    echo $! > "$TEST_DIR/pids/knirvnexus.pid"
     
     # Start KNIRVORACLE
     print_status "Starting KNIRVORACLE on port 8086..."
@@ -275,7 +253,7 @@ start_services() {
     # Check service health
     wait_for_service "http://localhost:8080/health" 60
     wait_for_service "http://localhost:8081/health" 60
-    wait_for_service "http://localhost:8083/api/v1/health" 60
+    wait_for_service "http://localhost:8090/api/v1/health" 60
     wait_for_service "http://localhost:3000/health" 60
     # Skip KNIRVROUTER and KNIRVORACLE health checks for now due to build/runtime issues
     # wait_for_service "http://localhost:8085/status" 60
@@ -291,10 +269,7 @@ run_health_checks() {
     local services=(
         "KNIRVCHAIN:http://localhost:8080/health"
         "KNIRVGRAPH:http://localhost:8081/health"
-        "KNIRVNEXUS-API-GATEWAY:http://localhost:8080/health"
-        "KNIRVNEXUS-DVE-MANAGER:http://localhost:8081/health"
-        "KNIRVNEXUS-VALIDATION-CORE:http://localhost:8082/health"
-        "KNIRVNEXUS-FRONTEND:http://localhost:3000/api/health"
+        "KNIRVNEXUS:http://localhost:8090/api/v1/health"
         "KNIRVCONTROLLER:http://localhost:3000/health"
         # Skip KNIRVROUTER and KNIRVORACLE health checks for now due to build/runtime issues
         # "KNIRVROUTER:http://localhost:8085/status"

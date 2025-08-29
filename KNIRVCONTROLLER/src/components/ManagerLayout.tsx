@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
-import { useLocation, Link } from 'react-router-dom';
-import { Cpu, Zap, Shield, Wallet, Mic, Brain } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { Cpu, Shield, Wallet, Mic, Brain } from 'lucide-react';
 import { EdgeColoring } from '@components/EdgeColoring';
 import { VoiceControl } from '@components/VoiceControl';
 import { useVoiceIntegration } from '@hooks/useVoiceIntegration';
@@ -91,7 +91,7 @@ export default function Layout({ children }: LayoutProps) {
       <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-blue-500/20 backdrop-blur-xl bg-slate-900/80">
         <div className="grid grid-cols-4 px-2 py-2">
           <NavItem to="/manager" icon={Cpu} label="Agents" active={location.pathname === '/manager'} />
-          <NavItem to="/manager/skills" icon={Zap} label="Skills" active={location.pathname === '/manager/skills'} />
+          <NavItem to="/manager/skills" icon={Brain} label="Skills" active={location.pathname === '/manager/skills'} />
           <NavItem to="/manager/udc" icon={Shield} label="UDC" active={location.pathname === '/manager/udc'} />
           <NavItem to="/manager/wallet" icon={Wallet} label="Wallet" active={location.pathname === '/manager/wallet'} />
         </div>

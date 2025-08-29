@@ -9,7 +9,8 @@ import type {
   APIResponse,
   TEESecurityUpdate
 } from '@/types/api';
-import { apiRequest, API_BASE_URL, StandardWebSocket } from '@/lib/api';
+import { apiRequest, API_BASE_URL } from '@/lib/api';
+import { webSocketService } from '@/lib/websocket-service';
 
 export interface TEESecurityStatus {
   attestation_status: "verified" | "pending" | "failed";
@@ -39,7 +40,6 @@ export const useTEESecurity = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [socket, setSocket] = useState<StandardWebSocket | null>(null);
 
   // Fetch TEE security status
   const fetchSecurityStatus = useCallback(async () => {
@@ -227,57 +227,58 @@ export const useTEESecurity = () => {
 
   // WebSocket connection management
   const connectWebSocket = useCallback(() => {
-    if (socket?.isConnected()) return;
-
-    const ws = new StandardWebSocket();
-    
-    ws.onOpen = () => {
-      console.log('TEE Security WebSocket connected');
-      setIsConnected(true);
-      setError(null);
-      
-      // Subscribe to TEE security updates
-      ws.subscribe(['tee-security-updated', 'system-notification']);
-    };
-
-    ws.onMessage = (message) => {
-      if (message.event === 'tee-security-updated' && message.payload) {
-        // Update security metrics
-        setSecurityStatus(prevStatus => {
-          if (!prevStatus) return prevStatus;
-          return {
-            ...prevStatus,
-            attestation_status: message.payload.attestation_status || prevStatus.attestation_status,
-            security_score: message.payload.security_score || prevStatus.security_score,
-            threats_detected: message.payload.threats_detected || prevStatus.threats_detected,
-            last_audit: message.payload.last_audit || prevStatus.last_audit,
-          };
-        });
-      } else if (message.event === 'connected') {
-        console.log('TEE Security WebSocket welcome:', message.payload);
+    // Set up event handlers
+    const handleConnection = (data: { connected: boolean }) => {
+      setIsConnected(data.connected);
+      if (data.connected) {
+        console.log('TEE Security WebSocket connected');
+        setError(null);
+      } else {
+        console.log('TEE Security WebSocket disconnected');
       }
     };
 
-    ws.onClose = () => {
-      console.log('TEE Security WebSocket disconnected');
-      setIsConnected(false);
+    const handleTEESecurityUpdate = (payload: any) => {
+      // Update security metrics
+      setSecurityStatus(prevStatus => {
+        if (!prevStatus) return prevStatus;
+        return {
+          ...prevStatus,
+          attestation_status: payload.attestation_status || prevStatus.attestation_status,
+          security_score: payload.security_score || prevStatus.security_score,
+          threats_detected: payload.threats_detected || prevStatus.threats_detected,
+          last_audit: payload.last_audit || prevStatus.last_audit,
+        };
+      });
     };
 
-    ws.onError = (error) => {
-      console.error('TEE Security WebSocket error:', error);
-      setError('WebSocket connection failed');
+    const handleSystemNotification = (payload: any) => {
+      console.log('TEE Security system notification:', payload);
     };
 
-    setSocket(ws);
-  }, [socket]);
+    // Register event handlers
+    webSocketService.on('connection', handleConnection);
+    webSocketService.on('tee-security-updated', handleTEESecurityUpdate);
+    webSocketService.on('system-notification', handleSystemNotification);
+
+    // Subscribe to events
+    webSocketService.subscribe(['tee-security-updated', 'system-notification']);
+
+    // Set initial connection status
+    setIsConnected(webSocketService.getConnectionStatus());
+
+    // Return cleanup function
+    return () => {
+      webSocketService.off('connection', handleConnection);
+      webSocketService.off('tee-security-updated', handleTEESecurityUpdate);
+      webSocketService.off('system-notification', handleSystemNotification);
+    };
+  }, []);
 
   const disconnectWebSocket = useCallback(() => {
-    if (socket) {
-      socket.close();
-      setSocket(null);
-      setIsConnected(false);
-    }
-  }, [socket]);
+    // Individual hooks don't disconnect the shared service
+    setIsConnected(false);
+  }, []);
 
   // Refresh all data
   const refreshAll = useCallback(async () => {
@@ -293,15 +294,8 @@ export const useTEESecurity = () => {
   // Initial fetch and WebSocket connection on mount
   useEffect(() => {
     fetchSecurityStatus();
-    connectWebSocket();
+    return connectWebSocket();
   }, [fetchSecurityStatus, connectWebSocket]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      disconnectWebSocket();
-    };
-  }, [disconnectWebSocket]);
 
   return {
     securityStatus,

@@ -3,18 +3,22 @@ import AgentPanel from "./AgentPanel";
 import ResourceDisplay from "./ResourceDisplay";
 import { Button } from "./button";
 import { Card, CardContent, CardHeader, CardTitle } from "./card";
+import EcosystemGameSlideout from "./EcosystemGameSlideout";
+import { useState } from "react";
 
 export default function GameUI() {
-  const { 
-    selectedErrorNode, 
-    selectedAgent, 
-    errorNodes, 
+  const {
+    selectedErrorNode,
+    selectedAgent,
+    errorNodes,
     agents,
     nrnBalance,
     deployAgent,
     gamePhase,
     startGame
   } = useKnirvana();
+
+  const [isEcosystemGameOpen, setIsEcosystemGameOpen] = useState(false);
 
   const selectedErrorNodeData = errorNodes.find(node => node.id === selectedErrorNode);
   const selectedAgentData = agents.find(agent => agent.id === selectedAgent);
@@ -45,8 +49,9 @@ export default function GameUI() {
             </Button>
             <div className="text-cyan-400 text-xs text-center space-y-1">
               <p><strong>Controls:</strong></p>
-              <p>WASD - Move Camera | Q/E - Rotate | +/- - Zoom</p>
-              <p>Space - Select | R - Deploy Agent</p>
+              <p>🖱️ Click & Drag - Navigate | Scroll - Zoom</p>
+              <p>WASD - Move | Q/E - Rotate | +/- - Zoom</p>
+              <p>Double-Click or R - Reset View | Space - Select</p>
             </div>
           </CardContent>
         </Card>
@@ -59,9 +64,18 @@ export default function GameUI() {
       {/* Top HUD */}
       <div className="absolute top-4 left-4 right-4 flex justify-between pointer-events-auto">
         <ResourceDisplay />
-        
-        <div className="text-cyan-400 font-mono text-sm bg-black bg-opacity-60 px-3 py-2 rounded border border-cyan-500">
-          KNIRV D-TEN Network Status: <span className="text-green-400">ACTIVE</span>
+
+        <div className="flex items-center gap-4">
+          <Button
+            onClick={() => setIsEcosystemGameOpen(true)}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 text-sm"
+          >
+            🎮 Ecosystem Menu
+          </Button>
+
+          <div className="text-cyan-400 font-mono text-sm bg-black bg-opacity-60 px-3 py-2 rounded border border-cyan-500">
+            KNIRV D-TEN Network Status: <span className="text-green-400">ACTIVE</span>
+          </div>
         </div>
       </div>
 
@@ -159,6 +173,12 @@ export default function GameUI() {
           </Card>
         </div>
       )}
+
+      {/* Ecosystem Game Slideout */}
+      <EcosystemGameSlideout
+        isOpen={isEcosystemGameOpen}
+        onClose={() => setIsEcosystemGameOpen(false)}
+      />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { Bot, Zap, AlertCircle, CheckCircle } from 'lucide-react';
+import { Bot} from 'lucide-react';
 
 interface AgentCardProps {
   name: string;
@@ -10,13 +10,12 @@ interface AgentCardProps {
 
 export default function AgentCard({ name, status, tasks, performance, lastActive }: AgentCardProps) {
   const statusConfig = {
-    active: { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/20', border: 'border-green-500/30' },
-    idle: { icon: Zap, color: 'text-yellow-400', bg: 'bg-yellow-500/20', border: 'border-yellow-500/30' },
-    error: { icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-500/20', border: 'border-red-500/30' }
+    active: { color: 'text-green-400', bg: 'bg-green-500/20', border: 'border-green-500/30' },
+    idle: { color: 'text-yellow-400', bg: 'bg-yellow-500/20', border: 'border-yellow-500/30' },
+    error: { color: 'text-red-400', bg: 'bg-red-500/20', border: 'border-red-500/30' }
   };
 
   const config = statusConfig[status];
-  const StatusIcon = config.icon;
 
   return (
     <div className="relative group">
@@ -31,7 +30,7 @@ export default function AgentCard({ name, status, tasks, performance, lastActive
                 <Bot className="w-5 h-5 text-white" />
               </div>
               <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full ${config.bg} ${config.border} border flex items-center justify-center`}>
-                <StatusIcon className={`w-2.5 h-2.5 ${config.color}`} />
+                <div className={`w-2.5 h-2.5 rounded-full ${config.color.replace('text-', 'bg-')}`}></div>
               </div>
             </div>
             <div>

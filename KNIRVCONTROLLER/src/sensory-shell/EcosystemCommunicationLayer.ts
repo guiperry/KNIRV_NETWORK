@@ -27,7 +27,7 @@ export interface EcosystemMessage {
   from: string;
   to: string;
   type: 'command' | 'query' | 'response' | 'event' | 'heartbeat';
-  payload: any;
+  payload: unknown;
   timestamp: number;
   priority: 'low' | 'normal' | 'high' | 'critical';
   requiresResponse: boolean;
@@ -41,7 +41,7 @@ export interface ServiceEndpoint {
   protocol: 'http' | 'websocket' | 'p2p';
   authentication: {
     type: 'none' | 'bearer' | 'api_key' | 'certificate';
-    credentials?: any;
+    credentials?: unknown;
   };
   healthCheckPath?: string;
   capabilities: string[];
@@ -55,7 +55,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
   private connections: Map<string, any> = new Map();
   private isRunning: boolean = false;
   private heartbeatInterval: NodeJS.Timeout | null = null;
-  private messageHandlers: Map<string, Function> = new Map();
+  private messageHandlers: Map<string, (...args: unknown[]) => unknown> = new Map();
 
   constructor(config?: Partial<EcosystemConfig>) {
     super();
@@ -339,7 +339,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
       }, this.config.timeoutDuration);
 
       // Listen for response
-      const responseHandler = (response: any) => {
+      const responseHandler = (response: unknown) => {
         if (response.correlationId === message.id) {
           clearTimeout(timeout);
           this.off('messageResponse', responseHandler);
@@ -364,7 +364,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
   private async initializeConnections(): Promise<void> {
     console.log('Initializing connections to KNIRV ecosystem components...');
 
-    for (const [endpointId, endpoint] of this.endpoints) {
+    for (const [, endpoint] of this.endpoints) {
       try {
         await this.connectToEndpoint(endpoint);
       } catch (error) {
@@ -460,7 +460,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
     return {
       type: 'http',
       endpoint,
-      send: async (data: any) => {
+      send: async (data: unknown) => {
         const response = await fetch(`${endpoint.url}/api/message`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -479,7 +479,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
     return {
       type: 'websocket',
       endpoint,
-      send: async (data: any) => {
+      send: async (data: unknown) => {
         console.log(`WebSocket send to ${endpoint.name}:`, data);
         return { success: true };
       },
@@ -494,7 +494,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
     return {
       type: 'p2p',
       endpoint,
-      send: async (data: any) => {
+      send: async (data: unknown) => {
         console.log(`P2P send to ${endpoint.name}:`, data);
         return { success: true };
       },
@@ -634,7 +634,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
     return component ? component.status === 'online' : false;
   }
 
-  public getEcosystemStatus(): any {
+  public getEcosystemStatus(): unknown {
     const components = Array.from(this.components.values());
     
     return {

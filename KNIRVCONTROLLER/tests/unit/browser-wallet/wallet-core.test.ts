@@ -1,6 +1,6 @@
 // Comprehensive Unit Tests for KNIRVWALLET Browser Module - Core Wallet Functionality
-import { KnirvWallet } from '../../../browser-wallet/packages/knirvwallet-module/src/wallet/wallet';
-import { MockLedgerConnector } from '../../../browser-wallet/packages/knirvwallet-module/src/test-utils/mock-ledgerconnector';
+import { KnirvWallet } from '../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/wallet/wallet';
+import { MockLedgerConnector } from '../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/test-utils/mock-ledgerconnector';
 import { 
   TEST_MNEMONICS, 
   TEST_PRIVATE_KEYS, 

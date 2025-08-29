@@ -13,8 +13,8 @@ const { execSync } = require('child_process');
 
 class PortalIntegrationTester {
     constructor() {
-        this.portalPath = path.join(__dirname, '../KNIRVWEBSITE/agent-developer-portal/static');
-        this.websitePath = path.join(__dirname, '../KNIRVWEBSITE');
+        this.portalPath = path.join(__dirname, '../KNIRVGATEWAY/agent-developer-portal/static');
+        this.websitePath = path.join(__dirname, '../KNIRVGATEWAY');
         this.testResults = [];
         this.errors = [];
     }
@@ -276,7 +276,7 @@ class PortalIntegrationTester {
 
     // Test 7: Validate package.json configuration
     async testPackageConfiguration() {
-        const packagePath = path.join(__dirname, '../KNIRVWEBSITE/agent-developer-portal/package.json');
+        const packagePath = path.join(__dirname, '../KNIRVGATEWAY/agent-developer-portal/package.json');
         const packageContent = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
 
         // Check for updated package name

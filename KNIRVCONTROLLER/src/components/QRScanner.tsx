@@ -1,100 +1,98 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import QrScanner from 'qr-scanner';
-import { Camera, X, Flashlight, FlashlightOff, Wallet, Send, CheckCircle, AlertCircle, Loader } from 'lucide-react';
-import { KNIRVWalletIntegration, TransactionRequest, WalletTransaction } from '../sensory-shell/KNIRVWalletIntegration';
-import { KNIRVChainIntegration } from '../sensory-shell/KNIRVChainIntegration';
+import { Camera, Flashlight, FlashlightOff, Wallet, Send, Loader } from 'lucide-react';
+import { qrPaymentService, QRPaymentRequest, PaymentProcessingResult } from '../services/QRPaymentService';
+import { walletIntegrationService } from '../services/WalletIntegrationService';
 
 interface QRScannerProps {
   onScan: (result: string) => void;
   onClose: () => void;
   isOpen: boolean;
-  walletIntegration?: KNIRVWalletIntegration;
-  chainIntegration?: KNIRVChainIntegration;
-}
-
-interface PaymentRequest {
-  type: 'payment' | 'skill_invocation' | 'wallet_connect';
-  amount?: string;
-  recipient?: string;
-  skillId?: string;
-  skillName?: string;
-  nrnCost?: string;
-  memo?: string;
-  sessionId?: string;
-  expires?: number;
 }
 
 interface PaymentState {
   step: 'scanning' | 'confirming' | 'processing' | 'success' | 'error';
-  request?: PaymentRequest;
-  transaction?: WalletTransaction;
+  request?: QRPaymentRequest;
+  result?: PaymentProcessingResult;
   error?: string;
 }
 
-interface QRData {
-  version: string;
-  type: string;
-  session_id: string;
-  desktop_id: string;
-  target_id?: string;
-  expires_at: number;
-  endpoint: string;
-  public_key: string;
-  capabilities?: string[];
-  encrypted_payload?: string;
-  signature: string;
-}
+// QRData interface removed as it's not currently used
+// interface QRData {
+//   version: string;
+//   type: string;
+//   session_id: string;
+//   desktop_id: string;
+//   target_id?: string;
+//   expires_at: number;
+//   endpoint: string;
+//   public_key: string;
+//   capabilities?: string[];
+//   encrypted_payload?: string;
+//   signature: string;
+// }
 
 export default function QRScanner({
   onScan,
   onClose,
-  isOpen,
-  walletIntegration,
-  chainIntegration
+  isOpen
 }: QRScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [qrScanner, setQrScanner] = useState<QrScanner | null>(null);
   const [hasFlash, setHasFlash] = useState(false);
   const [flashEnabled, setFlashEnabled] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
   const [scanning, setScanning] = useState(false);
 
   // Payment workflow state
   const [paymentState, setPaymentState] = useState<PaymentState>({ step: 'scanning' });
   const [userBalance, setUserBalance] = useState<{ nrn: string; balance: string }>({ nrn: '0', balance: '0' });
 
-  useEffect(() => {
-    if (isOpen && videoRef.current) {
-      initializeScanner();
-      loadUserBalance();
-    }
-
-    return () => {
-      if (qrScanner) {
-        qrScanner.destroy();
-      }
-    };
-  }, [isOpen]);
-
   // Load user balance when component opens
-  const loadUserBalance = async () => {
-    if (walletIntegration) {
-      try {
-        const currentAccount = walletIntegration.getCurrentAccount();
-        if (currentAccount) {
-          const balance = await walletIntegration.getAccountBalance(currentAccount.id);
-          setUserBalance({
-            nrn: balance.nrnBalance,
-            balance: balance.balance
-          });
-        }
-      } catch (error) {
-        console.error('Failed to load user balance:', error);
+  const loadUserBalance = useCallback(async () => {
+    try {
+      const currentAccount = walletIntegrationService.getCurrentAccount();
+      if (currentAccount) {
+        const balance = await walletIntegrationService.getAccountBalance(currentAccount.id);
+        setUserBalance({
+          nrn: balance.nrnBalance,
+          balance: balance.balance
+        });
       }
+    } catch (error) {
+      console.error('Failed to load user balance:', error);
     }
-  };
+  }, []);
 
-  const initializeScanner = async () => {
+  const handleScanResult = useCallback((data: string) => {
+    try {
+      // Parse QR code using the payment service
+      const scanResult = qrPaymentService.parseQRCode(data);
+
+      if (!scanResult.success) {
+        setError(scanResult.error || 'Invalid QR code');
+        return;
+      }
+
+      if (scanResult.data.type === 'payment') {
+        setPaymentState({
+          step: 'confirming',
+          request: scanResult.data
+        });
+      } else {
+        // For non-payment QR codes, just pass the raw data
+        onScan(data);
+      }
+    } catch (error) {
+      console.error('QR scan error:', error);
+      setPaymentState({
+        step: 'error',
+        error: error instanceof Error ? error.message : 'QR scan failed'
+      });
+    }
+  }, [onScan]);
+
+  const initializeScanner = useCallback(async () => {
     if (!videoRef.current) return;
 
     try {
@@ -123,84 +121,67 @@ export default function QRScanner({
       setError('Failed to access camera. Please check permissions.');
       setScanning(false);
     }
-  };
+  }, [handleScanResult]);
 
-  const handleScanResult = (data: string) => {
-    try {
-      // Try to parse as payment request first
-      let paymentRequest: PaymentRequest | null = null;
-
-      try {
-        const parsed = JSON.parse(data);
-
-        // Check if it's a payment request
-        if (parsed.type === 'payment' || parsed.type === 'skill_invocation' || parsed.type === 'wallet_connect') {
-          paymentRequest = parsed as PaymentRequest;
-        }
-        // Legacy QR code format
-        else if (parsed.version && parsed.session_id && parsed.desktop_id) {
-          // Check if QR code has expired
-          if (parsed.expires_at && Date.now() / 1000 > parsed.expires_at) {
-            setError('QR code has expired');
-            return;
-          }
-
-          console.log('Valid QR code scanned:', parsed);
-          onScan(data);
-          return;
-        }
-      } catch (parseError) {
-        // Not JSON, might be a simple payment URI
-        if (data.startsWith('knirv:') || data.startsWith('nrn:')) {
-          paymentRequest = parsePaymentURI(data);
-        }
-      }
-
-      if (paymentRequest) {
-        // Handle payment workflow
-        handlePaymentRequest(paymentRequest);
-      } else {
-        // Fallback to original scan handler
-        console.log('QR code scanned:', data);
-        onScan(data);
-      }
-
-    } catch (error) {
-      console.error('QR scan error:', error);
-      setError(error instanceof Error ? error.message : 'Invalid QR code');
+  useEffect(() => {
+    if (isOpen && videoRef.current) {
+      initializeScanner();
+      loadUserBalance();
     }
-  };
 
-  // Parse payment URI (e.g., knirv:pay?amount=100&recipient=knirv1abc...)
-  const parsePaymentURI = (uri: string): PaymentRequest => {
-    const url = new URL(uri);
-    const params = new URLSearchParams(url.search);
-
-    return {
-      type: 'payment',
-      amount: params.get('amount') || undefined,
-      recipient: params.get('recipient') || undefined,
-      memo: params.get('memo') || undefined,
-      skillId: params.get('skill') || undefined,
-      nrnCost: params.get('nrn') || undefined
+    return () => {
+      if (qrScanner) {
+        qrScanner.destroy();
+      }
     };
+  }, [isOpen, initializeScanner, loadUserBalance, qrScanner]);
+
+  // Handle payment confirmation
+  const handlePaymentConfirmation = async () => {
+    if (!paymentState.request) return;
+
+    setPaymentState(prev => ({ ...prev, step: 'processing' }));
+
+    try {
+      const result = await qrPaymentService.processPayment(paymentState.request);
+
+      if (result.success) {
+        setPaymentState({
+          step: 'success',
+          request: paymentState.request,
+          result
+        });
+      } else {
+        setPaymentState({
+          step: 'error',
+          request: paymentState.request,
+          error: result.error || 'Payment processing failed'
+        });
+      }
+    } catch (error) {
+      setPaymentState({
+        step: 'error',
+        request: paymentState.request,
+        error: error instanceof Error ? error.message : 'Payment failed'
+      });
+    }
   };
 
-  // Handle payment request workflow
-  const handlePaymentRequest = (request: PaymentRequest) => {
-    console.log('Payment request detected:', request);
+  // Cancel payment and return to scanning
+  const handlePaymentCancel = () => {
+    setPaymentState({ step: 'scanning' });
+  };
 
-    // Validate request
-    if (request.expires && Date.now() > request.expires) {
-      setError('Payment request has expired');
-      return;
+  // Retry payment after error
+  const handlePaymentRetry = () => {
+    if (paymentState.request) {
+      setPaymentState({
+        step: 'confirming',
+        request: paymentState.request
+      });
+    } else {
+      setPaymentState({ step: 'scanning' });
     }
-
-    // Set payment state for confirmation
-    setPaymentState({
-      step: 'confirming',
-      request
-    });
   };
 
   // Process the payment

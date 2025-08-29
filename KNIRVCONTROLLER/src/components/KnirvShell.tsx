@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Zap, Cpu } from 'lucide-react';
+import {Cpu } from 'lucide-react';
 
 interface KnirvShellProps {
   status: 'idle' | 'processing' | 'listening' | 'error';

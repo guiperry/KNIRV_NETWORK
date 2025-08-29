@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { APIResponse } from '@/types/api';
-import { apiRequest, API_BASE_URL, StandardWebSocket } from '@/lib/api';
+import { apiRequest, API_BASE_URL } from '@/lib/api';
+import { webSocketService } from '@/lib/websocket-service';
 
 export interface QRCode {
   id: string;
@@ -118,7 +119,6 @@ export const useControllerIntegration = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [socket, setSocket] = useState<StandardWebSocket | null>(null);
 
   // Generate QR code for controller pairing
   const generateQRCode = useCallback(async (request: QRCodeRequest): Promise<QRCode | null> => {
@@ -348,63 +348,72 @@ export const useControllerIntegration = () => {
 
   // WebSocket connection management
   const connectWebSocket = useCallback(() => {
-    if (socket?.isConnected()) return;
-
-    const ws = new StandardWebSocket();
-    
-    ws.onOpen = () => {
-      console.log('Controller Integration WebSocket connected');
-      setIsConnected(true);
-      setError(null);
-      
-      // Subscribe to controller integration updates
-      ws.subscribe(['controller-session-updated', 'controller-message-received', 'pairing-request-created']);
-    };
-
-    ws.onMessage = (message) => {
-      if (message.event === 'controller-session-updated' && message.payload) {
-        // Update session in the list
-        setActiveSessions(prevSessions => 
-          prevSessions.map(session => 
-            session.id === message.payload.id ? { ...session, ...message.payload } : session
-          )
-        );
-        
-        // Update selected session if it matches
-        if (selectedSession?.id === message.payload.id) {
-          setSelectedSession(prev => prev ? { ...prev, ...message.payload } : null);
-        }
-      } else if (message.event === 'controller-message-received' && message.payload) {
-        // Add new message
-        setMessages(prev => [...prev, message.payload]);
-      } else if (message.event === 'pairing-request-created' && message.payload) {
-        // Update pairing request
-        setPairingRequest(message.payload);
-      } else if (message.event === 'connected') {
-        console.log('Controller Integration WebSocket welcome:', message.payload);
+    // Set up event handlers
+    const handleConnection = (data: { connected: boolean }) => {
+      setIsConnected(data.connected);
+      if (data.connected) {
+        console.log('Controller Integration WebSocket connected');
+        setError(null);
+      } else {
+        console.log('Controller Integration WebSocket disconnected');
       }
     };
 
-    ws.onClose = () => {
-      console.log('Controller Integration WebSocket disconnected');
-      setIsConnected(false);
+    const handleControllerSessionUpdate = (payload: any) => {
+      // Update session in the list
+      setActiveSessions(prevSessions =>
+        prevSessions.map(session =>
+          session.id === payload.id ? { ...session, ...payload } : session
+        )
+      );
+
+      // Update selected session if it matches
+      if (selectedSession?.id === payload.id) {
+        setSelectedSession(prev => prev ? { ...prev, ...payload } : null);
+      }
     };
 
-    ws.onError = (error) => {
-      console.error('Controller Integration WebSocket error:', error);
-      setError('WebSocket connection failed');
+    const handleControllerMessageReceived = (payload: any) => {
+      // Add new message
+      setMessages(prev => [...prev, payload]);
     };
 
-    setSocket(ws);
-  }, [socket, selectedSession]);
+    const handlePairingRequestCreated = (payload: any) => {
+      // Update pairing request
+      setPairingRequest(payload);
+    };
+
+    const handleSystemNotification = (payload: any) => {
+      console.log('Controller Integration system notification:', payload);
+    };
+
+    // Register event handlers
+    webSocketService.on('connection', handleConnection);
+    webSocketService.on('controller-session-updated', handleControllerSessionUpdate);
+    webSocketService.on('controller-message-received', handleControllerMessageReceived);
+    webSocketService.on('pairing-request-created', handlePairingRequestCreated);
+    webSocketService.on('system-notification', handleSystemNotification);
+
+    // Subscribe to events
+    webSocketService.subscribe(['controller-session-updated', 'controller-message-received', 'pairing-request-created', 'system-notification']);
+
+    // Set initial connection status
+    setIsConnected(webSocketService.getConnectionStatus());
+
+    // Return cleanup function
+    return () => {
+      webSocketService.off('connection', handleConnection);
+      webSocketService.off('controller-session-updated', handleControllerSessionUpdate);
+      webSocketService.off('controller-message-received', handleControllerMessageReceived);
+      webSocketService.off('pairing-request-created', handlePairingRequestCreated);
+      webSocketService.off('system-notification', handleSystemNotification);
+    };
+  }, [selectedSession]);
 
   const disconnectWebSocket = useCallback(() => {
-    if (socket) {
-      socket.close();
-      setSocket(null);
-      setIsConnected(false);
-    }
-  }, [socket]);
+    // Individual hooks don't disconnect the shared service
+    setIsConnected(false);
+  }, []);
 
   // Clear current QR code
   const clearQRCode = useCallback(() => {
@@ -425,15 +434,8 @@ export const useControllerIntegration = () => {
 
   // Initial WebSocket connection on mount
   useEffect(() => {
-    connectWebSocket();
+    return connectWebSocket();
   }, [connectWebSocket]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      disconnectWebSocket();
-    };
-  }, [disconnectWebSocket]);
 
   return {
     qrCode,

@@ -34,7 +34,7 @@ export const FabricAlgorithm: React.FC<FabricAlgorithmProps> = ({
         </div>
         
         <div className="space-y-2">
-          {getAlgorithmSteps().map((step, index) => (
+          {getAlgorithmSteps().map((step, _index) => (
             <div
               key={step.name}
               className={`flex items-center space-x-2 p-2 rounded transition-all duration-300 ${

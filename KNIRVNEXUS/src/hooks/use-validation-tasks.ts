@@ -8,14 +8,14 @@ import type {
   APIResponse,
   ValidationTaskUpdate
 } from '@/types/api';
-import { apiRequest, API_BASE_URL, buildQueryString, StandardWebSocket } from '@/lib/api';
+import { apiRequest, API_BASE_URL, buildQueryString } from '@/lib/api';
+import { webSocketService } from '@/lib/websocket-service';
 
 export const useValidationTasks = () => {
   const [tasks, setTasks] = useState<ValidationTask[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [socket, setSocket] = useState<StandardWebSocket | null>(null);
 
   // Fetch validation tasks with optional filtering
   const fetchTasks = useCallback(async (filter?: ValidationTaskFilter) => {
@@ -126,59 +126,60 @@ export const useValidationTasks = () => {
 
   // WebSocket connection management
   const connectWebSocket = useCallback(() => {
-    if (socket?.isConnected()) return;
-
-    const ws = new StandardWebSocket();
-
-    ws.onOpen = () => {
-      console.log('Validation Tasks WebSocket connected');
-      setIsConnected(true);
-      setError(null);
-
-      // Subscribe to validation task updates
-      ws.subscribe(['validation-task-updated', 'system-notification']);
-    };
-
-    ws.onMessage = (message) => {
-      if (message.event === 'validation-task-updated' && message.payload) {
-        // Update specific task in the list
-        setTasks(prevTasks =>
-          prevTasks.map(task =>
-            task.id === message.payload.id
-              ? {
-                  ...task,
-                  status: message.payload.status || task.status,
-                  assigned_node_id: message.payload.assigned_node || task.assigned_node_id,
-                  updated_at: message.payload.updated_at || task.updated_at
-                }
-              : task
-          )
-        );
-      } else if (message.event === 'connected') {
-        console.log('Validation Tasks WebSocket welcome:', message.payload);
+    // Set up event handlers
+    const handleConnection = (data: { connected: boolean }) => {
+      setIsConnected(data.connected);
+      if (data.connected) {
+        console.log('Validation Tasks WebSocket connected');
+        setError(null);
+      } else {
+        console.log('Validation Tasks WebSocket disconnected');
       }
     };
 
-    ws.onClose = () => {
-      console.log('Validation Tasks WebSocket disconnected');
-      setIsConnected(false);
+    const handleValidationTaskUpdate = (payload: any) => {
+      // Update specific task in the list
+      setTasks(prevTasks =>
+        prevTasks.map(task =>
+          task.id === payload.id
+            ? {
+                ...task,
+                status: payload.status || task.status,
+                assigned_node_id: payload.assigned_node || task.assigned_node_id,
+                updated_at: payload.updated_at || task.updated_at
+              }
+            : task
+        )
+      );
     };
 
-    ws.onError = (error) => {
-      console.error('Validation Tasks WebSocket error:', error);
-      setError('WebSocket connection failed');
+    const handleSystemNotification = (payload: any) => {
+      console.log('Validation Tasks system notification:', payload);
     };
 
-    setSocket(ws);
-  }, [socket]);
+    // Register event handlers
+    webSocketService.on('connection', handleConnection);
+    webSocketService.on('validation-task-updated', handleValidationTaskUpdate);
+    webSocketService.on('system-notification', handleSystemNotification);
+
+    // Subscribe to events
+    webSocketService.subscribe(['validation-task-updated', 'system-notification']);
+
+    // Set initial connection status
+    setIsConnected(webSocketService.getConnectionStatus());
+
+    // Return cleanup function
+    return () => {
+      webSocketService.off('connection', handleConnection);
+      webSocketService.off('validation-task-updated', handleValidationTaskUpdate);
+      webSocketService.off('system-notification', handleSystemNotification);
+    };
+  }, []);
 
   const disconnectWebSocket = useCallback(() => {
-    if (socket) {
-      socket.close();
-      setSocket(null);
-      setIsConnected(false);
-    }
-  }, [socket]);
+    // Individual hooks don't disconnect the shared service
+    setIsConnected(false);
+  }, []);
 
   // Convenience methods for common operations
   const getPendingTasks = useCallback(() => fetchTasks({ status: 'pending' }), [fetchTasks]);
@@ -189,15 +190,8 @@ export const useValidationTasks = () => {
   // Initial fetch and WebSocket connection on mount
   useEffect(() => {
     fetchTasks();
-    connectWebSocket();
+    return connectWebSocket();
   }, [fetchTasks, connectWebSocket]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      disconnectWebSocket();
-    };
-  }, [disconnectWebSocket]);
 
   return {
     tasks,

@@ -13,12 +13,12 @@ export class BackendAPI {
   }
   
   // LoRA endpoints
-  async compileLora(config: any): Promise<{ adapterId: string }> {
+  async compileLora(config: unknown): Promise<{ adapterId: string }> {
     const adapterId = await loraEngine.compileAdapter(config);
     return { adapterId };
   }
   
-  async invokeLora(adapterId: string, input: any): Promise<any> {
+  async invokeLora(adapterId: string, input: unknown): Promise<unknown> {
     return await loraEngine.invokeAdapter(adapterId, input);
   }
   
@@ -31,7 +31,7 @@ export class BackendAPI {
     try {
       const wasmBytes = await wasmCompiler.compileRust(sourceCode);
       return { success: true, wasmBytes };
-    } catch (error) {
+    } catch {
       return { success: false };
     }
   }
@@ -41,12 +41,12 @@ export class BackendAPI {
   }
   
   // Protobuf endpoints
-  async serializeProtobuf(schema: string, data: any): Promise<{ serialized: Uint8Array }> {
+  async serializeProtobuf(schema: string, data: unknown): Promise<{ serialized: Uint8Array }> {
     const serialized = protobufHandler.serialize(schema, data);
     return { serialized };
   }
   
-  async deserializeProtobuf(schema: string, data: Uint8Array): Promise<{ deserialized: any }> {
+  async deserializeProtobuf(schema: string, data: Uint8Array): Promise<{ deserialized: unknown }> {
     const deserialized = protobufHandler.deserialize(schema, data);
     return { deserialized };
   }
@@ -56,7 +56,7 @@ export class BackendAPI {
   }
   
   // Health check
-  async getHealth(): Promise<{ status: string; timestamp: string; components: any }> {
+  async getHealth(): Promise<{ status: string; timestamp: string; components: unknown }> {
     return {
       status: 'healthy',
       timestamp: new Date().toISOString(),

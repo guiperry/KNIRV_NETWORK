@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, CheckCircle, Clock, MapPin, Eye, X } from 'lucide-react';
+import {MapPin, Eye} from 'lucide-react';
 import { NRV } from '../App';
 
 interface NRVVisualizationProps {

@@ -1,4 +1,4 @@
-import { CognitiveEngine, CognitiveConfig, CognitiveState, LearningEvent } from '../CognitiveEngine';
+import { CognitiveEngine, CognitiveConfig} from '../CognitiveEngine';
 
 // Mock all dependencies
 jest.mock('../EventEmitter');
@@ -905,7 +905,7 @@ describe('CognitiveEngine', () => {
         // Force an error during processing
         try {
           await cognitiveEngine.processInput('failing command', 'text');
-        } catch (error) {
+        } catch {
           // Error is expected
         }
 
@@ -1029,7 +1029,7 @@ describe('CognitiveEngine', () => {
       });
 
       it('should validate skill parameters', async () => {
-        const circularObj: any = { circular: {} };
+        const circularObj: unknown = { circular: {} };
         circularObj.circular.ref = circularObj;
 
         const invalidParameters = [
@@ -1052,18 +1052,18 @@ describe('CognitiveEngine', () => {
 
     describe('State Consistency', () => {
       it('should maintain state consistency during errors', async () => {
-        const initialState = cognitiveEngine.getState();
+
 
         // Cause multiple errors
         try {
           await cognitiveEngine.processInput(null, 'invalid-type');
-        } catch (error) {
+        } catch {
           // Expected
         }
 
         try {
           await cognitiveEngine.invokeSkill('', null);
-        } catch (error) {
+        } catch {
           // Expected
         }
 

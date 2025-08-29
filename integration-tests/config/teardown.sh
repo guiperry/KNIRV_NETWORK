@@ -117,7 +117,7 @@ stop_services() {
     print_status "Stopping KNIRV services..."
     
     # Stop services by PID files
-    local services=("knirvchain" "knirvgraph" "knirvnexus-frontend" "knirvnexus-api-gateway" "knirvnexus-dve-manager" "knirvnexus-validation-core" "knirvoracle" "knirvrouter" "knirvcontroller")
+    local services=("knirvchain" "knirvgraph" "knirvnexus" "knirvoracle" "knirvrouter" "knirvcontroller")
     
     for service in "${services[@]}"; do
         stop_service "$service"
@@ -234,12 +234,10 @@ generate_cleanup_report() {
         echo "Services stopped:"
         echo "- KNIRVCHAIN (port 8080)"
         echo "- KNIRVGRAPH (port 8081)"
-        echo "- KNIRVNEXUS Frontend (port 3000)"
-        echo "- KNIRVNEXUS API Gateway (port 8080)"
-        echo "- KNIRVNEXUS DVE Manager (port 8081)"
-        echo "- KNIRVNEXUS Validation Core (port 8082)"
+        echo "- KNIRVNEXUS (port 8090)"
         echo "- KNIRVORACLE (port 8086)"
         echo "- KNIRVROUTER (port 8085)"
+        echo "- KNIRVCONTROLLER (port 3000)"
         echo ""
         echo "Cleanup actions:"
         echo "- Logs preserved: $PRESERVE_LOGS"

@@ -32,12 +32,10 @@ describe('Phase 1: Component Integration Tests', () => {
     if (agentCompiler.isReady()) {
       await agentCompiler.dispose();
     }
-    if (wasmOrchestrator.isRunning()) {
-      await wasmOrchestrator.stop();
+    if (wasmOrchestrator.isRunning) {
+      await wasmOrchestrator.shutdown();
     }
-    if (modelManager.isInitialized()) {
-      await modelManager.dispose();
-    }
+    // ModelManager doesn't require cleanup - it's a simple registry
   });
 
   describe('1.1 KNIRV-CONTROLLER Integration', () => {
@@ -62,7 +60,7 @@ describe('Phase 1: Component Integration Tests', () => {
 
       it('should initialize WASMOrchestrator correctly', async () => {
         await wasmOrchestrator.start();
-        expect(wasmOrchestrator.isRunning()).toBe(true);
+        expect(wasmOrchestrator.isRunning).toBe(true);
       });
 
       it('should initialize ModelManager correctly', async () => {

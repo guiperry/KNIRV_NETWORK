@@ -228,7 +228,7 @@ export class ErrorContextHandler {
   /**
    * Generate a hash for input data
    */
-  private generateInputDataHash(inputData?: any): string {
+  private generateInputDataHash(inputData?: unknown): string {
     if (!inputData) {
       return '';
     }
@@ -245,7 +245,7 @@ export class ErrorContextHandler {
   /**
    * Generate a hash for agent state
    */
-  private generateAgentStateHash(agentState?: any): string {
+  private generateAgentStateHash(agentState?: unknown): string {
     if (!agentState) {
       return '';
     }

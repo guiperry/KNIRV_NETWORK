@@ -1,11 +1,13 @@
 import { Canvas } from "@react-three/fiber";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import GameScene from "./GameScene";
 import GameUI from "../ui/GameUI";
 import { useKnirvana } from "../../lib/stores/useKnirvana";
 
 export default function KnirvanaGame() {
-  const { gamePhase } = useKnirvana();
+  const { gamePhase, selectedAgent } = useKnirvana();
+
+
 
   return (
     <>
@@ -19,11 +21,23 @@ export default function KnirvanaGame() {
         }}
         gl={{
           antialias: true,
-          powerPreference: "high-performance"
+          powerPreference: "high-performance",
+          alpha: false,
+          preserveDrawingBuffer: true
         }}
+        style={{
+          background: '#000510',
+          width: '100vw',
+          height: '100vh',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          zIndex: 1
+        }}
+
       >
         <color attach="background" args={["#000510"]} />
-        
+
         <Suspense fallback={null}>
           <GameScene />
         </Suspense>

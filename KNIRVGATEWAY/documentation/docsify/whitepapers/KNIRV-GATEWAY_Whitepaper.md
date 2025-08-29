@@ -2,11 +2,11 @@
 
 ### **Abstract**
 
-The KNIRV-GATEWAY serves as the primary and unified web portal and API gateway for the KNIRV Decentralized Trusted Execution Network (D-TEN). It is designed to be the single entry point for all users, developers, and services within the KNIRV ecosystem. By combining a modern, responsive website with serverless API gateway functionality, the KNIRV-GATEWAY provides a seamless and secure interface for interacting with the various layers of the network.
+The KNIRV-GATEWAY serves as the primary and unified web portal and API gateway for the KNIRV Decentralized Trusted Execution Network (D-TEN). Following the major refactor, KNIRV-GATEWAY has been enhanced with the integration of the GraphChain Explorer frontend, migrated from KNIRVGRAPH to enable Netlify deployment with Server-Sent Events (SSE) functionality. It is designed to be the single entry point for all users, developers, and services within the KNIRV ecosystem. By combining a modern, responsive website with serverless API gateway functionality and the integrated GraphChain Explorer, the KNIRV-GATEWAY provides a seamless and secure interface for interacting with the various layers of the network while offering direct access to the distributed vector graph intelligence.
 
 ### **1. Introduction**
 
-The KNIRV-GATEWAY is a critical architectural component that abstracts the complexity of the underlying decentralized network. It provides a modern web portal showcasing the D-TEN's capabilities and a robust serverless API gateway that supports real-time data streaming. The gateway is built on a modular architecture, leveraging Netlify Functions for its serverless backend and a responsive front end for an optimal user experience.
+The KNIRV-GATEWAY is a critical architectural component that abstracts the complexity of the underlying decentralized network. Following the major refactor, it has been enhanced with the GraphChain Explorer frontend migration, providing users with direct access to the distributed vector graph intelligence through a hybrid integration approach. The gateway provides a modern web portal showcasing the D-TEN's capabilities, a robust serverless API gateway that supports real-time data streaming, and the integrated GraphChain Explorer with static site structure in the graphchain-explorer subdirectory. The gateway is built on a modular architecture, leveraging Netlify Functions for its serverless backend and a responsive front end for an optimal user experience, while enabling the GraphChain Explorer to query any GraphChain instance via the KNIRVGATEWAY API proxy.
 
 ### **2. Architecture**
 
@@ -54,7 +54,7 @@ graph TD
     B -- "Proxies Requests To" --> F{KNIRV Ecosystem}
 
     subgraph "KNIRV Ecosystem"
-        G[KNIRVORACLE]
+        G[KNIRVROOT]
         H[KNIRVCHAIN]
         I[KNIRVGRAPH]
         J[KNIRVNEXUS]
@@ -83,11 +83,11 @@ The API gateway exposes a series of endpoints to manage the gateway itself, moni
 *   **Gateway Management**: Endpoints like `GET /gateway/health` and `GET /gateway/services` provide status and metrics for the gateway.
 *   **Health Monitoring**: `GET /health-monitor/status` and `GET /health-monitor/events` provide real-time service health updates via SSE.
 *   **Authentication**: `POST /auth/login` and `POST /auth/logout` manage user sessions and token verification.
-*   **Service Proxy**: The gateway acts as a proxy for key KNIRV services, including endpoints for `KNIRVORACLE` (`/api/*`), economics (`/economics/*`), and the tunnel registry (`/tunnel/*`).
+*   **Service Proxy**: The gateway acts as a proxy for key KNIRV services, including endpoints for `KNIRVROOT` (`/api/*`), economics (`/economics/*`), and the tunnel registry (`/tunnel/*`).
 
 ### **5. Integration with the KNIRV Ecosystem**
 
-The KNIRV-GATEWAY is designed to be the central point of contact for the entire D-TEN. It is configured to interact with other sovereign layers through environment variables. Specifically, it establishes connections to `KNIRVORACLE`, `KNIRVCHAIN`, `KNIRVGRAPH`, and `KNIRVNEXUS`, acting as a front-facing proxy that streamlines communication and provides a single, secure entry point to the entire network.
+The KNIRV-GATEWAY is designed to be the central point of contact for the entire D-TEN. It is configured to interact with other sovereign layers through environment variables. Specifically, it establishes connections to `KNIRVROOT`, `KNIRVCHAIN`, `KNIRVGRAPH`, and `KNIRVNEXUS`, acting as a front-facing proxy that streamlines communication and provides a single, secure entry point to the entire network.
 
 ### **6. Conclusion**
 

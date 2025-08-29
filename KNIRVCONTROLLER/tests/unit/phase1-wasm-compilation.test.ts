@@ -30,8 +30,8 @@ describe('Phase 1: WASM Compilation Pipeline Tests', () => {
     if (agentCompiler.isReady()) {
       await agentCompiler.dispose();
     }
-    if (wasmOrchestrator.isRunning()) {
-      await wasmOrchestrator.stop();
+    if (wasmOrchestrator.isRunning) {
+      await wasmOrchestrator.shutdown();
     }
     if (protobufHandler.isReady()) {
       await protobufHandler.cleanup();

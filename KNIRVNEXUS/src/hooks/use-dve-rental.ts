@@ -9,7 +9,8 @@ import type {
   RentalRequest,
   ExtendRentalRequest
 } from '@/types/api';
-import { apiRequest, API_BASE_URL, StandardWebSocket } from '@/lib/api';
+import { apiRequest, API_BASE_URL } from '@/lib/api';
+import { webSocketService } from '@/lib/websocket-service';
 
 export const useDVERental = () => {
   const [plans, setPlans] = useState<DVERentalPlan[]>([]);
@@ -18,7 +19,6 @@ export const useDVERental = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [socket, setSocket] = useState<StandardWebSocket | null>(null);
 
   // Fetch available rental plans
   const fetchPlans = useCallback(async () => {
@@ -183,61 +183,68 @@ export const useDVERental = () => {
 
   // WebSocket connection management
   const connectWebSocket = useCallback(() => {
-    if (socket?.isConnected()) return;
-
-    const ws = new StandardWebSocket();
-
-    ws.onOpen = () => {
-      console.log('DVE Rental WebSocket connected');
-      setIsConnected(true);
-      setError(null);
-
-      // Subscribe to rental updates
-      ws.subscribe(['dve-rental-updated', 'dve-rental-expired', 'system-notification']);
-    };
-
-    ws.onMessage = (message) => {
-      if (message.event === 'dve-rental-updated' && message.payload) {
-        // Update specific rental in the list
-        setRentals(prevRentals =>
-          prevRentals.map(rental =>
-            rental.id === message.payload.id
-              ? { ...rental, ...message.payload }
-              : rental
-          )
-        );
-      } else if (message.event === 'dve-rental-expired' && message.payload) {
-        // Mark rental as expired
-        setRentals(prevRentals =>
-          prevRentals.map(rental =>
-            rental.id === message.payload.id
-              ? { ...rental, status: 'expired' }
-              : rental
-          )
-        );
+    // Set up event handlers
+    const handleConnection = (data: { connected: boolean }) => {
+      setIsConnected(data.connected);
+      if (data.connected) {
+        console.log('DVE Rental WebSocket connected');
+        setError(null);
+      } else {
+        console.log('DVE Rental WebSocket disconnected');
       }
     };
 
-    ws.onClose = () => {
-      console.log('DVE Rental WebSocket disconnected');
-      setIsConnected(false);
+    const handleDVERentalUpdate = (payload: any) => {
+      // Update specific rental in the list
+      setRentals(prevRentals =>
+        prevRentals.map(rental =>
+          rental.id === payload.id
+            ? { ...rental, ...payload }
+            : rental
+        )
+      );
     };
 
-    ws.onError = (error) => {
-      console.error('DVE Rental WebSocket error:', error);
-      setError('WebSocket connection failed');
+    const handleDVERentalExpired = (payload: any) => {
+      // Mark rental as expired
+      setRentals(prevRentals =>
+        prevRentals.map(rental =>
+          rental.id === payload.id
+            ? { ...rental, status: 'expired' }
+            : rental
+        )
+      );
     };
 
-    setSocket(ws);
-  }, [socket]);
+    const handleSystemNotification = (payload: any) => {
+      console.log('DVE Rental system notification:', payload);
+    };
+
+    // Register event handlers
+    webSocketService.on('connection', handleConnection);
+    webSocketService.on('dve-rental-updated', handleDVERentalUpdate);
+    webSocketService.on('dve-rental-expired', handleDVERentalExpired);
+    webSocketService.on('system-notification', handleSystemNotification);
+
+    // Subscribe to events
+    webSocketService.subscribe(['dve-rental-updated', 'dve-rental-expired', 'system-notification']);
+
+    // Set initial connection status
+    setIsConnected(webSocketService.getConnectionStatus());
+
+    // Return cleanup function
+    return () => {
+      webSocketService.off('connection', handleConnection);
+      webSocketService.off('dve-rental-updated', handleDVERentalUpdate);
+      webSocketService.off('dve-rental-expired', handleDVERentalExpired);
+      webSocketService.off('system-notification', handleSystemNotification);
+    };
+  }, []);
 
   const disconnectWebSocket = useCallback(() => {
-    if (socket) {
-      socket.close();
-      setSocket(null);
-      setIsConnected(false);
-    }
-  }, [socket]);
+    // Individual hooks don't disconnect the shared service
+    setIsConnected(false);
+  }, []);
 
   // Convenience methods
   const getActiveRentals = useCallback(() => 
@@ -250,15 +257,8 @@ export const useDVERental = () => {
   useEffect(() => {
     fetchPlans();
     fetchStats();
-    connectWebSocket();
+    return connectWebSocket();
   }, [fetchPlans, fetchStats, connectWebSocket]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      disconnectWebSocket();
-    };
-  }, [disconnectWebSocket]);
 
   return {
     plans,

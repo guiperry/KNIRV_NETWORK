@@ -90,7 +90,7 @@ export class AgentCore extends EventEmitter {
   /**
    * Main execution method - called from sensory-shell
    */
-  async execute(input: any, context: any = {}): Promise<any> {
+  async execute(input: unknown, context: unknown = {}): Promise<any> {
     if (!this.isInitialized) {
       throw new Error('Agent-Core not initialized');
     }
@@ -112,7 +112,7 @@ export class AgentCore extends EventEmitter {
   /**
    * Tool execution method
    */
-  async executeTool(toolName: string, parameters: any, context: any = {}): Promise<any> {
+  async executeTool(toolName: string, parameters: unknown, context: unknown = {}): Promise<any> {
     const tool = this.tools.get(toolName);
     if (!tool) {
       throw new Error(`Tool '${toolName}' not found`);
@@ -129,7 +129,7 @@ export class AgentCore extends EventEmitter {
   /**
    * Load LoRA adapter (for skill modification)
    */
-  async loadLoRAAdapter(adapter: any): Promise<boolean> {
+  async loadLoRAAdapter(adapter: unknown): Promise<boolean> {
     try {
       // Apply LoRA adapter to cognitive engine
       return await this.cognitiveEngine.loadLoRAAdapterToWASMAgent(adapter);
@@ -142,7 +142,7 @@ export class AgentCore extends EventEmitter {
   /**
    * Get agent status
    */
-  getStatus(): any {
+  getStatus(): unknown {
     return {
       agentId: AGENT_CONFIG.agentId,
       agentName: AGENT_CONFIG.agentName,

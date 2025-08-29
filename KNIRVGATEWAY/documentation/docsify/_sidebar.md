@@ -32,15 +32,6 @@
 
 * [KNIRVSDK User Guide](knirvsdk/README.md)
 
-## KNIRVCORTEX Documentation
-
-* [KNIRVSHELL User Guide](knirvshell/README.md)
-* [KNIRVSHELL User Guide](knirvshell/README.md)
-
-## KNIRVWALLET Documentation
-
-* [KNIRVWALLET User Guide](knirvwallet/README.md)
-
 ## 📄 Whitepapers
 
 * [📚 View All Whitepapers](whitepapers/)

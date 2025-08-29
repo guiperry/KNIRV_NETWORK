@@ -39,7 +39,7 @@ interface SpeechRecognitionAlternative {
   confidence: number;
 }
 
-declare var SpeechRecognition: {
+declare const SpeechRecognition: {
   prototype: SpeechRecognition;
   new(): SpeechRecognition;
 };

@@ -1,5 +1,5 @@
-import { useRef, useEffect, useState } from 'react';
-import { Eye, EyeOff, Zap } from 'lucide-react';
+import { useRef, useEffect, useState, useCallback } from 'react';
+import { Eye, EyeOff} from 'lucide-react';
 
 interface VisualProcessorProps {
   onVisualData: (data: ImageData) => void;
@@ -51,9 +51,9 @@ export default function VisualProcessor({ onVisualData, onObjectDetection, isAct
     return () => {
       stopProcessing();
     };
-  }, [isActive]);
+  }, [isActive, initializeCamera, stopProcessing]);
 
-  const initializeCamera = async () => {
+  const initializeCamera = useCallback(async () => {
     try {
       setError(null);
       
@@ -78,7 +78,7 @@ export default function VisualProcessor({ onVisualData, onObjectDetection, isAct
       console.error('Failed to initialize camera:', err);
       setError('Failed to access camera. Please check permissions.');
     }
-  };
+  }, [onVisualData, onObjectDetection]);
 
   const startProcessing = () => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -221,7 +221,7 @@ export default function VisualProcessor({ onVisualData, onObjectDetection, isAct
       for (let x = 0; x < width; x++) {
         const index = y * width + x;
         
-        if (binary[index] === 255 && !visited.has(index)) {
+        if (binary[index] === 255 && !visited.has(_index)) {
           const blob = floodFill(binary, width, height, x, y, visited);
           
           if (blob.length > minBlobSize) {
@@ -251,12 +251,12 @@ export default function VisualProcessor({ onVisualData, onObjectDetection, isAct
       const { x, y } = stack.pop()!;
       const index = y * width + x;
 
-      if (x < 0 || x >= width || y < 0 || y >= height || visited.has(index) || binary[index] === 0) {
+      if (x < 0 || x >= width || y < 0 || y >= height || visited.has(_index) || binary[index] === 0) {
         continue;
       }
 
-      visited.add(index);
-      blob.push(index);
+      visited.add(_index);
+      blob.push(_index);
 
       // Add neighbors
       stack.push({ x: x + 1, y }, { x: x - 1, y }, { x, y: y + 1 }, { x, y: y - 1 });
@@ -271,7 +271,7 @@ export default function VisualProcessor({ onVisualData, onObjectDetection, isAct
     for (const index of blob) {
       const x = index % width;
       const y = Math.floor(index / width);
-      
+
       minX = Math.min(minX, x);
       maxX = Math.max(maxX, x);
       minY = Math.min(minY, y);
@@ -286,7 +286,7 @@ export default function VisualProcessor({ onVisualData, onObjectDetection, isAct
     };
   };
 
-  const extractFeatures = (blob: number[], boundingBox: any): number[] => {
+  const extractFeatures = (blob: number[], boundingBox: unknown): number[] => {
     // Extract simple features: area, aspect ratio, compactness
     const area = blob.length;
     const aspectRatio = boundingBox.width / boundingBox.height;
@@ -308,7 +308,7 @@ export default function VisualProcessor({ onVisualData, onObjectDetection, isAct
   const drawDetectionOverlays = (ctx: CanvasRenderingContext2D, objects: DetectedObject[]) => {
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     
-    objects.forEach((obj, index) => {
+    objects.forEach((obj, _index) => {
       const { x, y, width, height } = obj.boundingBox;
       
       // Draw bounding box
@@ -340,7 +340,7 @@ export default function VisualProcessor({ onVisualData, onObjectDetection, isAct
     }
   };
 
-  const stopProcessing = () => {
+  const stopProcessing = useCallback(() => {
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
     }
@@ -352,7 +352,7 @@ export default function VisualProcessor({ onVisualData, onObjectDetection, isAct
     
     setIsProcessing(false);
     setDetectedObjects([]);
-  };
+  }, [stream]);
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-4 m-4">

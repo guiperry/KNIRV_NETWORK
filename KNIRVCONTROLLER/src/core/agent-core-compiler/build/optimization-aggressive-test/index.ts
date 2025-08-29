@@ -15,8 +15,8 @@ export const AGENT_CONFIG = {
   factsUrl: '{{factsUrl}}',
   privateFactsUrl: '{{privateFactsUrl}}',
   adaptiveRouterUrl: '{{adaptiveRouterUrl}}',
-  ttl: {{ttl}},
-  signature: '{{signature}}'
+  ttl: 3600,
+  signature: 'mock-signature-1756463785135'
 };
 
 // Import cognitive capabilities
@@ -27,45 +27,43 @@ import { LoRAAdapter } from './LoRAAdapter';
 import { EventEmitter } from './EventEmitter';
 
 // Import tool implementations
-{{#each tools}}
-import { {{name}} } from './tools/{{name}}';
-{{/each}}
+
 
 /**
  * Agent-Core Main Class
  * Integrates Go template functionality with cognitive-shell capabilities
  */
 export class AgentCore extends EventEmitter {
-  private cognitiveEngine: CognitiveEngine;
-  private adaptiveLearning: AdaptiveLearningPipeline;
-  private sealFramework: SEALFramework;
-  private tools: Map<string, Function> = new Map();
-  private memory: Map<string, any> = new Map();
-  private isInitialized = false;
+  cognitiveEngine: CognitiveEngine;
+  adaptiveLearning: AdaptiveLearningPipeline;
+  sealFramework: SEALFramework;
+  tools: Map<string, Function> = new Map();
+  memory: Map<string, any> = new Map();
+  isInitialized: boolean  = false;
 
   constructor() {
     super();
     this.initializeComponents();
   }
 
-  private async initializeComponents(): Promise<void> {
+  initializeComponents(): void {
     // Initialize cognitive engine with agent configuration
     this.cognitiveEngine = new CognitiveEngine({
-      maxContextSize: {{cognitiveConfig.maxContextSize}},
-      learningRate: {{cognitiveConfig.learningRate}},
-      adaptationThreshold: {{cognitiveConfig.adaptationThreshold}},
-      skillTimeout: {{cognitiveConfig.skillTimeout}},
-      voiceEnabled: {{cognitiveCapabilities.voice}},
-      visualEnabled: {{cognitiveCapabilities.visual}},
-      loraEnabled: {{cognitiveCapabilities.lora}},
-      enhancedLoraEnabled: {{cognitiveCapabilities.enhancedLora}},
+      maxContextSize: 2048,
+      learningRate: 0.001,
+      adaptationThreshold: 0.5,
+      skillTimeout: 5000,
+      voiceEnabled: true,
+      visualEnabled: false,
+      loraEnabled: true,
+      enhancedLoraEnabled: true,
       hrmEnabled: false, // Disabled in agent-core
       wasmAgentsEnabled: false, // We ARE the WASM agent
       typeScriptCompilerEnabled: false, // Compilation happens at build time
-      adaptiveLearningEnabled: {{cognitiveCapabilities.adaptiveLearning}},
-      walletIntegrationEnabled: {{cognitiveCapabilities.wallet}},
-      chainIntegrationEnabled: {{cognitiveCapabilities.chain}},
-      ecosystemCommunicationEnabled: {{cognitiveCapabilities.ecosystem}}
+      adaptiveLearningEnabled: true,
+      walletIntegrationEnabled: false,
+      chainIntegrationEnabled: true,
+      ecosystemCommunicationEnabled: true
     });
 
     // Initialize adaptive learning
@@ -77,30 +75,28 @@ export class AgentCore extends EventEmitter {
     // Register tools
     this.registerTools();
 
-    await this.cognitiveEngine.initialize();
-    this.isInitialized = true;
+    this.cognitiveEngine.initialize();
+    this.isInitialized  = true;
   }
 
-  private registerTools(): void {
-    {{#each tools}}
-    this.tools.set('{{name}}', {{name}});
-    {{/each}}
+  registerTools(): void {
+    
   }
 
   /**
    * Main execution method - called from sensory-shell
    */
-  async execute(input: any, context: any = {}): Promise<any> {
+  execute(input: i32, context: i32 = {}): i32 {
     if (!this.isInitialized) {
       throw new Error('Agent-Core not initialized');
     }
 
     try {
       // Process through cognitive engine
-      const result = await this.cognitiveEngine.processInput(input, context.inputType || 'text');
+      const result = this.cognitiveEngine.processInput(input, context.inputType || 'text');
       
       // Apply adaptive learning
-      await this.adaptiveLearning.learn(input, result, context);
+      this.adaptiveLearning.learn(input, result, context);
       
       return result;
     } catch (error) {
@@ -112,14 +108,14 @@ export class AgentCore extends EventEmitter {
   /**
    * Tool execution method
    */
-  async executeTool(toolName: string, parameters: any, context: any = {}): Promise<any> {
+  executeTool(toolName: string, parameters: i32, context: i32 = {}): i32 {
     const tool = this.tools.get(toolName);
     if (!tool) {
       throw new Error(`Tool '${toolName}' not found`);
     }
 
     try {
-      return await tool(parameters, context);
+      return tool(parameters, context);
     } catch (error) {
       this.emit('tool_error', { toolName, error: error.message, parameters });
       throw error;
@@ -129,10 +125,10 @@ export class AgentCore extends EventEmitter {
   /**
    * Load LoRA adapter (for skill modification)
    */
-  async loadLoRAAdapter(adapter: any): Promise<boolean> {
+  loadLoRAAdapter(adapter: i32): boolean {
     try {
       // Apply LoRA adapter to cognitive engine
-      return await this.cognitiveEngine.loadLoRAAdapterToWASMAgent(adapter);
+      return this.cognitiveEngine.loadLoRAAdapterToWASMAgent(adapter);
     } catch (error) {
       this.emit('lora_error', { error: error.message, adapter });
       return false;
@@ -142,7 +138,7 @@ export class AgentCore extends EventEmitter {
   /**
    * Get agent status
    */
-  getStatus(): any {
+  getStatus(): i32 {
     return {
       agentId: AGENT_CONFIG.agentId,
       agentName: AGENT_CONFIG.agentName,
@@ -157,13 +153,13 @@ export class AgentCore extends EventEmitter {
   /**
    * Cleanup resources
    */
-  async dispose(): Promise<void> {
+  dispose(): void {
     if (this.cognitiveEngine) {
-      await this.cognitiveEngine.dispose();
+      this.cognitiveEngine.dispose();
     }
     this.tools.clear();
     this.memory.clear();
-    this.isInitialized = false;
+    this.isInitialized  = false;
   }
 }
 
@@ -171,42 +167,42 @@ export class AgentCore extends EventEmitter {
 export const agentCore = new AgentCore();
 export default agentCore;
 
-{{#if (eq buildTarget "wasm")}}
+
 // WASM export functions for sensory-shell communication
-declare global {
-  var agentCoreExecute: (input: string, context: string) => Promise<string>;
-  var agentCoreExecuteTool: (toolName: string, parameters: string, context: string) => Promise<string>;
-  var agentCoreLoadLoRA: (adapter: string) => Promise<boolean>;
+// declare global {
+  var agentCoreExecute: (input: string, context: string) => string;
+  var agentCoreExecuteTool: (toolName: string, parameters: string, context: string) => string;
+  var agentCoreLoadLoRA: (adapter: string) => boolean;
   var agentCoreGetStatus: () => string;
 }
 
 // WASM interface functions
-globalThis.agentCoreExecute = async (input: string, context: string = '{}'): Promise<string> => {
+globalThis.agentCoreExecute = (input: string, context: string = '{}'): string => {
   try {
     const parsedInput = JSON.parse(input);
     const parsedContext = JSON.parse(context);
-    const result = await agentCore.execute(parsedInput, parsedContext);
+    const result = agentCore.execute(parsedInput, parsedContext);
     return JSON.stringify(result);
   } catch (error) {
     return JSON.stringify({ error: error.message });
   }
 };
 
-globalThis.agentCoreExecuteTool = async (toolName: string, parameters: string, context: string = '{}'): Promise<string> => {
+globalThis.agentCoreExecuteTool = (toolName: string, parameters: string, context: string = '{}'): string => {
   try {
     const parsedParams = JSON.parse(parameters);
     const parsedContext = JSON.parse(context);
-    const result = await agentCore.executeTool(toolName, parsedParams, parsedContext);
+    const result = agentCore.executeTool(toolName, parsedParams, parsedContext);
     return JSON.stringify(result);
   } catch (error) {
     return JSON.stringify({ error: error.message });
   }
 };
 
-globalThis.agentCoreLoadLoRA = async (adapter: string): Promise<boolean> => {
+globalThis.agentCoreLoadLoRA = (adapter: string): boolean => {
   try {
     const parsedAdapter = JSON.parse(adapter);
-    return await agentCore.loadLoRAAdapter(parsedAdapter);
+    return agentCore.loadLoRAAdapter(parsedAdapter);
   } catch (error) {
     return false;
   }
@@ -219,4 +215,4 @@ globalThis.agentCoreGetStatus = (): string => {
     return JSON.stringify({ error: error.message });
   }
 };
-{{/if}}
+

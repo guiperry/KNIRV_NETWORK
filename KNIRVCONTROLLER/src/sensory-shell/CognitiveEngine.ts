@@ -81,7 +81,7 @@ export interface CognitiveConfig {
 
 export class CognitiveEngine extends EventEmitter {
   private state: CognitiveState;
-  private config: CognitiveConfig;
+  private _config: CognitiveConfig;
   private sealFramework: SEALFramework;
   private fabricAlgorithm: FabricAlgorithm;
   private voiceProcessor: VoiceProcessor;
@@ -100,9 +100,9 @@ export class CognitiveEngine extends EventEmitter {
   private isRunning: boolean = false;
   private adaptationTimer: NodeJS.Timeout | null = null;
 
-  constructor(config: CognitiveConfig) {
+  constructor(_config: CognitiveConfig) {
     super();
-    this.config = config;
+    this.config = _config;
     this.state = {
       currentContext: new Map(),
       activeSkills: [],
@@ -760,14 +760,14 @@ export class CognitiveEngine extends EventEmitter {
     console.log('Cognitive Engine stopped');
   }
 
-  public async processInput(input: any, inputType: string): Promise<any> {
+  public async processInput(input: unknown, inputType: string): Promise<any> {
     const startTime = Date.now();
 
     try {
       // Update context
       this.updateContext(inputType, input);
 
-      let response: any;
+      let response: unknown;
 
       // Use WASM Agent for cognitive processing if available (Revolutionary Feature)
       if (this.wasmAgentManager && this.wasmAgentManager.isReady()) {
@@ -850,7 +850,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  private async processWithHRM(input: any, inputType: string): Promise<any> {
+  private async processWithHRM(input: unknown, inputType: string): Promise<any> {
     console.log('Processing with HRM:', inputType);
 
     try {
@@ -860,7 +860,7 @@ export class CognitiveEngine extends EventEmitter {
       switch (inputType) {
         case 'voice':
           // Convert voice input to numerical data for HRM
-          const audioData = this.convertVoiceToData(input);
+          // TODO: Implement voice input conversion
           hrmOutput = await this.hrmBridge.processVoiceInput(audioData, {
             context: Object.fromEntries(this.state.currentContext),
             confidenceLevel: this.state.confidenceLevel,
@@ -869,7 +869,7 @@ export class CognitiveEngine extends EventEmitter {
 
         case 'visual':
           // Convert visual input to numerical data for HRM
-          const visualData = this.convertVisualToData(input);
+          // TODO: Implement visual input conversion
           hrmOutput = await this.hrmBridge.processVisualInput(visualData, {
             context: Object.fromEntries(this.state.currentContext),
             confidenceLevel: this.state.confidenceLevel,
@@ -879,7 +879,7 @@ export class CognitiveEngine extends EventEmitter {
         case 'text':
         default:
           // Process text input through HRM
-          const textInput = typeof input === 'string' ? input : JSON.stringify(input);
+          // TODO: Implement text input processing
           hrmOutput = await this.hrmBridge.processTextInput(textInput, {
             context: Object.fromEntries(this.state.currentContext),
             confidenceLevel: this.state.confidenceLevel,
@@ -916,7 +916,7 @@ export class CognitiveEngine extends EventEmitter {
    * Revolutionary WASM Agent Processing Method
    * Processes input through uploaded agent.wasm with LoRA adapter integration
    */
-  private async processWithWASMAgent(input: any, inputType: string): Promise<any> {
+  private async processWithWASMAgent(input: unknown, inputType: string): Promise<any> {
     console.log('Processing with WASM Agent:', inputType);
 
     try {
@@ -939,7 +939,7 @@ export class CognitiveEngine extends EventEmitter {
       let parsedOutput;
       try {
         parsedOutput = JSON.parse(agentOutput);
-      } catch (error) {
+      } catch {
         // If output is not JSON, treat as plain text
         parsedOutput = {
           result: agentOutput,
@@ -987,7 +987,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  private prepareInputForWASMAgent(input: any, inputType: string): string {
+  private prepareInputForWASMAgent(input: unknown, inputType: string): string {
     // Convert various input types to string format for WASM agent
     switch (inputType) {
       case 'voice':
@@ -1016,7 +1016,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  private convertVoiceToData(speech: any): number[] {
+  private convertVoiceToData(speech: unknown): number[] {
     // Convert speech data to numerical array for HRM processing
     if (speech.audioData && Array.isArray(speech.audioData)) {
       return speech.audioData;
@@ -1030,7 +1030,7 @@ export class CognitiveEngine extends EventEmitter {
     return new Array(512).fill(0);
   }
 
-  private convertVisualToData(objects: any[]): number[] {
+  private convertVisualToData(objects: unknown[]): number[] {
     // Convert visual objects to numerical array for HRM processing
     const features: number[] = [];
 
@@ -1075,19 +1075,19 @@ export class CognitiveEngine extends EventEmitter {
 
 
 
-  private calculateVisualConfidence(result: any): number {
+  private calculateVisualConfidence(result: unknown): number {
     let confidence = 0;
     let count = 0;
 
     // Average confidence from objects
     if (result.objects.length > 0) {
-      confidence += result.objects.reduce((sum: number, obj: any) => sum + obj.confidence, 0) / result.objects.length;
+      confidence += result.objects.reduce((sum: number, obj: unknown) => sum + obj.confidence, 0) / result.objects.length;
       count++;
     }
 
     // Average confidence from faces
     if (result.faces.length > 0) {
-      confidence += result.faces.reduce((sum: number, face: any) => sum + face.confidence, 0) / result.faces.length;
+      confidence += result.faces.reduce((sum: number, face: unknown) => sum + face.confidence, 0) / result.faces.length;
       count++;
     }
 
@@ -1099,7 +1099,7 @@ export class CognitiveEngine extends EventEmitter {
 
     // Text recognition confidence
     if (result.textRegions.length > 0) {
-      confidence += result.textRegions.reduce((sum: number, text: any) => sum + text.confidence, 0) / result.textRegions.length;
+      confidence += result.textRegions.reduce((sum: number, text: unknown) => sum + text.confidence, 0) / result.textRegions.length;
       count++;
     }
 
@@ -1108,7 +1108,7 @@ export class CognitiveEngine extends EventEmitter {
 
 
 
-  private updateContext(inputType: string, input: any): void {
+  private updateContext(inputType: string, input: unknown): void {
     this.state.currentContext.set(`last_${inputType}`, input);
     this.state.currentContext.set('last_update', new Date());
 
@@ -1123,13 +1123,13 @@ export class CognitiveEngine extends EventEmitter {
     const recentEvents = this.state.learningHistory.slice(-10);
     if (recentEvents.length === 0) return false;
 
-    const avgFeedback = recentEvents.reduce((sum, event) => sum + event.feedback, 0) / recentEvents.length;
+    const avgFeedback = recentEvents.reduce((sum, _event) => sum + event.feedback, 0) / recentEvents.length;
     return avgFeedback < this.config.adaptationThreshold;
   }
 
 
 
-  public async invokeSkill(skillId: string, parameters: any): Promise<any> {
+  public async invokeSkill(skillId: string, parameters: unknown): Promise<any> {
     console.log(`Invoking skill: ${skillId}`, parameters);
 
     // Add to active skills
@@ -1148,17 +1148,17 @@ export class CognitiveEngine extends EventEmitter {
       // Then try KNIRVROUTER integration via chain integration
       else if (this.chainIntegration && this.config.chainIntegrationEnabled) {
         try {
-          // Generate ErrorContext for skill resolution
-          const errorContext = {
-            errorId: `skill_request_${Date.now()}`,
-            errorType: 'skill_invocation',
-            errorMessage: `Requesting skill execution: ${skillId}`,
-            stackTrace: new Error().stack || '',
-            userContext: parameters,
-            agentId: this.state.agentId || 'cognitive_engine',
-            timestamp: Date.now(),
-            severity: 'normal' as const
-          };
+          // Generate ErrorContext for skill resolution (currently unused)
+          // const errorContext = {
+          //   errorId: `skill_request_${Date.now()}`,
+          //   errorType: 'skill_invocation',
+          //   errorMessage: `Requesting skill execution: ${skillId}`,
+          //   stackTrace: new Error().stack || '',
+          //   userContext: parameters,
+          //   agentId: this.state.agentId || 'cognitive_engine',
+          //   timestamp: Date.now(),
+          //   severity: 'normal' as const
+          // };
 
           // Invoke skill via KNIRVROUTER network
           const skillResult = await this.chainIntegration.invokeSkillOnChain(
@@ -1246,7 +1246,7 @@ export class CognitiveEngine extends EventEmitter {
     return { ...this.state };
   }
 
-  public getMetrics(): any {
+  public getMetrics(): unknown {
     return {
       isRunning: this.isRunning,
       confidenceLevel: this.state.confidenceLevel,
@@ -1257,7 +1257,7 @@ export class CognitiveEngine extends EventEmitter {
     };
   }
 
-  private async focusOnObject(target: any): Promise<void> {
+  private async focusOnObject(target: unknown): Promise<void> {
     console.log('Focusing on object:', target);
     this.state.currentContext.set('focusTarget', target);
   }
@@ -1273,23 +1273,23 @@ export class CognitiveEngine extends EventEmitter {
   }
 
   // Month 9 getter methods for demo access
-  public getVisualProcessor(): any {
+  public getVisualProcessor(): unknown {
     return this.visualProcessor;
   }
 
-  public getLoRAAdapter(): any {
+  public getLoRAAdapter(): unknown {
     return this.loraAdapter;
   }
 
-  public getVoiceProcessor(): any {
+  public getVoiceProcessor(): unknown {
     return this.voiceProcessor;
   }
 
-  public getFabricAlgorithm(): any {
+  public getFabricAlgorithm(): unknown {
     return this.fabricAlgorithm;
   }
 
-  public getHRMBridge(): any {
+  public getHRMBridge(): unknown {
     return this.hrmBridge;
   }
 
@@ -1312,7 +1312,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public getHRMModelInfo(): any {
+  public getHRMModelInfo(): unknown {
     if (!this.hrmBridge) {
       return null;
     }
@@ -1323,7 +1323,7 @@ export class CognitiveEngine extends EventEmitter {
     return this.hrmBridge ? this.hrmBridge.isReady() : false;
   }
 
-  public getEnhancedLoRAAdapter(): any {
+  public getEnhancedLoRAAdapter(): unknown {
     return this.enhancedLoraAdapter;
   }
 
@@ -1331,7 +1331,7 @@ export class CognitiveEngine extends EventEmitter {
     return this.enhancedLoraAdapter ? this.enhancedLoraAdapter.isAdapterReady() : false;
   }
 
-  public async trainEnhancedLoRA(trainingData: any[]): Promise<{ success: boolean; metrics?: any }> {
+  public async trainEnhancedLoRA(trainingData: unknown[]): Promise<{ success: boolean; metrics?: unknown }> {
     if (!this.enhancedLoraAdapter) {
       console.warn('Enhanced LoRA adapter not initialized');
       return { success: false };
@@ -1351,7 +1351,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async adaptWithEnhancedLoRA(input: any, expectedOutput: any, feedback: number): Promise<any> {
+  public async adaptWithEnhancedLoRA(input: unknown, expectedOutput: unknown, feedback: number): Promise<any> {
     if (!this.enhancedLoraAdapter) {
       console.warn('Enhanced LoRA adapter not available');
       return input;
@@ -1378,7 +1378,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public getEnhancedLoRAMetrics(): any {
+  public getEnhancedLoRAMetrics(): unknown {
     if (!this.enhancedLoraAdapter) {
       return {
         isReady: false,
@@ -1411,7 +1411,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async loadEnhancedLoRAModel(modelName: string): Promise<{ success: boolean; model?: any }> {
+  public async loadEnhancedLoRAModel(modelName: string): Promise<{ success: boolean; model?: unknown }> {
     if (!this.enhancedLoraAdapter) {
       console.warn('Enhanced LoRA adapter not initialized');
       return { success: false };
@@ -1434,7 +1434,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public exportEnhancedLoRAWeights(): any {
+  public exportEnhancedLoRAWeights(): unknown {
     if (!this.enhancedLoraAdapter) {
       // Return mock weights for testing
       return {
@@ -1458,7 +1458,7 @@ export class CognitiveEngine extends EventEmitter {
     };
   }
 
-  public async importEnhancedLoRAWeights(weights: any): Promise<void> {
+  public async importEnhancedLoRAWeights(weights: unknown): Promise<void> {
     if (!this.enhancedLoraAdapter) {
       throw new Error('Enhanced LoRA adapter not initialized');
     }
@@ -1472,14 +1472,14 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public getTensorFlowInfo(): any {
+  public getTensorFlowInfo(): unknown {
     if (!this.enhancedLoraAdapter) {
       return null;
     }
     return this.enhancedLoraAdapter.getTensorFlowInfo();
   }
 
-  public getHRMLoRABridge(): any {
+  public getHRMLoRABridge(): unknown {
     return this.hrmLoraBridge;
   }
 
@@ -1487,7 +1487,7 @@ export class CognitiveEngine extends EventEmitter {
     return this.hrmLoraBridge ? this.hrmLoraBridge.getStatus().isRunning : false;
   }
 
-  public getHRMLoRAMappings(): any {
+  public getHRMLoRAMappings(): unknown {
     if (!this.hrmLoraBridge) {
       return null;
     }
@@ -1508,17 +1508,17 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public updateHRMLoRASyncConfig(config: any): void {
+  public updateHRMLoRASyncConfig(_config: unknown): void {
     if (!this.hrmLoraBridge) {
       console.warn('HRM-LoRA Bridge not initialized');
       return;
     }
 
-    this.hrmLoraBridge.updateSyncConfig(config);
+    this.hrmLoraBridge.updateSyncConfig(_config);
     console.log('HRM-LoRA sync configuration updated');
   }
 
-  public getHRMLoRAStatus(): any {
+  public getHRMLoRAStatus(): unknown {
     if (!this.hrmLoraBridge) {
       return {
         available: false,
@@ -1532,7 +1532,7 @@ export class CognitiveEngine extends EventEmitter {
     };
   }
 
-  public getComprehensiveStatus(): any {
+  public getComprehensiveStatus(): unknown {
     return {
       engine: {
         isRunning: this.isRunning,
@@ -1571,7 +1571,7 @@ export class CognitiveEngine extends EventEmitter {
     };
   }
 
-  private async recordInteractionForLearning(input: any, inputType: string, response: any): Promise<void> {
+  private async recordInteractionForLearning(input: unknown, inputType: string, response: unknown): Promise<void> {
     try {
       await this.adaptiveLearningPipeline.recordInteraction({
         inputType: inputType as any,
@@ -1607,7 +1607,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public getAdaptiveLearningPipeline(): any {
+  public getAdaptiveLearningPipeline(): unknown {
     return this.adaptiveLearningPipeline;
   }
 
@@ -1615,21 +1615,21 @@ export class CognitiveEngine extends EventEmitter {
     return this.adaptiveLearningPipeline ? (this.adaptiveLearningPipeline.getStatus().isRunning as boolean) : false;
   }
 
-  public getAdaptiveLearningMetrics(): any {
+  public getAdaptiveLearningMetrics(): unknown {
     if (!this.adaptiveLearningPipeline) {
       return null;
     }
     return this.adaptiveLearningPipeline.getMetrics();
   }
 
-  public getAdaptiveLearningPatterns(): any[] {
+  public getAdaptiveLearningPatterns(): unknown[] {
     if (!this.adaptiveLearningPipeline) {
       return [];
     }
     return this.adaptiveLearningPipeline.getPatterns();
   }
 
-  public async learnFromPatterns(patterns: Array<{ input: any; output: any; feedback: number }>): Promise<void> {
+  public async learnFromPatterns(patterns: Array<{ input: unknown; output: unknown; feedback: number }>): Promise<void> {
     console.log('Learning from patterns:', patterns.length);
 
     try {
@@ -1715,7 +1715,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async applyAdaptation(adaptationData: any): Promise<void> {
+  public async applyAdaptation(adaptationData: unknown): Promise<void> {
     console.log('Applying adaptation:', adaptationData);
 
     try {
@@ -1750,7 +1750,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async applyLoRAAdaptation(loraWeights: any): Promise<void> {
+  public async applyLoRAAdaptation(loraWeights: unknown): Promise<void> {
     console.log('Applying LoRA adaptation:', loraWeights);
 
     try {
@@ -1791,7 +1791,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async processVisualInput(visualInput: any[]): Promise<any> {
+  public async processVisualInput(visualInput: unknown[]): Promise<any> {
     console.log('Processing visual input:', visualInput);
 
     try {
@@ -1848,7 +1848,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async executeGestureCommand(gestureData: any): Promise<any> {
+  public async executeGestureCommand(gestureData: unknown): Promise<any> {
     console.log('Executing public gesture command:', gestureData);
 
     try {
@@ -1879,13 +1879,13 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public updateAdaptiveLearningConfig(config: any): void {
+  public updateAdaptiveLearningConfig(_config: unknown): void {
     if (!this.adaptiveLearningPipeline) {
       console.warn('Adaptive learning pipeline not available');
       return;
     }
 
-    this.adaptiveLearningPipeline.updateConfig(config);
+    this.adaptiveLearningPipeline.updateConfig(_config);
     console.log('Adaptive learning configuration updated');
   }
 
@@ -1899,7 +1899,7 @@ export class CognitiveEngine extends EventEmitter {
     console.log('Adaptive learning patterns cleared');
   }
 
-  public getAdaptiveLearningStatus(): any {
+  public getAdaptiveLearningStatus(): unknown {
     if (!this.adaptiveLearningPipeline) {
       return {
         available: false,
@@ -1915,7 +1915,7 @@ export class CognitiveEngine extends EventEmitter {
 
   // KNIRV Wallet Integration Methods
 
-  public getWalletIntegration(): any {
+  public getWalletIntegration(): unknown {
     return this.walletIntegration;
   }
 
@@ -1923,14 +1923,14 @@ export class CognitiveEngine extends EventEmitter {
     return this.walletIntegration ? this.walletIntegration.isWalletConnected() : false;
   }
 
-  public getWalletAccounts(): any[] {
+  public getWalletAccounts(): unknown[] {
     if (!this.walletIntegration) {
       return [];
     }
     return this.walletIntegration.getAccounts();
   }
 
-  public getCurrentWalletAccount(): any {
+  public getCurrentWalletAccount(): unknown {
     if (!this.walletIntegration) {
       // Return mock account for testing
       return {
@@ -2022,7 +2022,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async createWalletTransaction(request: any): Promise<string> {
+  public async createWalletTransaction(request: unknown): Promise<string> {
     if (!this.walletIntegration) {
       // Return mock transaction ID for testing
       const mockTxId = `mock-tx-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -2049,7 +2049,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async invokeSkillWithWallet(skillInvocation: any): Promise<string> {
+  public async invokeSkillWithWallet(skillInvocation: unknown): Promise<string> {
     if (!this.walletIntegration) {
       throw new Error('Wallet integration not available');
     }
@@ -2087,7 +2087,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public getWalletTransactions(): any[] {
+  public getWalletTransactions(): unknown[] {
     if (!this.walletIntegration) {
       return [];
     }
@@ -2128,7 +2128,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public getWalletStatus(): any {
+  public getWalletStatus(): unknown {
     if (!this.walletIntegration) {
       return {
         available: false,
@@ -2142,24 +2142,24 @@ export class CognitiveEngine extends EventEmitter {
     };
   }
 
-  public async updateWalletConfig(config: any): Promise<void> {
+  public async updateWalletConfig(_config: unknown): Promise<void> {
     if (!this.walletIntegration) {
       console.warn('Wallet integration not available');
       return;
     }
 
     try {
-      this.walletIntegration.updateConfig(config);
+      this.walletIntegration.updateConfig(_config);
       console.log('Wallet configuration updated');
     } catch (error) {
-      console.error('Failed to update wallet config:', error);
+      console.error('Failed to update wallet _config:', error);
       // Don't throw, just log the error for graceful handling
     }
   }
 
   // KNIRV Chain Integration Methods
 
-  public getChainIntegration(): any {
+  public getChainIntegration(): unknown {
     return this.chainIntegration;
   }
 
@@ -2167,7 +2167,7 @@ export class CognitiveEngine extends EventEmitter {
     return this.chainIntegration ? this.chainIntegration.isChainConnected() : false;
   }
 
-  public async executeChainContractCall(call: any): Promise<any> {
+  public async executeChainContractCall(call: unknown): Promise<any> {
     if (!this.chainIntegration) {
       // Return mock contract call result for testing
       return {
@@ -2219,7 +2219,7 @@ export class CognitiveEngine extends EventEmitter {
     skillId: string,
     userAddress: string,
     nrnAmount: string,
-    parameters: any
+    parameters: unknown
   ): Promise<string> {
     if (!this.chainIntegration) {
       throw new Error('Chain integration not available');
@@ -2250,7 +2250,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async registerSkillOnChain(skillMetadata: any): Promise<string> {
+  public async registerSkillOnChain(skillMetadata: unknown): Promise<string> {
     if (!this.chainIntegration) {
       throw new Error('Chain integration not available');
     }
@@ -2265,7 +2265,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async registerLLMModelOnChain(llmMetadata: any): Promise<string> {
+  public async registerLLMModelOnChain(llmMetadata: unknown): Promise<string> {
     if (!this.chainIntegration) {
       throw new Error('Chain integration not available');
     }
@@ -2360,42 +2360,42 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public getChainSkills(): any[] {
+  public getChainSkills(): unknown[] {
     if (!this.chainIntegration) {
       return [];
     }
     return this.chainIntegration.getSkills();
   }
 
-  public getChainSkill(skillId: string): any {
+  public getChainSkill(skillId: string): unknown {
     if (!this.chainIntegration) {
       return null;
     }
     return this.chainIntegration.getSkill(skillId);
   }
 
-  public getChainLLMModels(): any[] {
+  public getChainLLMModels(): unknown[] {
     if (!this.chainIntegration) {
       return [];
     }
     return this.chainIntegration.getLLMModels();
   }
 
-  public getChainLLMModel(modelId: string): any {
+  public getChainLLMModel(modelId: string): unknown {
     if (!this.chainIntegration) {
       return null;
     }
     return this.chainIntegration.getLLMModel(modelId);
   }
 
-  public getChainSkillInvocations(skillId: string): any[] {
+  public getChainSkillInvocations(skillId: string): unknown[] {
     if (!this.chainIntegration) {
       return [];
     }
     return this.chainIntegration.getSkillInvocations(skillId);
   }
 
-  public getChainStatus(): any {
+  public getChainStatus(): unknown {
     if (!this.chainIntegration) {
       return {
         available: false,
@@ -2409,17 +2409,17 @@ export class CognitiveEngine extends EventEmitter {
     };
   }
 
-  public async updateChainConfig(config: any): Promise<void> {
+  public async updateChainConfig(_config: unknown): Promise<void> {
     if (!this.chainIntegration) {
       console.warn('Chain integration not available');
       return;
     }
 
     try {
-      this.chainIntegration.updateConfig(config);
+      this.chainIntegration.updateConfig(_config);
       console.log('Chain configuration updated');
     } catch (error) {
-      console.error('Failed to update chain config:', error);
+      console.error('Failed to update chain _config:', error);
       // Don't throw, just log the error for graceful handling
     }
   }
@@ -2427,7 +2427,7 @@ export class CognitiveEngine extends EventEmitter {
   // Unified skill invocation that uses both wallet and chain
   public async invokeSkillUnified(
     skillId: string,
-    parameters: any,
+    parameters: unknown,
     nrnAmount?: string
   ): Promise<{ walletTransactionId?: string; chainTransactionHash?: string }> {
     const result: { walletTransactionId?: string; chainTransactionHash?: string } = {};
@@ -2498,7 +2498,7 @@ export class CognitiveEngine extends EventEmitter {
 
   // Ecosystem Communication Methods
 
-  public getEcosystemCommunication(): any {
+  public getEcosystemCommunication(): unknown {
     return this.ecosystemCommunication;
   }
 
@@ -2506,7 +2506,7 @@ export class CognitiveEngine extends EventEmitter {
     return this.ecosystemCommunication ? this.ecosystemCommunication.getEcosystemStatus().isRunning : false;
   }
 
-  public async sendEcosystemMessage(messageData: any): Promise<any> {
+  public async sendEcosystemMessage(messageData: unknown): Promise<any> {
     if (!this.ecosystemCommunication) {
       // Return mock response for testing
       return {
@@ -2553,7 +2553,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async executeSkillThroughEcosystem(skillId: string, parameters: any): Promise<any> {
+  public async executeSkillThroughEcosystem(skillId: string, parameters: unknown): Promise<any> {
     if (!this.ecosystemCommunication) {
       throw new Error('Ecosystem communication not available');
     }
@@ -2588,7 +2588,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async performWalletOperationThroughEcosystem(operation: any): Promise<any> {
+  public async performWalletOperationThroughEcosystem(operation: unknown): Promise<any> {
     if (!this.ecosystemCommunication) {
       // Return mock response for testing
       return {
@@ -2640,7 +2640,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async performBlockchainOperationThroughEcosystem(operation: any): Promise<any> {
+  public async performBlockchainOperationThroughEcosystem(operation: unknown): Promise<any> {
     if (!this.ecosystemCommunication) {
       // Return mock response for testing
       return {
@@ -2677,7 +2677,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public getEcosystemComponents(): any[] {
+  public getEcosystemComponents(): unknown[] {
     if (!this.ecosystemCommunication) {
       // Return mock components for testing
       return [
@@ -2690,7 +2690,7 @@ export class CognitiveEngine extends EventEmitter {
     return Array.isArray(components) ? components : [];
   }
 
-  public getEcosystemEndpoints(): any[] {
+  public getEcosystemEndpoints(): unknown[] {
     if (!this.ecosystemCommunication) {
       return [];
     }
@@ -2704,7 +2704,7 @@ export class CognitiveEngine extends EventEmitter {
     return this.ecosystemCommunication.isComponentOnline(componentId);
   }
 
-  public getEcosystemStatus(): any {
+  public getEcosystemStatus(): unknown {
     if (!this.ecosystemCommunication) {
       return {
         available: false,
@@ -2718,20 +2718,20 @@ export class CognitiveEngine extends EventEmitter {
     };
   }
 
-  public updateEcosystemConfig(config: any): void {
+  public updateEcosystemConfig(_config: unknown): void {
     if (!this.ecosystemCommunication) {
       console.warn('Ecosystem communication not available');
       return;
     }
 
-    this.ecosystemCommunication.updateConfig(config);
+    this.ecosystemCommunication.updateConfig(_config);
     console.log('Ecosystem communication configuration updated');
   }
 
   // Unified ecosystem operation that coordinates multiple services
   public async performUnifiedEcosystemOperation(operation: {
     type: 'skill_with_payment' | 'cross_chain_transfer' | 'multi_service_query';
-    payload: any;
+    payload: unknown;
   }): Promise<any> {
     if (!this.ecosystemCommunication) {
       throw new Error('Ecosystem communication not available');
@@ -2760,7 +2760,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async performSkillWithPayment(payload: any): Promise<any> {
+  public async performSkillWithPayment(payload: unknown): Promise<any> {
     // Extract NRN cost from different payload formats
     const nrnCost = payload.nrnCost || payload.payment?.amount || '0';
 
@@ -2800,7 +2800,7 @@ export class CognitiveEngine extends EventEmitter {
     };
   }
 
-  public async performCrossChainTransfer(payload: any): Promise<any> {
+  public async performCrossChainTransfer(payload: unknown): Promise<any> {
     // 1. Initiate wallet transaction
     const walletResponse = await this.performWalletOperationThroughEcosystem({
       type: 'create_transaction',
@@ -2821,11 +2821,11 @@ export class CognitiveEngine extends EventEmitter {
     };
   }
 
-  public async performMultiServiceQuery(payload: any): Promise<any> {
-    const results: any = {};
+  public async performMultiServiceQuery(payload: unknown): Promise<any> {
+    const results: unknown = {};
 
     // Query multiple services in parallel
-    const queries = payload.services.map(async (service: any) => {
+    const queries = payload.services.map(async (service: unknown) => {
       try {
         const response = await this.sendEcosystemMessage({
           to: service.componentId,
@@ -2985,13 +2985,13 @@ export class CognitiveEngine extends EventEmitter {
   /**
    * Compile a skill from TypeScript templates
    */
-  public async compileSkillFromTemplate(config: SkillCompilationConfig): Promise<CompilationResult> {
+  public async compileSkillFromTemplate(_config: SkillCompilationConfig): Promise<CompilationResult> {
     if (!this.typeScriptCompiler) {
       throw new Error('TypeScript Compiler not enabled. Set typeScriptCompilerEnabled: true in config.');
     }
 
     try {
-      const result = await this.typeScriptCompiler.compileSkill(config);
+      const result = await this.typeScriptCompiler.compileSkill(_config);
 
       if (result.success) {
         this.emit('skillCompiledFromTemplate', {
@@ -3029,7 +3029,7 @@ export class CognitiveEngine extends EventEmitter {
       const config = this.convertSolutionsToSkillConfig(skillName, solutions, errors);
 
       // Compile the skill
-      const result = await this.typeScriptCompiler.compileSkill(config);
+      const result = await this.typeScriptCompiler.compileSkill(_config);
 
       if (result.success) {
         this.emit('skillCompiledFromSolutions', {
@@ -3058,7 +3058,7 @@ export class CognitiveEngine extends EventEmitter {
     errors: Array<{ errorId: string; description: string; context: string }>
   ): SkillCompilationConfig {
     // Generate tools from solutions
-    const tools = solutions.map((solution, index) => {
+    const tools = solutions.map((solution, _index) => {
       const correspondingError = errors.find(e => e.errorId === solution.errorId);
 
       return {
@@ -3134,11 +3134,11 @@ export class CognitiveEngine extends EventEmitter {
   /**
    * Get TypeScript compiler status
    */
-  public getTypeScriptCompilerStatus(): any {
+  public getTypeScriptCompilerStatus(): unknown {
     return {
       enabled: this.config.typeScriptCompilerEnabled,
       ready: this.typeScriptCompiler?.isReady() || false,
-      config: this.config.typeScriptCompilerConfig
+      _config: this.config.typeScriptCompilerConfig
     };
   }
 

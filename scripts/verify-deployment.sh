@@ -5,7 +5,7 @@ echo "================================================"
 
 # Check if we're in the right directory
 if [ ! -f "index.html" ]; then
-    echo "❌ Error: Please run this script from the KNIRVWEBSITE directory"
+    echo "❌ Error: Please run this script from the KNIRVGATEWAY directory"
     exit 1
 fi
 
@@ -107,5 +107,5 @@ echo ""
 echo "Next steps:"
 echo "1. Push changes to your Git repository"
 echo "2. Connect repository to Netlify"
-echo "3. Set base directory to 'KNIRVWEBSITE'"
+echo "3. Set base directory to 'KNIRVGATEWAY'"
 echo "4. Deploy!"

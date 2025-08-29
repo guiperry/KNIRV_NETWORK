@@ -414,8 +414,8 @@ export class PerformanceMetrics extends EventEmitter {
 
     // Sort by score (descending) and assign ranks
     entries.sort((a, b) => b.score - a.score);
-    entries.forEach((entry, index) => {
-      entry.rank = index + 1;
+    entries.forEach((entry, _index) => {
+      entry.rank = _index + 1;
     });
 
     return entries.slice(0, this.config.maxLeaderboardSize);

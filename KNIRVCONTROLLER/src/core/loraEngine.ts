@@ -10,14 +10,14 @@ export class LoRAAdapterEngine {
     console.log('LoRA Adapter Engine initialized (frontend mode)');
   }
   
-  async compileAdapter(config: any): Promise<string> {
+  async compileAdapter(config: unknown): Promise<string> {
     const adapterId = `adapter-${Date.now()}`;
     this.adapters.set(adapterId, config);
     console.log('LoRA adapter compiled:', adapterId);
     return adapterId;
   }
   
-  async invokeAdapter(adapterId: string, input: any): Promise<any> {
+  async invokeAdapter(adapterId: string, input: unknown): Promise<any> {
     const adapter = this.adapters.get(adapterId);
     if (!adapter) {
       throw new Error(`Adapter ${adapterId} not found`);

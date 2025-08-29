@@ -23,8 +23,8 @@ export interface HRMWeightInfo {
 }
 
 export class HRMLoRABridge extends EventEmitter {
-  private hrmBridge: any = null;
-  private enhancedLoraAdapter: any = null;
+  private hrmBridge: unknown = null;
+  private enhancedLoraAdapter: unknown = null;
   private mappings: Map<string, HRMLoRAMapping> = new Map();
   private syncConfig: WeightSyncConfig;
   private isRunning: boolean = false;
@@ -43,12 +43,12 @@ export class HRMLoRABridge extends EventEmitter {
     };
   }
 
-  public setHRMBridge(hrmBridge: any): void {
+  public setHRMBridge(hrmBridge: unknown): void {
     this.hrmBridge = hrmBridge;
     console.log('HRM bridge connected to HRM-LoRA Bridge');
   }
 
-  public setEnhancedLoRAAdapter(enhancedLoraAdapter: any): void {
+  public setEnhancedLoRAAdapter(enhancedLoraAdapter: unknown): void {
     this.enhancedLoraAdapter = enhancedLoraAdapter;
     console.log('Enhanced LoRA adapter connected to HRM-LoRA Bridge');
   }
@@ -150,7 +150,7 @@ export class HRMLoRABridge extends EventEmitter {
     }
   }
 
-  private async createIntelligentMappings(hrmModelInfo: any): Promise<void> {
+  private async createIntelligentMappings(hrmModelInfo: unknown): Promise<void> {
     // Analyze HRM model structure and create optimal mappings
     console.log('Creating intelligent HRM-LoRA mappings based on model structure...');
 
@@ -190,7 +190,7 @@ export class HRMLoRABridge extends EventEmitter {
       if (!hrmModelInfo) return;
 
       // Sync weights for each mapping
-      for (const [loraModuleName, mapping] of this.mappings) {
+      for (const [, mapping] of this.mappings) {
         await this.syncWeightsForMapping(mapping);
       }
 
@@ -295,7 +295,7 @@ export class HRMLoRABridge extends EventEmitter {
   }
 
   private async applyHRMGuidedAdaptation(
-    moduleWeights: any,
+    moduleWeights: unknown,
     hrmInfluence: number,
     mapping: HRMLoRAMapping
   ): Promise<any> {
@@ -323,7 +323,7 @@ export class HRMLoRABridge extends EventEmitter {
     }
   }
 
-  private applyDirectAdaptation(weights: any, adaptation: number): any {
+  private applyDirectAdaptation(weights: unknown, adaptation: number): unknown {
     // Direct scaling of weights
     return {
       ...weights,
@@ -336,7 +336,7 @@ export class HRMLoRABridge extends EventEmitter {
     };
   }
 
-  private applyProjectionAdaptation(weights: any, adaptation: number): any {
+  private applyProjectionAdaptation(weights: unknown, adaptation: number): unknown {
     // Apply adaptation through projection matrix
     return {
       ...weights,
@@ -349,7 +349,7 @@ export class HRMLoRABridge extends EventEmitter {
     };
   }
 
-  private applyAttentionAdaptation(weights: any, adaptation: number): any {
+  private applyAttentionAdaptation(weights: unknown, adaptation: number): unknown {
     // Apply attention-based adaptation
     const attentionFactor = Math.tanh(adaptation);
     
@@ -401,7 +401,7 @@ export class HRMLoRABridge extends EventEmitter {
     console.log('Forced synchronization complete');
   }
 
-  public getStatus(): any {
+  public getStatus(): unknown {
     return {
       isRunning: this.isRunning,
       mappingsCount: this.mappings.size,

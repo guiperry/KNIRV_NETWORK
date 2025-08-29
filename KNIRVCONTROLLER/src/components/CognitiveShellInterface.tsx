@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Brain, Activity, Zap, Eye, Mic, Settings, BarChart3, MessageSquare, Send, Cpu } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Brain, Activity, Zap, Eye, Mic, Settings, BarChart3, Cpu } from 'lucide-react';
+import { cognitiveEngineService, CognitiveProcessingRequest, SkillExecutionRequest, CognitiveMetrics } from '../services/CognitiveEngineService';
 import { CognitiveEngine, CognitiveConfig, CognitiveState } from '../sensory-shell/CognitiveEngine';
 import { HRMBridge } from '../sensory-shell/HRMBridge';
 import { WASMOrchestrator } from '../sensory-shell/WASMOrchestrator';
@@ -10,14 +11,14 @@ interface ConversationMessage {
   content: string;
   timestamp: Date;
   processingTime?: number;
-  hrmResponse?: any;
+  hrmResponse?: unknown;
   skillsInvoked?: string[];
 }
 
 interface CognitiveShellInterfaceProps {
   onStateChange?: (state: CognitiveState) => void;
-  onSkillInvoked?: (skillId: string, result: any) => void;
-  onAdaptationTriggered?: (adaptation: any) => void;
+  onSkillInvoked?: (skillId: string, result: unknown) => void;
+  onAdaptationTriggered?: (adaptation: unknown) => void;
   onConversationUpdate?: (messages: ConversationMessage[]) => void;
 }
 
@@ -28,9 +29,11 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
   onConversationUpdate,
 }) => {
   const [cognitiveEngine, setCognitiveEngine] = useState<CognitiveEngine | null>(null);
+  const [isEngineRunning, setIsEngineRunning] = useState(false);
+  const [engineMetrics, setEngineMetrics] = useState<CognitiveMetrics | null>(null);
   const [engineState, setEngineState] = useState<CognitiveState | null>(null);
   const [isRunning, setIsRunning] = useState(false);
-  const [metrics, setMetrics] = useState<any>(null);
+  const [metrics, setMetrics] = useState<Record<string, unknown> | null>(null);
   const [learningMode, setLearningMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [commandHistory, setCommandHistory] = useState<Array<{input: string, output: string}>>([]);
@@ -67,7 +70,13 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
     initializeCognitiveEngine();
     initializeHRMBridge();
     initializeWASMOrchestrator();
+    loadEngineStatus();
+
+    // Refresh metrics every 5 seconds
+    const metricsInterval = setInterval(loadEngineMetrics, 5000);
+
     return () => {
+      clearInterval(metricsInterval);
       if (engineRef.current) {
         // Force stop engine immediately
         const cleanup = async () => {
@@ -138,7 +147,161 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
         }
       }
     };
+  }, [initializeCognitiveEngine]);
+
+  // Load engine status from service
+  const loadEngineStatus = useCallback(async () => {
+    try {
+      const running = cognitiveEngineService.isEngineRunning();
+      setIsEngineRunning(running);
+      setIsRunning(running);
+    } catch (error) {
+      console.error('Failed to load engine status:', error);
+    }
   }, []);
+
+  // Load engine metrics from service
+  const loadEngineMetrics = useCallback(async () => {
+    try {
+      const serviceMetrics = cognitiveEngineService.getMetrics();
+      setEngineMetrics(serviceMetrics);
+      setMetrics(serviceMetrics as Record<string, unknown>);
+    } catch (error) {
+      console.error('Failed to load engine metrics:', error);
+    }
+  }, []);
+
+  // Start/Stop engine using service
+  const handleEngineToggle = async () => {
+    try {
+      if (isEngineRunning) {
+        await cognitiveEngineService.stop();
+        setIsEngineRunning(false);
+        setIsRunning(false);
+        onStateChange?.({ isRunning: false, status: 'stopped' } as CognitiveState);
+      } else {
+        await cognitiveEngineService.start();
+        setIsEngineRunning(true);
+        setIsRunning(true);
+        onStateChange?.({ isRunning: true, status: 'running' } as CognitiveState);
+      }
+      await loadEngineMetrics();
+    } catch (error) {
+      console.error('Failed to toggle engine:', error);
+    }
+  };
+
+  // Handle learning mode toggle
+  const handleLearningToggle = async () => {
+    try {
+      if (!learningMode) {
+        await cognitiveEngineService.startLearningMode();
+      }
+      setLearningMode(!learningMode);
+    } catch (error) {
+      console.error('Failed to toggle learning mode:', error);
+    }
+  };
+
+  // Save current adaptation
+  const handleSaveAdaptation = async () => {
+    try {
+      await cognitiveEngineService.saveCurrentAdaptation();
+      console.log('Adaptation saved successfully');
+    } catch (error) {
+      console.error('Failed to save adaptation:', error);
+    }
+  };
+
+  // Process conversation message using service
+  const handleSendMessage = async () => {
+    if (!currentInput.trim() || isProcessing) return;
+
+    const userMessage: ConversationMessage = {
+      id: `msg_${Date.now()}`,
+      type: 'user',
+      content: currentInput.trim(),
+      timestamp: new Date()
+    };
+
+    setConversationMessages(prev => [...prev, userMessage]);
+    setCurrentInput('');
+    setIsProcessing(true);
+
+    try {
+      const processingRequest: CognitiveProcessingRequest = {
+        input: userMessage.content,
+        context: {},
+        taskType: 'conversation',
+        requiresSkillInvocation: false
+      };
+
+      const result = await cognitiveEngineService.processInput(processingRequest);
+
+      const assistantMessage: ConversationMessage = {
+        id: `msg_${Date.now() + 1}`,
+        type: 'assistant',
+        content: result.output,
+        timestamp: new Date(),
+        processingTime: result.processingTime,
+        skillsInvoked: result.skillsInvoked
+      };
+
+      setConversationMessages(prev => [...prev, assistantMessage]);
+
+      // Trigger callbacks
+      if (result.skillsInvoked.length > 0) {
+        result.skillsInvoked.forEach(skillId => {
+          onSkillInvoked?.(skillId, result.output);
+        });
+      }
+
+      if (result.adaptationTriggered) {
+        onAdaptationTriggered?.(result.contextUpdates);
+      }
+
+      // Update conversation callback
+      const updatedMessages = [...conversationMessages, userMessage, assistantMessage];
+      onConversationUpdate?.(updatedMessages);
+
+    } catch (error) {
+      console.error('Failed to process message:', error);
+
+      const errorMessage: ConversationMessage = {
+        id: `msg_${Date.now() + 1}`,
+        type: 'system',
+        content: `Error: ${error instanceof Error ? error.message : 'Processing failed'}`,
+        timestamp: new Date()
+      };
+
+      setConversationMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Execute skill using service
+  const handleSkillExecution = async (skillId: string) => {
+    try {
+      const skillRequest: SkillExecutionRequest = {
+        skillId,
+        parameters: {},
+        context: {},
+        timeout: config.skillTimeout
+      };
+
+      const result = await cognitiveEngineService.executeSkill(skillRequest);
+
+      if (result.success) {
+        onSkillInvoked?.(skillId, result.output);
+        console.log(`Skill ${skillId} executed successfully:`, result.output);
+      } else {
+        console.error(`Skill ${skillId} execution failed:`, result.error);
+      }
+    } catch (error) {
+      console.error(`Failed to execute skill ${skillId}:`, error);
+    }
+  };
 
   // Re-fetch state on every render (for test rerenders)
   useEffect(() => {
@@ -149,9 +312,9 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
         onStateChange(currentState);
       }
     }
-  });
+  }, [cognitiveEngine, onStateChange]);
 
-  const initializeCognitiveEngine = async () => {
+  const initializeCognitiveEngine = useCallback(async () => {
     try {
       const engine = new CognitiveEngine(config);
       engineRef.current = engine;
@@ -200,8 +363,8 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
         setLearningMode(true);
       });
 
-      engine.on('cognitiveEvent', (event) => {
-        console.log('Cognitive event:', event);
+      engine.on('cognitiveEvent', (_event) => {
+        console.log('Cognitive _event:', _event);
       });
 
       // Add event listeners expected by tests
@@ -220,8 +383,8 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
         }
       });
 
-      engine.on('learningEvent', (event) => {
-        console.log('Learning event:', event);
+      engine.on('learningEvent', (_event) => {
+        console.log('Learning _event:', _event);
         updateMetrics();
       });
 
@@ -256,7 +419,7 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
       console.error('Failed to initialize Cognitive Engine:', error);
       return () => {}; // Return empty cleanup function on error
     }
-  };
+  }, [config, onStateChange, updateMetrics, onSkillInvoked, onAdaptationTriggered]);
 
   const initializeHRMBridge = async () => {
     try {
@@ -313,7 +476,7 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
     try {
       let response = '';
       let skillsInvoked: string[] = [];
-      let hrmResponse: any = null;
+      let hrmResponse: unknown = null;
 
       // Process through cognitive engine if available
       if (cognitiveEngine) {
@@ -417,15 +580,7 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
     }
   };
 
-  const handleSaveAdaptation = async () => {
-    if (cognitiveEngine) {
-      try {
-        await cognitiveEngine.saveCurrentAdaptation();
-      } catch (error) {
-        console.error('Failed to save adaptation:', error);
-      }
-    }
-  };
+
 
   const handleConfigUpdate = (newConfig: Partial<CognitiveConfig>) => {
     setConfig(prev => ({ ...prev, ...newConfig }));
@@ -655,13 +810,13 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
                   onClick={() => {
                     if (isActive) {
                       // Deactivate skill
-                      if (cognitiveEngine && typeof (cognitiveEngine as any).deactivateSkill === 'function') {
-                        (cognitiveEngine as any).deactivateSkill(skillId);
+                      if (cognitiveEngine && typeof (cognitiveEngine as CognitiveEngine & { deactivateSkill?: (skillId: string) => void }).deactivateSkill === 'function') {
+                        (cognitiveEngine as CognitiveEngine & { deactivateSkill: (skillId: string) => void }).deactivateSkill(skillId);
                       }
                     } else {
                       // Activate skill
-                      if (cognitiveEngine && typeof (cognitiveEngine as any).activateSkill === 'function') {
-                        (cognitiveEngine as any).activateSkill(skillId);
+                      if (cognitiveEngine && typeof (cognitiveEngine as CognitiveEngine & { activateSkill?: (skillId: string) => void }).activateSkill === 'function') {
+                        (cognitiveEngine as CognitiveEngine & { activateSkill: (skillId: string) => void }).activateSkill(skillId);
                       }
                     }
                   }}
@@ -762,7 +917,7 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
           {/* Command History */}
           {commandHistory.length > 0 && (
             <div className="mb-2 max-h-32 overflow-y-auto">
-              {commandHistory.map((entry, index) => (
+              {commandHistory.map((entry, _index) => (
                 <div key={index} data-testid={`history-${index}`} className="mb-1">
                   <div className="text-green-400">$ {entry.input}</div>
                   <div className={entry.output.startsWith('Error:') ? 'text-red-400' : 'text-gray-300'}>

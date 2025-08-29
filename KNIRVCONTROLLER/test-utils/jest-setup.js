@@ -52,6 +52,46 @@ global.crypto = {
   }
 };
 
+// Mock MediaRecorder for VoiceProcessor tests
+global.MediaRecorder = class MockMediaRecorder {
+  constructor(stream) {
+    this.stream = stream;
+    this.state = 'inactive';
+    this.ondataavailable = null;
+    this.onstop = null;
+    this.onstart = null;
+    this.onerror = null;
+  }
+
+  start() {
+    this.state = 'recording';
+    if (this.onstart) this.onstart();
+  }
+
+  stop() {
+    this.state = 'inactive';
+    if (this.onstop) this.onstop();
+  }
+
+  pause() {
+    this.state = 'paused';
+  }
+
+  resume() {
+    this.state = 'recording';
+  }
+
+  addEventListener(event, handler) {
+    this[`on${event}`] = handler;
+  }
+
+  removeEventListener(event, handler) {
+    this[`on${event}`] = null;
+  }
+};
+
+global.MediaRecorder.isTypeSupported = jest.fn().mockReturnValue(true);
+
 // Mock localStorage
 global.localStorage = {
   store: {},

@@ -302,11 +302,15 @@ test-graph: ## Test KNIRVGRAPH (Blockchain Explorer)
 .PHONY: test-wallet
 test-wallet: ## Test KNIRVWALLET (Wallet System)
 	@echo "$(BLUE)Testing KNIRVWALLET...$(NC)"
-	@if [ -f "KNIRVWALLET/package.json" ]; then \
-		cd KNIRVWALLET && npm test; \
-		echo "$(GREEN)✓ KNIRVWALLET tests completed$(NC)"; \
+	@if [ -f "KNIRVWALLET/agentic-wallet/package.json" ]; then \
+		cd KNIRVWALLET/agentic-wallet && npm test; \
+		echo "$(GREEN)✓ KNIRVWALLET agentic-wallet tests completed$(NC)"; \
+	elif [ -f "KNIRVWALLET/browser-bridge/package.json" ]; then \
+		cd KNIRVWALLET/browser-bridge && npm test; \
+		echo "$(GREEN)✓ KNIRVWALLET browser-bridge tests completed$(NC)"; \
 	else \
-		echo "$(YELLOW)⚠ KNIRVWALLET package.json not found$(NC)"; \
+		echo "$(YELLOW)⚠ KNIRVWALLET test scripts not found$(NC)"; \
+		echo "$(YELLOW)   Run 'cd KNIRVWALLET/scripts && ./test_basic.js' for basic testing$(NC)"; \
 	fi
 
 .PHONY: test-nexus

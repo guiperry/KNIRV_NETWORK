@@ -39,7 +39,7 @@ export interface ToolParameter {
   type: string;
   required: boolean;
   description: string;
-  defaultValue?: any;
+  defaultValue?: unknown;
 }
 
 export interface CompilationResult {
@@ -209,7 +209,7 @@ export class {{skillClassName}} implements SkillInterface {
     return Array.from(this.tools.keys());
   }
 
-  getToolInfo(toolName: string): any {
+  getToolInfo(toolName: string): unknown {
     // Return tool metadata
     return {
       name: toolName,
@@ -280,7 +280,7 @@ export interface SkillInterface {
   initialize(context: SkillContext): Promise<boolean>;
   execute(toolName: string, parameters: Record<string, any>, context: SkillContext): Promise<SkillResult>;
   getAvailableTools(): string[];
-  getToolInfo(toolName: string): any;
+  getToolInfo(toolName: string): unknown;
   dispose(): Promise<void>;
 }
 
@@ -299,7 +299,7 @@ export interface SkillContext {
 
 export interface SkillResult {
   success: boolean;
-  result?: any;
+  result?: unknown;
   error?: string;
   executionTime?: number;
   toolName: string;
@@ -316,14 +316,14 @@ export interface SkillResult {
 
 declare global {
   interface Window {
-    Go: any;
+    Go: unknown;
   }
 }
 
 export class {{skillClassName}}WASMWrapper {
   private wasmModule: WebAssembly.Module | null = null;
   private wasmInstance: WebAssembly.Instance | null = null;
-  private go: any = null;
+  private go: unknown = null;
 
   async initialize(wasmBytes: Uint8Array): Promise<boolean> {
     try {
@@ -350,7 +350,7 @@ export class {{skillClassName}}WASMWrapper {
     }
   }
 
-  async executeSkill(toolName: string, parameters: any): Promise<any> {
+  async executeSkill(toolName: string, parameters: unknown): Promise<any> {
     if (!this.wasmInstance) {
       throw new Error('WASM module not initialized');
     }

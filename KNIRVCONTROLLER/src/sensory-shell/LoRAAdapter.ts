@@ -17,8 +17,8 @@ export interface LoRAWeights {
 }
 
 export interface TrainingData {
-  input: any;
-  output: any;
+  input: unknown;
+  output: unknown;
   feedback: number;
   timestamp: Date;
 }
@@ -40,7 +40,7 @@ export class LoRAAdapter extends EventEmitter {
   private trainingData: TrainingData[] = [];
   private metrics: AdaptationMetrics;
   private isRunning: boolean = false;
-  private baseModel: any = null;
+  private baseModel: unknown = null;
 
   constructor(config: LoRAConfig) {
     super();
@@ -284,7 +284,7 @@ export class LoRAAdapter extends EventEmitter {
     this.metrics.learningRate = this.config.learningRate * Math.pow(0.99, this.metrics.epoch);
   }
 
-  public async adapt(input: any, expectedOutput: any, feedback: number): Promise<any> {
+  public async adapt(input: unknown, expectedOutput: unknown, feedback: number): Promise<any> {
     if (!this.isRunning) {
       console.warn('LoRA Adapter not running');
       return input;
@@ -304,14 +304,14 @@ export class LoRAAdapter extends EventEmitter {
     return this.applyAdaptation(input);
   }
 
-  private applyAdaptation(input: any): any {
+  private applyAdaptation(input: unknown): unknown {
     // Apply LoRA adaptation to input
     // This is a simplified version - in reality, this would involve
     // matrix operations with the base model
 
     const adaptedInput = { ...input };
 
-    for (const [moduleName, weights] of this.weights) {
+    for (const [, weights] of this.weights) {
       // Simulate adaptation effect
       const adaptationStrength = weights.scaling;
 

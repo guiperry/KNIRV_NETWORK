@@ -1,12 +1,12 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { CognitiveShellInterface } from '../CognitiveShellInterface';
 
 // Mock CognitiveEngine to prevent hanging issues
 jest.mock('../../sensory-shell/CognitiveEngine', () => {
-  const EventEmitter = require('events');
+  const { EventEmitter } = require('events');
 
   class MockCognitiveEngine extends EventEmitter {
     private isRunning = false;
@@ -18,7 +18,7 @@ jest.mock('../../sensory-shell/CognitiveEngine', () => {
       adaptationLevel: 0.0,
     };
 
-    constructor(config: any) {
+    constructor(_config: unknown) {
       super();
       // Simulate async initialization without hanging
       setTimeout(() => {
@@ -57,7 +57,7 @@ jest.mock('../../sensory-shell/CognitiveEngine', () => {
       };
     }
 
-    async processInput(input: string, inputType: string) {
+    async processInput(input: string, _inputType: string) {
       // Simulate processing delay
       await new Promise(resolve => setTimeout(resolve, 10));
 
@@ -68,7 +68,7 @@ jest.mock('../../sensory-shell/CognitiveEngine', () => {
       return `Processed: ${input}`;
     }
 
-    async invokeSkill(skillId: string, parameters: any) {
+    async invokeSkill(skillId: string, _parameters: unknown) {
       return Promise.resolve(`Skill ${skillId} invoked`);
     }
 
@@ -85,12 +85,12 @@ jest.mock('../../sensory-shell/CognitiveEngine', () => {
 
 // Mock child components
 jest.mock('../Terminal', () => {
-  return function MockTerminal({ onCommand, history }: any) {
+  return function MockTerminal({ onCommand, history }: unknown) {
     return (
       <div data-testid="terminal">
         <div data-testid="terminal-history">
-          {history.map((entry: any, index: number) => (
-            <div key={index} data-testid={`history-${index}`}>
+          {history.map((entry: unknown, mockIndex: number) => (
+            <div key={mockIndex} data-testid={`history-${mockIndex}`}>
               {entry.input} → {entry.output}
             </div>
           ))}

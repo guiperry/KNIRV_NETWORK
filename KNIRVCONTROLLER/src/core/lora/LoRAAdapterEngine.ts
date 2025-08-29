@@ -53,6 +53,14 @@ export interface SkillCompilationRequest {
   };
 }
 
+export interface SkillChain {
+  chainId: string;
+  skills: LoRAAdapterSkill[];
+  mergedAdapter: LoRAAdapterSkill;
+  consensusScore: number;
+  lastUpdated: Date;
+}
+
 export class LoRAAdapterEngine {
   private adapters: Map<string, LoRAAdapterSkill> = new Map();
   private compilationQueue: Map<string, SkillCompilationRequest> = new Map();
@@ -86,10 +94,9 @@ export class LoRAAdapterEngine {
     // This would compile the Rust code for LoRA training
     logger.info('Initializing neural network training pipeline...');
     
-    const trainingCode = `
+
       // Rust code for LoRA training would go here
       // This implements the core algorithm that converts solutions+errors to weights and biases
-    `;
     
     // Compile the training pipeline to WASM
     // await this.wasmCompiler.compile(trainingCode, { target: 'lora-training' });
@@ -149,7 +156,7 @@ export class LoRAAdapterEngine {
     }
   }
 
-  private prepareTrainingData(skillData: SkillCompilationRequest['skillData']): any {
+  private prepareTrainingData(skillData: SkillCompilationRequest['skillData']): unknown {
     logger.info('Preparing training data from solutions and errors...');
     
     // Create training pairs from solutions and errors
@@ -170,7 +177,7 @@ export class LoRAAdapterEngine {
     return trainingPairs;
   }
 
-  private async trainLoRAAdapter(trainingData: any[], metadata: SkillCompilationRequest['metadata']): Promise<{ weightsA: Float32Array, weightsB: Float32Array }> {
+  private async trainLoRAAdapter(trainingData: unknown[], metadata: SkillCompilationRequest['metadata']): Promise<{ weightsA: Float32Array, weightsB: Float32Array }> {
     logger.info('Training LoRA adapter from solution data...');
     
     const rank = metadata.rank || 8;
@@ -205,10 +212,10 @@ export class LoRAAdapterEngine {
   }
 
   private applyTrainingPairToWeights(
-    trainingPair: any, 
+    trainingPair: unknown, 
     weightsA: Float32Array, 
     weightsB: Float32Array, 
-    rank: number
+    _rank: number
   ): void {
     // This implements the core algorithm that converts solution patterns
     // into specific weight adjustments for the LoRA adapter
@@ -232,7 +239,7 @@ export class LoRAAdapterEngine {
   /**
    * Invoke a LoRA adapter skill by loading and applying its weights
    */
-  async invokeAdapter(skillId: string, parameters: any = {}): Promise<SkillInvocationResponse> {
+  async invokeAdapter(skillId: string, _parameters: unknown = {}): Promise<SkillInvocationResponse> {
     const invocationId = this.generateId();
     logger.info({ invocationId, skillId }, 'Invoking LoRA adapter');
 
@@ -247,7 +254,9 @@ export class LoRAAdapterEngine {
       }
 
       // Serialize the adapter for transmission to agent-core
-      const serializedAdapter = await this.serializeAdapter(adapter);
+      // Note: serialization is commented out but kept for future use
+      // const serializedAdapter = this.serializeAdapter(adapter);
+
       
       logger.info({ invocationId, skillId }, 'LoRA adapter invoked successfully');
       
@@ -653,7 +662,7 @@ export class LoRAAdapterEngine {
   /**
    * Create skill chain as serialized LoRA adapter vectors
    */
-  async createSkillChain(skillIds: string[]): Promise<any> {
+  async createSkillChain(skillIds: string[]): Promise<SkillChain> {
     logger.info({ skillIds }, 'Creating skill chain...');
 
     const adapters = skillIds.map(id => {
@@ -679,7 +688,7 @@ export class LoRAAdapterEngine {
   /**
    * Filter adapters based on criteria
    */
-  async filterAdapters(filter: any): Promise<LoRAAdapterSkill[]> {
+  async filterAdapters(filter: unknown): Promise<LoRAAdapterSkill[]> {
     const allAdapters = Array.from(this.adapters.values());
 
     return allAdapters.filter(adapter => {
@@ -712,14 +721,14 @@ export class LoRAAdapterEngine {
   /**
    * Get all skill chains
    */
-  async getSkillChains(): Promise<any[]> {
+  async getSkillChains(): Promise<SkillChain[]> {
     // Return composed adapters that represent skill chains
     const composedAdapters = Array.from(this.adapters.values())
       .filter(adapter => adapter.additionalMetadata.compositionType);
 
     return composedAdapters.map(adapter => ({
       chainId: adapter.skillId,
-      skills: adapter.additionalMetadata.sourceAdapters?.split(',').map(id => this.adapters.get(id)).filter(Boolean) || [],
+      skills: adapter.additionalMetadata.sourceAdapters?.split(',').map(id => this.adapters.get(id)).filter((adapter): adapter is LoRAAdapterSkill => adapter !== undefined) || [],
       mergedAdapter: adapter,
       consensusScore: 1.0,
       lastUpdated: new Date(adapter.additionalMetadata.timestamp || Date.now())

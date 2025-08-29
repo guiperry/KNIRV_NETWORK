@@ -6,7 +6,7 @@
  */
 
 import pino from 'pino';
-import { ErrorCluster, ErrorNode, Solution } from './ErrorNodeClustering';
+import { ErrorCluster} from './ErrorNodeClustering';
 
 const logger = pino({ name: 'agent-assignment-system' });
 
@@ -202,7 +202,7 @@ export class AgentAssignmentSystem {
   /**
    * Find suitable agents for cluster requirements
    */
-  private findSuitableAgents(requirements: any, maxAgents: number): Agent[] {
+  private findSuitableAgents(requirements: unknown, maxAgents: number): Agent[] {
     const allAgents = Array.from(this.agents.values());
     
     // Score agents based on suitability
@@ -329,7 +329,7 @@ export class AgentAssignmentSystem {
   /**
    * Update cluster ownership based on solution contributions
    */
-  private async updateClusterOwnership(clusterId: string, agentId: string): Promise<void> {
+  private async updateClusterOwnership(clusterId: string, _agentId: string): Promise<void> {
     // Count validated solutions per agent for this cluster
     const clusterSolutions = Array.from(this.solutions.values())
       .filter(s => s.clusterId === clusterId && s.validationStatus === 'validated');

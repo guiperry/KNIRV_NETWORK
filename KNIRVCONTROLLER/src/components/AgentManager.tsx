@@ -1,30 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Bot, Zap, Shield, Users, Coins, Activity, Upload, Play, Pause, Square } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Bot, Shield, Users, Coins, Activity, Upload} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Agent, NRV } from '../App';
-import { WASMAgentManager, AgentMetadata } from '../sensory-shell/WASMAgentManager';
+import { NRV } from '../App';
+import { agentManagementService, Agent, AgentUploadRequest, AgentDeploymentRequest } from '../services/AgentManagementService';
+import { walletIntegrationService } from '../services/WalletIntegrationService';
 import { CognitiveEngine } from '../sensory-shell/CognitiveEngine';
-
-interface RealTimeAgent {
-  id: string;
-  name: string;
-  type: string;
-  status: 'Available' | 'Busy' | 'Offline' | 'Loading' | 'Error';
-  specialization: string[];
-  nrnCost: number;
-  metadata?: AgentMetadata;
-  wasmInstance?: boolean;
-  activeSkills: string[];
-  memoryUsage: number;
-  uptime: number;
-  lastActivity: Date;
-}
 
 interface AgentManagerProps {
   agents?: Agent[]; // Legacy prop for backward compatibility
   nrvs: NRV[];
   selectedNRV: NRV | null;
-  onAgentAssignment: (nrv: NRV, agent: Agent | RealTimeAgent) => void;
+  onAgentAssignment: (nrv: NRV, agent: Agent) => void;
   nrnBalance: number;
   cognitiveEngine?: CognitiveEngine;
 }
@@ -38,161 +24,144 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
   cognitiveEngine
 }) => {
   const navigate = useNavigate();
-  const [realTimeAgents, setRealTimeAgents] = useState<RealTimeAgent[]>([]);
-  const [wasmAgentManager, setWasmAgentManager] = useState<WASMAgentManager | null>(null);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [deployedAgents, setDeployedAgents] = useState<Agent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [uploadingAgent, setUploadingAgent] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  // Initialize WASM Agent Manager
+  // Load agents from AgentManagementService
   useEffect(() => {
-    const initializeWASMManager = async () => {
+    const loadAgents = async () => {
       try {
-        const manager = new WASMAgentManager({
-          maxMemoryMB: 512,
-          enableLoRAAdapters: true,
-          maxConcurrentSkills: 10,
-          timeoutMs: 30000
-        });
+        setIsLoading(true);
 
-        // Set up event listeners for real-time updates
-        manager.on('agentLoaded', (metadata: AgentMetadata) => {
-          console.log('Agent loaded:', metadata);
-          updateAgentStatus(metadata.name, 'Available');
-        });
+        // Load available agents
+        const availableAgents = agentManagementService.getAgents();
+        setAgents(availableAgents);
 
-        manager.on('agentError', (error: any) => {
-          console.error('Agent error:', error);
-          updateAgentStatus(error.agentName || 'unknown', 'Error');
-        });
+        // Load deployed agents
+        const deployedAgentsList = agentManagementService.getDeployedAgents();
+        setDeployedAgents(deployedAgentsList);
 
-        manager.on('skillInvoked', (data: any) => {
-          console.log('Skill invoked:', data);
-          updateAgentActivity(data.agentName, data.skillId);
-        });
-
-        setWasmAgentManager(manager);
-        await loadAvailableAgents(manager);
+        console.log('Agents loaded:', availableAgents.length, 'available,', deployedAgentsList.length, 'deployed');
       } catch (error) {
-        console.error('Failed to initialize WASM Agent Manager:', error);
+        console.error('Failed to load agents:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    initializeWASMManager();
-  }, [cognitiveEngine]);
+    loadAgents();
 
-  // Load available agents from various sources
-  const loadAvailableAgents = async (manager: WASMAgentManager) => {
-    const agents: RealTimeAgent[] = [];
+    // Refresh agents every 30 seconds
+    const interval = setInterval(loadAgents, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
-    // Add default cognitive engine agent if available
-    if (cognitiveEngine) {
-      agents.push({
-        id: 'cognitive-engine-default',
-        name: 'KNIRV Cognitive Engine',
-        type: 'KNIRV-CORTEX',
-        status: 'Available',
-        specialization: ['cognitive-processing', 'skill-invocation', 'error-handling'],
-        nrnCost: 100,
-        activeSkills: [],
-        memoryUsage: 0,
-        uptime: Date.now(),
-        lastActivity: new Date()
-      });
-    }
-
-    // Add any uploaded WASM agents
-    if (manager.isReady()) {
-      // TODO: Get list of uploaded agents from manager
-      // This would be implemented when the manager has agent listing functionality
-    }
-
-    // Merge with legacy agents for backward compatibility
-    legacyAgents.forEach(legacyAgent => {
-      agents.push({
-        id: legacyAgent.id,
-        name: legacyAgent.name,
-        type: legacyAgent.type,
-        status: legacyAgent.status as any,
-        specialization: legacyAgent.specialization,
-        nrnCost: legacyAgent.nrnCost,
-        activeSkills: [],
-        memoryUsage: 0,
-        uptime: Date.now(),
-        lastActivity: new Date()
-      });
-    });
-
-    setRealTimeAgents(agents);
-  };
-
-  // Update agent status in real-time
-  const updateAgentStatus = (agentName: string, status: RealTimeAgent['status']) => {
-    setRealTimeAgents(prev => prev.map(agent =>
-      agent.name === agentName
-        ? { ...agent, status, lastActivity: new Date() }
-        : agent
-    ));
-  };
-
-  // Update agent activity
-  const updateAgentActivity = (agentName: string, skillId: string) => {
-    setRealTimeAgents(prev => prev.map(agent =>
-      agent.name === agentName
-        ? {
-            ...agent,
-            activeSkills: [...agent.activeSkills.filter(s => s !== skillId), skillId].slice(-5),
-            lastActivity: new Date()
-          }
-        : agent
-    ));
-  };
   // Handle agent file upload
   const handleAgentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !wasmAgentManager) return;
+    if (!file) return;
 
+    setSelectedFile(file);
     setUploadingAgent(true);
+
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const wasmBytes = new Uint8Array(arrayBuffer);
+      // Determine agent type based on file extension
+      let agentType: 'wasm' | 'lora' | 'hybrid' = 'wasm';
+      if (file.name.endsWith('.wasm')) {
+        agentType = 'wasm';
+      } else if (file.name.endsWith('.json') || file.name.endsWith('.lora')) {
+        agentType = 'lora';
+      } else {
+        agentType = 'hybrid';
+      }
 
-      const metadata = await wasmAgentManager.loadAgent(wasmBytes, {
-        name: file.name.replace('.wasm', ''),
-        version: '1.0.0',
-        description: 'User uploaded agent',
-        capabilities: ['custom-processing'],
-        author: 'User',
-        uploadedAt: new Date(),
-        size: file.size,
-        hash: await generateFileHash(arrayBuffer)
-      });
+      const uploadRequest: AgentUploadRequest = {
+        file,
+        metadata: {
+          name: file.name.replace(/\.[^/.]+$/, ''), // Remove file extension
+          description: `Uploaded agent from ${file.name}`,
+          author: 'User'
+        },
+        type: agentType
+      };
 
-      console.log('Agent uploaded successfully:', metadata);
-      await loadAvailableAgents(wasmAgentManager);
+      const newAgent = await agentManagementService.uploadAgent(uploadRequest);
+
+      // Refresh agents list
+      const updatedAgents = agentManagementService.getAgents();
+      setAgents(updatedAgents);
+
+      console.log('Agent uploaded successfully:', newAgent);
     } catch (error) {
-      console.error('Failed to upload agent:', error);
-      alert('Failed to upload agent. Please check the file format.');
+      console.error('Agent upload failed:', error);
+      alert(`Agent upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setUploadingAgent(false);
+      setSelectedFile(null);
       // Reset file input
       event.target.value = '';
     }
   };
 
-  // Generate file hash for verification
-  const generateFileHash = async (arrayBuffer: ArrayBuffer): Promise<string> => {
-    const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  // Handle agent deployment
+  const handleAgentDeployment = async (agent: Agent, targetNRV?: NRV) => {
+    try {
+      // Check wallet balance
+      const currentAccount = walletIntegrationService.getCurrentAccount();
+      if (!currentAccount) {
+        alert('Please connect your wallet first');
+        return;
+      }
+
+      if (nrnBalance < agent.nrnCost) {
+        alert(`Insufficient NRN balance. Required: ${agent.nrnCost}, Available: ${nrnBalance}`);
+        return;
+      }
+
+      const deploymentRequest: AgentDeploymentRequest = {
+        agentId: agent.id,
+        targetNRV: targetNRV?.id,
+        configuration: {},
+        resources: {
+          memory: agent.metadata.requirements.memory,
+          cpu: agent.metadata.requirements.cpu,
+          timeout: 300000 // 5 minutes
+        }
+      };
+
+      const deploymentId = await agentManagementService.deployAgent(deploymentRequest);
+
+      // Refresh deployed agents list
+      const updatedDeployedAgents = agentManagementService.getDeployedAgents();
+      setDeployedAgents(updatedDeployedAgents);
+
+      console.log('Agent deployed successfully:', deploymentId);
+
+      // Call the parent callback for UI updates
+      if (targetNRV) {
+        onAgentAssignment(targetNRV, agent);
+      }
+    } catch (error) {
+      console.error('Agent deployment failed:', error);
+      alert(`Agent deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
+
+  // Handle agent click for navigation
+  const handleAgentClick = (agent: Agent) => {
+    navigate(`/agents/${agent.id}`);
+  };
+
+
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'KNIRV-CORTEX': return <Bot className="w-4 h-4" />;
-      case 'KNIRVANA': return <Users className="w-4 h-4" />;
-      case 'DVE': return <Shield className="w-4 h-4" />;
+      case 'wasm': return <Bot className="w-4 h-4" />;
+      case 'lora': return <Users className="w-4 h-4" />;
+      case 'hybrid': return <Shield className="w-4 h-4" />;
       default: return <Bot className="w-4 h-4" />;
     }
   };
@@ -200,37 +169,18 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Available': return 'text-green-400';
-      case 'Busy': return 'text-yellow-400';
-      case 'Offline': return 'text-red-400';
-      case 'Loading': return 'text-blue-400';
+      case 'Deployed': return 'text-blue-400';
+      case 'Compiling': return 'text-yellow-400';
       case 'Error': return 'text-red-500';
       default: return 'text-gray-400';
     }
   };
 
-  const getAgentId = (agentName: string) => {
-    return agentName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-  };
-
-  const handleAgentClick = (agent: RealTimeAgent) => {
-    const agentId = getAgentId(agent.name);
-    navigate(`/manager/agent/${agentId}`);
-  };
-
-  const formatUptime = (uptime: number) => {
-    const seconds = Math.floor((Date.now() - uptime) / 1000);
-    if (seconds < 60) return `${seconds}s`;
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    return `${hours}h`;
-  };
-
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'KNIRV-CORTEX': return 'bg-blue-500/20 text-blue-400';
-      case 'KNIRVANA': return 'bg-purple-500/20 text-purple-400';
-      case 'DVE': return 'bg-orange-500/20 text-orange-400';
+      case 'wasm': return 'bg-blue-500/20 text-blue-400';
+      case 'lora': return 'bg-purple-500/20 text-purple-400';
+      case 'hybrid': return 'bg-orange-500/20 text-orange-400';
       default: return 'bg-gray-500/20 text-gray-400';
     }
   };
@@ -319,13 +269,13 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
         </div>
       )}
 
-      {/* Real-Time Agent List */}
+      {/* Available Agents List */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium text-gray-400">Available Agents</h3>
-          <span className="text-xs text-gray-500">{realTimeAgents.length} agents</span>
+          <span className="text-xs text-gray-500">{agents.length} agents</span>
         </div>
-        {realTimeAgents.map((agent) => (
+        {agents.map((agent) => (
           <div
             key={agent.id}
             className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50 space-y-2"
@@ -341,11 +291,9 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
                 >
                   {agent.name}
                 </button>
-                {agent.wasmInstance && (
-                  <div className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded">
-                    WASM
-                  </div>
-                )}
+                <div className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded">
+                  {agent.type.toUpperCase()}
+                </div>
               </div>
               <div className="flex items-center space-x-2">
                 <span className={`text-sm font-medium ${getStatusColor(agent.status)}`}>
@@ -361,7 +309,7 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
               <div className="flex items-center space-x-2">
                 <Zap className="w-3 h-3 text-yellow-400" />
                 <span className="text-xs text-gray-400">
-                  {agent.specialization.join(', ')}
+                  {agent.capabilities.join(', ')}
                 </span>
               </div>
               <span className="text-sm font-medium text-yellow-400">
@@ -369,40 +317,28 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
               </span>
             </div>
 
-            {/* Real-time agent stats */}
+            {/* Agent metadata */}
             <div className="flex items-center justify-between text-xs text-gray-500">
               <div className="flex items-center space-x-3">
-                <span>Uptime: {formatUptime(agent.uptime)}</span>
-                <span>Memory: {agent.memoryUsage}MB</span>
-                {agent.activeSkills.length > 0 && (
-                  <span>Active: {agent.activeSkills.length}</span>
-                )}
+                <span>Version: {agent.metadata.version}</span>
+                <span>Memory: {agent.metadata.requirements.memory}MB</span>
+                <span>CPU: {agent.metadata.requirements.cpu}</span>
               </div>
-              <span>Last: {agent.lastActivity.toLocaleTimeString()}</span>
+              {agent.lastActivity && (
+                <span>Last: {agent.lastActivity.toLocaleTimeString()}</span>
+              )}
             </div>
 
-            {/* Active skills display */}
-            {agent.activeSkills.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {agent.activeSkills.slice(0, 3).map((skill, index) => (
-                  <span
-                    key={index}
-                    className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded"
-                  >
-                    {skill}
-                  </span>
-                ))}
-                {agent.activeSkills.length > 3 && (
-                  <span className="px-2 py-1 bg-gray-500/20 text-gray-400 text-xs rounded">
-                    +{agent.activeSkills.length - 3}
-                  </span>
-                )}
+            {/* Agent description */}
+            {agent.metadata.description && (
+              <div className="text-xs text-gray-400">
+                {agent.metadata.description}
               </div>
             )}
 
             {selectedNRV && agent.status === 'Available' && (
               <button
-                onClick={() => onAgentAssignment(selectedNRV, agent)}
+                onClick={() => handleAgentDeployment(agent, selectedNRV)}
                 disabled={nrnBalance < agent.nrnCost}
                 className={`w-full py-2 px-3 rounded text-sm font-medium transition-colors ${
                   nrnBalance >= agent.nrnCost
@@ -410,13 +346,13 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
                     : 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
                 }`}
               >
-                {nrnBalance >= agent.nrnCost ? 'Assign Agent' : 'Insufficient NRN'}
+                {nrnBalance >= agent.nrnCost ? 'Deploy Agent' : 'Insufficient NRN'}
               </button>
             )}
           </div>
         ))}
 
-        {realTimeAgents.length === 0 && (
+        {agents.length === 0 && (
           <div className="p-4 text-center text-gray-500">
             <Bot className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">No agents available</p>
@@ -424,6 +360,40 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
           </div>
         )}
       </div>
+
+      {/* Deployed Agents Section */}
+      {deployedAgents.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-gray-400">Deployed Agents</h3>
+            <span className="text-xs text-gray-500">{deployedAgents.length} deployed</span>
+          </div>
+          {deployedAgents.map((agent) => (
+            <div
+              key={`deployed-${agent.id}`}
+              className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20 space-y-2"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className={`p-1 rounded ${getTypeColor(agent.type)}`}>
+                    {getTypeIcon(agent.type)}
+                  </div>
+                  <span className="text-white font-medium">{agent.name}</span>
+                  <div className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded">
+                    DEPLOYED
+                  </div>
+                </div>
+                <span className="text-sm font-medium text-blue-400">
+                  {agent.status}
+                </span>
+              </div>
+              <div className="text-xs text-gray-400">
+                {agent.capabilities.join(', ')}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

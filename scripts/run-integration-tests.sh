@@ -34,7 +34,7 @@ FORCE_CLEANUP=false
 # Function to print colored output
 print_header() {
     echo -e "${PURPLE}╔══════════════════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${PURPLE}║${NC} $1 ${PURPLE}║${NC}"
+    echo -e "${PURPLE}║${NC} $1 ${PURPLE}       ║${NC}"
     echo -e "${PURPLE}╚══════════════════════════════════════════════════════════════════════════════╝${NC}"
 }
 
@@ -135,13 +135,12 @@ run_integration_tests() {
         test_args="$test_args --no-teardown"
     fi
     
-    test_args="$test_args --pattern $TEST_PATTERN"
     test_args="$test_args --timeout $TIMEOUT"
     test_args="$test_args --no-setup"  # We handle setup ourselves
-    
-    print_status "Executing: $CONFIG_DIR/run-tests.sh $test_args"
-    
-    if "$CONFIG_DIR/run-tests.sh" $test_args; then
+
+    print_status "Executing: $CONFIG_DIR/run-tests.sh $test_args $TEST_PATTERN"
+
+    if "$CONFIG_DIR/run-tests.sh" $test_args "$TEST_PATTERN"; then
         print_success "Integration tests completed successfully"
         return 0
     else

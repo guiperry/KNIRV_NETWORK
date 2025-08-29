@@ -13,7 +13,7 @@ The KNIRV Decentralized Trusted Execution Network (D-TEN) relies on robust, veri
 ### 1. Introduction
 In a decentralized network designed for trusted execution and continuous AI learning, the reliability and integrity of communication pathways are paramount. Traditional routing mechanisms, while efficient, often lack inherent transparency or economic incentives for verifying the physical health of the network. The KNIRV-ROUTER addresses this critical gap, transforming network routing from a passive function into an active, incentivized component of the D-TEN's core economic and operational loops.
 
-The KNIRV-ROUTER is positioned as a vital intermediary, facilitating communication between KNIRV-SHELL agents, KNIRV-NEXUS DVEs, KNIRVANA clients, and the broader internet. Its innovative design ensures that network connectivity is not merely assumed but actively validated and economically rewarded, directly supporting the KNIRVCHAIN's Skill invocation mechanism and the KNIRV-GRAPH's learning processes.
+Following the major refactor, the KNIRV-ROUTER is positioned as a vital intermediary, facilitating communication between KNIRV-CONTROLLER agents, KNIRV-NEXUS DVEs, KNIRVANA clients, and the broader internet. Its innovative design ensures that network connectivity is not merely assumed but actively validated and economically rewarded, directly supporting the embedded KNIRVCHAIN inference model's Skill invocation mechanism and the KNIRV-GRAPH's distributed vector graph learning processes.
 
 ### 2. Core Responsibilities
 The KNIRV-ROUTER fulfills several critical responsibilities within the KNIRV D-TEN:

@@ -1,4 +1,4 @@
-import { Wallet, ArrowUpRight, ArrowDownLeft, Zap, TrendingUp, Copy, ExternalLink, Cpu, Shield, QrCode, X } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, Zap, TrendingUp, Copy, ExternalLink, Shield, QrCode, X, CheckCircle} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { SlidingPanel } from '@components/SlidingPanel';
@@ -10,10 +10,11 @@ import QRScanner from '@components/QRScanner';
 export default function WalletPage() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showQRScanner, setShowQRScanner] = useState(false);
   const [activePanels, setActivePanels] = useState<string[]>([]);
-  const [cognitiveMode, setCognitiveMode] = useState(false);
-  const [cognitiveState, setCognitiveState] = useState<any>(null);
+  const [showQRCode, setShowQRCode] = useState(false);
+  const [showAddFunds, setShowAddFunds] = useState(false);
+  const [showSendNRN, setShowSendNRN] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   // Mock data for slideouts
   const [networkConnections] = useState<{
@@ -45,7 +46,7 @@ export default function WalletPage() {
   ]);
 
   const [currentNRVs] = useState([]);
-  const [selectedNRV, setSelectedNRV] = useState(null);
+  const [selectedNRV] = useState(null);
   const [nrnBalance] = useState(1250);
 
   const walletData = {
@@ -122,6 +123,30 @@ export default function WalletPage() {
     setMenuOpen(false);
   };
 
+  // Wallet functionality handlers
+  const handleCopyAddress = async () => {
+    const walletAddress = walletData.walletAddress;
+    try {
+      await navigator.clipboard.writeText(walletAddress);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy address:', err);
+    }
+  };
+
+  const handleShowQRCode = () => {
+    setShowQRCode(true);
+  };
+
+  const handleAddFunds = () => {
+    setShowAddFunds(true);
+  };
+
+  const handleSendNRN = () => {
+    setShowSendNRN(true);
+  };
+
   const handleQRScan = () => {
     setActivePanels(prev =>
       prev.includes('qr-scanner')
@@ -131,12 +156,12 @@ export default function WalletPage() {
     setMenuOpen(false);
   };
 
-  const handleCognitiveStateChange = (state: any) => {
+  const handleCognitiveStateChange = (state: unknown) => {
     setCognitiveState(state);
     setCognitiveMode(state.status === 'active' || state.status === 'learning');
   };
 
-  const handleSkillInvoked = (skillId: string, result: any) => {
+  const handleSkillInvoked = (skillId: string, result: unknown) => {
     console.log('Skill invoked:', skillId, result);
   };
 
@@ -144,7 +169,7 @@ export default function WalletPage() {
     console.log('Adaptation triggered:', adaptationType);
   };
 
-  const handleAgentAssignment = (nrv: any, agent: any) => {
+  const handleAgentAssignment = (nrv: unknown, agent: unknown) => {
     console.log('Agent assigned:', agent, 'to NRV:', nrv);
   };
 
@@ -274,11 +299,19 @@ export default function WalletPage() {
                 <p className="text-xs text-gray-400">KNIRV Network</p>
               </div>
               <div className="flex space-x-2">
-                <button className="p-2 hover:bg-gray-700/50 rounded-lg text-gray-400 hover:text-white transition-all">
-                  <Copy className="w-4 h-4" />
+                <button
+                  onClick={handleCopyAddress}
+                  className="p-2 hover:bg-gray-700/50 rounded-lg text-gray-400 hover:text-white transition-all"
+                  title="Copy Address"
+                >
+                  {copySuccess ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
                 </button>
-                <button className="p-2 hover:bg-gray-700/50 rounded-lg text-gray-400 hover:text-white transition-all">
-                  <ExternalLink className="w-4 h-4" />
+                <button
+                  onClick={handleShowQRCode}
+                  className="p-2 hover:bg-gray-700/50 rounded-lg text-gray-400 hover:text-white transition-all"
+                  title="Show QR Code"
+                >
+                  <QrCode className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -286,11 +319,17 @@ export default function WalletPage() {
 
           {/* Quick Actions */}
           <div className="grid grid-cols-2 gap-3">
-            <button className="flex items-center justify-center space-x-3 py-4 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 rounded-lg text-green-400 hover:text-green-300 transition-all">
+            <button
+              onClick={handleAddFunds}
+              className="flex items-center justify-center space-x-3 py-4 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 rounded-lg text-green-400 hover:text-green-300 transition-all"
+            >
               <ArrowDownLeft className="w-5 h-5" />
               <span className="font-medium">Add Funds</span>
             </button>
-            <button className="flex items-center justify-center space-x-3 py-4 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-blue-400 hover:text-blue-300 transition-all">
+            <button
+              onClick={handleSendNRN}
+              className="flex items-center justify-center space-x-3 py-4 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-blue-400 hover:text-blue-300 transition-all"
+            >
               <ArrowUpRight className="w-5 h-5" />
               <span className="font-medium">Send NRN</span>
             </button>
@@ -417,6 +456,124 @@ export default function WalletPage() {
           onAdaptationTriggered={handleAdaptationTriggered}
         />
       </SlidingPanel>
+
+      {/* QR Code Modal */}
+      {showQRCode && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 max-w-sm w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">Wallet QR Code</h3>
+              <button
+                onClick={() => setShowQRCode(false)}
+                className="p-2 hover:bg-gray-700/50 rounded-lg text-gray-400 hover:text-white transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="bg-white p-4 rounded-lg mb-4">
+              <div className="w-48 h-48 mx-auto bg-gray-200 rounded-lg flex items-center justify-center">
+                <QrCode className="w-24 h-24 text-gray-600" />
+              </div>
+            </div>
+            <p className="text-sm text-gray-400 text-center">
+              Scan this QR code to send funds to your wallet
+            </p>
+            <p className="text-xs text-gray-500 text-center mt-2 font-mono break-all">
+              {walletData.walletAddress}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Add Funds Modal */}
+      {showAddFunds && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 max-w-md w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">Add Funds</h3>
+              <button
+                onClick={() => setShowAddFunds(false)}
+                className="p-2 hover:bg-gray-700/50 rounded-lg text-gray-400 hover:text-white transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Amount (NRN)</label>
+                <input
+                  type="number"
+                  placeholder="0.00"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-blue-400 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Payment Method</label>
+                <select className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-blue-400 focus:outline-none">
+                  <option>Credit Card</option>
+                  <option>Bank Transfer</option>
+                  <option>Crypto Transfer</option>
+                </select>
+              </div>
+              <button className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-all">
+                Add Funds
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Send NRN Modal */}
+      {showSendNRN && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 max-w-md w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">Send NRN</h3>
+              <button
+                onClick={() => setShowSendNRN(false)}
+                className="p-2 hover:bg-gray-700/50 rounded-lg text-gray-400 hover:text-white transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Recipient Address</label>
+                <input
+                  type="text"
+                  placeholder="0x..."
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-blue-400 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Amount (NRN)</label>
+                <input
+                  type="number"
+                  placeholder="0.00"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-blue-400 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Note (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="Payment for..."
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-blue-400 focus:outline-none"
+                />
+              </div>
+              <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Network Fee:</span>
+                  <span className="text-white">0.001 NRN</span>
+                </div>
+              </div>
+              <button className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all">
+                Send NRN
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

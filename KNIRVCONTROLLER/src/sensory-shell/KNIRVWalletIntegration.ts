@@ -50,8 +50,8 @@ export interface SkillInvocation {
   skillId: string;
   skillName: string;
   nrnCost: string;
-  parameters: any;
-  expectedOutput: any;
+  parameters: unknown;
+  expectedOutput: unknown;
   timeout: number;
 }
 
@@ -69,8 +69,8 @@ export class KNIRVWalletIntegration extends EventEmitter {
   private transactions: Map<string, WalletTransaction> = new Map();
   private currentAccount: WalletAccount | null = null;
   private isConnected: boolean = false;
-  private walletService: any = null; // Will be injected
-  private crossPlatformService: any = null; // For mobile integration
+  private walletService: unknown = null; // Will be injected
+  private crossPlatformService: unknown = null; // For mobile integration
 
   constructor(config: Partial<WalletConfig>) {
     super();
@@ -588,7 +588,7 @@ export class KNIRVWalletIntegration extends EventEmitter {
     this.emit('configUpdated', this.config);
   }
 
-  public getStatus(): any {
+  public getStatus(): unknown {
     return {
       isConnected: this.isConnected,
       currentAccount: this.currentAccount,

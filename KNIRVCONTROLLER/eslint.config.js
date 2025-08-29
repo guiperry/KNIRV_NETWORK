@@ -5,7 +5,14 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import globals from 'globals';
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'coverage', 'test-results'] },
+  { ignores: [
+    'dist', 
+    'node_modules', 
+    'coverage', 
+    'test-results',
+    'src/core/agent-core-compiler/build/**/*.ts',
+    'src/core/agent-core-compiler/build/**/*.js'
+  ] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],

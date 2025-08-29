@@ -1,4 +1,4 @@
-import { Shield, Clock, Key, CheckCircle, AlertTriangle, RefreshCw, Cpu, Zap, Wallet, QrCode, X } from 'lucide-react';
+import { Shield, Key, CheckCircle, AlertTriangle, RefreshCw, Wallet} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { SlidingPanel } from '@components/SlidingPanel';
@@ -10,10 +10,7 @@ import QRScanner from '@components/QRScanner';
 export default function UDC() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showQRScanner, setShowQRScanner] = useState(false);
   const [activePanels, setActivePanels] = useState<string[]>([]);
-  const [cognitiveMode, setCognitiveMode] = useState(false);
-  const [cognitiveState, setCognitiveState] = useState<any>(null);
 
   // Mock data for slideouts
   const [networkConnections] = useState<{
@@ -45,7 +42,7 @@ export default function UDC() {
   ]);
 
   const [currentNRVs] = useState([]);
-  const [selectedNRV, setSelectedNRV] = useState(null);
+  const [selectedNRV] = useState(null);
   const [nrnBalance] = useState(1250);
 
   const udc = {
@@ -116,12 +113,12 @@ export default function UDC() {
     setMenuOpen(false);
   };
 
-  const handleCognitiveStateChange = (state: any) => {
+  const handleCognitiveStateChange = (state: unknown) => {
     setCognitiveState(state);
     setCognitiveMode(state.status === 'active' || state.status === 'learning');
   };
 
-  const handleSkillInvoked = (skillId: string, result: any) => {
+  const handleSkillInvoked = (skillId: string, result: unknown) => {
     console.log('Skill invoked:', skillId, result);
   };
 
@@ -129,7 +126,7 @@ export default function UDC() {
     console.log('Adaptation triggered:', adaptationType);
   };
 
-  const handleAgentAssignment = (nrv: any, agent: any) => {
+  const handleAgentAssignment = (nrv: unknown, agent: unknown) => {
     console.log('Agent assigned:', agent, 'to NRV:', nrv);
   };
 
@@ -261,7 +258,7 @@ export default function UDC() {
           <div>
             <h3 className="text-lg font-semibold text-white mb-4">Granted Permissions</h3>
             <div className="space-y-3">
-              {udc.permissions.map((permission, index) => (
+              {udc.permissions.map((permission, _index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-gray-800/80 border border-gray-600/50 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-500/20">

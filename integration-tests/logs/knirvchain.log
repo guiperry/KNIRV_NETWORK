@@ -1,46 +1,9 @@
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.09s
-     Running `target/debug/knirvchain`
-[2m2025-08-12T08:35:47.760670Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] Starting the application
+    Finished `release` profile [optimized] target(s) in 0.50s
+     Running `target/release/knirvchain`
+[2m2025-08-29T04:25:33.707345Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] Starting the application
+[INFO] No existing blockchain found. Creating Genesis block.
 Warning: Could not load config file, using defaults
-[INFO] Starting server at http://127.0.0.1:8000
+[INFO] Starting server at http://127.0.0.1:8080
 [INFO] KNIRVCHAIN Chain ID: 1
-[2m2025-08-12T08:35:48.839369Z[0m [32m INFO[0m [2mactix_server::builder[0m[2m:[0m starting 8 workers
-[2m2025-08-12T08:35:48.839461Z[0m [32m INFO[0m [2mactix_server::server[0m[2m:[0m Actix runtime found; starting in Actix runtime
-[2m2025-08-12T08:35:48.839578Z[0m [32m INFO[0m [2mactix_server::server[0m[2m:[0m starting service: "actix-web-service-127.0.0.1:8000", workers: 8, listening on: 127.0.0.1:8000
-[2m2025-08-12T08:35:48.862910Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:35:53.864082Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:35:58.864562Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:36:03.866033Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:36:08.867435Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:36:13.869225Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:36:18.870132Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:36:23.871767Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:36:28.872831Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:36:33.874144Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:36:38.875013Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:36:43.876177Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:36:48.876937Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:36:53.878307Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:36:58.879041Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:37:03.880036Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:37:08.881012Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:37:13.882136Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:37:18.883022Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:37:23.884954Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:37:28.886048Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:37:33.887071Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:37:38.888010Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:37:43.889796Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:37:48.891287Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:37:53.891795Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:37:58.893134Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] No transactions in the pool, skipping block creation.
-[2m2025-08-12T08:38:00.321227Z[0m [32m INFO[0m [2mactix_server::server[0m[2m:[0m SIGINT received; starting forced shutdown
-[2m2025-08-12T08:38:00.321396Z[0m [32m INFO[0m [2mactix_server::accept[0m[2m:[0m accept thread stopped
-[2m2025-08-12T08:38:00.321613Z[0m [32m INFO[0m [2mactix_server::worker[0m[2m:[0m shutting down idle worker
-[2m2025-08-12T08:38:00.323808Z[0m [32m INFO[0m [2mactix_server::worker[0m[2m:[0m shutting down idle worker
-[2m2025-08-12T08:38:00.324377Z[0m [32m INFO[0m [2mactix_server::worker[0m[2m:[0m shutting down idle worker
-[2m2025-08-12T08:38:00.324859Z[0m [32m INFO[0m [2mactix_server::worker[0m[2m:[0m shutting down idle worker
-[2m2025-08-12T08:38:00.325324Z[0m [32m INFO[0m [2mactix_server::worker[0m[2m:[0m shutting down idle worker
-[2m2025-08-12T08:38:00.325912Z[0m [32m INFO[0m [2mactix_server::worker[0m[2m:[0m shutting down idle worker
-[2m2025-08-12T08:38:00.326572Z[0m [32m INFO[0m [2mactix_server::worker[0m[2m:[0m shutting down idle worker
-[2m2025-08-12T08:38:00.327013Z[0m [32m INFO[0m [2mactix_server::worker[0m[2m:[0m shutting down idle worker
+[INFO] Auto-mining enabled
+Error: Os { code: 98, kind: AddrInUse, message: "Address already in use" }
