@@ -1,4 +1,31 @@
 // AdaptiveLearningPipeline Template for WASM Compilation
+import { ProcessingResult } from '../../../types/common';
+
+// Dummy usage to satisfy linter, assuming it's used in a broader context
+type _DummyProcessingResult = ProcessingResult;
+
+export interface AdaptationInput {
+  data: unknown;
+  context: Record<string, unknown>;
+  timestamp: Date;
+}
+
+export interface AdaptationFeedback {
+  score: number;
+  type: 'positive' | 'negative' | 'neutral';
+  details: Record<string, unknown>;
+  timestamp: Date;
+}
+
+export interface AdaptationResult {
+  adapted: boolean;
+  input: AdaptationInput;
+  feedback: AdaptationFeedback;
+  learningRate: number;
+  confidence: number;
+  metadata?: Record<string, unknown>;
+}
+
 export class AdaptiveLearningPipeline {
   private isActive: boolean = false;
   private learningRate: number = 0.01;
@@ -11,17 +38,18 @@ export class AdaptiveLearningPipeline {
     this.isActive = true;
   }
 
-  adapt(input: any, feedback: any): any {
+  adapt(input: AdaptationInput, feedback: AdaptationFeedback): AdaptationResult {
     if (!this.isActive) {
       throw new Error('AdaptiveLearningPipeline not active');
     }
-    
+
     // Basic adaptation logic
     return {
       adapted: true,
       input: input,
       feedback: feedback,
-      learningRate: this.learningRate
+      learningRate: this.learningRate,
+      confidence: Math.min(feedback.score * this.learningRate, 1.0)
     };
   }
 

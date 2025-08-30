@@ -60,7 +60,7 @@ describe('Phase 1: Component Integration Tests', () => {
 
       it('should initialize WASMOrchestrator correctly', async () => {
         await wasmOrchestrator.start();
-        expect(wasmOrchestrator.isRunning).toBe(true);
+        expect(wasmOrchestrator.isRunning()).toBe(true);
       });
 
       it('should initialize ModelManager correctly', async () => {

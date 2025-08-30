@@ -197,7 +197,7 @@ export class SkillMintingProcess extends EventEmitter {
   private startProcessingLoop(): void {
     this.processingInterval = setInterval(async () => {
       await this.processMintingRequests();
-    }, 10000); // Check every 10 seconds
+    }, 10000) as unknown as NodeJS.Timeout; // Check every 10 seconds
   }
 
   /**
@@ -273,7 +273,7 @@ export class SkillMintingProcess extends EventEmitter {
       logger.error({
         requestId,
         skillId: loraAdapter.skillId,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       }, 'Skill minting failed');
       
       this.emit('mintingFailed', { request, error });

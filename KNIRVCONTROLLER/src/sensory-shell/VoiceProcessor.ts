@@ -81,7 +81,7 @@ export class VoiceProcessor extends EventEmitter {
       this.emit('recognitionStarted');
     };
 
-    this.recognition.onresult = (_event: unknown) => {
+    this.recognition.onresult = (event: unknown) => {
       const results = Array.from(event.results);
       const latestResult = results[results.length - 1] as any;
 
@@ -98,7 +98,7 @@ export class VoiceProcessor extends EventEmitter {
       }
     };
 
-    this.recognition.onerror = (_event: unknown) => {
+    this.recognition.onerror = (event: unknown) => {
       console.error('Speech recognition error:', event.error);
       this.emit('recognitionError', event.error);
     };
@@ -175,7 +175,7 @@ export class VoiceProcessor extends EventEmitter {
   private setupMediaRecorderHandlers(): void {
     if (!this.mediaRecorder) return;
 
-    this.mediaRecorder.ondataavailable = (_event) => {
+    this.mediaRecorder.ondataavailable = (event) => {
       if (event.data.size > 0) {
         this.processAudioData(event.data);
       }
@@ -313,7 +313,7 @@ export class VoiceProcessor extends EventEmitter {
         resolve();
       };
 
-      utterance.onerror = (_event) => {
+      utterance.onerror = (event) => {
         this.emit('speechError', _event);
         reject(new Error(`Speech synthesis error: ${event.error}`));
       };

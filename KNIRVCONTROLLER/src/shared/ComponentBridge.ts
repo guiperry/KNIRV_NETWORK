@@ -94,7 +94,7 @@ export class ComponentBridge {
         });
       };
 
-      this.ws.onmessage = (_event) => {
+      this.ws.onmessage = (event) => {
         try {
           const message: ComponentMessage = JSON.parse(event.data);
           this.handleMessage(message);

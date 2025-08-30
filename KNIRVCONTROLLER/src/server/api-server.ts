@@ -19,7 +19,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // In-memory storage for demo (replace with real database in production)
 const agents = new Map();
-const transactions = new Map();
+// const transactions = new Map();
 const cognitiveState = {
   isRunning: false,
   metrics: {
@@ -64,7 +64,7 @@ app.get('/api/status', (req, res) => {
 
 // Agent Management Endpoints
 app.post('/api/agents/deploy', (req, res) => {
-  const { agentId, targetNRV, configuration, resources } = req.body;
+  const { agentId, targetNRV } = req.body;
   
   const deploymentId = `deployment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
@@ -77,7 +77,7 @@ app.post('/api/agents/deploy', (req, res) => {
 });
 
 app.post('/api/agents/:agentId/execute', (req, res) => {
-  const { agentId } = req.params;
+  // const { agentId } = req.params;
   const { skillId, parameters } = req.body;
   
   // Simulate skill execution
@@ -113,7 +113,7 @@ app.post('/api/cognitive/stop', (req, res) => {
 });
 
 app.post('/api/cognitive/process', (req, res) => {
-  const { input, context, taskType, requiresSkillInvocation } = req.body;
+  const { input, taskType, requiresSkillInvocation } = req.body;
   
   if (!cognitiveState.isRunning) {
     return res.status(400).json({ error: 'Cognitive engine is not running' });
@@ -140,7 +140,7 @@ app.post('/api/cognitive/process', (req, res) => {
 
 app.post('/api/cognitive/skills/:skillId/execute', (req, res) => {
   const { skillId } = req.params;
-  const { parameters, context, timeout } = req.body;
+  const { parameters, context } = req.body;
   
   // Simulate skill execution
   const output = {
@@ -266,7 +266,7 @@ wss.on('connection', (ws) => {
 });
 
 // Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('API Error:', err);
   res.status(500).json({ 
     error: 'Internal server error',

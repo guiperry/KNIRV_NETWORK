@@ -82,6 +82,17 @@ export class AdaptiveLearningPipeline extends EventEmitter {
 
   constructor(config?: Partial<LearningConfig>) {
     super();
+
+    // Initialize metrics
+    this.metrics = {
+      totalInteractions: 0,
+      patternsDetected: 0,
+      adaptationsApplied: 0,
+      averageConfidence: 0,
+      learningRate: 0.1,
+      sessionStartTime: Date.now(),
+      lastAdaptationTime: 0
+    };
     
     this.config = {
       minInteractionsForPattern: 3,

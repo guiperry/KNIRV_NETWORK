@@ -29,6 +29,7 @@ export interface Transaction {
   to: string;
   amount: string;
   nrnAmount?: string;
+  type: 'send' | 'receive';
   status: 'pending' | 'confirmed' | 'failed';
   timestamp: Date;
   blockHeight?: number;

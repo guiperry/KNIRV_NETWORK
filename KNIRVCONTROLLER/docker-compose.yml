@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  knirvcontroller:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_PATH=/app/data/knirvcontroller.db
+    volumes:
+      # Persist NebulaDB data
+      - knirvcontroller_data:/app/data
+      # Mount configuration
+      - ./config:/app/config:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Backup service for database
+  backup:
+    image: alpine:latest
+    volumes:
+      - knirvcontroller_data:/data:ro
+      - ./backups:/backups
+    command: >
+      sh -c "
+        while true; do
+          echo 'Creating backup...'
+          cp /data/knirvcontroller.db /backups/knirvcontroller-backup-$$(date +%Y%m%d_%H%M%S).db
+          # Keep only last 30 backups
+          ls -t /backups/knirvcontroller-backup-*.db | tail -n +31 | xargs -r rm
+          echo 'Backup completed'
+          sleep 86400  # Run daily
+        done
+      "
+    restart: unless-stopped
+
+volumes:
+  knirvcontroller_data:
+    driver: local

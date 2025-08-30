@@ -8,6 +8,9 @@ RUN apt-get update && apt-get install -y \
     curl \
     wget \
     ca-certificates \
+    python3 \
+    python3-pip \
+    bash \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -32,9 +35,7 @@ RUN curl -L "https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-linux-
 # Install npm dependencies
 RUN npm install
 
-# Download Wasmtime runtime
-ENV WASMTIME_VERSION=v22.0.0
-RUN curl -L "https://github.com/bytecodealliance/wasmtime/releases/download/${WASMTIME_VERSION}/wasmtime-${WASMTIME_VERSION}-x86_64-linux.tar.xz" | tar -xJ --strip-components=1 -C ./bin
+# WASM runtime not needed for native orchestrator deployment
 
 # Make all binaries executable
 RUN chmod +x ./bin/*

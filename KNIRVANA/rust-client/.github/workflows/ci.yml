@@ -14,10 +14,10 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install Rust
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@stable
       with:
         toolchain: stable
         override: true
@@ -58,6 +58,54 @@ jobs:
     - name: Build release
       run: cargo build --release --verbose
 
+  build-and-package:
+    name: Build and Package
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            build-script: ./scripts/build-linux.sh
+          - os: macos-latest
+            build-script: ./scripts/build-macos.sh
+          - os: windows-latest
+            build-script: ./scripts/build-windows.ps1
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Run tests
+        run: cargo test --release
+        
+      - name: Create packaging directory
+        run: mkdir -p packaging
+
+      - name: Run build script
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            pwsh ./scripts/build-windows.ps1
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            sh ./scripts/build-macos.sh
+          elif [[ "$RUNNER_OS" == "Linux" ]]; then
+            sh ./scripts/build-linux.sh
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: knirvana-game-client-${{ matrix.os }}
+          path: packaging/
+
   build-android:
     name: Build Android
     runs-on: ubuntu-latest
@@ -85,33 +133,3 @@ jobs:
       run: cargo apk build --release
       env:
         ANDROID_NDK_ROOT: ${{ env.ANDROID_NDK_ROOT }}
-
-  build-windows:
-    name: Build Windows
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        override: true
-
-    - name: Build Windows
-      run: cargo build --release --verbose
-
-  build-macos:
-    name: Build macOS
-    runs-on: macos-latest
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        override: true
-
-    - name: Build macOS
-      run: cargo build --release --verbose

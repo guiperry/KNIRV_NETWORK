@@ -5,6 +5,7 @@
  */
 
 import { EventEmitter } from '../EventEmitter';
+import { ToolParameter } from '../../../types/common';
 
 export interface {{toolName}}Parameters {
   {{#each parameters}}
@@ -94,7 +95,7 @@ export class {{toolName}}Tool extends EventEmitter {
     return this.description;
   }
 
-  getParameters(): any[] {
+  getParameters(): ToolParameter[] {
     return [
       {{#each parameters}}
       {

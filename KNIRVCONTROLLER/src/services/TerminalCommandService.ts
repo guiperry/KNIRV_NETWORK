@@ -168,7 +168,7 @@ export class TerminalCommandService {
         executionTime: 0, // Will be set by caller
         exitCode: result.exitCode || 0
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         output: '',
@@ -230,8 +230,8 @@ Use 'command --help' for detailed help on specific commands.
     };
   }
 
-  private async handleListCommand(args: string[]): Promise<CommandResult> {
-    const directory = args[0] || this.currentContext.workingDirectory;
+  private async handleListCommand(_args: string[]): Promise<CommandResult> {
+    // const directory = args[0] || this.currentContext.workingDirectory;
     
     // Mock directory listing - in real implementation would call backend
     const mockListing = [
@@ -319,7 +319,7 @@ KNIRV System Status:
           exitCode: 0
         };
       }
-    } catch (error) {
+    } catch {
       // Fallback status
     }
 

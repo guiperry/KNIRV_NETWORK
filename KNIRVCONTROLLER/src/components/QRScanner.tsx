@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import QrScanner from 'qr-scanner';
-import { Camera, Flashlight, FlashlightOff, Wallet, Send, Loader } from 'lucide-react';
+import { Camera, Flashlight, FlashlightOff, Wallet, Send, Loader, X, CheckCircle, AlertCircle } from 'lucide-react';
 import { qrPaymentService, QRPaymentRequest, PaymentProcessingResult } from '../services/QRPaymentService';
-import { walletIntegrationService } from '../services/WalletIntegrationService';
+import { walletIntegrationService, Transaction, TransactionRequest } from '../services/WalletIntegrationService';
 
 interface QRScannerProps {
   onScan: (result: string) => void;
@@ -15,6 +15,7 @@ interface PaymentState {
   request?: QRPaymentRequest;
   result?: PaymentProcessingResult;
   error?: string;
+  transaction?: Transaction;
 }
 
 // QRData interface removed as it's not currently used
@@ -43,6 +44,7 @@ export default function QRScanner({
   const [flashEnabled, setFlashEnabled] = useState(false);
 
   const [scanning, setScanning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Payment workflow state
   const [paymentState, setPaymentState] = useState<PaymentState>({ step: 'scanning' });
@@ -74,7 +76,7 @@ export default function QRScanner({
         return;
       }
 
-      if (scanResult.data.type === 'payment') {
+      if (scanResult.data?.type === 'payment') {
         setPaymentState({
           step: 'confirming',
           request: scanResult.data
@@ -137,7 +139,7 @@ export default function QRScanner({
   }, [isOpen, initializeScanner, loadUserBalance, qrScanner]);
 
   // Handle payment confirmation
-  const handlePaymentConfirmation = async () => {
+  /* const handlePaymentConfirmation = async () => {
     if (!paymentState.request) return;
 
     setPaymentState(prev => ({ ...prev, step: 'processing' }));
@@ -165,15 +167,15 @@ export default function QRScanner({
         error: error instanceof Error ? error.message : 'Payment failed'
       });
     }
-  };
+  }; */
 
   // Cancel payment and return to scanning
-  const handlePaymentCancel = () => {
+  /* const handlePaymentCancel = () => {
     setPaymentState({ step: 'scanning' });
-  };
+  }; */
 
   // Retry payment after error
-  const handlePaymentRetry = () => {
+  /* const handlePaymentRetry = () => {
     if (paymentState.request) {
       setPaymentState({
         step: 'confirming',
@@ -182,12 +184,12 @@ export default function QRScanner({
     } else {
       setPaymentState({ step: 'scanning' });
     }
-  };
+  }; */
 
   // Process the payment
   const processPayment = async () => {
-    if (!paymentState.request || !walletIntegration) {
-      setError('Payment request or wallet not available');
+    if (!paymentState.request) {
+      setError('Payment request not available');
       return;
     }
 
@@ -199,7 +201,7 @@ export default function QRScanner({
 
       if (request.type === 'skill_invocation' && request.skillId && request.nrnCost) {
         // Handle skill invocation payment
-        transactionId = await walletIntegration.invokeSkill({
+        transactionId = await walletIntegrationService.invokeSkill({
           skillId: request.skillId,
           skillName: request.skillName || request.skillId,
           nrnCost: request.nrnCost,
@@ -210,20 +212,20 @@ export default function QRScanner({
       } else if (request.type === 'payment' && request.amount && request.recipient) {
         // Handle regular payment
         const transactionRequest: TransactionRequest = {
-          from: walletIntegration.getCurrentAccount()?.address || '',
+          from: walletIntegrationService.getCurrentAccount()?.address || '',
           to: request.recipient,
           amount: request.amount,
           memo: request.memo,
           nrnAmount: request.nrnCost
         };
 
-        transactionId = await walletIntegration.createTransaction(transactionRequest);
+        transactionId = await walletIntegrationService.createTransaction(transactionRequest);
       } else {
         throw new Error('Unsupported payment type');
       }
 
       // Monitor transaction status
-      const transaction = await walletIntegration.checkTransactionStatus(transactionId);
+      const transaction = await walletIntegrationService.checkTransactionStatus(transactionId);
 
       setPaymentState({
         step: 'success',

@@ -1,17 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Calendar, 
-  Clock, 
-  Play, 
-  Pause, 
-  Trash2, 
-  Plus, 
-  Edit, 
-  CheckCircle, 
-  XCircle, 
-  AlertCircle,
+import {
+  Calendar,
+  Clock,
+  Play,
+  Trash2,
+  Plus,
+  CheckCircle,
+  XCircle,
   RefreshCw,
-  Settings
+  AlertTriangle
 } from 'lucide-react';
 import { taskSchedulingService, ScheduledTask, TaskExecution } from '../services/TaskSchedulingService';
 
@@ -25,7 +22,7 @@ const TaskScheduler: React.FC<TaskSchedulerProps> = ({ isOpen, onClose }) => {
   const [executions, setExecutions] = useState<Record<string, TaskExecution[]>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'tasks' | 'create' | 'executions'>('tasks');
-  const [selectedTask, setSelectedTask] = useState<ScheduledTask | null>(null);
+  // const [selectedTask, setSelectedTask] = useState<ScheduledTask | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
@@ -56,7 +53,7 @@ const TaskScheduler: React.FC<TaskSchedulerProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleCreateTask = async (taskData: any) => {
+  const handleCreateTask = async (taskData: Omit<ScheduledTask, 'id' | 'createdAt' | 'runCount' | 'successCount' | 'failureCount'>) => {
     try {
       await taskSchedulingService.createTask(taskData);
       await loadTasks();
@@ -85,7 +82,7 @@ const TaskScheduler: React.FC<TaskSchedulerProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const getStatusIcon = (status: ScheduledTask['status']) => {
+  const getStatusIcon = (status: ScheduledTask['status'] | TaskExecution['status']) => {
     switch (status) {
       case 'completed':
         return <CheckCircle className="w-4 h-4 text-green-400" />;
@@ -95,6 +92,10 @@ const TaskScheduler: React.FC<TaskSchedulerProps> = ({ isOpen, onClose }) => {
         return <XCircle className="w-4 h-4 text-red-400" />;
       case 'cancelled':
         return <XCircle className="w-4 h-4 text-gray-400" />;
+      case 'pending':
+        return <Clock className="w-4 h-4 text-yellow-400" />;
+      case 'timeout':
+        return <AlertTriangle className="w-4 h-4 text-orange-400" />;
       default:
         return <Clock className="w-4 h-4 text-yellow-400" />;
     }
@@ -155,7 +156,7 @@ const TaskScheduler: React.FC<TaskSchedulerProps> = ({ isOpen, onClose }) => {
           ].map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as 'tasks' | 'create' | 'executions')}
               className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-all ${
                 activeTab === tab.id
                   ? 'text-purple-400 border-b-2 border-purple-400 bg-purple-500/10'
@@ -247,7 +248,7 @@ const TaskScheduler: React.FC<TaskSchedulerProps> = ({ isOpen, onClose }) => {
           )}
 
           {activeTab === 'create' && (
-            <TaskCreateForm onSubmit={handleCreateTask} onCancel={() => setActiveTab('tasks')} />
+            <TaskCreateForm onSubmit={handleCreateTask} onCancel={() => setActiveTab('tasks')} isSubmitting={isCreating} />
           )}
 
           {activeTab === 'executions' && (
@@ -263,7 +264,7 @@ const TaskScheduler: React.FC<TaskSchedulerProps> = ({ isOpen, onClose }) => {
                       {taskExecutions.slice(0, 5).map(execution => (
                         <div key={execution.id} className="flex items-center justify-between p-2 bg-gray-700/30 rounded">
                           <div className="flex items-center space-x-3">
-                            {getStatusIcon(execution.status as any)}
+                            {getStatusIcon(execution.status)}
                             <span className="text-sm text-gray-300">
                               {execution.startTime.toLocaleString()}
                             </span>
@@ -286,11 +287,17 @@ const TaskScheduler: React.FC<TaskSchedulerProps> = ({ isOpen, onClose }) => {
 };
 
 interface TaskCreateFormProps {
-  onSubmit: (taskData: any) => void;
+  onSubmit: (taskData: Omit<ScheduledTask, 'id' | 'createdAt' | 'runCount' | 'successCount' | 'failureCount'>) => void;
   onCancel: () => void;
 }
 
-const TaskCreateForm: React.FC<TaskCreateFormProps> = ({ onSubmit, onCancel }) => {
+interface TaskCreateFormProps {
+  onSubmit: (taskData: Omit<ScheduledTask, 'id' | 'createdAt' | 'runCount' | 'successCount' | 'failureCount'>) => void;
+  onCancel: () => void;
+  isSubmitting: boolean;
+}
+
+const TaskCreateForm: React.FC<TaskCreateFormProps> = ({ onSubmit, onCancel, isSubmitting }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -347,7 +354,7 @@ const TaskCreateForm: React.FC<TaskCreateFormProps> = ({ onSubmit, onCancel }) =
           <label className="block text-sm font-medium text-gray-300 mb-2">Priority</label>
           <select
             value={formData.priority}
-            onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
+            onChange={(e) => setFormData({ ...formData, priority: e.target.value as ScheduledTask['priority'] })}
             className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-purple-400 focus:outline-none"
           >
             <option value="low">Low</option>
@@ -373,7 +380,7 @@ const TaskCreateForm: React.FC<TaskCreateFormProps> = ({ onSubmit, onCancel }) =
           <label className="block text-sm font-medium text-gray-300 mb-2">Schedule Type</label>
           <select
             value={formData.scheduleType}
-            onChange={(e) => setFormData({ ...formData, scheduleType: e.target.value as any })}
+            onChange={(e) => setFormData({ ...formData, scheduleType: e.target.value as 'once' | 'recurring' | 'cron' })}
             className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-purple-400 focus:outline-none"
           >
             <option value="once">Run Once</option>
@@ -412,7 +419,7 @@ const TaskCreateForm: React.FC<TaskCreateFormProps> = ({ onSubmit, onCancel }) =
           <label className="block text-sm font-medium text-gray-300 mb-2">Action Type</label>
           <select
             value={formData.actionType}
-            onChange={(e) => setFormData({ ...formData, actionType: e.target.value as any })}
+            onChange={(e) => setFormData({ ...formData, actionType: e.target.value as 'api_call' | 'agent_invoke' | 'system_command' })}
             className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-purple-400 focus:outline-none"
           >
             <option value="api_call">API Call</option>
@@ -448,9 +455,10 @@ const TaskCreateForm: React.FC<TaskCreateFormProps> = ({ onSubmit, onCancel }) =
       <div className="flex space-x-4">
         <button
           type="submit"
-          className="px-6 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-all"
+          className="px-6 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-all disabled:opacity-50"
+          disabled={isSubmitting}
         >
-          Create Task
+          {isSubmitting ? 'Creating...' : 'Create Task'}
         </button>
         <button
           type="button"

@@ -1,26 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { Bot, Shield, Activity, TrendingUp, QrCode, Mic, Eye, Calendar } from 'lucide-react';
-import Layout from './components/Layout';
-import StatsCard from './components/StatsCard';
-import AgentCard from './components/AgentCard';
-import QRScanner from './components/QRScanner';
-import VoiceProcessor from './components/VoiceProcessor';
-import VisualProcessor from './components/VisualProcessor';
+import ManagerLayout from '../components/ManagerLayout';
+import StatsCard from '../components/StatsCard';
+import AgentCard from '../components/AgentCard';
+import QRScanner from '../components/QRScanner';
+import VoiceProcessor from '../components/VoiceProcessor';
+import VisualProcessor from '../components/VisualProcessor';
 import AnalyticsDashboard from '../components/AnalyticsDashboard';
 import TaskScheduler from '../components/TaskScheduler';
 import UDCManager from '../components/UDCManager';
-import { desktopConnection } from '@/react-app/services/DesktopConnection';
-import { agentManagementService } from '../services/AgentManagementService';
+import PerformanceMonitor from '../components/PerformanceMonitor';
+import { desktopConnection } from '../services/DesktopConnection';
+// import { agentManagementService } from '../services/AgentManagementService';
 
 export default function Home() {
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [voiceActive, setVoiceActive] = useState(false);
   const [visualActive, setVisualActive] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState(desktopConnection.getConnectionStatus());
-  const [hrmResponse, setHrmResponse] = useState<any>(null);
+  const [hrmResponse, setHrmResponse] = useState<Record<string, unknown> | null>(null);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showTaskScheduler, setShowTaskScheduler] = useState(false);
   const [showUDCManager, setShowUDCManager] = useState(false);
+  const [showPerformanceMonitor, setShowPerformanceMonitor] = useState(false);
 
   useEffect(() => {
     // Set up desktop connection event handlers
@@ -141,7 +143,7 @@ export default function Home() {
   ];
 
   return (
-    <Layout>
+    <ManagerLayout>
       <div className="p-4 pb-24 space-y-6">
         {/* Welcome Section */}
         <div className="text-center py-6">
@@ -335,6 +337,12 @@ export default function Home() {
               description="Extend certificate"
               onClick={handleRenewUDC}
             />
+            <ActionButton
+              icon={Activity}
+              title="Performance Monitor"
+              description="System optimization"
+              onClick={() => setShowPerformanceMonitor(true)}
+            />
           </div>
         </div>
 
@@ -344,15 +352,15 @@ export default function Home() {
             <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-600/50 to-purple-600/50 rounded-xl blur opacity-30 group-hover:opacity-60 transition duration-300"></div>
             <div className="relative bg-slate-800/80 backdrop-blur-xl rounded-xl p-4 border border-cyan-500/30">
               <h3 className="font-semibold text-white mb-2">HRM Cognitive Response</h3>
-              <p className="text-sm text-cyan-400 mb-2">{hrmResponse.reasoning_result}</p>
+              <p className="text-sm text-cyan-400 mb-2">{String(hrmResponse.reasoning_result || 'No reasoning result')}</p>
               <div className="grid grid-cols-2 gap-4 text-xs">
                 <div>
                   <span className="text-slate-400">Confidence:</span>
-                  <span className="ml-2 text-white">{(hrmResponse.confidence * 100).toFixed(1)}%</span>
+                  <span className="ml-2 text-white">{(Number(hrmResponse.confidence || 0) * 100).toFixed(1)}%</span>
                 </div>
                 <div>
                   <span className="text-slate-400">Processing:</span>
-                  <span className="ml-2 text-white">{hrmResponse.processing_time.toFixed(1)}ms</span>
+                  <span className="ml-2 text-white">{Number(hrmResponse.processing_time || 0).toFixed(1)}ms</span>
                 </div>
               </div>
             </div>
@@ -402,7 +410,13 @@ export default function Home() {
         isOpen={showUDCManager}
         onClose={() => setShowUDCManager(false)}
       />
-    </Layout>
+
+      {/* Performance Monitor Modal */}
+      <PerformanceMonitor
+        isOpen={showPerformanceMonitor}
+        onClose={() => setShowPerformanceMonitor(false)}
+      />
+    </ManagerLayout>
   );
 }
 

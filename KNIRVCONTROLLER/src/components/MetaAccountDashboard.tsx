@@ -110,6 +110,7 @@ export const MetaAccountDashboard: React.FC<MetaAccountDashboardProps> = ({
         from: transactionRequest.from,
         to: transactionRequest.to,
         amount: transactionRequest.amount,
+        type: 'send',
         status: 'pending',
         timestamp: new Date()
       };
@@ -123,7 +124,7 @@ export const MetaAccountDashboard: React.FC<MetaAccountDashboardProps> = ({
     }
   };
 
-  const handleDisconnectWallet = async () => {
+  /* const handleDisconnectWallet = async () => {
     try {
       await walletIntegrationService.disconnectWallet();
       setAccount(null);
@@ -134,7 +135,7 @@ export const MetaAccountDashboard: React.FC<MetaAccountDashboardProps> = ({
     } catch (error) {
       console.error('Failed to disconnect wallet:', error);
     }
-  };
+  }; */
 
   if (!isConnected) {
     return (
@@ -179,8 +180,8 @@ export const MetaAccountDashboard: React.FC<MetaAccountDashboardProps> = ({
       <View style={styles.balanceCard}>
         <Text style={styles.balanceLabel}>KNIRV Balance</Text>
         <Text style={styles.balanceAmount}>{balance} KNIRV</Text>
-        <Text style={styles.nrnBalanceLabel}>NRN Balance</Text>
-        <Text style={styles.nrnBalanceAmount}>{nrnBalance} NRN</Text>
+        <Text style={styles.balanceLabel}>NRN Balance</Text>
+        <Text style={styles.balanceAmount}>{nrnBalance} NRN</Text>
       </View>
 
       <View style={styles.actionsContainer}>
@@ -230,6 +231,30 @@ const styles = StyleSheet.create({
   chainId: {
     fontSize: 14,
     color: '#888',
+  },
+  connectionCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  connectionLabel: {
+    fontSize: 16,
+    color: '#ccc',
+    marginBottom: 8,
+    fontWeight: 'bold',
+  },
+  connectionDescription: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  accountAddress: {
+    fontSize: 12,
+    color: '#666',
+    fontFamily: 'monospace',
   },
   balanceCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -281,7 +306,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   transactionType: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#4CAF50',
     marginBottom: 4,
@@ -295,6 +320,7 @@ const styles = StyleSheet.create({
   transactionAddress: {
     fontSize: 12,
     color: '#888',
+    fontFamily: 'monospace',
   },
 });
 

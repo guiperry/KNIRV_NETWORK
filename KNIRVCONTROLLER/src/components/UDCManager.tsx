@@ -1,17 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Shield, 
-  Plus, 
-  RefreshCw, 
-  CheckCircle, 
-  XCircle, 
-  AlertTriangle, 
-  Clock, 
-  Key, 
-  Settings,
+import {
+  Shield,
+  Plus,
+  RefreshCw,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  Clock,
   Eye,
-  Trash2,
-  Calendar
+  Trash2
 } from 'lucide-react';
 import { udcManagementService, UDC, UDCRequest, UDCValidationResult } from '../services/UDCManagementService';
 
@@ -152,14 +149,14 @@ const UDCManager: React.FC<UDCManagerProps> = ({ isOpen, onClose }) => {
 
         {/* Tabs */}
         <div className="flex border-b border-gray-700/50">
-          {[
-            { id: 'list', label: 'All UDCs', icon: Shield },
-            { id: 'create', label: 'Create UDC', icon: Plus },
-            { id: 'expiring', label: 'Expiring Soon', icon: AlertTriangle }
-          ].map(tab => (
+          {([
+            { id: 'list' as const, label: 'All UDCs', icon: Shield },
+            { id: 'create' as const, label: 'Create UDC', icon: Plus },
+            { id: 'expiring' as const, label: 'Expiring Soon', icon: AlertTriangle }
+          ] as const).map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id)}
               className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-all ${
                 activeTab === tab.id
                   ? 'text-emerald-400 border-b-2 border-emerald-400 bg-emerald-500/10'
@@ -372,7 +369,7 @@ const UDCCreateForm: React.FC<UDCCreateFormProps> = ({ onSubmit, onCancel }) => 
           <label className="block text-sm font-medium text-gray-300 mb-2">UDC Type</label>
           <select
             value={formData.type}
-            onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
+            onChange={(e) => setFormData({ ...formData, type: e.target.value as UDC['type'] })}
             className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-emerald-400 focus:outline-none"
           >
             <option value="basic">Basic</option>
@@ -388,7 +385,7 @@ const UDCCreateForm: React.FC<UDCCreateFormProps> = ({ onSubmit, onCancel }) => 
           <label className="block text-sm font-medium text-gray-300 mb-2">Authority Level</label>
           <select
             value={formData.authorityLevel}
-            onChange={(e) => setFormData({ ...formData, authorityLevel: e.target.value as any })}
+            onChange={(e) => setFormData({ ...formData, authorityLevel: e.target.value as UDC['authorityLevel'] })}
             className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-emerald-400 focus:outline-none"
           >
             <option value="read">Read</option>

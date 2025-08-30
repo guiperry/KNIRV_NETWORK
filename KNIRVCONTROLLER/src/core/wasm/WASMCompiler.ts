@@ -153,8 +153,8 @@ export class WASMCompiler {
 
     const compilationId = this.generateId();
     const startTime = Date.now();
-    
-    logger.info({ compilationId, options }, 'Starting WASM compilation');
+
+    logger.info({ compilationId, options: _options }, 'Starting WASM compilation');
 
     try {
       // Create temporary project directory
@@ -332,7 +332,7 @@ panic = "abort"
         target: 'web',
         optimize: true,
         features: ['agent-core', 'lora-adapters'],
-        ...options
+        ..._options
       });
     } catch (error) {
       logger.error({ error }, 'Failed to compile agent-core WASM module');

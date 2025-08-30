@@ -210,7 +210,7 @@ export class LoRAProcessingQueue extends EventEmitter {
       if (!this.isProcessing) {
         await this.processQueue();
       }
-    }, 5000); // Check every 5 seconds
+    }, 5000) as unknown as NodeJS.Timeout; // Check every 5 seconds
   }
 
   /**

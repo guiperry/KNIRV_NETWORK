@@ -43,11 +43,11 @@ export class VoiceProcessor extends EventEmitter {
     // Initialize Web Speech API
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      this.recognition = new SpeechRecognition();
+      this.recognition = new SpeechRecognition() as any;
 
-      this.recognition.continuous = true;
-      this.recognition.interimResults = true;
-      this.recognition.lang = this.config.language;
+      (this.recognition as any).continuous = true;
+      (this.recognition as any).interimResults = true;
+      (this.recognition as any).lang = this.config.language;
 
       this.setupRecognitionHandlers();
     }
@@ -67,12 +67,12 @@ export class VoiceProcessor extends EventEmitter {
   private setupRecognitionHandlers(): void {
     if (!this.recognition) return;
 
-    this.recognition.onstart = () => {
+    (this.recognition as any).onstart = () => {
       console.log('Speech recognition started');
       this.emit('recognitionStarted');
     };
 
-    this.recognition.onresult = (_event: unknown) => {
+    (this.recognition as any).onresult = (event: any) => {
       const results = Array.from(event.results);
       const latestResult = results[results.length - 1] as any;
 
@@ -89,12 +89,12 @@ export class VoiceProcessor extends EventEmitter {
       }
     };
 
-    this.recognition.onerror = (_event: unknown) => {
+    (this.recognition as any).onerror = (event: any) => {
       console.error('Speech recognition error:', event.error);
       this.emit('recognitionError', event.error);
     };
 
-    this.recognition.onend = () => {
+    (this.recognition as any).onend = () => {
       console.log('Speech recognition ended');
       this.emit('recognitionEnded');
 
@@ -102,7 +102,7 @@ export class VoiceProcessor extends EventEmitter {
       if (this.isListening) {
         setTimeout(() => {
           if (this.isListening) {
-            this.recognition.start();
+            (this.recognition as any).start();
           }
         }, 100);
       }
@@ -130,7 +130,7 @@ export class VoiceProcessor extends EventEmitter {
       // Start speech recognition
       if (this.recognition) {
         this.isListening = true;
-        this.recognition.start();
+        (this.recognition as any).start();
       }
 
       this.emit('voiceProcessorStarted');
@@ -148,7 +148,7 @@ export class VoiceProcessor extends EventEmitter {
     this.isListening = false;
 
     if (this.recognition) {
-      this.recognition.stop();
+      (this.recognition as any).stop();
     }
 
     if (this.mediaRecorder && this.isRecording) {
@@ -166,7 +166,7 @@ export class VoiceProcessor extends EventEmitter {
   private setupMediaRecorderHandlers(): void {
     if (!this.mediaRecorder) return;
 
-    this.mediaRecorder.ondataavailable = (_event) => {
+    this.mediaRecorder.ondataavailable = (event) => {
       if (event.data.size > 0) {
         this.processAudioData(event.data);
       }
@@ -294,18 +294,19 @@ export class VoiceProcessor extends EventEmitter {
     return new Promise((resolve, reject) => {
       const utterance = new SpeechSynthesisUtterance(text);
 
-      utterance.lang = options.language || this.config.language;
-      utterance.rate = options.rate || 1.0;
-      utterance.pitch = options.pitch || 1.0;
-      utterance.volume = options.volume || 1.0;
+      const opts = options as any;
+      utterance.lang = opts?.language || this.config.language;
+      utterance.rate = opts?.rate || 1.0;
+      utterance.pitch = opts?.pitch || 1.0;
+      utterance.volume = opts?.volume || 1.0;
 
       utterance.onend = () => {
         this.emit('speechEnded', { text });
         resolve();
       };
 
-      utterance.onerror = (_event) => {
-        this.emit('speechError', _event);
+      utterance.onerror = (event) => {
+        this.emit('speechError', event);
         reject(new Error(`Speech synthesis error: ${event.error}`));
       };
 
@@ -332,7 +333,7 @@ export class VoiceProcessor extends EventEmitter {
   public setLanguage(language: string): void {
     this.config.language = language;
     if (this.recognition) {
-      this.recognition.lang = language;
+      (this.recognition as any).lang = language;
     }
   }
 

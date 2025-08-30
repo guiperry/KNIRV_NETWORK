@@ -21,7 +21,7 @@ export function initializeAgent(): bool {
   return true;
 }
 
-export function executeAgent(input: string, context: string): string {
+export function executeAgent(input: string, _context: string): string {
   if (!agentInitialized) {
     return '{"error": "Agent not initialized"}';
   }
@@ -33,7 +33,7 @@ export function executeAgent(input: string, context: string): string {
   return `{"success": true, "result": "Processed: ${input}", "agentId": "${agentId}"}`;
 }
 
-export function executeAgentTool(toolName: string, parameters: string, context: string): string {
+export function executeAgentTool(toolName: string, parameters: string, _context: string): string {
   if (!agentInitialized) {
     return '{"error": "Agent not initialized"}';
   }
@@ -65,13 +65,13 @@ export function createModel(type: string): bool {
   return true;
 }
 
-export function loadModelWeights(weightsPtr: usize, weightsLen: i32): bool {
+export function loadModelWeights(_weightsPtr: usize, weightsLen: i32): bool {
   console.log(`Loading weights for model: ${modelType} (${weightsLen} bytes)`);
   modelLoaded = true;
   return true;
 }
 
-export function runModelInference(input: string, context: string): string {
+export function runModelInference(input: string, _context: string): string {
   if (!modelLoaded) {
     return '{"error": "Model not loaded"}';
   }
@@ -100,7 +100,7 @@ export function allocateString(str: string): usize {
   return changetype<usize>(str);
 }
 
-export function deallocateString(ptr: usize): void {
+export function deallocateString(_ptr: usize): void {
   // Memory cleanup if needed
 }
 

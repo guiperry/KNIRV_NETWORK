@@ -5,7 +5,7 @@
  */
 
 import express from 'express';
-import { createServer } from 'http';
+import { createServer, Server } from 'http';
 
 import cors from 'cors';
 import helmet from 'helmet';
@@ -42,7 +42,7 @@ const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
   transport: {
     target: 'pino-pretty',
-    _options: {
+    options: {
       colorize: true
     }
   }
@@ -50,7 +50,7 @@ const logger = pino({
 
 export class KNIRVControllerUnifiedServer {
   private app: express.Application;
-  private server: unknown;
+  private server: Server | undefined;
   private backend: KNIRVCortexBackend;
   private templateExporter: TemplateExporter;
   private port: number;
@@ -117,7 +117,7 @@ export class KNIRVControllerUnifiedServer {
       logger.info(`App data directory: ${this.templateExporter.getAppDataPath()}`);
       
     } catch (error) {
-      logger.error('Template export failed:', error);
+      logger.error(`Template export failed: ${error instanceof Error ? error.message : String(error)}`);
       // Don't fail startup if template export fails
       logger.warn('Continuing startup without template export...');
     }
@@ -157,7 +157,7 @@ export class KNIRVControllerUnifiedServer {
           path: this.templateExporter.getTemplatesPath()
         });
       } catch (error) {
-        logger.error('Manual template export failed:', error);
+        logger.error(`Manual template export failed: ${error instanceof Error ? error.message : String(error)}`);
         res.status(500).json({ 
           success: false, 
           error: error instanceof Error ? error.message : 'Template export failed'
@@ -167,7 +167,7 @@ export class KNIRVControllerUnifiedServer {
 
     // Serve receiver frontend static files
     this.app.use(express.static(this.receiverDistPath, {
-      _index: false, // Don't serve index.html automatically
+      index: false, // Don't serve index.html automatically
       setHeaders: (res, path) => {
         // Set appropriate headers for different file types
         if (path.endsWith('.js')) {
@@ -195,7 +195,7 @@ export class KNIRVControllerUnifiedServer {
       const indexPath = path.join(this.receiverDistPath, 'index.html');
       res.sendFile(indexPath, (err) => {
         if (err) {
-          logger.error('Failed to serve index.html:', err);
+          logger.error(`Failed to serve index.html: ${err instanceof Error ? err.message : String(err)}`);
           res.status(404).json({
             success: false,
             error: 'Frontend not built. Run "npm run build:frontend" first.'
@@ -217,7 +217,7 @@ export class KNIRVControllerUnifiedServer {
       this.setupBackendRoutes();
 
     } catch (error) {
-      logger.error('Failed to initialize backend:', error);
+      logger.error(`Failed to initialize backend: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
   }
@@ -232,7 +232,7 @@ export class KNIRVControllerUnifiedServer {
         const adapter = await this.backend.loraEngine.compileAdapter(skillData, metadata);
         res.json({ success: true, adapter });
       } catch (error) {
-        logger.error('LoRA compilation failed:', error);
+        logger.error(`LoRA compilation failed: ${error instanceof Error ? error.message : String(error)}`);
         res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     });
@@ -243,7 +243,7 @@ export class KNIRVControllerUnifiedServer {
         const result = await this.backend.loraEngine.invokeAdapter(adapterId, parameters);
         res.json({ success: true, result });
       } catch (error) {
-        logger.error('LoRA invocation failed:', error);
+        logger.error(`LoRA invocation failed: ${error instanceof Error ? error.message : String(error)}`);
         res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     });
@@ -255,7 +255,7 @@ export class KNIRVControllerUnifiedServer {
         const wasmModule = await this.backend.wasmCompiler.compile(rustCode, _options);
         res.json({ success: true, wasmModule });
       } catch (error) {
-        logger.error('WASM compilation failed:', error);
+        logger.error(`WASM compilation failed: ${error instanceof Error ? error.message : String(error)}`);
         res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     });
@@ -267,7 +267,7 @@ export class KNIRVControllerUnifiedServer {
         const serialized = await this.backend.protobufHandler.serialize(data, schema);
         res.json({ success: true, serialized });
       } catch (error) {
-        logger.error('Protobuf serialization failed:', error);
+        logger.error(`Protobuf serialization failed: ${error instanceof Error ? error.message : String(error)}`);
         res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     });
@@ -278,7 +278,7 @@ export class KNIRVControllerUnifiedServer {
         const deserialized = await this.backend.protobufHandler.deserialize(data, schema);
         res.json({ success: true, deserialized });
       } catch (error) {
-        logger.error('Protobuf deserialization failed:', error);
+        logger.error(`Protobuf deserialization failed: ${error instanceof Error ? error.message : String(error)}`);
         res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     });
@@ -323,7 +323,7 @@ export class KNIRVControllerUnifiedServer {
       process.on('SIGINT', () => this.shutdown());
 
     } catch (error) {
-      logger.error('Failed to start unified server:', error);
+      logger.error(`Failed to start unified server: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
   }
@@ -350,7 +350,7 @@ export class KNIRVControllerUnifiedServer {
 if (getModuleUrl() === `file://${process.argv[1]}`) {
   const server = new KNIRVControllerUnifiedServer();
   server.start().catch((error) => {
-    logger.error('Failed to start KNIRV-CONTROLLER Unified Server:', error);
+    logger.error(`Failed to start KNIRV-CONTROLLER Unified Server: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   });
 }

@@ -1037,6 +1037,110 @@ sync-portals-help: ## Show detailed help for portal synchronization commands
 	@echo "  • Force commands bypass version checks"
 
 # =============================================================================
+# KNIRVANA RUST CLIENT PACKAGING
+# =============================================================================
+
+.PHONY: build-rust-client
+build-rust-client: ## Build and package KNIRVANA Rust client for all platforms
+	@echo "$(BLUE)Building and packaging KNIRVANA Rust client...$(NC)"
+	@if [ -d "KNIRVANA/rust-client" ]; then \
+		cd KNIRVANA/rust-client && cargo build --release; \
+		echo "$(GREEN)✓ KNIRVANA Rust client built successfully$(NC)"; \
+	else \
+		echo "$(RED)Error: KNIRVANA/rust-client directory not found$(NC)"; \
+		exit 1; \
+	fi
+
+.PHONY: package-rust-client
+package-rust-client: build-rust-client ## Package KNIRVANA Rust client binaries
+	@echo "$(BLUE)Packaging KNIRVANA Rust client binaries...$(NC)"
+	@if [ -d "KNIRVANA/rust-client" ]; then \
+		cd KNIRVANA/rust-client && mkdir -p packaging; \
+		echo "$(GREEN)✓ Packaging directories created$(NC)"; \
+		echo "$(YELLOW)Run GitHub Actions workflow to generate platform-specific packages$(NC)"; \
+		echo "$(YELLOW)Visit: https://github.com/your-org/KNIRV_NETWORK/actions$(NC)"; \
+	else \
+		echo "$(RED)Error: KNIRVANA/rust-client directory not found$(NC)"; \
+		exit 1; \
+	fi
+
+.PHONY: download-rust-client-artifacts
+download-rust-client-artifacts: ## Download KNIRVANA Rust client artifacts from GitHub Actions
+	@echo "$(BLUE)Downloading KNIRVANA Rust client artifacts...$(NC)"
+	@if command -v gh >/dev/null 2>&1; then \
+		echo "$(YELLOW)Using GitHub CLI to download artifacts...$(NC)"; \
+		gh run list --workflow=ci.yml --json databaseId --jq '.[0].databaseId' | xargs -I {} gh run download {} --dir=KNIRVANA/rust-client/downloads --name="knirvana-game-client-*"; \
+		echo "$(GREEN)✓ Artifacts downloaded to KNIRVANA/rust-client/downloads/$(NC)"; \
+	else \
+		echo "$(YELLOW)GitHub CLI not available. Please download artifacts manually:$(NC)"; \
+		echo "$(YELLOW)1. Go to GitHub Actions -> KNIRVANA/rust-client CI$(NC)"; \
+		echo "$(YELLOW)2. Download the artifacts from the latest successful run$(NC)"; \
+		echo "$(YELLOW)3. Extract to KNIRVANA/rust-client/downloads/$(NC)"; \
+	fi
+
+.PHONY: install-rust-client-linux
+install-rust-client-linux: ## Install Linux version of KNIRVANA Rust client
+	@echo "$(BLUE)Installing KNIRVANA Rust client for Linux...$(NC)"
+	@if [ -f "KNIRVANA/rust-client/downloads/knirvana-game-client-ubuntu-latest/knirvana_game" ]; then \
+		cp KNIRVANA/rust-client/downloads/knirvana-game-client-ubuntu-latest/knirvana_game /usr/local/bin/knirvana_game; \
+		chmod +x /usr/local/bin/knirvana_game; \
+		echo "$(GREEN)✓ KNIRVANA Rust client installed to /usr/local/bin/knirvana_game$(NC)"; \
+	else \
+		echo "$(RED)Error: Linux binary not found. Run 'make download-rust-client-artifacts' first$(NC)"; \
+		exit 1; \
+	fi
+
+.PHONY: install-rust-client-macos
+install-rust-client-macos: ## Install macOS version of KNIRVANA Rust client
+	@echo "$(BLUE)Installing KNIRVANA Rust client for macOS...$(NC)"
+	@if [ -f "KNIRVANA/rust-client/downloads/knirvana-game-client-macos-latest/knirvana_game" ]; then \
+		cp KNIRVANA/rust-client/downloads/knirvana-game-client-macos-latest/knirvana_game /usr/local/bin/knirvana_game; \
+		chmod +x /usr/local/bin/knirvana_game; \
+		echo "$(GREEN)✓ KNIRVANA Rust client installed to /usr/local/bin/knirvana_game$(NC)"; \
+	else \
+		echo "$(RED)Error: macOS binary not found. Run 'make download-rust-client-artifacts' first$(NC)"; \
+		exit 1; \
+	fi
+
+.PHONY: install-rust-client-windows
+install-rust-client-windows: ## Install Windows version of KNIRVANA Rust client
+	@echo "$(BLUE)Installing KNIRVANA Rust client for Windows...$(NC)"
+	@if [ -f "KNIRVANA/rust-client/downloads/knirvana-game-client-windows-latest/knirvana_game.exe" ]; then \
+		echo "$(YELLOW)Windows binary available at: KNIRVANA/rust-client/downloads/knirvana-game-client-windows-latest/knirvana_game.exe$(NC)"; \
+		echo "$(YELLOW)Copy this file to your desired installation location$(NC)"; \
+	else \
+		echo "$(RED)Error: Windows binary not found. Run 'make download-rust-client-artifacts' first$(NC)"; \
+		exit 1; \
+	fi
+
+.PHONY: rust-client-status
+rust-client-status: ## Show KNIRVANA Rust client status and available binaries
+	@echo "$(BLUE)KNIRVANA Rust Client Status$(NC)"
+	@echo "=============================="
+	@echo ""
+	@if [ -d "KNIRVANA/rust-client/downloads" ]; then \
+		echo "$(YELLOW)Available Artifacts:$(NC)"; \
+		ls -la KNIRVANA/rust-client/downloads/ 2>/dev/null || echo "  No artifacts downloaded"; \
+	else \
+		echo "$(YELLOW)Download directory: Not created$(NC)"; \
+	fi
+	@echo ""
+	@echo "$(YELLOW)Build Status:$(NC)"
+	@if [ -f "KNIRVANA/rust-client/target/release/knirvana_game" ]; then \
+		echo "  Local build: ✓ Available"; \
+	else \
+		echo "  Local build: ✗ Not built"; \
+	fi
+	@echo ""
+	@echo "$(YELLOW)Usage:$(NC)"
+	@echo "  make build-rust-client          # Build locally"; \
+	@echo "  make package-rust-client        # Prepare for packaging"; \
+	@echo "  make download-rust-client-artifacts # Download from GitHub Actions"; \
+	@echo "  make install-rust-client-linux  # Install Linux version"; \
+	@echo "  make install-rust-client-macos  # Install macOS version"; \
+	@echo "  make install-rust-client-windows # Prepare Windows version"; \
+
+# =============================================================================
 # BINARY SYNCHRONIZATION
 # =============================================================================
 
@@ -1103,6 +1207,46 @@ update-testnet-endpoints: ## Update KNIRVGATEWAY endpoints for testnet (without 
 		-e @deployment/ansible/environments/testnet.yml
 	@cd KNIRVGATEWAY && npm run load-endpoints:testnet
 	@echo "$(GREEN)✅ Testnet endpoints updated$(NC)"
+
+# =============================================================================
+# GITHUB ACTIONS INTEGRATION
+# =============================================================================
+
+.PHONY: trigger-rust-client-ci
+trigger-rust-client-ci: ## Trigger KNIRVANA Rust client CI workflow via GitHub API
+	@echo "$(BLUE)Triggering KNIRVANA Rust client CI workflow...$(NC)"
+	@if command -v gh >/dev/null 2>&1; then \
+		echo "$(YELLOW)Using GitHub CLI to trigger workflow...$(NC)"; \
+		gh workflow run ci.yml --ref=main --repo=. --dir=KNIRVANA/rust-client; \
+		echo "$(GREEN)✓ CI workflow triggered successfully$(NC)"; \
+		echo "$(YELLOW)Monitor progress: https://github.com/your-org/KNIRV_NETWORK/actions$(NC)"; \
+	else \
+		echo "$(YELLOW)GitHub CLI not available. Manual trigger required:$(NC)"; \
+		echo "$(YELLOW)1. Go to: https://github.com/your-org/KNIRV_NETWORK/actions$(NC)"; \
+		echo "$(YELLOW)2. Select 'KNIRVANA Rust Client CI' workflow$(NC)"; \
+		echo "$(YELLOW)3. Click 'Run workflow' -> 'Run workflow'$(NC)"; \
+	fi
+
+.PHONY: watch-rust-client-ci
+watch-rust-client-ci: ## Watch the progress of KNIRVANA Rust client CI workflow
+	@echo "$(BLUE)Watching KNIRVANA Rust client CI workflow...$(NC)"
+	@if command -v gh >/dev/null 2>&1; then \
+		gh run list --workflow=ci.yml --limit=1 --json databaseId,status --jq '.[0]' | \
+		jq -r '.databaseId + " " + .status' | \
+		while read run_id status; do \
+			if [ "$$status" = "completed" ]; then \
+				echo "$(GREEN)Workflow completed. Downloading artifacts...$(NC)"; \
+				gh run download $$run_id --dir=KNIRVANA/rust-client/downloads --name="knirvana-game-client-*"; \
+				break; \
+			else \
+				echo "$(YELLOW)Workflow status: $$status. Watching...$(NC)"; \
+				sleep 30; \
+			fi; \
+		done; \
+	else \
+		echo "$(YELLOW)GitHub CLI not available. Please monitor manually:$(NC)"; \
+		echo "$(YELLOW)https://github.com/your-org/KNIRV_NETWORK/actions$(NC)"; \
+	fi
 
 # =============================================================================
 # DEFAULT TARGET

@@ -55,7 +55,7 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
   const [isListening, setIsListening] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
-
+  const [error, setError] = useState<string | null>(null);
   const [lastCommand, setLastCommand] = useState<string>('');
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -74,9 +74,23 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
     }
 
     return () => {
-      cleanup();
+      stopVoiceRecognition();
+      stopAudioAnalysis();
     };
-  }, [isActive, cleanup, initializeAudioAnalysis, initializeVoiceRecognition]);
+  }, [isActive]);
+
+  const processVoiceCommand = (transcript: string, _confidence: number) => {
+    const command = transcript.toLowerCase().trim();
+
+    // Basic command processing
+    if (command.includes('scan qr') || command.includes('scan code')) {
+      console.log('QR scan command detected');
+    } else if (command.includes('connect') || command.includes('link')) {
+      console.log('Connection command detected');
+    } else if (command.includes('wallet') || command.includes('transaction')) {
+      console.log('Wallet command detected');
+    }
+  };
 
   const initializeVoiceRecognition = useCallback(() => {
     if (!('SpeechRecognition' in window) && !('webkitSpeechRecognition' in window)) {
@@ -98,7 +112,7 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
       console.log('Voice recognition started');
     };
 
-    recognition.onresult = (_event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       let finalTranscript = '';
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -122,7 +136,7 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
       }
     };
 
-    recognition.onerror = (_event: SpeechRecognitionErrorEvent) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       console.error('Speech recognition error:', event.error);
       setError(`Voice recognition error: ${event.error}`);
       setIsListening(false);
@@ -208,18 +222,7 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
     updateAudioLevel();
   };
 
-  const processVoiceCommand = (transcript: string, _confidence: number) => {
-    const command = transcript.toLowerCase().trim();
-    
-    // Basic command processing
-    if (command.includes('scan qr') || command.includes('scan code')) {
-      console.log('QR scan command detected');
-    } else if (command.includes('connect') || command.includes('link')) {
-      console.log('Connection command detected');
-    } else if (command.includes('wallet') || command.includes('transaction')) {
-      console.log('Wallet command detected');
-    }
-  };
+
 
   const stopVoiceRecognition = () => {
     if (recognitionRef.current) {
@@ -246,10 +249,10 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
     setAudioLevel(0);
   };
 
-  const cleanup = useCallback(() => {
+  /* const cleanup = useCallback(() => {
     stopVoiceRecognition();
     stopAudioAnalysis();
-  }, []);
+  }, []); */
 
   const toggleVoiceRecognition = () => {
     if (isListening) {

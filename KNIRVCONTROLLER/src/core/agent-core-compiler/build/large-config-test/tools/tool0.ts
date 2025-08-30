@@ -5,6 +5,7 @@
  */
 
 import { EventEmitter } from '../EventEmitter';
+import { ToolContext, ToolResult } from '../../../../types/common';
 
 export interface tool0Parameters {
   {{#each parameters}}
@@ -12,25 +13,12 @@ export interface tool0Parameters {
   {{/each}}
 }
 
-export interface tool0Context {
-  agentId: string;
-  sessionId?: string;
-  userId?: string;
-  environment: 'wasm' | 'browser' | 'node';
-  memory: Map<string, any>;
-  logger: {
-    log: (message: string) => void;
-    error: (message: string) => void;
-    warn: (message: string) => void;
-  };
+export interface tool0Context extends ToolContext {
+  // Tool-specific context extensions can be added here
 }
 
-export interface tool0Result {
-  success: boolean;
-  result?: any;
-  error?: string;
-  executionTime: number;
-  metadata?: Record<string, any>;
+export interface tool0Result extends ToolResult {
+  // Tool-specific result extensions can be added here
 }
 
 /**

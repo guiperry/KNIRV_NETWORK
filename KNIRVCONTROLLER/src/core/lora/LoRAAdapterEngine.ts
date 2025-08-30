@@ -156,7 +156,11 @@ export class LoRAAdapterEngine {
     }
   }
 
-  private prepareTrainingData(skillData: SkillCompilationRequest['skillData']): unknown {
+  private prepareTrainingData(skillData: SkillCompilationRequest['skillData']): Array<{
+    input: string;
+    output: string;
+    confidence: number;
+  }> {
     logger.info('Preparing training data from solutions and errors...');
     
     // Create training pairs from solutions and errors
@@ -177,7 +181,11 @@ export class LoRAAdapterEngine {
     return trainingPairs;
   }
 
-  private async trainLoRAAdapter(trainingData: unknown[], metadata: SkillCompilationRequest['metadata']): Promise<{ weightsA: Float32Array, weightsB: Float32Array }> {
+  private async trainLoRAAdapter(trainingData: Array<{
+    input: string;
+    output: string;
+    confidence: number;
+  }>, metadata: SkillCompilationRequest['metadata']): Promise<{ weightsA: Float32Array, weightsB: Float32Array }> {
     logger.info('Training LoRA adapter from solution data...');
     
     const rank = metadata.rank || 8;
@@ -212,9 +220,13 @@ export class LoRAAdapterEngine {
   }
 
   private applyTrainingPairToWeights(
-    trainingPair: unknown, 
-    weightsA: Float32Array, 
-    weightsB: Float32Array, 
+    trainingPair: {
+      input: string;
+      output: string;
+      confidence: number;
+    },
+    weightsA: Float32Array,
+    weightsB: Float32Array,
     _rank: number
   ): void {
     // This implements the core algorithm that converts solution patterns
@@ -688,7 +700,13 @@ export class LoRAAdapterEngine {
   /**
    * Filter adapters based on criteria
    */
-  async filterAdapters(filter: unknown): Promise<LoRAAdapterSkill[]> {
+  async filterAdapters(filter: {
+    baseModel?: string;
+    minRank?: number;
+    maxRank?: number;
+    skillType?: string;
+    capabilities?: string[];
+  }): Promise<LoRAAdapterSkill[]> {
     const allAdapters = Array.from(this.adapters.values());
 
     return allAdapters.filter(adapter => {

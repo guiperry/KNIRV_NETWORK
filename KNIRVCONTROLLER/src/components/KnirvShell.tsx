@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {Cpu } from 'lucide-react';
+import { Cpu, Zap } from 'lucide-react';
 
 interface KnirvShellProps {
   status: 'idle' | 'processing' | 'listening' | 'error';
@@ -25,7 +25,7 @@ export const KnirvShell: React.FC<KnirvShellProps> = ({
   }, []);
 
   return (
-    <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900" data-testid="knirv-shell">
       {/* Header */}
       <header className="absolute top-0 left-0 right-0 z-30 bg-gray-900/80 backdrop-blur-sm border-b border-gray-700/50">
         <div className="flex items-center justify-between p-4">

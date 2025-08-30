@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 
 interface CryptoCardProps {
   symbol: string;
   name: string;
   balance: string;
   change: string;
-  style?: any;
+  style?: ViewStyle;
 }
 
 export const CryptoCard: React.FC<CryptoCardProps> = ({ 

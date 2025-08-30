@@ -31,32 +31,22 @@ func initializeEnvironment() {
 	fmt.Println("✅ KNIRV native environment initialized successfully")
 }
 
-// testToolchainAccess tests access to the toolchain
+// testToolchainAccess tests access to the toolchain (non-blocking for production)
 func testToolchainAccess() {
 	fmt.Println("🔍 Testing toolchain access...")
 
-	// Test if Python is available on system
+	// Test if Python is available on system (non-blocking)
 	if _, err := exec.LookPath("python3"); err == nil {
 		fmt.Println("✅ Python3 found on system")
-
-		// Try to run a simple Python command
-		fmt.Println("🐍 Testing Python execution...")
-		cmd := exec.Command("python3", "-c", "print('Python is working!'); import sys; print(f'Python version: {sys.version}')")
-		output, err := cmd.CombinedOutput()
-		if err != nil {
-			fmt.Printf("⚠️ Python execution error: %v\n", err)
-		} else {
-			fmt.Printf("Python output:\n%s\n", string(output))
-		}
 	} else {
-		fmt.Println("⚠️ Python3 not found on system")
+		fmt.Println("⚠️ Python3 not found on system (optional for KNIRV services)")
 	}
 
-	// Test if bash is available
+	// Test if bash is available on system (non-blocking)
 	if _, err := exec.LookPath("bash"); err == nil {
 		fmt.Println("✅ Bash found on system")
 	} else {
-		fmt.Println("⚠️ Bash not found on system")
+		fmt.Println("⚠️ Bash not found on system (optional for KNIRV services)")
 	}
 
 	// List current bin directory contents

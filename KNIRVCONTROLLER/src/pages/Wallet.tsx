@@ -1,4 +1,4 @@
-import { Wallet, ArrowUpRight, ArrowDownLeft, Zap, TrendingUp, Copy, ExternalLink, Shield, QrCode, X, CheckCircle} from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, Zap, TrendingUp, Copy, Shield, QrCode, X, CheckCircle} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { SlidingPanel } from '@components/SlidingPanel';
@@ -15,6 +15,8 @@ export default function WalletPage() {
   const [showAddFunds, setShowAddFunds] = useState(false);
   const [showSendNRN, setShowSendNRN] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [cognitiveState, setCognitiveState] = useState<unknown>(null);
+  const [cognitiveMode, setCognitiveMode] = useState(false);
 
   // Mock data for slideouts
   const [networkConnections] = useState<{
@@ -30,18 +32,38 @@ export default function WalletPage() {
     {
       id: 'agent-1',
       name: 'CodeT5-Alpha',
-      type: 'KNIRV-CORTEX',
-      status: 'Available',
-      specialization: ['code-generation', 'optimization'],
-      nrnCost: 85
+      type: 'wasm' as const,
+      status: 'Available' as const,
+      capabilities: ['code-generation', 'optimization'],
+      nrnCost: 85,
+      metadata: {
+        name: 'CodeT5-Alpha',
+        version: '1.0.0',
+        description: 'Code generation and optimization agent',
+        author: 'KNIRV Network',
+        capabilities: ['code-generation', 'optimization'],
+        requirements: { memory: 512, cpu: 2, storage: 100 },
+        permissions: ['read', 'write']
+      },
+      createdAt: new Date()
     },
     {
       id: 'agent-2',
       name: 'SEAL-Beta',
-      type: 'KNIRVANA',
-      status: 'Available',
-      specialization: ['learning', 'adaptation'],
-      nrnCost: 90
+      type: 'lora' as const,
+      status: 'Available' as const,
+      capabilities: ['learning', 'adaptation'],
+      nrnCost: 90,
+      metadata: {
+        name: 'SEAL-Beta',
+        version: '1.0.0',
+        description: 'Learning and adaptation agent',
+        author: 'KNIRV Network',
+        capabilities: ['learning', 'adaptation'],
+        requirements: { memory: 256, cpu: 1, storage: 50 },
+        permissions: ['read']
+      },
+      createdAt: new Date()
     }
   ]);
 
@@ -158,15 +180,18 @@ export default function WalletPage() {
 
   const handleCognitiveStateChange = (state: unknown) => {
     setCognitiveState(state);
-    setCognitiveMode(state.status === 'active' || state.status === 'learning');
+    if (state && typeof state === 'object' && 'status' in state) {
+      const stateObj = state as { status: string };
+      setCognitiveMode(stateObj.status === 'active' || stateObj.status === 'learning');
+    }
   };
 
   const handleSkillInvoked = (skillId: string, result: unknown) => {
     console.log('Skill invoked:', skillId, result);
   };
 
-  const handleAdaptationTriggered = (adaptationType: string) => {
-    console.log('Adaptation triggered:', adaptationType);
+  const handleAdaptationTriggered = (adaptation: unknown) => {
+    console.log('Adaptation triggered:', adaptation);
   };
 
   const handleAgentAssignment = (nrv: unknown, agent: unknown) => {
@@ -174,7 +199,7 @@ export default function WalletPage() {
   };
 
   // Burger Menu Component
-  const BurgerMenu = ({ isOpen, onToggle, children }) => {
+  const BurgerMenu = ({ isOpen, onToggle, children }: { isOpen: boolean; onToggle: () => void; children: React.ReactNode }) => {
     return (
       <div className="relative">
         {/* Burger Button */}
@@ -201,7 +226,7 @@ export default function WalletPage() {
   };
 
   // Menu Item Component
-  const MenuItem = ({ onClick, icon, children }) => {
+  const MenuItem = ({ onClick, icon, children }: { onClick: () => void; icon: React.ReactNode; children: React.ReactNode }) => {
     return (
       <button
         onClick={onClick}

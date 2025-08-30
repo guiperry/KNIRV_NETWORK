@@ -110,7 +110,7 @@ export class ErrorContextManager {
       
       return {
         skillFound: false,
-        errorMessage: handlingError instanceof Error ? handlingError.message : String(handlingError)
+        confidence: 0
       };
     }
   }

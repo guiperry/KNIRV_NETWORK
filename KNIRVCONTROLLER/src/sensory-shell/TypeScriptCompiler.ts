@@ -5,6 +5,7 @@
  */
 
 import { EventEmitter } from './EventEmitter';
+import { ToolResult } from '../types/common';
 
 export interface TypeScriptCompilerConfig {
   templateDir: string;
@@ -246,7 +247,7 @@ export interface {{toolName}}Parameters {
 export async function {{toolName}}(
   params: {{toolName}}Parameters,
   context: SkillContext
-): Promise<any> {
+): Promise<ToolResult> {
   // Validate parameters
   {{#each parameters}}
   {{#if required}}

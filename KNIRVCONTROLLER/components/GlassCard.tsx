@@ -7,7 +7,7 @@ interface GlassCardProps {
   className?: string;
 }
 
-export const GlassCard: React.FC<GlassCardProps> = ({ children, style, className }) => {
+export const GlassCard: React.FC<GlassCardProps> = ({ children, style, className: _className }) => {
   return (
     <View style={[styles.glassCard, style]} testID="glass-card">
       {children}

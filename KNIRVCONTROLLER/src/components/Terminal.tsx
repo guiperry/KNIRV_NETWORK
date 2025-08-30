@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { terminalCommandService, CommandResult, CommandHistory } from '../services/TerminalCommandService';
+import { terminalCommandService, CommandHistory } from '../services/TerminalCommandService';
 
 interface TerminalEntry {
   input: string;
@@ -62,7 +62,7 @@ export const Terminal: React.FC<TerminalProps> = ({
 
     try {
       // Execute command using the service
-      const result = await terminalCommandService.executeCommand(command);
+      await terminalCommandService.executeCommand(command);
 
       // Update local history
       const updatedHistory = terminalCommandService.getCommandHistory();

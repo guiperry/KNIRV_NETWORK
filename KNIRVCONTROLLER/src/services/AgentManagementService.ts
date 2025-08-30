@@ -3,6 +3,8 @@
  * Handles agent upload, compilation, deployment, and lifecycle management
  */
 
+import { databaseService } from '../core/services/databaseService';
+
 export interface Agent {
   id: string;
   name: string;
@@ -60,8 +62,6 @@ export interface AgentExecutionResult {
 }
 
 export class AgentManagementService {
-  private agents: Map<string, Agent> = new Map();
-  private deployedAgents: Map<string, Agent> = new Map();
   private wasmCompiler: WebAssembly.Module | null = null;
   private baseUrl: string;
 
@@ -103,8 +103,8 @@ export class AgentManagementService {
       };
 
       // Create agent record
-      const agent: Agent = {
-        id: agentId,
+      const agentData = {
+        agentId,
         name: metadata.name,
         type: request.type,
         status: 'Compiling',
@@ -114,7 +114,8 @@ export class AgentManagementService {
         createdAt: new Date()
       };
 
-      this.agents.set(agentId, agent);
+      // Save to database
+      const agent = await databaseService.createAgent(agentData);
 
       // Process the uploaded file based on type
       if (request.type === 'wasm') {
@@ -126,10 +127,12 @@ export class AgentManagementService {
       }
 
       // Update status to Available after successful compilation
-      agent.status = 'Available';
-      this.agents.set(agentId, agent);
+      const updatedAgent = await databaseService.updateAgent(agentId, {
+        status: 'Available',
+        lastActivity: new Date()
+      });
 
-      return agent;
+      return updatedAgent || agent;
     } catch (error) {
       console.error('Agent upload failed:', error);
       throw new Error(`Agent upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -140,7 +143,7 @@ export class AgentManagementService {
    * Deploy an agent to a target environment
    */
   async deployAgent(request: AgentDeploymentRequest): Promise<string> {
-    const agent = this.agents.get(request.agentId);
+    const agent = await databaseService.getAgent(request.agentId);
     if (!agent) {
       throw new Error(`Agent ${request.agentId} not found`);
     }
@@ -150,12 +153,11 @@ export class AgentManagementService {
     }
 
     try {
-      // Update agent status
-      agent.status = 'Deployed';
-      agent.lastActivity = new Date();
-      
-      // Add to deployed agents
-      this.deployedAgents.set(request.agentId, agent);
+      // Update agent status in database
+      await databaseService.updateAgent(request.agentId, {
+        status: 'Deployed',
+        lastActivity: new Date()
+      });
 
       // Send deployment request to backend
       const response = await fetch(`${this.baseUrl}/api/agents/deploy`, {
@@ -179,8 +181,9 @@ export class AgentManagementService {
       return result.deploymentId;
     } catch (error) {
       // Revert status on failure
-      agent.status = 'Available';
-      this.deployedAgents.delete(request.agentId);
+      await databaseService.updateAgent(request.agentId, {
+        status: 'Available'
+      });
       throw error;
     }
   }
@@ -189,8 +192,8 @@ export class AgentManagementService {
    * Execute a skill on a deployed agent
    */
   async executeSkill(agentId: string, skillId: string, parameters: Record<string, unknown>): Promise<AgentExecutionResult> {
-    const agent = this.deployedAgents.get(agentId);
-    if (!agent) {
+    const agent = await databaseService.getAgent(agentId);
+    if (!agent || agent.status !== 'Deployed') {
       throw new Error(`Agent ${agentId} is not deployed`);
     }
 
@@ -237,48 +240,49 @@ export class AgentManagementService {
   /**
    * Get all available agents
    */
-  getAgents(): Agent[] {
-    return Array.from(this.agents.values());
+  async getAgents(): Promise<Agent[]> {
+    return await databaseService.listAgents();
   }
 
   /**
    * Get deployed agents
    */
-  getDeployedAgents(): Agent[] {
-    return Array.from(this.deployedAgents.values());
+  async getDeployedAgents(): Promise<Agent[]> {
+    const allAgents = await databaseService.listAgents();
+    return allAgents.filter(agent => agent.status === 'Deployed');
   }
 
   /**
    * Get agent by ID
    */
-  getAgent(agentId: string): Agent | undefined {
-    return this.agents.get(agentId);
+  async getAgent(agentId: string): Promise<Agent | null> {
+    return await databaseService.getAgent(agentId);
   }
 
   /**
    * Remove an agent
    */
   async removeAgent(agentId: string): Promise<void> {
-    const agent = this.agents.get(agentId);
+    const agent = await databaseService.getAgent(agentId);
     if (!agent) {
       throw new Error(`Agent ${agentId} not found`);
     }
 
     // Undeploy if deployed
-    if (this.deployedAgents.has(agentId)) {
+    if (agent.status === 'Deployed') {
       await this.undeployAgent(agentId);
     }
 
-    // Remove from agents
-    this.agents.delete(agentId);
+    // Remove from database
+    await databaseService.deleteAgent(agentId);
   }
 
   /**
    * Undeploy an agent
    */
   async undeployAgent(agentId: string): Promise<void> {
-    const agent = this.deployedAgents.get(agentId);
-    if (!agent) {
+    const agent = await databaseService.getAgent(agentId);
+    if (!agent || agent.status !== 'Deployed') {
       throw new Error(`Agent ${agentId} is not deployed`);
     }
 
@@ -287,8 +291,10 @@ export class AgentManagementService {
         method: 'POST'
       });
 
-      agent.status = 'Available';
-      this.deployedAgents.delete(agentId);
+      await databaseService.updateAgent(agentId, {
+        status: 'Available',
+        lastActivity: new Date()
+      });
     } catch (error) {
       console.error('Failed to undeploy agent:', error);
       throw error;

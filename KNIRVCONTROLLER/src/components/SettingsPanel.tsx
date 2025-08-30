@@ -1,19 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Settings, 
-  Save, 
-  RefreshCw, 
-  Download, 
-  Upload, 
-  User, 
-  Shield, 
-  Palette, 
-  Zap, 
-  Globe, 
+import {
+  Settings,
+  Save,
+  RefreshCw,
+  Download,
+  Upload,
+  User,
+  Shield,
+  Palette,
+  Zap,
   Brain,
   Wallet,
-  BarChart3,
-  Monitor
+  BarChart3
 } from 'lucide-react';
 import { settingsService, AppSettings, SettingsProfile } from '../services/SettingsService';
 
@@ -104,16 +102,17 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
     reader.readAsText(file);
   };
 
-  const updateSetting = (path: string, value: any) => {
+  const updateSetting = (path: string, value: unknown) => {
     if (!settings) return;
     
     const keys = path.split('.');
     const newSettings = { ...settings };
-    let current: any = newSettings;
+    let current: Record<string, unknown> = newSettings as Record<string, unknown>;
     
     for (let i = 0; i < keys.length - 1; i++) {
-      current[keys[i]] = { ...current[keys[i]] };
-      current = current[keys[i]];
+      const currentValue = current[keys[i]];
+      current[keys[i]] = { ...(typeof currentValue === 'object' && currentValue !== null ? currentValue as Record<string, unknown> : {}) };
+      current = current[keys[i]] as Record<string, unknown>;
     }
     
     current[keys[keys.length - 1]] = value;
@@ -124,15 +123,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
   if (!isOpen || !settings) return null;
 
   const tabs = [
-    { id: 'general', label: 'General', icon: Settings },
-    { id: 'cognitive', label: 'Cognitive', icon: Brain },
-    { id: 'wallet', label: 'Wallet', icon: Wallet },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'security', label: 'Security', icon: Shield },
-    { id: 'ui', label: 'Interface', icon: Palette },
-    { id: 'advanced', label: 'Advanced', icon: Zap },
-    { id: 'profiles', label: 'Profiles', icon: User }
-  ];
+    { id: 'general' as const, label: 'General', icon: Settings },
+    { id: 'cognitive' as const, label: 'Cognitive', icon: Brain },
+    { id: 'wallet' as const, label: 'Wallet', icon: Wallet },
+    { id: 'analytics' as const, label: 'Analytics', icon: BarChart3 },
+    { id: 'security' as const, label: 'Security', icon: Shield },
+    { id: 'ui' as const, label: 'Interface', icon: Palette },
+    { id: 'advanced' as const, label: 'Advanced', icon: Zap },
+    { id: 'profiles' as const, label: 'Profiles', icon: User }
+  ] as const;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -181,7 +180,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
               {tabs.map(tab => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => setActiveTab(tab.id)}
                   className={`w-full flex items-center space-x-3 px-3 py-2 text-sm font-medium rounded-lg transition-all ${
                     activeTab === tab.id
                       ? 'text-blue-400 bg-blue-500/10 border border-blue-500/20'

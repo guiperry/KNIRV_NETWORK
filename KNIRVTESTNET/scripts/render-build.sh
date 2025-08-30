@@ -24,8 +24,8 @@ print_status "All binaries are pre-built and checked into the repository."
 # --- Phase 1: Verify Artifacts ---
 print_status "Phase 1: Verifying pre-built artifacts..."
 
-if [ ! -f "bin/knirv-orchestrator" ] || ([ ! -f "bin/knirv-server.wasm" ] && [ ! -f "bin/knirv-toolchain.wasm" ]); then
-    echo -e "${RED}[ERROR]${NC} Core artifacts 'bin/knirv-orchestrator' or WASM module not found!"
+if [ ! -f "bin/knirv-orchestrator" ]; then
+    echo -e "${RED}[ERROR]${NC} Core artifact 'bin/knirv-orchestrator' not found!"
     echo "Please run 'scripts/build-local-release.sh' locally and commit the 'bin' directory."
     exit 1
 fi
@@ -39,10 +39,8 @@ chmod +x ./bin/*
 print_success "Binaries are now executable."
  
 WASMTIME_VERSION="v22.0.0"
-print_status "Downloading Wasmtime runtime v${WASMTIME_VERSION}..."
-curl -L https://github.com/bytecodealliance/wasmtime/releases/download/$WASMTIME_VERSION/wasmtime-$WASMTIME_VERSION-x86_64-linux.tar.xz | tar -xJ --strip-components=1 -C ./bin
-chmod +x ./bin/wasmtime
-print_success "Wasmtime runtime is ready in ./bin/"
+# WASM runtime not needed for native orchestrator deployment
+print_status "Skipping WASM runtime download - using native orchestrator only"
 
 print_success "Render build step complete. Ready for startup."
 
@@ -51,12 +49,7 @@ echo ""
 echo "📋 Build Summary:"
 echo "=================="
 print_success "Native Orchestrator: bin/knirv-orchestrator"
-if [ -f "bin/knirv-server.wasm" ]; then
-    print_success "Server WASM:         bin/knirv-server.wasm"
-elif [ -f "bin/knirv-toolchain.wasm" ]; then
-    print_success "Toolchain WASM:      bin/knirv-toolchain.wasm"
-fi
-print_success "WASM Runtime:        bin/wasmtime"
+print_success "KNIRV Services:      bin/knirv*"
 echo ""
 print_status "Build artifacts ready for deployment"
 print_status "Use './scripts/start-render.sh' to run the native orchestrator"

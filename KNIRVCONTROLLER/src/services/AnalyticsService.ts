@@ -3,6 +3,11 @@
  * Handles metrics collection, performance tracking, and dashboard statistics
  */
 
+import { performanceOptimizer } from '../utils/PerformanceOptimizer';
+import { errorHandler, ErrorCategory, ErrorSeverity } from '../utils/ErrorHandler';
+import { memoryManager } from '../utils/MemoryManager';
+import { networkOptimizer } from '../utils/NetworkOptimizer';
+
 export interface AnalyticsMetric {
   id: string;
   name: string;
@@ -48,6 +53,12 @@ export interface AgentAnalytics {
   errorCount: number;
 }
 
+export interface AnalyticsConfig {
+  baseUrl?: string;
+  enableNetworking?: boolean;
+  enableCollection?: boolean;
+}
+
 export class AnalyticsService {
   private metrics: Map<string, AnalyticsMetric[]> = new Map();
   private dashboardStats: DashboardStats;
@@ -57,10 +68,18 @@ export class AnalyticsService {
   private baseUrl: string;
   private isCollecting: boolean = false;
   private collectionInterval: NodeJS.Timeout | null = null;
+  private config: AnalyticsConfig;
 
-  constructor(baseUrl: string = 'http://localhost:3001') {
-    this.baseUrl = baseUrl;
+  constructor(config: AnalyticsConfig = {}) {
+    this.config = {
+      baseUrl: 'http://localhost:3001',
+      enableNetworking: process.env.NODE_ENV !== 'test',
+      enableCollection: process.env.NODE_ENV !== 'test',
+      ...config
+    };
+    this.baseUrl = this.config.baseUrl!;
     this.initializeAnalytics();
+    this.initializePerformanceMonitoring();
   }
 
   private initializeAnalytics(): void {
@@ -107,10 +126,85 @@ export class AnalyticsService {
   }
 
   /**
+   * Initialize performance monitoring integration
+   */
+  private initializePerformanceMonitoring(): void {
+    // Register memory cleanup callback
+    memoryManager.registerCleanupCallback(() => {
+      this.cleanupOldMetrics();
+    });
+
+    // Add memory listener for automatic metric collection
+    memoryManager.addMemoryListener((metrics) => {
+      this.recordMetric({
+        name: 'memory_usage',
+        value: metrics.usagePercentage,
+        unit: 'percentage',
+        category: 'performance',
+        metadata: {
+          usedJSHeapSize: metrics.usedJSHeapSize,
+          totalJSHeapSize: metrics.totalJSHeapSize,
+          jsHeapSizeLimit: metrics.jsHeapSizeLimit
+        }
+      });
+    });
+
+    // Monitor network performance
+    setInterval(() => {
+      const networkMetrics = networkOptimizer.getMetrics();
+      if (networkMetrics.totalRequests > 0) {
+        this.recordMetric({
+          name: 'network_latency',
+          value: networkMetrics.averageLatency,
+          unit: 'milliseconds',
+          category: 'performance',
+          metadata: networkMetrics
+        });
+      }
+    }, 30000); // Every 30 seconds
+
+    // Monitor general performance
+    setInterval(() => {
+      const perfMetrics = performanceOptimizer.getMetrics();
+      this.recordMetric({
+        name: 'render_time',
+        value: perfMetrics.renderTime,
+        unit: 'milliseconds',
+        category: 'performance',
+        metadata: perfMetrics
+      });
+    }, 10000); // Every 10 seconds
+  }
+
+  /**
+   * Clean up old metrics to prevent memory leaks
+   */
+  private cleanupOldMetrics(): void {
+    const cutoffTime = Date.now() - (24 * 60 * 60 * 1000); // 24 hours ago
+    this.metrics = this.metrics.filter(metric =>
+      metric.timestamp.getTime() > cutoffTime
+    );
+  }
+
+  /**
+   * Get collection status
+   */
+  public get collecting(): boolean {
+    return this.isCollecting;
+  }
+
+  /**
    * Start analytics collection
    */
   async startCollection(): Promise<void> {
     if (this.isCollecting) {
+      return;
+    }
+
+    // In test environment or when collection is disabled, just mark as collecting
+    if (!this.config.enableCollection || !this.config.enableNetworking) {
+      this.isCollecting = true;
+      console.log('Analytics collection started');
       return;
     }
 
@@ -127,7 +221,7 @@ export class AnalyticsService {
       }
 
       this.isCollecting = true;
-      
+
       // Start periodic data collection
       this.collectionInterval = setInterval(() => {
         this.collectMetrics();
@@ -148,50 +242,92 @@ export class AnalyticsService {
       return;
     }
 
-    try {
-      await fetch(`${this.baseUrl}/api/analytics/stop`, {
-        method: 'POST'
-      });
+    // Always stop collection locally first
+    this.isCollecting = false;
 
-      this.isCollecting = false;
-      
-      if (this.collectionInterval) {
-        clearInterval(this.collectionInterval);
-        this.collectionInterval = null;
-      }
-
-      console.log('Analytics collection stopped');
-    } catch (error) {
-      console.error('Failed to stop analytics collection:', error);
+    if (this.collectionInterval) {
+      clearInterval(this.collectionInterval);
+      this.collectionInterval = null;
     }
+
+    // Only make network call if networking is enabled
+    if (this.config.enableNetworking) {
+      try {
+        await fetch(`${this.baseUrl}/api/analytics/stop`, {
+          method: 'POST'
+        });
+      } catch (error) {
+        console.error('Failed to stop analytics collection:', error);
+      }
+    }
+
+    console.log('Analytics collection stopped');
   }
 
   /**
-   * Record a metric
+   * Record a metric with enhanced error handling and performance optimization
    */
   async recordMetric(metric: Omit<AnalyticsMetric, 'id' | 'timestamp'>): Promise<void> {
-    const fullMetric: AnalyticsMetric = {
-      ...metric,
-      id: this.generateMetricId(),
-      timestamp: new Date()
-    };
-
-    // Store locally
-    const categoryMetrics = this.metrics.get(metric.category) || [];
-    categoryMetrics.push(fullMetric);
-    this.metrics.set(metric.category, categoryMetrics);
-
-    // Send to backend
     try {
-      await fetch(`${this.baseUrl}/api/analytics/metrics`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(fullMetric)
-      });
+      const fullMetric: AnalyticsMetric = {
+        ...metric,
+        id: this.generateMetricId(),
+        timestamp: new Date()
+      };
+
+      // Store locally
+      const categoryMetrics = this.metrics.get(metric.category) || [];
+      categoryMetrics.push(fullMetric);
+      this.metrics.set(metric.category, categoryMetrics);
+
+      // Limit metrics array size to prevent memory issues
+      if (categoryMetrics.length > 1000) {
+        categoryMetrics.splice(0, categoryMetrics.length - 500);
+      }
+
+      // Cache frequently accessed metrics for performance
+      if (metric.category === 'performance') {
+        performanceOptimizer.cache_set(`metric_${metric.name}`, fullMetric);
+      }
+
+      // Use optimized network request only if networking is enabled
+      if (this.config.enableNetworking) {
+        try {
+          await networkOptimizer.optimizedFetch({
+            url: `${this.baseUrl}/api/analytics/metrics`,
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: fullMetric,
+            cache: false,
+            priority: 'low' // Analytics metrics are low priority
+          });
+        } catch (networkError) {
+          // Handle network errors gracefully
+          await errorHandler.handleError(
+            networkError as Error,
+            {
+              component: 'AnalyticsService',
+              action: 'recordMetric_network',
+              additionalData: { metricName: metric.name, metricCategory: metric.category }
+            },
+            ErrorCategory.NETWORK,
+            ErrorSeverity.LOW
+          );
+        }
+      }
     } catch (error) {
-      console.error('Failed to send metric to backend:', error);
+      await errorHandler.handleError(
+        error as Error,
+        {
+          component: 'AnalyticsService',
+          action: 'recordMetric',
+          additionalData: { metricName: metric.name, metricCategory: metric.category }
+        },
+        ErrorCategory.SYSTEM,
+        ErrorSeverity.LOW
+      );
     }
   }
 
@@ -199,9 +335,14 @@ export class AnalyticsService {
    * Get dashboard statistics
    */
   async getDashboardStats(): Promise<DashboardStats> {
+    // In test environment or when networking is disabled, return cached stats
+    if (!this.config.enableNetworking) {
+      return this.dashboardStats;
+    }
+
     try {
       const response = await fetch(`${this.baseUrl}/api/analytics/dashboard`);
-      
+
       if (response.ok) {
         const stats = await response.json();
         this.dashboardStats = {

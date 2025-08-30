@@ -33,7 +33,7 @@ const UnifiedInterface: React.FC<UnifiedInterfaceProps> = ({ bridge }) => {
     bridge.onMessage('receiver_status', (message: ComponentMessage) => {
       setReceiverState(prev => ({
         ...prev,
-        ...message.payload
+        ...(typeof message.payload === 'object' && message.payload !== null ? message.payload as Partial<ReceiverState> : {})
       }));
     });
 

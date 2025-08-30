@@ -170,7 +170,7 @@ export class DesktopConnectionService {
         resolve();
       };
 
-      this.websocket.onmessage = (_event) => {
+      this.websocket.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
           this.handleWebSocketMessage(message);

@@ -528,7 +528,7 @@ export class PerformanceMetrics extends EventEmitter {
     this.updateInterval = setInterval(() => {
       this.updateSystemMetrics();
       this.cleanupOldMetrics();
-    }, this.config.updateInterval);
+    }, this.config.updateInterval) as unknown as NodeJS.Timeout;
   }
 
   /**
@@ -549,7 +549,7 @@ export class PerformanceMetrics extends EventEmitter {
   /**
    * Get cluster metrics
    */
-  getClusterMetrics(clusterId?: string): ClusterMetrics | ClusterMetrics[] {
+  getClusterMetrics(clusterId?: string): ClusterMetrics | ClusterMetrics[] | undefined {
     if (clusterId) {
       return this.clusterMetrics.get(clusterId);
     }
@@ -559,7 +559,7 @@ export class PerformanceMetrics extends EventEmitter {
   /**
    * Get agent metrics
    */
-  getAgentMetrics(agentId?: string): AgentMetrics | AgentMetrics[] {
+  getAgentMetrics(agentId?: string): AgentMetrics | AgentMetrics[] | undefined {
     if (agentId) {
       return this.agentMetrics.get(agentId);
     }
@@ -569,7 +569,7 @@ export class PerformanceMetrics extends EventEmitter {
   /**
    * Get skill metrics
    */
-  getSkillMetrics(skillId?: string): SkillMetrics | SkillMetrics[] {
+  getSkillMetrics(skillId?: string): SkillMetrics | SkillMetrics[] | undefined {
     if (skillId) {
       return this.skillMetrics.get(skillId);
     }

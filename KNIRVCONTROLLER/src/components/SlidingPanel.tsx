@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { X } from 'lucide-react';
 interface SlidingPanelProps {
   id: string;
   isOpen: boolean;
@@ -9,7 +10,7 @@ interface SlidingPanelProps {
 }
 
 export const SlidingPanel: React.FC<SlidingPanelProps> = ({
-  _id,
+  id: _id,
   isOpen,
   onClose,
   title,
@@ -19,7 +20,7 @@ export const SlidingPanel: React.FC<SlidingPanelProps> = ({
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (_event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
         onClose();
       }

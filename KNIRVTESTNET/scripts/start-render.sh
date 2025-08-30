@@ -57,33 +57,26 @@ print_status "Port: $PORT"
 print_status "Render Service ID: ${RENDER_SERVICE_ID:-'not set'}"
 print_status "Render External URL: ${RENDER_EXTERNAL_URL:-'not set'}"
 
-# Verify wizened artifacts
-print_status "Verifying wizened artifacts..."
-if [ ! -f "bin/knirv-server.wasm" ]; then
-    print_error "knirv-server.wasm not found!"
+# Verify native orchestrator
+print_status "Verifying native orchestrator..."
+if [ ! -f "bin/knirv-orchestrator" ]; then
+    print_error "knirv-orchestrator not found!"
     print_error "Please run 'scripts/build-local-release.sh' locally and commit the bin/ directory."
     exit 1
 fi
 
-if [ ! -f "bin/wasmtime" ]; then
-    print_error "wasmtime runtime not found!"
-    print_error "Please run 'scripts/build-local-release.sh' locally and commit the bin/ directory."
-    exit 1
-fi
-
-print_success "All wizened artifacts verified."
+print_success "Native orchestrator verified."
 
 # Create necessary directories
 mkdir -p logs data
 
-# The wizened approach doesn't need mock services - everything runs inside WASM
-print_status "Wizened deployment detected - skipping mock service initialization"
-print_status "All services will be orchestrated by the wizened WASM module"
+# Native orchestrator approach - services run natively on host
+print_status "Native deployment detected - starting KNIRV services"
+print_status "All services will be orchestrated by the native orchestrator"
 
 # Start the native KNIRV orchestrator
 print_status "Starting KNIRV Native Orchestrator..."
 print_status "Native orchestrator manages KNIRV services on host"
-print_status "VFS toolchain available separately for development tools"
 
 # Execute the native orchestrator
 print_status "Executing: ./bin/knirv-orchestrator"

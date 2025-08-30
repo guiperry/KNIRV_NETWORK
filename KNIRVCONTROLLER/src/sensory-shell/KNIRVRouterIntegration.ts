@@ -190,7 +190,7 @@ export class KNIRVRouterIntegration extends EventEmitter {
         this.emit('p2pConnected', { endpoint: p2pEndpoint });
       };
       
-      ws.onmessage = (_event) => {
+      ws.onmessage = (event) => {
         this.handleP2PMessage(JSON.parse(event.data));
       };
       
@@ -406,7 +406,7 @@ export class KNIRVRouterIntegration extends EventEmitter {
         this.emit('p2pRouteEstablished', { skillNode });
       };
 
-      p2pWs.onmessage = (_event) => {
+      p2pWs.onmessage = (event) => {
         const message = JSON.parse(event.data);
         this.emit('p2pSkillMessage', { skillNode, message });
       };

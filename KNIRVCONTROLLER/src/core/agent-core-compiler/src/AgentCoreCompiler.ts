@@ -52,6 +52,7 @@ export interface AgentCoreConfig {
     adaptationThreshold?: number;
     skillTimeout?: number;
   };
+  templates?: Record<string, string>;
 }
 
 export interface ToolConfig {
@@ -159,7 +160,7 @@ export class AgentCoreCompiler {
 
         logger.info(`Loaded ${templateFile}`);
       } catch (error) {
-        logger.warn(`Failed to load ${templateFile}:`, error);
+        logger.warn(`Failed to load ${templateFile}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
   }
@@ -194,7 +195,7 @@ export class AgentCoreCompiler {
         
         logger.info(`Converted ${cognitiveFile} -> ${templateFile}`);
       } catch (error) {
-        logger.warn(`Failed to convert ${cognitiveFile}:`, error);
+        logger.warn(`Failed to convert ${cognitiveFile}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
   }
@@ -269,7 +270,7 @@ export class AgentCore extends EventEmitter {
   private adaptiveLearning: AdaptiveLearningPipeline;
   private sealFramework: SEALFramework;
   private tools: Map<string, Function> = new Map();
-  private memory: Map<string, any> = new Map();
+  private memory: Map<string, unknown> = new Map();
   private isInitialized = false;
 
   constructor() {
@@ -549,7 +550,7 @@ export class {{toolName}}Tool extends EventEmitter {
     return this.description;
   }
 
-  getParameters(): any[] {
+  getParameters(): ToolParameter[] {
     return [
       {{#each parameters}}
       {
@@ -747,7 +748,7 @@ ${template}`;
 
     // Validate templates if provided
     if (config.templates) {
-      this.validateTemplates(config.templates);
+      this.validateTemplates(Object.keys(config.templates));
     }
 
     const startTime = Date.now();
@@ -875,7 +876,7 @@ ${template}`;
         await fs.copyFile(templatePath, targetPath);
         logger.debug(`Copied template file: ${fileName}`);
       } catch (error) {
-        logger.warn(`Failed to copy template file ${fileName}:`, error);
+        logger.warn(`Failed to copy template file ${fileName}: ${error instanceof Error ? error.message : String(error)}`);
         // Create a minimal fallback file if template doesn't exist
         await this.createFallbackTemplateFile(targetPath, fileName);
       }
@@ -1080,7 +1081,7 @@ export class ${className} {
   private generateMinimalWASM(config: AgentCoreConfig): Uint8Array {
     // Generate a minimal WASM module with the required interface
     // This is used as a fallback when compilation fails
-    logger.warn('Using minimal WASM fallback for agent:', config.agentId);
+    logger.warn(`Using minimal WASM fallback for agent: ${config.agentId}`);
 
     const wasmModule = new Uint8Array([
       0x00, 0x61, 0x73, 0x6d, // WASM magic number

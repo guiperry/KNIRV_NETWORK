@@ -1,1 +1,0 @@
-Run test via go test -v ./... I have a frontend test file configured to run the npm tests from go as well. When you run go test ./... from the root of the Go project, it will execute all the Go tests, including TestRunFrontendTests. This test, in turn, will navigate to the /home/gperry/Documents/GitHub/Agentic-Engine/gui directory and execute npm test.

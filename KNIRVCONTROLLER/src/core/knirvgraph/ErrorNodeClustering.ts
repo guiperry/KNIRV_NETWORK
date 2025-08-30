@@ -268,7 +268,7 @@ export class ErrorNodeClustering {
 
     while (iterations < maxIterations) {
       // Assign nodes to clusters
-      const assignments = errorNodes.map((_node, _index) => {
+      const assignments = errorNodes.map((_node, index) => {
         const vector = featureVectors[index];
         let bestCluster = 0;
         let bestSimilarity = this.calculateSimilarity(vector, centroids[0]);
@@ -287,8 +287,8 @@ export class ErrorNodeClustering {
       // Create clusters
       clusters = [];
       for (let i = 0; i < k; i++) {
-        const clusterNodes = errorNodes.filter((_, _index) => assignments[index].clusterIndex === i);
-        const clusterVectors = featureVectors.filter((_, _index) => assignments[index].clusterIndex === i);
+        const clusterNodes = errorNodes.filter((_, nodeIndex) => assignments[nodeIndex].clusterIndex === i);
+        const clusterVectors = featureVectors.filter((_, vectorIndex) => assignments[vectorIndex].clusterIndex === i);
 
         if (clusterNodes.length >= this.config.minClusterSize) {
           const clusterId = `cluster_${Date.now()}_${i}`;

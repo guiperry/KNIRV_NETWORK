@@ -37,6 +37,8 @@ export interface ConsensusProposal {
   validationResult: SkillValidationResult;
   proposedBy: string;
   proposedAt: Date;
+  submittedBy: string;
+  submittedAt: Date;
   votingDeadline: Date;
   requiredVotes: number;
   status: ProposalStatus;
@@ -105,6 +107,7 @@ export class ConsensusMechanism extends EventEmitter {
   private discoveryInterval?: NodeJS.Timeout;
   private heartbeatInterval?: NodeJS.Timeout;
   private votingInterval?: NodeJS.Timeout;
+  private logger = pino({ name: 'consensus-mechanism' });
 
   constructor(config: Partial<ConsensusConfig> = {}) {
     super();
@@ -176,6 +179,8 @@ export class ConsensusMechanism extends EventEmitter {
       validationResult,
       proposedBy,
       proposedAt: new Date(),
+      submittedBy: proposedBy,
+      submittedAt: new Date(),
       votingDeadline,
       requiredVotes,
       status: ProposalStatus.PENDING
@@ -349,7 +354,7 @@ export class ConsensusMechanism extends EventEmitter {
       } catch (error) {
         logger.warn({
           nodeId: node.nodeId,
-          error: error.message
+          error: error instanceof Error ? error.message : String(error)
         }, 'Failed to send proposal to node');
       }
     }
@@ -543,7 +548,7 @@ export class ConsensusMechanism extends EventEmitter {
   private startNodeDiscovery(): void {
     this.discoveryInterval = setInterval(async () => {
       await this.discoverNodes();
-    }, this.config.nodeDiscoveryInterval);
+    }, this.config.nodeDiscoveryInterval) as unknown as NodeJS.Timeout;
   }
 
   /**
@@ -561,7 +566,7 @@ export class ConsensusMechanism extends EventEmitter {
   private startHeartbeatMonitoring(): void {
     this.heartbeatInterval = setInterval(() => {
       this.checkNodeHeartbeats();
-    }, this.config.heartbeatInterval);
+    }, this.config.heartbeatInterval) as unknown as NodeJS.Timeout;
   }
 
   /**
@@ -588,7 +593,7 @@ export class ConsensusMechanism extends EventEmitter {
   private startVotingMonitoring(): void {
     this.votingInterval = setInterval(async () => {
       await this.checkVotingDeadlines();
-    }, this.config.votingMonitoringInterval);
+    }, this.config.votingMonitoringInterval) as unknown as NodeJS.Timeout;
   }
 
   /**
@@ -630,14 +635,17 @@ export class ConsensusMechanism extends EventEmitter {
       }
 
       return {
-        id: proposalId,
+        proposalId: proposalId,
         skillId: result.skillId,
+        loraAdapter: {} as LoRAAdapterSkill, // Not stored in result
+        validationResult: {} as SkillValidationResult, // Not stored in result
+        proposedBy: result.submittedBy,
+        proposedAt: result.submittedAt,
         submittedBy: result.submittedBy,
         submittedAt: result.submittedAt,
         votingDeadline: result.finalizedAt, // Use finalized time as deadline
-        status: status,
         requiredVotes: 0, // Not stored in result
-        votes: new Map()
+        status: status
       };
     }
 

@@ -13,6 +13,16 @@ export interface AppSettings {
   advanced: AdvancedSettings;
 }
 
+export interface PartialAppSettings {
+  general?: Partial<GeneralSettings>;
+  cognitive?: Partial<CognitiveSettings>;
+  wallet?: Partial<WalletSettings>;
+  analytics?: Partial<AnalyticsSettings>;
+  security?: Partial<SecuritySettings>;
+  ui?: Partial<UISettings>;
+  advanced?: Partial<AdvancedSettings>;
+}
+
 export interface GeneralSettings {
   theme: 'dark' | 'light' | 'auto';
   language: string;
@@ -111,6 +121,12 @@ export interface SettingsProfile {
   updatedAt: Date;
 }
 
+export interface SettingsConfig {
+  baseUrl?: string;
+  enableNetworking?: boolean;
+  enableSync?: boolean;
+}
+
 export class SettingsService {
   private currentSettings: AppSettings;
   private profiles: Map<string, SettingsProfile> = new Map();
@@ -118,9 +134,16 @@ export class SettingsService {
   private baseUrl: string;
   private isInitialized: boolean = false;
   private changeListeners: Array<(settings: AppSettings) => void> = [];
+  private config: SettingsConfig;
 
-  constructor(baseUrl: string = 'http://localhost:3001') {
-    this.baseUrl = baseUrl;
+  constructor(config: SettingsConfig = {}) {
+    this.config = {
+      baseUrl: 'http://localhost:3001',
+      enableNetworking: process.env.NODE_ENV !== 'test',
+      enableSync: process.env.NODE_ENV !== 'test',
+      ...config
+    };
+    this.baseUrl = this.config.baseUrl!;
     this.currentSettings = this.getDefaultSettings();
     this.initializeService();
   }
@@ -129,10 +152,12 @@ export class SettingsService {
     try {
       // Load settings from localStorage first
       this.loadFromLocalStorage();
-      
-      // Then try to sync with backend
-      await this.syncWithBackend();
-      
+
+      // Then try to sync with backend only if networking is enabled
+      if (this.config.enableSync && this.config.enableNetworking) {
+        await this.syncWithBackend();
+      }
+
       this.isInitialized = true;
       console.log('Settings Service initialized');
     } catch (error) {
@@ -152,7 +177,7 @@ export class SettingsService {
   /**
    * Update settings
    */
-  async updateSettings(updates: Partial<AppSettings>): Promise<void> {
+  async updateSettings(updates: PartialAppSettings): Promise<void> {
     const newSettings = this.mergeSettings(this.currentSettings, updates);
     
     try {
@@ -474,7 +499,7 @@ export class SettingsService {
     };
   }
 
-  private mergeSettings(current: AppSettings, updates: Partial<AppSettings>): AppSettings {
+  private mergeSettings(current: AppSettings, updates: PartialAppSettings): AppSettings {
     const merged = { ...current };
     
     for (const [key, value] of Object.entries(updates)) {

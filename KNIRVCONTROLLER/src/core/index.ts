@@ -3,9 +3,10 @@
  * Backend-only WASM compilation pipeline for LoRA adapter processing
  */
 
-import express from 'express';
-import { createServer } from 'http';
-import { WebSocketServer } from 'ws';
+import express, { Request, Response, NextFunction } from 'express';
+import { createServer, Server } from 'http';
+import { WebSocketServer, WebSocket } from 'ws';
+import { IncomingMessage } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -33,7 +34,7 @@ const logger = pino({
 
 class KNIRVCortexBackend {
   private app: express.Application;
-  private server: unknown;
+  private server: Server | undefined;
   private wss: WebSocketServer | null = null;
   public loraEngine!: LoRAAdapterEngine;
   public wasmCompiler!: WASMCompiler;
@@ -170,7 +171,7 @@ class KNIRVCortexBackend {
     });
 
     // Error handling
-    this.app.use((error: unknown, req: unknown, res: unknown, _next: unknown) => {
+    this.app.use((error: unknown, req: Request, res: Response, _next: NextFunction) => {
       logger.error({ error, url: req.url, method: req.method }, 'Unhandled error');
       res.status(500).json({
         success: false,
@@ -192,7 +193,7 @@ class KNIRVCortexBackend {
   private setupWebSocket() {
     this.wss = new WebSocketServer({ server: this.server });
 
-    this.wss.on('connection', (ws, req) => {
+    this.wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
       logger.info({ ip: req.socket.remoteAddress }, 'WebSocket connection established');
 
       ws.on('message', async (message) => {
@@ -221,7 +222,7 @@ class KNIRVCortexBackend {
     });
   }
 
-  private async handleWebSocketMessage(ws: unknown, data: unknown) {
+  private async handleWebSocketMessage(ws: WebSocket, data: any) {
     switch (data.type) {
       case 'lora_compile':
         try {

@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  TrendingUp, 
-  Activity, 
-  Users, 
-  Target, 
-  Clock, 
-  CheckCircle, 
+import {
+  TrendingUp,
+  Activity,
+  Users,
+  Target,
+  Clock,
+  CheckCircle,
   AlertTriangle,
   BarChart3,
-  PieChart,
   Download,
   RefreshCw
 } from 'lucide-react';
@@ -117,15 +116,15 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ isOpen, onClose
 
         {/* Tabs */}
         <div className="flex border-b border-gray-700/50">
-          {[
-            { id: 'overview', label: 'Overview', icon: TrendingUp },
-            { id: 'performance', label: 'Performance', icon: Activity },
-            { id: 'usage', label: 'Usage', icon: Users },
-            { id: 'agents', label: 'Agents', icon: Target }
-          ].map(tab => (
+          {([
+            { id: 'overview' as const, label: 'Overview', icon: TrendingUp },
+            { id: 'performance' as const, label: 'Performance', icon: Activity },
+            { id: 'usage' as const, label: 'Usage', icon: Users },
+            { id: 'agents' as const, label: 'Agents', icon: Target }
+          ] as const).map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id)}
               className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition-all ${
                 activeTab === tab.id
                   ? 'text-blue-400 border-b-2 border-blue-400 bg-blue-500/10'

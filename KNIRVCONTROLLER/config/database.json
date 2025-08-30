@@ -1,0 +1,47 @@
+{
+  "development": {
+    "type": "nebuladb",
+    "filePath": "./data/knirvcontroller-dev.db",
+    "autoload": true,
+    "autosave": true,
+    "autosaveInterval": 4000,
+    "enableFullTextSearch": true,
+    "cacheSettings": {
+      "userProfileCacheTTL": 300000,
+      "agentCacheTTL": 600000,
+      "skillCacheTTL": 900000
+    }
+  },
+  "test": {
+    "type": "nebuladb",
+    "filePath": ":memory:",
+    "autoload": false,
+    "autosave": false,
+    "autosaveInterval": 0,
+    "enableFullTextSearch": true,
+    "cacheSettings": {
+      "userProfileCacheTTL": 60000,
+      "agentCacheTTL": 60000,
+      "skillCacheTTL": 60000
+    }
+  },
+  "production": {
+    "type": "nebuladb",
+    "filePath": "./data/knirvcontroller.db",
+    "autoload": true,
+    "autosave": true,
+    "autosaveInterval": 2000,
+    "enableFullTextSearch": true,
+    "backup": {
+      "enabled": true,
+      "interval": "0 2 * * *",
+      "retentionDays": 30,
+      "path": "./data/backups"
+    },
+    "cacheSettings": {
+      "userProfileCacheTTL": 300000,
+      "agentCacheTTL": 600000,
+      "skillCacheTTL": 900000
+    }
+  }
+}

@@ -1,24 +1,20 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { Eye, EyeOff} from 'lucide-react';
+import { Eye, EyeOff, Zap } from 'lucide-react';
+import { VisualFrame, DetectedObject as SensoryDetectedObject, ProcessingMetrics } from '../types/sensory';
 
 interface VisualProcessorProps {
   onVisualData: (data: ImageData) => void;
-  onObjectDetection: (objects: DetectedObject[]) => void;
+  onObjectDetection: (objects: SensoryDetectedObject[]) => void;
   isActive: boolean;
 }
 
-interface DetectedObject {
-  id: string;
-  type: string;
-  confidence: number;
-  boundingBox: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
-  features: number[];
+interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
+
 
 interface ProcessingStats {
   fps: number;
@@ -26,20 +22,116 @@ interface ProcessingStats {
   processingTime: number;
 }
 
-export default function VisualProcessor({ onVisualData, onObjectDetection, isActive }: VisualProcessorProps) {
+function VisualProcessor({ onVisualData, onObjectDetection, isActive }: VisualProcessorProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [detectedObjects, setDetectedObjects] = useState<DetectedObject[]>([]);
+  const [detectedObjects, setDetectedObjects] = useState<SensoryDetectedObject[]>([]);
   const [stats, setStats] = useState<ProcessingStats>({ fps: 0, objectCount: 0, processingTime: 0 });
   const [error, setError] = useState<string | null>(null);
   const [useWebGL, setUseWebGL] = useState(true);
+  // const [currentFrame, setCurrentFrame] = useState<ImageData | null>(null);
   
   const animationFrameRef = useRef<number | undefined>(undefined);
   const lastFrameTimeRef = useRef<number>(0);
   const frameCountRef = useRef<number>(0);
+
+  console.log('Detected Objects:', detectedObjects); // Added usage
+  console.log('Processing Stats:', stats); // Added usage
+  console.log('Last Frame Time Ref:', lastFrameTimeRef.current); // Added usage
+  console.log('Frame Count Ref:', frameCountRef.current); // Added usage
+
+  const stopProcessing = useCallback(() => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+
+    setIsProcessing(false);
+    // setCurrentFrame(null);
+  }, [stream]);
+
+  const initializeCamera = useCallback(async () => {
+    try {
+      setError(null);
+
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user'
+        }
+      });
+
+      setStream(mediaStream);
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+        videoRef.current.play();
+      }
+
+      setIsProcessing(true);
+      processVideoFrame();
+
+    } catch (error) {
+      console.error('Failed to initialize camera:', error);
+      setError('Failed to access camera. Please check permissions.');
+    }
+  }, []);
+
+  const processVideoFrame = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current || !isProcessing) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) return;
+
+    // Capture frame
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    // setCurrentFrame(imageData);
+
+    // Process frame for object detection
+    const objects = detectObjects(imageData);
+    setDetectedObjects(objects);
+
+    // Call callbacks
+    onVisualData(imageData);
+    onObjectDetection(objects);
+
+    // Schedule next frame
+    if (isProcessing) {
+      animationFrameRef.current = requestAnimationFrame(processVideoFrame);
+    }
+  }, [isProcessing, onVisualData, onObjectDetection, setDetectedObjects, setStats]);
+
+  const detectObjects = useCallback((imageData: ImageData): SensoryDetectedObject[] => {
+    // Simple object detection using edge detection and blob analysis
+    const { data, width, height } = imageData;
+    const binary = new Uint8Array(width * height);
+
+    // Convert to grayscale and apply edge detection
+    for (let i = 0; i < data.length; i += 4) {
+      const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+      binary[i / 4] = gray > 128 ? 255 : 0;
+    }
+
+    // Find connected components (blobs)
+    const objects = performObjectDetection(imageData);
+
+    return objects;
+  }, [setDetectedObjects]);
 
   useEffect(() => {
     if (isActive) {
@@ -53,94 +145,69 @@ export default function VisualProcessor({ onVisualData, onObjectDetection, isAct
     };
   }, [isActive, initializeCamera, stopProcessing]);
 
-  const initializeCamera = useCallback(async () => {
-    try {
-      setError(null);
-      
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-          facingMode: 'environment' // Use back camera on mobile
-        }
-      });
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play();
-          startProcessing();
-        };
-      }
 
-      setStream(mediaStream);
-    } catch (err) {
-      console.error('Failed to initialize camera:', err);
-      setError('Failed to access camera. Please check permissions.');
-    }
-  }, [onVisualData, onObjectDetection]);
-
-  const startProcessing = () => {
+  /* const startProcessing = () => {
     if (!videoRef.current || !canvasRef.current) return;
 
     setIsProcessing(true);
     processFrame();
-  };
+  }; */
 
-  const processFrame = () => {
-    if (!isActive || !videoRef.current || !canvasRef.current || !overlayCanvasRef.current) {
-      return;
-    }
+  // const processFrame = () => {
+  //   if (!isActive || !videoRef.current || !canvasRef.current || !overlayCanvasRef.current) {
+  //     return;
+  //   }
 
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const overlayCanvas = overlayCanvasRef.current;
-    const ctx = canvas.getContext('2d');
-    const overlayCtx = overlayCanvas.getContext('2d');
+  //   const video = videoRef.current;
+  //   const canvas = canvasRef.current;
+  //   const overlayCanvas = overlayCanvasRef.current;
+  //   const ctx = canvas.getContext('2d');
+  //   const overlayCtx = overlayCanvas.getContext('2d');
 
-    if (!ctx || !overlayCtx) return;
+  //   if (!ctx || !overlayCtx) return;
 
-    const startTime = performance.now();
+  //   const startTime = performance.now();
 
-    // Set canvas dimensions to match video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    overlayCanvas.width = video.videoWidth;
-    overlayCanvas.height = video.videoHeight;
+  //   // Set canvas dimensions to match video
+  //   canvas.width = video.videoWidth;
+  //   canvas.height = video.videoHeight;
+  //   overlayCanvas.width = video.videoWidth;
+  //   overlayCanvas.height = video.videoHeight;
 
-    // Draw current frame to canvas
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  //   // Draw current frame to canvas
+  //   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // Get image data for processing
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  //   // Get image data for processing
+  //   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     
-    // Process visual data
-    if (useWebGL) {
-      processWithWebGL(imageData);
-    } else {
-      processWithCanvas(imageData);
-    }
+  //   // Process visual data
+  //   if (useWebGL) {
+  //     processWithWebGL(imageData);
+  //   } else {
+  //     processWithCanvas(imageData);
+  //   }
 
-    // Send image data to parent component
-    onVisualData(imageData);
+  //   // Send image data to parent component
+  //   onVisualData(imageData);
 
-    // Perform object detection (simplified)
-    const objects = performObjectDetection(imageData);
-    setDetectedObjects(objects);
-    onObjectDetection(objects);
+  //   // Perform object detection (simplified)
+  //   const objects = performObjectDetection(imageData);
+  //   setDetectedObjects(objects);
+  //   onObjectDetection(objects);
 
-    // Draw detection overlays
-    drawDetectionOverlays(overlayCtx, objects);
+  //   // Draw detection overlays
+  //   drawDetectionOverlays(overlayCtx, objects);
 
-    // Update stats
-    const processingTime = performance.now() - startTime;
-    updateStats(processingTime);
+  //   // Update stats
+  //   const processingTime = performance.now() - startTime;
+  //   updateStats(processingTime);
 
-    // Continue processing
-    animationFrameRef.current = requestAnimationFrame(processFrame);
-  };
+  //   // Continue processing
+  //   animationFrameRef.current = requestAnimationFrame(processFrame);
+  // };
 
-  const processWithWebGL = (imageData: ImageData) => {
+  /* const processWithWebGL = (imageData: ImageData) => {
     // WebGL-based image processing for better performance
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -172,32 +239,32 @@ export default function VisualProcessor({ onVisualData, onObjectDetection, isAct
     // Note: Full shader compilation would be implemented here
     // For now, we'll just use the texture for basic processing
     console.log('WebGL processing applied to texture');
-  };
+  }; */
 
-  const processWithCanvas = (imageData: ImageData) => {
+  /* const processWithCanvas = (imageData: ImageData) => {
     // Canvas 2D-based image processing
     const data = imageData.data;
-    
+
     // Apply simple edge detection filter
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i];
       const g = data[i + 1];
       const b = data[i + 2];
-      
+
       // Convert to grayscale and enhance edges
       const gray = 0.299 * r + 0.587 * g + 0.114 * b;
       const enhanced = Math.min(255, gray * 1.2);
-      
+
       data[i] = enhanced;     // R
       data[i + 1] = enhanced; // G
       data[i + 2] = enhanced; // B
       // Alpha channel remains unchanged
     }
-  };
+  }; */
 
-  const performObjectDetection = (imageData: ImageData): DetectedObject[] => {
+  const performObjectDetection = (imageData: ImageData): SensoryDetectedObject[] => {
     // Simplified object detection using basic computer vision techniques
-    const objects: DetectedObject[] = [];
+    const objects: SensoryDetectedObject[] = [];
     const data = imageData.data;
     const width = imageData.width;
     const height = imageData.height;
@@ -221,7 +288,7 @@ export default function VisualProcessor({ onVisualData, onObjectDetection, isAct
       for (let x = 0; x < width; x++) {
         const index = y * width + x;
         
-        if (binary[index] === 255 && !visited.has(_index)) {
+        if (binary[index] === 255 && !visited.has(index)) {
           const blob = floodFill(binary, width, height, x, y, visited);
           
           if (blob.length > minBlobSize) {
@@ -231,6 +298,7 @@ export default function VisualProcessor({ onVisualData, onObjectDetection, isAct
             objects.push({
               id: `obj_${objectId++}`,
               type: classifyObject(features),
+              label: classifyObject(features),
               confidence: Math.random() * 0.5 + 0.5, // Mock confidence
               boundingBox,
               features
@@ -251,12 +319,12 @@ export default function VisualProcessor({ onVisualData, onObjectDetection, isAct
       const { x, y } = stack.pop()!;
       const index = y * width + x;
 
-      if (x < 0 || x >= width || y < 0 || y >= height || visited.has(_index) || binary[index] === 0) {
+      if (x < 0 || x >= width || y < 0 || y >= height || visited.has(index) || binary[index] === 0) {
         continue;
       }
 
-      visited.add(_index);
-      blob.push(_index);
+      visited.add(index);
+      blob.push(index);
 
       // Add neighbors
       stack.push({ x: x + 1, y }, { x: x - 1, y }, { x, y: y + 1 }, { x, y: y - 1 });
@@ -286,7 +354,7 @@ export default function VisualProcessor({ onVisualData, onObjectDetection, isAct
     };
   };
 
-  const extractFeatures = (blob: number[], boundingBox: unknown): number[] => {
+  const extractFeatures = (blob: number[], boundingBox: BoundingBox): number[] => {
     // Extract simple features: area, aspect ratio, compactness
     const area = blob.length;
     const aspectRatio = boundingBox.width / boundingBox.height;
@@ -305,28 +373,28 @@ export default function VisualProcessor({ onVisualData, onObjectDetection, isAct
     return 'unknown';
   };
 
-  const drawDetectionOverlays = (ctx: CanvasRenderingContext2D, objects: DetectedObject[]) => {
+  /* const drawDetectionOverlays = (ctx: CanvasRenderingContext2D, objects: SensoryDetectedObject[]) => {
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    
-    objects.forEach((obj, _index) => {
+
+    objects.forEach((obj, index) => {
       const { x, y, width, height } = obj.boundingBox;
-      
+
       // Draw bounding box
       ctx.strokeStyle = `hsl(${(index * 60) % 360}, 70%, 50%)`;
       ctx.lineWidth = 2;
       ctx.strokeRect(x, y, width, height);
-      
+
       // Draw label
       ctx.fillStyle = ctx.strokeStyle;
       ctx.font = '12px Arial';
       ctx.fillText(`${obj.type} (${(obj.confidence * 100).toFixed(0)}%)`, x, y - 5);
     });
-  };
+  }; */
 
-  const updateStats = (processingTime: number) => {
+  /* const updateStats = (processingTime: number) => {
     const now = performance.now();
     frameCountRef.current++;
-    
+
     if (now - lastFrameTimeRef.current >= 1000) {
       const fps = frameCountRef.current;
       setStats({
@@ -334,25 +402,13 @@ export default function VisualProcessor({ onVisualData, onObjectDetection, isAct
         objectCount: detectedObjects.length,
         processingTime: Math.round(processingTime)
       });
-      
+
       frameCountRef.current = 0;
       lastFrameTimeRef.current = now;
     }
-  };
+  }; */
 
-  const stopProcessing = useCallback(() => {
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
-    
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-    
-    setIsProcessing(false);
-    setDetectedObjects([]);
-  }, [stream]);
+
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-4 m-4">
@@ -413,4 +469,7 @@ export default function VisualProcessor({ onVisualData, onObjectDetection, isAct
       )}
     </div>
   );
-}
+};
+
+export default VisualProcessor;
+

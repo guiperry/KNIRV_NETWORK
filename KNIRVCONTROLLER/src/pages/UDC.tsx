@@ -1,4 +1,4 @@
-import { Shield, Key, CheckCircle, AlertTriangle, RefreshCw, Wallet} from 'lucide-react';
+import { Shield, Key, CheckCircle, AlertTriangle, RefreshCw, Wallet, Clock, Zap} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { SlidingPanel } from '@components/SlidingPanel';
@@ -26,18 +26,48 @@ export default function UDC() {
     {
       id: 'agent-1',
       name: 'CodeT5-Alpha',
-      type: 'KNIRV-CORTEX',
-      status: 'Available',
+      type: 'wasm' as const,
+      status: 'Available' as const,
       specialization: ['code-generation', 'optimization'],
-      nrnCost: 85
+      nrnCost: 85,
+      capabilities: ['code-generation', 'optimization'],
+      metadata: {
+        name: 'CodeT5-Alpha',
+        version: '1.0.0',
+        description: 'Code generation and optimization agent',
+        author: 'KNIRV Labs',
+        capabilities: ['code-generation', 'optimization'],
+        requirements: {
+          memory: 256,
+          cpu: 2,
+          storage: 1024
+        },
+        permissions: ['execute', 'read', 'write']
+      },
+      createdAt: new Date('2024-01-01')
     },
     {
       id: 'agent-2',
       name: 'SEAL-Beta',
-      type: 'KNIRVANA',
-      status: 'Available',
+      type: 'wasm' as const,
+      status: 'Available' as const,
       specialization: ['learning', 'adaptation'],
-      nrnCost: 90
+      nrnCost: 90,
+      capabilities: ['learning', 'adaptation'],
+      metadata: {
+        name: 'SEAL-Beta',
+        version: '1.0.0',
+        description: 'Learning and adaptation agent',
+        author: 'KNIRV Labs',
+        capabilities: ['learning', 'adaptation'],
+        requirements: {
+          memory: 512,
+          cpu: 4,
+          storage: 2048
+        },
+        permissions: ['execute', 'read', 'write']
+      },
+      createdAt: new Date('2024-01-02')
     }
   ]);
 
@@ -114,16 +144,16 @@ export default function UDC() {
   };
 
   const handleCognitiveStateChange = (state: unknown) => {
-    setCognitiveState(state);
-    setCognitiveMode(state.status === 'active' || state.status === 'learning');
+    // This function is called by CognitiveShellInterface but we don't need to store the state
+    console.log('Cognitive state changed:', state);
   };
 
   const handleSkillInvoked = (skillId: string, result: unknown) => {
     console.log('Skill invoked:', skillId, result);
   };
 
-  const handleAdaptationTriggered = (adaptationType: string) => {
-    console.log('Adaptation triggered:', adaptationType);
+  const handleAdaptationTriggered = (adaptation: unknown) => {
+    console.log('Adaptation triggered:', adaptation);
   };
 
   const handleAgentAssignment = (nrv: unknown, agent: unknown) => {
@@ -131,7 +161,13 @@ export default function UDC() {
   };
 
   // Burger Menu Component
-  const BurgerMenu = ({ isOpen, onToggle, children }) => {
+  interface BurgerMenuProps {
+    isOpen: boolean;
+    onToggle: () => void;
+    children: React.ReactNode;
+  }
+  
+  const BurgerMenu = ({ isOpen, onToggle, children }: BurgerMenuProps) => {
     return (
       <div className="relative">
         {/* Burger Button */}
@@ -158,7 +194,13 @@ export default function UDC() {
   };
 
   // Menu Item Component
-  const MenuItem = ({ onClick, icon, children }) => {
+  interface MenuItemProps {
+    onClick: () => void;
+    icon: React.ReactNode;
+    children: React.ReactNode;
+  }
+  
+  const MenuItem = ({ onClick, icon, children }: MenuItemProps) => {
     return (
       <button
         onClick={onClick}
@@ -258,7 +300,7 @@ export default function UDC() {
           <div>
             <h3 className="text-lg font-semibold text-white mb-4">Granted Permissions</h3>
             <div className="space-y-3">
-              {udc.permissions.map((permission, _index) => (
+              {udc.permissions.map((permission, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-gray-800/80 border border-gray-600/50 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-500/20">

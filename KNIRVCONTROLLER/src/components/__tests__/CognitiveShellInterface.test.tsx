@@ -5,8 +5,9 @@ import '@testing-library/jest-dom';
 import { CognitiveShellInterface } from '../CognitiveShellInterface';
 
 // Mock CognitiveEngine to prevent hanging issues
+import { EventEmitter } from 'events';
+
 jest.mock('../../sensory-shell/CognitiveEngine', () => {
-  const { EventEmitter } = require('events');
 
   class MockCognitiveEngine extends EventEmitter {
     private isRunning = false;
@@ -89,11 +90,14 @@ jest.mock('../Terminal', () => {
     return (
       <div data-testid="terminal">
         <div data-testid="terminal-history">
-          {history.map((entry: unknown, mockIndex: number) => (
-            <div key={mockIndex} data-testid={`history-${mockIndex}`}>
-              {entry.input} → {entry.output}
-            </div>
-          ))}
+          {history.map((entry: unknown, mockIndex: number) => {
+            const historyEntry = entry as { input: string; output: string };
+            return (
+              <div key={mockIndex} data-testid={`history-${mockIndex}`}>
+                {historyEntry.input} → {historyEntry.output}
+              </div>
+            );
+          })}
         </div>
         <input
           data-testid="terminal-input"

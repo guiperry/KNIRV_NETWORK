@@ -91,30 +91,49 @@ export interface UDCValidationResult {
   };
 }
 
+export interface UDCManagementConfig {
+  baseUrl?: string;
+  enableNetworking?: boolean;
+  enableMonitoring?: boolean;
+}
+
 export class UDCManagementService {
   private udcs: Map<string, UDC> = new Map();
   private baseUrl: string;
   private signingKey: string;
   private isInitialized: boolean = false;
+  private config: UDCManagementConfig;
 
-  constructor(baseUrl: string = 'http://localhost:3001') {
-    this.baseUrl = baseUrl;
+  constructor(config: UDCManagementConfig = {}) {
+    this.config = {
+      baseUrl: 'http://localhost:3001',
+      enableNetworking: process.env.NODE_ENV !== 'test',
+      enableMonitoring: process.env.NODE_ENV !== 'test',
+      ...config
+    };
+    this.baseUrl = this.config.baseUrl!;
     this.signingKey = this.generateSigningKey();
     this.initializeService();
   }
 
   private async initializeService(): Promise<void> {
     try {
-      // Load existing UDCs from backend
-      await this.loadUDCs();
-      
-      // Start renewal monitoring
-      this.startRenewalMonitoring();
-      
+      // Load existing UDCs from backend only if networking is enabled
+      if (this.config.enableNetworking) {
+        await this.loadUDCs();
+      }
+
+      // Start renewal monitoring only if monitoring is enabled
+      if (this.config.enableMonitoring) {
+        this.startRenewalMonitoring();
+      }
+
       this.isInitialized = true;
       console.log('UDC Management Service initialized');
     } catch (error) {
       console.error('Failed to initialize UDC Management Service:', error);
+      // Continue with empty state if backend is unavailable
+      this.isInitialized = true;
     }
   }
 
@@ -258,10 +277,10 @@ export class UDCManagementService {
     };
 
     if (!isValid) {
-      if (!securityChecks.signature) result.reason = 'Invalid signature';
+      if (udc.status !== 'active') result.reason = `UDC status: ${udc.status}`;
       else if (!securityChecks.expiry) result.reason = 'UDC expired';
+      else if (!securityChecks.signature) result.reason = 'Invalid signature';
       else if (!securityChecks.constraints) result.reason = 'Constraint violation';
-      else if (udc.status !== 'active') result.reason = `UDC status: ${udc.status}`;
     }
 
     // Add usage quota information
@@ -385,6 +404,11 @@ export class UDCManagementService {
   }
 
   private async saveUDCToBackend(udc: UDC): Promise<void> {
+    // Only save to backend if networking is enabled
+    if (!this.config.enableNetworking) {
+      return;
+    }
+
     try {
       await fetch(`${this.baseUrl}/api/udc/save`, {
         method: 'POST',
@@ -395,6 +419,8 @@ export class UDCManagementService {
       });
     } catch (error) {
       console.error('Failed to save UDC to backend:', error);
+      // Re-throw the error so it can be handled by the calling method
+      throw error;
     }
   }
 
@@ -418,7 +444,7 @@ export class UDCManagementService {
     }
   }
 
-  private checkConstraints(udc: UDC, action?: string): boolean {
+  private checkConstraints(udc: UDC, _action?: string): boolean {
     const now = new Date();
     const constraints = udc.metadata.constraints;
 
@@ -444,11 +470,21 @@ export class UDCManagementService {
   private async generateSignature(udc: UDC): Promise<string> {
     // Simple signature generation - would use proper cryptographic signing in production
     const data = `${udc.id}:${udc.agentId}:${udc.expiresDate.toISOString()}:${udc.authorityLevel}`;
-    const encoder = new TextEncoder();
-    const dataBuffer = encoder.encode(data + this.signingKey);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    const dataToHash = data + this.signingKey;
+
+    try {
+      // Use Node.js crypto directly for better compatibility
+      const { createHash } = await import('crypto');
+      const hash = createHash('sha256');
+      hash.update(dataToHash, 'utf8');
+      return hash.digest('hex');
+    } catch (error) {
+      console.error('Error generating signature:', error);
+      // Fallback to a simple hash if crypto fails
+      const { createHash: createHashFallback } = await import('crypto');
+      const simpleHash = createHashFallback('md5').update(dataToHash, 'utf8').digest('hex');
+      return simpleHash;
+    }
   }
 
   private async verifySignature(udc: UDC): Promise<boolean> {

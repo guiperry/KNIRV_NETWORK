@@ -229,14 +229,14 @@ export class FabricAlgorithm extends EventEmitter {
 
     // Use L-module activations to guide sensory attention
     if (hrmOutput.l_module_activations) {
-      hrmOutput.l_module_activations.forEach((activation: number, _index: number) => {
+      hrmOutput.l_module_activations.forEach((activation: number, index: number) => {
         hrmGuidedWeights.set(`l_module_${index}`, activation);
       });
     }
 
     // Use H-module activations to guide planning attention
     if (hrmOutput.h_module_activations) {
-      hrmOutput.h_module_activations.forEach((activation: number, _index: number) => {
+      hrmOutput.h_module_activations.forEach((activation: number, index: number) => {
         hrmGuidedWeights.set(`h_module_${index}`, activation);
       });
     }

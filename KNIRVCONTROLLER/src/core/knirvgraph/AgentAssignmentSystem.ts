@@ -202,7 +202,12 @@ export class AgentAssignmentSystem {
   /**
    * Find suitable agents for cluster requirements
    */
-  private findSuitableAgents(requirements: unknown, maxAgents: number): Agent[] {
+  private findSuitableAgents(requirements: {
+    requiredExpertise: string[];
+    difficultyLevel: number;
+    estimatedEffort: number;
+    preferredSpecializations: string[];
+  }, maxAgents: number): Agent[] {
     const allAgents = Array.from(this.agents.values());
     
     // Score agents based on suitability

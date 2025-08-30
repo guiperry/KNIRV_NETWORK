@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Bot, Shield, Users, Coins, Activity, Upload} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bot, Shield, Users, Coins, Activity, Upload, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { NRV } from '../App';
 import { agentManagementService, Agent, AgentUploadRequest, AgentDeploymentRequest } from '../services/AgentManagementService';
@@ -16,19 +16,19 @@ interface AgentManagerProps {
 }
 
 export const AgentManager: React.FC<AgentManagerProps> = ({
-  agents: legacyAgents = [],
+  agents: _legacyAgents = [],
   nrvs,
   selectedNRV,
   onAgentAssignment,
   nrnBalance,
-  cognitiveEngine
+  cognitiveEngine: _cognitiveEngine
 }) => {
   const navigate = useNavigate();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [deployedAgents, setDeployedAgents] = useState<Agent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [uploadingAgent, setUploadingAgent] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [, setSelectedFile] = useState<File | null>(null);
 
   // Load agents from AgentManagementService
   useEffect(() => {
@@ -37,11 +37,11 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
         setIsLoading(true);
 
         // Load available agents
-        const availableAgents = agentManagementService.getAgents();
+        const availableAgents = await agentManagementService.getAgents();
         setAgents(availableAgents);
 
         // Load deployed agents
-        const deployedAgentsList = agentManagementService.getDeployedAgents();
+        const deployedAgentsList = await agentManagementService.getDeployedAgents();
         setDeployedAgents(deployedAgentsList);
 
         console.log('Agents loaded:', availableAgents.length, 'available,', deployedAgentsList.length, 'deployed');
@@ -91,7 +91,7 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
       const newAgent = await agentManagementService.uploadAgent(uploadRequest);
 
       // Refresh agents list
-      const updatedAgents = agentManagementService.getAgents();
+      const updatedAgents = await agentManagementService.getAgents();
       setAgents(updatedAgents);
 
       console.log('Agent uploaded successfully:', newAgent);
@@ -135,7 +135,7 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
       const deploymentId = await agentManagementService.deployAgent(deploymentRequest);
 
       // Refresh deployed agents list
-      const updatedDeployedAgents = agentManagementService.getDeployedAgents();
+      const updatedDeployedAgents = await agentManagementService.getDeployedAgents();
       setDeployedAgents(updatedDeployedAgents);
 
       console.log('Agent deployed successfully:', deploymentId);

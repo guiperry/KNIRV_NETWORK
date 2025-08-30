@@ -444,9 +444,9 @@ export class TaskSchedulingService {
       case 'once':
         return schedule.startTime > now ? schedule.startTime : undefined;
       
-      case 'recurring':
+      case 'recurring': {
         if (!schedule.interval) return undefined;
-        
+
         let nextRun = new Date(schedule.startTime);
         while (nextRun <= now) {
           nextRun = new Date(nextRun.getTime() + schedule.interval);
@@ -457,7 +457,7 @@ export class TaskSchedulingService {
         }
         
         return nextRun;
-      
+      }
       case 'cron':
         // Simple cron implementation - would use a proper cron library in production
         return this.calculateCronNextRun(schedule.cronExpression!, now);
@@ -477,13 +477,10 @@ export class TaskSchedulingService {
     switch (action.type) {
       case 'api_call':
         return await this.executeApiCall(action);
-      
       case 'agent_invoke':
         return await this.executeAgentInvoke(action);
-      
       case 'system_command':
         return await this.executeSystemCommand(action);
-      
       case 'workflow':
         return await this.executeWorkflowAction(action);
       

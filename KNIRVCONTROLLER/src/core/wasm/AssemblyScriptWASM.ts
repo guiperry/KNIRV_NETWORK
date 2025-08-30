@@ -52,7 +52,7 @@ export class AssemblyScriptWASMLoader {
 
       // Instantiate WASM module
       this.wasmInstance = await WebAssembly.instantiate(this.wasmModule, imports);
-      this.wasmExports = this.wasmInstance.exports as AssemblyScriptWASMModule;
+      this.wasmExports = this.wasmInstance.exports as unknown as AssemblyScriptWASMModule;
 
       // Initialize the WASM module
       if (this.wasmExports.wasmInit) {
@@ -113,8 +113,8 @@ export class AssemblyScriptWASMLoader {
         },
 
         // Math functions (if needed)
-        Math: Math,
-        Date: Date,
+        Math: Math as any,
+        Date: Date as any,
       }
     };
   }

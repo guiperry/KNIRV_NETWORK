@@ -67,7 +67,7 @@ export class TemplateExporter {
       await fs.writeFile(destPath, content);
       logger.debug(`Copied: ${path.basename(srcPath)}`);
     } catch (error) {
-      logger.error(`Failed to copy ${srcPath} to ${destPath}:`, error);
+      logger.error(`Failed to copy ${srcPath} to ${destPath}: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
   }
@@ -161,7 +161,7 @@ export class TemplateExporter {
       }
 
     } catch (error) {
-      logger.error('Template export failed:', error);
+      logger.error(`Template export failed: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
   }

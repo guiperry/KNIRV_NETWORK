@@ -40,6 +40,20 @@ export interface SkillResult {
   executionTime?: number;
 }
 
+export interface SkillResult {
+  success: boolean;
+  output?: unknown;
+  error?: string;
+  executionTime?: number;
+}
+
+export interface Adaptation {
+  type: string;
+  parameters: Record<string, unknown>;
+  timestamp: Date;
+  confidence: number;
+}
+
 export interface NRV {
   id: string;
   problemDescription: string;
@@ -60,15 +74,40 @@ export interface NRV {
 export interface Agent {
   id: string;
   name: string;
-  type: 'KNIRV-CORTEX' | 'KNIRVANA' | 'DVE';
-  status: 'Available' | 'Busy' | 'Offline';
-  specialization: string[];
+  type: 'wasm' | 'lora' | 'hybrid';
+  status: 'Available' | 'Deployed' | 'Error' | 'Compiling';
   nrnCost: number;
+  capabilities: string[];
+  metadata: {
+    name: string;
+    version: string;
+    description: string;
+    author: string;
+    capabilities: string[];
+    requirements: {
+      memory: number;
+      cpu: number;
+      storage: number;
+    };
+    permissions: string[];
+  };
+  wasmModule?: WebAssembly.Module;
+  loraAdapter?: string;
+  createdAt: Date;
+  lastActivity?: Date;
+  // Legacy compatibility
+  specialization?: string[];
 }
 
 
 // Burger Menu Component
-const BurgerMenu = ({ isOpen, onToggle, children }) => {
+interface BurgerMenuProps {
+  isOpen: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}
+
+const BurgerMenu: React.FC<BurgerMenuProps> = ({ isOpen, onToggle, children }) => {
   return (
     <div className="relative">
       {/* Burger Button */}
@@ -76,6 +115,7 @@ const BurgerMenu = ({ isOpen, onToggle, children }) => {
         onClick={onToggle}
         className="bg-gray-800/80 hover:bg-gray-700/80 text-white p-3 rounded-lg shadow-lg transition-all duration-200 border border-gray-600/50 backdrop-blur-sm"
         aria-label="Navigation menu"
+        data-testid="burger-menu"
       >
         <div className="w-5 h-5 flex flex-col justify-center items-center">
           <div className={`w-5 h-0.5 bg-white transition-all duration-300 ${isOpen ? 'rotate-45 translate-y-1' : ''}`}></div>
@@ -86,7 +126,7 @@ const BurgerMenu = ({ isOpen, onToggle, children }) => {
 
       {/* Menu Dropdown */}
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 bg-gray-800/90 backdrop-blur-sm border border-gray-600/50 rounded-lg shadow-xl min-w-48 z-50">
+        <div className="absolute top-full right-0 mt-2 bg-gray-800/90 backdrop-blur-sm border border-gray-600/50 rounded-lg shadow-xl min-w-48 z-50" data-testid="burger-menu-content">
           <div className="p-2 space-y-1">
             {children}
           </div>
@@ -97,7 +137,14 @@ const BurgerMenu = ({ isOpen, onToggle, children }) => {
 };
 
 // Menu Item Component
-const MenuItem = ({ onClick, children, icon, className = '' }) => {
+interface MenuItemProps {
+  onClick: () => void;
+  children: React.ReactNode;
+  icon: string;
+  className?: string;
+}
+
+const MenuItem: React.FC<MenuItemProps> = ({ onClick, children, icon, className = '' }) => {
   return (
     <button
       onClick={onClick}
@@ -139,26 +186,59 @@ const ReceiverInterface = () => {
       {
         id: 'agent-1',
         name: 'System Diagnostics Agent',
-        type: 'KNIRV-CORTEX',
+        type: 'wasm',
         status: 'Available',
+        capabilities: ['error-detection', 'system-analysis'],
         specialization: ['error-detection', 'system-analysis'],
-        nrnCost: 50
+        nrnCost: 50,
+        metadata: {
+          name: 'System Diagnostics Agent',
+          version: '1.0.0',
+          description: 'Advanced system diagnostics and error detection',
+          author: 'KNIRV Network',
+          capabilities: ['error-detection', 'system-analysis'],
+          requirements: { memory: 256, cpu: 1, storage: 50 },
+          permissions: ['read', 'analyze']
+        },
+        createdAt: new Date()
       },
       {
-        id: 'agent-2', 
+        id: 'agent-2',
         name: 'UI/UX Optimization Agent',
-        type: 'KNIRVANA',
+        type: 'lora',
         status: 'Available',
+        capabilities: ['interface-design', 'user-experience'],
         specialization: ['interface-design', 'user-experience'],
-        nrnCost: 75
+        nrnCost: 75,
+        metadata: {
+          name: 'UI/UX Optimization Agent',
+          version: '1.0.0',
+          description: 'User interface and experience optimization specialist',
+          author: 'KNIRV Network',
+          capabilities: ['interface-design', 'user-experience'],
+          requirements: { memory: 512, cpu: 2, storage: 100 },
+          permissions: ['read', 'write', 'design']
+        },
+        createdAt: new Date()
       },
       {
         id: 'agent-3',
         name: 'Network Security Agent',
-        type: 'DVE',
-        status: 'Busy',
+        type: 'hybrid',
+        status: 'Deployed',
+        capabilities: ['security-analysis', 'threat-detection'],
         specialization: ['security-analysis', 'threat-detection'],
-        nrnCost: 100
+        nrnCost: 100,
+        metadata: {
+          name: 'Network Security Agent',
+          version: '1.0.0',
+          description: 'Network security analysis and threat detection system',
+          author: 'KNIRV Network',
+          capabilities: ['security-analysis', 'threat-detection'],
+          requirements: { memory: 1024, cpu: 4, storage: 200 },
+          permissions: ['admin', 'security', 'monitor']
+        },
+        createdAt: new Date()
       }
     ];
     setAvailableAgents(mockAgents);
@@ -291,7 +371,7 @@ const ReceiverInterface = () => {
         n.id === nrv.id ? { ...n, status: 'Assigned' } : n
       ));
       setAvailableAgents(prev => prev.map(a =>
-        a.id === agent.id ? { ...a, status: 'Busy' } : a
+        a.id === agent.id ? { ...a, status: 'Deployed' } : a
       ));
 
       setTimeout(() => {
@@ -321,8 +401,9 @@ const ReceiverInterface = () => {
     setCognitiveMode(state.activeSkills.length > 0 || state.confidenceLevel > 0.5);
   };
 
-  const handleSkillInvoked = (skillId: string, result: SkillResult) => {
-    console.log('Skill invoked:', skillId, result);
+  const handleSkillInvoked = (skillId: string, result: unknown) => {
+    const skillResult = result as SkillResult;
+    console.log('Skill invoked:', skillId, skillResult);
 
     const newNRV: NRV = {
       id: `nrv-skill-${Date.now()}`,
@@ -337,8 +418,9 @@ const ReceiverInterface = () => {
     setCurrentNRVs(prev => [...prev, newNRV]);
   };
 
-  const handleAdaptationTriggered = (adaptation: Adaptation) => {
-    console.log('Adaptation triggered:', adaptation);
+  const handleAdaptationTriggered = (adaptation: unknown) => {
+    const adaptationData = adaptation as Adaptation;
+    console.log('Adaptation triggered:', adaptationData);
     setShellStatus('processing');
 
     setTimeout(() => {
@@ -621,42 +703,7 @@ const AgentProfile = () => {
     setMenuOpen(false);
   };
 
-  // Burger Menu Component
-  const BurgerMenu = ({ isOpen, onToggle, children }) => {
-    return (
-      <div className="relative">
-        <button
-          onClick={onToggle}
-          className="bg-gray-800/80 hover:bg-gray-700/80 text-white p-3 rounded-lg shadow-lg transition-all duration-200 border border-gray-600/50 backdrop-blur-sm"
-          aria-label="Navigation menu"
-        >
-          <div className="w-5 h-5 flex flex-col justify-center items-center">
-            <div className={`w-5 h-0.5 bg-white transition-all duration-300 ${isOpen ? 'rotate-45 translate-y-1' : ''}`}></div>
-            <div className={`w-5 h-0.5 bg-white transition-all duration-300 mt-1 ${isOpen ? 'opacity-0' : ''}`}></div>
-            <div className={`w-5 h-0.5 bg-white transition-all duration-300 mt-1 ${isOpen ? '-rotate-45 -translate-y-1' : ''}`}></div>
-          </div>
-        </button>
 
-        {isOpen && (
-          <div className="absolute top-full right-0 mt-2 w-64 bg-gray-800/95 backdrop-blur-xl rounded-lg shadow-xl border border-gray-600/50 py-2 z-50">
-            {children}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const MenuItem = ({ onClick, icon, children }) => {
-    return (
-      <button
-        onClick={onClick}
-        className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-gray-700/50 transition-colors text-white"
-      >
-        <span className="text-lg">{icon}</span>
-        <span className="font-medium">{children}</span>
-      </button>
-    );
-  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white relative overflow-hidden">
@@ -737,7 +784,7 @@ const AgentProfile = () => {
           <div className="bg-gray-800/80 border border-gray-600/50 rounded-lg p-6">
             <h3 className="text-lg font-semibold text-white mb-4">Capabilities</h3>
             <div className="grid grid-cols-2 gap-3">
-              {agent.capabilities.map((capability, _index) => (
+              {agent.capabilities.map((capability, index) => (
                 <div key={index} className="bg-gray-700/50 border border-gray-600/30 rounded-lg p-3">
                   <p className="text-white font-medium">{capability}</p>
                 </div>
@@ -768,7 +815,7 @@ const AgentProfile = () => {
           <div className="bg-gray-800/80 border border-gray-600/50 rounded-lg p-6">
             <h3 className="text-lg font-semibold text-white mb-4">Specializations</h3>
             <div className="flex flex-wrap gap-2">
-              {agent.specialization.map((spec, _index) => (
+              {agent.specialization?.map((spec, index) => (
                 <span key={index} className="bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full text-sm">
                   {spec}
                 </span>

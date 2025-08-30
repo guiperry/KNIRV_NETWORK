@@ -1,0 +1,165 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e4]:
+  - button "Navigation menu" [ref=e7] [cursor=pointer]
+  - generic [ref=e13]:
+    - generic [ref=e14]:
+      - heading "Agent Skills" [level=2] [ref=e15]
+      - paragraph [ref=e16]: Manage and configure your AI agent capabilities
+    - generic [ref=e17]:
+      - generic [ref=e18]:
+        - generic [ref=e19]: "3"
+        - generic [ref=e20]: Active Skills
+      - generic [ref=e21]:
+        - generic [ref=e22]: "75"
+        - generic [ref=e23]: NRN/Hour
+      - generic [ref=e24]:
+        - generic [ref=e25]: "6"
+        - generic [ref=e26]: Available
+    - generic [ref=e27]:
+      - generic [ref=e28]:
+        - generic [ref=e29]:
+          - img [ref=e30]
+          - textbox "Search LoRA adapters and skills..." [ref=e33]
+        - combobox [ref=e34]:
+          - option "All Categories" [selected]
+          - option "Analysis"
+          - option "Automation"
+          - option "Computation"
+          - option "Communication"
+        - button [disabled] [ref=e35]:
+          - img [ref=e36]
+      - generic [ref=e39]:
+        - generic [ref=e40]:
+          - img [ref=e41]
+          - generic [ref=e43]: LoRA Network Status
+        - generic [ref=e44]:
+          - generic [ref=e45]: "Adapters: 0"
+          - generic [ref=e46]: "Active: 3"
+          - generic [ref=e47]: "Network Score: 0.00"
+    - generic [ref=e48]:
+      - generic [ref=e52]:
+        - generic [ref=e53]:
+          - generic [ref=e54]:
+            - generic [ref=e55]: 📊
+            - generic [ref=e56]:
+              - heading "Code Analysis" [level=3] [ref=e57]
+              - paragraph [ref=e58]: analysis
+          - generic [ref=e60]: Active
+        - paragraph [ref=e61]: Automated code review and optimization using advanced pattern recognition
+        - generic [ref=e63]:
+          - generic [ref=e64]:
+            - img [ref=e65]
+            - generic [ref=e67]: 8/10
+          - generic [ref=e68]:
+            - img [ref=e69]
+            - generic [ref=e71]: 25 NRN
+        - button "Configure" [ref=e72] [cursor=pointer]:
+          - generic [ref=e73] [cursor=pointer]: Configure
+          - img [ref=e74] [cursor=pointer]
+      - generic [ref=e79]:
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - generic [ref=e82]: ⚙️
+            - generic [ref=e83]:
+              - heading "Task Orchestration" [level=3] [ref=e84]
+              - paragraph [ref=e85]: automation
+          - generic [ref=e87]: Active
+        - paragraph [ref=e88]: Intelligent workflow automation across multiple systems and platforms
+        - generic [ref=e90]:
+          - generic [ref=e91]:
+            - img [ref=e92]
+            - generic [ref=e94]: 7/10
+          - generic [ref=e95]:
+            - img [ref=e96]
+            - generic [ref=e98]: 30 NRN
+        - button "Configure" [ref=e99] [cursor=pointer]:
+          - generic [ref=e100] [cursor=pointer]: Configure
+          - img [ref=e101] [cursor=pointer]
+      - generic [ref=e106]:
+        - generic [ref=e108]:
+          - generic [ref=e109]: 🧠
+          - generic [ref=e110]:
+            - heading "Neural Synthesis" [level=3] [ref=e111]
+            - paragraph [ref=e112]: computation
+        - paragraph [ref=e113]: Advanced data processing and pattern synthesis for complex computations
+        - generic [ref=e115]:
+          - generic [ref=e116]:
+            - img [ref=e117]
+            - generic [ref=e119]: 9/10
+          - generic [ref=e120]:
+            - img [ref=e121]
+            - generic [ref=e123]: 45 NRN
+        - button "Activate" [ref=e124] [cursor=pointer]:
+          - generic [ref=e125] [cursor=pointer]: Activate
+          - img [ref=e126] [cursor=pointer]
+      - generic [ref=e131]:
+        - generic [ref=e132]:
+          - generic [ref=e133]:
+            - generic [ref=e134]: 💬
+            - generic [ref=e135]:
+              - heading "Agent Communication" [level=3] [ref=e136]
+              - paragraph [ref=e137]: communication
+          - generic [ref=e139]: Active
+        - paragraph [ref=e140]: Secure inter-agent messaging and coordination protocols
+        - generic [ref=e142]:
+          - generic [ref=e143]:
+            - img [ref=e144]
+            - generic [ref=e146]: 6/10
+          - generic [ref=e147]:
+            - img [ref=e148]
+            - generic [ref=e150]: 20 NRN
+        - button "Configure" [ref=e151] [cursor=pointer]:
+          - generic [ref=e152] [cursor=pointer]: Configure
+          - img [ref=e153] [cursor=pointer]
+      - generic [ref=e158]:
+        - generic [ref=e160]:
+          - generic [ref=e161]: 📊
+          - generic [ref=e162]:
+            - heading "Predictive Modeling" [level=3] [ref=e163]
+            - paragraph [ref=e164]: analysis
+        - paragraph [ref=e165]: Real-time prediction and forecasting using machine learning algorithms
+        - generic [ref=e167]:
+          - generic [ref=e168]:
+            - img [ref=e169]
+            - generic [ref=e171]: 8/10
+          - generic [ref=e172]:
+            - img [ref=e173]
+            - generic [ref=e175]: 35 NRN
+        - button "Activate" [ref=e176] [cursor=pointer]:
+          - generic [ref=e177] [cursor=pointer]: Activate
+          - img [ref=e178] [cursor=pointer]
+      - generic [ref=e183]:
+        - generic [ref=e185]:
+          - generic [ref=e186]: ⚙️
+          - generic [ref=e187]:
+            - heading "Resource Optimization" [level=3] [ref=e188]
+            - paragraph [ref=e189]: automation
+        - paragraph [ref=e190]: Dynamic resource allocation and performance tuning for optimal efficiency
+        - generic [ref=e192]:
+          - generic [ref=e193]:
+            - img [ref=e194]
+            - generic [ref=e196]: 7/10
+          - generic [ref=e197]:
+            - img [ref=e198]
+            - generic [ref=e200]: 28 NRN
+        - button "Activate" [ref=e201] [cursor=pointer]:
+          - generic [ref=e202] [cursor=pointer]: Activate
+          - img [ref=e203] [cursor=pointer]
+    - generic [ref=e205]:
+      - heading "Discover New Skills" [level=3] [ref=e206]
+      - paragraph [ref=e207]: Browse the KNIRV marketplace for cutting-edge AI capabilities
+      - button "Browse Marketplace" [ref=e208] [cursor=pointer]
+  - navigation [ref=e209]:
+    - generic [ref=e210]:
+      - button "Skills" [ref=e211] [cursor=pointer]:
+        - img [ref=e212] [cursor=pointer]
+        - generic [ref=e214] [cursor=pointer]: Skills
+      - button "UDC" [ref=e215] [cursor=pointer]:
+        - img [ref=e216] [cursor=pointer]
+        - generic [ref=e218] [cursor=pointer]: UDC
+      - button "Wallet" [ref=e219] [cursor=pointer]:
+        - img [ref=e220] [cursor=pointer]
+        - generic [ref=e223] [cursor=pointer]: Wallet
+```

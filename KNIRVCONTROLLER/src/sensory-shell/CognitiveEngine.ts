@@ -82,27 +82,27 @@ export interface CognitiveConfig {
 export class CognitiveEngine extends EventEmitter {
   private state: CognitiveState;
   private _config: CognitiveConfig;
-  private sealFramework: SEALFramework;
-  private fabricAlgorithm: FabricAlgorithm;
-  private voiceProcessor: VoiceProcessor;
-  private visualProcessor: VisualProcessor;
-  private loraAdapter: LoRAAdapter;
-  private enhancedLoraAdapter: EnhancedLoRAAdapter;
-  private hrmBridge: HRMBridge;
-  private hrmLoraBridge: HRMLoRABridge;
+  private sealFramework!: SEALFramework;
+  private fabricAlgorithm!: FabricAlgorithm;
+  private voiceProcessor!: VoiceProcessor;
+  private visualProcessor!: VisualProcessor;
+  private loraAdapter!: LoRAAdapter;
+  private enhancedLoraAdapter!: EnhancedLoRAAdapter;
+  private hrmBridge!: HRMBridge;
+  private hrmLoraBridge!: HRMLoRABridge;
   private wasmAgentManager: WASMAgentManager | null = null;
   private typeScriptCompiler: TypeScriptCompiler | null = null;
-  private adaptiveLearningPipeline: AdaptiveLearningPipeline;
-  private walletIntegration: KNIRVWalletIntegration;
-  private chainIntegration: KNIRVChainIntegration;
-  private ecosystemCommunication: EcosystemCommunicationLayer;
+  private adaptiveLearningPipeline!: AdaptiveLearningPipeline;
+  private walletIntegration!: KNIRVWalletIntegration;
+  private chainIntegration!: KNIRVChainIntegration;
+  private ecosystemCommunication!: EcosystemCommunicationLayer;
   private errorContextManager: ErrorContextManager | null = null;
   private isRunning: boolean = false;
   private adaptationTimer: NodeJS.Timeout | null = null;
 
   constructor(_config: CognitiveConfig) {
     super();
-    this.config = _config;
+    this._config = _config;
     this.state = {
       currentContext: new Map(),
       activeSkills: [],
@@ -121,26 +121,26 @@ export class CognitiveEngine extends EventEmitter {
     // Initialize SEAL Framework
     this.sealFramework = new SEALFramework({
       maxAgents: 10,
-      learningRate: this.config.learningRate,
-      adaptationThreshold: this.config.adaptationThreshold,
-      skillTimeout: this.config.skillTimeout,
-      hrmIntegration: this.config.hrmEnabled,
+      learningRate: this._config.learningRate,
+      adaptationThreshold: this._config.adaptationThreshold,
+      skillTimeout: this._config.skillTimeout,
+      hrmIntegration: this._config.hrmEnabled,
     });
 
     // Initialize Fabric Algorithm
     this.fabricAlgorithm = new FabricAlgorithm({
-      contextSize: this.config.maxContextSize,
+      contextSize: this._config.maxContextSize,
       processingMode: 'adaptive',
       memoryDepth: 50,
       attentionHeads: 8,
-      learningRate: this.config.learningRate,
-      hrmIntegration: this.config.hrmEnabled,
+      learningRate: this._config.learningRate,
+      hrmIntegration: this._config.hrmEnabled,
     });
 
     // Skip hardware-dependent processors in test environment
     if (!isTestEnvironment) {
       // Initialize input processors
-      if (this.config.voiceEnabled) {
+      if (this._config.voiceEnabled) {
         this.voiceProcessor = new VoiceProcessor({
           sampleRate: 16000,
           channels: 1,
@@ -152,7 +152,7 @@ export class CognitiveEngine extends EventEmitter {
         });
       }
 
-      if (this.config.visualEnabled) {
+      if (this._config.visualEnabled) {
         this.visualProcessor = new VisualProcessor({
         resolution: '1920x1080',
         frameRate: 30,
@@ -161,7 +161,7 @@ export class CognitiveEngine extends EventEmitter {
         gestureRecognition: true,
         ocrEnabled: true,
         enableSceneAnalysis: true,
-        enableHRMGuidance: this.config.hrmEnabled,
+        enableHRMGuidance: this._config.hrmEnabled,
         maxImageSize: 1024,
         confidenceThreshold: 0.5,
         enableRealTimeProcessing: true,
@@ -170,7 +170,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     // Initialize LoRA adapter
-    if (this.config.loraEnabled) {
+    if (this._config.loraEnabled) {
       this.loraAdapter = new LoRAAdapter({
         rank: 16,
         alpha: 32,
@@ -182,7 +182,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     // Initialize Enhanced LoRA adapter
-    if (this.config.enhancedLoraEnabled) {
+    if (this._config.enhancedLoraEnabled) {
       this.enhancedLoraAdapter = new EnhancedLoRAAdapter(
         {
           rank: 16,
@@ -201,7 +201,7 @@ export class CognitiveEngine extends EventEmitter {
           epochs: 5,
         },
         {
-          enableHRMGuidance: this.config.hrmEnabled,
+          enableHRMGuidance: this._config.hrmEnabled,
           hrmWeightInfluence: 0.3,
           adaptationThreshold: 0.7,
         }
@@ -209,8 +209,8 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     // Initialize HRM Bridge
-    if (this.config.hrmEnabled) {
-      const hrmConfig: HRMConfig = this.config.hrmConfig || {
+    if (this._config.hrmEnabled) {
+      const hrmConfig: HRMConfig = this._config.hrmConfig || {
         l_module_count: 8,
         h_module_count: 4,
         enable_adaptation: true,
@@ -221,8 +221,8 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     // Initialize WASM Agent Manager (Revolutionary Feature)
-    if (this.config.wasmAgentsEnabled) {
-      const wasmConfig = this.config.wasmAgentConfig || {
+    if (this._config.wasmAgentsEnabled) {
+      const wasmConfig = this._config.wasmAgentConfig || {
         maxMemoryMB: 256,
         enableLoRAAdapters: true,
         maxConcurrentSkills: 10,
@@ -246,8 +246,8 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     // Initialize TypeScript Compiler (Revolutionary Feature)
-    if (this.config.typeScriptCompilerEnabled) {
-      const tsConfig = this.config.typeScriptCompilerConfig || {
+    if (this._config.typeScriptCompilerEnabled) {
+      const tsConfig = this._config.typeScriptCompilerConfig || {
         templateDir: './templates',
         outputDir: './compiled-skills',
         enableWASM: true,
@@ -279,7 +279,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     // Initialize HRM-LoRA Bridge if both HRM and Enhanced LoRA are enabled
-    if (this.config.hrmEnabled && this.config.enhancedLoraEnabled) {
+    if (this._config.hrmEnabled && this._config.enhancedLoraEnabled) {
       this.hrmLoraBridge = new HRMLoRABridge({
         syncFrequency: 3000, // 3 seconds
         adaptationThreshold: 0.1,
@@ -289,7 +289,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     // Initialize Adaptive Learning Pipeline
-    if (this.config.adaptiveLearningEnabled) {
+    if (this._config.adaptiveLearningEnabled) {
       this.adaptiveLearningPipeline = new AdaptiveLearningPipeline({
         minInteractionsForPattern: 3,
         adaptationThreshold: 0.6,
@@ -302,7 +302,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     // Initialize KNIRV Wallet Integration
-    if (this.config.walletIntegrationEnabled) {
+    if (this._config.walletIntegrationEnabled) {
       this.walletIntegration = new KNIRVWalletIntegration({
         apiBaseUrl: 'http://localhost:8083/api/v1',
         chainId: 'knirv-mainnet-1',
@@ -314,7 +314,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     // Initialize KNIRV Chain Integration
-    if (this.config.chainIntegrationEnabled) {
+    if (this._config.chainIntegrationEnabled) {
       this.chainIntegration = new KNIRVChainIntegration({
         rpcUrl: 'http://localhost:8080',
         chainId: 'knirv-chain-1',
@@ -330,10 +330,10 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     // Initialize Ecosystem Communication Layer
-    if (this.config.ecosystemCommunicationEnabled) {
+    if (this._config.ecosystemCommunicationEnabled) {
       this.ecosystemCommunication = new EcosystemCommunicationLayer({
-        enableWalletIntegration: this.config.walletIntegrationEnabled,
-        enableChainIntegration: this.config.chainIntegrationEnabled,
+        enableWalletIntegration: this._config.walletIntegrationEnabled,
+        enableChainIntegration: this._config.chainIntegrationEnabled,
         enableNexusIntegration: true,
         enableGatewayIntegration: true,
         enableShellIntegration: true,
@@ -345,14 +345,14 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     // Initialize Error Context Manager (Phase 3.6)
-    if (this.config.errorContextEnabled && this.config.errorContextConfig) {
+    if (this._config.errorContextEnabled && this._config.errorContextConfig) {
       const errorContextConfig: AgentConfiguration = {
-        agentId: this.config.errorContextConfig.agentId,
-        agentVersion: this.config.errorContextConfig.agentVersion,
-        baseModelId: this.config.errorContextConfig.baseModelId,
-        knirvgraphEndpoint: this.config.errorContextConfig.knirvgraphEndpoint,
-        knirvRouterEndpoint: this.config.errorContextConfig.knirvRouterEndpoint,
-        nrnWalletAddress: this.config.errorContextConfig.nrnWalletAddress,
+        agentId: this._config.errorContextConfig.agentId,
+        agentVersion: this._config.errorContextConfig.agentVersion,
+        baseModelId: this._config.errorContextConfig.baseModelId,
+        knirvgraphEndpoint: this._config.errorContextConfig.knirvgraphEndpoint,
+        knirvRouterEndpoint: this._config.errorContextConfig.knirvRouterEndpoint,
+        nrnWalletAddress: this._config.errorContextConfig.nrnWalletAddress,
       };
 
       this.errorContextManager = new ErrorContextManager(errorContextConfig);
@@ -1113,7 +1113,7 @@ export class CognitiveEngine extends EventEmitter {
     this.state.currentContext.set('last_update', new Date());
 
     // Maintain context size limit
-    if (this.state.currentContext.size > this.config.maxContextSize) {
+    if (this.state.currentContext.size > this._config.maxContextSize) {
       const oldestKey = this.state.currentContext.keys().next().value;
       this.state.currentContext.delete(oldestKey);
     }
@@ -1123,8 +1123,8 @@ export class CognitiveEngine extends EventEmitter {
     const recentEvents = this.state.learningHistory.slice(-10);
     if (recentEvents.length === 0) return false;
 
-    const avgFeedback = recentEvents.reduce((sum, _event) => sum + event.feedback, 0) / recentEvents.length;
-    return avgFeedback < this.config.adaptationThreshold;
+    const avgFeedback = recentEvents.reduce((sum, event) => sum + event.feedback, 0) / recentEvents.length;
+    return avgFeedback < this._config.adaptationThreshold;
   }
 
 
@@ -1146,7 +1146,7 @@ export class CognitiveEngine extends EventEmitter {
         result = await this.sealFramework.invokeSkill(skillId, parameters);
       }
       // Then try KNIRVROUTER integration via chain integration
-      else if (this.chainIntegration && this.config.chainIntegrationEnabled) {
+      else if (this.chainIntegration && this._config.chainIntegrationEnabled) {
         try {
           // Generate ErrorContext for skill resolution (currently unused)
           // const errorContext = {
@@ -1540,13 +1540,13 @@ export class CognitiveEngine extends EventEmitter {
         activeSkills: this.state.activeSkills.length,
       },
       hrm: {
-        enabled: this.config.hrmEnabled,
+        enabled: this._config.hrmEnabled,
         ready: this.isHRMReady(),
         modelInfo: this.getHRMModelInfo(),
       },
       lora: {
-        basicEnabled: this.config.loraEnabled,
-        enhancedEnabled: this.config.enhancedLoraEnabled,
+        basicEnabled: this._config.loraEnabled,
+        enhancedEnabled: this._config.enhancedLoraEnabled,
         enhancedReady: this.isEnhancedLoRAReady(),
         metrics: this.getEnhancedLoRAMetrics(),
       },
@@ -2963,11 +2963,11 @@ export class CognitiveEngine extends EventEmitter {
    * Enable/disable WASM agent processing
    */
   public setWASMAgentEnabled(enabled: boolean): void {
-    this.config.wasmAgentsEnabled = enabled;
+    this._config.wasmAgentsEnabled = enabled;
 
     if (enabled && !this.wasmAgentManager) {
       // Initialize WASM agent manager if not already done
-      const wasmConfig = this.config.wasmAgentConfig || {
+      const wasmConfig = this._config.wasmAgentConfig || {
         maxMemoryMB: 256,
         enableLoRAAdapters: true,
         maxConcurrentSkills: 10,
@@ -3058,7 +3058,7 @@ export class CognitiveEngine extends EventEmitter {
     errors: Array<{ errorId: string; description: string; context: string }>
   ): SkillCompilationConfig {
     // Generate tools from solutions
-    const tools = solutions.map((solution, _index) => {
+    const tools = solutions.map((solution, index) => {
       const correspondingError = errors.find(e => e.errorId === solution.errorId);
 
       return {
@@ -3136,9 +3136,9 @@ export class CognitiveEngine extends EventEmitter {
    */
   public getTypeScriptCompilerStatus(): unknown {
     return {
-      enabled: this.config.typeScriptCompilerEnabled,
+      enabled: this._config.typeScriptCompilerEnabled,
       ready: this.typeScriptCompiler?.isReady() || false,
-      _config: this.config.typeScriptCompilerConfig
+      _config: this._config.typeScriptCompilerConfig
     };
   }
 
@@ -3146,11 +3146,11 @@ export class CognitiveEngine extends EventEmitter {
    * Enable/disable TypeScript compiler
    */
   public setTypeScriptCompilerEnabled(enabled: boolean): void {
-    this.config.typeScriptCompilerEnabled = enabled;
+    this._config.typeScriptCompilerEnabled = enabled;
 
     if (enabled && !this.typeScriptCompiler) {
       // Initialize TypeScript compiler if not already done
-      const tsConfig = this.config.typeScriptCompilerConfig || {
+      const tsConfig = this._config.typeScriptCompilerConfig || {
         templateDir: './templates',
         outputDir: './compiled-skills',
         enableWASM: true,

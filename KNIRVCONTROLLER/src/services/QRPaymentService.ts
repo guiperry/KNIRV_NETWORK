@@ -81,7 +81,7 @@ export class QRPaymentService {
         } else {
           throw new Error('Invalid payment request format');
         }
-      } catch (jsonError) {
+      } catch {
         // Try to parse as URI format (e.g., knirv:pay?amount=100&recipient=...)
         paymentRequest = this.parsePaymentURI(qrData);
       }
@@ -124,30 +124,30 @@ export class QRPaymentService {
       let receipt: PaymentReceipt;
 
       switch (paymentRequest.type) {
-        case 'payment':
+        case 'payment': {
           const result = await this.processRegularPayment(paymentRequest);
           transactionId = result.transactionId;
           receipt = result.receipt;
           break;
-
-        case 'skill_invocation':
+        }
+        case 'skill_invocation': {
           const skillResult = await this.processSkillInvocationPayment(paymentRequest);
           transactionId = skillResult.transactionId;
           receipt = skillResult.receipt;
           break;
-
-        case 'wallet_connect':
+        }
+        case 'wallet_connect': {
           const connectResult = await this.processWalletConnection(paymentRequest);
           transactionId = connectResult.transactionId;
           receipt = connectResult.receipt;
           break;
-
-        case 'agent_deploy':
+        }
+        case 'agent_deploy': {
           const deployResult = await this.processAgentDeployment(paymentRequest);
           transactionId = deployResult.transactionId;
           receipt = deployResult.receipt;
           break;
-
+        }
         default:
           throw new Error(`Unsupported payment type: ${paymentRequest.type}`);
       }
@@ -246,7 +246,7 @@ export class QRPaymentService {
   /**
    * Process wallet connection
    */
-  private async processWalletConnection(request: QRPaymentRequest): Promise<{ transactionId: string; receipt: PaymentReceipt }> {
+  private async processWalletConnection(_request: QRPaymentRequest): Promise<{ transactionId: string; receipt: PaymentReceipt }> {
     // Connect to wallet using session ID
     const account = await walletIntegrationService.connectWallet();
 

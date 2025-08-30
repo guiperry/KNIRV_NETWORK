@@ -23,7 +23,7 @@ export class LoRAAdapterEngine {
       throw new Error(`Adapter ${adapterId} not found`);
     }
     console.log('LoRA adapter invoked:', adapterId);
-    return { result: 'success', adapterId, input };
+    return { success: 'success', adapterId, input };
   }
   
   getAdapters(): string[] {

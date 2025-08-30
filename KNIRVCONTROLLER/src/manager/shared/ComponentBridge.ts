@@ -94,7 +94,7 @@ export class ComponentBridge {
         });
       };
 
-      this.ws.onmessage = (_event) => {
+      this.ws.onmessage = (event) => {
         try {
           const message: ComponentMessage = JSON.parse(event.data);
           this.handleMessage(message);
@@ -149,16 +149,24 @@ export class ComponentBridge {
   private updateState(message: ComponentMessage) {
     switch (message.type) {
       case 'component_status':
-        this.state.components[message.source] = message.payload.status;
+        if (message.payload && typeof message.payload === 'object' && 'status' in message.payload) {
+          this.state.components[message.source] = (message.payload as any).status;
+        }
         break;
       case 'cognitive_update':
-        this.state.cognitive = { ...this.state.cognitive, ...message.payload };
+        if (message.payload && typeof message.payload === 'object') {
+          this.state.cognitive = { ...this.state.cognitive, ...(message.payload as Partial<CognitiveState>) };
+        }
         break;
       case 'wallet_update':
-        this.state.wallet = { ...this.state.wallet, ...message.payload };
+        if (message.payload && typeof message.payload === 'object') {
+          this.state.wallet = { ...this.state.wallet, ...(message.payload as Partial<WalletState>) };
+        }
         break;
       case 'network_update':
-        this.state.network = { ...this.state.network, ...message.payload };
+        if (message.payload && typeof message.payload === 'object') {
+          this.state.network = { ...this.state.network, ...(message.payload as Partial<typeof this.state.network>) };
+        }
         break;
     }
   }
@@ -169,12 +177,17 @@ export class ComponentBridge {
       return;
     }
 
+    const messagePayload = { action };
+    if (payload && typeof payload === 'object') {
+      Object.assign(messagePayload, payload);
+    }
+
     const message: ComponentMessage = {
       id: this.generateId(),
       type,
       source: this.config.name,
       target,
-      payload: { action, ...payload },
+      payload: messagePayload,
       timestamp: Date.now()
     };
 
@@ -264,12 +277,15 @@ export class ComponentIntegration {
       }, 5000);
 
       bridge.onMessage('call_response', (message) => {
-        if (message.payload.callId === callId) {
-          clearTimeout(timeout);
-          if (message.payload.success) {
-            resolve(message.payload.result);
-          } else {
-            reject(new Error(message.payload.error));
+        if (message.payload && typeof message.payload === 'object') {
+          const payload = message.payload as any;
+          if (payload.callId === callId) {
+            clearTimeout(timeout);
+            if (payload.success) {
+              resolve(payload.result);
+            } else {
+              reject(new Error(payload.error));
+            }
           }
         }
       });

@@ -156,13 +156,37 @@ Object.defineProperty(global, 'performance', {
   }
 });
 
+// Global timer management to prevent conflicts
+let timersInstalled = false;
+
+// Override Jest timer methods to prevent conflicts
+const originalUseFakeTimers = jest.useFakeTimers;
+const originalUseRealTimers = jest.useRealTimers;
+
+jest.useFakeTimers = (config?: any) => {
+  if (!timersInstalled) {
+    timersInstalled = true;
+    return originalUseFakeTimers.call(jest, config);
+  }
+  return jest;
+};
+
+jest.useRealTimers = () => {
+  if (timersInstalled) {
+    timersInstalled = false;
+    return originalUseRealTimers.call(jest);
+  }
+  return jest;
+};
+
 // Suppress specific warnings in tests
 const originalError = console.error;
 beforeAll(() => {
   console.error = (...args: any[]) => {
     if (
       typeof args[0] === 'string' &&
-      args[0].includes('Warning: ReactDOM.render is deprecated')
+      (args[0].includes('Warning: ReactDOM.render is deprecated') ||
+       args[0].includes('fake timers twice'))
     ) {
       return;
     }
@@ -172,4 +196,9 @@ beforeAll(() => {
 
 afterAll(() => {
   console.error = originalError;
+  // Clean up timers
+  if (timersInstalled) {
+    jest.useRealTimers();
+    timersInstalled = false;
+  }
 });
