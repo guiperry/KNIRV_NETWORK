@@ -41,6 +41,32 @@ npm start
 
 Server runs on port 10000 with all applications accessible via Express.js routes.
 
+### 🐳 Podman Support (NEW)
+
+KNIRVTESTNET now supports Podman as the primary container runtime for local development:
+
+```bash
+# Start with Podman (recommended for local development)
+npm run podman:start
+
+# Check status
+npm run podman:status
+
+# View logs
+npm run podman:logs
+
+# Stop services
+npm run podman:stop
+```
+
+**Benefits of Podman:**
+- Rootless containers (better security)
+- No daemon required
+- Drop-in replacement for Docker
+- Native systemd support
+
+See [PODMAN_MIGRATION.md](./PODMAN_MIGRATION.md) for detailed migration guide.
+
 ---
 
 ## Table of Contents

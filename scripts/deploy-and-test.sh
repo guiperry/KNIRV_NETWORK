@@ -182,21 +182,25 @@ deploy_kubernetes() {
 deploy_docker_compose() {
     log_info "Deploying with Docker Compose..."
 
-    if [ ! -f "$DEPLOYMENT_DIR/docker-compose.monitoring.yml" ]; then
-        log_error "Docker Compose file not found"
+    if [ ! -f "$DEPLOYMENT_DIR/docker-compose.knirv-production.yml" ]; then
+        log_error "KNIRV production Docker Compose file not found"
         exit 1
     fi
 
     cd "$DEPLOYMENT_DIR"
 
+    # Start KNIRV production stack (includes IPFS)
+    log_info "Starting KNIRV production services with IPFS..."
+    docker-compose -f docker-compose.knirv-production.yml up -d
+
     # Start monitoring stack
     if [ "$ENABLE_MONITORING" = true ]; then
-        docker-compose -f docker-compose.monitoring.yml up -d
+        if [ -f "docker-compose.monitoring.yml" ]; then
+            docker-compose -f docker-compose.monitoring.yml up -d
+        else
+            log_warn "Monitoring compose file not found, skipping monitoring"
+        fi
     fi
-
-    # Build and start KNIRV services
-    # Note: This would require a main docker-compose.yml file for KNIRV services
-    log_warn "Docker Compose deployment for KNIRV services needs main compose file"
 
     if [ "$WAIT_FOR_SERVICES" = true ]; then
         wait_for_docker_services
@@ -207,7 +211,16 @@ deploy_docker_compose() {
 deploy_local() {
     log_info "Deploying services locally..."
 
-    # Use existing manage-knirv.sh script
+    # Setup IPFS for production if not already configured
+    if [ ! -f "./scripts/setup-ipfs-production.sh" ]; then
+        log_error "IPFS setup script not found"
+        exit 1
+    fi
+
+    log_info "Setting up IPFS for KNIRV production network..."
+    ./scripts/setup-ipfs-production.sh
+
+    # Use existing manage-knirv.sh script (now includes IPFS)
     "$SCRIPT_DIR/manage-knirv.sh" start all --background
 
     if [ "$ENABLE_MONITORING" = true ]; then

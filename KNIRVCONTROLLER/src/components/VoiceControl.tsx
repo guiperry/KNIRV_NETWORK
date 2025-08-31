@@ -71,7 +71,7 @@ export const VoiceControl: React.FC<VoiceControlProps> = ({
       console.error('Failed to initialize voice processor:', error);
       setIsSupported(false);
     }
-  }, [cognitiveMode, onVoiceCommand]);
+  }, [onVoiceCommand]);
 
   // Initialize voice processor when cognitive mode is enabled
   useEffect(() => {

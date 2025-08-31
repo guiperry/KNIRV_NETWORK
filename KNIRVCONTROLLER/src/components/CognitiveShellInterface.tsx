@@ -244,7 +244,7 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
       console.error('Failed to initialize Cognitive Engine:', error);
       return () => {}; // Return empty cleanup function on error
     }
-  }, [config, onStateChange, onSkillInvoked, onAdaptationTriggered, updateMetrics]);
+  }, [config, onStateChange, onSkillInvoked, onAdaptationTriggered, updateMetrics, hrmBridge]);
 
   useEffect(() => {
     initializeCognitiveEngine();

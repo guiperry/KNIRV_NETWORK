@@ -33,7 +33,7 @@ export interface ErrorContext {
   errorType: string;
   errorMessage: string;
   stackTrace: string;
-  contextVariables: Record<string, any>;
+  contextVariables: Record<string, unknown>;
   semanticEmbedding: number[];
 }
 

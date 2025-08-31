@@ -1,6 +1,6 @@
 // Protobuf Handler - Frontend Module
 export class ProtobufHandler {
-  private schemas: Map<string, any> = new Map();
+  private schemas: Map<string, unknown> = new Map();
   
   constructor() {
     this.initialize();

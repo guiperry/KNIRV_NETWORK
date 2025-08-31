@@ -113,8 +113,8 @@ export class AssemblyScriptWASMLoader {
         },
 
         // Math functions (if needed)
-        Math: Math as any,
-        Date: Date as any,
+        Math: Math as typeof Math,
+        Date: Date as typeof Date,
       }
     };
   }

@@ -77,9 +77,9 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
       stopVoiceRecognition();
       stopAudioAnalysis();
     };
-  }, [isActive]);
+  }, [isActive, initializeVoiceRecognition, initializeAudioAnalysis, stopVoiceRecognition, stopAudioAnalysis]);
 
-  const processVoiceCommand = (transcript: string, _confidence: number) => {
+  const processVoiceCommand = useCallback((transcript: string, _confidence: number) => {
     const command = transcript.toLowerCase().trim();
 
     // Basic command processing
@@ -90,7 +90,7 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
     } else if (command.includes('wallet') || command.includes('transaction')) {
       console.log('Wallet command detected');
     }
-  };
+  }, []);
 
   const initializeVoiceRecognition = useCallback(() => {
     if (!('SpeechRecognition' in window) && !('webkitSpeechRecognition' in window)) {
@@ -190,9 +190,9 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
       console.error('Failed to initialize audio analysis:', err);
       setError('Failed to access microphone');
     }
-  }, [onAudioData]);
+  }, [startAudioLevelMonitoring]);
 
-  const startAudioLevelMonitoring = () => {
+  const startAudioLevelMonitoring = useCallback(() => {
     if (!analyserRef.current) return;
 
     const analyser = analyserRef.current;
@@ -210,9 +210,9 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
       const sum = dataArray.reduce((a, b) => a + b, 0);
       const average = sum / bufferLength;
       const level = average / 255;
-      
+
       setAudioLevel(level);
-      
+
       // Send audio data for processing
       onAudioData(floatArray);
 
@@ -220,34 +220,34 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
     };
 
     updateAudioLevel();
-  };
+  }, [isActive, onAudioData]);
 
 
 
-  const stopVoiceRecognition = () => {
+  const stopVoiceRecognition = useCallback(() => {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
       recognitionRef.current = null;
     }
     setIsListening(false);
-  };
+  }, []);
 
-  const stopAudioAnalysis = () => {
+  const stopAudioAnalysis = useCallback(() => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
-    
+
     if (audioContextRef.current) {
       audioContextRef.current.close();
       audioContextRef.current = null;
     }
-    
+
     analyserRef.current = null;
     microphoneRef.current = null;
     setIsRecording(false);
     setAudioLevel(0);
-  };
+  }, []);
 
   /* const cleanup = useCallback(() => {
     stopVoiceRecognition();

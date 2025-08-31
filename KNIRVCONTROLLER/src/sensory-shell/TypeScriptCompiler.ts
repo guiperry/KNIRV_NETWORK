@@ -5,15 +5,9 @@
  */
 
 import { EventEmitter } from './EventEmitter';
-import type { ToolResult } from '../types/common';
 
-// Type alias to ensure ToolResult is recognized as used
-type CompilerToolResult = ToolResult;
 
-// Helper function to validate tool results
-function validateToolResult(result: unknown): result is CompilerToolResult {
-  return typeof result === 'object' && result !== null;
-}
+
 
 export interface TypeScriptCompilerConfig {
   templateDir: string;
@@ -30,7 +24,7 @@ export interface SkillCompilationConfig {
   version: string;
   author: string;
   tools: SkillTool[];
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   buildTarget: 'typescript' | 'wasm' | 'hybrid';
   optimizationLevel: 'none' | 'basic' | 'aggressive';
 }
@@ -182,7 +176,7 @@ export class {{skillClassName}} implements SkillInterface {
     }
   }
 
-  async execute(toolName: string, parameters: Record<string, any>, context: SkillContext): Promise<SkillResult> {
+  async execute(toolName: string, parameters: Record<string, unknown>, context: SkillContext): Promise<SkillResult> {
     if (!this.initialized) {
       throw new Error('Skill not initialized');
     }
@@ -287,7 +281,7 @@ export interface SkillInterface {
   readonly author: string;
 
   initialize(context: SkillContext): Promise<boolean>;
-  execute(toolName: string, parameters: Record<string, any>, context: SkillContext): Promise<SkillResult>;
+  execute(toolName: string, parameters: Record<string, unknown>, context: SkillContext): Promise<SkillResult>;
   getAvailableTools(): string[];
   getToolInfo(toolName: string): unknown;
   dispose(): Promise<void>;
@@ -298,7 +292,7 @@ export interface SkillContext {
   sessionId?: string;
   environment: 'browser' | 'node' | 'webworker';
   capabilities: string[];
-  memory: Map<string, any>;
+  memory: Map<string, unknown>;
   logger: {
     log: (message: string) => void;
     error: (message: string) => void;
@@ -313,7 +307,7 @@ export interface SkillResult {
   executionTime?: number;
   toolName: string;
   skillId: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }`;
   }
 
@@ -359,13 +353,13 @@ export class {{skillClassName}}WASMWrapper {
     }
   }
 
-  async executeSkill(toolName: string, parameters: unknown): Promise<any> {
+  async executeSkill(toolName: string, parameters: unknown): Promise<unknown> {
     if (!this.wasmInstance) {
       throw new Error('WASM module not initialized');
     }
 
     // Call WASM exported function
-    const exports = this.wasmInstance.exports as any;
+    const exports = this.wasmInstance.exports as { executeSkill?: (toolName: string, parameters: string) => unknown };
     if (exports.executeSkill) {
       return exports.executeSkill(toolName, JSON.stringify(parameters));
     } else {

@@ -29,7 +29,7 @@ function VisualProcessor({ onVisualData, onObjectDetection, isActive }: VisualPr
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [detectedObjects, setDetectedObjects] = useState<SensoryDetectedObject[]>([]);
-  const [stats, setStats] = useState<ProcessingStats>({ fps: 0, objectCount: 0, processingTime: 0 });
+  const [stats] = useState<ProcessingStats>({ fps: 0, objectCount: 0, processingTime: 0 });
   const [error, setError] = useState<string | null>(null);
   const [useWebGL, setUseWebGL] = useState(true);
   const [currentFrame, setCurrentFrame] = useState<VisualFrame | null>(null);
@@ -84,7 +84,7 @@ function VisualProcessor({ onVisualData, onObjectDetection, isActive }: VisualPr
       console.error('Failed to initialize camera:', error);
       setError('Failed to access camera. Please check permissions.');
     }
-  }, []);
+  }, [processVideoFrame]);
 
   const processVideoFrame = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || !isProcessing) return;
@@ -135,7 +135,7 @@ function VisualProcessor({ onVisualData, onObjectDetection, isActive }: VisualPr
     if (isProcessing) {
       animationFrameRef.current = requestAnimationFrame(processVideoFrame);
     }
-  }, [isProcessing, onVisualData, onObjectDetection, setDetectedObjects, setStats]);
+  }, [isProcessing, onVisualData, onObjectDetection, detectObjects, stats.fps]);
 
   const detectObjects = useCallback((imageData: ImageData): SensoryDetectedObject[] => {
     // Simple object detection using edge detection and blob analysis
@@ -152,7 +152,7 @@ function VisualProcessor({ onVisualData, onObjectDetection, isActive }: VisualPr
     const objects = performObjectDetection(imageData);
 
     return objects;
-  }, [setDetectedObjects]);
+  }, [performObjectDetection]);
 
   useEffect(() => {
     if (isActive) {
@@ -283,7 +283,7 @@ function VisualProcessor({ onVisualData, onObjectDetection, isActive }: VisualPr
     }
   }; */
 
-  const performObjectDetection = (imageData: ImageData): SensoryDetectedObject[] => {
+  const performObjectDetection = useCallback((imageData: ImageData): SensoryDetectedObject[] => {
     // Simplified object detection using basic computer vision techniques
     const objects: SensoryDetectedObject[] = [];
     const data = imageData.data;
@@ -330,7 +330,7 @@ function VisualProcessor({ onVisualData, onObjectDetection, isActive }: VisualPr
     }
 
     return objects.slice(0, 10); // Limit to 10 objects
-  };
+  }, []);
 
   const floodFill = (binary: Uint8Array, width: number, height: number, startX: number, startY: number, visited: Set<number>): number[] => {
     const stack = [{ x: startX, y: startY }];

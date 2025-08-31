@@ -670,10 +670,10 @@ export class CognitiveEngine extends EventEmitter {
       if (this.adaptiveLearningPipeline) {
         this.adaptiveLearningPipeline.setHRMBridge(this.hrmBridge);
         if (this.enhancedLoraAdapter) {
-          this.adaptiveLearningPipeline.setEnhancedLoRAAdapter(this.enhancedLoraAdapter as any);
+          this.adaptiveLearningPipeline.setEnhancedLoRAAdapter(this.enhancedLoraAdapter);
         }
         if (this.hrmLoraBridge) {
-          this.adaptiveLearningPipeline.setHRMLoRABridge(this.hrmLoraBridge as any);
+          this.adaptiveLearningPipeline.setHRMLoRABridge(this.hrmLoraBridge);
         }
         await this.adaptiveLearningPipeline.loadLearnedPatterns();
         await this.adaptiveLearningPipeline.start();
@@ -762,7 +762,7 @@ export class CognitiveEngine extends EventEmitter {
     console.log('Cognitive Engine stopped');
   }
 
-  public async processInput(input: unknown, inputType: string): Promise<any> {
+  public async processInput(input: unknown, inputType: string): Promise<unknown> {
     const startTime = Date.now();
 
     try {
@@ -852,7 +852,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  private async processWithHRM(input: unknown, inputType: string): Promise<any> {
+  private async processWithHRM(input: unknown, inputType: string): Promise<unknown> {
     console.log('Processing with HRM:', inputType);
 
     try {
@@ -863,7 +863,7 @@ export class CognitiveEngine extends EventEmitter {
         case 'voice':
           // Convert voice input to numerical data for HRM
           // TODO: Implement voice input conversion
-          hrmOutput = await this.hrmBridge.processVoiceInput(input as any, {
+          hrmOutput = await this.hrmBridge.processVoiceInput(input, {
             context: Object.fromEntries(this.state.currentContext),
             confidenceLevel: this.state.confidenceLevel,
           });
@@ -872,7 +872,7 @@ export class CognitiveEngine extends EventEmitter {
         case 'visual':
           // Convert visual input to numerical data for HRM
           // TODO: Implement visual input conversion
-          hrmOutput = await this.hrmBridge.processVisualInput(input as any, {
+          hrmOutput = await this.hrmBridge.processVisualInput(input, {
             context: Object.fromEntries(this.state.currentContext),
             confidenceLevel: this.state.confidenceLevel,
           });
@@ -918,7 +918,7 @@ export class CognitiveEngine extends EventEmitter {
    * Revolutionary WASM Agent Processing Method
    * Processes input through uploaded agent.wasm with LoRA adapter integration
    */
-  private async processWithWASMAgent(input: unknown, inputType: string): Promise<any> {
+  private async processWithWASMAgent(input: unknown, inputType: string): Promise<unknown> {
     console.log('Processing with WASM Agent:', inputType);
 
     try {
@@ -1020,7 +1020,7 @@ export class CognitiveEngine extends EventEmitter {
 
   private convertVoiceToData(speech: unknown): number[] {
     // Convert speech data to numerical array for HRM processing
-    const speechObj = speech as any;
+    const speechObj = speech as { audioData?: number[]; text?: string };
     if (speechObj?.audioData && Array.isArray(speechObj.audioData)) {
       return speechObj.audioData;
     }
@@ -1038,7 +1038,7 @@ export class CognitiveEngine extends EventEmitter {
     const features: number[] = [];
 
     objects.forEach(obj => {
-      const objAny = obj as any;
+      const objAny = obj as { bbox?: number[]; confidence?: number; classId?: number };
       if (objAny.bbox) {
         features.push(...objAny.bbox); // x, y, width, height
       }
@@ -1078,7 +1078,7 @@ export class CognitiveEngine extends EventEmitter {
     let count = 0;
 
     // Average confidence from objects
-    const resultAny = result as any;
+    const resultAny = result as { objects?: { confidence?: number }[]; faces?: { confidence?: number }[] };
     if (resultAny.objects && resultAny.objects.length > 0) {
       confidence += resultAny.objects.reduce((sum: number, obj: { confidence?: number }) => sum + (obj.confidence || 0), 0) / resultAny.objects.length;
       count++;
@@ -1128,7 +1128,7 @@ export class CognitiveEngine extends EventEmitter {
 
 
 
-  public async invokeSkill(skillId: string, parameters: unknown): Promise<any> {
+  public async invokeSkill(skillId: string, parameters: unknown): Promise<unknown> {
     console.log(`Invoking skill: ${skillId}`, parameters);
 
     // Add to active skills
@@ -1258,7 +1258,7 @@ export class CognitiveEngine extends EventEmitter {
 
   private async focusOnObject(target: unknown): Promise<void> {
     console.log('Focusing on object:', target);
-    this.state.currentContext.set('focusTarget', target as any);
+    this.state.currentContext.set('focusTarget', target);
   }
 
   private async navigateInterface(direction: string): Promise<void> {
@@ -1338,7 +1338,7 @@ export class CognitiveEngine extends EventEmitter {
 
     try {
       this.enhancedLoraAdapter.enableTraining();
-      await this.enhancedLoraAdapter.trainOnBatch(trainingData as any);
+      await this.enhancedLoraAdapter.trainOnBatch(trainingData);
       console.log('Enhanced LoRA training completed');
       return {
         success: true,
@@ -1350,7 +1350,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async adaptWithEnhancedLoRA(input: unknown, expectedOutput: unknown, feedback: number): Promise<any> {
+  public async adaptWithEnhancedLoRA(input: unknown, expectedOutput: unknown, feedback: number): Promise<unknown> {
     if (!this.enhancedLoraAdapter) {
       console.warn('Enhanced LoRA adapter not available');
       return input;
@@ -1483,7 +1483,7 @@ export class CognitiveEngine extends EventEmitter {
   }
 
   public isHRMLoRABridgeReady(): boolean {
-    return this.hrmLoraBridge ? (this.hrmLoraBridge.getStatus() as any).isRunning : false;
+    return this.hrmLoraBridge ? (this.hrmLoraBridge.getStatus() as { isRunning?: boolean }).isRunning || false : false;
   }
 
   public getHRMLoRAMappings(): unknown {
@@ -1513,7 +1513,7 @@ export class CognitiveEngine extends EventEmitter {
       return;
     }
 
-    this.hrmLoraBridge.updateSyncConfig(_config as any);
+    this.hrmLoraBridge.updateSyncConfig(_config);
     console.log('HRM-LoRA sync configuration updated');
   }
 
@@ -1574,9 +1574,9 @@ export class CognitiveEngine extends EventEmitter {
   private async recordInteractionForLearning(input: unknown, inputType: string, response: unknown): Promise<void> {
     try {
       await this.adaptiveLearningPipeline.recordInteraction({
-        inputType: inputType as any,
-        input: input as any,
-        output: response as any,
+        inputType: inputType,
+        input: input,
+        output: response,
         context: Object.fromEntries(this.state.currentContext),
       });
     } catch (error) {
@@ -1638,8 +1638,8 @@ export class CognitiveEngine extends EventEmitter {
         const learningEvent: LearningEvent = {
           timestamp: new Date(),
           eventType: 'pattern_learning',
-          input: pattern.input as any,
-          output: pattern.output as any,
+          input: pattern.input,
+          output: pattern.output,
           feedback: pattern.feedback,
           adaptationApplied: false,
         };
@@ -1650,8 +1650,8 @@ export class CognitiveEngine extends EventEmitter {
         if (this.adaptiveLearningPipeline) {
           await this.adaptiveLearningPipeline.recordInteraction({
             inputType: 'text',
-            input: pattern.input as any,
-            output: pattern.output as any,
+            input: pattern.input,
+            output: pattern.output,
             userFeedback: pattern.feedback,
             context: { type: 'pattern_learning' },
           });
@@ -1755,7 +1755,7 @@ export class CognitiveEngine extends EventEmitter {
 
     try {
       if (this.loraAdapter) {
-        await this.loraAdapter.addTrainingData(loraWeights as any);
+        await this.loraAdapter.addTrainingData(loraWeights);
       }
 
       if (this.enhancedLoraAdapter) {
@@ -1774,7 +1774,7 @@ export class CognitiveEngine extends EventEmitter {
   }
 
   // Public wrapper methods for testing advanced processing
-  public async processVoiceInput(voiceInput: string): Promise<any> {
+  public async processVoiceInput(voiceInput: string): Promise<unknown> {
     console.log('Processing voice input:', voiceInput);
 
     try {
@@ -1791,7 +1791,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async processVisualInput(visualInput: unknown[]): Promise<any> {
+  public async processVisualInput(visualInput: unknown[]): Promise<unknown> {
     console.log('Processing visual input:', visualInput);
 
     try {
@@ -1827,7 +1827,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async executeVoiceCommand(command: string): Promise<any> {
+  public async executeVoiceCommand(command: string): Promise<unknown> {
     console.log('Executing voice command:', command);
 
     try {
@@ -1848,12 +1848,12 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async executeGestureCommand(gestureData: unknown): Promise<any> {
+  public async executeGestureCommand(gestureData: unknown): Promise<unknown> {
     console.log('Executing public gesture command:', gestureData);
 
     try {
       // Process gesture using switch logic similar to private method
-      const gestureAny = gestureData as any;
+      const gestureAny = gestureData as { type?: string; target?: unknown; direction?: string; scale?: number };
       switch (gestureAny.type) {
         case 'point':
           await this.focusOnObject(gestureAny.target);
@@ -1886,7 +1886,7 @@ export class CognitiveEngine extends EventEmitter {
       return;
     }
 
-    this.adaptiveLearningPipeline.updateConfig(_config as any);
+    this.adaptiveLearningPipeline.updateConfig(_config);
     console.log('Adaptive learning configuration updated');
   }
 
@@ -1964,7 +1964,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async getWalletBalance(accountId?: string): Promise<any> {
+  public async getWalletBalance(accountId?: string): Promise<{ total: string; available: string; locked: string; currency: string }> {
     if (!this.walletIntegration) {
       // Return mock balance for testing
       return {
@@ -1995,7 +1995,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async getNRNBalance(accountId?: string): Promise<any> {
+  public async getNRNBalance(accountId?: string): Promise<{ balance: string; currency: string; decimals: number }> {
     if (!this.walletIntegration) {
       // Return mock NRN balance for testing
       return {
@@ -2032,7 +2032,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      const transactionId = await this.walletIntegration.createTransaction(request as any);
+      const transactionId = await this.walletIntegration.createTransaction(request);
       if (transactionId) {
         console.log(`Created wallet transaction: ${transactionId}`);
         return transactionId;
@@ -2056,8 +2056,8 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      const transactionId = await this.walletIntegration.invokeSkill(skillInvocation as any);
-      console.log(`Invoked skill with wallet: ${(skillInvocation as any).skillName}`);
+      const transactionId = await this.walletIntegration.invokeSkill(skillInvocation);
+      console.log(`Invoked skill with wallet: ${(skillInvocation as { skillName?: string }).skillName}`);
 
       // Record this as a learning interaction
       if (this.adaptiveLearningPipeline) {
@@ -2075,7 +2075,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async getWalletTransaction(transactionId: string): Promise<any> {
+  public async getWalletTransaction(transactionId: string): Promise<unknown> {
     if (!this.walletIntegration) {
       throw new Error('Wallet integration not available');
     }
@@ -2095,7 +2095,7 @@ export class CognitiveEngine extends EventEmitter {
     return this.walletIntegration.getTransactions();
   }
 
-  public async checkWalletTransactionStatus(transactionId: string): Promise<any> {
+  public async checkWalletTransactionStatus(transactionId: string): Promise<{ transactionId: string; status: string; confirmations: number; blockHeight: number; timestamp: number }> {
     if (!this.walletIntegration) {
       // Return mock transaction status for testing
       return {
@@ -2151,7 +2151,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      this.walletIntegration.updateConfig(_config as any);
+      this.walletIntegration.updateConfig(_config);
       console.log('Wallet configuration updated');
     } catch (error) {
       console.error('Failed to update wallet _config:', error);
@@ -2169,7 +2169,7 @@ export class CognitiveEngine extends EventEmitter {
     return this.chainIntegration ? this.chainIntegration.isChainConnected() : false;
   }
 
-  public async executeChainContractCall(call: unknown): Promise<any> {
+  public async executeChainContractCall(call: unknown): Promise<{ success: boolean; transactionHash: string; result: unknown; gasUsed: string; blockNumber: number }> {
     if (!this.chainIntegration) {
       // Return mock contract call result for testing
       return {
@@ -2182,8 +2182,8 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      const result = await this.chainIntegration.executeContractCall(call as any);
-      const callAny = call as any;
+      const result = await this.chainIntegration.executeContractCall(call);
+      const callAny = call as { contract?: string; method?: string };
       if (result) {
         console.log(`Executed contract call: ${callAny.contract}.${callAny.method}`);
         return result;
@@ -2259,7 +2259,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      const skillId = await this.chainIntegration.registerSkill(skillMetadata as any);
+      const skillId = await this.chainIntegration.registerSkill(skillMetadata);
       console.log(`Registered skill on chain: ${skillId}`);
       return skillId;
     } catch (error) {
@@ -2323,7 +2323,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async getNetworkConsensus(): Promise<any> {
+  public async getNetworkConsensus(): Promise<{ consensusAlgorithm: string; blockTime: number; validators: number; networkHealth: string }> {
     if (!this.chainIntegration) {
       // Return mock consensus data for testing
       return {
@@ -2420,7 +2420,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      this.chainIntegration.updateConfig(_config as any);
+      this.chainIntegration.updateConfig(_config);
       console.log('Chain configuration updated');
     } catch (error) {
       console.error('Failed to update chain _config:', error);
@@ -2456,7 +2456,7 @@ export class CognitiveEngine extends EventEmitter {
       if (!finalNrnAmount && this.chainIntegration) {
         const skill = this.getChainSkill(skillId);
         if (skill) {
-          finalNrnAmount = (skill as any).usageFee;
+          finalNrnAmount = (skill as { usageFee?: string }).usageFee;
         }
       }
 
@@ -2477,7 +2477,7 @@ export class CognitiveEngine extends EventEmitter {
       if (this.chainIntegration && finalNrnAmount) {
         const chainTransactionHash = await this.invokeSkillOnChain(
           skillId,
-          (currentAccount as any).address,
+          (currentAccount as { address?: string }).address || '',
           finalNrnAmount,
           parameters
         );
@@ -2525,7 +2525,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      const messageObj = typeof messageData === 'object' && messageData !== null ? messageData as any : {};
+      const messageObj = typeof messageData === 'object' && messageData !== null ? messageData as Record<string, unknown> : {};
       const response = await this.ecosystemCommunication.sendMessage({
         from: 'knirv-cortex',
         to: messageObj.to || 'unknown',
@@ -2563,7 +2563,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async executeSkillThroughEcosystem(skillId: string, parameters: unknown): Promise<any> {
+  public async executeSkillThroughEcosystem(skillId: string, parameters: unknown): Promise<unknown> {
     if (!this.ecosystemCommunication) {
       throw new Error('Ecosystem communication not available');
     }
@@ -2621,7 +2621,7 @@ export class CognitiveEngine extends EventEmitter {
         requiresResponse: true,
       });
 
-      console.log('Wallet operation executed through ecosystem:', (operation as any).type);
+      console.log('Wallet operation executed through ecosystem:', (operation as { type?: string }).type);
 
       // Ensure response has the expected structure
       if (response && response.success) {
@@ -2658,7 +2658,7 @@ export class CognitiveEngine extends EventEmitter {
         data: {
           transactionHash: `mock-chain-tx-${Date.now()}`,
           blockNumber: 12345,
-          operation: (operation as any).type
+          operation: (operation as { type?: string }).type
         },
         timestamp: Date.now()
       };
@@ -2848,7 +2848,7 @@ export class CognitiveEngine extends EventEmitter {
         });
         (results as any)[(service as any).componentId] = response;
       } catch (error) {
-        (results as any)[(service as any).componentId] = { success: false, error: (error as Error).message };
+        (results as Record<string, unknown>)[(service as { componentId?: string }).componentId || 'unknown'] = { success: false, error: (error as Error).message };
       }
     });
 
@@ -2910,7 +2910,7 @@ export class CognitiveEngine extends EventEmitter {
       return success;
     } catch (error) {
       this.emit('wasmLoRAAdapterLoadFailed', {
-        skillId: (adapter as any).skillId,
+        skillId: (adapter as { skillId?: string }).skillId,
         error: error instanceof Error ? error.message : 'Unknown error'
       });
       throw error;
@@ -3298,7 +3298,7 @@ export class CognitiveEngine extends EventEmitter {
     error: Error,
     taskDescription: string,
     nrnToken?: string,
-    additionalContext?: Record<string, any>
+    additionalContext?: Record<string, unknown>
   ): Promise<{ discoveryResult: SkillDiscoveryResult; invocationResult?: SkillInvocationResult }> {
     if (!this.errorContextManager) {
       throw new Error('Error Context Manager not initialized. Enable errorContextEnabled in config.');
@@ -3335,7 +3335,7 @@ export class CognitiveEngine extends EventEmitter {
   public async discoverSkillForError(
     error: Error,
     taskDescription: string,
-    additionalContext?: Record<string, any>
+    additionalContext?: Record<string, unknown>
   ): Promise<SkillDiscoveryResult> {
     if (!this.errorContextManager) {
       throw new Error('Error Context Manager not initialized. Enable errorContextEnabled in config.');
@@ -3365,7 +3365,7 @@ export class CognitiveEngine extends EventEmitter {
   public async invokeSkillByUri(
     skillUri: string,
     nrnToken?: string,
-    parameters?: Record<string, any>
+    parameters?: Record<string, unknown>
   ): Promise<SkillInvocationResult> {
     if (!this.errorContextManager) {
       throw new Error('Error Context Manager not initialized. Enable errorContextEnabled in config.');

@@ -14,12 +14,12 @@ export interface ErrorNode {
   errorType: string;
   errorMessage: string;
   stackTrace?: string;
-  context: Record<string, any>;
+  context: Record<string, unknown>;
   severity: 'low' | 'medium' | 'high' | 'critical';
   timestamp: Date;
   bountyAmount: number;
   tags: string[];
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface ErrorCluster {

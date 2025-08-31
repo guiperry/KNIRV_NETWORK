@@ -1,6 +1,23 @@
 # KNIRV Service Discovery Configuration for Integration Tests
 
 services:
+  ipfs:
+    name: "IPFS"
+    url: "http://localhost:5001"
+    health_endpoint: "/api/v0/version"
+    api_endpoints:
+      - "/api/v0/add"
+      - "/api/v0/cat"
+      - "/api/v0/pin/add"
+      - "/api/v0/pin/ls"
+      - "/api/v0/swarm/peers"
+      - "/api/v0/id"
+      - "/api/v0/repo/stat"
+    gateway_url: "http://localhost:8080"
+    swarm_port: 4001
+    timeout: 30s
+    retry_count: 3
+
   knirvoracle:
     name: "KNIRV-ORACLE"
     url: "http://localhost:1317"
@@ -97,20 +114,31 @@ test_config:
   
 # Service Dependencies
 dependencies:
+  knirvoracle:
+    depends_on:
+      - ipfs
   knirvchain:
     depends_on:
+      - ipfs
       - knirvoracle
       - knirvgraph
+  knirvgraph:
+    depends_on:
+      - ipfs
+      - knirvoracle
   knirvnexus:
     depends_on:
+      - ipfs
       - knirvoracle
       - knirvchain
       - knirvgraph
   knirvrouter:
     depends_on:
+      - ipfs
       - knirvoracle
   knirvgateway:
     depends_on:
+      - ipfs
       - knirvoracle
       - knirvchain
       - knirvgraph

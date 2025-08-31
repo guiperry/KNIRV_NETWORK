@@ -222,7 +222,7 @@ class KNIRVCortexBackend {
     });
   }
 
-  private async handleWebSocketMessage(ws: WebSocket, data: any) {
+  private async handleWebSocketMessage(ws: WebSocket, data: { type: string; skillData?: unknown; metadata?: unknown; [key: string]: unknown }) {
     switch (data.type) {
       case 'lora_compile':
         try {

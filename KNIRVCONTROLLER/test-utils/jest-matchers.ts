@@ -7,22 +7,23 @@ import {
 } from './wallet-test-utils';
 
 declare global {
-  interface jest {
-    Expect: {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace jest {
+    interface Expect {
       toHaveTransactionStructure(): unknown;
       toBeValidAddress(prefix?: string): unknown;
       toHaveWalletStructure(): unknown;
-    };
-    Matchers<R>: {
+    }
+    interface Matchers<R> {
       toHaveTransactionStructure(): R;
       toBeValidAddress(prefix?: string): R;
       toHaveWalletStructure(): R;
-    };
-    InverseAsymmetricMatchers: {
+    }
+    interface InverseAsymmetricMatchers {
       toHaveTransactionStructure(): unknown;
       toBeValidAddress(prefix?: string): unknown;
       toHaveWalletStructure(): unknown;
-    };
+    }
   }
 }
 

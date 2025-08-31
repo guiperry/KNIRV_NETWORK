@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { walletIntegrationService, WalletAccount, TransactionRequest, Transaction } from '../services/WalletIntegrationService';
 
@@ -28,9 +28,42 @@ export const MetaAccountDashboard: React.FC<MetaAccountDashboardProps> = ({
 
   useEffect(() => {
     initializeWallet();
-  }, []);
+  }, [initializeWallet]);
 
-  const initializeWallet = async () => {
+  const loadAccountData = useCallback(async (walletAccount: WalletAccount) => {
+    try {
+      // Load balance
+      const balanceData = await walletIntegrationService.getAccountBalance(walletAccount.id);
+      setBalance(balanceData.balance);
+      setNrnBalance(balanceData.nrnBalance);
+
+      if (onBalanceUpdate) {
+        onBalanceUpdate(balanceData.balance);
+      }
+
+      // Load recent transactions
+      const recentTransactions = await walletIntegrationService.getTransactionHistory(walletAccount.id, 10);
+      setTransactions(recentTransactions);
+    } catch (error) {
+      console.error('Failed to load account data:', error);
+    }
+  }, [onBalanceUpdate]);
+
+  const connectWallet = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const connectedAccount = await walletIntegrationService.connectWallet();
+      setAccount(connectedAccount);
+      setIsConnected(true);
+      await loadAccountData(connectedAccount);
+    } catch (error) {
+      console.error('Failed to connect wallet:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [loadAccountData]);
+
+  const initializeWallet = useCallback(async () => {
     try {
       setIsLoading(true);
 
@@ -49,38 +82,9 @@ export const MetaAccountDashboard: React.FC<MetaAccountDashboardProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [loadAccountData, connectWallet]);
 
-  const connectWallet = async () => {
-    try {
-      setIsLoading(true);
-      const connectedAccount = await walletIntegrationService.connectWallet();
-      setAccount(connectedAccount);
-      setIsConnected(true);
-      await loadAccountData(connectedAccount);
-    } catch (error) {
-      console.error('Failed to connect wallet:', error);
-      setIsConnected(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  const loadAccountData = async (walletAccount: WalletAccount) => {
-    try {
-      // Load balance
-      const balanceData = await walletIntegrationService.getAccountBalance(walletAccount.id);
-      setBalance(balanceData.balance);
-      setNrnBalance(balanceData.nrnBalance);
-      onBalanceUpdate?.(balanceData.balance);
-
-      // Load transaction history
-      const transactionHistory = await walletIntegrationService.getTransactionHistory();
-      setTransactions(transactionHistory);
-    } catch (error) {
-      console.error('Failed to load account data:', error);
-    }
-  };
 
   const handleSendTransaction = async (recipient?: string, amount?: string) => {
     if (!account) {

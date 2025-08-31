@@ -200,10 +200,17 @@ cleanup() {
     # NOTE: Node.js/npm cleanup removed to prevent corruption of package installations
     # The script no longer touches node_modules, dist directories, or npm cache files
 
-    # Clean Docker containers and volumes if any
-    echo -e "${YELLOW}  Cleaning Docker resources...${NC}"
-    docker ps -a --filter "name=knirv" --format "{{.ID}}" | xargs -r docker rm -f 2>/dev/null
-    docker volume ls --filter "name=knirv" --format "{{.Name}}" | xargs -r docker volume rm 2>/dev/null
+    # Clean Podman containers and volumes if any
+    echo -e "${YELLOW}  Cleaning Podman resources...${NC}"
+    podman ps -a --filter "name=knirv" --format "{{.ID}}" | xargs -r podman rm -f 2>/dev/null
+    podman volume ls --filter "name=knirv" --format "{{.Name}}" | xargs -r podman volume rm 2>/dev/null
+
+    # Also clean any remaining Docker containers for backward compatibility
+    echo -e "${YELLOW}  Cleaning legacy Docker resources...${NC}"
+    if command -v docker &> /dev/null; then
+        docker ps -a --filter "name=knirv" --format "{{.ID}}" | xargs -r docker rm -f 2>/dev/null
+        docker volume ls --filter "name=knirv" --format "{{.Name}}" | xargs -r docker volume rm 2>/dev/null
+    fi
 
     echo -e "${GREEN}Cleanup completed.${NC}"
 }

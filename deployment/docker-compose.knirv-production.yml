@@ -1,0 +1,239 @@
+# KNIRV Production Network - Docker Compose Configuration
+# Includes IPFS integration for distributed storage
+version: '3.8'
+
+services:
+  # IPFS - Distributed Storage Layer
+  ipfs-production:
+    image: ipfs/kubo:latest
+    container_name: knirv-production-ipfs
+    ports:
+      - "5001:5001"  # IPFS API
+      - "8080:8080"  # IPFS Gateway
+      - "4001:4001"  # IPFS Swarm TCP
+      - "4001:4001/udp"  # IPFS Swarm UDP
+    volumes:
+      - ipfs-data:/data/ipfs
+      - ./config/ipfs-production.conf:/data/ipfs/config:ro
+    environment:
+      - IPFS_PROFILE=server
+      - IPFS_PATH=/data/ipfs
+      - IPFS_LOGGING=info
+    networks:
+      - knirv-production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ipfs", "version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    command: >
+      sh -c "
+        if [ ! -f /data/ipfs/config ]; then
+          echo 'Initializing IPFS for KNIRV production...';
+          ipfs init --profile server;
+          ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001;
+          ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080;
+          ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '[\"*\"]';
+          ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '[\"PUT\", \"POST\", \"GET\", \"DELETE\"]';
+          ipfs config --json Swarm.ConnMgr.HighWater 200;
+          ipfs config --json Swarm.ConnMgr.LowWater 100;
+          ipfs config --json Datastore.StorageMax '\"50GB\"';
+          ipfs config --json Version.AgentVersion '\"kubo/v0.24.0/knirv-production\"';
+          echo 'IPFS configured for KNIRV production network';
+        fi;
+        exec ipfs daemon --migrate=true --enable-gc
+      "
+
+  # KNIRV Oracle - Core Orchestration
+  knirvoracle:
+    image: knirv/oracle:latest
+    container_name: knirv-production-oracle
+    ports:
+      - "8083:8083"  # Production Oracle port
+    volumes:
+      - oracle-data:/app/data
+      - ./config/oracle-production.yaml:/app/config.yaml:ro
+    depends_on:
+      ipfs-production:
+        condition: service_healthy
+    networks:
+      - knirv-production
+    environment:
+      - KNIRV_NETWORK=production
+      - KNIRV_CHAIN_ID=knirv-mainnet-1
+      - IPFS_API_URL=http://ipfs-production:5001
+      - IPFS_GATEWAY_URL=http://ipfs-production:8080
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # KNIRVCHAIN - Blockchain Layer
+  knirvchain:
+    image: knirv/chain:latest
+    container_name: knirv-production-chain
+    ports:
+      - "8080:8080"  # Production Chain port
+    volumes:
+      - chain-data:/app/data
+      - ./config/chain-production.toml:/app/config.toml:ro
+    depends_on:
+      - ipfs-production
+      - knirvoracle
+    networks:
+      - knirv-production
+    environment:
+      - RUST_LOG=info
+      - KNIRVCHAIN_RPC_ENDPOINT=0.0.0.0:8080
+      - IPFS_API_URL=http://ipfs-production:5001
+      - ORACLE_URL=http://knirvoracle:8083
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # KNIRVGRAPH - NRV Graph Processing
+  knirvgraph:
+    image: knirv/graph:latest
+    container_name: knirv-production-graph
+    ports:
+      - "8081:8081"  # Production Graph port
+    volumes:
+      - graph-data:/app/data
+      - ./config/graph-production.yaml:/app/config.yaml:ro
+    depends_on:
+      - ipfs-production
+      - knirvoracle
+    networks:
+      - knirv-production
+    environment:
+      - GO_ENV=production
+      - IPFS_API_URL=http://ipfs-production:5001
+      - ORACLE_URL=http://knirvoracle:8083
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/height"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # KNIRVNEXUS - LLM Inference Engine
+  knirvnexus:
+    image: knirv/nexus:latest
+    container_name: knirv-production-nexus
+    ports:
+      - "8082:8082"  # Production Nexus port
+    volumes:
+      - nexus-data:/app/data
+      - ./config/nexus-production.yaml:/app/config.yaml:ro
+    depends_on:
+      - ipfs-production
+      - knirvoracle
+      - knirvchain
+      - knirvgraph
+    networks:
+      - knirv-production
+    environment:
+      - NEXUS_HOST=0.0.0.0
+      - NEXUS_PORT=8082
+      - IPFS_API_URL=http://ipfs-production:5001
+      - ORACLE_URL=http://knirvoracle:8083
+      - CHAIN_URL=http://knirvchain:8080
+      - GRAPH_URL=http://knirvgraph:8081
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # KNIRVROUTER - Connectivity & Proof Engine
+  knirvrouter:
+    image: knirv/router:latest
+    container_name: knirv-production-router
+    ports:
+      - "5001:5001"   # Router API (different from IPFS API internally)
+      - "3478:3478"   # TURN server
+      - "5349:5349"   # TURN server TLS
+      - "9090:9090"   # Router metrics
+    volumes:
+      - router-data:/app/data
+      - ./config/router-production.yaml:/app/config.yaml:ro
+    depends_on:
+      - ipfs-production
+      - knirvoracle
+    networks:
+      - knirv-production
+    environment:
+      - IPFS_API_URL=http://ipfs-production:5001
+      - ORACLE_URL=http://knirvoracle:8083
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # API Gateway - Unified Access Point
+  api-gateway:
+    image: knirv/gateway:latest
+    container_name: knirv-production-gateway
+    ports:
+      - "8000:8000"  # Main API Gateway port
+    volumes:
+      - ./config/gateway-production.json:/app/config.json:ro
+    depends_on:
+      - ipfs-production
+      - knirvoracle
+      - knirvchain
+      - knirvgraph
+      - knirvnexus
+      - knirvrouter
+    networks:
+      - knirv-production
+    environment:
+      - NODE_ENV=production
+      - GATEWAY_PORT=8000
+      - IPFS_API_URL=http://ipfs-production:5001
+      - IPFS_GATEWAY_URL=http://ipfs-production:8080
+      - ORACLE_URL=http://knirvoracle:8083
+      - CHAIN_URL=http://knirvchain:8080
+      - GRAPH_URL=http://knirvgraph:8081
+      - NEXUS_URL=http://knirvnexus:8082
+      - ROUTER_URL=http://knirvrouter:5001
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/gateway/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# Networks
+networks:
+  knirv-production:
+    name: knirv-production
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# Volumes
+volumes:
+  ipfs-data:
+    name: knirv-production-ipfs-data
+  oracle-data:
+    name: knirv-production-oracle-data
+  chain-data:
+    name: knirv-production-chain-data
+  graph-data:
+    name: knirv-production-graph-data
+  nexus-data:
+    name: knirv-production-nexus-data
+  router-data:
+    name: knirv-production-router-data

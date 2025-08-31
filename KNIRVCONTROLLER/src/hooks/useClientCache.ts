@@ -22,7 +22,7 @@ const SkillCache = {
 };
 
 export function useClientCache(userId: string) {
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<unknown>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,8 +38,8 @@ export function useClientCache(userId: string) {
 
       // 2. Check if cache is stale (5 minutes)
       const isStale = !cachedProfile ||
-        (cachedProfile && (cachedProfile as any).lastFetched &&
-         (new Date().getTime() - (cachedProfile as any).lastFetched.getTime()) > 5 * 60 * 1000);
+        (cachedProfile && (cachedProfile as { lastFetched?: Date }).lastFetched &&
+         (new Date().getTime() - (cachedProfile as { lastFetched: Date }).lastFetched.getTime()) > 5 * 60 * 1000);
 
       if (isStale || forceRefresh) {
         try {
@@ -93,7 +93,7 @@ export function useClientCache(userId: string) {
 
 // Hook for caching agents
 export function useAgentCache() {
-  const [agents, setAgents] = useState<any[]>([]);
+  const [agents, setAgents] = useState<unknown[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -107,7 +107,7 @@ export function useAgentCache() {
       // Check if any cached agent is stale (10 minutes for agents)
       const now = new Date().getTime();
       const isStale = cachedAgents.length === 0 ||
-        cachedAgents.some((agent: any) => (now - (agent as any).lastFetched.getTime()) > 10 * 60 * 1000);
+        cachedAgents.some((agent: { lastFetched?: Date }) => agent.lastFetched && (now - agent.lastFetched.getTime()) > 10 * 60 * 1000);
 
       if (isStale || forceRefresh) {
         try {
@@ -167,7 +167,7 @@ export function useAgentCache() {
 
 // Hook for caching skills
 export function useSkillCache() {
-  const [skills, setSkills] = useState<any[]>([]);
+  const [skills, setSkills] = useState<unknown[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -181,7 +181,7 @@ export function useSkillCache() {
       // Check if any cached skill is stale (15 minutes for skills)
       const now = new Date().getTime();
       const isStale = cachedSkills.length === 0 ||
-        cachedSkills.some((skill: any) => (now - (skill as any).lastFetched.getTime()) > 15 * 60 * 1000);
+        cachedSkills.some((skill: { lastFetched?: Date }) => skill.lastFetched && (now - skill.lastFetched.getTime()) > 15 * 60 * 1000);
 
       if (isStale || forceRefresh) {
         try {
@@ -224,9 +224,9 @@ export function useSkillCache() {
 
   const searchSkills = useCallback(async (term: string) => {
     const allSkills = await SkillCache.find({});
-    return allSkills.filter((skill: any) =>
-      (skill as any).name.toLowerCase().includes(term.toLowerCase()) ||
-      (skill as any).description?.toLowerCase().includes(term.toLowerCase())
+    return allSkills.filter((skill: { name?: string; description?: string }) =>
+      skill.name?.toLowerCase().includes(term.toLowerCase()) ||
+      skill.description?.toLowerCase().includes(term.toLowerCase())
     );
   }, []);
 

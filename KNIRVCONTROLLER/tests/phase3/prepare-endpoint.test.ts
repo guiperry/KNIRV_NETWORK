@@ -568,7 +568,7 @@ describe('Phase 3.4: /prepare Endpoint Integration', () => {
         const authResponse = await (global.fetch as any)('http://mock-nexus-tee/register', { method: 'POST' });
         expect(authResponse.ok).toBe(false);
         expect(authResponse.status).toBe(401);
-      } catch (error) {
+      } catch {
         // Expected behavior
       }
     });

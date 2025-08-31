@@ -273,8 +273,14 @@ open coverage/*_coverage_*.html
 git clone https://github.com/guiperry/KNIRV_NETWORK.git
 cd KNIRV_NETWORK
 
-# Start all services locally with monitoring
+# Setup IPFS for production network (first time only)
+./scripts/setup-ipfs-production.sh
+
+# Start all services locally with monitoring (includes IPFS)
 ./scripts/manage-knirv.sh deploy-test
+
+# Test IPFS integration
+./scripts/test-ipfs-production.sh
 
 # Access the unified API gateway
 curl http://localhost:8000/gateway/health
@@ -285,6 +291,10 @@ open http://localhost:3000  # Grafana (admin/admin123)
 
 #### 🐳 Docker Compose Deployment
 ```bash
+# Deploy KNIRV production stack with IPFS
+cd deployment
+docker-compose -f docker-compose.knirv-production.yml up -d
+
 # Deploy with full monitoring stack
 ./scripts/deploy-and-test.sh --mode docker-compose --comprehensive
 

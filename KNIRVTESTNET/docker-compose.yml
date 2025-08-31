@@ -1,31 +1,56 @@
+# Podman Compose Configuration for KNIRV Testnet
+# Use with: podman-compose up -d
+# Note: Podman runs rootless by default, which provides better security
+# This configuration uses pre-built binaries from the bin/ directory
 version: '3.8'
 
 services:
   ipfs:
-    image: ipfs/go-ipfs:latest
+    image: ipfs/kubo:latest
     container_name: knirv-testnet-ipfs
     ports:
-      - "5001:5001"
-      - "8080:8080"
+      - "5001:5001"  # IPFS API
+      - "8080:8080"  # IPFS Gateway
+      - "4001:4001"  # IPFS Swarm
     volumes:
-      - ./data/ipfs:/data/ipfs
+      - ./data/ipfs:/data/ipfs:Z  # :Z for SELinux compatibility
     environment:
       - IPFS_PROFILE=server
+      - IPFS_PATH=/data/ipfs
+      # KNIRV-specific IPFS configuration
+      - IPFS_LOGGING=info
     networks:
       - knirv-testnet
+    # Podman-specific: ensure proper user mapping for rootless containers
+    userns_mode: "keep-id"
+    # Custom initialization for KNIRV network
+    command: >
+      sh -c "
+        if [ ! -f /data/ipfs/config ]; then
+          echo 'Initializing IPFS for KNIRV network...';
+          ipfs init --profile server;
+          ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001;
+          ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080;
+          ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '[\"*\"]';
+          ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '[\"PUT\", \"POST\", \"GET\"]';
+          ipfs config --json Swarm.ConnMgr.HighWater 100;
+          ipfs config --json Swarm.ConnMgr.LowWater 50;
+          echo 'IPFS configured for KNIRV testnet';
+        fi;
+        exec ipfs daemon --migrate=true --agent-version-suffix=knirv-testnet
+      "
 
   knirvoracle:
-    build:
-      context: ../KNIRVORACLE
-      dockerfile: Dockerfile
-    container_name: knirv-testnet-root
+    image: ubuntu:22.04
+    container_name: knirv-testnet-oracle
     ports:
       - "1317:1317"
       - "26657:26657"
       - "26656:26656"
     volumes:
-      - ./data/knirvoracle:/root/.knirvoracle
-      - ./config/knirvoracle-config.yaml:/root/config.yaml
+      - ./bin/knirvoracle:/usr/local/bin/knirvoracle:Z
+      - ./data/knirvoracle:/app/data:Z
+      - ./config/knirvoracle-config.yaml:/app/config.yaml:Z
     depends_on:
       - ipfs
     networks:
@@ -33,17 +58,19 @@ services:
     environment:
       - KNIRV_NETWORK=testnet
       - KNIRV_CHAIN_ID=knirv-testnet-1
+    userns_mode: "keep-id"
+    working_dir: /app
+    command: ["/usr/local/bin/knirvoracle", "--config", "/app/config.yaml"]
 
   knirvchain:
-    build:
-      context: ../KNIRVCHAIN
-      dockerfile: Dockerfile
+    image: ubuntu:22.04
     container_name: knirv-testnet-chain
     ports:
-      - "8080:8080"
+      - "8090:8090"  # Updated to match the actual port used by knirvchain
     volumes:
-      - ./data/knirvchain:/app/data
-      - ./config/knirvchain-config.toml:/app/config.toml
+      - ./bin/knirvchain:/usr/local/bin/knirvchain:Z
+      - ./data/knirvchain:/app/data:Z
+      - ./config/knirvchain-config.toml:/app/config.toml:Z
     depends_on:
       - knirvoracle
       - ipfs
@@ -51,18 +78,24 @@ services:
       - knirv-testnet
     environment:
       - RUST_LOG=info
+      - KNIRVCHAIN_RPC_ENDPOINT=0.0.0.0:8090
+      - BLOCK_DIFFICULTY=1
+      - KNIRVCHAIN_ID=1
+      - BLOCK_TIME=5
+    userns_mode: "keep-id"
+    working_dir: /app/data
+    command: ["/usr/local/bin/knirvchain", "--testnet", "--disable-mining"]
 
   knirvgraph:
-    build:
-      context: ../KNIRVGRAPH
-      dockerfile: Dockerfile
+    image: ubuntu:22.04
     container_name: knirv-testnet-graph
     ports:
-      - "8081:8081"
+      - "8082:8082"  # Updated to match the actual port used by knirvgraph
       - "4001:4001"
     volumes:
-      - ./data/knirvgraph:/app/data
-      - ./config/knirvgraph-config.yaml:/app/config.yaml
+      - ./bin/knirvgraph:/usr/local/bin/knirvgraph:Z
+      - ./data/knirvgraph:/app/data:Z
+      - ./config/knirvgraph-config.yaml:/app/config.yaml:Z
     depends_on:
       - knirvoracle
       - ipfs
@@ -70,81 +103,85 @@ services:
       - knirv-testnet
     environment:
       - GO_ENV=testnet
+    userns_mode: "keep-id"
+    working_dir: /app
+    command: ["/usr/local/bin/knirvgraph", "--testnet", "--memory", "--populate", "--max-nodes", "250", "--rpc-port", "8082", "--home", "/app/data"]
 
-  knirvnexus-1:
-    build:
-      context: ../KNIRVNEXUS
-      dockerfile: Dockerfile
-    container_name: knirv-testnet-nexus-1
+  knirvnexus:
+    image: ubuntu:22.04
+    container_name: knirv-testnet-nexus
     ports:
-      - "8082:8082"
+      - "8084:8084"  # Updated to match the actual port used by knirvnexus
     volumes:
-      - ./data/knirvnexus/node-1:/app/data
-      - ./config/knirvnexus-config.yaml:/app/config.yaml
+      - ./bin/knirvnexus:/usr/local/bin/knirvnexus:Z
+      - ./data/knirvnexus:/app/data:Z
+      - ./config/nexus-testnet.yaml:/app/config.yaml:Z
     environment:
-      - NODE_ID=1
-      - MOCK_TEE=true
+      - NEXUS_HOST=0.0.0.0
+      - NEXUS_PORT=8084
+      - NEXUS_BACKEND_PORT=8080
+      - NEXUS_LOG_LEVEL=info
+      - NEXUS_TESTNET=true
     depends_on:
       - knirvoracle
     networks:
       - knirv-testnet
-
-  knirvnexus-2:
-    build:
-      context: ../KNIRVNEXUS
-      dockerfile: Dockerfile
-    container_name: knirv-testnet-nexus-2
-    ports:
-      - "8083:8083"
-    volumes:
-      - ./data/knirvnexus/node-2:/app/data
-      - ./config/knirvnexus-config.yaml:/app/config.yaml
-    environment:
-      - NODE_ID=2
-      - MOCK_TEE=true
-    depends_on:
-      - knirvoracle
-    networks:
-      - knirv-testnet
+    userns_mode: "keep-id"
+    working_dir: /app
+    command: ["/usr/local/bin/knirvnexus", "--testnet", "--port", "8084", "--host", "0.0.0.0", "--config", "/app/config.yaml"]
 
   knirvrouter:
-    build:
-      context: ../KNIRVROUTER
-      dockerfile: Dockerfile
+    image: ubuntu:22.04
     container_name: knirv-testnet-router
     ports:
       - "8086:8086"
       - "3478:3478"
     volumes:
-      - ./data/knirvrouter:/app/data
-      - ./config/knirvrouter-config.yaml:/app/config.yaml
+      - ./bin/knirvrouter:/usr/local/bin/knirvrouter:Z
+      - ./data/knirvrouter:/app/data:Z
+      - ./config/knirvrouter-config.yaml:/app/config.yaml:Z
     depends_on:
       - knirvoracle
     networks:
       - knirv-testnet
+    userns_mode: "keep-id"
+    working_dir: /app
+    command: ["/usr/local/bin/knirvrouter", "-testnet", "-local-network", "-mock-nrn", "-port", "8086", "-miners_address", "KNIRVROUTER_Testnet_Miner"]
 
-  knirvgateway:
-    build:
-      context: ../KNIRVGATEWAY
-      dockerfile: Dockerfile
+  knirvtestnet-gateway:
+    image: node:18-alpine
     container_name: knirv-testnet-gateway
     ports:
-      - "8087:8087"
+      - "10000:10000"  # KNIRVTESTNET Express server port
     volumes:
-      - ./config/knirvgateway-config.json:/app/config.json
+      - .:/app:Z  # Mount entire KNIRVTESTNET directory
+      - ./node_modules:/app/node_modules:Z
     depends_on:
       - knirvoracle
       - knirvchain
       - knirvgraph
-      - knirvnexus-1
-      - knirvnexus-2
+      - knirvnexus
       - knirvrouter
     networks:
       - knirv-testnet
     environment:
       - NODE_ENV=testnet
+      - PORT=10000
+      - TESTNET_MODE=true
+      - DEBUG_MODE=true
+      - ENABLE_CORS=true
+      # Service endpoints (internal container network)
+      - KNIRVORACLE_URL=http://knirvoracle:1317
+      - KNIRVCHAIN_URL=http://knirvchain:8090
+      - KNIRVGRAPH_URL=http://knirvgraph:8082
+      - KNIRVNEXUS_URL=http://knirvnexus:8084
+      - KNIRVROUTER_URL=http://knirvrouter:8086
+    userns_mode: "keep-id"
+    working_dir: /app
+    command: ["npm", "start"]
 
 networks:
   knirv-testnet:
     name: knirv-testnet
-    driver: bridge
+    # Podman uses netavark/aardvark-dns by default instead of bridge
+    # This provides better networking for rootless containers

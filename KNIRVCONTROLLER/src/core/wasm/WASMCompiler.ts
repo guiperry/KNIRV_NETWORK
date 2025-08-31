@@ -59,7 +59,7 @@ export interface LoRAAdapterWASMModule extends WASMModule {
   adapterId: string;
   adapterName: string;
   applyWeights: (input: Float32Array) => Promise<Float32Array>;
-  getAdapterInfo: () => any;
+  getAdapterInfo: () => { name: string; version: string; [key: string]: unknown };
 }
 
 export interface WASMModule {

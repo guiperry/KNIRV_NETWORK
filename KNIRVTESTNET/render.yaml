@@ -1,10 +1,11 @@
 services:
   # KNIRVTESTNET Wizened Web Service
-  # Uses the WizenedEnvironmentGuide approach with pre-initialized WASM module
+  # NOTE: Render.com doesn't support Podman directly, so we keep Docker for cloud deployment
+  # For local Podman development, use: podman-compose up -d
   # Root directory is set to KNIRVTESTNET in Render dashboard
   - type: web
     name: knirvtestnet-wizened
-    runtime: docker
+    runtime: docker  # Render only supports Docker, not Podman
     plan: starter
     region: oregon
 

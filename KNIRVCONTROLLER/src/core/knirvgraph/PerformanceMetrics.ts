@@ -117,7 +117,7 @@ export class PerformanceMetrics extends EventEmitter {
   private config: MetricsConfig;
   private isInitialized: boolean = false;
   private updateInterval?: NodeJS.Timeout;
-  private metricsHistory: Map<string, any[]> = new Map();
+  private metricsHistory: Map<string, unknown[]> = new Map();
 
   constructor(config: Partial<MetricsConfig> = {}) {
     super();

@@ -1,5 +1,6 @@
-# KNIRV Wizened Environment Dockerfile
-# Implements the WizenedEnvironmentGuide approach for Render deployment
+# KNIRV Wizened Environment Containerfile
+# Implements the WizenedEnvironmentGuide approach for Podman deployment
+# Compatible with both Podman and Docker runtimes
 
 FROM ubuntu:22.04
 

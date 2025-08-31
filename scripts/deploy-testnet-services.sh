@@ -115,18 +115,18 @@ prepare_testnet_files() {
     sed -i 's|dockerfile: Dockerfile|#dockerfile: Dockerfile|g' "$TEMP_DIR/docker-compose.yml"
     
     # Add image references for production
-    cat >> "$TEMP_DIR/docker-compose-prod.yml" << 'EOF'
+    cat >> "$TEMP_DIR/podman-compose-prod.yml" << 'EOF'
 version: '3.8'
 
 services:
   ipfs:
-    image: ipfs/go-ipfs:latest
+    image: docker.io/ipfs/kubo:latest # Use explicit registry for Podman
     container_name: knirv-testnet-ipfs
     ports:
       - "5001:5001"
       - "8080:8080"
     volumes:
-      - ./data/ipfs:/data/ipfs
+      - ./data/ipfs:/data/ipfs:Z # Add :Z for SELinux
     environment:
       - IPFS_PROFILE=server
     networks:
@@ -141,8 +141,8 @@ services:
       - "26657:26657"
       - "26656:26656"
     volumes:
-      - ./data/knirvoracle:/root/.knirvoracle
-      - ./config/knirvoracle-config.yaml:/root/config.yaml
+      - ./data/knirvoracle:/root/.knirvoracle:Z
+      - ./config/knirvoracle-config.yaml:/root/config.yaml:Z
     depends_on:
       - ipfs
     networks:
@@ -158,8 +158,8 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./data/knirvchain:/app/data
-      - ./config/knirvchain-config.toml:/app/config.toml
+      - ./data/knirvchain:/app/data:Z
+      - ./config/knirvchain-config.toml:/app/config.toml:Z
     depends_on:
       - knirvoracle
       - ipfs
@@ -176,8 +176,8 @@ services:
       - "8081:8081"
       - "4001:4001"
     volumes:
-      - ./data/knirvgraph:/app/data
-      - ./config/knirvgraph-config.yaml:/app/config.yaml
+      - ./data/knirvgraph:/app/data:Z
+      - ./config/knirvgraph-config.yaml:/app/config.yaml:Z
     depends_on:
       - knirvoracle
       - ipfs
@@ -193,8 +193,8 @@ services:
     ports:
       - "8082:8082"
     volumes:
-      - ./data/knirvnexus/node-1:/app/data
-      - ./config/knirvnexus-config.yaml:/app/config.yaml
+      - ./data/knirvnexus/node-1:/app/data:Z
+      - ./config/knirvnexus-config.yaml:/app/config.yaml:Z
     environment:
       - NODE_ID=1
       - MOCK_TEE=true
@@ -210,8 +210,8 @@ services:
     ports:
       - "8083:8083"
     volumes:
-      - ./data/knirvnexus/node-2:/app/data
-      - ./config/knirvnexus-config.yaml:/app/config.yaml
+      - ./data/knirvnexus/node-2:/app/data:Z
+      - ./config/knirvnexus-config.yaml:/app/config.yaml:Z
     environment:
       - NODE_ID=2
       - MOCK_TEE=true
@@ -228,8 +228,8 @@ services:
       - "8086:8086"
       - "3478:3478"
     volumes:
-      - ./data/knirvrouter:/app/data
-      - ./config/knirvrouter-config.yaml:/app/config.yaml
+      - ./data/knirvrouter:/app/data:Z
+      - ./config/knirvrouter-config.yaml:/app/config.yaml:Z
     depends_on:
       - knirvoracle
     networks:
@@ -242,7 +242,7 @@ services:
     ports:
       - "8087:8087"
     volumes:
-      - ./config/knirvgateway-config.json:/app/config.json
+      - ./config/knirvgateway-config.json:/app/config.json:Z
     depends_on:
       - knirvoracle
       - knirvchain
@@ -281,98 +281,99 @@ upload_testnet_files() {
     print_success "Files uploaded to testnet server"
 }
 
-build_docker_images() {
-    print_step "Building Docker images on testnet server..."
+build_podman_images() {
+    print_step "Building Podman images on testnet server..."
+    print_warning "Best practice is to build images in a CI/CD pipeline and pull from a registry."
     
-    # Build images on the server
+    # Build images on the server using Podman
     ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" << 'EOF'
 cd /opt/knirv-testnet
 
 # Build KNIRV services (using mock builds for now)
 echo "Building KNIRVORACLE..."
-docker build -t knirvoracle:latest -f - . << 'DOCKERFILE'
+podman build -t knirvoracle:latest -f - . << 'CONTAINERFILE'
 FROM ubuntu:22.04
 RUN apt-get update && apt-get install -y curl
 COPY scripts/mock-knirvoracle.py /app/mock-knirvoracle.py
 WORKDIR /app
 EXPOSE 1317 26656 26657
 CMD ["python3", "mock-knirvoracle.py"]
-DOCKERFILE
+CONTAINERFILE
 
 echo "Building KNIRVCHAIN..."
-docker build -t knirvchain:latest -f - . << 'DOCKERFILE'
+podman build -t knirvchain:latest -f - . << 'CONTAINERFILE'
 FROM ubuntu:22.04
 RUN apt-get update && apt-get install -y curl python3
 COPY scripts/mock-knirvchain.py /app/mock-knirvchain.py
 WORKDIR /app
 EXPOSE 8080
 CMD ["python3", "mock-knirvchain.py"]
-DOCKERFILE
+CONTAINERFILE
 
 echo "Building KNIRVGRAPH..."
-docker build -t knirvgraph:latest -f - . << 'DOCKERFILE'
+podman build -t knirvgraph:latest -f - . << 'CONTAINERFILE'
 FROM ubuntu:22.04
 RUN apt-get update && apt-get install -y curl python3
 COPY scripts/mock-knirvgraph.py /app/mock-knirvgraph.py
 WORKDIR /app
 EXPOSE 8081
 CMD ["python3", "mock-knirvgraph.py"]
-DOCKERFILE
+CONTAINERFILE
 
 echo "Building KNIRVNEXUS..."
-docker build -t knirvnexus:latest -f - . << 'DOCKERFILE'
+podman build -t knirvnexus:latest -f - . << 'CONTAINERFILE'
 FROM ubuntu:22.04
 RUN apt-get update && apt-get install -y curl python3
 COPY scripts/mock-knirvnexus.py /app/mock-knirvnexus.py
 WORKDIR /app
 EXPOSE 8082 8083
 CMD ["python3", "mock-knirvnexus.py"]
-DOCKERFILE
+CONTAINERFILE
 
 echo "Building KNIRVROUTER..."
-docker build -t knirvrouter:latest -f - . << 'DOCKERFILE'
+podman build -t knirvrouter:latest -f - . << 'CONTAINERFILE'
 FROM ubuntu:22.04
 RUN apt-get update && apt-get install -y curl python3
 COPY scripts/mock-knirvrouter.py /app/mock-knirvrouter.py
 WORKDIR /app
 EXPOSE 8086
 CMD ["python3", "mock-knirvrouter.py"]
-DOCKERFILE
+CONTAINERFILE
 
 echo "Building KNIRVGATEWAY..."
-docker build -t knirvgateway:latest -f - . << 'DOCKERFILE'
+podman build -t knirvgateway:latest -f - . << 'CONTAINERFILE'
 FROM ubuntu:22.04
 RUN apt-get update && apt-get install -y curl python3
 COPY scripts/mock-knirvgateway.py /app/mock-knirvgateway.py
 WORKDIR /app
 EXPOSE 8087
 CMD ["python3", "mock-knirvgateway.py"]
-DOCKERFILE
+CONTAINERFILE
 
-echo "Docker images built successfully"
+echo "Podman images built successfully"
 EOF
     
-    print_success "Docker images built on testnet server"
+    print_success "Podman images built on testnet server"
 }
 
 deploy_testnet_services() {
     print_step "Deploying KNIRVTESTNET services..."
     
-    # Deploy services using docker-compose
+    # Deploy services using podman-compose
     ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" << 'EOF'
 cd /opt/knirv-testnet
 
 # Stop any existing services
-docker-compose -f docker-compose-prod.yml down || true
+podman-compose -f podman-compose-prod.yml down || true
 
 # Start services
-docker-compose -f docker-compose-prod.yml up -d
+podman-compose -f podman-compose-prod.yml up -d
 
 # Wait for services to start
 sleep 30
 
 # Check service status
-docker-compose -f docker-compose-prod.yml ps
+podman-compose -f podman-compose-prod.yml ps
 EOF
     
     print_success "KNIRVTESTNET services deployed"
@@ -445,8 +446,8 @@ display_summary() {
     echo ""
     echo -e "${YELLOW}Next Steps:${NC}"
     echo -e "  1. Update frontend: make update-testnet-frontend"
-    echo -e "  2. Monitor services: ssh knirv-testnet 'docker ps'"
-    echo -e "  3. View logs: ssh knirv-testnet 'docker-compose -f /opt/knirv-testnet/docker-compose-prod.yml logs'"
+    echo -e "  2. Monitor services: ssh knirv-testnet 'podman ps'"
+    echo -e "  3. View logs: ssh knirv-testnet 'podman-compose -f /opt/knirv-testnet/podman-compose-prod.yml logs'"
     echo ""
 }
 
@@ -458,7 +459,7 @@ main() {
     test_ssh_connection
     prepare_testnet_files
     upload_testnet_files
-    build_docker_images
+    build_podman_images
     deploy_testnet_services
     verify_deployment
     cleanup

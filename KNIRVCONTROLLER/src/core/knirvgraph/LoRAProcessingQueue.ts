@@ -368,7 +368,7 @@ export class LoRAProcessingQueue extends EventEmitter {
     }
 
     // Update throughput (items per hour)
-    const hoursSinceStart = (Date.now() - (this.metrics as any).startTime || Date.now()) / (1000 * 60 * 60);
+    const hoursSinceStart = (Date.now() - ((this.metrics as { startTime?: number }).startTime || Date.now())) / (1000 * 60 * 60);
     this.metrics.queueThroughput = totalProcessed / Math.max(hoursSinceStart, 0.1);
   }
 

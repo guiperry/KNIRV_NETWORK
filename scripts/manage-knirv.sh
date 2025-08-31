@@ -143,6 +143,44 @@ start_component() {
     local port=$2
     
     case $component in
+        "ipfs")
+            print_info "Starting IPFS for KNIRV production network..."
+
+            # Set IPFS path for production
+            export IPFS_PATH="./data/ipfs-production"
+
+            # Create necessary directories
+            mkdir -p logs data/ipfs-production
+
+            # Check if IPFS is configured
+            if [ ! -f "$IPFS_PATH/config" ]; then
+                print_warning "IPFS not configured. Setting up IPFS..."
+                if [ -f "./scripts/setup-ipfs-production.sh" ]; then
+                    ./scripts/setup-ipfs-production.sh
+                else
+                    print_error "IPFS setup script not found. Please run setup-ipfs-production.sh first."
+                    return 1
+                fi
+            fi
+
+            # Start IPFS daemon
+            print_info "Starting IPFS daemon on ports 5001 (API), 8080 (Gateway), 4001 (Swarm)..."
+            ipfs daemon --enable-gc --migrate > ./logs/ipfs-production.log 2>&1 &
+            local ipfs_pid=$!
+            echo $ipfs_pid > ./data/ipfs-production.pid
+
+            # Wait for IPFS to start
+            sleep 3
+            if kill -0 $ipfs_pid 2>/dev/null; then
+                print_success "IPFS started successfully (PID: $ipfs_pid)"
+                print_info "IPFS API: http://localhost:5001"
+                print_info "IPFS Gateway: http://localhost:8080"
+                print_info "IPFS Swarm: tcp://localhost:4001"
+            else
+                print_error "Failed to start IPFS"
+                return 1
+            fi
+            ;;
         "knirvchain")
             print_component "Starting KNIRVCHAIN..."
             if check_component_dir "KNIRVCHAIN" "$KNIRVCHAIN_DIR"; then
@@ -463,6 +501,48 @@ stop_component() {
     local component=$1
     
     case $component in
+        "ipfs")
+            print_component "Stopping IPFS..."
+
+            # Stop IPFS daemon using PID file
+            if [ -f "./data/ipfs-production.pid" ]; then
+                local ipfs_pid=$(cat ./data/ipfs-production.pid)
+                if kill -0 $ipfs_pid 2>/dev/null; then
+                    print_info "Stopping IPFS daemon (PID: $ipfs_pid)..."
+                    kill $ipfs_pid
+
+                    # Wait for graceful shutdown
+                    local count=0
+                    while kill -0 $ipfs_pid 2>/dev/null && [ $count -lt 10 ]; do
+                        sleep 1
+                        count=$((count + 1))
+                    done
+
+                    # Force kill if still running
+                    if kill -0 $ipfs_pid 2>/dev/null; then
+                        print_warning "Force killing IPFS daemon..."
+                        kill -9 $ipfs_pid 2>/dev/null || true
+                    fi
+
+                    print_success "IPFS stopped"
+                else
+                    print_warning "IPFS daemon not running (stale PID file)"
+                fi
+                rm -f ./data/ipfs-production.pid
+            else
+                # Fallback: kill by process name
+                local ipfs_pids=$(pgrep -f "ipfs daemon" || true)
+                if [ -n "$ipfs_pids" ]; then
+                    print_info "Stopping IPFS processes: $ipfs_pids"
+                    echo "$ipfs_pids" | xargs -r kill
+                    sleep 2
+                    echo "$ipfs_pids" | xargs -r kill -9 2>/dev/null || true
+                    print_success "IPFS stopped"
+                else
+                    print_info "IPFS not running"
+                fi
+            fi
+            ;;
         "gateway")
             print_component "Stopping KNIRVGATEWAY..."
             if [ -f "$KNIRVGATEWAY_DIR/data/knirvgateway.pid" ]; then
@@ -725,7 +805,9 @@ case $COMMAND in
     start)
         print_header "Starting KNIRV Components: $COMPONENT"
         if [ "$COMPONENT" = "all" ]; then
-            # Start all components in order
+            # Start all components in order (IPFS first for network storage)
+            start_component "ipfs"
+            sleep 3
             start_component "knirvoracle"
             sleep 2
             start_component "knirvchain"
@@ -744,13 +826,14 @@ case $COMMAND in
     stop)
         print_header "Stopping KNIRV Components: $COMPONENT"
         if [ "$COMPONENT" = "all" ]; then
-            # Stop all components in reverse order
+            # Stop all components in reverse order (IPFS last)
             stop_component "gateway"
             stop_component "knirvrouter"
             stop_component "knirvgraph"
             stop_component "knirvnexus"
             stop_component "knirvchain"
             stop_component "knirvoracle"
+            stop_component "ipfs"
         else
             stop_component "$COMPONENT"
         fi

@@ -5,7 +5,7 @@
  * and LoRA adapter training pipeline
  */
 
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, beforeEach } from '@jest/globals';
 
 // Mock implementations for KNIRVGRAPH components
 interface ErrorNode {
@@ -238,7 +238,7 @@ class MockAgentAssignmentSystem {
     }
   }
 
-  private updateClusterOwnership(clusterId: string, agentId: string): void {
+  private updateClusterOwnership(clusterId: string, _agentId: string): void {
     // Count solutions per agent for this cluster
     const clusterSolutions = Array.from(this.solutions.values())
       .filter(s => s.clusterId === clusterId && s.validationStatus === 'validated');
@@ -636,7 +636,7 @@ describe('Phase 3.3: KNIRVGRAPH LoRA Adapter Creation Integration', () => {
         { agentId: 'agent2', solutionCode: 'solution3', description: 'Third solution' }
       ];
 
-      for (const [index, sol] of solutions.entries()) {
+      for (const sol of solutions) {
         const solution: Omit<CompetitiveSolution, 'solutionId' | 'submittedAt' | 'validationStatus'> = {
           agentId: sol.agentId,
           clusterId: 'ownership-test-cluster',
