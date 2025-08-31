@@ -1,7 +1,13 @@
 services:
   # KNIRVTESTNET Wizened Web Service
-  # NOTE: Render.com doesn't support Podman directly, so we keep Docker for cloud deployment
-  # For local Podman development, use: podman-compose up -d
+  #
+  # DEPLOYMENT MODES:
+  # - Render.com: Uses Docker with pre-built native binaries (npm run build:render)
+  # - Local Development: Uses Podman containers (npm run build:podman && npm run podman:start)
+  #
+  # NOTE: Render.com doesn't support Podman directly, so we use Docker for cloud deployment
+  # For local Podman development setup: npm run build:podman
+  # For local Podman usage: npm run podman:start
   # Root directory is set to KNIRVTESTNET in Render dashboard
   - type: web
     name: knirvtestnet-wizened
@@ -36,6 +42,11 @@ services:
       - key: KNIRVROUTER_API
         value: http://localhost:8086
 
+    # BUILD COMMANDS:
+    # - npm run build:render  → Prepare for Render deployment (verify pre-built binaries)
+    # - npm run build:podman  → Install Podman + dependencies for local development
+    # - npm run build:wizened → Build all binaries locally (run before committing)
+    #
     # Docker build uses the Dockerfile which implements the WizenedEnvironmentGuide approach
     # The Dockerfile expects pre-built artifacts from running build-local-release.sh locally
 

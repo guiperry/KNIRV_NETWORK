@@ -31,6 +31,7 @@ Added new npm scripts for Podman operations:
 - `npm run podman:restart` - Restart Podman services
 - `npm run podman:logs` - View service logs
 - `npm run podman:status` - Check container status
+- `npm run build:podman` - Install Podman + dependencies
 
 ## 🛠️ Installation & Setup
 
