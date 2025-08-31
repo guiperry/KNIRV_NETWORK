@@ -251,7 +251,7 @@ describe('Logger Utility', () => {
 
     it('should handle null context', () => {
       const testLogger = new Logger('TEST', 'info');
-      testLogger.info('Message with null context', null as any);
+      testLogger.info('Message with null context', undefined);
       
       expect(mockConsole.info).toHaveBeenCalledWith(
         expect.stringContaining('Message with null context')

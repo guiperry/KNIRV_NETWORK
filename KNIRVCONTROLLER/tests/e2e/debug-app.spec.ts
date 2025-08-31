@@ -2,7 +2,7 @@
  * Debug test to check what's actually being rendered
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 test.describe('Debug KNIRVCONTROLLER Application', () => {
   test('should debug what elements are present', async ({ page }) => {
@@ -63,7 +63,10 @@ test.describe('Debug KNIRVCONTROLLER Application', () => {
     const logs = await page.evaluate(() => {
       return window.console;
     });
-    
+
+    // Log console information for debugging
+    console.log('Browser console object available:', !!logs);
+
     // This test should always pass, it's just for debugging
     expect(true).toBe(true);
   });

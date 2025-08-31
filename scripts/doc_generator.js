@@ -43,12 +43,13 @@ const CONFIG = {
   projectName: 'KNIRV Network',
   projectRepo: 'https://github.com/guiperry/KNIRV_NETWORK',
   categories: {
-    'guides': 'User Guides',
-    'deployment': 'Deployment',
-    'development': 'Development',
-    'api': 'API Reference',
-    'security': 'Security',
-    'architecture': 'Architecture',
+    // Categories disabled per user request
+    // 'guides': 'User Guides',
+    // 'deployment': 'Deployment',
+    // 'development': 'Development',
+    // 'api': 'API Reference',
+    // 'security': 'Security',
+    // 'architecture': 'Architecture',
     'contribute': 'How to Contribute',
     'legal': 'Legal Documents',
     // Subproduct categories
@@ -58,7 +59,7 @@ const CONFIG = {
     'knirvoracle': 'KNIRVORACLE Documentation',
     'knirvrouter': 'KNIRVROUTER Documentation',
     'knirvsdk': 'KNIRVSDK Documentation',
-    'knirvshell': 'KNIRVCORTEX Documentation',
+    'knirvcortex': 'KNIRVCORTEX Documentation',
     'knirvwallet': 'KNIRVWALLET Documentation'
   },
   // Special files that should be processed differently
@@ -73,17 +74,18 @@ const CONFIG = {
   // This prevents the script from processing its own output and source documentation
   // Subproduct directories to scan for additional documentation
   subproductDirs: [
+    'KNIRVANA',
     'KNIRVCHAIN',
+    'KNIRVCONTROLLER',
+    'KNIRVCORTEX',
+    'KNIRVGATEWAY',
     'KNIRVGRAPH',
     'KNIRVNEXUS',
     'KNIRVORACLE',
     'KNIRVROUTER',
     'KNIRVSDK',
-    'KNIRVCORTEX',
-    'KNIRVWALLET',
-    'KNIRVSHELL',
-    'KNIRVGATEWAY',
-    'KNIRVTESTNET'
+    'KNIRVTESTNET',
+    'KNIRVWALLET'
   ],
   // Subdirectories to exclude when scanning subproducts
   excludeSubDirs: [
@@ -881,9 +883,8 @@ function determineCategory(subproductName) {
     'KNIRVORACLE': 'knirvoracle',
     'KNIRVROUTER': 'knirvrouter',
     'KNIRVSDK': 'knirvsdk',
-    'KNIRVCORTEX': 'knirvshell',
+    'KNIRVCORTEX': 'knirvcortex',
     'KNIRVWALLET': 'knirvwallet',
-    'KNIRVSHELL': 'knirvshell',
     'KNIRVGATEWAY': 'guides',
     'KNIRVTESTNET': 'deployment'
   };
@@ -978,7 +979,7 @@ async function organizeDocumentationWithAI(hashes) {
       const geminiPrompt = `
 You are a technical documentation organizer for the KNIRV Network project. Analyze this README.md file from the ${fileInfo.subproductName} sub-project and transform it into user-friendly documentation:
 
-1. CATEGORY: Choose the most appropriate category from: guides, deployment, development, api, security, architecture, contribute, legal, knirvchain, knirvgraph, knirvnexus, knirvoracle, knirvrouter, knirvsdk, knirvshell, knirvwallet
+1. CATEGORY: Choose the most appropriate category from: guides, deployment, development, api, security, architecture, contribute, legal, knirvchain, knirvgraph, knirvnexus, knirvoracle, knirvrouter, knirvsdk, knirvcortex, knirvwallet
 2. TITLE: A clear, user-friendly title (e.g., "${fileInfo.subproductName} User Guide" or "${fileInfo.subproductName} Troubleshooting Guide")
 3. DESCRIPTION: A brief 1-2 sentence description (max 160 characters)
 4. PRIVACY_LEVEL: Either "PUBLIC" (safe for external users) or "PRIVATE" (contains admin-only or sensitive information)
@@ -2139,7 +2140,13 @@ async function applyDocumentationOrganization(organizationJson, allReadmeFiles) 
       ensureDirectoryExists(categoryDir);
 
       // Create category index file
-      const categoryIndexContent = `# ${categoryInfo.title}\n\n${categoryInfo.description}\n\n`;
+      let categoryIndexContent = `# ${categoryInfo.title}\n\n${categoryInfo.description}\n\n`;
+
+      // Add footer
+      categoryIndexContent += `\n---\n\n`;
+      categoryIndexContent += `**Links:** [Code of Conduct](#/legal/CODE_OF_CONDUCT) | [Privacy Policy](#/legal/PRIVACY_POLICY) | [Terms and Conditions](#/legal/TERMS_AND_CONDITIONS)\n\n`;
+      categoryIndexContent += `© ${new Date().getFullYear()} KNIRV Network\n`;
+
       fs.writeFileSync(path.join(categoryDir, 'README.md'), categoryIndexContent);
 
       // Process subcategories
@@ -2178,15 +2185,99 @@ async function createBasicDocumentationHierarchy(allReadmeFiles) {
     'guides': 'User Guides'
   };
 
+  // Categorize README files based on content and path
+  const categorizedContent = {
+    'deployment': [],
+    'troubleshooting': [],
+    'architecture': [],
+    'api': [],
+    'guides': []
+  };
+
+  // Analyze each README file and categorize it
+  allReadmeFiles.forEach(file => {
+    if (file.relativePath.startsWith('docs/')) return; // Skip docs directory
+
+    try {
+      const content = fs.readFileSync(file.path, 'utf8');
+      const lowerContent = content.toLowerCase();
+      const fileName = path.basename(path.dirname(file.relativePath));
+
+      // Categorize based on content keywords and file paths
+      if (lowerContent.includes('deploy') || lowerContent.includes('installation') ||
+          lowerContent.includes('setup') || lowerContent.includes('getting started') ||
+          file.relativePath.includes('deployment') || fileName === 'KNIRVTESTNET') {
+        categorizedContent.deployment.push({file, content, title: fileName});
+      }
+
+      if (lowerContent.includes('troubleshoot') || lowerContent.includes('error') ||
+          lowerContent.includes('debug') || lowerContent.includes('issue') ||
+          lowerContent.includes('problem') || lowerContent.includes('fix')) {
+        categorizedContent.troubleshooting.push({file, content, title: fileName});
+      }
+
+      if (lowerContent.includes('architecture') || lowerContent.includes('design') ||
+          lowerContent.includes('component') || lowerContent.includes('system') ||
+          lowerContent.includes('overview') || fileName.includes('CORTEX') || fileName.includes('NEXUS')) {
+        categorizedContent.architecture.push({file, content, title: fileName});
+      }
+
+      if (lowerContent.includes('api') || lowerContent.includes('endpoint') ||
+          lowerContent.includes('rest') || lowerContent.includes('graphql') ||
+          lowerContent.includes('interface') || fileName.includes('SDK') || fileName.includes('GATEWAY')) {
+        categorizedContent.api.push({file, content, title: fileName});
+      }
+
+      if (lowerContent.includes('user') || lowerContent.includes('guide') ||
+          lowerContent.includes('tutorial') || lowerContent.includes('how to') ||
+          fileName.includes('WALLET') || fileName.includes('CONTROLLER')) {
+        categorizedContent.guides.push({file, content, title: fileName});
+      }
+    } catch (error) {
+      console.log(`  ⚠️ Could not read ${file.relativePath}: ${error.message}`);
+    }
+  });
+
+  // Generate content for each category
   for (const [key, title] of Object.entries(categories)) {
     const categoryDir = path.join(docsifyDir, key);
     ensureDirectoryExists(categoryDir);
 
-    const indexContent = `# ${title}\n\nThis section contains ${title.toLowerCase()} for the KNIRV Network.\n\n`;
+    let indexContent = `# ${title}\n\n`;
+    indexContent += `This section contains ${title.toLowerCase()} for the KNIRV Network.\n\n`;
+
+    const categoryFiles = categorizedContent[key];
+    if (categoryFiles.length > 0) {
+      indexContent += `## Available Documentation\n\n`;
+
+      categoryFiles.forEach(({file, content, title}) => {
+        // Extract first few lines as summary
+        const lines = content.split('\n');
+        const summary = lines.slice(0, 5).join('\n').substring(0, 200) + '...';
+
+        indexContent += `### ${title}\n\n`;
+        indexContent += `**Location:** \`${file.relativePath}\`\n\n`;
+        indexContent += `${summary}\n\n`;
+        indexContent += `[View Full Documentation](${file.relativePath})\n\n`;
+        indexContent += `---\n\n`;
+      });
+    } else {
+      indexContent += `*No specific ${title.toLowerCase()} found in the current documentation. This section will be populated as relevant documentation is added to the project.*\n\n`;
+    }
+
+    indexContent += `\n## Contributing\n\n`;
+    indexContent += `To add content to this section, ensure your documentation includes relevant keywords and is placed in the appropriate project directory.\n\n`;
+
+    // Add footer
+    indexContent += `\n---\n\n`;
+    indexContent += `**Links:** [Code of Conduct](#/legal/CODE_OF_CONDUCT) | [Privacy Policy](#/legal/PRIVACY_POLICY) | [Terms and Conditions](#/legal/TERMS_AND_CONDITIONS)\n\n`;
+    indexContent += `© ${new Date().getFullYear()} KNIRV Network\n`;
+
     fs.writeFileSync(path.join(categoryDir, 'README.md'), indexContent);
+    console.log(`  ✅ Generated ${title} with ${categoryFiles.length} items`);
   }
 
-  console.log('✅ Basic documentation hierarchy created');
+  console.log('✅ Basic documentation hierarchy created with real content');
 }
 
 // Run the main function

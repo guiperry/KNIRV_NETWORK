@@ -9,12 +9,12 @@ import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 
 // Mock the EmbeddedKNIRVChain since it's a test implementation
 class MockEmbeddedKNIRVChain {
-  private config: any;
-  private skills: Map<string, any> = new Map();
-  private chains: Map<string, any> = new Map();
+  private config: Record<string, unknown>;
+  private skills: Map<string, Record<string, unknown>> = new Map();
+  private chains: Map<string, Record<string, unknown>> = new Map();
   private initialized: boolean = false;
 
-  constructor(config: any) {
+  constructor(config: Record<string, unknown>) {
     this.config = config;
   }
 
@@ -30,7 +30,7 @@ class MockEmbeddedKNIRVChain {
     return this.initialized;
   }
 
-  async registerSkill(skill: any): Promise<void> {
+  async registerSkill(skill: Record<string, unknown>): Promise<void> {
     this.skills.set(skill.skillId, {
       ...skill,
       createdAt: new Date(),
@@ -40,7 +40,7 @@ class MockEmbeddedKNIRVChain {
     });
   }
 
-  async invokeSkill(request: any): Promise<any> {
+  async invokeSkill(request: Record<string, unknown>): Promise<Record<string, unknown>> {
     const skill = this.skills.get(request.skillId);
     if (!skill) {
       return {
@@ -68,7 +68,7 @@ class MockEmbeddedKNIRVChain {
     };
   }
 
-  async getSkills(filter?: any): Promise<any[]> {
+  async getSkills(filter?: Record<string, unknown>): Promise<Record<string, unknown>[]> {
     let skills = Array.from(this.skills.values());
 
     if (filter) {
@@ -96,7 +96,7 @@ class MockEmbeddedKNIRVChain {
     return skills;
   }
 
-  async findSkillWithFiltering(skillId: string, filter: any): Promise<any> {
+  async findSkillWithFiltering(skillId: string, filter: Record<string, unknown>): Promise<Record<string, unknown> | null> {
     const skill = this.skills.get(skillId);
     if (!skill) return null;
 
@@ -104,7 +104,7 @@ class MockEmbeddedKNIRVChain {
     return skills.find(s => s.skillId === skillId) || null;
   }
 
-  async createSkillChain(skills: any[]): Promise<any> {
+  async createSkillChain(skills: Record<string, unknown>[]): Promise<Record<string, unknown>> {
     const chainId = `chain_${Date.now()}`;
     const mergedWeights = {
       weightsA: new Float32Array(64).fill(0.05),
@@ -129,14 +129,14 @@ class MockEmbeddedKNIRVChain {
     return this.skills.size * 1024 + this.chains.size * 2048;
   }
 
-  getCompilationMetrics(): any {
+  getCompilationMetrics(): Record<string, unknown> {
     return {
       isReady: this.initialized,
       capabilities: ['lora-adapter-compilation', 'dynamic-compilation']
     };
   }
 
-  async serializeInvocationResponse(response: any): Promise<Uint8Array> {
+  async serializeInvocationResponse(response: Record<string, unknown>): Promise<Uint8Array> {
     return new Uint8Array(JSON.stringify(response).split('').map(c => c.charCodeAt(0)));
   }
 }

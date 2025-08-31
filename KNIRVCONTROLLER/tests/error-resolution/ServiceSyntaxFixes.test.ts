@@ -91,7 +91,11 @@ class MockTaskSchedulingService {
 
   private calculateCronNextRun(cronExpression: string, _now: Date): Date {
     // Simplified cron calculation for testing
-    return new Date(Date.now() + 3600000); // 1 hour from now
+    // Parse basic cron expressions for testing
+    const parts = cronExpression.split(' ');
+    const baseInterval = parts.length === 5 ? 3600000 : 60000; // 1 hour or 1 minute
+
+    return new Date(Date.now() + baseInterval);
   }
 
   async executeAction(action: { type: string; payload: unknown }) {

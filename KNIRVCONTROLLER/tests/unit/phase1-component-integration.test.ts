@@ -3,7 +3,7 @@
  * Tests for KNIRV-CONTROLLER Integration (1.1) from MAJOR_REFACTOR_IMPLEMENTATION_PLAN.md
  */
 
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import ProtobufHandler from '../../src/core/protobuf/ProtobufHandler';
 import { loraEngine } from '../../src/core/loraEngine';
 import AgentCoreCompiler from '../../src/core/agent-core-compiler/src/AgentCoreCompiler';
@@ -60,7 +60,7 @@ describe('Phase 1: Component Integration Tests', () => {
 
       it('should initialize WASMOrchestrator correctly', async () => {
         await wasmOrchestrator.start();
-        expect(wasmOrchestrator.isRunning()).toBe(true);
+        expect(wasmOrchestrator.isRunning).toBe(true);
       });
 
       it('should initialize ModelManager correctly', async () => {
@@ -80,12 +80,10 @@ describe('Phase 1: Component Integration Tests', () => {
 
       it('should integrate manager with receiver components', async () => {
         // Test that manager and receiver components can communicate
-        const testMessage = { type: 'test', data: 'integration test' };
-        
         // This would test the actual integration between manager and receiver
         // For now, we'll test that the components are properly initialized
         expect(protobufHandler.isReady()).toBe(true);
-        expect(wasmOrchestrator.isRunning()).toBe(true);
+        expect(wasmOrchestrator.isRunning).toBe(true);
       });
 
       it('should establish unified directory structure communication', () => {

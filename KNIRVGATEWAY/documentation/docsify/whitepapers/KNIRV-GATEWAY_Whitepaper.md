@@ -94,7 +94,7 @@ The KNIRV-GATEWAY is designed to be the central point of contact for the entire 
 The KNIRV-GATEWAY is an essential layer of the KNIRV ecosystem, serving as the "Unified Web Portal and API Gateway". Its serverless, modular, and secure design provides developers with a powerful platform to build on and users with a clear window into the capabilities of the D-TEN. It is the crucial bridge that connects our decentralized architecture to the broader digital world, solidifying KNIRV's position as a leader in decentralized AI and trusted execution networks.
 
 <div class="footer-links">
-<a href="#/legal/CODE_OF_CONDUCT.md" class="footer-link">Contributor Covenant Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY.md" class="footer-link">PRIVACY_POLICY.md</a> | <a href="#/legal/TERMS_AND_CONDITIONS.md" class="footer-link">TERMS AND CONDITIONS</a>
+<a href="#/legal/CODE_OF_CONDUCT" class="footer-link">Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY" class="footer-link">Privacy Policy</a> | <a href="#/legal/TERMS_AND_CONDITIONS" class="footer-link">Terms and Conditions</a>
 
 © 2025 KNIRV Network
 </div>

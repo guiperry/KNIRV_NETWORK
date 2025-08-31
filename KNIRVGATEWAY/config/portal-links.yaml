@@ -44,9 +44,9 @@ business:
 # Footer Links
 footer:
   legal:
-    terms: "../documentation/docsify/#/legal/terms-of-service.md"
-    privacy: "../documentation/docsify/#/legal/privacy-policy.md"
-    contribution: "../documentation/docsify/#/contributing/contribution-guidelines.md"
+    terms: "../documentation/docsify/#/legal/TERMS_AND_CONDITIONS"
+    privacy: "../documentation/docsify/#/legal/PRIVACY_POLICY"
+    contribution: "../documentation/docsify/#/legal/CODE_OF_CONDUCT"
   
   social:
     github: "https://github.com/knirv-network"

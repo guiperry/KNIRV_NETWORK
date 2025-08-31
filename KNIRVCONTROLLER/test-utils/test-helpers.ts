@@ -61,7 +61,8 @@ export async function waitForAsync<T>(
         return result;
       }
     } catch (error) {
-      // Continue trying
+      // Log error for debugging but continue trying
+      console.debug('Async condition check failed, retrying:', error);
     }
     await new Promise(resolve => setTimeout(resolve, 100));
   }
@@ -80,7 +81,8 @@ export async function waitForService(url: string, timeout: number = 30000): Prom
         return true;
       }
     } catch (error) {
-      // Service not ready yet
+      // Service not ready yet, log for debugging
+      console.debug('Service health check failed, retrying:', error);
     }
     await new Promise(resolve => setTimeout(resolve, 2000));
   }

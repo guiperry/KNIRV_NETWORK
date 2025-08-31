@@ -3,7 +3,17 @@
  * Comprehensive test suite for settings management functionality
  */
 
-import { settingsService, SettingsService } from '../../../src/services/SettingsService';
+import {
+  settingsService,
+  SettingsService,
+  GeneralSettings,
+  CognitiveSettings,
+  WalletSettings,
+  AnalyticsSettings,
+  SecuritySettings,
+  UISettings,
+  AdvancedSettings
+} from '../../../src/services/SettingsService';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -22,7 +32,7 @@ describe('SettingsService', () => {
   const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
 
   beforeEach(() => {
-    service = new SettingsService('http://localhost:3001');
+    service = new SettingsService({ baseUrl: 'http://localhost:3001' });
     mockFetch.mockClear();
     localStorageMock.getItem.mockClear();
     localStorageMock.setItem.mockClear();
@@ -162,13 +172,87 @@ describe('SettingsService', () => {
       } as Response);
 
       const profile = await service.createProfile('Test Profile', 'Test description', {
-        general: { theme: 'light' as const },
-        cognitive: { temperature: 0.9 },
-        wallet: { defaultNetwork: 'testnet' },
-        analytics: { collectMetrics: false },
-        security: { requireMFA: true },
-        ui: { compactMode: true },
-        advanced: { featureFlags: { betaFeatures: true } }
+        general: {
+          theme: 'light' as const,
+          language: 'en',
+          timezone: 'UTC',
+          autoSave: true,
+          autoBackup: true,
+          backupInterval: 30,
+          debugMode: false,
+          telemetryEnabled: true
+        } as GeneralSettings,
+        cognitive: {
+          defaultModel: 'gpt-4',
+          maxTokens: 2048,
+          temperature: 0.9,
+          topP: 1.0,
+          frequencyPenalty: 0.0,
+          presencePenalty: 0.0,
+          autoLearning: true,
+          skillCaching: true,
+          adaptationRate: 0.1,
+          contextWindow: 4096
+        } as CognitiveSettings,
+        wallet: {
+          defaultNetwork: 'testnet',
+          autoConnect: true,
+          transactionTimeout: 300,
+          gasLimit: 21000,
+          slippageTolerance: 0.5,
+          confirmationBlocks: 3,
+          showTestnets: false,
+          currencyDisplay: 'NRN'
+        } as WalletSettings,
+        analytics: {
+          collectMetrics: false,
+          shareAnonymousData: false,
+          retentionPeriod: 30,
+          metricsInterval: 30,
+          alertThresholds: {
+            cpuUsage: 80,
+            memoryUsage: 85,
+            errorRate: 5,
+            responseTime: 1000
+          }
+        } as AnalyticsSettings,
+        security: {
+          requireMFA: true,
+          sessionTimeout: 60,
+          maxLoginAttempts: 5,
+          passwordPolicy: {
+            minLength: 8,
+            requireUppercase: true,
+            requireLowercase: true,
+            requireNumbers: true,
+            requireSymbols: false
+          },
+          encryptionLevel: 'standard',
+          auditLogging: true
+        } as SecuritySettings,
+        ui: {
+          compactMode: true,
+          showTooltips: true,
+          animationsEnabled: true,
+          soundEnabled: true,
+          notificationsEnabled: true,
+          panelLayout: 'default',
+          fontSize: 'medium',
+          colorScheme: 'blue-purple'
+        } as UISettings,
+        advanced: {
+          apiEndpoints: {},
+          featureFlags: { betaFeatures: true },
+          experimentalFeatures: [],
+          customCommands: {},
+          integrations: {},
+          performance: {
+            maxConcurrentTasks: 10,
+            cacheSize: 100,
+            preloadData: true,
+            lazyLoading: true
+          }
+        } as AdvancedSettings
       });
 
       await service.loadProfile(profile.id);
@@ -487,7 +571,7 @@ describe('SettingsService', () => {
 
     it('should validate settings structure', async () => {
       await expect(service.updateSettings({
-        general: null as any
+        general: { invalidProperty: 'invalid' } as unknown as Partial<GeneralSettings>
       })).rejects.toThrow('Invalid settings structure');
     });
   });

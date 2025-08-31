@@ -3,8 +3,8 @@
  * Implements the protobuf schema from the MAJOR_REFACTOR_IMPLEMENTATION_PLAN.md
  */
 
-import protobuf from 'protobufjs';
-import pino from 'pino';
+import * as protobuf from 'protobufjs';
+import * as pino from 'pino';
 
 const logger = pino({ name: 'protobuf-handler' });
 
@@ -188,7 +188,7 @@ export class ProtobufHandler {
     };
   }
 
-  private async generateLoRAAdapterSchema(protoDir: string, fs: any, join: any): Promise<void> {
+  private async generateLoRAAdapterSchema(protoDir: string, fs: typeof import('fs'), join: typeof import('path').join): Promise<void> {
     const schemaContent = `syntax = "proto3";
 
 package knirv.chain.v1;
@@ -305,7 +305,7 @@ enum Status {
     logger.info({ schemaPath }, 'LoRA adapter protobuf schema generated');
   }
 
-  private async loadSchemas(protoDir: string, fs: any, join: any): Promise<void> {
+  private async loadSchemas(protoDir: string, fs: typeof import('fs'), join: typeof import('path').join): Promise<void> {
     try {
       this.root = new protobuf.Root();
 
@@ -483,11 +483,11 @@ enum Status {
     this.ready = false;
   }
 
-  private createMockSchema(schemaName: string): any {
+  private createMockSchema(schemaName: string): Record<string, unknown> {
     // Create a mock schema that preserves input data during serialization/deserialization
-    let lastSerializedData: any = null;
+    let lastSerializedData: unknown = null;
 
-    const getMockData = (inputData?: any) => {
+    const getMockData = (inputData?: unknown) => {
       // If we have input data, use it; otherwise use stored data or defaults
       if (inputData) {
         lastSerializedData = inputData;

@@ -1,5 +1,5 @@
 import { EventEmitter } from './EventEmitter';
-import { KNIRVRouterIntegration, ErrorContext, SkillNodeURI, KNIRVRouterRequest, KNIRVRouterResponse, LoRAAdapterData } from './KNIRVRouterIntegration';
+import { KNIRVRouterIntegration } from './KNIRVRouterIntegration';
 
 export interface ChainConfig {
   rpcUrl: string;
@@ -293,7 +293,7 @@ export class KNIRVChainIntegration extends EventEmitter {
       });
 
       if (response.success && response.data) {
-        const skills = response.data.skills || [];
+        const skills = (response.data as any).skills || [];
         
         for (const skill of skills) {
           this.skills.set(skill.id, skill);
@@ -319,7 +319,7 @@ export class KNIRVChainIntegration extends EventEmitter {
       });
 
       if (response.success && response.data) {
-        const models = response.data.models || [];
+        const models = (response.data as any).models || [];
         
         for (const model of models) {
           this.llmModels.set(model.id, model);
@@ -396,7 +396,7 @@ export class KNIRVChainIntegration extends EventEmitter {
       });
 
       if (response.success && response.data) {
-        const skill = response.data.skill;
+        const skill = (response.data as any).skill;
         return skill.validation_status === 'validated';
       }
 
@@ -451,19 +451,19 @@ export class KNIRVChainIntegration extends EventEmitter {
       errorMessage: `Skill invocation requested: ${skillId}`,
       stackTrace: `Skill: ${skillId}, User: ${userAddress}, NRN: ${nrnAmount}`,
       userContext: { userAddress, nrnAmount, parameters },
-      agentId: parameters.agentId || 'unknown-agent',
+      agentId: (parameters as any).agentId || 'unknown-agent',
       timestamp: Date.now(),
-      severity: parameters.priority === 'high' ? 'high' : 'medium'
+      severity: (parameters as any).priority === 'high' ? 'high' : 'medium'
     };
 
     // Use the KNIRVRouterIntegration for skill resolution
     const routerResponse = await this.knirvRouter.resolveSkillViaErrorContext(
       errorContext,
-      parameters.capabilities || [],
+      (parameters as any).capabilities || [],
       {
-        priority: parameters.priority || 'normal',
-        useP2P: parameters.useP2P !== false,
-        useWASM: parameters.useWASM !== false,
+        priority: (parameters as any).priority || 'normal',
+        useP2P: (parameters as any).useP2P !== false,
+        useWASM: (parameters as any).useWASM !== false,
         nrnToken: nrnAmount
       }
     );
@@ -568,7 +568,7 @@ export class KNIRVChainIntegration extends EventEmitter {
       });
 
       if (response.success && response.data) {
-        const skillId = response.data.skill_id;
+        const skillId = (response.data as any).skill_id;
         
         // Update local cache
         const fullSkillMetadata: SkillMetadata = {
@@ -618,7 +618,7 @@ export class KNIRVChainIntegration extends EventEmitter {
       });
 
       if (response.success && response.data) {
-        const modelId = response.data.model_id;
+        const modelId = (response.data as any).model_id;
         
         // Update local cache
         const fullLLMMetadata: LLMMetadata = {
@@ -674,7 +674,7 @@ export class KNIRVChainIntegration extends EventEmitter {
       });
 
       if (response.success && response.data) {
-        return response.data.balance || '0';
+        return (response.data as any).balance || '0';
       }
 
       return '0';
@@ -865,7 +865,7 @@ export class KNIRVChainIntegration extends EventEmitter {
   private async checkForSkillUpdates(): Promise<void> {
     try {
       // Check for skill validation updates
-      for (const [skillId, skill] of this.skills) {
+      this.skills.forEach(async (skill, skillId) => {
         if (skill.validationStatus === 'pending') {
           const response = await this.executeContractCall({
             contract: 'skill_registry',
@@ -874,7 +874,7 @@ export class KNIRVChainIntegration extends EventEmitter {
           });
 
           if (response.success && response.data) {
-            const updatedSkill = response.data.skill;
+            const updatedSkill = (response.data as any).skill;
             if (updatedSkill.validation_status !== skill.validationStatus) {
               skill.validationStatus = updatedSkill.validation_status;
               this.skills.set(skillId, skill);
@@ -887,7 +887,7 @@ export class KNIRVChainIntegration extends EventEmitter {
             }
           }
         }
-      }
+      });
 
     } catch (error) {
       console.error('Error checking for skill updates:', error);

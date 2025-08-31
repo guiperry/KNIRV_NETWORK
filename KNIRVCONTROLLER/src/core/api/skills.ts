@@ -84,7 +84,7 @@ export const updateSkill = async (req: Request, res: Response) => {
     const { skillId } = req.params;
     const { name, description, loraAdapter, version } = req.body;
     
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       updatedAt: new Date(),
     };
     

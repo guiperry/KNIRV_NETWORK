@@ -51,8 +51,8 @@ export class VoiceProcessor extends EventEmitter {
   private initializeWebAPIs(): void {
     // Initialize Web Speech API
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      this.recognition = new SpeechRecognition();
+      const SpeechRecognition = (window as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).SpeechRecognition || (window as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).webkitSpeechRecognition;
+      this.recognition = new (SpeechRecognition as new () => SpeechRecognition)();
 
       this.recognition.continuous = true;
       this.recognition.interimResults = true;
@@ -68,7 +68,7 @@ export class VoiceProcessor extends EventEmitter {
 
     // Initialize Audio Context
     if ('AudioContext' in window || 'webkitAudioContext' in window) {
-      const AudioContext = (window as any).AudioContext || (window as any).webkitAudioContext;
+      const AudioContext = (window as { AudioContext?: unknown; webkitAudioContext?: unknown }).AudioContext || (window as { AudioContext?: unknown; webkitAudioContext?: unknown }).webkitAudioContext;
       this.audioContext = new AudioContext();
     }
   }
@@ -81,9 +81,9 @@ export class VoiceProcessor extends EventEmitter {
       this.emit('recognitionStarted');
     };
 
-    this.recognition.onresult = (event: unknown) => {
+    this.recognition.onresult = (event: SpeechRecognitionEvent) => {
       const results = Array.from(event.results);
-      const latestResult = results[results.length - 1] as any;
+      const latestResult = results[results.length - 1] as SpeechRecognitionResult;
 
       if (latestResult.isFinal) {
         const result: SpeechRecognitionResult = {
@@ -98,7 +98,7 @@ export class VoiceProcessor extends EventEmitter {
       }
     };
 
-    this.recognition.onerror = (event: unknown) => {
+    this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       console.error('Speech recognition error:', event.error);
       this.emit('recognitionError', event.error);
     };
@@ -111,7 +111,7 @@ export class VoiceProcessor extends EventEmitter {
       if (this.isListening) {
         setTimeout(() => {
           if (this.isListening) {
-            this.recognition.start();
+            this.recognition?.start();
           }
         }, 100);
       }
@@ -303,10 +303,11 @@ export class VoiceProcessor extends EventEmitter {
     return new Promise((resolve, reject) => {
       const utterance = new SpeechSynthesisUtterance(text);
 
-      utterance.lang = options.language || this.config.language;
-      utterance.rate = options.rate || 1.0;
-      utterance.pitch = options.pitch || 1.0;
-      utterance.volume = options.volume || 1.0;
+      const optionsTyped = options as { language?: string };
+      utterance.lang = optionsTyped.language || this.config.language;
+      utterance.rate = optionsAny.rate || 1.0;
+      utterance.pitch = optionsAny.pitch || 1.0;
+      utterance.volume = optionsAny.volume || 1.0;
 
       utterance.onend = () => {
         this.emit('speechEnded', { text });
@@ -314,7 +315,7 @@ export class VoiceProcessor extends EventEmitter {
       };
 
       utterance.onerror = (event) => {
-        this.emit('speechError', _event);
+        this.emit('speechError', event);
         reject(new Error(`Speech synthesis error: ${event.error}`));
       };
 

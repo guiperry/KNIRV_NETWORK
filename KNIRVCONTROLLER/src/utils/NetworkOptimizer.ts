@@ -388,6 +388,16 @@ class NetworkOptimizer {
    */
   private updateFailureMetrics(startTime: number): void {
     this.metrics.failedRequests++;
+
+    // Calculate and track failure response time
+    const failureTime = Date.now() - startTime;
+    if (!this.metrics.averageResponseTime) {
+      this.metrics.averageResponseTime = failureTime;
+    } else {
+      // Update running average including failed request time
+      this.metrics.averageResponseTime =
+        (this.metrics.averageResponseTime + failureTime) / 2;
+    }
   }
 
   /**

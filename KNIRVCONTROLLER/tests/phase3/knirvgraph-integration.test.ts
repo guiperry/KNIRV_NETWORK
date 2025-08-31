@@ -26,11 +26,11 @@ interface ErrorCluster {
   clusterName: string;
   description: string;
   errorNodes: ErrorNode[];
-  centroid: any;
+  centroid: { x: number; y: number };
   similarity: number;
   totalBounty: number;
   assignedAgents: string[];
-  solutions: any[];
+  solutions: Record<string, unknown>[];
   createdAt: Date;
   lastUpdated: Date;
 }
@@ -48,7 +48,7 @@ interface Agent {
   ownedClusters: string[];
   lastActive: Date;
   reputation: number;
-  specializations: any[];
+  specializations: string[];
 }
 
 interface CompetitiveSolution {
@@ -72,18 +72,18 @@ interface TrainingDataset {
   clusterId: string;
   errorNodes: ErrorNode[];
   validatedSolutions: CompetitiveSolution[];
-  trainingPairs: any[];
-  datasetMetrics: any;
+  trainingPairs: Array<{ input: unknown; output: unknown }>;
+  datasetMetrics: Record<string, unknown>;
   createdAt: Date;
 }
 
 class MockErrorNodeClustering {
-  private config: any;
+  private config: Record<string, unknown>;
   private errorNodes: Map<string, ErrorNode> = new Map();
   private clusters: Map<string, ErrorCluster> = new Map();
   private initialized: boolean = false;
 
-  constructor(config: any) {
+  constructor(config: Record<string, unknown>) {
     this.config = config;
   }
 
@@ -283,7 +283,7 @@ class MockAgentAssignmentSystem {
     return Array.from(this.solutions.values()).filter(s => s.clusterId === clusterId);
   }
 
-  getClusterOwnership(clusterId: string): any {
+  getClusterOwnership(clusterId: string): Record<string, unknown> | undefined {
     return this.ownerships.get(clusterId);
   }
 
@@ -350,7 +350,7 @@ class MockLoRAAdapterTrainingPipeline {
     return dataset;
   }
 
-  async trainLoRAAdapter(dataset: TrainingDataset, config: any): Promise<any> {
+  async trainLoRAAdapter(dataset: TrainingDataset, config: Record<string, unknown>): Promise<Record<string, unknown>> {
     const skillId = `skill_${dataset.clusterId}_${Date.now()}`;
 
     return {

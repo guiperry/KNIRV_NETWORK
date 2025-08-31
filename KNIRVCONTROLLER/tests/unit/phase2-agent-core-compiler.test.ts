@@ -11,19 +11,49 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
-import { AgentCoreInterface } from '../../src/sensory-shell/AgentCoreInterface';
 import { WASMOrchestrator, ModelConfig, OrchestrationConfig } from '../../src/sensory-shell/WASMOrchestrator';
+import { AgentCoreConfig } from '../../src/core/agent-core-compiler/src/AgentCoreCompiler';
+
+// Create a minimal AgentCoreConfig for testing
+const createTestConfig = (overrides: Partial<AgentCoreConfig> = {}): AgentCoreConfig => ({
+  agentId: 'test-agent',
+  agentName: 'Test Agent',
+  agentDescription: 'A test agent',
+  agentVersion: '1.0.0',
+  author: 'Test Author',
+  tools: [],
+  cognitiveCapabilities: [],
+  sensoryInterfaces: [],
+  buildTarget: 'wasm',
+  optimizationLevel: 'basic',
+  templates: {
+    'CognitiveEngine.ts.template': 'template content',
+    'LoRAAdapter.ts.template': 'template content'
+  },
+  ...overrides
+});
 
 // Mock the agent-core compiler
 jest.mock('../../src/core/agent-core-compiler', () => ({
   AgentCoreCompiler: jest.fn().mockImplementation(() => ({
-    compileAgentCore: jest.fn().mockResolvedValue(new Uint8Array([0x00, 0x61, 0x73, 0x6d])),
+    compileAgentCore: jest.fn().mockImplementation((config: unknown) => {
+      const agentConfig = config as AgentCoreConfig;
+      return Promise.resolve({
+        success: true,
+        agentId: agentConfig.agentId,
+        wasmBytes: new Uint8Array([0x00, 0x61, 0x73, 0x6d]),
+        metadata: {
+          compilationTime: 1000,
+          wasmSize: 1024,
+          optimizationLevel: agentConfig.optimizationLevel || 'none',
+          cognitiveCapabilities: [],
+          sensoryInterfaces: []
+        }
+      });
+    }),
     validateTemplates: jest.fn().mockReturnValue(true),
-    getCompilationMetrics: jest.fn().mockReturnValue({
-      compilationTime: 1000,
-      wasmSize: 1024,
-      optimizationLevel: 'O2'
-    })
+    isReady: jest.fn().mockReturnValue(true),
+    dispose: jest.fn().mockResolvedValue(undefined as never)
   }))
 }));
 
@@ -48,29 +78,30 @@ describe('Phase 2.2: TypeScript Agent-Core Compiler', () => {
 
     orchestrator = new WASMOrchestrator(defaultConfig);
 
-    // Mock WebAssembly
-    global.WebAssembly = {
-      compile: jest.fn().mockResolvedValue({}),
-      instantiate: jest.fn().mockResolvedValue({
+    // Mock WebAssembly with proper type handling
+    const mockWebAssembly = {
+      compile: jest.fn().mockImplementation(() => Promise.resolve({})),
+      instantiate: jest.fn().mockImplementation(() => Promise.resolve({
         exports: {
-          agentCoreExecute: jest.fn().mockResolvedValue('{"success": true}'),
-          agentCoreGetStatus: jest.fn().mockReturnValue('{"initialized": true}'),
-          modelInference: jest.fn().mockResolvedValue('{"result": "inference complete"}'),
-          modelGetInfo: jest.fn().mockReturnValue('{"name": "test-model", "version": "1.0.0"}')
+          agentCoreExecute: jest.fn().mockImplementation(() => Promise.resolve('{"success": true}')),
+          agentCoreGetStatus: jest.fn().mockImplementation(() => '{"initialized": true}'),
+          modelInference: jest.fn().mockImplementation(() => Promise.resolve('{"result": "inference complete"}')),
+          modelGetInfo: jest.fn().mockImplementation(() => '{"name": "test-model", "version": "1.0.0"}')
         }
-      }),
+      })),
       Memory: jest.fn().mockImplementation(() => ({ buffer: new ArrayBuffer(1024) }))
-    } as any;
+    };
+    global.WebAssembly = mockWebAssembly as unknown as typeof WebAssembly;
 
     // Mock fetch for model loading
-    global.fetch = jest.fn().mockImplementation((url: string) => {
-      // Return different mock responses based on the URL
+    global.fetch = jest.fn().mockImplementation(() => {
+      // Return mock response
       const mockWasmBytes = new ArrayBuffer(1024);
       return Promise.resolve({
         ok: true,
-        arrayBuffer: jest.fn().mockResolvedValue(mockWasmBytes)
+        arrayBuffer: jest.fn().mockImplementation(() => Promise.resolve(mockWasmBytes))
       });
-    }) as any;
+    }) as unknown as typeof fetch;
   });
 
   afterEach(async () => {
@@ -83,14 +114,18 @@ describe('Phase 2.2: TypeScript Agent-Core Compiler', () => {
       const { AgentCoreCompiler } = await import('../../src/core/agent-core-compiler');
       const compiler = new AgentCoreCompiler();
 
-      const wasmBytes = await compiler.compileAgentCore({
+      const testConfig = createTestConfig({
         agentId: 'test-agent',
-        templates: ['CognitiveEngine', 'LoRAAdapter'],
-        optimizationLevel: 'O2'
+        templates: {
+          'CognitiveEngine.ts.template': 'template content',
+          'LoRAAdapter.ts.template': 'template content'
+        },
+        optimizationLevel: 'basic'
       });
+      const result = await compiler.compileAgentCore(testConfig);
 
-      expect(wasmBytes).toBeInstanceOf(Uint8Array);
-      expect(wasmBytes.length).toBeGreaterThan(0);
+      expect(result.wasmBytes).toBeInstanceOf(Uint8Array);
+      expect(result.wasmBytes!.length).toBeGreaterThan(0);
       expect(compiler.validateTemplates).toHaveBeenCalled();
     });
 
@@ -98,13 +133,14 @@ describe('Phase 2.2: TypeScript Agent-Core Compiler', () => {
       const { AgentCoreCompiler } = await import('../../src/core/agent-core-compiler');
       const compiler = new AgentCoreCompiler();
 
-      // Mock compilation failure
-      compiler.compileAgentCore = jest.fn().mockRejectedValue(new Error('Compilation failed'));
+      // Mock compilation failure with proper type
+      (compiler.compileAgentCore as jest.Mock).mockRejectedValueOnce(new Error('Compilation failed') as never);
 
-      await expect(compiler.compileAgentCore({
+      const testConfig = createTestConfig({
         agentId: 'invalid-agent',
-        templates: ['InvalidTemplate']
-      })).rejects.toThrow('Compilation failed');
+        templates: { 'InvalidTemplate.ts.template': 'invalid content' }
+      });
+      await expect(compiler.compileAgentCore(testConfig)).rejects.toThrow('Compilation failed');
     });
 
     test('should validate template translation accuracy', async () => {
@@ -119,15 +155,18 @@ describe('Phase 2.2: TypeScript Agent-Core Compiler', () => {
       const { AgentCoreCompiler } = await import('../../src/core/agent-core-compiler');
       const compiler = new AgentCoreCompiler();
 
-      await compiler.compileAgentCore({
+      const testConfig = createTestConfig({
         agentId: 'metrics-test',
-        templates: ['CognitiveEngine']
+        templates: { 'CognitiveEngine.ts.template': 'template content' }
       });
+      await compiler.compileAgentCore(testConfig);
 
-      const metrics = compiler.getCompilationMetrics();
-      expect(metrics).toHaveProperty('compilationTime');
-      expect(metrics).toHaveProperty('wasmSize');
-      expect(metrics).toHaveProperty('optimizationLevel');
+      // Test compilation result instead of non-existent getCompilationMetrics
+      const result = await compiler.compileAgentCore(testConfig);
+      
+      expect(result.metadata).toHaveProperty('compilationTime');
+      expect(result.metadata).toHaveProperty('wasmSize');
+      expect(result.metadata).toHaveProperty('optimizationLevel');
     });
   });
 
@@ -184,7 +223,7 @@ describe('Phase 2.2: TypeScript Agent-Core Compiler', () => {
 
       // Mock browser environment
       const originalWindow = global.window;
-      global.window = {} as any;
+      global.window = {} as unknown as Window & typeof globalThis;
 
       const browserSuccess = await orchestrator.initialize();
       expect(browserSuccess).toBe(true);
@@ -267,7 +306,7 @@ describe('Phase 2.2: TypeScript Agent-Core Compiler', () => {
 
   describe('Error Handling and Validation', () => {
     test('should handle WASM loading failures', async () => {
-      (WebAssembly.compile as jest.Mock).mockRejectedValueOnce(new Error('WASM compile failed'));
+      (WebAssembly.compile as jest.Mock).mockRejectedValueOnce(new Error('WASM compile failed') as never);
 
       const success = await orchestrator.initialize();
       expect(success).toBe(false);
@@ -277,7 +316,7 @@ describe('Phase 2.2: TypeScript Agent-Core Compiler', () => {
       await orchestrator.initialize();
 
       const invalidInput = {
-        type: 'invalid' as any,
+        type: 'invalid' as unknown as 'text' | 'voice' | 'visual',
         data: null,
         timestamp: -1,
         sessionId: ''
@@ -291,7 +330,7 @@ describe('Phase 2.2: TypeScript Agent-Core Compiler', () => {
       await orchestrator.initialize();
 
       const invalidModel: ModelConfig = {
-        modelType: 'invalid-model' as any,
+        modelType: 'invalid-model' as unknown as 'hrm_cognitive' | 'voice_model' | 'visual_model',
         maxTokens: 1024,
         temperature: 0.7,
         topP: 0.9,

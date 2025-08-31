@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import * as React from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Mic, MicOff, Volume2, Brain } from 'lucide-react';
 import { VoiceProcessor, VoiceConfig } from '../sensory-shell/VoiceProcessor';
 

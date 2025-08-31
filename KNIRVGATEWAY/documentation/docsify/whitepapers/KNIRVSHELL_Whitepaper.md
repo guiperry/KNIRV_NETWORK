@@ -403,3 +403,9 @@ A self-modifying system demands robust safeguards. The `SECURITY_FRAMEWORK.md` p
 The Self-Improving AI Agent System detailed in this document represents a paradigm shift from static intelligence to dynamic, continuous learning. By introducing the **Cognitive Shell** architecture as the **KNIRV-CORTEX**, we make this vision practical and deployable, serving as both the user's intuitive interface and the core template for all agents.
 
 By marrying the adaptive power of the **SEAL** framework with the immutable resilience of **KNIRVCHAIN** (on **XION**), grounding it in the efficiency of Rust `WASM` `LoRA` sidecar adapters and intelligent filtering, and crucially integrating internal **TEE** capabilities for secure sensitive data handling and "**The Fabric**" algorithm for intuitive problem resolution, we lay the architectural groundwork for truly autonomous systems that are both powerful and economical. This system is not just an incremental improvement; it is a foundational platform for building the resilient, intelligent, and trustworthy AI of tomorrow, capable of running anywhere from a server to an edge device, and directly experienced through the immersive world of **KNIRVANA**.
+
+<div class="footer-links">
+<a href="#/legal/CODE_OF_CONDUCT" class="footer-link">Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY" class="footer-link">Privacy Policy</a> | <a href="#/legal/TERMS_AND_CONDITIONS" class="footer-link">Terms and Conditions</a>
+
+© 2025 KNIRV Network
+</div>

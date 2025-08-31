@@ -54,3 +54,9 @@ This policy is governed by the laws of [Jurisdiction, e.g., "the country where t
 ---
 
 **Note:** This policy does not apply to third-party tools integrated with the project. Always review their privacy practices directly.
+
+<div class="footer-links">
+<a href="#/legal/CODE_OF_CONDUCT" class="footer-link">Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY" class="footer-link">Privacy Policy</a> | <a href="#/legal/TERMS_AND_CONDITIONS" class="footer-link">Terms and Conditions</a>
+
+© 2025 KNIRV Network
+</div>

@@ -62,9 +62,9 @@ export class SEALFramework extends EventEmitter {
     console.log('Stopping SEAL Framework...');
 
     // Stop all active invocations
-    for (const [id] of this.activeInvocations) {
+    this.activeInvocations.forEach(async (invocation, id) => {
       await this.cancelInvocation(id);
-    }
+    });
 
     this.agents.clear();
     this.isRunning = false;
@@ -130,7 +130,7 @@ export class SEALFramework extends EventEmitter {
 
     try {
       // Use HRM for enhanced reasoning if available
-      if (this.config.hrmIntegration && this.hrmBridge && this.hrmBridge.isReady()) {
+      if (this.config.hrmIntegration && this.hrmBridge && (this.hrmBridge as any).isReady()) {
         return await this.generateHRMEnhancedResponse(input, context);
       }
 
@@ -166,7 +166,7 @@ export class SEALFramework extends EventEmitter {
         task_type: this.determineTaskType(input, context),
       };
 
-      const hrmOutput = await this.hrmBridge.processCognitiveInput(hrmInput);
+      const hrmOutput = await (this.hrmBridge as any).processCognitiveInput(hrmInput);
 
       // Use HRM reasoning to select and guide agent execution
       const agent = await this.selectAgentWithHRMGuidance(input, context, hrmOutput);
@@ -214,8 +214,9 @@ export class SEALFramework extends EventEmitter {
   }
 
   private determineTaskType(input: unknown, context: unknown): string {
-    if (context.inputType) {
-      return context.inputType + '_processing';
+    const contextAny = context as any;
+    if (contextAny.inputType) {
+      return contextAny.inputType + '_processing';
     }
 
     if (typeof input === 'string') {
@@ -235,12 +236,13 @@ export class SEALFramework extends EventEmitter {
     let bestAgent: SEALAgent | null = null;
     let bestScore = 0;
 
-    for (const agent of this.agents.values()) {
+    this.agents.forEach((agent) => {
       let score = this.calculateAgentScore(agent, requiredCapabilities);
 
       // Boost score based on HRM module activations
-      if (hrmOutput.h_module_activations && hrmOutput.h_module_activations.length > 0) {
-        const avgActivation = hrmOutput.h_module_activations.reduce((a: number, b: number) => a + b, 0) / hrmOutput.h_module_activations.length;
+      const hrmAny = hrmOutput as any;
+      if (hrmAny.h_module_activations && hrmAny.h_module_activations.length > 0) {
+        const avgActivation = hrmAny.h_module_activations.reduce((a: number, b: number) => a + b, 0) / hrmAny.h_module_activations.length;
         score *= (1 + avgActivation); // Boost by HRM confidence
       }
 
@@ -248,23 +250,25 @@ export class SEALFramework extends EventEmitter {
         bestScore = score;
         bestAgent = agent;
       }
-    }
+    });
 
     return bestAgent;
   }
 
   private formatHRMResponse(hrmOutput: unknown, context: unknown): unknown {
+    const hrmAny = hrmOutput as any;
+    const contextAny = context as any;
     return {
       type: 'hrm_response',
-      content: hrmOutput.reasoning_result,
-      confidence: hrmOutput.confidence,
-      processingTime: hrmOutput.processing_time,
+      content: hrmAny.reasoning_result,
+      confidence: hrmAny.confidence,
+      processingTime: hrmAny.processing_time,
       source: 'hrm_direct',
-      shouldSpeak: context.inputType === 'voice' && hrmOutput.confidence > 0.7,
-      text: hrmOutput.reasoning_result,
+      shouldSpeak: contextAny.inputType === 'voice' && hrmAny.confidence > 0.7,
+      text: hrmAny.reasoning_result,
       metadata: {
-        l_module_activations: hrmOutput.l_module_activations,
-        h_module_activations: hrmOutput.h_module_activations,
+        l_module_activations: hrmAny.l_module_activations,
+        h_module_activations: hrmAny.h_module_activations,
       },
     };
   }
@@ -274,13 +278,14 @@ export class SEALFramework extends EventEmitter {
     agent.performance.totalInvocations++;
 
     // Enhance agent processing with HRM insights
+    const hrmAny = hrmOutput as any;
     const enhancedContext = {
-      ...context,
-      hrmReasoning: hrmOutput.reasoning_result,
-      hrmConfidence: hrmOutput.confidence,
+      ...(typeof context === 'object' && context !== null ? context as Record<string, unknown> : {}),
+      hrmReasoning: hrmAny.reasoning_result,
+      hrmConfidence: hrmAny.confidence,
       hrmActivations: {
-        l_modules: hrmOutput.l_module_activations,
-        h_modules: hrmOutput.h_module_activations,
+        l_modules: hrmAny.l_module_activations,
+        h_modules: hrmAny.h_module_activations,
       },
     };
 
@@ -290,9 +295,9 @@ export class SEALFramework extends EventEmitter {
     return {
       ...response,
       hrmEnhanced: true,
-      hrmConfidence: hrmOutput.confidence,
-      combinedConfidence: (response.confidence + hrmOutput.confidence) / 2,
-      hrmReasoning: hrmOutput.reasoning_result,
+      hrmConfidence: hrmAny.confidence,
+      combinedConfidence: ((response as any).confidence + hrmAny.confidence) / 2,
+      hrmReasoning: hrmAny.reasoning_result,
     };
   }
 
@@ -302,14 +307,14 @@ export class SEALFramework extends EventEmitter {
     let bestAgent: SEALAgent | null = null;
     let bestScore = 0;
 
-    for (const agent of this.agents.values()) {
+    this.agents.forEach((agent) => {
       const score = this.calculateAgentScore(agent, requiredCapabilities);
 
       if (score > bestScore) {
         bestScore = score;
         bestAgent = agent;
       }
-    }
+    });
 
     return bestAgent;
   }
@@ -327,11 +332,12 @@ export class SEALFramework extends EventEmitter {
     }
 
     // Add context-based capabilities
-    if (context.inputType === 'voice') {
+    const contextAny = context as any;
+    if (contextAny.inputType === 'voice') {
       capabilities.push('speech_processing');
     }
 
-    if (context.inputType === 'visual') {
+    if (contextAny.inputType === 'visual') {
       capabilities.push('image_analysis', 'object_detection');
     }
 
@@ -380,7 +386,7 @@ export class SEALFramework extends EventEmitter {
           type: 'text_response',
           content: `Processed text input: ${JSON.stringify(input)}`,
           confidence: 0.85,
-          shouldSpeak: context.inputType === 'voice',
+          shouldSpeak: (context as any).inputType === 'voice',
           text: `I've analyzed your input and found relevant information.`,
         };
 
@@ -484,11 +490,13 @@ export class SEALFramework extends EventEmitter {
 
   private async findSkillAgent(skillId: string): Promise<SEALAgent | null> {
     // Find agent with capabilities matching the skill
-    for (const agent of this.agents.values()) {
-      if (agent.capabilities.some(cap => skillId.includes(cap))) {
-        return agent;
+    let foundAgent: SEALAgent | null = null;
+    this.agents.forEach((agent) => {
+      if (!foundAgent && agent.capabilities.some(cap => skillId.includes(cap))) {
+        foundAgent = agent;
       }
-    }
+    });
+    if (foundAgent) return foundAgent;
 
     return null;
   }
@@ -550,39 +558,39 @@ export class SEALFramework extends EventEmitter {
 
   private analyzeErrorPatterns(history: unknown[]): unknown[] {
     return history
-      .filter(event => event.feedback < 0)
+      .filter(event => (event as any).feedback < 0)
       .map(event => ({
-        inputType: event.eventType,
-        input: event.input,
-        output: event.output,
-        feedback: event.feedback,
+        inputType: (event as any).eventType,
+        input: (event as any).input,
+        output: (event as any).output,
+        feedback: (event as any).feedback,
       }));
   }
 
   private analyzeSuccessPatterns(history: unknown[]): unknown[] {
     return history
-      .filter(event => event.feedback > 0.5)
+      .filter(event => (event as any).feedback > 0.5)
       .map(event => ({
-        inputType: event.eventType,
-        input: event.input,
-        output: event.output,
-        feedback: event.feedback,
+        inputType: (event as any).eventType,
+        input: (event as any).input,
+        output: (event as any).output,
+        feedback: (event as any).feedback,
       }));
   }
 
   private generateErrorAdjustments(patterns: unknown[]): unknown[] {
     return patterns.map(pattern => ({
-      target: pattern.inputType,
+      target: (pattern as any).inputType,
       adjustment: 'reduce_confidence',
-      magnitude: Math.abs(pattern.feedback) * 0.1,
+      magnitude: Math.abs((pattern as any).feedback) * 0.1,
     }));
   }
 
   private generateSuccessAdjustments(patterns: unknown[]): unknown[] {
     return patterns.map(pattern => ({
-      target: pattern.inputType,
+      target: (pattern as any).inputType,
       adjustment: 'increase_confidence',
-      magnitude: pattern.feedback * 0.1,
+      magnitude: (pattern as any).feedback * 0.1,
     }));
   }
 
@@ -645,7 +653,7 @@ export class SEALFramework extends EventEmitter {
       activeInvocations: this.activeInvocations.size,
       learningMode: this.learningMode,
       hrmIntegration: this.config.hrmIntegration,
-      hrmReady: this.hrmBridge ? this.hrmBridge.isReady() : false,
+      hrmReady: this.hrmBridge ? (this.hrmBridge as any).isReady() : false,
       averageSuccessRate: agents.length > 0 ? agents.reduce((sum, agent) => sum + agent.performance.successRate, 0) / agents.length : 0,
       totalInvocations: agents.reduce((sum, agent) => sum + agent.performance.totalInvocations, 0),
     };
@@ -675,7 +683,7 @@ export class SEALFramework extends EventEmitter {
     return {
       enabled: this.config.hrmIntegration,
       bridgeAvailable: this.hrmBridge !== null,
-      ready: this.hrmBridge ? this.hrmBridge.isReady() : false,
+      ready: this.hrmBridge ? (this.hrmBridge as any).isReady() : false,
     };
   }
 

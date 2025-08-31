@@ -220,7 +220,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
 
       // Get HRM guidance if available
       let hrmGuidance = null;
-      if (this.hrmConfig.enableHRMGuidance && this.hrmBridge && this.hrmBridge.isReady()) {
+      if (this.hrmConfig.enableHRMGuidance && this.hrmBridge && (this.hrmBridge as any).isReady()) {
         hrmGuidance = await this.getHRMGuidance(batchData);
       }
 
@@ -314,7 +314,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
         task_type: 'lora_adaptation',
       };
 
-      const hrmOutput = await this.hrmBridge.processCognitiveInput(hrmInput);
+      const hrmOutput = await (this.hrmBridge as any).processCognitiveInput(hrmInput);
 
       return {
         reasoning: hrmOutput.reasoning_result,
@@ -373,9 +373,9 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     adaptedModel.setWeights(baseWeights);
 
     // Apply LoRA adaptations to specific layers
-    for (const [moduleName, loraWeights] of this.weights) {
+    this.weights.forEach(async (loraWeights, moduleName) => {
       await this.applyLoRAToLayer(adaptedModel, moduleName, loraWeights, hrmGuidance);
-    }
+    });
 
     adaptedModel.compile({
       optimizer: this.optimizer,
@@ -405,8 +405,8 @@ export class EnhancedLoRAAdapter extends EventEmitter {
 
       // Apply HRM guidance if available
       let finalAdaptation = scaledAdaptation;
-      if (hrmGuidance && hrmGuidance.adaptationStrength) {
-        finalAdaptation = tf.mul(scaledAdaptation, hrmGuidance.adaptationStrength);
+      if (hrmGuidance && (hrmGuidance as any).adaptationStrength) {
+        finalAdaptation = tf.mul(scaledAdaptation, (hrmGuidance as any).adaptationStrength);
       }
 
       // Add adaptation to original weights
@@ -431,10 +431,10 @@ export class EnhancedLoRAAdapter extends EventEmitter {
 
   private async extractLoRAUpdates(adaptedModel: tf.LayersModel, hrmGuidance: unknown): Promise<void> {
     // Extract the learned adaptations and update LoRA matrices
-    for (const [moduleName, loraWeights] of this.weights) {
+    this.weights.forEach(async (loraWeights, moduleName) => {
       try {
         const layer = adaptedModel.getLayer(moduleName);
-        if (!layer) continue;
+        if (!layer) return;
 
         const adaptedLayerWeights = layer.getWeights();
         const originalLayerWeights = this.baseModel!.getLayer(moduleName).getWeights();
@@ -452,7 +452,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
       } catch (error) {
         console.error(`Error extracting LoRA updates for ${moduleName}:`, error);
       }
-    }
+    });
   }
 
   private async updateLoRAMatrices(
@@ -465,8 +465,8 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     
     // Apply HRM-guided learning rate adjustment
     let adjustedLR = learningRate;
-    if (hrmGuidance && hrmGuidance.confidence) {
-      adjustedLR *= hrmGuidance.confidence;
+    if (hrmGuidance && (hrmGuidance as any).confidence) {
+      adjustedLR *= (hrmGuidance as any).confidence;
     }
 
     // Update A matrix
@@ -589,24 +589,24 @@ export class EnhancedLoRAAdapter extends EventEmitter {
   }
 
   private disposeTensors(): void {
-    for (const [, weights] of this.weights) {
+    this.weights.forEach((weights) => {
       weights.A.dispose();
       weights.B.dispose();
-    }
+    });
     this.weights.clear();
   }
 
   public exportWeights(): unknown {
     const exportData: unknown = {};
     
-    for (const [moduleName, weights] of this.weights) {
-      exportData[moduleName] = {
+    this.weights.forEach((weights, moduleName) => {
+      (exportData as any)[moduleName] = {
         layerName: weights.layerName,
         A: weights.A.arraySync(),
         B: weights.B.arraySync(),
         scaling: weights.scaling,
       };
-    }
+    });
 
     return exportData;
   }
@@ -642,7 +642,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
       modelParameters: this.baseModel ? this.baseModel.countParams() : 0,
       loraModules: this.weights.size,
       hrmIntegration: this.hrmConfig.enableHRMGuidance,
-      hrmBridgeReady: this.hrmBridge ? this.hrmBridge.isReady() : false,
+      hrmBridgeReady: this.hrmBridge ? (this.hrmBridge as any).isReady() : false,
     };
   }
 

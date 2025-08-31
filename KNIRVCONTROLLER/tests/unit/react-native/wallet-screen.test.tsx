@@ -1,7 +1,7 @@
 // Comprehensive Unit Tests for KNIRVWALLET React Native - Wallet Screen
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { render, fireEvent } from '@testing-library/react-native';
+import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
 
 // Mock WalletScreen component since the actual file path doesn't exist
 const WalletScreen = () => {
@@ -155,11 +155,11 @@ jest.mock('react-native', () => ({
 }));
 
 jest.mock('react-native-safe-area-context', () => ({
-  SafeAreaView: ({ children }: any) => children
+  SafeAreaView: ({ children }: { children: React.ReactNode }) => children
 }));
 
 jest.mock('expo-linear-gradient', () => ({
-  LinearGradient: ({ children }: any) => children
+  LinearGradient: ({ children }: { children: React.ReactNode }) => children
 }));
 
 jest.mock('lucide-react-native', () => ({
@@ -173,17 +173,17 @@ jest.mock('lucide-react-native', () => ({
 
 // Mock components
 jest.mock('../../../components/GlassCard', () => {
-  return ({ children }: any) => children;
+  return ({ children }: { children: React.ReactNode }) => children;
 });
 
 jest.mock('../../../components/CryptoCard', () => {
-  return ({ symbol, name, balance, change }: any) => (
+  return ({ symbol, name, balance, change }: { symbol: string; name: string; balance: string; change: string }) => (
     `CryptoCard: ${symbol} ${name} ${balance} ${change}`
   );
 });
 
 jest.mock('../../../src/components/MetaAccountDashboard', () => ({
-  MetaAccountDashboard: ({ config }: any) => `MetaAccountDashboard with config: ${config.chainId}`
+  MetaAccountDashboard: ({ config }: { config: { chainId: string } }) => `MetaAccountDashboard with config: ${config.chainId}`
 }));
 
 jest.mock('../../../src/config/xion-config', () => ({
@@ -300,7 +300,7 @@ describe('WalletScreen Component', () => {
     });
 
     it('should handle portfolio refresh', () => {
-      const { getByText, getByTestId } = render(<WalletScreen />);
+      const { getByText } = render(<WalletScreen />);
 
       // In real implementation, there would be a refresh button
       // For now, we just verify the portfolio section exists
@@ -370,7 +370,7 @@ describe('WalletScreen Component', () => {
 
   describe('Search and Filter Functionality', () => {
     it('should render search and filter buttons', () => {
-      const { getByTestId } = render(<WalletScreen />);
+      render(<WalletScreen />);
 
       // In real implementation, these would have testIDs
       // For now, we verify the screen renders without errors
@@ -417,8 +417,9 @@ describe('WalletScreen Component', () => {
   describe('Responsive Design', () => {
     it('should handle different screen sizes', () => {
       // Mock different screen dimensions
-      const mockDimensions = require('react-native').Dimensions;
-      mockDimensions.get.mockReturnValue({ width: 320, height: 568 });
+      const mockDimensions = Dimensions;
+      // Mock the get method for small screen
+      jest.spyOn(mockDimensions, 'get').mockReturnValue({ width: 320, height: 568 } as unknown as ReturnType<typeof Dimensions.get>);
 
       const { getByText } = render(<WalletScreen />);
 
@@ -426,8 +427,9 @@ describe('WalletScreen Component', () => {
     });
 
     it('should handle tablet dimensions', () => {
-      const mockDimensions = require('react-native').Dimensions;
-      mockDimensions.get.mockReturnValue({ width: 768, height: 1024 });
+      const mockDimensions = Dimensions;
+      // Mock the get method for tablet screen
+      jest.spyOn(mockDimensions, 'get').mockReturnValue({ width: 768, height: 1024 } as unknown as ReturnType<typeof Dimensions.get>);
 
       const { getByText } = render(<WalletScreen />);
 

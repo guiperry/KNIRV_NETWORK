@@ -133,7 +133,7 @@ export class WASMAgentManager extends EventEmitter {
       });
 
       // Get exported functions
-      this.agentModule = this.wasmInstance.exports as AgentWASMModule;
+      this.agentModule = this.wasmInstance.exports as unknown as AgentWASMModule;
 
       // Initialize the agent
       const initResult = this.agentModule.initialize_agent();
@@ -259,8 +259,8 @@ export class WASMAgentManager extends EventEmitter {
     }
 
     // Get the compiled WASM bytes
-    const wasmBytes = await WebAssembly.compile(this.wasmModule);
-    return new Uint8Array(await wasmBytes.arrayBuffer());
+    const wasmBytes = await WebAssembly.compile(this.wasmModule as BufferSource);
+    return new Uint8Array(await WebAssembly.Module.customSections(wasmBytes, 'name')[0] || new ArrayBuffer(0));
   }
 
   /**

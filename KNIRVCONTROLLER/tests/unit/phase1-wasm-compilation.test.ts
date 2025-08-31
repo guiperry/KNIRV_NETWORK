@@ -3,7 +3,7 @@
  * Tests for KNIRV-CORTEX Backend Isolation (1.2) from MAJOR_REFACTOR_IMPLEMENTATION_PLAN.md
  */
 
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { AgentCoreCompiler, AgentCoreConfig } from '../../src/core/agent-core-compiler/src/AgentCoreCompiler';
 import { WASMOrchestrator } from '../../src/sensory-shell/WASMOrchestrator';
 import { ProtobufHandler } from '../../src/core/protobuf/ProtobufHandler';
@@ -40,7 +40,7 @@ describe('Phase 1: WASM Compilation Pipeline Tests', () => {
     // Clean up temp directory
     try {
       await fs.rmdir(tempDir, { recursive: true });
-    } catch (error) {
+    } catch {
       // Ignore cleanup errors
     }
   });
@@ -179,7 +179,7 @@ describe('Phase 1: WASM Compilation Pipeline Tests', () => {
         
         // Test that WASM can be loaded by orchestrator
         await wasmOrchestrator.start();
-        const loadResult = await wasmOrchestrator.loadAgentWASM(result.wasmBytes!, testConfig.agentId);
+        const loadResult = await wasmOrchestrator.loadAgentWASM(result.wasmBytes!);
         expect(loadResult).toBe(true);
       });
     });

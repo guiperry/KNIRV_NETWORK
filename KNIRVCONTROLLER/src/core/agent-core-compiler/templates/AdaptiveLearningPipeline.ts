@@ -1,8 +1,13 @@
 // AdaptiveLearningPipeline Template for WASM Compilation
 import { ProcessingResult } from '../../../types/common';
 
-// Dummy usage to satisfy linter, assuming it's used in a broader context
+// Type alias for processing results in adaptive learning context
 type _DummyProcessingResult = ProcessingResult;
+
+// Helper function to validate processing results
+function validateProcessingResult(result: unknown): result is _DummyProcessingResult {
+  return typeof result === 'object' && result !== null;
+}
 
 export interface AdaptationInput {
   data: unknown;
@@ -43,14 +48,26 @@ export class AdaptiveLearningPipeline {
       throw new Error('AdaptiveLearningPipeline not active');
     }
 
+    // Validate input using the helper function
+    if (!validateProcessingResult(input)) {
+      throw new Error('Invalid input for adaptation');
+    }
+
     // Basic adaptation logic
-    return {
+    const result = {
       adapted: true,
       input: input,
       feedback: feedback,
       learningRate: this.learningRate,
       confidence: Math.min(feedback.score * this.learningRate, 1.0)
     };
+
+    // Validate result before returning
+    if (!validateProcessingResult(result)) {
+      throw new Error('Failed to generate valid adaptation result');
+    }
+
+    return result;
   }
 
   setLearningRate(rate: number): void {

@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals
 import { KNIRVRouterIntegration, ErrorContext, SkillNodeURI, LoRAAdapterData } from '../../src/sensory-shell/KNIRVRouterIntegration';
 
 // Mock fetch
-global.fetch = jest.fn();
-const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+const mockFetch = jest.fn() as jest.MockedFunction<typeof fetch>;
+global.fetch = mockFetch;
 
 // Mock WebSocket
 global.WebSocket = jest.fn().mockImplementation(() => ({
@@ -12,8 +12,12 @@ global.WebSocket = jest.fn().mockImplementation(() => ({
   onerror: null,
   onclose: null,
   close: jest.fn(),
-  send: jest.fn()
-}));
+  send: jest.fn(),
+  CONNECTING: 0,
+  OPEN: 1,
+  CLOSING: 2,
+  CLOSED: 3
+})) as unknown as typeof WebSocket;
 
 describe('KNIRVRouterIntegration Unit Tests', () => {
   let integration: KNIRVRouterIntegration;
@@ -173,7 +177,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
         agentId: 'test-agent',
         timestamp: Date.now(),
         severity: 'medium'
-      };
+      } as ErrorContext;
 
       const response = await integration.resolveSkillViaErrorContext(errorContext, ['test']);
       
@@ -216,7 +220,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
         agentId: 'test-agent',
         timestamp: Date.now(),
         severity: 'medium'
-      };
+      } as ErrorContext;
 
       const response = await integration.resolveSkillViaErrorContext(errorContext, ['test']);
       
@@ -228,7 +232,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
       // Mock KNIRVGRAPH call (first fetch) - should succeed
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: jest.fn().mockResolvedValue({ patterns: [], skillNodes: [] })
+        json: jest.fn().mockResolvedValue({ patterns: [], skillNodes: [] } as never)
       } as any);
 
       // Mock KNIRVROUTER call (second fetch) - should fail
@@ -246,7 +250,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
         agentId: 'test-agent',
         timestamp: Date.now(),
         severity: 'medium'
-      };
+      } as ErrorContext;
 
       const response = await integration.resolveSkillViaErrorContext(errorContext, ['test']);
 
@@ -258,7 +262,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
       // Mock KNIRVGRAPH call (first fetch) - should succeed
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: jest.fn().mockResolvedValue({ patterns: [], skillNodes: [] })
+        json: jest.fn().mockResolvedValue({ patterns: [], skillNodes: [] } as never)
       } as any);
 
       // Mock KNIRVROUTER call (second fetch) - should fail with network error
@@ -273,7 +277,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
         agentId: 'test-agent',
         timestamp: Date.now(),
         severity: 'medium'
-      };
+      } as ErrorContext;
 
       const response = await integration.resolveSkillViaErrorContext(errorContext, ['test']);
 
@@ -344,6 +348,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
       (integration as any).isConnected = true;
 
       const adapterData = {
+        adapterId: 'test-adapter-id',
         adapterName: 'New Adapter',
         description: 'New test adapter',
         baseModelCompatibility: 'hrm-v1',
@@ -353,7 +358,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
         weightsA: new Float32Array([1, 2, 3]),
         weightsB: new Float32Array([4, 5, 6]),
         metadata: { author: 'test' }
-      };
+      } as any;
 
       const adapterId = await integration.registerLoRAAdapter(adapterData);
       
@@ -369,6 +374,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
       (integration as any).isConnected = true;
 
       const adapterData = {
+        adapterId: 'invalid-adapter-id',
         adapterName: 'Invalid Adapter',
         description: 'Invalid adapter',
         baseModelCompatibility: 'hrm-v1',
@@ -378,7 +384,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
         weightsA: new Float32Array([1]),
         weightsB: new Float32Array([2]),
         metadata: {}
-      };
+      } as any;
 
       await expect(integration.registerLoRAAdapter(adapterData)).rejects.toThrow('Bad Request');
     });
@@ -389,6 +395,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
       await expect(integration.getLoRAAdapters()).rejects.toThrow('not connected');
       
       const adapterData = {
+        adapterId: 'test-adapter-id',
         adapterName: 'Test',
         description: 'Test',
         baseModelCompatibility: 'hrm-v1',
@@ -398,7 +405,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
         weightsA: new Float32Array([1]),
         weightsB: new Float32Array([2]),
         metadata: {}
-      };
+      } as any;
 
       await expect(integration.registerLoRAAdapter(adapterData)).rejects.toThrow('not connected');
     });
@@ -507,7 +514,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => { throw new Error('Invalid JSON'); }
-      } as Response);
+      } as unknown as Response);
 
       const errorContext: ErrorContext = {
         errorId: 'test-error',
@@ -518,7 +525,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
         agentId: 'test-agent',
         timestamp: Date.now(),
         severity: 'medium'
-      };
+      } as ErrorContext;
 
       const response = await integration.resolveSkillViaErrorContext(errorContext, ['test']);
       expect(response.status).toBe('FAILURE');
@@ -531,7 +538,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
       // Mock KNIRVGRAPH call (first fetch) - should succeed
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: jest.fn().mockResolvedValue({ patterns: [], skillNodes: [] })
+        json: jest.fn().mockResolvedValue({ patterns: [], skillNodes: [] } as never)
       } as any);
 
       // Mock KNIRVROUTER call (second fetch) - should timeout quickly
@@ -550,7 +557,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
         agentId: 'test-agent',
         timestamp: Date.now(),
         severity: 'medium'
-      };
+      } as ErrorContext;
 
       const response = await integration.resolveSkillViaErrorContext(errorContext, ['test']);
       expect(response.status).toBe('FAILURE');

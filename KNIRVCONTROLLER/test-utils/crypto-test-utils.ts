@@ -168,6 +168,7 @@ export class EncryptionTestUtils {
       const decrypted = await this.mockDecrypt(encrypted, password);
       return data === decrypted;
     } catch (error) {
+      console.error('Encryption round trip test failed:', error);
       return false;
     }
   }

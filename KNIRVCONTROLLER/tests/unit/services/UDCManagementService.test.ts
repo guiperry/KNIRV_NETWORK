@@ -3,7 +3,7 @@
  * Comprehensive test suite for UDC management functionality
  */
 
-import { udcManagementService, UDCManagementService } from '../../../src/services/UDCManagementService';
+import { udcManagementService, UDCManagementService, UDC } from '../../../src/services/UDCManagementService';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -22,7 +22,7 @@ describe('UDCManagementService', () => {
   const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
 
   beforeEach(() => {
-    service = new UDCManagementService('http://localhost:3001');
+    service = new UDCManagementService({ baseUrl: 'http://localhost:3001' });
     mockFetch.mockClear();
     jest.clearAllTimers();
     jest.useFakeTimers();
@@ -120,7 +120,7 @@ describe('UDCManagementService', () => {
   });
 
   describe('UDC Renewal', () => {
-    let testUDC: any;
+    let testUDC: UDC;
 
     beforeEach(async () => {
       mockFetch.mockResolvedValue({
@@ -161,7 +161,7 @@ describe('UDCManagementService', () => {
   });
 
   describe('UDC Validation', () => {
-    let testUDC: any;
+    let testUDC: UDC;
 
     beforeEach(async () => {
       mockFetch.mockResolvedValue({
@@ -231,7 +231,7 @@ describe('UDCManagementService', () => {
   });
 
   describe('UDC Revocation', () => {
-    let testUDC: any;
+    let testUDC: UDC;
 
     beforeEach(async () => {
       mockFetch.mockResolvedValue({
@@ -266,7 +266,7 @@ describe('UDCManagementService', () => {
   });
 
   describe('Usage Recording', () => {
-    let testUDC: any;
+    let testUDC: UDC;
 
     beforeEach(async () => {
       mockFetch.mockResolvedValue({

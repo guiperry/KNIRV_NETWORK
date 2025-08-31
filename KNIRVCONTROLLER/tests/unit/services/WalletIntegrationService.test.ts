@@ -2,7 +2,7 @@
  * Tests for WalletIntegrationService
  */
 
-import { walletIntegrationService, WalletAccount, TransactionRequest } from '../../../src/services/WalletIntegrationService';
+import { walletIntegrationService, WalletAccount, TransactionRequest, WalletIntegrationService } from '../../../src/services/WalletIntegrationService';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -31,7 +31,7 @@ describe('WalletIntegrationService', () => {
 
   describe('detectBridgeUrl', () => {
     it('should detect localhost URL for development', () => {
-      const service = new (walletIntegrationService.constructor as any)();
+      const service = new (walletIntegrationService.constructor as typeof WalletIntegrationService)();
       expect(service['bridgeUrl']).toBe('http://localhost:3004');
     });
 
@@ -41,7 +41,7 @@ describe('WalletIntegrationService', () => {
         writable: true
       });
       
-      const service = new (walletIntegrationService.constructor as any)();
+      const service = new (walletIntegrationService.constructor as typeof WalletIntegrationService)();
       expect(service['bridgeUrl']).toBe('https://wallet.knirv.com');
     });
   });

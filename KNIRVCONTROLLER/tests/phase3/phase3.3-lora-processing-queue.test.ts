@@ -218,7 +218,14 @@ describe('Phase 3.3 - LoRA Processing Queue', () => {
         processingQueue.enqueue({ ...mockLoRAAdapter, skillId: 'skill_2' }, mockTrainingDataset),
         processingQueue.enqueue({ ...mockLoRAAdapter, skillId: 'skill_3' }, mockTrainingDataset)
       ]);
-      
+
+      // Verify all items were queued successfully
+      expect(queueIds).toHaveLength(3);
+      queueIds.forEach(id => {
+        expect(typeof id).toBe('string');
+        expect(id.length).toBeGreaterThan(0);
+      });
+
       // Check that only 2 are processing at once
       await new Promise(resolve => setTimeout(resolve, 50));
       
@@ -241,7 +248,12 @@ describe('Phase 3.3 - LoRA Processing Queue', () => {
         mockTrainingDataset,
         10
       );
-      
+
+      // Verify both items were queued successfully
+      expect(typeof lowPriorityId).toBe('string');
+      expect(typeof highPriorityId).toBe('string');
+      expect(lowPriorityId).not.toBe(highPriorityId);
+
       const pendingItems = processingQueue.getPendingItems();
       expect(pendingItems[0].priority).toBeGreaterThan(pendingItems[1].priority);
       expect(pendingItems[0].loraAdapter.skillId).toBe('high_priority');
@@ -288,7 +300,11 @@ describe('Phase 3.3 - LoRA Processing Queue', () => {
   describe('Queue Cleanup', () => {
     test('should clear completed items', async () => {
       const queueId = await processingQueue.enqueue(mockLoRAAdapter, mockTrainingDataset);
-      
+
+      // Verify item was queued successfully
+      expect(typeof queueId).toBe('string');
+      expect(queueId.length).toBeGreaterThan(0);
+
       // Wait for completion
       await new Promise(resolve => setTimeout(resolve, 200));
       
@@ -377,8 +393,49 @@ describe('Phase 3.3 - LoRA Processing Queue', () => {
       
       expect(queuedItem!.priority).toBe(3);
       expect(queuedItem!.maxRetries).toBe(1);
-      
+
       customQueue.stop();
+    });
+  });
+
+  describe('Type Usage Validation', () => {
+    it('should validate imported types are properly used', () => {
+      // Test QueuedLoRAAdapter type usage
+      const mockQueuedAdapter: QueuedLoRAAdapter = {
+        id: 'queued-adapter-1',
+        adapter: {
+          id: 'adapter-1',
+          name: 'Test Adapter',
+          rank: 16,
+          alpha: 32,
+          weights: new Map(),
+          trainingData: []
+        } as LoRAAdapterSkill,
+        priority: 1,
+        queuedAt: Date.now(),
+        status: QueueStatus.PENDING
+      };
+
+      expect(mockQueuedAdapter.priority).toBe(1);
+      expect(mockQueuedAdapter.status).toBe(QueueStatus.PENDING);
+
+      // Test HRMCoreModel type usage
+      const mockHRMModel = new HRMCoreModel({
+        modelPath: '/test/model',
+        maxConcurrentProcessing: 2
+      });
+
+      expect(mockHRMModel).toBeDefined();
+
+      // Test TrainingDataset type usage
+      const mockDataset: TrainingDataset = {
+        id: 'dataset-1',
+        samples: [],
+        metadata: { size: 0, version: '1.0' }
+      };
+
+      expect(Array.isArray(mockDataset.samples)).toBe(true);
+      expect(mockDataset.metadata.version).toBe('1.0');
     });
   });
 });

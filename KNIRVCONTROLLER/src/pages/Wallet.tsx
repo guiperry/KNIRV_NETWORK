@@ -30,8 +30,9 @@ export default function WalletPage() {
 
   const [availableAgents] = useState([
     {
-      id: 'agent-1',
+      agentId: 'agent-1',
       name: 'CodeT5-Alpha',
+      version: '1.0.0',
       type: 'wasm' as const,
       status: 'Available' as const,
       capabilities: ['code-generation', 'optimization'],
@@ -45,11 +46,12 @@ export default function WalletPage() {
         requirements: { memory: 512, cpu: 2, storage: 100 },
         permissions: ['read', 'write']
       },
-      createdAt: new Date()
+      createdAt: new Date().toISOString()
     },
     {
-      id: 'agent-2',
+      agentId: 'agent-2',
       name: 'SEAL-Beta',
+      version: '1.0.0',
       type: 'lora' as const,
       status: 'Available' as const,
       capabilities: ['learning', 'adaptation'],
@@ -63,7 +65,7 @@ export default function WalletPage() {
         requirements: { memory: 256, cpu: 1, storage: 50 },
         permissions: ['read']
       },
-      createdAt: new Date()
+      createdAt: new Date().toISOString()
     }
   ]);
 
@@ -119,6 +121,14 @@ export default function WalletPage() {
   };
 
   const openCognitiveShell = () => {
+    // Toggle cognitive mode when opening shell
+    setCognitiveMode(true);
+    setCognitiveState({
+      isActive: true,
+      timestamp: Date.now(),
+      mode: 'interactive'
+    });
+
     setActivePanels(prev =>
       prev.includes('cognitive-shell')
         ? prev
@@ -309,6 +319,17 @@ export default function WalletPage() {
               <div className="text-lg text-gray-300">
                 ≈ ${walletData.usdValue.toFixed(2)} USD
               </div>
+
+              {/* Cognitive Status Indicator */}
+              {cognitiveMode && (
+                <div className="flex items-center space-x-2 mt-2 px-2 py-1 bg-purple-600/20 border border-purple-500/30 rounded-lg">
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                  <span className="text-xs text-purple-400">
+                    Cognitive Mode: {cognitiveState?.mode || 'active'} |
+                    Status: {cognitiveState?.isActive ? 'online' : 'offline'}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 

@@ -48,3 +48,9 @@ These Terms constitute the complete agreement between you and the contributors r
 ---
 
 **Important Note:** This document provides general legal terms but does not constitute legal advice. Consult a qualified attorney for jurisdiction-specific requirements.
+
+<div class="footer-links">
+<a href="#/legal/CODE_OF_CONDUCT" class="footer-link">Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY" class="footer-link">Privacy Policy</a> | <a href="#/legal/TERMS_AND_CONDITIONS" class="footer-link">Terms and Conditions</a>
+
+© 2025 KNIRV Network
+</div>

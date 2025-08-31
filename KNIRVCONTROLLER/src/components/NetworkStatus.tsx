@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { Check, AlertTriangle, Loader } from 'lucide-react';
 
 interface NetworkStatusProps {
@@ -41,22 +41,25 @@ export const NetworkStatus: React.FC<NetworkStatusProps> = ({ connections }) => 
         Network connections status for all KNIRV services
       </div>
       
-      {Object.entries(connections).map(([service, status]) => (
-        <div
-          key={service}
-          className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700/50"
-        >
-          <div className="flex items-center space-x-3">
-            {getStatusIcon(status)}
-            <span className="text-white font-medium">
-              {serviceNames[service as keyof typeof serviceNames]}
+      {Object.entries(connections).map(([service, status]) => {
+        const statusStr = String(status);
+        return (
+          <div
+            key={service}
+            className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700/50"
+          >
+            <div className="flex items-center space-x-3">
+              {getStatusIcon(statusStr)}
+              <span className="text-white font-medium">
+                {serviceNames[service as keyof typeof serviceNames]}
+              </span>
+            </div>
+            <span className={`text-sm font-medium ${getStatusColor(statusStr)}`}>
+              {statusStr.charAt(0).toUpperCase() + statusStr.slice(1)}
             </span>
           </div>
-          <span className={`text-sm font-medium ${getStatusColor(status)}`}>
-            {status.charAt(0).toUpperCase() + status.slice(1)}
-          </span>
-        </div>
-      ))}
+        );
+      })}
       
       <div className="mt-6 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
         <div className="flex items-center space-x-2 mb-2">

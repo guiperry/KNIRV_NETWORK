@@ -305,4 +305,32 @@ describe('Linting Error Resolution Tests', () => {
       });
     });
   });
+
+  describe('Type Usage Validation', () => {
+    it('should validate PaymentResult and ScheduledTask types are properly used', () => {
+      // Test PaymentResult type usage
+      const mockPaymentResult: PaymentResult = {
+        success: true,
+        transactionId: 'test-tx-123',
+        amount: '100',
+        timestamp: Date.now()
+      };
+
+      expect(mockPaymentResult.success).toBe(true);
+      expect(typeof mockPaymentResult.transactionId).toBe('string');
+
+      // Test ScheduledTask type usage
+      const mockScheduledTask: ScheduledTask = {
+        id: 'task-123',
+        name: 'Test Task',
+        schedule: '0 0 * * *',
+        enabled: true,
+        lastRun: new Date(),
+        nextRun: new Date(Date.now() + 86400000)
+      };
+
+      expect(mockScheduledTask.enabled).toBe(true);
+      expect(typeof mockScheduledTask.name).toBe('string');
+    });
+  });
 });

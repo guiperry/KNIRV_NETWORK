@@ -238,6 +238,7 @@ describe('Parameter Naming Fixes', () => {
       ];
 
       testCases.forEach(({ description, handler, input, expected }) => {
+        console.log(`Testing: ${description}`);
         const result = handler(input);
         expect(result).toEqual(expected);
       });

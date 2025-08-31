@@ -355,7 +355,7 @@ export class QRPaymentService {
   /**
    * Validate payment request format
    */
-  private isValidPaymentRequest(data: any): boolean {
+  private isValidPaymentRequest(data: unknown): boolean {
     if (!data || typeof data !== 'object') {
       return false;
     }

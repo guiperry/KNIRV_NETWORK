@@ -77,7 +77,7 @@ export const updateSession = async (req: Request, res: Response) => {
     const { sessionId } = req.params;
     const { title, messages } = req.body;
     
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       updatedAt: new Date(),
     };
     

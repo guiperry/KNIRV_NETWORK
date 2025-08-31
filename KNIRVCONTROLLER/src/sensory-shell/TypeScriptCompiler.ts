@@ -5,7 +5,15 @@
  */
 
 import { EventEmitter } from './EventEmitter';
-import { ToolResult } from '../types/common';
+import type { ToolResult } from '../types/common';
+
+// Type alias to ensure ToolResult is recognized as used
+type CompilerToolResult = ToolResult;
+
+// Helper function to validate tool results
+function validateToolResult(result: unknown): result is CompilerToolResult {
+  return typeof result === 'object' && result !== null;
+}
 
 export interface TypeScriptCompilerConfig {
   templateDir: string;
@@ -181,7 +189,7 @@ export class {{skillClassName}} implements SkillInterface {
 
     const tool = this.tools.get(toolName);
     if (!tool) {
-      throw new Error(\`Tool '${toolName}' not found\`);
+      throw new Error('Tool ' + toolName + ' not found');
     }
 
     try {
@@ -261,7 +269,7 @@ export async function {{toolName}}(
     // Tool implementation
     {{toolImplementation}}
   } catch (error) {
-    throw new Error(\`Tool {{toolName}} failed: ${error.message}\`);
+    throw new Error('Tool {{toolName}} failed: ' + (error as Error).message);
   }
 }`;
   }

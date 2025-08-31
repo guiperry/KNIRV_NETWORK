@@ -10,11 +10,11 @@ import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals
 // Mock implementations for testing
 class MockLoRAAdapterEngine {
   private adapters: string[] = [];
-  private adapterData: Map<string, any> = new Map();
+  private adapterData: Map<string, Record<string, unknown>> = new Map();
 
   async initialize(): Promise<void> {}
 
-  async compileAdapter(solutions: any, metadata: any): Promise<void> {
+  async compileAdapter(solutions: Record<string, unknown>, metadata: Record<string, unknown>): Promise<void> {
     const skillId = `skill_${Date.now()}`;
     this.adapters.push(skillId);
     this.adapterData.set(skillId, {
@@ -33,11 +33,15 @@ class MockLoRAAdapterEngine {
     return this.adapters;
   }
 
-  getAdapter(skillId: string): any {
-    return this.adapterData.get(skillId);
+  getAdapter(skillId: string): { skillId: string; skillName: string; description: string; rank: number; alpha: number; weightsA: Float32Array; weightsB: Float32Array; baseModelCompatibility: string } | undefined {
+    const adapter = this.adapterData.get(skillId);
+    if (adapter) {
+      return adapter as { skillId: string; skillName: string; description: string; rank: number; alpha: number; weightsA: Float32Array; weightsB: Float32Array; baseModelCompatibility: string };
+    }
+    return undefined;
   }
 
-  async createWASMFormat(adapter: any): Promise<Uint8Array> {
+  async createWASMFormat(adapter: { skillId: string; skillName: string; description: string; rank: number; alpha: number; weightsA: Float32Array; weightsB: Float32Array; baseModelCompatibility: string }): Promise<Uint8Array> {
     const wasmHeader = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
 
     // Convert Float32Arrays to regular arrays for JSON serialization
@@ -54,7 +58,7 @@ class MockLoRAAdapterEngine {
     return result;
   }
 
-  async loadFromWASMFormat(wasmBytes: Uint8Array): Promise<any> {
+  async loadFromWASMFormat(wasmBytes: Uint8Array): Promise<{ skillId: string; skillName: string; description: string; rank: number; alpha: number; weightsA: Float32Array; weightsB: Float32Array; baseModelCompatibility: string }> {
     const headerLength = 8;
     const dataBytes = wasmBytes.slice(headerLength);
     const dataString = new TextDecoder().decode(dataBytes);
@@ -89,11 +93,11 @@ class MockProtobufHandler {
 class MockCortexAPI {
   private loraEngine: MockLoRAAdapterEngine;
 
-  constructor(loraEngine: MockLoRAAdapterEngine, wasmCompiler: MockWASMCompiler, protobufHandler: MockProtobufHandler) {
+  constructor(loraEngine: MockLoRAAdapterEngine, _wasmCompiler: MockWASMCompiler, _protobufHandler: MockProtobufHandler) {
     this.loraEngine = loraEngine;
   }
 
-  async prepareLoRAAdapter(skillId: string, teeInfo?: any, loraAdapterConfig?: any): Promise<any> {
+  async prepareLoRAAdapter(skillId: string, teeInfo?: { attestationRequired?: boolean; securityLevel?: string }, _loraAdapterConfig?: unknown): Promise<{ success: boolean; preparationResult: { skillId: string; skillName: string; wasmBytes: number[]; teeCompatibility: { requiredMemory: number; requiredCPU: string; securityLevel: string; attestationRequired: boolean }; loraMetadata: { rank: number; alpha: number; baseModel: string; weightsSize: number }; nexusConnectivity: { endpoint: string; protocol: string; authentication: string; timeout: number }; preparationTimestamp: string; packageHash: string }; message: string }> {
     if (!skillId) {
       throw new Error('Missing skillId');
     }
@@ -148,7 +152,7 @@ class MockCortexAPI {
     };
   }
 
-  async getTEEStatus(): Promise<any> {
+  async getTEEStatus(): Promise<{ success: boolean; teeStatus: { connected: boolean; endpoint: string; status: string; capabilities?: string[]; availableResources?: { cpu: string; memory: string }; error?: string; lastChecked: string }; timestamp: string }> {
     let teeStatus;
     if (global.fetch) {
       try {
@@ -187,7 +191,7 @@ class MockCortexAPI {
     };
   }
 
-  async performPreTraining(baseModel: string, loraAdapterInsights: any, trainingConfig?: any): Promise<any> {
+  async performPreTraining(baseModel: string, loraAdapterInsights: unknown, _trainingConfig?: unknown): Promise<{ success: boolean; pretrainingResult: { success: boolean; baseModel: string; updatedModelVersion: string; insightsApplied: number; trainingMetrics: { initialLoss: number; finalLoss: number; convergenceEpochs: number; improvementPercentage: number }; modelImprovements: { accuracyGain: number; efficiencyGain: number; robustnessGain: number }; completedAt: string }; message: string }> {
     if (!baseModel || !loraAdapterInsights) {
       throw new Error('Missing baseModel or loraAdapterInsights');
     }
@@ -234,14 +238,15 @@ const LoRAAdapterEngine = MockLoRAAdapterEngine;
 const WASMCompiler = MockWASMCompiler;
 const ProtobufHandler = MockProtobufHandler;
 
-// Mock fetch for testing
-global.fetch = jest.fn();
+// Mock fetch for testing with any type to bypass strict typing
+const mockFetch = jest.fn() as any;
+(global.fetch as jest.Mock) = mockFetch;
 
 describe('Phase 3.4: /prepare Endpoint Integration', () => {
-  let cortexAPI: CortexAPI;
-  let loraEngine: LoRAAdapterEngine;
-  let wasmCompiler: WASMCompiler;
-  let protobufHandler: ProtobufHandler;
+  let cortexAPI: MockCortexAPI;
+  let loraEngine: MockLoRAAdapterEngine;
+  let wasmCompiler: MockWASMCompiler;
+  let protobufHandler: MockProtobufHandler;
 
   beforeEach(async () => {
     // Initialize components
@@ -285,7 +290,7 @@ describe('Phase 3.4: /prepare Endpoint Integration', () => {
   describe('NEXUS TEE Connectivity', () => {
     it('should prepare LoRA adapter for TEE execution', async () => {
       // Mock successful NEXUS TEE responses
-      (global.fetch as jest.Mock)
+      (mockFetch as any)
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ status: 'healthy' })
@@ -337,7 +342,7 @@ describe('Phase 3.4: /prepare Endpoint Integration', () => {
 
     it('should handle NEXUS TEE connectivity failure', async () => {
       // Mock failed NEXUS TEE response
-      (global.fetch as jest.Mock).mockRejectedValue(new Error('Connection failed'));
+      (mockFetch as any).mockRejectedValue(new Error('Connection failed'));
 
       const adapters = loraEngine.getAdapters();
       const testSkillId = adapters[0];
@@ -355,7 +360,7 @@ describe('Phase 3.4: /prepare Endpoint Integration', () => {
   describe('TEE Status Monitoring', () => {
     it('should return TEE connectivity status', async () => {
       // Mock successful TEE status response
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (mockFetch as any).mockResolvedValue({
         ok: true,
         json: async () => ({
           status: 'operational',
@@ -374,7 +379,7 @@ describe('Phase 3.4: /prepare Endpoint Integration', () => {
 
     it('should handle TEE unreachable status', async () => {
       // Mock failed TEE status response
-      (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+      (mockFetch as any).mockRejectedValue(new Error('Network error'));
 
       const result = await cortexAPI.getTEEStatus();
 
@@ -546,7 +551,7 @@ describe('Phase 3.4: /prepare Endpoint Integration', () => {
   describe('Error Handling and Edge Cases', () => {
     it('should handle NEXUS TEE authentication failure', async () => {
       // Mock authentication failure
-      (global.fetch as jest.Mock)
+      (mockFetch as any)
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ status: 'healthy' })
@@ -587,7 +592,7 @@ describe('Phase 3.4: /prepare Endpoint Integration', () => {
 
     it('should handle empty LoRA adapter insights in pre-training', async () => {
       const baseModel = 'test-model';
-      const loraAdapterInsights: any[] = [];
+      const loraAdapterInsights: Record<string, unknown>[] = [];
 
       expect(baseModel).toBeDefined();
       expect(Array.isArray(loraAdapterInsights)).toBe(true);
@@ -602,7 +607,7 @@ describe('Phase 3.4: /prepare Endpoint Integration', () => {
   describe('Performance and Scalability', () => {
     it('should handle multiple concurrent prepare requests', async () => {
       // Mock successful NEXUS TEE responses
-      (global.fetch as jest.Mock)
+      (mockFetch as any)
         .mockResolvedValue({
           ok: true,
           json: async () => ({ status: 'healthy', success: true })

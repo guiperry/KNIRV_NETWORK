@@ -25,7 +25,7 @@ export interface ModelConfig {
 export interface ModelWASM {
   inference?: (input: string) => Promise<string>;
   getInfo?: () => string;
-  setConfig?: (config: any) => boolean;
+  setConfig?: (config: Record<string, unknown>) => boolean;
   loadWeights?: (weights: Uint8Array) => Promise<boolean>;
 }
 
@@ -300,7 +300,7 @@ export class WASMOrchestrator extends EventEmitter {
   }
 
   // Method version for test compatibility
-  public isRunning(): boolean {
+  public getIsRunning(): boolean {
     return this._isRunning;
   }
 

@@ -1,16 +1,25 @@
 # KNIRV Network
 
-## User Guides
+## Navigation
 
-* [User Guides](guides/README.md)
+* [🏠 Documentation Home](#/)
+* [🌐 Main Site](https://knirv.com)
 
-## Deployment
+## KNIRVANA Documentation
 
-* [Deployment Guides](deployment/README.md)
+* [KNIRVANA User Guide](knirvana/README.md)
 
 ## KNIRVCHAIN Documentation
 
-* [KNIRVCHAIN: Your Simple Blockchain in Rust](knirvchain/README.md)
+* [KNIRVCHAIN User Guide](knirvchain/README.md)
+
+## KNIRVCONTROLLER Documentation
+
+* [KNIRVCONTROLLER User Guide](knirvcontroller/README.md)
+
+## KNIRVGATEWAY Documentation
+
+* [KNIRVGATEWAY User Guide](knirvgateway/README.md)
 
 ## KNIRVGRAPH Documentation
 
@@ -18,7 +27,7 @@
 
 ## KNIRVNEXUS Documentation
 
-* [KNIRVNEXUS User and Deployment Guide](knirvnexus/README.md)
+* [KNIRVNEXUS User Guide](knirvnexus/README.md)
 
 ## KNIRVORACLE Documentation
 
@@ -26,15 +35,23 @@
 
 ## KNIRVROUTER Documentation
 
-* [KNIRVROUTER Verifier Node User Guide](knirvrouter/README.md)
+* [KNIRVROUTER User Guide](knirvrouter/README.md)
 
 ## KNIRVSDK Documentation
 
 * [KNIRVSDK User Guide](knirvsdk/README.md)
 
+## KNIRVTESTNET Documentation
+
+* [KNIRVTESTNET User Guide](knirvtestnet/README.md)
+
+## KNIRVWALLET Documentation
+
+* [KNIRVWALLET User Guide](knirvwallet/README.md)
+
 ## 📄 Whitepapers
 
-* [📚 View All Whitepapers](whitepapers/)
+* [📚 View All Whitepapers](whitepapers/README.md)
 
 <div class="sidebar-footer">
 

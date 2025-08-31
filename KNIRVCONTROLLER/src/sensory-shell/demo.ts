@@ -17,7 +17,20 @@ export class CognitiveShellDemo {
       voiceEnabled: true,
       visualEnabled: true,
       loraEnabled: true,
-    };
+      enhancedLoraEnabled: true,
+      hrmEnabled: false,
+      wasmAgentsEnabled: false,
+      typeScriptCompilerEnabled: false,
+      ecosystemCommunicationEnabled: false,
+      sealFrameworkEnabled: false,
+      fabricAlgorithmEnabled: false,
+      knirvChainIntegrationEnabled: false,
+      knirvRouterIntegrationEnabled: false,
+      adaptiveLearningEnabled: false,
+      walletIntegrationEnabled: false,
+      chainIntegrationEnabled: false,
+      errorContextEnabled: false,
+    } as CognitiveConfig;
 
     this.engine = new CognitiveEngine(config);
 
@@ -42,23 +55,23 @@ export class CognitiveShellDemo {
 
     this.engine.on('inputProcessed', (data) => {
       console.log('📝 Input Processed:', {
-        type: data.inputType,
-        processingTime: `${data.processingTime}ms`,
-        response: data.response?.type || 'unknown'
+        type: (data as any).inputType,
+        processingTime: `${(data as any).processingTime}ms`,
+        response: (data as any).response?.type || 'unknown'
       });
     });
 
     this.engine.on('skillInvoked', (data) => {
       console.log('🎯 Skill Invoked:', {
-        skillId: data.skillId,
-        parameters: data.parameters,
-        result: data.result?.result || 'completed'
+        skillId: (data as any).skillId,
+        parameters: (data as any).parameters,
+        result: (data as any).result?.result || 'completed'
       });
     });
 
     this.engine.on('adaptationTriggered', (data) => {
       console.log('🔄 Adaptation Triggered:', {
-        adaptationLevel: `${Math.round(data.adaptationLevel * 100)}%`
+        adaptationLevel: `${Math.round((data as any).adaptationLevel * 100)}%`
       });
     });
 
@@ -67,7 +80,7 @@ export class CognitiveShellDemo {
     });
 
     this.engine.on('cognitiveEvent', (event) => {
-      console.log('🧠 Cognitive Event:', event.type, event.data);
+      console.log('🧠 Cognitive Event:', (event as any).type, (event as any).data);
     });
   }
 
@@ -198,7 +211,7 @@ export class CognitiveShellDemo {
       for (let i = 0; i < learningInputs.length; i++) {
         const { input, feedback } = learningInputs[i];
         await this.engine!.processInput(input, 'text');
-        this.engine!.provideFeedback(i, feedback);
+        this.engine!.provideFeedback(i.toString(), feedback);
         console.log(`   Learning from: "${input}" (feedback: ${feedback})`);
         await this.delay(800);
       }
@@ -229,12 +242,12 @@ export class CognitiveShellDemo {
 
     const metrics = this.engine.getMetrics();
     console.log('\n📊 Final Metrics:');
-    console.log(`   • Confidence Level: ${Math.round(metrics.confidenceLevel * 100)}%`);
-    console.log(`   • Adaptation Level: ${Math.round(metrics.adaptationLevel * 100)}%`);
-    console.log(`   • Active Skills: ${metrics.activeSkills}`);
-    console.log(`   • Learning Events: ${metrics.learningEvents}`);
-    console.log(`   • Context Size: ${metrics.contextSize}`);
-    console.log(`   • Engine Status: ${metrics.isRunning ? 'RUNNING' : 'STOPPED'}`);
+    console.log(`   • Confidence Level: ${Math.round((metrics as any).confidenceLevel * 100)}%`);
+    console.log(`   • Adaptation Level: ${Math.round((metrics as any).adaptationLevel * 100)}%`);
+    console.log(`   • Active Skills: ${(metrics as any).activeSkills}`);
+    console.log(`   • Learning Events: ${(metrics as any).learningEvents}`);
+    console.log(`   • Context Size: ${(metrics as any).contextSize}`);
+    console.log(`   • Engine Status: ${(metrics as any).isRunning ? 'RUNNING' : 'STOPPED'}`);
   }
 
   private delay(ms: number): Promise<void> {
@@ -261,7 +274,7 @@ export class CognitiveShellDemo {
       }
 
       console.log('📹 Visual Processor Status:');
-      const metrics = visualProcessor.getMetrics();
+      const metrics = (visualProcessor as any).getMetrics();
       console.log(`   • Supported: ${metrics.isSupported ? 'YES' : 'NO'}`);
       console.log(`   • Resolution: ${metrics.resolution}`);
       console.log(`   • Frame Rate: ${metrics.frameRate} fps`);
@@ -272,12 +285,12 @@ export class CognitiveShellDemo {
 
       // Test configuration update
       console.log('\n🔧 Testing configuration update...');
-      visualProcessor.updateConfig({ frameRate: 60 });
+      (visualProcessor as any).updateConfig({ frameRate: 60 });
       console.log('   ✅ Configuration updated to 60 fps');
 
       // Simulate visual events
       console.log('\n🎯 Simulating visual events...');
-      visualProcessor.emit('objectDetected', {
+      (visualProcessor as any).emit('objectDetected', {
         id: 'demo-object-1',
         label: 'person',
         confidence: 0.95,
@@ -286,7 +299,7 @@ export class CognitiveShellDemo {
       });
       console.log('   ✅ Object detection event simulated');
 
-      visualProcessor.emit('gestureDetected', {
+      (visualProcessor as any).emit('gestureDetected', {
         type: 'wave',
         confidence: 0.87,
         coordinates: { x: 300, y: 200 },
@@ -295,7 +308,7 @@ export class CognitiveShellDemo {
       });
       console.log('   ✅ Gesture detection event simulated');
 
-      visualProcessor.emit('textDetected', [{
+      (visualProcessor as any).emit('textDetected', [{
         text: 'Hello KNIRV',
         confidence: 0.92,
         boundingBox: { x: 50, y: 50, width: 150, height: 30 },
@@ -320,21 +333,21 @@ export class CognitiveShellDemo {
       }
 
       console.log('🔧 LoRA Adapter Status:');
-      const config = loraAdapter.getConfig();
-      const metrics = loraAdapter.getMetrics();
+      const config = (loraAdapter as any).getConfig();
+      const metrics = (loraAdapter as any).getMetrics();
       console.log(`   • Task Type: ${config.taskType}`);
       console.log(`   • Rank: ${config.rank}`);
       console.log(`   • Alpha: ${config.alpha}`);
       console.log(`   • Dropout: ${config.dropout}`);
       console.log(`   • Target Modules: ${config.targetModules.join(', ')}`);
-      console.log(`   • Training Data Size: ${loraAdapter.getTrainingDataSize()}`);
-      console.log(`   • Current Epoch: ${metrics.epoch}`);
-      console.log(`   • Loss: ${metrics.loss.toFixed(4)}`);
-      console.log(`   • Accuracy: ${(metrics.accuracy * 100).toFixed(1)}%`);
+      console.log(`   • Training Data Size: ${(loraAdapter as any).getTrainingDataSize()}`);
+      console.log(`   • Current Epoch: ${(metrics as any).epoch}`);
+      console.log(`   • Loss: ${(metrics as any).loss.toFixed(4)}`);
+      console.log(`   • Accuracy: ${((metrics as any).accuracy * 100).toFixed(1)}%`);
 
       // Test training data addition
       console.log('\n📚 Testing training data addition...');
-      loraAdapter.enableTraining();
+      (loraAdapter as any).enableTraining();
 
       const trainingData = {
         input: { text: 'Test input for LoRA training', features: [0.1, 0.2, 0.3] },
@@ -343,7 +356,7 @@ export class CognitiveShellDemo {
         timestamp: new Date()
       };
 
-      await loraAdapter.addTrainingData(trainingData);
+      await (loraAdapter as any).addTrainingData(trainingData);
       console.log('   ✅ Training data added successfully');
 
       // Test batch training
@@ -355,31 +368,31 @@ export class CognitiveShellDemo {
         timestamp: new Date()
       }));
 
-      await loraAdapter.trainOnBatch(batchData);
+      await (loraAdapter as any).trainOnBatch(batchData);
       console.log('   ✅ Batch training completed');
 
       // Test adaptation
       console.log('\n🔄 Testing adaptation...');
       const testInput = { text: 'Test adaptation input', features: [0.5, 0.6, 0.7] };
-      const adaptedOutput = await loraAdapter.adapt(testInput, { text: 'Expected adapted output' }, 0.9);
+      const adaptedOutput = await (loraAdapter as any).adapt(testInput, { text: 'Expected adapted output' }, 0.9);
       console.log('   ✅ Adaptation applied successfully');
       console.log(`   📊 Adapted output confidence: ${adaptedOutput.confidence?.toFixed(3) || 'N/A'}`);
 
       // Test weight export/import
       console.log('\n💾 Testing weight export/import...');
-      const exportedWeights = loraAdapter.exportWeights();
+      const exportedWeights = (loraAdapter as any).exportWeights();
       console.log(`   ✅ Weights exported (${exportedWeights.size} modules)`);
 
-      loraAdapter.importWeights(exportedWeights);
+      (loraAdapter as any).importWeights(exportedWeights);
       console.log('   ✅ Weights imported successfully');
 
       // Display final metrics
-      const finalMetrics = loraAdapter.getMetrics();
+      const finalMetrics = (loraAdapter as any).getMetrics();
       console.log('\n📊 Final LoRA Metrics:');
-      console.log(`   • Epoch: ${finalMetrics.epoch}`);
-      console.log(`   • Loss: ${finalMetrics.loss.toFixed(4)}`);
-      console.log(`   • Accuracy: ${(finalMetrics.accuracy * 100).toFixed(1)}%`);
-      console.log(`   • Learning Rate: ${finalMetrics.learningRate.toFixed(6)}`);
+      console.log(`   • Epoch: ${(finalMetrics as any).epoch}`);
+      console.log(`   • Loss: ${(finalMetrics as any).loss.toFixed(4)}`);
+      console.log(`   • Accuracy: ${((finalMetrics as any).accuracy * 100).toFixed(1)}%`);
+      console.log(`   • Learning Rate: ${(finalMetrics as any).learningRate.toFixed(6)}`);
 
     } catch (error) {
       console.error(`   Error: ${error.message}`);

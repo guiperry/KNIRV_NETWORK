@@ -46,12 +46,7 @@ document.createElement = jest.fn().mockImplementation((tagName) => {
 document.body.appendChild = jest.fn();
 document.body.removeChild = jest.fn();
 
-// Mock FileReader
-global.FileReader = jest.fn().mockImplementation(() => ({
-  readAsText: jest.fn(),
-  onload: null,
-  result: null
-}));
+// FileReader is already mocked in jest-setup.js
 
 describe('SettingsPanel', () => {
   const mockSettingsService = settingsService as jest.Mocked<typeof settingsService>;
@@ -72,34 +67,79 @@ describe('SettingsPanel', () => {
       maxTokens: 4096,
       temperature: 0.7,
       topP: 0.9,
+      frequencyPenalty: 0.0,
+      presencePenalty: 0.0,
       autoLearning: true,
-      skillCaching: true
+      skillCaching: true,
+      adaptationRate: 0.1,
+      contextWindow: 4096
     },
     wallet: {
       defaultNetwork: 'knirv-mainnet',
       autoConnect: true,
-      showBalances: true,
-      confirmTransactions: true
+      transactionTimeout: 300,
+      gasLimit: 21000,
+      slippageTolerance: 0.5,
+      confirmationBlocks: 3,
+      showTestnets: false,
+      currencyDisplay: 'NRN' as const
     },
     analytics: {
       collectMetrics: true,
-      shareAnonymous: false,
-      retentionDays: 30
+      shareAnonymousData: false,
+      retentionPeriod: 30,
+      metricsInterval: 30,
+      alertThresholds: {
+        cpuUsage: 80,
+        memoryUsage: 85,
+        errorRate: 5,
+        responseTime: 1000
+      }
     },
     security: {
       requireMFA: false,
-      sessionTimeout: 30,
+      sessionTimeout: 60,
+      maxLoginAttempts: 5,
+      passwordPolicy: {
+        minLength: 8,
+        requireUppercase: true,
+        requireLowercase: true,
+        requireNumbers: true,
+        requireSymbols: false
+      },
+      encryptionLevel: 'standard' as const,
+      auditLogging: true,
       autoLock: true
     },
     ui: {
       compactMode: false,
-      animations: true,
-      soundEffects: false
+      showTooltips: true,
+      animationsEnabled: true,
+      soundEnabled: true,
+      notificationsEnabled: true,
+      panelLayout: 'default' as const,
+      fontSize: 'medium' as const,
+      colorScheme: 'blue-purple'
     },
     advanced: {
+      apiEndpoints: {
+        cognitive: 'http://localhost:3001/api/cognitive',
+        wallet: 'http://localhost:3001/api/wallet',
+        analytics: 'http://localhost:3001/api/analytics'
+      },
       featureFlags: {
+        experimentalUI: false,
         betaFeatures: false,
-        experimentalUI: false
+        advancedMetrics: false
+      },
+      experimentalFeatures: [],
+      customCommands: {},
+      integrations: {},
+      performance: {
+        maxConcurrentTasks: 10,
+        cacheSize: 100,
+        preloadData: true,
+        lazyLoading: true
       }
     }
   };
@@ -121,7 +161,11 @@ describe('SettingsPanel', () => {
       settings: {
         ...mockSettings,
         general: { ...mockSettings.general, debugMode: true },
-        advanced: { featureFlags: { betaFeatures: true, experimentalUI: true } }
+        cognitive: { ...mockSettings.cognitive }, // Ensure cognitive settings are fully copied
+        advanced: {
+          ...mockSettings.advanced,
+          featureFlags: { ...mockSettings.advanced.featureFlags, betaFeatures: true, experimentalUI: true }
+        }
       },
       isDefault: false,
       createdAt: new Date('2024-01-10T00:00:00Z'),
@@ -412,11 +456,11 @@ describe('SettingsPanel', () => {
       const mockFile = new File(['{"settings": {}}'], 'settings.json', { type: 'application/json' });
       const mockFileReader = {
         readAsText: jest.fn(),
-        onload: null,
+        onload: jest.fn(),
         result: '{"settings": {}}'
       };
       
-      (global.FileReader as jest.Mock).mockImplementation(() => mockFileReader);
+      (global.FileReader as unknown as jest.Mock).mockImplementation(() => mockFileReader);
       
       render(<SettingsPanel isOpen={true} onClose={jest.fn()} />);
       

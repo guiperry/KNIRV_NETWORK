@@ -3,7 +3,8 @@
  * Comprehensive performance monitoring dashboard with real-time metrics
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import * as React from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { performanceOptimizer } from '../utils/PerformanceOptimizer';
 import { errorHandler } from '../utils/ErrorHandler';
 import { memoryManager } from '../utils/MemoryManager';

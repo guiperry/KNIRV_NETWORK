@@ -215,19 +215,19 @@ describe('EventEmitter', () => {
   describe('Edge Cases', () => {
     it('should handle undefined event names', () => {
       expect(() => {
-        emitter.on(undefined as any, () => {});
+        emitter.on(undefined as unknown as string, () => {});
       }).not.toThrow();
     });
 
     it('should handle null callbacks', () => {
       expect(() => {
-        emitter.on('test', null as any);
+        emitter.on('test', null as unknown as (...args: unknown[]) => void);
       }).not.toThrow();
     });
 
     it('should handle undefined callbacks', () => {
       expect(() => {
-        emitter.on('test', undefined as any);
+        emitter.on('test', undefined as unknown as (...args: unknown[]) => void);
       }).not.toThrow();
     });
 

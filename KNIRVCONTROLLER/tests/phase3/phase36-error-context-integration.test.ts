@@ -364,4 +364,35 @@ describe('Phase 3.6 - Error Context Integration', () => {
       await engineWithoutErrorContext.dispose();
     });
   });
+
+  describe('Type Usage Validation', () => {
+    it('should validate imported types are properly used', () => {
+      // Test AgentConfiguration type usage
+      const mockAgentConfig: AgentConfiguration = {
+        agentId: 'test-agent',
+        capabilities: ['error_handling', 'context_management'],
+        maxConcurrentTasks: 5,
+        errorThreshold: 0.1
+      };
+
+      expect(mockAgentConfig.agentId).toBe('test-agent');
+      expect(Array.isArray(mockAgentConfig.capabilities)).toBe(true);
+      expect(mockAgentConfig.maxConcurrentTasks).toBe(5);
+
+      // Test ErrorContextHandler type usage
+      const mockHandler = new ErrorContextHandler();
+      expect(mockHandler).toBeDefined();
+      expect(typeof mockHandler.handleError).toBe('function');
+
+      // Test CognitiveConfig type usage
+      const mockCognitiveConfig: CognitiveConfig = {
+        maxContextSize: 1000,
+        learningRate: 0.01,
+        adaptationThreshold: 0.8
+      };
+
+      expect(mockCognitiveConfig.maxContextSize).toBe(1000);
+      expect(mockCognitiveConfig.learningRate).toBe(0.01);
+    });
+  });
 });

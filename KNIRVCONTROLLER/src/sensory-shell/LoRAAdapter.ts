@@ -309,23 +309,25 @@ export class LoRAAdapter extends EventEmitter {
     // This is a simplified version - in reality, this would involve
     // matrix operations with the base model
 
-    const adaptedInput = { ...input };
+    const adaptedInput = typeof input === 'object' && input !== null ? { ...input as Record<string, unknown> } : {};
 
-    for (const [, weights] of this.weights) {
+    this.weights.forEach((weights) => {
       // Simulate adaptation effect
       const adaptationStrength = weights.scaling;
 
-      if (adaptedInput.features) {
-        adaptedInput.features = adaptedInput.features.map((feature: number) =>
+      const adaptedInputAny = adaptedInput as any;
+      if (adaptedInputAny.features && Array.isArray(adaptedInputAny.features)) {
+        adaptedInputAny.features = adaptedInputAny.features.map((feature: number) =>
           feature * (1 + adaptationStrength * 0.1)
         );
       }
 
-      if (adaptedInput.text) {
+      if (adaptedInputAny.text) {
         // For text inputs, we might adjust confidence or add metadata
-        adaptedInput.confidence = (adaptedInput.confidence || 1.0) * (1 + adaptationStrength * 0.05);
+        const currentConfidence = typeof adaptedInputAny.confidence === 'number' ? adaptedInputAny.confidence : 1.0;
+        adaptedInputAny.confidence = currentConfidence * (1 + adaptationStrength * 0.05);
       }
-    }
+    });
 
     return adaptedInput;
   }
@@ -333,14 +335,14 @@ export class LoRAAdapter extends EventEmitter {
   public exportWeights(): Map<string, LoRAWeights> {
     const exportedWeights = new Map<string, LoRAWeights>();
 
-    for (const [moduleName, weights] of this.weights) {
+    this.weights.forEach((weights, moduleName) => {
       exportedWeights.set(moduleName, {
         layerName: weights.layerName,
         A: new Float32Array(weights.A),
         B: new Float32Array(weights.B),
         scaling: weights.scaling,
       });
-    }
+    });
 
     return exportedWeights;
   }
@@ -348,14 +350,14 @@ export class LoRAAdapter extends EventEmitter {
   public importWeights(weights: Map<string, LoRAWeights>): void {
     this.weights.clear();
 
-    for (const [moduleName, moduleWeights] of weights) {
+    weights.forEach((moduleWeights, moduleName) => {
       this.weights.set(moduleName, {
         layerName: moduleWeights.layerName,
         A: new Float32Array(moduleWeights.A),
         B: new Float32Array(moduleWeights.B),
         scaling: moduleWeights.scaling,
       });
-    }
+    });
 
     this.emit('weightsImported', weights);
   }

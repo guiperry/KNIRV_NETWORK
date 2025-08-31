@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import * as React from 'react';
+import { useState, useEffect } from 'react';
 import { Bot, Shield, Users, Coins, Activity, Upload, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { NRV } from '../App';

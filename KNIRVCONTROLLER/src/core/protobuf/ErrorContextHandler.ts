@@ -5,8 +5,8 @@
  * for KNIRVGRAPH discovery and skill invocation
  */
 
-import pino from 'pino';
-import crypto from 'crypto';
+import * as pino from 'pino';
+import * as crypto from 'crypto';
 
 const logger = pino({ name: 'error-context-handler' });
 

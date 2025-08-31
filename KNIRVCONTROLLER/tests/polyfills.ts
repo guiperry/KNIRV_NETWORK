@@ -16,42 +16,31 @@ global.Request = Request;
 global.Response = Response;
 
 // Polyfill for TextEncoder/TextDecoder using Node.js built-in APIs
-const { TextEncoder, TextDecoder } = require('util');
+import { TextEncoder, TextDecoder } from 'node:util';
 
 // @ts-expect-error - Global polyfill
 global.TextEncoder = TextEncoder;
 // @ts-expect-error - Global polyfill
 global.TextDecoder = TextDecoder;
 
-// Polyfill for crypto.subtle
-const crypto = require('crypto');
+// Polyfill for crypto.subtle and crypto.getRandomValues
+import { webcrypto } from 'node:crypto';
 if (!global.crypto) {
   // @ts-expect-error - Global polyfill
-  global.crypto = {
-    subtle: {
-      digest: async (algorithm: string, data: ArrayBuffer) => {
-        const hash = crypto.createHash(algorithm.toLowerCase().replace('-', ''));
-        hash.update(Buffer.from(data));
-        return hash.digest().buffer;
-      }
-    }
-  };
+  global.crypto = webcrypto;
 }
 
 // Polyfill for URL constructor
-import { URL, URLSearchParams } from 'url';
+import { URL, URLSearchParams } from 'node:url';
 
 // @ts-expect-error - Global polyfill
 global.URL = URL;
 // @ts-expect-error - Global polyfill
 global.URLSearchParams = URLSearchParams;
 
-// Polyfill for crypto.getRandomValues
-import { webcrypto } from 'crypto';
-
 Object.defineProperty(global, 'crypto', {
   value: {
-    getRandomValues: (arr: any) => webcrypto.getRandomValues(arr),
+    getRandomValues: (arr: Uint8Array) => webcrypto.getRandomValues(arr),
     subtle: webcrypto.subtle,
     randomUUID: webcrypto.randomUUID
   }

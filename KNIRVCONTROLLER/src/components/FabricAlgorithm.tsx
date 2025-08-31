@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { Brain, Cpu, Network, Eye } from 'lucide-react';
 
 interface FabricAlgorithmProps {

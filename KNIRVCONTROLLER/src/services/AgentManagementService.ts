@@ -3,25 +3,47 @@
  * Handles agent upload, compilation, deployment, and lifecycle management
  */
 
-import { databaseService } from '../core/services/databaseService';
+import { databaseService, AgentDocType } from '../core/services/databaseService';
+
+// Type conversion helper
+function convertDbAgentToAgent(dbAgent: AgentDocType): Agent {
+  return {
+    agentId: dbAgent.agentId,
+    name: dbAgent.name,
+    version: dbAgent.version,
+    baseModelId: dbAgent.baseModelId,
+    type: dbAgent.type,
+    status: dbAgent.status,
+    nrnCost: dbAgent.nrnCost,
+    capabilities: dbAgent.capabilities,
+    metadata: dbAgent.metadata,
+    wasmModule: dbAgent.wasmModule,
+    loraAdapter: dbAgent.loraAdapter,
+    createdAt: dbAgent.createdAt,
+    lastActivity: dbAgent.lastActivity
+  };
+}
 
 export interface Agent {
-  id: string;
+  agentId: string;
   name: string;
+  version: string;
+  baseModelId?: string;
   type: 'wasm' | 'lora' | 'hybrid';
   status: 'Available' | 'Deployed' | 'Error' | 'Compiling';
   nrnCost: number;
   capabilities: string[];
-  metadata: AgentMetadata;
-  wasmModule?: WebAssembly.Module;
+  metadata: Record<string, unknown>;
+  wasmModule?: string;
   loraAdapter?: string;
-  createdAt: Date;
-  lastActivity?: Date;
+  createdAt: string;
+  lastActivity?: string;
 }
 
-export interface AgentMetadata {
+export interface AgentMetadata extends Record<string, unknown> {
   name: string;
   version: string;
+  baseModelId?: string;
   description: string;
   author: string;
   capabilities: string[];
@@ -106,33 +128,36 @@ export class AgentManagementService {
       const agentData = {
         agentId,
         name: metadata.name,
+        version: metadata.version,
+        baseModelId: metadata.baseModelId || 'default',
         type: request.type,
         status: 'Compiling',
         nrnCost: this.calculateNRNCost(metadata.requirements),
         capabilities: metadata.capabilities,
-        metadata,
-        createdAt: new Date()
+        metadata: metadata as Record<string, unknown>,
+        createdAt: new Date().toISOString()
       };
 
       // Save to database
       const agent = await databaseService.createAgent(agentData);
 
       // Process the uploaded file based on type
+      const convertedAgent = convertDbAgentToAgent(agent);
       if (request.type === 'wasm') {
-        await this.compileWASMAgent(agent, request.file);
+        await this.compileWASMAgent(convertedAgent, request.file);
       } else if (request.type === 'lora') {
-        await this.compileLoRAAgent(agent, request.file);
+        await this.compileLoRAAgent(convertedAgent, request.file);
       } else if (request.type === 'hybrid') {
-        await this.compileHybridAgent(agent, request.file);
+        await this.compileHybridAgent(convertedAgent, request.file);
       }
 
       // Update status to Available after successful compilation
       const updatedAgent = await databaseService.updateAgent(agentId, {
         status: 'Available',
-        lastActivity: new Date()
+        lastActivity: new Date().toISOString()
       });
 
-      return updatedAgent || agent;
+      return updatedAgent ? convertDbAgentToAgent(updatedAgent) : convertDbAgentToAgent(agent);
     } catch (error) {
       console.error('Agent upload failed:', error);
       throw new Error(`Agent upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -156,7 +181,7 @@ export class AgentManagementService {
       // Update agent status in database
       await databaseService.updateAgent(request.agentId, {
         status: 'Deployed',
-        lastActivity: new Date()
+        lastActivity: new Date().toISOString()
       });
 
       // Send deployment request to backend
@@ -218,7 +243,10 @@ export class AgentManagementService {
       const result = await response.json();
       const executionTime = Date.now() - startTime;
 
-      agent.lastActivity = new Date();
+      // Note: agent is read-only from database, update via database service
+      await databaseService.updateAgent(agent.agentId, {
+        lastActivity: new Date().toISOString()
+      });
 
       return {
         success: true,
@@ -241,7 +269,8 @@ export class AgentManagementService {
    * Get all available agents
    */
   async getAgents(): Promise<Agent[]> {
-    return await databaseService.listAgents();
+    const dbAgents = await databaseService.listAgents();
+    return dbAgents.map(convertDbAgentToAgent);
   }
 
   /**
@@ -249,14 +278,17 @@ export class AgentManagementService {
    */
   async getDeployedAgents(): Promise<Agent[]> {
     const allAgents = await databaseService.listAgents();
-    return allAgents.filter(agent => agent.status === 'Deployed');
+    return allAgents
+      .filter(agent => agent.status === 'Deployed')
+      .map(convertDbAgentToAgent);
   }
 
   /**
    * Get agent by ID
    */
   async getAgent(agentId: string): Promise<Agent | null> {
-    return await databaseService.getAgent(agentId);
+    const dbAgent = await databaseService.getAgent(agentId);
+    return dbAgent ? convertDbAgentToAgent(dbAgent) : null;
   }
 
   /**
@@ -293,7 +325,7 @@ export class AgentManagementService {
 
       await databaseService.updateAgent(agentId, {
         status: 'Available',
-        lastActivity: new Date()
+        lastActivity: new Date().toISOString()
       });
     } catch (error) {
       console.error('Failed to undeploy agent:', error);
@@ -305,7 +337,23 @@ export class AgentManagementService {
     // Compile WASM agent from uploaded file
     const arrayBuffer = await file.arrayBuffer();
     const wasmModule = await WebAssembly.compile(arrayBuffer);
-    agent.wasmModule = wasmModule;
+
+    // Validate the compiled module has required exports
+    const moduleExports = WebAssembly.Module.exports(wasmModule);
+    const requiredExports = ['init', 'process', 'cleanup'];
+    for (const required of requiredExports) {
+      if (!moduleExports.some(exp => exp.name === required)) {
+        throw new Error(`WASM module missing required export: ${required}`);
+      }
+    }
+
+    // Store the compiled module as base64 string in database
+    const wasmBytes = new Uint8Array(arrayBuffer);
+    const wasmBase64 = btoa(String.fromCharCode.apply(null, Array.from(wasmBytes)));
+
+    await databaseService.updateAgent(agent.agentId, {
+      wasmModule: wasmBase64
+    });
   }
 
   private async compileLoRAAgent(agent: Agent, file: File): Promise<void> {

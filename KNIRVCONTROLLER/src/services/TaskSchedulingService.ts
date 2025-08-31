@@ -12,7 +12,7 @@ export interface ScheduledTask {
   priority: 'low' | 'medium' | 'high' | 'critical';
   schedule: TaskSchedule;
   action: TaskAction;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   createdAt: Date;
   lastRun?: Date;
   nextRun?: Date;
@@ -33,7 +33,7 @@ export interface TaskSchedule {
 export interface TaskAction {
   type: 'api_call' | 'agent_invoke' | 'system_command' | 'workflow';
   target: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   timeout?: number;
   retryCount?: number;
   retryDelay?: number;
@@ -45,7 +45,7 @@ export interface TaskExecution {
   startTime: Date;
   endTime?: Date;
   status: 'running' | 'completed' | 'failed' | 'timeout';
-  result?: any;
+  result?: unknown;
   error?: string;
   logs: string[];
   duration?: number;
@@ -547,7 +547,7 @@ export class TaskSchedulingService {
     }
 
     // Execute workflow steps sequentially
-    const results: any[] = [];
+    const results: unknown[] = [];
     
     for (const step of workflow.steps) {
       if (step.action) {

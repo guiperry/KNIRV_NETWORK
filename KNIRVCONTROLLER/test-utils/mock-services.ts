@@ -88,19 +88,27 @@ export class MockXionClient {
 
 // Mock WebSocket for cross-platform sync testing
 export class MockWebSocket {
-  private listeners: Map<string, Function[]> = new Map();
+  private listeners: Map<string, Array<(...args: any[]) => void>> = new Map();
   private isConnected = false;
   private messageHistory: any[] = [];
+  private connectionUrl: string;
 
   constructor(url: string) {
+    this.connectionUrl = url;
+
+    // Validate URL format
+    if (!url || !url.startsWith('ws://') && !url.startsWith('wss://')) {
+      throw new Error(`Invalid WebSocket URL: ${url}`);
+    }
+
     // Simulate connection after a short delay
     setTimeout(() => {
       this.isConnected = true;
-      this.emit('open', {});
+      this.emit('open', { url: this.connectionUrl });
     }, 100);
   }
 
-  on(event: string, callback: Function) {
+  on(event: string, callback: (...args: any[]) => void) {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, []);
     }
@@ -274,6 +282,12 @@ export class MockStorageProvider {
   getStorageState() {
     return Object.fromEntries(this.storage);
   }
+
+  // Method to populate storage with test transactions
+  loadTestTransactions() {
+    this.storage.set('test_transactions', JSON.stringify(TEST_TRANSACTIONS));
+    return TEST_TRANSACTIONS;
+  }
 }
 
 // Mock Network Provider for testing network operations
@@ -288,7 +302,12 @@ export class MockNetworkProvider {
 
   async makeRequest(url: string, options?: any): Promise<any> {
     await this.simulateLatency();
-    
+
+    // Log request details for debugging
+    if (options) {
+      console.debug('Mock network request:', { url, method: options.method, headers: options.headers });
+    }
+
     if (this.networkStatus === 'offline') {
       throw new Error('Network offline');
     }

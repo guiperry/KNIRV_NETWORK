@@ -32,7 +32,8 @@ function VisualProcessor({ onVisualData, onObjectDetection, isActive }: VisualPr
   const [stats, setStats] = useState<ProcessingStats>({ fps: 0, objectCount: 0, processingTime: 0 });
   const [error, setError] = useState<string | null>(null);
   const [useWebGL, setUseWebGL] = useState(true);
-  // const [currentFrame, setCurrentFrame] = useState<ImageData | null>(null);
+  const [currentFrame, setCurrentFrame] = useState<VisualFrame | null>(null);
+  const [processingMetrics, setProcessingMetrics] = useState<ProcessingMetrics | null>(null);
   
   const animationFrameRef = useRef<number | undefined>(undefined);
   const lastFrameTimeRef = useRef<number>(0);
@@ -100,10 +101,30 @@ function VisualProcessor({ onVisualData, onObjectDetection, isActive }: VisualPr
     ctx.drawImage(video, 0, 0);
 
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    // setCurrentFrame(imageData);
+
+    // Create VisualFrame and update current frame
+    const visualFrame: VisualFrame = {
+      data: imageData,
+      timestamp: Date.now(),
+      width: canvas.width,
+      height: canvas.height
+    };
+    setCurrentFrame(visualFrame);
 
     // Process frame for object detection
+    const startTime = performance.now();
     const objects = detectObjects(imageData);
+    const processingTime = performance.now() - startTime;
+
+    // Update processing metrics
+    const metrics: ProcessingMetrics = {
+      processingTime,
+      frameRate: stats.fps,
+      objectCount: objects.length,
+      timestamp: Date.now()
+    };
+    setProcessingMetrics(metrics);
+
     setDetectedObjects(objects);
 
     // Call callbacks
@@ -461,6 +482,19 @@ function VisualProcessor({ onVisualData, onObjectDetection, isActive }: VisualPr
           <div className="text-xs text-gray-600">Processing</div>
         </div>
       </div>
+
+      {/* Debug Information */}
+      {currentFrame && (
+        <div className="mt-4 text-xs text-gray-500 text-center">
+          Frame: {currentFrame.width}x{currentFrame.height} @ {new Date(currentFrame.timestamp).toLocaleTimeString()}
+        </div>
+      )}
+
+      {processingMetrics && (
+        <div className="mt-2 text-xs text-gray-500 text-center">
+          Metrics: {processingMetrics.processingTime.toFixed(2)}ms | {processingMetrics.frameRate.toFixed(1)} FPS | {processingMetrics.objectCount} objects
+        </div>
+      )}
 
       {error && (
         <div className="mt-4 text-sm text-red-600 text-center">

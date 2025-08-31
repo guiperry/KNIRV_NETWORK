@@ -19,7 +19,7 @@ class KNIRVConfigLoader {
         try {
             // Try to load YAML config (requires js-yaml library or conversion to JSON)
             // For now, we'll use a JSON version of the config
-            const response = await fetch('../config/portal-config.json');
+            const response = await fetch('./config/portal-config.json');
             if (!response.ok) {
                 throw new Error(`Failed to load config: ${response.status}`);
             }

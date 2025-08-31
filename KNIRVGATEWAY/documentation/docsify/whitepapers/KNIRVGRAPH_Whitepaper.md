@@ -708,3 +708,9 @@ graph TD
 Through the innovative integration of **Network Resolution Vectors (NRVs)** as dynamic, collaborative problem-solving pools, coordinated by a scalable Kademlia-based **Distributed Hash Table (DHT)**, and validated by the robust **Decentralized Validation Environment (DVE)**, **KNIRVGRAPH** redefines how AI systems evolve. We transform ephemeral errors into permanent, verifiable **ErrorNodes** and effective solutions into composable, monetizable **SkillNodes** (first on **KNIRVGRAPH**, then canonically on **KNIRVCHAIN**). The **NRN** token economy, native to **KNIRV-ORACLE** and driven by "**Proof-of-Solution**" and a liquid Skill marketplace, aligns incentives for all participants—Observers, Solvers (**KNIRV-CORTEX** agents and human AI developers), Validators, and Governors—to contribute to this shared knowledge.
 
 We invite you to join us in building this future, where AI learns from every mistake, collectively and autonomously, forging a new era of compounding intelligence and safety.
+
+<div class="footer-links">
+<a href="#/legal/CODE_OF_CONDUCT" class="footer-link">Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY" class="footer-link">Privacy Policy</a> | <a href="#/legal/TERMS_AND_CONDITIONS" class="footer-link">Terms and Conditions</a>
+
+© 2025 KNIRV Network
+</div>

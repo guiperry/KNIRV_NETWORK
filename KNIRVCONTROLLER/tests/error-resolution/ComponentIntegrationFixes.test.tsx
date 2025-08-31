@@ -217,6 +217,8 @@ describe('Component Integration Fixes', () => {
       components.forEach(({ name, component }) => {
         expect(component).toBeDefined();
         expect(typeof component).toBe('function');
+        expect(name).toBeTruthy();
+        expect(typeof name).toBe('string');
       });
     });
   });
@@ -337,6 +339,30 @@ describe('Component Integration Fixes', () => {
       expect(screen.getByTestId('voice-enabled')).toHaveTextContent('true');
       expect(screen.getByTestId('visual-enabled')).toHaveTextContent('true');
       expect(screen.getByTestId('lora-enabled')).toHaveTextContent('true');
+    });
+
+    it('should handle async component loading with waitFor', async () => {
+      const AsyncComponent = () => {
+        const [loading, setLoading] = React.useState(true);
+
+        React.useEffect(() => {
+          setTimeout(() => setLoading(false), 100);
+        }, []);
+
+        return loading ? <div data-testid="loading">Loading...</div> : <div data-testid="loaded">Loaded</div>;
+      };
+
+      render(
+        <BrowserRouter>
+          <AsyncComponent />
+        </BrowserRouter>
+      );
+
+      expect(screen.getByTestId('loading')).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loaded')).toBeInTheDocument();
+      });
     });
   });
 });

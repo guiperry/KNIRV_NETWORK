@@ -104,10 +104,20 @@ class ErrorHandler {
       name: 'refresh_token',
       execute: async (error: ErrorDetails) => {
         try {
+          // Log the authentication error for debugging
+          console.warn('Authentication error occurred:', error.message, error.context);
+
           // Attempt to refresh authentication token
           const response = await fetch('/api/auth/refresh', {
             method: 'POST',
-            credentials: 'include'
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              errorContext: error.context,
+              timestamp: error.timestamp
+            })
           });
           return response.ok;
         } catch {

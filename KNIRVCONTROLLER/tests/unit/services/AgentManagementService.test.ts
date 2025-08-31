@@ -3,7 +3,7 @@
  */
 
 import { agentManagementService, Agent, AgentUploadRequest, AgentDeploymentRequest } from '../../../src/services/AgentManagementService';
-import { loadWasmAsFile, createTestAgentFile, createFileFromTestWasm, validateWasmFile } from '../../../test-utils/wasm-test-utils';
+import { loadWasmAsFile, createFileFromTestWasm, validateWasmFile } from '../../../test-utils/wasm-test-utils';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -11,9 +11,8 @@ global.fetch = jest.fn();
 describe('AgentManagementService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Clear service state
-    agentManagementService['agents'].clear();
-    agentManagementService['deployedAgents'].clear();
+    // Clear service state by resetting database mocks
+    // The service uses databaseService internally, so we need to mock that
   });
 
   describe('uploadAgent', () => {
@@ -105,7 +104,7 @@ describe('AgentManagementService', () => {
       });
 
       const deploymentRequest: AgentDeploymentRequest = {
-        agentId: testAgent.id,
+        agentId: testAgent.agentId,
         targetNRV: 'test-nrv',
         configuration: { param1: 'value1' },
         resources: { memory: 64, cpu: 1, timeout: 30000 }
@@ -134,10 +133,10 @@ describe('AgentManagementService', () => {
         json: async () => ({ deploymentId: 'test-deployment-123' })
       });
 
-      await agentManagementService.deployAgent({ agentId: testAgent.id });
+      await agentManagementService.deployAgent({ agentId: testAgent.agentId });
 
       // Second deployment attempt
-      await expect(agentManagementService.deployAgent({ agentId: testAgent.id }))
+      await expect(agentManagementService.deployAgent({ agentId: testAgent.agentId }))
         .rejects.toThrow('Agent test-agent is not available for deployment');
     });
 
@@ -148,7 +147,7 @@ describe('AgentManagementService', () => {
       });
 
       const deploymentRequest: AgentDeploymentRequest = {
-        agentId: testAgent.id
+        agentId: testAgent.agentId
       };
 
       await expect(agentManagementService.deployAgent(deploymentRequest))
@@ -176,7 +175,7 @@ describe('AgentManagementService', () => {
         ok: true,
         json: async () => ({ deploymentId: 'test-deployment' })
       });
-      await agentManagementService.deployAgent({ agentId: deployedAgent.id });
+      await agentManagementService.deployAgent({ agentId: deployedAgent.agentId });
     });
 
     it('should execute skill on deployed agent successfully', async () => {
@@ -189,7 +188,7 @@ describe('AgentManagementService', () => {
       });
 
       const result = await agentManagementService.executeSkill(
-        deployedAgent.id,
+        deployedAgent.agentId,
         'test-skill',
         { param1: 'value1' }
       );
@@ -207,8 +206,8 @@ describe('AgentManagementService', () => {
         type: 'wasm'
       });
 
-      await expect(agentManagementService.executeSkill(nonDeployedAgent.id, 'test-skill', {}))
-        .rejects.toThrow(`Agent ${nonDeployedAgent.id} is not deployed`);
+      await expect(agentManagementService.executeSkill(nonDeployedAgent.agentId, 'test-skill', {}))
+        .rejects.toThrow(`Agent ${nonDeployedAgent.agentId} is not deployed`);
     });
 
     it('should handle skill execution API failure', async () => {
@@ -218,7 +217,7 @@ describe('AgentManagementService', () => {
       });
 
       const result = await agentManagementService.executeSkill(
-        deployedAgent.id,
+        deployedAgent.agentId,
         'non-existent-skill',
         {}
       );
@@ -237,9 +236,9 @@ describe('AgentManagementService', () => {
         type: 'wasm'
       });
 
-      await agentManagementService.removeAgent(agent.id);
+      await agentManagementService.removeAgent(agent.agentId);
 
-      expect(agentManagementService.getAgent(agent.id)).toBeUndefined();
+      expect(await agentManagementService.getAgent(agent.agentId)).toBeNull();
     });
 
     it('should undeploy and remove a deployed agent', async () => {
@@ -255,14 +254,14 @@ describe('AgentManagementService', () => {
         ok: true,
         json: async () => ({ deploymentId: 'test' })
       });
-      await agentManagementService.deployAgent({ agentId: agent.id });
+      await agentManagementService.deployAgent({ agentId: agent.agentId });
 
       // Mock undeploy
       (fetch as jest.Mock).mockResolvedValueOnce({ ok: true });
 
-      await agentManagementService.removeAgent(agent.id);
+      await agentManagementService.removeAgent(agent.agentId);
 
-      expect(agentManagementService.getAgent(agent.id)).toBeUndefined();
+      expect(await agentManagementService.getAgent(agent.agentId)).toBeNull();
       expect(agentManagementService.getDeployedAgents()).not.toContain(agent);
     });
   });
@@ -305,10 +304,11 @@ describe('AgentManagementService', () => {
         ok: true,
         json: async () => ({ deploymentId: 'test' })
       });
-      await agentManagementService.deployAgent({ agentId: agent.id });
+      await agentManagementService.deployAgent({ agentId: agent.agentId });
 
       expect(agentManagementService.getDeployedAgents()).toHaveLength(1);
-      expect(agentManagementService.getDeployedAgents()[0]).toBe(agent);
+      const deployedAgents = await agentManagementService.getDeployedAgents();
+      expect(deployedAgents[0]).toBe(agent);
     });
   });
 });

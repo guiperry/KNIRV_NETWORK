@@ -133,7 +133,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
     }
 
     // Close all connections
-    for (const [componentId, connection] of this.connections) {
+    this.connections.forEach((connection, componentId) => {
       try {
         if (connection.close) {
           connection.close();
@@ -142,7 +142,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
       } catch (error) {
         console.error(`Error closing connection to ${componentId}:`, error);
       }
-    }
+    });
 
     this.connections.clear();
     this.components.clear();
@@ -231,8 +231,8 @@ export class EcosystemCommunicationLayer extends EventEmitter {
         type: 'command',
         payload: {
           action: 'execute_skill',
-          skillId: message.payload.skillId,
-          parameters: message.payload.parameters,
+          skillId: (message.payload as any).skillId,
+          parameters: (message.payload as any).parameters,
         },
         priority: 'high',
         requiresResponse: true,
@@ -340,7 +340,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
 
       // Listen for response
       const responseHandler = (response: unknown) => {
-        if (response.correlationId === message.id) {
+        if ((response as any).correlationId === message.id) {
           clearTimeout(timeout);
           this.off('messageResponse', responseHandler);
           resolve(response);
@@ -364,14 +364,14 @@ export class EcosystemCommunicationLayer extends EventEmitter {
   private async initializeConnections(): Promise<void> {
     console.log('Initializing connections to KNIRV ecosystem components...');
 
-    for (const [, endpoint] of this.endpoints) {
+    this.endpoints.forEach(async (endpoint) => {
       try {
         await this.connectToEndpoint(endpoint);
       } catch (error) {
         console.error(`Failed to connect to ${endpoint.name}:`, error);
         // Continue with other connections
       }
-    }
+    });
   }
 
   private async connectToEndpoint(endpoint: ServiceEndpoint): Promise<void> {
@@ -513,11 +513,11 @@ export class EcosystemCommunicationLayer extends EventEmitter {
   private async performHeartbeatCheck(): Promise<void> {
     const now = Date.now();
     
-    for (const [componentId, component] of this.components) {
+    this.components.forEach(async (component, componentId) => {
       if (componentId === 'knirv-cortex') {
         // Update our own heartbeat
         component.lastHeartbeat = now;
-        continue;
+        return;
       }
 
       // Check if component is still responsive
@@ -545,7 +545,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
           console.error(`Heartbeat check failed for ${component.name}:`, error);
         }
       }
-    }
+    });
 
     this.emit('heartbeatComplete', {
       timestamp: now,

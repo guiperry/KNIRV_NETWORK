@@ -65,7 +65,7 @@ export class CognitiveEngineService {
   private metrics: CognitiveMetrics;
   private baseUrl: string;
   private wasmModule: WebAssembly.Module | null = null;
-  private hrmBridge: any = null;
+  private hrmBridge: unknown = null;
 
   constructor(baseUrl: string = 'http://localhost:3001') {
     this.baseUrl = baseUrl;
@@ -437,7 +437,7 @@ export class CognitiveEngineService {
     this.metrics.averageProcessingTime = totalTime / this.metrics.totalProcessingRequests;
   }
 
-  private async handleAdaptation(adaptationData: any): Promise<void> {
+  private async handleAdaptation(adaptationData: Record<string, unknown>): Promise<void> {
     const learningEvent: LearningEvent = {
       id: `adaptation_${Date.now()}`,
       type: 'adaptation',

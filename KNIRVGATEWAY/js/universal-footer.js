@@ -55,40 +55,40 @@ class KNIRVUniversalFooter {
                     <div class="footer-section">
                         <h4>KNIRV Network</h4>
                         <ul>
-                            <li><a href="${this.getLink('navigation', 'main_site')}" target="_blank">Main Site</a></li>
-                            <li><a href="${this.getLink('navigation', 'documentation')}" target="_blank">Documentation</a></li>
-                            <li><a href="${this.getLink('footer.resources', 'support')}">Support</a></li>
-                            <li><a href="${this.getLink('navigation', 'nexus_portal')}">KNIRV-NEXUS</a></li>
+                            <li><a href="${this.getLink('navigation.main_site')}" target="_blank">Main Site</a></li>
+                            <li><a href="products.html">Products</a></li>
+                            <li><a href="${this.getLink('navigation.documentation')}">Documentation</a></li>
+                            <li><a href="${this.getLink('footer.resources.support')}">Support</a></li>
                         </ul>
                     </div>
 
                     <div class="footer-section">
                         <h4>Developer Tools</h4>
                         <ul>
-                            <li><a href="${this.getLink('navigation', 'graphchain_explorer')}">Graphchain Explorer</a></li>
-                            <li><a href="${this.getLink('navigation', 'nanda_ans')}">NANDA+ANS</a></li>
-                            <li><a href="../agent-developer-portal/">Developer Portal</a></li>
-                            <li><a href="../agentify/">Agentify</a></li>
+                            <li><a href="${this.getLink('navigation.graphchain_explorer')}">Graphchain Explorer</a></li>
+                            <li><a href="${this.getLink('navigation.nanda_ans')}">NANDA+ANS</a></li>
+                            <li><a href="agent-developer-portal/">Developer Portal</a></li>
+                            <li><a href="agentify/">Agentify</a></li>
                         </ul>
                     </div>
 
                     <div class="footer-section">
                         <h4>Community</h4>
                         <ul>
-                            <li><a href="${this.getLink('footer.social', 'discord')}" target="_blank">Discord</a></li>
-                            <li><a href="${this.getLink('footer.social', 'telegram')}" target="_blank">Telegram</a></li>
-                            <li><a href="${this.getLink('footer.social', 'twitter')}" target="_blank">Twitter</a></li>
-                            <li><a href="${this.getLink('footer.resources', 'forum')}">Forum</a></li>
+                            <li><a href="${this.getLink('footer.social.discord')}" target="_blank">Discord</a></li>
+                            <li><a href="${this.getLink('footer.social.telegram')}" target="_blank">Telegram</a></li>
+                            <li><a href="${this.getLink('footer.social.twitter')}" target="_blank">Twitter</a></li>
+                            <li><a href="${this.getLink('footer.resources.forum')}">Forum</a></li>
                         </ul>
                     </div>
 
                     <div class="footer-section">
                         <h4>Resources</h4>
                         <ul>
-                            <li><a href="${this.getLink('footer.resources', 'blog')}" target="_blank">Blog</a></li>
-                            <li><a href="${this.getLink('footer.social', 'github')}" target="_blank">GitHub</a></li>
-                            <li><a href="${this.getLink('footer.legal', 'terms')}">Terms of Service</a></li>
-                            <li><a href="${this.getLink('footer.legal', 'privacy')}">Privacy Policy</a></li>
+                            <li><a href="${this.getLink('footer.resources.blog')}" target="_blank">Blog</a></li>
+                            <li><a href="${this.getLink('footer.social.github')}" target="_blank">GitHub</a></li>
+                            <li><a href="${this.getLink('footer.legal.terms')}">Terms of Service</a></li>
+                            <li><a href="${this.getLink('footer.legal.privacy')}">Privacy Policy</a></li>
                         </ul>
                     </div>
                 </div>
@@ -102,9 +102,9 @@ class KNIRVUniversalFooter {
                         <div class="footer-legal">
                             <p>&copy; ${this.currentYear} KNIRV Network. All rights reserved.</p>
                             <div class="footer-legal-links">
-                                <a href="${this.getLink('footer.legal', 'terms')}">Terms</a>
-                                <a href="${this.getLink('footer.legal', 'privacy')}">Privacy</a>
-                                <a href="${this.getLink('footer.legal', 'contribution')}">Contributing</a>
+                                <a href="${this.getLink('footer.legal.terms')}">Terms</a>
+                                <a href="${this.getLink('footer.legal.privacy')}">Privacy</a>
+                                <a href="${this.getLink('footer.legal.contribution')}">Contributing</a>
                             </div>
                         </div>
                     </div>
@@ -114,15 +114,26 @@ class KNIRVUniversalFooter {
     }
 
     getLink(path, fallback = '#') {
-        const keys = path.split('.');
-        let value = this.config;
-        
-        for (const key of keys) {
-            value = value?.[key];
-            if (!value) break;
+        try {
+            if (!this.config) return fallback;
+
+            // Split the path and navigate through the config object
+            const keys = path.split('.');
+            let value = this.config;
+
+            for (const key of keys) {
+                if (value && typeof value === 'object' && key in value) {
+                    value = value[key];
+                } else {
+                    return fallback;
+                }
+            }
+
+            return typeof value === 'string' ? value : fallback;
+        } catch (error) {
+            console.warn('Error getting link for path:', path, error);
+            return fallback;
         }
-        
-        return value || fallback;
     }
 
     addFooterStyles() {

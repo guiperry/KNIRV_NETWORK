@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="85" failures="11" errors="0" time="6.244">
-  <testsuite name="Type Safety Improvements" errors="0" failures="1" skipped="0" timestamp="2025-08-30T05:28:52" time="2.281" tests="12">
-    <testcase classname="Type Safety Improvements Agent Interface Compatibility should create valid Agent objects with new interface" name="Type Safety Improvements Agent Interface Compatibility should create valid Agent objects with new interface" time="0.021">
-    </testcase>
-    <testcase classname="Type Safety Improvements Agent Interface Compatibility should handle different agent types correctly" name="Type Safety Improvements Agent Interface Compatibility should handle different agent types correctly" time="0.002">
-      <failure>CompileError: WebAssembly.Module(): expected 4 bytes, fell off end @+4
-    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/error-resolution/TypeSafetyImprovements.test.ts:60:21)
+<testsuites name="jest tests" tests="34" failures="34" errors="0" time="14.248">
+  <testsuite name="SettingsPanel" errors="0" failures="34" skipped="0" timestamp="2025-08-31T00:27:42" time="8.065" tests="34">
+    <testcase classname="SettingsPanel Rendering should not render when isOpen is false" name="SettingsPanel Rendering should not render when isOpen is false" time="0.006">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:202:13)
     at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
     at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:316:40)
-    at processTicksAndRejections (node:internal/process/task_queues:95:5)
     at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:252:3)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
@@ -19,129 +19,18 @@
     at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
     at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
     at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="Type Safety Improvements Callback Type Safety should handle SkillResult callbacks with proper type casting" name="Type Safety Improvements Callback Type Safety should handle SkillResult callbacks with proper type casting" time="0.002">
-    </testcase>
-    <testcase classname="Type Safety Improvements Callback Type Safety should handle Adaptation callbacks with proper type casting" name="Type Safety Improvements Callback Type Safety should handle Adaptation callbacks with proper type casting" time="0.002">
-    </testcase>
-    <testcase classname="Type Safety Improvements Transaction Interface Fixes should create valid Transaction objects with type property" name="Type Safety Improvements Transaction Interface Fixes should create valid Transaction objects with type property" time="0.007">
-    </testcase>
-    <testcase classname="Type Safety Improvements Configuration Object Type Safety should handle CognitiveConfig with all required properties" name="Type Safety Improvements Configuration Object Type Safety should handle CognitiveConfig with all required properties" time="0.005">
-    </testcase>
-    <testcase classname="Type Safety Improvements Spread Operation Type Safety should handle object spread with type checking" name="Type Safety Improvements Spread Operation Type Safety should handle object spread with type checking" time="0.002">
-    </testcase>
-    <testcase classname="Type Safety Improvements Error Handling Type Safety should handle unknown error types safely" name="Type Safety Improvements Error Handling Type Safety should handle unknown error types safely" time="0.003">
-    </testcase>
-    <testcase classname="Type Safety Improvements Visual Processor Type Safety should handle BoundingBox interface correctly" name="Type Safety Improvements Visual Processor Type Safety should handle BoundingBox interface correctly" time="0.002">
-    </testcase>
-    <testcase classname="Type Safety Improvements Voice Control Type Safety should handle speech recognition events with type casting" name="Type Safety Improvements Voice Control Type Safety should handle speech recognition events with type casting" time="0.002">
-    </testcase>
-    <testcase classname="Type Safety Improvements Voice Control Type Safety should handle command recognition events with type casting" name="Type Safety Improvements Voice Control Type Safety should handle command recognition events with type casting" time="0.001">
-    </testcase>
-    <testcase classname="Type Safety Improvements AgentCoreConfig Interface Extensions should handle AgentCoreConfig with templates property" name="Type Safety Improvements AgentCoreConfig Interface Extensions should handle AgentCoreConfig with templates property" time="0.002">
-    </testcase>
-  </testsuite>
-  <testsuite name="Service Syntax Fixes" errors="0" failures="1" skipped="0" timestamp="2025-08-30T05:28:52" time="2.307" tests="18">
-    <testcase classname="Service Syntax Fixes QRPaymentService Switch Statement Fixes should handle lightning payment with proper case block" name="Service Syntax Fixes QRPaymentService Switch Statement Fixes should handle lightning payment with proper case block" time="0.018">
-    </testcase>
-    <testcase classname="Service Syntax Fixes QRPaymentService Switch Statement Fixes should handle onchain payment with proper case block" name="Service Syntax Fixes QRPaymentService Switch Statement Fixes should handle onchain payment with proper case block" time="0.002">
-    </testcase>
-    <testcase classname="Service Syntax Fixes QRPaymentService Switch Statement Fixes should handle NRN payment with proper case block" name="Service Syntax Fixes QRPaymentService Switch Statement Fixes should handle NRN payment with proper case block" time="0.003">
-    </testcase>
-    <testcase classname="Service Syntax Fixes QRPaymentService Switch Statement Fixes should handle Xion payment with proper case block" name="Service Syntax Fixes QRPaymentService Switch Statement Fixes should handle Xion payment with proper case block" time="0.002">
-    </testcase>
-    <testcase classname="Service Syntax Fixes QRPaymentService Switch Statement Fixes should handle unsupported payment type with proper error" name="Service Syntax Fixes QRPaymentService Switch Statement Fixes should handle unsupported payment type with proper error" time="0.061">
-    </testcase>
-    <testcase classname="Service Syntax Fixes TaskSchedulingService Switch Statement Fixes should handle once schedule with proper case block" name="Service Syntax Fixes TaskSchedulingService Switch Statement Fixes should handle once schedule with proper case block" time="0.002">
-    </testcase>
-    <testcase classname="Service Syntax Fixes TaskSchedulingService Switch Statement Fixes should handle recurring schedule with proper case block" name="Service Syntax Fixes TaskSchedulingService Switch Statement Fixes should handle recurring schedule with proper case block" time="0.002">
-    </testcase>
-    <testcase classname="Service Syntax Fixes TaskSchedulingService Switch Statement Fixes should handle cron schedule with proper case block" name="Service Syntax Fixes TaskSchedulingService Switch Statement Fixes should handle cron schedule with proper case block" time="0.003">
-    </testcase>
-    <testcase classname="Service Syntax Fixes TaskSchedulingService Switch Statement Fixes should handle action execution with proper case blocks" name="Service Syntax Fixes TaskSchedulingService Switch Statement Fixes should handle action execution with proper case blocks" time="0.008">
-      <failure>Error: expect(received).toContain(expected) // indexOf
-
-Expected substring: &quot;executed&quot;
-Received string:    &quot;agent-invoked&quot;
-    at Object.toContain (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/error-resolution/ServiceSyntaxFixes.test.ts:295:31)
-    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
-    </testcase>
-    <testcase classname="Service Syntax Fixes UDCManagementService Import Fixes should handle crypto import with proper dynamic import syntax" name="Service Syntax Fixes UDCManagementService Import Fixes should handle crypto import with proper dynamic import syntax" time="0.003">
-    </testcase>
-    <testcase classname="Service Syntax Fixes UDCManagementService Import Fixes should handle fallback crypto import correctly" name="Service Syntax Fixes UDCManagementService Import Fixes should handle fallback crypto import correctly" time="0.007">
-    </testcase>
-    <testcase classname="Service Syntax Fixes UDCManagementService Import Fixes should handle unused parameter with underscore prefix" name="Service Syntax Fixes UDCManagementService Import Fixes should handle unused parameter with underscore prefix" time="0.001">
-    </testcase>
-    <testcase classname="Service Syntax Fixes Parameter Handling Fixes should handle unused parameters with underscore prefix" name="Service Syntax Fixes Parameter Handling Fixes should handle unused parameters with underscore prefix" time="0.002">
-    </testcase>
-    <testcase classname="Service Syntax Fixes Parameter Handling Fixes should handle destructuring without unused variables" name="Service Syntax Fixes Parameter Handling Fixes should handle destructuring without unused variables" time="0.002">
-    </testcase>
-    <testcase classname="Service Syntax Fixes Parameter Handling Fixes should handle catch blocks without unused error variables" name="Service Syntax Fixes Parameter Handling Fixes should handle catch blocks without unused error variables" time="0.002">
-    </testcase>
-    <testcase classname="Service Syntax Fixes Error Reduction Verification should verify that switch statement fixes prevent parsing errors" name="Service Syntax Fixes Error Reduction Verification should verify that switch statement fixes prevent parsing errors" time="0.003">
-    </testcase>
-    <testcase classname="Service Syntax Fixes Error Reduction Verification should verify that import fixes work correctly" name="Service Syntax Fixes Error Reduction Verification should verify that import fixes work correctly" time="0.002">
-    </testcase>
-    <testcase classname="Service Syntax Fixes Error Reduction Verification should verify that parameter fixes eliminate unused variable warnings" name="Service Syntax Fixes Error Reduction Verification should verify that parameter fixes eliminate unused variable warnings" time="0.003">
-    </testcase>
-  </testsuite>
-  <testsuite name="Error Resolution Validation" errors="0" failures="0" skipped="0" timestamp="2025-08-30T05:28:55" time="0.272" tests="11">
-    <testcase classname="Error Resolution Validation Build Success Validation should confirm that TypeScript compilation succeeds" name="Error Resolution Validation Build Success Validation should confirm that TypeScript compilation succeeds" time="0.002">
-    </testcase>
-    <testcase classname="Error Resolution Validation Build Success Validation should validate parameter naming fixes" name="Error Resolution Validation Build Success Validation should validate parameter naming fixes" time="0.001">
-    </testcase>
-    <testcase classname="Error Resolution Validation Build Success Validation should validate index parameter fixes" name="Error Resolution Validation Build Success Validation should validate index parameter fixes" time="0.003">
-    </testcase>
-    <testcase classname="Error Resolution Validation Build Success Validation should validate error handling fixes" name="Error Resolution Validation Build Success Validation should validate error handling fixes" time="0.001">
-    </testcase>
-    <testcase classname="Error Resolution Validation Build Success Validation should validate spread operation fixes" name="Error Resolution Validation Build Success Validation should validate spread operation fixes" time="0.001">
-    </testcase>
-    <testcase classname="Error Resolution Validation Build Success Validation should validate Agent interface compatibility" name="Error Resolution Validation Build Success Validation should validate Agent interface compatibility" time="0.002">
-    </testcase>
-    <testcase classname="Error Resolution Validation Build Success Validation should validate Transaction interface with type property" name="Error Resolution Validation Build Success Validation should validate Transaction interface with type property" time="0.001">
-    </testcase>
-    <testcase classname="Error Resolution Validation Build Success Validation should validate configuration object without duplicate properties" name="Error Resolution Validation Build Success Validation should validate configuration object without duplicate properties" time="0.001">
-    </testcase>
-    <testcase classname="Error Resolution Validation Component Integration Validation should validate that components can be imported without errors" name="Error Resolution Validation Component Integration Validation should validate that components can be imported without errors" time="0.001">
-    </testcase>
-    <testcase classname="Error Resolution Validation Component Integration Validation should validate callback type safety" name="Error Resolution Validation Component Integration Validation should validate callback type safety" time="0.006">
-    </testcase>
-    <testcase classname="Error Resolution Validation Function Hoisting Fixes Validation should validate that functions are defined before use" name="Error Resolution Validation Function Hoisting Fixes Validation should validate that functions are defined before use" time="0.001">
-    </testcase>
-  </testsuite>
-  <testsuite name="Parameter Naming Fixes" errors="0" failures="1" skipped="0" timestamp="2025-08-30T05:28:55" time="0.328" tests="14">
-    <testcase classname="Parameter Naming Fixes Event Handler Parameter Fixes should handle WebSocket message events correctly" name="Parameter Naming Fixes Event Handler Parameter Fixes should handle WebSocket message events correctly" time="0.004">
-    </testcase>
-    <testcase classname="Parameter Naming Fixes Event Handler Parameter Fixes should handle cognitive engine events correctly" name="Parameter Naming Fixes Event Handler Parameter Fixes should handle cognitive engine events correctly" time="0.001">
-    </testcase>
-    <testcase classname="Parameter Naming Fixes Event Handler Parameter Fixes should handle learning events correctly" name="Parameter Naming Fixes Event Handler Parameter Fixes should handle learning events correctly" time="0.001">
-    </testcase>
-    <testcase classname="Parameter Naming Fixes Event Handler Parameter Fixes should handle voice recognition events correctly" name="Parameter Naming Fixes Event Handler Parameter Fixes should handle voice recognition events correctly" time="0.002">
-    </testcase>
-    <testcase classname="Parameter Naming Fixes Event Handler Parameter Fixes should handle error events correctly" name="Parameter Naming Fixes Event Handler Parameter Fixes should handle error events correctly" time="0.001">
-    </testcase>
-    <testcase classname="Parameter Naming Fixes Array Index Parameter Fixes should handle map function indices correctly" name="Parameter Naming Fixes Array Index Parameter Fixes should handle map function indices correctly" time="0.002">
-    </testcase>
-    <testcase classname="Parameter Naming Fixes Array Index Parameter Fixes should handle reduce function parameters correctly" name="Parameter Naming Fixes Array Index Parameter Fixes should handle reduce function parameters correctly" time="0.002">
-    </testcase>
-    <testcase classname="Parameter Naming Fixes Array Index Parameter Fixes should handle forEach with index correctly" name="Parameter Naming Fixes Array Index Parameter Fixes should handle forEach with index correctly" time="0.002">
-    </testcase>
-    <testcase classname="Parameter Naming Fixes P2P Message Handler Fixes should handle P2P WebSocket messages correctly" name="Parameter Naming Fixes P2P Message Handler Fixes should handle P2P WebSocket messages correctly" time="0.002">
-    </testcase>
-    <testcase classname="Parameter Naming Fixes P2P Message Handler Fixes should handle skill node messages correctly" name="Parameter Naming Fixes P2P Message Handler Fixes should handle skill node messages correctly" time="0.002">
-    </testcase>
-    <testcase classname="Parameter Naming Fixes Demo and Integration Fixes should handle demo cognitive events correctly" name="Parameter Naming Fixes Demo and Integration Fixes should handle demo cognitive events correctly" time="0.09">
-    </testcase>
-    <testcase classname="Parameter Naming Fixes Media Recorder Fixes should handle media recorder data available events correctly" name="Parameter Naming Fixes Media Recorder Fixes should handle media recorder data available events correctly" time="0.003">
-      <failure>ReferenceError: BlobEvent is not defined
-    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/error-resolution/ParameterNamingFixes.test.ts:192:25)
+    <testcase classname="SettingsPanel Rendering should render when isOpen is true" name="SettingsPanel Rendering should render when isOpen is true" time="0.003">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:208:13)
     at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
     at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:316:40)
-    at processTicksAndRejections (node:internal/process/task_queues:95:5)
     at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:252:3)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
@@ -150,26 +39,18 @@ Received string:    &quot;agent-invoked&quot;
     at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
     at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
     at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="Parameter Naming Fixes Media Recorder Fixes should handle speech synthesis error events correctly" name="Parameter Naming Fixes Media Recorder Fixes should handle speech synthesis error events correctly" time="0.002">
-    </testcase>
-    <testcase classname="Parameter Naming Fixes Automated Fix Validation should validate that underscore prefixed parameters are used correctly" name="Parameter Naming Fixes Automated Fix Validation should validate that underscore prefixed parameters are used correctly" time="0.003">
-    </testcase>
-  </testsuite>
-  <testsuite name="Linting Error Resolution Tests" errors="0" failures="3" skipped="0" timestamp="2025-08-30T05:28:52" time="2.776" tests="16">
-    <testcase classname="Linting Error Resolution Tests Parsing Error Fixes should handle arrow function syntax correctly in event handlers" name="Linting Error Resolution Tests Parsing Error Fixes should handle arrow function syntax correctly in event handlers" time="0.018">
-    </testcase>
-    <testcase classname="Linting Error Resolution Tests Parsing Error Fixes should handle case statement blocks with proper braces" name="Linting Error Resolution Tests Parsing Error Fixes should handle case statement blocks with proper braces" time="0.002">
-      <failure>Error: Property `processLightningPayment` does not exist in the provided object
-    at ModuleMocker.spyOn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-mock/build/index.js:731:13)
-    at Object.spyOn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/error-resolution/LintingErrorResolution.test.ts:49:47)
+    <testcase classname="SettingsPanel Rendering should render all sidebar tabs" name="SettingsPanel Rendering should render all sidebar tabs" time="0.003">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:217:13)
     at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
     at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:316:40)
-    at processTicksAndRejections (node:internal/process/task_queues:95:5)
     at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:252:3)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
@@ -178,22 +59,18 @@ Received string:    &quot;agent-invoked&quot;
     at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
     at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
     at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="Linting Error Resolution Tests Parsing Error Fixes should handle recurring schedule case blocks correctly" name="Linting Error Resolution Tests Parsing Error Fixes should handle recurring schedule case blocks correctly" time="0.086">
-      <failure>Error: expect(received).toBeInstanceOf(expected)
-
-Expected constructor: Date
-
-Received value has no prototype
-Received value: undefined
-    at Object.toBeInstanceOf (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/error-resolution/LintingErrorResolution.test.ts:82:23)
+    <testcase classname="SettingsPanel Rendering should render sidebar action buttons" name="SettingsPanel Rendering should render sidebar action buttons" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:232:13)
     at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
     at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:316:40)
-    at processTicksAndRejections (node:internal/process/task_queues:95:5)
     at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:252:3)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
@@ -202,36 +79,18 @@ Received value: undefined
     at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
     at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
     at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="Linting Error Resolution Tests Unused Variable Fixes should handle unused parameters with underscore prefix" name="Linting Error Resolution Tests Unused Variable Fixes should handle unused parameters with underscore prefix" time="0.002">
-    </testcase>
-    <testcase classname="Linting Error Resolution Tests Unused Variable Fixes should handle catch blocks without unused error variables" name="Linting Error Resolution Tests Unused Variable Fixes should handle catch blocks without unused error variables" time="0.001">
-    </testcase>
-    <testcase classname="Linting Error Resolution Tests Unused Variable Fixes should handle destructuring with unused variables" name="Linting Error Resolution Tests Unused Variable Fixes should handle destructuring with unused variables" time="0.002">
-    </testcase>
-    <testcase classname="Linting Error Resolution Tests Import/Export Fixes should handle dynamic imports correctly" name="Linting Error Resolution Tests Import/Export Fixes should handle dynamic imports correctly" time="0.003">
-    </testcase>
-    <testcase classname="Linting Error Resolution Tests Import/Export Fixes should handle proper export statements" name="Linting Error Resolution Tests Import/Export Fixes should handle proper export statements" time="0.003">
-    </testcase>
-    <testcase classname="Linting Error Resolution Tests Type Safety Improvements should handle proper type annotations for event handlers" name="Linting Error Resolution Tests Type Safety Improvements should handle proper type annotations for event handlers" time="0.003">
-    </testcase>
-    <testcase classname="Linting Error Resolution Tests Type Safety Improvements should handle proper parameter naming for unused args" name="Linting Error Resolution Tests Type Safety Improvements should handle proper parameter naming for unused args" time="0.002">
-    </testcase>
-    <testcase classname="Linting Error Resolution Tests String Literal and Syntax Fixes should handle properly terminated string literals" name="Linting Error Resolution Tests String Literal and Syntax Fixes should handle properly terminated string literals" time="0.001">
-    </testcase>
-    <testcase classname="Linting Error Resolution Tests String Literal and Syntax Fixes should handle proper function declarations and exports" name="Linting Error Resolution Tests String Literal and Syntax Fixes should handle proper function declarations and exports" time="0.001">
-    </testcase>
-    <testcase classname="Linting Error Resolution Tests Service Integration Fixes should handle UDC signature generation with proper crypto imports" name="Linting Error Resolution Tests Service Integration Fixes should handle UDC signature generation with proper crypto imports" time="0.019">
-      <failure>TypeError: Cannot read properties of undefined (reading &apos;toISOString&apos;)
-    at UDCManagementService.toISOString [as generateSignature] (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/src/services/UDCManagementService.ts:472:62)
-    at Object.generateSignature (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/error-resolution/LintingErrorResolution.test.ts:240:51)
+    <testcase classname="SettingsPanel Data Loading should load settings data on mount" name="SettingsPanel Data Loading should load settings data on mount" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:244:13)
     at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
     at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:316:40)
-    at processTicksAndRejections (node:internal/process/task_queues:95:5)
     at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:252:3)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
@@ -240,25 +99,18 @@ Received value: undefined
     at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
     at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
     at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="Linting Error Resolution Tests Service Integration Fixes should handle task scheduling with proper case block syntax" name="Linting Error Resolution Tests Service Integration Fixes should handle task scheduling with proper case block syntax" time="0.015">
-    </testcase>
-    <testcase classname="Linting Error Resolution Tests Error Reduction Metrics should verify significant error reduction was achieved" name="Linting Error Resolution Tests Error Reduction Metrics should verify significant error reduction was achieved" time="0.003">
-    </testcase>
-    <testcase classname="Linting Error Resolution Tests Error Reduction Metrics should verify parsing errors were resolved" name="Linting Error Resolution Tests Error Reduction Metrics should verify parsing errors were resolved" time="0.005">
-    </testcase>
-  </testsuite>
-  <testsuite name="Component Syntax Fixes" errors="0" failures="5" skipped="0" timestamp="2025-08-30T05:28:52" time="2.967" tests="14">
-    <testcase classname="Component Syntax Fixes CognitiveShellInterface Fixes should render with proper string literal termination" name="Component Syntax Fixes CognitiveShellInterface Fixes should render with proper string literal termination" time="0.103">
-      <failure>TypeError: (0 , _globals.expect)(...).toBeInTheDocument is not a function
-    at Object.toBeInTheDocument (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/error-resolution/ComponentSyntaxFixes.test.tsx:93:25)
+    <testcase classname="SettingsPanel Data Loading should handle loading errors gracefully" name="SettingsPanel Data Loading should handle loading errors gracefully" time="0.001">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:258:13)
     at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
     at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:316:40)
-    at processTicksAndRejections (node:internal/process/task_queues:95:5)
     at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:252:3)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
@@ -267,21 +119,258 @@ Received value: undefined
     at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
     at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
     at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="Component Syntax Fixes CognitiveShellInterface Fixes should handle arrow function syntax in event handlers" name="Component Syntax Fixes CognitiveShellInterface Fixes should handle arrow function syntax in event handlers" time="0.045">
+    <testcase classname="SettingsPanel General Settings Tab should display general settings form" name="SettingsPanel General Settings Tab should display general settings form" time="0.003">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:267:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:281:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:246:5)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="Component Syntax Fixes CognitiveShellInterface Fixes should have proper export statement" name="Component Syntax Fixes CognitiveShellInterface Fixes should have proper export statement" time="0.003">
+    <testcase classname="SettingsPanel General Settings Tab should display toggle switches" name="SettingsPanel General Settings Tab should display toggle switches" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:267:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:281:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:246:5)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="Component Syntax Fixes CognitiveShellInterface Fixes should handle proper component structure with complete JSX" name="Component Syntax Fixes CognitiveShellInterface Fixes should handle proper component structure with complete JSX" time="0.026">
-      <failure>TypeError: (0 , _globals.expect)(...).toBeInTheDocument is not a function
-    at Object.toBeInTheDocument (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/error-resolution/ComponentSyntaxFixes.test.tsx:138:49)
+    <testcase classname="SettingsPanel General Settings Tab should update settings when form fields change" name="SettingsPanel General Settings Tab should update settings when form fields change" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:267:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:281:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:246:5)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="SettingsPanel General Settings Tab should toggle boolean settings" name="SettingsPanel General Settings Tab should toggle boolean settings" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:267:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:281:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:246:5)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="SettingsPanel Cognitive Settings Tab should display cognitive settings form" name="SettingsPanel Cognitive Settings Tab should display cognitive settings form" time="0.001">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:313:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:281:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:246:5)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="SettingsPanel Cognitive Settings Tab should display range sliders with values" name="SettingsPanel Cognitive Settings Tab should display range sliders with values" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:313:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:281:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:246:5)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="SettingsPanel Cognitive Settings Tab should display cognitive toggle switches" name="SettingsPanel Cognitive Settings Tab should display cognitive toggle switches" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:313:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:281:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:246:5)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="SettingsPanel Profiles Tab should display profiles list" name="SettingsPanel Profiles Tab should display profiles list" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:347:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:281:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:246:5)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="SettingsPanel Profiles Tab should show active profile indicator" name="SettingsPanel Profiles Tab should show active profile indicator" time="0.001">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:347:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:281:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:246:5)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="SettingsPanel Profiles Tab should load profile when Load button is clicked" name="SettingsPanel Profiles Tab should load profile when Load button is clicked" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:347:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:281:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:246:5)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="SettingsPanel Profiles Tab should delete profile when Delete button is clicked" name="SettingsPanel Profiles Tab should delete profile when Delete button is clicked" time="0.001">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:347:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:281:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:246:5)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="SettingsPanel Profiles Tab should not show delete button for default profile" name="SettingsPanel Profiles Tab should not show delete button for default profile" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:347:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusHook (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:281:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:246:5)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="SettingsPanel Save Functionality should save settings when Save button is clicked" name="SettingsPanel Save Functionality should save settings when Save button is clicked" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:398:13)
     at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
     at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:316:40)
-    at processTicksAndRejections (node:internal/process/task_queues:95:5)
     at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:252:3)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
@@ -290,17 +379,18 @@ Received value: undefined
     at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
     at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
     at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="Component Syntax Fixes VisualProcessor Fixes should render with proper function declarations" name="Component Syntax Fixes VisualProcessor Fixes should render with proper function declarations" time="0.014">
-      <failure>TypeError: (0 , _globals.expect)(...).toBeInTheDocument is not a function
-    at Object.toBeInTheDocument (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/error-resolution/ComponentSyntaxFixes.test.tsx:150:25)
+    <testcase classname="SettingsPanel Save Functionality should hide save button after successful save" name="SettingsPanel Save Functionality should hide save button after successful save" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:414:13)
     at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
     at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:316:40)
-    at processTicksAndRejections (node:internal/process/task_queues:95:5)
     at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:252:3)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
@@ -309,19 +399,18 @@ Received value: undefined
     at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
     at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
     at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="Component Syntax Fixes VisualProcessor Fixes should handle processing with proper function syntax" name="Component Syntax Fixes VisualProcessor Fixes should handle processing with proper function syntax" time="0.015">
-    </testcase>
-    <testcase classname="Component Syntax Fixes VisualProcessor Fixes should have proper export statement and component structure" name="Component Syntax Fixes VisualProcessor Fixes should have proper export statement and component structure" time="0.017">
-      <failure>TypeError: (0 , _globals.expect)(...).toBeInTheDocument is not a function
-    at Object.toBeInTheDocument (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/error-resolution/ComponentSyntaxFixes.test.tsx:183:43)
+    <testcase classname="SettingsPanel Save Functionality should show save button only when there are changes" name="SettingsPanel Save Functionality should show save button only when there are changes" time="0.019">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:430:13)
     at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
     at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:316:40)
-    at processTicksAndRejections (node:internal/process/task_queues:95:5)
     at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:252:3)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
@@ -330,17 +419,18 @@ Received value: undefined
     at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
     at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
     at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="Component Syntax Fixes VisualProcessor Fixes should handle commented function blocks correctly" name="Component Syntax Fixes VisualProcessor Fixes should handle commented function blocks correctly" time="0.014">
-      <failure>TypeError: (0 , _globals.expect)(...).toBeInTheDocument is not a function
-    at Object.toBeInTheDocument (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/error-resolution/ComponentSyntaxFixes.test.tsx:193:46)
+    <testcase classname="SettingsPanel Export/Import Functionality should export settings when Export button is clicked" name="SettingsPanel Export/Import Functionality should export settings when Export button is clicked" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:447:13)
     at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
     at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:316:40)
-    at processTicksAndRejections (node:internal/process/task_queues:95:5)
     at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:252:3)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
     at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
@@ -349,20 +439,247 @@ Received value: undefined
     at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
     at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
     at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
-    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)
-    at Object.worker (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/testWorker.js:106:12)</failure>
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="Component Syntax Fixes General Syntax Fixes should handle proper TypeScript parameter annotations" name="Component Syntax Fixes General Syntax Fixes should handle proper TypeScript parameter annotations" time="0.001">
+    <testcase classname="SettingsPanel Export/Import Functionality should handle file import" name="SettingsPanel Export/Import Functionality should handle file import" time="0.005">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:469:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="Component Syntax Fixes General Syntax Fixes should handle proper destructuring without unused variables" name="Component Syntax Fixes General Syntax Fixes should handle proper destructuring without unused variables" time="0.001">
+    <testcase classname="SettingsPanel Reset Functionality should reset settings when Reset button is clicked" name="SettingsPanel Reset Functionality should reset settings when Reset button is clicked" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:495:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="Component Syntax Fixes General Syntax Fixes should handle proper error handling without unused error variables" name="Component Syntax Fixes General Syntax Fixes should handle proper error handling without unused error variables" time="0.001">
+    <testcase classname="SettingsPanel Refresh Functionality should refresh data when refresh button is clicked" name="SettingsPanel Refresh Functionality should refresh data when refresh button is clicked" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:508:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="Component Syntax Fixes General Syntax Fixes should handle proper async/await syntax" name="Component Syntax Fixes General Syntax Fixes should handle proper async/await syntax" time="0.003">
+    <testcase classname="SettingsPanel Close Functionality should call onClose when close button is clicked" name="SettingsPanel Close Functionality should call onClose when close button is clicked" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:526:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="Component Syntax Fixes Import/Export Syntax Fixes should handle dynamic imports correctly" name="Component Syntax Fixes Import/Export Syntax Fixes should handle dynamic imports correctly" time="0.004">
+    <testcase classname="SettingsPanel Tab Navigation should highlight active tab" name="SettingsPanel Tab Navigation should highlight active tab" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:539:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="Component Syntax Fixes Import/Export Syntax Fixes should handle proper module exports" name="Component Syntax Fixes Import/Export Syntax Fixes should handle proper module exports" time="0.002">
+    <testcase classname="SettingsPanel Tab Navigation should switch content when tabs are clicked" name="SettingsPanel Tab Navigation should switch content when tabs are clicked" time="0.001">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:555:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="SettingsPanel Error Handling should handle save errors gracefully" name="SettingsPanel Error Handling should handle save errors gracefully" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:571:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="SettingsPanel Error Handling should handle reset errors gracefully" name="SettingsPanel Error Handling should handle reset errors gracefully" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:588:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="SettingsPanel Accessibility should have proper ARIA labels" name="SettingsPanel Accessibility should have proper ARIA labels" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:602:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="SettingsPanel Accessibility should support keyboard navigation" name="SettingsPanel Accessibility should support keyboard navigation" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:610:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="SettingsPanel Form Validation should validate numeric inputs" name="SettingsPanel Form Validation should validate numeric inputs" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:628:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="SettingsPanel Form Validation should validate range inputs" name="SettingsPanel Form Validation should validate range inputs" time="0.002">
+      <failure>Error: Target container is not a DOM element.
+    at Object.&lt;anonymous&gt;.process.env.NODE_ENV.exports.createRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/react-dom/cjs/react-dom-client.development.js:24604:15)
+    at createConcurrentRoot (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:147:27)
+    at render (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/@testing-library/react/dist/pure.js:266:12)
+    at Object.&lt;anonymous&gt; (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/tests/unit/components/SettingsPanel.test.tsx:641:13)
+    at Promise.then.completed (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:316:40)
+    at _runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at _runTestsForDescribeBlock (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:121:9)
+    at run (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCONTROLLER/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
   </testsuite>
 </testsuites>

@@ -163,7 +163,7 @@ KNIRV-CORTEX will continue to evolve to meet the growing demands of the agent de
 The **KNIRV-CORTEX** represents a fundamental advancement in agent development infrastructure, providing the specialized tools and capabilities needed to create sophisticated WASM-based agent cores. By focusing on compilation, training, and deployment, KNIRV-CORTEX enables developers to create intelligent agents that can operate efficiently within the KNIRV ecosystem while maintaining the highest standards for performance, security, and reliability. The platform's integration with KNIRV-CONTROLLER and the broader D-TEN ecosystem ensures that agent cores developed within KNIRV-CORTEX can seamlessly contribute to the network's collective intelligence and capabilities.
 
 <div class="footer-links">
-<a href="#/legal/CODE_OF_CONDUCT.md" class="footer-link">Contributor Covenant Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY.md" class="footer-link">PRIVACY_POLICY.md</a> | <a href="#/legal/TERMS_AND_CONDITIONS.md" class="footer-link">TERMS AND CONDITIONS</a>
+<a href="#/legal/CODE_OF_CONDUCT" class="footer-link">Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY" class="footer-link">Privacy Policy</a> | <a href="#/legal/TERMS_AND_CONDITIONS" class="footer-link">Terms and Conditions</a>
 
 © 2025 KNIRV Network
 </div>

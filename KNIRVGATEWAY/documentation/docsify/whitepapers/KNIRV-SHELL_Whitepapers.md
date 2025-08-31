@@ -87,7 +87,7 @@ The **KNIRV-SHELL** is envisioned as a continuously evolving tool. Future enhanc
 The **KNIRV-SHELL** is a testament to the KNIRV Network's commitment to empowering developers. By providing a comprehensive, intelligent, and unified command-line tool, it transforms the complexity of a decentralized network into a powerful and manageable interface. It is the definitive toolkit for building, managing, and interacting with the entire KNIRV D-TEN, serving as a critical layer that drives both innovation and adoption.
 
 <div class="footer-links">
-<a href="#/legal/CODE_OF_CONDUCT.md" class="footer-link">Contributor Covenant Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY.md" class="footer-link">PRIVACY_POLICY.md</a> | <a href="#/legal/TERMS_AND_CONDITIONS.md" class="footer-link">TERMS AND CONDITIONS</a>
+<a href="#/legal/CODE_OF_CONDUCT" class="footer-link">Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY" class="footer-link">Privacy Policy</a> | <a href="#/legal/TERMS_AND_CONDITIONS" class="footer-link">Terms and Conditions</a>
 
 © 2025 KNIRV Network
 </div>

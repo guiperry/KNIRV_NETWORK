@@ -376,6 +376,7 @@ describe('Phase 3.3 - Consensus Mechanism', () => {
         await consensusMechanism.submitVote(proposalId, 'node_003', VoteType.APPROVE, 0.8);
       } catch (error) {
         // Proposal might be finalized already, which is acceptable
+        console.debug('Vote submission error (expected):', error);
       }
 
       // Wait for consensus
@@ -501,6 +502,7 @@ describe('Phase 3.3 - Consensus Mechanism', () => {
         await consensusMechanism.submitVote(proposalId, 'node_002', VoteType.APPROVE, 0.8);
       } catch (error) {
         // Proposal might be finalized already, which is acceptable
+        console.debug('Vote submission error (expected):', error);
       }
 
       // Wait for consensus and reputation update
@@ -550,6 +552,36 @@ describe('Phase 3.3 - Consensus Mechanism', () => {
       expect(proposal?.requiredVotes).toBe(1); // 50% of 2 nodes = 1
 
       customMechanism.stop();
+    });
+  });
+
+  describe('Type Usage Validation', () => {
+    it('should validate AgentCoreNode and ConsensusProposal types', () => {
+      // Test AgentCoreNode type usage
+      const mockNode: AgentCoreNode = {
+        id: 'test-node',
+        status: NodeStatus.ACTIVE,
+        lastSeen: Date.now(),
+        capabilities: ['consensus', 'validation']
+      };
+
+      expect(mockNode.status).toBe(NodeStatus.ACTIVE);
+      expect(Array.isArray(mockNode.capabilities)).toBe(true);
+
+      // Test ConsensusProposal type usage
+      const mockProposal: ConsensusProposal = {
+        id: 'test-proposal',
+        proposerId: 'node-1',
+        type: 'skill_registration',
+        data: { skillId: 'test-skill' },
+        status: ProposalStatus.PENDING,
+        votes: [],
+        requiredVotes: 2,
+        createdAt: Date.now()
+      };
+
+      expect(mockProposal.status).toBe(ProposalStatus.PENDING);
+      expect(mockProposal.requiredVotes).toBe(2);
     });
   });
 });

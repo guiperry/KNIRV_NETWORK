@@ -216,3 +216,9 @@ The `KNIRVCHAIN` will continuously evolve, driven by the needs of the D-TEN and 
 ## 8. Conclusion
 
 `KNIRVCHAIN` stands as the definitive backbone of the KNIRV D-TEN, transforming from a mere technical platform into an active, evolving intelligence machine. As its own sovereign Rust-based Layer 1 blockchain, secured by `Tendermint/CometBFT` consensus, it provides the immutable and verifiable ledger for the `CodeT5` Base LLM's evolution and the canonical `SkillRegistry`. By orchestrating Skill invocation (triggering `NRN` burns on `KNIRV-ORACLE`) and integrating collective learning from `KNIRVGRAPH` and `KNIRV-CORTEX`s, `KNIRVCHAIN` ensures the continuous improvement and trustworthiness of the network's intelligence. This strategic design, with off-chain model storage and on-chain verification, ensures scalability, security, and a robust foundation for a self-improving, decentralized AI ecosystem.
+
+<div class="footer-links">
+<a href="#/legal/CODE_OF_CONDUCT" class="footer-link">Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY" class="footer-link">Privacy Policy</a> | <a href="#/legal/TERMS_AND_CONDITIONS" class="footer-link">Terms and Conditions</a>
+
+© 2025 KNIRV Network
+</div>

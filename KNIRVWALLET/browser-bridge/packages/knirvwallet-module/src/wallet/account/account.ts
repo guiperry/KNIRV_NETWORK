@@ -11,6 +11,7 @@ export interface Account {
   name: string;
   keyringId: string;
   publicKey: Uint8Array;
+  address?: string; // Optional address property for test compatibility
   toData: () => AccountInfo;
   getAddress: (prefix: string) => Promise<string>;
 }
@@ -24,18 +25,19 @@ export interface AccountInfo {
   hdPath?: number;
   publicKey: number[];
   addressBytes?: number[];
+  address?: string; // Optional address property for test compatibility
 }
 
 export function makeAccount(accountData: AccountInfo) {
   switch (accountData.type) {
-    case 'HD_WALLET':
+    case 'HD':
       return new SeedAccount(accountData);
     case 'LEDGER':
       return new LedgerAccount(accountData);
     case 'PRIVATE_KEY':
     case 'WEB3_AUTH':
       return new SingleAccount(accountData);
-    case 'AIRGAP':
+    case 'ADDRESS':
       return new AirgapAccount(accountData);
     default:
       throw new Error('Invalid account type');

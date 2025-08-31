@@ -9,10 +9,8 @@
   },
   "dependencies": {
     "docsify": "^4.13.1",
-    "highlight.js": "^11.7.0",
-    "dotenv": "^17.2.1"
-  },
-  "devDependencies": {
-    "docsify-cli": "^4.4.4"
+    "docsify-cli": "^4.4.4",
+    "dotenv": "^17.2.1",
+    "highlight.js": "^11.7.0"
   }
 }

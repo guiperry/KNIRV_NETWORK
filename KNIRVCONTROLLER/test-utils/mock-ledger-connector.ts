@@ -72,6 +72,16 @@ export class MockLedgerConnector {
       throw new Error('Ledger device not connected');
     }
 
+    // Validate transaction structure
+    if (!transaction || typeof transaction !== 'object') {
+      throw new Error('Invalid transaction provided');
+    }
+
+    // Validate derivation path format
+    if (!derivationPath || !derivationPath.match(/^m\/\d+'?\/\d+'?\/\d+'?$/)) {
+      throw new Error(`Invalid derivation path: ${derivationPath}`);
+    }
+
     // Simulate user confirmation delay
     await new Promise(resolve => setTimeout(resolve, 200));
 

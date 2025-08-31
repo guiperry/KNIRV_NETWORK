@@ -2,7 +2,7 @@
  * Test Skills page navigation specifically
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 test.describe('Test Skills Navigation', () => {
   test('should navigate to Skills page without error', async ({ page }) => {

@@ -283,7 +283,10 @@ class CollectionWrapper<T> {
     const collection = await this.getCollection();
     const doc = await collection.findOne(query).exec();
     if (doc) {
-      const updateData = { ...(update.$set || update) } as any;
+      const updateSource = update.$set || update;
+      const updateData = typeof updateSource === 'object' && updateSource !== null
+        ? { ...updateSource as Record<string, unknown> }
+        : {} as any;
       updateData.updatedAt = new Date().toISOString();
       await doc.patch(updateData);
       return doc.toJSON();

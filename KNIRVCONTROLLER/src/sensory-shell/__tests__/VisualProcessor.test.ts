@@ -118,9 +118,9 @@ describe('VisualProcessor', () => {
     
     // Mock DOM elements
     document.createElement = jest.fn((tagName) => {
-      if (tagName === 'canvas') return mockCanvas as any;
-      if (tagName === 'video') return mockVideo as any;
-      return {} as any;
+      if (tagName === 'canvas') return mockCanvas as HTMLCanvasElement;
+      if (tagName === 'video') return mockVideo as HTMLVideoElement;
+      return {} as HTMLElement;
     });
 
     // Mock getUserMedia
@@ -282,7 +282,7 @@ describe('VisualProcessor', () => {
     });
 
     it('should handle processing errors gracefully', async () => {
-      const invalidImageData = null as any;
+      const invalidImageData = null as unknown as ImageData;
 
       await expect(visualProcessor.processImageWithAI(invalidImageData)).rejects.toThrow();
     });

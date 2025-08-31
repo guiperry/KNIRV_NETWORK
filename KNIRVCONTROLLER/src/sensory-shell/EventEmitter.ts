@@ -69,7 +69,7 @@ export class EventEmitter {
     return listeners ? listeners.length : 0;
   }
 
-  listeners(event: string): (...args: unknown[]) => unknown[] {
+  listeners(event: string): ((...args: unknown[]) => unknown)[] {
     return this.events.get(event) || [];
   }
 

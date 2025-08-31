@@ -169,6 +169,7 @@ export async function validateWasmFile(file: TestWasmFile): Promise<boolean> {
       view[3] === 0x6D
     );
   } catch (error) {
+    console.error('WASM module validation failed:', error);
     return false;
   }
 }

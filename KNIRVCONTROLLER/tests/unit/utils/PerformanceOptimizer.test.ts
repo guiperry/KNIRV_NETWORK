@@ -6,10 +6,15 @@
 import PerformanceOptimizer, { performanceOptimizer } from '../../../src/utils/PerformanceOptimizer';
 
 // Mock PerformanceObserver
-global.PerformanceObserver = jest.fn().mockImplementation((callback) => ({
+const PerformanceObserverMock = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),
   disconnect: jest.fn()
-}));
+}))
+Object.defineProperty(PerformanceObserverMock, 'supportedEntryTypes', {
+  value: ['navigation', 'resource', 'mark', 'measure', 'paint'],
+  writable: false
+});
+global.PerformanceObserver = PerformanceObserverMock as jest.Mock & { supportedEntryTypes: string[] };
 
 // Mock performance API
 Object.defineProperty(global, 'performance', {
@@ -158,8 +163,8 @@ describe('PerformanceOptimizer', () => {
   describe('Batch Processing', () => {
     it('should process items in batches', async () => {
       const items = Array.from({ length: 25 }, (_, i) => i);
-      const processor = jest.fn().mockImplementation((batch) => 
-        Promise.resolve(batch.map(item => item * 2))
+      const processor = jest.fn().mockImplementation((batch) =>
+        Promise.resolve(batch.map((item: number) => item * 2))
       );
       
       const results = await optimizer.batchProcess(items, processor, 10);
@@ -240,7 +245,8 @@ describe('PerformanceOptimizer', () => {
 
     it('should return 0 when memory API not available', () => {
       const originalPerformance = global.performance;
-      delete (global as any).performance;
+      // Make performance optional before deleting
+      (global as { performance?: unknown }).performance = undefined;
       
       const usage = optimizer.getMemoryUsage();
       expect(usage).toBe(0);
@@ -333,7 +339,7 @@ describe('PerformanceOptimizer', () => {
 
   describe('Performance Observer Integration', () => {
     it('should initialize performance observers when available', () => {
-      const optimizerWithObserver = new PerformanceOptimizer();
+      new PerformanceOptimizer();
       
       // PerformanceObserver should be called during initialization
       expect(global.PerformanceObserver).toHaveBeenCalled();
@@ -342,9 +348,14 @@ describe('PerformanceOptimizer', () => {
     it('should handle performance observer errors gracefully', () => {
       // Mock PerformanceObserver to throw error
       const originalObserver = global.PerformanceObserver;
-      global.PerformanceObserver = jest.fn().mockImplementation(() => {
+      const ErrorObserverMock = jest.fn().mockImplementation(() => {
         throw new Error('Observer not supported');
       });
+      Object.defineProperty(ErrorObserverMock, 'supportedEntryTypes', {
+        value: ['navigation', 'resource', 'mark', 'measure', 'paint'],
+        writable: false
+      });
+      global.PerformanceObserver = ErrorObserverMock as jest.Mock & { supportedEntryTypes: string[] };
       
       // Should not throw during initialization
       expect(() => new PerformanceOptimizer()).not.toThrow();

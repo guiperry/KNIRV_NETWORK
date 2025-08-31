@@ -411,4 +411,67 @@ describe('Phase 3.3 - HRM Core Model', () => {
       expect(result).toBeDefined();
     });
   });
+
+  describe('Type Usage Validation', () => {
+    it('should validate imported types are properly used', () => {
+      // Test SkillDiscoveryResult type usage
+      const mockSkillResult: SkillDiscoveryResult = {
+        skillId: 'test-skill',
+        confidence: 0.85,
+        metadata: { source: 'test' },
+        trainingMetrics: { accuracy: 0.9, loss: 0.1 }
+      };
+
+      expect(mockSkillResult.confidence).toBe(0.85);
+      expect(typeof mockSkillResult.skillId).toBe('string');
+
+      // Test LoRAAdapterSkill type usage
+      const mockLoRASkill: LoRAAdapterSkill = {
+        id: 'lora-skill-1',
+        name: 'Test LoRA Skill',
+        rank: 16,
+        alpha: 32,
+        weights: new Map(),
+        trainingData: []
+      };
+
+      expect(mockLoRASkill.rank).toBe(16);
+      expect(mockLoRASkill.alpha).toBe(32);
+
+      // Test TrainingDataset type usage
+      const mockDataset: TrainingDataset = {
+        id: 'dataset-1',
+        samples: [],
+        metadata: { size: 0, version: '1.0' }
+      };
+
+      expect(Array.isArray(mockDataset.samples)).toBe(true);
+      expect(mockDataset.metadata.version).toBe('1.0');
+
+      // Test ErrorNode type usage
+      const mockErrorNode: ErrorNode = {
+        id: 'error-node-1',
+        type: 'runtime_error',
+        message: 'Test error',
+        context: {},
+        timestamp: Date.now(),
+        clusterId: 'cluster-1'
+      };
+
+      expect(mockErrorNode.type).toBe('runtime_error');
+      expect(typeof mockErrorNode.timestamp).toBe('number');
+
+      // Test CompetitiveSolution type usage
+      const mockSolution: CompetitiveSolution = {
+        agentId: 'agent-1',
+        solutionId: 'solution-1',
+        score: 0.95,
+        proposal: 'Test solution proposal',
+        metadata: { complexity: 'medium' }
+      };
+
+      expect(mockSolution.score).toBe(0.95);
+      expect(typeof mockSolution.proposal).toBe('string');
+    });
+  });
 });

@@ -3,7 +3,7 @@
  * Comprehensive test suite for task scheduling functionality
  */
 
-import { taskSchedulingService, TaskSchedulingService } from '../../../src/services/TaskSchedulingService';
+import { taskSchedulingService, TaskSchedulingService, ScheduledTask, TaskAction } from '../../../src/services/TaskSchedulingService';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -191,7 +191,7 @@ describe('TaskSchedulingService', () => {
   });
 
   describe('Task Management', () => {
-    let testTask: any;
+    let testTask: ScheduledTask;
 
     beforeEach(async () => {
       mockFetch.mockResolvedValue({
@@ -249,7 +249,7 @@ describe('TaskSchedulingService', () => {
   });
 
   describe('Task Execution', () => {
-    let testTask: any;
+    let testTask: ScheduledTask;
 
     beforeEach(async () => {
       mockFetch.mockResolvedValue({
@@ -444,7 +444,7 @@ describe('TaskSchedulingService', () => {
       };
 
       // Access private method for testing
-      const result = await (service as any).executeTaskAction(action);
+      const result = await (service as unknown as { executeTaskAction: (action: TaskAction) => Promise<unknown> }).executeTaskAction(action);
       expect(result).toEqual({ result: 'success' });
     });
 
@@ -460,7 +460,7 @@ describe('TaskSchedulingService', () => {
         parameters: {}
       };
 
-      await expect((service as any).executeTaskAction(action))
+      await expect((service as unknown as { executeTaskAction: (action: TaskAction) => Promise<unknown> }).executeTaskAction(action))
         .rejects.toThrow('API call failed: Bad Request');
     });
   });

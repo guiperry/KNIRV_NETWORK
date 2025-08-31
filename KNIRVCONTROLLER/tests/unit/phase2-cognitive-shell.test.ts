@@ -10,8 +10,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
-import { AgentCoreInterface, SensoryInput, CognitiveResponse, LoRAAdapter } from '../../src/sensory-shell/AgentCoreInterface';
-import { WASMOrchestrator, ModelConfig, OrchestrationConfig } from '../../src/sensory-shell/WASMOrchestrator';
+import { AgentCoreInterface, SensoryInput, LoRAAdapter } from '../../src/sensory-shell/AgentCoreInterface';
 
 // Mock WASM module for testing
 const createMockWASMBytes = (): Uint8Array => {
@@ -24,11 +23,11 @@ const createMockWASMBytes = (): Uint8Array => {
 
 // Mock agent-core WASM functions
 const mockAgentCoreWASM = {
-  agentCoreExecute: jest.fn().mockResolvedValue('{"success": true, "result": "test result"}'),
-  agentCoreExecuteTool: jest.fn().mockResolvedValue('{"success": true, "result": "tool result"}'),
-  agentCoreLoadLoRA: jest.fn().mockResolvedValue(true),
-  agentCoreApplySkill: jest.fn().mockResolvedValue(true),
-  agentCoreGetStatus: jest.fn().mockReturnValue('{"agentId": "test", "initialized": true}')
+  agentCoreExecute: jest.fn().mockResolvedValue('{"success": true, "result": "test result"}' as never),
+  agentCoreExecuteTool: jest.fn().mockResolvedValue('{"success": true, "result": "tool result"}' as never),
+  agentCoreLoadLoRA: jest.fn().mockResolvedValue(true as never),
+  agentCoreApplySkill: jest.fn().mockResolvedValue(true as never),
+  agentCoreGetStatus: jest.fn().mockReturnValue('{"agentId": "test", "initialized": true}' as never)
 };
 
 describe('Phase 2.1: Cognitive Shell Development', () => {
@@ -41,14 +40,14 @@ describe('Phase 2.1: Cognitive Shell Development', () => {
     
     // Mock WebAssembly global
     global.WebAssembly = {
-      compile: jest.fn().mockResolvedValue({}),
+      compile: jest.fn().mockResolvedValue({} as never),
       instantiate: jest.fn().mockResolvedValue({
         exports: mockAgentCoreWASM
-      }),
+      } as never),
       Memory: jest.fn().mockImplementation(() => ({
         buffer: new ArrayBuffer(1024)
       }))
-    } as any;
+    } as unknown as typeof WebAssembly;
   });
 
   afterEach(async () => {
@@ -69,7 +68,7 @@ describe('Phase 2.1: Cognitive Shell Development', () => {
       const invalidWASM = new Uint8Array([0x00, 0x00, 0x00, 0x00]); // Invalid magic number
       
       // Mock compile to throw error for invalid WASM
-      (WebAssembly.compile as jest.Mock).mockRejectedValueOnce(new Error('Invalid WASM'));
+      (WebAssembly.compile as jest.Mock).mockRejectedValueOnce(new Error('Invalid WASM') as never);
       
       const success = await agentCoreInterface.initializeAgentCore(invalidWASM);
       
@@ -86,7 +85,7 @@ describe('Phase 2.1: Cognitive Shell Development', () => {
 
       (WebAssembly.instantiate as jest.Mock).mockResolvedValueOnce({
         exports: incompleteWASM
-      });
+      } as never);
 
       const success = await agentCoreInterface.initializeAgentCore(mockWASMBytes);
       
@@ -117,7 +116,7 @@ describe('Phase 2.1: Cognitive Shell Development', () => {
     });
 
     test('should handle cognitive processing errors', async () => {
-      mockAgentCoreWASM.agentCoreExecute.mockRejectedValueOnce(new Error('Processing failed'));
+      mockAgentCoreWASM.agentCoreExecute.mockRejectedValueOnce(new Error('Processing failed') as never);
 
       const input: SensoryInput = {
         type: 'text',

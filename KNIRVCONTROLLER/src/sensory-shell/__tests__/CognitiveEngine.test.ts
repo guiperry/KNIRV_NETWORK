@@ -777,7 +777,7 @@ describe('CognitiveEngine', () => {
 
     it('should handle invalid operation types', async () => {
       const operation = {
-        type: 'invalid_operation' as any,
+        type: 'invalid_operation' as const,
         payload: {}
       };
 

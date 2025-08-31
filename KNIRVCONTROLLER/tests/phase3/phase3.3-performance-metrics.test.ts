@@ -4,13 +4,11 @@
  * Tests for success rates and cluster-based competition metrics tracking
  */
 
-import { 
+import {
   PerformanceMetrics,
   ClusterMetrics,
   AgentMetrics,
-  SkillMetrics,
-  SystemMetrics,
-  CompetitionMetrics 
+  SkillMetrics
 } from '../../src/core/knirvgraph/PerformanceMetrics';
 import { ErrorCluster, ErrorNode } from '../../src/core/knirvgraph/ErrorNodeClustering';
 import { CompetitiveSolution } from '../../src/core/knirvgraph/AgentAssignmentSystem';
@@ -45,10 +43,10 @@ describe('Phase 3.3 - Performance Metrics', () => {
         stackTrace: 'at function1 (file.js:10:5)',
         severity: 'high',
         context: { variable: 'user', line: 10 },
-        tags: ['javascript', 'undefined'],
+        timestamp: new Date(),
         bountyAmount: 100,
-        createdAt: new Date(),
-        lastUpdated: new Date()
+        tags: ['javascript', 'undefined'],
+        metadata: {}
       },
       {
         id: 'error_002',
@@ -57,10 +55,10 @@ describe('Phase 3.3 - Performance Metrics', () => {
         stackTrace: 'at function2 (file.js:15:3)',
         severity: 'medium',
         context: { variable: 'config', line: 15 },
-        tags: ['javascript', 'reference'],
+        timestamp: new Date(),
         bountyAmount: 75,
-        createdAt: new Date(),
-        lastUpdated: new Date()
+        tags: ['javascript', 'reference'],
+        metadata: {}
       }
     ];
 
@@ -69,7 +67,13 @@ describe('Phase 3.3 - Performance Metrics', () => {
       clusterName: 'JavaScript Error Cluster',
       description: 'Cluster for JavaScript runtime errors',
       errorNodes: mockErrorNodes,
-      centroid: [0.5, 0.3, 0.8, 0.2],
+      centroid: {
+        errorTypeVector: [1, 0, 0, 0, 0, 0],
+        contextVector: [2, 1, 1, 0, 1],
+        severityScore: 0.75,
+        tagVector: [1, 0, 0, 0, 0, 0, 0],
+        semanticVector: [0.5, 0.3, 0.8, 0.2, 0.1, 0.4, 0.6, 0.2]
+      },
       similarity: 0.85,
       totalBounty: 175,
       assignedAgents: ['agent_001', 'agent_002'],
@@ -81,36 +85,48 @@ describe('Phase 3.3 - Performance Metrics', () => {
     mockSolutions = [
       {
         solutionId: 'sol_001',
-        errorNodeId: 'error_001',
         agentId: 'agent_001',
+        clusterId: 'cluster_001',
+        errorNodeId: 'error_001',
         solutionCode: 'if (user && user.property) { return user.property; }',
+        description: 'Null check solution',
         approach: 'null_check',
-        dveValidationScore: 0.9,
-        bountyAwarded: 90,
+        estimatedEffectiveness: 0.9,
         submittedAt: new Date(Date.now() - 60000),
-        validatedAt: new Date()
+        validationStatus: 'validated' as const,
+        dveValidationScore: 0.9,
+        validatedAt: new Date(),
+        bountyAwarded: 90
       },
       {
         solutionId: 'sol_002',
-        errorNodeId: 'error_002',
         agentId: 'agent_002',
+        clusterId: 'cluster_001',
+        errorNodeId: 'error_002',
         solutionCode: 'const config = getConfig() || defaultConfig;',
+        description: 'Default fallback solution',
         approach: 'default_fallback',
-        dveValidationScore: 0.85,
-        bountyAwarded: 64,
+        estimatedEffectiveness: 0.85,
         submittedAt: new Date(Date.now() - 45000),
-        validatedAt: new Date()
+        validationStatus: 'validated' as const,
+        dveValidationScore: 0.85,
+        validatedAt: new Date(),
+        bountyAwarded: 64
       },
       {
         solutionId: 'sol_003',
-        errorNodeId: 'error_001',
         agentId: 'agent_001',
+        clusterId: 'cluster_001',
+        errorNodeId: 'error_001',
         solutionCode: 'try { return user.property; } catch(e) { return null; }',
+        description: 'Try-catch solution',
         approach: 'try_catch',
-        dveValidationScore: 0.75,
-        bountyAwarded: 0, // Not validated
+        estimatedEffectiveness: 0.75,
         submittedAt: new Date(Date.now() - 30000),
-        validatedAt: undefined
+        validationStatus: 'pending' as const,
+        dveValidationScore: 0.75,
+        validatedAt: undefined,
+        bountyAwarded: 0
       }
     ];
 
@@ -526,6 +542,84 @@ describe('Phase 3.3 - Performance Metrics', () => {
         const allMetrics = performanceMetrics.getAgentMetrics() as AgentMetrics[];
         expect(allMetrics.length).toBe(10);
       });
+    });
+  });
+
+  describe('Type Usage Validation', () => {
+    it('should validate imported types are properly used', () => {
+      // Test ErrorCluster type usage
+      const mockErrorCluster: ErrorCluster = {
+        clusterId: 'cluster-1',
+        clusterName: 'Test Cluster',
+        description: 'Test cluster description',
+        errorNodes: [],
+        centroid: {
+          errorTypeVector: [1, 0, 0, 0, 0, 0],
+          contextVector: [1, 0, 0, 0, 0],
+          severityScore: 0.5,
+          tagVector: [1, 0, 0, 0, 0, 0, 0],
+          semanticVector: [0.5, 0.3, 0.2, 0.1, 0.4, 0.6, 0.2, 0.1]
+        },
+        similarity: 0.8,
+        totalBounty: 100,
+        assignedAgents: [],
+        solutions: [],
+        createdAt: new Date(),
+        lastUpdated: new Date()
+      };
+
+      expect(mockErrorCluster.clusterId).toBe('cluster-1');
+      expect(mockErrorCluster.similarity).toBe(0.8);
+
+      // Test ErrorNode type usage
+      const mockErrorNode: ErrorNode = {
+        id: 'error-node-1',
+        errorType: 'TypeError',
+        errorMessage: 'Test error message',
+        context: { variable: 'test' },
+        severity: 'medium' as const,
+        timestamp: new Date(),
+        bountyAmount: 50,
+        tags: ['test'],
+        metadata: {}
+      };
+
+      expect(mockErrorNode.errorType).toBe('TypeError');
+      expect(mockErrorNode.bountyAmount).toBe(50);
+
+      // Test CompetitiveSolution type usage
+      const mockSolution: CompetitiveSolution = {
+        solutionId: 'solution-1',
+        agentId: 'agent-1',
+        clusterId: 'cluster-1',
+        errorNodeId: 'error-1',
+        solutionCode: 'test solution code',
+        description: 'Test solution description',
+        approach: 'test_approach',
+        estimatedEffectiveness: 0.95,
+        submittedAt: new Date(),
+        validationStatus: 'pending' as const
+      };
+
+      expect(mockSolution.solutionId).toBe('solution-1');
+      expect(mockSolution.validationStatus).toBe('pending');
+
+      // Test LoRAAdapterSkill type usage
+      const mockLoRASkill: LoRAAdapterSkill = {
+        skillId: 'skill-1',
+        skillName: 'Test LoRA Skill',
+        description: 'Test skill description',
+        baseModelCompatibility: 'hrm',
+        version: 1,
+        rank: 16,
+        alpha: 32.0,
+        weightsA: new Float32Array(64),
+        weightsB: new Float32Array(64),
+        additionalMetadata: {}
+      };
+
+      expect(mockLoRASkill.skillId).toBe('skill-1');
+      expect(mockLoRASkill.rank).toBe(16);
     });
   });
 });

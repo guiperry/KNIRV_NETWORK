@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Terminal } from '../../../src/components/Terminal';
 import { terminalCommandService } from '../../../src/services/TerminalCommandService';
@@ -56,13 +56,16 @@ describe('Terminal', () => {
   });
 
   it('should not execute empty command', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     render(<Terminal onCommand={mockOnCommand} />);
     
-    const input = screen.getByTestId('terminal-input');
-    
-    await user.keyboard('{Enter}');
-    
+    // Verify input element is present and accessible
+    const _input = screen.getByTestId('terminal-input');
+    expect(_input).toBeInTheDocument();
+    expect(_input).toHaveValue('');
+
+    await _user.keyboard('{Enter}');
+
     expect(mockTerminalCommandService.executeCommand).not.toHaveBeenCalled();
   });
 
@@ -231,12 +234,12 @@ describe('Terminal', () => {
     const user = userEvent.setup();
     
     // Mock a delayed command execution
-    let resolveCommand: (value: any) => void;
+    let resolveCommand: (value: { success: boolean; output: string; executionTime: number; exitCode: number }) => void;
     const commandPromise = new Promise(resolve => {
       resolveCommand = resolve;
     });
     
-    mockTerminalCommandService.executeCommand.mockReturnValue(commandPromise);
+    mockTerminalCommandService.executeCommand.mockReturnValue(commandPromise as Promise<{ success: boolean; output: string; executionTime: number; exitCode: number }>);
 
     render(<Terminal onCommand={mockOnCommand} />);
     
@@ -265,8 +268,6 @@ describe('Terminal', () => {
   });
 
   it('should auto-scroll to bottom when history updates', async () => {
-    const user = userEvent.setup();
-    
     const { rerender } = render(<Terminal onCommand={mockOnCommand} />);
     
     const historyContainer = screen.getByTestId('terminal-history');

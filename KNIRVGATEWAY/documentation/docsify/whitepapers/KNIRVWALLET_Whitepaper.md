@@ -174,3 +174,9 @@ The **KNIRV-WALLET** will continuously evolve to provide an even more seamless, 
 
 ## 7. Conclusion
 The **KNIRV-WALLET** is more than just a digital wallet; it is the essential bridge connecting users to the complex, powerful world of the KNIRV Decentralized Trusted Execution Network. By leveraging XION's Meta Accounts and gasless transactions, and implementing robust security through User Delegation Certificates and biometric authentication, the **KNIRV-WALLET** abstracts away blockchain complexities, delivering an intuitive, Web2-like experience. It empowers users to seamlessly manage their NRN tokens, orchestrate their KNIRV-CORTEX agents, and engage with the self-improving collective intelligence. The **KNIRV-WALLET** is fundamental to achieving widespread adoption of decentralized AI, making the future of compounding intelligence accessible, secure, and user-friendly for everyone.
+
+<div class="footer-links">
+<a href="#/legal/CODE_OF_CONDUCT" class="footer-link">Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY" class="footer-link">Privacy Policy</a> | <a href="#/legal/TERMS_AND_CONDITIONS" class="footer-link">Terms and Conditions</a>
+
+© 2025 KNIRV Network
+</div>

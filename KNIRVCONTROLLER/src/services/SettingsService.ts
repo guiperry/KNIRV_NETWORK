@@ -102,7 +102,7 @@ export interface AdvancedSettings {
   featureFlags: Record<string, boolean>;
   experimentalFeatures: string[];
   customCommands: Record<string, string>;
-  integrations: Record<string, any>;
+  integrations: Record<string, unknown>;
   performance: {
     maxConcurrentTasks: number;
     cacheSize: number;
@@ -374,7 +374,7 @@ export class SettingsService {
    */
   getSetting<T>(path: string): T | undefined {
     const keys = path.split('.');
-    let current: any = this.currentSettings;
+    let current: unknown = this.currentSettings;
     
     for (const key of keys) {
       if (current && typeof current === 'object' && key in current) {
@@ -390,9 +390,9 @@ export class SettingsService {
   /**
    * Set setting by path
    */
-  async setSetting(path: string, value: any): Promise<void> {
+  async setSetting(path: string, value: unknown): Promise<void> {
     const keys = path.split('.');
-    const updates: any = {};
+    const updates: Record<string, unknown> = {};
     let current = updates;
     
     for (let i = 0; i < keys.length - 1; i++) {
@@ -507,9 +507,9 @@ export class SettingsService {
         merged[key as keyof AppSettings] = {
           ...merged[key as keyof AppSettings],
           ...value
-        } as any;
+        } as AppSettings[keyof AppSettings];
       } else {
-        merged[key as keyof AppSettings] = value as any;
+        merged[key as keyof AppSettings] = value as AppSettings[keyof AppSettings];
       }
     }
     

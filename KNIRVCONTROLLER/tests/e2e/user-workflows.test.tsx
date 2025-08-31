@@ -347,7 +347,7 @@ describe('End-to-End User Workflows', () => {
   describe('Settings Management Workflow', () => {
     it('should complete full settings configuration workflow', async () => {
       // Mock settings panel opening (would typically be triggered from a menu)
-      const SettingsPanel = require('../../src/components/SettingsPanel').default;
+      const { default: SettingsPanel } = await import('../../src/components/SettingsPanel');
       const { rerender } = render(<SettingsPanel isOpen={false} onClose={jest.fn()} />);
 
       // Step 1: Open settings panel

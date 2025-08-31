@@ -86,12 +86,12 @@ export class AdaptiveLearningPipeline extends EventEmitter {
     // Initialize metrics
     this.metrics = {
       totalInteractions: 0,
-      patternsDetected: 0,
-      adaptationsApplied: 0,
+      positiveAdaptations: 0,
+      negativeAdaptations: 0,
       averageConfidence: 0,
       learningRate: 0.1,
-      sessionStartTime: Date.now(),
-      lastAdaptationTime: 0
+      adaptationEffectiveness: 0,
+      lastAdaptation: new Date()
     };
     
     this.config = {
@@ -630,11 +630,13 @@ export class AdaptiveLearningPipeline extends EventEmitter {
     }
 
     // Remove very low confidence patterns
-    for (const [patternId, pattern] of this.patterns) {
+    const patternsToDelete: string[] = [];
+    this.patterns.forEach((pattern, patternId) => {
       if (pattern.confidence < 0.1) {
-        this.patterns.delete(patternId);
+        patternsToDelete.push(patternId);
       }
-    }
+    });
+    patternsToDelete.forEach(patternId => this.patterns.delete(patternId));
 
     this.emit('patternsOptimized', {
       totalPatterns: this.patterns.size,

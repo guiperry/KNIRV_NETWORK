@@ -20,3 +20,10 @@ This section contains the technical whitepapers for the KNIRV Network components
 ---
 
 © 2025 KNIRV Network
+
+
+---
+
+**Links:** [Code of Conduct](#/legal/CODE_OF_CONDUCT) | [Privacy Policy](#/legal/PRIVACY_POLICY) | [Terms and Conditions](#/legal/TERMS_AND_CONDITIONS)
+
+© 2025 KNIRV Network

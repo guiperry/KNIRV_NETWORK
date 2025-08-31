@@ -1,5 +1,6 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import * as React from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Brain, Activity, Zap, Settings } from 'lucide-react';
 import { cognitiveEngineService, CognitiveProcessingRequest } from '../services/CognitiveEngineService';
 import { CognitiveEngine, CognitiveConfig, CognitiveState } from '../sensory-shell/CognitiveEngine';
@@ -47,6 +48,12 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
       if (cognitiveEngine) {
         const engineMetrics = await cognitiveEngine.getMetrics();
         setMetrics(engineMetrics as Record<string, unknown>);
+
+        // Initialize WASM orchestrator if not already done
+        if (!wasmOrchestrator && cognitiveEngine.isWASMAgentManagerReady()) {
+          const orchestrator = new WASMOrchestrator();
+          setWasmOrchestrator(orchestrator);
+        }
       }
     } catch (error) {
       console.error('Failed to load engine metrics:', error);
@@ -137,6 +144,11 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
         if (onStateChange) {
           onStateChange(initialState);
         }
+      }
+
+      // Connect HRM Bridge if available
+      if (hrmBridge && engine.isHRMBridgeReady()) {
+        console.log('HRM Bridge connected to Cognitive Engine');
       }
 
       // Set up event listeners

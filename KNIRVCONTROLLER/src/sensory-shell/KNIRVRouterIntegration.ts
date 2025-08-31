@@ -209,15 +209,16 @@ export class KNIRVRouterIntegration extends EventEmitter {
    */
   private handleP2PMessage(message: unknown): void {
     try {
-      switch (message.type) {
+      const messageAny = message as any;
+      switch (messageAny.type) {
         case 'skill_node_discovered':
-          this.handleSkillNodeDiscovery(message.data);
+          this.handleSkillNodeDiscovery(messageAny.data);
           break;
         case 'routing_update':
-          this.handleRoutingUpdate(message.data);
+          this.handleRoutingUpdate(messageAny.data);
           break;
         case 'wasm_execution_result':
-          this.handleWASMExecutionResult(message.data);
+          this.handleWASMExecutionResult(messageAny.data);
           break;
         default:
           logger.debug({ message }, 'Unknown P2P message type');
@@ -470,7 +471,7 @@ export class KNIRVRouterIntegration extends EventEmitter {
    */
   private handleSkillNodeDiscovery(data: unknown): void {
     try {
-      const skillNode: SkillNodeURI = data.skillNode;
+      const skillNode: SkillNodeURI = (data as any).skillNode;
 
       // Cache the discovered skill node
       const cacheKey = `${skillNode.skillId}_${skillNode.capabilities.join('_')}`;
@@ -492,7 +493,7 @@ export class KNIRVRouterIntegration extends EventEmitter {
    */
   private handleRoutingUpdate(data: unknown): void {
     try {
-      const routingInfo: P2PRoutingInfo = data.routingInfo;
+      const routingInfo: P2PRoutingInfo = (data as any).routingInfo;
 
       logger.debug({ routingInfo }, 'Routing update received');
       this.emit('routingUpdate', { routingInfo });
@@ -507,7 +508,7 @@ export class KNIRVRouterIntegration extends EventEmitter {
    */
   private handleWASMExecutionResult(data: unknown): void {
     try {
-      const { requestId, result, error } = data;
+      const { requestId, result, error } = data as any;
 
       logger.info({ requestId, result, error }, 'WASM execution result received');
       this.emit('wasmExecutionResult', { requestId, result, error });
@@ -677,16 +678,16 @@ export class KNIRVRouterIntegration extends EventEmitter {
       this.isConnected = false;
 
       // Clear all retry timeouts
-      for (const timeout of this.retryTimeouts) {
+      this.retryTimeouts.forEach((timeout) => {
         clearTimeout(timeout);
-      }
+      });
       this.retryTimeouts.clear();
 
       // Close P2P connections
-      for (const [nodeId, ws] of this.p2pConnections) {
+      this.p2pConnections.forEach((ws, nodeId) => {
         ws.close();
         logger.debug(`Closed P2P connection to ${nodeId}`);
-      }
+      });
       this.p2pConnections.clear();
 
       // Clear active requests

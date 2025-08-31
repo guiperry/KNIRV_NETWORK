@@ -5,6 +5,29 @@
 
 import MemoryManager, { memoryManager } from '../../../src/utils/MemoryManager';
 
+// Type definitions for test mocks
+interface MemoryInfo {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit: number;
+}
+
+interface PerformanceWithMemory {
+  memory?: MemoryInfo;
+}
+
+interface WindowWithGC {
+  gc?: jest.Mock;
+  performance?: PerformanceWithMemory;
+}
+
+interface GlobalWithPerformance extends Global {
+  performance?: PerformanceWithMemory;
+  window?: WindowWithGC;
+}
+
+declare const global: GlobalWithPerformance;
+
 // Mock performance.memory API
 Object.defineProperty(global, 'performance', {
   value: {
@@ -73,8 +96,8 @@ describe('MemoryManager', () => {
     jest.useRealTimers();
 
     // Clean up mocks
-    delete (global as any).performance;
-    delete (global as any).window;
+    delete global.performance;
+    delete global.window;
   });
 
   describe('Initialization', () => {
@@ -106,7 +129,7 @@ describe('MemoryManager', () => {
 
     it('should return null when memory API not available', () => {
       const originalPerformance = global.performance;
-      delete (global as any).performance;
+      delete global.performance;
       
       const metrics = manager.getCurrentMetrics();
       expect(metrics).toBeNull();
@@ -116,11 +139,13 @@ describe('MemoryManager', () => {
 
     it('should calculate usage percentage correctly', () => {
       // Mock different memory values
-      (global.performance as any).memory = {
-        usedJSHeapSize: 100000000,
-        totalJSHeapSize: 150000000,
-        jsHeapSizeLimit: 200000000
-      };
+      if (global.performance) {
+        global.performance.memory = {
+          usedJSHeapSize: 100000000,
+          totalJSHeapSize: 150000000,
+          jsHeapSizeLimit: 200000000
+        };
+      }
 
       const metrics = manager.getCurrentMetrics();
       expect(metrics?.usagePercentage).toBe(50); // 100MB / 200MB = 50%
@@ -221,7 +246,7 @@ describe('MemoryManager', () => {
     });
 
     it('should force garbage collection when available', () => {
-      const gcSpy = jest.spyOn((global.window as any), 'gc');
+      const gcSpy = jest.spyOn(global.window?.gc as jest.Mock, 'mockImplementation');
       
       manager.triggerCleanup();
       
@@ -229,20 +254,22 @@ describe('MemoryManager', () => {
     });
 
     it('should handle garbage collection errors', () => {
-      const gcSpy = jest.spyOn((global.window as any), 'gc').mockImplementation(() => {
-        throw new Error('GC error');
-      });
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
-      
-      manager.triggerCleanup();
-      
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to force garbage collection:',
-        expect.any(Error)
-      );
-      
-      gcSpy.mockRestore();
-      consoleSpy.mockRestore();
+      if (global.window?.gc) {
+        const gcSpy = jest.spyOn(global.window.gc as jest.Mock, 'mockImplementation').mockImplementation(() => {
+          throw new Error('GC error');
+        });
+        const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+        
+        manager.triggerCleanup();
+        
+        expect(consoleSpy).toHaveBeenCalledWith(
+          'Failed to force garbage collection:',
+          expect.any(Error)
+        );
+        
+        gcSpy.mockRestore();
+        consoleSpy.mockRestore();
+      }
     });
   });
 
@@ -320,14 +347,14 @@ describe('MemoryManager', () => {
     it('should detect increasing trend', () => {
       // Simulate increasing memory usage
       const metrics = [
-        { usagePercentage: 50, timestamp: Date.now() },
-        { usagePercentage: 55, timestamp: Date.now() + 1000 },
-        { usagePercentage: 60, timestamp: Date.now() + 2000 },
-        { usagePercentage: 65, timestamp: Date.now() + 3000 }
+        { usagePercentage: 50, timestamp: Date.now(), usedJSHeapSize: 50000000, totalJSHeapSize: 100000000, jsHeapSizeLimit: 200000000 },
+        { usagePercentage: 55, timestamp: Date.now() + 1000, usedJSHeapSize: 55000000, totalJSHeapSize: 100000000, jsHeapSizeLimit: 200000000 },
+        { usagePercentage: 60, timestamp: Date.now() + 2000, usedJSHeapSize: 60000000, totalJSHeapSize: 100000000, jsHeapSizeLimit: 200000000 },
+        { usagePercentage: 65, timestamp: Date.now() + 3000, usedJSHeapSize: 65000000, totalJSHeapSize: 100000000, jsHeapSizeLimit: 200000000 }
       ];
 
       // Mock the metrics history
-      jest.spyOn(manager, 'getMetricsHistory').mockReturnValue(metrics as any);
+      jest.spyOn(manager, 'getMetricsHistory').mockReturnValue(metrics);
 
       const trend = manager.getUsageTrend(4);
       
@@ -338,13 +365,13 @@ describe('MemoryManager', () => {
 
     it('should detect decreasing trend', () => {
       const metrics = [
-        { usagePercentage: 70, timestamp: Date.now() },
-        { usagePercentage: 65, timestamp: Date.now() + 1000 },
-        { usagePercentage: 60, timestamp: Date.now() + 2000 },
-        { usagePercentage: 55, timestamp: Date.now() + 3000 }
+        { usagePercentage: 70, timestamp: Date.now(), usedJSHeapSize: 70000000, totalJSHeapSize: 100000000, jsHeapSizeLimit: 200000000 },
+        { usagePercentage: 65, timestamp: Date.now() + 1000, usedJSHeapSize: 65000000, totalJSHeapSize: 100000000, jsHeapSizeLimit: 200000000 },
+        { usagePercentage: 60, timestamp: Date.now() + 2000, usedJSHeapSize: 60000000, totalJSHeapSize: 100000000, jsHeapSizeLimit: 200000000 },
+        { usagePercentage: 55, timestamp: Date.now() + 3000, usedJSHeapSize: 55000000, totalJSHeapSize: 100000000, jsHeapSizeLimit: 200000000 }
       ];
 
-      jest.spyOn(manager, 'getMetricsHistory').mockReturnValue(metrics as any);
+      jest.spyOn(manager, 'getMetricsHistory').mockReturnValue(metrics);
 
       const trend = manager.getUsageTrend(4);
       
@@ -354,13 +381,13 @@ describe('MemoryManager', () => {
 
     it('should detect stable trend', () => {
       const metrics = [
-        { usagePercentage: 50, timestamp: Date.now() },
-        { usagePercentage: 50.2, timestamp: Date.now() + 1000 },
-        { usagePercentage: 49.8, timestamp: Date.now() + 2000 },
-        { usagePercentage: 50.1, timestamp: Date.now() + 3000 }
+        { usagePercentage: 50, timestamp: Date.now(), usedJSHeapSize: 50000000, totalJSHeapSize: 100000000, jsHeapSizeLimit: 200000000 },
+        { usagePercentage: 50.2, timestamp: Date.now() + 1000, usedJSHeapSize: 50200000, totalJSHeapSize: 100000000, jsHeapSizeLimit: 200000000 },
+        { usagePercentage: 49.8, timestamp: Date.now() + 2000, usedJSHeapSize: 49800000, totalJSHeapSize: 100000000, jsHeapSizeLimit: 200000000 },
+        { usagePercentage: 50.1, timestamp: Date.now() + 3000, usedJSHeapSize: 50100000, totalJSHeapSize: 100000000, jsHeapSizeLimit: 200000000 }
       ];
 
-      jest.spyOn(manager, 'getMetricsHistory').mockReturnValue(metrics as any);
+      jest.spyOn(manager, 'getMetricsHistory').mockReturnValue(metrics);
 
       const trend = manager.getUsageTrend(4);
       
@@ -384,10 +411,13 @@ describe('MemoryManager', () => {
       // Simulate consistent memory growth
       const metrics = Array.from({ length: 20 }, (_, i) => ({
         usagePercentage: 30 + i * 2, // Increasing from 30% to 68%
-        timestamp: Date.now() + i * 1000
+        timestamp: Date.now() + i * 1000,
+        usedJSHeapSize: 30000000 + i * 2000000,
+        totalJSHeapSize: 100000000,
+        jsHeapSizeLimit: 200000000
       }));
 
-      jest.spyOn(manager, 'getMetricsHistory').mockReturnValue(metrics as any);
+      jest.spyOn(manager, 'getMetricsHistory').mockReturnValue(metrics);
 
       const detection = manager.detectMemoryLeaks();
       
@@ -399,10 +429,13 @@ describe('MemoryManager', () => {
     it('should not detect leaks with stable memory', () => {
       const metrics = Array.from({ length: 20 }, (_, i) => ({
         usagePercentage: 50 + (Math.random() - 0.5) * 2, // Stable around 50%
-        timestamp: Date.now() + i * 1000
+        timestamp: Date.now() + i * 1000,
+        usedJSHeapSize: 50000000 + (Math.random() - 0.5) * 2000000,
+        totalJSHeapSize: 100000000,
+        jsHeapSizeLimit: 200000000
       }));
 
-      jest.spyOn(manager, 'getMetricsHistory').mockReturnValue(metrics as any);
+      jest.spyOn(manager, 'getMetricsHistory').mockReturnValue(metrics);
 
       const detection = manager.detectMemoryLeaks();
       
@@ -413,10 +446,13 @@ describe('MemoryManager', () => {
     it('should handle insufficient data for leak detection', () => {
       const metrics = Array.from({ length: 5 }, (_, i) => ({
         usagePercentage: 50,
-        timestamp: Date.now() + i * 1000
+        timestamp: Date.now() + i * 1000,
+        usedJSHeapSize: 50000000,
+        totalJSHeapSize: 100000000,
+        jsHeapSizeLimit: 200000000
       }));
 
-      jest.spyOn(manager, 'getMetricsHistory').mockReturnValue(metrics as any);
+      jest.spyOn(manager, 'getMetricsHistory').mockReturnValue(metrics);
 
       const detection = manager.detectMemoryLeaks();
       
@@ -504,11 +540,13 @@ describe('MemoryManager', () => {
       const cleanupSpy = jest.spyOn(manager, 'triggerCleanup');
       
       // Mock high memory usage
-      (global.performance as any).memory = {
-        usedJSHeapSize: 180000000,
-        totalJSHeapSize: 190000000,
-        jsHeapSizeLimit: 200000000 // 90% usage
-      };
+      if (global.performance) {
+        global.performance.memory = {
+          usedJSHeapSize: 180000000,
+          totalJSHeapSize: 190000000,
+          jsHeapSizeLimit: 200000000 // 90% usage
+        };
+      }
 
       const monitoringManager = new MemoryManager({
         enableMonitoring: true,

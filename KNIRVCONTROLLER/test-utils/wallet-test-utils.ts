@@ -460,7 +460,7 @@ export class SyncTestUtils {
   static validateSyncSession(session: any) {
     const requiredFields = ['sessionId', 'mobileDeviceId', 'browserInstanceId', 'encryptionKey'];
     const missingFields = requiredFields.filter(field => !session[field]);
-    
+
     if (missingFields.length > 0) {
       throw new Error(`Sync session missing required fields: ${missingFields.join(', ')}`);
     }
@@ -470,5 +470,19 @@ export class SyncTestUtils {
     }
 
     return true;
+  }
+
+  // Method to get test wallet configurations
+  static getTestWalletConfigs() {
+    return TEST_WALLET_CONFIGS;
+  }
+
+  // Method to create wallet with test configuration
+  static createWalletWithTestConfig(configIndex: number = 0) {
+    const configs = TEST_WALLET_CONFIGS;
+    if (configIndex >= configs.length) {
+      throw new Error(`Test config index ${configIndex} out of range`);
+    }
+    return configs[configIndex];
   }
 }

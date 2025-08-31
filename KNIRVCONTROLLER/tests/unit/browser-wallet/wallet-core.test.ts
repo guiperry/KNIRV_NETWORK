@@ -1,15 +1,16 @@
 // Comprehensive Unit Tests for KNIRVWALLET Browser Module - Core Wallet Functionality
 import { KnirvWallet } from '../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/wallet/wallet';
 import { MockLedgerConnector } from '../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/test-utils/mock-ledgerconnector';
-import { 
-  TEST_MNEMONICS, 
-  TEST_PRIVATE_KEYS, 
-  TEST_ADDRESSES,
-  TEST_WALLET_CONFIGS 
+import {
+  TEST_MNEMONICS,
+  TEST_PRIVATE_KEYS,
+  TEST_ADDRESSES
 } from '../../../test-utils/test-data';
 import { WalletTestFactory } from '../../../test-utils/wallet-test-utils';
 
 describe('KnirvWallet Core Functionality', () => {
+  // walletFactory is declared but not used in current tests
+  // Keeping it for potential future use
   let walletFactory: WalletTestFactory;
 
   beforeEach(() => {
@@ -30,11 +31,20 @@ describe('KnirvWallet Core Functionality', () => {
 
       it('should create wallet from valid 24-word mnemonic', async () => {
         const wallet = await KnirvWallet.createByMnemonic(TEST_MNEMONICS.VALID_24_WORD);
-        
+
         expect(wallet).toBeDefined();
         expect(wallet.accounts).toHaveLength(1);
         expect(wallet.keyrings).toHaveLength(1);
         expect(wallet.getMnemonic()).toBe(TEST_MNEMONICS.VALID_24_WORD);
+      });
+
+      it('should create wallet using wallet factory', async () => {
+        const wallet = await walletFactory.createTestWallet();
+
+        expect(wallet).toBeDefined();
+        expect(wallet.accounts).toHaveLength(1);
+        expect(wallet.keyrings).toHaveLength(1);
+        expect(wallet.currentAccountId).toBeDefined();
       });
 
       it('should create wallet with multiple derivation paths', async () => {
@@ -321,10 +331,10 @@ describe('KnirvWallet Core Functionality', () => {
     });
 
     it('should handle null/undefined inputs gracefully', async () => {
-      await expect(KnirvWallet.createByMnemonic(null as any))
+      await expect(KnirvWallet.createByMnemonic(null as unknown as string))
         .rejects.toThrow();
       
-      await expect(KnirvWallet.createByMnemonic(undefined as any))
+      await expect(KnirvWallet.createByMnemonic(undefined as unknown as string))
         .rejects.toThrow();
     });
 

@@ -8,9 +8,21 @@ Welcome to the KNIRV Network documentation. This comprehensive guide provides in
 
 * [User Guides](guides/README.md) - User guide for KNIRVGATEWAY
 
+### API Reference
+
+* [API Documentation](api/README.md) - API documentation for the KNIRV Network
+
+### Architecture
+
+* [Architecture Documentation](architecture/README.md) - Architecture documentation for the KNIRV Network
+
 ### Deployment
 
 * [Deployment Guides](deployment/README.md) - User guide for KNIRVTESTNET
+
+### Troubleshooting
+
+* [Troubleshooting Guide](troubleshooting/README.md) - Troubleshooting guide for common issues
 
 ### KNIRVCHAIN Documentation
 
@@ -36,11 +48,15 @@ Welcome to the KNIRV Network documentation. This comprehensive guide provides in
 
 * [KNIRVSDK User Guide](knirvsdk/README.md) - User guide for KNIRVSDK
 
+### KNIRVWALLET Documentation
+
+* [KNIRVWALLET User Guide](knirvwallet/README.md) - User guide for KNIRVWALLET
+
 ## 📄 Technical Whitepapers
 
 The KNIRV Network consists of multiple interconnected components, each with detailed technical specifications:
 
-* [📚 **View All Whitepapers**](whitepapers/) - Complete collection of technical whitepapers
+* [📚 **View All Whitepapers**](whitepapers/README.md) - Complete collection of technical whitepapers
 
 The whitepapers provide in-depth technical details about each component of the KNIRV D-TEN, including architecture, consensus mechanisms, and implementation specifications.
 
@@ -50,8 +66,9 @@ We're building an open source developer community around the KNIRV Network. If y
 
 
 
-<div class="footer-links">
-<a href="#/legal/CODE_OF_CONDUCT.md" class="footer-link">Contributor Covenant Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY.md" class="footer-link">PRIVACY_POLICY.md</a> | <a href="#/legal/TERMS_AND_CONDITIONS.md" class="footer-link">TERMS AND CONDITIONS</a>
+
+---
+
+**Links:** [Code of Conduct](#/legal/CODE_OF_CONDUCT) | [Privacy Policy](#/legal/PRIVACY_POLICY) | [Terms and Conditions](#/legal/TERMS_AND_CONDITIONS)
 
 © 2025 KNIRV Network
-</div>

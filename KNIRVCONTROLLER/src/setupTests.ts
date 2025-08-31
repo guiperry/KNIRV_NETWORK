@@ -3,6 +3,10 @@
 // expect(element).toHaveTextContent(/react/i)
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
+import { setupCustomMatchers } from '../test-utils/jest-matchers';
+
+// Setup custom matchers
+setupCustomMatchers();
 
 // Mock fetch globally for all tests
 global.fetch = jest.fn();

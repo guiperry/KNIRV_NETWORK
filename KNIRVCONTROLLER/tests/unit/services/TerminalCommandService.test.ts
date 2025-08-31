@@ -2,7 +2,7 @@
  * Tests for TerminalCommandService
  */
 
-import { terminalCommandService, CommandResult } from '../../../src/services/TerminalCommandService';
+import { terminalCommandService } from '../../../src/services/TerminalCommandService';
 
 // Mock fetch globally
 global.fetch = jest.fn();

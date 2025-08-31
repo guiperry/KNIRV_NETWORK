@@ -2,7 +2,7 @@
  * Simple Skills page test
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 test.describe('Simple Skills Test', () => {
   test('should navigate to Skills page and check basic elements', async ({ page }) => {

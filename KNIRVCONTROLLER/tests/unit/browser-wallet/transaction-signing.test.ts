@@ -1,11 +1,10 @@
 // Comprehensive Unit Tests for KNIRVWALLET Browser Module - Transaction Signing
 import { KnirvWallet } from '../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/wallet/wallet';
 import { JSONRPCProvider } from '@gnolang/tm2-js-client';
-import { 
-  TEST_MNEMONICS, 
-  TEST_PRIVATE_KEYS, 
-  TEST_TRANSACTIONS,
-  TEST_ADDRESSES 
+import {
+  TEST_MNEMONICS,
+  TEST_PRIVATE_KEYS,
+  TEST_ADDRESSES
 } from '../../../test-utils/test-data';
 import { TransactionTestUtils } from '../../../test-utils/wallet-test-utils';
 
@@ -32,11 +31,15 @@ jest.mock('@gnolang/tm2-js-client', () => ({
 
 describe('KnirvWallet Transaction Signing', () => {
   let wallet: KnirvWallet;
-  let mockProvider: any;
+  let mockProvider: JSONRPCProvider;
 
   beforeEach(async () => {
     wallet = await KnirvWallet.createByMnemonic(TEST_MNEMONICS.VALID_12_WORD);
     mockProvider = new JSONRPCProvider('http://localhost:26657');
+    
+    // Verify provider connection
+    const status = await mockProvider.getStatus();
+    expect(status.node_info.network).toBe('test-network');
   });
 
   describe('Transaction Structure Validation', () => {
@@ -106,7 +109,7 @@ describe('KnirvWallet Transaction Signing', () => {
 
     it('should sign NRN burn transaction for skill invocation', async () => {
       const burnTransaction = TransactionTestUtils.createTestNRNBurnTransaction('skill-123', '1000000');
-      burnTransaction.from = wallet.accounts[0].address;
+      burnTransaction.from = wallet.accounts[0].address!;
 
       const signedTx = await wallet.signTransaction(burnTransaction);
       

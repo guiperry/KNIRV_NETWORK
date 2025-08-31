@@ -169,14 +169,14 @@ export class ModelManager extends EventEmitter {
     });
 
     // Initialize all model statuses
-    for (const [id] of this.availableModels) {
+    this.availableModels.forEach((model, id) => {
       this.modelStatuses.set(id, {
         id,
         loaded: false,
         initialized: false,
         size: 0
       });
-    }
+    });
   }
 
   /**
@@ -476,14 +476,14 @@ export class ModelManager extends EventEmitter {
    * Import model configuration
    */
   importConfiguration(config: unknown): void {
-    if (config.availableModels) {
-      for (const model of config.availableModels) {
+    if ((config as any).availableModels) {
+      for (const model of (config as any).availableModels) {
         this.registerModel(model);
       }
     }
 
-    if (config.currentModel) {
-      this.setCurrentModel(config.currentModel);
+    if ((config as any).currentModel) {
+      this.setCurrentModel((config as any).currentModel);
     }
 
     this.emit('configuration_imported', { config });

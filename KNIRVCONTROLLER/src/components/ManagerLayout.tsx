@@ -1,9 +1,10 @@
+import * as React from 'react';
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Cpu, Shield, Wallet, Mic, Brain } from 'lucide-react';
-import { EdgeColoring } from '@components/EdgeColoring';
-import { VoiceControl } from '@components/VoiceControl';
-import { useVoiceIntegration } from '@hooks/useVoiceIntegration';
+import { EdgeColoring } from './EdgeColoring';
+import { VoiceControl } from './VoiceControl';
+import { useVoiceIntegration } from '../hooks/useVoiceIntegration';
 
 interface LayoutProps {
   children: ReactNode;

@@ -268,4 +268,45 @@ describe('Error Resolution Tests', () => {
       handleError({ message: 'Object error' });
     });
   });
+
+  describe('Component Integration Tests', () => {
+    it('should render all imported components without errors', async () => {
+      // Test CognitiveShellInterface
+      const { unmount: unmountCognitive } = render(
+        <BrowserRouter>
+          <CognitiveShellInterface onStateChange={() => {}} />
+        </BrowserRouter>
+      );
+      unmountCognitive();
+
+      // Test MetaAccountDashboard
+      const { unmount: unmountMeta } = render(
+        <BrowserRouter>
+          <MetaAccountDashboard />
+        </BrowserRouter>
+      );
+      unmountMeta();
+
+      // Test UnifiedInterface
+      const { unmount: unmountUnified } = render(
+        <BrowserRouter>
+          <UnifiedInterface />
+        </BrowserRouter>
+      );
+      unmountUnified();
+
+      // Test App component
+      const { unmount: unmountApp } = render(
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      );
+
+      await waitFor(() => {
+        expect(document.body).toBeInTheDocument();
+      });
+
+      unmountApp();
+    });
+  });
 });

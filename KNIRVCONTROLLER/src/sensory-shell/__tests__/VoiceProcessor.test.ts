@@ -50,8 +50,8 @@ describe('VoiceProcessor', () => {
     jest.clearAllMocks();
     
     // Mock AudioContext
-    (global as any).AudioContext = jest.fn(() => mockAudioContext);
-    (global as any).webkitAudioContext = jest.fn(() => mockAudioContext);
+    (global as { AudioContext?: unknown; webkitAudioContext?: unknown }).AudioContext = jest.fn(() => mockAudioContext);
+    (global as { AudioContext?: unknown; webkitAudioContext?: unknown }).webkitAudioContext = jest.fn(() => mockAudioContext);
     
     // Mock getUserMedia
     Object.defineProperty(navigator, 'mediaDevices', {
@@ -65,7 +65,7 @@ describe('VoiceProcessor', () => {
     });
 
     // Mock MediaRecorder
-    (global as any).MediaRecorder = jest.fn().mockImplementation(() => ({
+    (global as { MediaRecorder?: unknown }).MediaRecorder = jest.fn().mockImplementation(() => ({
       start: jest.fn(),
       stop: jest.fn(),
       pause: jest.fn(),
@@ -84,7 +84,7 @@ describe('VoiceProcessor', () => {
     }));
 
     // Mock MediaRecorder.isTypeSupported
-    (global as any).MediaRecorder.isTypeSupported = jest.fn(() => true);
+    (global as { MediaRecorder?: { isTypeSupported?: unknown } }).MediaRecorder!.isTypeSupported = jest.fn(() => true);
 
     voiceProcessor = new VoiceProcessor();
   });
@@ -120,7 +120,7 @@ describe('VoiceProcessor', () => {
       // Mock the getUserMedia to resolve successfully
       navigator.mediaDevices.getUserMedia = jest.fn().mockResolvedValue({
         getTracks: () => [{ stop: jest.fn() }]
-      } as any);
+      } as MediaStream);
 
       await voiceProcessor.start();
 
@@ -164,7 +164,7 @@ describe('VoiceProcessor', () => {
       // First start the voice processor to initialize MediaRecorder
       navigator.mediaDevices.getUserMedia = jest.fn().mockResolvedValue({
         getTracks: () => [{ stop: jest.fn() }]
-      } as any);
+      } as MediaStream);
 
       await voiceProcessor.start();
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -172,7 +172,7 @@ describe('VoiceProcessor', () => {
       voiceProcessor.startRecording();
 
       // Simulate MediaRecorder onstart event
-      const mockMediaRecorder = (global.MediaRecorder as any).mock.results[0].value;
+      const mockMediaRecorder = (global.MediaRecorder as jest.MockedClass<typeof MediaRecorder>).mock.results[0].value;
       if (mockMediaRecorder.onstart) {
         mockMediaRecorder.onstart();
       }
@@ -226,7 +226,7 @@ describe('VoiceProcessor', () => {
     it('should start and stop voice processing', async () => {
       navigator.mediaDevices.getUserMedia = jest.fn().mockResolvedValue({
         getTracks: () => [{ stop: jest.fn() }]
-      } as any);
+      } as MediaStream);
 
       await voiceProcessor.start();
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -342,7 +342,7 @@ describe('VoiceProcessor', () => {
       // Mock getUserMedia
       navigator.mediaDevices.getUserMedia = jest.fn().mockResolvedValue({
         getTracks: () => [{ stop: jest.fn() }]
-      } as any);
+      } as MediaStream);
 
       // Start voice processing to trigger events
       await voiceProcessor.start();
@@ -388,7 +388,7 @@ describe('VoiceProcessor', () => {
       const mockTrack = { stop: jest.fn() };
       navigator.mediaDevices.getUserMedia = jest.fn().mockResolvedValue({
         getTracks: () => [mockTrack]
-      } as any);
+      } as MediaStream);
 
       await voiceProcessor.start();
       await new Promise(resolve => setTimeout(resolve, 10));

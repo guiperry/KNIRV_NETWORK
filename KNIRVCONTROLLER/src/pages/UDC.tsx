@@ -1,11 +1,11 @@
 import { Shield, Key, CheckCircle, AlertTriangle, RefreshCw, Wallet, Clock, Zap} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { SlidingPanel } from '@components/SlidingPanel';
-import { NetworkStatus } from '@components/NetworkStatus';
-import { AgentManager } from '@components/AgentManager';
-import { CognitiveShellInterface } from '@components/CognitiveShellInterface';
-import QRScanner from '@components/QRScanner';
+import { SlidingPanel } from '../components/SlidingPanel';
+import { NetworkStatus } from '../components/NetworkStatus';
+import { AgentManager } from '../components/AgentManager';
+import { CognitiveShellInterface } from '../components/CognitiveShellInterface';
+import QRScanner from '../components/QRScanner';
 
 export default function UDC() {
   const navigate = useNavigate();
@@ -24,11 +24,11 @@ export default function UDC() {
 
   const [availableAgents] = useState([
     {
-      id: 'agent-1',
+      agentId: 'agent-1',
       name: 'CodeT5-Alpha',
+      version: '1.0.0',
       type: 'wasm' as const,
       status: 'Available' as const,
-      specialization: ['code-generation', 'optimization'],
       nrnCost: 85,
       capabilities: ['code-generation', 'optimization'],
       metadata: {
@@ -44,14 +44,14 @@ export default function UDC() {
         },
         permissions: ['execute', 'read', 'write']
       },
-      createdAt: new Date('2024-01-01')
+      createdAt: '2024-01-01T00:00:00.000Z'
     },
     {
-      id: 'agent-2',
+      agentId: 'agent-2',
       name: 'SEAL-Beta',
+      version: '1.0.0',
       type: 'wasm' as const,
       status: 'Available' as const,
-      specialization: ['learning', 'adaptation'],
       nrnCost: 90,
       capabilities: ['learning', 'adaptation'],
       metadata: {
@@ -67,7 +67,7 @@ export default function UDC() {
         },
         permissions: ['execute', 'read', 'write']
       },
-      createdAt: new Date('2024-01-02')
+      createdAt: '2024-01-02T00:00:00.000Z'
     }
   ]);
 

@@ -294,7 +294,7 @@ export class VisualProcessor extends EventEmitter {
           sceneType: 'unknown',
           confidence: 0,
           objects: [],
-          lighting: 'unknown' as any,
+          lighting: 'unknown' as 'bright' | 'dim' | 'natural' | 'artificial' | 'unknown',
           setting: 'unknown',
           mood: 'neutral',
           complexity: 0,
@@ -465,7 +465,7 @@ export class VisualProcessor extends EventEmitter {
   }
 
   private async processFrame(imageData: ImageData): Promise<void> {
-    const tasks: Promise<any>[] = [];
+    const tasks: Promise<unknown>[] = [];
 
     // Object detection
     if (this.config.objectDetection && this.objectDetectionModel) {
@@ -494,7 +494,7 @@ export class VisualProcessor extends EventEmitter {
     if (!this.objectDetectionModel) return;
 
     try {
-      const objects = await this.objectDetectionModel.detect(imageData);
+      const objects = await (this.objectDetectionModel as { detect: (data: ImageData) => Promise<unknown> }).detect(imageData);
       
       if (objects.length > 0) {
         this.emit('objectDetected', objects);
@@ -508,7 +508,7 @@ export class VisualProcessor extends EventEmitter {
     if (!this.gestureRecognizer) return [];
 
     try {
-      const gestures = await this.gestureRecognizer.recognize(imageData);
+      const gestures = await (this.gestureRecognizer as { recognize: (data: ImageData) => Promise<unknown> }).recognize(imageData);
 
       for (const gesture of gestures) {
         this.emit('gestureRecognized', gesture);
@@ -704,7 +704,7 @@ export class VisualProcessor extends EventEmitter {
 
     try {
       // Resize image to model input size
-      const resized = tf.image.resizeBilinear(image as any, [224, 224]);
+      const resized = tf.image.resizeBilinear(image as tf.Tensor3D, [224, 224]);
       const batched = resized.expandDims(0);
 
       // Run inference
@@ -754,7 +754,7 @@ export class VisualProcessor extends EventEmitter {
 
     try {
       // Resize image to model input size
-      const resized = tf.image.resizeBilinear(image as any, [224, 224]);
+      const resized = tf.image.resizeBilinear(image as tf.Tensor3D, [224, 224]);
       const batched = resized.expandDims(0);
 
       // Run inference
@@ -841,7 +841,7 @@ export class VisualProcessor extends EventEmitter {
 
     try {
       // Resize image to model input size
-      const resized = tf.image.resizeBilinear(image as any, [224, 224]);
+      const resized = tf.image.resizeBilinear(image as tf.Tensor3D, [224, 224]);
       const batched = resized.expandDims(0);
 
       // Run inference
@@ -948,10 +948,10 @@ export class VisualProcessor extends EventEmitter {
     this.isInitialized = false;
 
     // Dispose all models
-    for (const [name, model] of this.models) {
+    this.models.forEach((model, name) => {
       model.dispose();
       console.log(`Disposed model: ${name}`);
-    }
+    });
 
     this.models.clear();
     this.processingQueue.length = 0;

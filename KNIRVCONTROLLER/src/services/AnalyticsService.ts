@@ -15,7 +15,7 @@ export interface AnalyticsMetric {
   unit: string;
   timestamp: Date;
   category: 'performance' | 'usage' | 'system' | 'agent' | 'wallet';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface DashboardStats {
@@ -561,7 +561,7 @@ export class AnalyticsService {
     return `metric_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  private convertToCSV(data: any): string {
+  private convertToCSV(data: { metrics: Record<string, AnalyticsMetric[]> }): string {
     // Simple CSV conversion - would be more sophisticated in production
     const lines = ['timestamp,category,name,value,unit'];
     

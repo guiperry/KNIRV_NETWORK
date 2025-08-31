@@ -294,7 +294,7 @@ The KNIRV-NEXUS DVE layer will continuously evolve to meet the growing demands f
 The KNIRV-NEXUS DVE layer is an indispensable component of the KNIRV D-TEN, serving as the crucible of verifiable AI intelligence. By embodying the Cognitive Logistic Execution Adaptability Network (CLEAN) paradigm, with its unique hardened Kali Linux and GoLang implementation, KNIRV-NEXUS DVEs provide secure, deterministic, and cryptographically attested execution environments. Their integrated Cognitive Engine and Adaptability Orchestrator enable real-time, intelligent adjustment to workloads and threats. This ensures the integrity of SkillNode validation and the continuous, trustworthy evolution of the Base LLM on KNIRVCHAIN. Secured by NRN token staking on KNIRV-ORACLE and incentivized through a robust economic model, KNIRV-NEXUS DVEs empower KNIRV-SHELL agents to contribute to the collective intelligence with unprecedented levels of trust and reliability. They are fundamental to realizing the vision of a truly self-improving, secure, and decentralized AI ecosystem.
 
 <div class="footer-links">
-<a href="#/legal/CODE_OF_CONDUCT.md" class="footer-link">Contributor Covenant Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY.md" class="footer-link">PRIVACY_POLICY.md</a> | <a href="#/legal/TERMS_AND_CONDITIONS.md" class="footer-link">TERMS AND CONDITIONS</a>
+<a href="#/legal/CODE_OF_CONDUCT" class="footer-link">Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY" class="footer-link">Privacy Policy</a> | <a href="#/legal/TERMS_AND_CONDITIONS" class="footer-link">Terms and Conditions</a>
 
 © 2025 KNIRV Network
 </div>

@@ -15,7 +15,6 @@ import {
 import { 
   MnemonicTestUtils,
   PrivateKeyTestUtils,
-  EncryptionTestUtils,
   SignatureTestUtils,
   KeyDerivationTestUtils,
   CryptoTestSuite
@@ -345,9 +344,9 @@ describe('KnirvWallet Cryptographic Operations', () => {
 
   describe('Error Handling and Edge Cases', () => {
     it('should handle null/undefined inputs gracefully', async () => {
-      await expect(encryptAES(null as any, 'password')).rejects.toThrow();
-      await expect(encryptAES('data', null as any)).rejects.toThrow();
-      await expect(decryptAES(null as any, 'password')).rejects.toThrow();
+      await expect(encryptAES(null as unknown as string, 'password')).rejects.toThrow();
+      await expect(encryptAES('data', null as unknown as string)).rejects.toThrow();
+      await expect(decryptAES(null as unknown as string, 'password')).rejects.toThrow();
     });
 
     it('should handle empty password gracefully', async () => {
@@ -372,7 +371,14 @@ describe('KnirvWallet Cryptographic Operations', () => {
         }
       };
       
-      await expect(executeKdf('salt', 'password', invalidConfig as any))
+      await expect(executeKdf('salt', 'password', invalidConfig as unknown as {
+        algorithm: string;
+        params: {
+          outputLength: number;
+          opsLimit: number;
+          memLimitKib: number;
+        };
+      }))
         .rejects.toThrow();
     });
   });

@@ -111,7 +111,7 @@ export class HRMLoRABridge extends EventEmitter {
     console.log('Initializing HRM-LoRA weight mappings...');
 
     // Get HRM model information
-    const hrmModelInfo = this.hrmBridge.getModelInfo();
+    const hrmModelInfo = (this.hrmBridge as { getModelInfo?: () => unknown }).getModelInfo?.();
     if (!hrmModelInfo) {
       console.warn('HRM model info not available, using default mappings');
       this.createDefaultMappings();
@@ -155,7 +155,7 @@ export class HRMLoRABridge extends EventEmitter {
     console.log('Creating intelligent HRM-LoRA mappings based on model structure...');
 
     // Map L-modules (sensory-motor) to early LoRA layers
-    for (let i = 0; i < Math.min(hrmModelInfo.l_modules || 0, 2); i++) {
+    for (let i = 0; i < Math.min((hrmModelInfo as { l_modules?: number }).l_modules || 0, 2); i++) {
       this.addMapping({
         hrmLayerName: `l_module_${i}`,
         loraModuleName: i === 0 ? 'base_hidden_1' : 'base_hidden_2',
@@ -165,7 +165,7 @@ export class HRMLoRABridge extends EventEmitter {
     }
 
     // Map H-modules (planning) to later LoRA layers
-    for (let i = 0; i < Math.min(hrmModelInfo.h_modules || 0, 2); i++) {
+    for (let i = 0; i < Math.min((hrmModelInfo as { h_modules?: number }).h_modules || 0, 2); i++) {
       this.addMapping({
         hrmLayerName: `h_module_${i}`,
         loraModuleName: i === 0 ? 'base_hidden_2' : 'base_output',
@@ -186,13 +186,13 @@ export class HRMLoRABridge extends EventEmitter {
   private async performWeightSync(): Promise<void> {
     try {
       // Get current HRM activations and weights
-      const hrmModelInfo = this.hrmBridge.getModelInfo();
+      const hrmModelInfo = (this.hrmBridge as { getModelInfo?: () => unknown }).getModelInfo?.();
       if (!hrmModelInfo) return;
 
       // Sync weights for each mapping
-      for (const [, mapping] of this.mappings) {
+      this.mappings.forEach(async (mapping) => {
         await this.syncWeightsForMapping(mapping);
-      }
+      });
 
       this.emit('weightsSynced', {
         timestamp: new Date(),
@@ -215,7 +215,7 @@ export class HRMLoRABridge extends EventEmitter {
       }
 
       // Get current LoRA weights
-      const loraWeights = this.enhancedLoraAdapter.exportWeights();
+      const loraWeights = (this.enhancedLoraAdapter as { exportWeights?: () => Record<string, unknown> }).exportWeights?.() || {};
       const moduleWeights = loraWeights[mapping.loraModuleName];
       
       if (!moduleWeights) return;
@@ -231,7 +231,7 @@ export class HRMLoRABridge extends EventEmitter {
       const updatedWeights = { ...loraWeights };
       updatedWeights[mapping.loraModuleName] = adaptedWeights;
       
-      await this.enhancedLoraAdapter.importWeights(updatedWeights);
+      await (this.enhancedLoraAdapter as { importWeights?: (weights: Record<string, unknown>) => Promise<void> }).importWeights?.(updatedWeights);
 
       this.emit('mappingSynced', {
         mapping,
@@ -286,7 +286,7 @@ export class HRMLoRABridge extends EventEmitter {
         task_type: 'weight_sync',
       };
 
-      return await this.hrmBridge.processCognitiveInput(dummyInput);
+      return await (this.hrmBridge as { processCognitiveInput?: (input: unknown) => Promise<unknown> }).processCognitiveInput?.(dummyInput);
 
     } catch (error) {
       console.error('Error getting recent HRM processing:', error);
@@ -325,12 +325,13 @@ export class HRMLoRABridge extends EventEmitter {
 
   private applyDirectAdaptation(weights: unknown, adaptation: number): unknown {
     // Direct scaling of weights
+    const weightsAny = weights as Record<string, unknown>;
     return {
-      ...weights,
-      A: weights.A.map((row: number[]) => 
+      ...(typeof weights === 'object' && weights !== null ? weights as Record<string, unknown> : {}),
+      A: weightsAny.A.map((row: number[]) =>
         row.map((val: number) => val * (1 + adaptation))
       ),
-      B: weights.B.map((row: number[]) => 
+      B: weightsAny.B.map((row: number[]) =>
         row.map((val: number) => val * (1 + adaptation))
       ),
     };
@@ -338,14 +339,15 @@ export class HRMLoRABridge extends EventEmitter {
 
   private applyProjectionAdaptation(weights: unknown, adaptation: number): unknown {
     // Apply adaptation through projection matrix
+    const weightsAny = weights as Record<string, unknown>;
     return {
-      ...weights,
-      A: weights.A.map((row: number[], i: number) => 
-        row.map((val: number, j: number) => 
+      ...(typeof weights === 'object' && weights !== null ? weights as Record<string, unknown> : {}),
+      A: weightsAny.A.map((row: number[], i: number) =>
+        row.map((val: number, j: number) =>
           val + (adaptation * Math.sin(i + j) * 0.1)
         )
       ),
-      scaling: weights.scaling * (1 + adaptation * 0.1),
+      scaling: weightsAny.scaling * (1 + adaptation * 0.1),
     };
   }
 
@@ -353,9 +355,10 @@ export class HRMLoRABridge extends EventEmitter {
     // Apply attention-based adaptation
     const attentionFactor = Math.tanh(adaptation);
     
+    const weightsAny = weights as Record<string, unknown>;
     return {
-      ...weights,
-      B: weights.B.map((row: number[], i: number) => 
+      ...(typeof weights === 'object' && weights !== null ? weights as Record<string, unknown> : {}),
+      B: weightsAny.B.map((row: number[], i: number) =>
         row.map((val: number, j: number) => {
           const attention = Math.exp(-(i - j) * (i - j) / (2 * 4)); // Gaussian attention
           return val + (attentionFactor * attention * 0.05);
@@ -365,9 +368,9 @@ export class HRMLoRABridge extends EventEmitter {
   }
 
   private disposeCachedWeights(): void {
-    for (const [, tensor] of this.hrmWeightCache) {
+    this.hrmWeightCache.forEach((tensor) => {
       tensor.dispose();
-    }
+    });
     this.hrmWeightCache.clear();
   }
 
@@ -405,8 +408,8 @@ export class HRMLoRABridge extends EventEmitter {
     return {
       isRunning: this.isRunning,
       mappingsCount: this.mappings.size,
-      hrmBridgeReady: this.hrmBridge ? this.hrmBridge.isReady() : false,
-      loraAdapterReady: this.enhancedLoraAdapter ? this.enhancedLoraAdapter.isAdapterReady() : false,
+      hrmBridgeReady: this.hrmBridge ? (this.hrmBridge as { isReady?: () => boolean }).isReady?.() || false : false,
+      loraAdapterReady: this.enhancedLoraAdapter ? (this.enhancedLoraAdapter as { isAdapterReady?: () => boolean }).isAdapterReady?.() || false : false,
       syncConfig: this.syncConfig,
       cachedWeights: this.hrmWeightCache.size,
     };
@@ -420,10 +423,10 @@ export class HRMLoRABridge extends EventEmitter {
 
     try {
       // Process with HRM first
-      const hrmResult = await this.hrmBridge.process(data);
+      const hrmResult = await (this.hrmBridge as { process?: (data: unknown) => Promise<unknown> }).process?.(data);
 
       // Apply LoRA adaptation
-      const adaptedResult = await this.enhancedLoraAdapter.adapt(hrmResult, loraConfig);
+      const adaptedResult = await (this.enhancedLoraAdapter as { adapt?: (result: unknown, config: unknown) => Promise<unknown> }).adapt?.(hrmResult, loraConfig);
 
       return adaptedResult;
     } catch (error) {
@@ -444,7 +447,7 @@ export class HRMLoRABridge extends EventEmitter {
         // Convert value to tensor if it's not already one
         if (value && typeof value === 'object' && 'data' in value) {
           // Assume it's tensor-like data
-          const tensor = tf.tensor(value as any);
+          const tensor = tf.tensor(value as number[] | number[][] | number[][][] | number[][][][]);
           this.hrmWeightCache.set(key, tensor);
         } else if (Array.isArray(value)) {
           // Convert array to tensor

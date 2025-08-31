@@ -230,8 +230,9 @@ export class AgentCoreInterface extends EventEmitter {
       this.emit('tool_execution_started', { toolName, parameters });
 
       const parametersString = JSON.stringify(parameters);
+      const contextObj = typeof context === 'object' && context !== null ? context : {};
       const contextString = JSON.stringify({
-        ...context,
+        ...contextObj,
         sessionId: this.sessionId,
         timestamp: Date.now()
       });
@@ -516,12 +517,13 @@ export class AgentCoreInterface extends EventEmitter {
    * Create fallback agent core implementation for minimal WASM modules
    */
   private createFallbackAgentCore(existingCore: unknown): AgentCoreWASM {
+    const core = existingCore as any;
     return {
-      agentCoreExecute: existingCore?.agentCoreExecute || this.fallbackExecute.bind(this),
-      agentCoreExecuteTool: existingCore?.agentCoreExecuteTool || this.fallbackExecuteTool.bind(this),
-      agentCoreLoadLoRA: existingCore?.agentCoreLoadLoRA || this.fallbackLoadLoRA.bind(this),
-      agentCoreApplySkill: existingCore?.agentCoreApplySkill || this.fallbackApplySkill.bind(this),
-      agentCoreGetStatus: existingCore?.agentCoreGetStatus || this.fallbackGetStatus.bind(this)
+      agentCoreExecute: core?.agentCoreExecute || this.fallbackExecute.bind(this),
+      agentCoreExecuteTool: core?.agentCoreExecuteTool || this.fallbackExecuteTool.bind(this),
+      agentCoreLoadLoRA: core?.agentCoreLoadLoRA || this.fallbackLoadLoRA.bind(this),
+      agentCoreApplySkill: core?.agentCoreApplySkill || this.fallbackApplySkill.bind(this),
+      agentCoreGetStatus: core?.agentCoreGetStatus || this.fallbackGetStatus.bind(this)
     };
   }
 
