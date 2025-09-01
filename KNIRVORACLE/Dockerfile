@@ -1,58 +1,28 @@
-# KNIRVORACLE Production Dockerfile
+# Use the official Go image as a builder
 FROM golang:1.21-alpine AS builder
 
-# Install build dependencies
-RUN apk add --no-cache git gcc musl-dev
-
-# Set working directory
 WORKDIR /app
 
-# Copy go mod files
+# Copy go.mod and go.sum to leverage Docker layer caching
 COPY go.mod go.sum ./
-
-# Download dependencies
 RUN go mod download
 
-# Copy source code
+# Copy the source code for the oracle
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o knirvoracle .
+# Build the binary with testnet and no_webview tags for a headless server.
+# CGO_ENABLED=0 creates a static binary.
+RUN CGO_ENABLED=0 go build -tags "testnet,no_webview" -o /knirv-oracle .
 
-# Production stage
-FROM alpine:3.18
+# --- Final Stage ---
+# Use a minimal base image for the final container
+FROM alpine:latest
 
-# Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata curl
+# Copy the pre-built binary from the builder stage
+COPY --from=builder /knirv-oracle /usr/local/bin/
 
-# Create non-root user
-RUN addgroup -g 1001 -S knirvoracle && \
-    adduser -u 1001 -S knirvoracle -G knirvoracle
+# Expose the port the service runs on
+EXPOSE 1317
 
-# Set working directory
-WORKDIR /app
-
-# Copy binary from builder
-COPY --from=builder /app/knirvoracle .
-
-# Create data directory for LevelDB
-RUN mkdir -p /app/data && \
-    chown -R knirvoracle:knirvoracle /app
-
-# Switch to non-root user
-USER knirvoracle
-
-# Expose port
-EXPOSE 8083
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8083/health || exit 1
-
-# Set environment variables
-ENV KNIRV_ENV=production
-ENV KNIRV_LOG_LEVEL=info
-ENV KNIRV_DATA_DIR=/app/data
-
-# Run the application
-CMD ["./knirvoracle"]
+# Command to run the service. Arguments are passed here.
+CMD ["knirv-oracle", "--testnet", "--disable-p2p", "--port", "1317"]

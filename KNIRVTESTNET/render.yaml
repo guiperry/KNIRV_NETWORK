@@ -1,64 +1,127 @@
+# This is a Render Blueprint, which defines a multi-service application.
+# It replaces the single-service Docker deployment with a robust,
+# scalable, and maintainable architecture.
+
 services:
-  # KNIRVTESTNET Wizened Web Service
-  #
-  # DEPLOYMENT MODES:
-  # - Render.com: Uses Docker with pre-built native binaries (npm run build:render)
-  # - Local Development: Uses Podman containers (npm run build:podman && npm run podman:start)
-  #
-  # NOTE: Render.com doesn't support Podman directly, so we use Docker for cloud deployment
-  # For local Podman development setup: npm run build:podman
-  # For local Podman usage: npm run podman:start
-  # Root directory is set to KNIRVTESTNET in Render dashboard
+  # 1. The Public-Facing Testnet Gateway (Static Web Portal)
+  # This serves the main testnet landing page and web interface
   - type: web
-    name: knirvtestnet-wizened
-    runtime: docker  # Render only supports Docker, not Podman
+    name: knirv-testnet-gateway
+    runtime: docker
     plan: starter
     region: oregon
-
+    # Points to the testnet-gateway Dockerfile
+    dockerfilePath: ./KNIRVTESTNET/testnet-gateway.Dockerfile
     envVars:
-      - key: NODE_VERSION
-        value: "v18.18.0"
-      - key: WASMTIME_VERSION
-        value: v22.0.0
-      - key: KNIRV_ENV
-        value: wizened-testnet
       - key: DEPLOYMENT_ENV
         value: testnet
-      - key: TESTNET_MODE
-        value: "true"
-      - key: DEBUG_MODE
-        value: "true"
-      - key: ENABLE_CORS
-        value: "true"
-      # Service endpoints (internal to WASM module)
-      - key: KNIRVCHAIN_API
-        value: http://localhost:8080
-      - key: KNIRVGRAPH_API
-        value: http://localhost:8081
-      - key: KNIRVNEXUS_API
-        value: http://localhost:8082
+      # The URLs for the backend services now use Render's internal service names.
+      # Render automatically creates DNS records like `http://knirv-oracle:1317`.
       - key: KNIRVORACLE_API
-        value: http://localhost:1317
+        value: http://knirv-oracle:1317
+      - key: KNIRVCHAIN_API
+        value: http://knirv-chain:8090
+      - key: KNIRVGRAPH_API
+        value: http://knirv-graph:8082
+      - key: KNIRVNEXUS_API
+        value: http://knirv-nexus:8084
       - key: KNIRVROUTER_API
-        value: http://localhost:8086
+        value: http://knirv-router:8086
+      - key: POSTGRES_CONNECTION_STRING
+        fromDatabase:
+          name: knirv-postgres
+          property: connectionString
+      - key: REDIS_CONNECTION_STRING
+        fromDatabase:
+          name: knirv-redis
+          property: connectionString
 
-    # BUILD COMMANDS:
-    # - npm run build:render  → Prepare for Render deployment (verify pre-built binaries)
-    # - npm run build:podman  → Install Podman + dependencies for local development
-    # - npm run build:wizened → Build all binaries locally (run before committing)
-    #
-    # Docker build uses the Dockerfile which implements the WizenedEnvironmentGuide approach
-    # The Dockerfile expects pre-built artifacts from running build-local-release.sh locally
-
-    healthCheckPath: /health
-
-databases:
-  # PostgreSQL for NEXUS Portal and API functions
-  - name: knirvtestnet-postgres
+  # 2. KNIRV Oracle (Private Service)
+  # Not directly accessible from the internet.
+  - type: pserv # Private Service
+    name: knirv-oracle
+    runtime: docker
     plan: starter
     region: oregon
-    
-  # Redis for caching and sessions
-  - name: knirvtestnet-redis
+    # Points to the Dockerfile for this specific service
+    dockerfilePath: ./KNIRVORACLE/Dockerfile
+    # Render provides internal DNS, so we set the port it listens on
+    envVars:
+      - key: PORT
+        value: 1317
+
+  # 3. KNIRV Chain (Private Service)
+  - type: pserv
+    name: knirv-chain
+    runtime: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./KNIRVCHAIN/Dockerfile
+    envVars:
+      - key: PORT
+        value: 8090
+      - key: KNIRV_ENV
+        value: production
+      - key: RUST_LOG
+        value: info
+
+  # 4. KNIRV Graph (Private Service)
+  - type: pserv
+    name: knirv-graph
+    runtime: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./KNIRVGRAPH/Dockerfile
+    envVars:
+      - key: PORT
+        value: 8082
+      - key: KNIRV_ENV
+        value: production
+      - key: KNIRV_LOG_LEVEL
+        value: info
+
+  # 5. KNIRV Nexus (Private Service)
+  - type: pserv
+    name: knirv-nexus
+    runtime: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./KNIRVNEXUS/Dockerfile
+    envVars:
+      - key: PORT
+        value: 8084
+      - key: NEXUS_ENV
+        value: production
+      - key: NEXUS_LOG_LEVEL
+        value: info
+      - key: NEXUS_CONFIG
+        value: /opt/knirv-nexus/config/nexus.yaml
+      - key: NEXUS_DATA_DIR
+        value: /var/lib/knirv-nexus
+
+  # 6. KNIRV Router (Private Service)
+  - type: pserv
+    name: knirv-router
+    runtime: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./KNIRVROUTER/Dockerfile
+    envVars:
+      - key: PORT
+        value: 8086
+      - key: KNIRV_ENV
+        value: production
+      - key: KNIRV_LOG_LEVEL
+        value: info
+
+databases:
+  # Use Render's managed services for your databases for reliability and scalability.
+  - name: knirv-postgres
+    databaseName: knirv_testnet
+    user: knirv_user
+    plan: starter
+    region: oregon
+
+  - name: knirv-redis
     plan: starter
     region: oregon

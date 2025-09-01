@@ -1,10 +1,39 @@
-# Podman Compose Configuration for KNIRV Testnet
-# Use with: podman-compose up -d
-# Note: Podman runs rootless by default, which provides better security
-# This configuration uses pre-built binaries from the bin/ directory
+# Docker Compose Configuration for KNIRV Testnet
+# Use with: docker-compose up -d or docker compose up -d
+# This configuration uses the actual Dockerfiles for each service
 version: '3.8'
 
 services:
+  # Testnet Gateway - Main web interface
+  knirv-testnet-gateway:
+    build:
+      context: .
+      dockerfile: testnet-gateway.Dockerfile
+    container_name: knirv-testnet-gateway
+    ports:
+      - "10000:80"  # Map local 10000 to container 80 (nginx)
+    environment:
+      - DEPLOYMENT_ENV=local
+      - KNIRVORACLE_API=http://knirv-oracle:1317
+      - KNIRVCHAIN_API=http://knirv-chain:8090
+      - KNIRVGRAPH_API=http://knirv-graph:8082
+      - KNIRVNEXUS_API=http://knirv-nexus:8084
+      - KNIRVROUTER_API=http://knirv-router:8086
+    depends_on:
+      - knirv-oracle
+      - knirv-chain
+      - knirv-graph
+      - knirv-nexus
+      - knirv-router
+    networks:
+      - knirv-testnet
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # IPFS for decentralized storage
   ipfs:
     image: ipfs/kubo:latest
     container_name: knirv-testnet-ipfs
@@ -13,17 +42,13 @@ services:
       - "8080:8080"  # IPFS Gateway
       - "4001:4001"  # IPFS Swarm
     volumes:
-      - ./data/ipfs:/data/ipfs:Z  # :Z for SELinux compatibility
+      - ./data/ipfs:/data/ipfs
     environment:
       - IPFS_PROFILE=server
       - IPFS_PATH=/data/ipfs
-      # KNIRV-specific IPFS configuration
       - IPFS_LOGGING=info
     networks:
       - knirv-testnet
-    # Podman-specific: ensure proper user mapping for rootless containers
-    userns_mode: "keep-id"
-    # Custom initialization for KNIRV network
     command: >
       sh -c "
         if [ ! -f /data/ipfs/config ]; then
@@ -40,148 +65,140 @@ services:
         exec ipfs daemon --migrate=true --agent-version-suffix=knirv-testnet
       "
 
-  knirvoracle:
-    image: ubuntu:22.04
-    container_name: knirv-testnet-oracle
+  # KNIRV Oracle - Blockchain and oracle service
+  knirv-oracle:
+    build:
+      context: ../KNIRVORACLE
+      dockerfile: Dockerfile
+    container_name: knirv-oracle
     ports:
       - "1317:1317"
-      - "26657:26657"
-      - "26656:26656"
-    volumes:
-      - ./bin/knirvoracle:/usr/local/bin/knirvoracle:Z
-      - ./data/knirvoracle:/app/data:Z
-      - ./config/knirvoracle-config.yaml:/app/config.yaml:Z
+    environment:
+      - PORT=1317
+      - KNIRV_ENV=production
     depends_on:
       - ipfs
     networks:
       - knirv-testnet
-    environment:
-      - KNIRV_NETWORK=testnet
-      - KNIRV_CHAIN_ID=knirv-testnet-1
-    userns_mode: "keep-id"
-    working_dir: /app
-    command: ["/usr/local/bin/knirvoracle", "--config", "/app/config.yaml"]
+    volumes:
+      - ./data/knirvoracle:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1317/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  knirvchain:
-    image: ubuntu:22.04
-    container_name: knirv-testnet-chain
+  # KNIRV Chain - Rust blockchain service
+  knirv-chain:
+    build:
+      context: ../KNIRVCHAIN
+      dockerfile: Dockerfile
+    container_name: knirv-chain
     ports:
-      - "8090:8090"  # Updated to match the actual port used by knirvchain
-    volumes:
-      - ./bin/knirvchain:/usr/local/bin/knirvchain:Z
-      - ./data/knirvchain:/app/data:Z
-      - ./config/knirvchain-config.toml:/app/config.toml:Z
-    depends_on:
-      - knirvoracle
-      - ipfs
-    networks:
-      - knirv-testnet
+      - "8090:8090"
     environment:
+      - PORT=8090
+      - KNIRV_ENV=production
       - RUST_LOG=info
-      - KNIRVCHAIN_RPC_ENDPOINT=0.0.0.0:8090
-      - BLOCK_DIFFICULTY=1
-      - KNIRVCHAIN_ID=1
-      - BLOCK_TIME=5
-    userns_mode: "keep-id"
-    working_dir: /app/data
-    command: ["/usr/local/bin/knirvchain", "--testnet", "--disable-mining"]
-
-  knirvgraph:
-    image: ubuntu:22.04
-    container_name: knirv-testnet-graph
-    ports:
-      - "8082:8082"  # Updated to match the actual port used by knirvgraph
-      - "4001:4001"
-    volumes:
-      - ./bin/knirvgraph:/usr/local/bin/knirvgraph:Z
-      - ./data/knirvgraph:/app/data:Z
-      - ./config/knirvgraph-config.yaml:/app/config.yaml:Z
     depends_on:
-      - knirvoracle
+      - knirv-oracle
       - ipfs
     networks:
       - knirv-testnet
-    environment:
-      - GO_ENV=testnet
-    userns_mode: "keep-id"
-    working_dir: /app
-    command: ["/usr/local/bin/knirvgraph", "--testnet", "--memory", "--populate", "--max-nodes", "250", "--rpc-port", "8082", "--home", "/app/data"]
-
-  knirvnexus:
-    image: ubuntu:22.04
-    container_name: knirv-testnet-nexus
-    ports:
-      - "8084:8084"  # Updated to match the actual port used by knirvnexus
     volumes:
-      - ./bin/knirvnexus:/usr/local/bin/knirvnexus:Z
-      - ./data/knirvnexus:/app/data:Z
-      - ./config/nexus-testnet.yaml:/app/config.yaml:Z
+      - ./data/knirvchain:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # KNIRV Graph - Knowledge graph service
+  knirv-graph:
+    build:
+      context: ../KNIRVGRAPH
+      dockerfile: Dockerfile
+    container_name: knirv-graph
+    ports:
+      - "8082:8082"
     environment:
-      - NEXUS_HOST=0.0.0.0
-      - NEXUS_PORT=8084
-      - NEXUS_BACKEND_PORT=8080
-      - NEXUS_LOG_LEVEL=info
-      - NEXUS_TESTNET=true
+      - PORT=8082
+      - KNIRV_ENV=production
+      - KNIRV_LOG_LEVEL=info
     depends_on:
-      - knirvoracle
+      - knirv-oracle
+      - ipfs
     networks:
       - knirv-testnet
-    userns_mode: "keep-id"
-    working_dir: /app
-    command: ["/usr/local/bin/knirvnexus", "--testnet", "--port", "8084", "--host", "0.0.0.0", "--config", "/app/config.yaml"]
+    volumes:
+      - ./data/knirvgraph:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  knirvrouter:
-    image: ubuntu:22.04
-    container_name: knirv-testnet-router
+  # KNIRV Nexus - DVE management service
+  knirv-nexus:
+    build:
+      context: ../KNIRVNEXUS
+      dockerfile: Dockerfile
+    container_name: knirv-nexus
+    ports:
+      - "8084:8084"
+    environment:
+      - PORT=8084
+      - NEXUS_ENV=production
+      - NEXUS_LOG_LEVEL=info
+      - NEXUS_CONFIG=/opt/knirv-nexus/config/nexus.yaml
+      - NEXUS_DATA_DIR=/var/lib/knirv-nexus
+    depends_on:
+      - knirv-oracle
+    networks:
+      - knirv-testnet
+    volumes:
+      - ./data/knirvnexus:/var/lib/knirv-nexus
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # KNIRV Router - Network routing service
+  knirv-router:
+    build:
+      context: ../KNIRVROUTER
+      dockerfile: Dockerfile
+    container_name: knirv-router
     ports:
       - "8086:8086"
       - "3478:3478"
-    volumes:
-      - ./bin/knirvrouter:/usr/local/bin/knirvrouter:Z
-      - ./data/knirvrouter:/app/data:Z
-      - ./config/knirvrouter-config.yaml:/app/config.yaml:Z
-    depends_on:
-      - knirvoracle
-    networks:
-      - knirv-testnet
-    userns_mode: "keep-id"
-    working_dir: /app
-    command: ["/usr/local/bin/knirvrouter", "-testnet", "-local-network", "-mock-nrn", "-port", "8086", "-miners_address", "KNIRVROUTER_Testnet_Miner"]
-
-  knirvtestnet-gateway:
-    image: node:18-alpine
-    container_name: knirv-testnet-gateway
-    ports:
-      - "10000:10000"  # KNIRVTESTNET Express server port
-    volumes:
-      - .:/app:Z  # Mount entire KNIRVTESTNET directory
-      - ./node_modules:/app/node_modules:Z
-    depends_on:
-      - knirvoracle
-      - knirvchain
-      - knirvgraph
-      - knirvnexus
-      - knirvrouter
-    networks:
-      - knirv-testnet
+      - "5349:5349"
     environment:
-      - NODE_ENV=testnet
-      - PORT=10000
-      - TESTNET_MODE=true
-      - DEBUG_MODE=true
-      - ENABLE_CORS=true
-      # Service endpoints (internal container network)
-      - KNIRVORACLE_URL=http://knirvoracle:1317
-      - KNIRVCHAIN_URL=http://knirvchain:8090
-      - KNIRVGRAPH_URL=http://knirvgraph:8082
-      - KNIRVNEXUS_URL=http://knirvnexus:8084
-      - KNIRVROUTER_URL=http://knirvrouter:8086
-    userns_mode: "keep-id"
-    working_dir: /app
-    command: ["npm", "start"]
+      - PORT=8086
+      - KNIRV_ENV=production
+      - KNIRV_LOG_LEVEL=info
+    depends_on:
+      - knirv-oracle
+    networks:
+      - knirv-testnet
+    volumes:
+      - ./data/knirvrouter:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 networks:
   knirv-testnet:
     name: knirv-testnet
-    # Podman uses netavark/aardvark-dns by default instead of bridge
-    # This provides better networking for rootless containers
+    driver: bridge
+
+volumes:
+  ipfs-data:
+  oracle-data:
+  chain-data:
+  graph-data:
+  nexus-data:
+  router-data:
