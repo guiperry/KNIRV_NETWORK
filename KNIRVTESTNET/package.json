@@ -25,7 +25,7 @@
     "install:deps": "bash scripts/install-deps.sh && npm install",
     "install:toolchains": "bash scripts/install-deps.sh && npm install",
     "start": "node scripts/smart-start.js",
-    "build": "npm run build:all",
+    "build": "npm run install:deps && npm run build:all",
     "build:all": "npm run build:nexus && npm run build:graphchain && npm run build:agent-portal",
     "build:podman": "bash scripts/install-podman.sh",
     "build:nexus": "bash scripts/build-knirvnexus.sh",
