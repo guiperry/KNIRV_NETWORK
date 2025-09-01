@@ -1,6 +1,21 @@
 #!/bin/bash
 set -e
 
+# KNIRV-NEXUS Build Script for Testnet
+#
+# This script supports two modes:
+# 1. BUILD FROM SOURCE: Requires Go, Node.js, make (local development)
+# 2. USE PREBUILT BINARY: Uses existing binary (Render deployment)
+#
+# Environment variables:
+#   USE_PREBUILT=true    - Force use of pre-built binary
+#   RENDER=true          - Automatically detected on Render
+#   RENDER_SERVICE_ID    - Automatically set on Render
+#
+# Usage:
+#   ./build-knirvnexus.sh                    # Auto-detect mode
+#   USE_PREBUILT=true ./build-knirvnexus.sh  # Force prebuilt mode
+
 echo "🚀 Building KNIRV-NEXUS unified binary for testnet using new Makefile architecture..."
 
 # Color codes for output
@@ -35,58 +50,118 @@ fi
 print_status "Changing to KNIRVNEXUS directory..."
 cd ../KNIRVNEXUS
 
-# Check for required build tools
-print_status "Checking build prerequisites..."
-if ! command -v make >/dev/null 2>&1; then
-    print_error "make is required but not installed"
-    exit 1
-fi
-
-if ! command -v go >/dev/null 2>&1; then
-    print_error "Go is required but not installed"
-    exit 1
-fi
-
-if ! command -v node >/dev/null 2>&1; then
-    print_error "Node.js is required but not installed"
-    exit 1
-fi
-
-print_success "All build prerequisites found"
-
-# Set build variables for testnet
-export VERSION="testnet-$(date +%Y%m%d-%H%M%S)"
-export BUILD_TIME="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-export GIT_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")"
-
-print_status "Build configuration:"
-echo "  Version: $VERSION"
-echo "  Build Time: $BUILD_TIME"
-echo "  Git Commit: $GIT_COMMIT"
-echo ""
-
-# Clean previous builds
-print_status "Cleaning previous builds..."
-make clean || print_warning "Clean failed (may be first build)"
-
-# Use the new Makefile-based build system
-print_status "Building unified binary using Makefile..."
-print_status "This will: install deps → build frontend → build backend → create unified binary"
-
-# Run the unified build process
-if make binary; then
-    print_success "Unified binary build completed successfully"
+# Check if we're on Render or should use pre-built binary
+if [ "$RENDER" = "true" ] || [ -n "$RENDER_SERVICE_ID" ] || [ "$USE_PREBUILT" = "true" ]; then
+    print_status "Render/prebuilt mode detected - will use existing binary"
+    USE_PREBUILT_BINARY=true
 else
-    print_error "Unified binary build failed"
-    exit 1
+    print_status "Local development mode - will build from source"
+    USE_PREBUILT_BINARY=false
+
+    # Check for required build tools only in local mode
+    print_status "Checking build prerequisites..."
+    if ! command -v make >/dev/null 2>&1; then
+        print_error "make is required but not installed"
+        exit 1
+    fi
+
+    if ! command -v go >/dev/null 2>&1; then
+        print_error "Go is required but not installed"
+        exit 1
+    fi
+
+    if ! command -v node >/dev/null 2>&1; then
+        print_error "Node.js is required but not installed"
+        exit 1
+    fi
+
+    print_success "All build prerequisites found"
 fi
 
-# Verify the unified binary was created
-if [ -f "dist/knirv-nexus" ]; then
-    print_success "Unified binary created: dist/knirv-nexus ($(du -h dist/knirv-nexus | cut -f1))"
+if [ "$USE_PREBUILT_BINARY" = "true" ]; then
+    # Use pre-built binary mode (for Render deployment)
+    print_status "=== PREBUILT BINARY MODE ==="
+    print_status "Looking for existing knirv-nexus binary..."
+
+    # Check for pre-built binary in various locations
+    BINARY_LOCATIONS=(
+        "dist/knirv-nexus"
+        "knirv-nexus"
+        "bin/knirv-nexus"
+        "../KNIRVNEXUS/dist/knirv-nexus"
+        "../KNIRVNEXUS/knirv-nexus"
+    )
+
+    FOUND_BINARY=""
+    for location in "${BINARY_LOCATIONS[@]}"; do
+        if [ -f "$location" ]; then
+            FOUND_BINARY="$location"
+            print_success "Found pre-built binary at: $location"
+            break
+        fi
+    done
+
+    if [ -z "$FOUND_BINARY" ]; then
+        print_error "No pre-built knirv-nexus binary found!"
+        print_status "Searched locations:"
+        for location in "${BINARY_LOCATIONS[@]}"; do
+            print_status "  - $location"
+        done
+        print_status ""
+        print_status "Please build the binary locally first:"
+        print_status "  cd ../KNIRVNEXUS && make binary"
+        exit 1
+    fi
+
+    # Create dist directory if it doesn't exist
+    mkdir -p dist
+
+    # Copy the binary to the expected location if needed
+    if [ "$FOUND_BINARY" != "dist/knirv-nexus" ]; then
+        print_status "Copying binary to dist/knirv-nexus..."
+        cp "$FOUND_BINARY" dist/knirv-nexus
+    fi
+
+    print_success "Using pre-built binary ($(du -h dist/knirv-nexus | cut -f1))"
+
 else
-    print_error "Unified binary not found at dist/knirv-nexus"
-    exit 1
+    # Build from source mode (for local development)
+    print_status "=== BUILD FROM SOURCE MODE ==="
+
+    # Set build variables for testnet
+    export VERSION="testnet-$(date +%Y%m%d-%H%M%S)"
+    export BUILD_TIME="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    export GIT_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")"
+
+    print_status "Build configuration:"
+    echo "  Version: $VERSION"
+    echo "  Build Time: $BUILD_TIME"
+    echo "  Git Commit: $GIT_COMMIT"
+    echo ""
+
+    # Clean previous builds
+    print_status "Cleaning previous builds..."
+    make clean || print_warning "Clean failed (may be first build)"
+
+    # Use the new Makefile-based build system
+    print_status "Building unified binary using Makefile..."
+    print_status "This will: install deps → build frontend → build backend → create unified binary"
+
+    # Run the unified build process
+    if make binary; then
+        print_success "Unified binary build completed successfully"
+    else
+        print_error "Unified binary build failed"
+        exit 1
+    fi
+
+    # Verify the unified binary was created
+    if [ -f "dist/knirv-nexus" ]; then
+        print_success "Unified binary created: dist/knirv-nexus ($(du -h dist/knirv-nexus | cut -f1))"
+    else
+        print_error "Unified binary not found at dist/knirv-nexus"
+        exit 1
+    fi
 fi
 
 # Copy unified binary to testnet bin directory
@@ -218,10 +293,15 @@ echo ""
 print_success "🎉 KNIRV-NEXUS testnet build completed successfully!"
 echo ""
 print_status "📋 Build Summary:"
-print_success "  ✅ Dependencies installed via Makefile"
-print_success "  ✅ Frontend built with Next.js (no Socket.io)"
-print_success "  ✅ Backend built as unified Go service"
-print_success "  ✅ Unified binary created with embedded components"
+if [ "$USE_PREBUILT_BINARY" = "true" ]; then
+    print_success "  ✅ Used pre-built binary (no compilation needed)"
+    print_success "  ✅ Skipped Go/Node.js build dependencies"
+else
+    print_success "  ✅ Dependencies installed via Makefile"
+    print_success "  ✅ Frontend built with Next.js (no Socket.io)"
+    print_success "  ✅ Backend built as unified Go service"
+    print_success "  ✅ Unified binary created with embedded components"
+fi
 print_success "  ✅ Binary copied to testnet ($(du -h bin/knirvnexus | cut -f1))"
 print_success "  ✅ Testnet configuration created"
 print_success "  ✅ Backward compatibility configs created"
