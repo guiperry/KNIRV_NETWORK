@@ -1,179 +1,237 @@
 #!/bin/bash
 set -e
 
-echo "Building KNIRV-NEXUS unified binary for testnet using new architecture..."
+echo "🚀 Building KNIRV-NEXUS unified binary for testnet using new Makefile architecture..."
+
+# Color codes for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+print_status() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
 
 # Check if KNIRVNEXUS directory exists
 if [ ! -d "../KNIRVNEXUS" ]; then
-    echo "❌ KNIRVNEXUS directory not found"
+    print_error "KNIRVNEXUS directory not found"
     exit 1
 fi
 
+print_status "Changing to KNIRVNEXUS directory..."
 cd ../KNIRVNEXUS
+
+# Check for required build tools
+print_status "Checking build prerequisites..."
+if ! command -v make >/dev/null 2>&1; then
+    print_error "make is required but not installed"
+    exit 1
+fi
+
+if ! command -v go >/dev/null 2>&1; then
+    print_error "Go is required but not installed"
+    exit 1
+fi
+
+if ! command -v node >/dev/null 2>&1; then
+    print_error "Node.js is required but not installed"
+    exit 1
+fi
+
+print_success "All build prerequisites found"
 
 # Set build variables for testnet
 export VERSION="testnet-$(date +%Y%m%d-%H%M%S)"
 export BUILD_TIME="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 export GIT_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")"
 
-echo "🔧 Building with:"
+print_status "Build configuration:"
 echo "  Version: $VERSION"
 echo "  Build Time: $BUILD_TIME"
 echo "  Git Commit: $GIT_COMMIT"
+echo ""
 
-# Install frontend dependencies
-echo "📦 Installing frontend dependencies..."
-if [ -f "package.json" ]; then
-    npm install
+# Clean previous builds
+print_status "Cleaning previous builds..."
+make clean || print_warning "Clean failed (may be first build)"
+
+# Use the new Makefile-based build system
+print_status "Building unified binary using Makefile..."
+print_status "This will: install deps → build frontend → build backend → create unified binary"
+
+# Run the unified build process
+if make binary; then
+    print_success "Unified binary build completed successfully"
 else
-    echo "❌ No package.json found in KNIRVNEXUS"
+    print_error "Unified binary build failed"
     exit 1
 fi
 
-# Compile socket.io TypeScript
-echo "🔌 Compiling Socket.IO TypeScript..."
-npm run compile:socket
-
-# Build frontend using Next.js
-echo "🎨 Building Next.js frontend..."
-npm run build
-
-# Verify frontend build output
-if [ ! -d "out" ]; then
-    echo "❌ Frontend build failed - 'out' directory not found"
-    exit 1
-fi
-echo "✅ Frontend build completed - found $(find out -type f | wc -l) files"
-
-# Build backend using new architecture
-echo "⚙️ Building unified backend..."
-if [ -d "backend" ]; then
-    cd backend
-    echo "  Installing backend dependencies..."
-    go mod tidy
-
-    echo "  Building complete backend package..."
-    go build -ldflags "-X main.Version=$VERSION -X main.BuildTime=$BUILD_TIME -X main.GitCommit=$GIT_COMMIT -w -s" -o bin/nexus-backend .
-
-    # Verify backend binary
-    if [ ! -f "bin/nexus-backend" ]; then
-        echo "❌ Backend build failed - binary not found"
-        exit 1
-    fi
-    echo "  ✅ Backend binary built successfully"
-
-    # Copy backend binary to root bin directory
-    mkdir -p ../bin
-    cp bin/nexus-backend ../bin/
-    cd ..
+# Verify the unified binary was created
+if [ -f "dist/knirv-nexus" ]; then
+    print_success "Unified binary created: dist/knirv-nexus ($(du -h dist/knirv-nexus | cut -f1))"
 else
-    echo "❌ Backend directory not found"
+    print_error "Unified binary not found at dist/knirv-nexus"
     exit 1
 fi
-
-# Build unified binary with embedded frontend and backend
-echo "🔗 Building unified KNIRV-NEXUS binary with embedded components..."
-go mod tidy
-go build -ldflags "-X main.Version=$VERSION -X main.BuildTime=$BUILD_TIME -X main.GitCommit=$GIT_COMMIT -w -s" -o knirv-nexus main.go
-
-# Verify unified binary
-if [ ! -f "knirv-nexus" ]; then
-    echo "❌ Unified binary build failed"
-    exit 1
-fi
-
-echo "✅ Unified binary built successfully ($(du -h knirv-nexus | cut -f1))"
 
 # Copy unified binary to testnet bin directory
-echo "📋 Copying unified binary to testnet..."
-cp knirv-nexus ../KNIRVTESTNET/bin/knirvnexus
+print_status "Copying unified binary to testnet..."
+mkdir -p ../KNIRVTESTNET/bin
+cp dist/knirv-nexus ../KNIRVTESTNET/bin/knirvnexus
 
 cd ../KNIRVTESTNET
 
 # Verify the binary was copied successfully
 if [ ! -f "bin/knirvnexus" ]; then
-    echo "❌ Failed to copy unified binary to testnet"
+    print_error "Failed to copy unified binary to testnet"
     exit 1
 fi
 
-echo "✅ Built and copied KNIRV-NEXUS unified binary"
+print_success "Built and copied KNIRV-NEXUS unified binary"
 
 # Create testnet data directories
-echo "📁 Setting up testnet data directories..."
+print_status "Setting up testnet data directories..."
 mkdir -p data/knirvnexus
 mkdir -p logs
+mkdir -p config
 
 # Copy testnet configuration from KNIRVNEXUS if available
-echo "⚙️ Setting up testnet configuration..."
+print_status "Setting up testnet configuration..."
 if [ -f "../KNIRVNEXUS/config/nexus-testnet.yaml" ]; then
-    echo "  Copying testnet config from KNIRVNEXUS..."
+    print_status "Copying testnet config from KNIRVNEXUS..."
     cp ../KNIRVNEXUS/config/nexus-testnet.yaml config/nexus-testnet.yaml
+    print_success "Testnet configuration copied"
 else
-    echo "  Creating default testnet configuration..."
+    print_warning "No testnet config found, creating default configuration..."
     cat > config/nexus-testnet.yaml << 'EOF'
 # KNIRV-NEXUS Testnet Configuration
-host: "0.0.0.0"
-port: 8084
-backend_port: 8080
-log_level: "info"
-testnet: true
+# Updated for new unified architecture (no Socket.io)
+
+server:
+  host: "0.0.0.0"
+  port: 8084
+  environment: "testnet"
+  log_level: "info"
+
+# Frontend configuration (embedded in binary)
+frontend:
+  embedded: true
+  static_path: "/static"
+  api_prefix: "/api/v1"
+
+# Backend configuration (unified service)
+backend:
+  api_port: 8084
+  health_check_path: "/api/v1/health"
+  cors_enabled: true
+  cors_origins: ["*"]
 
 # Testnet-specific settings
-testnet_config:
-  enabled: true
-  tee:
-    simulation_mode: true
-    mock_validation: true
-  validation:
-    mock_responses: true
-    simplified_proofs: true
-    timeout_ms: 5000
-  database:
-    clean_on_start: true
-    in_memory: false
-    path: "./data/knirvnexus/testnet.db"
-EOF
-fi
-
-# Also create the legacy config format for backward compatibility
-cat > data/knirvnexus/config.yaml << 'EOF'
 testnet:
   enabled: true
-  tee:
-    simulation_mode: true
-    mock_validation: true
+  simulation_mode: true
+  mock_validation: true
+  simplified_proofs: true
+  timeout_ms: 5000
 
-nexus:
-  gui_port: 8082
-  api_port: 8083
-  tee_port: 8182
+# Database configuration
+database:
+  type: "sqlite"
+  path: "./data/knirvnexus/testnet.db"
+  clean_on_start: true
+  auto_migrate: true
 
+# DVE (Distributed Virtual Environment) settings
+dve:
+  enabled: true
+  max_environments: 10
+  default_timeout: 300
+  cleanup_interval: 3600
+
+# TEE (Trusted Execution Environment) settings
 tee:
   simulation_mode: true
   mock_validation: true
   simplified_validation: true
 
-validation:
-  mock_responses: true
-  simplified_proofs: true
-  timeout_ms: 5000
+# Logging configuration
+logging:
+  level: "info"
+  format: "json"
+  output: "./logs/knirvnexus.log"
+  max_size: 100
+  max_backups: 5
+  max_age: 30
+EOF
+    print_success "Default testnet configuration created"
+fi
+
+# Create a simplified config for backward compatibility
+print_status "Creating backward compatibility configuration..."
+cat > data/knirvnexus/config.yaml << 'EOF'
+# Legacy configuration format for backward compatibility
+testnet:
+  enabled: true
+  simulation_mode: true
+
+nexus:
+  port: 8084
+  api_port: 8084
+  log_level: "info"
 
 database:
   clean_on_start: true
   in_memory: false
   path: "./data/knirvnexus/testnet.db"
+
+dve:
+  enabled: true
+  max_environments: 10
+
+tee:
+  simulation_mode: true
+  mock_validation: true
 EOF
 
 # Copy configuration to config directory as well for backward compatibility
 cp data/knirvnexus/config.yaml config/knirvnexus-testnet-config.yaml
 
+print_status "Setting executable permissions..."
+chmod +x bin/knirvnexus
+
 echo ""
-echo "🎉 KNIRV-NEXUS testnet build completed successfully!"
-echo "📋 Summary:"
-echo "  ✅ Frontend built with Next.js and embedded"
-echo "  ✅ Backend built as unified package"
-echo "  ✅ Unified binary created with embedded components"
-echo "  ✅ Binary copied to testnet ($(du -h bin/knirvnexus | cut -f1))"
-echo "  ✅ Testnet configuration created"
+print_success "🎉 KNIRV-NEXUS testnet build completed successfully!"
 echo ""
-echo "🚀 Ready to start with: ./scripts/start-knirvnexus.sh"
+print_status "📋 Build Summary:"
+print_success "  ✅ Dependencies installed via Makefile"
+print_success "  ✅ Frontend built with Next.js (no Socket.io)"
+print_success "  ✅ Backend built as unified Go service"
+print_success "  ✅ Unified binary created with embedded components"
+print_success "  ✅ Binary copied to testnet ($(du -h bin/knirvnexus | cut -f1))"
+print_success "  ✅ Testnet configuration created"
+print_success "  ✅ Backward compatibility configs created"
+echo ""
+print_status "🚀 Ready to start with:"
+print_status "  ./bin/knirvnexus --config config/nexus-testnet.yaml"
+print_status "  OR"
+print_status "  ./scripts/start-knirvnexus.sh (if available)"
+echo ""
+print_status "🔍 Binary info:"
+print_status "  Location: $(pwd)/bin/knirvnexus"
+print_status "  Size: $(du -h bin/knirvnexus | cut -f1)"
+print_status "  Permissions: $(ls -la bin/knirvnexus | cut -d' ' -f1)"
