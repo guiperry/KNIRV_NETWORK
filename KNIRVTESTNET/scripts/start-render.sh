@@ -49,6 +49,31 @@ handle_error() {
 # Set up error trapping
 trap 'handle_error $LINENO' ERR
 
+# CRITICAL CHECK: If we're in a Docker container, this script should NOT be running
+if [ -f /.dockerenv ]; then
+    print_error "🚨 CRITICAL ERROR: npm start should NOT run in Docker containers!"
+    print_error ""
+    print_error "This indicates a configuration problem:"
+    print_error "1. Render is running npm start inside a Docker container"
+    print_error "2. For Docker services, use the Docker command directly"
+    print_error "3. npm start should only run for non-Docker services"
+    print_error ""
+    print_error "SOLUTION FOR TESTNET GATEWAY:"
+    print_error "1. Go to Render dashboard → Service Settings"
+    print_error "2. Change Start Command from 'npm start' to:"
+    print_error "   nginx -g \"daemon off;\""
+    print_error "3. This matches the Dockerfile CMD instruction"
+    print_error ""
+    print_error "SOLUTION FOR BACKEND SERVICES:"
+    print_error "1. Use the command from each service's Dockerfile CMD"
+    print_error "2. Example: './knirv-oracle' or './knirv-chain'"
+    print_error ""
+    print_error "Service: ${RENDER_SERVICE_NAME:-'unknown'}"
+    print_error "Container ID: $(hostname)"
+    print_error "Working directory: $(pwd)"
+    exit 1
+fi
+
 # Environment detection and comprehensive logging
 print_status "=== ENVIRONMENT DETECTION ==="
 print_status "RENDER: ${RENDER:-'not set'}"
@@ -106,6 +131,21 @@ print_status "Environment: $KNIRV_ENV"
 print_status "Deployment: $DEPLOYMENT_ENV"
 print_status "Port: $PORT"
 
+# Run comprehensive diagnostics first
+print_status "=== RUNNING DEPLOYMENT DIAGNOSTICS ==="
+if [ -f "scripts/diagnose-deployment.sh" ]; then
+    print_status "Running deployment diagnostics..."
+    bash scripts/diagnose-deployment.sh
+    DIAG_EXIT_CODE=$?
+    if [ $DIAG_EXIT_CODE -ne 0 ]; then
+        print_error "Diagnostics detected configuration issues"
+        print_error "Check the diagnostic output above for recommendations"
+        exit $DIAG_EXIT_CODE
+    fi
+else
+    print_warning "Diagnostic script not found - continuing without diagnostics"
+fi
+
 # Create necessary directories
 print_status "Creating necessary directories..."
 mkdir -p logs data config
@@ -118,39 +158,74 @@ ls -la | head -15 || print_error "Failed to list directory contents"
 
 if [ "$DEPLOYMENT_ENV" = "render" ]; then
     # Render deployment - services are managed by render.yaml
-    # This script only needs to start the main gateway service
+    print_status "=== RENDER DEPLOYMENT MODE ==="
+    print_status "Docker containers managed by Render"
+    print_status "Service Name: ${RENDER_SERVICE_NAME:-'not set'}"
+    print_status "Service Type: ${RENDER_SERVICE_TYPE:-'not set'}"
 
-    print_status "Render deployment mode - Docker containers managed by Render"
-    print_status "Starting testnet gateway service..."
+    # Log all environment variables for debugging
+    print_status "=== ENVIRONMENT VARIABLES ==="
+    env | grep -E "(RENDER|PORT|KNIRV)" | sort | while read line; do
+        print_status "  $line"
+    done
 
-    # Check which service this is based on RENDER_SERVICE_NAME or default behavior
+    # Check which service this is
+    print_status "=== SERVICE IDENTIFICATION ==="
     if [ "$RENDER_SERVICE_NAME" = "knirv-testnet-gateway" ] || [ -z "$RENDER_SERVICE_NAME" ]; then
-        # This is the main gateway service
-        print_status "Starting testnet gateway (nginx + static files)"
+        print_status "🌐 TESTNET GATEWAY SERVICE DETECTED"
 
-        # Verify testnet-gateway files
-        if [ ! -d "data/testnet-gateway" ]; then
-            print_error "testnet-gateway directory not found!"
+        # Verify we're in the right directory and files exist
+        print_status "=== GATEWAY VERIFICATION ==="
+        print_status "Current directory: $(pwd)"
+        print_status "Directory contents:"
+        ls -la | head -10
+
+        # Check for testnet-gateway files
+        if [ -d "data/testnet-gateway" ]; then
+            print_success "✓ testnet-gateway directory found"
+            print_status "Contents of data/testnet-gateway:"
+            ls -la data/testnet-gateway/ | head -10
+        else
+            print_error "✗ testnet-gateway directory not found!"
+            print_status "Available directories:"
+            find . -maxdepth 2 -type d -name "*gateway*" 2>/dev/null || echo "No gateway directories found"
             exit 1
         fi
 
-        # For the gateway service, we need to start nginx or a simple file server
-        # Since this is containerized, the Dockerfile handles the nginx setup
-        print_status "Gateway service ready - container will handle nginx startup"
-
-        # Keep the container running (this should be handled by the Dockerfile CMD)
-        print_success "Testnet gateway service initialized"
-
-        # If we reach here in a container, something is wrong with the Dockerfile
-        print_error "This script should not be called directly in a containerized gateway"
-        print_error "The Dockerfile should handle nginx startup directly"
-        exit 1
+        # Check if we're running in a container
+        print_status "=== CONTAINER DETECTION ==="
+        if [ -f /.dockerenv ]; then
+            print_status "🐳 Running inside Docker container"
+            print_status "Container should handle nginx startup via Dockerfile CMD"
+            print_status "This start script should NOT be called in containerized mode"
+            print_error "ERROR: npm start should not be called in Docker container"
+            print_error "The Dockerfile CMD should start nginx directly"
+            print_error "Check render.yaml configuration - remove startCommand for Docker services"
+            exit 1
+        else
+            print_status "🖥️  Running on host (not containerized)"
+            print_status "This suggests render.yaml is not using Docker properly"
+            print_error "ERROR: Service should be containerized but appears to be running on host"
+            print_error "Check render.yaml - ensure runtime: docker is set"
+            exit 1
+        fi
 
     else
-        # This might be a backend service - shouldn't happen with our setup
-        print_error "Unknown service: ${RENDER_SERVICE_NAME:-'undefined'}"
-        print_error "Backend services should be managed by their respective Dockerfiles"
-        exit 1
+        # Backend service
+        print_status "🔧 BACKEND SERVICE DETECTED: ${RENDER_SERVICE_NAME}"
+        print_status "Backend services should be managed by their Dockerfiles"
+
+        # Check if we're in a container
+        if [ -f /.dockerenv ]; then
+            print_status "🐳 Running inside Docker container"
+            print_error "ERROR: Backend service npm start should not be called in container"
+            print_error "The service Dockerfile should handle startup directly"
+            exit 1
+        else
+            print_error "ERROR: Backend service should be containerized"
+            print_error "Check render.yaml configuration for ${RENDER_SERVICE_NAME}"
+            exit 1
+        fi
     fi
 
 else

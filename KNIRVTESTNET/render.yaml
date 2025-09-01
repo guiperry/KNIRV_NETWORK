@@ -11,7 +11,7 @@ services:
     plan: starter
     region: oregon
     # Points to the testnet-gateway Dockerfile
-    dockerfilePath: ./KNIRVTESTNET/testnet-gateway.Dockerfile
+    dockerfilePath: ./testnet-gateway.Dockerfile
     envVars:
       - key: DEPLOYMENT_ENV
         value: testnet
