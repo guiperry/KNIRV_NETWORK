@@ -1,0 +1,14 @@
+# Include ONLY what we need for testnet-gateway
+# Exclude everything by default, then include specific files
+
+# Exclude everything
+*
+
+# Include only testnet-gateway data
+!data/
+!data/testnet-gateway/
+!data/testnet-gateway/**
+
+# But exclude node_modules from testnet-gateway
+data/testnet-gateway/node_modules/
+data/testnet-gateway/package-lock.json

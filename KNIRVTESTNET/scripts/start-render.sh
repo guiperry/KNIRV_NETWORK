@@ -6,6 +6,11 @@ set -e
 
 echo "🐳 KNIRV TESTNET - DOCKER DEPLOYMENT"
 echo "===================================="
+echo "Startup initiated at: $(date)"
+echo "Working directory: $(pwd)"
+echo "User: $(whoami)"
+echo "Process ID: $$"
+echo ""
 
 # Color codes for output
 RED='\033[0;31m'
@@ -15,30 +20,59 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+    echo -e "${BLUE}[INFO $(date +%H:%M:%S)]${NC} $1"
 }
 
 print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+    echo -e "${GREEN}[SUCCESS $(date +%H:%M:%S)]${NC} $1"
 }
 
 print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+    echo -e "${YELLOW}[WARNING $(date +%H:%M:%S)]${NC} $1"
 }
 
 print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    echo -e "${RED}[ERROR $(date +%H:%M:%S)]${NC} $1"
 }
+
+# Error handler
+handle_error() {
+    local exit_code=$?
+    local line_number=$1
+    print_error "Startup failed at line $line_number with exit code $exit_code"
+    print_error "Last command: $BASH_COMMAND"
+    print_error "Environment variables:"
+    env | grep -E "(RENDER|NODE|NPM|PORT|KNIRV)" | sort
+    exit $exit_code
+}
+
+# Set up error trapping
+trap 'handle_error $LINENO' ERR
+
+# Environment detection and comprehensive logging
+print_status "=== ENVIRONMENT DETECTION ==="
+print_status "RENDER: ${RENDER:-'not set'}"
+print_status "RENDER_SERVICE_ID: ${RENDER_SERVICE_ID:-'not set'}"
+print_status "RENDER_SERVICE_NAME: ${RENDER_SERVICE_NAME:-'not set'}"
+print_status "RENDER_EXTERNAL_URL: ${RENDER_EXTERNAL_URL:-'not set'}"
+print_status "RENDER_GIT_COMMIT: ${RENDER_GIT_COMMIT:-'not set'}"
+print_status "RENDER_GIT_BRANCH: ${RENDER_GIT_BRANCH:-'not set'}"
+print_status "NODE_ENV: ${NODE_ENV:-'not set'}"
+print_status "PWD: $(pwd)"
+print_status "HOME: ${HOME:-'not set'}"
 
 # Detect environment
 if [ "$RENDER" = "true" ] || [ -n "$RENDER_SERVICE_ID" ]; then
     DEPLOYMENT_ENV="render"
-    print_status "Render cloud deployment detected"
+    print_status "🌐 Render cloud deployment detected"
     print_status "Service ID: ${RENDER_SERVICE_ID:-'not set'}"
+    print_status "Service Name: ${RENDER_SERVICE_NAME:-'not set'}"
     print_status "External URL: ${RENDER_EXTERNAL_URL:-'not set'}"
+    print_status "Git Commit: ${RENDER_GIT_COMMIT:-'not set'}"
+    print_status "Git Branch: ${RENDER_GIT_BRANCH:-'not set'}"
 else
     DEPLOYMENT_ENV="local"
-    print_status "Local development environment detected"
+    print_status "💻 Local development environment detected"
 fi
 
 # Set environment variables
@@ -46,7 +80,13 @@ export KNIRV_ENV=testnet
 export TESTNET_MODE=true
 export DEPLOYMENT_ENV=$DEPLOYMENT_ENV
 
+print_status "=== ENVIRONMENT CONFIGURATION ==="
+print_status "KNIRV_ENV: $KNIRV_ENV"
+print_status "TESTNET_MODE: $TESTNET_MODE"
+print_status "DEPLOYMENT_ENV: $DEPLOYMENT_ENV"
+
 # Handle PORT configuration
+print_status "=== PORT CONFIGURATION ==="
 if [ -z "$PORT" ]; then
     if [ "$DEPLOYMENT_ENV" = "render" ]; then
         print_warning "PORT environment variable not set by Render"
@@ -60,13 +100,21 @@ else
     print_success "Using provided PORT=$PORT"
 fi
 
+print_status "=== STARTUP INITIALIZATION ==="
 print_status "Starting KNIRV Testnet..."
 print_status "Environment: $KNIRV_ENV"
 print_status "Deployment: $DEPLOYMENT_ENV"
 print_status "Port: $PORT"
 
 # Create necessary directories
+print_status "Creating necessary directories..."
 mkdir -p logs data config
+print_success "Directories created: logs, data, config"
+
+# List current directory structure for debugging
+print_status "=== DIRECTORY STRUCTURE ==="
+print_status "Current directory contents:"
+ls -la | head -15 || print_error "Failed to list directory contents"
 
 if [ "$DEPLOYMENT_ENV" = "render" ]; then
     # Render deployment - services are managed by render.yaml

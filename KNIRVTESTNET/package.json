@@ -43,6 +43,7 @@
     "check-health": "node scripts/check-health.js",
     "check-nexus-health": "node scripts/check-nexus-health.js",
     "test": "npm run validate",
+    "test:build": "bash scripts/test-build.sh",
     "validate": "echo 'Validating KNIRV Testnet Services...'",
     "health-check": "curl -f http://localhost:10000/health || exit 1",
     "lint": "echo 'Linting not configured - add ESLint for production'",
