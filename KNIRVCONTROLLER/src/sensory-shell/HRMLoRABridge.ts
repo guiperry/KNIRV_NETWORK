@@ -275,7 +275,7 @@ export class HRMLoRABridge extends EventEmitter {
     }
   }
 
-  private async getRecentHRMProcessing(): Promise<any> {
+  private async getRecentHRMProcessing(): Promise<unknown> {
     // This would get the most recent HRM processing results
     // For now, we'll simulate a simple request
     
@@ -298,7 +298,7 @@ export class HRMLoRABridge extends EventEmitter {
     moduleWeights: unknown,
     hrmInfluence: number,
     mapping: HRMLoRAMapping
-  ): Promise<any> {
+  ): Promise<unknown> {
     // Apply HRM influence to LoRA weights based on mapping type
     const adaptationStrength = mapping.adaptationStrength * hrmInfluence;
     

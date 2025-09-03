@@ -110,8 +110,8 @@ class MockCortexAPI {
     // Mock NEXUS TEE connectivity check
     if (global.fetch) {
       try {
-        await (global.fetch as any)('http://mock-nexus-tee/health');
-        await (global.fetch as any)('http://mock-nexus-tee/register', { method: 'POST' });
+        await (global.fetch as typeof mockFetch)('http://mock-nexus-tee/health');
+        await (global.fetch as typeof mockFetch)('http://mock-nexus-tee/register', { method: 'POST' });
       } catch (error) {
         throw new Error(error instanceof Error ? error.message : 'Connection failed');
       }
@@ -156,7 +156,7 @@ class MockCortexAPI {
     let teeStatus;
     if (global.fetch) {
       try {
-        const response = await (global.fetch as any)('http://mock-nexus-tee/status');
+        const response = await (global.fetch as typeof mockFetch)('http://mock-nexus-tee/status');
         const status = await response.json();
         teeStatus = {
           connected: true,
@@ -238,8 +238,15 @@ const LoRAAdapterEngine = MockLoRAAdapterEngine;
 const WASMCompiler = MockWASMCompiler;
 const ProtobufHandler = MockProtobufHandler;
 
-// Mock fetch for testing with any type to bypass strict typing
-const mockFetch = jest.fn() as any;
+// Mock fetch for testing
+interface MockResponse {
+  ok: boolean;
+  status?: number;
+  json: () => Promise<unknown>;
+  text?: () => Promise<string>;
+}
+
+const mockFetch = jest.fn() as jest.MockedFunction<(url: string, options?: RequestInit) => Promise<MockResponse>>;
 (global.fetch as jest.Mock) = mockFetch;
 
 describe('Phase 3.4: /prepare Endpoint Integration', () => {
@@ -290,7 +297,7 @@ describe('Phase 3.4: /prepare Endpoint Integration', () => {
   describe('NEXUS TEE Connectivity', () => {
     it('should prepare LoRA adapter for TEE execution', async () => {
       // Mock successful NEXUS TEE responses
-      (mockFetch as any)
+      mockFetch
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ status: 'healthy' })
@@ -342,7 +349,7 @@ describe('Phase 3.4: /prepare Endpoint Integration', () => {
 
     it('should handle NEXUS TEE connectivity failure', async () => {
       // Mock failed NEXUS TEE response
-      (mockFetch as any).mockRejectedValue(new Error('Connection failed'));
+      mockFetch.mockRejectedValue(new Error('Connection failed'));
 
       const adapters = loraEngine.getAdapters();
       const testSkillId = adapters[0];
@@ -360,7 +367,7 @@ describe('Phase 3.4: /prepare Endpoint Integration', () => {
   describe('TEE Status Monitoring', () => {
     it('should return TEE connectivity status', async () => {
       // Mock successful TEE status response
-      (mockFetch as any).mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
           status: 'operational',
@@ -379,7 +386,7 @@ describe('Phase 3.4: /prepare Endpoint Integration', () => {
 
     it('should handle TEE unreachable status', async () => {
       // Mock failed TEE status response
-      (mockFetch as any).mockRejectedValue(new Error('Network error'));
+      mockFetch.mockRejectedValue(new Error('Network error'));
 
       const result = await cortexAPI.getTEEStatus();
 
@@ -551,7 +558,7 @@ describe('Phase 3.4: /prepare Endpoint Integration', () => {
   describe('Error Handling and Edge Cases', () => {
     it('should handle NEXUS TEE authentication failure', async () => {
       // Mock authentication failure
-      (mockFetch as any)
+      mockFetch
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ status: 'healthy' })
@@ -564,8 +571,8 @@ describe('Phase 3.4: /prepare Endpoint Integration', () => {
 
       // Test authentication failure handling
       try {
-        await (global.fetch as any)('http://mock-nexus-tee/health');
-        const authResponse = await (global.fetch as any)('http://mock-nexus-tee/register', { method: 'POST' });
+        await (global.fetch as typeof mockFetch)('http://mock-nexus-tee/health');
+        const authResponse = await (global.fetch as typeof mockFetch)('http://mock-nexus-tee/register', { method: 'POST' });
         expect(authResponse.ok).toBe(false);
         expect(authResponse.status).toBe(401);
       } catch {
@@ -607,7 +614,7 @@ describe('Phase 3.4: /prepare Endpoint Integration', () => {
   describe('Performance and Scalability', () => {
     it('should handle multiple concurrent prepare requests', async () => {
       // Mock successful NEXUS TEE responses
-      (mockFetch as any)
+      mockFetch
         .mockResolvedValue({
           ok: true,
           json: async () => ({ status: 'healthy', success: true })

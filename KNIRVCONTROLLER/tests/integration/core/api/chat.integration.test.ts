@@ -6,10 +6,23 @@ import * as chatAPI from '../chat';
 // Mock NebulaDB for integration tests
 jest.mock('nebuladb');
 
+interface MockDB {
+  collection: (name: string) => MockCollection;
+  close: jest.Mock;
+}
+
+interface MockCollection {
+  insertOne: jest.Mock;
+  findOne: jest.Mock;
+  updateOne: jest.Mock;
+  find: jest.Mock;
+  deleteOne: jest.Mock;
+}
+
 describe('Chat API Integration Tests', () => {
   let app: express.Application;
-  let mockDB: any;
-  let mockChatSessions: any;
+  let mockDB: MockDB;
+  let mockChatSessions: MockCollection;
 
   beforeEach(() => {
     // Setup Express app

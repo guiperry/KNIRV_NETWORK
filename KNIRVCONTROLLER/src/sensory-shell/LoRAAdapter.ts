@@ -284,7 +284,7 @@ export class LoRAAdapter extends EventEmitter {
     this.metrics.learningRate = this.config.learningRate * Math.pow(0.99, this.metrics.epoch);
   }
 
-  public async adapt(input: unknown, expectedOutput: unknown, feedback: number): Promise<any> {
+  public async adapt(input: unknown, expectedOutput: unknown, feedback: number): Promise<unknown> {
     if (!this.isRunning) {
       console.warn('LoRA Adapter not running');
       return input;
@@ -315,7 +315,7 @@ export class LoRAAdapter extends EventEmitter {
       // Simulate adaptation effect
       const adaptationStrength = weights.scaling;
 
-      const adaptedInputAny = adaptedInput as any;
+      const adaptedInputAny = adaptedInput as { features?: number[] };
       if (adaptedInputAny.features && Array.isArray(adaptedInputAny.features)) {
         adaptedInputAny.features = adaptedInputAny.features.map((feature: number) =>
           feature * (1 + adaptationStrength * 0.1)

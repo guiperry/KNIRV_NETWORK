@@ -25,6 +25,18 @@ interface MemoryManagerConfig {
   maxHistorySize: number;
 }
 
+interface PerformanceMemory {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit: number;
+}
+
+interface GlobalWithPerformance {
+  performance?: {
+    memory?: PerformanceMemory;
+  };
+}
+
 class MemoryManager {
   private config: MemoryManagerConfig;
   private metrics: MemoryMetrics[] = [];
@@ -148,7 +160,7 @@ class MemoryManager {
     // Check for browser environment
     if (typeof window !== 'undefined' && 'gc' in window) {
       try {
-        (window as any).gc();
+        (window as Window & { gc?: () => void }).gc?.();
         console.log('Forced garbage collection');
       } catch (error) {
         console.warn('Failed to force garbage collection:', error);
@@ -157,7 +169,7 @@ class MemoryManager {
     // Check for global gc (test environment)
     else if (typeof global !== 'undefined' && 'gc' in global) {
       try {
-        (global as any).gc();
+        (global as NodeJS.Global & { gc?: () => void }).gc?.();
         console.log('Forced garbage collection');
       } catch (error) {
         console.warn('Failed to force garbage collection:', error);
@@ -225,19 +237,25 @@ class MemoryManager {
    * Get current memory metrics
    */
   public getCurrentMetrics(): MemoryMetrics | null {
-    let memory: any = null;
+    let memory: PerformanceMemory | null = null;
 
     // Check for browser environment
     if (typeof window !== 'undefined' && window.performance && window.performance.memory) {
       memory = window.performance.memory;
     }
     // Check for global performance mock (test environment)
-    else if (typeof global !== 'undefined' && (global as any).performance && (global as any).performance.memory) {
-      memory = (global as any).performance.memory;
+    else if (typeof global !== 'undefined') {
+      const globalWithPerf = global as GlobalWithPerformance;
+      if (globalWithPerf.performance && globalWithPerf.performance.memory) {
+        memory = globalWithPerf.performance.memory;
+      }
     }
     // Check for standard performance API
-    else if (typeof performance !== 'undefined' && (performance as any).memory) {
-      memory = (performance as any).memory;
+    else if (typeof performance !== 'undefined') {
+      const perfWithMemory = performance as Performance & { memory?: PerformanceMemory };
+      if (perfWithMemory.memory) {
+        memory = perfWithMemory.memory;
+      }
     }
 
     if (memory) {

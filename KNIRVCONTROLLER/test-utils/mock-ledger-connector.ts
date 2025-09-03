@@ -1,9 +1,30 @@
 /**
  * Mock Ledger Connector for testing purposes
  */
+
+interface LedgerDeviceInfo {
+  model: string;
+  version: string;
+  serialNumber: string;
+  isLocked: boolean;
+}
+
+interface LedgerAccount {
+  address: string;
+  publicKey: string;
+  derivationPath: string;
+  balance?: string;
+}
+
+interface TransactionSignature {
+  signature: string;
+  publicKey: string;
+  address: string;
+}
+
 export class MockLedgerConnector {
   private isConnected: boolean = false;
-  private deviceInfo: any = null;
+  private deviceInfo: LedgerDeviceInfo | null = null;
 
   static async create(): Promise<MockLedgerConnector> {
     const connector = new MockLedgerConnector();
@@ -11,7 +32,7 @@ export class MockLedgerConnector {
     return connector;
   }
 
-  private accounts: any[] = [];
+  private accounts: LedgerAccount[] = [];
 
   async connect(): Promise<void> {
     // Simulate connection delay
@@ -47,7 +68,7 @@ export class MockLedgerConnector {
     this.accounts = [];
   }
 
-  async getAccount(index: number = 0): Promise<any> {
+  async getAccount(index: number = 0): Promise<LedgerAccount> {
     if (!this.isConnected) {
       throw new Error('Ledger device not connected');
     }
@@ -59,7 +80,7 @@ export class MockLedgerConnector {
     return this.accounts[index];
   }
 
-  async getAccounts(count: number = 1): Promise<any[]> {
+  async getAccounts(count: number = 1): Promise<LedgerAccount[]> {
     if (!this.isConnected) {
       throw new Error('Ledger device not connected');
     }
@@ -67,7 +88,7 @@ export class MockLedgerConnector {
     return this.accounts.slice(0, count);
   }
 
-  async signTransaction(transaction: any, derivationPath: string): Promise<any> {
+  async signTransaction(transaction: Record<string, unknown>, derivationPath: string): Promise<TransactionSignature> {
     if (!this.isConnected) {
       throw new Error('Ledger device not connected');
     }
@@ -109,7 +130,7 @@ export class MockLedgerConnector {
     return this.accounts[pathIndex]?.address || this.accounts[0].address;
   }
 
-  getDeviceInfo(): any {
+  getDeviceInfo(): LedgerDeviceInfo | null {
     return this.deviceInfo;
   }
 

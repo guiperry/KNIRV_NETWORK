@@ -32,7 +32,7 @@ export interface SkillInvocationRequest {
   skillUri: string;
   agentId: string;
   nrnToken: string;
-  parameters?: Record<string, any>;
+  parameters?: Record<string, unknown>;
 }
 
 export interface SkillInvocationResult {
@@ -72,7 +72,7 @@ export class ErrorContextManager {
   async handleError(
     error: Error,
     taskDescription: string,
-    additionalContext?: Record<string, any>
+    additionalContext?: Record<string, unknown>
   ): Promise<SkillDiscoveryResult> {
     logger.info({ 
       agentId: this.config.agentId,
@@ -169,7 +169,7 @@ export class ErrorContextManager {
   async invokeSkill(
     skillUri: string,
     nrnToken: string,
-    parameters?: Record<string, any>
+    parameters?: Record<string, unknown>
   ): Promise<SkillInvocationResult> {
     logger.info({ 
       agentId: this.config.agentId,
@@ -217,7 +217,7 @@ export class ErrorContextManager {
     error: Error,
     taskDescription: string,
     nrnToken: string,
-    additionalContext?: Record<string, any>
+    additionalContext?: Record<string, unknown>
   ): Promise<{ discoveryResult: SkillDiscoveryResult; invocationResult?: SkillInvocationResult }> {
     logger.info({ 
       agentId: this.config.agentId,

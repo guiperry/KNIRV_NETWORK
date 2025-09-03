@@ -22,7 +22,7 @@ global.WebAssembly = {
   CompileError: Error,
   RuntimeError: Error,
   LinkError: Error
-} as any;
+} as typeof WebAssembly;
 
 // Mock File constructor for file upload tests
 global.File = class MockFile {
@@ -32,7 +32,7 @@ global.File = class MockFile {
   lastModified: number;
   content: string;
 
-  constructor(content: string[], name: string, options: any = {}) {
+  constructor(content: string[], name: string, options: { type?: string; lastModified?: number } = {}) {
     this.content = content.join('');
     this.name = name;
     this.size = this.content.length;
@@ -64,9 +64,9 @@ global.File = class MockFile {
   }
 
   slice(): Blob {
-    return this as any;
+    return this;
   }
-} as any;
+} as typeof File;
 
 // Mock crypto.subtle for hash generation tests
 Object.defineProperty(global, 'crypto', {
@@ -74,7 +74,7 @@ Object.defineProperty(global, 'crypto', {
     subtle: {
       digest: jest.fn().mockResolvedValue(new ArrayBuffer(32))
     },
-    getRandomValues: jest.fn().mockImplementation((arr: any) => {
+    getRandomValues: jest.fn().mockImplementation((arr: Uint8Array | Uint16Array | Uint32Array) => {
       for (let i = 0; i < arr.length; i++) {
         arr[i] = Math.floor(Math.random() * 256);
       }
@@ -124,7 +124,7 @@ global.IntersectionObserver = class IntersectionObserver {
   observe() {}
   unobserve() {}
   disconnect() {}
-} as any;
+} as typeof IntersectionObserver;
 
 // Mock ResizeObserver for components that might use it
 global.ResizeObserver = class ResizeObserver {
@@ -132,7 +132,7 @@ global.ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}
   disconnect() {}
-} as any;
+} as typeof ResizeObserver;
 
 // Mock matchMedia for responsive components
 Object.defineProperty(window, 'matchMedia', {
@@ -167,7 +167,7 @@ let timersInstalled = false;
 const originalUseFakeTimers = jest.useFakeTimers;
 const originalUseRealTimers = jest.useRealTimers;
 
-jest.useFakeTimers = (config?: any) => {
+jest.useFakeTimers = (config?: Parameters<typeof originalUseFakeTimers>[0]) => {
   if (!timersInstalled) {
     timersInstalled = true;
     return originalUseFakeTimers.call(jest, config);
@@ -186,7 +186,7 @@ jest.useRealTimers = () => {
 // Suppress specific warnings in tests
 const originalError = console.error;
 beforeAll(() => {
-  console.error = (...args: any[]) => {
+  console.error = (...args: unknown[]) => {
     if (
       typeof args[0] === 'string' &&
       (args[0].includes('Warning: ReactDOM.render is deprecated') ||

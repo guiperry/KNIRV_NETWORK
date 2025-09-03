@@ -189,7 +189,7 @@ describe('Parameter Naming Fixes', () => {
       };
 
       const mockBlob = new Blob(['test'], { type: 'audio/wav' });
-      const mockEvent = { type: 'dataavailable', data: mockBlob } as any;
+      const mockEvent: { type: string; data: Blob } = { type: 'dataavailable', data: mockBlob };
       
       dataAvailableHandler(mockEvent);
     });

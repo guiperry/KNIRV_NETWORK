@@ -10,12 +10,17 @@ interface RequestConfig {
   url: string;
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   headers?: Record<string, string>;
-  body?: any;
+  body?: unknown;
   timeout?: number;
   retries?: number;
   retryDelay?: number;
   cache?: boolean;
   priority?: 'low' | 'normal' | 'high';
+  currentRetries?: number;
+}
+
+interface QueuedRequest extends RequestConfig {
+  resolve: () => void;
 }
 
 interface NetworkMetrics {
@@ -37,7 +42,7 @@ interface ConnectionPool {
 class NetworkOptimizer {
   private metrics: NetworkMetrics;
   private connectionPool: ConnectionPool;
-  private requestQueue: Map<string, RequestConfig[]> = new Map();
+  private requestQueue: Map<string, QueuedRequest[]> = new Map();
   private abortControllers: Map<string, AbortController> = new Map();
   private retryQueue: RequestConfig[] = [];
   private isProcessingQueue: boolean = false;
@@ -216,7 +221,7 @@ class NetworkOptimizer {
       
       this.requestQueue.get(priority)!.push({
         ...config,
-        resolve: resolve as any
+        resolve: resolve
       });
     });
   }
@@ -249,8 +254,8 @@ class NetworkOptimizer {
         const queue = this.requestQueue.get(priority);
         if (queue && queue.length > 0) {
           const config = queue.shift()!;
-          if ((config as any).resolve) {
-            (config as any).resolve();
+          if (config.resolve) {
+            config.resolve();
           }
           break;
         }
@@ -265,7 +270,7 @@ class NetworkOptimizer {
    */
   private shouldRetry(config: RequestConfig, error: Error): boolean {
     const retries = config.retries || 3;
-    const currentRetries = (config as any).currentRetries || 0;
+    const currentRetries = config.currentRetries || 0;
 
     if (currentRetries >= retries) {
       return false;
@@ -287,7 +292,7 @@ class NetworkOptimizer {
    * Retry failed request with exponential backoff
    */
   private async retryRequest<T>(config: RequestConfig): Promise<T> {
-    const currentRetries = (config as any).currentRetries || 0;
+    const currentRetries = config.currentRetries || 0;
     const retryDelay = (config.retryDelay || 1000) * Math.pow(2, currentRetries);
 
     // Wait before retry
@@ -321,7 +326,7 @@ class NetworkOptimizer {
             results.push(result.value);
           } else {
             console.error(`Batch request ${i + index} failed:`, result.reason);
-            results.push(null as any); // Placeholder for failed request
+            results.push(null); // Placeholder for failed request
           }
         });
       } catch (error) {

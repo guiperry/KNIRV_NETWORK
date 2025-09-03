@@ -7,7 +7,7 @@ export class XionTestUtils {
     return TEST_XION_CONFIGS[network.toUpperCase() as keyof typeof TEST_XION_CONFIGS];
   }
 
-  static createTestMetaAccount(overrides: any = {}) {
+  static createTestMetaAccount(overrides: Record<string, unknown> = {}) {
     return {
       address: TEST_ADDRESSES.XION,
       chainId: 'xion-testnet-1',
@@ -37,7 +37,7 @@ export class XionTestUtils {
     };
   }
 
-  static createTestXionTransaction(overrides: any = {}) {
+  static createTestXionTransaction(overrides: Record<string, unknown> = {}) {
     return {
       from: TEST_ADDRESSES.XION,
       to: 'xion1234567890abcdef1234567890abcdef12345678',
@@ -96,7 +96,7 @@ export class XionTestUtils {
     return address.startsWith('xion1') && address.length === 44;
   }
 
-  static validateXionTransaction(transaction: any): boolean {
+  static validateXionTransaction(transaction: Record<string, unknown>): boolean {
     const requiredFields = ['from', 'to', 'amount', 'denom'];
     const missingFields = requiredFields.filter(field => !transaction[field]);
     
@@ -115,7 +115,7 @@ export class XionTestUtils {
     return true;
   }
 
-  static createTestWalletManager(config?: any) {
+  static createTestWalletManager(config?: Record<string, unknown>) {
     const defaultConfig = this.createTestXionConfig();
     
     return {
@@ -157,7 +157,7 @@ export class XionTestUtils {
     };
   }
 
-  static createTestXionMetaAccount(config?: any) {
+  static createTestXionMetaAccount(config?: Record<string, unknown>) {
     const defaultConfig = this.createTestXionConfig();
     
     return {
@@ -236,9 +236,9 @@ export class XionTestUtils {
 
 // XION Mock Client for testing
 export class MockXionClient {
-  private accounts: Map<string, any> = new Map();
-  private contracts: Map<string, any> = new Map();
-  private transactions: Array<any> = [];
+  private accounts: Map<string, Record<string, unknown>> = new Map();
+  private contracts: Map<string, Record<string, unknown>> = new Map();
+  private transactions: Array<Record<string, unknown>> = [];
 
   constructor() {
     // Initialize with test data
@@ -263,7 +263,7 @@ export class MockXionClient {
     return denom === 'uxion' ? account.balance : account.nrnBalance || '0';
   }
 
-  async sendTransaction(transaction: any) {
+  async sendTransaction(transaction: Record<string, unknown>) {
     const txHash = `0x${Math.random().toString(16).substr(2, 64)}`;
     const blockHeight = Math.floor(Math.random() * 1000000);
     
@@ -286,7 +286,7 @@ export class MockXionClient {
     return processedTx;
   }
 
-  async executeContract(contractAddress: string, method: string, params: any) {
+  async executeContract(contractAddress: string, method: string, params: Record<string, unknown>) {
     const contract = this.contracts.get(contractAddress);
     if (!contract) {
       throw new Error(`Contract not found: ${contractAddress}`);
@@ -309,7 +309,7 @@ export class MockXionClient {
     return result;
   }
 
-  async queryContract(contractAddress: string, query: any) {
+  async queryContract(contractAddress: string, query: Record<string, unknown>) {
     const contract = this.contracts.get(contractAddress);
     if (!contract) {
       throw new Error(`Contract not found: ${contractAddress}`);
@@ -341,7 +341,7 @@ export class MockXionClient {
     return this.transactions;
   }
 
-  private async updateBalanceForTransfer(transaction: any) {
+  private async updateBalanceForTransfer(transaction: Record<string, unknown>) {
     const fromAccount = this.accounts.get(transaction.from);
     const toAccount = this.accounts.get(transaction.to);
     
@@ -375,7 +375,7 @@ export class MockXionClient {
     this.accounts.set(address, account);
   }
 
-  addContract(address: string, contract: any) {
+  addContract(address: string, contract: Record<string, unknown>) {
     this.contracts.set(address, contract);
   }
 

@@ -19,7 +19,7 @@ export interface ComponentStatus {
   lastHeartbeat: number;
   version: string;
   capabilities: string[];
-  metrics: Record<string, any>;
+  metrics: Record<string, unknown>;
 }
 
 export interface EcosystemMessage {
@@ -52,7 +52,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
   private components: Map<string, ComponentStatus> = new Map();
   private endpoints: Map<string, ServiceEndpoint> = new Map();
   private messageQueue: EcosystemMessage[] = [];
-  private connections: Map<string, any> = new Map();
+  private connections: Map<string, unknown> = new Map();
   private isRunning: boolean = false;
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private messageHandlers: Map<string, (...args: unknown[]) => unknown> = new Map();
@@ -231,8 +231,8 @@ export class EcosystemCommunicationLayer extends EventEmitter {
         type: 'command',
         payload: {
           action: 'execute_skill',
-          skillId: (message.payload as any).skillId,
-          parameters: (message.payload as any).parameters,
+          skillId: (message.payload as { skillId?: string; parameters?: unknown }).skillId,
+          parameters: (message.payload as { skillId?: string; parameters?: unknown }).parameters,
         },
         priority: 'high',
         requiresResponse: true,
@@ -305,7 +305,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
     this.emit('endpointRegistered', endpoint);
   }
 
-  public async sendMessage(messageData: Omit<EcosystemMessage, 'id' | 'timestamp'>): Promise<any> {
+  public async sendMessage(messageData: Omit<EcosystemMessage, 'id' | 'timestamp'>): Promise<unknown> {
     const message: EcosystemMessage = {
       id: this.generateMessageId(),
       timestamp: Date.now(),
@@ -332,7 +332,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
     }
   }
 
-  private async waitForResponse(message: EcosystemMessage): Promise<any> {
+  private async waitForResponse(message: EcosystemMessage): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error(`Message timeout: ${message.id}`));
@@ -340,7 +340,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
 
       // Listen for response
       const responseHandler = (response: unknown) => {
-        if ((response as any).correlationId === message.id) {
+        if ((response as { correlationId?: string }).correlationId === message.id) {
           clearTimeout(timeout);
           this.off('messageResponse', responseHandler);
           resolve(response);
@@ -455,7 +455,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
     }
   }
 
-  private async createHttpConnection(endpoint: ServiceEndpoint): Promise<any> {
+  private async createHttpConnection(endpoint: ServiceEndpoint): Promise<unknown> {
     // HTTP connections are stateless, so we just return a connection object
     return {
       type: 'http',
@@ -474,7 +474,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
     };
   }
 
-  private async createWebSocketConnection(endpoint: ServiceEndpoint): Promise<any> {
+  private async createWebSocketConnection(endpoint: ServiceEndpoint): Promise<unknown> {
     // Simulate WebSocket connection
     return {
       type: 'websocket',
@@ -489,7 +489,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
     };
   }
 
-  private async createP2PConnection(endpoint: ServiceEndpoint): Promise<any> {
+  private async createP2PConnection(endpoint: ServiceEndpoint): Promise<unknown> {
     // Simulate P2P connection
     return {
       type: 'p2p',

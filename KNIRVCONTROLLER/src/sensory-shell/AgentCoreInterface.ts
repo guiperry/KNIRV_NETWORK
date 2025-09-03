@@ -23,7 +23,7 @@ export interface SensoryInput {
   timestamp: number;
   sessionId: string;
   userId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface CognitiveResponse {
@@ -33,7 +33,7 @@ export interface CognitiveResponse {
   processingTime: number;
   confidence: number;
   source: 'agent-core' | 'fallback';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AgentCoreStatus {
@@ -53,7 +53,7 @@ export interface LoRAAdapter {
   weightsB: Float32Array;
   rank: number;
   alpha: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -110,7 +110,7 @@ export class AgentCoreInterface extends EventEmitter {
       });
 
       // Get exported functions
-      this.agentCore = this.wasmInstance.exports as any;
+      this.agentCore = this.wasmInstance.exports as WebAssembly.Exports;
 
       // Verify required functions exist (with fallbacks for minimal WASM)
       const requiredFunctions = ['agentCoreExecute', 'agentCoreExecuteTool', 'agentCoreLoadLoRA', 'agentCoreApplySkill', 'agentCoreGetStatus'];
@@ -517,7 +517,7 @@ export class AgentCoreInterface extends EventEmitter {
    * Create fallback agent core implementation for minimal WASM modules
    */
   private createFallbackAgentCore(existingCore: unknown): AgentCoreWASM {
-    const core = existingCore as any;
+    const core = existingCore as Record<string, unknown>;
     return {
       agentCoreExecute: core?.agentCoreExecute || this.fallbackExecute.bind(this),
       agentCoreExecuteTool: core?.agentCoreExecuteTool || this.fallbackExecuteTool.bind(this),

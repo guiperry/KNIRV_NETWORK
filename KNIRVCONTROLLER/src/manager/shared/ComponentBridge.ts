@@ -150,7 +150,7 @@ export class ComponentBridge {
     switch (message.type) {
       case 'component_status':
         if (message.payload && typeof message.payload === 'object' && 'status' in message.payload) {
-          this.state.components[message.source] = (message.payload as any).status;
+          this.state.components[message.source] = (message.payload as { status: string }).status;
         }
         break;
       case 'cognitive_update':
@@ -278,7 +278,7 @@ export class ComponentIntegration {
 
       bridge.onMessage('call_response', (message) => {
         if (message.payload && typeof message.payload === 'object') {
-          const payload = message.payload as any;
+          const payload = message.payload as { callId?: string; success?: boolean; result?: unknown; error?: string };
           if (payload.callId === callId) {
             clearTimeout(timeout);
             if (payload.success) {

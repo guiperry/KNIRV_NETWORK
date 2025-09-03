@@ -26,7 +26,7 @@ interface OptimizationConfig {
 class PerformanceOptimizer {
   private metrics: PerformanceMetrics;
   private config: OptimizationConfig;
-  private cache: Map<string, { data: any; timestamp: number; hits: number }>;
+  private cache: Map<string, { data: unknown; timestamp: number; hits: number }>;
   private observers: PerformanceObserver[];
   private isMonitoring: boolean;
 
@@ -192,7 +192,7 @@ class PerformanceOptimizer {
   /**
    * Throttle function execution
    */
-  public throttle<T extends (...args: any[]) => any>(
+  public throttle<T extends (...args: unknown[]) => unknown>(
     func: T,
     delay: number = this.config.throttleDelay
   ): (...args: Parameters<T>) => void {
@@ -221,7 +221,7 @@ class PerformanceOptimizer {
   /**
    * Debounce function execution
    */
-  public debounce<T extends (...args: any[]) => any>(
+  public debounce<T extends (...args: unknown[]) => unknown>(
     func: T,
     delay: number = this.config.throttleDelay
   ): (...args: Parameters<T>) => void {
@@ -317,9 +317,16 @@ class PerformanceOptimizer {
    */
   public getMemoryUsage(): number {
     if (typeof window !== 'undefined' && 'performance' in window && 'memory' in performance) {
-      const memory = (performance as any).memory;
-      this.metrics.memoryUsage = (memory.usedJSHeapSize / memory.totalJSHeapSize) * 100;
-      return this.metrics.memoryUsage;
+      const perfWithMemory = performance as Performance & {
+        memory?: {
+          usedJSHeapSize: number;
+          totalJSHeapSize: number;
+        }
+      };
+      if (perfWithMemory.memory) {
+        this.metrics.memoryUsage = (perfWithMemory.memory.usedJSHeapSize / perfWithMemory.memory.totalJSHeapSize) * 100;
+        return this.metrics.memoryUsage;
+      }
     }
     return 0;
   }

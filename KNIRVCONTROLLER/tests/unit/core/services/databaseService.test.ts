@@ -2,7 +2,7 @@
 
 
 describe('DatabaseService', () => {
-  let databaseService: any;
+  let databaseService: DatabaseService;
   let mockCollection: {
     insertOne: jest.Mock;
     findOne: jest.Mock;
@@ -135,7 +135,7 @@ describe('DatabaseService', () => {
 
     test('should search skills', async () => {
       const mockResults = [mockSkill];
-      jest.spyOn(databaseService, 'searchSkills').mockResolvedValue(mockResults as any);
+      jest.spyOn(databaseService, 'searchSkills').mockResolvedValue(mockResults);
 
       const result = await databaseService.searchSkills('test', 10);
 

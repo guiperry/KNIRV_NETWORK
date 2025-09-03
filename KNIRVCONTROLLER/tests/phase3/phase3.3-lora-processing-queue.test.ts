@@ -37,7 +37,7 @@ describe('Phase 3.3 - LoRA Processing Queue', () => {
       isReady: jest.fn().mockReturnValue(true),
       getDiscoveryResult: jest.fn(),
       getAllDiscoveryResults: jest.fn().mockReturnValue([])
-    } as any;
+    };
 
     processingQueue = new LoRAProcessingQueue(mockHRMCoreModel, {
       maxConcurrentProcessing: 2,
@@ -366,8 +366,8 @@ describe('Phase 3.3 - LoRA Processing Queue', () => {
     test('should handle malformed input gracefully', async () => {
       const malformedAdapter = {
         ...mockLoRAAdapter,
-        weightsA: null as any,
-        weightsB: undefined as any
+        weightsA: null,
+        weightsB: undefined
       };
 
       // Should not throw during enqueue

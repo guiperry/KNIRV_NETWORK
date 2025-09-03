@@ -40,8 +40,56 @@ jest.mock('lucide-react', () => ({
 }));
 
 // Mock ComponentBridge
-const mockComponentBridge = {
-  getState: jest.fn(() => ({ connected: true, status: 'active' })),
+interface MockComponentBridge {
+  getState: () => {
+    components: Record<string, 'running' | 'stopped' | 'error'>;
+    cognitive: {
+      hrmActive: boolean;
+      loraAdapters: string[];
+      currentSkill?: string;
+      learningMode: boolean;
+      confidence: number;
+    };
+    wallet: {
+      connected: boolean;
+      balance: number;
+      address?: string;
+      transactions: unknown[];
+    };
+    network: {
+      connected: boolean;
+      peers: number;
+      blockHeight: number;
+    };
+  };
+  onMessage: jest.Mock;
+  sendMessage: jest.Mock;
+  connect: jest.Mock;
+  disconnect: jest.Mock;
+}
+
+const mockComponentBridge: MockComponentBridge = {
+  getState: jest.fn(() => ({
+    components: { manager: 'running', receiver: 'running', cli: 'running' },
+    cognitive: {
+      hrmActive: true,
+      loraAdapters: ['adapter1'],
+      currentSkill: 'test-skill',
+      learningMode: false,
+      confidence: 0.85
+    },
+    wallet: {
+      connected: true,
+      balance: 1000,
+      address: 'test-address',
+      transactions: []
+    },
+    network: {
+      connected: true,
+      peers: 5,
+      blockHeight: 12345
+    }
+  })),
   onMessage: jest.fn(),
   sendMessage: jest.fn(),
   connect: jest.fn(),
@@ -144,7 +192,7 @@ describe('Component Integration Fixes', () => {
   describe('UnifiedInterface Integration', () => {
     it('should render with ComponentBridge without type errors', () => {
       render(
-        <UnifiedInterface bridge={mockComponentBridge as any} />
+        <UnifiedInterface bridge={mockComponentBridge} />
       );
 
       expect(screen.getByText('Unified Interface')).toBeInTheDocument();
@@ -152,17 +200,35 @@ describe('Component Integration Fixes', () => {
 
     it('should handle bridge state updates safely', () => {
       const { rerender } = render(
-        <UnifiedInterface bridge={mockComponentBridge as any} />
+        <UnifiedInterface bridge={mockComponentBridge} />
       );
 
       // Test that component handles bridge state changes
-      const updatedBridge = {
+      const updatedBridge: MockComponentBridge = {
         ...mockComponentBridge,
-        getState: jest.fn(() => ({ connected: false, status: 'disconnected' }))
+        getState: jest.fn(() => ({
+          components: { manager: 'stopped', receiver: 'error', cli: 'stopped' },
+          cognitive: {
+            hrmActive: false,
+            loraAdapters: [],
+            learningMode: false,
+            confidence: 0
+          },
+          wallet: {
+            connected: false,
+            balance: 0,
+            transactions: []
+          },
+          network: {
+            connected: false,
+            peers: 0,
+            blockHeight: 0
+          }
+        }))
       };
 
-      rerender(<UnifiedInterface bridge={updatedBridge as any} />);
-      
+      rerender(<UnifiedInterface bridge={updatedBridge} />);
+
       expect(updatedBridge.getState).toHaveBeenCalled();
     });
   });

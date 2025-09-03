@@ -2274,7 +2274,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      const modelId = await this.chainIntegration.registerLLMModel(llmMetadata as any);
+      const modelId = await this.chainIntegration.registerLLMModel(llmMetadata);
       console.log(`Registered LLM model on chain: ${modelId}`);
       return modelId;
     } catch (error) {
@@ -2507,10 +2507,10 @@ export class CognitiveEngine extends EventEmitter {
   }
 
   public isEcosystemConnected(): boolean {
-    return this.ecosystemCommunication ? (this.ecosystemCommunication.getEcosystemStatus() as any).isRunning : false;
+    return this.ecosystemCommunication ? (this.ecosystemCommunication.getEcosystemStatus() as { isRunning?: boolean }).isRunning || false : false;
   }
 
-  public async sendEcosystemMessage(messageData: unknown): Promise<any> {
+  public async sendEcosystemMessage(messageData: unknown): Promise<unknown> {
     if (!this.ecosystemCommunication) {
       // Return mock response for testing
       return {
@@ -2537,7 +2537,7 @@ export class CognitiveEngine extends EventEmitter {
       });
 
       if (response) {
-        console.log('Ecosystem message sent:', (messageData as any).type);
+        console.log('Ecosystem message sent:', (messageData as { type?: string }).type);
         return response;
       } else {
         // Return mock response if method returns undefined
@@ -2598,7 +2598,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async performWalletOperationThroughEcosystem(operation: unknown): Promise<any> {
+  public async performWalletOperationThroughEcosystem(operation: unknown): Promise<unknown> {
     if (!this.ecosystemCommunication) {
       // Return mock response for testing
       return {
@@ -2606,7 +2606,7 @@ export class CognitiveEngine extends EventEmitter {
         data: {
           nrnBalance: '1000.0',
           transactionId: `mock-tx-${Date.now()}`,
-          operation: (operation as any).type
+          operation: (operation as { type?: string }).type
         },
         timestamp: Date.now()
       };
@@ -2630,7 +2630,7 @@ export class CognitiveEngine extends EventEmitter {
           data: {
             nrnBalance: '1000.0', // Mock balance for testing
             transactionId: response.response?.data?.transactionId || `mock-tx-${Date.now()}`,
-            operation: (operation as any).type,
+            operation: (operation as { type?: string }).type,
             ...response.response?.data
           },
           timestamp: Date.now()
@@ -2650,7 +2650,7 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async performBlockchainOperationThroughEcosystem(operation: unknown): Promise<any> {
+  public async performBlockchainOperationThroughEcosystem(operation: unknown): Promise<unknown> {
     if (!this.ecosystemCommunication) {
       // Return mock response for testing
       return {
@@ -2673,7 +2673,7 @@ export class CognitiveEngine extends EventEmitter {
         requiresResponse: true,
       });
 
-      console.log('Blockchain operation executed through ecosystem:', (operation as any).type);
+      console.log('Blockchain operation executed through ecosystem:', (operation as { type?: string }).type);
       return response;
     } catch (error) {
       console.error('Failed to execute blockchain operation through ecosystem:', error);
@@ -2735,7 +2735,7 @@ export class CognitiveEngine extends EventEmitter {
       return;
     }
 
-    this.ecosystemCommunication.updateConfig(_config as any);
+    this.ecosystemCommunication.updateConfig(_config);
     console.log('Ecosystem communication configuration updated');
   }
 
@@ -2743,7 +2743,7 @@ export class CognitiveEngine extends EventEmitter {
   public async performUnifiedEcosystemOperation(operation: {
     type: 'skill_with_payment' | 'cross_chain_transfer' | 'multi_service_query';
     payload: unknown;
-  }): Promise<any> {
+  }): Promise<unknown> {
     if (!this.ecosystemCommunication) {
       throw new Error('Ecosystem communication not available');
     }
@@ -2771,9 +2771,9 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  public async performSkillWithPayment(payload: unknown): Promise<any> {
+  public async performSkillWithPayment(payload: unknown): Promise<unknown> {
     // Extract NRN cost from different payload formats
-    const payloadAny = payload as any;
+    const payloadAny = payload as { nrnCost?: string; payment?: { amount?: string }; skillId?: string; parameters?: unknown };
     const nrnCost = payloadAny.nrnCost || payloadAny.payment?.amount || '0';
 
     // 1. Check wallet balance
@@ -2812,7 +2812,7 @@ export class CognitiveEngine extends EventEmitter {
     };
   }
 
-  public async performCrossChainTransfer(payload: unknown): Promise<any> {
+  public async performCrossChainTransfer(payload: unknown): Promise<unknown> {
     // 1. Initiate wallet transaction
     const walletResponse = await this.performWalletOperationThroughEcosystem({
       type: 'create_transaction',
@@ -2833,20 +2833,20 @@ export class CognitiveEngine extends EventEmitter {
     };
   }
 
-  public async performMultiServiceQuery(payload: unknown): Promise<any> {
+  public async performMultiServiceQuery(payload: unknown): Promise<unknown> {
     const results: unknown = {};
 
     // Query multiple services in parallel
-    const queries = (payload as any).services.map(async (service: unknown) => {
+    const queries = (payload as { services?: unknown[] }).services?.map(async (service: unknown) => {
       try {
         const response = await this.sendEcosystemMessage({
-          to: (service as any).componentId,
+          to: (service as { componentId?: string }).componentId,
           type: 'query',
-          payload: (service as any).query,
+          payload: (service as { query?: unknown }).query,
           priority: 'normal',
           requiresResponse: true,
         });
-        (results as any)[(service as any).componentId] = response;
+        (results as Record<string, unknown>)[(service as { componentId?: string }).componentId || 'unknown'] = response;
       } catch (error) {
         (results as Record<string, unknown>)[(service as { componentId?: string }).componentId || 'unknown'] = { success: false, error: (error as Error).message };
       }
@@ -2897,12 +2897,12 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      const success = await this.wasmAgentManager.loadLoRAAdapter(adapter as any);
+      const success = await this.wasmAgentManager.loadLoRAAdapter(adapter);
 
       if (success) {
         this.emit('wasmLoRAAdapterLoaded', {
-          skillId: (adapter as any).skillId,
-          skillName: (adapter as any).skillName,
+          skillId: (adapter as { skillId?: string }).skillId,
+          skillName: (adapter as { skillName?: string }).skillName,
           timestamp: Date.now()
         });
       }
@@ -2928,7 +2928,7 @@ export class CognitiveEngine extends EventEmitter {
    * Get loaded LoRA adapters in the WASM agent
    */
   public getWASMAgentAdapters(): LoRAAdapter[] {
-    return (this.wasmAgentManager?.getLoadedAdapters() || []) as any;
+    return (this.wasmAgentManager?.getLoadedAdapters() || []) as LoRAAdapter[];
   }
 
   /**
@@ -3041,7 +3041,7 @@ export class CognitiveEngine extends EventEmitter {
       const config = this.convertSolutionsToSkillConfig(skillName, solutions, errors);
 
       // Compile the skill
-      const result = await this.typeScriptCompiler.compileSkill(this._config as any);
+      const result = await this.typeScriptCompiler.compileSkill(this._config);
 
       if (result.success) {
         this.emit('skillCompiledFromSolutions', {
@@ -3223,18 +3223,18 @@ export class CognitiveEngine extends EventEmitter {
       }
 
       // Dispose of Fabric Algorithm if it exists
-      if (this.fabricAlgorithm && typeof (this.fabricAlgorithm as any).dispose === 'function') {
+      if (this.fabricAlgorithm && typeof (this.fabricAlgorithm as { dispose?: () => void }).dispose === 'function') {
         try {
-          (this.fabricAlgorithm as any).dispose();
+          (this.fabricAlgorithm as { dispose: () => void }).dispose();
         } catch (error) {
           console.error('Error disposing Fabric Algorithm:', error);
         }
       }
 
       // Dispose of HRM Bridge if it exists
-      if (this.hrmBridge && typeof (this.hrmBridge as any).dispose === 'function') {
+      if (this.hrmBridge && typeof (this.hrmBridge as { dispose?: () => void }).dispose === 'function') {
         try {
-          (this.hrmBridge as any).dispose();
+          (this.hrmBridge as { dispose: () => void }).dispose();
         } catch (error) {
           console.error('Error disposing HRM Bridge:', error);
         }

@@ -47,7 +47,7 @@ describe('Linting Error Resolution Tests', () => {
 
       // Mock the private method to avoid actual payment processing
       const processLightningPaymentSpy = jest.spyOn(
-        paymentService as any, 
+        paymentService as QRPaymentService & { processLightningPayment: jest.Mock },
         'processLightningPayment'
       ).mockResolvedValue({
         success: true,
@@ -74,8 +74,8 @@ describe('Linting Error Resolution Tests', () => {
         endTime: new Date('2024-12-31T23:59:59Z')
       };
 
-      const nextRun = (schedulingService as any).calculateNextRun(
-        recurringSchedule, 
+      const nextRun = (schedulingService as TaskSchedulingService & { calculateNextRun: (schedule: unknown, date: Date) => Date }).calculateNextRun(
+        recurringSchedule,
         new Date('2024-01-01T09:00:00Z')
       );
       
@@ -237,7 +237,7 @@ describe('Linting Error Resolution Tests', () => {
       // Test for the fix: const { createHash } = await import('crypto');
       const testData = 'test-udc-data';
       
-      const signature = await (udcService as any).generateSignature(testData);
+      const signature = await (udcService as UDCManagementService & { generateSignature: (data: string) => Promise<string> }).generateSignature(testData);
       
       expect(signature).toBeDefined();
       expect(typeof signature).toBe('string');
@@ -256,11 +256,11 @@ describe('Linting Error Resolution Tests', () => {
 
       // Mock the cron calculation method
       const calculateCronNextRunSpy = jest.spyOn(
-        schedulingService as any,
+        schedulingService as TaskSchedulingService & { calculateCronNextRun: jest.Mock },
         'calculateCronNextRun'
       ).mockReturnValue(new Date('2024-01-02T09:00:00Z'));
 
-      const nextRun = (schedulingService as any).calculateNextRun(
+      const nextRun = (schedulingService as TaskSchedulingService & { calculateNextRun: (schedule: unknown, date: Date) => Date }).calculateNextRun(
         cronSchedule,
         new Date('2024-01-01T10:00:00Z')
       );

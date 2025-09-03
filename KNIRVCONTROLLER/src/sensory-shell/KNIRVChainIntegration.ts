@@ -293,7 +293,7 @@ export class KNIRVChainIntegration extends EventEmitter {
       });
 
       if (response.success && response.data) {
-        const skills = (response.data as any).skills || [];
+        const skills = (response.data as { skills?: unknown[] }).skills || [];
         
         for (const skill of skills) {
           this.skills.set(skill.id, skill);
@@ -319,7 +319,7 @@ export class KNIRVChainIntegration extends EventEmitter {
       });
 
       if (response.success && response.data) {
-        const models = (response.data as any).models || [];
+        const models = (response.data as { models?: unknown[] }).models || [];
         
         for (const model of models) {
           this.llmModels.set(model.id, model);
@@ -396,7 +396,7 @@ export class KNIRVChainIntegration extends EventEmitter {
       });
 
       if (response.success && response.data) {
-        const skill = (response.data as any).skill;
+        const skill = (response.data as { skill: { validation_status?: string } }).skill;
         return skill.validation_status === 'validated';
       }
 
@@ -451,19 +451,19 @@ export class KNIRVChainIntegration extends EventEmitter {
       errorMessage: `Skill invocation requested: ${skillId}`,
       stackTrace: `Skill: ${skillId}, User: ${userAddress}, NRN: ${nrnAmount}`,
       userContext: { userAddress, nrnAmount, parameters },
-      agentId: (parameters as any).agentId || 'unknown-agent',
+      agentId: (parameters as { agentId?: string }).agentId || 'unknown-agent',
       timestamp: Date.now(),
-      severity: (parameters as any).priority === 'high' ? 'high' : 'medium'
+      severity: (parameters as { priority?: string }).priority === 'high' ? 'high' : 'medium'
     };
 
     // Use the KNIRVRouterIntegration for skill resolution
     const routerResponse = await this.knirvRouter.resolveSkillViaErrorContext(
       errorContext,
-      (parameters as any).capabilities || [],
+      (parameters as { capabilities?: unknown[] }).capabilities || [],
       {
-        priority: (parameters as any).priority || 'normal',
-        useP2P: (parameters as any).useP2P !== false,
-        useWASM: (parameters as any).useWASM !== false,
+        priority: (parameters as { priority?: string }).priority || 'normal',
+        useP2P: (parameters as { useP2P?: boolean }).useP2P !== false,
+        useWASM: (parameters as { useWASM?: boolean }).useWASM !== false,
         nrnToken: nrnAmount
       }
     );
@@ -568,7 +568,7 @@ export class KNIRVChainIntegration extends EventEmitter {
       });
 
       if (response.success && response.data) {
-        const skillId = (response.data as any).skill_id;
+        const skillId = (response.data as { skill_id?: string }).skill_id;
         
         // Update local cache
         const fullSkillMetadata: SkillMetadata = {
@@ -618,7 +618,7 @@ export class KNIRVChainIntegration extends EventEmitter {
       });
 
       if (response.success && response.data) {
-        const modelId = (response.data as any).model_id;
+        const modelId = (response.data as { model_id?: string }).model_id;
         
         // Update local cache
         const fullLLMMetadata: LLMMetadata = {
@@ -674,7 +674,7 @@ export class KNIRVChainIntegration extends EventEmitter {
       });
 
       if (response.success && response.data) {
-        return (response.data as any).balance || '0';
+        return (response.data as { balance?: string }).balance || '0';
       }
 
       return '0';
@@ -754,7 +754,7 @@ export class KNIRVChainIntegration extends EventEmitter {
   /**
    * Create skill chain via KNIRVROUTER network using LoRA adapter composition
    */
-  public async createSkillChain(skillIds: string[]): Promise<any> {
+  public async createSkillChain(skillIds: string[]): Promise<unknown> {
     if (!this.config.useKnirvRouter) {
       throw new Error('Skill chains only available with KNIRVROUTER');
     }
@@ -874,7 +874,7 @@ export class KNIRVChainIntegration extends EventEmitter {
           });
 
           if (response.success && response.data) {
-            const updatedSkill = (response.data as any).skill;
+            const updatedSkill = (response.data as { skill: { validation_status?: string } }).skill;
             if (updatedSkill.validation_status !== skill.validationStatus) {
               skill.validationStatus = updatedSkill.validation_status;
               this.skills.set(skillId, skill);

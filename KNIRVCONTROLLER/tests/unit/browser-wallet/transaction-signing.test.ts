@@ -250,7 +250,7 @@ describe('KnirvWallet Transaction Signing', () => {
         structure: true
       };
 
-      await expect(wallet.signTransaction(malformedTransaction as any))
+      await expect(wallet.signTransaction(malformedTransaction as Parameters<typeof wallet.signTransaction>[0]))
         .rejects.toThrow();
     });
 

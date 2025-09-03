@@ -29,7 +29,7 @@ export interface ErrorContext {
   timestamp: Date;
   userAgent?: string;
   url?: string;
-  additionalData?: Record<string, any>;
+  additionalData?: Record<string, unknown>;
 }
 
 export interface ErrorDetails {
@@ -377,7 +377,7 @@ class ErrorHandler {
   /**
    * Create a safe wrapper for async functions
    */
-  public wrapAsync<T extends (...args: any[]) => Promise<any>>(
+  public wrapAsync<T extends (...args: unknown[]) => Promise<unknown>>(
     fn: T,
     context: Partial<ErrorContext> = {},
     category: ErrorCategory = ErrorCategory.BUSINESS_LOGIC
@@ -395,7 +395,7 @@ class ErrorHandler {
   /**
    * Create a safe wrapper for sync functions
    */
-  public wrapSync<T extends (...args: any[]) => any>(
+  public wrapSync<T extends (...args: unknown[]) => unknown>(
     fn: T,
     context: Partial<ErrorContext> = {},
     category: ErrorCategory = ErrorCategory.BUSINESS_LOGIC

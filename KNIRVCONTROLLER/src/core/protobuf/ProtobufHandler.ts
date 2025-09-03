@@ -334,7 +334,7 @@ enum Status {
   /**
    * Serialize data using the specified protobuf schema
    */
-  async serialize(data: Record<string, any>, schemaName: string): Promise<Uint8Array> {
+  async serialize(data: Record<string, unknown>, schemaName: string): Promise<Uint8Array> {
     if (!this.ready) {
       throw new Error('Protobuf Handler not initialized');
     }
@@ -366,7 +366,7 @@ enum Status {
   /**
    * Deserialize data using the specified protobuf schema
    */
-  async deserialize(data: Uint8Array, schemaName: string): Promise<any> {
+  async deserialize(data: Uint8Array, schemaName: string): Promise<unknown> {
     if (!this.ready) {
       throw new Error('Protobuf Handler not initialized');
     }
@@ -418,7 +418,7 @@ enum Status {
   /**
    * Serialize a LoRA adapter skill
    */
-  async serializeLoRAAdapter(adapter: Record<string, any> & {
+  async serializeLoRAAdapter(adapter: Record<string, unknown> & {
     weightsA: Float32Array;
     weightsB: Float32Array;
   }): Promise<Uint8Array> {
@@ -436,7 +436,7 @@ enum Status {
   /**
    * Deserialize a LoRA adapter skill
    */
-  async deserializeLoRAAdapter(data: Uint8Array): Promise<any> {
+  async deserializeLoRAAdapter(data: Uint8Array): Promise<unknown> {
     const adapter = await this.deserialize(data, 'LoRaAdapterSkill');
     
     // Convert bytes back to Float32Arrays

@@ -13,12 +13,12 @@ interface ErrorNode {
   errorType: string;
   errorMessage: string;
   stackTrace?: string;
-  context: Record<string, any>;
+  context: Record<string, unknown>;
   severity: 'low' | 'medium' | 'high' | 'critical';
   timestamp: Date;
   bountyAmount: number;
   tags: string[];
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 interface ErrorCluster {
@@ -149,11 +149,25 @@ class MockErrorNodeClustering {
   }
 }
 
+interface AgentAssignment {
+  agentId: string;
+  clusterId: string;
+  assignedAt: Date;
+  status: 'active' | 'completed' | 'failed';
+}
+
+interface AgentOwnership {
+  agentId: string;
+  clusterId: string;
+  ownedAt: Date;
+  bountyAmount: number;
+}
+
 class MockAgentAssignmentSystem {
   private agents: Map<string, Agent> = new Map();
-  private assignments: Map<string, any> = new Map();
+  private assignments: Map<string, AgentAssignment> = new Map();
   private solutions: Map<string, CompetitiveSolution> = new Map();
-  private ownerships: Map<string, any> = new Map();
+  private ownerships: Map<string, AgentOwnership> = new Map();
   private initialized: boolean = false;
 
   async initialize(): Promise<void> {
@@ -170,7 +184,7 @@ class MockAgentAssignmentSystem {
     this.agents.set(agent.agentId, fullAgent);
   }
 
-  async assignAgentsToCluster(cluster: ErrorCluster, maxAgents: number = 5): Promise<any[]> {
+  async assignAgentsToCluster(cluster: ErrorCluster, maxAgents: number = 5): Promise<AgentAssignment[]> {
     const agents = Array.from(this.agents.values()).slice(0, maxAgents);
     const assignments = agents.map(agent => ({
       assignmentId: `assignment_${Date.now()}_${agent.agentId}`,

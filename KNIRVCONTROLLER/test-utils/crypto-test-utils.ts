@@ -211,7 +211,7 @@ export class SignatureTestUtils {
     return /^[0-9a-fA-F]{128}$/.test(cleanSignature);
   }
 
-  static async mockSignTransaction(privateKey: string, transaction: any): Promise<string> {
+  static async mockSignTransaction(privateKey: string, transaction: Record<string, unknown>): Promise<string> {
     // Simple mock signing for testing
     const txData = JSON.stringify(transaction);
     const combined = privateKey + txData;
@@ -228,7 +228,7 @@ export class SignatureTestUtils {
     return hashHex.repeat(8); // 128 hex characters
   }
 
-  static async mockVerifySignature(signature: string, transaction: any, publicKey: string): Promise<boolean> {
+  static async mockVerifySignature(signature: string, transaction: Record<string, unknown>, publicKey: string): Promise<boolean> {
     // Simple mock verification for testing
     // In real implementation, this would use proper cryptographic verification
     return this.validateSignatureFormat(signature) && !!transaction && !!publicKey;
@@ -308,7 +308,7 @@ export class KeyDerivationTestUtils {
 
 // Comprehensive crypto test suite
 export class CryptoTestSuite {
-  static async runAllTests(): Promise<{ passed: number; failed: number; results: any[] }> {
+  static async runAllTests(): Promise<{ passed: number; failed: number; results: Array<{ name: string; passed: boolean; error?: string }> }> {
     const tests = [
       { name: 'Mnemonic Generation', test: () => this.testMnemonicGeneration() },
       { name: 'Private Key Generation', test: () => this.testPrivateKeyGeneration() },

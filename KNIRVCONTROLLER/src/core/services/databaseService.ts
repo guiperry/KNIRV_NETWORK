@@ -254,16 +254,16 @@ class CollectionWrapper<T> {
     // Create a mutable copy with timestamps
     const docWithTimestamps = {
       ...doc,
-      createdAt: (doc as any).createdAt || new Date().toISOString(),
+      createdAt: (doc as { createdAt?: string }).createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
 
     // Generate ID if not present
-    if (!(docWithTimestamps as any)[this.primaryKey]) {
-      (docWithTimestamps as any)[this.primaryKey] = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    if (!(docWithTimestamps as Record<string, unknown>)[this.primaryKey]) {
+      (docWithTimestamps as Record<string, unknown>)[this.primaryKey] = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     }
 
-    const result = await collection.insert(docWithTimestamps as any);
+    const result = await collection.insert(docWithTimestamps);
     return result.toJSON();
   }
 
@@ -286,7 +286,7 @@ class CollectionWrapper<T> {
       const updateSource = update.$set || update;
       const updateData = typeof updateSource === 'object' && updateSource !== null
         ? { ...updateSource as Record<string, unknown> }
-        : {} as any;
+        : {} as Record<string, unknown>;
       updateData.updatedAt = new Date().toISOString();
       await doc.patch(updateData);
       return doc.toJSON();
@@ -431,7 +431,7 @@ class DatabaseService {
             { name: { $regex: new RegExp(searchTerm, 'i') } },
             { description: { $regex: new RegExp(searchTerm, 'i') } }
           ]
-        } as any)
+        })
         .limit(limit)
         .exec();
 

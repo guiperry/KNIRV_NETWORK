@@ -83,12 +83,12 @@ export class FabricAlgorithm extends EventEmitter {
     this.emit('fabricStopped');
   }
 
-  public async process(input: unknown, options: unknown = {}): Promise<any> {
+  public async process(input: unknown, options: unknown = {}): Promise<unknown> {
     const startTime = Date.now();
 
     try {
       // Use HRM-enhanced processing if available
-      if (this.config.hrmIntegration && this.hrmBridge && (this.hrmBridge as any).isReady()) {
+      if (this.config.hrmIntegration && this.hrmBridge && (this.hrmBridge as { isReady?: () => boolean }).isReady?.()) {
         return await this.hrmEnhancedProcess(input, options);
       }
 
@@ -108,7 +108,7 @@ export class FabricAlgorithm extends EventEmitter {
     }
   }
 
-  private async hrmEnhancedProcess(input: unknown, options: unknown): Promise<any> {
+  private async hrmEnhancedProcess(input: unknown, options: unknown): Promise<unknown> {
     console.log('Processing with HRM-enhanced Fabric Algorithm...');
 
     try {
@@ -124,16 +124,16 @@ export class FabricAlgorithm extends EventEmitter {
       };
 
       // Get HRM cognitive analysis
-      const hrmOutput = await (this.hrmBridge as any).processCognitiveInput(hrmInput);
+      const hrmOutput = await (this.hrmBridge as { processCognitiveInput?: (input: unknown) => Promise<unknown> }).processCognitiveInput?.(hrmInput);
 
       // Use HRM insights to enhance traditional Fabric processing
       const enhancedOptions = {
         ...(typeof options === 'object' && options !== null ? options as Record<string, unknown> : {}),
         hrmGuidance: {
-          reasoning: (hrmOutput as any).reasoning_result,
-          confidence: (hrmOutput as any).confidence,
-          l_activations: (hrmOutput as any).l_module_activations,
-          h_activations: (hrmOutput as any).h_module_activations,
+          reasoning: (hrmOutput as { reasoning_result?: unknown }).reasoning_result,
+          confidence: (hrmOutput as { confidence?: unknown }).confidence,
+          l_activations: (hrmOutput as { l_module_activations?: unknown }).l_module_activations,
+          h_activations: (hrmOutput as { h_module_activations?: unknown }).h_module_activations,
         },
       };
 
@@ -141,7 +141,7 @@ export class FabricAlgorithm extends EventEmitter {
       const processingStrategy = this.selectStrategyWithHRM(input, hrmOutput);
 
       // Apply HRM-guided attention mechanism
-      const attentionResult = await this.applyHRMGuidedAttention(input, (options as any).context, hrmOutput);
+      const attentionResult = await this.applyHRMGuidedAttention(input, (options as { context?: unknown }).context, hrmOutput);
 
       // Execute enhanced processing
       const result = await this.executeHRMEnhancedStrategy(
@@ -195,13 +195,13 @@ export class FabricAlgorithm extends EventEmitter {
   }
 
   private determineTaskType(input: unknown, options: unknown): string {
-    const optionsAny = options as any;
+    const optionsAny = options as { inputType?: string };
     if (optionsAny.inputType) {
       return `fabric_${optionsAny.inputType}`;
     }
 
     if (typeof input === 'object' && input !== null && 'type' in input) {
-      return `fabric_${(input as any).type}`;
+      return `fabric_${(input as { type?: string }).type}`;
     }
 
     return 'fabric_general';
@@ -209,9 +209,10 @@ export class FabricAlgorithm extends EventEmitter {
 
   private selectStrategyWithHRM(input: unknown, hrmOutput: unknown): string {
     // Use HRM confidence and activations to select processing strategy
-    const hrmAny = hrmOutput as any;
-    const confidence = hrmAny.confidence;
-    const avgHActivation = hrmAny.h_module_activations.reduce((a: number, b: number) => a + b, 0) / hrmAny.h_module_activations.length;
+    const hrmAny = hrmOutput as { confidence?: number; h_module_activations?: number[] };
+    const confidence = hrmAny.confidence || 0;
+    const hActivations = hrmAny.h_module_activations || [];
+    const avgHActivation = hActivations.length > 0 ? hActivations.reduce((a: number, b: number) => a + b, 0) / hActivations.length : 0;
 
     if (confidence > 0.8 && avgHActivation > 0.7) {
       return 'hrm_deep_analysis';
@@ -222,7 +223,7 @@ export class FabricAlgorithm extends EventEmitter {
     }
   }
 
-  private async applyHRMGuidedAttention(input: unknown, context: unknown, hrmOutput: unknown): Promise<any> {
+  private async applyHRMGuidedAttention(input: unknown, context: unknown, hrmOutput: unknown): Promise<unknown> {
     // Traditional attention mechanism
     const traditionalAttention = await this.applyAttention(input, context);
 
@@ -230,7 +231,7 @@ export class FabricAlgorithm extends EventEmitter {
     const hrmGuidedWeights = new Map();
 
     // Use L-module activations to guide sensory attention
-    const hrmAny = hrmOutput as any;
+    const hrmAny = hrmOutput as { l_module_activations?: number[] };
     if (hrmAny.l_module_activations) {
       hrmAny.l_module_activations.forEach((activation: number, index: number) => {
         hrmGuidedWeights.set(`l_module_${index}`, activation);
@@ -260,12 +261,12 @@ export class FabricAlgorithm extends EventEmitter {
     return {
       fabricVector: this.generateTraditionalNRV(result),
       hrmVector: {
-        l_activations: (hrmOutput as any).l_module_activations,
-        h_activations: (hrmOutput as any).h_module_activations,
-        reasoning_confidence: (hrmOutput as any).confidence,
-        processing_time: (hrmOutput as any).processing_time,
+        l_activations: (hrmOutput as { l_module_activations?: unknown }).l_module_activations,
+        h_activations: (hrmOutput as { h_module_activations?: unknown }).h_module_activations,
+        reasoning_confidence: (hrmOutput as { confidence?: number }).confidence,
+        processing_time: (hrmOutput as { processing_time?: number }).processing_time,
       },
-      combinedConfidence: ((result as any).confidence + (hrmOutput as any).confidence) / 2,
+      combinedConfidence: (((result as { confidence?: number }).confidence || 0) + ((hrmOutput as { confidence?: number }).confidence || 0)) / 2,
       timestamp: new Date().toISOString(),
       version: '1.0.0-hrm',
     };
@@ -274,8 +275,8 @@ export class FabricAlgorithm extends EventEmitter {
   private generateTraditionalNRV(result: unknown): unknown {
     // Traditional NRV generation (existing logic)
     return {
-      confidence: (result as any).confidence || 0.5,
-      complexity: (result as any).complexity || 0.5,
+      confidence: (result as { confidence?: number }).confidence || 0.5,
+      complexity: (result as { complexity?: number }).complexity || 0.5,
       attentionWeights: Object.fromEntries(this.attentionMechanism.weights),
       contextRelevance: this.attentionMechanism.contextRelevance,
     };
@@ -286,13 +287,14 @@ export class FabricAlgorithm extends EventEmitter {
     this.updateContext(input, result, options);
 
     // Add HRM-specific context
-    const contextAny = this.context as any;
+    const contextAny = this.context as { memoryState?: { hrmHistory?: unknown[] } };
+    if (!contextAny.memoryState) contextAny.memoryState = {};
     contextAny.memoryState.hrmHistory = contextAny.memoryState.hrmHistory || [];
     contextAny.memoryState.hrmHistory.push({
       timestamp: new Date(),
       input: input,
       hrmOutput: hrmOutput,
-      confidence: (hrmOutput as any).confidence,
+      confidence: (hrmOutput as { confidence?: number }).confidence,
     });
 
     // Keep only recent HRM history
@@ -305,10 +307,10 @@ export class FabricAlgorithm extends EventEmitter {
     strategy: string,
     attentionResult: unknown,
     options: unknown
-  ): Promise<any> {
+  ): Promise<unknown> {
     console.log(`Executing HRM-enhanced strategy: ${strategy}`);
 
-    const hrmGuidance = (options as any).hrmGuidance;
+    const hrmGuidance = (options as { hrmGuidance?: unknown }).hrmGuidance;
 
     switch (strategy) {
       case 'hrm_deep_analysis':
@@ -325,49 +327,49 @@ export class FabricAlgorithm extends EventEmitter {
     }
   }
 
-  private async hrmDeepAnalysisProcessing(attentionResult: unknown, options: unknown, hrmGuidance: unknown): Promise<any> {
+  private async hrmDeepAnalysisProcessing(attentionResult: unknown, options: unknown, hrmGuidance: unknown): Promise<unknown> {
     // Deep analysis with HRM cognitive insights
     const result = await this.deepAnalysisProcessing(attentionResult, options);
 
     return {
       ...result,
       hrmEnhanced: true,
-      hrmReasoning: (hrmGuidance as any).reasoning,
-      hrmConfidence: (hrmGuidance as any).confidence,
+      hrmReasoning: (hrmGuidance as { reasoning?: unknown }).reasoning,
+      hrmConfidence: (hrmGuidance as { confidence?: unknown }).confidence,
       analysisDepth: 'deep_with_hrm',
       cognitiveInsights: {
-        l_module_patterns: (hrmGuidance as any).l_activations,
-        h_module_planning: (hrmGuidance as any).h_activations,
+        l_module_patterns: (hrmGuidance as { l_activations?: unknown }).l_activations,
+        h_module_planning: (hrmGuidance as { h_activations?: unknown }).h_activations,
       },
     };
   }
 
-  private async hrmStandardProcessing(attentionResult: unknown, options: unknown, hrmGuidance: unknown): Promise<any> {
+  private async hrmStandardProcessing(attentionResult: unknown, options: unknown, hrmGuidance: unknown): Promise<unknown> {
     // Standard processing with HRM guidance
     const result = await this.standardProcessing(attentionResult, options);
 
     return {
       ...result,
       hrmEnhanced: true,
-      hrmReasoning: (hrmGuidance as any).reasoning,
-      hrmConfidence: (hrmGuidance as any).confidence,
+      hrmReasoning: (hrmGuidance as { reasoning?: unknown }).reasoning,
+      hrmConfidence: (hrmGuidance as { confidence?: unknown }).confidence,
       analysisDepth: 'standard_with_hrm',
     };
   }
 
-  private async hrmFastProcessing(attentionResult: unknown, options: unknown, hrmGuidance: unknown): Promise<any> {
+  private async hrmFastProcessing(attentionResult: unknown, options: unknown, hrmGuidance: unknown): Promise<unknown> {
     // Fast processing with minimal HRM overhead
     const result = await this.fastProcessing(attentionResult, options);
 
     return {
       ...result,
       hrmEnhanced: true,
-      hrmConfidence: (hrmGuidance as any).confidence,
+      hrmConfidence: (hrmGuidance as { confidence?: unknown }).confidence,
       analysisDepth: 'fast_with_hrm',
     };
   }
 
-  private async adaptiveProcess(input: unknown, options: unknown): Promise<any> {
+  private async adaptiveProcess(input: unknown, options: unknown): Promise<unknown> {
     // Analyze input complexity and context
     const complexity = this.analyzeComplexity(input);
 
@@ -383,7 +385,7 @@ export class FabricAlgorithm extends EventEmitter {
     }
 
     // Apply attention mechanism
-    const attentionResult = await this.applyAttention(input, (options as any).context);
+    const attentionResult = await this.applyAttention(input, (options as { context?: unknown }).context);
 
     // Process with selected strategy
     const result = await this.executeProcessingStrategy(
@@ -398,7 +400,7 @@ export class FabricAlgorithm extends EventEmitter {
     return result;
   }
 
-  private async directProcess(input: unknown, options: unknown): Promise<any> {
+  private async directProcess(input: unknown, options: unknown): Promise<unknown> {
     // Direct processing without adaptive mechanisms
     const result = await this.executeBasicProcessing(input, options);
     this.updateContext(input, result, options);
@@ -468,7 +470,7 @@ export class FabricAlgorithm extends EventEmitter {
     return totalWords > 0 ? commonWords.length / totalWords : 0;
   }
 
-  private async applyAttention(input: unknown, context: unknown): Promise<any> {
+  private async applyAttention(input: unknown, context: unknown): Promise<{ focusedInput: unknown; attentionWeights: Map<string, number>; focusAreas: string[] }> {
     // Update attention weights based on input and context
     this.updateAttentionWeights(input, context);
 
@@ -519,7 +521,7 @@ export class FabricAlgorithm extends EventEmitter {
     }
 
     // Increase weight if related to recent context
-    if (context && (context as any).has(key)) {
+    if (context && (context as { has?: (key: string) => boolean }).has?.(key)) {
       weight += 0.2;
     }
 
@@ -552,7 +554,7 @@ export class FabricAlgorithm extends EventEmitter {
     strategy: string,
     attentionResult: unknown,
     options: unknown
-  ): Promise<any> {
+  ): Promise<unknown> {
     console.log(`Executing processing strategy: ${strategy}`);
 
     switch (strategy) {
@@ -570,10 +572,10 @@ export class FabricAlgorithm extends EventEmitter {
     }
   }
 
-  private async deepAnalysisProcessing(attentionResult: unknown, options: unknown): Promise<any> {
+  private async deepAnalysisProcessing(attentionResult: unknown, options: unknown): Promise<unknown> {
     // Simulate deep analysis with multiple passes
     const passes = 3;
-    let result = (attentionResult as any).focusedInput;
+    let result = (attentionResult as { focusedInput?: unknown }).focusedInput;
 
     for (let i = 0; i < passes; i++) {
       result = await this.processPass(result, `deep_pass_${i}`, options);
@@ -592,8 +594,8 @@ export class FabricAlgorithm extends EventEmitter {
     };
   }
 
-  private async standardProcessing(attentionResult: unknown, options: unknown): Promise<any> {
-    const result = await this.processPass((attentionResult as any).focusedInput, 'standard', options);
+  private async standardProcessing(attentionResult: unknown, options: unknown): Promise<unknown> {
+    const result = await this.processPass((attentionResult as { focusedInput?: unknown }).focusedInput, 'standard', options);
 
     return {
       type: 'standard_result',
@@ -604,11 +606,11 @@ export class FabricAlgorithm extends EventEmitter {
     };
   }
 
-  private async fastProcessing(attentionResult: unknown, _options: unknown): Promise<any> {
+  private async fastProcessing(attentionResult: unknown, _options: unknown): Promise<unknown> {
     // Quick processing with minimal analysis
     const result = {
       processed: true,
-      input: (attentionResult as any).focusedInput,
+      input: (attentionResult as { focusedInput?: unknown }).focusedInput,
       quickAnalysis: 'Fast processing applied',
     };
 
@@ -621,7 +623,7 @@ export class FabricAlgorithm extends EventEmitter {
     };
   }
 
-  private async executeBasicProcessing(input: unknown, options: unknown): Promise<any> {
+  private async executeBasicProcessing(input: unknown, options: unknown): Promise<unknown> {
     const result = await this.processPass(input, 'basic', options);
 
     return {
@@ -633,7 +635,7 @@ export class FabricAlgorithm extends EventEmitter {
     };
   }
 
-  private async processPass(input: unknown, passType: string, options: unknown): Promise<any> {
+  private async processPass(input: unknown, passType: string, options: unknown): Promise<unknown> {
     // Simulate processing pass
     await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -724,7 +726,7 @@ export class FabricAlgorithm extends EventEmitter {
         if (this.processingQueue.length > 0) {
           const item = this.processingQueue.shift();
           try {
-            await this.process((item as any).input, (item as any).options);
+            await this.process((item as { input?: unknown }).input, (item as { options?: unknown }).options);
           } catch (error) {
             console.error('Background processing error:', error);
           }
@@ -759,11 +761,12 @@ export class FabricAlgorithm extends EventEmitter {
   }
 
   public exportMemoryState(): unknown {
-    return { ...(this.context as any).memoryState };
+    return { ...(this.context as { memoryState?: unknown }).memoryState };
   }
 
   public importMemoryState(memoryState: unknown): void {
-    (this.context as any).memoryState = { ...(typeof memoryState === 'object' && memoryState !== null ? memoryState as Record<string, unknown> : {}) };
+    const contextAny = this.context as { memoryState?: unknown };
+    contextAny.memoryState = { ...(typeof memoryState === 'object' && memoryState !== null ? memoryState as Record<string, unknown> : {}) };
     this.emit('memoryStateImported');
   }
 
@@ -791,17 +794,17 @@ export class FabricAlgorithm extends EventEmitter {
     return {
       enabled: this.config.hrmIntegration,
       bridgeAvailable: this.hrmBridge !== null,
-      ready: this.hrmBridge ? (this.hrmBridge as any).isReady() : false,
+      ready: this.hrmBridge ? (this.hrmBridge as { isReady?: () => boolean }).isReady?.() : false,
     };
   }
 
   public getHRMHistory(): unknown[] {
-    return (this.context as any).memoryState.hrmHistory || [];
+    return (this.context as { memoryState?: { hrmHistory?: unknown[] } }).memoryState?.hrmHistory || [];
   }
 
   public clearHRMHistory(): void {
-    const contextAny = this.context as any;
-    if (contextAny.memoryState.hrmHistory) {
+    const contextAny = this.context as { memoryState?: { hrmHistory?: unknown[] } };
+    if (contextAny.memoryState?.hrmHistory) {
       contextAny.memoryState.hrmHistory = [];
       this.emit('hrmHistoryCleared');
     }
@@ -816,10 +819,10 @@ export class FabricAlgorithm extends EventEmitter {
       hrmIntegration: this.config.hrmIntegration,
       hrmProcessedCount: hrmHistory.length,
       averageHRMConfidence: hrmHistory.length > 0
-        ? (hrmHistory as any[]).reduce((sum: number, item: any) => sum + item.confidence, 0) / hrmHistory.length
+        ? (hrmHistory as { confidence?: number }[]).reduce((sum: number, item: { confidence?: number }) => sum + (item.confidence || 0), 0) / hrmHistory.length
         : 0,
       lastHRMProcessing: hrmHistory.length > 0
-        ? (hrmHistory[hrmHistory.length - 1] as any).timestamp
+        ? (hrmHistory[hrmHistory.length - 1] as { timestamp?: unknown }).timestamp
         : null,
     };
   }

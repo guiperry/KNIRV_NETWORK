@@ -125,12 +125,12 @@ export class SEALFramework extends EventEmitter {
     return agent;
   }
 
-  public async generateResponse(input: unknown, context: unknown): Promise<any> {
+  public async generateResponse(input: unknown, context: unknown): Promise<unknown> {
     const startTime = Date.now();
 
     try {
       // Use HRM for enhanced reasoning if available
-      if (this.config.hrmIntegration && this.hrmBridge && (this.hrmBridge as any).isReady()) {
+      if (this.config.hrmIntegration && this.hrmBridge && (this.hrmBridge as { isReady?: () => boolean }).isReady?.()) {
         return await this.generateHRMEnhancedResponse(input, context);
       }
 
@@ -155,7 +155,7 @@ export class SEALFramework extends EventEmitter {
     }
   }
 
-  private async generateHRMEnhancedResponse(input: unknown, context: unknown): Promise<any> {
+  private async generateHRMEnhancedResponse(input: unknown, context: unknown): Promise<unknown> {
     console.log('Generating HRM-enhanced SEAL response...');
 
     try {
@@ -166,7 +166,7 @@ export class SEALFramework extends EventEmitter {
         task_type: this.determineTaskType(input, context),
       };
 
-      const hrmOutput = await (this.hrmBridge as any).processCognitiveInput(hrmInput);
+      const hrmOutput = await (this.hrmBridge as { processCognitiveInput?: (input: unknown) => Promise<unknown> }).processCognitiveInput?.(hrmInput);
 
       // Use HRM reasoning to select and guide agent execution
       const agent = await this.selectAgentWithHRMGuidance(input, context, hrmOutput);
@@ -180,7 +180,7 @@ export class SEALFramework extends EventEmitter {
       const response = await this.executeAgentWithHRMGuidance(agent, input, context, hrmOutput);
 
       // Update agent performance based on HRM confidence
-      this.updateAgentPerformance(agent, hrmOutput.processing_time, hrmOutput.confidence > 0.7);
+      this.updateAgentPerformance(agent, (hrmOutput as { processing_time?: number }).processing_time, ((hrmOutput as { confidence?: number }).confidence || 0) > 0.7);
 
       return response;
 
@@ -214,7 +214,7 @@ export class SEALFramework extends EventEmitter {
   }
 
   private determineTaskType(input: unknown, context: unknown): string {
-    const contextAny = context as any;
+    const contextAny = context as { inputType?: string };
     if (contextAny.inputType) {
       return contextAny.inputType + '_processing';
     }
@@ -240,7 +240,7 @@ export class SEALFramework extends EventEmitter {
       let score = this.calculateAgentScore(agent, requiredCapabilities);
 
       // Boost score based on HRM module activations
-      const hrmAny = hrmOutput as any;
+      const hrmAny = hrmOutput as { h_module_activations?: number[] };
       if (hrmAny.h_module_activations && hrmAny.h_module_activations.length > 0) {
         const avgActivation = hrmAny.h_module_activations.reduce((a: number, b: number) => a + b, 0) / hrmAny.h_module_activations.length;
         score *= (1 + avgActivation); // Boost by HRM confidence
@@ -256,8 +256,8 @@ export class SEALFramework extends EventEmitter {
   }
 
   private formatHRMResponse(hrmOutput: unknown, context: unknown): unknown {
-    const hrmAny = hrmOutput as any;
-    const contextAny = context as any;
+    const hrmAny = hrmOutput as { reasoning_result?: unknown; confidence?: number; processing_time?: number };
+    const contextAny = context as Record<string, unknown>;
     return {
       type: 'hrm_response',
       content: hrmAny.reasoning_result,
@@ -273,12 +273,12 @@ export class SEALFramework extends EventEmitter {
     };
   }
 
-  private async executeAgentWithHRMGuidance(agent: SEALAgent, input: unknown, context: unknown, hrmOutput: unknown): Promise<any> {
+  private async executeAgentWithHRMGuidance(agent: SEALAgent, input: unknown, context: unknown, hrmOutput: unknown): Promise<unknown> {
     agent.lastActive = new Date();
     agent.performance.totalInvocations++;
 
     // Enhance agent processing with HRM insights
-    const hrmAny = hrmOutput as any;
+    const hrmAny = hrmOutput as { reasoning_result?: unknown; confidence?: number; l_module_activations?: unknown; h_module_activations?: unknown };
     const enhancedContext = {
       ...(typeof context === 'object' && context !== null ? context as Record<string, unknown> : {}),
       hrmReasoning: hrmAny.reasoning_result,
@@ -296,7 +296,7 @@ export class SEALFramework extends EventEmitter {
       ...response,
       hrmEnhanced: true,
       hrmConfidence: hrmAny.confidence,
-      combinedConfidence: ((response as any).confidence + hrmAny.confidence) / 2,
+      combinedConfidence: (((response as { confidence?: number }).confidence || 0) + (hrmAny.confidence || 0)) / 2,
       hrmReasoning: hrmAny.reasoning_result,
     };
   }
@@ -332,7 +332,7 @@ export class SEALFramework extends EventEmitter {
     }
 
     // Add context-based capabilities
-    const contextAny = context as any;
+    const contextAny = context as { inputType?: string };
     if (contextAny.inputType === 'voice') {
       capabilities.push('speech_processing');
     }
@@ -364,7 +364,7 @@ export class SEALFramework extends EventEmitter {
     return score;
   }
 
-  private async executeWithAgent(agent: SEALAgent, input: unknown, context: unknown): Promise<any> {
+  private async executeWithAgent(agent: SEALAgent, input: unknown, context: unknown): Promise<unknown> {
     agent.lastActive = new Date();
     agent.performance.totalInvocations++;
 
@@ -375,7 +375,7 @@ export class SEALFramework extends EventEmitter {
     return response;
   }
 
-  private async simulateAgentProcessing(agent: SEALAgent, input: unknown, context: unknown): Promise<any> {
+  private async simulateAgentProcessing(agent: SEALAgent, input: unknown, context: unknown): Promise<unknown> {
     // Simulate processing delay
     await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 500));
 
@@ -386,7 +386,7 @@ export class SEALFramework extends EventEmitter {
           type: 'text_response',
           content: `Processed text input: ${JSON.stringify(input)}`,
           confidence: 0.85,
-          shouldSpeak: (context as any).inputType === 'voice',
+          shouldSpeak: (context as { inputType?: string }).inputType === 'voice',
           text: `I've analyzed your input and found relevant information.`,
         };
 
@@ -437,7 +437,7 @@ export class SEALFramework extends EventEmitter {
     }
   }
 
-  public async invokeSkill(skillId: string, parameters: unknown): Promise<any> {
+  public async invokeSkill(skillId: string, parameters: unknown): Promise<unknown> {
     const invocationId = `invocation_${Date.now()}`;
 
     const invocation: SkillInvocation = {
@@ -501,7 +501,7 @@ export class SEALFramework extends EventEmitter {
     return null;
   }
 
-  private async executeSkill(skillId: string, parameters: unknown, agent?: SEALAgent): Promise<any> {
+  private async executeSkill(skillId: string, parameters: unknown, agent?: SEALAgent): Promise<unknown> {
     console.log(`Executing skill: ${skillId}`, parameters);
 
     // Simulate skill execution
@@ -516,7 +516,7 @@ export class SEALFramework extends EventEmitter {
     };
   }
 
-  public async generateAdaptation(learningHistory: unknown[]): Promise<any> {
+  public async generateAdaptation(learningHistory: unknown[]): Promise<unknown> {
     if (!this.learningMode) {
       return null;
     }
@@ -558,39 +558,39 @@ export class SEALFramework extends EventEmitter {
 
   private analyzeErrorPatterns(history: unknown[]): unknown[] {
     return history
-      .filter(event => (event as any).feedback < 0)
+      .filter(event => ((event as { feedback?: number }).feedback || 0) < 0)
       .map(event => ({
-        inputType: (event as any).eventType,
-        input: (event as any).input,
-        output: (event as any).output,
-        feedback: (event as any).feedback,
+        inputType: (event as { eventType?: string }).eventType,
+        input: (event as { input?: unknown }).input,
+        output: (event as { output?: unknown }).output,
+        feedback: (event as { feedback?: number }).feedback,
       }));
   }
 
   private analyzeSuccessPatterns(history: unknown[]): unknown[] {
     return history
-      .filter(event => (event as any).feedback > 0.5)
+      .filter(event => ((event as { feedback?: number }).feedback || 0) > 0.5)
       .map(event => ({
-        inputType: (event as any).eventType,
-        input: (event as any).input,
-        output: (event as any).output,
-        feedback: (event as any).feedback,
+        inputType: (event as { eventType?: string }).eventType,
+        input: (event as { input?: unknown }).input,
+        output: (event as { output?: unknown }).output,
+        feedback: (event as { feedback?: number }).feedback,
       }));
   }
 
   private generateErrorAdjustments(patterns: unknown[]): unknown[] {
     return patterns.map(pattern => ({
-      target: (pattern as any).inputType,
+      target: (pattern as { inputType?: string }).inputType,
       adjustment: 'reduce_confidence',
-      magnitude: Math.abs((pattern as any).feedback) * 0.1,
+      magnitude: Math.abs((pattern as { feedback?: number }).feedback || 0) * 0.1,
     }));
   }
 
   private generateSuccessAdjustments(patterns: unknown[]): unknown[] {
     return patterns.map(pattern => ({
-      target: (pattern as any).inputType,
+      target: (pattern as { inputType?: string }).inputType,
       adjustment: 'increase_confidence',
-      magnitude: (pattern as any).feedback * 0.1,
+      magnitude: ((pattern as { feedback?: number }).feedback || 0) * 0.1,
     }));
   }
 
@@ -653,7 +653,7 @@ export class SEALFramework extends EventEmitter {
       activeInvocations: this.activeInvocations.size,
       learningMode: this.learningMode,
       hrmIntegration: this.config.hrmIntegration,
-      hrmReady: this.hrmBridge ? (this.hrmBridge as any).isReady() : false,
+      hrmReady: this.hrmBridge ? (this.hrmBridge as { isReady?: () => boolean }).isReady?.() : false,
       averageSuccessRate: agents.length > 0 ? agents.reduce((sum, agent) => sum + agent.performance.successRate, 0) / agents.length : 0,
       totalInvocations: agents.reduce((sum, agent) => sum + agent.performance.totalInvocations, 0),
     };
@@ -683,7 +683,7 @@ export class SEALFramework extends EventEmitter {
     return {
       enabled: this.config.hrmIntegration,
       bridgeAvailable: this.hrmBridge !== null,
-      ready: this.hrmBridge ? (this.hrmBridge as any).isReady() : false,
+      ready: this.hrmBridge ? (this.hrmBridge as { isReady?: () => boolean }).isReady?.() : false,
     };
   }
 

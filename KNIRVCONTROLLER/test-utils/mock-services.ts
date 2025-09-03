@@ -2,15 +2,21 @@
 import { TEST_API_RESPONSES, TEST_ADDRESSES, TEST_TRANSACTIONS } from './test-data';
 
 // Mock HTTP Client for API testing
-export class MockHttpClient {
-  private responses: Map<string, any> = new Map();
-  private requestHistory: Array<{ method: string; url: string; data?: any }> = [];
+interface RequestHistoryEntry {
+  method: string;
+  url: string;
+  data?: unknown;
+}
 
-  setMockResponse(endpoint: string, response: any) {
+export class MockHttpClient {
+  private responses: Map<string, unknown> = new Map();
+  private requestHistory: RequestHistoryEntry[] = [];
+
+  setMockResponse(endpoint: string, response: unknown) {
     this.responses.set(endpoint, response);
   }
 
-  async request(method: string, url: string, data?: any): Promise<any> {
+  async request(method: string, url: string, data?: unknown): Promise<unknown> {
     this.requestHistory.push({ method, url, data });
     
     const response = this.responses.get(url);
@@ -44,7 +50,7 @@ export class MockHttpClient {
 // Mock XION Client
 export class MockXionClient {
   private balances: Map<string, string> = new Map();
-  private transactions: Array<any> = [];
+  private transactions: Array<Record<string, unknown>> = [];
 
   constructor() {
     // Set default balances
@@ -55,7 +61,7 @@ export class MockXionClient {
     return this.balances.get(address) || '0';
   }
 
-  async sendTransaction(tx: any): Promise<{ txHash: string; blockHeight: number }> {
+  async sendTransaction(tx: Record<string, unknown>): Promise<{ txHash: string; blockHeight: number }> {
     const txHash = `0x${Math.random().toString(16).substr(2, 64)}`;
     const blockHeight = Math.floor(Math.random() * 1000000);
     
@@ -87,10 +93,12 @@ export class MockXionClient {
 }
 
 // Mock WebSocket for cross-platform sync testing
+type WebSocketCallback = (...args: unknown[]) => void;
+
 export class MockWebSocket {
-  private listeners: Map<string, Array<(...args: any[]) => void>> = new Map();
+  private listeners: Map<string, WebSocketCallback[]> = new Map();
   private isConnected = false;
-  private messageHistory: any[] = [];
+  private messageHistory: unknown[] = [];
   private connectionUrl: string;
 
   constructor(url: string) {
@@ -108,19 +116,19 @@ export class MockWebSocket {
     }, 100);
   }
 
-  on(event: string, callback: (...args: any[]) => void) {
+  on(event: string, callback: WebSocketCallback) {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, []);
     }
     this.listeners.get(event)!.push(callback);
   }
 
-  emit(event: string, data: any) {
+  emit(event: string, data: unknown) {
     const callbacks = this.listeners.get(event) || [];
     callbacks.forEach(callback => callback(data));
   }
 
-  send(data: any) {
+  send(data: unknown) {
     if (!this.isConnected) {
       throw new Error('WebSocket not connected');
     }
@@ -223,7 +231,7 @@ export class MockCryptoProvider {
     return `${prefix}${hash.substring(0, 38)}`;
   }
 
-  async signTransaction(privateKey: string, transaction: any): Promise<string> {
+  async signTransaction(privateKey: string, transaction: Record<string, unknown>): Promise<string> {
     const txData = JSON.stringify(transaction);
     const signature = this.simpleHash(privateKey + txData);
     return signature;
@@ -300,7 +308,7 @@ export class MockNetworkProvider {
     return this.networkStatus === 'online';
   }
 
-  async makeRequest(url: string, options?: any): Promise<any> {
+  async makeRequest(url: string, options?: Record<string, unknown>): Promise<unknown> {
     await this.simulateLatency();
 
     // Log request details for debugging

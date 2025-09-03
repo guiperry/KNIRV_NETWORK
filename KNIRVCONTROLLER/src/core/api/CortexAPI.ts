@@ -555,7 +555,7 @@ export class CortexAPI {
           requiredMemory: wasmFormat.length + 1024 * 1024, // WASM size + 1MB buffer
           requiredCPU: 'any',
           securityLevel: 'standard',
-          attestationRequired: (teeInfo && typeof teeInfo === 'object' && 'attestationRequired' in teeInfo) ? Boolean((teeInfo as any).attestationRequired) : false
+          attestationRequired: (teeInfo && typeof teeInfo === 'object' && 'attestationRequired' in teeInfo) ? Boolean((teeInfo as { attestationRequired?: unknown }).attestationRequired) : false
         },
         loraMetadata: {
           rank: adapter.rank,
@@ -604,7 +604,7 @@ export class CortexAPI {
     logger.info('Establishing connection to NEXUS TEE...');
 
     try {
-      const nexusEndpoint = (teePackage as any).nexusConnectivity?.endpoint || 'https://nexus-tee.knirv.com';
+      const nexusEndpoint = (teePackage as { nexusConnectivity?: { endpoint?: string } }).nexusConnectivity?.endpoint || 'https://nexus-tee.knirv.com';
 
       // Test connectivity
       const healthResponse = await fetch(`${nexusEndpoint}/health`);
@@ -620,10 +620,10 @@ export class CortexAPI {
           'Authorization': `Bearer ${process.env.NEXUS_TEE_TOKEN || 'dev-token'}`
         },
         body: JSON.stringify({
-          packageHash: (teePackage as any).packageHash,
-          skillId: (teePackage as any).skillId,
-          teeCompatibility: (teePackage as any).teeCompatibility,
-          loraMetadata: (teePackage as any).loraMetadata
+          packageHash: (teePackage as { packageHash?: string }).packageHash,
+          skillId: (teePackage as { skillId?: string }).skillId,
+          teeCompatibility: (teePackage as { teeCompatibility?: unknown }).teeCompatibility,
+          loraMetadata: (teePackage as { loraMetadata?: unknown }).loraMetadata
         })
       });
 
@@ -1147,7 +1147,7 @@ export class CortexAPI {
     // Get UDCs by status
     this.router.get('/udc/status/:status', (req, res) => {
       try {
-        const udcs = udcManagementService.getUDCsByStatus(req.params.status as any);
+        const udcs = udcManagementService.getUDCsByStatus(req.params.status as string);
         res.json({ success: true, udcs });
       } catch (error) {
         logger.error({ error }, 'Failed to get UDCs by status');

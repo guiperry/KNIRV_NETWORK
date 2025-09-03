@@ -139,8 +139,18 @@ export class WalletTestFactory {
 }
 
 // Transaction testing utilities
+interface TransactionOverrides {
+  from?: string;
+  to?: string;
+  amount?: string;
+  token?: string;
+  memo?: string;
+  gasLimit?: string;
+  chainId?: string;
+}
+
 export class TransactionTestUtils {
-  static createTestTransaction(overrides: any = {}) {
+  static createTestTransaction(overrides: TransactionOverrides = {}) {
     return {
       from: TEST_ADDRESSES.GNOLANG,
       to: 'g1234567890abcdef1234567890abcdef12345678',
@@ -171,7 +181,7 @@ export class TransactionTestUtils {
     };
   }
 
-  static createTestXionTransaction(overrides: any = {}) {
+  static createTestXionTransaction(overrides: TransactionOverrides = {}) {
     return {
       from: TEST_ADDRESSES.XION,
       to: 'xion1234567890abcdef1234567890abcdef12345678',
@@ -184,7 +194,7 @@ export class TransactionTestUtils {
     };
   }
 
-  static validateTransactionStructure(transaction: any) {
+  static validateTransactionStructure(transaction: Record<string, unknown>) {
     const requiredFields = ['from', 'to', 'amount'];
     const missingFields = requiredFields.filter(field => !transaction[field]);
     
@@ -253,7 +263,7 @@ export class KeyringTestUtils {
     };
   }
 
-  static validateKeyringStructure(keyring: any) {
+  static validateKeyringStructure(keyring: Record<string, unknown>) {
     const requiredFields = ['id', 'type'];
     const missingFields = requiredFields.filter(field => !keyring[field]);
     
@@ -296,8 +306,18 @@ export class KeyringTestUtils {
 }
 
 // Account testing utilities
+interface AccountOverrides {
+  id?: string;
+  name?: string;
+  address?: string;
+  keyringId?: string;
+  balance?: string;
+  nrnBalance?: string;
+  isActive?: boolean;
+}
+
 export class AccountTestUtils {
-  static createTestAccount(overrides: any = {}) {
+  static createTestAccount(overrides: AccountOverrides = {}) {
     return {
       id: `account-${Date.now()}`,
       name: 'Test Account',
@@ -356,7 +376,7 @@ export class AccountTestUtils {
     };
   }
 
-  static validateAccountStructure(account: any) {
+  static validateAccountStructure(account: Record<string, unknown>) {
     const requiredFields = ['id', 'name', 'address', 'keyringId'];
     const missingFields = requiredFields.filter(field => !account[field]);
     
@@ -408,7 +428,7 @@ export class WalletSerializationTestUtils {
     return true;
   }
 
-  static async testWalletSerialization(wallet: any, password: string) {
+  static async testWalletSerialization(wallet: Record<string, unknown>, password: string) {
     const mockCrypto = new MockCryptoProvider();
     
     // Serialize
@@ -447,7 +467,7 @@ export class SyncTestUtils {
     return `knirv://sync?session=${sessionId}&key=${encryptionKey}`;
   }
 
-  static createTestSyncMessage(type: string, data: any, sessionId: string) {
+  static createTestSyncMessage(type: string, data: unknown, sessionId: string) {
     return {
       type,
       sessionId,
@@ -457,7 +477,7 @@ export class SyncTestUtils {
     };
   }
 
-  static validateSyncSession(session: any) {
+  static validateSyncSession(session: Record<string, unknown>) {
     const requiredFields = ['sessionId', 'mobileDeviceId', 'browserInstanceId', 'encryptionKey'];
     const missingFields = requiredFields.filter(field => !session[field]);
 

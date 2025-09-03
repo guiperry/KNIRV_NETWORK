@@ -477,7 +477,7 @@ describe('SettingsPanel', () => {
           
           // Simulate FileReader onload
           if (mockFileReader.onload) {
-            mockFileReader.onload({ target: mockFileReader } as any);
+            mockFileReader.onload({ target: mockFileReader } as ProgressEvent<FileReader>);
           }
         }
       });

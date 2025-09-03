@@ -97,7 +97,14 @@ export async function waitForServices(urls: string[], timeout: number = 30000): 
 }
 
 // Test environment setup helpers
-export function setupTestEnvironment(config: any = {}) {
+interface TestEnvironmentConfig {
+  mockServices?: boolean;
+  skipNetworkCalls?: boolean;
+  logLevel?: string;
+  timeout?: number;
+}
+
+export function setupTestEnvironment(config: TestEnvironmentConfig = {}) {
   // Set test environment variables
   process.env.NODE_ENV = 'test';
   process.env.MOCK_SERVICES = config.mockServices ? 'true' : 'false';
@@ -166,7 +173,17 @@ export function createTestWalletConfig(type: string = 'HD') {
 }
 
 // Transaction test helpers
-export function createTestTransaction(overrides: any = {}) {
+interface TransactionOverrides {
+  from?: string;
+  to?: string;
+  amount?: string;
+  token?: string;
+  memo?: string;
+  gasLimit?: string;
+  chainId?: string;
+}
+
+export function createTestTransaction(overrides: TransactionOverrides = {}) {
   return {
     from: TEST_ADDRESSES.GNOLANG,
     to: 'g1234567890abcdef1234567890abcdef12345678',
@@ -178,7 +195,7 @@ export function createTestTransaction(overrides: any = {}) {
 }
 
 // Error handling helpers
-export function expectAsyncError(asyncFn: () => Promise<any>, expectedError?: string | RegExp) {
+export function expectAsyncError(asyncFn: () => Promise<unknown>, expectedError?: string | RegExp) {
   return expect(asyncFn()).rejects.toThrow(expectedError);
 }
 
@@ -187,7 +204,14 @@ export function expectAsyncSuccess<T>(asyncFn: () => Promise<T>) {
 }
 
 // Mock response helpers
-export function createMockResponse(data: any, success: boolean = true) {
+interface MockResponse {
+  success: boolean;
+  data?: unknown;
+  error?: unknown;
+  timestamp: number;
+}
+
+export function createMockResponse(data: unknown, success: boolean = true): MockResponse {
   return {
     success,
     data: success ? data : undefined,
@@ -236,7 +260,13 @@ export function hexToBytes(hex: string): Uint8Array {
 }
 
 // Test assertion helpers
-export function assertWalletStructure(wallet: any) {
+interface WalletStructure {
+  accounts: unknown[];
+  keyrings: unknown[];
+  currentAccountId: string;
+}
+
+export function assertWalletStructure(wallet: WalletStructure) {
   expect(wallet).toHaveProperty('accounts');
   expect(wallet).toHaveProperty('keyrings');
   expect(wallet).toHaveProperty('currentAccountId');
@@ -244,7 +274,13 @@ export function assertWalletStructure(wallet: any) {
   expect(Array.isArray(wallet.keyrings)).toBe(true);
 }
 
-export function assertTransactionStructure(transaction: any) {
+interface TransactionStructure {
+  from: string;
+  to: string;
+  amount: string;
+}
+
+export function assertTransactionStructure(transaction: TransactionStructure) {
   expect(transaction).toHaveProperty('from');
   expect(transaction).toHaveProperty('to');
   expect(transaction).toHaveProperty('amount');
@@ -253,7 +289,13 @@ export function assertTransactionStructure(transaction: any) {
   expect(typeof transaction.amount).toBe('string');
 }
 
-export function assertApiResponseStructure(response: any) {
+interface ApiResponseStructure {
+  success: boolean;
+  data?: unknown;
+  error?: unknown;
+}
+
+export function assertApiResponseStructure(response: ApiResponseStructure) {
   expect(response).toHaveProperty('success');
   expect(typeof response.success).toBe('boolean');
   

@@ -476,14 +476,14 @@ export class ModelManager extends EventEmitter {
    * Import model configuration
    */
   importConfiguration(config: unknown): void {
-    if ((config as any).availableModels) {
-      for (const model of (config as any).availableModels) {
+    if ((config as { availableModels?: unknown[]; currentModel?: string }).availableModels) {
+      for (const model of (config as { availableModels: unknown[] }).availableModels) {
         this.registerModel(model);
       }
     }
 
-    if ((config as any).currentModel) {
-      this.setCurrentModel((config as any).currentModel);
+    if ((config as { availableModels?: unknown[]; currentModel?: string }).currentModel) {
+      this.setCurrentModel((config as { currentModel: string }).currentModel);
     }
 
     this.emit('configuration_imported', { config });

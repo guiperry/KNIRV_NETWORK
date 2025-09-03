@@ -209,7 +209,7 @@ export class KNIRVRouterIntegration extends EventEmitter {
    */
   private handleP2PMessage(message: unknown): void {
     try {
-      const messageAny = message as any;
+      const messageAny = message as { type?: string; data?: unknown };
       switch (messageAny.type) {
         case 'skill_node_discovered':
           this.handleSkillNodeDiscovery(messageAny.data);
@@ -304,7 +304,7 @@ export class KNIRVRouterIntegration extends EventEmitter {
   /**
    * Query KNIRVGRAPH for similar error patterns and skill nodes
    */
-  private async queryKNIRVGraphForPatterns(errorContext: ErrorContext): Promise<any> {
+  private async queryKNIRVGraphForPatterns(errorContext: ErrorContext): Promise<unknown> {
     try {
       const graphQuery = {
         errorContext,
@@ -425,7 +425,7 @@ export class KNIRVRouterIntegration extends EventEmitter {
   /**
    * Execute WASM skill on skill node
    */
-  private async executeWASMSkill(skillNode: SkillNodeURI): Promise<any> {
+  private async executeWASMSkill(skillNode: SkillNodeURI): Promise<unknown> {
     if (!skillNode.wasmModule) {
       logger.warn('No WASM module available for skill node');
       return null;
@@ -471,7 +471,7 @@ export class KNIRVRouterIntegration extends EventEmitter {
    */
   private handleSkillNodeDiscovery(data: unknown): void {
     try {
-      const skillNode: SkillNodeURI = (data as any).skillNode;
+      const skillNode: SkillNodeURI = (data as { skillNode: SkillNodeURI }).skillNode;
 
       // Cache the discovered skill node
       const cacheKey = `${skillNode.skillId}_${skillNode.capabilities.join('_')}`;
@@ -493,7 +493,7 @@ export class KNIRVRouterIntegration extends EventEmitter {
    */
   private handleRoutingUpdate(data: unknown): void {
     try {
-      const routingInfo: P2PRoutingInfo = (data as any).routingInfo;
+      const routingInfo: P2PRoutingInfo = (data as { routingInfo: P2PRoutingInfo }).routingInfo;
 
       logger.debug({ routingInfo }, 'Routing update received');
       this.emit('routingUpdate', { routingInfo });
@@ -508,7 +508,7 @@ export class KNIRVRouterIntegration extends EventEmitter {
    */
   private handleWASMExecutionResult(data: unknown): void {
     try {
-      const { requestId, result, error } = data as any;
+      const { requestId, result, error } = data as { requestId?: string; result?: unknown; error?: string };
 
       logger.info({ requestId, result, error }, 'WASM execution result received');
       this.emit('wasmExecutionResult', { requestId, result, error });

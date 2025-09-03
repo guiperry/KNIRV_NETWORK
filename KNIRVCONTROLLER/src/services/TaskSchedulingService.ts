@@ -56,7 +56,7 @@ export interface WorkflowTemplate {
   name: string;
   description: string;
   steps: WorkflowStep[];
-  variables: Record<string, any>;
+  variables: Record<string, unknown>;
   createdAt: Date;
 }
 
@@ -360,7 +360,7 @@ export class TaskSchedulingService {
   /**
    * Execute workflow
    */
-  async executeWorkflow(workflowId: string, variables: Record<string, any> = {}): Promise<string> {
+  async executeWorkflow(workflowId: string, variables: Record<string, unknown> = {}): Promise<string> {
     const workflow = this.workflows.get(workflowId);
     if (!workflow) {
       throw new Error(`Workflow ${workflowId} not found`);
@@ -473,7 +473,7 @@ export class TaskSchedulingService {
     return new Date(from.getTime() + 60 * 60 * 1000);
   }
 
-  private async executeTaskAction(action: TaskAction): Promise<any> {
+  private async executeTaskAction(action: TaskAction): Promise<unknown> {
     switch (action.type) {
       case 'api_call':
         return await this.executeApiCall(action);
@@ -489,7 +489,7 @@ export class TaskSchedulingService {
     }
   }
 
-  private async executeApiCall(action: TaskAction): Promise<any> {
+  private async executeApiCall(action: TaskAction): Promise<unknown> {
     const response = await fetch(action.target, {
       method: action.parameters.method || 'GET',
       headers: action.parameters.headers || {},
@@ -503,7 +503,7 @@ export class TaskSchedulingService {
     return await response.json();
   }
 
-  private async executeAgentInvoke(action: TaskAction): Promise<any> {
+  private async executeAgentInvoke(action: TaskAction): Promise<unknown> {
     // Integrate with AgentManagementService
     const response = await fetch(`${this.baseUrl}/api/agents/${action.target}/invoke`, {
       method: 'POST',
@@ -520,7 +520,7 @@ export class TaskSchedulingService {
     return await response.json();
   }
 
-  private async executeSystemCommand(action: TaskAction): Promise<any> {
+  private async executeSystemCommand(action: TaskAction): Promise<unknown> {
     // Integrate with TerminalCommandService
     const response = await fetch(`${this.baseUrl}/api/terminal/execute`, {
       method: 'POST',
@@ -540,7 +540,7 @@ export class TaskSchedulingService {
     return await response.json();
   }
 
-  private async executeWorkflowAction(action: TaskAction): Promise<any> {
+  private async executeWorkflowAction(action: TaskAction): Promise<unknown> {
     const workflow = this.workflows.get(action.target);
     if (!workflow) {
       throw new Error(`Workflow ${action.target} not found`);

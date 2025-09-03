@@ -36,7 +36,7 @@ export interface ErrorContext {
   // State & Metadata
   agentStateHash?: string;
   timestamp: Date;
-  additionalContext?: Record<string, any>;
+  additionalContext?: Record<string, unknown>;
 }
 
 export interface ErrorClusterQueryRequest {
@@ -104,7 +104,7 @@ export class ErrorContextHandler {
     agentVersion: string,
     baseModelId: string,
     taskDescription: string,
-    additionalContext?: Record<string, any>
+    additionalContext?: Record<string, unknown>
   ): ErrorContext {
     const timestamp = new Date();
     
@@ -300,7 +300,7 @@ export class ErrorContextHandler {
   /**
    * Sanitize additional context to remove sensitive data
    */
-  private sanitizeAdditionalContext(context?: Record<string, any>): Record<string, any> {
+  private sanitizeAdditionalContext(context?: Record<string, unknown>): Record<string, unknown> {
     if (!context) {
       return {};
     }
