@@ -169,12 +169,19 @@ func TestPoAuDBlockProposal(t *testing.T) {
 	block, err = bc.ProposePoAuDBlock(proposerAddress)
 	if err != nil {
 		t.Errorf("Failed to propose PoAu-D block: %v", err)
+		return
 	}
 	if block == nil {
 		t.Error("Expected a valid block to be proposed")
+		return
 	}
 
 	// Verify block properties
+	// Assert block is not nil (should never happen due to guard clause above)
+	if block == nil {
+		t.Fatal("Block is unexpectedly nil after validation")
+	}
+
 	if block.ProposerAddress != proposerAddress {
 		t.Errorf("Expected proposer address %s, got %s", proposerAddress, block.ProposerAddress)
 	}

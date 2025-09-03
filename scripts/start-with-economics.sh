@@ -85,13 +85,13 @@ trap cleanup SIGINT SIGTERM
 
 # Start KNIRVORACLE
 echo "🚀 Starting KNIRVORACLE with economics integration..."
-echo "📝 Logs will be written to logs/knirvoracle.log"
+echo "📝 Logs will be written to logs/KNIRVORACLE.log"
 echo "📊 Economics service will be available at http://localhost:8090"
 echo ""
 echo "Press Ctrl+C to stop..."
 
 # Start the application and capture PID
-./bin/knirvoracle 2>&1 | tee logs/knirvoracle.log &
+./bin/knirvoracle 2>&1 | tee logs/KNIRVORACLE.log &
 KNIRVORACLE_PID=$!
 
 # Wait for the application to start
@@ -99,7 +99,7 @@ sleep 3
 
 # Check if the application is still running
 if ! kill -0 $KNIRVORACLE_PID 2>/dev/null; then
-    echo "❌ Error: KNIRVORACLE failed to start. Check logs/knirvoracle.log for details."
+    echo "❌ Error: KNIRVORACLE failed to start. Check logs/KNIRVORACLE.log for details."
     exit 1
 fi
 
@@ -137,7 +137,7 @@ echo "📖 To test the economics service:"
 echo "  curl http://localhost:8090/economics/health"
 echo "  curl http://localhost:8090/economics/status"
 echo ""
-echo "🔍 Monitor logs: tail -f logs/knirvoracle.log"
+echo "🔍 Monitor logs: tail -f logs/KNIRVORACLE.log"
 echo ""
 
 # Wait for the application to finish

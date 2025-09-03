@@ -128,7 +128,7 @@ class KNIRVConfigLoader {
                 documentation: "documentation/docsify/",
                 graphchain_explorer: "graphchain-explorer/",
                 nexus_portal: "nexus-portal/",
-                support_desk: "support-desk/",
+                support_desk: "support-desk/src/",
                 nanda_ans: "nanda_ans/"
             },
             external_services: {
@@ -166,8 +166,8 @@ class KNIRVConfigLoader {
                 },
                 resources: {
                     documentation: "documentation/docsify/",
-                    support: "support-desk/",
-                    forum: "forum/",
+                    support: "support-desk/src/",
+                    forum: "forum/src/",
                     blog: "https://blog.knirv.com"
                 }
             },
@@ -224,6 +224,41 @@ class KNIRVConfigLoader {
         return this.config?.iframes?.[key] || null;
     }
 
+    // Get download configuration for a specific product
+    getDownloadConfig(product) {
+        return this.config?.downloads?.[product] || null;
+    }
+
+    // Get download link for a specific product and platform
+    getDownloadLink(product, platform) {
+        return this.config?.downloads?.[product]?.[platform] || '#';
+    }
+
+    // Get download requirements for a specific product and platform
+    getDownloadRequirements(product, platform) {
+        return this.config?.downloads?.[product]?.requirements?.[platform] || '';
+    }
+
+    // Get download instructions for SDK
+    getDownloadInstructions(product, language) {
+        return this.config?.downloads?.[product]?.instructions?.[language] || '';
+    }
+
+    // Get documentation link for SDK
+    getDocumentationLink(product, language) {
+        return this.config?.downloads?.[product]?.documentation?.[language] || '#';
+    }
+
+    // Get download note for a product
+    getDownloadNote(product) {
+        return this.config?.downloads?.[product]?.note || '';
+    }
+
+    // Get mobile note for products with mobile versions
+    getMobileNote(product) {
+        return this.config?.downloads?.[product]?.mobile_note || '';
+    }
+
     // Apply configuration to the current page
     async applyConfiguration() {
         if (!this.isLoaded) {
@@ -234,6 +269,7 @@ class KNIRVConfigLoader {
         this._updateFooterLinks();
         this._updateFeatureVisibility();
         this._updateIframeConfigs();
+        this._setupDownloadFunctions();
     }
 
     _updateNavigationLinks() {
@@ -335,6 +371,132 @@ class KNIRVConfigLoader {
     // Get configuration value by path (e.g., 'navigation.main_site')
     getConfigValue(path) {
         return path.split('.').reduce((obj, key) => obj?.[key], this.config);
+    }
+
+    _setupDownloadFunctions() {
+        // Setup global download functions that use configuration
+        window.downloadRouter = (platform) => this._handleDownload('knirvrouter', platform);
+        window.downloadGame = (platform) => this._handleDownload('knirvana', platform);
+        window.downloadBootnode = (type) => this._handleDownload('knirvoracle', type);
+        window.downloadSDK = (language) => this._handleSDKDownload('knirvsdk', language);
+        window.downloadWallet = (platform) => this._handleDownload('knirvwallet', platform);
+        window.rentDVE = (plan) => this._handleDVERental(plan);
+        window.accessDVE = (method) => this._handleDVEAccess(method);
+    }
+
+    _handleDownload(product, platform) {
+        const downloadLink = this.getDownloadLink(product, platform);
+        const requirements = this.getDownloadRequirements(product, platform);
+        const note = this.getDownloadNote(product);
+
+        if (product === 'knirvwallet' && platform === 'mobile') {
+            const mobileNote = this.getMobileNote(product);
+            alert(mobileNote);
+            return;
+        }
+
+        if (downloadLink === '#') {
+            alert(`Download not available for ${platform}`);
+            return;
+        }
+
+        let message = `Downloading ${product.toUpperCase()} for ${platform}...`;
+        if (requirements) {
+            message += `\n\nRequirements: ${requirements}`;
+        }
+        message += `\nDownload URL: ${downloadLink}`;
+        if (note) {
+            message += `\n\nNote: ${note}`;
+        }
+
+        alert(message);
+
+        // Track download analytics
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'download', {
+                'event_category': product.toUpperCase(),
+                'event_label': platform
+            });
+        }
+    }
+
+    _handleSDKDownload(product, language) {
+        const downloadCommand = this.getDownloadLink(product, language);
+        const instructions = this.getDownloadInstructions(product, language);
+        const docLink = this.getDocumentationLink(product, language);
+
+        if (downloadCommand === '#') {
+            alert(`SDK not available for ${language}`);
+            return;
+        }
+
+        let message = `KNIRV SDK for ${language.charAt(0).toUpperCase() + language.slice(1)}:\n\n`;
+        message += instructions || downloadCommand;
+        if (docLink !== '#') {
+            message += `\n\nDocumentation: ${docLink}`;
+        }
+
+        alert(message);
+
+        // Track download analytics
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'sdk_download', {
+                'event_category': 'KNIRV_SDK',
+                'event_label': language
+            });
+        }
+    }
+
+    _handleDVERental(plan) {
+        const plans = {
+            'starter': {
+                name: 'Starter DVE',
+                price: '50 NRN/hour',
+                specs: '2 vCPU, 8GB RAM, 100GB SSD'
+            },
+            'professional': {
+                name: 'Professional DVE',
+                price: '150 NRN/hour',
+                specs: '8 vCPU, 32GB RAM, 500GB NVMe'
+            },
+            'enterprise': {
+                name: 'Enterprise DVE',
+                price: '500 NRN/hour',
+                specs: '32 vCPU, 128GB RAM, 2TB NVMe'
+            }
+        };
+
+        const selectedPlan = plans[plan];
+        if (!selectedPlan) {
+            alert('Invalid plan selected');
+            return;
+        }
+
+        alert(`Renting ${selectedPlan.name}:\n\nPrice: ${selectedPlan.price}\nSpecs: ${selectedPlan.specs}\n\nRedirecting to NEXUS Portal for setup...\n\nNote: Minimum 1000 NRN balance required`);
+
+        // Track rental analytics
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'dve_rental', {
+                'event_category': 'KNIRVNEXUS',
+                'event_label': plan
+            });
+        }
+    }
+
+    _handleDVEAccess(method) {
+        const accessMethods = {
+            'ssh': 'SSH Access:\n\nssh user@your-dve.knirv.network\n\nRequires: SSH key pair, active DVE rental',
+            'api': 'REST API Access:\n\nEndpoint: https://api.knirv.network/dve/v1/\nAuth: Bearer token required\n\nDocumentation: docs.knirv.network/api',
+            'sdk': 'KNIRV SDK Integration:\n\nimport { DVEClient } from "@knirv/sdk"\nconst dve = new DVEClient(config)\n\nSee: knirvsdk.html for installation'
+        };
+
+        const accessInfo = accessMethods[method];
+        if (!accessInfo) {
+            alert('Invalid access method');
+            return;
+        }
+
+        alert(`${accessInfo}\n\nFor active rentals, visit the NEXUS Portal for connection details.`);
     }
 }
 

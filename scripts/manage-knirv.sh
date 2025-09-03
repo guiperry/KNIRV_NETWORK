@@ -306,7 +306,7 @@ start_component() {
                     --root \
                     --non-interactive \
                     --skip-install \
-                    > ./logs/knirvoracle.log 2>&1 &
+                    > ./logs/KNIRVORACLE.log 2>&1 &
 
                 ROOT_PID=$!
                 echo $ROOT_PID > ./data/knirvoracle.pid
@@ -315,7 +315,7 @@ start_component() {
                 # Wait a moment and check if process is still running
                 sleep 3
                 if ! kill -0 $ROOT_PID 2>/dev/null; then
-                    print_error "KNIRVORACLE failed to start. Check logs: ./logs/knirvoracle.log"
+                    print_error "KNIRVORACLE failed to start. Check logs: ./logs/KNIRVORACLE.log"
                     return 1
                 fi
             fi

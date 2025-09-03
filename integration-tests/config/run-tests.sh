@@ -57,7 +57,7 @@ start_real_services() {
     # Start KNIRVORACLE (Core Network)
     print_status "Starting KNIRVORACLE on port 1317..."
     cd "$PROJECT_ROOT/KNIRVORACLE"
-    nohup go run . --role=root --port=1317 --skip-install > "$TEST_DIR/logs/knirvoracle.log" 2>&1 &
+    nohup go run . --role=root --port=1317 --skip-install > "$TEST_DIR/logs/KNIRVORACLE.log" 2>&1 &
     echo $! > "$TEST_DIR/logs/knirvoracle.pid"
 
     # Start KNIRVGRAPH (Graph Database)
@@ -125,9 +125,9 @@ start_real_services() {
             fi
 
             # Check KNIRVORACLE startup
-            if [ -f "$TEST_DIR/logs/knirvoracle.log" ]; then
+            if [ -f "$TEST_DIR/logs/KNIRVORACLE.log" ]; then
                 echo "KNIRVORACLE (Go application):"
-                tail -3 "$TEST_DIR/logs/knirvoracle.log" 2>/dev/null | sed 's/^/  /' || echo "  No output yet..."
+                tail -3 "$TEST_DIR/logs/KNIRVORACLE.log" 2>/dev/null | sed 's/^/  /' || echo "  No output yet..."
             fi
 
             echo ""

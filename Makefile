@@ -256,7 +256,7 @@ tests: test-setup ## Run comprehensive test suite for entire KNIRV network
 	@echo "Reports Directory: $(TEST_REPORTS_DIR)"
 	@echo "Coverage Directory: $(COVERAGE_DIR)"
 	@echo ""
-	@$(MAKE) test-cortex
+	@$(MAKE) test-controller
 	@$(MAKE) test-sdk
 	@$(MAKE) test-graph
 	@$(MAKE) test-wallet
@@ -269,14 +269,14 @@ tests: test-setup ## Run comprehensive test suite for entire KNIRV network
 	@echo "$(YELLOW)📊 View reports at: $(TEST_REPORTS_DIR)$(NC)"
 	@echo "$(YELLOW)📈 View coverage at: $(COVERAGE_DIR)$(NC)"
 
-.PHONY: test-cortex
-test-cortex: ## Test KNIRVCORTEX (AI Agent Framework)
-	@echo "$(BLUE)Testing KNIRVCORTEX...$(NC)"
-	@if [ -f "KNIRVCORTEX/scripts/run-tests.sh" ]; then \
-		cd KNIRVCORTEX && ./scripts/run-tests.sh; \
-		echo "$(GREEN)✓ KNIRVCORTEX tests completed$(NC)"; \
+.PHONY: test-controller
+test-controller: ## Test KNIRVCONTROLLER (AI Agent Framework)
+	@echo "$(BLUE)Testing KNIRVCONTROLLER...$(NC)"
+	@if [ -f "KNIRVCONTROLLER/scripts/run-tests.sh" ]; then \
+		cd KNIRVCONTROLLER && ./scripts/run-tests.sh; \
+		echo "$(GREEN)✓ KNIRVCONTROLLER tests completed$(NC)"; \
 	else \
-		echo "$(YELLOW)⚠ KNIRVCORTEX test script not found$(NC)"; \
+		echo "$(YELLOW)⚠ KNIRVCONTROLLER test script not found$(NC)"; \
 	fi
 
 .PHONY: test-sdk
@@ -400,7 +400,7 @@ test-reports: ## Generate comprehensive test reports
 	@echo "Generated: $(TIMESTAMP)" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "## Test Results Summary" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
-	@echo "- KNIRVCORTEX: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
+	@echo "- KNIRVCONTROLLER: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "- KNIRVSDK: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "- KNIRVGRAPH: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "- KNIRVWALLET: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
@@ -416,7 +416,7 @@ test-reports: ## Generate comprehensive test reports
 .PHONY: test-quick
 test-quick: ## Run quick tests (unit tests only)
 	@echo "$(BLUE)Running quick test suite...$(NC)"
-	@$(MAKE) test-cortex
+	@$(MAKE) test-controller
 	@$(MAKE) test-sdk
 	@$(MAKE) test-graph
 	@echo "$(GREEN)✓ Quick tests completed$(NC)"
@@ -426,7 +426,7 @@ test-coverage: ## Generate coverage reports for all projects
 	@echo "$(BLUE)Generating coverage reports...$(NC)"
 	@mkdir -p $(COVERAGE_DIR)
 	@echo "$(YELLOW)Coverage reports will be generated in: $(COVERAGE_DIR)$(NC)"
-	@$(MAKE) test-cortex
+	@$(MAKE) test-controller
 	@$(MAKE) test-sdk
 	@$(MAKE) test-graph
 	@echo "$(GREEN)✓ Coverage reports generated$(NC)"
@@ -475,7 +475,7 @@ test-phase6: test-setup ## Run comprehensive Phase 6 test suite
 test-phase6-unit: ## Run Phase 6 unit tests
 	@echo "$(BLUE)Running Phase 6 unit tests...$(NC)"
 	@$(MAKE) test-nexus-unit
-	@$(MAKE) test-cortex
+	@$(MAKE) test-controller
 	@$(MAKE) test-controller-unit
 	@echo "$(GREEN)✓ Phase 6 unit tests completed$(NC)"
 
@@ -1035,6 +1035,41 @@ sync-portals-help: ## Show detailed help for portal synchronization commands
 	@echo "  • Backups are created automatically before modifications"
 	@echo "  • Idempotent updates preserve target-specific implementations"
 	@echo "  • Force commands bypass version checks"
+
+# =============================================================================
+# SUBMODULE MANAGEMENT (NEW)
+# =============================================================================
+
+.PHONY: pull-all
+pull-all: ## Pull latest changes for the main repo and all submodules
+	@echo "$(BLUE)Pulling changes for the main repo...$(NC)"
+	@git pull
+	@echo "$(BLUE)Updating all submodules...$(NC)"
+	@git submodule update --init --recursive --remote
+	@echo "$(GREEN)✓ All repositories are up to date.$(NC)"
+
+.PHONY: push-all
+push-all: ## Commit with a message and push all changes in submodules and the main repo
+	@read -p "Enter commit message for all submodules: " SUBMODULE_MSG; \
+	if [ -z "$$SUBMODULE_MSG" ]; then \
+		echo "$(RED)Commit message cannot be empty. Aborting.$(NC)"; \
+		exit 1; \
+	fi; \
+	if [ -f "$(SCRIPTS_DIR)/push-submodules.sh" ]; then \
+		chmod +x $(SCRIPTS_DIR)/push-submodules.sh; \
+		$(SCRIPTS_DIR)/push-submodules.sh "$$SUBMODULE_MSG"; \
+	else \
+		echo "$(RED)Error: push-submodules.sh script not found!$(NC)"; \
+		exit 1; \
+	fi
+
+.PHONY: status-all
+status-all: ## Show the git status of the main repo and all submodules
+	@echo "$(BLUE)--> Main repo status:$(NC)"
+	@git status -s
+	@echo ""
+	@echo "$(BLUE)--> Submodule statuses:$(NC)"
+	@git submodule foreach 'echo "--> Status for $$path"; git status -s'
 
 # =============================================================================
 # KNIRVANA RUST CLIENT PACKAGING

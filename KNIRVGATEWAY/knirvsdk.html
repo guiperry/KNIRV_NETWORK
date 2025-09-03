@@ -356,31 +356,8 @@ result = agent.invoke('analyze', {
     <script src="js/config-loader.js"></script>
     <script src="js/universal-footer.js"></script>
     <script>
-        function downloadSDK(language) {
-            const downloads = {
-                'javascript': 'npm install @knirv/sdk',
-                'python': 'pip install knirv-sdk',
-                'rust': 'cargo add knirv-sdk',
-                'go': 'go get github.com/knirv-network/knirv-sdk-go'
-            };
-
-            const instructions = {
-                'javascript': 'Install via npm:\n\n' + downloads[language] + '\n\nThen import:\nimport { KnirvClient } from "@knirv/sdk";',
-                'python': 'Install via pip:\n\n' + downloads[language] + '\n\nThen import:\nfrom knirv_sdk import KnirvClient',
-                'rust': 'Add to Cargo.toml:\n\n[dependencies]\n' + downloads[language] + '\n\nThen use:\nuse knirv_sdk::KnirvClient;',
-                'go': 'Install via go mod:\n\n' + downloads[language] + '\n\nThen import:\nimport "github.com/knirv-network/knirv-sdk-go"'
-            };
-
-            alert(`KNIRV SDK for ${language.charAt(0).toUpperCase() + language.slice(1)}:\n\n${instructions[language]}\n\nDocumentation: https://docs.knirv.network/sdk/${language}`);
-
-            // Track download analytics
-            if (typeof gtag !== 'undefined') {
-                gtag('event', 'sdk_download', {
-                    'event_category': 'KNIRV_SDK',
-                    'event_label': language
-                });
-            }
-        }
+        // Download function is now handled by config-loader.js
+        // The downloadSDK function is automatically set up when the page loads
 
         // Initialize animated logo
         document.addEventListener('DOMContentLoaded', function() {

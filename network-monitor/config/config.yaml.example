@@ -69,7 +69,7 @@ logging:
     index: "knirv-logs"
   log_paths:
     ipfs: "/var/log/ipfs.log"
-    knirvoracle: "/var/log/knirvoracle.log"
+    knirvoracle: "/var/log/KNIRVORACLE.log"
 
 alerting:
   enabled: true

@@ -403,29 +403,8 @@
             // window.open('game-player.html', '_blank', 'width=1200,height=800');
         }
 
-        function downloadGame(platform) {
-            const downloads = {
-                'windows': 'https://releases.knirv.network/knirvana/windows/knirvana-setup.exe',
-                'mac': 'https://releases.knirv.network/knirvana/mac/knirvana.dmg',
-                'linux': 'https://releases.knirv.network/knirvana/linux/knirvana.AppImage'
-            };
-
-            const requirements = {
-                'windows': 'Windows 10/11 64-bit, 4GB RAM, 2GB Storage, DirectX 11',
-                'mac': 'macOS 11+, 4GB RAM, 2GB Storage, Metal support',
-                'linux': 'Ubuntu 20.04+, 4GB RAM, 2GB Storage, OpenGL 4.1'
-            };
-
-            alert(`Downloading KNIRVANA for ${platform}...\n\nRequirements: ${requirements[platform]}\nDownload URL: ${downloads[platform]}\n\nFeatures:\n• Enhanced graphics and performance\n• Offline single-player campaigns\n• Mod support and custom maps\n• Advanced AI opponents`);
-
-            // Track download analytics
-            if (typeof gtag !== 'undefined') {
-                gtag('event', 'download', {
-                    'event_category': 'KNIRVANA',
-                    'event_label': platform
-                });
-            }
-        }
+        // Download function is now handled by config-loader.js
+        // The downloadGame function is automatically set up when the page loads
 
         // Initialize animated logo
         document.addEventListener('DOMContentLoaded', function() {

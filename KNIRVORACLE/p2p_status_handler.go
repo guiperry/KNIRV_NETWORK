@@ -20,13 +20,18 @@ func RegisterStatusHandler(node *Node) {
 		return
 	}
 
-	// Note: This is a placeholder implementation
-	// In the actual implementation, you would set the stream handler on the libp2p host
-	// node.Host.SetStreamHandler(StatusProtocolID, func(stream network.Stream) {
-	//     handleStatusStream(stream, node)
-	// })
+	// Validate that we have a valid host
+	if node.Host == nil {
+		agentlog.LogError("Cannot register status handler: libp2p host is nil", nil)
+		return
+	}
 
-	agentlog.LogInfo("Registered status protocol handler")
+	// Register the stream handler for status protocol
+	node.Host.SetStreamHandler(StatusProtocolID, func(stream network.Stream) {
+		handleStatusStream(stream, node)
+	})
+
+	agentlog.LogInfo("Registered status protocol handler for " + StatusProtocolID)
 }
 
 // handleStatusStream serves PAP status information
@@ -41,15 +46,15 @@ func handleStatusStream(stream network.Stream, node *Node) {
 
 	// Add additional status information
 	extendedStatus := map[string]interface{}{
-		"status":               status.Status,
-		"subpoolQueueLength":   status.SubpoolQueueLength,
-		"timestamp":            time.Now().Unix(),
-		"poaudEnabled":         node.Blockchain.PoAuDEnabled,
-		"nodeAddress":          getNodeAddress(node.Wallet),
-		"chainID":              node.Blockchain.ChainID,
-		"isActivelyMining":     node.Blockchain.IsActivelyMining(),
-		"mainPoolSize":         getMainPoolSize(node),
-		"delegatedTxCount":     getDelegatedTransactionCount(node),
+		"status":             status.Status,
+		"subpoolQueueLength": status.SubpoolQueueLength,
+		"timestamp":          time.Now().Unix(),
+		"poaudEnabled":       node.Blockchain.PoAuDEnabled,
+		"nodeAddress":        getNodeAddress(node.Wallet),
+		"chainID":            node.Blockchain.ChainID,
+		"isActivelyMining":   node.Blockchain.IsActivelyMining(),
+		"mainPoolSize":       getMainPoolSize(node),
+		"delegatedTxCount":   getDelegatedTransactionCount(node),
 	}
 
 	// Encode and send status
@@ -145,16 +150,16 @@ func StartStatusAdvertising(node *Node) {
 // GetNodeStatusInfo returns comprehensive status information about the node
 func GetNodeStatusInfo(node *Node) map[string]interface{} {
 	status := map[string]interface{}{
-		"status":               getNodeStatus(node),
-		"subpoolQueueLength":   getSubpoolQueueLength(node),
-		"timestamp":            time.Now().Unix(),
-		"poaudEnabled":         node.Blockchain.PoAuDEnabled,
-		"nodeAddress":          getNodeAddress(node.Wallet),
-		"chainID":              node.Blockchain.ChainID,
-		"isActivelyMining":     node.Blockchain.IsActivelyMining(),
-		"mainPoolSize":         getMainPoolSize(node),
-		"delegatedTxCount":     getDelegatedTransactionCount(node),
-		"protocolID":           StatusProtocolID,
+		"status":             getNodeStatus(node),
+		"subpoolQueueLength": getSubpoolQueueLength(node),
+		"timestamp":          time.Now().Unix(),
+		"poaudEnabled":       node.Blockchain.PoAuDEnabled,
+		"nodeAddress":        getNodeAddress(node.Wallet),
+		"chainID":            node.Blockchain.ChainID,
+		"isActivelyMining":   node.Blockchain.IsActivelyMining(),
+		"mainPoolSize":       getMainPoolSize(node),
+		"delegatedTxCount":   getDelegatedTransactionCount(node),
+		"protocolID":         StatusProtocolID,
 	}
 
 	// Add network authors information if available

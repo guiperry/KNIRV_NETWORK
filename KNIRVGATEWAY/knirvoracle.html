@@ -383,33 +383,8 @@
     <script src="js/config-loader.js"></script>
     <script src="js/universal-footer.js"></script>
     <script>
-        function downloadBootnode(type) {
-            const downloads = {
-                'linux': 'https://releases.knirv.network/knirvoracle/linux/knirvoracle-bootnode.tar.gz',
-                'docker': 'docker pull knirv/oracle-bootnode:latest',
-                'source': 'https://github.com/KNIRV-NETWORK/knirvoracle'
-            };
-
-            const instructions = {
-                'linux': 'Download and extract the bootnode binary:\n\n' + downloads[type] + '\n\nRequires: Ubuntu 20.04+, 32GB RAM, 1TB SSD',
-                'docker': 'Pull the Docker image:\n\n' + downloads[type] + '\n\nThen run: docker run -d knirv/oracle-bootnode',
-                'source': 'Clone the repository:\n\ngit clone ' + downloads[source] + '\n\nBuild with: go build ./cmd/bootnode'
-            };
-
-            if (type === 'source') {
-                alert(`KNIRVORACLE Source Code:\n\nRepository: ${downloads[type]}\n\nBuild requirements:\n- Go 1.21+\n- 32GB RAM for compilation\n- Full blockchain sync required`);
-            } else {
-                alert(`KNIRVORACLE Bootnode (${type}):\n\n${instructions[type]}\n\nIMPORTANT:\n- Requires 50,000 NRN stake\n- 99.5% uptime requirement\n- Slashing penalties apply`);
-            }
-
-            // Track download analytics
-            if (typeof gtag !== 'undefined') {
-                gtag('event', 'download', {
-                    'event_category': 'KNIRVORACLE',
-                    'event_label': type
-                });
-            }
-        }
+        // Download function is now handled by config-loader.js
+        // The downloadBootnode function is automatically set up when the page loads
 
         // Initialize animated logo
         document.addEventListener('DOMContentLoaded', function() {

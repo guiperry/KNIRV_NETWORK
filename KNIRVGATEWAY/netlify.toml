@@ -273,6 +273,11 @@
 
 # Discourse Forum redirects
 [[redirects]]
+  from = "/forum/"
+  to = "/forum/src/"
+  status = 200
+
+[[redirects]]
   from = "/forum/*"
   to = "/forum/src/:splat"
   status = 200
@@ -339,6 +344,11 @@
 [[redirects]]
   from = "/hesk/*"
   to = "/support-desk/src/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/support-desk/"
+  to = "/support-desk/src/"
   status = 200
 
 [[redirects]]

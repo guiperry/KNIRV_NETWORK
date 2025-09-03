@@ -340,29 +340,8 @@
     <script src="js/config-loader.js"></script>
     <script src="js/universal-footer.js"></script>
     <script>
-        function downloadRouter(platform) {
-            const downloads = {
-                'windows': 'https://releases.knirv.network/knirvrouter/windows/knirvrouter-setup.exe',
-                'mac': 'https://releases.knirv.network/knirvrouter/mac/knirvrouter.dmg',
-                'linux': 'https://releases.knirv.network/knirvrouter/linux/knirvrouter.AppImage'
-            };
-
-            const requirements = {
-                'windows': 'Windows 10/11, 8GB RAM, 100GB Storage',
-                'mac': 'macOS 10.15+, 8GB RAM, 100GB Storage',
-                'linux': 'Ubuntu 20.04+/CentOS 8+, 8GB RAM, 100GB Storage'
-            };
-
-            alert(`Downloading KNIRVROUTER for ${platform}...\n\nRequirements: ${requirements[platform]}\nDownload URL: ${downloads[platform]}\n\nNote: You'll need 1000 NRN tokens to start routing.`);
-
-            // Track download analytics
-            if (typeof gtag !== 'undefined') {
-                gtag('event', 'download', {
-                    'event_category': 'KNIRVROUTER',
-                    'event_label': platform
-                });
-            }
-        }
+        // Download function is now handled by config-loader.js
+        // The downloadRouter function is automatically set up when the page loads
 
         // Initialize animated logo
         document.addEventListener('DOMContentLoaded', function() {

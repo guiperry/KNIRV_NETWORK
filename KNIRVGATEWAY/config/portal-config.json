@@ -103,7 +103,7 @@
       "height": "800px"
     },
     "support_desk": {
-      "url": "../support-desk/",
+      "url": "../support-desk/src/",
       "title": "KNIRV Support Desk",
       "height": "600px"
     }

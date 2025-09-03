@@ -232,7 +232,7 @@ start_services() {
     # Start KNIRVORACLE
     print_status "Starting KNIRVORACLE on port 8086..."
     cd "$PROJECT_ROOT/KNIRVORACLE"
-    ./bin/knirvoracle --port 8086 > "$TEST_DIR/logs/knirvoracle.log" 2>&1 &
+    ./bin/knirvoracle --port 8086 > "$TEST_DIR/logs/KNIRVORACLE.log" 2>&1 &
     echo $! > "$TEST_DIR/pids/knirvoracle.pid"
     
     # Start KNIRVROUTER

@@ -285,31 +285,8 @@
     <script src="js/config-loader.js"></script>
     <script src="js/universal-footer.js"></script>
     <script>
-        function downloadWallet(platform) {
-            // Placeholder download functionality
-            const downloads = {
-                'windows': 'https://releases.knirv.network/knirvwallet/windows/knirvwallet-setup.exe',
-                'mac': 'https://releases.knirv.network/knirvwallet/mac/knirvwallet.dmg',
-                'linux': 'https://releases.knirv.network/knirvwallet/linux/knirvwallet.AppImage',
-                'mobile': '#'
-            };
-
-            if (platform === 'mobile') {
-                alert('Mobile app coming soon! Stay tuned for updates.');
-                return;
-            }
-
-            // In a real implementation, this would trigger the actual download
-            alert(`Downloading KNIRVWALLET for ${platform}...\nDownload URL: ${downloads[platform]}`);
-
-            // Track download analytics
-            if (typeof gtag !== 'undefined') {
-                gtag('event', 'download', {
-                    'event_category': 'KNIRVWALLET',
-                    'event_label': platform
-                });
-            }
-        }
+        // Download function is now handled by config-loader.js
+        // The downloadWallet function is automatically set up when the page loads
 
         // Initialize animated logo
         document.addEventListener('DOMContentLoaded', function() {

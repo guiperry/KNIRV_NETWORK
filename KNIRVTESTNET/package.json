@@ -92,6 +92,5 @@
     "express",
     "blockchain"
   ],
-  "author": "KNIRV Team",
   "license": "MIT"
 }

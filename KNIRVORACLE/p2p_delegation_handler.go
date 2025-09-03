@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
 
 	agentlog "KNIRVORACLE/log"
@@ -18,7 +19,7 @@ type Node struct {
 	Blockchain             *BlockchainStruct
 	TransactionPoolManager *TransactionPoolManager
 	Wallet                 *Wallet
-	Host                   interface{} // This should be the actual libp2p host type
+	Host                   host.Host // libp2p host for P2P communication
 }
 
 // RegisterDelegationHandler registers the delegation protocol handler
@@ -29,13 +30,18 @@ func RegisterDelegationHandler(node *Node) {
 		return
 	}
 
-	// Note: This is a placeholder implementation
-	// In the actual implementation, you would set the stream handler on the libp2p host
-	// node.Host.SetStreamHandler(DelegationProtocolID, func(stream network.Stream) {
-	//     handleDelegatedTransactionStream(stream, node)
-	// })
+	// Validate that we have a valid host
+	if node.Host == nil {
+		agentlog.LogError("Cannot register delegation handler: libp2p host is nil", nil)
+		return
+	}
 
-	agentlog.LogInfo("Registered delegation protocol handler")
+	// Register the stream handler for delegation protocol
+	node.Host.SetStreamHandler(DelegationProtocolID, func(stream network.Stream) {
+		handleDelegatedTransactionStream(stream, node)
+	})
+
+	agentlog.LogInfo("Registered delegation protocol handler for " + DelegationProtocolID)
 }
 
 // handleDelegatedTransactionStream processes incoming delegated transactions

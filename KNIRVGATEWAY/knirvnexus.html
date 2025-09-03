@@ -381,49 +381,8 @@
     <script src="js/config-loader.js"></script>
     <script src="js/universal-footer.js"></script>
     <script>
-        function rentDVE(plan) {
-            const plans = {
-                'starter': {
-                    name: 'Starter DVE',
-                    price: '50 NRN/hour',
-                    specs: '2 vCPU, 8GB RAM, 100GB SSD'
-                },
-                'professional': {
-                    name: 'Professional DVE',
-                    price: '150 NRN/hour',
-                    specs: '8 vCPU, 32GB RAM, 500GB NVMe'
-                },
-                'enterprise': {
-                    name: 'Enterprise DVE',
-                    price: '500 NRN/hour',
-                    specs: '32 vCPU, 128GB RAM, 2TB NVMe'
-                }
-            };
-
-            const selectedPlan = plans[plan];
-            alert(`Renting ${selectedPlan.name}:\n\nPrice: ${selectedPlan.price}\nSpecs: ${selectedPlan.specs}\n\nRedirecting to NEXUS Portal for setup...\n\nNote: Minimum 1000 NRN balance required`);
-
-            // In a real implementation, this would redirect to the NEXUS portal
-            // window.location.href = 'nexus-portal/?rent=' + plan;
-
-            // Track rental analytics
-            if (typeof gtag !== 'undefined') {
-                gtag('event', 'dve_rental', {
-                    'event_category': 'KNIRVNEXUS',
-                    'event_label': plan
-                });
-            }
-        }
-
-        function accessDVE(method) {
-            const accessMethods = {
-                'ssh': 'SSH Access:\n\nssh user@your-dve.knirv.network\n\nRequires: SSH key pair, active DVE rental',
-                'api': 'REST API Access:\n\nEndpoint: https://api.knirv.network/dve/v1/\nAuth: Bearer token required\n\nDocumentation: docs.knirv.network/api',
-                'sdk': 'KNIRV SDK Integration:\n\nimport { DVEClient } from "@knirv/sdk"\nconst dve = new DVEClient(config)\n\nSee: knirvsdk.html for installation'
-            };
-
-            alert(`${accessMethods[method]}\n\nFor active rentals, visit the NEXUS Portal for connection details.`);
-        }
+        // DVE rental and access functions are now handled by config-loader.js
+        // The rentDVE and accessDVE functions are automatically set up when the page loads
 
         // Initialize animated logo
         document.addEventListener('DOMContentLoaded', function() {

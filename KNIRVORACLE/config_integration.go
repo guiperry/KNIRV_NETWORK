@@ -102,7 +102,7 @@ func setDefaultConfig(v *viper.Viper) {
 
 	// Logging settings
 	v.SetDefault("logging.level", "info")
-	v.SetDefault("logging.file", "KNIRVORACLE.log")
+	v.SetDefault("logging.file", "logs/KNIRVORACLE.log")
 }
 
 // LoadConfig loads the configuration from Viper

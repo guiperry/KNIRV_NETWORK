@@ -310,7 +310,7 @@ func main() {
 
 	// --- Setup Application Logging to File and Console ---
 
-	var logFilePath = "KNIRVORACLE.log" // You can make this configurable
+	var logFilePath = "logs/KNIRVORACLE.log" // You can make this configurable
 	var errOpenLog error
 	// walletSrv variable is now handled directly where needed
 	appLogFile, errOpenLog = os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0660)

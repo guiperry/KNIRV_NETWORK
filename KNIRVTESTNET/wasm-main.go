@@ -88,7 +88,7 @@ func main() {
 	// Define the KNIRV services to be orchestrated (using host paths)
 	// These binaries run natively on the host, orchestrated by this WASM module
 	services := []Service{
-		{Name: "KNIRV-ORACLE", Path: "./bin/knirvoracle", LogFile: "./logs/knirvoracle.log", Port: "1317"},
+		{Name: "KNIRV-ORACLE", Path: "./bin/knirvoracle", LogFile: "./logs/KNIRVORACLE.log", Port: "1317"},
 		{Name: "KNIRVCHAIN", Path: "./bin/knirvchain", LogFile: "./logs/knirvchain.log", Port: "8080"},
 		{Name: "KNIRVGRAPH", Path: "./bin/knirvgraph", LogFile: "./logs/knirvgraph.log", Port: "8081"},
 		{Name: "KNIRV-NEXUS", Path: "./bin/knirvnexus", LogFile: "./logs/knirvnexus.log", Port: "8082"},
