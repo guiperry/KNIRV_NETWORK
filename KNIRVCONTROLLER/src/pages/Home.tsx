@@ -12,6 +12,7 @@ import TaskScheduler from '../components/TaskScheduler';
 import UDCManager from '../components/UDCManager';
 import PerformanceMonitor from '../components/PerformanceMonitor';
 import { desktopConnection } from '../services/DesktopConnection';
+import { agentManagementService } from '../services/AgentManagementService';
 
 interface HRMProcessingResponse {
   reasoning_result: string;
@@ -101,11 +102,38 @@ export default function Home() {
   };
 
   // Action button handlers
-  const handleDeployAgent = () => {
-    // Navigate to agent management or open agent deployment modal
-    // For now, we'll show a simple alert - in a full implementation,
-    // this would open an agent deployment interface
-    alert('Deploy Agent functionality - would open agent deployment interface');
+  const handleDeployAgent = async () => {
+    try {
+      // Get first available agent (in real implementation, user would select)
+      const agents = await agentManagementService.getAgents();
+      const availableAgent = agents.find(agent => agent.status === 'Available');
+
+      if (!availableAgent) {
+        alert('No available agents found');
+        return;
+      }
+
+      // Deploy the agent (would typically prompt for configuration)
+      const deploymentId = await agentManagementService.deployAgent({
+        agentId: availableAgent.agentId,
+        targetNRV: undefined, // Could prompt user to select
+        configuration: {},
+        resources: {
+          memory: availableAgent.metadata.requirements.memory,
+          cpu: availableAgent.metadata.requirements.cpu,
+          timeout: 300000 // 5 minutes
+        }
+      });
+
+      console.log('Agent deployed successfully:', deploymentId);
+      alert(`Agent ${availableAgent.name} deployed successfully!`);
+
+      // Refresh UI to show updated agent status
+      // This would typically trigger a re-render of the agents list
+    } catch (error) {
+      console.error('Failed to deploy agent:', error);
+      alert(`Failed to deploy agent: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   const handleViewAnalytics = () => {
