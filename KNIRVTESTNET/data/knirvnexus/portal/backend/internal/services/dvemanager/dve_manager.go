@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -277,6 +278,7 @@ type NodeFilter struct {
 	MinStake      int64    `json:"min_stake,omitempty"`
 	MinReputation int      `json:"min_reputation,omitempty"`
 	Capabilities  []string `json:"capabilities,omitempty"`
+	Limit         int      `json:"limit,omitempty"`
 }
 
 // Matches checks if a node matches the filter criteria
@@ -479,9 +481,22 @@ func (dm *DVEManager) updateMetrics() {
 
 // collectAndStoreMetrics collects and stores system metrics
 func (dm *DVEManager) collectAndStoreMetrics() {
+	// Check if context is cancelled before doing any work
+	select {
+	case <-dm.ctx.Done():
+		return
+	default:
+	}
+
 	health, err := dm.GetSystemHealth()
 	if err != nil {
-		log.Printf("Error collecting system health: %v", err)
+		// Only log error if context is not cancelled
+		select {
+		case <-dm.ctx.Done():
+			return
+		default:
+			log.Printf("Error collecting system health: %v", err)
+		}
 		return
 	}
 
@@ -522,12 +537,20 @@ func (dm *DVEManager) storeMetricsSnapshot(snapshot *models.MetricsSnapshot) err
 
 // Helper calculation methods
 func (dm *DVEManager) getTaskStats() (pending, completed, failed int, err error) {
+	// Try to query validation tasks from database
 	err = dm.db.View(func(tx *buntdb.Tx) error {
-		return tx.Ascend("validation:tasks:*", func(key, value string) bool {
+		// Use a more general pattern to find validation tasks
+		return tx.Ascend("", func(key, value string) bool {
+			// Look for keys that contain validation task data
+			if !strings.Contains(key, "validation") && !strings.Contains(key, "task") {
+				return true // Continue iteration
+			}
+
 			var task models.ValidationTask
 			if err := json.Unmarshal([]byte(value), &task); err != nil {
-				return true
+				return true // Continue iteration if unmarshal fails
 			}
+
 			switch task.Status {
 			case "pending", "assigned", "running":
 				pending++
@@ -539,6 +562,13 @@ func (dm *DVEManager) getTaskStats() (pending, completed, failed int, err error)
 			return true
 		})
 	})
+
+	// If database query fails (e.g., "not found"), return default values instead of error
+	if err != nil && err.Error() == "not found" {
+		// Return default values when no validation tasks exist yet
+		return 0, 0, 0, nil
+	}
+
 	return
 }
 
@@ -590,13 +620,95 @@ func (dm *DVEManager) GetAllNodes() []*models.DVENode {
 }
 
 // GetNode returns a specific node by ID
-func (dm *DVEManager) GetNode(nodeID string) (*models.DVENode, bool) {
+func (dm *DVEManager) GetNode(nodeID string) (*models.DVENode, error) {
 	dm.mu.RLock()
 	defer dm.mu.RUnlock()
 
 	if dm.nodeTracker == nil {
-		return nil, false
+		return nil, fmt.Errorf("node tracker not initialized")
 	}
 
-	return dm.nodeTracker.GetNode(nodeID)
+	node, exists := dm.nodeTracker.GetNode(nodeID)
+	if !exists {
+		return nil, fmt.Errorf("node not found")
+	}
+
+	return node, nil
+}
+
+// UpdateNode updates a DVE node with new information
+func (dm *DVEManager) UpdateNode(nodeID string, updates map[string]interface{}) (*models.DVENode, error) {
+	dm.mu.Lock()
+	defer dm.mu.Unlock()
+
+	// Get existing node from database
+	node, err := dm.getNodeFromDB(nodeID)
+	if err != nil {
+		return nil, fmt.Errorf("node not found: %w", err)
+	}
+
+	// Apply updates
+	if name, ok := updates["name"].(string); ok && name != "" {
+		node.Name = name
+	}
+	if status, ok := updates["status"].(string); ok && status != "" {
+		node.Status = status
+	}
+	if location, ok := updates["location"].(string); ok {
+		node.Location = location
+	}
+	if ipAddress, ok := updates["ip_address"].(string); ok {
+		node.IPAddress = ipAddress
+	}
+	if stakeAmount, ok := updates["stake_amount"].(float64); ok {
+		node.StakeAmount = int64(stakeAmount)
+	}
+	if capabilities, ok := updates["capabilities"].([]interface{}); ok {
+		node.Capabilities = make([]string, len(capabilities))
+		for i, cap := range capabilities {
+			if capStr, ok := cap.(string); ok {
+				node.Capabilities[i] = capStr
+			}
+		}
+	}
+
+	node.UpdatedAt = time.Now()
+
+	// Store updated node in database
+	if err := dm.storeNode(node); err != nil {
+		return nil, fmt.Errorf("failed to update node: %w", err)
+	}
+
+	// Update in tracker
+	dm.nodeTracker.UpdateNode(node)
+
+	log.Printf("DVE node %s updated successfully", nodeID)
+	return node, nil
+}
+
+// RemoveNode removes a DVE node from the system
+func (dm *DVEManager) RemoveNode(nodeID string) error {
+	dm.mu.Lock()
+	defer dm.mu.Unlock()
+
+	// Check if node exists
+	_, err := dm.getNodeFromDB(nodeID)
+	if err != nil {
+		return fmt.Errorf("node not found: %w", err)
+	}
+
+	// Remove from database
+	err = dm.db.Update(func(tx *buntdb.Tx) error {
+		_, err := tx.Delete(fmt.Sprintf("dve:nodes:%s", nodeID))
+		return err
+	})
+	if err != nil {
+		return fmt.Errorf("failed to remove node from database: %w", err)
+	}
+
+	// Remove from tracker
+	dm.nodeTracker.RemoveNode(nodeID)
+
+	log.Printf("DVE node %s removed successfully", nodeID)
+	return nil
 }

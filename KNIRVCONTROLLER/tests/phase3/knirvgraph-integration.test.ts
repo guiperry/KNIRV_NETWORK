@@ -108,7 +108,7 @@ class MockErrorNodeClustering {
       errorTypeGroups.get(node.errorType)!.push(node);
     }
 
-    for (const [errorType, nodes] of errorTypeGroups) {
+    for (const [errorType, nodes] of Array.from(errorTypeGroups.entries())) {
       if (nodes.length >= this.config.minClusterSize) {
         const clusterId = `cluster_${errorType}_${Date.now()}`;
         const cluster: ErrorCluster = {
@@ -116,7 +116,7 @@ class MockErrorNodeClustering {
           clusterName: `${errorType} Cluster`,
           description: `Cluster of ${errorType} errors`,
           errorNodes: nodes,
-          centroid: { errorTypeVector: [1, 0, 0], contextVector: [1, 1, 0], severityScore: 0.75, tagVector: [1, 1, 0], semanticVector: [0.5, 0.3, 0.2] },
+          centroid: { x: 0.5, y: 0.3, errorTypeVector: [1, 0, 0], contextVector: [1, 1, 0], severityScore: 0.75, tagVector: [1, 1, 0], semanticVector: [0.5, 0.3, 0.2] },
           similarity: 0.8,
           totalBounty: nodes.reduce((sum, node) => sum + node.bountyAmount, 0),
           assignedAgents: [],
@@ -150,17 +150,26 @@ class MockErrorNodeClustering {
 }
 
 interface AgentAssignment {
+  assignmentId: string;
   agentId: string;
   clusterId: string;
   assignedAt: Date;
   status: 'active' | 'completed' | 'failed';
+  solutionsSubmitted: number;
+  solutionsValidated: number;
+  bountyEarned: number;
+  performanceRating: number;
 }
 
 interface AgentOwnership {
-  agentId: string;
   clusterId: string;
-  ownedAt: Date;
-  bountyAmount: number;
+  ownerAgentId: string;
+  acquisitionDate: Date;
+  totalSolutionsContributed: number;
+  ownershipScore: number;
+  skillInvocationFees: number;
+  monthlyRevenue: number;
+  ownershipStatus: string;
 }
 
 class MockAgentAssignmentSystem {
@@ -266,7 +275,7 @@ class MockAgentAssignmentSystem {
     // Find agent with most solutions
     let topAgent = '';
     let maxSolutions = 0;
-    for (const [agentId, count] of agentSolutionCounts) {
+    for (const [agentId, count] of Array.from(agentSolutionCounts.entries())) {
       if (count > maxSolutions) {
         maxSolutions = count;
         topAgent = agentId;
@@ -297,7 +306,7 @@ class MockAgentAssignmentSystem {
     return Array.from(this.solutions.values()).filter(s => s.clusterId === clusterId);
   }
 
-  getClusterOwnership(clusterId: string): Record<string, unknown> | undefined {
+  getClusterOwnership(clusterId: string): AgentOwnership | undefined {
     return this.ownerships.get(clusterId);
   }
 
@@ -326,22 +335,20 @@ class MockLoRAAdapterTrainingPipeline {
     const datasetId = `dataset_${cluster.clusterId}_${Date.now()}`;
 
     const trainingPairs = validatedSolutions.map((solution, index) => ({
-      pairId: `pair_${solution.solutionId}_${cluster.errorNodes[index % cluster.errorNodes.length].id}`,
-      errorContext: {
+      input: {
         errorType: cluster.errorNodes[index % cluster.errorNodes.length].errorType,
         errorMessage: cluster.errorNodes[index % cluster.errorNodes.length].errorMessage,
         stackTrace: cluster.errorNodes[index % cluster.errorNodes.length].stackTrace || '',
         contextVariables: cluster.errorNodes[index % cluster.errorNodes.length].context,
         semanticEmbedding: new Array(128).fill(0).map(() => Math.random())
       },
-      solutionContext: {
+      output: {
         solutionCode: solution.solutionCode,
         approach: solution.approach,
         effectiveness: solution.dveValidationScore || 0,
         codeEmbedding: new Array(64).fill(0).map(() => Math.random()),
         transformationVector: new Array(32).fill(0).map(() => Math.random())
-      },
-      weight: (solution.dveValidationScore || 0) * Math.log(1 + (solution.bountyAwarded || 1))
+      }
     }));
 
     const dataset: TrainingDataset = {
@@ -352,7 +359,7 @@ class MockLoRAAdapterTrainingPipeline {
       trainingPairs,
       datasetMetrics: {
         totalPairs: trainingPairs.length,
-        averageValidationScore: validatedSolutions.reduce((sum, s) => sum + (s.dveValidationScore || 0), 0) / validatedSolutions.length,
+        averageValidationScore: validatedSolutions.length > 0 ? validatedSolutions.reduce((sum, s) => sum + (s.dveValidationScore || 0), 0) / validatedSolutions.length : 0,
         diversityScore: 0.8,
         complexityScore: 0.6,
         qualityScore: 0.85

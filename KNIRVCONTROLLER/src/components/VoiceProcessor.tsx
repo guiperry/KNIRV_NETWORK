@@ -77,7 +77,7 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
       stopVoiceRecognition();
       stopAudioAnalysis();
     };
-  }, [isActive, initializeVoiceRecognition, initializeAudioAnalysis, stopVoiceRecognition, stopAudioAnalysis]);
+  }, [isActive]);
 
   const processVoiceCommand = useCallback((transcript: string, _confidence: number) => {
     const command = transcript.toLowerCase().trim();
@@ -190,7 +190,7 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
       console.error('Failed to initialize audio analysis:', err);
       setError('Failed to access microphone');
     }
-  }, [startAudioLevelMonitoring]);
+  }, []);
 
   const startAudioLevelMonitoring = useCallback(() => {
     if (!analyserRef.current) return;

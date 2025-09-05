@@ -109,7 +109,7 @@ class PerformanceOptimizer {
    */
   private updateNavigationMetrics(entry: PerformanceNavigationTiming): void {
     this.metrics.networkLatency = entry.responseStart - entry.requestStart;
-    this.metrics.renderTime = entry.loadEventEnd - entry.navigationStart;
+    this.metrics.renderTime = entry.loadEventEnd - (entry as any).navigationStart;
   }
 
   /**
@@ -151,7 +151,7 @@ class PerformanceOptimizer {
     this.cache.set(key, cached);
 
     this.updateCacheHitRate();
-    return cached.data;
+    return cached.data as T;
   }
 
   /**
@@ -165,7 +165,7 @@ class PerformanceOptimizer {
     // Implement LRU eviction if cache is full
     if (this.cache.size >= this.config.maxCacheSize) {
       const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
+      this.cache.delete(firstKey!);
     }
 
     this.cache.set(key, {
@@ -213,7 +213,7 @@ class PerformanceOptimizer {
         timeoutId = setTimeout(() => {
           func(...args);
           lastExecTime = Date.now();
-        }, delay - (currentTime - lastExecTime));
+        }, delay - (currentTime - lastExecTime)) as any;
       }
     };
   }
@@ -234,7 +234,7 @@ class PerformanceOptimizer {
 
       timeoutId = setTimeout(() => {
         func(...args);
-      }, delay);
+      }, delay) as any;
     };
   }
 

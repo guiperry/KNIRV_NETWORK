@@ -1,22 +1,24 @@
-import React from 'react';
+import * as React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 
 // Import components that were fixed
-import { SlidingPanel } from '../components/SlidingPanel';
-import { CognitiveShellInterface } from '../components/CognitiveShellInterface';
-import VisualProcessor from '../components/VisualProcessor';
-import VoiceProcessor from '../components/VoiceProcessor';
-import { MetaAccountDashboard } from '../components/MetaAccountDashboard';
-import { UnifiedInterface } from '../components/UnifiedInterface';
-import App, { Agent, SkillResult, Adaptation } from '../App';
+import { SlidingPanel } from '../../src/components/SlidingPanel';
+import { CognitiveShellInterface } from '../../src/components/CognitiveShellInterface';
+import VisualProcessor from '../../src/components/VisualProcessor';
+import VoiceProcessor from '../../src/components/VoiceProcessor';
+import { MetaAccountDashboard } from '../../src/components/MetaAccountDashboard';
+import UnifiedInterface from '../../src/components/UnifiedInterface';
+import App, { SkillResult, Adaptation } from '../../src/App';
+import { Agent } from '../../src/types/common';
+import { ComponentBridge } from '../../src/shared/ComponentBridge';
 
 // Mock services
-jest.mock('../services/CognitiveEngineService');
-jest.mock('../services/WalletIntegrationService');
-jest.mock('../services/AgentManagementService');
-jest.mock('../shared/ComponentBridge');
+jest.mock('../../src/services/CognitiveEngineService');
+jest.mock('../../src/services/WalletIntegrationService');
+jest.mock('../../src/services/AgentManagementService');
+jest.mock('../../src/shared/ComponentBridge');
 
 // Mock lucide-react icons
 jest.mock('lucide-react', () => ({
@@ -79,8 +81,9 @@ describe('Error Resolution Tests', () => {
   describe('Agent Type Compatibility', () => {
     it('should handle new Agent interface correctly', () => {
       const mockAgent: Agent = {
-        id: 'test-agent',
+        agentId: 'test-agent',
         name: 'Test Agent',
+        version: '1.0.0',
         type: 'wasm',
         status: 'Available',
         capabilities: ['test-capability'],
@@ -94,8 +97,7 @@ describe('Error Resolution Tests', () => {
           requirements: { memory: 256, cpu: 1, storage: 50 },
           permissions: ['read', 'write']
         },
-        createdAt: new Date(),
-        specialization: ['test-specialization']
+        createdAt: new Date().toISOString()
       };
 
       expect(mockAgent.type).toBe('wasm');
@@ -124,7 +126,9 @@ describe('Error Resolution Tests', () => {
 
     it('should handle Adaptation callbacks with proper typing', () => {
       const mockAdaptation: Adaptation = {
+        id: 'adaptation-123',
         type: 'test-adaptation',
+        description: 'Test adaptation',
         parameters: { param1: 'value1' },
         timestamp: new Date(),
         confidence: 0.8
@@ -282,15 +286,26 @@ describe('Error Resolution Tests', () => {
       // Test MetaAccountDashboard
       const { unmount: unmountMeta } = render(
         <BrowserRouter>
-          <MetaAccountDashboard />
+          <MetaAccountDashboard config={{
+            chainId: 'knirv-testnet',
+            rpcEndpoint: 'https://testnet.knirv.com/rpc',
+            walletAddress: '0x1234567890abcdef'
+          }} />
         </BrowserRouter>
       );
       unmountMeta();
 
       // Test UnifiedInterface
+      const mockBridge = new (ComponentBridge as any)({
+        name: 'test',
+        port: 3000,
+        endpoints: {},
+        features: {}
+      });
+
       const { unmount: unmountUnified } = render(
         <BrowserRouter>
-          <UnifiedInterface />
+          <UnifiedInterface bridge={mockBridge} />
         </BrowserRouter>
       );
       unmountUnified();

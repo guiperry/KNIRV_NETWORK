@@ -150,7 +150,10 @@ export class ComponentBridge {
     switch (message.type) {
       case 'component_status':
         if (message.payload && typeof message.payload === 'object' && 'status' in message.payload) {
-          this.state.components[message.source] = (message.payload as { status: string }).status;
+          const status = (message.payload as { status: string }).status;
+          if (status === 'error' || status === 'running' || status === 'stopped') {
+            this.state.components[message.source] = status;
+          }
         }
         break;
       case 'cognitive_update':

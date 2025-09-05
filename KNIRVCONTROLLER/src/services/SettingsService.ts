@@ -378,7 +378,7 @@ export class SettingsService {
     
     for (const key of keys) {
       if (current && typeof current === 'object' && key in current) {
-        current = current[key];
+        current = (current as any)[key];
       } else {
         return undefined;
       }
@@ -397,7 +397,7 @@ export class SettingsService {
     
     for (let i = 0; i < keys.length - 1; i++) {
       current[keys[i]] = {};
-      current = current[keys[i]];
+      current = current[keys[i]] as Record<string, unknown>;
     }
     
     current[keys[keys.length - 1]] = value;
@@ -504,12 +504,12 @@ export class SettingsService {
     
     for (const [key, value] of Object.entries(updates)) {
       if (value && typeof value === 'object' && !Array.isArray(value)) {
-        merged[key as keyof AppSettings] = {
-          ...merged[key as keyof AppSettings],
+        (merged as any)[key] = {
+          ...(merged as any)[key],
           ...value
-        } as AppSettings[keyof AppSettings];
+        };
       } else {
-        merged[key as keyof AppSettings] = value as AppSettings[keyof AppSettings];
+        (merged as any)[key] = value;
       }
     }
     

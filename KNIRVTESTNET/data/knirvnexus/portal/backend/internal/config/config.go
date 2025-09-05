@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
+	"github.com/subosito/gotenv"
 )
 
 // Config represents the application configuration
@@ -24,6 +25,7 @@ type Config struct {
 	Network     NetworkConfig    `mapstructure:"network"`
 	Validation  ValidationConfig `mapstructure:"validation"`
 	TEE         TEEConfig        `mapstructure:"tee"`
+	CDE         CDEConfig        `mapstructure:"cde"`
 	Reports     ReportsConfig    `mapstructure:"reports"`
 	Log         LogConfig        `mapstructure:"log"`
 }
@@ -143,6 +145,24 @@ type SoftwareConfig struct {
 	KeyFile           string `mapstructure:"key_file"`
 }
 
+// CDEConfig represents Cloud Development Environment configuration
+type CDEConfig struct {
+	BaseImagePath          string        `mapstructure:"base_image_path"`
+	WorkspaceRoot          string        `mapstructure:"workspace_root"`
+	MaxEnvironments        int           `mapstructure:"max_environments"`
+	DefaultTimeout         time.Duration `mapstructure:"default_timeout"`
+	MaxCPUPerEnv           float64       `mapstructure:"max_cpu_per_env"`
+	MaxMemoryPerEnv        uint64        `mapstructure:"max_memory_per_env"`
+	MaxDiskPerEnv          uint64        `mapstructure:"max_disk_per_env"`
+	EnableSandboxing       bool          `mapstructure:"enable_sandboxing"`
+	EnableNetworkIsolation bool          `mapstructure:"enable_network_isolation"`
+	AllowedPorts           []int         `mapstructure:"allowed_ports"`
+	SessionTimeout         time.Duration `mapstructure:"session_timeout"`
+	MaxSessionsPerUser     int           `mapstructure:"max_sessions_per_user"`
+	MaxProjectsPerUser     int           `mapstructure:"max_projects_per_user"`
+	ProjectStoragePath     string        `mapstructure:"project_storage_path"`
+}
+
 // ReportsConfig represents report generation configuration
 type ReportsConfig struct {
 	StoragePath      string `mapstructure:"storage_path"`
@@ -166,6 +186,16 @@ func Load() (*Config, error) {
 
 // LoadWithDefaults loads configuration with default values
 func LoadWithDefaults() (*Config, error) {
+	// Load .env file if it exists (for API keys and other environment variables)
+	// Try multiple locations: current directory, parent directory
+	envPaths := []string{".env", "../.env"}
+	for _, envPath := range envPaths {
+		if err := gotenv.Load(envPath); err == nil {
+			break // Successfully loaded .env file
+		}
+		// Continue trying other paths if this one fails
+	}
+
 	// Set default values
 	setDefaults()
 
@@ -239,6 +269,22 @@ func setDefaults() {
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("log.format", "json")
 	viper.SetDefault("log.output", "./logs/nexus.log")
+
+	// CDE configuration defaults
+	viper.SetDefault("cde.base_image_path", "images")
+	viper.SetDefault("cde.workspace_root", "workspaces")
+	viper.SetDefault("cde.max_environments", 50)
+	viper.SetDefault("cde.default_timeout", "1h")
+	viper.SetDefault("cde.max_cpu_per_env", 2.0)
+	viper.SetDefault("cde.max_memory_per_env", 2147483648) // 2GB
+	viper.SetDefault("cde.max_disk_per_env", 10737418240)  // 10GB
+	viper.SetDefault("cde.enable_sandboxing", true)
+	viper.SetDefault("cde.enable_network_isolation", false)
+	viper.SetDefault("cde.allowed_ports", []int{8080, 3000, 5000})
+	viper.SetDefault("cde.session_timeout", "2h")
+	viper.SetDefault("cde.max_sessions_per_user", 5)
+	viper.SetDefault("cde.max_projects_per_user", 20)
+	viper.SetDefault("cde.project_storage_path", "projects")
 
 	// Legacy defaults for backward compatibility
 	viper.SetDefault("chain_id", "knirv-nexus-mainnet")

@@ -180,7 +180,7 @@ export class SEALFramework extends EventEmitter {
       const response = await this.executeAgentWithHRMGuidance(agent, input, context, hrmOutput);
 
       // Update agent performance based on HRM confidence
-      this.updateAgentPerformance(agent, (hrmOutput as { processing_time?: number }).processing_time, ((hrmOutput as { confidence?: number }).confidence || 0) > 0.7);
+      this.updateAgentPerformance(agent, (hrmOutput as { processing_time?: number }).processing_time || 0, ((hrmOutput as { confidence?: number }).confidence || 0) > 0.7);
 
       return response;
 
@@ -264,11 +264,11 @@ export class SEALFramework extends EventEmitter {
       confidence: hrmAny.confidence,
       processingTime: hrmAny.processing_time,
       source: 'hrm_direct',
-      shouldSpeak: contextAny.inputType === 'voice' && hrmAny.confidence > 0.7,
+      shouldSpeak: contextAny.inputType === 'voice' && (hrmAny.confidence || 0) > 0.7,
       text: hrmAny.reasoning_result,
       metadata: {
-        l_module_activations: hrmAny.l_module_activations,
-        h_module_activations: hrmAny.h_module_activations,
+        l_module_activations: (hrmAny as any).l_module_activations,
+        h_module_activations: (hrmAny as any).h_module_activations,
       },
     };
   }
@@ -293,7 +293,7 @@ export class SEALFramework extends EventEmitter {
 
     // Merge HRM insights with agent response
     return {
-      ...response,
+      ...(response as Record<string, unknown>),
       hrmEnhanced: true,
       hrmConfidence: hrmAny.confidence,
       combinedConfidence: (((response as { confidence?: number }).confidence || 0) + (hrmAny.confidence || 0)) / 2,
@@ -457,7 +457,7 @@ export class SEALFramework extends EventEmitter {
       }
 
       // Execute skill (this would integrate with KNIRVCHAIN)
-      const result = await this.executeSkill(skillId, parameters, agent);
+      const result = await this.executeSkill(skillId, parameters, agent || undefined);
 
       invocation.result = result;
       invocation.endTime = new Date();
@@ -473,7 +473,7 @@ export class SEALFramework extends EventEmitter {
       return result;
 
     } catch (error) {
-      invocation.error = error.message;
+      invocation.error = error instanceof Error ? error.message : String(error);
       invocation.endTime = new Date();
 
       if (invocation.agent) {
@@ -537,7 +537,7 @@ export class SEALFramework extends EventEmitter {
 
     // Generate adaptation changes
     if (errorPatterns.length > 0) {
-      adaptation.changes.push({
+      (adaptation.changes as any[]).push({
         type: 'error_reduction',
         patterns: errorPatterns,
         adjustments: this.generateErrorAdjustments(errorPatterns),
@@ -545,7 +545,7 @@ export class SEALFramework extends EventEmitter {
     }
 
     if (successPatterns.length > 0) {
-      adaptation.changes.push({
+      (adaptation.changes as any[]).push({
         type: 'success_amplification',
         patterns: successPatterns,
         adjustments: this.generateSuccessAdjustments(successPatterns),

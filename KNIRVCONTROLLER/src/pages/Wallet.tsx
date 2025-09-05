@@ -15,7 +15,7 @@ export default function WalletPage() {
   const [showAddFunds, setShowAddFunds] = useState(false);
   const [showSendNRN, setShowSendNRN] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
-  const [cognitiveState, setCognitiveState] = useState<unknown>(null);
+  const [cognitiveState, setCognitiveState] = useState<{ mode?: string; isActive?: boolean; timestamp?: number } | null>(null);
   const [cognitiveMode, setCognitiveMode] = useState(false);
 
   // Mock data for slideouts
@@ -189,7 +189,7 @@ export default function WalletPage() {
   };
 
   const handleCognitiveStateChange = (state: unknown) => {
-    setCognitiveState(state);
+    setCognitiveState(state as { mode?: string; isActive?: boolean; timestamp?: number } | null);
     if (state && typeof state === 'object' && 'status' in state) {
       const stateObj = state as { status: string };
       setCognitiveMode(stateObj.status === 'active' || stateObj.status === 'learning');

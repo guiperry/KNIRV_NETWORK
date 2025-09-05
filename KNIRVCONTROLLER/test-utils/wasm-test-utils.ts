@@ -256,5 +256,5 @@ export function createFileFromTestWasm(testFile: TestWasmFile): File {
     }
   };
   
-  return file as File;
+  return file as unknown as File;
 }

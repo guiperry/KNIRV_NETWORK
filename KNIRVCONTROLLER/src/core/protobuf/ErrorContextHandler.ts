@@ -5,7 +5,7 @@
  * for KNIRVGRAPH discovery and skill invocation
  */
 
-import * as pino from 'pino';
+import pino from 'pino';
 import * as crypto from 'crypto';
 
 const logger = pino({ name: 'error-context-handler' });
@@ -132,7 +132,7 @@ export class ErrorContextHandler {
       // Task Context
       taskDescription,
       inputDataHash,
-      skillInvokedId: additionalContext?.skillInvokedId,
+      skillInvokedId: additionalContext?.skillInvokedId as string | undefined,
 
       // State & Metadata
       agentStateHash,

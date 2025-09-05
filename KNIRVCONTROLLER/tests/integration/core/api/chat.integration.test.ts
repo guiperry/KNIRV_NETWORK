@@ -1,7 +1,7 @@
-import request from 'supertest';
-import express from 'express';
+import * as request from 'supertest';
+import * as express from 'express';
 import { NebulaDB } from 'nebuladb';
-import * as chatAPI from '../chat';
+import * as chatAPI from '../../../../src/core/api/chat';
 
 // Mock NebulaDB for integration tests
 jest.mock('nebuladb');
@@ -9,6 +9,18 @@ jest.mock('nebuladb');
 interface MockDB {
   collection: (name: string) => MockCollection;
   close: jest.Mock;
+  defineSchema: jest.Mock;
+  defineCollection: jest.Mock;
+  connect: jest.Mock;
+  disconnect: jest.Mock;
+  query: jest.Mock;
+  transaction: jest.Mock;
+  createDatabase: jest.Mock;
+  dropDatabase: jest.Mock;
+  listDatabases: jest.Mock;
+  createTable: jest.Mock;
+  dropTable: jest.Mock;
+  listTables: jest.Mock;
 }
 
 interface MockCollection {
@@ -49,8 +61,20 @@ describe('Chat API Integration Tests', () => {
     };
 
     mockDB = {
+      collection: jest.fn(() => mockChatSessions),
+      close: jest.fn(),
       defineSchema: jest.fn(() => ({})),
       defineCollection: jest.fn(() => mockChatSessions),
+      connect: jest.fn(),
+      disconnect: jest.fn(),
+      query: jest.fn(),
+      transaction: jest.fn(),
+      createDatabase: jest.fn(),
+      dropDatabase: jest.fn(),
+      listDatabases: jest.fn(),
+      createTable: jest.fn(),
+      dropTable: jest.fn(),
+      listTables: jest.fn()
     };
 
     (NebulaDB as jest.MockedClass<typeof NebulaDB>).mockImplementation(() => mockDB);

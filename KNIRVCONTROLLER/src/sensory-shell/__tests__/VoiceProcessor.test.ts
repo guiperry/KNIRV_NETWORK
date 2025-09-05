@@ -120,7 +120,7 @@ describe('VoiceProcessor', () => {
       // Mock the getUserMedia to resolve successfully
       navigator.mediaDevices.getUserMedia = jest.fn().mockResolvedValue({
         getTracks: () => [{ stop: jest.fn() }]
-      } as MediaStream);
+      } as unknown as MediaStream);
 
       await voiceProcessor.start();
 
@@ -128,14 +128,14 @@ describe('VoiceProcessor', () => {
       await new Promise(resolve => setTimeout(resolve, 10));
 
       const metrics = voiceProcessor.getMetrics();
-      expect(metrics.isListening).toBe(true);
+      expect((metrics as any).isListening).toBe(true);
     });
 
     it('should stop audio input successfully', async () => {
       await voiceProcessor.start();
       await voiceProcessor.stop();
       const metrics = voiceProcessor.getMetrics();
-      expect(metrics.isListening).toBe(false);
+      expect((metrics as any).isListening).toBe(false);
     });
 
     it('should handle getUserMedia errors gracefully', async () => {
@@ -164,7 +164,7 @@ describe('VoiceProcessor', () => {
       // First start the voice processor to initialize MediaRecorder
       navigator.mediaDevices.getUserMedia = jest.fn().mockResolvedValue({
         getTracks: () => [{ stop: jest.fn() }]
-      } as MediaStream);
+      } as unknown as MediaStream);
 
       await voiceProcessor.start();
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -178,7 +178,7 @@ describe('VoiceProcessor', () => {
       }
 
       const metrics = voiceProcessor.getMetrics();
-      expect(metrics.isRecording).toBe(true);
+      expect((metrics as any).isRecording).toBe(true);
 
       voiceProcessor.stopRecording();
 
@@ -188,7 +188,7 @@ describe('VoiceProcessor', () => {
       }
 
       const metricsAfterStop = voiceProcessor.getMetrics();
-      expect(metricsAfterStop.isRecording).toBe(false);
+      expect((metricsAfterStop as any).isRecording).toBe(false);
     });
 
     it('should handle language changes', () => {
@@ -226,17 +226,17 @@ describe('VoiceProcessor', () => {
     it('should start and stop voice processing', async () => {
       navigator.mediaDevices.getUserMedia = jest.fn().mockResolvedValue({
         getTracks: () => [{ stop: jest.fn() }]
-      } as MediaStream);
+      } as unknown as MediaStream);
 
       await voiceProcessor.start();
       await new Promise(resolve => setTimeout(resolve, 10));
 
       const metrics = voiceProcessor.getMetrics();
-      expect(metrics.isListening).toBe(true);
+      expect((metrics as any).isListening).toBe(true);
 
       await voiceProcessor.stop();
       const metricsAfterStop = voiceProcessor.getMetrics();
-      expect(metricsAfterStop.isListening).toBe(false);
+      expect((metricsAfterStop as any).isListening).toBe(false);
     });
 
     it('should handle speech synthesis', () => {
@@ -293,11 +293,11 @@ describe('VoiceProcessor', () => {
     it('should provide metrics', () => {
       const metrics = voiceProcessor.getMetrics();
       expect(metrics).toBeDefined();
-      expect(typeof metrics.isListening).toBe('boolean');
-      expect(typeof metrics.isRecording).toBe('boolean');
-      expect(typeof metrics.isSupported).toBe('boolean');
-      expect(typeof metrics.language).toBe('string');
-      expect(typeof metrics.wakeWordEnabled).toBe('boolean');
+      expect(typeof (metrics as any).isListening).toBe('boolean');
+      expect(typeof (metrics as any).isRecording).toBe('boolean');
+      expect(typeof (metrics as any).isSupported).toBe('boolean');
+      expect(typeof (metrics as any).language).toBe('string');
+      expect(typeof (metrics as any).wakeWordEnabled).toBe('boolean');
     });
 
     it('should handle configuration updates', () => {
@@ -342,7 +342,7 @@ describe('VoiceProcessor', () => {
       // Mock getUserMedia
       navigator.mediaDevices.getUserMedia = jest.fn().mockResolvedValue({
         getTracks: () => [{ stop: jest.fn() }]
-      } as MediaStream);
+      } as unknown as MediaStream);
 
       // Start voice processing to trigger events
       await voiceProcessor.start();
@@ -377,7 +377,7 @@ describe('VoiceProcessor', () => {
       voiceProcessor.dispose();
 
       const metrics = voiceProcessor.getMetrics();
-      expect(metrics.isListening).toBe(false);
+      expect((metrics as any).isListening).toBe(false);
       expect(voiceProcessor.isInitialized()).toBe(false);
     });
 
@@ -388,7 +388,7 @@ describe('VoiceProcessor', () => {
       const mockTrack = { stop: jest.fn() };
       navigator.mediaDevices.getUserMedia = jest.fn().mockResolvedValue({
         getTracks: () => [mockTrack]
-      } as MediaStream);
+      } as unknown as MediaStream);
 
       await voiceProcessor.start();
       await new Promise(resolve => setTimeout(resolve, 10));

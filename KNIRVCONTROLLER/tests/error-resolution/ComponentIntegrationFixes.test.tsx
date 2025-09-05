@@ -3,24 +3,25 @@
  * These tests validate that components work together correctly after type fixes
  */
 
-import React from 'react';
+import * as React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 
 // Import components to test integration
-import { SlidingPanel } from '../components/SlidingPanel';
-import { CognitiveShellInterface } from '../components/CognitiveShellInterface';
-import { MetaAccountDashboard } from '../components/MetaAccountDashboard';
-import { UnifiedInterface } from '../components/UnifiedInterface';
+import { SlidingPanel } from '../../src/components/SlidingPanel';
+import { CognitiveShellInterface } from '../../src/components/CognitiveShellInterface';
+import { MetaAccountDashboard } from '../../src/components/MetaAccountDashboard';
+import UnifiedInterface from '../../src/components/UnifiedInterface';
+import { ComponentBridge } from '../../src/shared/ComponentBridge';
 
 // Mock external dependencies
-jest.mock('../services/CognitiveEngineService');
-jest.mock('../services/WalletIntegrationService');
-jest.mock('../shared/ComponentBridge');
-jest.mock('../sensory-shell/CognitiveEngine');
-jest.mock('../sensory-shell/HRMBridge');
-jest.mock('../sensory-shell/WASMOrchestrator');
+jest.mock('../../src/services/CognitiveEngineService');
+jest.mock('../../src/services/WalletIntegrationService');
+jest.mock('../../src/shared/ComponentBridge');
+jest.mock('../../src/sensory-shell/CognitiveEngine');
+jest.mock('../../src/sensory-shell/HRMBridge');
+jest.mock('../../src/sensory-shell/WASMOrchestrator');
 
 // Mock lucide-react icons
 jest.mock('lucide-react', () => ({
@@ -39,62 +40,29 @@ jest.mock('lucide-react', () => ({
   Send: () => <div data-testid="send-icon">📤</div>,
 }));
 
-// Mock ComponentBridge
-interface MockComponentBridge {
-  getState: () => {
-    components: Record<string, 'running' | 'stopped' | 'error'>;
-    cognitive: {
-      hrmActive: boolean;
-      loraAdapters: string[];
-      currentSkill?: string;
-      learningMode: boolean;
-      confidence: number;
+// Create a proper ComponentBridge mock that implements all required methods
+class MockComponentBridge extends ComponentBridge {
+  public sendMessage = jest.fn();
+  public onMessage = jest.fn();
+  public disconnect = jest.fn();
+
+  constructor() {
+    // Create a mock config to satisfy the constructor
+    const mockConfig = {
+      name: 'test-component',
+      port: 3000,
+      endpoints: {},
+      features: {}
     };
-    wallet: {
-      connected: boolean;
-      balance: number;
-      address?: string;
-      transactions: unknown[];
-    };
-    network: {
-      connected: boolean;
-      peers: number;
-      blockHeight: number;
-    };
-  };
-  onMessage: jest.Mock;
-  sendMessage: jest.Mock;
-  connect: jest.Mock;
-  disconnect: jest.Mock;
+
+    super(mockConfig);
+
+    // Override the connect method to prevent actual WebSocket connections
+    (this as any).connect = jest.fn();
+  }
 }
 
-const mockComponentBridge: MockComponentBridge = {
-  getState: jest.fn(() => ({
-    components: { manager: 'running', receiver: 'running', cli: 'running' },
-    cognitive: {
-      hrmActive: true,
-      loraAdapters: ['adapter1'],
-      currentSkill: 'test-skill',
-      learningMode: false,
-      confidence: 0.85
-    },
-    wallet: {
-      connected: true,
-      balance: 1000,
-      address: 'test-address',
-      transactions: []
-    },
-    network: {
-      connected: true,
-      peers: 5,
-      blockHeight: 12345
-    }
-  })),
-  onMessage: jest.fn(),
-  sendMessage: jest.fn(),
-  connect: jest.fn(),
-  disconnect: jest.fn()
-};
+const mockComponentBridge = new MockComponentBridge();
 
 describe('Component Integration Fixes', () => {
   describe('SlidingPanel Integration', () => {
@@ -204,28 +172,28 @@ describe('Component Integration Fixes', () => {
       );
 
       // Test that component handles bridge state changes
-      const updatedBridge: MockComponentBridge = {
-        ...mockComponentBridge,
-        getState: jest.fn(() => ({
-          components: { manager: 'stopped', receiver: 'error', cli: 'stopped' },
-          cognitive: {
-            hrmActive: false,
-            loraAdapters: [],
-            learningMode: false,
-            confidence: 0
-          },
-          wallet: {
-            connected: false,
-            balance: 0,
-            transactions: []
-          },
-          network: {
-            connected: false,
-            peers: 0,
-            blockHeight: 0
-          }
-        }))
-      };
+      const updatedBridge = new MockComponentBridge();
+
+      // Mock the getState method to return different state
+      updatedBridge.getState = jest.fn().mockReturnValue({
+        components: { manager: 'stopped', receiver: 'error', cli: 'stopped' },
+        cognitive: {
+          hrmActive: false,
+          loraAdapters: [],
+          learningMode: false,
+          confidence: 0
+        },
+        wallet: {
+          connected: false,
+          balance: 0,
+          transactions: []
+        },
+        network: {
+          connected: false,
+          peers: 0,
+          blockHeight: 0
+        }
+      });
 
       rerender(<UnifiedInterface bridge={updatedBridge} />);
 

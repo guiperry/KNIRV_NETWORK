@@ -1147,7 +1147,15 @@ export class CortexAPI {
     // Get UDCs by status
     this.router.get('/udc/status/:status', (req, res) => {
       try {
-        const udcs = udcManagementService.getUDCsByStatus(req.params.status as string);
+        const status = req.params.status;
+        const validStatuses = ['pending', 'active', 'expired', 'revoked', 'suspended'];
+
+        if (!validStatuses.includes(status)) {
+          res.status(400).json({ success: false, error: 'Invalid status parameter' });
+          return;
+        }
+
+        const udcs = udcManagementService.getUDCsByStatus(status as 'pending' | 'active' | 'expired' | 'revoked' | 'suspended');
         res.json({ success: true, udcs });
       } catch (error) {
         logger.error({ error }, 'Failed to get UDCs by status');

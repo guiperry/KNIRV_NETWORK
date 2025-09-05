@@ -318,7 +318,7 @@ describe('Service Syntax Fixes', () => {
       const testData = 'fallback-test-data';
 
       // Mock the first import to fail to test fallback
-      const originalImport = global.import;
+      const originalImport = (global as any).import;
       let importCallCount = 0;
       
       // @ts-expect-error - Mocking global import
@@ -335,7 +335,7 @@ describe('Service Syntax Fixes', () => {
         expect(signature).toBeDefined();
         expect(typeof signature).toBe('string');
       } finally {
-        global.import = originalImport;
+        (global as any).import = originalImport;
       }
     });
 
@@ -416,7 +416,7 @@ describe('Service Syntax Fixes', () => {
 
     it('should verify that parameter fixes eliminate unused variable warnings', () => {
       // Test functions with proper parameter handling
-      const functions = [
+      const functions: Array<(...args: any[]) => any> = [
         (_a: unknown, _b: unknown, c: number) => c,
         (_config: unknown) => 'configured',
         (_error: unknown) => 'handled'
@@ -425,8 +425,8 @@ describe('Service Syntax Fixes', () => {
       functions.forEach((fn, index) => {
         expect(typeof fn).toBe('function');
         if (index === 0) expect(fn({}, {}, 42)).toBe(42);
-        if (index === 1) expect(fn({})).toBe('configured');
-        if (index === 2) expect(fn(new Error())).toBe('handled');
+        if (index === 1) expect((fn as (_config: unknown) => string)({})).toBe('configured');
+        if (index === 2) expect((fn as (_error: unknown) => string)(new Error())).toBe('handled');
       });
     });
   });

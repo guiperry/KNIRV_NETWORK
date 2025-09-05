@@ -28,7 +28,7 @@ export class HRMLoRABridge extends EventEmitter {
   private mappings: Map<string, HRMLoRAMapping> = new Map();
   private syncConfig: WeightSyncConfig;
   private isRunning: boolean = false;
-  private syncInterval: NodeJS.Timeout | null = null;
+  private syncInterval: NodeJS.Timeout | number | null = null;
   private hrmWeightCache: Map<string, tf.Tensor> = new Map();
 
   constructor(syncConfig?: Partial<WeightSyncConfig>) {
@@ -257,13 +257,13 @@ export class HRMLoRABridge extends EventEmitter {
       // Extract influence based on layer type
       if (hrmLayerName.startsWith('l_module_')) {
         const index = parseInt(hrmLayerName.split('_')[2]);
-        const activations = recentProcessing.l_module_activations || [];
+        const activations = (recentProcessing as any).l_module_activations || [];
         return activations[index] || 0;
       }
 
       if (hrmLayerName.startsWith('h_module_')) {
         const index = parseInt(hrmLayerName.split('_')[2]);
-        const activations = recentProcessing.h_module_activations || [];
+        const activations = (recentProcessing as any).h_module_activations || [];
         return activations[index] || 0;
       }
 
@@ -328,10 +328,10 @@ export class HRMLoRABridge extends EventEmitter {
     const weightsAny = weights as Record<string, unknown>;
     return {
       ...(typeof weights === 'object' && weights !== null ? weights as Record<string, unknown> : {}),
-      A: weightsAny.A.map((row: number[]) =>
+      A: (weightsAny.A as number[][]).map((row: number[]) =>
         row.map((val: number) => val * (1 + adaptation))
       ),
-      B: weightsAny.B.map((row: number[]) =>
+      B: (weightsAny.B as number[][]).map((row: number[]) =>
         row.map((val: number) => val * (1 + adaptation))
       ),
     };
@@ -342,12 +342,12 @@ export class HRMLoRABridge extends EventEmitter {
     const weightsAny = weights as Record<string, unknown>;
     return {
       ...(typeof weights === 'object' && weights !== null ? weights as Record<string, unknown> : {}),
-      A: weightsAny.A.map((row: number[], i: number) =>
+      A: (weightsAny.A as number[][]).map((row: number[], i: number) =>
         row.map((val: number, j: number) =>
           val + (adaptation * Math.sin(i + j) * 0.1)
         )
       ),
-      scaling: weightsAny.scaling * (1 + adaptation * 0.1),
+      scaling: (weightsAny.scaling as number) * (1 + adaptation * 0.1),
     };
   }
 
@@ -358,7 +358,7 @@ export class HRMLoRABridge extends EventEmitter {
     const weightsAny = weights as Record<string, unknown>;
     return {
       ...(typeof weights === 'object' && weights !== null ? weights as Record<string, unknown> : {}),
-      B: weightsAny.B.map((row: number[], i: number) =>
+      B: (weightsAny.B as number[][]).map((row: number[], i: number) =>
         row.map((val: number, j: number) => {
           const attention = Math.exp(-(i - j) * (i - j) / (2 * 4)); // Gaussian attention
           return val + (attentionFactor * attention * 0.05);

@@ -3,7 +3,7 @@
  * Covers parsing errors, export statements, and component structure fixes
  */
 
-import React from 'react';
+import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, jest } from '@jest/globals';
 import '@testing-library/jest-dom';
@@ -91,12 +91,12 @@ describe('Component Syntax Fixes', () => {
       render(<MockCognitiveShellInterface />);
       
       const component = screen.getByTestId('cognitive-shell');
-      expect(component).toBeInTheDocument();
+      (expect(component) as any).toBeInTheDocument();
       
       // Test that the className string literal is properly terminated
       const statusDiv = component.querySelector('.bg-gray-700\\/50');
-      expect(statusDiv).toBeInTheDocument();
-      expect(statusDiv).toHaveClass('rounded-lg', 'p-4');
+      (expect(statusDiv) as any).toBeInTheDocument();
+      (expect(statusDiv) as any).toHaveClass('rounded-lg', 'p-4');
     });
 
     it('should handle arrow function syntax in event handlers', () => {
@@ -136,10 +136,10 @@ describe('Component Syntax Fixes', () => {
       render(<MockCognitiveShellInterface />);
       
       // Test that the component structure is complete and properly closed
-      expect(screen.getByText('System Status')).toBeInTheDocument();
-      expect(screen.getByText('Ready')).toBeInTheDocument();
-      expect(screen.getByTestId('state-change-btn')).toBeInTheDocument();
-      expect(screen.getByTestId('skill-invoke-btn')).toBeInTheDocument();
+      (expect(screen.getByText('System Status')) as any).toBeInTheDocument();
+      (expect(screen.getByText('Ready')) as any).toBeInTheDocument();
+      (expect(screen.getByTestId('state-change-btn')) as any).toBeInTheDocument();
+      (expect(screen.getByTestId('skill-invoke-btn')) as any).toBeInTheDocument();
     });
   });
 
@@ -148,12 +148,12 @@ describe('Component Syntax Fixes', () => {
       render(<MockVisualProcessor />);
       
       const component = screen.getByTestId('visual-processor');
-      expect(component).toBeInTheDocument();
-      
+      (expect(component) as any).toBeInTheDocument();
+
       const canvas = screen.getByTestId('processing-canvas');
-      expect(canvas).toBeInTheDocument();
-      expect(canvas).toHaveAttribute('width', '640');
-      expect(canvas).toHaveAttribute('height', '480');
+      (expect(canvas) as any).toBeInTheDocument();
+      (expect(canvas) as any).toHaveAttribute('width', '640');
+      (expect(canvas) as any).toHaveAttribute('height', '480');
     });
 
     it('should handle processing with proper function syntax', () => {
@@ -181,9 +181,9 @@ describe('Component Syntax Fixes', () => {
       render(<MockVisualProcessor />);
       
       // Test that all expected elements are present
-      expect(screen.getByText('FPS: 30')).toBeInTheDocument();
-      expect(screen.getByText('Objects: 0')).toBeInTheDocument();
-      expect(screen.getByTestId('process-btn')).toBeInTheDocument();
+      (expect(screen.getByText('FPS: 30')) as any).toBeInTheDocument();
+      (expect(screen.getByText('Objects: 0')) as any).toBeInTheDocument();
+      (expect(screen.getByTestId('process-btn')) as any).toBeInTheDocument();
     });
 
     it('should handle commented function blocks correctly', () => {
@@ -191,7 +191,7 @@ describe('Component Syntax Fixes', () => {
       const component = render(<MockVisualProcessor />);
       
       // The component should render successfully even with commented functions
-      expect(component.container.firstChild).toBeInTheDocument();
+      (expect(component.container.firstChild) as any).toBeInTheDocument();
       
       // Test that the active functions still work
       const processBtn = screen.getByTestId('process-btn');

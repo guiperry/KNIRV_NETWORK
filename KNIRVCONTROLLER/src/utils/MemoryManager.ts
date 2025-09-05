@@ -75,7 +75,7 @@ class MemoryManager {
     this.isMonitoring = true;
     this.monitoringInterval = setInterval(() => {
       this.collectMetrics();
-    }, this.config.monitoringInterval);
+    }, this.config.monitoringInterval) as any;
 
     console.log('Memory monitoring started');
   }
@@ -169,16 +169,16 @@ class MemoryManager {
     // Check for global gc (test environment)
     else if (typeof global !== 'undefined' && 'gc' in global) {
       try {
-        (global as NodeJS.Global & { gc?: () => void }).gc?.();
+        (global as any).gc?.();
         console.log('Forced garbage collection');
       } catch (error) {
         console.warn('Failed to force garbage collection:', error);
       }
     }
     // Check for Node.js gc
-    else if (typeof global !== 'undefined' && global.gc) {
+    else if (typeof global !== 'undefined' && (global as any).gc) {
       try {
-        global.gc();
+        (global as any).gc();
         console.log('Forced garbage collection');
       } catch (error) {
         console.warn('Failed to force garbage collection:', error);
@@ -240,8 +240,8 @@ class MemoryManager {
     let memory: PerformanceMemory | null = null;
 
     // Check for browser environment
-    if (typeof window !== 'undefined' && window.performance && window.performance.memory) {
-      memory = window.performance.memory;
+    if (typeof window !== 'undefined' && window.performance && (window.performance as any).memory) {
+      memory = (window.performance as any).memory;
     }
     // Check for global performance mock (test environment)
     else if (typeof global !== 'undefined') {
@@ -379,8 +379,8 @@ class MemoryManager {
    */
   public generateReport(): {
     current: MemoryMetrics | null;
-    trend: ReturnType<typeof this.getUsageTrend>;
-    leakDetection: ReturnType<typeof this.detectMemoryLeaks>;
+    trend: ReturnType<MemoryManager['getUsageTrend']>;
+    leakDetection: ReturnType<MemoryManager['detectMemoryLeaks']>;
     recommendations: string[];
   } {
     const current = this.getCurrentMetrics();

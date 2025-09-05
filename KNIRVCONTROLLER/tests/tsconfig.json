@@ -1,0 +1,76 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "downlevelIteration": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "baseUrl": "..",
+    "paths": {
+      "@/*": [
+        "src/*"
+      ],
+      "@components/*": [
+        "src/components/*"
+      ],
+      "@pages/*": [
+        "src/pages/*"
+      ],
+      "@hooks/*": [
+        "src/hooks/*"
+      ],
+      "@services/*": [
+        "src/services/*"
+      ],
+      "@types/*": [
+        "src/types/*"
+      ],
+      "@core/*": [
+        "src/core/*"
+      ],
+      "@manager/*": [
+        "src/manager/*"
+      ],
+      "@shared/*": [
+        "src/shared/*"
+      ],
+      "@sensory-shell/*": [
+        "src/sensory-shell/*"
+      ],
+      "@wasm/*": [
+        "src/wasm-pkg/*"
+      ]
+    },
+    "types": [
+      "vite/client",
+      "jest",
+      "@testing-library/jest-dom",
+      "node"
+    ]
+  },
+  "include": [
+    "**/*",
+    "../src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage"
+  ]
+}

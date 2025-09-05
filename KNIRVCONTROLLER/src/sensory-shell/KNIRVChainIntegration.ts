@@ -296,7 +296,7 @@ export class KNIRVChainIntegration extends EventEmitter {
         const skills = (response.data as { skills?: unknown[] }).skills || [];
         
         for (const skill of skills) {
-          this.skills.set(skill.id, skill);
+          this.skills.set((skill as any).id, skill as any);
         }
 
         console.log(`Loaded ${this.skills.size} skills from registry`);
@@ -322,7 +322,7 @@ export class KNIRVChainIntegration extends EventEmitter {
         const models = (response.data as { models?: unknown[] }).models || [];
         
         for (const model of models) {
-          this.llmModels.set(model.id, model);
+          this.llmModels.set((model as any).id, model as any);
         }
 
         console.log(`Loaded ${this.llmModels.size} LLM models from registry`);
@@ -382,7 +382,7 @@ export class KNIRVChainIntegration extends EventEmitter {
       console.error('Contract call failed:', error);
       return {
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -459,9 +459,9 @@ export class KNIRVChainIntegration extends EventEmitter {
     // Use the KNIRVRouterIntegration for skill resolution
     const routerResponse = await this.knirvRouter.resolveSkillViaErrorContext(
       errorContext,
-      (parameters as { capabilities?: unknown[] }).capabilities || [],
+      ((parameters as { capabilities?: unknown[] }).capabilities || []) as string[],
       {
-        priority: (parameters as { priority?: string }).priority || 'normal',
+        priority: ((parameters as { priority?: string }).priority as 'low' | 'normal' | 'high') || 'normal',
         useP2P: (parameters as { useP2P?: boolean }).useP2P !== false,
         useWASM: (parameters as { useWASM?: boolean }).useWASM !== false,
         nrnToken: nrnAmount
@@ -572,22 +572,22 @@ export class KNIRVChainIntegration extends EventEmitter {
         
         // Update local cache
         const fullSkillMetadata: SkillMetadata = {
-          id: skillId,
+          ...skillMetadata,
+          id: skillId || 'unknown-skill-id',
           registeredAt: Date.now(),
-          validationStatus: 'pending',
+          validationStatus: 'pending' as 'pending' | 'validated' | 'rejected',
           performanceMetrics: {
             successRate: 0,
             averageLatency: 0,
             totalInvocations: 0,
             lastUpdated: Date.now(),
           },
-          ...skillMetadata,
         };
 
-        this.skills.set(skillId, fullSkillMetadata);
+        this.skills.set(skillId || 'unknown-skill-id', fullSkillMetadata);
         this.emit('skillRegistered', fullSkillMetadata);
 
-        return skillId;
+        return skillId || 'unknown-skill-id';
       } else {
         throw new Error(response.error || 'Failed to register skill');
       }
@@ -622,16 +622,16 @@ export class KNIRVChainIntegration extends EventEmitter {
         
         // Update local cache
         const fullLLMMetadata: LLMMetadata = {
-          id: modelId,
-          registeredAt: Date.now(),
-          validationStatus: 'pending',
           ...llmMetadata,
+          id: modelId || 'unknown-model-id',
+          registeredAt: Date.now(),
+          validationStatus: 'pending' as 'pending' | 'validated' | 'rejected',
         };
 
-        this.llmModels.set(modelId, fullLLMMetadata);
+        this.llmModels.set(modelId || 'unknown-model-id', fullLLMMetadata);
         this.emit('llmModelRegistered', fullLLMMetadata);
 
-        return modelId;
+        return modelId || 'unknown-model-id';
       } else {
         throw new Error(response.error || 'Failed to register LLM model');
       }
@@ -876,7 +876,7 @@ export class KNIRVChainIntegration extends EventEmitter {
           if (response.success && response.data) {
             const updatedSkill = (response.data as { skill: { validation_status?: string } }).skill;
             if (updatedSkill.validation_status !== skill.validationStatus) {
-              skill.validationStatus = updatedSkill.validation_status;
+              skill.validationStatus = (updatedSkill.validation_status as 'pending' | 'validated' | 'rejected') || 'pending';
               this.skills.set(skillId, skill);
               
               this.emit('skillValidationUpdated', {

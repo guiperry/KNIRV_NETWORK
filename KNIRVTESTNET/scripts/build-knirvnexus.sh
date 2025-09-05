@@ -9,14 +9,79 @@ set -e
 #
 # Environment variables:
 #   USE_PREBUILT=true    - Force use of pre-built binary
+#   FORCE_REBUILD=true   - Force rebuild even if binary is up to date
 #   RENDER=true          - Automatically detected on Render
 #   RENDER_SERVICE_ID    - Automatically set on Render
 #
 # Usage:
-#   ./build-knirvnexus.sh                    # Auto-detect mode
-#   USE_PREBUILT=true ./build-knirvnexus.sh  # Force prebuilt mode
+#   ./build-knirvnexus.sh                    # Auto-detect mode (smart rebuild)
+#   ./build-knirvnexus.sh --force            # Force rebuild
+#   ./build-knirvnexus.sh --prebuilt         # Force use prebuilt
+#   USE_PREBUILT=true ./build-knirvnexus.sh  # Force prebuilt mode (env var)
 
 echo "🚀 Building KNIRV-NEXUS unified binary for testnet using new Makefile architecture..."
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --force|--force-rebuild)
+            export FORCE_REBUILD=true
+            shift
+            ;;
+        --prebuilt|--use-prebuilt)
+            export USE_PREBUILT=true
+            shift
+            ;;
+        --status|--info)
+            echo ""
+            echo "KNIRV-NEXUS Build Status"
+            echo ""
+            if [ -f "../KNIRVNEXUS/build.log" ]; then
+                echo "Build Log Information:"
+                grep -E '"(buildStatus|buildTimestamp|gitHash|buildDuration)"' "../KNIRVNEXUS/build.log" 2>/dev/null | sed 's/^/  /' || echo "  No build information found"
+            else
+                echo "  No build.log found"
+            fi
+            echo ""
+            if [ -f "../KNIRVNEXUS/dist/knirv-nexus" ]; then
+                binary_size=$(du -h "../KNIRVNEXUS/dist/knirv-nexus" | cut -f1)
+                binary_date=$(stat -c %y "../KNIRVNEXUS/dist/knirv-nexus" 2>/dev/null | cut -d' ' -f1,2)
+                echo "Binary Information:"
+                echo "  File: ../KNIRVNEXUS/dist/knirv-nexus"
+                echo "  Size: $binary_size"
+                echo "  Date: $binary_date"
+            else
+                echo "Binary: Not found"
+            fi
+            echo ""
+            exit 0
+            ;;
+        --help|-h)
+            echo ""
+            echo "KNIRV-NEXUS Build Script"
+            echo ""
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  --force, --force-rebuild    Force rebuild even if binary is up to date"
+            echo "  --prebuilt, --use-prebuilt  Force use of existing pre-built binary"
+            echo "  --status, --info            Show current build status and exit"
+            echo "  --help, -h                  Show this help message"
+            echo ""
+            echo "Environment Variables:"
+            echo "  FORCE_REBUILD=true          Force rebuild"
+            echo "  USE_PREBUILT=true           Force use of pre-built binary"
+            echo "  RENDER=true                 Render deployment mode"
+            echo ""
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
 
 # Color codes for output
 RED='\033[0;31m'
@@ -41,6 +106,14 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Exit on any error
+set -e
+
+# Set script directory variables
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TESTNET_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_ROOT="$(dirname "$TESTNET_ROOT")"
+
 # Check if KNIRVNEXUS directory exists
 if [ ! -d "../KNIRVNEXUS" ]; then
     print_error "KNIRVNEXUS directory not found"
@@ -51,31 +124,117 @@ print_status "Changing to KNIRVNEXUS directory..."
 cd ../KNIRVNEXUS
 
 # Check if we're on Render or should use pre-built binary
+# Check if we need to rebuild by examining build.log and binary status
+check_build_needed() {
+    local build_log_file="build.log"
+    local binary_file="dist/knirv-nexus"
+    local testnet_binary_file="../KNIRVTESTNET/bin/knirvnexus"
+
+    # If no build log exists, we need to build
+    if [ ! -f "$build_log_file" ]; then
+        print_status "No build.log found - build required"
+        return 0
+    fi
+
+    # If no binary exists, we need to build
+    if [ ! -f "$binary_file" ]; then
+        print_status "No unified binary found - build required"
+        return 0
+    fi
+
+    # If testnet binary doesn't exist, we need to copy at least
+    if [ ! -f "$testnet_binary_file" ]; then
+        print_status "Testnet binary missing - copy required"
+        return 0
+    fi
+
+    # Check if source files are newer than the binary
+    local binary_time=$(stat -c %Y "$binary_file" 2>/dev/null || echo 0)
+    local source_dirs=("src" "backend" "main.go" "package.json" "Makefile")
+
+    for source_dir in "${source_dirs[@]}"; do
+        if [ -e "$source_dir" ]; then
+            local source_time=$(find "$source_dir" -type f -newer "$binary_file" 2>/dev/null | head -1)
+            if [ -n "$source_time" ]; then
+                print_status "Source files newer than binary - rebuild required"
+                return 0
+            fi
+        fi
+    done
+
+    # Check git status for changes
+    local current_git_hash=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    local build_git_hash=$(grep '"gitHash"' "$build_log_file" 2>/dev/null | sed 's/.*"gitHash": *"\([^"]*\)".*/\1/' || echo "unknown")
+
+    if [ "$current_git_hash" != "$build_git_hash" ] && [ "$current_git_hash" != "unknown" ]; then
+        print_status "Git hash changed ($build_git_hash → $current_git_hash) - rebuild required"
+        return 0
+    fi
+
+    # Check build status in log
+    local build_status=$(grep '"buildStatus"' "$build_log_file" 2>/dev/null | sed 's/.*"buildStatus": *"\([^"]*\)".*/\1/' || echo "unknown")
+    if [ "$build_status" != "success" ]; then
+        print_status "Previous build was not successful - rebuild required"
+        return 0
+    fi
+
+    # Check if binary is significantly old (more than 1 day)
+    local current_time=$(date +%s)
+    local binary_age=$((current_time - binary_time))
+    local one_day=$((24 * 60 * 60))
+
+    if [ $binary_age -gt $one_day ]; then
+        print_status "Binary is more than 1 day old - rebuild recommended"
+        return 0
+    fi
+
+    # All checks passed - no rebuild needed
+    local build_time=$(grep '"buildTimestamp"' "$build_log_file" 2>/dev/null | sed 's/.*"buildTimestamp": *"\([^"]*\)".*/\1/' || echo "unknown")
+    print_success "Existing build is up to date (built: $build_time)"
+    return 1
+}
+
 if [ "$RENDER" = "true" ] || [ -n "$RENDER_SERVICE_ID" ] || [ "$USE_PREBUILT" = "true" ]; then
     print_status "Render/prebuilt mode detected - will use existing binary"
     USE_PREBUILT_BINARY=true
 else
-    print_status "Local development mode - will build from source"
-    USE_PREBUILT_BINARY=false
+    print_status "Local development mode - checking if build is needed"
 
-    # Check for required build tools only in local mode
-    print_status "Checking build prerequisites..."
-    if ! command -v make >/dev/null 2>&1; then
-        print_error "make is required but not installed"
-        exit 1
+    # Check if we need to rebuild (unless forced)
+    if [ "$FORCE_REBUILD" = "true" ]; then
+        print_status "Force rebuild requested - will build from source"
+        USE_PREBUILT_BINARY=false
+    elif check_build_needed; then
+        print_status "Build required - will build from source"
+        USE_PREBUILT_BINARY=false
+
+        # Check for required build tools only when building
+        print_status "Checking build prerequisites..."
+        if ! command -v make >/dev/null 2>&1; then
+            print_error "make is required but not installed"
+            exit 1
+        fi
+
+        if ! command -v go >/dev/null 2>&1; then
+            print_error "Go is required but not installed"
+            exit 1
+        fi
+
+        if ! command -v node >/dev/null 2>&1; then
+            print_error "Node.js is required but not installed"
+            exit 1
+        fi
+
+        if ! command -v npm >/dev/null 2>&1; then
+            print_error "npm is required but not installed"
+            exit 1
+        fi
+
+        print_success "All build prerequisites found"
+    else
+        print_status "Using existing build - no rebuild needed"
+        USE_PREBUILT_BINARY=true
     fi
-
-    if ! command -v go >/dev/null 2>&1; then
-        print_error "Go is required but not installed"
-        exit 1
-    fi
-
-    if ! command -v node >/dev/null 2>&1; then
-        print_error "Node.js is required but not installed"
-        exit 1
-    fi
-
-    print_success "All build prerequisites found"
 fi
 
 if [ "$USE_PREBUILT_BINARY" = "true" ]; then

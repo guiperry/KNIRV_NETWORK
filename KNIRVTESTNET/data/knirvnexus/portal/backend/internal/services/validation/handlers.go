@@ -85,10 +85,13 @@ func (vc *ValidationCore) HandleGetTask(w http.ResponseWriter, r *http.Request) 
 	vars := mux.Vars(r)
 	taskID := vars["id"]
 
-	// Get task from database - this would need to be implemented
-	// For now, return a placeholder response
-	_ = taskID // TODO: Implement task retrieval
-	writeError(w, http.StatusNotImplemented, "Task retrieval not yet implemented")
+	task, err := vc.GetValidationTask(taskID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "Task not found")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, task)
 }
 
 // HandleExecuteTask handles task execution requests
@@ -102,10 +105,29 @@ func (vc *ValidationCore) HandleExecuteTask(w http.ResponseWriter, r *http.Reque
 	vars := mux.Vars(r)
 	taskID := vars["id"]
 
-	// This would need to retrieve the task first
-	// For now, return a placeholder response
-	_ = taskID
-	writeError(w, http.StatusNotImplemented, "Task execution not yet implemented")
+	// Get the task first
+	task, err := vc.GetValidationTask(taskID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "Task not found")
+		return
+	}
+
+	// Execute the task
+	_, err = vc.ExecuteValidation(task)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to execute task: "+err.Error())
+		return
+	}
+
+	// Return execution started response (result will be available asynchronously)
+	response := map[string]interface{}{
+		"success": true,
+		"message": "Task execution started",
+		"task_id": taskID,
+		"status":  "running",
+	}
+
+	writeJSON(w, http.StatusAccepted, response)
 }
 
 // Validation Result Handlers

@@ -104,10 +104,9 @@ const mockWalletManager = {
   listWallets: jest.fn().mockResolvedValue(['wallet1', 'wallet2'])
 };
 
-jest.mock('../../../../KNIRVENGINE/agentic-wallet/src/xion-meta-accounts', () => ({
-  XionMetaAccount: jest.fn().mockImplementation(() => mockMetaAccount),
-  WalletManager: jest.fn().mockImplementation(() => mockWalletManager)
-}));
+// Mock KNIRVENGINE imports since they're from a sibling project
+const XionMetaAccount = jest.fn().mockImplementation(() => mockMetaAccount);
+const WalletManager = jest.fn().mockImplementation(() => mockWalletManager);
 
 describe('MetaAccountDashboard Component', () => {
   beforeEach(() => {

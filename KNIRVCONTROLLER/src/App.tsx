@@ -20,6 +20,10 @@ import Skills from './pages/Skills';
 import UDC from './pages/UDC';
 import WalletPage from './pages/Wallet';
 
+// Types
+import { Agent, LegacyAgent } from './types/common';
+import { agentManagementService } from './services/AgentManagementService';
+
 
 
 
@@ -31,28 +35,17 @@ export interface Adaptation {
   id: string;
   type: string;
   description: string;
+  parameters: Record<string, unknown>;
   timestamp: Date;
+  confidence: number;
 }
 
 export interface SkillResult {
   success: boolean;
   data?: unknown;
-  error?: string;
-  executionTime?: number;
-}
-
-export interface SkillResult {
-  success: boolean;
   output?: unknown;
   error?: string;
   executionTime?: number;
-}
-
-export interface Adaptation {
-  type: string;
-  parameters: Record<string, unknown>;
-  timestamp: Date;
-  confidence: number;
 }
 
 export interface NRV {
@@ -72,32 +65,27 @@ export interface NRV {
   status: 'Identified' | 'Mapped' | 'Assigned' | 'Resolved';
 }
 
-export interface Agent {
-  id: string;
-  name: string;
-  type: 'wasm' | 'lora' | 'hybrid';
-  status: 'Available' | 'Deployed' | 'Error' | 'Compiling';
-  nrnCost: number;
-  capabilities: string[];
-  metadata: {
-    name: string;
-    version: string;
-    description: string;
-    author: string;
-    capabilities: string[];
-    requirements: {
-      memory: number;
-      cpu: number;
-      storage: number;
-    };
-    permissions: string[];
+// Helper function to convert Agent to LegacyAgent for backward compatibility
+function convertAgentToLegacy(agent: Agent): LegacyAgent {
+  return {
+    id: agent.agentId,
+    name: agent.name,
+    type: agent.type,
+    status: agent.status,
+    nrnCost: agent.nrnCost,
+    capabilities: agent.capabilities,
+    metadata: {
+      name: agent.metadata.name,
+      version: agent.metadata.version,
+      description: agent.metadata.description,
+      author: agent.metadata.author,
+      capabilities: agent.metadata.capabilities,
+      requirements: agent.metadata.requirements,
+      permissions: agent.metadata.permissions
+    },
+    wasmModule: undefined, // WebAssembly.Module not available in this context
+    lastActivity: agent.lastActivity ? new Date(agent.lastActivity) : undefined
   };
-  wasmModule?: WebAssembly.Module;
-  loraAdapter?: string;
-  createdAt: Date;
-  lastActivity?: Date;
-  // Legacy compatibility
-  specialization?: string[];
 }
 
 
@@ -182,16 +170,16 @@ const ReceiverInterface = () => {
   const shellRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Initialize mock agents
+    // Initialize mock agents using the new Agent interface
     const mockAgents: Agent[] = [
       {
-        id: 'agent-1',
+        agentId: 'agent-1',
         name: 'System Diagnostics Agent',
+        version: '1.0.0',
         type: 'wasm',
         status: 'Available',
-        capabilities: ['error-detection', 'system-analysis'],
-        specialization: ['error-detection', 'system-analysis'],
         nrnCost: 50,
+        capabilities: ['error-detection', 'system-analysis'],
         metadata: {
           name: 'System Diagnostics Agent',
           version: '1.0.0',
@@ -201,16 +189,16 @@ const ReceiverInterface = () => {
           requirements: { memory: 256, cpu: 1, storage: 50 },
           permissions: ['read', 'analyze']
         },
-        createdAt: new Date()
+        createdAt: new Date().toISOString()
       },
       {
-        id: 'agent-2',
+        agentId: 'agent-2',
         name: 'UI/UX Optimization Agent',
+        version: '1.0.0',
         type: 'lora',
         status: 'Available',
-        capabilities: ['interface-design', 'user-experience'],
-        specialization: ['interface-design', 'user-experience'],
         nrnCost: 75,
+        capabilities: ['interface-design', 'user-experience'],
         metadata: {
           name: 'UI/UX Optimization Agent',
           version: '1.0.0',
@@ -220,16 +208,16 @@ const ReceiverInterface = () => {
           requirements: { memory: 512, cpu: 2, storage: 100 },
           permissions: ['read', 'write', 'design']
         },
-        createdAt: new Date()
+        createdAt: new Date().toISOString()
       },
       {
-        id: 'agent-3',
+        agentId: 'agent-3',
         name: 'Network Security Agent',
+        version: '1.0.0',
         type: 'hybrid',
         status: 'Deployed',
-        capabilities: ['security-analysis', 'threat-detection'],
-        specialization: ['security-analysis', 'threat-detection'],
         nrnCost: 100,
+        capabilities: ['security-analysis', 'threat-detection'],
         metadata: {
           name: 'Network Security Agent',
           version: '1.0.0',
@@ -239,7 +227,7 @@ const ReceiverInterface = () => {
           requirements: { memory: 1024, cpu: 4, storage: 200 },
           permissions: ['admin', 'security', 'monitor']
         },
-        createdAt: new Date()
+        createdAt: new Date().toISOString()
       }
     ];
     setAvailableAgents(mockAgents);
@@ -372,7 +360,7 @@ const ReceiverInterface = () => {
         n.id === nrv.id ? { ...n, status: 'Assigned' } : n
       ));
       setAvailableAgents(prev => prev.map(a =>
-        a.id === agent.id ? { ...a, status: 'Deployed' } : a
+        a.agentId === agent.agentId ? { ...a, status: 'Deployed' } : a
       ));
 
       setTimeout(() => {
@@ -380,7 +368,7 @@ const ReceiverInterface = () => {
           n.id === nrv.id ? { ...n, status: 'Resolved' } : n
         ));
         setAvailableAgents(prev => prev.map(a =>
-          a.id === agent.id ? { ...a, status: 'Available' } : a
+          a.agentId === agent.agentId ? { ...a, status: 'Available' } : a
         ));
       }, 5000);
     }

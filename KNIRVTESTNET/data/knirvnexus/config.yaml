@@ -1,25 +1,22 @@
+# Legacy configuration format for backward compatibility
 testnet:
   enabled: true
-  tee:
-    simulation_mode: true
-    mock_validation: true
+  simulation_mode: true
 
 nexus:
-  gui_port: 8082
-  api_port: 8083
-  tee_port: 8182
-
-tee:
-  simulation_mode: true
-  mock_validation: true
-  simplified_validation: true
-
-validation:
-  mock_responses: true
-  simplified_proofs: true
-  timeout_ms: 5000
+  port: 8084
+  api_port: 8084
+  log_level: "info"
 
 database:
   clean_on_start: true
   in_memory: false
   path: "./data/knirvnexus/testnet.db"
+
+dve:
+  enabled: true
+  max_environments: 10
+
+tee:
+  simulation_mode: true
+  mock_validation: true

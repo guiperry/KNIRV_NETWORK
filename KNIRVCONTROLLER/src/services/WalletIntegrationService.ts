@@ -73,12 +73,15 @@ export class WalletIntegrationService {
    * Detect the KNIRVWALLET browser-bridge URL
    */
   private detectBridgeUrl(): string {
-    // Check for local development
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return 'http://localhost:3004'; // KNIRVWALLET browser-bridge port
+    // Check if we're in a browser environment
+    if (typeof window !== 'undefined' && window.location) {
+      // Check for local development
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:3004'; // KNIRVWALLET browser-bridge port
+      }
     }
-    
-    // Production environment
+
+    // Production environment or non-browser environment
     return 'https://wallet.knirv.com';
   }
 
@@ -272,6 +275,7 @@ export class WalletIntegrationService {
       const transaction: Transaction = {
         id: result.transactionId,
         hash: result.hash || '',
+        type: 'send',
         from: request.from,
         to: request.to,
         amount: request.amount,
@@ -317,6 +321,7 @@ export class WalletIntegrationService {
       const transaction: Transaction = {
         id: result.transactionId,
         hash: result.hash || '',
+        type: 'send',
         from: this.currentAccount.address,
         to: 'skill_network',
         amount: '0',
@@ -413,7 +418,7 @@ export class WalletIntegrationService {
           this.currentAccount = state.account;
           this.connectionStatus = {
             connected: true,
-            account: this.currentAccount,
+            account: this.currentAccount || undefined,
             bridgeUrl: this.bridgeUrl,
             lastSync: new Date()
           };

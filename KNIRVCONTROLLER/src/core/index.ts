@@ -226,7 +226,10 @@ class KNIRVCortexBackend {
     switch (data.type) {
       case 'lora_compile':
         try {
-          const adapter = await this.loraEngine.compileAdapter(data.skillData, data.metadata);
+          const adapter = await this.loraEngine.compileAdapter(
+            data.skillData as { solutions: { errorId: string; solution: string; confidence: number; }[]; errors: { errorId: string; description: string; context: string; }[]; },
+            data.metadata as { skillName: string; description: string; baseModel: string; rank?: number; alpha?: number; }
+          );
           ws.send(JSON.stringify({
             type: 'lora_compile_result',
             requestId: data.requestId,
@@ -245,7 +248,7 @@ class KNIRVCortexBackend {
 
       case 'wasm_compile':
         try {
-          const wasmModule = await this.wasmCompiler.compile(data.rustCode, data.options);
+          const wasmModule = await this.wasmCompiler.compile(data.rustCode as string, data.options as any);
           ws.send(JSON.stringify({
             type: 'wasm_compile_result',
             requestId: data.requestId,

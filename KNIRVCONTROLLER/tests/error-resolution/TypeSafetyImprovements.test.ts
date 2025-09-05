@@ -3,7 +3,8 @@
  * These tests validate that all type-related fixes work correctly
  */
 
-import { Agent, SkillResult, Adaptation } from '../App';
+import { SkillResult, Adaptation } from '../../src/App';
+import { Agent } from '../../src/types/common';
 
 describe('Type Safety Improvements', () => {
   describe('Agent Interface Compatibility', () => {
@@ -121,7 +122,9 @@ describe('Type Safety Improvements', () => {
       };
 
       const mockAdaptation: Adaptation = {
+        id: 'adaptation-456',
         type: 'learning-rate-adjustment',
+        description: 'Learning rate adjustment adaptation',
         parameters: { newRate: 0.02 },
         timestamp: new Date(),
         confidence: 0.85

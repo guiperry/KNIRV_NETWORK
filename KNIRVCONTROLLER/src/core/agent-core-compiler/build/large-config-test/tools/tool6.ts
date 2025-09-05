@@ -6,10 +6,18 @@
 
 import { EventEmitter } from '../EventEmitter';
 
+// Define ToolParameter interface locally to avoid import issues
+interface ToolParameter {
+  name: string;
+  type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+  required: boolean;
+  description: string;
+  defaultValue?: any;
+}
+
 export interface tool6Parameters {
-  {{#each parameters}}
-  {{name}}{{#unless required}}?{{/unless}}: {{type}};
-  {{/each}}
+  // Tool parameters will be defined here
+  [key: string]: any;
 }
 
 export interface tool6Context {
@@ -48,16 +56,13 @@ export class tool6Tool extends EventEmitter {
     
     try {
       // Validate parameters
-      {{#each parameters}}
-      {{#if required}}
-      if (params.{{name}} === undefined) {
-        throw new Error('Required parameter "{{name}}" is missing');
-      }
-      {{/if}}
-      {{/each}}
+      // Parameter validation will be implemented here
 
       // Tool implementation
-      return { result: "Tool 6 result: " + parameters.input };
+      const result = {
+        message: 'Tool executed successfully',
+        timestamp: Date.now()
+      };
 
       const executionTime = Date.now() - startTime;
       
@@ -94,17 +99,9 @@ export class tool6Tool extends EventEmitter {
     return this.description;
   }
 
-  getParameters(): any[] {
+  getParameters(): ToolParameter[] {
     return [
-      {{#each parameters}}
-      {
-        name: '{{name}}',
-        type: '{{type}}',
-        required: {{required}},
-        description: '{{description}}'{{#if defaultValue}},
-        defaultValue: {{defaultValue}}{{/if}}
-      }{{#unless @last}},{{/unless}}
-      {{/each}}
+      // Tool parameters will be defined here
     ];
   }
 }

@@ -12,11 +12,11 @@ export class SEALFramework {
     this.isEncrypted = true;
   }
 
-  encrypt(data: any): any {
+  encrypt(data: unknown): { encrypted: boolean; data: unknown; timestamp: number } {
     if (!this.isEncrypted) {
       throw new Error('SEALFramework not initialized');
     }
-    
+
     // Basic encryption simulation
     return {
       encrypted: true,
@@ -25,7 +25,7 @@ export class SEALFramework {
     };
   }
 
-  decrypt(encryptedData: any): any {
+  decrypt(encryptedData: { encrypted: boolean; data: unknown; timestamp: number }): unknown {
     if (!this.isEncrypted) {
       throw new Error('SEALFramework not initialized');
     }

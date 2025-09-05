@@ -54,7 +54,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
   private messageQueue: EcosystemMessage[] = [];
   private connections: Map<string, unknown> = new Map();
   private isRunning: boolean = false;
-  private heartbeatInterval: NodeJS.Timeout | null = null;
+  private heartbeatInterval: NodeJS.Timeout | number | null = null;
   private messageHandlers: Map<string, (...args: unknown[]) => unknown> = new Map();
 
   constructor(config?: Partial<EcosystemConfig>) {
@@ -135,8 +135,8 @@ export class EcosystemCommunicationLayer extends EventEmitter {
     // Close all connections
     this.connections.forEach((connection, componentId) => {
       try {
-        if (connection.close) {
-          connection.close();
+        if ((connection as any).close) {
+          (connection as any).close();
         }
         console.log(`Closed connection to ${componentId}`);
       } catch (error) {
@@ -221,7 +221,8 @@ export class EcosystemCommunicationLayer extends EventEmitter {
 
   private setupMessageHandlers(): void {
     // Skill execution requests
-    this.messageHandlers.set('execute_skill', async (message: EcosystemMessage) => {
+    this.messageHandlers.set('execute_skill', async (...args: unknown[]) => {
+      const message = args[0] as EcosystemMessage;
       console.log('Handling skill execution request:', message.payload);
       
       // Route to KNIRV-NEXUS for execution
@@ -242,7 +243,8 @@ export class EcosystemCommunicationLayer extends EventEmitter {
     });
 
     // Wallet operations
-    this.messageHandlers.set('wallet_operation', async (message: EcosystemMessage) => {
+    this.messageHandlers.set('wallet_operation', async (...args: unknown[]) => {
+      const message = args[0] as EcosystemMessage;
       console.log('Handling wallet operation:', message.payload);
       
       // Route to KNIRV-WALLET
@@ -259,7 +261,8 @@ export class EcosystemCommunicationLayer extends EventEmitter {
     });
 
     // Blockchain operations
-    this.messageHandlers.set('blockchain_operation', async (message: EcosystemMessage) => {
+    this.messageHandlers.set('blockchain_operation', async (...args: unknown[]) => {
+      const message = args[0] as EcosystemMessage;
       console.log('Handling blockchain operation:', message.payload);
       
       // Route to KNIRV-CHAIN
@@ -276,7 +279,8 @@ export class EcosystemCommunicationLayer extends EventEmitter {
     });
 
     // Gateway operations
-    this.messageHandlers.set('gateway_operation', async (message: EcosystemMessage) => {
+    this.messageHandlers.set('gateway_operation', async (...args: unknown[]) => {
+      const message = args[0] as EcosystemMessage;
       console.log('Handling gateway operation:', message.payload);
       
       // Route to KNIRV-GATEWAY
@@ -578,7 +582,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
       
       if (connection) {
         // Send message through the connection
-        const response = await connection.send(message);
+        const response = await (connection as any).send(message);
         
         if (message.requiresResponse) {
           this.emit('messageResponse', {
@@ -607,7 +611,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
         this.emit('messageResponse', {
           correlationId: message.id,
           success: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
         });
       }
     }

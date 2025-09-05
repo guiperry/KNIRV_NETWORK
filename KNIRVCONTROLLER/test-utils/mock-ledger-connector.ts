@@ -40,9 +40,10 @@ export class MockLedgerConnector {
 
     this.isConnected = true;
     this.deviceInfo = {
-      deviceId: 'mock-ledger-device',
       version: '2.1.0',
-      model: 'Nano S Plus'
+      model: 'Nano S Plus',
+      serialNumber: 'MOCK-SERIAL-123',
+      isLocked: false
     };
 
     // Create mock accounts
@@ -51,13 +52,13 @@ export class MockLedgerConnector {
         address: 'g1mock1ledger1account1address1234567890',
         publicKey: '02' + '0'.repeat(64),
         derivationPath: "m/44'/118'/0'/0/0",
-        index: 0
+
       },
       {
         address: 'g1mock2ledger2account2address1234567890',
         publicKey: '03' + '1'.repeat(64),
         derivationPath: "m/44'/118'/0'/0/1",
-        index: 1
+
       }
     ];
   }
@@ -108,7 +109,8 @@ export class MockLedgerConnector {
 
     return {
       signature: 'mock-ledger-signature-' + Math.random().toString(36).substr(2, 9),
-      publicKey: this.accounts[0].publicKey
+      publicKey: this.accounts[0].publicKey,
+      address: this.accounts[0].address
     };
   }
 

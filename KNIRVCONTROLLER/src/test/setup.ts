@@ -460,7 +460,7 @@ declare global {
   };
 }
 
-global.testUtils = {
+(global as any).testUtils = {
   createMockEvent: (type: string, data: Record<string, unknown> = {}) => {
     const event = new Event(type);
     Object.assign(event, data);

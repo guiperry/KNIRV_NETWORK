@@ -44,7 +44,7 @@
     "@ledgerhq/hw-transport-mocker": "6.29.4",
     "@ledgerhq/hw-transport-webhid": "6.30.0",
     "@ledgerhq/hw-transport-webusb": "6.29.4",
-    "bech32": "2.0.0",
+    "bech32": "^2.0.0",
     "bn.js": "5.2.1",
     "crypto-js": "4.2.0",
     "dotenv": "16.4.5",

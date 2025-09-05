@@ -84,7 +84,8 @@ export class TypeScriptCompiler extends EventEmitter {
       this.isInitialized = true;
       this.emit('initialization_completed');
     } catch (error) {
-      this.emit('initialization_failed', { error: error.message });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.emit('initialization_failed', { error: errorMessage });
       throw error;
     }
   }
@@ -201,7 +202,7 @@ export class {{skillClassName}} implements SkillInterface {
     } catch (error) {
       return {
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         toolName,
         skillId: this.skillId
       };
@@ -465,7 +466,7 @@ export class {{skillClassName}}WASMWrapper {
           optimizationLevel: config.optimizationLevel,
           dependencies: []
         },
-        errors: [error.message]
+        errors: [error instanceof Error ? error.message : String(error)]
       };
 
       this.emit('compilation_failed', result);

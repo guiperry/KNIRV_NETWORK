@@ -1,8 +1,8 @@
 
-
+// Import the actual DatabaseService
+import { databaseService } from '../../../../src/core/services/databaseService';
 
 describe('DatabaseService', () => {
-  let databaseService: DatabaseService;
   let mockCollection: {
     insertOne: jest.Mock;
     findOne: jest.Mock;
@@ -15,13 +15,20 @@ describe('DatabaseService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    
-    // Re-import to get fresh instance
-    jest.resetModules();
-    const { databaseService: service } = await import('../../../../src/core/services/databaseService');
-    databaseService = service;
-    
-    // Mock the collection methods
+
+    // Mock the database service methods
+    jest.spyOn(databaseService, 'createAgent').mockImplementation(mockCollection.insertOne);
+    jest.spyOn(databaseService, 'getAgent').mockImplementation(mockCollection.findOne);
+    jest.spyOn(databaseService, 'listAgents').mockImplementation(mockCollection.find);
+    jest.spyOn(databaseService, 'updateAgent').mockImplementation(mockCollection.updateOne);
+    jest.spyOn(databaseService, 'deleteAgent').mockImplementation(mockCollection.deleteOne);
+    jest.spyOn(databaseService, 'createSkill').mockImplementation(mockCollection.insertOne);
+    jest.spyOn(databaseService, 'searchSkills').mockImplementation(mockCollection.search);
+    jest.spyOn(databaseService, 'createChatSession').mockImplementation(mockCollection.insertOne);
+    jest.spyOn(databaseService, 'getChatSession').mockImplementation(mockCollection.findOne);
+    jest.spyOn(databaseService, 'listChatSessions').mockImplementation(mockCollection.find);
+
+    // Initialize mock collection
     mockCollection = {
       insertOne: jest.fn(),
       findOne: jest.fn(),
@@ -31,17 +38,6 @@ describe('DatabaseService', () => {
       deleteMany: jest.fn(),
       search: jest.fn(),
     };
-    
-    // Mock the database service methods to use our mock collection
-    (databaseService.agents.insertOne as jest.Mock) = mockCollection.insertOne;
-    (databaseService.agents.findOne as jest.Mock) = mockCollection.findOne;
-    (databaseService.agents.find as jest.Mock) = mockCollection.find;
-    (databaseService.agents.updateOne as jest.Mock) = mockCollection.updateOne;
-    (databaseService.agents.deleteOne as jest.Mock) = mockCollection.deleteOne;
-    (databaseService.skills.insertOne as jest.Mock) = mockCollection.insertOne;
-    (databaseService.chatSessions.insertOne as jest.Mock) = mockCollection.insertOne;
-    (databaseService.chatSessions.findOne as jest.Mock) = mockCollection.findOne;
-    (databaseService.chatSessions.find as jest.Mock) = mockCollection.find;
   });
 
   describe('Agent Operations', () => {

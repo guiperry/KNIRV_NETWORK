@@ -15,6 +15,19 @@ import { QRPaymentService } from '../../src/services/QRPaymentService';
 import { TaskSchedulingService } from '../../src/services/TaskSchedulingService';
 import { UDCManagementService } from '../../src/services/UDCManagementService';
 
+// Type extensions for testing private methods
+interface QRPaymentServiceWithPrivates {
+  processLightningPayment: jest.Mock;
+}
+
+interface TaskSchedulingServiceWithPrivates {
+  calculateNextRun: (schedule: TaskSchedule, date: Date) => Date;
+}
+
+interface UDCManagementServiceWithPrivates {
+  generateSignature: (data: string) => Promise<string>;
+}
+
 describe('Linting Error Resolution Tests', () => {
   describe('Parsing Error Fixes', () => {
     it('should handle arrow function syntax correctly in event handlers', () => {
@@ -39,23 +52,47 @@ describe('Linting Error Resolution Tests', () => {
       const paymentService = new QRPaymentService();
       
       const mockRequest: PaymentRequest = {
-        type: 'lightning',
+        id: 'test-payment-123',
+        type: 'skill_invocation',
         amount: 100,
-        currency: 'BTC',
-        recipient: 'test-address'
+        currency: 'NRN',
+        recipient: 'test-address',
+        description: 'Test skill invocation payment',
+        timestamp: new Date()
       };
 
       // Mock the private method to avoid actual payment processing
       const processLightningPaymentSpy = jest.spyOn(
-        paymentService as QRPaymentService & { processLightningPayment: jest.Mock },
+        paymentService as QRPaymentServiceWithPrivates,
         'processLightningPayment'
       ).mockResolvedValue({
-        success: true,
-        transactionId: 'test-tx-123',
-        receipt: { id: 'receipt-123', amount: 100 }
-      });
+        id: 'result-123',
+        requestId: 'test-payment-123',
+        status: 'completed',
+        transactionHash: 'test-tx-123',
+        actualAmount: 100,
+        timestamp: new Date(),
+        completedAt: new Date(),
+        receipt: {
+          id: 'receipt-123',
+          amount: 100,
+          currency: 'NRN',
+          sender: 'test-sender',
+          recipient: 'test-address',
+          timestamp: new Date()
+        }
+      } as PaymentResult);
 
-      const result = await paymentService.processPayment(mockRequest);
+      // Convert PaymentRequest to QRPaymentRequest format
+      const qrRequest = {
+        type: 'skill_invocation' as const,
+        amount: mockRequest.amount.toString(),
+        recipient: mockRequest.recipient,
+        skillId: 'test-skill-123',
+        skillName: 'Test Skill'
+      };
+
+      const result = await paymentService.processPayment(qrRequest);
       
       expect(result.success).toBe(true);
       expect(processLightningPaymentSpy).toHaveBeenCalledWith(mockRequest);
@@ -74,7 +111,7 @@ describe('Linting Error Resolution Tests', () => {
         endTime: new Date('2024-12-31T23:59:59Z')
       };
 
-      const nextRun = (schedulingService as TaskSchedulingService & { calculateNextRun: (schedule: unknown, date: Date) => Date }).calculateNextRun(
+      const nextRun = (schedulingService as any).calculateNextRun(
         recurringSchedule,
         new Date('2024-01-01T09:00:00Z')
       );
@@ -237,7 +274,7 @@ describe('Linting Error Resolution Tests', () => {
       // Test for the fix: const { createHash } = await import('crypto');
       const testData = 'test-udc-data';
       
-      const signature = await (udcService as UDCManagementService & { generateSignature: (data: string) => Promise<string> }).generateSignature(testData);
+      const signature = await (udcService as any).generateSignature(testData);
       
       expect(signature).toBeDefined();
       expect(typeof signature).toBe('string');
@@ -256,11 +293,11 @@ describe('Linting Error Resolution Tests', () => {
 
       // Mock the cron calculation method
       const calculateCronNextRunSpy = jest.spyOn(
-        schedulingService as TaskSchedulingService & { calculateCronNextRun: jest.Mock },
+        schedulingService as any,
         'calculateCronNextRun'
       ).mockReturnValue(new Date('2024-01-02T09:00:00Z'));
 
-      const nextRun = (schedulingService as TaskSchedulingService & { calculateNextRun: (schedule: unknown, date: Date) => Date }).calculateNextRun(
+      const nextRun = (schedulingService as any).calculateNextRun(
         cronSchedule,
         new Date('2024-01-01T10:00:00Z')
       );
@@ -313,23 +350,35 @@ describe('Linting Error Resolution Tests', () => {
         success: true,
         transactionId: 'test-tx-123',
         amount: '100',
-        timestamp: Date.now()
+        timestamp: new Date()
       };
 
-      expect(mockPaymentResult.success).toBe(true);
-      expect(typeof mockPaymentResult.transactionId).toBe('string');
+      expect(mockPaymentResult.status).toBe('completed');
+      expect(typeof mockPaymentResult.id).toBe('string');
 
       // Test ScheduledTask type usage
       const mockScheduledTask: ScheduledTask = {
         id: 'task-123',
         name: 'Test Task',
-        schedule: '0 0 * * *',
-        enabled: true,
-        lastRun: new Date(),
-        nextRun: new Date(Date.now() + 86400000)
+        description: 'Test scheduled task',
+        type: 'maintenance',
+        status: 'pending',
+        priority: 'medium',
+        schedule: {
+          type: 'cron',
+          startTime: new Date(),
+          cronExpression: '0 0 * * *'
+        },
+        action: { type: 'function', target: 'test-function', parameters: {} },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        runCount: 0,
+        successCount: 0,
+        failureCount: 0,
+        metadata: {}
       };
 
-      expect(mockScheduledTask.enabled).toBe(true);
+      expect(mockScheduledTask.status).toBe('pending');
       expect(typeof mockScheduledTask.name).toBe('string');
     });
   });

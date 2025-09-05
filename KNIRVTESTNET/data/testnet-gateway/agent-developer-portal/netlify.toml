@@ -1,0 +1,70 @@
+[build]
+  publish = "."
+  command = "echo 'No build required for static site'"
+
+[[redirects]]
+  from = "/forum/*"
+  to = "../forum/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/support-desk/*"
+  to = "../support-desk/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/graphchain-explorer/*"
+  to = "../graphchain-explorer/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/documentation/*"
+  to = "../documentation/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/nexus-portal/*"
+  to = "../nexus-portal/:splat"
+  status = 200
+
+# SPA fallback for client-side routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self' https:; frame-src 'self' https:;"
+
+[[headers]]
+  for = "*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"

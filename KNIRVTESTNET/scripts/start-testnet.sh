@@ -475,7 +475,22 @@ else
     exit 1
 fi
 
-# 6. Start KNIRV-GATEWAY (API gateway)
+# 6. Start KNIRVCONTROLLER (auto-detect real or demo)
+print_status "Starting KNIRVCONTROLLER..."
+if ./scripts/start-knirvcontroller.sh auto; then
+    # Wait for either real (8088) or demo (8089) controller
+    if curl -s --max-time 5 "http://localhost:8088/health" > /dev/null 2>&1; then
+        print_success "Real KNIRVCONTROLLER started on port 8088"
+    elif curl -s --max-time 5 "http://localhost:8089/health" > /dev/null 2>&1; then
+        print_success "Demo KNIRVCONTROLLER started on port 8089"
+    else
+        print_warning "KNIRVCONTROLLER health check failed, but continuing..."
+    fi
+else
+    print_warning "Failed to start KNIRVCONTROLLER, but continuing with testnet..."
+fi
+
+# 7. Start KNIRV-GATEWAY (API gateway)
 print_status "Starting KNIRV-GATEWAY..."
 if ./scripts/start-knirvgateway.sh; then
     wait_for_service "TESTNET-GATEWAY" "8888" "/gateway/health" "data/testnet-gateway.pid" || exit 1

@@ -132,7 +132,17 @@ Object.defineProperty(global, 'WebAssembly', {
       }
     })),
     compile: jest.fn(() => Promise.resolve({})),
-    validate: jest.fn(() => true)
+    validate: jest.fn(() => true),
+    Module: jest.fn().mockImplementation((bytes: BufferSource) => {
+      // Mock WebAssembly.Module constructor
+      if (!bytes || (bytes as any).byteLength < 8) {
+        throw new Error('WebAssembly.Module(): expected 4 bytes, fell off end @+4');
+      }
+      return {};
+    }),
+    Instance: jest.fn().mockImplementation(() => ({
+      exports: {}
+    }))
   },
   writable: true,
   configurable: true

@@ -4,7 +4,7 @@
  */
 
 import * as protobuf from 'protobufjs';
-import * as pino from 'pino';
+import pino from 'pino';
 
 const logger = pino({ name: 'protobuf-handler' });
 
@@ -56,8 +56,8 @@ export class ProtobufHandler {
         const protoDir = join(__dirname, '../protobuf/schemas');
 
         await fs.mkdir(protoDir, { recursive: true });
-        await this.generateLoRAAdapterSchema(protoDir, fs, join);
-        await this.loadSchemas(protoDir, fs, join);
+        await this.generateLoRAAdapterSchema(protoDir, join);
+        await this.loadSchemas(protoDir, join);
       }
 
       this.ready = true;
@@ -83,25 +83,25 @@ export class ProtobufHandler {
         this.schemas.set('LoRaAdapterSkill', this.root.lookupType('knirv.chain.v1.LoRaAdapterSkill'));
       } catch {
         // Create a mock schema if not found
-        this.schemas.set('LoRaAdapterSkill', this.createMockSchema('LoRaAdapterSkill'));
+        this.schemas.set('LoRaAdapterSkill', this.createMockSchema('LoRaAdapterSkill') as any);
       }
 
       try {
         this.schemas.set('SkillInvocationResponse', this.root.lookupType('knirv.chain.v1.SkillInvocationResponse'));
       } catch {
-        this.schemas.set('SkillInvocationResponse', this.createMockSchema('SkillInvocationResponse'));
+        this.schemas.set('SkillInvocationResponse', this.createMockSchema('SkillInvocationResponse') as any);
       }
 
       try {
         this.schemas.set('SkillInvocationRequest', this.root.lookupType('knirv.chain.v1.SkillInvocationRequest'));
       } catch {
-        this.schemas.set('SkillInvocationRequest', this.createMockSchema('SkillInvocationRequest'));
+        this.schemas.set('SkillInvocationRequest', this.createMockSchema('SkillInvocationRequest') as any);
       }
 
       try {
         this.schemas.set('SkillCompilationRequest', this.root.lookupType('knirv.chain.v1.SkillCompilationRequest'));
       } catch {
-        this.schemas.set('SkillCompilationRequest', this.createMockSchema('SkillCompilationRequest'));
+        this.schemas.set('SkillCompilationRequest', this.createMockSchema('SkillCompilationRequest') as any);
       }
 
       logger.info({ schemaCount: this.schemas.size }, 'Protobuf schemas loaded from definitions');
@@ -188,7 +188,7 @@ export class ProtobufHandler {
     };
   }
 
-  private async generateLoRAAdapterSchema(protoDir: string, fs: typeof import('fs'), join: typeof import('path').join): Promise<void> {
+  private async generateLoRAAdapterSchema(protoDir: string, join: typeof import('path').join): Promise<void> {
     const schemaContent = `syntax = "proto3";
 
 package knirv.chain.v1;
@@ -301,15 +301,17 @@ enum Status {
 }`;
 
     const schemaPath = join(protoDir, 'lora_adapter.proto');
+    const { promises: fs } = await import('fs');
     await fs.writeFile(schemaPath, schemaContent);
     logger.info({ schemaPath }, 'LoRA adapter protobuf schema generated');
   }
 
-  private async loadSchemas(protoDir: string, fs: typeof import('fs'), join: typeof import('path').join): Promise<void> {
+  private async loadSchemas(protoDir: string, join: typeof import('path').join): Promise<void> {
     try {
       this.root = new protobuf.Root();
 
       // Load all .proto files in the directory
+      const { promises: fs } = await import('fs');
       const files = await fs.readdir(protoDir);
       const protoFiles = files.filter((file: string) => file.endsWith('.proto'));
 
@@ -440,8 +442,9 @@ enum Status {
     const adapter = await this.deserialize(data, 'LoRaAdapterSkill');
     
     // Convert bytes back to Float32Arrays
-    adapter.weightsA = this.bytesToFloatArray(new Uint8Array(adapter.weights_a));
-    adapter.weightsB = this.bytesToFloatArray(new Uint8Array(adapter.weights_b));
+    const adapterObj = adapter as any;
+    adapterObj.weightsA = this.bytesToFloatArray(new Uint8Array(adapterObj.weights_a));
+    adapterObj.weightsB = this.bytesToFloatArray(new Uint8Array(adapterObj.weights_b));
 
     return adapter;
   }

@@ -16,6 +16,7 @@ if [ ! -f "data/testnet-gateway/package.json" ]; then
         cp ../KNIRVGATEWAY/package-lock.json data/testnet-gateway/ 2>/dev/null || true
         cp -r ../KNIRVGATEWAY/assets data/testnet-gateway/ 2>/dev/null || true
         cp -r ../KNIRVGATEWAY/netlify data/testnet-gateway/ 2>/dev/null || true
+        cp -r ../KNIRVGATEWAY/scripts data/testnet-gateway/ 2>/dev/null || true
         cp -r ../KNIRVGATEWAY/graphchain-explorer data/testnet-gateway/ 2>/dev/null || true
         cp -r ../KNIRVGATEWAY/agent-developer-portal data/testnet-gateway/ 2>/dev/null || true
         # Note: index.html is already copied from KNIRVTESTNET/index.html

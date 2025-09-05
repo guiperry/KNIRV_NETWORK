@@ -32,6 +32,8 @@ describe('PerformanceOptimizer', () => {
   let optimizer: PerformanceOptimizer;
 
   beforeEach(() => {
+    // Use real timers first to ensure clean state
+    jest.useRealTimers();
     optimizer = new PerformanceOptimizer({
       enableCaching: true,
       enableLazyLoading: true,

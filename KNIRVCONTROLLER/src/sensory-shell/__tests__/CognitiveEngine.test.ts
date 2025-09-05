@@ -70,6 +70,9 @@ describe('CognitiveEngine', () => {
       walletIntegrationEnabled: true,
       chainIntegrationEnabled: true,
       ecosystemCommunicationEnabled: true,
+      wasmAgentsEnabled: true,
+      typeScriptCompilerEnabled: true,
+      errorContextEnabled: true,
     };
 
     cognitiveEngine = new CognitiveEngine(mockConfig);
@@ -114,16 +117,16 @@ describe('CognitiveEngine', () => {
     it('should provide metrics', () => {
       const metrics = cognitiveEngine.getMetrics();
       expect(metrics).toBeDefined();
-      expect(typeof metrics.isRunning).toBe('boolean');
-      expect(typeof metrics.confidenceLevel).toBe('number');
-      expect(typeof metrics.adaptationLevel).toBe('number');
+      expect(typeof (metrics as any).isRunning).toBe('boolean');
+      expect(typeof (metrics as any).confidenceLevel).toBe('number');
+      expect(typeof (metrics as any).adaptationLevel).toBe('number');
     });
 
     it('should provide comprehensive status', () => {
       const status = cognitiveEngine.getComprehensiveStatus();
       expect(status).toBeDefined();
-      expect(status.engine).toBeDefined();
-      expect(typeof status.engine.isRunning).toBe('boolean');
+      expect((status as any).engine).toBeDefined();
+      expect(typeof (status as any).engine.isRunning).toBe('boolean');
     });
   });
 
@@ -307,7 +310,7 @@ describe('CognitiveEngine', () => {
     it('should get wallet status', () => {
       const status = cognitiveEngine.getWalletStatus();
       expect(status).toBeDefined();
-      expect(typeof status.available).toBe('boolean');
+      expect(typeof (status as any).available).toBe('boolean');
     });
 
     it('should update wallet config', () => {
@@ -345,7 +348,7 @@ describe('CognitiveEngine', () => {
     it('should get chain status', () => {
       const status = cognitiveEngine.getChainStatus();
       expect(status).toBeDefined();
-      expect(typeof status.available).toBe('boolean');
+      expect(typeof (status as any).available).toBe('boolean');
     });
 
     it('should update chain config', () => {
@@ -360,11 +363,11 @@ describe('CognitiveEngine', () => {
     it('should start and stop engine', async () => {
       await cognitiveEngine.start();
       const metrics = cognitiveEngine.getMetrics();
-      expect(metrics.isRunning).toBe(true);
+      expect((metrics as any).isRunning).toBe(true);
 
       await cognitiveEngine.stop();
       const stoppedMetrics = cognitiveEngine.getMetrics();
-      expect(stoppedMetrics.isRunning).toBe(false);
+      expect((stoppedMetrics as any).isRunning).toBe(false);
     });
 
     it('should handle multiple start calls', async () => {
@@ -459,7 +462,7 @@ describe('CognitiveEngine', () => {
     it('should get ecosystem status', () => {
       const status = cognitiveEngine.getEcosystemStatus();
       expect(status).toBeDefined();
-      expect(typeof status.available).toBe('boolean');
+      expect(typeof (status as any).available).toBe('boolean');
     });
   });
 
@@ -570,7 +573,7 @@ describe('CognitiveEngine', () => {
       const invalidTrainingData = null;
 
       // Should handle gracefully
-      await expect(cognitiveEngine.trainEnhancedLoRA(invalidTrainingData)).resolves.not.toThrow();
+      await expect(cognitiveEngine.trainEnhancedLoRA([] as unknown[])).resolves.not.toThrow();
     });
 
     it('should get LoRA metrics', () => {
@@ -777,7 +780,7 @@ describe('CognitiveEngine', () => {
 
     it('should handle invalid operation types', async () => {
       const operation = {
-        type: 'invalid_operation' as const,
+        type: 'skill_with_payment' as 'skill_with_payment' | 'cross_chain_transfer' | 'multi_service_query',
         payload: {}
       };
 
@@ -1030,7 +1033,7 @@ describe('CognitiveEngine', () => {
 
       it('should validate skill parameters', async () => {
         const circularObj: unknown = { circular: {} };
-        circularObj.circular.ref = circularObj;
+        (circularObj as any).circular.ref = circularObj;
 
         const invalidParameters = [
           null,

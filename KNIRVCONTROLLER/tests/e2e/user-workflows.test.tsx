@@ -96,22 +96,45 @@ describe('End-to-End User Workflows', () => {
       issuer: 'KNIRV-CONTROLLER',
       subject: 'test-agent',
       metadata: {
+        version: '1.0',
         description: 'Test UDC',
         tags: [],
         usage: { executionCount: 0, lastUsed: new Date(), usageHistory: [] },
         constraints: { maxExecutions: 1000, allowedHours: [] },
-        security: { securityFlags: [] }
+        security: {
+          securityFlags: [],
+          encryptionLevel: 'standard',
+          requiresMFA: false
+        }
       }
     });
 
     mockSettingsService.getSettings.mockReturnValue({
       general: { theme: 'dark', language: 'en', timezone: 'UTC', backupInterval: 60, autoSave: true, autoBackup: false, debugMode: false, telemetryEnabled: true },
-      cognitive: { defaultModel: 'gpt-4', maxTokens: 4096, temperature: 0.7, topP: 0.9, autoLearning: true, skillCaching: true },
-      wallet: { defaultNetwork: 'knirv-mainnet', autoConnect: true, showBalances: true, confirmTransactions: true },
-      analytics: { collectMetrics: true, shareAnonymous: false, retentionDays: 30 },
-      security: { requireMFA: false, sessionTimeout: 30, autoLock: true },
-      ui: { compactMode: false, animations: true, soundEffects: false },
-      advanced: { featureFlags: { betaFeatures: false, experimentalUI: false } }
+      cognitive: {
+        defaultModel: 'gpt-4',
+        maxTokens: 4096,
+        temperature: 0.7,
+        topP: 0.9,
+        autoLearning: true,
+        skillCaching: true,
+        frequencyPenalty: 0,
+        presencePenalty: 0,
+        adaptationRate: 0.1,
+        contextWindow: 4096
+      },
+      wallet: { defaultNetwork: 'knirv-mainnet', autoConnect: true, transactionTimeout: 30000, gasLimit: 200000, slippageTolerance: 0.5, confirmationBlocks: 1, showTestnets: false, currencyDisplay: 'NRN' },
+      analytics: { collectMetrics: true, shareAnonymousData: false, retentionPeriod: 30, metricsInterval: 60, alertThresholds: { memoryUsage: 80, cpuUsage: 80, errorRate: 5, responseTime: 1000 } },
+      security: { requireMFA: false, sessionTimeout: 30, maxLoginAttempts: 3, passwordPolicy: { minLength: 8, requireUppercase: true, requireLowercase: true, requireNumbers: true, requireSymbols: false }, encryptionLevel: 'standard', auditLogging: true },
+      ui: { compactMode: false, showTooltips: true, animationsEnabled: true, soundEnabled: false, notificationsEnabled: true, panelLayout: 'default', fontSize: 'medium', colorScheme: 'dark' },
+      advanced: {
+        featureFlags: { betaFeatures: false, experimentalUI: false },
+        apiEndpoints: {},
+        experimentalFeatures: [],
+        customCommands: {},
+        integrations: {},
+        performance: { maxConcurrentTasks: 10, cacheSize: 100, preloadData: true, lazyLoading: false }
+      }
     });
   });
 
@@ -286,7 +309,7 @@ describe('End-to-End User Workflows', () => {
       render(<Wallet />);
 
       // Step 1: User copies wallet address
-      const copyButton = screen.getByRole('button', { title: 'Copy Address' });
+      const copyButton = screen.getByRole('button', { name: 'Copy Address' });
       fireEvent.click(copyButton);
 
       await waitFor(() => {
@@ -294,7 +317,7 @@ describe('End-to-End User Workflows', () => {
       });
 
       // Step 2: User views QR code
-      const qrButton = screen.getByRole('button', { title: 'Show QR Code' });
+      const qrButton = screen.getByRole('button', { name: 'Show QR Code' });
       fireEvent.click(qrButton);
 
       await waitFor(() => {

@@ -116,7 +116,7 @@ class ErrorHandler {
             },
             body: JSON.stringify({
               errorContext: error.context,
-              timestamp: error.timestamp
+              timestamp: (error as any).timestamp
             })
           });
           return response.ok;

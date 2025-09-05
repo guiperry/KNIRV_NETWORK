@@ -361,20 +361,21 @@ export class QRPaymentService {
     }
 
     // Check required type field
-    if (!data.type || !['payment', 'skill_invocation', 'wallet_connect', 'agent_deploy'].includes(data.type)) {
+    const dataAny = data as any;
+    if (!dataAny.type || !['payment', 'skill_invocation', 'wallet_connect', 'agent_deploy'].includes(dataAny.type)) {
       return false;
     }
 
     // Type-specific validation
-    switch (data.type) {
+    switch (dataAny.type) {
       case 'payment':
-        return !!(data.amount && data.recipient);
+        return !!(dataAny.amount && dataAny.recipient);
       case 'skill_invocation':
-        return !!(data.skillId && data.nrnCost);
+        return !!(dataAny.skillId && dataAny.nrnCost);
       case 'wallet_connect':
         return true; // No additional requirements
       case 'agent_deploy':
-        return !!(data.agentId && data.nrnCost);
+        return !!(dataAny.agentId && dataAny.nrnCost);
       default:
         return false;
     }

@@ -5,20 +5,40 @@
  */
 
 import { EventEmitter } from '../EventEmitter';
-import { ToolContext, ToolResult, ToolParameter } from '../../../../types/common';
+
+// Define ToolParameter interface locally to avoid import issues
+interface ToolParameter {
+  name: string;
+  type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+  required: boolean;
+  description: string;
+  defaultValue?: any;
+}
 
 export interface tool4Parameters {
-  {{#each parameters}}
-  {{name}}{{#unless required}}?{{/unless}}: {{type}};
-  {{/each}}
+  // Tool parameters will be defined here
+  [key: string]: any;
 }
 
-export interface tool4Context extends ToolContext {
-  // Tool-specific context extensions can be added here
+export interface tool4Context {
+  agentId: string;
+  sessionId?: string;
+  userId?: string;
+  environment: 'wasm' | 'browser' | 'node';
+  memory: Map<string, any>;
+  logger: {
+    log: (message: string) => void;
+    error: (message: string) => void;
+    warn: (message: string) => void;
+  };
 }
 
-export interface tool4Result extends ToolResult {
-  // Tool-specific result extensions can be added here
+export interface tool4Result {
+  success: boolean;
+  result?: any;
+  error?: string;
+  executionTime: number;
+  metadata?: Record<string, any>;
 }
 
 /**
@@ -36,16 +56,13 @@ export class tool4Tool extends EventEmitter {
     
     try {
       // Validate parameters
-      {{#each parameters}}
-      {{#if required}}
-      if (params.{{name}} === undefined) {
-        throw new Error('Required parameter "{{name}}" is missing');
-      }
-      {{/if}}
-      {{/each}}
+      // Parameter validation will be implemented here
 
       // Tool implementation
-      return { result: "Tool 4 result: " + parameters.input };
+      const result = {
+        message: 'Tool executed successfully',
+        timestamp: Date.now()
+      };
 
       const executionTime = Date.now() - startTime;
       
@@ -84,15 +101,7 @@ export class tool4Tool extends EventEmitter {
 
   getParameters(): ToolParameter[] {
     return [
-      {{#each parameters}}
-      {
-        name: '{{name}}',
-        type: '{{type}}',
-        required: {{required}},
-        description: '{{description}}'{{#if defaultValue}},
-        defaultValue: {{defaultValue}}{{/if}}
-      }{{#unless @last}},{{/unless}}
-      {{/each}}
+      // Tool parameters will be defined here
     ];
   }
 }

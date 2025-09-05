@@ -75,7 +75,7 @@ export class ModelManager extends EventEmitter {
       this.emit('model_manager_initialized');
       return true;
     } catch (error) {
-      this.emit('model_manager_initialization_failed', { error: error.message });
+      this.emit('model_manager_initialization_failed', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -478,7 +478,7 @@ export class ModelManager extends EventEmitter {
   importConfiguration(config: unknown): void {
     if ((config as { availableModels?: unknown[]; currentModel?: string }).availableModels) {
       for (const model of (config as { availableModels: unknown[] }).availableModels) {
-        this.registerModel(model);
+        this.registerModel(model as any);
       }
     }
 

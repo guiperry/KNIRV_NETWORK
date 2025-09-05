@@ -3,11 +3,11 @@
  * Comprehensive test suite for UDC management functionality
  */
 
-import React from 'react';
+import * as React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import UDCManager from '../../../src/components/UDCManager';
-import { udcManagementService } from '../../../src/services/UDCManagementService';
+import { udcManagementService, UDC } from '../../../src/services/UDCManagementService';
 
 // Mock the UDC management service
 jest.mock('../../../src/services/UDCManagementService', () => ({
@@ -39,6 +39,7 @@ describe('UDCManager', () => {
       issuer: 'KNIRV-CONTROLLER',
       subject: 'agent-123',
       metadata: {
+        version: '1.0',
         description: 'Basic read access UDC',
         tags: ['basic', 'read'],
         usage: {
@@ -51,7 +52,9 @@ describe('UDCManager', () => {
           allowedHours: [9, 10, 11, 12, 13, 14, 15, 16, 17]
         },
         security: {
-          securityFlags: []
+          securityFlags: [],
+          encryptionLevel: 'standard',
+          requiresMFA: false
         }
       }
     },
@@ -69,6 +72,7 @@ describe('UDCManager', () => {
       issuer: 'KNIRV-CONTROLLER',
       subject: 'agent-456',
       metadata: {
+        version: '1.0',
         description: 'Advanced write access UDC',
         tags: ['advanced', 'write'],
         usage: {
@@ -81,7 +85,9 @@ describe('UDCManager', () => {
           allowedHours: Array.from({length: 24}, (_, i) => i)
         },
         security: {
-          securityFlags: []
+          securityFlags: [],
+          encryptionLevel: 'standard',
+          requiresMFA: false
         }
       }
     }
@@ -125,7 +131,7 @@ describe('UDCManager', () => {
     jest.clearAllMocks();
     jest.useFakeTimers();
     
-    mockUDCManagementService.getAllUDCs.mockReturnValue(mockUDCs);
+    mockUDCManagementService.getAllUDCs.mockReturnValue(mockUDCs as UDC[]);
     mockUDCManagementService.validateUDC.mockImplementation((udcId) => 
       Promise.resolve(mockValidationResults[udcId as keyof typeof mockValidationResults])
     );
@@ -133,13 +139,13 @@ describe('UDCManager', () => {
       ...mockUDCs[0],
       id: 'new-udc-id',
       agentId: 'new-agent'
-    });
+    } as UDC);
     mockUDCManagementService.renewUDC.mockResolvedValue({
       ...mockUDCs[0],
       expiresDate: new Date('2024-03-01T00:00:00Z')
-    });
+    } as UDC);
     mockUDCManagementService.revokeUDC.mockResolvedValue(undefined);
-    mockUDCManagementService.getExpiringUDCs.mockReturnValue([mockUDCs[0]]);
+    mockUDCManagementService.getExpiringUDCs.mockReturnValue([mockUDCs[0] as UDC]);
   });
 
   afterEach(() => {

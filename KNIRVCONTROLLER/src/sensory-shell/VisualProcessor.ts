@@ -294,7 +294,7 @@ export class VisualProcessor extends EventEmitter {
           sceneType: 'unknown',
           confidence: 0,
           objects: [],
-          lighting: 'unknown' as 'bright' | 'dim' | 'natural' | 'artificial' | 'unknown',
+          lighting: 'natural' as 'bright' | 'dim' | 'natural' | 'artificial',
           setting: 'unknown',
           mood: 'neutral',
           complexity: 0,
@@ -496,7 +496,7 @@ export class VisualProcessor extends EventEmitter {
     try {
       const objects = await (this.objectDetectionModel as { detect: (data: ImageData) => Promise<unknown> }).detect(imageData);
       
-      if (objects.length > 0) {
+      if ((objects as any[]).length > 0) {
         this.emit('objectDetected', objects);
       }
     } catch (error) {
@@ -508,13 +508,13 @@ export class VisualProcessor extends EventEmitter {
     if (!this.gestureRecognizer) return [];
 
     try {
-      const gestures = await (this.gestureRecognizer as { recognize: (data: ImageData) => Promise<unknown> }).recognize(imageData);
+      const gestures = await (this.gestureRecognizer as { recognize: (data: ImageData) => Promise<unknown> }).recognize(imageData as ImageData);
 
-      for (const gesture of gestures) {
+      for (const gesture of (gestures as any[])) {
         this.emit('gestureRecognized', gesture);
       }
 
-      return gestures || [];
+      return (gestures as any[]) || [];
     } catch (error) {
       console.error('Gesture recognition error:', error);
       return [];

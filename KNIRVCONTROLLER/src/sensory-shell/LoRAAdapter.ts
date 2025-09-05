@@ -38,7 +38,13 @@ export class LoRAAdapter extends EventEmitter {
   private weights: Map<string, LoRAWeights> = new Map();
   private isTraining: boolean = false;
   private trainingData: TrainingData[] = [];
-  private metrics: AdaptationMetrics;
+  private metrics: AdaptationMetrics = {
+    loss: 0,
+    accuracy: 0,
+    epoch: 0,
+    learningRate: 0.001,
+    timestamp: new Date()
+  };
   private isRunning: boolean = false;
   private baseModel: unknown = null;
 
@@ -322,10 +328,10 @@ export class LoRAAdapter extends EventEmitter {
         );
       }
 
-      if (adaptedInputAny.text) {
+      if ((adaptedInputAny as any).text) {
         // For text inputs, we might adjust confidence or add metadata
-        const currentConfidence = typeof adaptedInputAny.confidence === 'number' ? adaptedInputAny.confidence : 1.0;
-        adaptedInputAny.confidence = currentConfidence * (1 + adaptationStrength * 0.05);
+        const currentConfidence = typeof (adaptedInputAny as any).confidence === 'number' ? (adaptedInputAny as any).confidence : 1.0;
+        (adaptedInputAny as any).confidence = currentConfidence * (1 + adaptationStrength * 0.05);
       }
     });
 

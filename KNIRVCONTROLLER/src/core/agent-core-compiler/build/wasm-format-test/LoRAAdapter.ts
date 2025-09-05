@@ -14,7 +14,7 @@ export class LoRAAdapter {
     this.isLoaded = true;
   }
 
-  adapt(input: any, target: any): any {
+  adapt(input: unknown, target: unknown): unknown {
     if (!this.isLoaded) {
       throw new Error('LoRAAdapter not loaded');
     }

@@ -189,8 +189,12 @@ describe('Parameter Naming Fixes', () => {
       };
 
       const mockBlob = new Blob(['test'], { type: 'audio/wav' });
-      const mockEvent: { type: string; data: Blob } = { type: 'dataavailable', data: mockBlob };
-      
+      const mockEvent = {
+        type: 'dataavailable',
+        data: mockBlob,
+        timecode: 0
+      } as BlobEvent;
+
       dataAvailableHandler(mockEvent);
     });
 
@@ -239,7 +243,7 @@ describe('Parameter Naming Fixes', () => {
 
       testCases.forEach(({ description, handler, input, expected }) => {
         console.log(`Testing: ${description}`);
-        const result = handler(input);
+        const result = handler(input as any);
         expect(result).toEqual(expected);
       });
     });

@@ -84,7 +84,7 @@ function VisualProcessor({ onVisualData, onObjectDetection, isActive }: VisualPr
       console.error('Failed to initialize camera:', error);
       setError('Failed to access camera. Please check permissions.');
     }
-  }, [processVideoFrame]);
+  }, []);
 
   const processVideoFrame = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || !isProcessing) return;
@@ -104,10 +104,9 @@ function VisualProcessor({ onVisualData, onObjectDetection, isActive }: VisualPr
 
     // Create VisualFrame and update current frame
     const visualFrame: VisualFrame = {
-      data: imageData,
-      timestamp: Date.now(),
-      width: canvas.width,
-      height: canvas.height
+      imageData: imageData,
+      timestamp: new Date(),
+      frameNumber: Math.floor(Date.now() / 1000) // Simple frame numbering
     };
     setCurrentFrame(visualFrame);
 
@@ -118,10 +117,15 @@ function VisualProcessor({ onVisualData, onObjectDetection, isActive }: VisualPr
 
     // Update processing metrics
     const metrics: ProcessingMetrics = {
-      processingTime,
-      frameRate: stats.fps,
-      objectCount: objects.length,
-      timestamp: Date.now()
+      throughput: stats.fps, // frames per second
+      latency: processingTime, // processing time in milliseconds
+      accuracy: objects.length > 0 ? 0.85 : 0.0, // Mock accuracy based on detection
+      errorRate: 0.0, // No errors for now
+      resourceUsage: {
+        cpu: Math.min(processingTime / 16.67 * 100, 100), // Estimate CPU usage
+        memory: imageData.data.length // Rough memory usage estimate
+      },
+      uptime: Date.now() - startTime // Simple uptime calculation
     };
     setProcessingMetrics(metrics);
 
@@ -135,7 +139,7 @@ function VisualProcessor({ onVisualData, onObjectDetection, isActive }: VisualPr
     if (isProcessing) {
       animationFrameRef.current = requestAnimationFrame(processVideoFrame);
     }
-  }, [isProcessing, onVisualData, onObjectDetection, detectObjects, stats.fps]);
+  }, [isProcessing, onVisualData, onObjectDetection, stats.fps]);
 
   const detectObjects = useCallback((imageData: ImageData): SensoryDetectedObject[] => {
     // Simple object detection using edge detection and blob analysis
@@ -152,7 +156,7 @@ function VisualProcessor({ onVisualData, onObjectDetection, isActive }: VisualPr
     const objects = performObjectDetection(imageData);
 
     return objects;
-  }, [performObjectDetection]);
+  }, []);
 
   useEffect(() => {
     if (isActive) {
@@ -486,13 +490,13 @@ function VisualProcessor({ onVisualData, onObjectDetection, isActive }: VisualPr
       {/* Debug Information */}
       {currentFrame && (
         <div className="mt-4 text-xs text-gray-500 text-center">
-          Frame: {currentFrame.width}x{currentFrame.height} @ {new Date(currentFrame.timestamp).toLocaleTimeString()}
+          Frame: {currentFrame.imageData.width}x{currentFrame.imageData.height} @ {new Date(currentFrame.timestamp).toLocaleTimeString()}
         </div>
       )}
 
       {processingMetrics && (
         <div className="mt-2 text-xs text-gray-500 text-center">
-          Metrics: {processingMetrics.processingTime.toFixed(2)}ms | {processingMetrics.frameRate.toFixed(1)} FPS | {processingMetrics.objectCount} objects
+          Metrics: {processingMetrics.latency.toFixed(2)}ms | {processingMetrics.throughput.toFixed(1)} FPS | {processingMetrics.accuracy.toFixed(2)} accuracy
         </div>
       )}
 

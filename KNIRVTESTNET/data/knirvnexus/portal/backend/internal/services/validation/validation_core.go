@@ -189,6 +189,39 @@ func (vc *ValidationCore) GetValidationTasks(filter *TaskFilter) ([]*models.Vali
 	return tasks, err
 }
 
+// GetValidationTask retrieves a specific validation task by ID
+func (vc *ValidationCore) GetValidationTask(taskID string) (*models.ValidationTask, error) {
+	vc.mu.RLock()
+	defer vc.mu.RUnlock()
+
+	var task models.ValidationTask
+	found := false
+
+	err := vc.db.View(func(tx *buntdb.Tx) error {
+		value, err := tx.Get(fmt.Sprintf("validation:tasks:%s", taskID))
+		if err != nil {
+			return err
+		}
+
+		if err := json.Unmarshal([]byte(value), &task); err != nil {
+			return err
+		}
+
+		found = true
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !found {
+		return nil, fmt.Errorf("task not found")
+	}
+
+	return &task, nil
+}
+
 // ExecuteValidation executes a validation task
 func (vc *ValidationCore) ExecuteValidation(task *models.ValidationTask) (*models.ValidationResult, error) {
 	vc.mu.Lock()
@@ -406,6 +439,7 @@ type TaskFilter struct {
 	RequestedBy   string     `json:"requested_by,omitempty"`
 	CreatedAfter  *time.Time `json:"created_after,omitempty"`
 	CreatedBefore *time.Time `json:"created_before,omitempty"`
+	Limit         int        `json:"limit,omitempty"`
 }
 
 // Matches checks if a task matches the filter criteria
