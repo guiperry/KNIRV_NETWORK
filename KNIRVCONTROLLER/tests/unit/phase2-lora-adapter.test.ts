@@ -289,8 +289,8 @@ describe('Phase 2 LoRA Adapter Tests', () => {
         const response = await handler.deserialize(mockProtoBytes, 'SkillInvocationResponse');
 
         expect(response).toBeDefined();
-        expect(response.invocation_id).toBeDefined();
-        expect(response.status).toBeDefined();
+        expect((response as any).invocation_id).toBeDefined();
+        expect((response as any).status).toBeDefined();
 
         await handler.cleanup();
       } catch {

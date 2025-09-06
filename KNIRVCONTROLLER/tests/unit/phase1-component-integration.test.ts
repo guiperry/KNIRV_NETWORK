@@ -155,8 +155,8 @@ describe('Phase 1: Component Integration Tests', () => {
         expect(serialized.length).toBeGreaterThan(0);
 
         const deserialized = await protobufHandler.deserializeLoRAAdapter(serialized);
-        expect(deserialized.skill_id).toBe(testAdapter.skill_id);
-        expect(deserialized.skill_name).toBe(testAdapter.skill_name);
+        expect((deserialized as any).skill_id).toBe(testAdapter.skill_id);
+        expect((deserialized as any).skill_name).toBe(testAdapter.skill_name);
       });
     });
   });
@@ -189,7 +189,7 @@ describe('Phase 1: Component Integration Tests', () => {
 
         const serialized = await protobufHandler.serializeLoRAAdapter(testAdapter);
         const deserialized = await protobufHandler.deserializeLoRAAdapter(serialized);
-        expect(deserialized.skill_id).toBe(testAdapter.skill_id);
+        expect((deserialized as any).skill_id).toBe(testAdapter.skill_id);
       }
 
       const endTime = Date.now();
@@ -268,7 +268,7 @@ describe('Phase 1: Component Integration Tests', () => {
       expect(serialized).toBeInstanceOf(Uint8Array);
 
       const deserialized = await protobufHandler.deserialize(serialized, 'SkillInvocationResponse');
-      expect(deserialized.invocation_id).toBe(legacyResponse.invocation_id);
+      expect((deserialized as any).invocation_id).toBe(legacyResponse.invocation_id);
     });
 
     it('should preserve existing LoRA adapter functionality', async () => {

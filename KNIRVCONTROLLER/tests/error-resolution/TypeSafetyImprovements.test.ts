@@ -10,8 +10,9 @@ describe('Type Safety Improvements', () => {
   describe('Agent Interface Compatibility', () => {
     it('should create valid Agent objects with new interface', () => {
       const agent: Agent = {
-        id: 'test-agent-1',
+        agentId: 'test-agent-1',
         name: 'Test Agent',
+        version: '1.0.0',
         type: 'wasm',
         status: 'Available',
         capabilities: ['nlp', 'analysis'],
@@ -29,9 +30,8 @@ describe('Type Safety Improvements', () => {
           },
           permissions: ['read', 'write', 'execute']
         },
-        createdAt: new Date(),
-        lastActivity: new Date(),
-        specialization: ['natural-language', 'data-analysis']
+        createdAt: new Date().toISOString(),
+        lastActivity: new Date().toISOString()
       };
 
       expect(agent.type).toBe('wasm');
@@ -42,8 +42,9 @@ describe('Type Safety Improvements', () => {
 
     it('should handle different agent types correctly', () => {
       const wasmAgent: Agent = {
-        id: 'wasm-1',
+        agentId: 'wasm-1',
         name: 'WASM Agent',
+        version: '1.0.0',
         type: 'wasm',
         status: 'Deployed',
         capabilities: ['computation'],
@@ -57,13 +58,14 @@ describe('Type Safety Improvements', () => {
           requirements: { memory: 256, cpu: 1, storage: 50 },
           permissions: ['execute']
         },
-        createdAt: new Date(),
-        wasmModule: new WebAssembly.Module(new Uint8Array([0x00, 0x61, 0x73, 0x6d]))
+        createdAt: new Date().toISOString(),
+        wasmModule: 'test-wasm-module'
       };
 
       const loraAgent: Agent = {
-        id: 'lora-1',
+        agentId: 'lora-1',
         name: 'LoRA Agent',
+        version: '1.0.0',
         type: 'lora',
         status: 'Available',
         capabilities: ['adaptation'],
@@ -77,12 +79,12 @@ describe('Type Safety Improvements', () => {
           requirements: { memory: 1024, cpu: 4, storage: 200 },
           permissions: ['read', 'adapt']
         },
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
         loraAdapter: 'lora-adapter-config'
       };
 
       expect(wasmAgent.type).toBe('wasm');
-      expect(wasmAgent.wasmModule).toBeInstanceOf(WebAssembly.Module);
+      expect(wasmAgent.wasmModule).toBe('test-wasm-module');
       expect(loraAgent.type).toBe('lora');
       expect(loraAgent.loraAdapter).toBe('lora-adapter-config');
     });

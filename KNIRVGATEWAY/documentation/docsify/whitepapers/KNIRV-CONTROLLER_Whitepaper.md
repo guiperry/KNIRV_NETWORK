@@ -2,14 +2,14 @@
 
 ### **Abstract**
 
-The **KNIRV-CONTROLLER** serves as the comprehensive agent management platform within the KNIRV D-TEN ecosystem, representing a major architectural evolution that unifies agent management, skill development, wallet functionality, and network interaction capabilities. Following the major refactor, KNIRV-CONTROLLER has integrated the mobile-controller (now manager), KNIRVSHELL (as cli), agent-core (as receiver), and wallet functionality into a cohesive application. This unified platform allows users to manage agents, skills, UDCs, and wallets for network interaction while providing an integrated shell for minting agents on the oracle with trained capabilities. The CONTROLLER's primary agent-cortex serves as the foundation for user interactions across KNIRVENGINE and KNIRVNEXUS interfaces when linked through QR code scanning functionality.
+The **KNIRV-CONTROLLER** serves as the comprehensive agent management platform within the KNIRV D-TEN ecosystem, representing a major architectural evolution that unifies agent management, skill development, wallet functionality, and network interaction capabilities. Following the major refactor, KNIRV-CONTROLLER has integrated the mobile-controller (now manager), KNIRVCLI (as cli), agent-core (as receiver), and wallet functionality into a cohesive application. This unified platform allows users to manage agents, skills, UDCs, and wallets for network interaction while providing an integrated shell for minting agents on the oracle with trained capabilities. The CONTROLLER's primary agent-cortex serves as the foundation for user interactions across KNIRVENGINE and KNIRVNEXUS interfaces when linked through QR code scanning functionality.
 
 ### **1. Introduction**
 
 The **KNIRV-CONTROLLER** represents a fundamental shift in agent management architecture, unifying previously separate components into a cohesive platform that serves as the primary interface for agent interaction within the KNIRV D-TEN. Following the major refactor, the CONTROLLER has evolved from a simple mobile adapter to a comprehensive platform that integrates:
 
 - **Manager**: The evolved mobile-controller providing core agent management capabilities
-- **CLI**: The integrated KNIRVSHELL providing command-line interface and terminal functionality
+- **CLI**: The integrated KNIRVCLI providing command-line interface and terminal functionality
 - **Receiver**: The agent-core frontend providing primary user interface and cognitive shell integration
 - **Wallet**: Comprehensive wallet functionality with QR code connectivity and agentic wallet capabilities
 
@@ -24,7 +24,7 @@ The **KNIRV-CONTROLLER** features a unified architecture that integrates four co
 *   **Receiver as Primary Interface**: The receiver frontend, migrated from the agent-core, serves as the primary user interface. This component provides the main interaction layer and houses the cognitive shell that orchestrates agent operations.
 *   **Cognitive Shell Integration**: The cognitive shell operates as the outer layer that manages interaction with imported agent-core WASM files. This separation of concerns distinguishes between the cognitive shell's orchestration responsibilities and the agent-core's specialized operations.
 *   **Manager Integration**: The evolved mobile-controller (now manager) provides core agent management capabilities, handling agent lifecycle, configuration, and coordination with network services.
-*   **CLI Integration**: The integrated KNIRVSHELL provides slide-out interactive terminal functionality, enabling users to mint agents on the oracle and execute advanced network operations directly from the interface.
+*   **CLI Integration**: The integrated KNIRVCLI provides slide-out interactive terminal functionality, enabling users to mint agents on the oracle and execute advanced network operations directly from the interface.
 *   **Wallet Integration**: Comprehensive wallet functionality enables QR code connectivity, agentic wallet operations, and seamless integration with the receiver view and other cloned functionality.
 
 #### **2.2. WASM Agent Core System**

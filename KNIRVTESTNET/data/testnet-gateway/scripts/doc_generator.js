@@ -81,7 +81,7 @@ const CONFIG = {
     'KNIRVSDK',
     'KNIRVCORTEX',
     'KNIRVWALLET',
-    'KNIRVSHELL',
+    'KNIRVCLI',
     'KNIRVGATEWAY',
     'KNIRVTESTNET'
   ],
@@ -883,7 +883,7 @@ function determineCategory(subproductName) {
     'KNIRVSDK': 'knirvsdk',
     'KNIRVCORTEX': 'knirvshell',
     'KNIRVWALLET': 'knirvwallet',
-    'KNIRVSHELL': 'knirvshell',
+    'KNIRVCLI': 'knirvshell',
     'KNIRVGATEWAY': 'guides',
     'KNIRVTESTNET': 'deployment'
   };

@@ -18,7 +18,7 @@ global.Response = Response;
 // Polyfill for TextEncoder/TextDecoder using Node.js built-in APIs
 import { TextEncoder, TextDecoder } from 'node:util';
 
-// @ts-expect-error - Global polyfill
+// Global polyfill
 global.TextEncoder = TextEncoder;
 // @ts-expect-error - Global polyfill
 global.TextDecoder = TextDecoder;

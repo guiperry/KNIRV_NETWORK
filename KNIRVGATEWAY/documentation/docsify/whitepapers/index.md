@@ -241,10 +241,10 @@
             <a href="#" class="whitepaper-link" onclick="event.stopPropagation(); openWhitepaper('KNIRV-GATEWAY_Whitepaper')">Read Whitepaper</a>
         </div>
 
-        <!-- KNIRV-SHELL Card -->
+        <!-- KNIRV-CLI Card -->
         <div class="whitepaper-card" onclick="openWhitepaper('KNIRV-SHELL_Whitepapers')">
             <div class="whitepaper-icon">💻</div>
-            <h4 class="whitepaper-title">KNIRV-SHELL</h4>
+            <h4 class="whitepaper-title">KNIRV-CLI</h4>
             <p class="whitepaper-description">
                 The AI-powered, comprehensive GoLang-based command-line interface for unified developer and power user access to the entire D-TEN.
             </p>

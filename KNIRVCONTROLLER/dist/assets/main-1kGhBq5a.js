@@ -66974,7 +66974,7 @@ ${t}`;
         ]
       }), this.config.enableShellIntegration && this.registerEndpoint({
         id: "knirv-shell",
-        name: "KNIRV-SHELL",
+        name: "KNIRV-CLI",
         url: "http://localhost:8082",
         protocol: "http",
         authentication: {

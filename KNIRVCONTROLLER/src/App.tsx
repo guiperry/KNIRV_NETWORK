@@ -1,7 +1,8 @@
 import * as React from 'react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import { QrCode, X } from 'lucide-react';
+import { initSentry } from './utils/sentry';
 
 // Receiver components
 import { KnirvShell } from './components/KnirvShell';
@@ -13,16 +14,19 @@ import { EdgeColoring } from './components/EdgeColoring';
 import { AgentManager } from './components/AgentManager';
 import { FabricAlgorithm } from './components/FabricAlgorithm';
 import { CognitiveShellInterface } from './components/CognitiveShellInterface';
-import { CognitiveState } from './sensory-shell/CognitiveEngine';
+interface CognitiveState {
+  activeSkills: string[];
+  confidenceLevel: number;
+}
+import NetworkSelector, { NetworkType } from './components/NetworkSelector';
 
-// Manager components
-import Skills from './pages/Skills';
-import UDC from './pages/UDC';
-import WalletPage from './pages/Wallet';
+// Manager components - lazy loaded
+const Skills = lazy(() => import('./pages/Skills'));
+const UDC = lazy(() => import('./pages/UDC'));
+const WalletPage = lazy(() => import('./pages/Wallet'));
 
 // Types
-import { Agent, LegacyAgent } from './types/common';
-import { agentManagementService } from './services/AgentManagementService';
+import { Agent } from './types/common';
 
 
 
@@ -65,28 +69,7 @@ export interface NRV {
   status: 'Identified' | 'Mapped' | 'Assigned' | 'Resolved';
 }
 
-// Helper function to convert Agent to LegacyAgent for backward compatibility
-function convertAgentToLegacy(agent: Agent): LegacyAgent {
-  return {
-    id: agent.agentId,
-    name: agent.name,
-    type: agent.type,
-    status: agent.status,
-    nrnCost: agent.nrnCost,
-    capabilities: agent.capabilities,
-    metadata: {
-      name: agent.metadata.name,
-      version: agent.metadata.version,
-      description: agent.metadata.description,
-      author: agent.metadata.author,
-      capabilities: agent.metadata.capabilities,
-      requirements: agent.metadata.requirements,
-      permissions: agent.metadata.permissions
-    },
-    wasmModule: undefined, // WebAssembly.Module not available in this context
-    lastActivity: agent.lastActivity ? new Date(agent.lastActivity) : undefined
-  };
-}
+// Note: convertAgentToLegacy function removed - not currently needed but can be added back if LegacyAgent compatibility is required
 
 
 // Burger Menu Component
@@ -94,9 +77,13 @@ interface BurgerMenuProps {
   isOpen: boolean;
   onToggle: () => void;
   children: React.ReactNode;
+  showNetworkSelector?: boolean;
+  setShowNetworkSelector?: (show: boolean) => void;
+  currentNetwork?: NetworkType | null;
+  setCurrentNetwork?: (network: NetworkType | null) => void;
 }
 
-const BurgerMenu: React.FC<BurgerMenuProps> = ({ isOpen, onToggle, children }) => {
+const BurgerMenu: React.FC<BurgerMenuProps> = ({ isOpen, onToggle, children, showNetworkSelector, setShowNetworkSelector, currentNetwork, setCurrentNetwork }) => {
   return (
     <div className="relative">
       {/* Burger Button */}
@@ -120,6 +107,19 @@ const BurgerMenu: React.FC<BurgerMenuProps> = ({ isOpen, onToggle, children }) =
             {children}
           </div>
         </div>
+      )}
+
+      {/* Network Selector Modal */}
+      {showNetworkSelector && (
+        <NetworkSelector
+          isOpen={showNetworkSelector}
+          onClose={() => setShowNetworkSelector?.(false)}
+          onNetworkChange={(network) => {
+            setCurrentNetwork?.(network);
+            console.log('Network changed to:', network.name);
+          }}
+          currentNetwork={currentNetwork ?? undefined}
+        />
       )}
     </div>
   );
@@ -428,6 +428,8 @@ const ReceiverInterface = () => {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
+  const [showNetworkSelector, setShowNetworkSelector] = useState(false);
+  const [currentNetwork, setCurrentNetwork] = useState<NetworkType | null>(null);
 
   const openCognitiveShell = () => {
     setActivePanels(prev =>
@@ -467,7 +469,14 @@ const ReceiverInterface = () => {
 
       {/* Burger Menu Navigation - positioned to avoid time metrics */}
       <div className="absolute top-20 right-4 z-50">
-        <BurgerMenu isOpen={menuOpen} onToggle={() => setMenuOpen(!menuOpen)}>
+        <BurgerMenu
+          isOpen={menuOpen}
+          onToggle={() => setMenuOpen(!menuOpen)}
+          showNetworkSelector={showNetworkSelector}
+          setShowNetworkSelector={setShowNetworkSelector}
+          currentNetwork={currentNetwork}
+          setCurrentNetwork={setCurrentNetwork}
+        >
           <MenuItem onClick={() => { navigate('/manager/skills'); setMenuOpen(false); }} icon="⚡">
             Skills
           </MenuItem>
@@ -485,6 +494,9 @@ const ReceiverInterface = () => {
           </MenuItem>
           <MenuItem onClick={toggleNetworkPanel} icon="🌐">
             Network Status
+          </MenuItem>
+          <MenuItem onClick={() => { setShowNetworkSelector?.(true); setMenuOpen(false); }} icon="🔗">
+            Network Selection
           </MenuItem>
           <MenuItem onClick={toggleAgentPanel} icon="🤖">
             Agent Management
@@ -854,18 +866,25 @@ const ManagerInterface = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white relative">
-      <Routes>
-        <Route path="/skills" element={<Skills />} />
-        <Route path="/udc" element={<UDC />} />
-        <Route path="/wallet" element={<WalletPage />} />
-        <Route path="/agent/:agentId" element={<AgentProfile />} />
-      </Routes>
+      <Suspense fallback={<div className="flex items-center justify-center h-screen"><div className="text-white">Loading...</div></div>}>
+        <Routes>
+          <Route path="/skills" element={<Skills />} />
+          <Route path="/udc" element={<UDC />} />
+          <Route path="/wallet" element={<WalletPage />} />
+          <Route path="/agent/:agentId" element={<AgentProfile />} />
+        </Routes>
+      </Suspense>
     </div>
   );
 };
 
 // Main App Component
 function App() {
+  useEffect(() => {
+    // Initialize Sentry for error monitoring
+    initSentry();
+  }, []);
+
   return (
     <Router>
       <Routes>

@@ -31,7 +31,7 @@
       - 8084  # KNIRVROUTER
       - 8085  # KNIRVGATEWAY
       - 8086  # KNIRVWALLET
-      - 8087  # KNIRVSHELL
+      - 8087  # KNIRVCLI
       - 5001  # IPFS API
       - 8888  # IPFS Gateway
       - 26656 # Tendermint P2P
@@ -294,7 +294,7 @@
             - '8084'  # KNIRVROUTER
             - '8085'  # KNIRVGATEWAY
             - '8086'  # KNIRVWALLET
-            - '8087'  # KNIRVSHELL
+            - '8087'  # KNIRVCLI
             - '5001'  # IPFS API
             - '8888'  # IPFS Gateway
             - '26656' # Tendermint P2P

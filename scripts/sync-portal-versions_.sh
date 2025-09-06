@@ -47,7 +47,7 @@ declare -A GRAPHCHAIN_EXPLORERS=(
 # GraphChain CLI binary locations
 declare -A GRAPHCHAIN_CLI_BINARIES=(
     ["knirvgraph"]="KNIRVGRAPH/bin"
-    ["knirvshell"]="KNIRVSHELL/bin"
+    ["knirvshell"]="KNIRVCLI/bin"
 )
 
 # KNIRVGRAPH build binaries locations
@@ -523,10 +523,10 @@ sync_all_graphchain_explorers() {
 # =============================================================================
 
 sync_graphchain_cli_to_knirvshell() {
-    log "INFO" "Syncing GraphChain CLI binary to KNIRVSHELL"
+    log "INFO" "Syncing GraphChain CLI binary to KNIRVCLI"
 
     local source_dir="$PROJECT_ROOT/KNIRVGRAPH/build"
-    local target_dir="$PROJECT_ROOT/KNIRVSHELL/bin"
+    local target_dir="$PROJECT_ROOT/KNIRVCLI/bin"
     local cli_binary="graphchain-cli"
 
     # Ensure source binary exists
@@ -561,7 +561,7 @@ sync_graphchain_cli_to_knirvshell() {
     else
         cp "$source_dir/$cli_binary" "$target_dir/$cli_binary"
         chmod +x "$target_dir/$cli_binary"
-        log "SUCCESS" "Synced GraphChain CLI binary to KNIRVSHELL"
+        log "SUCCESS" "Synced GraphChain CLI binary to KNIRVCLI"
     fi
 }
 
@@ -645,7 +645,7 @@ EXAMPLES:
     $0                           # Sync both portal types and binaries
     $0 -t nexus                  # Sync only nexus-portal
     $0 -t graphchain -n          # Dry run for graphchain-explorer only
-    $0 -t binaries               # Sync only binaries (GraphChain CLI to KNIRVSHELL, KNIRVGRAPH to KNIRVANA)
+    $0 -t binaries               # Sync only binaries (GraphChain CLI to KNIRVCLI, KNIRVGRAPH to KNIRVANA)
     $0 -f -v                     # Force sync with verbose output
 
 EOF

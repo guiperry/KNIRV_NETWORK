@@ -3,10 +3,6 @@
 
 import { CognitiveEngine, CognitiveConfig } from './CognitiveEngine';
 import {
-  InputProcessedEventData,
-  SkillInvokedEventData,
-  AdaptationEventData,
-  CognitiveEventData,
   CognitiveMetrics,
   VisualProcessor,
   LoRAAdapter,

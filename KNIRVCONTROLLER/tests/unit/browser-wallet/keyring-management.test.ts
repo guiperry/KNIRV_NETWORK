@@ -48,7 +48,7 @@ describe('KnirvWallet Keyring Management', () => {
       
       // All accounts should reference the same keyring
       const keyringId = multiAccountWallet.keyrings[0].id;
-      multiAccountWallet.accounts.forEach(account => {
+      multiAccountWallet.accounts.forEach((account: any) => {
         expect(account.keyringId).toBe(keyringId);
       });
     });
@@ -57,7 +57,7 @@ describe('KnirvWallet Keyring Management', () => {
       const paths = [0, 1, 2];
       const multiAccountWallet = await KnirvWallet.createByMnemonic(TEST_MNEMONICS.VALID_12_WORD, paths);
       
-      const addresses = multiAccountWallet.accounts.map(account => account.address);
+      const addresses = multiAccountWallet.accounts.map((account: any) => account.address);
       const uniqueAddresses = new Set(addresses);
       
       expect(uniqueAddresses.size).toBe(addresses.length);
@@ -151,7 +151,7 @@ describe('KnirvWallet Keyring Management', () => {
       expect(multiAccountWallet.keyrings).toHaveLength(1);
       
       // All accounts should be Ledger accounts
-      multiAccountWallet.accounts.forEach(account => {
+      multiAccountWallet.accounts.forEach((account: any) => {
         expect(account.name).toContain('Ledger');
       });
     });
@@ -231,7 +231,7 @@ describe('KnirvWallet Keyring Management', () => {
       
       const keyringId = wallet.keyrings[0].id;
       
-      wallet.accounts.forEach(account => {
+      wallet.accounts.forEach((account: any) => {
         expect(account.keyringId).toBe(keyringId);
       });
     });

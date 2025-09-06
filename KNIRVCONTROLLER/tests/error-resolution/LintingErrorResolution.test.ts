@@ -17,7 +17,7 @@ import { UDCManagementService } from '../../src/services/UDCManagementService';
 
 // Type extensions for testing private methods
 interface QRPaymentServiceWithPrivates {
-  processLightningPayment: jest.Mock;
+  processLightningPayment: jest.MockedFunction<() => Promise<PaymentResult>>;
 }
 
 interface TaskSchedulingServiceWithPrivates {
@@ -63,7 +63,7 @@ describe('Linting Error Resolution Tests', () => {
 
       // Mock the private method to avoid actual payment processing
       const processLightningPaymentSpy = jest.spyOn(
-        paymentService as QRPaymentServiceWithPrivates,
+        paymentService as unknown as QRPaymentServiceWithPrivates,
         'processLightningPayment'
       ).mockResolvedValue({
         id: 'result-123',
@@ -209,10 +209,13 @@ describe('Linting Error Resolution Tests', () => {
         res.status(500).json({ error: 'Internal server error' });
       };
 
+      const mockJsonFn = jest.fn();
       const mockRes = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn()
-      };
+        status: jest.fn().mockReturnValue({
+          json: mockJsonFn
+        }),
+        json: mockJsonFn
+      } as { status: (code: number) => { json: (data: unknown) => void }; json: jest.Mock };
 
       mockErrorHandler(new Error('test'), {}, mockRes, {});
       
@@ -274,7 +277,7 @@ describe('Linting Error Resolution Tests', () => {
       // Test for the fix: const { createHash } = await import('crypto');
       const testData = 'test-udc-data';
       
-      const signature = await (udcService as any).generateSignature(testData);
+      const signature = await (udcService as unknown as UDCManagementServiceWithPrivates).generateSignature(testData);
       
       expect(signature).toBeDefined();
       expect(typeof signature).toBe('string');
@@ -293,11 +296,11 @@ describe('Linting Error Resolution Tests', () => {
 
       // Mock the cron calculation method
       const calculateCronNextRunSpy = jest.spyOn(
-        schedulingService as any,
-        'calculateCronNextRun'
+        schedulingService as unknown as TaskSchedulingServiceWithPrivates,
+        'calculateNextRun'
       ).mockReturnValue(new Date('2024-01-02T09:00:00Z'));
 
-      const nextRun = (schedulingService as any).calculateNextRun(
+      const nextRun = (schedulingService as unknown as TaskSchedulingServiceWithPrivates).calculateNextRun(
         cronSchedule,
         new Date('2024-01-01T10:00:00Z')
       );
@@ -347,9 +350,9 @@ describe('Linting Error Resolution Tests', () => {
     it('should validate PaymentResult and ScheduledTask types are properly used', () => {
       // Test PaymentResult type usage
       const mockPaymentResult: PaymentResult = {
-        success: true,
-        transactionId: 'test-tx-123',
-        amount: '100',
+        id: 'result-123',
+        requestId: 'test-tx-123',
+        status: 'completed',
         timestamp: new Date()
       };
 

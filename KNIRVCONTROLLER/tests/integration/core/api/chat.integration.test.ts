@@ -1,5 +1,5 @@
-import * as request from 'supertest';
-import * as express from 'express';
+import request from 'supertest';
+import express from 'express';
 import { NebulaDB } from 'nebuladb';
 import * as chatAPI from '../../../../src/core/api/chat';
 
@@ -29,6 +29,10 @@ interface MockCollection {
   updateOne: jest.Mock;
   find: jest.Mock;
   deleteOne: jest.Mock;
+  insert: jest.Mock;
+  update: jest.Mock;
+  delete: jest.Mock;
+  count: jest.Mock;
 }
 
 describe('Chat API Integration Tests', () => {
@@ -58,6 +62,10 @@ describe('Chat API Integration Tests', () => {
       insertOne: jest.fn(),
       updateOne: jest.fn(),
       deleteOne: jest.fn(),
+      insert: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      count: jest.fn(),
     };
 
     mockDB = {

@@ -570,8 +570,6 @@ describe('CognitiveEngine', () => {
     });
 
     it('should handle training failures', async () => {
-      const invalidTrainingData = null;
-
       // Should handle gracefully
       await expect(cognitiveEngine.trainEnhancedLoRA([] as unknown[])).resolves.not.toThrow();
     });

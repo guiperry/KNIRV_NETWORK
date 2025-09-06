@@ -205,11 +205,11 @@ export class EcosystemCommunicationLayer extends EventEmitter {
       });
     }
 
-    // KNIRV-SHELL endpoints
+    // KNIRV-CLI endpoints
     if (this.config.enableShellIntegration) {
       this.registerEndpoint({
         id: 'knirv-shell',
-        name: 'KNIRV-SHELL',
+        name: 'KNIRV-CLI',
         url: 'http://localhost:8082',
         protocol: 'http',
         authentication: { type: 'none' },

@@ -243,7 +243,7 @@ App::new()
 
 ### Development Tools
 - **KNIRV-SDK**: Native Rust SDK integration for all KNIRV services
-- **KNIRV-SHELL**: AI-powered development interface connectivity
+- **KNIRV-CLI**: AI-powered development interface connectivity
 - **KNIRV-CORTEX**: Agent management and "The Fabric" algorithm integration
 
 ### Game Mechanics

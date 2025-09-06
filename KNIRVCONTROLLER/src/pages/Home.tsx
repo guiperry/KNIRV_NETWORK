@@ -11,6 +11,7 @@ import AnalyticsDashboard from '../components/AnalyticsDashboard';
 import TaskScheduler from '../components/TaskScheduler';
 import UDCManager from '../components/UDCManager';
 import PerformanceMonitor from '../components/PerformanceMonitor';
+import KNIRVANAGameVisualization from '../components/KNIRVANAGameVisualization';
 import { desktopConnection } from '../services/DesktopConnection';
 import { agentManagementService } from '../services/AgentManagementService';
 
@@ -33,6 +34,7 @@ export default function Home() {
   const [showTaskScheduler, setShowTaskScheduler] = useState(false);
   const [showUDCManager, setShowUDCManager] = useState(false);
   const [showPerformanceMonitor, setShowPerformanceMonitor] = useState(false);
+  const [showKNIRVANAGame, setShowKNIRVANAGame] = useState(false);
 
   useEffect(() => {
     // Set up desktop connection event handlers
@@ -146,6 +148,10 @@ export default function Home() {
 
   const handleRenewUDC = () => {
     setShowUDCManager(true);
+  };
+
+  const handleKNIRVANAGame = () => {
+    setShowKNIRVANAGame(true);
   };
 
   const agents = [
@@ -380,6 +386,12 @@ export default function Home() {
               description="System optimization"
               onClick={() => setShowPerformanceMonitor(true)}
             />
+            <ActionButton
+              icon={Eye}
+              title="KNIRVANA Graph"
+              description="Game mechanics visualization"
+              onClick={handleKNIRVANAGame}
+            />
           </div>
         </div>
 
@@ -453,6 +465,29 @@ export default function Home() {
         isOpen={showPerformanceMonitor}
         onClose={() => setShowPerformanceMonitor(false)}
       />
+
+      {/* KNIRVANA Game Visualization Modal */}
+      <div className={`fixed inset-0 z-50 ${showKNIRVANAGame ? 'block' : 'hidden'}`}>
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowKNIRVANAGame(false)} />
+        <div className="absolute inset-4 max-w-6xl mx-auto">
+          <div className="bg-slate-900/95 backdrop-blur-xl rounded-xl overflow-hidden shadow-2xl">
+            <div className="flex justify-between items-center p-4 border-b border-slate-700">
+              <h2 className="text-xl font-semibold text-white">KNIRVANA Game Bridge</h2>
+              <button
+                onClick={() => setShowKNIRVANAGame(false)}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="max-h-[80vh] overflow-y-auto p-4">
+              <KNIRVANAGameVisualization />
+            </div>
+          </div>
+        </div>
+      </div>
     </ManagerLayout>
   );
 }

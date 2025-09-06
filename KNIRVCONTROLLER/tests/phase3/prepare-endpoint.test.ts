@@ -110,8 +110,8 @@ class MockCortexAPI {
     // Mock NEXUS TEE connectivity check
     if (global.fetch) {
       try {
-        await (global.fetch as typeof mockFetch)('http://mock-nexus-tee/health');
-        await (global.fetch as typeof mockFetch)('http://mock-nexus-tee/register', { method: 'POST' });
+        await (global.fetch as unknown as typeof mockFetch)('http://mock-nexus-tee/health');
+        await (global.fetch as unknown as typeof mockFetch)('http://mock-nexus-tee/register', { method: 'POST' });
       } catch (error) {
         throw new Error(error instanceof Error ? error.message : 'Connection failed');
       }
@@ -156,14 +156,14 @@ class MockCortexAPI {
     let teeStatus;
     if (global.fetch) {
       try {
-        const response = await (global.fetch as typeof mockFetch)('http://mock-nexus-tee/status');
+        const response = await (global.fetch as unknown as typeof mockFetch)('http://mock-nexus-tee/status');
         const status = await response.json();
         teeStatus = {
           connected: true,
           endpoint: 'http://mock-nexus-tee',
-          status: status || 'operational',
-          capabilities: status?.capabilities || ['lora-training', 'secure-execution'],
-          availableResources: status?.resources || { cpu: '80%', memory: '60%' },
+          status: 'operational',
+          capabilities: (status as any)?.capabilities || ['lora-training', 'secure-execution'],
+          availableResources: (status as any)?.resources || { cpu: '80%', memory: '60%' },
           lastChecked: new Date().toISOString()
         };
       } catch (error) {
@@ -247,7 +247,7 @@ interface MockResponse {
 }
 
 const mockFetch = jest.fn() as jest.MockedFunction<(url: string, options?: RequestInit) => Promise<MockResponse>>;
-(global.fetch as jest.Mock) = mockFetch;
+global.fetch = mockFetch as any;
 
 describe('Phase 3.4: /prepare Endpoint Integration', () => {
   let cortexAPI: MockCortexAPI;
@@ -566,13 +566,13 @@ describe('Phase 3.4: /prepare Endpoint Integration', () => {
         .mockResolvedValueOnce({
           ok: false,
           status: 401,
-          statusText: 'Unauthorized'
+          json: async () => ({ error: 'Unauthorized' })
         });
 
       // Test authentication failure handling
       try {
-        await (global.fetch as typeof mockFetch)('http://mock-nexus-tee/health');
-        const authResponse = await (global.fetch as typeof mockFetch)('http://mock-nexus-tee/register', { method: 'POST' });
+        await (global.fetch as unknown as typeof mockFetch)('http://mock-nexus-tee/health');
+        const authResponse = await (global.fetch as unknown as typeof mockFetch)('http://mock-nexus-tee/register', { method: 'POST' });
         expect(authResponse.ok).toBe(false);
         expect(authResponse.status).toBe(401);
       } catch {

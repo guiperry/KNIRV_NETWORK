@@ -26,7 +26,13 @@ interface ErrorCluster {
   clusterName: string;
   description: string;
   errorNodes: ErrorNode[];
-  centroid: { x: number; y: number };
+  centroid: {
+    errorTypeVector: number[];
+    contextVector: number[];
+    severityScore: number;
+    tagVector: number[];
+    semanticVector: number[];
+  };
   similarity: number;
   totalBounty: number;
   assignedAgents: string[];
@@ -67,23 +73,54 @@ interface CompetitiveSolution {
   bountyAwarded?: number;
 }
 
+interface TrainingPair {
+  pairId: string;
+  errorContext: {
+    errorType: string;
+    errorMessage: string;
+    stackTrace: string;
+    contextVariables: Record<string, unknown>;
+    semanticEmbedding: number[];
+  };
+  solutionContext: {
+    solutionCode: string;
+    approach: string;
+    effectiveness: number;
+    codeEmbedding: number[];
+    transformationVector: number[];
+  };
+  weight: number;
+}
+
 interface TrainingDataset {
   datasetId: string;
   clusterId: string;
   errorNodes: ErrorNode[];
   validatedSolutions: CompetitiveSolution[];
-  trainingPairs: Array<{ input: unknown; output: unknown }>;
-  datasetMetrics: Record<string, unknown>;
+  trainingPairs: TrainingPair[];
+  datasetMetrics: {
+    totalPairs: number;
+    averageValidationScore: number;
+    diversityScore: number;
+    complexityScore: number;
+    qualityScore: number;
+  };
   createdAt: Date;
 }
 
+interface ClusteringConfig {
+  minClusterSize: number;
+  maxClusters: number;
+  similarityThreshold: number;
+}
+
 class MockErrorNodeClustering {
-  private config: Record<string, unknown>;
+  private config: ClusteringConfig;
   private errorNodes: Map<string, ErrorNode> = new Map();
   private clusters: Map<string, ErrorCluster> = new Map();
   private initialized: boolean = false;
 
-  constructor(config: Record<string, unknown>) {
+  constructor(config: ClusteringConfig) {
     this.config = config;
   }
 
@@ -116,7 +153,7 @@ class MockErrorNodeClustering {
           clusterName: `${errorType} Cluster`,
           description: `Cluster of ${errorType} errors`,
           errorNodes: nodes,
-          centroid: { x: 0.5, y: 0.3, errorTypeVector: [1, 0, 0], contextVector: [1, 1, 0], severityScore: 0.75, tagVector: [1, 1, 0], semanticVector: [0.5, 0.3, 0.2] },
+          centroid: { errorTypeVector: [1, 0, 0], contextVector: [1, 1, 0], severityScore: 0.75, tagVector: [1, 1, 0], semanticVector: [0.5, 0.3, 0.2] },
           similarity: 0.8,
           totalBounty: nodes.reduce((sum, node) => sum + node.bountyAmount, 0),
           assignedAgents: [],
@@ -154,7 +191,7 @@ interface AgentAssignment {
   agentId: string;
   clusterId: string;
   assignedAt: Date;
-  status: 'active' | 'completed' | 'failed';
+  status: 'active' | 'completed' | 'abandoned';
   solutionsSubmitted: number;
   solutionsValidated: number;
   bountyEarned: number;
@@ -200,7 +237,7 @@ class MockAgentAssignmentSystem {
       clusterId: cluster.clusterId,
       agentId: agent.agentId,
       assignedAt: new Date(),
-      status: 'active',
+      status: 'active' as const,
       solutionsSubmitted: 0,
       solutionsValidated: 0,
       bountyEarned: 0,
@@ -335,20 +372,22 @@ class MockLoRAAdapterTrainingPipeline {
     const datasetId = `dataset_${cluster.clusterId}_${Date.now()}`;
 
     const trainingPairs = validatedSolutions.map((solution, index) => ({
-      input: {
+      pairId: `pair_${index}_${Date.now()}`,
+      errorContext: {
         errorType: cluster.errorNodes[index % cluster.errorNodes.length].errorType,
         errorMessage: cluster.errorNodes[index % cluster.errorNodes.length].errorMessage,
         stackTrace: cluster.errorNodes[index % cluster.errorNodes.length].stackTrace || '',
         contextVariables: cluster.errorNodes[index % cluster.errorNodes.length].context,
         semanticEmbedding: new Array(128).fill(0).map(() => Math.random())
       },
-      output: {
+      solutionContext: {
         solutionCode: solution.solutionCode,
         approach: solution.approach,
         effectiveness: solution.dveValidationScore || 0,
         codeEmbedding: new Array(64).fill(0).map(() => Math.random()),
         transformationVector: new Array(32).fill(0).map(() => Math.random())
-      }
+      },
+      weight: solution.dveValidationScore || 0.5
     }));
 
     const dataset: TrainingDataset = {
@@ -371,7 +410,7 @@ class MockLoRAAdapterTrainingPipeline {
     return dataset;
   }
 
-  async trainLoRAAdapter(dataset: TrainingDataset, config: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async trainLoRAAdapter(dataset: TrainingDataset, config: { rank: number; alpha: number; embeddingDimension: number }): Promise<Record<string, unknown>> {
     const skillId = `skill_${dataset.clusterId}_${Date.now()}`;
 
     return {
@@ -388,7 +427,7 @@ class MockLoRAAdapterTrainingPipeline {
         clusterId: dataset.clusterId,
         trainingDatasetId: dataset.datasetId,
         trainingPairs: dataset.trainingPairs.length.toString(),
-        qualityScore: dataset.datasetMetrics.qualityScore.toString(),
+        qualityScore: (dataset.datasetMetrics.qualityScore as number).toString(),
         finalLoss: '0.15',
         finalAccuracy: '0.92',
         timestamp: new Date().toISOString()
@@ -414,20 +453,19 @@ const AgentAssignmentSystem = MockAgentAssignmentSystem;
 const LoRAAdapterTrainingPipeline = MockLoRAAdapterTrainingPipeline;
 
 describe('Phase 3.3: KNIRVGRAPH LoRA Adapter Creation Integration', () => {
-  let errorClustering: ErrorNodeClustering;
-  let agentAssignment: AgentAssignmentSystem;
-  let trainingPipeline: LoRAAdapterTrainingPipeline;
+  let errorClustering: MockErrorNodeClustering;
+  let agentAssignment: MockAgentAssignmentSystem;
+  let trainingPipeline: MockLoRAAdapterTrainingPipeline;
 
   beforeEach(async () => {
-    errorClustering = new ErrorNodeClustering({
-      maxClustersPerRun: 10,
-      similarityThreshold: 0.6,
+    errorClustering = new MockErrorNodeClustering({
       minClusterSize: 2,
-      maxClusterSize: 10
+      maxClusters: 10,
+      similarityThreshold: 0.6
     });
 
-    agentAssignment = new AgentAssignmentSystem();
-    trainingPipeline = new LoRAAdapterTrainingPipeline();
+    agentAssignment = new MockAgentAssignmentSystem();
+    trainingPipeline = new MockLoRAAdapterTrainingPipeline();
 
     await errorClustering.initialize();
     await agentAssignment.initialize();
@@ -467,8 +505,8 @@ describe('Phase 3.3: KNIRVGRAPH LoRA Adapter Creation Integration', () => {
       expect(clusters.length).toBeLessThanOrEqual(3); // Should group similar errors
 
       // Check that similar errors are clustered together
-      const typeErrorCluster = clusters.find(cluster => 
-        cluster.errorNodes.some(node => node.errorType === 'TypeError')
+      const typeErrorCluster = clusters.find((cluster: ErrorCluster) =>
+        cluster.errorNodes.some((node: ErrorNode) => node.errorType === 'TypeError')
       );
       expect(typeErrorCluster).toBeDefined();
       expect(typeErrorCluster!.errorNodes.length).toBeGreaterThanOrEqual(2);
@@ -502,7 +540,7 @@ describe('Phase 3.3: KNIRVGRAPH LoRA Adapter Creation Integration', () => {
 
       const clusters = await errorClustering.performClustering();
       
-      clusters.forEach(cluster => {
+      clusters.forEach((cluster: ErrorCluster) => {
         expect(cluster.errorNodes.length).toBeGreaterThanOrEqual(2); // minClusterSize
         expect(cluster.errorNodes.length).toBeLessThanOrEqual(10); // maxClusterSize
       });
@@ -523,7 +561,7 @@ describe('Phase 3.3: KNIRVGRAPH LoRA Adapter Creation Integration', () => {
       
       if (clusters.length > 0) {
         const cluster = clusters[0];
-        const expectedBounty = cluster.errorNodes.reduce((sum, node) => sum + node.bountyAmount, 0);
+        const expectedBounty = cluster.errorNodes.reduce((sum: number, node: ErrorNode) => sum + node.bountyAmount, 0);
         expect(cluster.totalBounty).toBe(expectedBounty);
       }
     });
@@ -598,7 +636,7 @@ describe('Phase 3.3: KNIRVGRAPH LoRA Adapter Creation Integration', () => {
       expect(assignments.length).toBeLessThanOrEqual(3);
       
       // Check that agents with JavaScript expertise are preferred
-      const assignedAgentIds = assignments.map(a => a.agentId);
+      const assignedAgentIds = assignments.map((a: AgentAssignment) => a.agentId);
       expect(assignedAgentIds).toContain('agent1'); // Has javascript expertise
     });
 
@@ -638,7 +676,7 @@ describe('Phase 3.3: KNIRVGRAPH LoRA Adapter Creation Integration', () => {
       await agentAssignment.validateSolution(solutionId, 0.9, 150);
 
       const clusterSolutions = agentAssignment.getClusterSolutions('test-cluster-001');
-      const validatedSolution = clusterSolutions.find(s => s.solutionId === solutionId);
+      const validatedSolution = clusterSolutions.find((s: CompetitiveSolution) => s.solutionId === solutionId);
       
       expect(validatedSolution?.validationStatus).toBe('validated');
       expect(validatedSolution?.bountyAwarded).toBe(150);
@@ -779,7 +817,7 @@ describe('Phase 3.3: KNIRVGRAPH LoRA Adapter Creation Integration', () => {
       const trainingPair = dataset.trainingPairs[0];
       expect(trainingPair.errorContext.semanticEmbedding).toBeDefined();
       expect(trainingPair.errorContext.semanticEmbedding.length).toBeGreaterThan(0);
-      expect(trainingPair.errorContext.semanticEmbedding.every(val => val >= 0 && val <= 1)).toBe(true);
+      expect(trainingPair.errorContext.semanticEmbedding.every((val: number) => val >= 0 && val <= 1)).toBe(true);
     });
 
     it('should create code embeddings for solutions', async () => {
@@ -788,7 +826,7 @@ describe('Phase 3.3: KNIRVGRAPH LoRA Adapter Creation Integration', () => {
       const trainingPair = dataset.trainingPairs[0];
       expect(trainingPair.solutionContext.codeEmbedding).toBeDefined();
       expect(trainingPair.solutionContext.codeEmbedding.length).toBeGreaterThan(0);
-      expect(trainingPair.solutionContext.codeEmbedding.every(val => val >= 0 && val <= 1)).toBe(true);
+      expect(trainingPair.solutionContext.codeEmbedding.every((val: number) => val >= 0 && val <= 1)).toBe(true);
     });
 
     it('should train LoRA adapter from dataset', async () => {
@@ -813,8 +851,8 @@ describe('Phase 3.3: KNIRVGRAPH LoRA Adapter Creation Integration', () => {
       expect(loraAdapter.alpha).toBe(16.0);
       expect(loraAdapter.weightsA).toBeInstanceOf(Float32Array);
       expect(loraAdapter.weightsB).toBeInstanceOf(Float32Array);
-      expect(loraAdapter.weightsA.length).toBeGreaterThan(0);
-      expect(loraAdapter.weightsB.length).toBeGreaterThan(0);
+      expect((loraAdapter.weightsA as Float32Array).length).toBeGreaterThan(0);
+      expect((loraAdapter.weightsB as Float32Array).length).toBeGreaterThan(0);
     });
 
     it('should calculate dataset quality metrics', async () => {
@@ -832,14 +870,14 @@ describe('Phase 3.3: KNIRVGRAPH LoRA Adapter Creation Integration', () => {
     it('should weight training pairs based on validation scores', async () => {
       const dataset = await trainingPipeline.createTrainingDataset(testCluster, testSolutions);
       
-      const highScorePair = dataset.trainingPairs.find(pair => 
+      const highScorePair = dataset.trainingPairs.find((pair: any) =>
         pair.solutionContext.effectiveness === 0.95
       );
-      const lowScorePair = dataset.trainingPairs.find(pair => 
+      const lowScorePair = dataset.trainingPairs.find((pair: any) =>
         pair.solutionContext.effectiveness === 0.9
       );
       
-      expect(highScorePair?.weight).toBeGreaterThan(lowScorePair?.weight || 0);
+      expect((highScorePair as TrainingPair)?.weight).toBeGreaterThan((lowScorePair as TrainingPair)?.weight || 0);
     });
 
     it('should generate appropriate skill names', async () => {
@@ -860,7 +898,7 @@ describe('Phase 3.3: KNIRVGRAPH LoRA Adapter Creation Integration', () => {
       
       expect(loraAdapter.skillName).toMatch(/.*Resolver$/);
       expect(loraAdapter.description).toContain('error-solution pairs');
-      expect(loraAdapter.additionalMetadata.clusterId).toBe('training-cluster-001');
+      expect((loraAdapter.additionalMetadata as any).clusterId).toBe('training-cluster-001');
     });
   });
 
@@ -937,7 +975,7 @@ describe('Phase 3.3: KNIRVGRAPH LoRA Adapter Creation Integration', () => {
         await agentAssignment.validateSolution(solutionId, 0.9, 200);
         
         const clusterSolutions = agentAssignment.getClusterSolutions(clusters[0].clusterId);
-        const validatedSolution = clusterSolutions.find(s => s.solutionId === solutionId);
+        const validatedSolution = clusterSolutions.find((s: CompetitiveSolution) => s.solutionId === solutionId);
         solutions.push(validatedSolution!);
       }
 
@@ -960,10 +998,10 @@ describe('Phase 3.3: KNIRVGRAPH LoRA Adapter Creation Integration', () => {
       
       expect(loraAdapter.skillId).toBeDefined();
       expect(loraAdapter.skillName).toBeDefined();
-      expect(loraAdapter.weightsA.length).toBeGreaterThan(0);
-      expect(loraAdapter.weightsB.length).toBeGreaterThan(0);
-      expect(loraAdapter.additionalMetadata.clusterId).toBe(clusters[0].clusterId);
-      expect(loraAdapter.additionalMetadata.trainingPairs).toBe('2');
+      expect((loraAdapter.weightsA as Float32Array).length).toBeGreaterThan(0);
+      expect((loraAdapter.weightsB as Float32Array).length).toBeGreaterThan(0);
+      expect((loraAdapter.additionalMetadata as any).clusterId).toBe(clusters[0].clusterId);
+      expect((loraAdapter.additionalMetadata as any).trainingPairs).toBe('2');
     });
   });
 });

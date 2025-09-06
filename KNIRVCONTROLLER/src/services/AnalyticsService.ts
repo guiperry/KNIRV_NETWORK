@@ -202,7 +202,7 @@ export class AnalyticsService {
    */
   private cleanupOldMetrics(): void {
     const cutoffTime = Date.now() - (24 * 60 * 60 * 1000); // 24 hours ago
-    this.metrics = new Map([...this.metrics.entries()].filter(([key, metrics]) =>
+    this.metrics = new Map([...this.metrics.entries()].filter(([_key, metrics]) =>
       metrics.some((metric: any) => metric.timestamp.getTime() > cutoffTime)
     ));
   }

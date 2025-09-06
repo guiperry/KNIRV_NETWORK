@@ -15,12 +15,12 @@ Following the major refactor, the D-TEN unifies twelve sovereign layers, each op
 *   **KNIRVGRAPH:** The `GoLang`-based distributed vector graph, deployed as embedded instances within KNIRVANA, with terminology evolved from "blocks" to "vectors" and "height" to "density".
 *   **KNIRVCHAIN:** Transformed into a `Rust`-compiled WASM inference model embedded within agent-core cognitive shells, featuring LoRA adapter chains and autonomous skill execution.
 *   **KNIRV-NEXUS DVE:** The `GoLang`-based network of Decentralized Validation Environments (CLEAN), providing verifiable execution, cryptographic proofs, and agent core pre-training infrastructure.
-*   **KNIRV-CONTROLLER:** The unified agent management platform integrating mobile-controller (manager), KNIRVSHELL (cli), agent-core (receiver), and wallet functionality with QR code connectivity.
+*   **KNIRV-CONTROLLER:** The unified agent management platform integrating mobile-controller (manager), KNIRVCLI (cli), agent-core (receiver), and wallet functionality with QR code connectivity.
 *   **KNIRV-CORTEX:** The specialized agent intelligence development platform providing WASM compilation pipeline, model training infrastructure, and deployment sequence management.
 *   **KNIRV-ENGINE:** The desktop agent development environment with chromem-go database, electron wrapper, and seamless KNIRV-CONTROLLER integration via QR code connectivity.
 *   **KNIRV-WALLET:** The agent treasury system leveraging XION's Meta Accounts, integrated within KNIRV-CONTROLLER for autonomous agent asset management.
 *   **KNIRV-GATEWAY:** The unified web portal and serverless API gateway enhanced with GraphChain Explorer integration and SSE functionality.
-*   **KNIRV-SHELL:** The synchronized command-line interface deployed in both KNIRV-CONTROLLER and KNIRV-SDK, providing unified developer access to the entire D-TEN.
+*   **KNIRV-CLI:** The synchronized command-line interface deployed in both KNIRV-CONTROLLER and KNIRV-SDK, providing unified developer access to the entire D-TEN.
 *   **KNIRV-SDK:** The comprehensive multi-language software development kit with synchronized CLI functionality and enhanced KNIRV-CONTROLLER integration.
 *   **KNIRVANA:** The immersive 3D `Rust`-based Real-Time Strategy game featuring embedded distributed vector graph instances and KNIRV-CONTROLLER agent unit management.
 
@@ -33,7 +33,7 @@ The **KNIRV Decentralized Trusted Execution Network (D-TEN)** is proposed as the
 
 This whitepaper serves as the definitive overview of the KNIRV D-TEN. It synthesizes the intricate details of its twelve sovereign layers, demonstrating how they synergistically interact to create a secure, economically self-sustaining, and continuously evolving ecosystem for decentralized AI. We will explore the unique responsibilities of each component, their precise interconnections, the flow of value and information, and the overarching security and governance models that underpin this ambitious vision.
 
-**Note:** This document reflects the current state of all component whitepapers following the major refactor, incorporating significant architectural transformations including **KNIRV-CONTROLLER** (unified agent management platform), **KNIRV-CORTEX** (specialized development platform), **KNIRV-ENGINE** (desktop development environment), **KNIRVCHAIN** (embedded WASM inference model), **KNIRVGRAPH** (embedded distributed vector graph), and synchronized **KNIRV-SHELL** deployment across multiple components.
+**Note:** This document reflects the current state of all component whitepapers following the major refactor, incorporating significant architectural transformations including **KNIRV-CONTROLLER** (unified agent management platform), **KNIRV-CORTEX** (specialized development platform), **KNIRV-ENGINE** (desktop development environment), **KNIRVCHAIN** (embedded WASM inference model), **KNIRVGRAPH** (embedded distributed vector graph), and synchronized **KNIRV-CLI** deployment across multiple components.
 
 # 2. The KNIRV D-TEN Vision: Compounding Intelligence through Collective Resolution
 The core vision of the KNIRV D-TEN is to create a permissionless, transparent, and incentivized network where AI systems learn from every mistake, collectively and autonomously. This is achieved by transforming ephemeral errors into permanent, verifiable knowledge, and effective solutions into composable, monetizable Skills.
@@ -222,8 +222,8 @@ The **KNIRV-SDK** is a comprehensive suite of tools, libraries, and APIs designe
 >
 > *   **Dedicated Whitepaper:** For a comprehensive understanding, refer to the *KNIRV-SDK Whitepaper (Current Version)*.
 
-## 3.10. KNIRV-SHELL: The AI-Powered Unified Command-Line Interface
-The **KNIRV-SHELL** is a sophisticated, AI-powered command-line interface (CLI) that serves as the unified access point and primary developer interface for the entire KNIRV D-TEN, featuring advanced automation, intelligent assistance, and comprehensive network management capabilities.
+## 3.10. KNIRV-CLI: The AI-Powered Unified Command-Line Interface
+The **KNIRV-CLI** is a sophisticated, AI-powered command-line interface (CLI) that serves as the unified access point and primary developer interface for the entire KNIRV D-TEN, featuring advanced automation, intelligent assistance, and comprehensive network management capabilities.
 
 > **Expanded Information:**
 >
@@ -245,7 +245,7 @@ The **KNIRV-SHELL** is a sophisticated, AI-powered command-line interface (CLI) 
 >
 > *   **Unified Ecosystem Access:** Acts as the single-pane-of-glass interface for the entire KNIRV ecosystem, providing unified API access to **KNIRV-ORACLE**, **KNIRV-NEXUS**, **KNIRV-GATEWAY**, and all other sovereign layers through streamlined command structures.
 >
-> *   **Dedicated Whitepaper:** For a comprehensive understanding, refer to the *KNIRV-SHELL Whitepaper (Current Version)*.
+> *   **Dedicated Whitepaper:** For a comprehensive understanding, refer to the *KNIRV-CLI Whitepaper (Current Version)*.
 
 ## 3.11. KNIRV-TESTNET: The High-Fidelity Testing Environment
 The **KNIRV-TESTNET** is a carefully constructed, minimal-viable representation of the full KNIRV D-TEN, designed to provide comprehensive testing capabilities without the resource overhead of a full-scale production deployment.
@@ -372,7 +372,7 @@ The KNIRV D-TEN is a sophisticated multi-chain and multi-component architecture,
 >             KW["KNIRV-WALLET (Mobile/Web)"]
 >             KA[KNIRV-AGENTIFIER Agents]
 >             KN["KNIRVANA (Cross-Platform Game)"]
->             KS[KNIRV-SHELL CLI]
+>             KS[KNIRV-CLI CLI]
 >         end
 >
 >         subgraph Developer & Testing Layer
@@ -549,9 +549,9 @@ The KNIRV D-TEN's development will proceed in phases, focusing on establishing a
 >     *   **Goal:** Establish the KNIRV D-TEN as a foundational, universal layer for decentralized, self-improving AI across the digital landscape.
 
 # 9. Conclusion
-The KNIRV Decentralized Trusted Execution Network (D-TEN) represents a monumental leap towards a future where Artificial Intelligence is not only powerful but also transparent, verifiable, and collectively intelligent. By meticulously designing and integrating twelve sovereign layers—**KNIRV-ORACLE**, **KNIRV-ROUTER**, **KNIRVGRAPH**, **KNIRVCHAIN**, **KNIRV-NEXUS DVE**, **KNIRV-AGENTIFIER**, **KNIRV-WALLET**, **KNIRV-GATEWAY**, **KNIRV-SHELL**, **KNIRV-SDK**, **KNIRV-TESTNET**, and **KNIRVANA**—interconnected by the **KNIRV-GATEWAY** unified portal and API gateway and `IBC`, the D-TEN creates a robust, self-healing ecosystem.
+The KNIRV Decentralized Trusted Execution Network (D-TEN) represents a monumental leap towards a future where Artificial Intelligence is not only powerful but also transparent, verifiable, and collectively intelligent. By meticulously designing and integrating twelve sovereign layers—**KNIRV-ORACLE**, **KNIRV-ROUTER**, **KNIRVGRAPH**, **KNIRVCHAIN**, **KNIRV-NEXUS DVE**, **KNIRV-AGENTIFIER**, **KNIRV-WALLET**, **KNIRV-GATEWAY**, **KNIRV-CLI**, **KNIRV-SDK**, **KNIRV-TESTNET**, and **KNIRVANA**—interconnected by the **KNIRV-GATEWAY** unified portal and API gateway and `IBC`, the D-TEN creates a robust, self-healing ecosystem.
 
-This network transforms the challenge of AI failure into an engine for compounding knowledge, driven by a self-sustaining `NRN` token economy. From the physical validation of **KNIRV-ROUTERs** to the verifiable computation of **KNIRV-NEXUS DVEs**, from the knowledge fabric of **KNIRVGRAPH** to the multi-model living intelligence of **KNIRVCHAIN** with local execution capabilities, through the mobile-native adapter capabilities of **KNIRV-AGENTIFIERs**, the seamless user experience of **KNIRV-WALLET**, the serverless unified access of **KNIRV-GATEWAY**, the AI-powered comprehensive developer tools of **KNIRV-SHELL**, the multi-language development support of **KNIRV-SDK**, the high-fidelity testing environment of **KNIRV-TESTNET**, and culminating in the immersive 3D competitive gameplay of **KNIRVANA**, the KNIRV D-TEN is poised to redefine the landscape of decentralized AI. We are building the economic and coordination backbone for a new era of secure, intelligent, and autonomously evolving systems that spans from enterprise development to consumer gaming experiences, with sophisticated governance frameworks and cutting-edge architectural innovations.
+This network transforms the challenge of AI failure into an engine for compounding knowledge, driven by a self-sustaining `NRN` token economy. From the physical validation of **KNIRV-ROUTERs** to the verifiable computation of **KNIRV-NEXUS DVEs**, from the knowledge fabric of **KNIRVGRAPH** to the multi-model living intelligence of **KNIRVCHAIN** with local execution capabilities, through the mobile-native adapter capabilities of **KNIRV-AGENTIFIERs**, the seamless user experience of **KNIRV-WALLET**, the serverless unified access of **KNIRV-GATEWAY**, the AI-powered comprehensive developer tools of **KNIRV-CLI**, the multi-language development support of **KNIRV-SDK**, the high-fidelity testing environment of **KNIRV-TESTNET**, and culminating in the immersive 3D competitive gameplay of **KNIRVANA**, the KNIRV D-TEN is poised to redefine the landscape of decentralized AI. We are building the economic and coordination backbone for a new era of secure, intelligent, and autonomously evolving systems that spans from enterprise development to consumer gaming experiences, with sophisticated governance frameworks and cutting-edge architectural innovations.
 
 <div class="footer-links">
 <a href="#/legal/CODE_OF_CONDUCT" class="footer-link">Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY" class="footer-link">Privacy Policy</a> | <a href="#/legal/TERMS_AND_CONDITIONS" class="footer-link">Terms and Conditions</a>

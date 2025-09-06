@@ -20,7 +20,7 @@ global.WebSocket = jest.fn().mockImplementation(() => ({
 })) as unknown as typeof WebSocket;
 
 // Extended interface for testing private methods
-interface KNIRVRouterIntegrationWithPrivates extends KNIRVRouterIntegration {
+interface KNIRVRouterIntegrationWithPrivates {
   performHealthCheck(): Promise<{ success: boolean }>;
   connectionRetries: number;
   handleConnectionFailure(): void;
@@ -86,7 +86,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
       } as Response);
 
       // Trigger health check manually
-      const healthCheck = await (integration as KNIRVRouterIntegrationWithPrivates).performHealthCheck();
+      const healthCheck = await (integration as unknown as KNIRVRouterIntegrationWithPrivates).performHealthCheck();
       expect(healthCheck.success).toBe(true);
     });
 
@@ -96,37 +96,37 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
         statusText: 'Service Unavailable'
       } as Response);
 
-      const healthCheck = await (integration as KNIRVRouterIntegrationWithPrivates).performHealthCheck();
+      const healthCheck = await (integration as unknown as KNIRVRouterIntegrationWithPrivates).performHealthCheck();
       expect(healthCheck.success).toBe(false);
     });
 
     it('should handle network errors during health check', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-      const healthCheck = await (integration as KNIRVRouterIntegrationWithPrivates).performHealthCheck();
+      const healthCheck = await (integration as unknown as KNIRVRouterIntegrationWithPrivates).performHealthCheck();
       expect(healthCheck.success).toBe(false);
     });
 
     it('should track connection retries', () => {
       // Reset connection retries to 0 for this test
-      (integration as KNIRVRouterIntegrationWithPrivates).connectionRetries = 0;
-      expect((integration as KNIRVRouterIntegrationWithPrivates).connectionRetries).toBe(0);
+      (integration as unknown as KNIRVRouterIntegrationWithPrivates).connectionRetries = 0;
+      expect((integration as unknown as KNIRVRouterIntegrationWithPrivates).connectionRetries).toBe(0);
     });
 
     it('should handle connection failure with retries', () => {
       // Reset connection retries to 0 for this test
-      (integration as KNIRVRouterIntegrationWithPrivates).connectionRetries = 0;
-      const handleFailure = (integration as KNIRVRouterIntegrationWithPrivates).handleConnectionFailure.bind(integration);
+      (integration as unknown as KNIRVRouterIntegrationWithPrivates).connectionRetries = 0;
+      const handleFailure = (integration as unknown as KNIRVRouterIntegrationWithPrivates).handleConnectionFailure.bind(integration);
 
       handleFailure();
-      expect((integration as KNIRVRouterIntegrationWithPrivates).connectionRetries).toBe(1);
+      expect((integration as unknown as KNIRVRouterIntegrationWithPrivates).connectionRetries).toBe(1);
 
       handleFailure();
-      expect((integration as KNIRVRouterIntegrationWithPrivates).connectionRetries).toBe(2);
+      expect((integration as unknown as KNIRVRouterIntegrationWithPrivates).connectionRetries).toBe(2);
     });
 
     it('should stop retrying after max attempts', () => {
-      const handleFailure = (integration as KNIRVRouterIntegrationWithPrivates).handleConnectionFailure.bind(integration);
+      const handleFailure = (integration as unknown as KNIRVRouterIntegrationWithPrivates).handleConnectionFailure.bind(integration);
       const emitSpy = jest.spyOn(integration, 'emit');
       
       // Exceed max retries
@@ -140,12 +140,12 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
     it('should not retry when shutting down', async () => {
       await integration.disconnect();
       
-      const handleFailure = (integration as KNIRVRouterIntegrationWithPrivates).handleConnectionFailure.bind(integration);
-      const initialRetries = (integration as KNIRVRouterIntegrationWithPrivates).connectionRetries;
+      const handleFailure = (integration as unknown as KNIRVRouterIntegrationWithPrivates).handleConnectionFailure.bind(integration);
+      const initialRetries = (integration as unknown as KNIRVRouterIntegrationWithPrivates).connectionRetries;
 
       handleFailure();
 
-      expect((integration as KNIRVRouterIntegrationWithPrivates).connectionRetries).toBe(initialRetries);
+      expect((integration as unknown as KNIRVRouterIntegrationWithPrivates).connectionRetries).toBe(initialRetries);
     });
   });
 
@@ -243,8 +243,22 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
       // Mock KNIRVGRAPH call (first fetch) - should succeed
       mockFetch.mockResolvedValueOnce({
         ok: true,
+        status: 200,
+        statusText: 'OK',
+        headers: new Headers(),
+        redirected: false,
+        type: 'basic',
+        url: '',
+        clone: () => ({} as Response),
+        body: null,
+        bodyUsed: false,
+        arrayBuffer: async () => new ArrayBuffer(0),
+        blob: async () => new Blob(),
+        formData: async () => new FormData(),
+        text: async () => '',
+        bytes: async () => new Uint8Array(),
         json: jest.fn().mockResolvedValue({ patterns: [], skillNodes: [] } as never)
-      } as Response);
+      } as unknown as Response);
 
       // Mock KNIRVROUTER call (second fetch) - should fail
       mockFetch.mockResolvedValueOnce({
@@ -273,8 +287,22 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
       // Mock KNIRVGRAPH call (first fetch) - should succeed
       mockFetch.mockResolvedValueOnce({
         ok: true,
+        status: 200,
+        statusText: 'OK',
+        headers: new Headers(),
+        redirected: false,
+        type: 'basic',
+        url: '',
+        clone: () => ({} as Response),
+        body: null,
+        bodyUsed: false,
+        arrayBuffer: async () => new ArrayBuffer(0),
+        blob: async () => new Blob(),
+        formData: async () => new FormData(),
+        text: async () => '',
+        bytes: async () => new Uint8Array(),
         json: jest.fn().mockResolvedValue({ patterns: [], skillNodes: [] } as never)
-      } as Response);
+      } as unknown as Response);
 
       // Mock KNIRVROUTER call (second fetch) - should fail with network error
       mockFetch.mockRejectedValueOnce(new Error('Network timeout'));
@@ -325,7 +353,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
       } as Response);
 
       // Mock connection status
-      (integration as KNIRVRouterIntegrationWithPrivates).isConnected = true;
+      (integration as unknown as KNIRVRouterIntegrationWithPrivates).isConnected = true;
 
       const adapters = await integration.getLoRAAdapters();
       
@@ -339,11 +367,11 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
         json: async () => ({ adapters: [] })
       } as Response);
 
-      (integration as KNIRVRouterIntegrationWithPrivates).isConnected = true;
+      (integration as unknown as KNIRVRouterIntegrationWithPrivates).isConnected = true;
 
       const filter = { domain: 'text-processing', minVersion: 1 };
       await integration.getLoRAAdapters(filter);
-      
+
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining('domain=text-processing'),
         expect.any(Object)
@@ -356,7 +384,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
         json: async () => ({ adapter_id: 'new-adapter-123' })
       } as Response);
 
-      (integration as KNIRVRouterIntegrationWithPrivates).isConnected = true;
+      (integration as unknown as KNIRVRouterIntegrationWithPrivates).isConnected = true;
 
       const adapterData = {
         adapterId: 'test-adapter-id',
@@ -382,7 +410,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
         statusText: 'Bad Request'
       } as Response);
 
-      (integration as KNIRVRouterIntegrationWithPrivates).isConnected = true;
+      (integration as unknown as KNIRVRouterIntegrationWithPrivates).isConnected = true;
 
       const adapterData = {
         adapterId: 'invalid-adapter-id',
@@ -401,7 +429,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
     });
 
     it('should handle disconnected state for LoRA operations', async () => {
-      (integration as KNIRVRouterIntegrationWithPrivates).isConnected = false;
+      (integration as unknown as KNIRVRouterIntegrationWithPrivates).isConnected = false;
 
       await expect(integration.getLoRAAdapters()).rejects.toThrow('not connected');
       
@@ -451,7 +479,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
         timestamp: Date.now()
       };
 
-      (integration as KNIRVRouterIntegrationWithPrivates).activeRequests.set('test-request', request);
+      (integration as unknown as KNIRVRouterIntegrationWithPrivates).activeRequests.set('test-request', request);
       expect(integration.getActiveRequestsCount()).toBe(1);
     });
 
@@ -465,7 +493,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
         confidence: 0.9
       };
 
-      (integration as KNIRVRouterIntegrationWithPrivates).routingCache.set('test-key', [skillNode]);
+      (integration as unknown as KNIRVRouterIntegrationWithPrivates).routingCache.set('test-key', [skillNode]);
       expect(integration.getRoutingCacheSize()).toBe(1);
     });
   });
@@ -516,7 +544,7 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
         done();
       });
 
-      (integration as KNIRVRouterIntegrationWithPrivates).handleSkillNodeDiscovery({ skillNode });
+      (integration as unknown as KNIRVRouterIntegrationWithPrivates).handleSkillNodeDiscovery({ skillNode });
     });
   });
 
@@ -549,8 +577,22 @@ describe('KNIRVRouterIntegration Unit Tests', () => {
       // Mock KNIRVGRAPH call (first fetch) - should succeed
       mockFetch.mockResolvedValueOnce({
         ok: true,
+        status: 200,
+        statusText: 'OK',
+        headers: new Headers(),
+        redirected: false,
+        type: 'basic',
+        url: '',
+        clone: () => ({} as Response),
+        body: null,
+        bodyUsed: false,
+        arrayBuffer: async () => new ArrayBuffer(0),
+        blob: async () => new Blob(),
+        formData: async () => new FormData(),
+        text: async () => '',
+        bytes: async () => new Uint8Array(),
         json: jest.fn().mockResolvedValue({ patterns: [], skillNodes: [] } as never)
-      } as Response);
+      } as unknown as Response);
 
       // Mock KNIRVROUTER call (second fetch) - should timeout quickly
       mockFetch.mockImplementationOnce(() =>

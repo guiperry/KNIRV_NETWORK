@@ -77,7 +77,7 @@ describe('KnirvWallet Core Functionality', () => {
         expect(wallet.keyrings).toHaveLength(1); // Single keyring for multiple accounts
         
         // Verify each account has correct derivation path
-        wallet.accounts.forEach((account, index) => {
+        wallet.accounts.forEach((account: any, index: number) => {
           expect(account.name).toContain(`${index + 1}`);
         });
       });
@@ -332,7 +332,7 @@ describe('KnirvWallet Core Functionality', () => {
       const paths = [0, 1, 2, 3, 4];
       const wallet = await KnirvWallet.createByMnemonic(TEST_MNEMONICS.VALID_12_WORD, paths);
       
-      const accountNames = wallet.accounts.map(account => account.name);
+      const accountNames = wallet.accounts.map((account: any) => account.name);
       const uniqueNames = new Set(accountNames);
       
       expect(uniqueNames.size).toBe(accountNames.length);

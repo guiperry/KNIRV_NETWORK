@@ -28,12 +28,12 @@ A core innovation of the KNIRV-ROUTER is its active role in validating the physi
 
 #### 2.3. NRN Token URI Path Certificates: Enabling Skill Invocation
 Each NRN token minted by a KNIRV-ROUTER carries an embedded URI path certificate. This certificate is a cryptographically signed data structure that contains:
-*   **A unique, verified network pathway:** A sequence of hops or cryptographic route identifiers from the KNIRV-ROUTER to a specific network endpoint (e.g., a KNIRVCHAIN node, a DVE, or a KNIRV-SHELL).
+*   **A unique, verified network pathway:** A sequence of hops or cryptographic route identifiers from the KNIRV-ROUTER to a specific network endpoint (e.g., a KNIRVCHAIN node, a DVE, or a KNIRV-CLI).
 *   **Timestamp and Validity Period:** Ensuring the path's recency and relevance.
 *   **Router Signature:** Cryptographic attestation by the KNIRV-ROUTER that validated the path.
 
 **How it Works & Its Value:**
-When a KNIRV-SHELL agent needs to invoke a Skill on KNIRVCHAIN, it must present an NRN token. The KNIRVCHAIN then sends a cross-chain message to KNIRV-ORACLE to burn this NRN. The embedded URI path certificate within the NRN serves as:
+When a KNIRV-CLI agent needs to invoke a Skill on KNIRVCHAIN, it must present an NRN token. The KNIRVCHAIN then sends a cross-chain message to KNIRV-ORACLE to burn this NRN. The embedded URI path certificate within the NRN serves as:
 *   **Proof of Network Reachability:** It attests that a valid, recent pathway through the network existed at the time of the NRN's minting.
 *   **Verifiable Execution Context:** It provides a unique, non-reusable "ticket" for Skill invocation, ensuring that each execution is tied to a verified network route.
 *   **Security & Anti-Spam:** By requiring a fresh NRN (and thus a recently validated path) for each Skill invocation, the system inherently prevents spamming of Skills and ensures that network resources are used for genuinely routed operations.
@@ -42,8 +42,8 @@ When a KNIRV-SHELL agent needs to invoke a Skill on KNIRVCHAIN, it must present 
 
 #### 2.4. Traffic Routing and P2P Facilitation
 Beyond NRN production, the KNIRV-ROUTER performs traditional routing functions, facilitating secure peer-to-peer (P2P) communication between various KNIRV components:
-*   **Agent-to-Agent Communication:** Enabling KNIRV-SHELL instances to communicate directly or via relays.
-*   **KNIRVANA Client Connectivity:** Supporting real-time multiplayer gameplay by routing traffic between KNIRVANA clients and their associated KNIRV-SHELL agent units.
+*   **Agent-to-Agent Communication:** Enabling KNIRV-CLI instances to communicate directly or via relays.
+*   **KNIRVANA Client Connectivity:** Supporting real-time multiplayer gameplay by routing traffic between KNIRVANA clients and their associated KNIRV-CLI agent units.
 *   **DVE Access:** Routing requests from KNIRV-SHELLs to KNIRV-NEXUS DVEs for secure execution and validation.
 *   **General Network Access:** Providing robust connectivity for KNIRV-SHELLs to access the KNIRVCHAIN, KNIRV-GRAPH, and other external services.
 
@@ -68,7 +68,7 @@ graph TD
         KRC -- "Interacts with Faucet" --> KRF["KNIRV-ORACLE Faucet (on KNIRV-ORACLE Blockchain)"]
     end
 
-    OtherNodes -- "Traffic to/from" --> KNIRV_SHELL[KNIRV-SHELL]
+    OtherNodes -- "Traffic to/from" --> KNIRV_SHELL[KNIRV-CLI]
     OtherNodes -- "Traffic to/from" --> KNIRV_NEXUS[KNIRV-NEXUS DVEs]
     OtherNodes -- "Traffic to/from" --> KNIRVANA[KNIRVANA Clients]
     KRF -- "Orchestrates NRN" --> KNIRV_ROOT[KNIRV-ORACLE Blockchain]
@@ -128,7 +128,7 @@ The KNIRV-ROUTER is designed with robust security measures to ensure network int
 *   **Advanced Network Monitoring:** Integrate sophisticated network monitoring tools to provide real-time insights into network health and router performance.
 
 ### 7. Conclusion
-The KNIRV-ROUTER is a pivotal layer within the KNIRV D-TEN, transcending traditional routing to become an active participant in the network's economic and intelligence loops. By linking NRN token production to verifiable "Proof-of-Connectivity" and embedding URI path certificates that enable Skill routine invocation, it ensures the physical integrity of the network, fuels the NRN economy, and provides the essential communication backbone for KNIRV-SHELL agents, KNIRVANA clients, and the evolving Base LLM. The KNIRV-ROUTER is fundamental to realizing the vision of a truly resilient, self-sustaining, and intelligent decentralized network.
+The KNIRV-ROUTER is a pivotal layer within the KNIRV D-TEN, transcending traditional routing to become an active participant in the network's economic and intelligence loops. By linking NRN token production to verifiable "Proof-of-Connectivity" and embedding URI path certificates that enable Skill routine invocation, it ensures the physical integrity of the network, fuels the NRN economy, and provides the essential communication backbone for KNIRV-CLI agents, KNIRVANA clients, and the evolving Base LLM. The KNIRV-ROUTER is fundamental to realizing the vision of a truly resilient, self-sustaining, and intelligent decentralized network.
 
 <div class="footer-links">
 <a href="#/legal/CODE_OF_CONDUCT" class="footer-link">Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY" class="footer-link">Privacy Policy</a> | <a href="#/legal/TERMS_AND_CONDITIONS" class="footer-link">Terms and Conditions</a>
