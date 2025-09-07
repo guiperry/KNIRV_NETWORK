@@ -102,7 +102,7 @@ export class KNIRVRouterIntegration extends EventEmitter {
   private activeRequests: Map<string, KNIRVRouterRequest> = new Map();
   private routingCache: Map<string, SkillNodeURI[]> = new Map();
   private p2pConnections: Map<string, WebSocket> = new Map();
-  private retryTimeouts: Set<NodeJS.Timeout> = new Set();
+  private retryTimeouts: Set<NodeJS.Timeout | number> = new Set();
   private isShuttingDown: boolean = false;
 
   constructor(config: Partial<KNIRVRouterConfig> = {}) {
@@ -564,11 +564,11 @@ export class KNIRVRouterIntegration extends EventEmitter {
       if (filter) {
         const params = new URLSearchParams();
         Object.keys(filter).forEach(key => {
-          if (filter[key] !== undefined) {
-            if (Array.isArray(filter[key])) {
-              filter[key].forEach((value: string) => params.append(key, value));
+          if ((filter as any)[key] !== undefined) {
+            if (Array.isArray((filter as any)[key])) {
+              (filter as any)[key].forEach((value: string) => params.append(key, value));
             } else {
-              params.append(key, filter[key].toString());
+              params.append(key, (filter as any)[key].toString());
             }
           }
         });

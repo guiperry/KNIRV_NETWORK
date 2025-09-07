@@ -3,7 +3,7 @@
  * Comprehensive test suite for analytics dashboard functionality
  */
 
-import React from 'react';
+import * as React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import AnalyticsDashboard from '../../../src/components/AnalyticsDashboard';

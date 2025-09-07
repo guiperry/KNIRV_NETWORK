@@ -196,10 +196,10 @@ export class DesktopConnectionService {
   private handleWebSocketMessage(message: unknown) {
     console.log('Received WebSocket message:', message);
 
-    switch (message.type) {
+    switch ((message as any).type) {
       case 'hrm_response':
         if (this.onHRMResponse) {
-          this.onHRMResponse(message.data);
+          this.onHRMResponse((message as any).data);
         }
         break;
       case 'heartbeat':

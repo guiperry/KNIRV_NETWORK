@@ -7,6 +7,7 @@ import { NetworkStatus } from '../components/NetworkStatus';
 import { AgentManager } from '../components/AgentManager';
 import { CognitiveShellInterface } from '../components/CognitiveShellInterface';
 import QRScanner from '../components/QRScanner';
+import { Agent } from '../types/common';
 // Temporarily comment out problematic imports for testing
 // import { KNIRVRouterIntegration, LoRAAdapterData } from '../sensory-shell/KNIRVRouterIntegration';
 // import { CognitiveEngine } from '../sensory-shell/CognitiveEngine';
@@ -60,10 +61,11 @@ export default function Skills() {
     knirvGateway: 'disconnected'
   });
 
-  const [availableAgents] = useState([
+  const [availableAgents] = useState<Agent[]>([
     {
-      id: 'agent-1',
+      agentId: 'agent-1',
       name: 'CodeT5-Alpha',
+      version: '1.0.0',
       type: 'wasm' as const,
       status: 'Available' as const,
       nrnCost: 85,
@@ -81,11 +83,12 @@ export default function Skills() {
         },
         permissions: ['code-execution', 'file-access']
       },
-      createdAt: new Date()
+      createdAt: new Date().toISOString()
     },
     {
-      id: 'agent-2',
+      agentId: 'agent-2',
       name: 'SEAL-Beta',
+      version: '1.0.0',
       type: 'lora' as const,
       status: 'Available' as const,
       nrnCost: 90,
@@ -103,7 +106,7 @@ export default function Skills() {
         },
         permissions: ['learning', 'adaptation']
       },
-      createdAt: new Date()
+      createdAt: new Date().toISOString()
     }
   ]);
 

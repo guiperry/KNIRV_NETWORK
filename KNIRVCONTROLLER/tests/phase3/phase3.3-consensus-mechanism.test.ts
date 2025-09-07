@@ -559,10 +559,14 @@ describe('Phase 3.3 - Consensus Mechanism', () => {
     it('should validate AgentCoreNode and ConsensusProposal types', () => {
       // Test AgentCoreNode type usage
       const mockNode: AgentCoreNode = {
-        id: 'test-node',
+        nodeId: 'test-node',
+        address: 'test-address',
+        publicKey: 'test-key',
+        reputation: 0.8,
+        lastSeen: new Date(),
+        capabilities: ['consensus', 'validation'],
         status: NodeStatus.ACTIVE,
-        lastSeen: Date.now(),
-        capabilities: ['consensus', 'validation']
+        votingPower: 1.0
       };
 
       expect(mockNode.status).toBe(NodeStatus.ACTIVE);
@@ -570,14 +574,17 @@ describe('Phase 3.3 - Consensus Mechanism', () => {
 
       // Test ConsensusProposal type usage
       const mockProposal: ConsensusProposal = {
-        id: 'test-proposal',
-        proposerId: 'node-1',
-        type: 'skill_registration',
-        data: { skillId: 'test-skill' },
-        status: ProposalStatus.PENDING,
-        votes: [],
-        requiredVotes: 2,
-        createdAt: Date.now()
+        proposalId: 'test-proposal',
+        skillId: 'test-skill',
+        loraAdapter: {} as any,
+        validationResult: {} as any,
+        proposedBy: 'node-1',
+        proposedAt: new Date(),
+        submittedBy: 'node-1',
+        submittedAt: new Date(),
+        votingDeadline: new Date(),
+        requiredVotes: 3,
+        status: ProposalStatus.PENDING
       };
 
       expect(mockProposal.status).toBe(ProposalStatus.PENDING);

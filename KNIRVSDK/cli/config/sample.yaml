@@ -1,4 +1,4 @@
-# Enhanced KNIRVSHELL Configuration
+# Enhanced KNIRVCLI Configuration
 # This configuration demonstrates the full KNIRV Network integration capabilities
 
 # Legacy configuration (for backward compatibility)
@@ -76,12 +76,16 @@ knirv:
       meta_account: true
       gasless: true
     
-    # NRN Token Management
+    # NRN Token Management (Updated for Testnet Faucet)
     nrn:
       enabled: true
-      faucet_url: "http://localhost:9999/faucet"
+      faucet_url: "http://localhost:10000"  # Updated to testnet faucet
       auto_refill: true
       min_balance: "1000"
+      # Testnet faucet specific settings
+      max_retries: 3
+      request_timeout: 30
+      default_reason: "CLI request"
   
   # Real-time Communication Configuration
   realtime:
@@ -183,8 +187,10 @@ ui:
 #       api_endpoint: "https://api.xion.network"
 #     nrn:
 #       enabled: true
-#       faucet_url: "https://faucet.knirv.network"
+#       faucet_url: "https://testnet.knirv.com/api/faucet"  # Production testnet faucet
 #       auto_refill: true
 #       min_balance: "5000"
 #       max_refill_amount: "10000"
 #       refill_threshold: "1000"
+#       max_retries: 5
+#       request_timeout: 60

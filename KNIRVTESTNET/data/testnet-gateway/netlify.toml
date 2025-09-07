@@ -1,97 +1,45 @@
-[build]
-  # Static site with Netlify Functions - smart build with health monitoring
-  publish = "."
-  command = "npm run smart-build"
-  functions = "netlify/functions"
+# KNIRV TESTNET Gateway Netlify Configuration
+# Optimized for local developer use
 
-# Production build settings
-[build.environment]
-  NODE_VERSION = "18"
+[build]
+  functions = "netlify/functions"
+  publish = "."
 
 [dev]
+  functions = "netlify/functions"
+  publish = "."
   port = 8888
-  targetPort = 3000
-
-# Redirects for NEXUS Portal - let natural file serving work
-# The root index.html will redirect to landing.html automatically
-
-# Redirect to dashboard (React app)
-[[redirects]]
-  from = "/nexus-portal/dashboard"
-  to = "/nexus-portal/dist/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/nexus-portal/dashboard/"
-  to = "/nexus-portal/dist/index.html"
-  status = 200
-
-# Redirect nexus-portal assets to the dist/assets directory for React app
-[[redirects]]
-  from = "/nexus-portal/assets/*"
-  to = "/nexus-portal/dist/assets/:splat"
-  status = 200
-
-# Redirects for GraphChain Explorer
-[[redirects]]
-  from = "/graphchain-explorer/*"
-  to = "/graphchain-explorer/:splat"
-  status = 200
-
-# Redirect for Health Monitor
-[[redirects]]
-  from = "/health-monitor"
-  to = "/health-monitor.html"
-  status = 200
-
-# Gateway API redirects
-[[redirects]]
-  from = "/gateway/*"
-  to = "/.netlify/functions/gateway-sse"
-  status = 200
-
-[[redirects]]
-  from = "/auth/*"
-  to = "/.netlify/functions/gateway-sse"
-  status = 200
-
-# API redirects
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/gateway-sse"
-  status = 200
+  targetPort = 3999
+  framework = "#static"
+  command = ""
 
 [functions]
+  directory = "netlify/functions"
   node_bundler = "esbuild"
 
-# Testnet configuration
-[context.testnet]
-  base = "."
-  publish = "."
-  command = "echo 'Testnet static files - no build needed'"
+# Environment variables for testnet
+[context.testnet.environment]
+  NODE_ENV = "testnet"
+  TESTNET_MODE = "true"
+  KNIRVORACLE_URL = "http://localhost:1317"
+  KNIRVCHAIN_URL = "http://localhost:8090"
+  KNIRVGRAPH_URL = "http://localhost:8082"
+  KNIRVNEXUS_URL = "http://localhost:8084"
+  KNIRVNEXUS_API_URL = "http://localhost:8084/api"
+  KNIRVROUTER_URL = "http://localhost:8086"
 
-  [context.testnet.environment]
-    NODE_ENV = "production"
-    VITE_API_BASE_URL = "/.netlify/functions"
-    VITE_SSE_BASE_URL = "/.netlify/functions/gateway-sse"
-    VITE_TESTNET_MODE = "true"
-    TESTNET_MODE = "true"
-    KNIRVORACLE_URL = "http://localhost:1317"
-    KNIRVCHAIN_URL = "http://localhost:8090"
-    KNIRVGRAPH_URL = "http://localhost:8082"
-    KNIRVNEXUS_URL = "http://localhost:8084"
-    KNIRVROUTER_URL = "http://localhost:8086"
-
-# Headers for security and performance
+# Headers for CORS
 [[headers]]
   for = "/*"
   [headers.values]
-    X-Frame-Options = "DENY"
-    X-XSS-Protection = "1; mode=block"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
 
+# Function-specific headers
 [[headers]]
-  for = "/assets/*"
+  for = "/.netlify/functions/*"
   [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"

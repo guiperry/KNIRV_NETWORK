@@ -26,10 +26,6 @@ export const MetaAccountDashboard: React.FC<MetaAccountDashboardProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
 
-  useEffect(() => {
-    initializeWallet();
-  }, [initializeWallet]);
-
   const loadAccountData = useCallback(async (walletAccount: WalletAccount) => {
     try {
       // Load balance
@@ -42,8 +38,8 @@ export const MetaAccountDashboard: React.FC<MetaAccountDashboardProps> = ({
       }
 
       // Load recent transactions
-      const recentTransactions = await walletIntegrationService.getTransactionHistory(walletAccount.id, 10);
-      setTransactions(recentTransactions);
+      const recentTransactions = await walletIntegrationService.getTransactionHistory();
+      setTransactions(recentTransactions.slice(0, 10)); // Take only the first 10
     } catch (error) {
       console.error('Failed to load account data:', error);
     }
@@ -84,7 +80,9 @@ export const MetaAccountDashboard: React.FC<MetaAccountDashboardProps> = ({
     }
   }, [loadAccountData, connectWallet]);
 
-
+  useEffect(() => {
+    initializeWallet();
+  }, [initializeWallet]);
 
   const handleSendTransaction = async (recipient?: string, amount?: string) => {
     if (!account) {

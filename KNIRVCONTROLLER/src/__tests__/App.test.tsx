@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { axe } from 'jest-axe';
 
 // Mock the App component to avoid circular dependency issues
 const MockApp = () => {
@@ -321,10 +322,30 @@ describe('App Component', () => {
 
     it('should support screen readers', () => {
       render(<App />);
-      
+
       // Check for screen reader friendly content
       expect(screen.getByText(/KNIRV Cortex/i)).toBeInTheDocument();
       expect(screen.getByText(/AI Agent Framework/i)).toBeInTheDocument();
+    });
+
+    it('should have no accessibility violations', async () => {
+      const { container } = render(<App />);
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
+    });
+
+    it('should meet WCAG 2.1 AA standards', async () => {
+      const { container } = render(<App />);
+      const results = await axe(container, {
+        rules: {
+          // Enforce AA standards
+          'color-contrast': { enabled: true },
+          'target-size': { enabled: true },
+          'orientation': { enabled: true },
+          'text-spacing': { enabled: true }
+        }
+      });
+      expect(results).toHaveNoViolations();
     });
   });
 

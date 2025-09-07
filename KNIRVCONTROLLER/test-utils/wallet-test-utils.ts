@@ -272,7 +272,7 @@ export class KeyringTestUtils {
     }
 
     const validTypes = ['HD', 'PRIVATE_KEY', 'LEDGER', 'WEB3_AUTH', 'ADDRESS'];
-    if (!validTypes.includes(keyring.type)) {
+    if (!validTypes.includes((keyring as any).type)) {
       throw new Error(`Invalid keyring type: ${keyring.type}`);
     }
 
@@ -384,7 +384,7 @@ export class AccountTestUtils {
       throw new Error(`Account missing required fields: ${missingFields.join(', ')}`);
     }
 
-    if (!account.address.startsWith('g') && !account.address.startsWith('xion')) {
+    if (!(account as any).address.startsWith('g') && !(account as any).address.startsWith('xion')) {
       throw new Error('Invalid account address format');
     }
 
@@ -485,7 +485,7 @@ export class SyncTestUtils {
       throw new Error(`Sync session missing required fields: ${missingFields.join(', ')}`);
     }
 
-    if (session.expiresAt <= Date.now()) {
+    if ((session as any).expiresAt <= Date.now()) {
       throw new Error('Sync session has expired');
     }
 
@@ -499,7 +499,7 @@ export class SyncTestUtils {
 
   // Method to create wallet with test configuration
   static createWalletWithTestConfig(configIndex: number = 0) {
-    const configs = TEST_WALLET_CONFIGS;
+    const configs = Object.values(TEST_WALLET_CONFIGS);
     if (configIndex >= configs.length) {
       throw new Error(`Test config index ${configIndex} out of range`);
     }

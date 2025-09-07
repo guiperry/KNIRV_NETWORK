@@ -74,6 +74,7 @@ type DNSRecordConfig struct {
 
 // NewDynamicDNSService creates a new dynamic DNS service
 func NewDynamicDNSService(dataEngine *dataengine.BuntDBDataEngine, config DNSConfig) (*DynamicDNSService, error) {
+	// Allow development mode with placeholder token
 	if config.CloudFlareAPIToken == "" {
 		return nil, fmt.Errorf("CloudFlare API token is required")
 	}
@@ -104,8 +105,14 @@ func NewDynamicDNSService(dataEngine *dataengine.BuntDBDataEngine, config DNSCon
 
 	ctx, cancel := context.WithCancel(context.Background())
 
+	// Initialize DNS manager only if not in development mode
+	var dnsManager *cloudflare.DNSManager
+	if config.CloudFlareAPIToken != "dev-token" {
+		dnsManager = cloudflare.NewDNSManager(config.CloudFlareAPIToken)
+	}
+
 	service := &DynamicDNSService{
-		dnsManager: cloudflare.NewDNSManager(config.CloudFlareAPIToken),
+		dnsManager: dnsManager,
 		dataEngine: dataEngine,
 		config:     config,
 		ctx:        ctx,

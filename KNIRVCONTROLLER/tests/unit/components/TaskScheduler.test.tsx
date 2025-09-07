@@ -3,7 +3,7 @@
  * Comprehensive test suite for task scheduler functionality
  */
 
-import React from 'react';
+import * as React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import TaskScheduler from '../../../src/components/TaskScheduler';
@@ -30,7 +30,7 @@ describe('TaskScheduler', () => {
       id: 'task-1',
       name: 'Daily Backup',
       description: 'Automated daily backup task',
-      type: 'system_maintenance' as const,
+      type: 'maintenance' as const,
       status: 'completed' as const,
       priority: 'high' as const,
       schedule: {
@@ -54,7 +54,7 @@ describe('TaskScheduler', () => {
       id: 'task-2',
       name: 'Agent Health Check',
       description: 'Check agent status and performance',
-      type: 'agent_monitoring' as const,
+      type: 'analysis' as const,
       status: 'running' as const,
       priority: 'medium' as const,
       schedule: {

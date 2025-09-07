@@ -3,7 +3,7 @@
  * Comprehensive test suite for settings panel functionality
  */
 
-import React from 'react';
+import * as React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import SettingsPanel from '../../../src/components/SettingsPanel';
@@ -477,7 +477,13 @@ describe('SettingsPanel', () => {
           
           // Simulate FileReader onload
           if (mockFileReader.onload) {
-            mockFileReader.onload({ target: mockFileReader } as ProgressEvent<FileReader>);
+            const progressEvent = {
+              target: mockFileReader,
+              lengthComputable: false,
+              loaded: 0,
+              total: 0
+            } as unknown as ProgressEvent<FileReader>;
+            mockFileReader.onload(progressEvent);
           }
         }
       });

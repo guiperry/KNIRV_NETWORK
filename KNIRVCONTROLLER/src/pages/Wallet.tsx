@@ -1,11 +1,13 @@
-import { Wallet, ArrowUpRight, ArrowDownLeft, Zap, TrendingUp, Copy, Shield, QrCode, X, CheckCircle} from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, Zap, TrendingUp, Copy, Shield, QrCode, X, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SlidingPanel } from '@components/SlidingPanel';
 import { NetworkStatus } from '@components/NetworkStatus';
 import { AgentManager } from '@components/AgentManager';
 import { CognitiveShellInterface } from '@components/CognitiveShellInterface';
 import QRScanner from '@components/QRScanner';
+import { apiService, isAPIError, getErrorMessage } from '../services/APIService';
+import { webSocketService, subscribeToWallet } from '../services/WebSocketService';
 
 export default function WalletPage() {
   const navigate = useNavigate();
@@ -15,8 +17,23 @@ export default function WalletPage() {
   const [showAddFunds, setShowAddFunds] = useState(false);
   const [showSendNRN, setShowSendNRN] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
-  const [cognitiveState, setCognitiveState] = useState<unknown>(null);
+  const [cognitiveState, setCognitiveState] = useState<{ mode?: string; isActive?: boolean; timestamp?: number } | null>(null);
   const [cognitiveMode, setCognitiveMode] = useState(false);
+
+  // Wallet operation states
+  const [addFundsLoading, setAddFundsLoading] = useState(false);
+  const [sendNRNLoading, setSendNRNLoading] = useState(false);
+  const [addFundsError, setAddFundsError] = useState<string | null>(null);
+  const [sendNRNError, setSendNRNError] = useState<string | null>(null);
+  const [addFundsSuccess, setAddFundsSuccess] = useState(false);
+  const [sendNRNSuccess, setSendNRNSuccess] = useState(false);
+
+  // Form states
+  const [addFundsAmount, setAddFundsAmount] = useState('');
+  const [addFundsMethod, setAddFundsMethod] = useState('Credit Card');
+  const [sendNRNAddress, setSendNRNAddress] = useState('');
+  const [sendNRNAmount, setSendNRNAmount] = useState('');
+  const [sendNRNNote, setSendNRNNote] = useState('');
 
   // Mock data for slideouts
   const [networkConnections] = useState<{
@@ -79,6 +96,23 @@ export default function WalletPage() {
     change24h: 5.2,
     walletAddress: '0x742d35Cc6aa34567...8B9fA2e1C4D'
   };
+
+  // WebSocket subscription
+  useEffect(() => {
+    const connectWebSocket = async () => {
+      const connected = await webSocketService.connect();
+      if (connected) {
+        // Subscribe to wallet updates
+        subscribeToWallet(walletData.walletAddress);
+      }
+    };
+
+    connectWebSocket();
+
+    return () => {
+      webSocketService.disconnect();
+    };
+  }, [walletData.walletAddress]);
 
   const transactions = [
     {
@@ -179,6 +213,85 @@ export default function WalletPage() {
     setShowSendNRN(true);
   };
 
+  // Add funds functionality
+  const executeAddFunds = async () => {
+    if (!addFundsAmount || parseFloat(addFundsAmount) <= 0) {
+      setAddFundsError('Please enter a valid amount');
+      return;
+    }
+
+    setAddFundsLoading(true);
+    setAddFundsError(null);
+
+    try {
+      const response = await apiService.post('/wallet/add-funds', {
+        amount: addFundsAmount,
+        paymentMethod: addFundsMethod,
+        currency: 'USD'
+      });
+
+      if (isAPIError(response)) {
+        setAddFundsError(getErrorMessage(response));
+        return;
+      }
+
+      setAddFundsSuccess(true);
+      setTimeout(() => {
+        setShowAddFunds(false);
+        setAddFundsSuccess(false);
+        setAddFundsAmount('');
+      }, 2000);
+
+    } catch {
+      setAddFundsError('Failed to add funds. Please try again.');
+    } finally {
+      setAddFundsLoading(false);
+    }
+  };
+
+  // Send NRN functionality
+  const executeSendNRN = async () => {
+    if (!sendNRNAddress || !sendNRNAmount || parseFloat(sendNRNAmount) <= 0) {
+      setSendNRNError('Please provide recipient address and valid amount');
+      return;
+    }
+
+    if (parseFloat(sendNRNAmount) > walletData.nrnBalance) {
+      setSendNRNError('Insufficient balance');
+      return;
+    }
+
+    setSendNRNLoading(true);
+    setSendNRNError(null);
+
+    try {
+      const response = await apiService.post('/wallet/send-transaction', {
+        recipient: sendNRNAddress,
+        amount: sendNRNAmount,
+        note: sendNRNNote || undefined
+      });
+
+      if (isAPIError(response)) {
+        setSendNRNError(getErrorMessage(response));
+        return;
+      }
+
+      setSendNRNSuccess(true);
+      setTimeout(() => {
+        setShowSendNRN(false);
+        setSendNRNSuccess(false);
+        setSendNRNAddress('');
+        setSendNRNAmount('');
+        setSendNRNNote('');
+      }, 2000);
+
+    } catch {
+      setSendNRNError('Failed to send NRN. Please try again.');
+    } finally {
+      setSendNRNLoading(false);
+    }
+  };
+
   const handleQRScan = () => {
     setActivePanels(prev =>
       prev.includes('qr-scanner')
@@ -189,7 +302,7 @@ export default function WalletPage() {
   };
 
   const handleCognitiveStateChange = (state: unknown) => {
-    setCognitiveState(state);
+    setCognitiveState(state as { mode?: string; isActive?: boolean; timestamp?: number } | null);
     if (state && typeof state === 'object' && 'status' in state) {
       const stateObj = state as { status: string };
       setCognitiveMode(stateObj.status === 'active' || stateObj.status === 'learning');
@@ -540,29 +653,56 @@ export default function WalletPage() {
               <button
                 onClick={() => setShowAddFunds(false)}
                 className="p-2 hover:bg-gray-700/50 rounded-lg text-gray-400 hover:text-white transition-all"
+                disabled={addFundsLoading}
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
             <div className="space-y-4">
+              {addFundsError && (
+                <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
+                  <p className="text-sm text-red-400">{addFundsError}</p>
+                </div>
+              )}
+
+              {addFundsSuccess && (
+                <div className="p-3 bg-green-500/20 border border-green-500/30 rounded-lg">
+                  <p className="text-sm text-green-400">Funds added successfully!</p>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Amount (NRN)</label>
                 <input
                   type="number"
                   placeholder="0.00"
+                  value={addFundsAmount}
+                  onChange={(e) => setAddFundsAmount(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-blue-400 focus:outline-none"
+                  disabled={addFundsLoading}
+                  step="0.01"
+                  min="0"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Payment Method</label>
-                <select className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-blue-400 focus:outline-none">
+                <select
+                  value={addFundsMethod}
+                  onChange={(e) => setAddFundsMethod(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-blue-400 focus:outline-none"
+                  disabled={addFundsLoading}
+                >
                   <option>Credit Card</option>
                   <option>Bank Transfer</option>
                   <option>Crypto Transfer</option>
                 </select>
               </div>
-              <button className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-all">
-                Add Funds
+              <button
+                onClick={executeAddFunds}
+                disabled={addFundsLoading || addFundsSuccess}
+                className="w-full py-3 bg-green-600 hover:bg-green-700 disabled:bg-green-600/50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all"
+              >
+                {addFundsLoading ? 'Processing...' : addFundsSuccess ? 'Success!' : 'Add Funds'}
               </button>
             </div>
           </div>
@@ -578,17 +718,33 @@ export default function WalletPage() {
               <button
                 onClick={() => setShowSendNRN(false)}
                 className="p-2 hover:bg-gray-700/50 rounded-lg text-gray-400 hover:text-white transition-all"
+                disabled={sendNRNLoading}
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
             <div className="space-y-4">
+              {sendNRNError && (
+                <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
+                  <p className="text-sm text-red-400">{sendNRNError}</p>
+                </div>
+              )}
+
+              {sendNRNSuccess && (
+                <div className="p-3 bg-green-500/20 border border-green-500/30 rounded-lg">
+                  <p className="text-sm text-green-400">NRN sent successfully!</p>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Recipient Address</label>
                 <input
                   type="text"
                   placeholder="0x..."
+                  value={sendNRNAddress}
+                  onChange={(e) => setSendNRNAddress(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-blue-400 focus:outline-none"
+                  disabled={sendNRNLoading}
                 />
               </div>
               <div>
@@ -596,7 +752,13 @@ export default function WalletPage() {
                 <input
                   type="number"
                   placeholder="0.00"
+                  value={sendNRNAmount}
+                  onChange={(e) => setSendNRNAmount(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-blue-400 focus:outline-none"
+                  disabled={sendNRNLoading}
+                  step="0.01"
+                  min="0"
+                  max={walletData.nrnBalance}
                 />
               </div>
               <div>
@@ -604,7 +766,10 @@ export default function WalletPage() {
                 <input
                   type="text"
                   placeholder="Payment for..."
+                  value={sendNRNNote}
+                  onChange={(e) => setSendNRNNote(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-blue-400 focus:outline-none"
+                  disabled={sendNRNLoading}
                 />
               </div>
               <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-3">
@@ -612,9 +777,17 @@ export default function WalletPage() {
                   <span className="text-gray-400">Network Fee:</span>
                   <span className="text-white">0.001 NRN</span>
                 </div>
+                <div className="flex justify-between text-sm mt-1">
+                  <span className="text-gray-400">Available Balance:</span>
+                  <span className="text-white">{walletData.nrnBalance.toLocaleString()} NRN</span>
+                </div>
               </div>
-              <button className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all">
-                Send NRN
+              <button
+                onClick={executeSendNRN}
+                disabled={sendNRNLoading || sendNRNSuccess}
+                className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all"
+              >
+                {sendNRNLoading ? 'Sending...' : sendNRNSuccess ? 'Success!' : 'Send NRN'}
               </button>
             </div>
           </div>

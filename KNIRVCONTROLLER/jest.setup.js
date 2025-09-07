@@ -1,3 +1,7 @@
+// Setup jest-axe for accessibility testing
+import { toHaveNoViolations } from 'jest-axe';
+expect.extend(toHaveNoViolations);
+
 // Mock WebAssembly for Jest environment
 global.WebAssembly = {
   instantiate: jest.fn().mockResolvedValue({

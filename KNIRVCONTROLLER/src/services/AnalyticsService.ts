@@ -61,10 +61,31 @@ export interface AnalyticsConfig {
 
 export class AnalyticsService {
   private metrics: Map<string, AnalyticsMetric[]> = new Map();
-  private dashboardStats: DashboardStats;
-  private performanceMetrics: PerformanceMetrics;
-  private usageAnalytics: UsageAnalytics;
-  private agentAnalytics: AgentAnalytics;
+  private dashboardStats: DashboardStats = {
+    activeAgents: 0,
+    totalSkills: 0,
+    totalTransactions: 0,
+    networkHealth: 'healthy',
+    lastUpdated: new Date()
+  } as any;
+  private performanceMetrics: PerformanceMetrics = {
+    throughput: 0,
+    errorRate: 0,
+    uptime: 100,
+    lastMeasured: new Date()
+  } as any;
+  private usageAnalytics: UsageAnalytics = {
+    totalSessions: 0,
+    averageSessionDuration: 0,
+    popularFeatures: [],
+    lastCalculated: new Date()
+  } as any;
+  private agentAnalytics: AgentAnalytics = {
+    successRate: 0,
+    averageExecutionTime: 0,
+    resourceUtilization: 0,
+    lastAnalyzed: new Date()
+  } as any;
   private baseUrl: string;
   private isCollecting: boolean = false;
   private collectionInterval: NodeJS.Timeout | null = null;
@@ -158,7 +179,7 @@ export class AnalyticsService {
           value: networkMetrics.averageLatency,
           unit: 'milliseconds',
           category: 'performance',
-          metadata: networkMetrics
+          metadata: networkMetrics as any
         });
       }
     }, 30000); // Every 30 seconds
@@ -171,7 +192,7 @@ export class AnalyticsService {
         value: perfMetrics.renderTime,
         unit: 'milliseconds',
         category: 'performance',
-        metadata: perfMetrics
+        metadata: perfMetrics as any
       });
     }, 10000); // Every 10 seconds
   }
@@ -181,9 +202,9 @@ export class AnalyticsService {
    */
   private cleanupOldMetrics(): void {
     const cutoffTime = Date.now() - (24 * 60 * 60 * 1000); // 24 hours ago
-    this.metrics = this.metrics.filter(metric =>
-      metric.timestamp.getTime() > cutoffTime
-    );
+    this.metrics = new Map([...this.metrics.entries()].filter(([_key, metrics]) =>
+      metrics.some((metric: any) => metric.timestamp.getTime() > cutoffTime)
+    ));
   }
 
   /**
@@ -225,7 +246,7 @@ export class AnalyticsService {
       // Start periodic data collection
       this.collectionInterval = setInterval(() => {
         this.collectMetrics();
-      }, 30000); // Collect every 30 seconds
+      }, 30000) as any; // Collect every 30 seconds
 
       console.log('Analytics collection started');
     } catch (error) {

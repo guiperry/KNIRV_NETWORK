@@ -29,7 +29,7 @@ export class TerminalCommandService {
   private commandHistory: CommandHistory[] = [];
   private currentContext: CommandContext;
   private baseUrl: string;
-  private supportedCommands: Map<string, (args: string[]) => Promise<CommandResult>>;
+  private supportedCommands: Map<string, (args: string[]) => Promise<CommandResult>> = new Map();
 
   constructor(baseUrl: string = 'http://localhost:3001') {
     this.baseUrl = baseUrl;

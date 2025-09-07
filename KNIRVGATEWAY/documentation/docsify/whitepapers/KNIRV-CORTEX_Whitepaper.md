@@ -72,7 +72,7 @@ KNIRV-CORTEX prioritizes developer experience through comprehensive documentatio
 
 #### **4.2. Development Tools**
 
-*   **CLI Integration**: Seamless integration with KNIRV-SHELL for command-line development workflows.
+*   **CLI Integration**: Seamless integration with KNIRV-CLI for command-line development workflows.
 *   **IDE Support**: Plugins and extensions for popular development environments to streamline the development process.
 *   **Debugging Tools**: Sophisticated debugging and profiling tools specifically designed for WASM-based agent cores.
 *   **Testing Framework**: Comprehensive testing framework that enables unit testing, integration testing, and performance testing of agent cores.

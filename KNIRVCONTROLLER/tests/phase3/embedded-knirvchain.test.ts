@@ -31,7 +31,7 @@ class MockEmbeddedKNIRVChain {
   }
 
   async registerSkill(skill: Record<string, unknown>): Promise<void> {
-    this.skills.set(skill.skillId, {
+    this.skills.set(skill.skillId as string, {
       ...skill,
       createdAt: new Date(),
       lastUsed: new Date(),
@@ -41,7 +41,7 @@ class MockEmbeddedKNIRVChain {
   }
 
   async invokeSkill(request: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const skill = this.skills.get(request.skillId);
+    const skill = this.skills.get(request.skillId as string);
     if (!skill) {
       return {
         invocationId: request.invocationId,
@@ -55,7 +55,7 @@ class MockEmbeddedKNIRVChain {
 
     // Update usage
     skill.lastUsed = new Date();
-    skill.usageCount++;
+    (skill as any).usageCount++;
 
     return {
       invocationId: request.invocationId,
@@ -76,17 +76,17 @@ class MockEmbeddedKNIRVChain {
         if (filter.baseModel && skill.baseModelCompatibility !== filter.baseModel) {
           return false;
         }
-        if (filter.maxRank && skill.rank > filter.maxRank) {
+        if (filter.maxRank && (skill as any).rank > filter.maxRank) {
           return false;
         }
         if (filter.capabilities) {
-          const skillCapabilities = skill.additionalMetadata.capabilities?.split(',') || [];
-          const hasRequired = filter.capabilities.every((cap: string) =>
+          const skillCapabilities = (skill as any).additionalMetadata?.capabilities?.split(',') || [];
+          const hasRequired = (filter.capabilities as string[]).every((cap: string) =>
             skillCapabilities.includes(cap)
           );
           if (!hasRequired) return false;
         }
-        if (filter.excludeSkills && filter.excludeSkills.includes(skill.skillId)) {
+        if (filter.excludeSkills && (filter.excludeSkills as string[]).includes((skill as any).skillId)) {
           return false;
         }
         return true;
@@ -109,15 +109,15 @@ class MockEmbeddedKNIRVChain {
     const mergedWeights = {
       weightsA: new Float32Array(64).fill(0.05),
       weightsB: new Float32Array(64).fill(0.1),
-      rank: Math.max(...skills.map(s => s.rank)),
-      alpha: skills.reduce((sum, s) => sum + s.alpha, 0) / skills.length
+      rank: Math.max(...skills.map(s => (s as any).rank)),
+      alpha: skills.reduce((sum, s) => sum + (s as any).alpha, 0) / skills.length
     };
 
     const chain = {
       chainId,
       skills,
       mergedWeights,
-      consensusScore: skills.reduce((sum, s) => sum + s.consensusScore, 0) / skills.length,
+      consensusScore: skills.reduce((sum, s) => sum + (s as any).consensusScore, 0) / skills.length,
       lastUpdated: new Date()
     };
 
@@ -144,10 +144,10 @@ class MockEmbeddedKNIRVChain {
 const EmbeddedKNIRVChain = MockEmbeddedKNIRVChain;
 
 describe('Phase 3.1: Embedded KNIRVCHAIN Revolutionary Architecture', () => {
-  let embeddedChain: EmbeddedKNIRVChain;
+  let embeddedChain: MockEmbeddedKNIRVChain;
 
   beforeEach(async () => {
-    embeddedChain = new EmbeddedKNIRVChain({
+    embeddedChain = new MockEmbeddedKNIRVChain({
       modelKernel: 'hrm',
       maxMemoryMB: 256,
       consensusThreshold: 0.75,
@@ -261,8 +261,8 @@ describe('Phase 3.1: Embedded KNIRVCHAIN Revolutionary Architecture', () => {
       const response = await embeddedChain.invokeSkill(request);
       
       expect(response.status).toBe('SUCCESS');
-      expect(response.skill?.rank).toBe(8);
-      expect(response.skill?.alpha).toBe(16.0);
+      expect((response as any).skill?.rank).toBe(8);
+      expect((response as any).skill?.alpha).toBe(16.0);
       expect(response.memoryUsed).toBeGreaterThan(0);
     });
   });
@@ -325,7 +325,7 @@ describe('Phase 3.1: Embedded KNIRVCHAIN Revolutionary Architecture', () => {
       });
 
       expect(lowRankSkills.length).toBeGreaterThan(0);
-      lowRankSkills.forEach(skill => {
+      lowRankSkills.forEach((skill: any) => {
         expect(skill.rank).toBeLessThanOrEqual(8);
       });
     });
@@ -336,7 +336,7 @@ describe('Phase 3.1: Embedded KNIRVCHAIN Revolutionary Architecture', () => {
       });
 
       expect(debuggingSkills.length).toBeGreaterThan(0);
-      debuggingSkills.forEach(skill => {
+      debuggingSkills.forEach((skill: any) => {
         expect(skill.additionalMetadata.capabilities).toContain('debugging');
       });
     });
@@ -346,7 +346,7 @@ describe('Phase 3.1: Embedded KNIRVCHAIN Revolutionary Architecture', () => {
         excludeSkills: ['filter-test-001']
       });
 
-      const excludedSkill = filteredSkills.find(skill => skill.skillId === 'filter-test-001');
+      const excludedSkill = filteredSkills.find((skill: any) => skill.skillId === 'filter-test-001');
       expect(excludedSkill).toBeUndefined();
     });
   });
@@ -394,31 +394,31 @@ describe('Phase 3.1: Embedded KNIRVCHAIN Revolutionary Architecture', () => {
 
     it('should create skill chain from multiple LoRA adapters', async () => {
       const skills = await embeddedChain.getSkills();
-      const chainSkills = skills.filter(skill => skill.skillId.startsWith('chain-skill'));
+      const chainSkills = skills.filter((skill: any) => skill.skillId.startsWith('chain-skill'));
       
       const skillChain = await embeddedChain.createSkillChain(chainSkills);
       
       expect(skillChain.chainId).toBeDefined();
-      expect(skillChain.skills.length).toBe(2);
+      expect((skillChain as any).skills.length).toBe(2);
       expect(skillChain.mergedWeights).toBeDefined();
       expect(skillChain.consensusScore).toBeGreaterThan(0);
     });
 
     it('should merge LoRA adapter weights correctly', async () => {
       const skills = await embeddedChain.getSkills();
-      const chainSkills = skills.filter(skill => skill.skillId.startsWith('chain-skill'));
+      const chainSkills = skills.filter((skill: any) => skill.skillId.startsWith('chain-skill'));
       
       const skillChain = await embeddedChain.createSkillChain(chainSkills);
       
-      expect(skillChain.mergedWeights?.weightsA).toBeDefined();
-      expect(skillChain.mergedWeights?.weightsB).toBeDefined();
-      expect(skillChain.mergedWeights?.rank).toBeGreaterThan(0);
-      expect(skillChain.mergedWeights?.alpha).toBeGreaterThan(0);
+      expect((skillChain as any).mergedWeights?.weightsA).toBeDefined();
+      expect((skillChain as any).mergedWeights?.weightsB).toBeDefined();
+      expect((skillChain as any).mergedWeights?.rank).toBeGreaterThan(0);
+      expect((skillChain as any).mergedWeights?.alpha).toBeGreaterThan(0);
     });
 
     it('should calculate consensus score for skill chain', async () => {
       const skills = await embeddedChain.getSkills();
-      const chainSkills = skills.filter(skill => skill.skillId.startsWith('chain-skill'));
+      const chainSkills = skills.filter((skill: any) => skill.skillId.startsWith('chain-skill'));
       
       const skillChain = await embeddedChain.createSkillChain(chainSkills);
       
@@ -443,7 +443,7 @@ describe('Phase 3.1: Embedded KNIRVCHAIN Revolutionary Architecture', () => {
       });
 
       const skills = await embeddedChain.getSkills();
-      const testSkill = skills.find(skill => skill.skillId === 'consensus-test-001');
+      const testSkill = skills.find((skill: any) => skill.skillId === 'consensus-test-001');
       
       expect(testSkill?.consensusScore).toBeDefined();
       expect(testSkill?.consensusScore).toBe(1.0); // New skills start with perfect consensus
@@ -475,7 +475,7 @@ describe('Phase 3.1: Embedded KNIRVCHAIN Revolutionary Architecture', () => {
       await embeddedChain.invokeSkill(request);
 
       const skills = await embeddedChain.getSkills();
-      const testSkill = skills.find(skill => skill.skillId === 'usage-test-001');
+      const testSkill = skills.find((skill: any) => skill.skillId === 'usage-test-001');
       
       expect(testSkill?.usageCount).toBe(1);
       expect(testSkill?.lastUsed).toBeDefined();
@@ -570,7 +570,7 @@ describe('Phase 3.1: Embedded KNIRVCHAIN Revolutionary Architecture', () => {
       const responses = await Promise.all(promises);
       
       expect(responses.length).toBe(5);
-      responses.forEach((response, index) => {
+      responses.forEach((response: any, index: number) => {
         expect(response.status).toBe('SUCCESS');
         expect(response.invocationId).toBe(`concurrent-inv-${index}`);
       });

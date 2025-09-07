@@ -1,0 +1,147 @@
+# KNIRV Network Monitor Configuration Example
+# Copy this file to config/config.yaml to customize settings
+
+active_network: production
+
+networks:
+  production:
+    name: "KNIRV Production Network"
+    description: "Main KNIRV production network with integrated agents"
+    services:
+      - name: knirvoracle
+        url: "http://localhost:8083"
+        health_endpoint: "/health"
+        check_interval: 30s
+        timeout: 10s
+        critical: true
+      - name: ipfs
+        url: "http://localhost:5001"
+        health_endpoint: "/api/v0/version"
+        check_interval: 30s
+        timeout: 10s
+        critical: true
+      - name: bootnode-registry
+        url: "http://localhost:3003"
+        health_endpoint: "/status"
+        check_interval: 30s
+        timeout: 10s
+        critical: true
+      - name: notary-system
+        url: "http://localhost:9002"
+        health_endpoint: "/api/health"
+        check_interval: 30s
+        timeout: 10s
+        critical: true
+      - name: payment-gateway
+        url: "http://localhost:3000"
+        health_endpoint: "/health"
+        check_interval: 30s
+        timeout: 10s
+        critical: true
+      - name: tunnel-registry
+        url: "http://localhost:3004"
+        health_endpoint: "/status"
+        check_interval: 30s
+        timeout: 10s
+        critical: true
+    endpoints:
+      prometheus: "http://localhost:9090"
+      grafana: "http://localhost:3000"
+      kibana: "http://localhost:5601"
+      alertmanager: "http://localhost:9093"
+
+  testnet:
+    name: "KNIRV Testnet"
+    description: "KNIRV development and testing network"
+    services:
+      - name: ipfs
+        url: "http://localhost:5001"
+        health_endpoint: "/api/v0/version"
+        check_interval: 30s
+        timeout: 10s
+        critical: true
+    endpoints:
+      prometheus: "http://localhost:9091"
+      grafana: "http://localhost:3001"
+      kibana: "http://localhost:5602"
+      alertmanager: "http://localhost:9094"
+
+monitoring:
+  enabled: true
+  check_interval: 30s
+  metrics_retention: 720h  # 30 days
+  prometheus:
+    url: "http://localhost:9090"
+    scrape_interval: 15s
+    evaluation_interval: 30s
+    retention_time: "15d"
+  grafana:
+    url: "http://localhost:3000"
+    username: "admin"
+    password: "admin"
+    org_id: 1
+
+logging:
+  enabled: true
+  level: "info"
+  retention: 168h  # 7 days
+  elasticsearch:
+    urls: ["http://localhost:9200"]
+    username: "elastic"
+    password: "changeme"
+    index: "knirv-logs"
+  log_paths:
+    ipfs: "/var/log/ipfs.log"
+    knirvoracle: "/var/log/KNIRVORACLE.log"
+
+alerting:
+  enabled: true
+  rules:
+    - name: "High CPU Usage"
+      description: "Alert when CPU usage exceeds 90%"
+      condition: "node_cpu_usage > 90"
+      severity: "warning"
+      duration: 5m
+      channels: ["email", "slack"]
+      enabled: true
+  channels:
+    email:
+      type: "email"
+      config:
+        smtp_host: "smtp.gmail.com"
+        smtp_port: 587
+        username: "your-email@gmail.com"
+        password: "your-password"
+        from: "monitor@knirv.com"
+        to: "admin@knirv.com"
+      enabled: true
+    slack:
+      type: "slack"
+      config:
+        webhook_url: "https://hooks.slack.com/services/..."
+        channel: "#alerts"
+      enabled: true
+  escalation:
+    enabled: true
+    max_level: 3
+    levels:
+      - level: 1
+        duration: 15m
+        channels: ["email"]
+      - level: 2
+        duration: 30m
+        channels: ["slack", "email"]
+      - level: 3
+        duration: 1h
+        channels: ["slack", "email", "pagerduty"]
+
+gui:
+  theme: "cobalt"  # Options: "dark", "light", "cobalt"
+  refresh_interval: 5s
+  window_size:
+    width: 1200
+    height: 800
+  charts:
+    time_range: 1h
+    update_interval: 5s
+    max_data_points: 100

@@ -1,7 +1,7 @@
 // agent-tunnel-registry/config.js
 module.exports = {
     // HTTP API configuration
-    httpApiPort: process.env.HTTP_API_PORT || 3003,
+    httpApiPort: process.env.HTTP_API_PORT || 3004,
     
     // Tunnel service configuration
     controlListenerPort: process.env.CONTROL_PORT || 4001, // Internal nodes connect here

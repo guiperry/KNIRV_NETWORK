@@ -270,7 +270,7 @@ app.use((err: unknown, req: express.Request, res: express.Response, _next: expre
   console.error('API Error:', err);
   res.status(500).json({ 
     error: 'Internal server error',
-    message: err.message,
+    message: err instanceof Error ? err.message : String(err),
     timestamp: new Date().toISOString()
   });
 });

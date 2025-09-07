@@ -216,7 +216,11 @@ export class PerformanceMetrics extends EventEmitter {
    */
   trackAgentPerformance(agentId: string, solutions: CompetitiveSolution[]): void {
     const agentSolutions = solutions.filter(s => s.agentId === agentId);
-    const validatedSolutions = agentSolutions.filter(s => s.dveValidationScore && s.dveValidationScore > 0.7);
+    const validatedSolutions = agentSolutions.filter(s =>
+      s.validationStatus === 'validated' &&
+      s.dveValidationScore &&
+      s.dveValidationScore > 0.7
+    );
     const validationScores = validatedSolutions.map(s => s.dveValidationScore || 0);
     const solutionTimes = agentSolutions.map(s => s.submittedAt ? Date.now() - s.submittedAt.getTime() : 0);
     const totalBounty = validatedSolutions.reduce((sum, s) => sum + (s.bountyAwarded || 0), 0);
@@ -580,6 +584,7 @@ export class PerformanceMetrics extends EventEmitter {
    * Get system metrics
    */
   getSystemMetrics(): SystemMetrics {
+    this.updateSystemMetrics();
     return { ...this.systemMetrics };
   }
 
@@ -602,6 +607,25 @@ export class PerformanceMetrics extends EventEmitter {
       this.updateInterval = undefined;
     }
     logger.info('Performance Metrics tracking stopped');
+  }
+
+  /**
+   * Reset all metrics data (useful for testing)
+   */
+  reset(): void {
+    this.clusterMetrics.clear();
+    this.agentMetrics.clear();
+    this.skillMetrics.clear();
+    this.competitionMetrics.clear();
+    this.systemMetrics = {
+      totalClusters: 0,
+      totalAgents: 0,
+      totalSkills: 0,
+      overallSuccessRate: 0,
+      networkHealth: 0,
+      lastUpdated: new Date()
+    };
+    logger.info('Performance Metrics data reset');
   }
 
   /**

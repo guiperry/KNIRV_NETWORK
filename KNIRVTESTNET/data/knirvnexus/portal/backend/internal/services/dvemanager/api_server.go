@@ -133,8 +133,8 @@ func (s *APIServer) handleDVENodeDetails(w http.ResponseWriter, r *http.Request)
 
 	switch r.Method {
 	case "GET":
-		node, exists := s.dveManager.GetNode(nodeID)
-		if !exists {
+		node, err := s.dveManager.GetNode(nodeID)
+		if err != nil {
 			http.Error(w, "Node not found", http.StatusNotFound)
 			return
 		}

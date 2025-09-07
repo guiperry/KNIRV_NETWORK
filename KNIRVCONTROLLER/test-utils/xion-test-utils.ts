@@ -104,7 +104,7 @@ export class XionTestUtils {
       throw new Error(`XION transaction missing required fields: ${missingFields.join(', ')}`);
     }
 
-    if (!this.validateXionAddress(transaction.from) || !this.validateXionAddress(transaction.to)) {
+    if (!this.validateXionAddress((transaction as any).from) || !this.validateXionAddress((transaction as any).to)) {
       throw new Error('Invalid XION address format');
     }
 
@@ -134,7 +134,7 @@ export class XionTestUtils {
         };
         
         this.wallets.set(wallet.id, wallet);
-        this.currentWallet = wallet;
+        this.currentWallet = wallet as any;
         
         return wallet;
       },
@@ -149,7 +149,7 @@ export class XionTestUtils {
       
       async deleteWallet(id: string) {
         const deleted = this.wallets.delete(id);
-        if (this.currentWallet?.id === id) {
+        if ((this.currentWallet as any)?.id === id) {
           this.currentWallet = null;
         }
         return deleted;
@@ -342,22 +342,22 @@ export class MockXionClient {
   }
 
   private async updateBalanceForTransfer(transaction: Record<string, unknown>) {
-    const fromAccount = this.accounts.get(transaction.from);
-    const toAccount = this.accounts.get(transaction.to);
+    const fromAccount = this.accounts.get((transaction as any).from);
+    const toAccount = this.accounts.get((transaction as any).to);
     
     if (fromAccount) {
-      const currentBalance = parseInt(fromAccount.balance);
-      const transferAmount = parseInt(transaction.amount);
+      const currentBalance = parseInt((fromAccount as any).balance);
+      const transferAmount = parseInt((transaction as any).amount);
       fromAccount.balance = (currentBalance - transferAmount).toString();
     }
     
     if (toAccount) {
-      const currentBalance = parseInt(toAccount.balance);
-      const transferAmount = parseInt(transaction.amount);
+      const currentBalance = parseInt((toAccount as any).balance);
+      const transferAmount = parseInt((transaction as any).amount);
       toAccount.balance = (currentBalance + transferAmount).toString();
     } else {
       // Create new account for recipient
-      this.accounts.set(transaction.to, {
+      this.accounts.set((transaction as any).to, {
         address: transaction.to,
         balance: transaction.amount,
         nrnBalance: '0'

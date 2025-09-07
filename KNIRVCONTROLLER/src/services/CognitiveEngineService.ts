@@ -314,6 +314,7 @@ export class CognitiveEngineService {
       
       return {
         success: false,
+        output: null,
         error: error instanceof Error ? error.message : 'Unknown error',
         executionTime,
         resourceUsage: { memory: 0, cpu: 0 }
@@ -443,7 +444,7 @@ export class CognitiveEngineService {
       type: 'adaptation',
       data: adaptationData,
       timestamp: new Date(),
-      confidence: adaptationData.confidence || 0.8
+      confidence: (adaptationData.confidence as number) || 0.8
     };
 
     this.learningEvents.push(learningEvent);

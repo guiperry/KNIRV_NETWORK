@@ -550,7 +550,7 @@ export class AdaptiveLearningPipeline extends EventEmitter {
     }
 
     // Check feedback quality
-    const totalFeedback = interaction.userFeedback || 0 + interaction.implicitFeedback || 0;
+    const totalFeedback = (interaction.userFeedback || 0) + (interaction.implicitFeedback || 0);
     if (Math.abs(totalFeedback) < 0.3) {
       return false; // Feedback not strong enough
     }

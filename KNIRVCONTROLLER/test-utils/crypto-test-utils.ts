@@ -325,10 +325,10 @@ export class CryptoTestSuite {
     for (const test of tests) {
       try {
         await test.test();
-        results.push({ name: test.name, status: 'PASSED' });
+        results.push({ name: test.name, passed: true });
         passed++;
       } catch (error) {
-        results.push({ name: test.name, status: 'FAILED', error: error.message });
+        results.push({ name: test.name, passed: false, error: error instanceof Error ? error.message : String(error) });
         failed++;
       }
     }

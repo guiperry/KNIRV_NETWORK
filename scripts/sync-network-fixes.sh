@@ -169,7 +169,7 @@ detect_testnet_fixes() {
     # Check for fixes mentioned in final-test-fixes.md
     if [[ -f "$PROJECT_ROOT/KNIRVORACLE/final-test-fixes.md" ]]; then
         log "INFO" "Found testnet fixes documentation" >&2
-        fixes_ref+=("badge-attachment-fix:KNIRVORACLE/chromem_manager.go")
+        fixes_ref+=("badge-attachment-fix:KNIRVORACLE/chromemDB_manager.go")
         fixes_ref+=("tunnel-registry-fix:KNIRVORACLE/tunnel_registry.go")
         fixes_ref+=("python-sdk-fix:KNIRVSDK/py/")
         fixes_ref+=("cortex-mock-fix:KNIRVCORTEX/")
@@ -230,35 +230,37 @@ detect_production_fixes() {
 apply_fix() {
     local fix="$1"
     local direction="$2"
-    
+
     local fix_type="${fix%%:*}"
     local fix_path="${fix#*:}"
-    
+
     log "INFO" "Applying fix: $fix_type for $fix_path (direction: $direction)"
-    
+
     case "$fix_type" in
         "badge-attachment-fix")
-            apply_badge_attachment_fix "$fix_path" "$direction"
+            apply_badge_attachment_fix "$fix_path" "$direction" || return 1
             ;;
         "tunnel-registry-fix")
-            apply_tunnel_registry_fix "$fix_path" "$direction"
+            apply_tunnel_registry_fix "$fix_path" "$direction" || return 1
             ;;
         "python-sdk-fix")
-            apply_python_sdk_fix "$fix_path" "$direction"
+            apply_python_sdk_fix "$fix_path" "$direction" || return 1
             ;;
         "cortex-mock-fix")
-            apply_cortex_mock_fix "$fix_path" "$direction"
+            apply_cortex_mock_fix "$fix_path" "$direction" || return 1
             ;;
         "gateway-build-fix")
-            apply_gateway_build_fix "$fix_path" "$direction"
+            apply_gateway_build_fix "$fix_path" "$direction" || return 1
             ;;
         "file-update")
-            apply_file_update "$fix_path" "$direction"
+            apply_file_update "$fix_path" "$direction" || return 1
             ;;
         *)
             log "WARNING" "Unknown fix type: $fix_type"
+            return 1
             ;;
     esac
+    return 0
 }
 
 apply_badge_attachment_fix() {
@@ -266,45 +268,89 @@ apply_badge_attachment_fix() {
     local direction="$2"
 
     # This fix improves ChromeDB query logic for badge attachments
-    log "INFO" "Applying badge attachment fix to $file_path"
+    log "INFO" "Applying badge attachment fix to $file_path (direction: $direction)"
 
-    if [[ "$direction" == "testnet-to-prod" ]]; then
+    if [[ "$direction" == "testnet-to-prod" || "$direction" == "both" ]]; then
         # Copy the improved ChromeDB query logic from testnet to production
         local source="$PROJECT_ROOT/$file_path"
-        local target="$PROJECT_ROOT/KNIRVORACLE/chromem_manager.go"
+        local target="$PROJECT_ROOT/KNIRVORACLE/chromemDB_manager.go"
+
+        log "INFO" "Source: $source, Target: $target"
 
         if [[ -f "$source" ]]; then
-            backup_file "$target"
+            if ! backup_file "$target"; then
+                log "ERROR" "Failed to backup target file for badge attachment fix"
+                return 1
+            fi
             if [[ "$DRY_RUN" == "true" ]]; then
                 log "INFO" "[DRY RUN] Would apply badge attachment fix to $target"
             else
-                cp "$source" "$target"
-                log "SUCCESS" "Badge attachment fix applied to production"
+                if cp "$source" "$target" 2>/dev/null; then
+                    log "SUCCESS" "Badge attachment fix applied to production"
+                else
+                    log "ERROR" "Failed to copy badge attachment fix to production"
+                    return 1
+                fi
             fi
+        else
+            log "WARNING" "Source file not found for badge attachment fix: $source"
+            return 1
         fi
+    else
+        log "INFO" "Skipping badge attachment fix for direction: $direction"
     fi
+    return 0
 }
 
 apply_tunnel_registry_fix() {
     local file_path="$1"
     local direction="$2"
 
-    log "INFO" "Applying tunnel registry fix to $file_path"
+    log "INFO" "Applying tunnel registry fix to $file_path (direction: $direction)"
 
-    if [[ "$direction" == "testnet-to-prod" ]]; then
+    if [[ "$direction" == "testnet-to-prod" || "$direction" == "both" ]]; then
         local source="$PROJECT_ROOT/$file_path"
         local target="$PROJECT_ROOT/KNIRVORACLE/tunnel_registry.go"
 
+        log "INFO" "Source: $source, Target: $target"
+
         if [[ -f "$source" ]]; then
-            backup_file "$target"
-            if [[ "$DRY_RUN" == "true" ]]; then
-                log "INFO" "[DRY RUN] Would apply tunnel registry fix to $target"
+            # Backup target file only if it exists (it might be a new file)
+            if [[ -f "$target" ]]; then
+                if ! backup_file "$target"; then
+                    log "ERROR" "Failed to backup target file for tunnel registry fix"
+                    return 1
+                fi
             else
-                cp "$source" "$target"
-                log "SUCCESS" "Tunnel registry fix applied to production"
+                log "INFO" "Target file doesn't exist - creating new tunnel registry Go wrapper"
             fi
+
+            if [[ "$DRY_RUN" == "true" ]]; then
+                if [[ -f "$target" ]]; then
+                    log "INFO" "[DRY RUN] Would update tunnel registry fix to $target"
+                else
+                    log "INFO" "[DRY RUN] Would create new tunnel registry Go wrapper at $target"
+                fi
+            else
+                if cp "$source" "$target" 2>/dev/null; then
+                    if [[ -f "$target" ]]; then
+                        log "SUCCESS" "Tunnel registry fix applied to production"
+                    else
+                        log "SUCCESS" "New tunnel registry Go wrapper created"
+                    fi
+                else
+                    log "ERROR" "Failed to copy tunnel registry fix to production"
+                    return 1
+                fi
+            fi
+        else
+            log "WARNING" "Source file not found for tunnel registry fix: $source"
+            return 1
         fi
+    else
+        log "INFO" "Skipping tunnel registry fix for direction: $direction"
     fi
+    return 0
 }
 
 apply_python_sdk_fix() {
@@ -433,9 +479,17 @@ backup_file() {
     local file="$1"
     if [[ -f "$file" ]]; then
         local backup_path="$BACKUP_DIR/$(date +%Y%m%d_%H%M%S)_$(basename "$file")"
-        cp "$file" "$backup_path"
-        log "INFO" "Backed up $file to $backup_path"
+        if cp "$file" "$backup_path" 2>/dev/null; then
+            log "INFO" "Backed up $file to $backup_path"
+            return 0
+        else
+            log "ERROR" "Failed to backup $file to $backup_path"
+            return 1
+        fi
+    else
+        log "INFO" "No existing file to backup: $file (this is normal for new files)"
     fi
+    return 0
 }
 
 # =============================================================================
@@ -533,12 +587,16 @@ main() {
 
     for fix in "${fixes[@]}"; do
         if [[ -n "$fix" ]]; then
+            # Temporarily disable strict error handling for individual fix application
+            set +e
             if apply_fix "$fix" "$DIRECTION"; then
                 ((applied++))
             else
                 ((failed++))
                 log "ERROR" "Failed to apply fix: $fix"
             fi
+            # Re-enable strict error handling
+            set -e
         fi
     done
     

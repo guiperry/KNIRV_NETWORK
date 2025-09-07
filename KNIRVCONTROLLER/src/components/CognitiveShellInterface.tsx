@@ -50,7 +50,7 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
         setMetrics(engineMetrics as Record<string, unknown>);
 
         // Initialize WASM orchestrator if not already done
-        if (!wasmOrchestrator && cognitiveEngine.isWASMAgentManagerReady()) {
+        if (!wasmOrchestrator && cognitiveEngine.isWASMAgentReady()) {
           const orchestrator = new WASMOrchestrator();
           setWasmOrchestrator(orchestrator);
         }
@@ -147,7 +147,7 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
       }
 
       // Connect HRM Bridge if available
-      if (hrmBridge && engine.isHRMBridgeReady()) {
+      if (hrmBridge && engine.isHRMLoRABridgeReady()) {
         console.log('HRM Bridge connected to Cognitive Engine');
       }
 

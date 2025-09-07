@@ -225,12 +225,12 @@ describe('Phase 1: WASM Compilation Pipeline Tests', () => {
         const serialized = await protobufHandler.serializeLoRAAdapter(testAdapter);
         const deserialized = await protobufHandler.deserializeLoRAAdapter(serialized);
 
-        expect(deserialized.skill_id).toBe(testAdapter.skill_id);
-        expect(deserialized.skill_name).toBe(testAdapter.skill_name);
-        expect(deserialized.rank).toBe(testAdapter.rank);
-        expect(deserialized.alpha).toBe(testAdapter.alpha);
-        expect(deserialized.weightsA).toEqual(testAdapter.weightsA);
-        expect(deserialized.weightsB).toEqual(testAdapter.weightsB);
+        expect((deserialized as any).skill_id).toBe(testAdapter.skill_id);
+        expect((deserialized as any).skill_name).toBe(testAdapter.skill_name);
+        expect((deserialized as any).rank).toBe(testAdapter.rank);
+        expect((deserialized as any).alpha).toBe(testAdapter.alpha);
+        expect((deserialized as any).weightsA).toEqual(testAdapter.weightsA);
+        expect((deserialized as any).weightsB).toEqual(testAdapter.weightsB);
       });
 
       it('should handle skill invocation results correctly', async () => {
@@ -254,9 +254,9 @@ describe('Phase 1: WASM Compilation Pipeline Tests', () => {
         expect(invocationResponse).toBeInstanceOf(Uint8Array);
         
         const deserialized = await protobufHandler.deserialize(invocationResponse, 'SkillInvocationResponse');
-        expect(deserialized.invocation_id).toBe('test-invocation-123');
-        expect(deserialized.status).toBe('SUCCESS');
-        expect(deserialized.skill.skill_id).toBe('invocation-test-skill');
+        expect((deserialized as any).invocation_id).toBe('test-invocation-123');
+        expect((deserialized as any).status).toBe('SUCCESS');
+        expect((deserialized as any).skill.skill_id).toBe('invocation-test-skill');
       });
 
       it('should convert Float32Array to bytes and back correctly', () => {

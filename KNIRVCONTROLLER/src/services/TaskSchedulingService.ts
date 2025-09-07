@@ -418,7 +418,7 @@ export class TaskSchedulingService {
         this.executeTask(task.id);
       }, delay);
       
-      this.activeTimers.set(task.id, timer);
+      this.activeTimers.set(task.id, timer as any);
     }
   }
 
@@ -491,9 +491,9 @@ export class TaskSchedulingService {
 
   private async executeApiCall(action: TaskAction): Promise<unknown> {
     const response = await fetch(action.target, {
-      method: action.parameters.method || 'GET',
-      headers: action.parameters.headers || {},
-      body: action.parameters.body ? JSON.stringify(action.parameters.body) : undefined
+      method: (action.parameters as any).method || 'GET',
+      headers: (action.parameters as any).headers || {},
+      body: (action.parameters as any).body ? JSON.stringify((action.parameters as any).body) : undefined
     });
 
     if (!response.ok) {

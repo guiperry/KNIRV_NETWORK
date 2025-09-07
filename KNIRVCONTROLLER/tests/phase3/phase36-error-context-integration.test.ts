@@ -11,7 +11,7 @@ import { ErrorContextHandler } from '../../src/core/protobuf/ErrorContextHandler
 import { CognitiveEngine, CognitiveConfig } from '../../src/sensory-shell/CognitiveEngine';
 
 // Mock fetch for HTTP requests
-global.fetch = jest.fn();
+global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
 
 describe('Phase 3.6 - Error Context Integration', () => {
   let errorContextManager: ErrorContextManager;
@@ -134,7 +134,7 @@ describe('Phase 3.6 - Error Context Integration', () => {
       } as Response);
 
       const testError = new TypeError('Cannot read property of undefined');
-      const result = await errorContextManager.discoverSkillForError(
+      const result = await errorContextManager.handleError(
         testError,
         'Processing JavaScript code'
       );
@@ -171,7 +171,7 @@ describe('Phase 3.6 - Error Context Integration', () => {
       } as Response);
 
       const testError = new Error('New unknown error type');
-      const result = await errorContextManager.discoverSkillForError(
+      const result = await errorContextManager.handleError(
         testError,
         'Processing unknown operation'
       );
@@ -188,11 +188,16 @@ describe('Phase 3.6 - Error Context Integration', () => {
       // Mock successful WASM skill invocation
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        headers: new Map([
-          ['X-KNIRV-Engine', 'wasm'],
-          ['X-KNIRV-Status', 'SUCCESS'],
-          ['X-KNIRV-Invocation-ID', 'inv_test_123']
-        ]),
+        headers: {
+          get: (name: string) => {
+            const headers: Record<string, string> = {
+              'X-KNIRV-Engine': 'wasm',
+              'X-KNIRV-Status': 'SUCCESS',
+              'X-KNIRV-Invocation-ID': 'inv_test_123'
+            };
+            return headers[name] || null;
+          }
+        },
         json: async () => ({
           invocation_id: 'inv_test_123',
           status: 'SUCCESS',
@@ -292,10 +297,15 @@ describe('Phase 3.6 - Error Context Integration', () => {
       // Mock WASM skill invocation
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        headers: new Map([
-          ['X-KNIRV-Engine', 'wasm'],
-          ['X-KNIRV-Status', 'SUCCESS']
-        ]),
+        headers: {
+          get: (name: string) => {
+            const headers: Record<string, string> = {
+              'X-KNIRV-Engine': 'wasm',
+              'X-KNIRV-Status': 'SUCCESS'
+            };
+            return headers[name] || null;
+          }
+        },
         json: async () => ({
           invocation_id: 'inv_lifecycle_test',
           status: 'SUCCESS',
@@ -326,7 +336,7 @@ describe('Phase 3.6 - Error Context Integration', () => {
       const testError = new Error('Test network failure');
       
       await expect(
-        errorContextManager.discoverSkillForError(testError, 'Network failure test')
+        errorContextManager.handleError(testError, 'Network failure test')
       ).rejects.toThrow('Network error');
     });
 
@@ -334,13 +344,27 @@ describe('Phase 3.6 - Error Context Integration', () => {
       // Mock invalid JSON response
       mockFetch.mockResolvedValueOnce({
         ok: true,
+        status: 200,
+        statusText: 'OK',
+        headers: new Headers(),
+        redirected: false,
+        type: 'basic',
+        url: '',
+        clone: () => ({} as Response),
+        body: null,
+        bodyUsed: false,
+        arrayBuffer: async () => new ArrayBuffer(0),
+        blob: async () => new Blob(),
+        formData: async () => new FormData(),
+        text: async () => '',
+        bytes: async () => new Uint8Array(),
         json: async () => { throw new Error('Invalid JSON'); }
-      } as Response);
+      } as unknown as Response);
 
       const testError = new Error('Test invalid response');
       
       await expect(
-        errorContextManager.discoverSkillForError(testError, 'Invalid response test')
+        errorContextManager.handleError(testError, 'Invalid response test')
       ).rejects.toThrow('Invalid JSON');
     });
 
@@ -370,25 +394,40 @@ describe('Phase 3.6 - Error Context Integration', () => {
       // Test AgentConfiguration type usage
       const mockAgentConfig: AgentConfiguration = {
         agentId: 'test-agent',
-        capabilities: ['error_handling', 'context_management'],
-        maxConcurrentTasks: 5,
-        errorThreshold: 0.1
+        agentVersion: '1.0.0',
+        baseModelId: 'CodeT5-base',
+        knirvgraphEndpoint: 'http://localhost:8080',
+        knirvRouterEndpoint: 'http://localhost:8081',
+        nrnWalletAddress: '0x123456789'
       };
 
       expect(mockAgentConfig.agentId).toBe('test-agent');
-      expect(Array.isArray(mockAgentConfig.capabilities)).toBe(true);
-      expect(mockAgentConfig.maxConcurrentTasks).toBe(5);
+      expect(mockAgentConfig.agentVersion).toBe('1.0.0');
+      expect(mockAgentConfig.baseModelId).toBe('CodeT5-base');
 
       // Test ErrorContextHandler type usage
       const mockHandler = new ErrorContextHandler();
       expect(mockHandler).toBeDefined();
-      expect(typeof mockHandler.handleError).toBe('function');
+      expect(typeof mockHandler.createErrorContext).toBe('function');
 
       // Test CognitiveConfig type usage
       const mockCognitiveConfig: CognitiveConfig = {
         maxContextSize: 1000,
         learningRate: 0.01,
-        adaptationThreshold: 0.8
+        adaptationThreshold: 0.8,
+        skillTimeout: 30000,
+        voiceEnabled: false,
+        visualEnabled: false,
+        loraEnabled: true,
+        enhancedLoraEnabled: false,
+        hrmEnabled: true,
+        wasmAgentsEnabled: false,
+        typeScriptCompilerEnabled: false,
+        adaptiveLearningEnabled: true,
+        walletIntegrationEnabled: true,
+        chainIntegrationEnabled: true,
+        ecosystemCommunicationEnabled: true,
+        errorContextEnabled: true
       };
 
       expect(mockCognitiveConfig.maxContextSize).toBe(1000);

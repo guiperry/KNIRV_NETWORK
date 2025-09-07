@@ -58,6 +58,21 @@ func initNodeJSServices(cfg *config.Config, discoveryMgr *DiscoveryManager) (*No
 		log.Printf("[%s] Using default script path for payment gateway: %s", cfg.ChainID, cfg.NodeJSServices.PaymentGateway.ScriptPath)
 	}
 
+	if cfg.NodeJSServices.BootnodeRegistry.Enabled && cfg.NodeJSServices.BootnodeRegistry.ScriptPath == "" {
+		cfg.NodeJSServices.BootnodeRegistry.ScriptPath = "agent-bootnode-registry/server.js"
+		log.Printf("[%s] Using default script path for bootnode registry: %s", cfg.ChainID, cfg.NodeJSServices.BootnodeRegistry.ScriptPath)
+	}
+
+	if cfg.NodeJSServices.NotarySystem.Enabled && cfg.NodeJSServices.NotarySystem.ScriptPath == "" {
+		cfg.NodeJSServices.NotarySystem.ScriptPath = "agent-notary-system/server.js"
+		log.Printf("[%s] Using default script path for notary system: %s", cfg.ChainID, cfg.NodeJSServices.NotarySystem.ScriptPath)
+	}
+
+	if cfg.NodeJSServices.NetworkMonitor.Enabled && cfg.NodeJSServices.NetworkMonitor.ScriptPath == "" {
+		cfg.NodeJSServices.NetworkMonitor.ScriptPath = "agent-network-monitor/server.js"
+		log.Printf("[%s] Using default script path for network monitor: %s", cfg.ChainID, cfg.NodeJSServices.NetworkMonitor.ScriptPath)
+	}
+
 	// Check if script files exist
 	if cfg.NodeJSServices.TunnelRegistry.Enabled {
 		if _, err := os.Stat(cfg.NodeJSServices.TunnelRegistry.ScriptPath); os.IsNotExist(err) {
@@ -75,11 +90,39 @@ func initNodeJSServices(cfg *config.Config, discoveryMgr *DiscoveryManager) (*No
 		}
 	}
 
+	if cfg.NodeJSServices.BootnodeRegistry.Enabled {
+		if _, err := os.Stat(cfg.NodeJSServices.BootnodeRegistry.ScriptPath); os.IsNotExist(err) {
+			log.Printf("[%s] WARNING: Bootnode registry script not found: %s", cfg.ChainID, cfg.NodeJSServices.BootnodeRegistry.ScriptPath)
+			log.Printf("[%s] Disabling bootnode registry service", cfg.ChainID)
+			cfg.NodeJSServices.BootnodeRegistry.Enabled = false
+		}
+	}
+
+	if cfg.NodeJSServices.NotarySystem.Enabled {
+		if _, err := os.Stat(cfg.NodeJSServices.NotarySystem.ScriptPath); os.IsNotExist(err) {
+			log.Printf("[%s] WARNING: Notary system script not found: %s", cfg.ChainID, cfg.NodeJSServices.NotarySystem.ScriptPath)
+			log.Printf("[%s] Disabling notary system service", cfg.ChainID)
+			cfg.NodeJSServices.NotarySystem.Enabled = false
+		}
+	}
+
+	if cfg.NodeJSServices.NetworkMonitor.Enabled {
+		if _, err := os.Stat(cfg.NodeJSServices.NetworkMonitor.ScriptPath); os.IsNotExist(err) {
+			log.Printf("[%s] WARNING: Network monitor script not found: %s", cfg.ChainID, cfg.NodeJSServices.NetworkMonitor.ScriptPath)
+			log.Printf("[%s] Disabling network monitor service", cfg.ChainID)
+			cfg.NodeJSServices.NetworkMonitor.Enabled = false
+		}
+	}
+
 	// Create Node.js manager
 	nodejsManager := NewNodeJSManager(&cfg.NodeJSServices, discoveryMgr.host.ID().String(), discoveryMgr, nil)
 
 	// Check if any services are enabled
-	if !cfg.NodeJSServices.TunnelRegistry.Enabled && !cfg.NodeJSServices.PaymentGateway.Enabled {
+	if !cfg.NodeJSServices.TunnelRegistry.Enabled &&
+	   !cfg.NodeJSServices.PaymentGateway.Enabled &&
+	   !cfg.NodeJSServices.BootnodeRegistry.Enabled &&
+	   !cfg.NodeJSServices.NotarySystem.Enabled &&
+	   !cfg.NodeJSServices.NetworkMonitor.Enabled {
 		log.Printf("[%s] No Node.js services are enabled or have valid script paths", cfg.ChainID)
 		return nodejsManager, nil
 	}

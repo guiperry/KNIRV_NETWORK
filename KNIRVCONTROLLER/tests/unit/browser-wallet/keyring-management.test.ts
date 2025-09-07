@@ -1,5 +1,19 @@
 // Comprehensive Unit Tests for KNIRVWALLET Browser Module - Keyring Management
-import { KnirvWallet } from '../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/wallet/wallet';
+
+// Mock KNIRVWALLET imports since they're from a sibling project
+jest.mock('../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/wallet/wallet', () => ({
+  KnirvWallet: jest.fn().mockImplementation(() => ({
+    createAccount: jest.fn(),
+    importAccount: jest.fn(),
+    exportAccount: jest.fn(),
+    deleteAccount: jest.fn(),
+    listAccounts: jest.fn(),
+    setActiveAccount: jest.fn()
+  }))
+}));
+
+// Import after mocking
+const { KnirvWallet } = require('../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/wallet/wallet');
 import { MockLedgerConnector } from '../../../test-utils/mock-ledger-connector';
 import { 
   TEST_MNEMONICS, 
@@ -10,7 +24,7 @@ import { KeyringTestUtils, AccountTestUtils } from '../../../test-utils/wallet-t
 
 describe('KnirvWallet Keyring Management', () => {
   describe('HD Keyring Management', () => {
-    let wallet: KnirvWallet;
+    let wallet: typeof KnirvWallet;
 
     beforeEach(async () => {
       wallet = await KnirvWallet.createByMnemonic(TEST_MNEMONICS.VALID_12_WORD);
@@ -34,7 +48,7 @@ describe('KnirvWallet Keyring Management', () => {
       
       // All accounts should reference the same keyring
       const keyringId = multiAccountWallet.keyrings[0].id;
-      multiAccountWallet.accounts.forEach(account => {
+      multiAccountWallet.accounts.forEach((account: any) => {
         expect(account.keyringId).toBe(keyringId);
       });
     });
@@ -43,7 +57,7 @@ describe('KnirvWallet Keyring Management', () => {
       const paths = [0, 1, 2];
       const multiAccountWallet = await KnirvWallet.createByMnemonic(TEST_MNEMONICS.VALID_12_WORD, paths);
       
-      const addresses = multiAccountWallet.accounts.map(account => account.address);
+      const addresses = multiAccountWallet.accounts.map((account: any) => account.address);
       const uniqueAddresses = new Set(addresses);
       
       expect(uniqueAddresses.size).toBe(addresses.length);
@@ -71,7 +85,7 @@ describe('KnirvWallet Keyring Management', () => {
   });
 
   describe('Private Key Keyring Management', () => {
-    let wallet: KnirvWallet;
+    let wallet: typeof KnirvWallet;
 
     beforeEach(async () => {
       wallet = await KnirvWallet.createByWeb3Auth(TEST_PRIVATE_KEYS.VALID_HEX);
@@ -113,7 +127,7 @@ describe('KnirvWallet Keyring Management', () => {
   });
 
   describe('Ledger Keyring Management', () => {
-    let wallet: KnirvWallet;
+    let wallet: typeof KnirvWallet;
     let ledgerConnector: MockLedgerConnector;
 
     beforeEach(async () => {
@@ -137,7 +151,7 @@ describe('KnirvWallet Keyring Management', () => {
       expect(multiAccountWallet.keyrings).toHaveLength(1);
       
       // All accounts should be Ledger accounts
-      multiAccountWallet.accounts.forEach(account => {
+      multiAccountWallet.accounts.forEach((account: any) => {
         expect(account.name).toContain('Ledger');
       });
     });
@@ -159,7 +173,7 @@ describe('KnirvWallet Keyring Management', () => {
   });
 
   describe('Address-only Keyring Management', () => {
-    let wallet: KnirvWallet;
+    let wallet: typeof KnirvWallet;
 
     beforeEach(async () => {
       wallet = await KnirvWallet.createByAddress(TEST_ADDRESSES.GNOLANG);
@@ -217,7 +231,7 @@ describe('KnirvWallet Keyring Management', () => {
       
       const keyringId = wallet.keyrings[0].id;
       
-      wallet.accounts.forEach(account => {
+      wallet.accounts.forEach((account: any) => {
         expect(account.keyringId).toBe(keyringId);
       });
     });

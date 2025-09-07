@@ -93,6 +93,18 @@ app.post('/api/create-coinbase-charge', async (req, res) => {
   }
 });
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  const statusData = {
+    status: 'online',
+    version: '1.0.0',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    service: 'KNIRVORACLE Payment Gateway'
+  };
+  res.status(200).json(statusData);
+});
+
 // Success page
 app.get('/success.html', (req, res) => {
   res.send(`

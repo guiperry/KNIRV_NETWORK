@@ -2862,7 +2862,7 @@
   local.get $str
   return
  )
- (func $assembly/index/deallocateString (param $ptr i32)
+ (func $assembly/index/deallocateString (param $_ptr i32)
  )
  (func $~lib/rt/itcms/__pin (param $ptr i32) (result i32)
   (local $obj i32)
@@ -3598,7 +3598,7 @@
   local.get $2
   return
  )
- (func $assembly/index/executeAgent (param $input i32) (param $context i32) (result i32)
+ (func $assembly/index/executeAgent (param $input i32) (param $_context i32) (result i32)
   (local $2 i32)
   (local $3 i32)
   (local $4 i32)
@@ -3699,7 +3699,7 @@
   local.get $4
   return
  )
- (func $assembly/index/executeAgentTool (param $toolName i32) (param $parameters i32) (param $context i32) (result i32)
+ (func $assembly/index/executeAgentTool (param $toolName i32) (param $parameters i32) (param $_context i32) (result i32)
   (local $3 i32)
   (local $4 i32)
   (local $5 i32)
@@ -3998,7 +3998,7 @@
   local.get $1
   return
  )
- (func $assembly/index/loadModelWeights (param $weightsPtr i32) (param $weightsLen i32) (result i32)
+ (func $assembly/index/loadModelWeights (param $_weightsPtr i32) (param $weightsLen i32) (result i32)
   (local $2 i32)
   (local $3 i32)
   (local $4 i32)
@@ -4079,7 +4079,7 @@
   local.get $4
   return
  )
- (func $assembly/index/runModelInference (param $input i32) (param $context i32) (result i32)
+ (func $assembly/index/runModelInference (param $input i32) (param $_context i32) (result i32)
   (local $2 i32)
   (local $3 i32)
   (local $4 i32)

@@ -63,9 +63,9 @@ export KNIRVNEXUS_URL=http://localhost:8084
 export KNIRVNEXUS_API_URL=http://localhost:8084/api
 export KNIRVROUTER_URL=http://localhost:8086
 
-# Start KNIRV-GATEWAY using npm start with specified port and memory limit (136MB optimized)
-echo "Starting KNIRV-GATEWAY on port 8888 with 136MB memory limit..."
-NODE_OPTIONS="--max-old-space-size=136" npx netlify dev --port 8888 > ../../logs/knirvgateway.log 2>&1 &
+# Start KNIRV-GATEWAY using npm start with specified port and memory limit (512MB for testnet)
+echo "Starting KNIRV-GATEWAY on port 8888 with 512MB memory limit..."
+NODE_OPTIONS="--max-old-space-size=512" npx netlify dev --port 8888 > ../../logs/knirvgateway.log 2>&1 &
 
 GATEWAY_PID=$!
 echo $GATEWAY_PID > ../../data/testnet-gateway.pid
@@ -85,7 +85,7 @@ echo "  - Simplified authentication enabled"
 echo "  - Local service proxying enabled"
 echo "  - SSE support enabled"
 echo "Resource optimizations:"
-echo "  - Memory limit: 136MB (optimized for testnet)"
+echo "  - Memory limit: 512MB (optimized for testnet)"
 echo "  - Testnet mode with simplified operations"
 echo "Log file: ./logs/knirvgateway.log"
 

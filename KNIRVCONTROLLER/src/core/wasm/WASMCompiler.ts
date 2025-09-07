@@ -373,6 +373,8 @@ panic = "abort"
           return await this.executeLoRAWeightApplication(wasmModule, input, request);
         },
         getAdapterInfo: () => ({
+          name: request.adapterName,
+          version: '1.0.0',
           adapterId: request.adapterId,
           adapterName: request.adapterName,
           baseModel: request.baseModel,

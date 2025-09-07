@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import topLevelAwait from 'vite-plugin-top-level-await';
 import wasm from 'vite-plugin-wasm';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 export default defineConfig({
   plugins: [
@@ -11,7 +12,8 @@ export default defineConfig({
     topLevelAwait({
       promiseExportName: '__tla',
       promiseImportName: i => `__tla_${i}`
-    })
+    }),
+    ...(process.env.ANALYZE === 'true' ? [visualizer()] : [])
   ],
   
   // Root source directory
@@ -24,10 +26,25 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html')
+      },
+      output: {
+        manualChunks: {
+          // Vendor chunks for better caching
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: ['lucide-react', '@react-three/fiber', '@react-three/drei', 'three'],
+          blockchain: ['@cosmjs/stargate', '@gnolang/tm2-js-client', '@burnt-labs/abstraxion'],
+          database: ['rxdb', 'lokijs'],
+          utils: ['uuid', 'bech32', 'qrcode', 'qr-scanner']
+        }
       }
     },
     // Copy AssemblyScript WASM files
-    copyPublicDir: true
+    copyPublicDir: true,
+    // Bundle size optimizations
+    minify: 'esbuild',
+    cssCodeSplit: true,
+    // Chunk size warning limit
+    chunkSizeWarningLimit: 1000
   },
   
   // Development server

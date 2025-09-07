@@ -78,8 +78,8 @@ describe('Phase 3.3 - HRM Core Model', () => {
         context: { variable: 'user', line: 10 },
         tags: ['javascript', 'undefined', 'property'],
         bountyAmount: 100,
-        createdAt: new Date(),
-        lastUpdated: new Date()
+        timestamp: new Date(),
+        metadata: {}
       },
       {
         id: 'error_002',
@@ -90,8 +90,8 @@ describe('Phase 3.3 - HRM Core Model', () => {
         context: { variable: 'config', line: 15 },
         tags: ['javascript', 'reference', 'undefined'],
         bountyAmount: 75,
-        createdAt: new Date(),
-        lastUpdated: new Date()
+        timestamp: new Date(),
+        metadata: {}
       }
     ];
 
@@ -100,8 +100,12 @@ describe('Phase 3.3 - HRM Core Model', () => {
         solutionId: 'sol_001',
         errorNodeId: 'error_001',
         agentId: 'agent_001',
+        clusterId: 'cluster_001',
         solutionCode: 'if (user && user.property) { return user.property; }',
+        description: 'Null check solution for undefined property access',
         approach: 'null_check',
+        estimatedEffectiveness: 0.9,
+        validationStatus: 'validated',
         dveValidationScore: 0.9,
         bountyAwarded: 90,
         submittedAt: new Date(),
@@ -111,8 +115,12 @@ describe('Phase 3.3 - HRM Core Model', () => {
         solutionId: 'sol_002',
         errorNodeId: 'error_002',
         agentId: 'agent_002',
+        clusterId: 'cluster_001',
         solutionCode: 'const config = getConfig() || defaultConfig;',
+        description: 'Default fallback solution for undefined variable',
         approach: 'default_fallback',
+        estimatedEffectiveness: 0.85,
+        validationStatus: 'validated',
         dveValidationScore: 0.85,
         bountyAwarded: 64,
         submittedAt: new Date(),
@@ -127,22 +135,40 @@ describe('Phase 3.3 - HRM Core Model', () => {
       validatedSolutions: mockSolutions,
       trainingPairs: [
         {
-          errorNode: mockErrorNodes[0],
-          solution: mockSolutions[0],
+          pairId: 'pair_001',
+          errorContext: {
+            errorType: mockErrorNodes[0].errorType,
+            errorMessage: mockErrorNodes[0].errorMessage,
+            stackTrace: mockErrorNodes[0].stackTrace || '',
+            contextVariables: mockErrorNodes[0].context,
+            semanticEmbedding: [0.1, 0.2, 0.3, 0.4]
+          },
           solutionContext: {
+            solutionCode: 'if (user && user.property) { return user.property; }',
+            approach: 'null_check',
+            effectiveness: 0.9,
             codeEmbedding: [0.5, 0.3, 0.8, 0.2],
-            contextualFeatures: [0.7, 0.4, 0.6],
-            semanticSimilarity: 0.85
-          }
+            transformationVector: [0.7, 0.4, 0.6]
+          },
+          weight: 0.9
         },
         {
-          errorNode: mockErrorNodes[1],
-          solution: mockSolutions[1],
+          pairId: 'pair_002',
+          errorContext: {
+            errorType: mockErrorNodes[1].errorType,
+            errorMessage: mockErrorNodes[1].errorMessage,
+            stackTrace: mockErrorNodes[1].stackTrace || '',
+            contextVariables: mockErrorNodes[1].context,
+            semanticEmbedding: [0.2, 0.3, 0.4, 0.5]
+          },
           solutionContext: {
+            solutionCode: 'const config = getConfig() || defaultConfig;',
+            approach: 'default_fallback',
+            effectiveness: 0.85,
             codeEmbedding: [0.6, 0.4, 0.7, 0.3],
-            contextualFeatures: [0.8, 0.5, 0.7],
-            semanticSimilarity: 0.9
-          }
+            transformationVector: [0.8, 0.5, 0.7]
+          },
+          weight: 0.85
         }
       ],
       datasetMetrics: {
@@ -417,9 +443,15 @@ describe('Phase 3.3 - HRM Core Model', () => {
       // Test SkillDiscoveryResult type usage
       const mockSkillResult: SkillDiscoveryResult = {
         skillId: 'test-skill',
+        discoveredName: 'Test Skill',
+        category: 'error-handling',
+        subcategory: 'null-checks',
+        description: 'A skill for handling null pointer errors',
+        capabilities: ['null-check', 'error-prevention'],
+        complexity: 0.7,
         confidence: 0.85,
-        metadata: { source: 'test' },
-        trainingMetrics: { accuracy: 0.9, loss: 0.1 }
+        tags: ['javascript', 'null-safety'],
+        relatedSkills: []
       };
 
       expect(mockSkillResult.confidence).toBe(0.85);
@@ -427,12 +459,16 @@ describe('Phase 3.3 - HRM Core Model', () => {
 
       // Test LoRAAdapterSkill type usage
       const mockLoRASkill: LoRAAdapterSkill = {
-        id: 'lora-skill-1',
-        name: 'Test LoRA Skill',
+        skillId: 'lora-skill-1',
+        skillName: 'Test LoRA Skill',
+        description: 'A test LoRA adapter skill',
+        baseModelCompatibility: 'CodeT5-base',
+        version: 1,
         rank: 16,
         alpha: 32,
-        weights: new Map(),
-        trainingData: []
+        weightsA: new Float32Array([0.1, 0.2, 0.3]),
+        weightsB: new Float32Array([0.4, 0.5, 0.6]),
+        additionalMetadata: {}
       };
 
       expect(mockLoRASkill.rank).toBe(16);
@@ -440,38 +476,56 @@ describe('Phase 3.3 - HRM Core Model', () => {
 
       // Test TrainingDataset type usage
       const mockDataset: TrainingDataset = {
-        id: 'dataset-1',
-        samples: [],
-        metadata: { size: 0, version: '1.0' }
+        datasetId: 'dataset-1',
+        clusterId: 'cluster-1',
+        errorNodes: [],
+        validatedSolutions: [],
+        trainingPairs: [],
+        datasetMetrics: {
+          totalPairs: 0,
+          averageValidationScore: 0,
+          diversityScore: 0,
+          complexityScore: 0,
+          qualityScore: 0
+        },
+        createdAt: new Date()
       };
 
-      expect(Array.isArray(mockDataset.samples)).toBe(true);
-      expect(mockDataset.metadata.version).toBe('1.0');
+      expect(Array.isArray(mockDataset.trainingPairs)).toBe(true);
+      expect(mockDataset.datasetMetrics.qualityScore).toBe(0);
 
       // Test ErrorNode type usage
       const mockErrorNode: ErrorNode = {
         id: 'error-node-1',
-        type: 'runtime_error',
-        message: 'Test error',
+        errorType: 'runtime_error',
+        errorMessage: 'Test error',
         context: {},
-        timestamp: Date.now(),
-        clusterId: 'cluster-1'
+        severity: 'medium',
+        timestamp: new Date(),
+        bountyAmount: 100,
+        tags: ['runtime'],
+        metadata: {}
       };
 
-      expect(mockErrorNode.type).toBe('runtime_error');
-      expect(typeof mockErrorNode.timestamp).toBe('number');
+      expect(mockErrorNode.errorType).toBe('runtime_error');
+      expect(mockErrorNode.timestamp instanceof Date).toBe(true);
 
       // Test CompetitiveSolution type usage
       const mockSolution: CompetitiveSolution = {
-        agentId: 'agent-1',
         solutionId: 'solution-1',
-        score: 0.95,
-        proposal: 'Test solution proposal',
-        metadata: { complexity: 'medium' }
+        agentId: 'agent-1',
+        clusterId: 'cluster-1',
+        errorNodeId: 'error-1',
+        solutionCode: 'Test solution code',
+        description: 'Test solution proposal',
+        approach: 'test-approach',
+        estimatedEffectiveness: 0.95,
+        submittedAt: new Date(),
+        validationStatus: 'pending'
       };
 
-      expect(mockSolution.score).toBe(0.95);
-      expect(typeof mockSolution.proposal).toBe('string');
+      expect(mockSolution.estimatedEffectiveness).toBe(0.95);
+      expect(typeof mockSolution.description).toBe('string');
     });
   });
 });

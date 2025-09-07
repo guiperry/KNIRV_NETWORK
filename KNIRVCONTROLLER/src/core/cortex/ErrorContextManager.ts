@@ -5,7 +5,7 @@
  * Implements Phase 3.6 End-to-End Skill Invocation Lifecycle
  */
 
-import * as pino from 'pino';
+import pino from 'pino';
 import { ErrorContextHandler, ErrorContext, ErrorClusterQueryRequest, ErrorClusterQueryResponse, ErrorNodeSubmissionRequest, ErrorNodeSubmissionResponse } from '../protobuf/ErrorContextHandler';
 
 const logger = pino({ name: 'error-context-manager' });
@@ -240,7 +240,7 @@ export class ErrorContextManager {
     const invocationResult = await this.invokeSkill(
       discoveryResult.skillUri,
       nrnToken,
-      additionalContext?.parameters
+      additionalContext?.parameters as Record<string, unknown> | undefined
     );
 
     logger.info({ 

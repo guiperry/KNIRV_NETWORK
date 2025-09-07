@@ -149,16 +149,16 @@ export class ComponentBridge {
   private updateState(message: ComponentMessage) {
     switch (message.type) {
       case 'component_status':
-        this.state.components[message.source] = message.payload.status;
+        this.state.components[message.source] = (message.payload as any).status;
         break;
       case 'cognitive_update':
-        this.state.cognitive = { ...this.state.cognitive, ...message.payload };
+        this.state.cognitive = { ...this.state.cognitive, ...(message.payload as any) };
         break;
       case 'wallet_update':
-        this.state.wallet = { ...this.state.wallet, ...message.payload };
+        this.state.wallet = { ...this.state.wallet, ...(message.payload as any) };
         break;
       case 'network_update':
-        this.state.network = { ...this.state.network, ...message.payload };
+        this.state.network = { ...this.state.network, ...(message.payload as any) };
         break;
     }
   }
@@ -174,7 +174,7 @@ export class ComponentBridge {
       type,
       source: this.config.name,
       target,
-      payload: { action, ...payload },
+      payload: { action, ...(payload as any) },
       timestamp: Date.now()
     };
 
@@ -264,12 +264,12 @@ export class ComponentIntegration {
       }, 5000);
 
       bridge.onMessage('call_response', (message) => {
-        if (message.payload.callId === callId) {
+        if ((message.payload as any).callId === callId) {
           clearTimeout(timeout);
-          if (message.payload.success) {
-            resolve(message.payload.result);
+          if ((message.payload as any).success) {
+            resolve((message.payload as any).result);
           } else {
-            reject(new Error(message.payload.error));
+            reject(new Error((message.payload as any).error));
           }
         }
       });

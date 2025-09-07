@@ -38,16 +38,9 @@ const mockMetaAccountConfig: MetaAccountConfig = {
   chainId: 'mock-chain'
 };
 
-jest.mock('../../../../KNIRVENGINE/agentic-wallet/src/xion-meta-accounts', () => ({
-  XionMetaAccount: jest.fn().mockImplementation(() => mockXionMetaAccount),
-  WalletManager: jest.fn().mockImplementation(() => mockWalletManager),
-  MetaAccountConfig: mockMetaAccountConfig
-}));
-
-const { XionMetaAccount, WalletManager } = {
-  XionMetaAccount: jest.fn().mockImplementation(() => mockXionMetaAccount),
-  WalletManager: jest.fn().mockImplementation(() => mockWalletManager)
-};
+// Mock KNIRVENGINE imports since they're from a sibling project
+const XionMetaAccount = jest.fn().mockImplementation(() => mockXionMetaAccount);
+const WalletManager = jest.fn().mockImplementation(() => mockWalletManager);
 import {
   TEST_ADDRESSES,
   TEST_MNEMONICS

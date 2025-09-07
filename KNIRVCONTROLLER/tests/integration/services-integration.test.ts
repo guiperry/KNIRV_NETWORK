@@ -192,16 +192,16 @@ describe('Services Integration Tests', () => {
       await settingsService.updateSettings({
         analytics: {
           collectMetrics: false,
-          shareAnonymous: true,
-          retentionDays: 60
+          shareAnonymousData: true,
+          retentionPeriod: 60
         }
       });
 
       // Verify settings are applied
       const settings = settingsService.getSettings();
       expect(settings.analytics.collectMetrics).toBe(false);
-      expect(settings.analytics.shareAnonymous).toBe(true);
-      expect(settings.analytics.retentionDays).toBe(60);
+      expect(settings.analytics.shareAnonymousData).toBe(true);
+      expect(settings.analytics.retentionPeriod).toBe(60);
 
       // Test that analytics service respects the settings
       const recordMetricSpy = jest.spyOn(analyticsService, 'recordMetric');
@@ -236,7 +236,7 @@ describe('Services Integration Tests', () => {
       const task = await taskSchedulingService.createTask({
         name: 'Cognitive Task',
         description: 'Task using cognitive settings',
-        type: 'agent_invoke' as const,
+        type: 'custom' as const,
         status: 'pending' as const,
         priority: 'medium' as const,
         schedule: { type: 'once' as const, startTime: new Date() },
@@ -258,7 +258,7 @@ describe('Services Integration Tests', () => {
         security: {
           requireMFA: true,
           sessionTimeout: 15,
-          autoLock: true
+          maxLoginAttempts: 3
         }
       });
 
@@ -299,7 +299,7 @@ describe('Services Integration Tests', () => {
       const task = await taskSchedulingService.createTask({
         name: 'Integration Task',
         description: 'Task for integration testing',
-        type: 'agent_monitoring' as const,
+        type: 'analysis' as const,
         status: 'pending' as const,
         priority: 'medium' as const,
         schedule: { type: 'once' as const, startTime: new Date() },

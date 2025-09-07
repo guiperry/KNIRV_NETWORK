@@ -110,11 +110,11 @@ export class AgentCoreInterface extends EventEmitter {
       });
 
       // Get exported functions
-      this.agentCore = this.wasmInstance.exports as WebAssembly.Exports;
+      this.agentCore = this.wasmInstance.exports as unknown as AgentCoreWASM;
 
       // Verify required functions exist (with fallbacks for minimal WASM)
       const requiredFunctions = ['agentCoreExecute', 'agentCoreExecuteTool', 'agentCoreLoadLoRA', 'agentCoreApplySkill', 'agentCoreGetStatus'];
-      const missingFunctions = requiredFunctions.filter(func => !this.agentCore?.[func]);
+      const missingFunctions = requiredFunctions.filter(func => !(this.agentCore as any)?.[func]);
 
       if (missingFunctions.length > 0) {
         // If this is a test scenario with incomplete WASM, fail validation
@@ -136,7 +136,8 @@ export class AgentCoreInterface extends EventEmitter {
       return true;
 
     } catch (error) {
-      this.emit('agent_core_initialization_failed', { error: error.message });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.emit('agent_core_initialization_failed', { error: errorMessage });
       console.error('Failed to initialize agent-core:', error);
       return false;
     }
@@ -200,14 +201,14 @@ export class AgentCoreInterface extends EventEmitter {
       
       const response: CognitiveResponse = {
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         processingTime,
         confidence: 0,
         source: 'agent-core',
         metadata: {
           sessionId: this.sessionId,
           inputType: input.type,
-          errorType: error.constructor.name
+          errorType: error instanceof Error ? error.constructor.name : 'Unknown'
         }
       };
 
@@ -264,14 +265,14 @@ export class AgentCoreInterface extends EventEmitter {
       
       const response: CognitiveResponse = {
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         processingTime,
         confidence: 0,
         source: 'agent-core',
         metadata: {
           toolName,
           sessionId: this.sessionId,
-          errorType: error.constructor.name
+          errorType: error instanceof Error ? error.constructor.name : 'Unknown'
         }
       };
 
@@ -313,7 +314,7 @@ export class AgentCoreInterface extends EventEmitter {
       return success;
 
     } catch (error) {
-      this.emit('lora_loading_failed', { skillId: adapter.skillId, error: error.message });
+      this.emit('lora_loading_failed', { skillId: adapter.skillId, error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -339,11 +340,12 @@ export class AgentCoreInterface extends EventEmitter {
       // =======================================
       const response = await protobufHandler.deserialize(protoBytes, 'SkillInvocationResponse');
 
-      if (!response.skill) {
+      const responseObj = response as any;
+      if (!responseObj.skill) {
         throw new Error('Skill payload was empty in the response');
       }
 
-      const skill = response.skill;
+      const skill = responseObj.skill;
       console.log(`Applying skill: '${skill.skill_name}' (ID: ${skill.skill_id})`);
 
       // 2. CONVERT WEIGHTS FROM BYTES TO FLOAT32ARRAYS
@@ -381,7 +383,7 @@ export class AgentCoreInterface extends EventEmitter {
         this.emit('skill_applied', {
           skillId: skill.skill_id,
           skillName: skill.skill_name,
-          invocationId: response.invocation_id
+          invocationId: responseObj.invocation_id
         });
       } else {
         this.emit('skill_application_failed', {
@@ -394,7 +396,7 @@ export class AgentCoreInterface extends EventEmitter {
       return success;
 
     } catch (error) {
-      this.emit('skill_application_failed', { error: error.message });
+      this.emit('skill_application_failed', { error: error instanceof Error ? error.message : String(error) });
       console.error('Failed to apply skill:', error);
       return false;
     }
@@ -519,11 +521,11 @@ export class AgentCoreInterface extends EventEmitter {
   private createFallbackAgentCore(existingCore: unknown): AgentCoreWASM {
     const core = existingCore as Record<string, unknown>;
     return {
-      agentCoreExecute: core?.agentCoreExecute || this.fallbackExecute.bind(this),
-      agentCoreExecuteTool: core?.agentCoreExecuteTool || this.fallbackExecuteTool.bind(this),
-      agentCoreLoadLoRA: core?.agentCoreLoadLoRA || this.fallbackLoadLoRA.bind(this),
-      agentCoreApplySkill: core?.agentCoreApplySkill || this.fallbackApplySkill.bind(this),
-      agentCoreGetStatus: core?.agentCoreGetStatus || this.fallbackGetStatus.bind(this)
+      agentCoreExecute: (core?.agentCoreExecute as any) || this.fallbackExecute.bind(this),
+      agentCoreExecuteTool: (core?.agentCoreExecuteTool as any) || this.fallbackExecuteTool.bind(this),
+      agentCoreLoadLoRA: (core?.agentCoreLoadLoRA as any) || this.fallbackLoadLoRA.bind(this),
+      agentCoreApplySkill: (core?.agentCoreApplySkill as any) || this.fallbackApplySkill.bind(this),
+      agentCoreGetStatus: (core?.agentCoreGetStatus as any) || this.fallbackGetStatus.bind(this)
     };
   }
 
@@ -549,7 +551,7 @@ export class AgentCoreInterface extends EventEmitter {
     } catch (error) {
       return JSON.stringify({
         success: false,
-        error: `Fallback execution error: ${error.message}`,
+        error: `Fallback execution error: ${error instanceof Error ? error.message : String(error)}`,
         confidence: 0,
         source: 'fallback-agent-core'
       });

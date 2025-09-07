@@ -6,9 +6,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>KNIRV Controller - Unified Interface</title>
     <meta name="description" content="KNIRV Controller - Unified cognitive shell and management interface" />
-    
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#1e40af" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="KNIRV Controller" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png" />
+
     <!-- Preload critical resources -->
-    <link rel="preload" href="data:application/octet-stream;base64,aW1wb3J0IHsgU3RyaWN0TW9kZSB9IGZyb20gJ3JlYWN0JzsKaW1wb3J0IHsgY3JlYXRlUm9vdCB9IGZyb20gJ3JlYWN0LWRvbS9jbGllbnQnOwppbXBvcnQgQXBwIGZyb20gJy4vQXBwLnRzeCc7CmltcG9ydCBFcnJvckJvdW5kYXJ5IGZyb20gJy4vY29tcG9uZW50cy9FcnJvckJvdW5kYXJ5LnRzeCc7CmltcG9ydCAnLi9pbmRleC5jc3MnOwoKY3JlYXRlUm9vdChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgncm9vdCcpISkucmVuZGVyKAogIDxTdHJpY3RNb2RlPgogICAgPEVycm9yQm91bmRhcnk+CiAgICAgIDxBcHAgLz4KICAgIDwvRXJyb3JCb3VuZGFyeT4KICA8L1N0cmljdE1vZGU+Cik7Cg==" as="script" type="module" />
+    <link rel="preload" href="data:application/octet-stream;base64,aW1wb3J0IHsgU3RyaWN0TW9kZSB9IGZyb20gJ3JlYWN0JzsKaW1wb3J0IHsgY3JlYXRlUm9vdCB9IGZyb20gJ3JlYWN0LWRvbS9jbGllbnQnOwppbXBvcnQgQXBwIGZyb20gJy4vQXBwJzsKaW1wb3J0IEVycm9yQm91bmRhcnkgZnJvbSAnLi9jb21wb25lbnRzL0Vycm9yQm91bmRhcnknOwppbXBvcnQgJy4vaW5kZXguY3NzJzsKCmNyZWF0ZVJvb3QoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3Jvb3QnKSEpLnJlbmRlcigKICA8U3RyaWN0TW9kZT4KICAgIDxFcnJvckJvdW5kYXJ5PgogICAgICA8QXBwIC8+CiAgICA8L0Vycm9yQm91bmRhcnk+CiAgPC9TdHJpY3RNb2RlPgopOwo=" as="script" type="module" />
     
     <!-- Theme and styling -->
     <style>
@@ -66,8 +84,12 @@
         font-weight: 500;
       }
     </style>
-    <script type="module" crossorigin src="/assets/main-1kGhBq5a.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/main-DVwbcwVt.css">
+    <script type="module" crossorigin src="/assets/main-eP8YNJ4I.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/vendor-BXttUi4B.js">
+    <link rel="modulepreload" crossorigin href="/assets/ui-BGfAbGa7.js">
+    <link rel="modulepreload" crossorigin href="/assets/blockchain-g7UmDSZc.js">
+    <link rel="modulepreload" crossorigin href="/assets/database-Bu7_AzBH.js">
+    <link rel="stylesheet" crossorigin href="/assets/main-DsEmai-T.css">
   </head>
   <body>
     <div id="root">
@@ -101,6 +123,67 @@
       
       window.addEventListener('unhandledrejection', (event) => {
         console.error('Unhandled promise rejection:', event.reason);
+      });
+
+      // Service Worker Registration
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registered: ', registration);
+
+              // Check for updates
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                if (newWorker) {
+                  newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      // New content is available, prompt user to refresh
+                      if (confirm('New version available! Refresh to update?')) {
+                        window.location.reload();
+                      }
+                    }
+                  });
+                }
+              });
+            })
+            .catch((registrationError) => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+
+      // PWA Install Prompt
+      let deferredPrompt;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+
+        // Show custom install button or banner
+        const installBanner = document.createElement('div');
+        installBanner.innerHTML = `
+          <div style="position: fixed; bottom: 20px; left: 20px; right: 20px; background: #1e40af; color: white; padding: 16px; border-radius: 8px; z-index: 10000; display: flex; justify-content: space-between; align-items: center;">
+            <span>Install KNIRV Controller for better experience</span>
+            <button id="install-btn" style="background: white; color: #1e40af; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Install</button>
+            <button id="dismiss-btn" style="background: transparent; color: white; border: 1px solid white; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-left: 8px;">Dismiss</button>
+          </div>
+        `;
+        document.body.appendChild(installBanner);
+
+        document.getElementById('install-btn').addEventListener('click', () => {
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+              console.log('User accepted the install prompt');
+            }
+            deferredPrompt = null;
+            installBanner.remove();
+          });
+        });
+
+        document.getElementById('dismiss-btn').addEventListener('click', () => {
+          installBanner.remove();
+        });
       });
     </script>
   </body>

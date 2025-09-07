@@ -842,14 +842,14 @@ func main() {
 			log.Printf("Warning: Failed to create InferenceService: %v", err)
 		} else {
 			log.Println("InferenceService created successfully")
+		}
 
-			// Start the inference service
-			err = globalInferenceService.Start()
-			if err != nil {
-				log.Printf("Warning: Failed to start InferenceService: %v", err)
-			} else {
-				log.Println("InferenceService started successfully")
-			}
+		// Start the inference service
+		err = globalInferenceService.Start()
+		if err != nil {
+			log.Printf("Warning: Failed to start InferenceService: %v", err)
+		} else {
+			log.Println("InferenceService started successfully")
 		}
 
 		// If agent mode is enabled and DHT metrics sharing is enabled,
@@ -2179,3 +2179,4 @@ func getAgentStatus() map[string]interface{} {
 
 	return status
 }
+

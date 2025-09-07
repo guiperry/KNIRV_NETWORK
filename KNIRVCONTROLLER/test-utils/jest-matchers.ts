@@ -30,7 +30,7 @@ declare global {
 export const customMatchers = {
   toHaveTransactionStructure(received: unknown) {
     try {
-      TransactionTestUtils.validateTransactionStructure(received);
+      TransactionTestUtils.validateTransactionStructure(received as Record<string, unknown>);
       return {
         message: () => `Expected transaction to have valid structure`,
         pass: true,
@@ -72,7 +72,7 @@ export const customMatchers = {
     try {
       const accounts = receivedObj.accounts as unknown[];
       accounts.forEach((account: unknown) => {
-        AccountTestUtils.validateAccountStructure(account);
+        AccountTestUtils.validateAccountStructure(account as Record<string, unknown>);
       });
     } catch (error) {
       return {
@@ -85,7 +85,7 @@ export const customMatchers = {
     try {
       const keyrings = receivedObj.keyrings as unknown[];
       keyrings.forEach((keyring: unknown) => {
-        KeyringTestUtils.validateKeyringStructure(keyring);
+        KeyringTestUtils.validateKeyringStructure(keyring as Record<string, unknown>);
       });
     } catch (error) {
       return {

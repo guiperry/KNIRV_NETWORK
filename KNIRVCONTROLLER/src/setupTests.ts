@@ -3,6 +3,8 @@
 // expect(element).toHaveTextContent(/react/i)
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
+// Import type definitions for tests
+/// <reference path="./types/global-test.d.ts" />
 import { setupCustomMatchers } from '../test-utils/jest-matchers';
 
 // Setup custom matchers
@@ -21,8 +23,12 @@ global.WebAssembly = {
   Table: jest.fn(),
   CompileError: Error,
   RuntimeError: Error,
-  LinkError: Error
-} as typeof WebAssembly;
+  LinkError: Error,
+  compileStreaming: jest.fn().mockResolvedValue({}),
+  instantiateStreaming: jest.fn().mockResolvedValue({ instance: {}, module: {} }),
+  validate: jest.fn().mockReturnValue(true),
+  Global: jest.fn()
+} as any;
 
 // Mock File constructor for file upload tests
 global.File = class MockFile {
@@ -64,9 +70,13 @@ global.File = class MockFile {
   }
 
   slice(): Blob {
-    return this;
+    return this as any;
   }
-} as typeof File;
+
+  bytes(): Promise<Uint8Array> {
+    return Promise.resolve(new TextEncoder().encode(this.content));
+  }
+} as any;
 
 // Mock crypto.subtle for hash generation tests
 Object.defineProperty(global, 'crypto', {
@@ -124,7 +134,7 @@ global.IntersectionObserver = class IntersectionObserver {
   observe() {}
   unobserve() {}
   disconnect() {}
-} as typeof IntersectionObserver;
+} as any;
 
 // Mock ResizeObserver for components that might use it
 global.ResizeObserver = class ResizeObserver {

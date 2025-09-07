@@ -20,6 +20,7 @@ require (
 	github.com/segmentio/kafka-go v0.4.48
 	github.com/spf13/viper v1.16.0
 	github.com/stretchr/testify v1.10.0
+	github.com/subosito/gotenv v1.4.2
 	github.com/tidwall/buntdb v1.3.0
 	github.com/wk8/go-ordered-map/v2 v2.1.8
 	golang.org/x/crypto v0.36.0
@@ -148,7 +149,6 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	github.com/subosito/gotenv v1.4.2 // indirect
 	github.com/tidwall/btree v1.4.2 // indirect
 	github.com/tidwall/gjson v1.14.3 // indirect
 	github.com/tidwall/grect v0.1.4 // indirect

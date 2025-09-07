@@ -96,7 +96,7 @@ KNIRVANA seamlessly integrates with the entire KNIRV D-TEN ecosystem:
 
 ### Development Tools
 - **KNIRV-SDK**: Integration libraries for both clients
-- **KNIRV-SHELL**: AI-powered development interface
+- **KNIRV-CLI**: AI-powered development interface
 - **KNIRV-CORTEX**: Agent management and "The Fabric" algorithm
 
 ## 🛠️ Development

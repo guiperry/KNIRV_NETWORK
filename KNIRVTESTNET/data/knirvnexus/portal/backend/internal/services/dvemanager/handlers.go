@@ -61,8 +61,8 @@ func (dm *DVEManager) HandleGetNode(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	nodeID := vars["id"]
 
-	node, exists := dm.GetNode(nodeID)
-	if !exists {
+	node, err := dm.GetNode(nodeID)
+	if err != nil {
 		writeError(w, http.StatusNotFound, "Node not found")
 		return
 	}

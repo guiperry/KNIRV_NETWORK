@@ -21,6 +21,12 @@ describe('Phase 3.3 - LoRA Processing Queue', () => {
   beforeEach(async () => {
     // Create mock HRM Core Model
     mockHRMCoreModel = {
+      hrmBridge: {} as any,
+      config: {} as any,
+      isInitialized: true,
+      analysisQueue: new Map(),
+      discoveryResults: new Map(),
+      categoryMappings: new Map(),
       initialize: jest.fn().mockResolvedValue(undefined),
       discoverSkill: jest.fn().mockResolvedValue({
         skillId: 'test_skill_001',
@@ -36,8 +42,19 @@ describe('Phase 3.3 - LoRA Processing Queue', () => {
       }),
       isReady: jest.fn().mockReturnValue(true),
       getDiscoveryResult: jest.fn(),
-      getAllDiscoveryResults: jest.fn().mockReturnValue([])
-    };
+      getAllDiscoveryResults: jest.fn().mockReturnValue([]),
+      analyzeAdapter: jest.fn(),
+      categorizeSkill: jest.fn(),
+      generateSkillName: jest.fn(),
+      generateSkillDescription: jest.fn(),
+      extractCapabilities: jest.fn(),
+      calculateComplexity: jest.fn(),
+      findRelatedSkills: jest.fn(),
+      updateCategoryMappings: jest.fn(),
+      getAnalysisMetrics: jest.fn(),
+      clearAnalysisQueue: jest.fn(),
+      shutdown: jest.fn()
+    } as unknown as jest.Mocked<HRMCoreModel>;
 
     processingQueue = new LoRAProcessingQueue(mockHRMCoreModel, {
       maxConcurrentProcessing: 2,
@@ -366,9 +383,9 @@ describe('Phase 3.3 - LoRA Processing Queue', () => {
     test('should handle malformed input gracefully', async () => {
       const malformedAdapter = {
         ...mockLoRAAdapter,
-        weightsA: null,
-        weightsB: undefined
-      };
+        weightsA: new Float32Array([]), // Empty array instead of null
+        weightsB: new Float32Array([])  // Empty array instead of undefined
+      } as LoRAAdapterSkill;
 
       // Should not throw during enqueue
       await expect(processingQueue.enqueue(malformedAdapter, mockTrainingDataset))
@@ -402,18 +419,25 @@ describe('Phase 3.3 - LoRA Processing Queue', () => {
     it('should validate imported types are properly used', () => {
       // Test QueuedLoRAAdapter type usage
       const mockQueuedAdapter: QueuedLoRAAdapter = {
-        id: 'queued-adapter-1',
-        adapter: {
-          id: 'adapter-1',
-          name: 'Test Adapter',
+        queueId: 'queued-adapter-1',
+        loraAdapter: {
+          skillId: 'adapter-1',
+          skillName: 'Test Adapter',
+          description: 'Test adapter description',
+          baseModelCompatibility: 'CodeT5-base',
+          version: 1,
           rank: 16,
           alpha: 32,
-          weights: new Map(),
-          trainingData: []
+          weightsA: new Float32Array([0.1, 0.2]),
+          weightsB: new Float32Array([0.3, 0.4]),
+          additionalMetadata: {}
         } as LoRAAdapterSkill,
+        trainingDataset: mockTrainingDataset,
         priority: 1,
-        queuedAt: Date.now(),
-        status: QueueStatus.PENDING
+        status: QueueStatus.PENDING,
+        submittedAt: new Date(),
+        retryCount: 0,
+        maxRetries: 3
       };
 
       expect(mockQueuedAdapter.priority).toBe(1);
@@ -421,21 +445,39 @@ describe('Phase 3.3 - LoRA Processing Queue', () => {
 
       // Test HRMCoreModel type usage
       const mockHRMModel = new HRMCoreModel({
-        modelPath: '/test/model',
-        maxConcurrentProcessing: 2
+        hrmConfig: {
+          l_module_count: 8,
+          h_module_count: 4,
+          enable_adaptation: true,
+          processing_timeout: 30000
+        },
+        analysisTimeout: 60000,
+        maxConcurrentAnalysis: 2,
+        confidenceThreshold: 0.7,
+        categoryMappings: {}
       });
 
       expect(mockHRMModel).toBeDefined();
 
       // Test TrainingDataset type usage
       const mockDataset: TrainingDataset = {
-        id: 'dataset-1',
-        samples: [],
-        metadata: { size: 0, version: '1.0' }
+        datasetId: 'dataset-1',
+        clusterId: 'cluster-1',
+        errorNodes: [],
+        validatedSolutions: [],
+        trainingPairs: [],
+        datasetMetrics: {
+          totalPairs: 0,
+          averageValidationScore: 0,
+          diversityScore: 0,
+          complexityScore: 0,
+          qualityScore: 0
+        },
+        createdAt: new Date()
       };
 
-      expect(Array.isArray(mockDataset.samples)).toBe(true);
-      expect(mockDataset.metadata.version).toBe('1.0');
+      expect(Array.isArray(mockDataset.trainingPairs)).toBe(true);
+      expect(mockDataset.datasetMetrics.qualityScore).toBe(0);
     });
   });
 });

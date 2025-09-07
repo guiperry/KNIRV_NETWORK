@@ -135,12 +135,14 @@ const UDCManager: React.FC<UDCManagerProps> = ({ isOpen, onClose }) => {
             <button
               onClick={loadUDCs}
               disabled={isLoading}
+              aria-label="Refresh UDCs"
               className="p-2 hover:bg-gray-700/50 rounded-lg text-gray-400 hover:text-white transition-all disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             </button>
             <button
               onClick={onClose}
+              aria-label="Close UDC Manager"
               className="p-2 hover:bg-gray-700/50 rounded-lg text-gray-400 hover:text-white transition-all"
             >
               ×
@@ -204,6 +206,7 @@ const UDCManager: React.FC<UDCManagerProps> = ({ isOpen, onClose }) => {
                           </span>
                           <button
                             onClick={() => setSelectedUDC(udc)}
+                            aria-label={`View details for UDC ${udc.id}`}
                             className="p-1 hover:bg-gray-700/50 rounded text-gray-400 hover:text-white transition-all"
                           >
                             <Eye className="w-4 h-4" />
@@ -211,6 +214,7 @@ const UDCManager: React.FC<UDCManagerProps> = ({ isOpen, onClose }) => {
                           {udc.status === 'active' && (
                             <button
                               onClick={() => handleRenewUDC(udc.id, 30)}
+                              aria-label={`Renew UDC ${udc.id}`}
                               className="p-1 hover:bg-gray-700/50 rounded text-gray-400 hover:text-green-400 transition-all"
                             >
                               <RefreshCw className="w-4 h-4" />
@@ -218,6 +222,7 @@ const UDCManager: React.FC<UDCManagerProps> = ({ isOpen, onClose }) => {
                           )}
                           <button
                             onClick={() => handleRevokeUDC(udc.id, 'Manual revocation')}
+                            aria-label={`Revoke UDC ${udc.id}`}
                             className="p-1 hover:bg-gray-700/50 rounded text-gray-400 hover:text-red-400 transition-all"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -356,8 +361,9 @@ const UDCCreateForm: React.FC<UDCCreateFormProps> = ({ onSubmit, onCancel }) => 
     <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Agent ID</label>
+          <label htmlFor="agent-id" className="block text-sm font-medium text-gray-300 mb-2">Agent ID</label>
           <input
+            id="agent-id"
             type="text"
             value={formData.agentId}
             onChange={(e) => setFormData({ ...formData, agentId: e.target.value })}
@@ -365,10 +371,11 @@ const UDCCreateForm: React.FC<UDCCreateFormProps> = ({ onSubmit, onCancel }) => 
             required
           />
         </div>
-        
+
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">UDC Type</label>
+          <label htmlFor="udc-type" className="block text-sm font-medium text-gray-300 mb-2">UDC Type</label>
           <select
+            id="udc-type"
             value={formData.type}
             onChange={(e) => setFormData({ ...formData, type: e.target.value as UDC['type'] })}
             className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-emerald-400 focus:outline-none"
@@ -383,8 +390,9 @@ const UDCCreateForm: React.FC<UDCCreateFormProps> = ({ onSubmit, onCancel }) => 
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Authority Level</label>
+          <label htmlFor="authority-level" className="block text-sm font-medium text-gray-300 mb-2">Authority Level</label>
           <select
+            id="authority-level"
             value={formData.authorityLevel}
             onChange={(e) => setFormData({ ...formData, authorityLevel: e.target.value as UDC['authorityLevel'] })}
             className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-emerald-400 focus:outline-none"
@@ -398,8 +406,9 @@ const UDCCreateForm: React.FC<UDCCreateFormProps> = ({ onSubmit, onCancel }) => 
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Validity Period (days)</label>
+          <label htmlFor="validity-period" className="block text-sm font-medium text-gray-300 mb-2">Validity Period (days)</label>
           <input
+            id="validity-period"
             type="number"
             value={formData.validityPeriod}
             onChange={(e) => setFormData({ ...formData, validityPeriod: parseInt(e.target.value) })}
@@ -411,8 +420,9 @@ const UDCCreateForm: React.FC<UDCCreateFormProps> = ({ onSubmit, onCancel }) => 
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">Scope Description</label>
+        <label htmlFor="scope-description" className="block text-sm font-medium text-gray-300 mb-2">Scope Description</label>
         <textarea
+          id="scope-description"
           value={formData.scope}
           onChange={(e) => setFormData({ ...formData, scope: e.target.value })}
           className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-emerald-400 focus:outline-none"
@@ -422,8 +432,9 @@ const UDCCreateForm: React.FC<UDCCreateFormProps> = ({ onSubmit, onCancel }) => 
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">Max Executions</label>
+        <label htmlFor="max-executions" className="block text-sm font-medium text-gray-300 mb-2">Max Executions</label>
         <input
+          id="max-executions"
           type="number"
           value={formData.maxExecutions}
           onChange={(e) => setFormData({ ...formData, maxExecutions: parseInt(e.target.value) })}
@@ -435,6 +446,7 @@ const UDCCreateForm: React.FC<UDCCreateFormProps> = ({ onSubmit, onCancel }) => 
       <div className="flex space-x-4">
         <button
           type="submit"
+          data-testid="create-udc-submit-button"
           className="px-6 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-all"
         >
           Create UDC

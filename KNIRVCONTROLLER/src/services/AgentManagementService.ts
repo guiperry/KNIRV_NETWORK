@@ -3,10 +3,30 @@
  * Handles agent upload, compilation, deployment, and lifecycle management
  */
 
-import { databaseService, AgentDocType } from '../core/services/databaseService';
+import { databaseService } from '../core/services/databaseService';
+import { Agent, AgentMetadata } from '../types/common';
+
+// Re-export types for convenience
+export type { Agent, AgentMetadata };
 
 // Type conversion helper
-function convertDbAgentToAgent(dbAgent: AgentDocType): Agent {
+function convertDbAgentToAgent(dbAgent: any): Agent {
+  // Ensure metadata conforms to AgentMetadata interface
+  const metadata: AgentMetadata = {
+    name: dbAgent.name,
+    version: dbAgent.version,
+    baseModelId: dbAgent.baseModelId,
+    description: (dbAgent.metadata as any)?.description || 'No description available',
+    author: (dbAgent.metadata as any)?.author || 'Unknown',
+    capabilities: dbAgent.capabilities,
+    requirements: {
+      memory: (dbAgent.metadata as any)?.requirements?.memory || 512,
+      cpu: (dbAgent.metadata as any)?.requirements?.cpu || 1,
+      storage: (dbAgent.metadata as any)?.requirements?.storage || 100
+    },
+    permissions: (dbAgent.metadata as any)?.permissions || []
+  };
+
   return {
     agentId: dbAgent.agentId,
     name: dbAgent.name,
@@ -16,7 +36,7 @@ function convertDbAgentToAgent(dbAgent: AgentDocType): Agent {
     status: dbAgent.status,
     nrnCost: dbAgent.nrnCost,
     capabilities: dbAgent.capabilities,
-    metadata: dbAgent.metadata,
+    metadata,
     wasmModule: dbAgent.wasmModule,
     loraAdapter: dbAgent.loraAdapter,
     createdAt: dbAgent.createdAt,
@@ -24,36 +44,7 @@ function convertDbAgentToAgent(dbAgent: AgentDocType): Agent {
   };
 }
 
-export interface Agent {
-  agentId: string;
-  name: string;
-  version: string;
-  baseModelId?: string;
-  type: 'wasm' | 'lora' | 'hybrid';
-  status: 'Available' | 'Deployed' | 'Error' | 'Compiling';
-  nrnCost: number;
-  capabilities: string[];
-  metadata: Record<string, unknown>;
-  wasmModule?: string;
-  loraAdapter?: string;
-  createdAt: string;
-  lastActivity?: string;
-}
-
-export interface AgentMetadata extends Record<string, unknown> {
-  name: string;
-  version: string;
-  baseModelId?: string;
-  description: string;
-  author: string;
-  capabilities: string[];
-  requirements: {
-    memory: number;
-    cpu: number;
-    storage: number;
-  };
-  permissions: string[];
-}
+// Agent and AgentMetadata interfaces are now imported from types/common.ts
 
 export interface AgentUploadRequest {
   file: File;
@@ -134,7 +125,7 @@ export class AgentManagementService {
         status: 'Compiling',
         nrnCost: this.calculateNRNCost(metadata.requirements),
         capabilities: metadata.capabilities,
-        metadata: metadata as Record<string, unknown>,
+        metadata: metadata as any,
         createdAt: new Date().toISOString()
       };
 

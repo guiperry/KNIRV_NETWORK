@@ -263,7 +263,7 @@ class CollectionWrapper<T> {
       (docWithTimestamps as Record<string, unknown>)[this.primaryKey] = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     }
 
-    const result = await collection.insert(docWithTimestamps);
+    const result = await collection.insert(docWithTimestamps as T);
     return result.toJSON();
   }
 
@@ -288,7 +288,7 @@ class CollectionWrapper<T> {
         ? { ...updateSource as Record<string, unknown> }
         : {} as Record<string, unknown>;
       updateData.updatedAt = new Date().toISOString();
-      await doc.patch(updateData);
+      await doc.patch(updateData as Partial<T>);
       return doc.toJSON();
     }
     return null;
@@ -431,7 +431,7 @@ class DatabaseService {
             { name: { $regex: new RegExp(searchTerm, 'i') } },
             { description: { $regex: new RegExp(searchTerm, 'i') } }
           ]
-        })
+        } as any)
         .limit(limit)
         .exec();
 

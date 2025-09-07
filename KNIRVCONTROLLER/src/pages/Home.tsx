@@ -11,7 +11,9 @@ import AnalyticsDashboard from '../components/AnalyticsDashboard';
 import TaskScheduler from '../components/TaskScheduler';
 import UDCManager from '../components/UDCManager';
 import PerformanceMonitor from '../components/PerformanceMonitor';
+import KNIRVANAGameVisualization from '../components/KNIRVANAGameVisualization';
 import { desktopConnection } from '../services/DesktopConnection';
+import { agentManagementService } from '../services/AgentManagementService';
 
 interface HRMProcessingResponse {
   reasoning_result: string;
@@ -32,6 +34,7 @@ export default function Home() {
   const [showTaskScheduler, setShowTaskScheduler] = useState(false);
   const [showUDCManager, setShowUDCManager] = useState(false);
   const [showPerformanceMonitor, setShowPerformanceMonitor] = useState(false);
+  const [showKNIRVANAGame, setShowKNIRVANAGame] = useState(false);
 
   useEffect(() => {
     // Set up desktop connection event handlers
@@ -101,11 +104,38 @@ export default function Home() {
   };
 
   // Action button handlers
-  const handleDeployAgent = () => {
-    // Navigate to agent management or open agent deployment modal
-    // For now, we'll show a simple alert - in a full implementation,
-    // this would open an agent deployment interface
-    alert('Deploy Agent functionality - would open agent deployment interface');
+  const handleDeployAgent = async () => {
+    try {
+      // Get first available agent (in real implementation, user would select)
+      const agents = await agentManagementService.getAgents();
+      const availableAgent = agents.find(agent => agent.status === 'Available');
+
+      if (!availableAgent) {
+        alert('No available agents found');
+        return;
+      }
+
+      // Deploy the agent (would typically prompt for configuration)
+      const deploymentId = await agentManagementService.deployAgent({
+        agentId: availableAgent.agentId,
+        targetNRV: undefined, // Could prompt user to select
+        configuration: {},
+        resources: {
+          memory: availableAgent.metadata.requirements.memory,
+          cpu: availableAgent.metadata.requirements.cpu,
+          timeout: 300000 // 5 minutes
+        }
+      });
+
+      console.log('Agent deployed successfully:', deploymentId);
+      alert(`Agent ${availableAgent.name} deployed successfully!`);
+
+      // Refresh UI to show updated agent status
+      // This would typically trigger a re-render of the agents list
+    } catch (error) {
+      console.error('Failed to deploy agent:', error);
+      alert(`Failed to deploy agent: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   const handleViewAnalytics = () => {
@@ -118,6 +148,10 @@ export default function Home() {
 
   const handleRenewUDC = () => {
     setShowUDCManager(true);
+  };
+
+  const handleKNIRVANAGame = () => {
+    setShowKNIRVANAGame(true);
   };
 
   const agents = [
@@ -352,6 +386,12 @@ export default function Home() {
               description="System optimization"
               onClick={() => setShowPerformanceMonitor(true)}
             />
+            <ActionButton
+              icon={Eye}
+              title="KNIRVANA Graph"
+              description="Game mechanics visualization"
+              onClick={handleKNIRVANAGame}
+            />
           </div>
         </div>
 
@@ -425,6 +465,29 @@ export default function Home() {
         isOpen={showPerformanceMonitor}
         onClose={() => setShowPerformanceMonitor(false)}
       />
+
+      {/* KNIRVANA Game Visualization Modal */}
+      <div className={`fixed inset-0 z-50 ${showKNIRVANAGame ? 'block' : 'hidden'}`}>
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowKNIRVANAGame(false)} />
+        <div className="absolute inset-4 max-w-6xl mx-auto">
+          <div className="bg-slate-900/95 backdrop-blur-xl rounded-xl overflow-hidden shadow-2xl">
+            <div className="flex justify-between items-center p-4 border-b border-slate-700">
+              <h2 className="text-xl font-semibold text-white">KNIRVANA Game Bridge</h2>
+              <button
+                onClick={() => setShowKNIRVANAGame(false)}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="max-h-[80vh] overflow-y-auto p-4">
+              <KNIRVANAGameVisualization />
+            </div>
+          </div>
+        </div>
+      </div>
     </ManagerLayout>
   );
 }

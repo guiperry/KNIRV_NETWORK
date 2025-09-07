@@ -20,18 +20,18 @@ export declare function initializeAgent(): boolean;
 /**
  * assembly/index/executeAgent
  * @param input `~lib/string/String`
- * @param context `~lib/string/String`
+ * @param _context `~lib/string/String`
  * @returns `~lib/string/String`
  */
-export declare function executeAgent(input: string, context: string): string;
+export declare function executeAgent(input: string, _context: string): string;
 /**
  * assembly/index/executeAgentTool
  * @param toolName `~lib/string/String`
  * @param parameters `~lib/string/String`
- * @param context `~lib/string/String`
+ * @param _context `~lib/string/String`
  * @returns `~lib/string/String`
  */
-export declare function executeAgentTool(toolName: string, parameters: string, context: string): string;
+export declare function executeAgentTool(toolName: string, parameters: string, _context: string): string;
 /**
  * assembly/index/loadLoraAdapter
  * @param adapter `~lib/string/String`
@@ -51,18 +51,18 @@ export declare function getAgentStatus(): string;
 export declare function createModel(type: string): boolean;
 /**
  * assembly/index/loadModelWeights
- * @param weightsPtr `usize`
+ * @param _weightsPtr `usize`
  * @param weightsLen `i32`
  * @returns `bool`
  */
-export declare function loadModelWeights(weightsPtr: number, weightsLen: number): boolean;
+export declare function loadModelWeights(_weightsPtr: number, weightsLen: number): boolean;
 /**
  * assembly/index/runModelInference
  * @param input `~lib/string/String`
- * @param context `~lib/string/String`
+ * @param _context `~lib/string/String`
  * @returns `~lib/string/String`
  */
-export declare function runModelInference(input: string, context: string): string;
+export declare function runModelInference(input: string, _context: string): string;
 /**
  * assembly/index/getModelInfo
  * @returns `~lib/string/String`
@@ -86,9 +86,9 @@ export declare function getSupportedFeatures(): string;
 export declare function allocateString(str: string): number;
 /**
  * assembly/index/deallocateString
- * @param ptr `usize`
+ * @param _ptr `usize`
  */
-export declare function deallocateString(ptr: number): void;
+export declare function deallocateString(_ptr: number): void;
 /**
  * assembly/index/wasmInit
  */

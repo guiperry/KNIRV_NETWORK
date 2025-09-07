@@ -33,7 +33,13 @@ export class EnhancedLoRAAdapter extends EventEmitter {
   private optimizer: tf.Optimizer;
   private isTraining: boolean = false;
   private trainingData: TrainingData[] = [];
-  private metrics: AdaptationMetrics;
+  private metrics: AdaptationMetrics = {
+    loss: 0,
+    accuracy: 0,
+    epoch: 0,
+    learningRate: 0.001,
+    timestamp: new Date()
+  };
   private isRunning: boolean = false;
   private hrmBridge: unknown = null;
 
@@ -317,11 +323,11 @@ export class EnhancedLoRAAdapter extends EventEmitter {
       const hrmOutput = await (this.hrmBridge as { processCognitiveInput: (input: unknown) => Promise<unknown> }).processCognitiveInput(hrmInput);
 
       return {
-        reasoning: hrmOutput.reasoning_result,
-        confidence: hrmOutput.confidence,
-        l_activations: hrmOutput.l_module_activations,
-        h_activations: hrmOutput.h_module_activations,
-        adaptationStrength: hrmOutput.confidence * this.hrmConfig.hrmWeightInfluence,
+        reasoning: (hrmOutput as any).reasoning_result,
+        confidence: (hrmOutput as any).confidence,
+        l_activations: (hrmOutput as any).l_module_activations,
+        h_activations: (hrmOutput as any).h_module_activations,
+        adaptationStrength: (hrmOutput as any).confidence * this.hrmConfig.hrmWeightInfluence,
       };
 
     } catch (error) {
@@ -406,7 +412,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
       // Apply HRM guidance if available
       let finalAdaptation = scaledAdaptation;
       if (hrmGuidance && (hrmGuidance as { adaptationStrength?: unknown }).adaptationStrength) {
-        finalAdaptation = tf.mul(scaledAdaptation, (hrmGuidance as { adaptationStrength: unknown }).adaptationStrength);
+        finalAdaptation = tf.mul(scaledAdaptation, (hrmGuidance as { adaptationStrength: unknown }).adaptationStrength as tf.Tensor);
       }
 
       // Add adaptation to original weights
@@ -614,14 +620,14 @@ export class EnhancedLoRAAdapter extends EventEmitter {
   public async importWeights(weightsData: unknown): Promise<void> {
     this.disposeTensors();
 
-    for (const [moduleName, moduleData] of Object.entries(weightsData)) {
-      const data = moduleData as { layerName: string; A: number[][]; B: number[][]; rank: number; alpha: number };
+    for (const [moduleName, moduleData] of Object.entries(weightsData as Record<string, unknown>)) {
+      const data = moduleData as { layerName: string; A: number[][]; B: number[][]; rank: number; alpha: number; scaling?: number };
       
       const weights: TensorFlowLoRAWeights = {
         layerName: data.layerName,
         A: tf.tensor2d(data.A),
         B: tf.tensor2d(data.B),
-        scaling: data.scaling,
+        scaling: data.scaling || 1.0,
       };
 
       this.weights.set(moduleName, weights);

@@ -1,7 +1,8 @@
 import * as React from 'react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import { QrCode, X } from 'lucide-react';
+import { initSentry } from './utils/sentry';
 
 // Receiver components
 import { KnirvShell } from './components/KnirvShell';
@@ -13,12 +14,19 @@ import { EdgeColoring } from './components/EdgeColoring';
 import { AgentManager } from './components/AgentManager';
 import { FabricAlgorithm } from './components/FabricAlgorithm';
 import { CognitiveShellInterface } from './components/CognitiveShellInterface';
-import { CognitiveState } from './sensory-shell/CognitiveEngine';
+interface CognitiveState {
+  activeSkills: string[];
+  confidenceLevel: number;
+}
+import NetworkSelector, { NetworkType } from './components/NetworkSelector';
 
-// Manager components
-import Skills from './pages/Skills';
-import UDC from './pages/UDC';
-import WalletPage from './pages/Wallet';
+// Manager components - lazy loaded
+const Skills = lazy(() => import('./pages/Skills'));
+const UDC = lazy(() => import('./pages/UDC'));
+const WalletPage = lazy(() => import('./pages/Wallet'));
+
+// Types
+import { Agent } from './types/common';
 
 
 
@@ -31,28 +39,17 @@ export interface Adaptation {
   id: string;
   type: string;
   description: string;
+  parameters: Record<string, unknown>;
   timestamp: Date;
+  confidence: number;
 }
 
 export interface SkillResult {
   success: boolean;
   data?: unknown;
-  error?: string;
-  executionTime?: number;
-}
-
-export interface SkillResult {
-  success: boolean;
   output?: unknown;
   error?: string;
   executionTime?: number;
-}
-
-export interface Adaptation {
-  type: string;
-  parameters: Record<string, unknown>;
-  timestamp: Date;
-  confidence: number;
 }
 
 export interface NRV {
@@ -72,33 +69,7 @@ export interface NRV {
   status: 'Identified' | 'Mapped' | 'Assigned' | 'Resolved';
 }
 
-export interface Agent {
-  id: string;
-  name: string;
-  type: 'wasm' | 'lora' | 'hybrid';
-  status: 'Available' | 'Deployed' | 'Error' | 'Compiling';
-  nrnCost: number;
-  capabilities: string[];
-  metadata: {
-    name: string;
-    version: string;
-    description: string;
-    author: string;
-    capabilities: string[];
-    requirements: {
-      memory: number;
-      cpu: number;
-      storage: number;
-    };
-    permissions: string[];
-  };
-  wasmModule?: WebAssembly.Module;
-  loraAdapter?: string;
-  createdAt: Date;
-  lastActivity?: Date;
-  // Legacy compatibility
-  specialization?: string[];
-}
+// Note: convertAgentToLegacy function removed - not currently needed but can be added back if LegacyAgent compatibility is required
 
 
 // Burger Menu Component
@@ -106,9 +77,13 @@ interface BurgerMenuProps {
   isOpen: boolean;
   onToggle: () => void;
   children: React.ReactNode;
+  showNetworkSelector?: boolean;
+  setShowNetworkSelector?: (show: boolean) => void;
+  currentNetwork?: NetworkType | null;
+  setCurrentNetwork?: (network: NetworkType | null) => void;
 }
 
-const BurgerMenu: React.FC<BurgerMenuProps> = ({ isOpen, onToggle, children }) => {
+const BurgerMenu: React.FC<BurgerMenuProps> = ({ isOpen, onToggle, children, showNetworkSelector, setShowNetworkSelector, currentNetwork, setCurrentNetwork }) => {
   return (
     <div className="relative">
       {/* Burger Button */}
@@ -132,6 +107,19 @@ const BurgerMenu: React.FC<BurgerMenuProps> = ({ isOpen, onToggle, children }) =
             {children}
           </div>
         </div>
+      )}
+
+      {/* Network Selector Modal */}
+      {showNetworkSelector && (
+        <NetworkSelector
+          isOpen={showNetworkSelector}
+          onClose={() => setShowNetworkSelector?.(false)}
+          onNetworkChange={(network) => {
+            setCurrentNetwork?.(network);
+            console.log('Network changed to:', network.name);
+          }}
+          currentNetwork={currentNetwork ?? undefined}
+        />
       )}
     </div>
   );
@@ -182,16 +170,16 @@ const ReceiverInterface = () => {
   const shellRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Initialize mock agents
+    // Initialize mock agents using the new Agent interface
     const mockAgents: Agent[] = [
       {
-        id: 'agent-1',
+        agentId: 'agent-1',
         name: 'System Diagnostics Agent',
+        version: '1.0.0',
         type: 'wasm',
         status: 'Available',
-        capabilities: ['error-detection', 'system-analysis'],
-        specialization: ['error-detection', 'system-analysis'],
         nrnCost: 50,
+        capabilities: ['error-detection', 'system-analysis'],
         metadata: {
           name: 'System Diagnostics Agent',
           version: '1.0.0',
@@ -201,16 +189,16 @@ const ReceiverInterface = () => {
           requirements: { memory: 256, cpu: 1, storage: 50 },
           permissions: ['read', 'analyze']
         },
-        createdAt: new Date()
+        createdAt: new Date().toISOString()
       },
       {
-        id: 'agent-2',
+        agentId: 'agent-2',
         name: 'UI/UX Optimization Agent',
+        version: '1.0.0',
         type: 'lora',
         status: 'Available',
-        capabilities: ['interface-design', 'user-experience'],
-        specialization: ['interface-design', 'user-experience'],
         nrnCost: 75,
+        capabilities: ['interface-design', 'user-experience'],
         metadata: {
           name: 'UI/UX Optimization Agent',
           version: '1.0.0',
@@ -220,16 +208,16 @@ const ReceiverInterface = () => {
           requirements: { memory: 512, cpu: 2, storage: 100 },
           permissions: ['read', 'write', 'design']
         },
-        createdAt: new Date()
+        createdAt: new Date().toISOString()
       },
       {
-        id: 'agent-3',
+        agentId: 'agent-3',
         name: 'Network Security Agent',
+        version: '1.0.0',
         type: 'hybrid',
         status: 'Deployed',
-        capabilities: ['security-analysis', 'threat-detection'],
-        specialization: ['security-analysis', 'threat-detection'],
         nrnCost: 100,
+        capabilities: ['security-analysis', 'threat-detection'],
         metadata: {
           name: 'Network Security Agent',
           version: '1.0.0',
@@ -239,7 +227,7 @@ const ReceiverInterface = () => {
           requirements: { memory: 1024, cpu: 4, storage: 200 },
           permissions: ['admin', 'security', 'monitor']
         },
-        createdAt: new Date()
+        createdAt: new Date().toISOString()
       }
     ];
     setAvailableAgents(mockAgents);
@@ -372,7 +360,7 @@ const ReceiverInterface = () => {
         n.id === nrv.id ? { ...n, status: 'Assigned' } : n
       ));
       setAvailableAgents(prev => prev.map(a =>
-        a.id === agent.id ? { ...a, status: 'Deployed' } : a
+        a.agentId === agent.agentId ? { ...a, status: 'Deployed' } : a
       ));
 
       setTimeout(() => {
@@ -380,7 +368,7 @@ const ReceiverInterface = () => {
           n.id === nrv.id ? { ...n, status: 'Resolved' } : n
         ));
         setAvailableAgents(prev => prev.map(a =>
-          a.id === agent.id ? { ...a, status: 'Available' } : a
+          a.agentId === agent.agentId ? { ...a, status: 'Available' } : a
         ));
       }, 5000);
     }
@@ -440,6 +428,8 @@ const ReceiverInterface = () => {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
+  const [showNetworkSelector, setShowNetworkSelector] = useState(false);
+  const [currentNetwork, setCurrentNetwork] = useState<NetworkType | null>(null);
 
   const openCognitiveShell = () => {
     setActivePanels(prev =>
@@ -479,7 +469,14 @@ const ReceiverInterface = () => {
 
       {/* Burger Menu Navigation - positioned to avoid time metrics */}
       <div className="absolute top-20 right-4 z-50">
-        <BurgerMenu isOpen={menuOpen} onToggle={() => setMenuOpen(!menuOpen)}>
+        <BurgerMenu
+          isOpen={menuOpen}
+          onToggle={() => setMenuOpen(!menuOpen)}
+          showNetworkSelector={showNetworkSelector}
+          setShowNetworkSelector={setShowNetworkSelector}
+          currentNetwork={currentNetwork}
+          setCurrentNetwork={setCurrentNetwork}
+        >
           <MenuItem onClick={() => { navigate('/manager/skills'); setMenuOpen(false); }} icon="⚡">
             Skills
           </MenuItem>
@@ -497,6 +494,9 @@ const ReceiverInterface = () => {
           </MenuItem>
           <MenuItem onClick={toggleNetworkPanel} icon="🌐">
             Network Status
+          </MenuItem>
+          <MenuItem onClick={() => { setShowNetworkSelector?.(true); setMenuOpen(false); }} icon="🔗">
+            Network Selection
           </MenuItem>
           <MenuItem onClick={toggleAgentPanel} icon="🤖">
             Agent Management
@@ -866,18 +866,25 @@ const ManagerInterface = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white relative">
-      <Routes>
-        <Route path="/skills" element={<Skills />} />
-        <Route path="/udc" element={<UDC />} />
-        <Route path="/wallet" element={<WalletPage />} />
-        <Route path="/agent/:agentId" element={<AgentProfile />} />
-      </Routes>
+      <Suspense fallback={<div className="flex items-center justify-center h-screen"><div className="text-white">Loading...</div></div>}>
+        <Routes>
+          <Route path="/skills" element={<Skills />} />
+          <Route path="/udc" element={<UDC />} />
+          <Route path="/wallet" element={<WalletPage />} />
+          <Route path="/agent/:agentId" element={<AgentProfile />} />
+        </Routes>
+      </Suspense>
     </div>
   );
 };
 
 // Main App Component
 function App() {
+  useEffect(() => {
+    // Initialize Sentry for error monitoring
+    initSentry();
+  }, []);
+
   return (
     <Router>
       <Routes>

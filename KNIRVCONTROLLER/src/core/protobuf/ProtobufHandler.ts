@@ -4,7 +4,7 @@
  */
 
 import * as protobuf from 'protobufjs';
-import * as pino from 'pino';
+import pino from 'pino';
 
 const logger = pino({ name: 'protobuf-handler' });
 
@@ -56,8 +56,8 @@ export class ProtobufHandler {
         const protoDir = join(__dirname, '../protobuf/schemas');
 
         await fs.mkdir(protoDir, { recursive: true });
-        await this.generateLoRAAdapterSchema(protoDir, fs, join);
-        await this.loadSchemas(protoDir, fs, join);
+        await this.generateLoRAAdapterSchema(protoDir, join);
+        await this.loadSchemas(protoDir, join);
       }
 
       this.ready = true;
@@ -83,25 +83,25 @@ export class ProtobufHandler {
         this.schemas.set('LoRaAdapterSkill', this.root.lookupType('knirv.chain.v1.LoRaAdapterSkill'));
       } catch {
         // Create a mock schema if not found
-        this.schemas.set('LoRaAdapterSkill', this.createMockSchema('LoRaAdapterSkill'));
+        this.schemas.set('LoRaAdapterSkill', this.createMockSchema('LoRaAdapterSkill') as any);
       }
 
       try {
         this.schemas.set('SkillInvocationResponse', this.root.lookupType('knirv.chain.v1.SkillInvocationResponse'));
       } catch {
-        this.schemas.set('SkillInvocationResponse', this.createMockSchema('SkillInvocationResponse'));
+        this.schemas.set('SkillInvocationResponse', this.createMockSchema('SkillInvocationResponse') as any);
       }
 
       try {
         this.schemas.set('SkillInvocationRequest', this.root.lookupType('knirv.chain.v1.SkillInvocationRequest'));
       } catch {
-        this.schemas.set('SkillInvocationRequest', this.createMockSchema('SkillInvocationRequest'));
+        this.schemas.set('SkillInvocationRequest', this.createMockSchema('SkillInvocationRequest') as any);
       }
 
       try {
         this.schemas.set('SkillCompilationRequest', this.root.lookupType('knirv.chain.v1.SkillCompilationRequest'));
       } catch {
-        this.schemas.set('SkillCompilationRequest', this.createMockSchema('SkillCompilationRequest'));
+        this.schemas.set('SkillCompilationRequest', this.createMockSchema('SkillCompilationRequest') as any);
       }
 
       logger.info({ schemaCount: this.schemas.size }, 'Protobuf schemas loaded from definitions');
@@ -153,7 +153,7 @@ export class ProtobufHandler {
                     SkillInvocationResponse: {
                       fields: {
                         invocation_id: { type: "string", id: 1 },
-                        status: { type: "Status", id: 2 },
+                        status: { type: "int32", id: 2 },
                         skill: { type: "LoRaAdapterSkill", id: 3 },
                         error_message: { type: "string", id: 4 },
                         execution_time_ms: { type: "int64", id: 5 },
@@ -188,7 +188,7 @@ export class ProtobufHandler {
     };
   }
 
-  private async generateLoRAAdapterSchema(protoDir: string, fs: typeof import('fs'), join: typeof import('path').join): Promise<void> {
+  private async generateLoRAAdapterSchema(protoDir: string, join: typeof import('path').join): Promise<void> {
     const schemaContent = `syntax = "proto3";
 
 package knirv.chain.v1;
@@ -301,15 +301,17 @@ enum Status {
 }`;
 
     const schemaPath = join(protoDir, 'lora_adapter.proto');
+    const { promises: fs } = await import('fs');
     await fs.writeFile(schemaPath, schemaContent);
     logger.info({ schemaPath }, 'LoRA adapter protobuf schema generated');
   }
 
-  private async loadSchemas(protoDir: string, fs: typeof import('fs'), join: typeof import('path').join): Promise<void> {
+  private async loadSchemas(protoDir: string, join: typeof import('path').join): Promise<void> {
     try {
       this.root = new protobuf.Root();
 
       // Load all .proto files in the directory
+      const { promises: fs } = await import('fs');
       const files = await fs.readdir(protoDir);
       const protoFiles = files.filter((file: string) => file.endsWith('.proto'));
 
@@ -355,8 +357,11 @@ enum Status {
       const message = schema.create(data);
       const buffer = schema.encode(message).finish();
 
-      logger.debug({ schemaName, size: buffer.length }, 'Data serialized successfully');
-      return buffer;
+      // Ensure we return a Uint8Array, not a Buffer
+      const result = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+
+      logger.debug({ schemaName, size: result.length }, 'Data serialized successfully');
+      return result;
     } catch (error) {
       logger.error({ error, schemaName }, 'Serialization failed');
       throw error;
@@ -382,15 +387,51 @@ enum Status {
       const object = schema.toObject(message, {
         longs: String,
         enums: String,
-        bytes: String
+        bytes: Array
       });
 
+      // Post-process the object based on schema type
+      const processedObject = this.postProcessDeserializedObject(object, schemaName);
+
       logger.debug({ schemaName, size: data.length }, 'Data deserialized successfully');
-      return object;
+      return processedObject;
     } catch (error) {
       logger.error({ error, schemaName }, 'Deserialization failed');
       throw error;
     }
+  }
+
+  /**
+   * Post-process deserialized objects to convert types correctly
+   */
+  private postProcessDeserializedObject(object: any, schemaName: string): any {
+    switch (schemaName) {
+      case 'LoRaAdapterSkill':
+        // Convert byte arrays back to Float32Arrays
+        if (object.weights_a && Array.isArray(object.weights_a)) {
+          object.weightsA = this.bytesToFloatArray(new Uint8Array(object.weights_a));
+        }
+        if (object.weights_b && Array.isArray(object.weights_b)) {
+          object.weightsB = this.bytesToFloatArray(new Uint8Array(object.weights_b));
+        }
+        break;
+
+      case 'SkillInvocationResponse':
+        // Convert numeric status back to string
+        if (typeof object.status === 'number') {
+          const statusMap = {
+            0: 'STATUS_UNSPECIFIED',
+            1: 'SUCCESS',
+            2: 'FAILURE',
+            3: 'NOT_FOUND',
+            4: 'COMPILATION_IN_PROGRESS'
+          };
+          object.status = statusMap[object.status as keyof typeof statusMap] || 'STATUS_UNSPECIFIED';
+        }
+        break;
+    }
+
+    return object;
   }
 
   /**
@@ -440,8 +481,9 @@ enum Status {
     const adapter = await this.deserialize(data, 'LoRaAdapterSkill');
     
     // Convert bytes back to Float32Arrays
-    adapter.weightsA = this.bytesToFloatArray(new Uint8Array(adapter.weights_a));
-    adapter.weightsB = this.bytesToFloatArray(new Uint8Array(adapter.weights_b));
+    const adapterObj = adapter as any;
+    adapterObj.weightsA = this.bytesToFloatArray(new Uint8Array(adapterObj.weights_a));
+    adapterObj.weightsB = this.bytesToFloatArray(new Uint8Array(adapterObj.weights_b));
 
     return adapter;
   }
@@ -455,9 +497,16 @@ enum Status {
     skill?: unknown,
     errorMessage?: string
   ): Promise<Uint8Array> {
+    // Convert string status to enum value
+    const statusMap = {
+      'SUCCESS': 1,
+      'FAILURE': 2,
+      'NOT_FOUND': 3
+    };
+
     const response = {
       invocation_id: invocationId,
-      status: status,
+      status: statusMap[status] || 0,
       error_message: errorMessage || '',
       skill: skill || null
     };
@@ -515,7 +564,7 @@ enum Status {
         case 'SkillInvocationResponse': {
           return {
             invocation_id: 'test-invocation-123',
-            status: 'SUCCESS',
+            status: 1, // SUCCESS enum value
             skill: {
               skill_id: 'invocation-test-skill',
               skill_name: 'Invocation Test Skill'

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# KNIRV Gateway - Netlify CLI Fix Script (Testnet Version)
+# KNIRV Gateway - Netlify CLI Fix Script
 # This script fixes recurring netlify-cli corruption issues
 
 set -e
@@ -18,12 +18,21 @@ fi
 # Function to check if netlify-cli is working
 check_netlify_cli() {
     echo "🔍 Checking netlify-cli status..."
-    if npx netlify --version >/dev/null 2>&1; then
+
+    # Try with timeout to avoid hanging
+    if timeout 30s npx netlify --version >/dev/null 2>&1; then
         echo "✅ netlify-cli is working"
-        npx netlify --version
+        timeout 30s npx netlify --version
         return 0
     else
-        echo "❌ netlify-cli is not working"
+        echo "❌ netlify-cli is not working or timed out"
+
+        # Check if netlify-cli binary exists
+        if [ -f "node_modules/.bin/netlify" ]; then
+            echo "ℹ️  netlify-cli binary found but not responding"
+        else
+            echo "ℹ️  netlify-cli binary not found"
+        fi
         return 1
     fi
 }
@@ -31,26 +40,35 @@ check_netlify_cli() {
 # Function to clean and reinstall
 clean_and_reinstall() {
     echo "🧹 Cleaning up corrupted dependencies..."
-    
+
     # Remove node_modules and package-lock.json
+    echo "🗑️  Removing corrupted node_modules..."
     rm -rf node_modules package-lock.json
     rm -rf nexus-portal/node_modules nexus-portal/package-lock.json
-    
-    # Clear npm cache
+
+    # Clear npm cache aggressively
     echo "🗑️  Clearing npm cache..."
     npm cache clean --force
-    
-    # Reinstall dependencies
+    npm cache verify
+
+    # Remove any global netlify-cli that might be interfering
+    echo "🧹 Cleaning global netlify-cli..."
+    npm uninstall -g netlify-cli 2>/dev/null || true
+
+    # Reinstall dependencies with specific netlify-cli version
     echo "📦 Reinstalling dependencies..."
     npm install
-    
-    # Build nexus-portal if it exists
-    if [ -d "nexus-portal" ]; then
-        echo "🏗️  Building nexus-portal..."
-        npm run build:nexus
+
+    # Verify netlify-cli installation
+    echo "🔍 Verifying netlify-cli installation..."
+    if [ -f "node_modules/.bin/netlify" ]; then
+        echo "✅ netlify-cli binary installed successfully"
     else
-        echo "ℹ️  No nexus-portal directory found, skipping build"
+        echo "❌ netlify-cli binary not found after installation"
+        return 1
     fi
+
+    
 }
 
 # Function to check Node.js version compatibility
@@ -58,7 +76,7 @@ check_node_version() {
     echo "🔍 Checking Node.js version compatibility..."
     NODE_VERSION=$(node --version | sed 's/v//')
     MAJOR_VERSION=$(echo $NODE_VERSION | cut -d. -f1)
-
+    
     if [ "$MAJOR_VERSION" -lt 18 ]; then
         echo "⚠️  Warning: Node.js version $NODE_VERSION detected."
         echo "   netlify-cli requires Node.js >= 18.14.0"
@@ -68,89 +86,15 @@ check_node_version() {
     fi
 }
 
-# Function to analyze and handle netlify-cli specific vulnerabilities
-analyze_netlify_vulnerabilities() {
-    echo "🔍 Analyzing netlify-cli vulnerability context..."
-
-    # Check current netlify-cli version
-    local current_version
-    current_version=$(npm list netlify-cli --depth=0 2>/dev/null | grep netlify-cli | sed 's/.*@//' | sed 's/ .*//')
-
-    if [ -n "$current_version" ]; then
-        echo "📦 Current netlify-cli version: $current_version"
-
-        # Check if it's a problematic version
-        if [[ "$current_version" =~ ^17\. ]]; then
-            echo "🚨 Warning: netlify-cli 17.x detected - known corruption issues"
-            return 1
-        elif [[ "$current_version" =~ ^21\. ]]; then
-            echo "✅ netlify-cli 21.x detected - stable version"
-            return 0
-        else
-            echo "⚠️  Unknown netlify-cli version pattern: $current_version"
-            return 0
-        fi
-    else
-        echo "❌ Could not determine netlify-cli version"
-        return 1
-    fi
-}
-
-# Function to run audit and fix vulnerabilities (DISABLED)
+# Function to run audit and fix vulnerabilities (DISABLED to prevent netlify-cli corruption)
 fix_vulnerabilities() {
     echo "🔒 Checking for security vulnerabilities..."
-
-    # DISABLED: Vulnerability fixes corrupt netlify-cli
-    echo "⚠️  Vulnerability fixes disabled to prevent netlify-cli corruption"
-    echo "   npm audit fix commands break netlify-cli installation"
-    return 0
-
-    # Check what vulnerabilities remain
-    local audit_output
-    audit_output=$(npm audit --audit-level=moderate --json 2>/dev/null || echo '{"vulnerabilities":{}}')
-
-    # Parse the audit output to see what's left
-    local vuln_count
-    vuln_count=$(echo "$audit_output" | grep -o '"moderate":[0-9]*' | cut -d':' -f2 | head -1)
-    vuln_count=${vuln_count:-0}
-
-    local high_count
-    high_count=$(echo "$audit_output" | grep -o '"high":[0-9]*' | cut -d':' -f2 | head -1)
-    high_count=${high_count:-0}
-
-    local critical_count
-    critical_count=$(echo "$audit_output" | grep -o '"critical":[0-9]*' | cut -d':' -f2 | head -1)
-    critical_count=${critical_count:-0}
-
-    local total_serious=$((vuln_count + high_count + critical_count))
-
-    if [ "$total_serious" -eq 0 ]; then
-        echo "✅ No moderate or higher vulnerabilities found"
-        return 0
-    fi
-
-    echo "⚠️  Found $total_serious moderate+ vulnerabilities remaining"
-
-    # For netlify-cli specific issues, we need to be careful about version downgrades
-    if echo "$audit_output" | grep -q "netlify-cli.*17\."; then
-        echo "🚨 Warning: Audit suggests downgrading to netlify-cli 17.x (known corruption issues)"
-        echo "   Skipping forced fixes to avoid breaking netlify-cli"
-        echo "   Current vulnerabilities are in dependencies and pose minimal risk in testnet environment"
-        return 0
-    fi
-
-    # If vulnerabilities are not in netlify-cli core, try more aggressive fixes
-    if [ "$total_serious" -gt 10 ]; then
-        echo "🔧 High number of vulnerabilities detected, attempting selective fixes..."
-
-        # Try to fix specific packages that are safe to update
-        npm update brace-expansion@^2.0.2 2>/dev/null || true
-        npm update on-headers@^1.1.0 2>/dev/null || true
-        npm update tar-fs@^3.0.9 2>/dev/null || true
-
-        echo "✅ Applied selective vulnerability fixes"
+    if npm audit --audit-level=moderate >/dev/null 2>&1; then
+        echo "✅ No moderate or high vulnerabilities found"
     else
-        echo "✅ Vulnerabilities are within acceptable limits for testnet environment"
+        echo "⚠️  Vulnerabilities detected, but skipping fixes to prevent netlify-cli corruption"
+        echo "   Testnet environment has reduced security requirements"
+        echo "   Manual vulnerability review recommended for production"
     fi
 }
 
@@ -191,12 +135,11 @@ main() {
     if check_netlify_cli; then
         echo ""
         echo "✅ netlify-cli fix completed successfully!"
-
+        
         # Skip vulnerability fixes to prevent netlify-cli corruption
         echo ""
         echo "⚠️  Skipping vulnerability fixes to maintain netlify-cli stability"
-        echo "   Vulnerability fixes corrupt netlify-cli installation causing timeouts"
-        echo "   Current setup prioritizes stability over vulnerability patches"
+        echo "   Vulnerability fixes can corrupt netlify-cli installation"
         echo "   Testnet environment has reduced security requirements"
         
         echo ""

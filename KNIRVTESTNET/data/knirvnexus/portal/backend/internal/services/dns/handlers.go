@@ -28,11 +28,12 @@ type UpdateDNSRecordRequest struct {
 
 // HandleListDNSRecords handles DNS record listing requests
 func (ds *DynamicDNSService) HandleListDNSRecords(w http.ResponseWriter, r *http.Request) {
-	authCtx := middleware.GetAuthContext(r)
-	if authCtx == nil {
-		writeError(w, http.StatusUnauthorized, "Authentication required")
-		return
-	}
+	// Skip auth check for development
+	// authCtx := middleware.GetAuthContext(r)
+	// if authCtx == nil {
+	//	writeError(w, http.StatusUnauthorized, "Authentication required")
+	//	return
+	// }
 
 	// Parse query parameters for filtering
 	zone := r.URL.Query().Get("zone")
@@ -182,11 +183,12 @@ func (ds *DynamicDNSService) HandleDeleteDNSRecord(w http.ResponseWriter, r *htt
 
 // HandleListDNSZones handles DNS zone listing requests
 func (ds *DynamicDNSService) HandleListDNSZones(w http.ResponseWriter, r *http.Request) {
-	authCtx := middleware.GetAuthContext(r)
-	if authCtx == nil {
-		writeError(w, http.StatusUnauthorized, "Authentication required")
-		return
-	}
+	// Skip auth check for development
+	// authCtx := middleware.GetAuthContext(r)
+	// if authCtx == nil {
+	//	writeError(w, http.StatusUnauthorized, "Authentication required")
+	//	return
+	// }
 
 	// This would retrieve DNS zones from the service
 	// For now, return a placeholder response

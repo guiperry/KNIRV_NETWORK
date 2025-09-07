@@ -21,6 +21,7 @@ const healthRoutes = require('./routes/health');
 const gatewayRoutes = require('./routes/gateway');
 const forumRoutes = require('./routes/forum');
 const supportRoutes = require('./routes/support');
+const faucetRoutes = require('./routes/faucet');
 
 // Load endpoints configuration
 const { loadEndpoints } = require('../scripts/load-endpoints');
@@ -217,6 +218,7 @@ app.use('/health', healthRoutes);
 app.use('/gateway', gatewayRoutes);
 app.use('/forum', forumRoutes);
 app.use('/support', supportRoutes);
+app.use('/api/faucet', faucetRoutes);
 
 // Application routes - Environment aware
 app.get('/', (req, res) => {

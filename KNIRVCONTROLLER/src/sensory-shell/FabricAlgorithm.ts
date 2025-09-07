@@ -15,6 +15,10 @@ export interface FabricContext {
   attentionWeights: Map<string, number>;
   memoryState: unknown;
   processingMetrics: ProcessingMetrics;
+  currentState: string;
+  activePatterns: unknown[];
+  memoryBuffer: Map<string, unknown>;
+  timestamp: number;
 }
 
 export interface ProcessingMetrics {
@@ -29,12 +33,38 @@ export interface AttentionMechanism {
   weights: Map<string, number>;
   focusAreas: string[];
   contextRelevance: number;
+  focusWeights: Map<string, number>;
+  attentionHistory: unknown[];
+  currentFocus: unknown;
 }
 
 export class FabricAlgorithm extends EventEmitter {
   private config: FabricConfig;
-  private context: FabricContext;
-  private attentionMechanism: AttentionMechanism;
+  private context: FabricContext = {
+    inputHistory: [],
+    outputHistory: [],
+    attentionWeights: new Map(),
+    memoryState: {},
+    processingMetrics: {
+      totalProcessed: 0,
+      averageLatency: 0,
+      accuracyScore: 0,
+      adaptationCount: 0,
+      lastProcessed: new Date()
+    },
+    currentState: 'idle',
+    activePatterns: [],
+    memoryBuffer: new Map(),
+    timestamp: Date.now()
+  };
+  private attentionMechanism: AttentionMechanism = {
+    weights: new Map(),
+    focusAreas: [],
+    contextRelevance: 0,
+    focusWeights: new Map(),
+    attentionHistory: [],
+    currentFocus: null
+  };
   private isRunning: boolean = false;
   private processingQueue: unknown[] = [];
   private hrmBridge: unknown = null; // Will be injected from CognitiveEngine
@@ -59,6 +89,10 @@ export class FabricAlgorithm extends EventEmitter {
         adaptationCount: 0,
         lastProcessed: new Date(),
       },
+      currentState: 'idle',
+      activePatterns: [],
+      memoryBuffer: new Map(),
+      timestamp: Date.now()
     };
   }
 
@@ -67,6 +101,9 @@ export class FabricAlgorithm extends EventEmitter {
       weights: new Map(),
       focusAreas: [],
       contextRelevance: 0.5,
+      focusWeights: new Map(),
+      attentionHistory: [],
+      currentFocus: null
     };
   }
 
@@ -157,11 +194,11 @@ export class FabricAlgorithm extends EventEmitter {
       this.updateContextWithHRM(input, result, enhancedOptions, hrmOutput);
 
       return {
-        ...result,
+        ...(result as Record<string, unknown>),
         nrv: nrv,
         hrmEnhanced: true,
-        hrmConfidence: hrmOutput.confidence,
-        hrmReasoning: hrmOutput.reasoning_result,
+        hrmConfidence: (hrmOutput as any).confidence,
+        hrmReasoning: (hrmOutput as any).reasoning_result,
         processingStrategy: processingStrategy,
       };
 
@@ -231,7 +268,7 @@ export class FabricAlgorithm extends EventEmitter {
     const hrmGuidedWeights = new Map();
 
     // Use L-module activations to guide sensory attention
-    const hrmAny = hrmOutput as { l_module_activations?: number[] };
+    const hrmAny = hrmOutput as { l_module_activations?: number[]; h_module_activations?: number[]; confidence?: number };
     if (hrmAny.l_module_activations) {
       hrmAny.l_module_activations.forEach((activation: number, index: number) => {
         hrmGuidedWeights.set(`l_module_${index}`, activation);
@@ -332,7 +369,7 @@ export class FabricAlgorithm extends EventEmitter {
     const result = await this.deepAnalysisProcessing(attentionResult, options);
 
     return {
-      ...result,
+      ...(result as Record<string, unknown>),
       hrmEnhanced: true,
       hrmReasoning: (hrmGuidance as { reasoning?: unknown }).reasoning,
       hrmConfidence: (hrmGuidance as { confidence?: unknown }).confidence,
@@ -349,7 +386,7 @@ export class FabricAlgorithm extends EventEmitter {
     const result = await this.standardProcessing(attentionResult, options);
 
     return {
-      ...result,
+      ...(result as Record<string, unknown>),
       hrmEnhanced: true,
       hrmReasoning: (hrmGuidance as { reasoning?: unknown }).reasoning,
       hrmConfidence: (hrmGuidance as { confidence?: unknown }).confidence,
@@ -362,7 +399,7 @@ export class FabricAlgorithm extends EventEmitter {
     const result = await this.fastProcessing(attentionResult, options);
 
     return {
-      ...result,
+      ...(result as Record<string, unknown>),
       hrmEnhanced: true,
       hrmConfidence: (hrmGuidance as { confidence?: unknown }).confidence,
       analysisDepth: 'fast_with_hrm',
@@ -411,11 +448,11 @@ export class FabricAlgorithm extends EventEmitter {
     let complexity = 0;
 
     // Analyze input structure
-    if (typeof input === 'object') {
+    if (typeof input === 'object' && input !== null) {
       complexity += Object.keys(input).length * 0.1;
 
       // Check for nested structures
-      for (const value of Object.values(input)) {
+      for (const value of Object.values(input as Record<string, unknown>)) {
         if (typeof value === 'object') {
           complexity += 0.2;
         }
@@ -491,8 +528,8 @@ export class FabricAlgorithm extends EventEmitter {
     this.attentionMechanism.focusAreas = [];
 
     // Analyze input for attention targets
-    if (typeof input === 'object') {
-      for (const [key, value] of Object.entries(input)) {
+    if (typeof input === 'object' && input !== null) {
+      for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
         const weight = this.calculateAttentionWeight(key, value, context);
         this.attentionMechanism.weights.set(key, weight);
 
@@ -529,17 +566,17 @@ export class FabricAlgorithm extends EventEmitter {
   }
 
   private applyAttentionToInput(input: unknown): unknown {
-    if (typeof input !== 'object') {
+    if (typeof input !== 'object' || input === null) {
       return input;
     }
 
-    const focusedInput: unknown = {};
+    const focusedInput: Record<string, unknown> = {};
 
-    for (const [key, value] of Object.entries(input)) {
+    for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
       const weight = this.attentionMechanism.weights.get(key) || 0.5;
 
       if (weight > 0.3) {
-        focusedInput[key] = {
+        (focusedInput as any)[key] = {
           value,
           attentionWeight: weight,
           isFocused: this.attentionMechanism.focusAreas.includes(key),
@@ -686,17 +723,17 @@ export class FabricAlgorithm extends EventEmitter {
     const inputKey = this.generateMemoryKey(input);
     const resultKey = this.generateMemoryKey(result);
 
-    this.context.memoryState[inputKey] = {
+    (this.context.memoryState as any)[inputKey] = {
       lastSeen: new Date(),
-      frequency: (this.context.memoryState[inputKey]?.frequency || 0) + 1,
+      frequency: ((this.context.memoryState as any)[inputKey]?.frequency || 0) + 1,
       associatedResults: [resultKey],
     };
 
     // Create associations
-    if (this.context.memoryState[resultKey]) {
-      this.context.memoryState[resultKey].associatedInputs =
-        this.context.memoryState[resultKey].associatedInputs || [];
-      this.context.memoryState[resultKey].associatedInputs.push(inputKey);
+    if ((this.context.memoryState as any)[resultKey]) {
+      (this.context.memoryState as any)[resultKey].associatedInputs =
+        (this.context.memoryState as any)[resultKey].associatedInputs || [];
+      (this.context.memoryState as any)[resultKey].associatedInputs.push(inputKey);
     }
   }
 
@@ -748,11 +785,11 @@ export class FabricAlgorithm extends EventEmitter {
   }
 
   public getAttentionState(): AttentionMechanism {
-    return { ...this.attentionMechanism };
+    return { ...(this.attentionMechanism as AttentionMechanism) };
   }
 
   public getMetrics(): ProcessingMetrics {
-    return { ...this.context.processingMetrics };
+    return { ...(this.context.processingMetrics as ProcessingMetrics) };
   }
 
   public clearContext(): void {
@@ -761,7 +798,7 @@ export class FabricAlgorithm extends EventEmitter {
   }
 
   public exportMemoryState(): unknown {
-    return { ...(this.context as { memoryState?: unknown }).memoryState };
+    return { ...(this.context.memoryState as Record<string, unknown>) };
   }
 
   public importMemoryState(memoryState: unknown): void {

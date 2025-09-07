@@ -85,7 +85,7 @@ KNIRV-ENGINE provides comprehensive integration with all components of the KNIRV
 #### **5.2. Development Tool Integration**
 
 *   **KNIRV-SDK Integration**: Full integration with KNIRV-SDK providing access to all network capabilities through standardized APIs and interfaces.
-*   **KNIRV-SHELL Integration**: Integration with KNIRV-SHELL for command-line development workflows and advanced network operations.
+*   **KNIRV-CLI Integration**: Integration with KNIRV-CLI for command-line development workflows and advanced network operations.
 *   **KNIRV-CORTEX Integration**: Seamless integration with KNIRV-CORTEX for agent core development and WASM compilation workflows.
 *   **Cross-Component Synchronization**: Sophisticated synchronization mechanisms that ensure consistency across all integrated development tools.
 

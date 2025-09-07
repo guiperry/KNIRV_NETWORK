@@ -99,7 +99,7 @@ export class WASMAgentManager extends EventEmitter {
       return true;
 
     } catch (error) {
-      this.emit('agent_upload_failed', { error: error.message });
+      this.emit('agent_upload_failed', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -145,7 +145,7 @@ export class WASMAgentManager extends EventEmitter {
       this.emit('agent_initialized', { metadata: this.metadata });
 
     } catch (error) {
-      this.emit('agent_initialization_failed', { error: error.message });
+      this.emit('agent_initialization_failed', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -187,7 +187,7 @@ export class WASMAgentManager extends EventEmitter {
       }
 
     } catch (error) {
-      this.emit('lora_loading_failed', { skillId: adapter.skillId, error: error.message });
+      this.emit('lora_loading_failed', { skillId: adapter.skillId, error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -233,7 +233,7 @@ export class WASMAgentManager extends EventEmitter {
       return result;
 
     } catch (error) {
-      this.emit('processing_failed', { error: error.message });
+      this.emit('processing_failed', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }

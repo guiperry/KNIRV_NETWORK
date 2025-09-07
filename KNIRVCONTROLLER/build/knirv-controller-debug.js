@@ -31,23 +31,23 @@ async function instantiate(module, imports = {}) {
       // assembly/index/initializeAgent() => bool
       return exports.initializeAgent() != 0;
     },
-    executeAgent(input, context) {
+    executeAgent(input, _context) {
       // assembly/index/executeAgent(~lib/string/String, ~lib/string/String) => ~lib/string/String
       input = __retain(__lowerString(input) || __notnull());
-      context = __lowerString(context) || __notnull();
+      _context = __lowerString(_context) || __notnull();
       try {
-        return __liftString(exports.executeAgent(input, context) >>> 0);
+        return __liftString(exports.executeAgent(input, _context) >>> 0);
       } finally {
         __release(input);
       }
     },
-    executeAgentTool(toolName, parameters, context) {
+    executeAgentTool(toolName, parameters, _context) {
       // assembly/index/executeAgentTool(~lib/string/String, ~lib/string/String, ~lib/string/String) => ~lib/string/String
       toolName = __retain(__lowerString(toolName) || __notnull());
       parameters = __retain(__lowerString(parameters) || __notnull());
-      context = __lowerString(context) || __notnull();
+      _context = __lowerString(_context) || __notnull();
       try {
-        return __liftString(exports.executeAgentTool(toolName, parameters, context) >>> 0);
+        return __liftString(exports.executeAgentTool(toolName, parameters, _context) >>> 0);
       } finally {
         __release(toolName);
         __release(parameters);
@@ -67,16 +67,16 @@ async function instantiate(module, imports = {}) {
       type = __lowerString(type) || __notnull();
       return exports.createModel(type) != 0;
     },
-    loadModelWeights(weightsPtr, weightsLen) {
+    loadModelWeights(_weightsPtr, weightsLen) {
       // assembly/index/loadModelWeights(usize, i32) => bool
-      return exports.loadModelWeights(weightsPtr, weightsLen) != 0;
+      return exports.loadModelWeights(_weightsPtr, weightsLen) != 0;
     },
-    runModelInference(input, context) {
+    runModelInference(input, _context) {
       // assembly/index/runModelInference(~lib/string/String, ~lib/string/String) => ~lib/string/String
       input = __retain(__lowerString(input) || __notnull());
-      context = __lowerString(context) || __notnull();
+      _context = __lowerString(_context) || __notnull();
       try {
-        return __liftString(exports.runModelInference(input, context) >>> 0);
+        return __liftString(exports.runModelInference(input, _context) >>> 0);
       } finally {
         __release(input);
       }

@@ -123,7 +123,7 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
       }
 
       const deploymentRequest: AgentDeploymentRequest = {
-        agentId: agent.id,
+        agentId: agent.agentId,
         targetNRV: targetNRV?.id,
         configuration: {},
         resources: {
@@ -153,7 +153,7 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
 
   // Handle agent click for navigation
   const handleAgentClick = (agent: Agent) => {
-    navigate(`/agents/${agent.id}`);
+    navigate(`/agents/${agent.agentId}`);
   };
 
 
@@ -278,7 +278,7 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
         </div>
         {agents.map((agent) => (
           <div
-            key={agent.id}
+            key={agent.agentId}
             className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50 space-y-2"
           >
             <div className="flex items-center justify-between">
@@ -326,14 +326,14 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
                 <span>CPU: {agent.metadata.requirements.cpu}</span>
               </div>
               {agent.lastActivity && (
-                <span>Last: {agent.lastActivity.toLocaleTimeString()}</span>
+                <span>Last: {new Date(agent.lastActivity).toLocaleTimeString()}</span>
               )}
             </div>
 
             {/* Agent description */}
             {agent.metadata.description && (
               <div className="text-xs text-gray-400">
-                {agent.metadata.description}
+                {String(agent.metadata.description)}
               </div>
             )}
 
@@ -371,7 +371,7 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
           </div>
           {deployedAgents.map((agent) => (
             <div
-              key={`deployed-${agent.id}`}
+              key={`deployed-${agent.agentId}`}
               className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20 space-y-2"
             >
               <div className="flex items-center justify-between">

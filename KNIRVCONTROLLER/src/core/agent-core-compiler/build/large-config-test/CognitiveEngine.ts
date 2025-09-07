@@ -1,7 +1,7 @@
 // CognitiveEngine Template for WASM Compilation
 export class CognitiveEngine {
   private isInitialized: boolean = false;
-  private processingQueue: any[] = [];
+  private processingQueue: unknown[] = [];
 
   constructor() {
     this.isInitialized = false;

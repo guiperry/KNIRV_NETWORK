@@ -287,3 +287,60 @@ export function isToolResult(obj: unknown): obj is ToolResult {
 export function isErrorContext(obj: unknown): obj is ErrorContext {
   return typeof obj === 'object' && obj !== null && 'errorType' in obj && 'severity' in obj;
 }
+
+// Unified Agent interface - consolidates different Agent definitions across the codebase
+export interface Agent {
+  agentId: string;
+  name: string;
+  version: string;
+  baseModelId?: string;
+  type: 'wasm' | 'lora' | 'hybrid';
+  status: 'Available' | 'Deployed' | 'Error' | 'Compiling';
+  nrnCost: number;
+  capabilities: string[];
+  metadata: AgentMetadata;
+  wasmModule?: string;
+  loraAdapter?: string;
+  createdAt: string;
+  lastActivity?: string;
+}
+
+export interface AgentMetadata {
+  name: string;
+  version: string;
+  baseModelId?: string;
+  description: string;
+  author: string;
+  capabilities: string[];
+  requirements: {
+    memory: number;
+    cpu: number;
+    storage: number;
+  };
+  permissions: string[];
+}
+
+// Legacy Agent interface for backward compatibility (App.tsx style)
+export interface LegacyAgent {
+  id: string;
+  name: string;
+  type: 'wasm' | 'lora' | 'hybrid';
+  status: 'Available' | 'Deployed' | 'Error' | 'Compiling';
+  nrnCost: number;
+  capabilities: string[];
+  metadata: {
+    name: string;
+    version: string;
+    description: string;
+    author: string;
+    capabilities: string[];
+    requirements: {
+      memory: number;
+      cpu: number;
+      storage: number;
+    };
+    permissions: string[];
+  };
+  wasmModule?: WebAssembly.Module;
+  lastActivity?: Date;
+}
