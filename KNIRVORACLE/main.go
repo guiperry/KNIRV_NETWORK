@@ -50,6 +50,9 @@ var mainChromemManager sync.Map
 var globalAgentInferencer *agentify.AgentInferencer
 var globalInferenceService *inference.InferenceService
 
+// Global network monitor manager
+var globalNetworkMonitorManager *NetworkMonitorManager
+
 // getKeys returns a slice of keys from a map[string]interface{}
 func getKeys(m map[string]interface{}) []string {
 	keys := make([]string, 0, len(m))
@@ -1416,6 +1419,26 @@ func startNodeWithComponents(
 					log.Printf("[%s][%s] Stopping Node.js services...", cfg.ChainID, nodeRole.String())
 					nodejsManager.StopAllServices()
 					log.Printf("[%s][%s] Node.js services stopped", cfg.ChainID, nodeRole.String())
+				}()
+			}
+		}
+
+		// 7.2. Network Monitor (for testnet mode)
+		if cfg.NetworkMonitor.Enabled && cfg.NetworkMonitor.AutoStart {
+			log.Printf("[%s][%s] Initializing Network Monitor...", cfg.ChainID, nodeRole.String())
+			globalNetworkMonitorManager = NewNetworkMonitorManager(&cfg)
+			if err := globalNetworkMonitorManager.Start(); err != nil {
+				log.Printf("[%s][%s] ERROR: Failed to start Network Monitor: %v", cfg.ChainID, nodeRole.String(), err)
+				// Continue execution even if Network Monitor fails to start
+			} else {
+				log.Printf("[%s][%s] Network Monitor started successfully on port %d", cfg.ChainID, nodeRole.String(), globalNetworkMonitorManager.GetPort())
+				defer func() {
+					log.Printf("[%s][%s] Stopping Network Monitor...", cfg.ChainID, nodeRole.String())
+					if err := globalNetworkMonitorManager.Stop(); err != nil {
+						log.Printf("[%s][%s] ERROR: Failed to stop Network Monitor: %v", cfg.ChainID, nodeRole.String(), err)
+					} else {
+						log.Printf("[%s][%s] Network Monitor stopped", cfg.ChainID, nodeRole.String())
+					}
 				}()
 			}
 		}
