@@ -3,8 +3,16 @@
  * Manages encrypted RxDB instance for wallet data and sensitive information
  */
 
-import { createRxDatabase, RxDatabase, RxCollection } from 'rxdb';
+import { createRxDatabase, RxDatabase, RxCollection, addRxPlugin } from 'rxdb';
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
+import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode';
+import { RxDBValidatePlugin } from 'rxdb/plugins/validate';
+
+// Add plugins for development mode
+if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+  addRxPlugin(RxDBDevModePlugin);
+}
+addRxPlugin(RxDBValidatePlugin);
 
 // Database interfaces
 interface WalletDocType {

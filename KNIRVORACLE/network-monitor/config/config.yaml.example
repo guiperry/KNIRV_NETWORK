@@ -6,21 +6,44 @@ active_network: production
 networks:
   production:
     name: "KNIRV Production Network"
-    description: "Main KNIRV production network"
+    description: "Main KNIRV production network with integrated agents"
     services:
-      - name: ipfs
-        url: "http://localhost:5001"
-        health_endpoint: "/api/v0/version"
-        check_interval: 30s
-        timeout: 10s
-        critical: true
       - name: knirvoracle
         url: "http://localhost:8083"
         health_endpoint: "/health"
         check_interval: 30s
         timeout: 10s
         critical: true
-      # Add other services as needed
+      - name: ipfs
+        url: "http://localhost:5001"
+        health_endpoint: "/api/v0/version"
+        check_interval: 30s
+        timeout: 10s
+        critical: true
+      - name: bootnode-registry
+        url: "http://localhost:3003"
+        health_endpoint: "/status"
+        check_interval: 30s
+        timeout: 10s
+        critical: true
+      - name: notary-system
+        url: "http://localhost:9002"
+        health_endpoint: "/api/health"
+        check_interval: 30s
+        timeout: 10s
+        critical: true
+      - name: payment-gateway
+        url: "http://localhost:3000"
+        health_endpoint: "/health"
+        check_interval: 30s
+        timeout: 10s
+        critical: true
+      - name: tunnel-registry
+        url: "http://localhost:3004"
+        health_endpoint: "/status"
+        check_interval: 30s
+        timeout: 10s
+        critical: true
     endpoints:
       prometheus: "http://localhost:9090"
       grafana: "http://localhost:3000"

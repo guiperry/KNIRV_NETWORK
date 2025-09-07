@@ -324,3 +324,115 @@ function isValidURL(url: string): boolean {
     return false;
   }
 }
+
+// Testnet Faucet Types
+
+/**
+ * Request for NRV tokens from the testnet faucet
+ */
+export interface FaucetRequest {
+  /** Target address for token distribution */
+  address: string;
+  /** Amount of NRV tokens to request */
+  amount: number;
+  /** Optional reason for the request */
+  reason?: string;
+}
+
+/**
+ * Response from testnet faucet request
+ */
+export interface FaucetResponse {
+  /** Whether the request was successful */
+  success: boolean;
+  /** Unique request identifier */
+  request_id?: string;
+  /** Target address */
+  address?: string;
+  /** Amount of tokens requested */
+  amount?: number;
+  /** Transaction hash if successful */
+  tx_hash?: string;
+  /** Request timestamp */
+  timestamp?: string;
+  /** Estimated confirmation time */
+  estimated_confirmation?: string;
+  /** Error message if failed */
+  error?: string;
+  /** Error code for programmatic handling */
+  code?: string;
+  /** Seconds to wait before retry (for rate limiting) */
+  retry_after?: number;
+  /** Type of rate limit hit */
+  limit_type?: string;
+}
+
+/**
+ * Current status of the testnet faucet
+ */
+export interface FaucetStatus {
+  /** Whether the faucet is currently enabled */
+  faucet_enabled: boolean;
+  /** Current faucet balance in NRV */
+  current_balance: number;
+  /** Daily distribution limit */
+  daily_limit: number;
+  /** Remaining tokens available today */
+  remaining_today: number;
+  /** Current request queue size */
+  current_queue_size: number;
+  /** Success rate for today (0-1) */
+  success_rate_today: number;
+  /** Rate limiting configuration */
+  rate_limits: Record<string, any>;
+  /** Supported request amounts */
+  supported_amounts: Record<string, any>;
+  /** Last funding timestamp */
+  last_funding?: string;
+  /** Estimated next funding time */
+  next_funding_estimate?: string;
+}
+
+/**
+ * Single entry in faucet request history
+ */
+export interface FaucetHistoryEntry {
+  /** Unique request identifier */
+  request_id: string;
+  /** Amount of tokens requested */
+  amount: number;
+  /** Request status */
+  status: string;
+  /** Request timestamp */
+  timestamp: string;
+  /** Transaction hash if successful */
+  tx_hash?: string;
+  /** Error message if failed */
+  error?: string;
+  /** Reason for the request */
+  reason?: string;
+}
+
+/**
+ * Faucet request history for an address
+ */
+export interface FaucetHistory {
+  /** Target address */
+  address: string;
+  /** Total number of requests */
+  total_requests: number;
+  /** Total amount of tokens received */
+  total_amount: number;
+  /** Array of historical requests */
+  history: FaucetHistoryEntry[];
+}
+
+/**
+ * Faucet health check response
+ */
+export interface FaucetHealthResponse {
+  /** Overall health status */
+  status: string;
+  /** Detailed health information */
+  [key: string]: any;
+}

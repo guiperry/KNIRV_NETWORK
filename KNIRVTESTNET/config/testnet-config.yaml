@@ -85,3 +85,27 @@ external_services:
 # Security Configuration
 security:
   default_jwt_secret: "testnet-jwt-secret-change-in-production"
+
+# Faucet Configuration
+faucet:
+  enabled: true
+  daily_limit: 10000
+  rate_limits:
+    per_ip_hourly: 5
+    per_address_daily: 1000
+    cooldown_minutes: 15
+  default_amounts: [100, 500, 1000, 5000]
+  max_custom_amount: 5000
+  min_amount: 100
+  knirvoracle_endpoint: "http://localhost:1317/api/mint/nrv"
+  database_path: "./data/faucet-requests.json"
+  auto_funding:
+    enabled: true
+    transfer_threshold: 10000
+    transfer_percentage: 0.15
+    emergency_threshold: 1000
+    max_daily_transfer: 50000
+  monitoring:
+    router_check_interval: 30000
+    treasury_check_interval: 60000
+    metrics_retention_days: 30

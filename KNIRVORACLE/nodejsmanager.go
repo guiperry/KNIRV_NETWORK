@@ -239,6 +239,267 @@ func (m *NodeJSManager) StartPaymentGateway() error {
 	return nil
 }
 
+// StartBootnodeRegistry starts the bootnode registry service
+func (m *NodeJSManager) StartBootnodeRegistry() error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if !m.Config.Enabled || !m.Config.BootnodeRegistry.Enabled {
+		return fmt.Errorf("bootnode registry service is not enabled in configuration")
+	}
+
+	// Check if already running
+	if _, exists := m.Processes["bootnode-registry"]; exists {
+		return fmt.Errorf("bootnode registry service is already running")
+	}
+
+	scriptPath := m.Config.BootnodeRegistry.ScriptPath
+	if scriptPath == "" {
+		return fmt.Errorf("no script path provided for bootnode registry service")
+	}
+
+	// Check if the script exists
+	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
+		return fmt.Errorf("script not found for bootnode registry service: %s", scriptPath)
+	}
+
+	// --- Find available port ---
+	actualHTTPPort := utils.FindAvailablePort(uint64(m.Config.BootnodeRegistry.HTTPPort))
+	if actualHTTPPort != uint64(m.Config.BootnodeRegistry.HTTPPort) {
+		log.Printf("[BootnodeRegistry] HTTP Port %d in use, using %d instead.", m.Config.BootnodeRegistry.HTTPPort, actualHTTPPort)
+	}
+
+	// Prepare environment variables
+	env := []string{
+		fmt.Sprintf("HTTP_API_PORT=%d", actualHTTPPort),
+		fmt.Sprintf("NODE_ENV=%s", "production"),
+	}
+
+	// Prepare the command
+	cmd := exec.Command("node", scriptPath)
+	cmd.Env = append(os.Environ(), env...)
+
+	// Capture stdout and stderr
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("failed to capture stdout for bootnode registry service: %v", err)
+	}
+
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("failed to capture stderr for bootnode registry service: %v", err)
+	}
+
+	// Start the process
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start bootnode registry service: %v", err)
+	}
+
+	log.Printf("Started bootnode registry service (PID: %d)", cmd.Process.Pid)
+
+	// Create a process object
+	process := &NodeJSProcess{
+		Name:       "bootnode-registry",
+		Cmd:        cmd,
+		StdoutPipe: bufio.NewScanner(stdout),
+		StderrPipe: bufio.NewScanner(stderr),
+		StopChan:   make(chan struct{}),
+	}
+
+	// Handle stdout in a goroutine
+	go func() {
+		for process.StdoutPipe.Scan() {
+			log.Printf("[BootnodeRegistry] %s", process.StdoutPipe.Text())
+		}
+	}()
+
+	// Handle stderr in a goroutine
+	go func() {
+		for process.StderrPipe.Scan() {
+			log.Printf("[BootnodeRegistry ERROR] %s", process.StderrPipe.Text())
+		}
+	}()
+
+	// Store the process
+	m.Processes["bootnode-registry"] = process
+
+	return nil
+}
+
+// StartNotarySystem starts the notary system service
+func (m *NodeJSManager) StartNotarySystem() error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if !m.Config.Enabled || !m.Config.NotarySystem.Enabled {
+		return fmt.Errorf("notary system service is not enabled in configuration")
+	}
+
+	// Check if already running
+	if _, exists := m.Processes["notary-system"]; exists {
+		return fmt.Errorf("notary system service is already running")
+	}
+
+	scriptPath := m.Config.NotarySystem.ScriptPath
+	if scriptPath == "" {
+		return fmt.Errorf("no script path provided for notary system service")
+	}
+
+	// Check if the script exists
+	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
+		return fmt.Errorf("script not found for notary system service: %s", scriptPath)
+	}
+
+	// --- Find available port ---
+	actualHTTPPort := utils.FindAvailablePort(uint64(m.Config.NotarySystem.HTTPPort))
+	if actualHTTPPort != uint64(m.Config.NotarySystem.HTTPPort) {
+		log.Printf("[NotarySystem] HTTP Port %d in use, using %d instead.", m.Config.NotarySystem.HTTPPort, actualHTTPPort)
+	}
+
+	// Prepare environment variables
+	env := []string{
+		fmt.Sprintf("HTTP_API_PORT=%d", actualHTTPPort),
+		fmt.Sprintf("NODE_ENV=%s", "production"),
+	}
+
+	// Prepare the command
+	cmd := exec.Command("node", scriptPath)
+	cmd.Env = append(os.Environ(), env...)
+
+	// Capture stdout and stderr
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("failed to capture stdout for notary system service: %v", err)
+	}
+
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("failed to capture stderr for notary system service: %v", err)
+	}
+
+	// Start the process
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start notary system service: %v", err)
+	}
+
+	log.Printf("Started notary system service (PID: %d)", cmd.Process.Pid)
+
+	// Create a process object
+	process := &NodeJSProcess{
+		Name:       "notary-system",
+		Cmd:        cmd,
+		StdoutPipe: bufio.NewScanner(stdout),
+		StderrPipe: bufio.NewScanner(stderr),
+		StopChan:   make(chan struct{}),
+	}
+
+	// Handle stdout in a goroutine
+	go func() {
+		for process.StdoutPipe.Scan() {
+			log.Printf("[NotarySystem] %s", process.StdoutPipe.Text())
+		}
+	}()
+
+	// Handle stderr in a goroutine
+	go func() {
+		for process.StderrPipe.Scan() {
+			log.Printf("[NotarySystem ERROR] %s", process.StderrPipe.Text())
+		}
+	}()
+
+	// Store the process
+	m.Processes["notary-system"] = process
+
+	return nil
+}
+
+// StartNetworkMonitor starts the network monitor service
+func (m *NodeJSManager) StartNetworkMonitor() error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if !m.Config.Enabled || !m.Config.NetworkMonitor.Enabled {
+		return fmt.Errorf("network monitor service is not enabled in configuration")
+	}
+
+	// Check if already running
+	if _, exists := m.Processes["network-monitor"]; exists {
+		return fmt.Errorf("network monitor service is already running")
+	}
+
+	scriptPath := m.Config.NetworkMonitor.ScriptPath
+	if scriptPath == "" {
+		return fmt.Errorf("no script path provided for network monitor service")
+	}
+
+	// Check if the script exists
+	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
+		return fmt.Errorf("script not found for network monitor service: %s", scriptPath)
+	}
+
+	// --- Find available port ---
+	actualHTTPPort := utils.FindAvailablePort(uint64(m.Config.NetworkMonitor.HTTPPort))
+	if actualHTTPPort != uint64(m.Config.NetworkMonitor.HTTPPort) {
+		log.Printf("[NetworkMonitor] HTTP Port %d in use, using %d instead.", m.Config.NetworkMonitor.HTTPPort, actualHTTPPort)
+	}
+
+	// Prepare environment variables
+	env := []string{
+		fmt.Sprintf("HTTP_API_PORT=%d", actualHTTPPort),
+		fmt.Sprintf("NODE_ENV=%s", "production"),
+	}
+
+	// Prepare the command
+	cmd := exec.Command("node", scriptPath)
+	cmd.Env = append(os.Environ(), env...)
+
+	// Capture stdout and stderr
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("failed to capture stdout for network monitor service: %v", err)
+	}
+
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("failed to capture stderr for network monitor service: %v", err)
+	}
+
+	// Start the process
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start network monitor service: %v", err)
+	}
+
+	log.Printf("Started network monitor service (PID: %d)", cmd.Process.Pid)
+
+	// Create a process object
+	process := &NodeJSProcess{
+		Name:       "network-monitor",
+		Cmd:        cmd,
+		StdoutPipe: bufio.NewScanner(stdout),
+		StderrPipe: bufio.NewScanner(stderr),
+		StopChan:   make(chan struct{}),
+	}
+
+	// Handle stdout in a goroutine
+	go func() {
+		for process.StdoutPipe.Scan() {
+			log.Printf("[NetworkMonitor] %s", process.StdoutPipe.Text())
+		}
+	}()
+
+	// Handle stderr in a goroutine
+	go func() {
+		for process.StderrPipe.Scan() {
+			log.Printf("[NetworkMonitor ERROR] %s", process.StderrPipe.Text())
+		}
+	}()
+
+	// Store the process
+	m.Processes["network-monitor"] = process
+
+	return nil
+}
+
 // StartAllServices starts all enabled Node.js services
 func (m *NodeJSManager) StartAllServices() error {
 	if !m.Config.Enabled {
@@ -256,6 +517,24 @@ func (m *NodeJSManager) StartAllServices() error {
 	if m.Config.PaymentGateway.Enabled {
 		if err := m.StartPaymentGateway(); err != nil {
 			errors = append(errors, fmt.Errorf("failed to start payment gateway service: %w", err))
+		}
+	}
+
+	if m.Config.BootnodeRegistry.Enabled {
+		if err := m.StartBootnodeRegistry(); err != nil {
+			errors = append(errors, fmt.Errorf("failed to start bootnode registry service: %w", err))
+		}
+	}
+
+	if m.Config.NotarySystem.Enabled {
+		if err := m.StartNotarySystem(); err != nil {
+			errors = append(errors, fmt.Errorf("failed to start notary system service: %w", err))
+		}
+	}
+
+	if m.Config.NetworkMonitor.Enabled {
+		if err := m.StartNetworkMonitor(); err != nil {
+			errors = append(errors, fmt.Errorf("failed to start network monitor service: %w", err))
 		}
 	}
 

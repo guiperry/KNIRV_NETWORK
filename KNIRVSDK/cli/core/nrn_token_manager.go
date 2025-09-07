@@ -1,9 +1,14 @@
 package core
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/big"
+	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/guiperry/KNIRVCHAIN-CLI/config"
@@ -12,48 +17,89 @@ import (
 
 // NRNTokenManager manages NRN token operations
 type NRNTokenManager struct {
-	config         *config.WalletConfig
-	logger         *logrus.Logger
-	balance        *big.Int
-	transactions   []*NRNTransaction
-	faucetClient   *FaucetClient
+	config          *config.WalletConfig
+	logger          *logrus.Logger
+	balance         *big.Int
+	transactions    []*NRNTransaction
+	faucetClient    *FaucetClient
 	knirvRootClient *KNIRVRootClient
 }
 
 // NRNTransaction represents an NRN token transaction
 type NRNTransaction struct {
-	ID          string    `json:"id"`
-	Hash        string    `json:"hash"`
-	From        string    `json:"from"`
-	To          string    `json:"to"`
-	Amount      *big.Int  `json:"amount"`
-	Type        string    `json:"type"` // transfer, faucet, burn, stake
-	Status      string    `json:"status"`
-	BlockHeight int64     `json:"block_height"`
-	Timestamp   time.Time `json:"timestamp"`
-	GasFee      *big.Int  `json:"gas_fee"`
+	ID          string                 `json:"id"`
+	Hash        string                 `json:"hash"`
+	From        string                 `json:"from"`
+	To          string                 `json:"to"`
+	Amount      *big.Int               `json:"amount"`
+	Type        string                 `json:"type"` // transfer, faucet, burn, stake
+	Status      string                 `json:"status"`
+	BlockHeight int64                  `json:"block_height"`
+	Timestamp   time.Time              `json:"timestamp"`
+	GasFee      *big.Int               `json:"gas_fee"`
 	Metadata    map[string]interface{} `json:"metadata"`
 }
 
-// FaucetClient handles NRN faucet operations
+// FaucetClient handles NRV faucet operations for testnet
 type FaucetClient struct {
 	*APIClient
 	faucetURL string
 	logger    *logrus.Logger
 }
 
-// FaucetRequest represents a faucet request
+// FaucetRequest represents a testnet faucet request
 type FaucetRequest struct {
 	Address string `json:"address"`
-	Amount  string `json:"amount"`
+	Amount  int    `json:"amount"`
+	Reason  string `json:"reason,omitempty"`
 }
 
-// FaucetResponse represents a faucet response
+// FaucetResponse represents a testnet faucet response
 type FaucetResponse struct {
-	TransactionHash string `json:"transaction_hash"`
-	Amount          string `json:"amount"`
-	Status          string `json:"status"`
-	Message         string `json:"message"`
+	Success          bool   `json:"success"`
+	RequestID        string `json:"request_id,omitempty"`
+	Address          string `json:"address,omitempty"`
+	Amount           int    `json:"amount,omitempty"`
+	TxHash           string `json:"tx_hash,omitempty"`
+	Timestamp        string `json:"timestamp,omitempty"`
+	EstimatedConfirm string `json:"estimated_confirmation,omitempty"`
+	Error            string `json:"error,omitempty"`
+	Code             string `json:"code,omitempty"`
+	RetryAfter       int    `json:"retry_after,omitempty"`
+	LimitType        string `json:"limit_type,omitempty"`
+}
+
+// FaucetStatus represents the current faucet status
+type FaucetStatus struct {
+	FaucetEnabled    bool                   `json:"faucet_enabled"`
+	CurrentBalance   int                    `json:"current_balance"`
+	DailyLimit       int                    `json:"daily_limit"`
+	RemainingToday   int                    `json:"remaining_today"`
+	CurrentQueueSize int                    `json:"current_queue_size"`
+	SuccessRateToday float64                `json:"success_rate_today"`
+	RateLimits       map[string]interface{} `json:"rate_limits"`
+	SupportedAmounts map[string]interface{} `json:"supported_amounts"`
+	LastFunding      string                 `json:"last_funding,omitempty"`
+	NextFundingEst   string                 `json:"next_funding_estimate,omitempty"`
+}
+
+// FaucetHistoryEntry represents a single faucet request in history
+type FaucetHistoryEntry struct {
+	RequestID string `json:"request_id"`
+	Amount    int    `json:"amount"`
+	Status    string `json:"status"`
+	Timestamp string `json:"timestamp"`
+	TxHash    string `json:"tx_hash,omitempty"`
+	Error     string `json:"error,omitempty"`
+	Reason    string `json:"reason,omitempty"`
+}
+
+// FaucetHistory represents the request history for an address
+type FaucetHistory struct {
+	Address       string               `json:"address"`
+	TotalRequests int                  `json:"total_requests"`
+	TotalAmount   int                  `json:"total_amount"`
+	History       []FaucetHistoryEntry `json:"history"`
 }
 
 // NewNRNTokenManager creates a new NRN token manager
@@ -146,21 +192,31 @@ func (ntm *NRNTokenManager) Transfer(ctx context.Context, from, to string, amoun
 	return tx, nil
 }
 
-// RequestFromFaucet requests NRN tokens from the faucet
+// RequestFromFaucet requests NRV tokens from the testnet faucet
 func (ntm *NRNTokenManager) RequestFromFaucet(ctx context.Context, address string, amount string) (*NRNTransaction, error) {
 	if !ntm.config.NRN.Enabled {
 		return nil, fmt.Errorf("NRN is disabled")
 	}
 
-	ntm.logger.Infof("Requesting %s NRN from faucet for address: %s", amount, address)
+	ntm.logger.Infof("Requesting %s NRV from testnet faucet for address: %s", amount, address)
 
-	// Use KNIRVORACLE client for faucet request
-	err := ntm.knirvRootClient.RequestNRNFromFaucet(ctx, address, amount)
+	// Parse amount to int for new faucet API
+	amountInt, err := strconv.Atoi(amount)
+	if err != nil {
+		return nil, fmt.Errorf("invalid amount format: %s", amount)
+	}
+
+	// Use new testnet faucet API
+	response, err := ntm.faucetClient.RequestTokens(ctx, address, amountInt, "CLI request")
 	if err != nil {
 		return nil, fmt.Errorf("faucet request failed: %w", err)
 	}
 
-	// Parse amount
+	if !response.Success {
+		return nil, fmt.Errorf("faucet request failed: %s", response.Error)
+	}
+
+	// Parse amount back to big.Int
 	amountBig, ok := new(big.Int).SetString(amount, 10)
 	if !ok {
 		return nil, fmt.Errorf("invalid amount format: %s", amount)
@@ -168,16 +224,20 @@ func (ntm *NRNTokenManager) RequestFromFaucet(ctx context.Context, address strin
 
 	// Create transaction record
 	tx := &NRNTransaction{
-		ID:        generateTransactionID(),
-		From:      "faucet",
+		ID:        response.RequestID,
+		From:      "testnet-faucet",
 		To:        address,
 		Amount:    amountBig,
 		Type:      "faucet",
 		Status:    "confirmed",
 		Timestamp: time.Now(),
 		GasFee:    big.NewInt(0),
-		Hash:      fmt.Sprintf("0x%x", generateTransactionHash(nil)),
-		Metadata:  map[string]interface{}{"source": "faucet"},
+		Hash:      response.TxHash,
+		Metadata: map[string]interface{}{
+			"source":     "testnet-faucet",
+			"request_id": response.RequestID,
+			"faucet_url": ntm.faucetClient.faucetURL,
+		},
 	}
 
 	// Update local balance
@@ -186,7 +246,7 @@ func (ntm *NRNTokenManager) RequestFromFaucet(ctx context.Context, address strin
 	// Add to transaction history
 	ntm.transactions = append(ntm.transactions, tx)
 
-	ntm.logger.Infof("Faucet request completed: %s NRN received", amount)
+	ntm.logger.Infof("Testnet faucet request completed: %s NRV received (TX: %s)", amount, response.TxHash)
 	return tx, nil
 }
 
@@ -229,15 +289,15 @@ func (ntm *NRNTokenManager) checkAndRefill(ctx context.Context, address string) 
 
 	if ntm.balance.Cmp(minBalance) < 0 {
 		ntm.logger.Infof("Balance below minimum (%s), requesting refill", minBalance.String())
-		
+
 		// Calculate refill amount (2x minimum balance)
 		refillAmount := new(big.Int).Mul(minBalance, big.NewInt(2))
-		
+
 		_, err := ntm.RequestFromFaucet(ctx, address, refillAmount.String())
 		if err != nil {
 			return fmt.Errorf("auto-refill failed: %w", err)
 		}
-		
+
 		ntm.logger.Infof("Auto-refill completed: %s NRN", refillAmount.String())
 	}
 
@@ -295,13 +355,13 @@ func (ntm *NRNTokenManager) GetNRNStats() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"current_balance":    ntm.balance.String(),
-		"total_transactions": len(ntm.transactions),
-		"total_transferred":  totalTransferred.String(),
-		"total_received":     totalReceived.String(),
-		"total_burned":       totalBurned.String(),
+		"current_balance":     ntm.balance.String(),
+		"total_transactions":  len(ntm.transactions),
+		"total_transferred":   totalTransferred.String(),
+		"total_received":      totalReceived.String(),
+		"total_burned":        totalBurned.String(),
 		"auto_refill_enabled": ntm.config.NRN.AutoRefill,
-		"min_balance":        ntm.config.NRN.MinBalance,
+		"min_balance":         ntm.config.NRN.MinBalance,
 	}
 }
 
@@ -315,4 +375,242 @@ func generateTransactionHash(tx *NRNTransaction) []byte {
 	// Simple hash generation for demo purposes
 	data := fmt.Sprintf("%d", time.Now().UnixNano())
 	return []byte(data)
+}
+
+// Enhanced Testnet Faucet Client Methods
+
+// RequestTokens requests NRV tokens from the testnet faucet
+func (fc *FaucetClient) RequestTokens(ctx context.Context, address string, amount int, reason string) (*FaucetResponse, error) {
+	fc.logger.Debugf("Requesting %d NRV tokens for address: %s", amount, address)
+
+	request := FaucetRequest{
+		Address: address,
+		Amount:  amount,
+		Reason:  reason,
+	}
+
+	requestBody, err := json.Marshal(request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", fc.faucetURL+"/api/faucet/request", bytes.NewBuffer(requestBody))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "KNIRV-SDK-Go/1.0.0")
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var response FaucetResponse
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	fc.logger.Debugf("Faucet response: success=%v, request_id=%s", response.Success, response.RequestID)
+	return &response, nil
+}
+
+// GetStatus retrieves the current faucet status
+func (fc *FaucetClient) GetStatus(ctx context.Context) (*FaucetStatus, error) {
+	fc.logger.Debug("Getting faucet status")
+
+	req, err := http.NewRequestWithContext(ctx, "GET", fc.faucetURL+"/api/faucet/status", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("User-Agent", "KNIRV-SDK-Go/1.0.0")
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var status FaucetStatus
+	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	fc.logger.Debugf("Faucet status: enabled=%v, balance=%d", status.FaucetEnabled, status.CurrentBalance)
+	return &status, nil
+}
+
+// GetHistory retrieves the request history for an address
+func (fc *FaucetClient) GetHistory(ctx context.Context, address string, limit int) (*FaucetHistory, error) {
+	fc.logger.Debugf("Getting faucet history for address: %s (limit: %d)", address, limit)
+
+	url := fmt.Sprintf("%s/api/faucet/history?address=%s&limit=%d", fc.faucetURL, address, limit)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("User-Agent", "KNIRV-SDK-Go/1.0.0")
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var history FaucetHistory
+	if err := json.NewDecoder(resp.Body).Decode(&history); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	fc.logger.Debugf("Retrieved %d history entries for address: %s", len(history.History), address)
+	return &history, nil
+}
+
+// CheckHealth checks the faucet service health
+func (fc *FaucetClient) CheckHealth(ctx context.Context) (map[string]interface{}, error) {
+	fc.logger.Debug("Checking faucet health")
+
+	req, err := http.NewRequestWithContext(ctx, "GET", fc.faucetURL+"/api/faucet/health", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("User-Agent", "KNIRV-SDK-Go/1.0.0")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var health map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&health); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	fc.logger.Debugf("Faucet health status: %v", health["status"])
+	return health, nil
+}
+
+// Enhanced NRNTokenManager Methods for Testnet Faucet Integration
+
+// GetFaucetStatus returns the current testnet faucet status
+func (ntm *NRNTokenManager) GetFaucetStatus(ctx context.Context) (*FaucetStatus, error) {
+	return ntm.faucetClient.GetStatus(ctx)
+}
+
+// GetFaucetHistory returns the faucet request history for an address
+func (ntm *NRNTokenManager) GetFaucetHistory(ctx context.Context, address string, limit int) (*FaucetHistory, error) {
+	if limit <= 0 {
+		limit = 10 // Default limit
+	}
+	return ntm.faucetClient.GetHistory(ctx, address, limit)
+}
+
+// CheckFaucetHealth checks the testnet faucet service health
+func (ntm *NRNTokenManager) CheckFaucetHealth(ctx context.Context) (map[string]interface{}, error) {
+	return ntm.faucetClient.CheckHealth(ctx)
+}
+
+// RequestFromFaucetWithRetry requests tokens with automatic retry logic
+func (ntm *NRNTokenManager) RequestFromFaucetWithRetry(ctx context.Context, address string, amount string, reason string, maxRetries int) (*NRNTransaction, error) {
+	amountInt, err := strconv.Atoi(amount)
+	if err != nil {
+		return nil, fmt.Errorf("invalid amount format: %s", amount)
+	}
+
+	var lastErr error
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		ntm.logger.Infof("Faucet request attempt %d/%d", attempt, maxRetries)
+
+		response, err := ntm.faucetClient.RequestTokens(ctx, address, amountInt, reason)
+		if err != nil {
+			lastErr = err
+			ntm.logger.Warnf("Attempt %d failed: %v", attempt, err)
+
+			if attempt < maxRetries {
+				// Wait before retry (exponential backoff)
+				waitTime := time.Duration(attempt*attempt) * time.Second
+				ntm.logger.Infof("Waiting %v before retry...", waitTime)
+				time.Sleep(waitTime)
+			}
+			continue
+		}
+
+		if !response.Success {
+			lastErr = fmt.Errorf("faucet request failed: %s", response.Error)
+
+			// Check if it's a rate limit error
+			if response.Code == "RATE_LIMITED" && response.RetryAfter > 0 {
+				if attempt < maxRetries {
+					waitTime := time.Duration(response.RetryAfter) * time.Second
+					ntm.logger.Infof("Rate limited. Waiting %v before retry...", waitTime)
+					time.Sleep(waitTime)
+					continue
+				}
+			}
+
+			ntm.logger.Warnf("Attempt %d failed: %s", attempt, response.Error)
+			if attempt < maxRetries {
+				time.Sleep(time.Duration(attempt*2) * time.Second)
+			}
+			continue
+		}
+
+		// Success - create transaction record
+		amountBig, _ := new(big.Int).SetString(amount, 10)
+		tx := &NRNTransaction{
+			ID:        response.RequestID,
+			From:      "testnet-faucet",
+			To:        address,
+			Amount:    amountBig,
+			Type:      "faucet",
+			Status:    "confirmed",
+			Timestamp: time.Now(),
+			GasFee:    big.NewInt(0),
+			Hash:      response.TxHash,
+			Metadata: map[string]interface{}{
+				"source":     "testnet-faucet",
+				"request_id": response.RequestID,
+				"faucet_url": ntm.faucetClient.faucetURL,
+				"attempts":   attempt,
+				"reason":     reason,
+			},
+		}
+
+		// Update local balance
+		ntm.balance.Add(ntm.balance, amountBig)
+		ntm.transactions = append(ntm.transactions, tx)
+
+		ntm.logger.Infof("Faucet request successful after %d attempts: %s NRV received (TX: %s)", attempt, amount, response.TxHash)
+		return tx, nil
+	}
+
+	return nil, fmt.Errorf("faucet request failed after %d attempts: %w", maxRetries, lastErr)
+}
+
+// ValidateAddress validates a KNIRV address format
+func (ntm *NRNTokenManager) ValidateAddress(address string) error {
+	if address == "" {
+		return fmt.Errorf("address cannot be empty")
+	}
+
+	if !strings.HasPrefix(address, "knirv1") {
+		return fmt.Errorf("address must start with 'knirv1'")
+	}
+
+	if len(address) < 20 {
+		return fmt.Errorf("address too short (minimum 20 characters)")
+	}
+
+	// Additional validation can be added here
+	return nil
 }

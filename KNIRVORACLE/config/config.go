@@ -272,6 +272,37 @@ func MergeConfigs(dst, src *Config) *Config {
 		merged.NodeJSServices.DeveloperPortal.APIKey = src.NodeJSServices.DeveloperPortal.APIKey
 	}
 
+	// Merge new Node.js services
+	if src.NodeJSServices.BootnodeRegistry.Enabled {
+		merged.NodeJSServices.BootnodeRegistry.Enabled = true
+	}
+	if src.NodeJSServices.BootnodeRegistry.ScriptPath != "" {
+		merged.NodeJSServices.BootnodeRegistry.ScriptPath = src.NodeJSServices.BootnodeRegistry.ScriptPath
+	}
+	if src.NodeJSServices.BootnodeRegistry.HTTPPort != 0 {
+		merged.NodeJSServices.BootnodeRegistry.HTTPPort = src.NodeJSServices.BootnodeRegistry.HTTPPort
+	}
+
+	if src.NodeJSServices.NotarySystem.Enabled {
+		merged.NodeJSServices.NotarySystem.Enabled = true
+	}
+	if src.NodeJSServices.NotarySystem.ScriptPath != "" {
+		merged.NodeJSServices.NotarySystem.ScriptPath = src.NodeJSServices.NotarySystem.ScriptPath
+	}
+	if src.NodeJSServices.NotarySystem.HTTPPort != 0 {
+		merged.NodeJSServices.NotarySystem.HTTPPort = src.NodeJSServices.NotarySystem.HTTPPort
+	}
+
+	if src.NodeJSServices.NetworkMonitor.Enabled {
+		merged.NodeJSServices.NetworkMonitor.Enabled = true
+	}
+	if src.NodeJSServices.NetworkMonitor.ScriptPath != "" {
+		merged.NodeJSServices.NetworkMonitor.ScriptPath = src.NodeJSServices.NetworkMonitor.ScriptPath
+	}
+	if src.NodeJSServices.NetworkMonitor.HTTPPort != 0 {
+		merged.NodeJSServices.NetworkMonitor.HTTPPort = src.NodeJSServices.NetworkMonitor.HTTPPort
+	}
+
 	// Merge TunnelClient config
 	if src.TunnelClient.Enabled {
 		merged.TunnelClient.Enabled = true
@@ -384,6 +415,27 @@ type NodeJSServicesConfig struct {
 		HTTPPort   uint   `json:"http_port"`      // Port for portal's API (e.g., 3005)
 		APIKey     string `json:"api_key_secret"` // API key for interacting with the portal
 	} `json:"developer_portal"`
+
+	// BootnodeRegistry service
+	BootnodeRegistry struct {
+		Enabled    bool   `json:"enabled"`
+		ScriptPath string `json:"script_path"` // Path to bootnode-registry-service.js
+		HTTPPort   uint   `json:"http_port"`   // Port for bootnode registry API (e.g., 3006)
+	} `json:"bootnode_registry"`
+
+	// NotarySystem service
+	NotarySystem struct {
+		Enabled    bool   `json:"enabled"`
+		ScriptPath string `json:"script_path"` // Path to notary-system-service.js
+		HTTPPort   uint   `json:"http_port"`   // Port for notary system API (e.g., 3007)
+	} `json:"notary_system"`
+
+	// NetworkMonitor service
+	NetworkMonitor struct {
+		Enabled    bool   `json:"enabled"`
+		ScriptPath string `json:"script_path"` // Path to network-monitor-service.js
+		HTTPPort   uint   `json:"http_port"`   // Port for network monitor API (e.g., 3008)
+	} `json:"network_monitor"`
 }
 
 // TunnelClientConfig configuration for nodes that need NAT traversal
@@ -584,6 +636,33 @@ func DefaultConfig() *Config {
 				ScriptPath: "agent-payment-gateway/server.js",
 				HTTPPort:   3004,
 				APIKey:     "", // Will be set from environment or config
+			},
+			BootnodeRegistry: struct {
+				Enabled    bool   `json:"enabled"`
+				ScriptPath string `json:"script_path"`
+				HTTPPort   uint   `json:"http_port"`
+			}{
+				Enabled:    false,
+				ScriptPath: "agent-bootnode-registry/server.js",
+				HTTPPort:   3006,
+			},
+			NotarySystem: struct {
+				Enabled    bool   `json:"enabled"`
+				ScriptPath string `json:"script_path"`
+				HTTPPort   uint   `json:"http_port"`
+			}{
+				Enabled:    false,
+				ScriptPath: "agent-notary-system/server.js",
+				HTTPPort:   3007,
+			},
+			NetworkMonitor: struct {
+				Enabled    bool   `json:"enabled"`
+				ScriptPath string `json:"script_path"`
+				HTTPPort   uint   `json:"http_port"`
+			}{
+				Enabled:    false,
+				ScriptPath: "agent-network-monitor/server.js",
+				HTTPPort:   3008,
 			},
 		},
 		TunnelClient: TunnelClientConfig{

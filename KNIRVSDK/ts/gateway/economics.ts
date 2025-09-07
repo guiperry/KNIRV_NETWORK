@@ -19,13 +19,40 @@ import {
   EconomicRules,
   PaginatedResponse,
   EconomicsServiceError,
+  FaucetRequest,
+  FaucetResponse,
+  FaucetStatus,
+  FaucetHistory,
+  FaucetHealthResponse,
 } from './types';
 
+import { FaucetService, FaucetRequestOptions } from './faucet';
+
 export class EconomicsService {
-  constructor(private config: RequestConfig) {}
+  private faucetService?: FaucetService;
+
+  constructor(private config: RequestConfig) {
+    // Initialize faucet service if testnet faucet URL is provided
+    const faucetURL = process.env.TESTNET_FAUCET_URL || 'http://localhost:10000';
+    if (faucetURL) {
+      this.faucetService = new FaucetService({
+        faucetURL,
+        debug: this.config.debug,
+        timeout: this.config.timeout,
+      });
+    }
+  }
 
   updateConfig(config: RequestConfig): void {
     this.config = config;
+
+    // Update faucet service if needed
+    if (this.faucetService) {
+      this.faucetService.updateConfig({
+        debug: config.debug,
+        timeout: config.timeout,
+      });
+    }
   }
 
   private async request<T>(
@@ -320,5 +347,124 @@ export class EconomicsService {
       average_transaction_size: '0', // Would be calculated from actual data
       active_users: metrics.active_validators, // Placeholder
     };
+  }
+
+  // Testnet Faucet Integration Methods
+
+  /**
+   * Request NRV tokens from the testnet faucet
+   *
+   * @param address - Target address for token distribution
+   * @param amount - Amount of NRV tokens to request
+   * @param options - Additional request options
+   * @returns Promise resolving to faucet response
+   *
+   * @example
+   * ```typescript
+   * const response = await economics.requestFromFaucet(
+   *   'knirv1abc123...',
+   *   1000,
+   *   { reason: 'Testing new feature' }
+   * );
+   * console.log('Transaction hash:', response.tx_hash);
+   * ```
+   */
+  async requestFromFaucet(
+    address: string,
+    amount: number,
+    options: FaucetRequestOptions = {}
+  ): Promise<FaucetResponse> {
+    if (!this.faucetService) {
+      throw new EconomicsServiceError('Faucet service not configured');
+    }
+
+    return this.faucetService.requestTokens(address, amount, options);
+  }
+
+  /**
+   * Get the current status of the testnet faucet
+   *
+   * @returns Promise resolving to faucet status
+   *
+   * @example
+   * ```typescript
+   * const status = await economics.getFaucetStatus();
+   * console.log('Faucet enabled:', status.faucet_enabled);
+   * console.log('Current balance:', status.current_balance);
+   * ```
+   */
+  async getFaucetStatus(): Promise<FaucetStatus> {
+    if (!this.faucetService) {
+      throw new EconomicsServiceError('Faucet service not configured');
+    }
+
+    return this.faucetService.getStatus();
+  }
+
+  /**
+   * Get faucet request history for an address
+   *
+   * @param address - Address to get history for
+   * @param limit - Maximum number of entries to return (default: 10)
+   * @returns Promise resolving to faucet history
+   *
+   * @example
+   * ```typescript
+   * const history = await economics.getFaucetHistory('knirv1abc123...', 20);
+   * console.log('Total requests:', history.total_requests);
+   * history.history.forEach(entry => {
+   *   console.log(`${entry.timestamp}: ${entry.amount} NRV (${entry.status})`);
+   * });
+   * ```
+   */
+  async getFaucetHistory(address: string, limit: number = 10): Promise<FaucetHistory> {
+    if (!this.faucetService) {
+      throw new EconomicsServiceError('Faucet service not configured');
+    }
+
+    return this.faucetService.getHistory(address, limit);
+  }
+
+  /**
+   * Check the health of the testnet faucet service
+   *
+   * @returns Promise resolving to health status
+   *
+   * @example
+   * ```typescript
+   * const health = await economics.checkFaucetHealth();
+   * console.log('Faucet health:', health.status);
+   * ```
+   */
+  async checkFaucetHealth(): Promise<FaucetHealthResponse> {
+    if (!this.faucetService) {
+      throw new EconomicsServiceError('Faucet service not configured');
+    }
+
+    return this.faucetService.checkHealth();
+  }
+
+  /**
+   * Get the faucet service instance for advanced operations
+   *
+   * @returns FaucetService instance or undefined if not configured
+   */
+  getFaucetService(): FaucetService | undefined {
+    return this.faucetService;
+  }
+
+  /**
+   * Configure or reconfigure the faucet service
+   *
+   * @param faucetURL - Base URL for the testnet faucet
+   * @param options - Additional configuration options
+   */
+  configureFaucetService(faucetURL: string, options: Partial<{ debug: boolean; timeout: number; maxRetries: number }> = {}): void {
+    this.faucetService = new FaucetService({
+      faucetURL,
+      debug: options.debug ?? this.config.debug,
+      timeout: options.timeout ?? this.config.timeout,
+      maxRetries: options.maxRetries ?? 3,
+    });
   }
 }

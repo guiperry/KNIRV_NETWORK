@@ -3,7 +3,8 @@
 // expect(element).toHaveTextContent(/react/i)
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
-import './types/global-test';
+// Import type definitions for tests
+/// <reference path="./types/global-test.d.ts" />
 import { setupCustomMatchers } from '../test-utils/jest-matchers';
 
 // Setup custom matchers

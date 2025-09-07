@@ -36,10 +36,32 @@ var (
 
 	economicsFaucetCmd = &cobra.Command{
 		Use:   "faucet [amount]",
-		Short: "Request NRN tokens from faucet",
-		Long:  `Request NRN tokens from the faucet for testing purposes.`,
+		Short: "Request NRV tokens from testnet faucet",
+		Long:  `Request NRV tokens from the testnet faucet for testing purposes.`,
 		Args:  cobra.MaximumNArgs(1),
 		RunE:  runEconomicsFaucet,
+	}
+
+	economicsFaucetStatusCmd = &cobra.Command{
+		Use:   "faucet-status",
+		Short: "Get testnet faucet status",
+		Long:  `Display the current status of the testnet faucet including balance, limits, and availability.`,
+		RunE:  runEconomicsFaucetStatus,
+	}
+
+	economicsFaucetHistoryCmd = &cobra.Command{
+		Use:   "faucet-history [address] [limit]",
+		Short: "Get faucet request history",
+		Long:  `Display the faucet request history for a specific address.`,
+		Args:  cobra.MaximumNArgs(2),
+		RunE:  runEconomicsFaucetHistory,
+	}
+
+	economicsFaucetHealthCmd = &cobra.Command{
+		Use:   "faucet-health",
+		Short: "Check testnet faucet health",
+		Long:  `Check the health status of the testnet faucet service.`,
+		RunE:  runEconomicsFaucetHealth,
 	}
 
 	economicsHistoryCmd = &cobra.Command{
@@ -80,6 +102,9 @@ var (
 	ownedByMe        bool
 	availableForRent bool
 	complexity       string
+	faucetReason     string
+	maxRetries       int
+	historyLimit     int
 )
 
 func init() {
@@ -89,6 +114,9 @@ func init() {
 	economicsCmd.AddCommand(economicsBalanceCmd)
 	economicsCmd.AddCommand(economicsTransferCmd)
 	economicsCmd.AddCommand(economicsFaucetCmd)
+	economicsCmd.AddCommand(economicsFaucetStatusCmd)
+	economicsCmd.AddCommand(economicsFaucetHistoryCmd)
+	economicsCmd.AddCommand(economicsFaucetHealthCmd)
 	economicsCmd.AddCommand(economicsHistoryCmd)
 	economicsCmd.AddCommand(economicsStatsCmd)
 	economicsCmd.AddCommand(economicsSkillsCmd)
@@ -106,6 +134,11 @@ func init() {
 	// Faucet command flags
 	economicsFaucetCmd.Flags().BoolVar(&autoRefill, "auto-refill", false, "Enable auto-refill")
 	economicsFaucetCmd.Flags().StringVar(&minBalance, "min-balance", "1000", "Minimum balance for auto-refill")
+	economicsFaucetCmd.Flags().StringVar(&faucetReason, "reason", "", "Reason for faucet request")
+	economicsFaucetCmd.Flags().IntVar(&maxRetries, "max-retries", 3, "Maximum retry attempts")
+
+	// Faucet history command flags
+	economicsFaucetHistoryCmd.Flags().IntVar(&historyLimit, "limit", 10, "Maximum number of history entries to show")
 
 	// Skills command flags
 	economicsSkillsCmd.Flags().BoolVar(&ownedByMe, "owned-by-me", false, "Show only skills owned by me")
@@ -257,7 +290,7 @@ func runEconomicsFaucet(cmd *cobra.Command, args []string) error {
 	nrnManager := core.NewNRNTokenManager(&cfg.KNIRV.Wallet, knirvRootClient, log)
 
 	// Connect to KNIRVORACLE
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	if err := knirvRootClient.Connect(ctx); err != nil {
@@ -265,17 +298,32 @@ func runEconomicsFaucet(cmd *cobra.Command, args []string) error {
 	}
 	defer knirvRootClient.Disconnect()
 
-	// Request from faucet
-	tx, err := nrnManager.RequestFromFaucet(ctx, wallet.Address, amount)
+	// Use enhanced faucet request with retry logic
+	reason := faucetReason
+	if reason == "" {
+		reason = "CLI request"
+	}
+
+	fmt.Printf("Requesting %s NRV tokens from testnet faucet...\n", amount)
+	fmt.Printf("Address: %s\n", wallet.Address)
+	if reason != "CLI request" {
+		fmt.Printf("Reason: %s\n", reason)
+	}
+	fmt.Printf("Max retries: %d\n", maxRetries)
+	fmt.Println()
+
+	tx, err := nrnManager.RequestFromFaucetWithRetry(ctx, wallet.Address, amount, reason, maxRetries)
 	if err != nil {
 		return fmt.Errorf("faucet request failed: %w", err)
 	}
 
-	fmt.Printf("Faucet request successful!\n")
+	fmt.Printf("✅ Testnet faucet request successful!\n")
 	fmt.Printf("Transaction Hash: %s\n", tx.Hash)
+	fmt.Printf("Request ID: %s\n", tx.ID)
 	fmt.Printf("Address: %s\n", tx.To)
-	fmt.Printf("Amount: %s NRN\n", tx.Amount.String())
+	fmt.Printf("Amount: %s NRV\n", tx.Amount.String())
 	fmt.Printf("Status: %s\n", tx.Status)
+	fmt.Printf("Timestamp: %s\n", tx.Timestamp.Format(time.RFC3339))
 
 	return nil
 }
@@ -361,6 +409,190 @@ func runEconomicsFees(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Fee estimation for operation: %s\n", operation)
 	fmt.Printf("Complexity: %s\n", complexity)
 	fmt.Println("Estimated fee: 0 NRN (gasless)")
+
+	return nil
+}
+
+// Enhanced Testnet Faucet Commands
+
+func runEconomicsFaucetStatus(cmd *cobra.Command, args []string) error {
+	// Load configuration
+	cfg, err := config.LoadConfig(cfgFile)
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Create KNIRVORACLE client and NRN token manager
+	knirvRootClient := core.NewKNIRVRootClient(&cfg.KNIRV.Services.KNIRVRoot, log)
+	nrnManager := core.NewNRNTokenManager(&cfg.KNIRV.Wallet, knirvRootClient, log)
+
+	// Connect to KNIRVORACLE
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := knirvRootClient.Connect(ctx); err != nil {
+		return fmt.Errorf("failed to connect to KNIRVORACLE: %w", err)
+	}
+	defer knirvRootClient.Disconnect()
+
+	// Get faucet status
+	status, err := nrnManager.GetFaucetStatus(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get faucet status: %w", err)
+	}
+
+	fmt.Printf("🚰 Testnet Faucet Status\n")
+	fmt.Printf("========================\n")
+	fmt.Printf("Enabled: %v\n", status.FaucetEnabled)
+	fmt.Printf("Current Balance: %d NRV\n", status.CurrentBalance)
+	fmt.Printf("Daily Limit: %d NRV\n", status.DailyLimit)
+	fmt.Printf("Remaining Today: %d NRV\n", status.RemainingToday)
+	fmt.Printf("Queue Size: %d requests\n", status.CurrentQueueSize)
+	fmt.Printf("Success Rate Today: %.1f%%\n", status.SuccessRateToday*100)
+
+	if status.LastFunding != "" {
+		fmt.Printf("Last Funding: %s\n", status.LastFunding)
+	}
+	if status.NextFundingEst != "" {
+		fmt.Printf("Next Funding Est: %s\n", status.NextFundingEst)
+	}
+
+	fmt.Printf("\nRate Limits:\n")
+	for key, value := range status.RateLimits {
+		fmt.Printf("  %s: %v\n", key, value)
+	}
+
+	fmt.Printf("\nSupported Amounts:\n")
+	for key, value := range status.SupportedAmounts {
+		fmt.Printf("  %s: %v\n", key, value)
+	}
+
+	return nil
+}
+
+func runEconomicsFaucetHistory(cmd *cobra.Command, args []string) error {
+	// Load configuration
+	cfg, err := config.LoadConfig(cfgFile)
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Get address
+	var address string
+	if len(args) > 0 {
+		address = args[0]
+	} else {
+		// Get address from wallet
+		if walletName == "" {
+			return fmt.Errorf("wallet name or address required")
+		}
+
+		walletManager := core.NewWalletManager(cfg.KNIRV.Wallet.Directory, log)
+		wallet, err := walletManager.GetWallet(walletName)
+		if err != nil {
+			return fmt.Errorf("failed to get wallet: %w", err)
+		}
+		address = wallet.Address
+	}
+
+	// Parse limit
+	limit := historyLimit
+	if len(args) > 1 {
+		if parsedLimit, err := fmt.Sscanf(args[1], "%d", &limit); err != nil || parsedLimit != 1 {
+			return fmt.Errorf("invalid limit: %s", args[1])
+		}
+	}
+
+	// Create KNIRVORACLE client and NRN token manager
+	knirvRootClient := core.NewKNIRVRootClient(&cfg.KNIRV.Services.KNIRVRoot, log)
+	nrnManager := core.NewNRNTokenManager(&cfg.KNIRV.Wallet, knirvRootClient, log)
+
+	// Connect to KNIRVORACLE
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := knirvRootClient.Connect(ctx); err != nil {
+		return fmt.Errorf("failed to connect to KNIRVORACLE: %w", err)
+	}
+	defer knirvRootClient.Disconnect()
+
+	// Get faucet history
+	history, err := nrnManager.GetFaucetHistory(ctx, address, limit)
+	if err != nil {
+		return fmt.Errorf("failed to get faucet history: %w", err)
+	}
+
+	fmt.Printf("📜 Faucet History for %s\n", truncateAddress(address))
+	fmt.Printf("=====================================\n")
+	fmt.Printf("Total Requests: %d\n", history.TotalRequests)
+	fmt.Printf("Total Amount: %d NRV\n", history.TotalAmount)
+	fmt.Printf("Showing last %d entries:\n\n", len(history.History))
+
+	if len(history.History) == 0 {
+		fmt.Println("No faucet requests found.")
+		return nil
+	}
+
+	for i, entry := range history.History {
+		fmt.Printf("%d. Request ID: %s\n", i+1, entry.RequestID)
+		fmt.Printf("   Amount: %d NRV\n", entry.Amount)
+		fmt.Printf("   Status: %s\n", entry.Status)
+		fmt.Printf("   Timestamp: %s\n", entry.Timestamp)
+		if entry.TxHash != "" {
+			fmt.Printf("   TX Hash: %s\n", entry.TxHash)
+		}
+		if entry.Error != "" {
+			fmt.Printf("   Error: %s\n", entry.Error)
+		}
+		if entry.Reason != "" {
+			fmt.Printf("   Reason: %s\n", entry.Reason)
+		}
+		fmt.Println()
+	}
+
+	return nil
+}
+
+func runEconomicsFaucetHealth(cmd *cobra.Command, args []string) error {
+	// Load configuration
+	cfg, err := config.LoadConfig(cfgFile)
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Create KNIRVORACLE client and NRN token manager
+	knirvRootClient := core.NewKNIRVRootClient(&cfg.KNIRV.Services.KNIRVRoot, log)
+	nrnManager := core.NewNRNTokenManager(&cfg.KNIRV.Wallet, knirvRootClient, log)
+
+	// Connect to KNIRVORACLE
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := knirvRootClient.Connect(ctx); err != nil {
+		return fmt.Errorf("failed to connect to KNIRVORACLE: %w", err)
+	}
+	defer knirvRootClient.Disconnect()
+
+	// Check faucet health
+	health, err := nrnManager.CheckFaucetHealth(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to check faucet health: %w", err)
+	}
+
+	fmt.Printf("🏥 Testnet Faucet Health Check\n")
+	fmt.Printf("==============================\n")
+
+	for key, value := range health {
+		fmt.Printf("%s: %v\n", key, value)
+	}
+
+	// Determine overall health status
+	status, ok := health["status"].(string)
+	if ok && status == "healthy" {
+		fmt.Printf("\n✅ Faucet is healthy and operational\n")
+	} else {
+		fmt.Printf("\n⚠️  Faucet may have issues\n")
+	}
 
 	return nil
 }

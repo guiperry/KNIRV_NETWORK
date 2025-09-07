@@ -433,7 +433,7 @@ describe('Phase 3.3 - LoRA Processing Queue', () => {
           additionalMetadata: {}
         } as LoRAAdapterSkill,
         trainingDataset: mockTrainingDataset,
-        priority: 5,
+        priority: 1,
         status: QueueStatus.PENDING,
         submittedAt: new Date(),
         retryCount: 0,

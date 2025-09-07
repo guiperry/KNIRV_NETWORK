@@ -130,7 +130,11 @@ describe('Phase 3.3 - Performance Metrics', () => {
       }
     ];
 
-    mockValidatedSolutions = mockSolutions.filter(s => s.dveValidationScore && s.dveValidationScore > 0.7);
+    mockValidatedSolutions = mockSolutions.filter(s =>
+      s.validationStatus === 'validated' &&
+      s.dveValidationScore &&
+      s.dveValidationScore > 0.7
+    );
 
     mockLoRAAdapter = {
       skillId: 'skill_001',
@@ -161,6 +165,7 @@ describe('Phase 3.3 - Performance Metrics', () => {
 
   afterEach(() => {
     performanceMetrics.stop();
+    performanceMetrics.reset();
   });
 
   describe('Initialization', () => {

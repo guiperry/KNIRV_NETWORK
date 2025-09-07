@@ -3,35 +3,88 @@
  * Provides browser APIs that are missing in Node.js test environment
  */
 
-// Polyfill for fetch API
-import fetch, { Headers, Request, Response } from 'node-fetch';
+// Simple mock fetch API for Jest environment
+// @ts-expect-error - Global polyfill
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    ok: true,
+    status: 200,
+    json: () => Promise.resolve({}),
+    text: () => Promise.resolve(''),
+    blob: () => Promise.resolve(new Blob()),
+    arrayBuffer: () => Promise.resolve(new ArrayBuffer(0))
+  })
+);
 
 // @ts-expect-error - Global polyfill
-global.fetch = fetch;
+global.Headers = jest.fn().mockImplementation((init) => {
+  const headers = new Map();
+  if (init) {
+    Object.entries(init).forEach(([key, value]) => headers.set(key, value));
+  }
+  return {
+    get: (name: string) => headers.get(name),
+    set: (name: string, value: string) => headers.set(name, value),
+    has: (name: string) => headers.has(name),
+    delete: (name: string) => headers.delete(name),
+    entries: () => headers.entries(),
+    keys: () => headers.keys(),
+    values: () => headers.values()
+  };
+});
+
 // @ts-expect-error - Global polyfill
-global.Headers = Headers;
+global.Request = jest.fn().mockImplementation((url, options = {}) => ({
+  url,
+  method: options.method || 'GET',
+  headers: new global.Headers(options.headers),
+  body: options.body
+}));
+
 // @ts-expect-error - Global polyfill
-global.Request = Request;
-// @ts-expect-error - Global polyfill
-global.Response = Response;
+global.Response = jest.fn().mockImplementation((body, options = {}) => ({
+  ok: options.status ? options.status >= 200 && options.status < 300 : true,
+  status: options.status || 200,
+  statusText: options.statusText || 'OK',
+  headers: new global.Headers(options.headers),
+  json: () => Promise.resolve(typeof body === 'string' ? JSON.parse(body) : body),
+  text: () => Promise.resolve(typeof body === 'string' ? body : JSON.stringify(body)),
+  blob: () => Promise.resolve(new Blob([body])),
+  arrayBuffer: () => Promise.resolve(new ArrayBuffer(0))
+}));
 
 // Polyfill for TextEncoder/TextDecoder using Node.js built-in APIs
-import { TextEncoder, TextDecoder } from 'node:util';
+const { TextEncoder, TextDecoder } = require('node:util');
 
-// Global polyfill
-global.TextEncoder = TextEncoder;
-// @ts-expect-error - Global polyfill
-global.TextDecoder = TextDecoder;
+// Global polyfill - ensure they're available globally
+if (!global.TextEncoder) {
+  global.TextEncoder = TextEncoder;
+}
+if (!global.TextDecoder) {
+  // @ts-expect-error - Global polyfill
+  global.TextDecoder = TextDecoder;
+}
+
+// Also ensure they're available on globalThis
+if (typeof globalThis !== 'undefined') {
+  if (!globalThis.TextEncoder) {
+    globalThis.TextEncoder = TextEncoder;
+  }
+  if (!globalThis.TextDecoder) {
+    // @ts-expect-error - Global polyfill
+    globalThis.TextDecoder = TextDecoder;
+  }
+}
 
 // Polyfill for crypto.subtle and crypto.getRandomValues
-import { webcrypto } from 'node:crypto';
+const { webcrypto } = require('node:crypto');
 if (!global.crypto) {
   // @ts-expect-error - Global polyfill
   global.crypto = webcrypto;
 }
 
 // Polyfill for URL constructor
-import { URL, URLSearchParams } from 'node:url';
+const { URL, URLSearchParams } = require('node:url');
 
 // @ts-expect-error - Global polyfill
 global.URL = URL;
@@ -76,7 +129,22 @@ Object.defineProperty(global, 'gc', {
   configurable: true
 });
 
-// Polyfill for window object in Node.js environment
+// Enhanced timer polyfills for @testing-library/react-native
+const timers = {
+  setTimeout: global.setTimeout.bind(global),
+  clearTimeout: global.clearTimeout.bind(global),
+  setInterval: global.setInterval.bind(global),
+  clearInterval: global.clearInterval.bind(global),
+  setImmediate: global.setImmediate?.bind(global) || ((fn: Function) => setTimeout(fn, 0)),
+  clearImmediate: global.clearImmediate?.bind(global) || clearTimeout
+};
+
+// Ensure timer functions are available on globalThis for @testing-library/react-native
+Object.assign(globalThis, timers);
+
+// Polyfill for window object in Node.js environment with event handling
+const eventListeners = new Map<string, Function[]>();
+
 Object.defineProperty(global, 'window', {
   value: {
     performance: global.performance,
@@ -94,7 +162,30 @@ Object.defineProperty(global, 'window', {
     },
     navigator: {
       userAgent: 'Node.js Test Environment'
-    }
+    },
+    // Add event listener support for ErrorHandler and other services
+    addEventListener: jest.fn((event: string, listener: Function) => {
+      if (!eventListeners.has(event)) {
+        eventListeners.set(event, []);
+      }
+      eventListeners.get(event)!.push(listener);
+    }),
+    removeEventListener: jest.fn((event: string, listener: Function) => {
+      if (eventListeners.has(event)) {
+        const listeners = eventListeners.get(event)!;
+        const index = listeners.indexOf(listener);
+        if (index > -1) {
+          listeners.splice(index, 1);
+        }
+      }
+    }),
+    dispatchEvent: jest.fn((event: Event) => {
+      const listeners = eventListeners.get(event.type) || [];
+      listeners.forEach(listener => listener(event));
+      return true;
+    }),
+    // Add timer functions to window object
+    ...timers
   },
   writable: true,
   configurable: true
@@ -206,5 +297,59 @@ Object.defineProperty(global, 'MutationObserver', {
   writable: true,
   configurable: true
 });
+
+// Polyfill for PerformanceObserver
+Object.defineProperty(global, 'PerformanceObserver', {
+  value: jest.fn().mockImplementation((callback: Function) => ({
+    observe: jest.fn(),
+    disconnect: jest.fn(),
+    takeRecords: jest.fn(() => [])
+  })),
+  writable: true,
+  configurable: true
+});
+
+// Polyfill for Speech APIs (SpeechSynthesis, SpeechSynthesisUtterance)
+Object.defineProperty(global, 'SpeechSynthesisUtterance', {
+  value: jest.fn().mockImplementation((text?: string) => ({
+    text: text || '',
+    lang: 'en-US',
+    voice: null,
+    volume: 1,
+    rate: 1,
+    pitch: 1,
+    onstart: null,
+    onend: null,
+    onerror: null,
+    onpause: null,
+    onresume: null,
+    onmark: null,
+    onboundary: null
+  })),
+  writable: true,
+  configurable: true
+});
+
+Object.defineProperty(global, 'speechSynthesis', {
+  value: {
+    speak: jest.fn(),
+    cancel: jest.fn(),
+    pause: jest.fn(),
+    resume: jest.fn(),
+    getVoices: jest.fn(() => []),
+    speaking: false,
+    pending: false,
+    paused: false,
+    onvoiceschanged: null
+  },
+  writable: true,
+  configurable: true
+});
+
+// Add Speech APIs to window object as well
+if (global.window) {
+  (global.window as any).SpeechSynthesisUtterance = global.SpeechSynthesisUtterance;
+  (global.window as any).speechSynthesis = global.speechSynthesis;
+}
 
 console.log('✅ Jest polyfills loaded successfully');

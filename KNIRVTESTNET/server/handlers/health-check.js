@@ -24,18 +24,58 @@ const getHealth = async (req, res) => {
       }
     };
 
+    // Check faucet service first
+    const faucetStartTime = Date.now();
+    try {
+      const faucetResponse = await axios.get('http://localhost:10000/api/faucet/health', {
+        timeout: 5000,
+        validateStatus: (status) => status < 500
+      });
+
+      const faucetResponseTime = Date.now() - faucetStartTime;
+
+      healthStatus.services['testnet-faucet'] = {
+        status: faucetResponse.status === 200 ? 'healthy' : 'degraded',
+        url: 'http://localhost:10000/api/faucet',
+        responseTime: `${faucetResponseTime}ms`,
+        httpStatus: faucetResponse.status,
+        lastCheck: new Date().toISOString(),
+        details: faucetResponse.data || {}
+      };
+
+      if (faucetResponse.status === 200) {
+        healthStatus.summary.healthy++;
+      } else {
+        healthStatus.summary.unhealthy++;
+      }
+    } catch (error) {
+      const faucetResponseTime = Date.now() - faucetStartTime;
+
+      healthStatus.services['testnet-faucet'] = {
+        status: 'unhealthy',
+        url: 'http://localhost:10000/api/faucet',
+        responseTime: `${faucetResponseTime}ms`,
+        error: error.message,
+        lastCheck: new Date().toISOString()
+      };
+
+      healthStatus.summary.unhealthy++;
+    }
+
+    healthStatus.summary.total++;
+
     // Check each service endpoint
     const serviceChecks = Object.entries(endpoints).map(async ([serviceName, serviceUrl]) => {
       const startTime = Date.now();
-      
+
       try {
         const response = await axios.get(`${serviceUrl}/health`, {
           timeout: 5000,
           validateStatus: (status) => status < 500
         });
-        
+
         const responseTime = Date.now() - startTime;
-        
+
         healthStatus.services[serviceName] = {
           status: 'healthy',
           url: serviceUrl,
@@ -43,7 +83,7 @@ const getHealth = async (req, res) => {
           httpStatus: response.status,
           lastCheck: new Date().toISOString()
         };
-        
+
         healthStatus.summary.healthy++;
       } catch (error) {
         const responseTime = Date.now() - startTime;
