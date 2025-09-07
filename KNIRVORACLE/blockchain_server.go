@@ -342,6 +342,9 @@ func (bcs *BlockchainServer) Prepare() (uint64, error) {
 	mux.HandleFunc("/poaud/network-authors/remove", bcs.RemoveNetworkAuthor)
 	mux.HandleFunc("/poaud/network-authors", bcs.GetNetworkAuthors)
 
+	// Add Network Monitor proxy endpoints (for testnet mode)
+	mux.PathPrefix("/api/health-monitor/").HandlerFunc(bcs.handleNetworkMonitorProxy)
+
 	// Add XION bridge endpoints if bridge is available
 	if bcs.xionBridge != nil {
 		bcs.xionBridge.IntegrateWithKNIRVORACLE(mux)
@@ -578,6 +581,67 @@ func (bcs *BlockchainServer) StartListenAndServe() error {
 
 	log.Printf("HTTP server listener for chain %s stopped.", bcs.BlockchainPtr.ChainID)
 	return nil
+}
+
+// handleNetworkMonitorProxy proxies requests to the embedded network monitor
+func (bcs *BlockchainServer) handleNetworkMonitorProxy(w http.ResponseWriter, r *http.Request) {
+	// Only allow in testnet mode when network monitor is running
+	if globalNetworkMonitorManager == nil || !globalNetworkMonitorManager.IsRunning() {
+		http.Error(w, "Network monitor not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Remove the /api/health-monitor prefix and forward to network monitor
+	targetPath := strings.TrimPrefix(r.URL.Path, "/api/health-monitor")
+	if targetPath == "" {
+		targetPath = "/"
+	}
+
+	// Build the target URL
+	targetURL := fmt.Sprintf("http://localhost:%d%s", globalNetworkMonitorManager.GetPort(), targetPath)
+	if r.URL.RawQuery != "" {
+		targetURL += "?" + r.URL.RawQuery
+	}
+
+	// Create the proxy request
+	proxyReq, err := http.NewRequest(r.Method, targetURL, r.Body)
+	if err != nil {
+		log.Printf("Failed to create proxy request: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// Copy headers
+	for name, values := range r.Header {
+		for _, value := range values {
+			proxyReq.Header.Add(name, value)
+		}
+	}
+
+	// Make the request to network monitor
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(proxyReq)
+	if err != nil {
+		log.Printf("Failed to proxy request to network monitor: %v", err)
+		http.Error(w, "Network monitor unavailable", http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Copy response headers
+	for name, values := range resp.Header {
+		for _, value := range values {
+			w.Header().Add(name, value)
+		}
+	}
+
+	// Set status code
+	w.WriteHeader(resp.StatusCode)
+
+	// Copy response body
+	if _, err := io.Copy(w, resp.Body); err != nil {
+		log.Printf("Failed to copy response body: %v", err)
+	}
 }
 
 func (bcs *BlockchainServer) handlePing(w http.ResponseWriter, r *http.Request) {

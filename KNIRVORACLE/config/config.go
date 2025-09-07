@@ -151,8 +151,16 @@ func ApplyTestnetDefaults(cfg *Config) {
 		cfg.Testnet.DisableXIONBridge = true
 		cfg.Testnet.SimplifiedConsensus = true
 
-		log.Printf("Applied testnet defaults: ChainID=%s, APIPort=%d, RPCPort=%d, P2PPort=%d",
-			cfg.Testnet.ChainID, cfg.Testnet.APIPort, cfg.Testnet.RPCPort, cfg.Testnet.P2PPort)
+		// Enable network monitor in testnet mode
+		cfg.NetworkMonitor.Enabled = true
+		cfg.NetworkMonitor.AutoStart = true
+		cfg.NetworkMonitor.WebMode = true
+		if cfg.NetworkMonitor.Port == 0 {
+			cfg.NetworkMonitor.Port = 8091
+		}
+
+		log.Printf("Applied testnet defaults: ChainID=%s, APIPort=%d, RPCPort=%d, P2PPort=%d, NetworkMonitor=%v",
+			cfg.Testnet.ChainID, cfg.Testnet.APIPort, cfg.Testnet.RPCPort, cfg.Testnet.P2PPort, cfg.NetworkMonitor.Enabled)
 	}
 }
 
@@ -508,6 +516,9 @@ type Config struct {
 
 	// PoAu-D specific configuration
 	PoAuD PoAuDConfig `json:"poaud" mapstructure:"poaud"`
+
+	// Network Monitor configuration
+	NetworkMonitor NetworkMonitorConfig `json:"network_monitor" mapstructure:"network_monitor"`
 }
 
 // Add a struct to hold Chromem-specific configuration within the main config
@@ -520,6 +531,14 @@ type ChromemConfig struct {
 type CerebrasConfig struct {
 	APIKey  string `json:"api_key,omitempty" mapstructure:"api_key"`   // API key for Cerebras service
 	BaseURL string `json:"base_url,omitempty" mapstructure:"base_url"` // Base URL for Cerebras API
+}
+
+// NetworkMonitorConfig defines settings for the embedded network monitor
+type NetworkMonitorConfig struct {
+	Enabled   bool `json:"enabled" mapstructure:"enabled"`       // Whether to enable network monitor
+	WebMode   bool `json:"web_mode" mapstructure:"web_mode"`     // Run in web mode (headless)
+	Port      int  `json:"port" mapstructure:"port"`             // Port for web interface
+	AutoStart bool `json:"auto_start" mapstructure:"auto_start"` // Auto-start with KNIRVORACLE
 }
 
 // DefaultConfig returns a default configuration
@@ -687,6 +706,14 @@ func DefaultConfig() *Config {
 			MaxSubpoolStaleTime:     5 * time.Minute,  // 5 minutes before reclaiming stale transactions
 			MaxPapSubpoolQueue:      100,              // Maximum 100 transactions in PAP subpool
 			StatusAdvertiseInterval: 30 * time.Minute, // 30 minutes between status advertisements
+		},
+
+		// Network Monitor configuration defaults
+		NetworkMonitor: NetworkMonitorConfig{
+			Enabled:   false, // Disabled by default, enabled in testnet mode
+			WebMode:   true,  // Default to web mode (headless)
+			Port:      8091,  // Default port for web interface
+			AutoStart: false, // Don't auto-start by default
 		},
 	}
 }

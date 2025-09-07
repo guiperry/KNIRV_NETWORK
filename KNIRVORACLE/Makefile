@@ -73,8 +73,17 @@ clean:
 	@rm -rf "$(CROSS_COMPILE_OUTPUT_DIR)" "$(RELEASE_ASSETS_DIR)"
 	@echo "Cleanup complete."
 
+# Target to build network-monitor binary first (optional, fallback to embedded)
+build-network-monitor:
+	@echo "Attempting to build network-monitor binary..."
+	@if cd ../network-monitor && go build -o ../KNIRVORACLE/bin/knirv-network-monitor ./cmd/monitor 2>/dev/null; then \
+		echo "Network-monitor binary built successfully."; \
+	else \
+		echo "Network-monitor binary build failed, will use embedded monitor instead."; \
+	fi
+
 # Target to run the cross-compilation script
-build-binaries:
+build-binaries: build-network-monitor
 	@echo "Starting cross-compilation for $(APP_NAME) version $(VERSION)..."
 	@echo "NO_WEBVIEW flag is set to: $(NO_WEBVIEW)"
 	@VERSION=$(VERSION) BINARY_NAME=$(APP_NAME) NO_WEBVIEW=$(NO_WEBVIEW) ./scripts/cross-compile.sh
@@ -292,28 +301,28 @@ cache:
 
 ## build: build the application (default client role) and generate documentation
 .PHONY: build
-build: docs
+build: docs build-network-monitor
 	@echo "Building $(APP_NAME) for host OS (client role)..."
 	@mkdir -p ${OUTPUT_DIR} # Ensure the output directory exists
-	go build -tags=client -o=${OUTPUT_DIR}/${BINARY_NAME} ${MAIN_PACKAGE_PATH}
+	go build -tags="client testnet no_webview" -o=${OUTPUT_DIR}/${BINARY_NAME} ${MAIN_PACKAGE_PATH}
 
 ## build/root: build the application with root role
 .PHONY: build/root
-build/root:
+build/root: build-network-monitor
 	@echo "Building $(APP_NAME) for host OS (root role)..."
 	@mkdir -p ${OUTPUT_DIR} # Ensure the output directory exists
-	go build -tags=root -o=${OUTPUT_DIR}/${BINARY_NAME}_root ${MAIN_PACKAGE_PATH}
+	go build -tags="root testnet no_webview" -o=${OUTPUT_DIR}/${BINARY_NAME}_root ${MAIN_PACKAGE_PATH}
 
 ## build/bootnode: build the application with bootnode role
 .PHONY: build/bootnode
-build/bootnode:
+build/bootnode: build-network-monitor
 	@echo "Building $(APP_NAME) for host OS (bootnode role)..."
 	@mkdir -p ${OUTPUT_DIR} # Ensure the output directory exists
 	go build -tags=bootnode -o=${OUTPUT_DIR}/${BINARY_NAME}_bootnode ${MAIN_PACKAGE_PATH}
 
 ## build/dev: build the application with developer role
 .PHONY: build/dev
-build/dev:
+build/dev: build-network-monitor
 	@echo "Building $(APP_NAME) for host OS (developer role)..."
 	@mkdir -p ${OUTPUT_DIR} # Ensure the output directory exists
 	go build -tags=dev -o=${OUTPUT_DIR}/${BINARY_NAME}_dev ${MAIN_PACKAGE_PATH}

@@ -78,5 +78,11 @@
   },
   "poaud": {
     "enabled": false
+  },
+  "network_monitor": {
+    "enabled": true,
+    "web_mode": true,
+    "port": 8091,
+    "auto_start": true
   }
 }
