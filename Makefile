@@ -706,6 +706,23 @@ update-deps: ## Update Ansible collections and documentation dependencies
 	fi
 	@echo "$(GREEN)✓ Dependencies updated$(NC)"
 
+.PHONY: backup-nodejs-deps
+backup-nodejs-deps: ## Backup manually created KNIRVORACLE Node.js dependency files
+	@echo "$(BLUE)Backing up KNIRVORACLE Node.js dependencies...$(NC)"
+	@cd KNIRVORACLE/scripts && ./backup-nodejs-deps.sh
+	@echo "$(GREEN)✓ Node.js dependencies backed up$(NC)"
+
+.PHONY: restore-nodejs-deps
+restore-nodejs-deps: ## Restore manually created KNIRVORACLE Node.js dependency files
+	@echo "$(BLUE)Restoring KNIRVORACLE Node.js dependencies...$(NC)"
+	@cd KNIRVORACLE/scripts && ./restore-nodejs-deps.sh
+	@echo "$(GREEN)✓ Node.js dependencies restored$(NC)"
+
+.PHONY: verify-nodejs-deps
+verify-nodejs-deps: ## Verify KNIRVORACLE Node.js dependencies are properly installed
+	@echo "$(BLUE)Verifying KNIRVORACLE Node.js dependencies...$(NC)"
+	@cd KNIRVORACLE/scripts && ./verify-nodejs-deps.sh
+
 # =============================================================================
 # NETWORK FIX SYNCHRONIZATION
 # =============================================================================

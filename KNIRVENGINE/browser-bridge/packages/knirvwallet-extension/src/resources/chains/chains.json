@@ -1,0 +1,62 @@
+[
+  {
+    "id": "test5",
+    "default": true,
+    "main": true,
+    "chainId": "test5",
+    "chainName": "GNO.LAND",
+    "networkId": "test5",
+    "networkName": "Testnet 5",
+    "addressPrefix": "g",
+    "rpcUrl": "https://test5.onbloc.xyz:443",
+    "indexerUrl": "https://test5.indexer.onbloc.xyz",
+    "gnoUrl": "https://test5.gno.land",
+    "apiUrl": "https://test5.api.onbloc.xyz",
+    "linkUrl": "https://gnoscan.io"
+  },
+  {
+    "id": "portal-loop",
+    "default": true,
+    "main": false,
+    "chainId": "portal-loop",
+    "chainName": "GNO.LAND",
+    "networkId": "portal-loop",
+    "networkName": "Portal Loop",
+    "addressPrefix": "g",
+    "rpcUrl": "https://rpc.gno.land:443",
+    "indexerUrl": "https://indexer.onbloc.xyz",
+    "gnoUrl": "https://gno.land",
+    "apiUrl": "https://api.onbloc.xyz",
+    "linkUrl": "https://gnoscan.io"
+  },
+  {
+    "id": "dev",
+    "default": true,
+    "main": false,
+    "chainId": "dev",
+    "chainName": "GNO.LAND",
+    "networkId": "dev",
+    "networkName": "Local",
+    "addressPrefix": "g",
+    "rpcUrl": "http://127.0.0.1:26657",
+    "indexerUrl": "",
+    "gnoUrl": "http://127.0.0.1:8888",
+    "apiUrl": "",
+    "linkUrl": "http://127.0.0.1:3000"
+  },
+  {
+    "id": "gnoswap",
+    "default": false,
+    "main": false,
+    "chainId": "dev.gnoswap",
+    "chainName": "GnoSwap Dev",
+    "networkId": "dev.gnoswap",
+    "networkName": "GnoSwap Dev",
+    "addressPrefix": "g",
+    "rpcUrl": "https://dev.rpc.gnoswap.io",
+    "indexerUrl": "https://indexer-gnoswap.in.onbloc.xyz",
+    "gnoUrl": "https://gno.land",
+    "apiUrl": "",
+    "linkUrl": "https://gnoscan.io"
+  }
+]

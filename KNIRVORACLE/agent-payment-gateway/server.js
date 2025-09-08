@@ -1,5 +1,5 @@
 const express = require('express');
-const stripe = require('stripe')('sk_test_your_secret_key');
+const stripe = require('stripe')('your_secret_key');
 const { Client, resources } = require('coinbase-commerce-node');
 const bodyParser = require('body-parser');
 const path = require('path');

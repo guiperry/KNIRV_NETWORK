@@ -311,6 +311,14 @@ func MergeConfigs(dst, src *Config) *Config {
 		merged.NodeJSServices.NetworkMonitor.HTTPPort = src.NodeJSServices.NetworkMonitor.HTTPPort
 	}
 
+	// NANDA-ANS
+	if src.NodeJSServices.NANDAANS.Enabled {
+		merged.NodeJSServices.NANDAANS.Enabled = true
+	}
+	if src.NodeJSServices.NANDAANS.HTTPPort != 0 {
+		merged.NodeJSServices.NANDAANS.HTTPPort = src.NodeJSServices.NANDAANS.HTTPPort
+	}
+
 	// Merge TunnelClient config
 	if src.TunnelClient.Enabled {
 		merged.TunnelClient.Enabled = true
@@ -444,6 +452,12 @@ type NodeJSServicesConfig struct {
 		ScriptPath string `json:"script_path"` // Path to network-monitor-service.js
 		HTTPPort   uint   `json:"http_port"`   // Port for network monitor API (e.g., 3008)
 	} `json:"network_monitor"`
+
+	// NANDA-ANS service (served as static files from Go binary via main HTTP server)
+	NANDAANS struct {
+		Enabled  bool `json:"enabled" mapstructure:"enabled"`
+		HTTPPort uint `json:"http_port" mapstructure:"http_port"` // Port for NANDA-ANS static files (0 = use main HTTP server port)
+	} `json:"nanda_ans" mapstructure:"nanda_ans"`
 }
 
 // TunnelClientConfig configuration for nodes that need NAT traversal
@@ -661,16 +675,16 @@ func DefaultConfig() *Config {
 				ScriptPath string `json:"script_path"`
 				HTTPPort   uint   `json:"http_port"`
 			}{
-				Enabled:    false,
-				ScriptPath: "agent-bootnode-registry/server.js",
-				HTTPPort:   3006,
+				Enabled:    true, // Enable by default for root nodes
+				ScriptPath: "agent-bootnode-registry/registry-service.js",
+				HTTPPort:   3003,
 			},
 			NotarySystem: struct {
 				Enabled    bool   `json:"enabled"`
 				ScriptPath string `json:"script_path"`
 				HTTPPort   uint   `json:"http_port"`
 			}{
-				Enabled:    false,
+				Enabled:    true, // Enable by default for root nodes
 				ScriptPath: "agent-notary-system/server.js",
 				HTTPPort:   3007,
 			},
@@ -679,9 +693,16 @@ func DefaultConfig() *Config {
 				ScriptPath string `json:"script_path"`
 				HTTPPort   uint   `json:"http_port"`
 			}{
-				Enabled:    false,
-				ScriptPath: "agent-network-monitor/server.js",
-				HTTPPort:   3008,
+				Enabled:    false, // NetworkMonitor is managed by NetworkMonitorManager, not NodeJS manager
+				ScriptPath: "",
+				HTTPPort:   0,
+			},
+			NANDAANS: struct {
+				Enabled  bool `json:"enabled" mapstructure:"enabled"`
+				HTTPPort uint `json:"http_port" mapstructure:"http_port"`
+			}{
+				Enabled:  true, // Enable by default for root nodes
+				HTTPPort: 0,    // Use main HTTP server port (served as static files)
 			},
 		},
 		TunnelClient: TunnelClientConfig{

@@ -4,59 +4,35 @@ Welcome to the KNIRV Network documentation. This comprehensive guide provides in
 
 ## 📚 Documentation Sections
 
-### User Guides
-
-* [User Guides](guides/README.md) - User guide for KNIRVGATEWAY
-
-### API Reference
-
-* [API Documentation](api/README.md) - API documentation for the KNIRV Network
-
-### Architecture
-
-* [Architecture Documentation](architecture/README.md) - Architecture documentation for the KNIRV Network
-
-### Deployment
-
-* [Deployment Guides](deployment/README.md) - User guide for KNIRVTESTNET
-
-### Troubleshooting
-
-* [Troubleshooting Guide](troubleshooting/README.md) - Troubleshooting guide for common issues
-
 ### KNIRVCHAIN Documentation
 
-* [KNIRVCHAIN: Your Simple Blockchain in Rust](knirvchain/README.md) - User guide for KNIRVCHAIN
+* [KNIRVCHAIN](knirvchain/README.md) - User guide for KNIRVCHAIN
 
 ### KNIRVGRAPH Documentation
 
-* [KNIRVGRAPH User Guide](knirvgraph/README.md) - User guide for KNIRVGRAPH
+* [KNIRVGRAPH - Decentralized Knowledge Graph with Economics](knirvgraph/README.md) - User guide for KNIRVGRAPH
 
 ### KNIRVNEXUS Documentation
 
-* [KNIRVNEXUS User and Deployment Guide](knirvnexus/README.md) - User guide for KNIRVNEXUS
+* [KNIRV-NEXUS: Decentralized Validation Environment](knirvnexus/README.md) - User guide for KNIRVNEXUS
 
 ### KNIRVORACLE Documentation
 
-* [KNIRVORACLE User Guide](knirvoracle/README.md) - User guide for KNIRVORACLE
+* [KNIRVORACLE: A Decentralized Model Context Protocol Network](knirvoracle/README.md) - User guide for KNIRVORACLE
 
 ### KNIRVROUTER Documentation
 
-* [KNIRVROUTER Verifier Node User Guide](knirvrouter/README.md) - User guide for KNIRVROUTER
+* [KNIRVROUTER Verifier Node - Blockchain Implementation in Go](knirvrouter/README.md) - User guide for KNIRVROUTER
 
 ### KNIRVSDK Documentation
 
-* [KNIRVSDK User Guide](knirvsdk/README.md) - User guide for KNIRVSDK
-
-### KNIRVWALLET Documentation
-
-* [KNIRVWALLET User Guide](knirvwallet/README.md) - User guide for KNIRVWALLET
+* [KNIRV SDK](knirvsdk/README.md) - User guide for KNIRVSDK
 
 ## 📄 Technical Whitepapers
 
 The KNIRV Network consists of multiple interconnected components, each with detailed technical specifications:
 
-* [📚 **View All Whitepapers**](whitepapers/README.md) - Complete collection of technical whitepapers
+* [📚 **View All Whitepapers**](whitepapers/) - Complete collection of technical whitepapers
 
 The whitepapers provide in-depth technical details about each component of the KNIRV D-TEN, including architecture, consensus mechanisms, and implementation specifications.
 
@@ -66,9 +42,8 @@ We're building an open source developer community around the KNIRV Network. If y
 
 
 
-
----
-
-**Links:** [Code of Conduct](#/legal/CODE_OF_CONDUCT) | [Privacy Policy](#/legal/PRIVACY_POLICY) | [Terms and Conditions](#/legal/TERMS_AND_CONDITIONS)
+<div class="footer-links">
+<a href="#/legal/CODE_OF_CONDUCT.md" class="footer-link">Contributor Covenant Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY.md" class="footer-link">PRIVACY_POLICY.md</a> | <a href="#/legal/TERMS_AND_CONDITIONS.md" class="footer-link">TERMS AND CONDITIONS</a>
 
 © 2025 KNIRV Network
+</div>

@@ -271,14 +271,4 @@ We welcome contributions! Please see `CONTRIBUTING.md` for guidelines.
 This project is licensed under the MIT License.
 ```
 
-This README provides:
-*   An overview of the MCP architecture as implemented.
-*   Clear explanations of core concepts like Capabilities, Descriptors, ContextRecords, and NRN tokens.
-*   Details on how Plugins are handled (on-chain registration, off-chain hosting, client-side execution).
-*   A summary of the data storage strategy (LevelDB primary, off-chain for large content).
-*   An outline of key API endpoints.
-*   A dedicated section on `ContextRecord` scenarios to highlight their importance.
-*   A "Future Considerations" section discussing the potential supplemental use of RealmDB for enhanced querying.
-*   Placeholders for "Getting Started," "Contributing," and "License" which you can fill in.
 
-Let me know if you'd like any section expanded or modified!

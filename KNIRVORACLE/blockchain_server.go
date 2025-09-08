@@ -350,6 +350,9 @@ func (bcs *BlockchainServer) Prepare() (uint64, error) {
 		bcs.xionBridge.IntegrateWithKNIRVORACLE(mux)
 	}
 
+	// Add NANDA-ANS static file handler
+	setupNANDAANSHandler(mux)
+
 	// Find available port
 	actualPort := bcs.port
 	for !utils.IsPortAvailable(actualPort) {

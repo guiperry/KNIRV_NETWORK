@@ -601,7 +601,22 @@ main() {
     done
     
     log "SUCCESS" "Synchronization completed: $applied applied, $failed failed"
-    
+
+    # Post-sync hook: Restore Node.js dependencies for KNIRVORACLE
+    if [[ ! "$DRY_RUN" == "true" ]]; then
+        log "INFO" "Running post-sync hook: Restoring KNIRVORACLE Node.js dependencies"
+        if [[ -f "$PROJECT_ROOT/KNIRVORACLE/scripts/restore-nodejs-deps.sh" ]]; then
+            cd "$PROJECT_ROOT/KNIRVORACLE/scripts"
+            if ./restore-nodejs-deps.sh; then
+                log "SUCCESS" "Node.js dependencies restored successfully"
+            else
+                log "WARNING" "Node.js dependency restoration failed - manual intervention may be required"
+            fi
+        else
+            log "WARNING" "Node.js dependency restoration script not found"
+        fi
+    fi
+
     if [[ $failed -gt 0 ]]; then
         exit 1
     fi

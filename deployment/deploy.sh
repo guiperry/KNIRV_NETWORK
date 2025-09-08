@@ -4,6 +4,7 @@ set -e
 
 # KNIRV D-TEN Production Deployment Script
 # Months 14-18 Implementation
+# Includes KNIRVORACLE deployment integration
 
 echo "🚀 Starting KNIRV D-TEN Production Deployment..."
 
@@ -287,6 +288,39 @@ main() {
     log_info "5. Review security settings"
 }
 
+# Deploy KNIRVORACLE
+deploy_knirvoracle() {
+    log_step "Deploying KNIRVORACLE..."
+
+    # Check if KNIRVORACLE deployment script exists
+    if [[ -f "ansible/deploy-knirvoracle.sh" ]]; then
+        log_info "Running KNIRVORACLE deployment script..."
+        cd ansible
+        ./deploy-knirvoracle.sh deploy --env production
+        cd ..
+        log_info "✅ KNIRVORACLE deployment completed"
+    else
+        log_warn "KNIRVORACLE deployment script not found, skipping..."
+    fi
+}
+
+# Deploy infrastructure
+deploy_infrastructure() {
+    log_step "Deploying KNIRV Network Infrastructure..."
+
+    # Check if infrastructure deployment script exists
+    if [[ -f "ansible/deploy-infrastructure.sh" ]]; then
+        log_info "Running infrastructure deployment script..."
+        cd ansible
+        ./deploy-infrastructure.sh --env production
+        cd ..
+        log_info "✅ Infrastructure deployment completed"
+    else
+        log_warn "Infrastructure deployment script not found, using KNIRVORACLE script..."
+        deploy_knirvoracle
+    fi
+}
+
 # Handle command line arguments
 case "${1:-deploy}" in
     "deploy")
@@ -304,13 +338,21 @@ case "${1:-deploy}" in
     "verify")
         verify_deployment
         ;;
+    "knirvoracle")
+        deploy_knirvoracle
+        ;;
+    "infrastructure")
+        deploy_infrastructure
+        ;;
     *)
-        echo "Usage: $0 [deploy|test|monitoring|rollback|verify]"
-        echo "  deploy     - Full deployment (default)"
-        echo "  test       - Run final test suite only"
-        echo "  monitoring - Deploy monitoring stack only"
-        echo "  rollback   - Rollback deployment"
-        echo "  verify     - Verify current deployment"
+        echo "Usage: $0 [deploy|test|monitoring|rollback|verify|knirvoracle|infrastructure]"
+        echo "  deploy         - Full deployment (default)"
+        echo "  test           - Run final test suite only"
+        echo "  monitoring     - Deploy monitoring stack only"
+        echo "  rollback       - Rollback deployment"
+        echo "  verify         - Verify current deployment"
+        echo "  knirvoracle    - Deploy KNIRVORACLE only"
+        echo "  infrastructure - Deploy infrastructure + KNIRVORACLE"
         exit 1
         ;;
 esac

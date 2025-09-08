@@ -1,0 +1,44 @@
+[Unit]
+Description=KNIRVORACLE - KNIRV Network Oracle Service
+Documentation=https://github.com/guiperry/KNIRV_NETWORK/tree/main/KNIRVORACLE
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ knirvoracle_user }}
+Group={{ knirvoracle_user }}
+WorkingDirectory={{ knirvoracle_home }}
+ExecStart={{ knirvoracle_home }}/bin/{{ knirvoracle_binary }} --config {{ knirvoracle_home }}/config/config.toml
+ExecReload=/bin/kill -HUP $MAINPID
+EnvironmentFile={{ knirvoracle_home }}/config/knirvoracle.env
+
+# Restart configuration
+Restart=always
+RestartSec=10
+StartLimitInterval=60
+StartLimitBurst=3
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths={{ knirvoracle_home }}
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=knirvoracle
+
+# Environment variables
+Environment=NODE_ENV={{ env_name }}
+Environment=KNIRV_HOME={{ knirvoracle_home }}
+Environment=KNIRV_CONFIG={{ knirvoracle_home }}/config/config.toml
+
+[Install]
+WantedBy=multi-user.target

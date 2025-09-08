@@ -1,12 +1,15 @@
 # KNIRV D-TEN Production Deployment
 
-This directory contains the production deployment configuration for KNIRV D-TEN (Months 14-18 implementation).
+This directory contains the production deployment configuration for KNIRV D-TEN (Months 14-18 implementation), including KNIRVORACLE integration.
 
 ## Overview
 
 The deployment includes:
+- **KNIRVORACLE deployment** with embedded services
 - **Production-optimized Kubernetes manifests**
 - **Comprehensive monitoring stack** (Prometheus, Grafana, Alertmanager)
+- **Infrastructure provisioning** with Ansible
+- **CloudFlare DNS management**
 - **Final test suite** for validation
 - **Automated deployment scripts**
 - **Security hardening configurations**
@@ -15,6 +18,13 @@ The deployment includes:
 
 ```
 deployment/
+├── ansible/                       # Ansible deployment automation
+│   ├── knirvoracle-deployment.yml # KNIRVORACLE deployment playbook
+│   ├── infrastructure-playbook.yml# Infrastructure provisioning
+│   ├── deploy-knirvoracle.sh      # KNIRVORACLE deployment script
+│   ├── templates/                 # Configuration templates
+│   ├── environments/              # Environment-specific configs
+│   └── KNIRVORACLE-DEPLOYMENT.md  # KNIRVORACLE deployment docs
 ├── production-config/
 │   └── optimization.yaml          # Kubernetes deployment with optimization settings
 ├── monitoring/
@@ -48,6 +58,12 @@ Before deploying, ensure you have:
 ```bash
 # Deploy everything (KNIRV stack + monitoring)
 ./deploy.sh deploy
+
+# Deploy infrastructure + KNIRVORACLE
+./deploy.sh infrastructure
+
+# Deploy KNIRVORACLE only
+./deploy.sh knirvoracle
 ```
 
 ### 2. Deploy Only Monitoring
@@ -105,6 +121,33 @@ The main KNIRV D-TEN stack includes:
 - Health checks and connectivity monitoring
 - Performance and error rate tracking
 
+## KNIRVORACLE Deployment
+
+KNIRVORACLE is the core oracle service with embedded agent services. See [ansible/KNIRVORACLE-DEPLOYMENT.md](ansible/KNIRVORACLE-DEPLOYMENT.md) for detailed documentation.
+
+### Quick KNIRVORACLE Deployment
+
+```bash
+# Deploy infrastructure + KNIRVORACLE
+cd deployment/ansible
+./deploy-knirvoracle.sh infrastructure --env production
+
+# Deploy KNIRVORACLE only
+./deploy-knirvoracle.sh deploy --env production
+
+# Update DNS records only
+./deploy-knirvoracle.sh dns-only --env production
+```
+
+### KNIRVORACLE Services
+
+- **Oracle API** (Port 1317) - `oracle.knirv.com`
+- **Bootnode Registry** (Port 3006) - `bootnode-registry.knirv.com`
+- **Tunnel Registry** (Port 3003) - `tunnel-registry.knirv.com`
+- **Notary System** (Port 3007) - `notary-system.knirv.com`
+- **Network Monitor** (Port 3008) - `network-monitor.knirv.com`
+- **NANDA-ANS** (Port 3009) - `nanda-ans.knirv.com`
+
 ## Configuration
 
 ### Environment Variables
@@ -112,6 +155,10 @@ The main KNIRV D-TEN stack includes:
 Key environment variables for production:
 
 ```bash
+# CloudFlare DNS (required for KNIRVORACLE)
+CLOUDFLARE_API_TOKEN=your-cloudflare-api-token
+CLOUDFLARE_ZONE_ID=your-zone-id
+
 # XION Integration
 XION_RPC=https://rpc.xion.burnt.com:443
 NRN_CONTRACT_ADDR=xion1nrncontractaddress
@@ -122,6 +169,9 @@ DATABASE_URL=postgresql://user:pass@host:5432/knirv
 # Monitoring
 PROOF_INTERVAL=5m
 MINTING_ENABLED=true
+
+# KNIRVORACLE
+KNIRVORACLE_API_KEY=your-api-key
 ```
 
 ### Resource Requirements

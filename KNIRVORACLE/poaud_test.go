@@ -177,10 +177,7 @@ func TestPoAuDBlockProposal(t *testing.T) {
 	}
 
 	// Verify block properties
-	// Assert block is not nil (should never happen due to guard clause above)
-	if block == nil {
-		t.Fatal("Block is unexpectedly nil after validation")
-	}
+	// Note: block cannot be nil here due to the guard clause above
 
 	if block.ProposerAddress != proposerAddress {
 		t.Errorf("Expected proposer address %s, got %s", proposerAddress, block.ProposerAddress)

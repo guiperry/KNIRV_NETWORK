@@ -24,6 +24,11 @@
     # KNIRV Service Ports
     knirv_ports:
       - 1317  # KNIRVORACLE Cosmos SDK
+      - 3006  # KNIRVORACLE Bootnode Registry
+      - 3003  # KNIRVORACLE Tunnel Registry
+      - 3007  # KNIRVORACLE Notary System
+      - 3008  # KNIRVORACLE Network Monitor
+      - 3009  # KNIRVORACLE NANDA-ANS
       - 8080  # KNIRVCHAIN
       - 8081  # KNIRVGRAPH
       - 8082  # KNIRVNEXUS-1
@@ -50,6 +55,12 @@
     
     # KNIRV Service Subdomains
     knirv_subdomains:
+      - oracle
+      - bootnode-registry
+      - tunnel-registry
+      - notary-system
+      - network-monitor
+      - nanda-ans
       - testnet
       - chain
       - graph
@@ -287,6 +298,11 @@
             proto: tcp
           loop:
             - '1317'  # KNIRVORACLE Cosmos SDK
+            - '3006'  # KNIRVORACLE Bootnode Registry
+            - '3003'  # KNIRVORACLE Tunnel Registry
+            - '3007'  # KNIRVORACLE Notary System
+            - '3008'  # KNIRVORACLE Network Monitor
+            - '3009'  # KNIRVORACLE NANDA-ANS
             - '8080'  # KNIRVCHAIN
             - '8081'  # KNIRVGRAPH
             - '8082'  # KNIRVNEXUS-1

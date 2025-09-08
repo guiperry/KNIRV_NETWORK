@@ -25,12 +25,12 @@ type NodeJSProcess struct {
 
 // NodeJSManager manages Node.js processes
 type NodeJSManager struct {
-	Config         *config.NodeJSServicesConfig
-	Processes      map[string]*NodeJSProcess
-	PeerID         string
-	mutex          sync.Mutex
-	DiscoveryMgr   DiscoveryService
-	Blockchain     *BlockchainStruct
+	Config       *config.NodeJSServicesConfig
+	Processes    map[string]*NodeJSProcess
+	PeerID       string
+	mutex        sync.Mutex
+	DiscoveryMgr DiscoveryService
+	Blockchain   *BlockchainStruct
 }
 
 // NewNodeJSManager creates a new Node.js process manager, accepting DiscoveryService and Blockchain
@@ -88,7 +88,7 @@ func (m *NodeJSManager) StartTunnelRegistry() error {
 
 	// Find available port for Go internal API
 	goInternalAPIPort := utils.FindAvailablePort(8080) // Default to 8080 if not specified
-	
+
 	// Prepare environment variables
 	env := []string{
 		fmt.Sprintf("HTTP_API_PORT=%d", actualHTTPPort),
@@ -532,11 +532,12 @@ func (m *NodeJSManager) StartAllServices() error {
 		}
 	}
 
-	if m.Config.NetworkMonitor.Enabled {
-		if err := m.StartNetworkMonitor(); err != nil {
-			errors = append(errors, fmt.Errorf("failed to start network monitor service: %w", err))
-		}
-	}
+	// NetworkMonitor is managed by NetworkMonitorManager, not NodeJS manager
+	// if m.Config.NetworkMonitor.Enabled {
+	//     if err := m.StartNetworkMonitor(); err != nil {
+	//         errors = append(errors, fmt.Errorf("failed to start network monitor service: %w", err))
+	//     }
+	// }
 
 	if len(errors) > 0 {
 		return fmt.Errorf("failed to start some Node.js services: %v", errors)

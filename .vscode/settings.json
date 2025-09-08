@@ -19,5 +19,6 @@
             "path": "pwsh",
             "icon": "terminal-powershell"
         }
-    }
+    },
+    "codium.codeCompletion.enable": false
 }

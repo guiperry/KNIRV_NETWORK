@@ -20,6 +20,7 @@ type EmbeddedNetworkMonitor struct {
 	isRunning bool
 	port      int
 	services  map[string]*ServiceStatus
+	stopCh    chan struct{}
 }
 
 // ServiceStatus represents the status of a monitored service
@@ -51,6 +52,7 @@ func NewEmbeddedNetworkMonitor(cfg *config.Config) *EmbeddedNetworkMonitor {
 		config:   cfg,
 		port:     port,
 		services: make(map[string]*ServiceStatus),
+		stopCh:   make(chan struct{}),
 	}
 
 	// Initialize default testnet services
@@ -93,6 +95,9 @@ func (enm *EmbeddedNetworkMonitor) Start() error {
 		return fmt.Errorf("embedded network monitor is already running")
 	}
 
+	// Create fresh stop channel per start
+	enm.stopCh = make(chan struct{})
+
 	// Create HTTP server
 	mux := http.NewServeMux()
 	mux.HandleFunc("/status", enm.handleStatus)
@@ -128,6 +133,9 @@ func (enm *EmbeddedNetworkMonitor) Stop() error {
 	if !enm.isRunning {
 		return nil
 	}
+
+	// Stop health checking goroutine
+	close(enm.stopCh)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -228,6 +236,8 @@ func (enm *EmbeddedNetworkMonitor) startHealthChecking() {
 		select {
 		case <-ticker.C:
 			enm.checkAllServices()
+		case <-enm.stopCh:
+			return
 		}
 	}
 }
@@ -243,12 +253,12 @@ func (enm *EmbeddedNetworkMonitor) checkAllServices() {
 }
 
 // checkService checks the health of a single service
-func (enm *EmbeddedNetworkMonitor) checkService(name string, service *ServiceStatus) {
+func (enm *EmbeddedNetworkMonitor) checkService(_ string, service *ServiceStatus) {
 	start := time.Now()
-	
+
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Get(service.URL)
-	
+
 	service.LastCheck = time.Now()
 	service.ResponseTime = time.Since(start).Milliseconds()
 

@@ -119,12 +119,18 @@ func initNodeJSServices(cfg *config.Config, discoveryMgr *DiscoveryManager) (*No
 
 	// Check if any services are enabled
 	if !cfg.NodeJSServices.TunnelRegistry.Enabled &&
-	   !cfg.NodeJSServices.PaymentGateway.Enabled &&
-	   !cfg.NodeJSServices.BootnodeRegistry.Enabled &&
-	   !cfg.NodeJSServices.NotarySystem.Enabled &&
-	   !cfg.NodeJSServices.NetworkMonitor.Enabled {
+		!cfg.NodeJSServices.PaymentGateway.Enabled &&
+		!cfg.NodeJSServices.BootnodeRegistry.Enabled &&
+		!cfg.NodeJSServices.NotarySystem.Enabled &&
+		!cfg.NodeJSServices.NetworkMonitor.Enabled &&
+		!cfg.NodeJSServices.NANDAANS.Enabled {
 		log.Printf("[%s] No Node.js services are enabled or have valid script paths", cfg.ChainID)
 		return nodejsManager, nil
+	}
+
+	// Log NANDA-ANS service status (served as static files from Go binary)
+	if cfg.NodeJSServices.NANDAANS.Enabled {
+		log.Printf("[%s] NANDA-ANS service enabled (served as static files from Go binary)", cfg.ChainID)
 	}
 
 	// Start all enabled services

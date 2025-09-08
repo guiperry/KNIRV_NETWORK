@@ -8,6 +8,8 @@ node_modules
 */node_modules
 # Local Netlify folder
 .netlify
+.vscode
+.qodo
 
 */reports/
 */reports/*

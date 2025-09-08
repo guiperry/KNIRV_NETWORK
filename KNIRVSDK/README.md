@@ -1,29 +1,48 @@
 # KNIRV SDK
 
-Software Development Kits for the KNIRV Network ecosystem, including complete KNIRVGATEWAY integration.
+The official Software Development Kits (SDKs) for the KNIRV Network ecosystem. This toolkit provides everything developers need to build applications and services on the KNIRV Decentralized Trusted Execution Network (D-TEN).
+
+## What's in the KNIRV SDK Toolkit?
+
+Our SDKs are more than just API wrappers. They are a complete toolkit designed to provide a world-class developer experience.
+
+- **Gateway SDKs**: High-level, easy-to-use clients for interacting with all KNIRVGATEWAY services, including the Economics API and PoAu-D Consensus.
+- **Core SDKs**: Low-level libraries for direct interaction with KNIRVCHAIN transactions and network transmission protocols.
+- **Developer Tools**: Powerful utilities like the **[KNIRV-CLI](#knirv-cli-developer-tool)** to script, manage, and query the network.
+- **Comprehensive Documentation**: Detailed guides, API references, and runnable examples.
 
 ## Available SDKs
 
-### Gateway SDKs ⭐ NEW
-- **[Go Gateway SDK](go/gateway/README.md)** - Complete KNIRVGATEWAY integration for Go
-- **[TypeScript Gateway SDK](ts/gateway/README.md)** - Complete KNIRVGATEWAY integration for TypeScript/JavaScript
-- **[Python Gateway SDK](py/gateway/README.md)** - ✅ **NEW!** Complete KNIRVGATEWAY integration for Python
+### By Language
 
-### Core KNIRV SDKs
-- [Go Transaction SDK](go/transaction/README.md) - KNIRVCHAIN transaction management
-- [Go Transmission SDK](go/transmission/README.md) - Network transmission and communication
-- [TypeScript Transmission SDK](ts/transmission/README.md) - Web transmission libraries
-- [Python Transaction SDK](py/transaction/README.md) - KNIRVCHAIN transaction management for Python
-- [Python Transmission SDK](py/transmission/README.md) - Network transmission for Python
+#### ⭐ Go
+- **[Gateway SDK](go/gateway/README.md)**: The primary, high-level SDK for Go applications.
+- [Core Transaction SDK](go/transaction/README.md): Low-level KNIRVCHAIN transaction management.
+- [Core Transmission SDK](go/transmission/README.md): Low-level network transmission and communication.
+- **Unified SDK**: 🚧 *Planned*
 
-### Unified SDKs 🚧 In Development
-- **[TypeScript Unified SDK](ts/unified/README.md)** - 🚧 Combined access to all KNIRV services
-- **Python Unified SDK** - 🚧 *Planned* - Combined access to all KNIRV services
-- **Go Unified SDK** - 🚧 *Planned* - Combined access to all KNIRV services
+#### ⭐ TypeScript/JavaScript
+- **[Gateway SDK](ts/gateway/README.md)**: The primary, high-level SDK for web and Node.js applications.
+- [Core Transmission SDK](ts/transmission/README.md): Low-level web transmission libraries.
+- **[Unified SDK](ts/unified/README.md)**: 🚧 *In Development*
+
+#### ⭐ Python
+- **[Gateway SDK](py/gateway/README.md)**: ✅ **NEW!** The primary, high-level SDK for Python applications.
+- [Core Transaction SDK](py/transaction/README.md): Low-level KNIRVCHAIN transaction management for Python.
+- [Core Transmission SDK](py/transmission/README.md): Low-level network transmission for Python.
+- **Unified SDK**: 🚧 *Planned*
 
 > **Note**: See [UNIFIED_SDK_IMPLEMENTATION_PLAN.md](UNIFIED_SDK_IMPLEMENTATION_PLAN.md) for detailed implementation roadmap.
 
-## Gateway SDK Features ⭐ NEW
+## KNIRV-CLI Developer Tool
+
+The **[KNIRV-CLI](../KNIRV-CLI/README.md)** is a powerful, AI-enhanced command-line interface and an essential part of the SDK toolkit. It allows developers and power users to:
+- Manage wallets and keys securely.
+- Script complex interactions with the network.
+- Query the status of the PoAu-D consensus mechanism.
+- Directly resolve `knirv://` URIs.
+
+## Gateway SDK Features
 
 The new Gateway SDKs provide complete integration with KNIRVGATEWAY services:
 
@@ -45,7 +64,7 @@ The new Gateway SDKs provide complete integration with KNIRVGATEWAY services:
 - **Cross-Service Communication**: Manage communication between services
 - **Real-time Monitoring**: Live system health and performance monitoring
 
-### PoAu-D Consensus Management ⭐ NEW
+### PoAu-D Consensus Management
 - **Consensus Control**: Enable/disable PoAu-D consensus mechanism
 - **Network Authors**: Manage Network Author Peers (NAPs) for block proposal
 - **Plugin Author Peers**: Handle PAP registration and delegation
