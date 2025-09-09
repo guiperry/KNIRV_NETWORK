@@ -1187,6 +1187,28 @@ watch-rust-client-ci: ## Watch the progress of KNIRVANA Rust client CI workflow
 		echo "$(YELLOW)GitHub CLI not available. Please monitor manually:$(NC)"; \
 		echo "$(YELLOW)https://github.com/your-org/KNIRV_NETWORK/actions$(NC)"; \
 	fi
+# =============================================================================
+# CONTENT SYNCHRONIZATION
+# =============================================================================
+
+.PHONY: sync-failover-page
+sync-failover-page: ## Synchronize knirv.com content to the KNIRVGATEWAY failover page
+	@echo "$(BLUE)Syncing knirv.com content to KNIRVGATEWAY/home.html...$(NC)"
+	@if [ -f "KNIRVGATEWAY/knirv.com/public/index.html" ]; then \
+		cp KNIRVGATEWAY/knirv.com/public/index.html KNIRVGATEWAY/home.html; \
+		echo "$(GREEN)✓ Copied index.html$(NC)"; \
+	else \
+		echo "$(RED)Error: KNIRVGATEWAY/knirv.com/public/index.html not found.$(NC)"; \
+		exit 1; \
+	fi
+	@if [ -d "KNIRVGATEWAY/knirv.com/public/assets" ]; then \
+		rm -rf KNIRVGATEWAY/assets; \
+		cp -r KNIRVGATEWAY/knirv.com/public/assets KNIRVGATEWAY/assets; \
+		echo "$(GREEN)✓ Copied assets directory$(NC)"; \
+	else \
+		echo "$(YELLOW)Warning: knirv.com/public/assets directory not found. Skipping.$(NC)"; \
+	fi
+	@echo "$(GREEN)✓ Failover page synchronized successfully.$(NC)"
 
 # =============================================================================
 # DEFAULT TARGET

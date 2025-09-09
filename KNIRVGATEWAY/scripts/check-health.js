@@ -121,72 +121,7 @@ class HealthChecker {
         return true;
     }
 
-    async checkNexusPortal() {
-        this.log('Checking NEXUS portal build status...');
 
-        // Check for nexus-portal in multiple possible locations
-        const possibleNexusPaths = [
-            path.join(process.cwd(), 'nexus-portal'), // Original location
-            path.join(process.cwd(), '../data/knirvnexus/portal'), // KNIRVTESTNET location
-            path.join(process.cwd(), 'data/knirvnexus/portal') // Alternative location
-        ];
-
-        let nexusPath = null;
-        for (const testPath of possibleNexusPaths) {
-            if (fs.existsSync(testPath)) {
-                nexusPath = testPath;
-                break;
-            }
-        }
-
-        if (!nexusPath) {
-            nexusPath = possibleNexusPaths[0]; // Default to original for error reporting
-        }
-        const distPath = path.join(nexusPath, 'dist');
-        const indexPath = path.join(distPath, 'index.html');
-
-        // Check if running in testnet mode
-        const isTestnetMode = process.env.TESTNET_MODE === 'true' || process.env.NODE_ENV === 'testnet';
-
-        if (!fs.existsSync(nexusPath)) {
-            if (isTestnetMode) {
-                this.log('nexus-portal directory not found - skipping (testnet mode)', 'info');
-                return true;
-            } else {
-                this.issues.push('nexus-portal directory missing');
-                return false;
-            }
-        }
-
-        this.log(`Using nexus-portal at: ${nexusPath}`, 'info');
-        
-        if (!fs.existsSync(distPath)) {
-            this.warnings.push('nexus-portal dist directory missing - needs build');
-            return false;
-        }
-        
-        if (!fs.existsSync(indexPath)) {
-            this.warnings.push('nexus-portal index.html missing - needs build');
-            return false;
-        }
-        
-        // Check if build is recent (within last hour)
-        try {
-            const stats = fs.statSync(indexPath);
-            const ageMs = Date.now() - stats.mtime.getTime();
-            const ageMinutes = Math.floor(ageMs / (1000 * 60));
-            
-            if (ageMinutes > 60) {
-                this.warnings.push(`nexus-portal build is ${ageMinutes} minutes old - may need refresh`);
-            } else {
-                this.log(`nexus-portal build is ${ageMinutes} minutes old`, 'success');
-            }
-        } catch (error) {
-            this.warnings.push('Could not check nexus-portal build age');
-        }
-        
-        return true;
-    }
 
     async checkDependencyConflicts() {
         this.log('Checking for dependency conflicts...');
@@ -334,7 +269,6 @@ class HealthChecker {
         const checks = [
             this.checkNodeModules(),
             this.checkNetlifyCli(),
-            this.checkNexusPortal(),
             this.checkDependencyConflicts()
         ];
         

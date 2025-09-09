@@ -44,7 +44,6 @@ clean_and_reinstall() {
     # Remove node_modules and package-lock.json
     echo "🗑️  Removing corrupted node_modules..."
     rm -rf node_modules package-lock.json
-    rm -rf nexus-portal/node_modules nexus-portal/package-lock.json
 
     # Clear npm cache aggressively
     echo "🗑️  Clearing npm cache..."

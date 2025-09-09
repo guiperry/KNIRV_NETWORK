@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Core Concepts - KNIRV Developer Portal</title>
+    <meta name="description" content="Understand the foundational concepts of the KNIRV D-TEN network architecture">
+    <link rel="shortcut icon" href="favicon.png">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS with original design system -->
+    <link rel="stylesheet" href="css/portal.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="dashboard-title">
+                <h1>KNIRV Developer Portal</h1>
+                <p style="color: var(--transparent-white-7); font-size: 0.9rem;">D-TEN Network</p>
+            </div>
+
+            <!-- Navigation Items -->
+            <a href="index.html" class="nav-item">
+                <i class="fas fa-home"></i>
+                <span>Home Dashboard</span>
+            </a>
+            <a href="core-concepts.html" class="nav-item active">
+                <i class="fas fa-brain"></i>
+                <span>Core Concepts</span>
+            </a>
+            <a href="getting-started.html" class="nav-item">
+                <i class="fas fa-rocket"></i>
+                <span>Getting Started</span>
+            </a>
+            <a href="agent-management.html" class="nav-item">
+                <i class="fas fa-robot"></i>
+                <span>Agent Management</span>
+            </a>
+            <a href="skill-registry.html" class="nav-item">
+                <i class="fas fa-cogs"></i>
+                <span>Skill Registry</span>
+            </a>
+            <a href="udc-management.html" class="nav-item">
+                <i class="fas fa-certificate"></i>
+                <span>UDC Management</span>
+            </a>
+            <a href="agent-skill-exchange.html" class="nav-item">
+                <i class="fas fa-exchange-alt"></i>
+                <span>Agent/Skill Exchange</span>
+            </a>
+            <a href="error-node-explorer.html" class="nav-item">
+                <i class="fas fa-search"></i>
+                <span>ErrorNode Explorer</span>
+            </a>
+            <a href="api-sdk.html" class="nav-item">
+                <i class="fas fa-code"></i>
+                <span>API & SDK</span>
+            </a>
+            <a href="wallet-management.html" class="nav-item">
+                <i class="fas fa-wallet"></i>
+                <span>KNIRV Wallets</span>
+            </a>
+            <a href="tesnet-sandbox.html" class="nav-item">
+                <i class="fas fa-flask"></i>
+                <span>TESNET & Sandbox</span>
+            </a>
+            <a href="community-support.html" class="nav-item">
+                <i class="fas fa-users"></i>
+                <span>Community & Support</span>
+            </a>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Navigation -->
+            <div class="top-nav">
+                <div>
+                    <h1 class="page-title">Core Concepts</h1>
+                </div>
+                <div class="user-controls">
+                    <i class="control-icon fas fa-bell" title="Notifications"></i>
+                    <i class="control-icon fas fa-cog" title="Settings"></i>
+                    <i class="control-icon fas fa-user-circle" title="Profile"></i>
+                </div>
+            </div>
+
+            <!-- Page Header -->
+            <div class="glass-card">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--bright-blue) 0%, var(--knirv-purple) 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 2.5em;">
+                        <i class="fas fa-brain" style="color: var(--white);"></i>
+                    </div>
+                    <h1 style="color: var(--bright-blue); margin-bottom: 10px; font-size: 2rem;">KNIRV D-TEN Architecture</h1>
+                    <p style="color: var(--transparent-white-7); max-width: 600px; margin: 0 auto;">
+                        Understand the twelve layers of the Decentralized Trusted Execution Network and how they work together to create autonomous intelligence.
+                    </p>
+                </div>
+            </div>
+
+            <!-- D-TEN Overview -->
+            <div class="glass-card">
+                <h2 style="color: var(--knirv-purple); margin-bottom: 20px; font-size: 1.5rem;">
+                    <i class="fas fa-layer-group" style="margin-right: 10px;"></i>The Twelve Layers of D-TEN
+                </h2>
+                <p style="color: var(--transparent-white-7); margin-bottom: 30px;">
+                    The KNIRV D-TEN (Decentralized Trusted Execution Network) is built on a twelve-layer architecture that enables autonomous agents to learn, adapt, and collaborate in a decentralized environment.
+                </p>
+
+                <!-- Layer Grid -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <!-- Layer 1: KNIRV-ORACLE -->
+                    <div class="glass-card hover-lift" style="background: linear-gradient(135deg, rgba(0, 192, 250, 0.1) 0%, rgba(43, 86, 245, 0.1) 100%); cursor: pointer;" onclick="window.open('/documentation/docsify/#/whitepapers/KNIRVROOT_Whitepaper.md', '_blank')">
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <div style="width: 50px; height: 50px; border-radius: 10px; background: linear-gradient(135deg, var(--bright-blue) 0%, var(--knirv-purple) 100%); display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                <span style="color: white; font-weight: bold; font-size: 1.2em;">1</span>
+                            </div>
+                            <div>
+                                <h3 style="color: var(--bright-blue); margin: 0; font-size: 1.2rem;">KNIRV-ORACLE</h3>
+                                <p style="color: var(--transparent-white-7); margin: 0; font-size: 0.9rem;">NRN Oracle & Economic Orchestrator</p>
+                            </div>
+                        </div>
+                        <p style="color: var(--white); margin-bottom: 15px;">
+                            The sovereign GoLang-based blockchain serving as the canonical NRN token ledger and network oracle.
+                        </p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">NRN Ledger</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Economic Orchestration</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">State Sync</span>
+                        </div>
+                    </div>
+
+                    <!-- Layer 2: KNIRV-ROUTER -->
+                    <div class="glass-card hover-lift" style="background: linear-gradient(135deg, rgba(43, 86, 245, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%); cursor: pointer;" onclick="window.open('/documentation/docsify/#/whitepapers/KNIRV-ROUTER_Whitepaper.md', '_blank')">
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <div style="width: 50px; height: 50px; border-radius: 10px; background: linear-gradient(135deg, var(--knirv-purple) 0%, var(--knirv-purple-light) 100%); display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                <span style="color: white; font-weight: bold; font-size: 1.2em;">2</span>
+                            </div>
+                            <div>
+                                <h3 style="color: var(--knirv-purple); margin: 0; font-size: 1.2rem;">KNIRV-ROUTER</h3>
+                                <p style="color: var(--transparent-white-7); margin: 0; font-size: 0.9rem;">Network Integrity & NRN Production</p>
+                            </div>
+                        </div>
+                        <p style="color: var(--white); margin-bottom: 15px;">
+                            GoLang-based network integrity layer producing NRNs via Proof-of-Connectivity and embedding URI path certificates.
+                        </p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Proof-of-Connectivity</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">URI Certificates</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">P2P Routing</span>
+                        </div>
+                    </div>
+
+                    <!-- Layer 3: KNIRVGRAPH -->
+                    <div class="glass-card hover-lift" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(0, 192, 250, 0.1) 100%); cursor: pointer;" onclick="window.open('/documentation/docsify/#/whitepapers/KNIRV-GRAPH_Whitepaper.md', '_blank')">
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <div style="width: 50px; height: 50px; border-radius: 10px; background: linear-gradient(135deg, var(--knirv-purple-light) 0%, var(--bright-blue) 100%); display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                <span style="color: white; font-weight: bold; font-size: 1.2em;">3</span>
+                            </div>
+                            <div>
+                                <h3 style="color: var(--knirv-purple-light); margin: 0; font-size: 1.2rem;">KNIRVGRAPH</h3>
+                                <p style="color: var(--transparent-white-7); margin: 0; font-size: 0.9rem;">Decentralized Knowledge Graphchain</p>
+                            </div>
+                        </div>
+                        <p style="color: var(--white); margin-bottom: 15px;">
+                            GoLang-based Graphchain serving as the decentralized knowledge fabric for ErrorNodes and SkillNodes.
+                        </p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">ErrorNodes</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">SkillNodes</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Knowledge Graph</span>
+                        </div>
+                    </div>
+
+                    <!-- Layer 4: KNIRVCHAIN -->
+                    <div class="glass-card hover-lift" style="background: linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(255, 142, 83, 0.1) 100%); cursor: pointer;" onclick="window.open('/documentation/docsify/#/whitepapers/KNIRVCHAIN_Whitepaper.md', '_blank')">
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <div style="width: 50px; height: 50px; border-radius: 10px; background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%); display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                <span style="color: white; font-weight: bold; font-size: 1.2em;">4</span>
+                            </div>
+                            <div>
+                                <h3 style="color: #ff6b6b; margin: 0; font-size: 1.2rem;">KNIRVCHAIN</h3>
+                                <p style="color: var(--transparent-white-7); margin: 0; font-size: 0.9rem;">Living Base LLM & Skill Certification</p>
+                            </div>
+                        </div>
+                        <p style="color: var(--white); margin-bottom: 15px;">
+                            Sovereign Rust-based blockchain hosting the canonical CodeT5 Base LLM and SkillRegistry.
+                        </p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">CodeT5 LLM</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">SkillRegistry</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Skill Certification</span>
+                        </div>
+                    </div>
+
+                    <!-- Layer 5: KNIRV-NEXUS DVE -->
+                    <div class="glass-card hover-lift" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%); cursor: pointer;" onclick="window.open('/documentation/docsify/#/whitepapers/KNIRV-NEXUS_Whitepaper.md', '_blank')">
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <div style="width: 50px; height: 50px; border-radius: 10px; background: linear-gradient(135deg, #22c55e 0%, #10b981 100%); display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                <span style="color: white; font-weight: bold; font-size: 1.2em;">5</span>
+                            </div>
+                            <div>
+                                <h3 style="color: #22c55e; margin: 0; font-size: 1.2rem;">KNIRV-NEXUS DVE</h3>
+                                <p style="color: var(--transparent-white-7); margin: 0; font-size: 0.9rem;">Decentralized Validation Environments</p>
+                            </div>
+                        </div>
+                        <p style="color: var(--white); margin-bottom: 15px;">
+                            GoLang-based network of Decentralized Validation Environments providing verifiable execution and cryptographic proofs.
+                        </p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">TEE Execution</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">ValidationProofs</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">CLEAN Architecture</span>
+                        </div>
+                    </div>
+
+                    <!-- Layer 6: KNIRV-CONTROLLER -->
+                    <div class="glass-card hover-lift" style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%); cursor: pointer;" onclick="window.open('/documentation/docsify/#/whitepapers/KNIRVCONTROLLER_Whitepaper.md', '_blank')">
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <div style="width: 50px; height: 50px; border-radius: 10px; background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%); display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                <span style="color: white; font-weight: bold; font-size: 1.2em;">6</span>
+                            </div>
+                            <div>
+                                <h3 style="color: #a855f7; margin: 0; font-size: 1.2rem;">KNIRV-CONTROLLER</h3>
+                                <p style="color: var(--transparent-white-7); margin: 0; font-size: 0.9rem;">Unified Agent Management Platform</p>
+                            </div>
+                        </div>
+                        <p style="color: var(--white); margin-bottom: 15px;">
+                            Unified agent management platform integrating mobile-controller, KNIRVCLI, agent-core, and wallet functionality with QR code connectivity.
+                        </p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Mobile Controller</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Agent Core</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">QR Connectivity</span>
+                        </div>
+                    </div>
+
+                    <!-- Layer 7: KNIRV-CORTEX -->
+                    <div class="glass-card hover-lift" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.1) 100%); cursor: pointer;" onclick="window.open('/documentation/docsify/#/whitepapers/KNIRV-CORTEX_Whitepaper.md', '_blank')">
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <div style="width: 50px; height: 50px; border-radius: 10px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                <span style="color: white; font-weight: bold; font-size: 1.2em;">7</span>
+                            </div>
+                            <div>
+                                <h3 style="color: #f59e0b; margin: 0; font-size: 1.2rem;">KNIRV-CORTEX</h3>
+                                <p style="color: var(--transparent-white-7); margin: 0; font-size: 0.9rem;">Agent Intelligence Development Platform</p>
+                            </div>
+                        </div>
+                        <p style="color: var(--white); margin-bottom: 15px;">
+                            Specialized agent intelligence development platform providing WASM compilation pipeline, model training infrastructure, and deployment sequence management.
+                        </p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">WASM Pipeline</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Model Training</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Deployment Management</span>
+                        </div>
+                    </div>
+
+                    <!-- Layer 8: KNIRV-WALLET -->
+                    <div class="glass-card hover-lift" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%); cursor: pointer;" onclick="window.open('/documentation/docsify/#/whitepapers/KNIRV-WALLET_Whitepaper.md', '_blank')">
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <div style="width: 50px; height: 50px; border-radius: 10px; background: linear-gradient(135deg, #22c55e 0%, #10b981 100%); display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                <span style="color: white; font-weight: bold; font-size: 1.2em;">8</span>
+                            </div>
+                            <div>
+                                <h3 style="color: #22c55e; margin: 0; font-size: 1.2rem;">KNIRV-WALLET</h3>
+                                <p style="color: var(--transparent-white-7); margin: 0; font-size: 0.9rem;">User-Friendly Gateway</p>
+                            </div>
+                        </div>
+                        <p style="color: var(--white); margin-bottom: 15px;">
+                            User-friendly gateway leveraging XION's Meta Accounts for seamless interaction, primarily accessed through KNIRV-CONTROLLER.
+                        </p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Meta Accounts</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">NRN Management</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Seamless UX</span>
+                        </div>
+                    </div>
+
+                    <!-- Layer 9: KNIRV-GATEWAY -->
+                    <div class="glass-card hover-lift" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%); cursor: pointer;" onclick="window.open('/documentation/docsify/#/whitepapers/KNIRV-GATEWAY_Whitepaper.md', '_blank')">
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <div style="width: 50px; height: 50px; border-radius: 10px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                <span style="color: white; font-weight: bold; font-size: 1.2em;">9</span>
+                            </div>
+                            <div>
+                                <h3 style="color: #3b82f6; margin: 0; font-size: 1.2rem;">KNIRV-GATEWAY</h3>
+                                <p style="color: var(--transparent-white-7); margin: 0; font-size: 0.9rem;">Unified Web Portal & API Gateway</p>
+                            </div>
+                        </div>
+                        <p style="color: var(--white); margin-bottom: 15px;">
+                            Unified web portal and serverless API gateway with real-time capabilities, serving as the primary entry point for all ecosystem interactions.
+                        </p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Web Portal</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">API Gateway</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Real-time SSE</span>
+                        </div>
+                    </div>
+
+                    <!-- Layer 10: KNIRV-CLI -->
+                    <div class="glass-card hover-lift" style="background: linear-gradient(135deg, rgba(75, 85, 99, 0.1) 0%, rgba(55, 65, 81, 0.1) 100%); cursor: pointer;" onclick="window.open('/documentation/docsify/#/whitepapers/KNIRV-CLI_Whitepaper.md', '_blank')">
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <div style="width: 50px; height: 50px; border-radius: 10px; background: linear-gradient(135deg, #4b5563 0%, #374151 100%); display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                <span style="color: white; font-weight: bold; font-size: 1.2em;">10</span>
+                            </div>
+                            <div>
+                                <h3 style="color: #6b7280; margin: 0; font-size: 1.2rem;">KNIRV-CLI</h3>
+                                <p style="color: var(--transparent-white-7); margin: 0; font-size: 0.9rem;">AI-Powered CLI Interface</p>
+                            </div>
+                        </div>
+                        <p style="color: var(--white); margin-bottom: 15px;">
+                            AI-powered, comprehensive GoLang-based command-line interface with MCP management, providing unified developer and power user access.
+                        </p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">CLI Interface</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">MCP Management</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Developer Tools</span>
+                        </div>
+                    </div>
+
+                    <!-- Layer 11: KNIRV-SDK -->
+                    <div class="glass-card hover-lift" style="background: linear-gradient(135deg, rgba(236, 72, 153, 0.1) 0%, rgba(219, 39, 119, 0.1) 100%); cursor: pointer;" onclick="window.open('/documentation/docsify/#/whitepapers/KNIRV-SDK_Whitepaper.md', '_blank')">
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <div style="width: 50px; height: 50px; border-radius: 10px; background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                <span style="color: white; font-weight: bold; font-size: 1.2em;">11</span>
+                            </div>
+                            <div>
+                                <h3 style="color: #ec4899; margin: 0; font-size: 1.2rem;">KNIRV-SDK</h3>
+                                <p style="color: var(--transparent-white-7); margin: 0; font-size: 0.9rem;">Multi-Language Development Kit</p>
+                            </div>
+                        </div>
+                        <p style="color: var(--white); margin-bottom: 15px;">
+                            Comprehensive multi-language software development kit offering unified developer access through high-level abstractions and Gateway integration.
+                        </p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Multi-Language</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">High-Level APIs</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">URI Resolution</span>
+                        </div>
+                    </div>
+
+                    <!-- Layer 12: KNIRVANA -->
+                    <div class="glass-card hover-lift" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%); cursor: pointer;" onclick="window.open('/documentation/docsify/#/whitepapers/KNIRVANA_Whitepaper.md', '_blank')">
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <div style="width: 50px; height: 50px; border-radius: 10px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                <span style="color: white; font-weight: bold; font-size: 1.2em;">12</span>
+                            </div>
+                            <div>
+                                <h3 style="color: #10b981; margin: 0; font-size: 1.2rem;">KNIRVANA</h3>
+                                <p style="color: var(--transparent-white-7); margin: 0; font-size: 0.9rem;">Immersive 3D RTS Gateway</p>
+                            </div>
+                        </div>
+                        <p style="color: var(--white); margin-bottom: 15px;">
+                            Immersive 3D Rust-based Real-Time Strategy game with TRON-style environment, serving as the experiential gateway for competitive ErrorNode resolution.
+                        </p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">3D RTS Game</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">ErrorNode Resolution</span>
+                            <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">TRON-style UI</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Key Concepts -->
+            <div class="glass-card">
+                <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.5rem;">
+                    <i class="fas fa-lightbulb" style="margin-right: 10px;"></i>Key Concepts
+                </h2>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                    <!-- ErrorNodes -->
+                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--bright-blue);">
+                        <h3 style="color: var(--bright-blue); margin-bottom: 10px;">
+                            <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>ErrorNodes
+                        </h3>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9rem;">
+                            Failed AI attempts that become learning opportunities. Instead of discarding failures, KNIRV transforms them into valuable training data for the network.
+                        </p>
+                    </div>
+
+                    <!-- Autonomous Agents -->
+                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--knirv-purple);">
+                        <h3 style="color: var(--knirv-purple); margin-bottom: 10px;">
+                            <i class="fas fa-robot" style="margin-right: 8px;"></i>Autonomous Agents
+                        </h3>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9rem;">
+                            Self-governing AI entities that can learn, adapt, and make decisions independently while contributing to the collective intelligence of the network.
+                        </p>
+                    </div>
+
+                    <!-- Collective Intelligence -->
+                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--knirv-purple-light);">
+                        <h3 style="color: var(--knirv-purple-light); margin-bottom: 10px;">
+                            <i class="fas fa-network-wired" style="margin-right: 8px;"></i>Collective Intelligence
+                        </h3>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9rem;">
+                            The emergent intelligence that arises from the collaboration and knowledge sharing between multiple autonomous agents in the network.
+                        </p>
+                    </div>
+
+                    <!-- NRN Tokens -->
+                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--bright-blue);">
+                        <h3 style="color: var(--bright-blue); margin-bottom: 10px;">
+                            <i class="fas fa-coins" style="margin-right: 8px;"></i>NRN Tokens
+                        </h3>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9rem;">
+                            Network Resolution Notices - the native token that facilitates transactions, rewards learning, and enables autonomous economic activity.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Next Steps -->
+            <div class="glass-card">
+                <h2 style="color: var(--knirv-purple); margin-bottom: 20px; font-size: 1.3rem;">Ready to Build?</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <a href="getting-started.html" class="hover-lift" style="display: block; padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; text-decoration: none; color: var(--white); text-align: center;">
+                        <i class="fas fa-rocket" style="font-size: 2em; color: var(--bright-blue); margin-bottom: 10px;"></i>
+                        <h4 style="margin-bottom: 5px;">Start Building</h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">Follow our getting started guide</p>
+                    </a>
+                    <a href="agent-management.html" class="hover-lift" style="display: block; padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; text-decoration: none; color: var(--white); text-align: center;">
+                        <i class="fas fa-robot" style="font-size: 2em; color: var(--knirv-purple); margin-bottom: 10px;"></i>
+                        <h4 style="margin-bottom: 5px;">Register Agent</h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">Create your first autonomous agent</p>
+                    </a>
+                    <a href="api-sdk.html" class="hover-lift" style="display: block; padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; text-decoration: none; color: var(--white); text-align: center;">
+                        <i class="fas fa-code" style="font-size: 2em; color: var(--knirv-purple-light); margin-bottom: 10px;"></i>
+                        <h4 style="margin-bottom: 5px;">API Documentation</h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">Explore the KNIRV SDK</p>
+                    </a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="js/config-loader.js"></script>
+    <script src="js/portal.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="../js/universal-footer.js"></script>
+</body>
+</html>
