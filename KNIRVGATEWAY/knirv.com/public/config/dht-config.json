@@ -1,0 +1,46 @@
+{
+  "chainID": "testnet",
+  "serviceID": "knirvgateway",
+  "enableLogging": true,
+  "autoStart": true,
+  "bootstrapPeers": [
+    "/ip4/127.0.0.1/tcp/4001/p2p/12D3KooWBootstrapPeer1",
+    "/ip4/127.0.0.1/tcp/4002/p2p/12D3KooWBootstrapPeer2"
+  ],
+  "network": {
+    "listenPort": 0,
+    "maxConnections": 50,
+    "connectionTimeout": 30000,
+    "heartbeatInterval": 60000
+  },
+  "dht": {
+    "clientMode": true,
+    "bucketSize": 20,
+    "concurrency": 10,
+    "resiliency": 3
+  },
+  "pubsub": {
+    "allowPublishToZeroPeers": true,
+    "ignoreDuplicatePublishError": true,
+    "maxMessageSize": 1048576
+  },
+  "topics": {
+    "networkControl": "network-control",
+    "graphAnnouncement": "graph-announcements",
+    "chainAnnouncement": "chain-announcements",
+    "nexusAnnouncement": "nexus-announcements",
+    "routerAnnouncement": "router-announcements"
+  },
+  "monitoring": {
+    "healthCheckInterval": 60000,
+    "eventHistoryLimit": 1000,
+    "statusExportInterval": 300000,
+    "logLevel": "info"
+  },
+  "failover": {
+    "maxRetries": 3,
+    "retryDelay": 5000,
+    "backoffMultiplier": 2,
+    "maxRetryDelay": 30000
+  }
+}

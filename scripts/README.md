@@ -412,7 +412,6 @@ make docs                       # Generate comprehensive documentation using AI
 **`real-network-test.sh`** - Real network connectivity testing
 **`demo-testing-infrastructure.sh`** - Demo infrastructure setup
 **`migrate-testnet-to-netlify.js`** - Testnet to Netlify migration
-**`update-testnet-frontend.sh`** - Frontend update automation
 **`verify-deployment.sh`** - Deployment verification
 
 ## 🛡️ Safety and Security Features

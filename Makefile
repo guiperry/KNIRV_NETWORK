@@ -226,11 +226,6 @@ deploy-testnet-services: ## Deploy KNIRVTESTNET services via Docker Compose
 	@cd $(PROJECT_ROOT) && ./scripts/deploy-testnet-services.sh
 	@echo "$(GREEN)✓ KNIRVTESTNET services deployed$(NC)"
 
-.PHONY: update-testnet-frontend
-update-testnet-frontend: ## Update KNIRVGATEWAY testnet frontend with latest changes
-	@echo "$(BLUE)Updating KNIRVTESTNET frontend...$(NC)"
-	@cd $(PROJECT_ROOT) && ./scripts/update-testnet-frontend.sh
-	@echo "$(GREEN)✓ KNIRVTESTNET frontend updated$(NC)"
 
 # =============================================================================
 # COMPREHENSIVE TESTING SUITE

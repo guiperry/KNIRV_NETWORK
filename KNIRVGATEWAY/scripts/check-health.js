@@ -254,6 +254,33 @@ class HealthChecker {
         return true;
     }
 
+    async verifyNetlifyCliBroken() {
+        this.log('Verifying if netlify-cli is actually broken...', 'info');
+
+        try {
+            // Check if binary exists
+            const netlifyPath = path.join(process.cwd(), 'node_modules', '.bin', 'netlify');
+            if (!fs.existsSync(netlifyPath)) {
+                this.log('netlify-cli binary not found - confirmed broken', 'error');
+                return true;
+            }
+
+            // Test if command works
+            const version = execSync('timeout 10s npx netlify --version', {
+                encoding: 'utf8',
+                stdio: 'pipe',
+                shell: true
+            }).trim();
+
+            this.log(`netlify-cli test successful: ${version}`, 'success');
+            return false; // Not broken
+
+        } catch (error) {
+            this.log(`netlify-cli test failed: ${error.message}`, 'error');
+            return true; // Confirmed broken
+        }
+    }
+
     async attemptAutoFix() {
         if (this.autoFixAttempted) {
             this.log('Auto-fix already attempted, skipping to prevent loops', 'warn');
@@ -330,15 +357,32 @@ class HealthChecker {
 
             // Attempt automatic fix for netlify issues
             if (this.netlifyIssues.length > 0 && !this.autoFixAttempted) {
-                this.log('Attempting automatic fix for netlify-cli issues...', 'fix');
-                const fixSuccessful = await this.attemptAutoFix();
+                // Double-check if netlify-cli is actually working before attempting fix
+                this.log('Double-checking netlify-cli status before attempting fix...', 'info');
+                const netlifyActuallyBroken = await this.verifyNetlifyCliBroken();
 
-                if (fixSuccessful) {
-                    this.log('Auto-fix successful! Re-running full health check...', 'success');
-                    // Re-run the full health check after successful fix
-                    return await this.runHealthCheck();
+                if (netlifyActuallyBroken) {
+                    this.log('Confirmed netlify-cli is broken, attempting automatic fix...', 'fix');
+                    const fixSuccessful = await this.attemptAutoFix();
+
+                    if (fixSuccessful) {
+                        this.log('Auto-fix successful! Re-running full health check...', 'success');
+                        // Re-run the full health check after successful fix
+                        return await this.runHealthCheck();
+                    } else {
+                        this.log('Auto-fix failed or incomplete', 'error');
+                    }
                 } else {
-                    this.log('Auto-fix failed or incomplete', 'error');
+                    this.log('netlify-cli is actually working, skipping auto-fix', 'info');
+                    // Remove netlify issues since they're false positives
+                    this.issues = this.issues.filter(issue => !issue.includes('netlify-cli'));
+                    this.netlifyIssues = [];
+
+                    // Re-check if we still have issues
+                    if (this.issues.length === 0) {
+                        this.log('All issues resolved - netlify-cli is working properly', 'success');
+                        return true;
+                    }
                 }
             }
 
