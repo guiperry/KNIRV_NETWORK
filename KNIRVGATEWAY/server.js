@@ -14,12 +14,20 @@
  * - INTERNAL_API_KEY: API key for internal communication
  */
 
-const express = require('express');
-const path = require('path');
-const cors = require('cors');
-const { PrivateDHTManager } = require('./lib/p2p/private_dht_manager');
-const axios = require('axios');
-const NodeCache = require('node-cache');
+// Load polyfills first for libp2p compatibility
+import './lib/polyfills.js';
+
+import express from 'express';
+import path from 'path';
+import cors from 'cors';
+import { PrivateDHTManager } from './lib/p2p/private_dht_manager.js';
+import axios from 'axios';
+import NodeCache from 'node-cache';
+import { fileURLToPath } from 'url';
+
+// ES module compatibility
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Configuration
 const GATEWAY_MODE = process.env.GATEWAY_MODE || 'persistent';
@@ -309,11 +317,11 @@ async function main() {
 }
 
 // Start the server if this file is run directly
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch(error => {
     console.error('[Gateway] Startup error:', error);
     process.exit(1);
   });
 }
 
-module.exports = { createApp, main };
+export { createApp, main };

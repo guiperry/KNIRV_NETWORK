@@ -12,14 +12,20 @@
  * - Health monitoring
  */
 
-const { createLibp2p } = require('libp2p');
-const { tcp } = require('@libp2p/tcp');
-const { mplex } = require('@libp2p/mplex');
-const { noise } = require('@chainsafe/libp2p-noise');
-const { kadDHT } = require('@libp2p/kad-dht');
-const { bootstrap } = require('@libp2p/bootstrap');
-const EventEmitter = require('events');
-const crypto = require('crypto');
+// Load polyfills first
+import '../polyfills.js';
+
+// Core Node.js modules
+import { EventEmitter } from 'events';
+import crypto from 'crypto';
+
+// Import libp2p modules
+import { createLibp2p } from 'libp2p';
+import { tcp } from '@libp2p/tcp';
+import { mplex } from '@libp2p/mplex';
+import { noise } from '@chainsafe/libp2p-noise';
+import { kadDHT } from '@libp2p/kad-dht';
+import { bootstrap } from '@libp2p/bootstrap';
 
 // Private DHT configuration
 const PRIVATE_DHT_CONFIG = {
@@ -366,4 +372,4 @@ class PrivateDHTManager extends EventEmitter {
   }
 }
 
-module.exports = { PrivateDHTManager, PRIVATE_DHT_CONFIG };
+export { PrivateDHTManager, PRIVATE_DHT_CONFIG };

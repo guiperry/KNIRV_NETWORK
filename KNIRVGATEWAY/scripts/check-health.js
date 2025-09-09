@@ -5,9 +5,14 @@
  * Automatically detects netlify-cli corruption and other build issues
  */
 
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
+
+// ES module compatibility
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class HealthChecker {
     constructor() {
@@ -75,26 +80,21 @@ class HealthChecker {
 
     async checkNodeModules() {
         this.log('Checking node_modules integrity...');
-        
+
         const nodeModulesPath = path.join(process.cwd(), 'node_modules');
-        const netlifyCliPath = path.join(nodeModulesPath, 'netlify-cli');
-        
+
         if (!fs.existsSync(nodeModulesPath)) {
             this.issues.push('node_modules directory missing');
             return false;
         }
-        
+
+        // Check netlify-cli (required for netlify/functions routes)
+        const netlifyCliPath = path.join(nodeModulesPath, 'netlify-cli');
         if (!fs.existsSync(netlifyCliPath)) {
             this.issues.push('netlify-cli not found in node_modules');
             return false;
         }
-        
-        // Check for common corruption indicators
-        const packageLockPath = path.join(process.cwd(), 'package-lock.json');
-        if (!fs.existsSync(packageLockPath)) {
-            this.warnings.push('package-lock.json missing - may cause dependency issues');
-        }
-        
+
         // Check netlify-cli package.json
         try {
             const netlifyPackageJson = path.join(netlifyCliPath, 'package.json');
@@ -106,7 +106,13 @@ class HealthChecker {
             this.issues.push('netlify-cli package.json is corrupted');
             return false;
         }
-        
+
+        // Check for common corruption indicators
+        const packageLockPath = path.join(process.cwd(), 'package-lock.json');
+        if (!fs.existsSync(packageLockPath)) {
+            this.warnings.push('package-lock.json missing - may cause dependency issues');
+        }
+
         return true;
     }
 
@@ -261,7 +267,7 @@ class HealthChecker {
 }
 
 // Run health check if called directly
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
     const checker = new HealthChecker();
     checker.runHealthCheck()
         .then(success => {

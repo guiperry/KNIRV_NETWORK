@@ -15,9 +15,14 @@
  *   - development: Uses default development endpoints
  */
 
-const fs = require('fs');
-const path = require('path');
-const yaml = require('js-yaml');
+import fs from 'fs';
+import path from 'path';
+import yaml from 'js-yaml';
+import { fileURLToPath } from 'url';
+
+// ES module compatibility
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Default development endpoints
 const DEFAULT_ENDPOINTS = {
@@ -195,12 +200,12 @@ function displayEndpoints(endpoints, config) {
 }
 
 // Main execution
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   const environment = process.argv[2] || process.env.NODE_ENV || 'development';
-  
+
   console.log('🚀 KNIRVGATEWAY Endpoint Loader');
   console.log('================================');
-  
+
   const { endpoints, config } = loadEndpoints(environment);
   generateConfigFiles(endpoints, config);
   displayEndpoints(endpoints, config);
@@ -208,4 +213,4 @@ if (require.main === module) {
   console.log('🎉 Endpoint loading completed successfully!');
 }
 
-module.exports = { loadEndpoints, generateConfigFiles };
+export { loadEndpoints, generateConfigFiles };

@@ -12,9 +12,9 @@
  * - Secure API key management
  */
 
-const axios = require('axios');
-const crypto = require('crypto');
-const EventEmitter = require('events');
+import axios from 'axios';
+import crypto from 'crypto';
+import { EventEmitter } from 'events';
 
 // CloudFlare API configuration
 const CLOUDFLARE_CONFIG = {
@@ -460,4 +460,4 @@ class CloudFlareManager extends EventEmitter {
   }
 }
 
-module.exports = { CloudFlareManager, CLOUDFLARE_CONFIG };
+export { CloudFlareManager, CLOUDFLARE_CONFIG };
