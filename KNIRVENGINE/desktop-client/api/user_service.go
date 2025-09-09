@@ -1,7 +1,7 @@
 package api
 
 import (
-	"Agentic_Engine/database"
+	"KNIRV_Engine/database"
 
 	"encoding/json"
 	"net/http"

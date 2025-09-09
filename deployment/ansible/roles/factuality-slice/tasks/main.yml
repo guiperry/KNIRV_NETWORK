@@ -1,0 +1,155 @@
+---
+# Ansible role for deploying the KNIRV Factuality Slice Capability Node
+# This role integrates with the main deployment process to initialize
+# the factuality slice capability after successful network deployment
+
+- name: Create factuality slice directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  loop:
+    - "{{ knirv_home }}/logs"
+    - "{{ knirv_home }}/config"
+    - "{{ knirv_home }}/data/factuality-slice"
+  tags:
+    - factuality-slice
+    - directories
+
+- name: Copy factuality slice initialization script
+  copy:
+    src: "{{ playbook_dir }}/../../scripts/init-factuality-slice.sh"
+    dest: "{{ knirv_home }}/scripts/init-factuality-slice.sh"
+    mode: '0755'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  tags:
+    - factuality-slice
+    - scripts
+
+- name: Wait for KNIRV services to be ready
+  uri:
+    url: "{{ item.url }}/health"
+    method: GET
+    timeout: 10
+    status_code: [200, 404]  # 404 is acceptable if health endpoint doesn't exist
+  register: service_health
+  until: service_health.status in [200, 404]
+  retries: 30
+  delay: 10
+  loop:
+    - { name: "KNIRVCONTROLLER", url: "http://{{ ansible_default_ipv4.address }}:3000" }
+    - { name: "KNIRVROUTER", url: "http://{{ ansible_default_ipv4.address }}:8085" }
+    - { name: "KNIRVGRAPH", url: "http://{{ ansible_default_ipv4.address }}:8081" }
+    - { name: "KNIRVCHAIN", url: "http://{{ ansible_default_ipv4.address }}:8080" }
+    - { name: "KNIRVORACLE", url: "http://{{ ansible_default_ipv4.address }}:8086" }
+    - { name: "KNIRVNEXUS", url: "http://{{ ansible_default_ipv4.address }}:8090" }
+  ignore_errors: yes
+  tags:
+    - factuality-slice
+    - health-check
+
+- name: Set environment variables for factuality slice initialization
+  set_fact:
+    factuality_env:
+      KNIRV_CONTROLLER_URL: "http://{{ ansible_default_ipv4.address }}:3000"
+      KNIRV_ROUTER_URL: "http://{{ ansible_default_ipv4.address }}:8085"
+      KNIRV_GRAPH_URL: "http://{{ ansible_default_ipv4.address }}:8081"
+      KNIRV_CHAIN_URL: "http://{{ ansible_default_ipv4.address }}:8080"
+      KNIRV_ORACLE_URL: "http://{{ ansible_default_ipv4.address }}:8086"
+      KNIRV_NEXUS_URL: "http://{{ ansible_default_ipv4.address }}:8090"
+      DEPLOYMENT_ENV: "{{ env | default('production') }}"
+  tags:
+    - factuality-slice
+    - environment
+
+- name: Initialize factuality slice capability node
+  shell: "{{ knirv_home }}/scripts/init-factuality-slice.sh"
+  environment: "{{ factuality_env }}"
+  register: factuality_init_result
+  changed_when: factuality_init_result.rc == 0
+  failed_when: factuality_init_result.rc not in [0, 1]  # Allow degraded status (exit code 1)
+  tags:
+    - factuality-slice
+    - initialization
+
+- name: Display factuality slice initialization results
+  debug:
+    msg: |
+      Factuality Slice Initialization Results:
+      Exit Code: {{ factuality_init_result.rc }}
+      Status: {{ 'SUCCESS' if factuality_init_result.rc == 0 else 'DEGRADED' }}
+      
+      STDOUT:
+      {{ factuality_init_result.stdout }}
+      
+      STDERR:
+      {{ factuality_init_result.stderr }}
+  tags:
+    - factuality-slice
+    - results
+
+- name: Check if factuality slice configuration was created
+  stat:
+    path: "{{ knirv_home }}/config/factuality-slice-config.json"
+  register: config_file_stat
+  tags:
+    - factuality-slice
+    - validation
+
+- name: Validate factuality slice configuration
+  shell: |
+    if [ -f "{{ knirv_home }}/config/factuality-slice-config.json" ]; then
+      jq -e '.capability.id' "{{ knirv_home }}/config/factuality-slice-config.json" > /dev/null
+      echo "Configuration file is valid JSON with required fields"
+    else
+      echo "Configuration file not found"
+      exit 1
+    fi
+  register: config_validation
+  when: config_file_stat.stat.exists
+  tags:
+    - factuality-slice
+    - validation
+
+- name: Create factuality slice service status file
+  copy:
+    content: |
+      {
+        "service": "factuality-slice",
+        "status": "{{ 'active' if factuality_init_result.rc == 0 else 'degraded' }}",
+        "initialized_at": "{{ ansible_date_time.iso8601 }}",
+        "deployment_host": "{{ ansible_hostname }}",
+        "deployment_ip": "{{ ansible_default_ipv4.address }}",
+        "initialization_exit_code": {{ factuality_init_result.rc }},
+        "configuration_file": "{{ knirv_home }}/config/factuality-slice-config.json",
+        "log_file": "{{ knirv_home }}/logs/factuality-slice-init.log"
+      }
+    dest: "{{ knirv_home }}/status/factuality-slice-status.json"
+    mode: '0644'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  tags:
+    - factuality-slice
+    - status
+
+- name: Set factuality slice deployment facts
+  set_fact:
+    factuality_slice_deployed: true
+    factuality_slice_status: "{{ 'active' if factuality_init_result.rc == 0 else 'degraded' }}"
+    factuality_slice_config_path: "{{ knirv_home }}/config/factuality-slice-config.json"
+  tags:
+    - factuality-slice
+    - facts
+
+- name: Log factuality slice deployment completion
+  lineinfile:
+    path: "{{ knirv_home }}/logs/deployment.log"
+    line: "{{ ansible_date_time.iso8601 }} - Factuality Slice Capability Node deployment completed with status: {{ factuality_slice_status }}"
+    create: yes
+    mode: '0644'
+  tags:
+    - factuality-slice
+    - logging

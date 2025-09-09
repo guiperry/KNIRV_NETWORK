@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Build script for KNIRVENGINE Desktop Application
-# This script builds both the Go backend and Electron frontend
+# This script builds native Go binaries with embedded frontend
 
 set -e
 
-echo "🚀 Building KNIRVENGINE Desktop Application..."
+echo "🚀 Building KNIRVENGINE Desktop Application (Native Go)..."
 
 # Get the directory of this script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -60,15 +60,37 @@ check_dependencies() {
     print_success "All dependencies are available"
 }
 
-# Build the Go backend
+# Build the Go backend with embedded frontend
 build_backend() {
-    print_status "Building Go backend..."
-    
+    print_status "Building Go backend with embedded frontend..."
+
     cd "$PROJECT_ROOT"
-    
-    # Build for current platform
-    go build -o knirv-engine .
-    
+
+    # Determine the target platform
+    PLATFORM=${1:-$(uname -s | tr '[:upper:]' '[:lower:]')}
+
+    case $PLATFORM in
+        linux)
+            GOOS=linux GOARCH=amd64 go build -tags embed -o knirv-engine-linux .
+            ;;
+        darwin|macos)
+            GOOS=darwin GOARCH=amd64 go build -tags embed -o knirv-engine-macos .
+            ;;
+        windows|win32)
+            GOOS=windows GOARCH=amd64 go build -tags embed -o knirv-engine-windows.exe .
+            ;;
+        all)
+            # Build for all platforms
+            GOOS=linux GOARCH=amd64 go build -tags embed -o knirv-engine-linux .
+            GOOS=darwin GOARCH=amd64 go build -tags embed -o knirv-engine-macos .
+            GOOS=windows GOARCH=amd64 go build -tags embed -o knirv-engine-windows.exe .
+            ;;
+        *)
+            # Build for current platform
+            go build -tags embed -o knirv-engine .
+            ;;
+    esac
+
     if [ $? -eq 0 ]; then
         print_success "Backend built successfully"
     else
@@ -100,88 +122,69 @@ build_frontend() {
     fi
 }
 
-# Setup Electron
-setup_electron() {
-    print_status "Setting up Electron..."
-    
-    cd "$PROJECT_ROOT/electron"
-    
-    # Install Electron dependencies if node_modules doesn't exist
-    if [ ! -d "node_modules" ]; then
-        print_status "Installing Electron dependencies..."
-        npm install
-    fi
-    
-    print_success "Electron setup complete"
-}
+# Create distribution packages
+create_packages() {
+    print_status "Creating distribution packages..."
 
-# Build Electron app
-build_electron() {
-    print_status "Building Electron application..."
-    
-    cd "$PROJECT_ROOT/electron"
-    
-    # Determine the target platform
-    PLATFORM=${1:-$(uname -s | tr '[:upper:]' '[:lower:]')}
-    
-    case $PLATFORM in
-        linux)
-            npm run build:linux
-            ;;
-        darwin|macos)
-            npm run build:mac
-            ;;
-        windows|win32)
-            npm run build:win
-            ;;
-        all)
-            npm run build
-            ;;
-        *)
-            print_warning "Unknown platform: $PLATFORM. Building for current platform..."
-            npm run build
-            ;;
-    esac
-    
-    if [ $? -eq 0 ]; then
-        print_success "Electron application built successfully"
-    else
-        print_error "Failed to build Electron application"
-        exit 1
+    cd "$PROJECT_ROOT"
+
+    # Create dist directory if it doesn't exist
+    mkdir -p dist
+
+    # Package binaries based on what was built
+    if [ -f "knirv-engine-linux" ]; then
+        print_status "Packaging Linux binary..."
+        tar -czf dist/knirv-engine-linux-amd64.tar.gz knirv-engine-linux
     fi
+
+    if [ -f "knirv-engine-macos" ]; then
+        print_status "Packaging macOS binary..."
+        tar -czf dist/knirv-engine-macos-amd64.tar.gz knirv-engine-macos
+    fi
+
+    if [ -f "knirv-engine-windows.exe" ]; then
+        print_status "Packaging Windows binary..."
+        zip -q dist/knirv-engine-windows-amd64.zip knirv-engine-windows.exe
+    fi
+
+    if [ -f "knirv-engine" ]; then
+        print_status "Packaging current platform binary..."
+        tar -czf dist/knirv-engine-current.tar.gz knirv-engine
+    fi
+
+    print_success "Distribution packages created in dist/"
 }
 
 # Development mode
 dev_mode() {
     print_status "Starting development mode..."
-    
-    # Start backend in background
+
+    # Build backend for development
     cd "$PROJECT_ROOT"
+    print_status "Building backend for development..."
+    go build -o knirv-engine .
+
+    # Start backend in background
     print_status "Starting backend server..."
     ./knirv-engine &
     BACKEND_PID=$!
-    
+
     # Wait a moment for backend to start
     sleep 2
-    
-    # Start frontend dev server in background
+
+    # Start frontend dev server
     cd "$PROJECT_ROOT/gui"
     print_status "Starting frontend dev server..."
-    npm run dev &
-    FRONTEND_PID=$!
-    
-    # Wait a moment for frontend to start
-    sleep 3
-    
-    # Start Electron in development mode
-    cd "$PROJECT_ROOT/electron"
-    print_status "Starting Electron in development mode..."
+    print_status "Frontend will be available at http://localhost:8080"
+    print_status "Backend API will be available at http://localhost:8081"
+    print_status "Press Ctrl+C to stop both servers"
+
+    # Start frontend dev server (this will block)
     npm run dev
-    
-    # Cleanup when Electron exits
+
+    # Cleanup when frontend exits
     print_status "Cleaning up..."
     kill $BACKEND_PID 2>/dev/null || true
-    kill $FRONTEND_PID 2>/dev/null || true
 }
 
 # Main function
@@ -189,37 +192,29 @@ main() {
     case ${1:-build} in
         dev|development)
             check_dependencies
-            build_backend
-            setup_electron
+            build_frontend
             dev_mode
             ;;
         build)
             check_dependencies
-            build_backend
             build_frontend
-            setup_electron
-            build_electron ${2:-}
+            build_backend ${2:-}
+            create_packages
             ;;
         backend)
             check_dependencies
-            build_backend
+            build_backend ${2:-}
             ;;
         frontend)
             check_dependencies
             build_frontend
             ;;
-        electron)
-            check_dependencies
-            setup_electron
-            build_electron ${2:-}
-            ;;
         clean)
             print_status "Cleaning build artifacts..."
-            rm -f "$PROJECT_ROOT/knirv-engine"
+            rm -f "$PROJECT_ROOT/knirv-engine"*
             rm -f "$PROJECT_ROOT/knirv-engine.exe"
             rm -rf "$PROJECT_ROOT/gui/dist"
-            rm -rf "$PROJECT_ROOT/electron/dist"
-            rm -rf "$PROJECT_ROOT/electron/node_modules"
+            rm -rf "$PROJECT_ROOT/dist"
             rm -rf "$PROJECT_ROOT/gui/node_modules"
             print_success "Clean complete"
             ;;
@@ -231,7 +226,6 @@ main() {
             echo "  dev               - Start development mode with hot reload"
             echo "  backend           - Build only the Go backend"
             echo "  frontend          - Build only the React frontend"
-            echo "  electron          - Build only the Electron wrapper"
             echo "  clean             - Clean all build artifacts"
             echo "  help              - Show this help message"
             echo ""

@@ -5,6 +5,7 @@ import (
 	"blockchain-app/internal/graphchain"
 	"blockchain-app/internal/network"
 	"blockchain-app/internal/nrv"
+	"blockchain-app/internal/p2p"
 	"blockchain-app/internal/storage"
 	"context"
 	"encoding/json"
@@ -40,6 +41,7 @@ type App struct {
 	proofOfSolution *economics.ProofOfSolution
 	rpc             *network.RPCServer
 	storage         storage.GraphStorage
+	dhtManager      *p2p.DHTManager
 	logger          *zap.Logger
 	config          *Config
 }
@@ -85,19 +87,41 @@ func NewApp(homeDir string, rpcPort int) (*App, error) {
 	// Initialize Proof-of-Solution
 	proofOfSolution := economics.NewProofOfSolution(nrnIntegration, nrvSystem)
 
-	// Initialize RPC server with NRV system and economics
-	rpc := network.NewRPCServerWithEconomics(gc, nrvSystem, nrnIntegration, proofOfSolution, logger, rpcPort)
+	// Initialize RPC server with NRV system and economics (will set app reference later)
+	var rpc *network.RPCServer
 
-	return &App{
+	// Initialize DHT manager
+	bootstrapPeers := []string{
+		// Default bootstrap peers - these should be configured via environment variables
+		os.Getenv("KNIRV_BOOTSTRAP_PEER_1"),
+		os.Getenv("KNIRV_BOOTSTRAP_PEER_2"),
+		os.Getenv("KNIRV_BOOTSTRAP_PEER_3"),
+	}
+
+	serviceID := fmt.Sprintf("knirvgraph-%s", config.Testnet.ChainID)
+	dhtManager, err := p2p.NewDHTManager(serviceID, config.Testnet.ChainID, bootstrapPeers)
+	if err != nil {
+		logger.Warn("Failed to initialize DHT manager", zap.Error(err))
+		// Continue without DHT for now
+		dhtManager = nil
+	}
+
+	app := &App{
 		graphchain:      gc,
 		nrvSystem:       nrvSystem,
 		nrnIntegration:  nrnIntegration,
 		proofOfSolution: proofOfSolution,
-		rpc:             rpc,
 		storage:         storageInstance,
+		dhtManager:      dhtManager,
 		logger:          logger,
 		config:          config,
-	}, nil
+	}
+
+	// Initialize RPC server with app reference
+	rpc = network.NewRPCServerWithEconomics(gc, nrvSystem, nrnIntegration, proofOfSolution, app, logger, rpcPort)
+	app.rpc = rpc
+
+	return app, nil
 }
 
 // GetConfig returns the application configuration
@@ -145,19 +169,39 @@ func NewAppWithConfig(homeDir string, rpcPort int, config *Config) (*App, error)
 	// Initialize Proof-of-Solution
 	proofOfSolution := economics.NewProofOfSolution(nrnIntegration, nrvSystem)
 
-	// Initialize RPC server with NRV system and economics
-	rpc := network.NewRPCServerWithEconomics(gc, nrvSystem, nrnIntegration, proofOfSolution, logger, rpcPort)
+	// Initialize RPC server with NRV system and economics (will set app reference later)
+	var rpc *network.RPCServer
+
+	// Initialize DHT manager
+	bootstrapPeers := []string{
+		// Default bootstrap peers - these should be configured via environment variables
+		os.Getenv("KNIRV_BOOTSTRAP_PEER_1"),
+		os.Getenv("KNIRV_BOOTSTRAP_PEER_2"),
+		os.Getenv("KNIRV_BOOTSTRAP_PEER_3"),
+	}
+
+	serviceID := fmt.Sprintf("knirvgraph-%s", config.Testnet.ChainID)
+	dhtManager, err := p2p.NewDHTManager(serviceID, config.Testnet.ChainID, bootstrapPeers)
+	if err != nil {
+		logger.Warn("Failed to initialize DHT manager", zap.Error(err))
+		// Continue without DHT for now
+		dhtManager = nil
+	}
 
 	app := &App{
 		graphchain:      gc,
 		nrvSystem:       nrvSystem,
 		nrnIntegration:  nrnIntegration,
 		proofOfSolution: proofOfSolution,
-		rpc:             rpc,
 		storage:         storageInstance,
+		dhtManager:      dhtManager,
 		logger:          logger,
 		config:          config,
 	}
+
+	// Initialize RPC server with app reference
+	rpc = network.NewRPCServerWithEconomics(gc, nrvSystem, nrnIntegration, proofOfSolution, app, logger, rpcPort)
+	app.rpc = rpc
 
 	// Pre-populate test data if testnet mode is enabled
 	if config != nil && config.Testnet.Enabled && config.Testnet.PrePopulate {
@@ -302,6 +346,15 @@ func (app *App) Start(ctx context.Context) error {
 		}
 	}
 
+	// Start DHT manager
+	if app.dhtManager != nil {
+		if err := app.dhtManager.Start(); err != nil {
+			app.logger.Warn("Failed to start DHT manager", zap.Error(err))
+		} else {
+			app.logger.Info("DHT manager started successfully")
+		}
+	}
+
 	// Start RPC server
 	if err := app.rpc.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start RPC server: %w", err)
@@ -328,6 +381,12 @@ func (app *App) Stop(ctx context.Context) error {
 		app.logger.Error("Failed to stop RPC server", zap.Error(err))
 	}
 
+	// Stop DHT manager
+	if app.dhtManager != nil {
+		app.dhtManager.Stop()
+		app.logger.Info("DHT manager stopped")
+	}
+
 	// Stop NRV system
 	if err := app.nrvSystem.Stop(); err != nil {
 		app.logger.Error("Failed to stop NRV system", zap.Error(err))
@@ -339,4 +398,43 @@ func (app *App) Stop(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// AnnounceSkill announces a new skill minted on the Graph via DHT
+func (app *App) AnnounceSkill(skillID, name, description, category string, metadata map[string]string) error {
+	if app.dhtManager == nil {
+		app.logger.Warn("DHT manager not available, cannot announce skill")
+		return fmt.Errorf("DHT manager not available")
+	}
+
+	return app.dhtManager.AnnounceSkill(skillID, name, description, category, metadata)
+}
+
+// AnnounceCapability announces a new capability minted on the Graph via DHT
+func (app *App) AnnounceCapability(capabilityID, name, description string, schema interface{}, metadata map[string]string) error {
+	if app.dhtManager == nil {
+		app.logger.Warn("DHT manager not available, cannot announce capability")
+		return fmt.Errorf("DHT manager not available")
+	}
+
+	return app.dhtManager.AnnounceCapability(capabilityID, name, description, schema, metadata)
+}
+
+// AnnounceProperty announces a new property minted on the Graph via DHT
+func (app *App) AnnounceProperty(propertyID, name, propertyType string, value interface{}, metadata map[string]string) error {
+	if app.dhtManager == nil {
+		app.logger.Warn("DHT manager not available, cannot announce property")
+		return fmt.Errorf("DHT manager not available")
+	}
+
+	return app.dhtManager.AnnounceProperty(propertyID, name, propertyType, value, metadata)
+}
+
+// IsNetworkPaused returns whether the network is currently paused
+func (app *App) IsNetworkPaused() bool {
+	if app.dhtManager == nil {
+		return false
+	}
+
+	return app.dhtManager.IsNetworkPaused()
 }

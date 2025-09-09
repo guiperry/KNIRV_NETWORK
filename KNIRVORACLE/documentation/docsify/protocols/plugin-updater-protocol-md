@@ -1,6 +1,6 @@
 # Implementing the Updater Protocol
 
-Given the decentralized nature of KNIRVORACLE, its reliance on a private DHT, and the `agent://` URI scheme, a custom update mechanism leveraging the DHT combined with a library like `go-update` for applying the binary patch would be the most synergistic and robust approach.
+Given the decentralized nature of KNIRVORACLE, its reliance on a private DHT, and the `knirv://` URI scheme, a custom update mechanism leveraging the DHT combined with a library like `go-update` for applying the binary patch would be the most synergistic and robust approach.
 
 **Hybrid Approach: DHT for Discovery/Fetch + `go-update` for Application**
 
@@ -11,11 +11,11 @@ This approach gives us the best of both worlds: decentralized discovery and robu
 *   Create a cryptographically signed JSON or YAML file (the "update manifest").
 *   **Contents:**
     *   `version`: The new version string (e.g., `"v1.2.3"`).
-    *   `releaseNotesURL` (optional): A `agent://` URI or HTTP URL to detailed release notes.
+    *   `releaseNotesURL` (optional): A `knirv://` URI or HTTP URL to detailed release notes.
     *   `timestamp`: Release timestamp.
     *   `artifacts`: An array or map, where each entry describes an update package for a specific platform/architecture (e.g., `linux/amd64`, `windows/amd64`).
         *   `platform`: e.g., `"linux/amd64"`
-        *   `url`: A `agent://<contentID>.content/<binary_name_version.tar.gz>` URI pointing to the actual update package (e.g., a compressed binary). This package would be announced and findable on your DHT like any other NRN resource.
+        *   `url`: A `knirv://<contentID>.content/<binary_name_version.tar.gz>` URI pointing to the actual update package (e.g., a compressed binary). This package would be announced and findable on your DHT like any other NRN resource.
         *   `hash`: SHA256 hash of the update package file.
         *   `signature`: Cryptographic signature of the hash (or the entire artifact entry) by a trusted update signing key.
 *   The entire manifest itself must also be signed by a master update signing key.
@@ -26,16 +26,16 @@ This approach gives us the best of both worlds: decentralized discovery and robu
     *   Build the new version binaries.
     *   Package them (e.g., `tar.gz`).
     *   Calculate their hashes.
-    *   Host these packages on one or more stable KNIRVORACLE Bootnodes (or even IPFS, then reference the IPFS CID via a `agent://<ipfs_cid>.chain/update` URI). These hosting Bootnode would announce the `agent://` URIs of the packages on the DHT.
+    *   Host these packages on one or more stable KNIRVORACLE Bootnodes (or even IPFS, then reference the IPFS CID via a `knirv://<ipfs_cid>.chain/update` URI). These hosting Bootnode would announce the `knirv://` URIs of the packages on the DHT.
     *   Create the update manifest, sign the artifact entries, and sign the manifest itself.
     *   Announce the signed update manifest on the DHT. This could be done by:
-        *   Storing the manifest under a well-known, fixed `agent://` URI, e.g., `agent://KNIRVORACLE-updates.chain/latest-manifest`. Nodes would resolve this URI to find devs serving the latest manifest.
+        *   Storing the manifest under a well-known, fixed `knirv://` URI, e.g., `knirv://KNIRVORACLE-updates.chain/latest-manifest`. Nodes would resolve this URI to find devs serving the latest manifest.
         *   Or, announcing the manifest's content hash (CID) on the DHT under a well-known key, and nodes query for providers of that manifest CID.
 
 **3. Update Discovery (Client Node Logic):**
 
 *   Each KNIRVORACLE node would periodically (e.g., on startup and every few hours):
-    *   Attempt to resolve the well-known URI for the latest update manifest (e.g., `agent://KNIRVORACLE-updates.chain/latest-manifest`) using its `DiscoveryManager`.
+    *   Attempt to resolve the well-known URI for the latest update manifest (e.g., `knirv://KNIRVORACLE-updates.chain/latest-manifest`) using its `DiscoveryManager`.
     *   Download the manifest from a discovered dev.
     *   Verify the signature of the manifest itself using a pre-configured trusted public key (the master update public key).
     *   If the manifest's version is newer than its current running version, proceed to fetch the update.
@@ -43,7 +43,7 @@ This approach gives us the best of both worlds: decentralized discovery and robu
 **4. Update Fetching & Verification (Client Node Logic):**
 
 *   From the verified manifest, select the artifact entry matching the node's platform/architecture.
-*   Resolve the `agent://...` URL for the update package using the `DiscoveryManager` to find devs hosting it.
+*   Resolve the `knirv://...` URL for the update package using the `DiscoveryManager` to find devs hosting it.
 *   Download the update package (e.g., `binary_v1.2.3.tar.gz`).
 *   Verify the downloaded package's SHA256 hash against the hash specified in the manifest.
 *   Verify the signature of the artifact (from the manifest) using the trusted update signing public key.
@@ -99,7 +99,7 @@ func applyUpdate(updatePackageStream io.Reader, targetExecutablePath string) err
 **Why this is better for KNIRVORACLE:**
 
 *   **Maintains Decentralization:** Update discovery and fetching are not reliant on a single server.
-*   **Uses Your Strengths:** Leverages your existing DHT and `agent://` URI infrastructure.
+*   **Uses Your Strengths:** Leverages your existing DHT and `knirv://` URI infrastructure.
 *   **Robust Application:** `go-update` handles the tricky OS-level details of replacing a running executable.
 
 This approach requires more setup than just pointing `go-update` at an HTTP URL, but it aligns much better with the decentralized and secure ethos of a blockchain project.

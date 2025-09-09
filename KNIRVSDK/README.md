@@ -24,13 +24,13 @@ Our SDKs are more than just API wrappers. They are a complete toolkit designed t
 #### ⭐ TypeScript/JavaScript
 - **[Gateway SDK](ts/gateway/README.md)**: The primary, high-level SDK for web and Node.js applications.
 - [Core Transmission SDK](ts/transmission/README.md): Low-level web transmission libraries.
-- **[Unified SDK](ts/unified/README.md)**: 🚧 *In Development*
+- **[Unified SDK](ts/unified/README.md)**: ✅ **Complete** - Comprehensive access to all KNIRV services
 
 #### ⭐ Python
 - **[Gateway SDK](py/gateway/README.md)**: ✅ **NEW!** The primary, high-level SDK for Python applications.
 - [Core Transaction SDK](py/transaction/README.md): Low-level KNIRVCHAIN transaction management for Python.
 - [Core Transmission SDK](py/transmission/README.md): Low-level network transmission for Python.
-- **Unified SDK**: 🚧 *Planned*
+- **[Unified SDK](py/unified/README.md)**: ✅ **Complete** - Combined access to all KNIRV services
 
 > **Note**: See [UNIFIED_SDK_IMPLEMENTATION_PLAN.md](UNIFIED_SDK_IMPLEMENTATION_PLAN.md) for detailed implementation roadmap.
 

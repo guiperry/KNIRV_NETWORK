@@ -1,7 +1,7 @@
 package api
 
 import (
-	"Agentic_Engine/utils"
+	"KNIRV_Engine/utils"
 	"bufio"
 	"context"
 	"encoding/json"

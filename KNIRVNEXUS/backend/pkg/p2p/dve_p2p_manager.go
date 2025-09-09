@@ -10,11 +10,24 @@ import (
 
 	"nexus-backend/internal/models"
 
+	"github.com/ipfs/go-cid"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/multiformats/go-multihash"
 	"github.com/tidwall/buntdb"
+)
+
+const (
+	// DHT configuration
+	NetworkControlTopic    = "network-control"
+	DVEAnnouncementTopic   = "dve-announcements"
+	ValidationRequestTopic = "validation-requests"
+
+	// Network pause timeout
+	NetworkPauseTimeout = 30 * time.Minute
 )
 
 // DVEP2PManager implements P2P networking for DVE nodes aligned with KNIRV-ORACLE
@@ -36,8 +49,20 @@ type DVEP2PManager struct {
 	resultSub     *pubsub.Subscription
 	nodeSub       *pubsub.Subscription
 
-	nodeRole string // "dve-validator", "dve-observer", "dve-coordinator", "dve-manager"
-	chainID  string
+	// Network control
+	networkControlTopic *pubsub.Topic
+	networkControlSub   *pubsub.Subscription
+	networkPaused       bool
+	pausedUntil         time.Time
+	pauseMutex          sync.RWMutex
+
+	// DVE announcements
+	dveAnnouncementTopic *pubsub.Topic
+	dveAnnouncementSub   *pubsub.Subscription
+
+	nodeRole  string // "dve-validator", "dve-observer", "dve-coordinator", "dve-manager"
+	chainID   string
+	serviceID string
 
 	// Message handlers
 	messageHandlers map[string]MessageHandler
@@ -47,6 +72,57 @@ type DVEP2PManager struct {
 // MessageHandler defines the interface for handling P2P messages
 type MessageHandler interface {
 	HandleMessage(ctx context.Context, msg *models.P2PMessage) error
+}
+
+// NetworkControlMessage represents network control messages
+type NetworkControlMessage struct {
+	Type    string      `json:"type"`
+	Payload interface{} `json:"payload"`
+}
+
+// NetworkPausePayload represents network pause message payload
+type NetworkPausePayload struct {
+	InitiatorPeerID string `json:"initiator_peer_id"`
+	Reason          string `json:"reason"`
+	Timestamp       int64  `json:"timestamp"`
+}
+
+// DVEAnnouncementMessage represents DVE-related announcements
+type DVEAnnouncementMessage struct {
+	Type      string      `json:"type"`   // "validation_request", "validation_result", "node_status"
+	Action    string      `json:"action"` // "available", "processing", "completed", "failed"
+	ServiceID string      `json:"service_id"`
+	ChainID   string      `json:"chain_id"`
+	NodeRole  string      `json:"node_role"`
+	Data      interface{} `json:"data"`
+	Timestamp int64       `json:"timestamp"`
+}
+
+// ValidationRequestData represents validation request announcement data
+type ValidationRequestData struct {
+	RequestID    string            `json:"request_id"`
+	Type         string            `json:"type"`
+	Priority     int               `json:"priority"`
+	Requirements map[string]string `json:"requirements"`
+	Metadata     map[string]string `json:"metadata"`
+}
+
+// ValidationResultData represents validation result announcement data
+type ValidationResultData struct {
+	RequestID string            `json:"request_id"`
+	Result    string            `json:"result"`
+	Score     float64           `json:"score"`
+	Evidence  map[string]string `json:"evidence"`
+	Metadata  map[string]string `json:"metadata"`
+}
+
+// NodeStatusData represents node status announcement data
+type NodeStatusData struct {
+	NodeID       string            `json:"node_id"`
+	Status       string            `json:"status"`
+	Capabilities []string          `json:"capabilities"`
+	Load         float64           `json:"load"`
+	Metadata     map[string]string `json:"metadata"`
 }
 
 // DVE Protocol Constants (aligned with KNIRV-ORACLE)
@@ -98,6 +174,8 @@ func NewDVEP2PManager(chainID, nodeRole string, db *buntdb.DB) (*DVEP2PManager, 
 		return nil, fmt.Errorf("failed to create pubsub: %w", err)
 	}
 
+	serviceID := fmt.Sprintf("knirvnexus-%s-%s", chainID, nodeRole)
+
 	manager := &DVEP2PManager{
 		host:            host,
 		dht:             dhtInstance,
@@ -107,7 +185,9 @@ func NewDVEP2PManager(chainID, nodeRole string, db *buntdb.DB) (*DVEP2PManager, 
 		cancel:          cancel,
 		nodeRole:        nodeRole,
 		chainID:         chainID,
+		serviceID:       serviceID,
 		messageHandlers: make(map[string]MessageHandler),
+		networkPaused:   false,
 	}
 
 	// Initialize topics and subscriptions
@@ -160,8 +240,33 @@ func (dpm *DVEP2PManager) setupTopics() error {
 		return fmt.Errorf("failed to subscribe to node topic: %w", err)
 	}
 
-	log.Printf("[DVE][%s] P2P topics initialized: %s, %s, %s",
-		dpm.nodeRole, validationTopicName, resultTopicName, nodeTopicName)
+	// Join network control topic
+	dpm.networkControlTopic, err = dpm.pubsub.Join(NetworkControlTopic)
+	if err != nil {
+		return fmt.Errorf("failed to join network control topic: %w", err)
+	}
+
+	// Subscribe to network control messages
+	dpm.networkControlSub, err = dpm.networkControlTopic.Subscribe()
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to network control topic: %w", err)
+	}
+
+	// Join DVE announcement topic
+	dpm.dveAnnouncementTopic, err = dpm.pubsub.Join(DVEAnnouncementTopic)
+	if err != nil {
+		return fmt.Errorf("failed to join DVE announcement topic: %w", err)
+	}
+
+	// Subscribe to DVE announcements
+	dpm.dveAnnouncementSub, err = dpm.dveAnnouncementTopic.Subscribe()
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to DVE announcement topic: %w", err)
+	}
+
+	log.Printf("[DVE][%s] P2P topics initialized: %s, %s, %s, %s, %s",
+		dpm.nodeRole, validationTopicName, resultTopicName, nodeTopicName,
+		NetworkControlTopic, DVEAnnouncementTopic)
 
 	return nil
 }
@@ -174,12 +279,17 @@ func (dpm *DVEP2PManager) Start() {
 	go dpm.handleValidationRequests()
 	go dpm.handleValidationResults()
 	go dpm.handleNodeAnnouncements()
+	go dpm.handleNetworkControl()
+	go dpm.handleDVEAnnouncements()
 
 	// Start node discovery
 	go dpm.discoverNodes()
 
 	// Announce this node to the network
 	go dpm.announceNode()
+
+	// Announce this service to the DHT
+	go dpm.announceServiceToDHT()
 
 	// Start periodic heartbeat
 	go dpm.sendHeartbeat()
@@ -425,15 +535,75 @@ func (dpm *DVEP2PManager) discoverNodes() {
 
 // findDVENodes finds other DVE nodes using DHT
 func (dpm *DVEP2PManager) findDVENodes() {
-	// Implementation would use DHT to find providers of DVE resources
-	// This is aligned with KNIRV-ORACLE's discovery mechanism
 	log.Printf("[DVE][%s] Discovering DVE nodes...", dpm.nodeRole)
 
-	// TODO: Implement DHT-based node discovery similar to KNIRV-ORACLE
-	// This would involve:
-	// 1. Creating a CID for DVE node resources
-	// 2. Querying DHT for providers
-	// 3. Connecting to discovered peers
+	// Create a CID for DVE node resources
+	cid, err := dpm.createCIDFromServiceID("knirvnexus-dve")
+	if err != nil {
+		log.Printf("[DVE][%s] Failed to create CID for DVE discovery: %v", dpm.nodeRole, err)
+		return
+	}
+
+	// Find providers for DVE services
+	ctx, cancel := context.WithTimeout(dpm.ctx, 30*time.Second)
+	defer cancel()
+
+	providerChan := dpm.dht.FindProvidersAsync(ctx, cid, 20)
+
+	var discoveredPeers []peer.AddrInfo
+	for provider := range providerChan {
+		discoveredPeers = append(discoveredPeers, provider)
+	}
+
+	log.Printf("[DVE][%s] Discovered %d DVE nodes", dpm.nodeRole, len(discoveredPeers))
+
+	// Connect to discovered peers
+	for _, peerInfo := range discoveredPeers {
+		if peerInfo.ID == dpm.host.ID() {
+			continue // Skip ourselves
+		}
+
+		// Try to connect to the peer
+		connectCtx, connectCancel := context.WithTimeout(dpm.ctx, 15*time.Second)
+		err := dpm.host.Connect(connectCtx, peerInfo)
+		connectCancel()
+
+		if err != nil {
+			log.Printf("[DVE][%s] Failed to connect to DVE node %s: %v", dpm.nodeRole, peerInfo.ID, err)
+		} else {
+			log.Printf("[DVE][%s] Connected to DVE node: %s", dpm.nodeRole, peerInfo.ID)
+		}
+	}
+}
+
+// createCIDFromServiceID creates a CID from a service ID
+func (dpm *DVEP2PManager) createCIDFromServiceID(serviceID string) (cid.Cid, error) {
+	// Create a multihash from the service ID
+	hash, err := multihash.Sum([]byte(serviceID), multihash.SHA2_256, -1)
+	if err != nil {
+		return cid.Cid{}, err
+	}
+
+	// Create a CID from the multihash
+	return cid.NewCidV1(cid.Raw, hash), nil
+}
+
+// announceServiceToDHT announces this DVE service to the DHT
+func (dpm *DVEP2PManager) announceServiceToDHT() {
+	// Create a CID from the service ID
+	cid, err := dpm.createCIDFromServiceID("knirvnexus-dve")
+	if err != nil {
+		log.Printf("[DVE][%s] Failed to create CID for service announcement: %v", dpm.nodeRole, err)
+		return
+	}
+
+	// Announce that this node provides the DVE service
+	if err := dpm.dht.Provide(dpm.ctx, cid, true); err != nil {
+		log.Printf("[DVE][%s] Failed to announce DVE service: %v", dpm.nodeRole, err)
+		return
+	}
+
+	log.Printf("[DVE][%s] Announced DVE service to DHT", dpm.nodeRole)
 }
 
 // announceNode periodically announces this node to the network
@@ -537,4 +707,266 @@ func (dpm *DVEP2PManager) GetNetworkTopology() *models.NetworkTopology {
 	}
 
 	return topology
+}
+
+// handleNetworkControl processes network control messages (pause/resume)
+func (dpm *DVEP2PManager) handleNetworkControl() {
+	for {
+		select {
+		case <-dpm.ctx.Done():
+			return
+		default:
+			msg, err := dpm.networkControlSub.Next(dpm.ctx)
+			if err != nil {
+				if dpm.ctx.Err() == nil {
+					log.Printf("[DVE][%s] Error receiving network control message: %v", dpm.nodeRole, err)
+				}
+				continue
+			}
+
+			// Skip messages from ourselves
+			if msg.ReceivedFrom == dpm.host.ID() {
+				continue
+			}
+
+			// Decode the network control message
+			var networkMsg NetworkControlMessage
+			if err := json.Unmarshal(msg.Data, &networkMsg); err != nil {
+				log.Printf("[DVE][%s] Error decoding network control message: %v", dpm.nodeRole, err)
+				continue
+			}
+
+			log.Printf("[DVE][%s] Received network control message: %s", dpm.nodeRole, networkMsg.Type)
+
+			// Handle different network control message types
+			switch networkMsg.Type {
+			case "NetworkPause":
+				dpm.handleNetworkPause(networkMsg.Payload, msg.ReceivedFrom.String())
+			case "NetworkResume":
+				dpm.handleNetworkResume(networkMsg.Payload, msg.ReceivedFrom.String())
+			default:
+				log.Printf("[DVE][%s] Unknown network control message type: %s", dpm.nodeRole, networkMsg.Type)
+			}
+		}
+	}
+}
+
+// handleNetworkPause processes network pause messages
+func (dpm *DVEP2PManager) handleNetworkPause(payload interface{}, senderPeerID string) {
+	// Parse the pause payload
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		log.Printf("[DVE][%s] Error marshaling pause payload: %v", dpm.nodeRole, err)
+		return
+	}
+
+	var pausePayload NetworkPausePayload
+	if err := json.Unmarshal(payloadBytes, &pausePayload); err != nil {
+		log.Printf("[DVE][%s] Error unmarshaling pause payload: %v", dpm.nodeRole, err)
+		return
+	}
+
+	initiatorPeerID := pausePayload.InitiatorPeerID
+	reason := pausePayload.Reason
+
+	// Set network paused state
+	dpm.pauseMutex.Lock()
+	dpm.networkPaused = true
+	dpm.pausedUntil = time.Now().Add(NetworkPauseTimeout)
+	dpm.pauseMutex.Unlock()
+
+	log.Printf("[DVE][%s] Network PAUSED by %s until %s - Reason: %s",
+		dpm.nodeRole,
+		initiatorPeerID,
+		dpm.pausedUntil.Format("2006-01-02 15:04:05 UTC"),
+		reason)
+
+	log.Printf("[DVE][%s] DVE operations paused - rejecting new validation requests", dpm.nodeRole)
+}
+
+// handleNetworkResume processes network resume messages
+func (dpm *DVEP2PManager) handleNetworkResume(payload interface{}, senderPeerID string) {
+	dpm.pauseMutex.Lock()
+	dpm.networkPaused = false
+	dpm.pauseMutex.Unlock()
+
+	log.Printf("[DVE][%s] Network RESUMED by %s", dpm.nodeRole, senderPeerID)
+}
+
+// IsNetworkPaused returns whether the network is currently paused
+func (dpm *DVEP2PManager) IsNetworkPaused() bool {
+	dpm.pauseMutex.RLock()
+	defer dpm.pauseMutex.RUnlock()
+
+	if dpm.networkPaused && time.Now().After(dpm.pausedUntil) {
+		// Pause has expired
+		dpm.pauseMutex.RUnlock()
+		dpm.pauseMutex.Lock()
+		dpm.networkPaused = false
+		dpm.pauseMutex.Unlock()
+		dpm.pauseMutex.RLock()
+		log.Printf("[DVE][%s] Network pause expired", dpm.nodeRole)
+	}
+
+	return dpm.networkPaused
+}
+
+// handleDVEAnnouncements processes DVE-related announcements from other nodes
+func (dpm *DVEP2PManager) handleDVEAnnouncements() {
+	for {
+		select {
+		case <-dpm.ctx.Done():
+			return
+		default:
+			msg, err := dpm.dveAnnouncementSub.Next(dpm.ctx)
+			if err != nil {
+				if dpm.ctx.Err() == nil {
+					log.Printf("[DVE][%s] Error receiving DVE announcement: %v", dpm.nodeRole, err)
+				}
+				continue
+			}
+
+			// Skip messages from ourselves
+			if msg.ReceivedFrom == dpm.host.ID() {
+				continue
+			}
+
+			// Decode the DVE announcement message
+			var dveMsg DVEAnnouncementMessage
+			if err := json.Unmarshal(msg.Data, &dveMsg); err != nil {
+				log.Printf("[DVE][%s] Error decoding DVE announcement: %v", dpm.nodeRole, err)
+				continue
+			}
+
+			log.Printf("[DVE][%s] Received %s %s announcement from %s",
+				dpm.nodeRole, dveMsg.Action, dveMsg.Type, dveMsg.ServiceID)
+
+			// Process the announcement based on type
+			switch dveMsg.Type {
+			case "validation_request":
+				dpm.processValidationRequestAnnouncement(dveMsg)
+			case "validation_result":
+				dpm.processValidationResultAnnouncement(dveMsg)
+			case "node_status":
+				dpm.processNodeStatusAnnouncement(dveMsg)
+			default:
+				log.Printf("[DVE][%s] Unknown DVE announcement type: %s", dpm.nodeRole, dveMsg.Type)
+			}
+		}
+	}
+}
+
+// processValidationRequestAnnouncement processes validation request announcements
+func (dpm *DVEP2PManager) processValidationRequestAnnouncement(msg DVEAnnouncementMessage) {
+	log.Printf("[DVE][%s] Processing validation request %s from %s", dpm.nodeRole, msg.Action, msg.ServiceID)
+	// TODO: Integrate with KNIRVNEXUS validation request processing logic
+}
+
+// processValidationResultAnnouncement processes validation result announcements
+func (dpm *DVEP2PManager) processValidationResultAnnouncement(msg DVEAnnouncementMessage) {
+	log.Printf("[DVE][%s] Processing validation result %s from %s", dpm.nodeRole, msg.Action, msg.ServiceID)
+	// TODO: Integrate with KNIRVNEXUS validation result processing logic
+}
+
+// processNodeStatusAnnouncement processes node status announcements
+func (dpm *DVEP2PManager) processNodeStatusAnnouncement(msg DVEAnnouncementMessage) {
+	log.Printf("[DVE][%s] Processing node status %s from %s", dpm.nodeRole, msg.Action, msg.ServiceID)
+	// TODO: Integrate with KNIRVNEXUS node status processing logic
+}
+
+// AnnounceValidationRequest announces a new validation request available for processing
+func (dpm *DVEP2PManager) AnnounceValidationRequest(requestID, requestType string, priority int, requirements, metadata map[string]string) error {
+	if dpm.IsNetworkPaused() {
+		return fmt.Errorf("network is paused, cannot announce validation request")
+	}
+
+	requestData := ValidationRequestData{
+		RequestID:    requestID,
+		Type:         requestType,
+		Priority:     priority,
+		Requirements: requirements,
+		Metadata:     metadata,
+	}
+
+	announcement := DVEAnnouncementMessage{
+		Type:      "validation_request",
+		Action:    "available",
+		ServiceID: dpm.serviceID,
+		ChainID:   dpm.chainID,
+		NodeRole:  dpm.nodeRole,
+		Data:      requestData,
+		Timestamp: time.Now().Unix(),
+	}
+
+	return dpm.publishDVEAnnouncement(announcement)
+}
+
+// AnnounceValidationResult announces a validation result
+func (dpm *DVEP2PManager) AnnounceValidationResult(requestID, result string, score float64, evidence, metadata map[string]string) error {
+	if dpm.IsNetworkPaused() {
+		return fmt.Errorf("network is paused, cannot announce validation result")
+	}
+
+	resultData := ValidationResultData{
+		RequestID: requestID,
+		Result:    result,
+		Score:     score,
+		Evidence:  evidence,
+		Metadata:  metadata,
+	}
+
+	announcement := DVEAnnouncementMessage{
+		Type:      "validation_result",
+		Action:    "completed",
+		ServiceID: dpm.serviceID,
+		ChainID:   dpm.chainID,
+		NodeRole:  dpm.nodeRole,
+		Data:      resultData,
+		Timestamp: time.Now().Unix(),
+	}
+
+	return dpm.publishDVEAnnouncement(announcement)
+}
+
+// AnnounceNodeStatus announces the current node status
+func (dpm *DVEP2PManager) AnnounceNodeStatus(nodeID, status string, capabilities []string, load float64, metadata map[string]string) error {
+	if dpm.IsNetworkPaused() {
+		return fmt.Errorf("network is paused, cannot announce node status")
+	}
+
+	statusData := NodeStatusData{
+		NodeID:       nodeID,
+		Status:       status,
+		Capabilities: capabilities,
+		Load:         load,
+		Metadata:     metadata,
+	}
+
+	announcement := DVEAnnouncementMessage{
+		Type:      "node_status",
+		Action:    "updated",
+		ServiceID: dpm.serviceID,
+		ChainID:   dpm.chainID,
+		NodeRole:  dpm.nodeRole,
+		Data:      statusData,
+		Timestamp: time.Now().Unix(),
+	}
+
+	return dpm.publishDVEAnnouncement(announcement)
+}
+
+// publishDVEAnnouncement publishes a DVE announcement to the DHT
+func (dpm *DVEP2PManager) publishDVEAnnouncement(announcement DVEAnnouncementMessage) error {
+	msgBytes, err := json.Marshal(announcement)
+	if err != nil {
+		return fmt.Errorf("failed to marshal DVE announcement: %w", err)
+	}
+
+	if err := dpm.dveAnnouncementTopic.Publish(dpm.ctx, msgBytes); err != nil {
+		return fmt.Errorf("failed to publish DVE announcement: %w", err)
+	}
+
+	log.Printf("[DVE][%s] Published %s %s announcement",
+		dpm.nodeRole, announcement.Action, announcement.Type)
+	return nil
 }

@@ -24,9 +24,10 @@
 /nexus-portal/* http://localhost:8084/:splat 302
 /nexus/* http://localhost:8084/:splat 302
 
-# Agent Developer Portal - redirect to main KNIRVGATEWAY
+# Agent Developer Portal - redirect to production KNIRVGATEWAY (removed from testnet-gateway)
 /agent-developer-portal/* https://knirv.com/agent-developer-portal/:splat 302
 /agent-portal/* https://knirv.com/agent-developer-portal/:splat 302
+/developer-portal/* https://knirv.com/agent-developer-portal/:splat 302
 
 # Static assets for testnet-gateway
 /assets/* /assets/:splat 200

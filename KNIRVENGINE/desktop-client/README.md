@@ -119,8 +119,8 @@ The KNIRVENGINE employs a modular, service-oriented architecture:
 
 1. **Clone the Repository:**
    ```bash
-   git clone https://github.com/guiperry/Agentic-Engine.git
-   cd Agentic-Engine
+   git clone https://github.com/guiperry/KNIRV-Engine.git
+   cd KNIRV-Engine
    ```
 
 2. **Configure Environment Variables:**

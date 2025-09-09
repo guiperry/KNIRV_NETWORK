@@ -1,4 +1,5 @@
 import { api } from './api';
+import knirvoracleService from './knirvoracleService';
 
 // KNIRVCONTROLLER connection status
 export interface ControllerConnectionStatus {
@@ -174,8 +175,38 @@ class WalletService {
   // Balance and Assets (requires controller connection)
   async getBalance(): Promise<WalletBalance> {
     await this.ensureWalletAvailable();
-    const response = await api.get(`${this.baseUrl}/balance`);
-    return response.data;
+
+    try {
+      // Get current active account
+      const accounts = await this.getAccounts();
+      const activeAccount = accounts.find(acc => acc.isActive);
+
+      if (activeAccount) {
+        // Try to get balance from KNIRVORACLE first
+        try {
+          const knirvoracleBalance = await knirvoracleService.getWalletBalance(activeAccount.address);
+
+          if (knirvoracleBalance.success) {
+            return {
+              total: knirvoracleBalance.balance,
+              available: knirvoracleBalance.balance,
+              pending: '0',
+              nrnBalance: knirvoracleBalance.nrn_balance,
+              usdValue: knirvoracleBalance.usd_value
+            };
+          }
+        } catch (knirvoracleError) {
+          console.warn('Failed to get balance from KNIRVORACLE, falling back to local API:', knirvoracleError);
+        }
+      }
+
+      // Fallback to local API
+      const response = await api.get(`${this.baseUrl}/balance`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get wallet balance:', error);
+      throw error;
+    }
   }
 
   async getNRNBalance(): Promise<NRNBalance> {
@@ -205,8 +236,43 @@ class WalletService {
   }
 
   async sendTransaction(request: TransactionRequest): Promise<WalletTransaction> {
-    const response = await api.post(`${this.baseUrl}/send`, request);
-    return response.data;
+    try {
+      // Try KNIRVORACLE transaction first
+      const knirvoracleRequest = {
+        from: request.from,
+        to: request.to,
+        amount: request.amount,
+        token: request.token || 'NRN',
+        memo: request.memo,
+        gas_fee: request.gasLimit
+      };
+
+      const knirvoracleResponse = await knirvoracleService.sendTransaction(knirvoracleRequest);
+
+      if (knirvoracleResponse.success) {
+        // Convert KNIRVORACLE response to WalletTransaction format
+        return {
+          id: knirvoracleResponse.transaction_id,
+          hash: knirvoracleResponse.tx_hash,
+          from: request.from,
+          to: request.to,
+          amount: request.amount,
+          token: request.token,
+          status: knirvoracleResponse.status === 'confirmed' ? 'confirmed' : 'pending',
+          timestamp: Date.now(),
+          skillId: request.skillId,
+          nrnConsumed: request.nrnAmount
+        };
+      } else {
+        throw new Error(knirvoracleResponse.message || 'KNIRVORACLE transaction failed');
+      }
+    } catch (knirvoracleError) {
+      console.warn('KNIRVORACLE transaction failed, falling back to local API:', knirvoracleError);
+
+      // Fallback to local API
+      const response = await api.post(`${this.baseUrl}/send`, request);
+      return response.data;
+    }
   }
 
   async signTransaction(transactionData: any): Promise<string> {
@@ -239,11 +305,42 @@ class WalletService {
 
   // Faucet Operations (for testnet)
   async requestFaucet(address: string, amount?: string): Promise<WalletTransaction> {
-    const response = await api.post(`${this.baseUrl}/faucet`, {
-      address,
-      amount: amount || '100'
-    });
-    return response.data;
+    try {
+      // Try KNIRVORACLE faucet first
+      const faucetRequest = {
+        address,
+        amount: amount || '100',
+        reason: 'Desktop client faucet request'
+      };
+
+      const knirvoracleResponse = await knirvoracleService.requestFaucet(faucetRequest);
+
+      if (knirvoracleResponse.success) {
+        // Convert KNIRVORACLE response to WalletTransaction format
+        return {
+          id: knirvoracleResponse.request_id,
+          hash: knirvoracleResponse.tx_hash,
+          from: 'faucet',
+          to: address,
+          amount: knirvoracleResponse.amount,
+          token: 'NRN',
+          status: knirvoracleResponse.status === 'completed' ? 'confirmed' : 'pending',
+          timestamp: Date.now(),
+          fee: '0'
+        };
+      } else {
+        throw new Error(knirvoracleResponse.message || 'KNIRVORACLE faucet request failed');
+      }
+    } catch (knirvoracleError) {
+      console.warn('KNIRVORACLE faucet failed, falling back to local API:', knirvoracleError);
+
+      // Fallback to local API
+      const response = await api.post(`${this.baseUrl}/faucet`, {
+        address,
+        amount: amount || '100'
+      });
+      return response.data;
+    }
   }
 
   // Wallet Connection and Authentication

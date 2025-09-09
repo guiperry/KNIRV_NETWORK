@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Comprehensive Test Runner for Agentic-Engine
+# Comprehensive Test Runner for KNIRV-Engine
 # This script runs the complete test suite with proper setup and cleanup
 
 set -e  # Exit on any error
@@ -27,7 +27,7 @@ PASSED_TESTS=0
 FAILED_TESTS=0
 SKIPPED_TESTS=0
 
-echo -e "${BLUE}🚀 Agentic-Engine Comprehensive Test Suite${NC}"
+echo -e "${BLUE}🚀 KNIRV-Engine Comprehensive Test Suite${NC}"
 echo -e "${BLUE}===========================================${NC}"
 echo -e "Project Root: ${PROJECT_ROOT}"
 echo -e "Test Mode: ${TEST_MODE}"

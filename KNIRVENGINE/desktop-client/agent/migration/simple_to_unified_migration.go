@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"Agentic_Engine/agent"
-	"Agentic_Engine/database"
+	"KNIRV_Engine/agent"
+	"KNIRV_Engine/database"
 )
 
 // SimpleToUnifiedMigrator handles migration from SimpleAgentRepository to UnifiedAgentStorage

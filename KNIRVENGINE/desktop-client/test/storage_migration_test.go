@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"Agentic_Engine/agent"
-	"Agentic_Engine/agent/migration"
-	"Agentic_Engine/database"
+	"KNIRV_Engine/agent"
+	"KNIRV_Engine/agent/migration"
+	"KNIRV_Engine/database"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -12,7 +12,7 @@ import (
 
 	// Use gollm types for messages if needed here, or keep them internal to delegator
 
-	"Agentic_Engine/database"
+	"KNIRV_Engine/database"
 
 	gollm "github.com/guiperry/gollm_cerebras"
 	"github.com/guiperry/gollm_cerebras/config"

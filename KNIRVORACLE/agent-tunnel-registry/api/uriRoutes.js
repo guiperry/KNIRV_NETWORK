@@ -7,7 +7,7 @@ const axios = require('axios');
 
 const router = express.Router();
 
-// Generates a agent:// URI that implies tunneling through this server if the node is tunneled
+// Generates a knirv:// URI that implies tunneling through this server if the node is tunneled
 router.post('/generate', (req, res) => {
     const { devId, resourceType = 'dev', subPath = '' } = req.body; // Node requesting URI generation
     
@@ -39,9 +39,9 @@ router.post('/generate', (req, res) => {
         // Generate and return the URI
         let uri;
         if (nodeInfo.isTunneled) {
-            uri = `agent://${config.serverPublicHost}/${resourceSpecificId}.${resourceType}${subPath ? '/' + subPath.replace(/^\//, '') : ''}`;
+            uri = `knirv://${config.serverPublicHost}/${resourceSpecificId}.${resourceType}${subPath ? '/' + subPath.replace(/^\//, '') : ''}`;
         } else {
-            uri = `agent://${nodeInfo.publicIp || nodeInfo.devId}/${resourceSpecificId}.${resourceType}${subPath ? '/' + subPath.replace(/^\//, '') : ''}`;
+            uri = `knirv://${nodeInfo.publicIp || nodeInfo.devId}/${resourceSpecificId}.${resourceType}${subPath ? '/' + subPath.replace(/^\//, '') : ''}`;
         }
         
         // Announce the resource on the DHT
@@ -70,9 +70,9 @@ router.post('/generate', (req, res) => {
         // Generate and return the URI
         let uri;
         if (nodeInfo.isTunneled) {
-            uri = `agent://${config.serverPublicHost}/${resourceSpecificId}.${resourceType}${subPath ? '/' + subPath.replace(/^\//, '') : ''}`;
+            uri = `knirv://${config.serverPublicHost}/${resourceSpecificId}.${resourceType}${subPath ? '/' + subPath.replace(/^\//, '') : ''}`;
         } else {
-            uri = `agent://${nodeInfo.publicIp || nodeInfo.devId}/${resourceSpecificId}.${resourceType}${subPath ? '/' + subPath.replace(/^\//, '') : ''}`;
+            uri = `knirv://${nodeInfo.publicIp || nodeInfo.devId}/${resourceSpecificId}.${resourceType}${subPath ? '/' + subPath.replace(/^\//, '') : ''}`;
         }
 
         // Try to announce the resource on the DHT (optional for testing)
@@ -94,7 +94,7 @@ router.post('/generate', (req, res) => {
     });
 });
 
-// Client calls this to understand how to connect given a agent:// URI
+// Client calls this to understand how to connect given a knirv:// URI
 router.get('/resolve', (req, res) => {
     const { uri } = req.query;
     if (!uri) {
@@ -103,8 +103,8 @@ router.get('/resolve', (req, res) => {
 
     try {
         // Parse the URI to extract components
-        // agent://<bootnode_authority>/<identifier>.<type>/[<subpath>][?<query>]
-        const schemePrefix = "agent://";
+        // knirv://<bootnode_authority>/<identifier>.<type>/[<subpath>][?<query>]
+        const schemePrefix = "knirv://";
         if (!uri.startsWith(schemePrefix)) {
             return res.status(400).json({ error: 'Invalid URI scheme' });
         }

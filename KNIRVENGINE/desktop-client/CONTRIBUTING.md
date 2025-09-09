@@ -30,9 +30,9 @@ This project and everyone participating in it is governed by our [Code of Conduc
 
 ### Reporting Bugs
 
-If you find a bug, please ensure the bug was not already reported by searching on GitHub under [Issues](https://github.com/Inc-liner/Agentic-Engine/issues).
+If you find a bug, please ensure the bug was not already reported by searching on GitHub under [Issues](https://github.com/Inc-liner/KNIRV-Engine/issues).
 
-If you're unable to find an open issue addressing the problem, [open a new one](https://github.com/inc-liner/Agentic-Engine/issues/new). Be sure to include a **title and clear description**, as much relevant information as possible, and a **code sample or an executable test case** demonstrating the expected behavior that is not occurring.
+If you're unable to find an open issue addressing the problem, [open a new one](https://github.com/inc-liner/KNIRV-Engine/issues/new). Be sure to include a **title and clear description**, as much relevant information as possible, and a **code sample or an executable test case** demonstrating the expected behavior that is not occurring.
 
 Provide information about your environment:
 - Operating System
@@ -63,7 +63,7 @@ Unsure where to begin contributing? You can start by looking through `good first
 ### Pull Requests
 
 1.  **Fork the repository**: Click the "Fork" button on the top right of the KNIRVENGINE GitHub page.
-2.  **Clone your fork**: `git clone https://github.com/inc-liner/Agentic-Engine.git`
+2.  **Clone your fork**: `git clone https://github.com/inc-liner/KNIRV-Engine.git`
 3.  **Create a new branch**: `git checkout -b feature/your-feature-name` or `fix/your-bug-fix-name`.
 4.  **Make your changes**: Implement your feature or bug fix.
 5.  **Commit your changes**: Use clear and descriptive commit messages (see Commit Messages).

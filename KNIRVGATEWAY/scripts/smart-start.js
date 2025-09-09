@@ -8,11 +8,14 @@
 const { execSync, spawn } = require('child_process');
 const HealthChecker = require('./check-health.js');
 const NexusHealthChecker = require('./check-nexus-health.js');
+const { DHTStarter } = require('./start-dht.js');
 
 class SmartStart {
     constructor() {
         this.maxRetries = 2;
         this.currentRetry = 0;
+        this.dhtStarter = null;
+        this.dhtEnabled = process.env.KNIRV_DHT_ENABLED !== 'false';
     }
 
     log(message, type = 'info') {
@@ -68,6 +71,56 @@ class SmartStart {
         } catch (error) {
             this.log(`Auto-fix failed: ${error.message}`, 'error');
             return false;
+        }
+    }
+
+    async initializeDHT() {
+        if (!this.dhtEnabled) {
+            this.log('DHT service disabled, skipping initialization');
+            return true;
+        }
+
+        this.log('Initializing DHT service...');
+
+        try {
+            this.dhtStarter = new DHTStarter();
+            const success = await this.dhtStarter.initialize();
+
+            if (success) {
+                this.log('DHT service initialized successfully', 'success');
+                return true;
+            } else {
+                this.log('DHT service initialization failed', 'warn');
+                // Don't fail the entire startup if DHT fails
+                return true;
+            }
+        } catch (error) {
+            this.log(`DHT initialization error: ${error.message}`, 'warn');
+            // Don't fail the entire startup if DHT fails
+            return true;
+        }
+    }
+
+    async startDHT() {
+        if (!this.dhtEnabled || !this.dhtStarter) {
+            return true;
+        }
+
+        this.log('Starting DHT service...');
+
+        try {
+            const success = await this.dhtStarter.start();
+
+            if (success) {
+                this.log('DHT service started successfully', 'success');
+            } else {
+                this.log('DHT service failed to start', 'warn');
+            }
+
+            return true; // Don't fail startup if DHT fails
+        } catch (error) {
+            this.log(`DHT start error: ${error.message}`, 'warn');
+            return true; // Don't fail startup if DHT fails
         }
     }
 
@@ -142,14 +195,12 @@ class SmartStart {
             // Handle graceful shutdown
             process.on('SIGINT', () => {
                 this.log('Shutting down...');
-                netlifyProcess.kill('SIGINT');
-                process.exit(0);
+                this.shutdown(netlifyProcess);
             });
-            
+
             process.on('SIGTERM', () => {
                 this.log('Shutting down...');
-                netlifyProcess.kill('SIGTERM');
-                process.exit(0);
+                this.shutdown(netlifyProcess);
             });
             
             return true;
@@ -158,6 +209,22 @@ class SmartStart {
             this.log(`Failed to start netlify dev: ${error.message}`, 'error');
             return false;
         }
+    }
+
+    async shutdown(netlifyProcess) {
+        if (this.dhtStarter) {
+            try {
+                await this.dhtStarter.shutdown();
+            } catch (error) {
+                this.log(`Error shutting down DHT: ${error.message}`, 'error');
+            }
+        }
+
+        if (netlifyProcess) {
+            netlifyProcess.kill('SIGINT');
+        }
+
+        process.exit(0);
     }
 
     async smartStart() {
@@ -193,6 +260,12 @@ class SmartStart {
             this.log('Auto-fix completed. Re-running health checks...', 'info');
         }
 
+        // Initialize DHT service
+        const dhtInitSuccessful = await this.initializeDHT();
+        if (!dhtInitSuccessful) {
+            this.log('DHT initialization failed. Continuing without DHT...', 'warn');
+        }
+
         // Initialize applications
         const initSuccessful = await this.initializeApplications();
         if (!initSuccessful) {
@@ -206,7 +279,13 @@ class SmartStart {
             this.log('Build failed. Cannot start gateway.', 'error');
             process.exit(1);
         }
-        
+
+        // Start DHT service
+        const dhtStartSuccessful = await this.startDHT();
+        if (!dhtStartSuccessful) {
+            this.log('DHT service failed to start. Continuing without DHT...', 'warn');
+        }
+
         // Start the development server
         const startSuccessful = await this.startNetlifyDev();
         if (!startSuccessful) {

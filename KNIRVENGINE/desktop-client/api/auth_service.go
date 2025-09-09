@@ -1,7 +1,7 @@
 package api
 
 import (
-	"Agentic_Engine/database"
+	"KNIRV_Engine/database"
 	"context"
 	"crypto/rand"
 	"encoding/base64"

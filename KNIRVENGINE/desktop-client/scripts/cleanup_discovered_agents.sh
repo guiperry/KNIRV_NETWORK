@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Default paths
-DEFAULT_CONFIG_DIR="$HOME/.config/Agentic-Engine"
+DEFAULT_CONFIG_DIR="$HOME/.config/KNIRV-Engine"
 DEFAULT_DB_PATH="$DEFAULT_CONFIG_DIR/data/domain.db"
 DEFAULT_PLUGINS_DIR="$DEFAULT_CONFIG_DIR/plugins"
 
@@ -36,7 +36,7 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Options:"
             echo "  --dry-run           Show what would be deleted without making changes"
-            echo "  --config-dir DIR    Use custom config directory (default: ~/.config/Agentic-Engine)"
+            echo "  --config-dir DIR    Use custom config directory (default: ~/.config/KNIRV-Engine)"
             echo "  --help, -h          Show this help message"
             echo ""
             echo "Examples:"
@@ -56,7 +56,7 @@ done
 DB_PATH="$CONFIG_DIR/data/domain.db"
 PLUGINS_DIR="$CONFIG_DIR/plugins"
 
-echo -e "${BLUE}🧹 Agentic-Engine Agent Cleanup Script${NC}"
+echo -e "${BLUE}🧹 KNIRV-Engine Agent Cleanup Script${NC}"
 echo ""
 echo -e "${BLUE}📂 Config directory: ${NC}$CONFIG_DIR"
 echo -e "${BLUE}📂 Database path: ${NC}$DB_PATH"
@@ -118,11 +118,11 @@ if [ -f "$DB_PATH" ] && command -v sqlite3 &> /dev/null; then
     
     # Try to show agent count (this is a simplified approach)
     # Note: chromem-go uses a different storage format, so this might not work perfectly
-    echo -e "${YELLOW}💡 To see current agents, use the Agentic-Engine UI or check the database directly.${NC}"
+    echo -e "${YELLOW}💡 To see current agents, use the KNIRV-Engine UI or check the database directly.${NC}"
 fi
 
 echo ""
 echo -e "${BLUE}🎯 Next steps:${NC}"
-echo -e "   1. Start Agentic-Engine: ${GREEN}./scripts/run_production.sh${NC}"
+echo -e "   1. Start KNIRV-Engine: ${GREEN}./scripts/run_production.sh${NC}"
 echo -e "   2. Create new agents using the 'Create Agent' button in the UI"
 echo -e "   3. Built agents will have working terminal functionality"

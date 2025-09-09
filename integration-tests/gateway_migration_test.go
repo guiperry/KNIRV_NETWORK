@@ -3,7 +3,6 @@ package integration_tests
 import (
 	"bufio"
 	"context"
-	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -15,11 +14,11 @@ import (
 
 // GatewayMigrationTestConfig holds configuration for gateway migration tests
 type GatewayMigrationTestConfig struct {
-	GatewayURL      string
-	KNIRVRootURL    string
-	NetlifyDevPort  string
-	TestTimeout     time.Duration
-	ScriptsPath     string
+	GatewayURL     string
+	KNIRVRootURL   string
+	NetlifyDevPort string
+	TestTimeout    time.Duration
+	ScriptsPath    string
 }
 
 // GatewayResponse represents a response from the gateway
@@ -94,11 +93,9 @@ func testMigrationScriptsExist(t *testing.T, config *GatewayMigrationTestConfig)
 
 // testGatewayFunctionsOperational tests that gateway functions are working
 func testGatewayFunctionsOperational(t *testing.T, config *GatewayMigrationTestConfig) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.TestTimeout)
-	defer cancel()
 
 	// Test gateway health
-	resp, err := makeHTTPRequest(ctx, "GET", config.GatewayURL+"/gateway/health", nil)
+	resp, err := makeHTTPRequest("GET", config.GatewayURL+"/gateway/health", nil)
 	if err != nil {
 		t.Fatalf("Failed to call gateway health: %v", err)
 	}
@@ -111,7 +108,7 @@ func testGatewayFunctionsOperational(t *testing.T, config *GatewayMigrationTestC
 	}
 
 	// Test gateway services
-	resp, err = makeHTTPRequest(ctx, "GET", config.GatewayURL+"/gateway/services", nil)
+	resp, err = makeHTTPRequest("GET", config.GatewayURL+"/gateway/services", nil)
 	if err != nil {
 		t.Fatalf("Failed to call gateway services: %v", err)
 	}
@@ -124,7 +121,7 @@ func testGatewayFunctionsOperational(t *testing.T, config *GatewayMigrationTestC
 	}
 
 	// Test gateway metrics
-	resp, err = makeHTTPRequest(ctx, "GET", config.GatewayURL+"/gateway/metrics", nil)
+	resp, err = makeHTTPRequest("GET", config.GatewayURL+"/gateway/metrics", nil)
 	if err != nil {
 		t.Fatalf("Failed to call gateway metrics: %v", err)
 	}
@@ -165,11 +162,9 @@ func testSSEFunctionality(t *testing.T, config *GatewayMigrationTestConfig) {
 
 // testServiceProxyFunctionality tests service proxy functionality
 func testServiceProxyFunctionality(t *testing.T, config *GatewayMigrationTestConfig) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.TestTimeout)
-	defer cancel()
 
 	// Test proxy to KNIRVORACLE (should work if KNIRVORACLE is running)
-	resp, err := makeHTTPRequest(ctx, "GET", config.GatewayURL+"/health", nil)
+	resp, err := makeHTTPRequest("GET", config.GatewayURL+"/health", nil)
 	if err != nil {
 		t.Logf("⚠️  Service proxy test skipped (KNIRVORACLE not running): %v", err)
 		return
@@ -188,11 +183,9 @@ func testServiceProxyFunctionality(t *testing.T, config *GatewayMigrationTestCon
 
 // testEconomicsIntegration tests economics integration
 func testEconomicsIntegration(t *testing.T, config *GatewayMigrationTestConfig) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.TestTimeout)
-	defer cancel()
 
 	// Test economics health through gateway
-	resp, err := makeHTTPRequest(ctx, "GET", config.GatewayURL+"/economics/health", nil)
+	resp, err := makeHTTPRequest("GET", config.GatewayURL+"/economics/health", nil)
 	if err != nil {
 		t.Logf("⚠️  Economics integration test skipped (service not running): %v", err)
 		return
@@ -211,7 +204,7 @@ func testEconomicsIntegration(t *testing.T, config *GatewayMigrationTestConfig) 
 // testCompleteMigrationValidation runs the complete migration validation script
 func testCompleteMigrationValidation(t *testing.T, config *GatewayMigrationTestConfig) {
 	scriptPath := filepath.Join(config.ScriptsPath, "validate-complete-migration.sh")
-	
+
 	// Check if script exists
 	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
 		t.Skip("Migration validation script not found, skipping")
@@ -230,7 +223,7 @@ func testCompleteMigrationValidation(t *testing.T, config *GatewayMigrationTestC
 
 	cmd := exec.CommandContext(ctx, "bash", scriptPath)
 	cmd.Dir = filepath.Dir(scriptPath)
-	
+
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Logf("Migration validation script output:\n%s", string(output))
@@ -251,21 +244,7 @@ func testCompleteMigrationValidation(t *testing.T, config *GatewayMigrationTestC
 	t.Logf("Migration validation output:\n%s", outputStr)
 }
 
-// Helper functions
-
-// makeHTTPRequest makes an HTTP request with context
-func makeHTTPRequest(ctx context.Context, method, url string, body io.Reader) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, method, url, body)
-	if err != nil {
-		return nil, err
-	}
-
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-
-	return client.Do(req)
-}
+// Helper functions are defined in test_constants.go
 
 // testSSEEndpoint tests a Server-Sent Events endpoint
 func testSSEEndpoint(ctx context.Context, url string) bool {
@@ -326,7 +305,7 @@ func TestGatewayMigrationScripts(t *testing.T) {
 // testScript tests a specific script
 func testScript(t *testing.T, scriptsPath, scriptName string) {
 	scriptPath := filepath.Join(scriptsPath, scriptName)
-	
+
 	// Check if script exists
 	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
 		t.Skipf("Script not found: %s", scriptPath)

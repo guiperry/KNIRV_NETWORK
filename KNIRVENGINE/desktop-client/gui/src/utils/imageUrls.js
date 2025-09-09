@@ -1,15 +1,15 @@
 /**
- * Default agent image - Agentify logo
+ * Default agent image - KNIRV logo
  * @type {string}
  */
 export const defaultAgentImage = (() => {
   // Check if we're running in Electron
   if (typeof window !== 'undefined' && window.electronAPI) {
     // In Electron, we'll get the asset path dynamically
-    return 'ELECTRON_ASSET:Agentify_logo_2.png';
+    return 'ELECTRON_ASSET:knirv-logo.png';
   } else {
     // In web context (development)
-    return './Agentify_logo_2.png';
+    return './knirv-logo.png';
   }
 })();
 
@@ -21,11 +21,11 @@ export const defaultAgentImage = (() => {
 export const sampleAgentImages = [
   (() => {
     if (typeof window !== 'undefined' && window.electronAPI) {
-      return 'ELECTRON_ASSET:Agentify_logo_2.png';
+      return 'ELECTRON_ASSET:knirv-logo.png';
     } else {
-      return './Agentify_logo_2.png';
+      return './knirv-logo.png';
     }
-  })(), // Default Agentify logo as first option
+  })(), // Default KNIRV logo as first option
   'https://images.pexels.com/photos/5380664/pexels-photo-5380664.jpeg?auto=compress&cs=tinysrgb&w=400',
   'https://images.pexels.com/photos/5380617/pexels-photo-5380617.jpeg?auto=compress&cs=tinysrgb&w=400',
   'https://images.pexels.com/photos/5380613/pexels-photo-5380613.jpeg?auto=compress&cs=tinysrgb&w=400',
@@ -44,7 +44,7 @@ export const getRandomAgentImage = () => {
 };
 
 /**
- * Get the default agent image (Agentify logo)
+ * Get the default agent image (KNIRV logo)
  * @returns {string} The default agent image URL
  */
 export const getDefaultAgentImage = () => {
@@ -52,7 +52,7 @@ export const getDefaultAgentImage = () => {
 };
 
 /**
- * Get the application logo (Agentify logo)
+ * Get the application logo (KNIRV logo)
  * @returns {string} The application logo URL
  */
 export const getAppLogo = () => {
@@ -71,7 +71,7 @@ export const resolveImagePath = async (imagePath) => {
       return await window.electronAPI.getAssetPath(filename);
     } catch (error) {
       console.error('Failed to get asset path:', error);
-      return './Agentify_logo_2.png'; // Fallback
+      return './knirv-logo.png'; // Fallback
     }
   }
   return imagePath;

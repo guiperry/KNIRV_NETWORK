@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"Agentic_Engine/agentify"
-	"Agentic_Engine/utils"
+	"KNIRV_Engine/agentify"
+	"KNIRV_Engine/utils"
 )
 
 // ExampleInferenceService for demonstration
@@ -238,7 +238,7 @@ func main() {
 	fmt.Println("```go")
 	fmt.Println("package main")
 	fmt.Println("")
-	fmt.Println("import \"Agentic_Engine/agentify\"")
+	fmt.Println("import \"KNIRV_Engine/agentify\"")
 	fmt.Println("")
 	fmt.Println("type MyAgent struct {")
 	fmt.Println("    *agentify.BaseAgentPlugin")

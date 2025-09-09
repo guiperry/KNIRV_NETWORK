@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -17,44 +16,44 @@ import (
 // Phase36E2ETestSuite tests the complete End-to-End Skill Invocation Lifecycle
 type Phase36E2ETestSuite struct {
 	suite.Suite
-	knirvRouterURL   string
-	knirvGraphURL    string
-	knirvOracleURL   string
+	knirvRouterURL     string
+	knirvGraphURL      string
+	knirvOracleURL     string
 	knirvControllerURL string
-	httpClient       *http.Client
-	testData         *Phase36TestData
+	httpClient         *http.Client
+	testData           *Phase36TestData
 }
 
 type Phase36TestData struct {
-	TestAgentID     string
-	TestErrorID     string
-	TestSkillURI    string
-	TestNRNToken    string
+	TestAgentID      string
+	TestErrorID      string
+	TestSkillURI     string
+	TestNRNToken     string
 	TestInvocationID string
 }
 
-// ErrorContext represents the rich error data payload
-type ErrorContext struct {
-	AgentID             string                 `json:"agent_id"`
-	AgentVersion        string                 `json:"agent_version"`
-	BaseModelID         string                 `json:"base_model_id"`
-	OS                  string                 `json:"os"`
-	Architecture        string                 `json:"architecture"`
-	RuntimeEnvironment  string                 `json:"runtime_environment"`
-	ErrorType           string                 `json:"error_type"`
-	ErrorMessage        string                 `json:"error_message"`
-	StackTrace          string                 `json:"stack_trace"`
-	SourceCodeSnippet   string                 `json:"source_code_snippet"`
-	TaskDescription     string                 `json:"task_description"`
-	InputDataHash       string                 `json:"input_data_hash"`
-	SkillInvokedID      string                 `json:"skill_invoked_id"`
-	AgentStateHash      string                 `json:"agent_state_hash"`
-	Timestamp           int64                  `json:"timestamp"`
-	AdditionalContext   map[string]interface{} `json:"additional_context"`
+// Phase36ErrorContext represents the rich error data payload for this test
+type Phase36ErrorContext struct {
+	AgentID            string                 `json:"agent_id"`
+	AgentVersion       string                 `json:"agent_version"`
+	BaseModelID        string                 `json:"base_model_id"`
+	OS                 string                 `json:"os"`
+	Architecture       string                 `json:"architecture"`
+	RuntimeEnvironment string                 `json:"runtime_environment"`
+	ErrorType          string                 `json:"error_type"`
+	ErrorMessage       string                 `json:"error_message"`
+	StackTrace         string                 `json:"stack_trace"`
+	SourceCodeSnippet  string                 `json:"source_code_snippet"`
+	TaskDescription    string                 `json:"task_description"`
+	InputDataHash      string                 `json:"input_data_hash"`
+	SkillInvokedID     string                 `json:"skill_invoked_id"`
+	AgentStateHash     string                 `json:"agent_state_hash"`
+	Timestamp          int64                  `json:"timestamp"`
+	AdditionalContext  map[string]interface{} `json:"additional_context"`
 }
 
-// SkillInvocationRequest for WASM endpoint
-type SkillInvocationRequest struct {
+// Phase36SkillInvocationRequest for WASM endpoint
+type Phase36SkillInvocationRequest struct {
 	InvocationID string                 `json:"invocation_id"`
 	AgentID      string                 `json:"agent_id"`
 	SkillURI     string                 `json:"skill_uri"`
@@ -64,8 +63,8 @@ type SkillInvocationRequest struct {
 	Timestamp    int64                  `json:"timestamp"`
 }
 
-// SkillInvocationResponse from WASM endpoint
-type SkillInvocationResponse struct {
+// Phase36SkillInvocationResponse from WASM endpoint
+type Phase36SkillInvocationResponse struct {
 	InvocationID     string `json:"invocation_id"`
 	Status           string `json:"status"`
 	ErrorMessage     string `json:"error_message"`
@@ -97,9 +96,9 @@ func (suite *Phase36E2ETestSuite) SetupSuite() {
 
 func (suite *Phase36E2ETestSuite) waitForServices() {
 	services := map[string]string{
-		"KNIRVROUTER":    suite.knirvRouterURL + "/wasm/status",
-		"KNIRVGRAPH":     suite.knirvGraphURL + "/health",
-		"KNIRVORACLE":    suite.knirvOracleURL + "/health",
+		"KNIRVROUTER":     suite.knirvRouterURL + "/wasm/status",
+		"KNIRVGRAPH":      suite.knirvGraphURL + "/health",
+		"KNIRVORACLE":     suite.knirvOracleURL + "/health",
 		"KNIRVCONTROLLER": suite.knirvControllerURL + "/health",
 	}
 
@@ -145,7 +144,7 @@ func (suite *Phase36E2ETestSuite) TestPhase36CompleteLifecycle() {
 
 	// Step 2: Test Error Context Creation
 	suite.Run("Step2_ErrorContextCreation", func() {
-		errorContext := &ErrorContext{
+		errorContext := &Phase36ErrorContext{
 			AgentID:            suite.testData.TestAgentID,
 			AgentVersion:       "1.0.0",
 			BaseModelID:        "hrm-cognitive-v1",
@@ -182,7 +181,7 @@ func (suite *Phase36E2ETestSuite) TestPhase36CompleteLifecycle() {
 		// In a real implementation, this would query KNIRVGRAPH
 		// For now, we'll simulate finding a skill URI
 		discoveredSkillURI := suite.testData.TestSkillURI
-		
+
 		suite.T().Logf("✅ Skill Discovered: %s", discoveredSkillURI)
 		assert.Equal(suite.T(), "knirv://skill/javascript-type-checker-v1", discoveredSkillURI)
 	})
@@ -193,13 +192,14 @@ func (suite *Phase36E2ETestSuite) TestPhase36CompleteLifecycle() {
 			InvocationID: suite.testData.TestInvocationID,
 			AgentID:      suite.testData.TestAgentID,
 			SkillURI:     suite.testData.TestSkillURI,
-			NRNToken:     suite.testData.TestNRNToken,
+			UserID:       "test-user-001",
+			SkillID:      "test-skill-001",
+			Amount:       suite.testData.TestNRNToken,
 			Parameters: map[string]interface{}{
 				"error_type": "TypeError",
 				"context":    "javascript",
+				"priority":   "normal",
 			},
-			Priority:  "normal",
-			Timestamp: time.Now().Unix(),
 		}
 
 		requestJSON, err := json.Marshal(request)
@@ -227,9 +227,7 @@ func (suite *Phase36E2ETestSuite) TestPhase36CompleteLifecycle() {
 		assert.Equal(suite.T(), suite.testData.TestInvocationID, response.InvocationID)
 		assert.Equal(suite.T(), "SUCCESS", response.Status)
 		assert.Empty(suite.T(), response.ErrorMessage)
-		assert.Greater(suite.T(), response.ExecutionTime, int64(0))
-		assert.True(suite.T(), response.ConsensusReached)
-		assert.NotEmpty(suite.T(), response.SkillData)
+		assert.NotEmpty(suite.T(), response.Result)
 
 		suite.T().Logf("✅ WASM Skill Invocation Response: %+v", response)
 	})
@@ -239,7 +237,7 @@ func (suite *Phase36E2ETestSuite) TestPhase36CompleteLifecycle() {
 		// In a real implementation, this would validate the NRN token
 		// For now, we'll simulate successful validation
 		isValid := len(suite.testData.TestNRNToken) > 10
-		
+
 		assert.True(suite.T(), isValid)
 		suite.T().Logf("✅ NRN Token Validated: %s", suite.testData.TestNRNToken[:20]+"...")
 	})

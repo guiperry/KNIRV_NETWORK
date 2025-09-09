@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 
-	"Agentic_Engine/agentify"
-	"Agentic_Engine/api"
+	"KNIRV_Engine/agentify"
+	"KNIRV_Engine/api"
 )
 
 func TestGaps(t *testing.T) {

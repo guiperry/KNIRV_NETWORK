@@ -444,7 +444,7 @@ class TestEconomicsErrorHandling:
     """Test error handling in Economics service."""
 
     @responses.activate
-    def test_network_error(self, client):
+    async def test_network_error(self, client):
         """Test handling network errors."""
         responses.add(
             responses.GET,
@@ -453,10 +453,10 @@ class TestEconomicsErrorHandling:
         )
 
         with pytest.raises(KNIRVAPIError):
-            client.economics.skills.list()
+            await client.economics.skills.list()
 
     @responses.activate
-    def test_server_error(self, client):
+    async def test_server_error(self, client):
         """Test handling server errors."""
         responses.add(
             responses.GET,
@@ -466,23 +466,23 @@ class TestEconomicsErrorHandling:
         )
 
         with pytest.raises(KNIRVAPIError) as exc_info:
-            client.economics.skills.list()
-        
+            await client.economics.skills.list()
+
         assert exc_info.value.status_code == 500
 
     @responses.activate
-    def test_timeout_error(self, client):
+    async def test_timeout_error(self, client):
         """Test handling timeout errors."""
-        with patch('requests.Session.request') as mock_request:
+        with patch('httpx.AsyncClient.request') as mock_request:
             mock_request.side_effect = TimeoutError("Request timed out")
-            
-            with pytest.raises(KNIRVAPIError):
-                client.economics.skills.list()
 
-    def test_invalid_parameters(self, client):
+            with pytest.raises(KNIRVAPIError):
+                await client.economics.skills.list()
+
+    async def test_invalid_parameters(self, client):
         """Test handling invalid parameters."""
-        with pytest.raises(ValueError):
-            client.economics.skills.get("")  # Empty skill ID
+        with pytest.raises(KNIRVAPIError):
+            await client.economics.skills.get("")  # Empty skill ID
         
         with pytest.raises(ValueError):
             client.economics.skills.list(page=0)  # Invalid page number

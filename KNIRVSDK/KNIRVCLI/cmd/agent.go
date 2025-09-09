@@ -19,7 +19,7 @@ var agentLog = logrus.New()
 var AgentCmd = &cobra.Command{
 	Use:   "agent",
 	Short: "Manage agents and agent plugins",
-	Long: `Register and manage agents and their compiled WASM plugins on the AGENTCHAIN blockchain.
+	Long: `Register and manage agents and their compiled WASM plugins on the KNIRVORACLE blockchain.
 This command handles agent-centric operations including plugin registration and deployment.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
@@ -48,7 +48,7 @@ type AgentPluginRegistrationData struct {
 var agentCreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create a new agent",
-	Long: `Create a new agent on the AGENTCHAIN blockchain.
+	Long: `Create a new agent on the KNIRVORACLE blockchain.
 
 Example:
   agentchain-cli agent create --node http://localhost:8080 --wallet ./my-wallet.json \
@@ -63,7 +63,7 @@ Example:
 var agentRegisterPluginCmd = &cobra.Command{
 	Use:   "register-plugin",
 	Short: "Register a compiled WASM plugin for an agent",
-	Long: `Register a compiled WASM plugin for an existing agent on the AGENTCHAIN blockchain.
+	Long: `Register a compiled WASM plugin for an existing agent on the KNIRVORACLE blockchain.
 
 This command will:
 - Verify the agent exists
@@ -85,7 +85,7 @@ Example:
 var agentListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List agents",
-	Long: `List agents on the AGENTCHAIN blockchain.
+	Long: `List agents on the KNIRVORACLE blockchain.
 
 Example:
   agentchain-cli agent list --node http://localhost:8080`,
@@ -118,7 +118,7 @@ func init() {
 	AgentCmd.AddCommand(agentInfoCmd)
 
 	// agent create flags
-	agentCreateCmd.Flags().String("node", "", "URL of the AGENTCHAIN node")
+	agentCreateCmd.Flags().String("node", "", "URL of the KNIRVORACLE node")
 	agentCreateCmd.Flags().String("wallet", "", "Path to wallet file")
 	agentCreateCmd.Flags().String("from", "", "Address of the sender")
 	agentCreateCmd.Flags().String("name", "", "Name of the agent")
@@ -130,7 +130,7 @@ func init() {
 	agentCreateCmd.Flags().String("password", "", "Wallet password")
 
 	// agent register-plugin flags
-	agentRegisterPluginCmd.Flags().String("node", "", "URL of the AGENTCHAIN node")
+	agentRegisterPluginCmd.Flags().String("node", "", "URL of the KNIRVORACLE node")
 	agentRegisterPluginCmd.Flags().String("wallet", "", "Path to wallet file")
 	agentRegisterPluginCmd.Flags().String("from", "", "Address of the sender")
 	agentRegisterPluginCmd.Flags().String("agent-id", "", "ID of the agent")
@@ -140,12 +140,12 @@ func init() {
 	agentRegisterPluginCmd.Flags().String("password", "", "Wallet password")
 
 	// agent list flags
-	agentListCmd.Flags().String("node", "", "URL of the AGENTCHAIN node")
+	agentListCmd.Flags().String("node", "", "URL of the KNIRVORACLE node")
 	agentListCmd.Flags().String("owner", "", "Filter by owner address")
 	agentListCmd.Flags().String("type", "", "Filter by agent type")
 
 	// agent info flags
-	agentInfoCmd.Flags().String("node", "", "URL of the AGENTCHAIN node")
+	agentInfoCmd.Flags().String("node", "", "URL of the KNIRVORACLE node")
 	agentInfoCmd.Flags().String("agent-id", "", "ID of the agent")
 
 	// Mark required flags

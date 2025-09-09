@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"Agentic_Engine/utils"
+	"KNIRV_Engine/utils"
 )
 
 // MigrationManager handles data migration between application versions

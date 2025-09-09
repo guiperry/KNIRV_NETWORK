@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Documentation - KNIRV Developer Portal</title>
+    <meta name="description" content="Interactive API documentation for the KNIRV D-TEN network">
+    <link rel="shortcut icon" href="favicon.png">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Swagger UI CSS -->
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css" />
+
+    <!-- Custom CSS with original design system -->
+    <link rel="stylesheet" href="css/portal.css">
+
+    <style>
+        /* Custom Swagger UI styling to match KNIRV theme */
+        .swagger-ui {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .swagger-ui .topbar {
+            background: linear-gradient(135deg, var(--knirv-purple) 0%, var(--bright-blue) 100%);
+            border-bottom: 1px solid var(--transparent-white-1);
+        }
+        
+        .swagger-ui .topbar .download-url-wrapper {
+            display: none;
+        }
+        
+        .swagger-ui .info {
+            margin: 20px 0;
+        }
+        
+        .swagger-ui .info .title {
+            color: var(--bright-blue);
+            font-size: 2rem;
+            font-weight: 600;
+        }
+        
+        .swagger-ui .scheme-container {
+            background: var(--transparent-white-05);
+            border: 1px solid var(--transparent-white-1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .swagger-ui .opblock {
+            border: 1px solid var(--transparent-white-1);
+            border-radius: 10px;
+            margin: 10px 0;
+            background: var(--transparent-white-05);
+        }
+        
+        .swagger-ui .opblock.opblock-get .opblock-summary {
+            border-color: var(--bright-blue);
+        }
+        
+        .swagger-ui .opblock.opblock-post .opblock-summary {
+            border-color: var(--knirv-purple);
+        }
+        
+        .swagger-ui .opblock.opblock-put .opblock-summary {
+            border-color: #f59e0b;
+        }
+        
+        .swagger-ui .opblock.opblock-delete .opblock-summary {
+            border-color: #ef4444;
+        }
+        
+        .swagger-ui .btn.authorize {
+            background: linear-gradient(135deg, var(--knirv-purple) 0%, var(--bright-blue) 100%);
+            border: none;
+            color: white;
+        }
+        
+        .swagger-ui .btn.authorize:hover {
+            background: linear-gradient(135deg, var(--bright-blue) 0%, var(--knirv-purple) 100%);
+        }
+        
+        /* Dark theme adjustments */
+        .swagger-ui {
+            background: var(--dark-bg);
+            color: var(--white);
+        }
+        
+        .swagger-ui .wrapper {
+            background: transparent;
+        }
+        
+        .swagger-ui .info .description {
+            color: var(--transparent-white-7);
+        }
+        
+        .swagger-ui .parameter__name {
+            color: var(--bright-blue);
+        }
+        
+        .swagger-ui .response-col_status {
+            color: var(--knirv-purple);
+        }
+        
+        /* Custom header styling */
+        .api-header {
+            background: linear-gradient(135deg, var(--dark-bg) 0%, rgba(43, 86, 245, 0.1) 100%);
+            padding: 30px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--transparent-white-1);
+        }
+        
+        .api-header h1 {
+            color: var(--bright-blue);
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .api-header p {
+            color: var(--transparent-white-7);
+            font-size: 1.1rem;
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .api-selector {
+            background: var(--transparent-white-05);
+            border: 1px solid var(--transparent-white-1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .api-selector h3 {
+            color: var(--knirv-purple);
+            margin-bottom: 15px;
+        }
+        
+        .api-selector select {
+            background: var(--transparent-white-1);
+            border: 1px solid var(--transparent-white-2);
+            border-radius: 5px;
+            color: var(--white);
+            padding: 10px;
+            width: 100%;
+            font-size: 1rem;
+        }
+        
+        .api-selector select:focus {
+            outline: none;
+            border-color: var(--bright-blue);
+        }
+    </style>
+</head>
+
+<body class="nk-body body-wider theme-dark mode-onepage">
+    <div class="nk-wrap">
+        <!-- Navigation -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-brain"></i>
+                    <span>KNIRV Portal</span>
+                </div>
+            </div>
+            <a href="index.html" class="nav-item">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="core-concepts.html" class="nav-item">
+                <i class="fas fa-brain"></i>
+                <span>Core Concepts</span>
+            </a>
+            <a href="getting-started.html" class="nav-item">
+                <i class="fas fa-rocket"></i>
+                <span>Getting Started</span>
+            </a>
+            <a href="agent-management.html" class="nav-item">
+                <i class="fas fa-robot"></i>
+                <span>Agent Management</span>
+            </a>
+            <a href="skill-registry.html" class="nav-item">
+                <i class="fas fa-cogs"></i>
+                <span>Skill Registry</span>
+            </a>
+            <a href="udc-management.html" class="nav-item">
+                <i class="fas fa-certificate"></i>
+                <span>UDC Management</span>
+            </a>
+            <a href="agent-skill-exchange.html" class="nav-item">
+                <i class="fas fa-exchange-alt"></i>
+                <span>Agent/Skill Exchange</span>
+            </a>
+            <a href="error-node-explorer.html" class="nav-item">
+                <i class="fas fa-search"></i>
+                <span>ErrorNode Explorer</span>
+            </a>
+            <a href="api-sdk.html" class="nav-item">
+                <i class="fas fa-code"></i>
+                <span>API & SDK</span>
+            </a>
+            <a href="swagger-ui.html" class="nav-item active">
+                <i class="fas fa-file-code"></i>
+                <span>API Documentation</span>
+            </a>
+            <a href="wallet-management.html" class="nav-item">
+                <i class="fas fa-wallet"></i>
+                <span>KNIRV Wallets</span>
+            </a>
+            <a href="tesnet-sandbox.html" class="nav-item">
+                <i class="fas fa-flask"></i>
+                <span>TESNET & Sandbox</span>
+            </a>
+            <a href="community-support.html" class="nav-item">
+                <i class="fas fa-users"></i>
+                <span>Community & Support</span>
+            </a>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Custom Header -->
+            <div class="api-header">
+                <div class="container">
+                    <h1><i class="fas fa-file-code" style="margin-right: 15px;"></i>API Documentation</h1>
+                    <p>Interactive API documentation for the KNIRV D-TEN network. Explore endpoints, test requests, and understand response formats.</p>
+                </div>
+            </div>
+
+            <!-- API Selector -->
+            <div class="container">
+                <div class="api-selector">
+                    <h3><i class="fas fa-server" style="margin-right: 10px;"></i>Select API Service</h3>
+                    <select id="apiSelector" onchange="loadAPI()">
+                        <option value="unified">Unified Gateway API</option>
+                        <option value="oracle">KNIRV-ORACLE API</option>
+                        <option value="engine">KNIRV-ENGINE API</option>
+                        <option value="controller">KNIRV-CONTROLLER API</option>
+                    </select>
+                </div>
+
+                <!-- Swagger UI Container -->
+                <div id="swagger-ui"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Swagger UI Bundle -->
+    <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-standalone-preset.js"></script>
+
+    <!-- Custom JavaScript -->
+    <script src="js/portal.js"></script>
+    <script>
+        // API specifications
+        const apiSpecs = {
+            unified: {
+                openapi: "3.0.0",
+                info: {
+                    title: "KNIRV Unified Gateway API",
+                    description: "Unified API Gateway for the KNIRV D-TEN network providing single entry point for all services",
+                    version: "1.0.0"
+                },
+                servers: [
+                    {
+                        url: "http://localhost:8000",
+                        description: "Development server"
+                    },
+                    {
+                        url: "https://api.knirv.com",
+                        description: "Production server"
+                    }
+                ],
+                paths: {
+                    "/gateway/health": {
+                        get: {
+                            summary: "System Health Check",
+                            description: "Returns overall system health status for all KNIRV services",
+                            tags: ["Health"],
+                            responses: {
+                                "200": {
+                                    description: "System health status",
+                                    content: {
+                                        "application/json": {
+                                            schema: {
+                                                type: "object",
+                                                properties: {
+                                                    status: { type: "string", example: "healthy" },
+                                                    timestamp: { type: "string", format: "date-time" },
+                                                    services: {
+                                                        type: "object",
+                                                        properties: {
+                                                            knirvchain: { type: "string", example: "healthy" },
+                                                            knirvgraph: { type: "string", example: "healthy" },
+                                                            knirvnexus: { type: "string", example: "healthy" },
+                                                            knirvoracle: { type: "string", example: "healthy" },
+                                                            knirvrouter: { type: "string", example: "healthy" }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "/gateway/metrics": {
+                        get: {
+                            summary: "System Metrics",
+                            description: "Returns performance metrics for all KNIRV services",
+                            tags: ["Monitoring"],
+                            responses: {
+                                "200": {
+                                    description: "Performance metrics",
+                                    content: {
+                                        "application/json": {
+                                            schema: {
+                                                type: "object",
+                                                properties: {
+                                                    timestamp: { type: "string", format: "date-time" },
+                                                    metrics: {
+                                                        type: "object",
+                                                        properties: {
+                                                            cpu_usage: { type: "number", example: 45.2 },
+                                                            memory_usage: { type: "number", example: 67.8 },
+                                                            active_connections: { type: "integer", example: 142 },
+                                                            requests_per_second: { type: "number", example: 23.5 }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "/gateway/services": {
+                        get: {
+                            summary: "Service Discovery",
+                            description: "Returns available services and their endpoints",
+                            tags: ["Discovery"],
+                            responses: {
+                                "200": {
+                                    description: "Available services",
+                                    content: {
+                                        "application/json": {
+                                            schema: {
+                                                type: "object",
+                                                properties: {
+                                                    services: {
+                                                        type: "array",
+                                                        items: {
+                                                            type: "object",
+                                                            properties: {
+                                                                name: { type: "string", example: "knirv-oracle" },
+                                                                endpoint: { type: "string", example: "http://localhost:8083" },
+                                                                status: { type: "string", example: "healthy" },
+                                                                version: { type: "string", example: "1.0.0" }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "/auth/login": {
+                        post: {
+                            summary: "User Authentication",
+                            description: "Authenticate user and receive JWT token",
+                            tags: ["Authentication"],
+                            requestBody: {
+                                required: true,
+                                content: {
+                                    "application/json": {
+                                        schema: {
+                                            type: "object",
+                                            required: ["username", "password"],
+                                            properties: {
+                                                username: { type: "string", example: "user@example.com" },
+                                                password: { type: "string", example: "password123" }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            responses: {
+                                "200": {
+                                    description: "Authentication successful",
+                                    content: {
+                                        "application/json": {
+                                            schema: {
+                                                type: "object",
+                                                properties: {
+                                                    token: { type: "string", example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
+                                                    expires_in: { type: "integer", example: 3600 },
+                                                    user: {
+                                                        type: "object",
+                                                        properties: {
+                                                            id: { type: "string", example: "user_123" },
+                                                            username: { type: "string", example: "user@example.com" },
+                                                            roles: { type: "array", items: { type: "string" }, example: ["developer", "user"] }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                "401": {
+                                    description: "Authentication failed",
+                                    content: {
+                                        "application/json": {
+                                            schema: {
+                                                type: "object",
+                                                properties: {
+                                                    error: { type: "string", example: "Invalid credentials" }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            oracle: {
+                openapi: "3.0.0",
+                info: {
+                    title: "KNIRV-ORACLE API",
+                    description: "KNIRV-ORACLE blockchain API for agent management and NRN token operations",
+                    version: "1.0.0"
+                },
+                servers: [
+                    {
+                        url: "http://localhost:8083",
+                        description: "Development server"
+                    }
+                ],
+                components: {
+                    securitySchemes: {
+                        bearerAuth: {
+                            type: "http",
+                            scheme: "bearer",
+                            bearerFormat: "JWT"
+                        }
+                    }
+                },
+                security: [
+                    {
+                        bearerAuth: []
+                    }
+                ],
+                paths: {
+                    "/api/agents/register": {
+                        post: {
+                            summary: "Register New Agent",
+                            description: "Register a new agent on the KNIRV-ORACLE blockchain",
+                            tags: ["Agent Management"],
+                            security: [{ bearerAuth: [] }],
+                            requestBody: {
+                                required: true,
+                                content: {
+                                    "application/json": {
+                                        schema: {
+                                            type: "object",
+                                            required: ["name", "description", "capabilities", "owner"],
+                                            properties: {
+                                                name: { type: "string", example: "My Agent" },
+                                                description: { type: "string", example: "Agent description" },
+                                                capabilities: { type: "array", items: { type: "string" }, example: ["skill1", "skill2"] },
+                                                owner: { type: "string", example: "user_id" }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            responses: {
+                                "201": {
+                                    description: "Agent registered successfully",
+                                    content: {
+                                        "application/json": {
+                                            schema: {
+                                                type: "object",
+                                                properties: {
+                                                    agent_id: { type: "string", example: "agent_123" },
+                                                    status: { type: "string", example: "registered" },
+                                                    transaction_hash: { type: "string", example: "0x1234567890abcdef" }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "/api/economics/balance/{address}": {
+                        get: {
+                            summary: "Get NRN Balance",
+                            description: "Get NRN token balance for a specific address",
+                            tags: ["Economics"],
+                            parameters: [
+                                {
+                                    name: "address",
+                                    in: "path",
+                                    required: true,
+                                    schema: { type: "string" },
+                                    example: "knirv1abc123def456"
+                                }
+                            ],
+                            responses: {
+                                "200": {
+                                    description: "Balance retrieved successfully",
+                                    content: {
+                                        "application/json": {
+                                            schema: {
+                                                type: "object",
+                                                properties: {
+                                                    address: { type: "string", example: "knirv1abc123def456" },
+                                                    balance: { type: "number", example: 1000.50 },
+                                                    currency: { type: "string", example: "NRN" }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        // Initialize Swagger UI
+        function initSwaggerUI(spec) {
+            SwaggerUIBundle({
+                url: null,
+                spec: spec,
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "StandaloneLayout",
+                theme: "dark"
+            });
+        }
+
+        // Load API based on selection
+        function loadAPI() {
+            const selector = document.getElementById('apiSelector');
+            const selectedAPI = selector.value;
+            
+            if (apiSpecs[selectedAPI]) {
+                initSwaggerUI(apiSpecs[selectedAPI]);
+            } else {
+                // For APIs with external OpenAPI files
+                let apiUrl = '';
+                switch(selectedAPI) {
+                    case 'oracle':
+                        apiUrl = '/documentation/openapi/knirvoracle.yaml';
+                        break;
+                    case 'engine':
+                        apiUrl = '/documentation/openapi/knirvengine.yaml';
+                        break;
+                    case 'controller':
+                        apiUrl = '/documentation/openapi/knirvcontroller.yaml';
+                        break;
+                }
+                
+                if (apiUrl) {
+                    SwaggerUIBundle({
+                        url: apiUrl,
+                        dom_id: '#swagger-ui',
+                        deepLinking: true,
+                        presets: [
+                            SwaggerUIBundle.presets.apis,
+                            SwaggerUIStandalonePreset
+                        ],
+                        plugins: [
+                            SwaggerUIBundle.plugins.DownloadUrl
+                        ],
+                        layout: "StandaloneLayout"
+                    });
+                }
+            }
+        }
+
+        // Initialize with default API
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAPI();
+        });
+    </script>
+
+    <!-- Additional Scripts -->
+    <script src="js/config-loader.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="../js/universal-footer.js"></script>
+</body>
+</html>

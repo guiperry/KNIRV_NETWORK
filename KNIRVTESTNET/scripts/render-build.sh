@@ -64,7 +64,7 @@ print_status "Current directory contents:"
 ls -la || print_error "Failed to list current directory"
 
 print_status "Checking for key directories and files:"
-for item in "data" "data/testnet-gateway" "config" "scripts" "package.json" "render.yaml" "testnet-gateway.Dockerfile"; do
+for item in "data" "data/testnet-gateway" "config" "scripts" "package.json" "config/render.yml" "testnet-gateway.Dockerfile"; do
     if [ -e "$item" ]; then
         print_success "✓ $item exists"
         if [ -d "$item" ]; then
@@ -84,7 +84,7 @@ if [ "$RENDER" = "true" ] || [ -n "$RENDER_SERVICE_ID" ]; then
     print_status "Service Name: ${RENDER_SERVICE_NAME:-'not set'}"
     print_status "External URL: ${RENDER_EXTERNAL_URL:-'not set'}"
 
-    # On Render, the Docker builds are handled automatically by render.yaml
+    # On Render, the Docker builds are handled automatically by config/render.yml
     # This script just needs to prepare any additional assets
 
     print_status "=== PHASE 1: PREPARING TESTNET-GATEWAY ASSETS ==="
@@ -172,13 +172,13 @@ if [ "$RENDER" = "true" ] || [ -n "$RENDER_SERVICE_ID" ]; then
     # Set proper permissions
     chmod -R 755 config data 2>/dev/null || print_warning "Could not set permissions (may not be needed)"
 
-    print_status "=== PHASE 4: VERIFYING RENDER.YAML ==="
-    if [ -f "render.yaml" ]; then
-        print_success "render.yaml found"
-        print_status "render.yaml contents (first 20 lines):"
-        head -20 render.yaml | sed 's/^/  /' || print_warning "Could not read render.yaml"
+    print_status "=== PHASE 4: VERIFYING RENDER.YML ==="
+    if [ -f "config/render.yml" ]; then
+        print_success "config/render.yml found"
+        print_status "config/render.yml contents (first 20 lines):"
+        head -20 config/render.yml | sed 's/^/  /' || print_warning "Could not read config/render.yml"
     else
-        print_error "render.yaml not found!"
+        print_error "config/render.yml not found!"
         exit 1
     fi
 
@@ -252,11 +252,11 @@ if [ "$RENDER" = "true" ] || [ -n "$RENDER_SERVICE_ID" ]; then
     print_success "  ├── Testnet Gateway: Assets prepared, ready for nginx serving"
     print_success "  ├── Backend Services: All Dockerfiles verified and ready"
     print_success "  ├── Configuration: Directories created and permissions set"
-    print_success "  ├── render.yaml: Verified and ready for Render orchestration"
+    print_success "  ├── config/render.yml: Verified and ready for Render orchestration"
     print_success "  └── Dependencies: Testnet gateway dependencies installed"
     echo ""
     print_status "🚀 NEXT STEPS:"
-    print_status "  1. Render will automatically build Docker images using render.yaml"
+    print_status "  1. Render will automatically build Docker images using config/render.yml"
     print_status "  2. Services will be deployed according to the service definitions"
     print_status "  3. The testnet-gateway will be publicly accessible"
     print_status "  4. Backend services will communicate via internal networking"

@@ -55,10 +55,10 @@ const LoadingScreen = ({
       <div className="relative z-10 flex flex-col items-center space-y-8 max-w-md mx-auto px-6">
         {/* Large app logo */}
         <div className="relative">
-          <div className="w-32 h-32 bg-white rounded-2xl p-4 shadow-2xl shadow-purple-500/20">
+          <div className="w-32 h-32 bg-white rounded-2xl p-4 shadow-2xl shadow-blue-500/20">
             <img
               src={logoPath}
-              alt="KNIRVENGINE Logo"
+              alt="KNIRV Engine Logo"
               className="w-full h-full object-contain"
               onError={(e) => {
                 // Fallback if logo fails to load
@@ -67,11 +67,11 @@ const LoadingScreen = ({
               }}
             />
             {/* Fallback logo */}
-            <div 
-              className="w-full h-full bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg items-center justify-center text-white font-bold text-2xl hidden"
+            <div
+              className="w-full h-full bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg items-center justify-center text-white font-bold text-2xl hidden"
               style={{ display: 'none' }}
             >
-              AE
+              KE
             </div>
           </div>
           

@@ -38,6 +38,49 @@ type BlockchainServer struct {
 	p2pPort          int
 	testMode         bool        // Flag indicating if running in test mode
 	xionBridge       *XionBridge // XION bridge integration
+	consensusManager *P2PConsensusManager // Reference to consensus manager for network pause checking
+	fm               *FailoverManager     // Reference to failover manager
+}
+
+// NewBlockchainServerWithFailover creates a new BlockchainServer with failover integration
+func NewBlockchainServerWithFailover(port uint64, blockchain *BlockchainStruct, db *LevelDB, discoveryMgr DiscoveryService, p2pPort int, consensusMgr *P2PConsensusManager, failoverMgr *FailoverManager) *BlockchainServer {
+	bcs := NewBlockchainServer(port, blockchain, db, discoveryMgr, p2pPort)
+	bcs.consensusManager = consensusMgr
+	bcs.fm = failoverMgr
+	return bcs
+}
+
+// isNetworkPaused checks if the network is currently paused for maintenance or failover
+func (bcs *BlockchainServer) isNetworkPaused() bool {
+	// Check with consensus manager first (newer failover system)
+	if bcs.consensusManager != nil {
+		return bcs.consensusManager.IsNetworkPaused()
+	}
+
+	// Fallback to failover manager check
+	if bcs.fm != nil {
+		return bcs.fm.IsNetworkPaused()
+	}
+
+	// Default to not paused if no coordination managers available
+	return false
+}
+
+// checkNetworkPauseAndRejectIfPaused checks if network is paused and returns HTTP error if so
+func (bcs *BlockchainServer) checkNetworkPauseAndRejectIfPaused(w http.ResponseWriter, endpoint string) bool {
+	if bcs.isNetworkPaused() {
+		log.Printf("[FAILOVER] Network is paused - rejecting %s transaction", endpoint)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":   "Service temporarily unavailable",
+			"message": "Network is currently under maintenance or failover is in progress. Please try again in a few minutes.",
+			"paused":  true,
+			"endpoint": endpoint,
+		})
+		return true
+	}
+	return false
 }
 
 var pendingRegistrations = struct {
@@ -711,6 +754,11 @@ func (bcs *BlockchainServer) handleGetReflections(w http.ResponseWriter, r *http
 }
 
 func (bcs *BlockchainServer) handleAddReflection(w http.ResponseWriter, r *http.Request) {
+	// Check if network is paused and reject transaction if so
+	if bcs.checkNetworkPauseAndRejectIfPaused(w, "add_reflection") {
+		return
+	}
+	
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -727,6 +775,11 @@ func (bcs *BlockchainServer) handleAddReflection(w http.ResponseWriter, r *http.
 }
 
 func (bcs *BlockchainServer) handleReceiveBlock(w http.ResponseWriter, r *http.Request) {
+	// Check if network is paused and reject transaction if so
+	if bcs.checkNetworkPauseAndRejectIfPaused(w, "block") {
+		return
+	}
+	
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -783,6 +836,11 @@ func (bcs *BlockchainServer) handleReceiveBlock(w http.ResponseWriter, r *http.R
 }
 
 func (bcs *BlockchainServer) HandleReceiveTransaction(w http.ResponseWriter, r *http.Request) {
+	// Check if network is paused and reject transaction if so
+	if bcs.checkNetworkPauseAndRejectIfPaused(w, "transaction") {
+		return
+	}
+	
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -1343,6 +1401,11 @@ func (bcs *BlockchainServer) handleTestFaucet(w http.ResponseWriter, r *http.Req
 
 // handleMCPRegisterCapabilityInitiate - Step 1 of 2-step registration
 func (bcs *BlockchainServer) handleMCPRegisterCapabilityInitiate(w http.ResponseWriter, r *http.Request) {
+	// Check if network is paused and reject transaction if so
+	if bcs.checkNetworkPauseAndRejectIfPaused(w, "mcp_capability_initiate") {
+		return
+	}
+	
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -1627,6 +1690,11 @@ func (bcs *BlockchainServer) handleMCPRegisterCapabilityInitiate(w http.Response
 
 // handleMCPRegisterCapabilityFinalize - Step 2 of 2-step registration
 func (bcs *BlockchainServer) handleMCPRegisterCapabilityFinalize(w http.ResponseWriter, r *http.Request) {
+	// Check if network is paused and reject transaction if so
+	if bcs.checkNetworkPauseAndRejectIfPaused(w, "mcp_capability_finalize") {
+		return
+	}
+	
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -1817,6 +1885,11 @@ func (bcs *BlockchainServer) handleMCPRegisterCapabilityFinalize(w http.Response
 // handleMCPPrepareCapabilityRegistration prepares the data needed for a capability registration transaction
 // This is part of the new client-side signing flow
 func (bcs *BlockchainServer) handleMCPPrepareCapabilityRegistration(w http.ResponseWriter, r *http.Request) {
+	// Check if network is paused and reject transaction if so
+	if bcs.checkNetworkPauseAndRejectIfPaused(w, "mcp_capability_prepare") {
+		return
+	}
+	
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -2050,6 +2123,11 @@ func (bcs *BlockchainServer) handleMCPPrepareCapabilityRegistration(w http.Respo
 // This endpoint is deprecated and will be removed in a future version.
 // Use /mcp/capability/prepare_registration and /transaction instead.
 func (bcs *BlockchainServer) handleMCPRegisterCapability(w http.ResponseWriter, r *http.Request) {
+	// Check if network is paused and reject transaction if so
+	if bcs.checkNetworkPauseAndRejectIfPaused(w, "mcp_capability_register") {
+		return
+	}
+	
 	// Log deprecation warning
 	log.Printf("[WARNING] Deprecated endpoint /mcp/capability/register used. Please migrate to the two-step registration process.")
 	if r.Method != http.MethodPost {
@@ -2194,6 +2272,11 @@ func (bcs *BlockchainServer) handleMCPRegisterCapability(w http.ResponseWriter, 
 
 // handleMCPInvokeCapability handles the invocation of an MCP capability
 func (bcs *BlockchainServer) handleMCPInvokeCapability(w http.ResponseWriter, r *http.Request) {
+	// Check if network is paused and reject transaction if so
+	if bcs.checkNetworkPauseAndRejectIfPaused(w, "mcp_capability_invoke") {
+		return
+	}
+	
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -2291,6 +2374,11 @@ func (bcs *BlockchainServer) handleMCPInvokeCapability(w http.ResponseWriter, r 
 
 // handleMCPUpdateCapability handles the update of an MCP capability
 func (bcs *BlockchainServer) handleMCPUpdateCapability(w http.ResponseWriter, r *http.Request) {
+	// Check if network is paused and reject transaction if so
+	if bcs.checkNetworkPauseAndRejectIfPaused(w, "mcp_capability_update") {
+		return
+	}
+	
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -2635,7 +2723,7 @@ func (bcs *BlockchainServer) handleMCPListAllContextRecords(w http.ResponseWrite
 // resolveIdentifier checks if the input string is a URI and parses it to get the ID,
 // otherwise returns the input string as is (assuming it's a raw ID).
 func resolveIdentifier(identifierOrURI string) (string, error) {
-	if strings.HasPrefix(identifierOrURI, "agent://") {
+	if strings.HasPrefix(identifierOrURI, "knirv://") {
 		id, _, _, _, err := uri.ParseResourceURI(identifierOrURI) // We only need the ID part here
 		if err != nil {
 			return "", fmt.Errorf("invalid URI format '%s': %w", identifierOrURI, err)

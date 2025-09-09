@@ -41,6 +41,16 @@ sled = "0.34"
 # Networking
 reqwest = { version = "0.11", features = ["json"] }
 
+# P2P and DHT
+libp2p = { version = "0.52", features = ["kad", "gossipsub", "tcp", "noise", "yamux", "identify", "ping", "mdns", "macros", "tokio"] }
+libp2p-kad = "0.44"
+libp2p-gossipsub = "0.45"
+libp2p-swarm = { version = "0.43", features = ["macros"] }
+libp2p-tcp = { version = "0.40", features = ["tokio"] }
+multihash = "0.18"
+cid = "0.10"
+void = "1.0"
+
 # CLI
 clap = { version = "4.0", features = ["derive"] }
 

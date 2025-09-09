@@ -75,8 +75,8 @@ help:
 clean:
 	@echo "Cleaning up build artifacts and release assets..."
 	@rm -rf "$(CLOUD_OUTPUT_DIR)" "$(RELEASE_ASSETS_DIR)"
-	@rm -f "./knirv-engine" "./knirv-engine.exe"
-	@rm -rf "./gui/dist" "./electron/dist"
+	@rm -f "./knirv-engine"* "./knirv-engine.exe"
+	@rm -rf "./gui/dist" "./dist"
 	@echo "Cleanup complete."
 
 # ==================================================================================== #
@@ -108,27 +108,27 @@ cloud-release: cloud-package upload-to-s3
 	@echo "Cloud release $(VERSION) completed successfully!"
 
 # ==================================================================================== #
-# DESKTOP DEPLOYMENT TARGETS
+# DESKTOP DEPLOYMENT TARGETS (Native Go Builds)
 # ==================================================================================== #
 
 # Build desktop application for current platform
 desktop-build:
-	@echo "Building desktop application for current platform..."
+	@echo "Building native desktop application for current platform..."
 	@./scripts/build-desktop.sh build
-	@echo "Desktop build completed. Check electron/dist/ for output."
+	@echo "Desktop build completed. Check dist/ for output."
 
 # Build desktop application for all platforms
 desktop-build-all:
-	@echo "Building desktop application for all platforms..."
+	@echo "Building native desktop application for all platforms..."
 	@./scripts/build-desktop.sh build all
 	@echo "Desktop build completed for all platforms."
 
 # Create desktop release with version management
 desktop-release:
-	@echo "Creating desktop release..."
+	@echo "Creating native desktop release..."
 	@echo "Note: Version management should be handled manually or via separate script"
 	@$(MAKE) desktop-build-all
-	@echo "Desktop release completed. Packages are in electron/dist/"
+	@echo "Desktop release completed. Packages are in dist/"
 
 # Helper macro to process each target platform
 define process_target
@@ -511,7 +511,7 @@ test-cleanup:
 ## test-help: show test command help
 .PHONY: test-help
 test-help:
-	@echo "🧪 Agentic-Engine Test Commands"
+	@echo "🧪 KNIRV-Engine Test Commands"
 	@echo "==============================="
 	@echo ""
 	@echo "Basic Commands:"
@@ -715,23 +715,15 @@ dev:
 	@echo "2. Frontend: make frontend/dev"
 
 # ==================================================================================== #
-# DESKTOP APPLICATION
+# DESKTOP APPLICATION (Native Go)
 # ==================================================================================== #
-
-## desktop/setup: setup Electron dependencies for desktop application
-.PHONY: desktop/setup
-desktop/setup:
-	@echo "Setting up Electron dependencies..."
-	@cd electron && npm install
-	@echo "Electron setup complete."
 
 ## desktop/dev: start desktop application in development mode
 .PHONY: desktop/dev
 desktop/dev:
-	@echo "Starting desktop application in development mode..."
+	@echo "Starting native desktop application in development mode..."
 	@./scripts/build-desktop.sh dev
 
-## Legacy desktop targets - use desktop-build, desktop-build-all, desktop-release instead
 ## desktop/build: build desktop application for current platform (legacy)
 .PHONY: desktop/build
 desktop/build: desktop-build
@@ -739,19 +731,19 @@ desktop/build: desktop-build
 ## desktop/build/linux: build desktop application for Linux (legacy)
 .PHONY: desktop/build/linux
 desktop/build/linux:
-	@echo "Building desktop application for Linux..."
+	@echo "Building native desktop application for Linux..."
 	@./scripts/build-desktop.sh build linux
 
 ## desktop/build/windows: build desktop application for Windows (legacy)
 .PHONY: desktop/build/windows
 desktop/build/windows:
-	@echo "Building desktop application for Windows..."
+	@echo "Building native desktop application for Windows..."
 	@./scripts/build-desktop.sh build windows
 
 ## desktop/build/macos: build desktop application for macOS (legacy)
 .PHONY: desktop/build/macos
 desktop/build/macos:
-	@echo "Building desktop application for macOS..."
+	@echo "Building native desktop application for macOS..."
 	@./scripts/build-desktop.sh build macos
 
 ## desktop/build/all: build desktop application for all platforms (legacy)
@@ -761,11 +753,8 @@ desktop/build/all: desktop-build-all
 ## desktop/clean: clean desktop build artifacts
 .PHONY: desktop/clean
 desktop/clean:
-	@echo "Cleaning desktop build artifacts..."
+	@echo "Cleaning native desktop build artifacts..."
 	@./scripts/build-desktop.sh clean
-
-## Legacy desktop release targets - removed (release.sh was deleted)
-## Use desktop-release target or manual version management instead
 
 ## run/embed: run production binary with embedded frontend
 .PHONY: run/embed

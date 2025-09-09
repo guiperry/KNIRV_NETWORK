@@ -122,7 +122,7 @@ const KEYWORD_MAPPING = {
   'core-concepts/blockchain.md': ['blockchain', 'consensus', 'p2p', 'libp2p'],
   'core-concepts/mcp.md': ['mcp', 'model context protocol', 'contextrecord'],
   'core-concepts/capabilities.md': ['capabilities', 'plugins', 'tools', 'prompts'],
-  'core-concepts/uri-scheme.md': ['uri', 'agent://', 'scheme'],
+  'core-concepts/uri-scheme.md': ['uri', 'knirv://', 'scheme'],
   'api-reference/blockchain-api.md': ['api', 'endpoints', 'http', 'get', 'post'],
   'api-reference/wallet-api.md': ['wallet', 'transaction', 'signing'],
   'api-reference/mcp-api.md': ['mcp', 'api', '/mcp/'],

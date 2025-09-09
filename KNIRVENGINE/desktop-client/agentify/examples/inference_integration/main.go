@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"Agentic_Engine/agentify"
+	"KNIRV_Engine/agentify"
 )
 
 // ExampleInferenceService demonstrates how to integrate with the existing inference service

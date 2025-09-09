@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"Agentic_Engine/api"
-	"Agentic_Engine/database"
+	"KNIRV_Engine/api"
+	"KNIRV_Engine/database"
 )
 
 // TestAPIServer holds the test server and dependencies

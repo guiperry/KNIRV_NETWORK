@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"Agentic_Engine/inference"
+	"KNIRV_Engine/inference"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"

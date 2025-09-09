@@ -752,6 +752,34 @@ func main() {
 	// Store cancel function and wait group in global variables for GUI access
 	// Note: These are declared in altgui.go and used for GUI coordination
 
+	// --- Initialize FailoverManager for Bootnode role ---
+	if nodeRole == config.RoleBootnode && cfg.IsBootnode {
+		// Initialize FailoverManager to monitor root node
+		var rootAPIURL string
+		if cfg.CurrentOracleNodeAPIURL != "" {
+			rootAPIURL = cfg.CurrentOracleNodeAPIURL
+		} else {
+			// Try to construct from root configuration if available
+			log.Println("[FailoverManager] No CurrentOracleNodeAPIURL configured, failover monitoring will be disabled")
+		}
+
+		if rootAPIURL != "" {
+			fm := NewFailoverManager(rootAPIURL, cfg, loadedConfigPath, wm, wallet, nil, cancel)
+			if fm != nil {
+				SetGlobalFailoverManager(fm)
+				log.Printf("[FailoverManager] Initialized for monitoring root at: %s", rootAPIURL)
+				// Start monitoring in a separate goroutine
+				go fm.StartMonitoring()
+				// Ensure cleanup on shutdown
+				defer func() {
+					if fm := GetGlobalFailoverManager(); fm != nil {
+						fm.StopMonitoring()
+					}
+				}()
+			}
+		}
+	}
+
 	// --- Declare variables needed for GUI pre-initialization ---
 	var guiNodeConfig *config.Config = nil // Which config is for the GUI node
 	var guiDB *LevelDB
@@ -1265,7 +1293,7 @@ func main() {
 	log.Println("Application started. Press Ctrl+C to exit.")
 
 	// All roles will now use the graceful waitForShutdownSignal.
-	waitForShutdownSignal(cancel, &wg)
+	waitForShutdownSignal(cancel, &wg, loadedConfigPath, cfg, wm)
 	log.Println("All nodes shut down. Exiting.")
 
 	log.Println("Exiting main KNIRVORACLE function.")
@@ -1960,7 +1988,7 @@ func loadRootNodeParameters(cfg *config.Config) error {
 }
 
 // waitForShutdownSignal waits for SIGINT or SIGTERM and initiates shutdown
-func waitForShutdownSignal(cancel context.CancelFunc, wg *sync.WaitGroup) {
+func waitForShutdownSignal(cancel context.CancelFunc, wg *sync.WaitGroup, configPath string, cfg *config.Config, wm *WalletManager) {
 	// This function is now used by all roles for graceful shutdown.
 
 	// Create a buffered channel to avoid signal loss
@@ -2019,7 +2047,15 @@ func waitForShutdownSignal(cancel context.CancelFunc, wg *sync.WaitGroup) {
 		os.Exit(1)
 	}
 
-	log.Println("All shutdown procedures completed. Exiting normally.")
+	log.Println("All shutdown procedures completed.")
+
+	// Check if this was a failover-triggered shutdown and handle promotion
+	if err := HandleFailoverPromotion(configPath, cfg, wm); err != nil {
+		log.Printf("Failover promotion failed: %v", err)
+		log.Println("Exiting normally without promotion.")
+	}
+
+	log.Println("Exiting normally.")
 }
 
 // integrateInferenceEngineWithDHT integrates the inference engine with the DHT for sharing metrics
@@ -2179,4 +2215,3 @@ func getAgentStatus() map[string]interface{} {
 
 	return status
 }
-

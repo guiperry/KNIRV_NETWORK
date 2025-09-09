@@ -6,13 +6,13 @@
 import { createRxDatabase, RxDatabase, RxCollection, addRxPlugin } from 'rxdb';
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode';
-import { RxDBValidatePlugin } from 'rxdb/plugins/validate';
+// import { RxDBValidatePlugin } from 'rxdb/plugins/validate-ajv';
 
 // Add plugins for development mode
 if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
   addRxPlugin(RxDBDevModePlugin);
 }
-addRxPlugin(RxDBValidatePlugin);
+// addRxPlugin(RxDBValidatePlugin);
 
 // Database interfaces
 interface WalletDocType {
@@ -63,15 +63,18 @@ interface ConversionDocType {
 interface SettingsDocType {
   id: string;
   type: 'settings';
-  walletId: string;
-  autoSync: boolean;
-  biometricEnabled: boolean;
-  notificationsEnabled: boolean;
-  defaultNetwork: 'testnet' | 'mainnet';
-  preferredCurrency: 'USD' | 'NRN' | 'USDC';
-  theme: 'light' | 'dark' | 'auto';
-  createdAt: number;
-  updatedAt: number;
+  key: string;
+  value: string;
+  walletId?: string;
+  autoSync?: boolean;
+  biometricEnabled?: boolean;
+  notificationsEnabled?: boolean;
+  defaultNetwork?: 'testnet' | 'mainnet';
+  preferredCurrency?: 'USD' | 'NRN' | 'USDC';
+  theme?: 'light' | 'dark' | 'auto';
+  timestamp: number;
+  createdAt?: number;
+  updatedAt?: number;
 }
 
 type DatabaseCollections = {
@@ -196,6 +199,8 @@ export class RxDBService {
           properties: {
             id: { type: 'string' },
             type: { type: 'string' },
+            key: { type: 'string' },
+            value: { type: 'string' },
             walletId: { type: 'string' },
             autoSync: { type: 'boolean' },
             biometricEnabled: { type: 'boolean' },
@@ -203,10 +208,11 @@ export class RxDBService {
             defaultNetwork: { type: 'string' },
             preferredCurrency: { type: 'string' },
             theme: { type: 'string' },
+            timestamp: { type: 'number' },
             createdAt: { type: 'number' },
             updatedAt: { type: 'number' }
           },
-          required: ['id', 'type', 'walletId']
+          required: ['id', 'type', 'key', 'value', 'timestamp']
         }
       }
     });

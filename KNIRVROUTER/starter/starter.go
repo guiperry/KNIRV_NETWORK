@@ -475,7 +475,8 @@ func StartRootBlockchain(port uint64, minerAddress string) {
 		FaucetEndpoint:    faucetEndpoint,
 		FaucetClient:      faucetClientAdapter,
 		BlockchainAdapter: blockchainAdapter,
-		MinConnectivity:   70.0, // Minimum connectivity score for rewards
+		PauseChecker:      p2pManager, // P2PManager implements NetworkPauseChecker
+		MinConnectivity:   70.0,       // Minimum connectivity score for rewards
 		MeasurementWindow: time.Minute * 5,
 		RewardMultiplier:  1.0,
 	}

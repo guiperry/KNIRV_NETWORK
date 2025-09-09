@@ -12,7 +12,7 @@ import (
 type TokenEconomics struct {
 	nrnContract      string
 	xionRPC          string
-	KNIRVORACLEDB      LevelDB
+	KNIRVORACLEDB    LevelDB
 	economicRules    *EconomicRules
 	transactionPool  *TransactionPool
 	rewardCalculator *RewardCalculator
@@ -146,7 +146,7 @@ func NewTokenEconomics(nrnContract string, xionRPC string, KNIRVORACLEDB LevelDB
 	economics := &TokenEconomics{
 		nrnContract:      nrnContract,
 		xionRPC:          xionRPC,
-		KNIRVORACLEDB:      KNIRVORACLEDB,
+		KNIRVORACLEDB:    KNIRVORACLEDB,
 		economicRules:    NewDefaultEconomicRules(),
 		transactionPool:  NewTransactionPool(),
 		rewardCalculator: NewRewardCalculator(),
@@ -369,6 +369,35 @@ func (te *TokenEconomics) ProcessValidationReward(validatorID, targetID string, 
 	return tx, nil
 }
 
+func (te *TokenEconomics) ProcessTreasuryReward(treasuryWallet, nrvID string, amount *big.Int) (*EconomicTransaction, error) {
+	te.mutex.Lock()
+	defer te.mutex.Unlock()
+
+	// Create treasury reward transaction for NRV processing
+	tx := &EconomicTransaction{
+		ID:      fmt.Sprintf("treasury_%s_%d", nrvID, time.Now().UnixNano()),
+		Type:    "treasury_reward",
+		From:    "nrv_minting_pool",
+		To:      treasuryWallet,
+		Amount:  amount,
+		Purpose: "nrv_processing_reward",
+		Metadata: map[string]interface{}{
+			"nrv_id":    nrvID,
+			"source":    "knirvrouter",
+			"mint_type": "treasury_reward",
+		},
+		Status:    "pending",
+		Timestamp: time.Now(),
+	}
+
+	te.transactionPool.AddTransaction(tx)
+
+	// Update metrics for treasury operations
+	te.updateServiceMetrics("knirvoracle", amount, "earned")
+
+	return tx, nil
+}
+
 func (te *TokenEconomics) CalculateNetworkFees(gasUsed uint64, priority string) *big.Int {
 	baseGasPrice := big.NewInt(1000) // Base gas price in wei
 
@@ -510,6 +539,8 @@ func (te *TokenEconomics) processTransaction(tx *EconomicTransaction) error {
 		return te.processLLMRegistrationTx(tx)
 	case "validation_reward":
 		return te.processValidationRewardTx(tx)
+	case "treasury_reward":
+		return te.processTreasuryRewardTx(tx)
 	default:
 		return fmt.Errorf("unknown transaction type: %s", tx.Type)
 	}
@@ -541,6 +572,15 @@ func (te *TokenEconomics) processValidationRewardTx(tx *EconomicTransaction) err
 	te.metrics.CirculatingSupply.Add(te.metrics.CirculatingSupply, tx.Amount)
 
 	log.Printf("Minted %s NRN validation reward for %s", tx.Amount.String(), tx.To)
+	return nil
+}
+
+func (te *TokenEconomics) processTreasuryRewardTx(tx *EconomicTransaction) error {
+	// Mint NRN tokens for treasury from NRV processing
+	te.metrics.TotalSupply.Add(te.metrics.TotalSupply, tx.Amount)
+	te.metrics.CirculatingSupply.Add(te.metrics.CirculatingSupply, tx.Amount)
+
+	log.Printf("Minted %s NRN treasury reward for NRV %s", tx.Amount.String(), tx.Metadata["nrv_id"])
 	return nil
 }
 

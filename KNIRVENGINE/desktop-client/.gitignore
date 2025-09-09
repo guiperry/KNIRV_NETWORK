@@ -81,7 +81,7 @@ package-lock.json
 release_assets/*
 
 knirv-engine
-Agentic_Engine
+KNIRV_Engine
 /dist
 .aider*
 

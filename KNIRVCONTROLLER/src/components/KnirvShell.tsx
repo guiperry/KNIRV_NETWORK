@@ -1,21 +1,28 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
-import { Cpu, Zap } from 'lucide-react';
+import { Cpu, Zap, AlertTriangle, FileText, Lightbulb, Plus, X } from 'lucide-react';
 
 interface KnirvShellProps {
   status: 'idle' | 'processing' | 'listening' | 'error';
   nrnBalance: number;
   onScreenshotCapture: () => void;
   cognitiveMode: boolean;
+  onSubmitError?: () => void;
+  onSubmitContext?: () => void;
+  onSubmitIdea?: () => void;
 }
 
 export const KnirvShell: React.FC<KnirvShellProps> = ({
   status,
   nrnBalance,
   onScreenshotCapture,
-  cognitiveMode
+  cognitiveMode,
+  onSubmitError,
+  onSubmitContext,
+  onSubmitIdea
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -59,39 +66,114 @@ export const KnirvShell: React.FC<KnirvShellProps> = ({
           {/* Central Interface */}
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center space-y-6">
-              {/* Status Indicator - Now Clickable */}
-              <button
-                onClick={onScreenshotCapture}
-                className="relative w-32 h-32 mx-auto group cursor-pointer transition-transform hover:scale-105"
-              >
-                <div className={`absolute inset-0 rounded-full transition-all duration-1000 ${
-                  status === 'idle' ? 'bg-green-500/20 border-2 border-green-500/50 group-hover:bg-green-500/30' :
-                  status === 'processing' ? 'bg-blue-500/20 border-2 border-blue-500/50 animate-pulse' :
-                  status === 'listening' ? 'bg-teal-500/20 border-2 border-teal-500/50 animate-pulse' :
-                  'bg-red-500/20 border-2 border-red-500/50'
-                }`}>
-                  <div className="absolute inset-4 rounded-full bg-gradient-to-r from-blue-500 to-teal-500 flex items-center justify-center group-hover:from-blue-400 group-hover:to-teal-400 transition-all">
-                    <Cpu className="w-8 h-8 text-white" />
+              {/* Main Action Button - Expandable */}
+              <div className="relative">
+                {!isExpanded ? (
+                  /* Main Button */
+                  <button
+                    onClick={() => setIsExpanded(true)}
+                    className="relative w-32 h-32 mx-auto group cursor-pointer transition-transform hover:scale-105"
+                  >
+                    <div className={`absolute inset-0 rounded-full transition-all duration-1000 ${
+                      status === 'idle' ? 'bg-green-500/20 border-2 border-green-500/50 group-hover:bg-green-500/30' :
+                      status === 'processing' ? 'bg-blue-500/20 border-2 border-blue-500/50 animate-pulse' :
+                      status === 'listening' ? 'bg-teal-500/20 border-2 border-teal-500/50 animate-pulse' :
+                      'bg-red-500/20 border-2 border-red-500/50'
+                    }`}>
+                      <div className="absolute inset-4 rounded-full bg-gradient-to-r from-blue-500 to-teal-500 flex items-center justify-center group-hover:from-blue-400 group-hover:to-teal-400 transition-all">
+                        <Plus className="w-8 h-8 text-white" />
+                      </div>
+                    </div>
+                    {status === 'processing' && (
+                      <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 animate-spin"></div>
+                    )}
+                  </button>
+                ) : (
+                  /* Expanded 3-Button Interface */
+                  <div className="relative">
+                    {/* Close Button */}
+                    <button
+                      onClick={() => setIsExpanded(false)}
+                      className="absolute -top-4 -right-4 w-8 h-8 bg-gray-700/80 hover:bg-gray-600/80 rounded-full flex items-center justify-center transition-colors z-10"
+                    >
+                      <X className="w-4 h-4 text-gray-300" />
+                    </button>
+
+                    {/* Three Action Buttons */}
+                    <div className="flex items-center justify-center space-x-6">
+                      {/* Submit Error */}
+                      <button
+                        onClick={() => {
+                          onSubmitError?.();
+                          setIsExpanded(false);
+                        }}
+                        className="group relative w-24 h-24 cursor-pointer transition-transform hover:scale-105"
+                      >
+                        <div className="absolute inset-0 rounded-full bg-red-500/20 border-2 border-red-500/50 group-hover:bg-red-500/30 transition-all">
+                          <div className="absolute inset-3 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center group-hover:from-red-400 group-hover:to-red-500 transition-all">
+                            <AlertTriangle className="w-6 h-6 text-white" />
+                          </div>
+                        </div>
+                        <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-xs text-red-400 font-medium whitespace-nowrap">
+                          Submit Error
+                        </div>
+                      </button>
+
+                      {/* Submit Context */}
+                      <button
+                        onClick={() => {
+                          onSubmitContext?.();
+                          setIsExpanded(false);
+                        }}
+                        className="group relative w-24 h-24 cursor-pointer transition-transform hover:scale-105"
+                      >
+                        <div className="absolute inset-0 rounded-full bg-blue-500/20 border-2 border-blue-500/50 group-hover:bg-blue-500/30 transition-all">
+                          <div className="absolute inset-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center group-hover:from-blue-400 group-hover:to-blue-500 transition-all">
+                            <FileText className="w-6 h-6 text-white" />
+                          </div>
+                        </div>
+                        <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-xs text-blue-400 font-medium whitespace-nowrap">
+                          Submit Context
+                        </div>
+                      </button>
+
+                      {/* Submit Idea */}
+                      <button
+                        onClick={() => {
+                          onSubmitIdea?.();
+                          setIsExpanded(false);
+                        }}
+                        className="group relative w-24 h-24 cursor-pointer transition-transform hover:scale-105"
+                      >
+                        <div className="absolute inset-0 rounded-full bg-yellow-500/20 border-2 border-yellow-500/50 group-hover:bg-yellow-500/30 transition-all">
+                          <div className="absolute inset-3 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-600 flex items-center justify-center group-hover:from-yellow-400 group-hover:to-yellow-500 transition-all">
+                            <Lightbulb className="w-6 h-6 text-white" />
+                          </div>
+                        </div>
+                        <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-xs text-yellow-400 font-medium whitespace-nowrap">
+                          Submit Idea
+                        </div>
+                      </button>
+                    </div>
                   </div>
-                </div>
-                {status === 'processing' && (
-                  <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 animate-spin"></div>
                 )}
-              </button>
+              </div>
 
               {/* Status Message */}
               <div className="space-y-2">
                 <h2 className="text-2xl font-bold text-white">
-                  {status === 'idle' && 'Ready for Input'}
-                  {status === 'processing' && 'Processing Request'}
-                  {status === 'listening' && 'Listening...'}
-                  {status === 'error' && 'Error Detected'}
+                  {!isExpanded && status === 'idle' && 'Ready for Data Capture'}
+                  {!isExpanded && status === 'processing' && 'Processing Request'}
+                  {!isExpanded && status === 'listening' && 'Listening...'}
+                  {!isExpanded && status === 'error' && 'Error Detected'}
+                  {isExpanded && 'Choose Data Type'}
                 </h2>
                 <p className="text-gray-400 max-w-md mx-auto">
-                  {status === 'idle' && 'Use voice commands or visual input to identify problems and assign agents.'}
-                  {status === 'processing' && 'The Fabric algorithm is analyzing your input and generating NRV objects.'}
-                  {status === 'listening' && 'Speak clearly to interact with the KNIRV network.'}
-                  {status === 'error' && 'An error has occurred. Please try again or check network connections.'}
+                  {!isExpanded && status === 'idle' && 'Click the + button to capture errors, context, or ideas for the KNIRV network.'}
+                  {!isExpanded && status === 'processing' && 'The Fabric algorithm is analyzing your input and generating NRV objects.'}
+                  {!isExpanded && status === 'listening' && 'Speak clearly to interact with the KNIRV network.'}
+                  {!isExpanded && status === 'error' && 'An error has occurred. Please try again or check network connections.'}
+                  {isExpanded && 'Select the type of data you want to submit to the KNIRV network for processing.'}
                 </p>
               </div>
 

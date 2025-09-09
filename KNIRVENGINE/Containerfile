@@ -1,0 +1,73 @@
+# KNIRVENGINE Podman Containerfile
+# Native Go binary with webview support for Red Hat environments
+FROM registry.fedoraproject.org/fedora:39 AS builder
+
+# Install Go and build dependencies
+RUN dnf install -y golang git webkit2gtk4.0-devel gtk3-devel pkgconfig gcc && \
+    dnf clean all
+
+# Set working directory
+WORKDIR /app
+
+# Copy go.mod and go.sum
+COPY desktop-client/go.mod desktop-client/go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY desktop-client .
+
+# Build the application
+RUN CGO_ENABLED=1 GOOS=linux go build -a -o knirv-engine ./main.go
+
+# Production stage
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
+
+# Install runtime dependencies for webview
+RUN microdnf install -y \
+    webkit2gtk4.0 \
+    gtk3 \
+    curl \
+    ca-certificates && \
+    microdnf clean all
+
+# Create application user
+RUN useradd -r -u 1001 -g 0 knirvengine
+
+# Set working directory
+WORKDIR /app
+
+# Copy binary from builder
+COPY --from=builder --chown=1001:0 /app/knirv-engine .
+
+# Copy static files and configuration
+COPY --from=builder --chown=1001:0 /app/static ./static
+COPY --from=builder --chown=1001:0 /app/gui ./gui
+COPY --from=builder --chown=1001:0 /app/public ./public
+
+# Create data directories
+RUN mkdir -p /app/data /app/logs && \
+    chown -R 1001:0 /app && \
+    chmod -R g+rwX /app
+
+# Switch to non-root user
+USER 1001
+
+# Expose ports
+EXPOSE 8080 8081
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Set environment variables
+ENV KNIRV_ENV=production
+ENV KNIRV_LOG_LEVEL=info
+ENV DISPLAY=:0
+
+# Volume for persistent data
+VOLUME ["/app/data"]
+
+# Run the application
+CMD ["./knirv-engine"]

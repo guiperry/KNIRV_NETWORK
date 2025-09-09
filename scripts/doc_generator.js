@@ -60,7 +60,7 @@ const CONFIG = {
     'knirvrouter': 'KNIRVROUTER Documentation',
     'knirvsdk': 'KNIRVSDK Documentation',
     'knirvcortex': 'KNIRVCORTEX Documentation',
-    'knirvwallet': 'KNIRVWALLET Documentation'
+    'knirvengine': 'KNIRVENGINE Documentation'
   },
   // Special files that should be processed differently
   specialFiles: {
@@ -85,7 +85,7 @@ const CONFIG = {
     'KNIRVROUTER',
     'KNIRVSDK',
     'KNIRVTESTNET',
-    'KNIRVWALLET'
+    'KNIRVENGINE'
   ],
   // Subdirectories to exclude when scanning subproducts
   excludeSubDirs: [
@@ -884,7 +884,7 @@ function determineCategory(subproductName) {
     'KNIRVROUTER': 'knirvrouter',
     'KNIRVSDK': 'knirvsdk',
     'KNIRVCORTEX': 'knirvcortex',
-    'KNIRVWALLET': 'knirvwallet',
+    'KNIRVENGINE': 'knirvengine',
     'KNIRVGATEWAY': 'guides',
     'KNIRVTESTNET': 'deployment'
   };
@@ -979,7 +979,7 @@ async function organizeDocumentationWithAI(hashes) {
       const geminiPrompt = `
 You are a technical documentation organizer for the KNIRV Network project. Analyze this README.md file from the ${fileInfo.subproductName} sub-project and transform it into user-friendly documentation:
 
-1. CATEGORY: Choose the most appropriate category from: guides, deployment, development, api, security, architecture, contribute, legal, knirvchain, knirvgraph, knirvnexus, knirvoracle, knirvrouter, knirvsdk, knirvcortex, knirvwallet
+1. CATEGORY: Choose the most appropriate category from: guides, deployment, development, api, security, architecture, contribute, legal, knirvchain, knirvgraph, knirvnexus, knirvoracle, knirvrouter, knirvsdk, knirvcortex, knirvengine
 2. TITLE: A clear, user-friendly title (e.g., "${fileInfo.subproductName} User Guide" or "${fileInfo.subproductName} Troubleshooting Guide")
 3. DESCRIPTION: A brief 1-2 sentence description (max 160 characters)
 4. PRIVACY_LEVEL: Either "PUBLIC" (safe for external users) or "PRIVATE" (contains admin-only or sensitive information)
@@ -1414,15 +1414,53 @@ function generateDocsifyConfig() {
 
 
 
+function rewriteLinksForDocsify(markdown) {
+  if (!markdown) return markdown;
+  // Rewrite Markdown links to stay within Docsify site
+  // Matches [text](target)
+  return markdown.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, text, target) => {
+    const trimmed = target.trim();
+    // Skip external, anchors, mailto
+    if (/^(https?:)?\/\//i.test(trimmed) || trimmed.startsWith('#') || trimmed.startsWith('mailto:')) {
+      return m;
+    }
+    // Ignore images that use Markdown image syntax ![alt](src) - handled elsewhere
+    // (This replacer won't see the leading !, so safe to proceed.)
+
+    // Strip query/hash for path handling
+    const [pathPart, hashPart] = trimmed.split('#', 2);
+    const [cleanPath, queryPart] = pathPart.split('?', 2);
+
+    // Normalize repo-root style paths like KNIRV*/...
+    const segments = cleanPath.replace(/^\.\//, '').split('/');
+    if (segments.length === 0) return m;
+    // Lowercase first segment to match docsify directory names
+    segments[0] = segments[0].toLowerCase();
+
+    let rewritten = segments.join('/');
+    // Ensure docsify hash routing
+    if (!rewritten.startsWith('#/')) {
+      rewritten = `#/${rewritten}`;
+    }
+    if (queryPart) rewritten += `?${queryPart}`;
+    if (hashPart) rewritten += `#${hashPart}`;
+
+    return `[${text}](${rewritten})`;
+  });
+}
+
 // Write file if content has changed
 function writeFileIfChanged(filePath, content, hashes) {
   const fileKey = `content:${filePath}`;
-  
-  if (!fs.existsSync(filePath) || hasContentChanged(content, fileKey, hashes)) {
+
+  // Apply link rewriting before writing
+  const rewritten = rewriteLinksForDocsify(content);
+
+  if (!fs.existsSync(filePath) || hasContentChanged(rewritten, fileKey, hashes)) {
     ensureDirectoryExists(path.dirname(filePath));
-    fs.writeFileSync(filePath, content);
+    fs.writeFileSync(filePath, rewritten);
     console.log(`Updated: ${path.relative(rootDir, filePath)}`);
-    updateContentHash(content, fileKey, hashes);
+    updateContentHash(rewritten, fileKey, hashes);
     return true;
   }
   
@@ -1979,7 +2017,8 @@ async function performFinalValidation(allReadmeFiles) {
 
   const criticalFiles = [
     'KNIRVTESTNET/README.md',
-    'KNIRVWALLET/README.md',
+    'KNIRVENGINE/README.md',
+    'KNIRVCONTROLLER/README.md',
     'scripts/README.md',
     'README.md'
   ];

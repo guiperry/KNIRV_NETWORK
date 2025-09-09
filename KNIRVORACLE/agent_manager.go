@@ -982,6 +982,87 @@ func (am *AgentManager) GetBadgesByType(badgeType string) ([]*Badge, error) {
 	return am.chromeManager.GetBadgesByType(badgeType)
 }
 
+// GetSkillBadges retrieves all skill badges
+func (am *AgentManager) GetSkillBadges() ([]*Badge, error) {
+	return am.GetBadgesByType("skill")
+}
+
+// GetCapabilityBadges retrieves all capability badges
+func (am *AgentManager) GetCapabilityBadges() ([]*Badge, error) {
+	return am.GetBadgesByType("capability")
+}
+
+// GetPropertyBadges retrieves all property badges
+func (am *AgentManager) GetPropertyBadges() ([]*Badge, error) {
+	return am.GetBadgesByType("property")
+}
+
+// GetAgentSkills retrieves all skill badges attached to a specific agent
+func (am *AgentManager) GetAgentSkills(agentID string) ([]*Badge, error) {
+	attachments, err := am.chromeManager.GetBadgeAttachments(agentID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get badge attachments for agent: %v", err)
+	}
+
+	var skills []*Badge
+	for _, attachment := range attachments {
+		badge, err := am.GetBadge(attachment.BadgeId)
+		if err != nil {
+			continue // Skip if badge not found
+		}
+
+		if badge.BadgeType == "skill" {
+			skills = append(skills, badge)
+		}
+	}
+
+	return skills, nil
+}
+
+// GetAgentProperties retrieves all property badges attached to a specific agent
+func (am *AgentManager) GetAgentProperties(agentID string) ([]*Badge, error) {
+	attachments, err := am.chromeManager.GetBadgeAttachments(agentID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get badge attachments for agent: %v", err)
+	}
+
+	var properties []*Badge
+	for _, attachment := range attachments {
+		badge, err := am.GetBadge(attachment.BadgeId)
+		if err != nil {
+			continue // Skip if badge not found
+		}
+
+		if badge.BadgeType == "property" {
+			properties = append(properties, badge)
+		}
+	}
+
+	return properties, nil
+}
+
+// GetAgentCapabilities retrieves all capability badges attached to a specific agent
+func (am *AgentManager) GetAgentCapabilities(agentID string) ([]*Badge, error) {
+	attachments, err := am.chromeManager.GetBadgeAttachments(agentID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get badge attachments for agent: %v", err)
+	}
+
+	var capabilities []*Badge
+	for _, attachment := range attachments {
+		badge, err := am.GetBadge(attachment.BadgeId)
+		if err != nil {
+			continue // Skip if badge not found
+		}
+
+		if badge.BadgeType == "capability" {
+			capabilities = append(capabilities, badge)
+		}
+	}
+
+	return capabilities, nil
+}
+
 // CreateBadgeBundle creates a bundle of related Badges
 func (am *AgentManager) CreateBadgeBundle(name, description, owner string, badgeIds []string) (string, error) {
 	// Create metadata for the bundle
@@ -1018,9 +1099,52 @@ func (am *AgentManager) RegisterCapabilityAsBadge(name, description, imageURL, o
 	return am.CreateBadge(name, description, imageURL, owner, "capability", metadata)
 }
 
-// GetCapabilityBadges retrieves all capability Badges
-func (am *AgentManager) GetCapabilityBadges() ([]*Badge, error) {
-	return am.GetBadgesByType("capability")
+// RegisterSkillAsBadge registers a skill as a Badge for Agents
+func (am *AgentManager) RegisterSkillAsBadge(name, description, imageURL, owner string, skillType string, parameters map[string]interface{}, requirements []string) (*Badge, error) {
+	// Create metadata for the skill
+	metadata := map[string]interface{}{
+		"skill_type":    skillType,
+		"parameters":    parameters,
+		"requirements":  requirements,
+		"execution_env": "knirvchain", // Skills are executed on KNIRVCHAIN
+	}
+
+	// Extract execution cost from parameters if present
+	if executionCost, exists := parameters["execution_cost_nrn"]; exists {
+		metadata["execution_cost_nrn"] = executionCost
+	}
+
+	// Extract skill complexity level
+	if complexity, exists := parameters["complexity_level"]; exists {
+		metadata["complexity_level"] = complexity
+	}
+
+	// Create the Badge with badge type "skill"
+	return am.CreateBadge(name, description, imageURL, owner, "skill", metadata)
+}
+
+// RegisterPropertyAsBadge registers a property as a Badge for Agents
+func (am *AgentManager) RegisterPropertyAsBadge(name, description, imageURL, owner string, propertyType string, value interface{}, constraints map[string]interface{}) (*Badge, error) {
+	// Create metadata for the property
+	metadata := map[string]interface{}{
+		"property_type": propertyType,
+		"value":         value,
+		"constraints":   constraints,
+		"immutable":     true, // Properties are typically immutable characteristics
+	}
+
+	// Add validation rules if present
+	if validationRules, exists := constraints["validation_rules"]; exists {
+		metadata["validation_rules"] = validationRules
+	}
+
+	// Add property category for organization
+	if category, exists := constraints["category"]; exists {
+		metadata["category"] = category
+	}
+
+	// Create the Badge with badge type "property"
+	return am.CreateBadge(name, description, imageURL, owner, "property", metadata)
 }
 
 // CreateCapabilityBundle creates a bundle of related capability Badges

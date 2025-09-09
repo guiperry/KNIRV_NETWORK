@@ -1,0 +1,151 @@
+# KNIRVCORTEX Podman Containerfile
+# Multi-component build with Go, Node.js, and Rust WASM
+FROM registry.fedoraproject.org/fedora:39 AS go-builder
+
+# Install Go and build dependencies
+RUN dnf install -y golang git && \
+    dnf clean all
+
+# Set working directory
+WORKDIR /app
+
+# Copy Go modules (data-engine and inference-engine)
+COPY data-engine ./data-engine
+COPY inference-engine ./inference-engine
+
+# Build data-engine
+WORKDIR /app/data-engine
+RUN go mod init knirvcortex/data-engine && \
+    go mod tidy && \
+    go build -o ../bin/data-engine .
+
+# Build inference-engine
+WORKDIR /app/inference-engine
+RUN go mod init knirvcortex/inference-engine && \
+    go mod tidy && \
+    go build -o ../bin/inference-engine .
+
+# Rust builder for WASM components
+FROM registry.fedoraproject.org/fedora:39 AS rust-builder
+
+# Install Rust and WASM tools
+RUN dnf install -y rust cargo && \
+    dnf clean all && \
+    cargo install wasm-pack
+
+# Set working directory
+WORKDIR /app/rust-wasm
+
+# Copy Rust WASM source
+COPY rust-wasm/Cargo.toml rust-wasm/Cargo.lock ./
+COPY rust-wasm/src ./src
+
+# Build WASM module
+RUN wasm-pack build --target web --out-dir ../wasm-dist
+
+# Node.js builder for manager
+FROM registry.access.redhat.com/ubi9/nodejs-20:latest AS node-builder
+
+# Switch to root for package installation
+USER root
+
+# Install build dependencies
+RUN dnf install -y python3 make gcc-c++ && \
+    dnf clean all
+
+# Switch back to default user
+USER 1001
+
+# Set working directory
+WORKDIR /app/manager
+
+# Copy manager package files
+COPY --chown=1001:1001 manager/package*.json ./
+COPY --chown=1001:1001 manager/tsconfig.json ./
+COPY --chown=1001:1001 manager/vite.config.ts ./
+COPY --chown=1001:1001 manager/tailwind.config.js ./
+COPY --chown=1001:1001 manager/postcss.config.js ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy manager source
+COPY --chown=1001:1001 manager/src ./src
+COPY --chown=1001:1001 manager/public ./public
+COPY --chown=1001:1001 manager/index.html ./
+
+# Build manager
+RUN npm run build
+
+# Production stage
+FROM registry.access.redhat.com/ubi9/nodejs-20-minimal:latest AS production
+
+# Switch to root for setup
+USER root
+
+# Install runtime dependencies
+RUN microdnf install -y curl && \
+    microdnf clean all
+
+# Create application user
+RUN useradd -r -u 1001 -g 0 knirvcortex
+
+# Set working directory
+WORKDIR /app
+
+# Copy built Go binaries
+COPY --from=go-builder --chown=1001:0 /app/bin ./bin
+
+# Copy built WASM modules
+COPY --from=rust-builder --chown=1001:0 /app/wasm-dist ./wasm
+
+# Copy built Node.js manager
+COPY --from=node-builder --chown=1001:0 /app/manager/dist ./manager
+COPY --from=node-builder --chown=1001:0 /app/manager/package*.json ./
+
+# Install production dependencies
+RUN npm ci --only=production && \
+    npm cache clean --force
+
+# Copy additional files
+COPY --chown=1001:0 agent-core ./agent-core
+
+# Create data directories
+RUN mkdir -p /app/data /app/logs && \
+    chown -R 1001:0 /app && \
+    chmod -R g+rwX /app
+
+# Switch to non-root user
+USER 1001
+
+# Expose ports
+EXPOSE 8080 8081 8082
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV CORTEX_MODE=production
+
+# Volume for persistent data
+VOLUME ["/app/data"]
+
+# Start script
+COPY --chown=1001:0 <<EOF /app/start.sh
+#!/bin/bash
+# Start data-engine
+./bin/data-engine &
+
+# Start inference-engine
+./bin/inference-engine &
+
+# Start manager (Node.js frontend)
+npm start
+EOF
+
+RUN chmod +x /app/start.sh
+
+# Start command
+CMD ["/app/start.sh"]

@@ -5,23 +5,23 @@ Software Development Kits for the KNIRV Network ecosystem, including complete KN
 ## Available SDKs
 
 ### Gateway SDKs ⭐ NEW
-- **[Go Gateway SDK](go/gateway/README.md)** - Complete KNIRVGATEWAY integration for Go
-- **[TypeScript Gateway SDK](ts/gateway/README.md)** - Complete KNIRVGATEWAY integration for TypeScript/JavaScript
-- **[Python Gateway SDK](py/gateway/README.md)** - ✅ **NEW!** Complete KNIRVGATEWAY integration for Python
+- **[Go Gateway SDK](#/go/gateway/README.md)** - Complete KNIRVGATEWAY integration for Go
+- **[TypeScript Gateway SDK](#/ts/gateway/README.md)** - Complete KNIRVGATEWAY integration for TypeScript/JavaScript
+- **[Python Gateway SDK](#/py/gateway/README.md)** - ✅ **NEW!** Complete KNIRVGATEWAY integration for Python
 
 ### Core KNIRV SDKs
-- [Go Transaction SDK](go/transaction/README.md) - KNIRVCHAIN transaction management
-- [Go Transmission SDK](go/transmission/README.md) - Network transmission and communication
-- [TypeScript Transmission SDK](ts/transmission/README.md) - Web transmission libraries
-- [Python Transaction SDK](py/transaction/README.md) - KNIRVCHAIN transaction management for Python
-- [Python Transmission SDK](py/transmission/README.md) - Network transmission for Python
+- [Go Transaction SDK](#/go/transaction/README.md) - KNIRVCHAIN transaction management
+- [Go Transmission SDK](#/go/transmission/README.md) - Network transmission and communication
+- [TypeScript Transmission SDK](#/ts/transmission/README.md) - Web transmission libraries
+- [Python Transaction SDK](#/py/transaction/README.md) - KNIRVCHAIN transaction management for Python
+- [Python Transmission SDK](#/py/transmission/README.md) - Network transmission for Python
 
 ### Unified SDKs 🚧 In Development
-- **[TypeScript Unified SDK](ts/unified/README.md)** - 🚧 Combined access to all KNIRV services
+- **[TypeScript Unified SDK](#/ts/unified/README.md)** - 🚧 Combined access to all KNIRV services
 - **Python Unified SDK** - 🚧 *Planned* - Combined access to all KNIRV services
 - **Go Unified SDK** - 🚧 *Planned* - Combined access to all KNIRV services
 
-> **Note**: See [UNIFIED_SDK_IMPLEMENTATION_PLAN.md](UNIFIED_SDK_IMPLEMENTATION_PLAN.md) for detailed implementation roadmap.
+> **Note**: See [UNIFIED_SDK_IMPLEMENTATION_PLAN.md](#/unified_sdk_implementation_plan.md) for detailed implementation roadmap.
 
 ## Gateway SDK Features ⭐ NEW
 
@@ -77,7 +77,7 @@ knirv://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
 - **Path:** `/<OptionalSubPath>` (e.g., `/block`, `/content`, defaults to `/` if omitted).
 - **Query:** `?param1=value1...` (Standard URL query parameters).
 
-For a detailed specification, please refer to the [KNIRVCHAIN URI Scheme Design Document](../docs/URI_Generation_GO.md).
+For a detailed specification, please refer to the [KNIRVCHAIN URI Scheme Design Document](#/../docs/URI_Generation_GO.md).
 
 ## Quick Start
 
@@ -309,4 +309,4 @@ main().catch(console.error);
 
 ## License
 
-[MIT License](LICENSE)
+[MIT License](#/license)

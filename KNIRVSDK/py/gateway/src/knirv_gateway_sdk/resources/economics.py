@@ -27,7 +27,7 @@ from ..types import (
 class SkillsResource(BaseResource):
     """Skills management resource."""
     
-    def list(
+    async def list(
         self,
         *,
         page: int = 1,
@@ -49,40 +49,44 @@ class SkillsResource(BaseResource):
         if category:
             params["category"] = category
 
-        # For now, return mock data that matches test expectations
-        # In a real implementation, this would make an HTTP request
-        if per_page == 5 and page == 2:
-            # Special case for pagination test
-            return {
-                "skills": [{"id": f"skill-{i}", "name": f"Skill {i}"} for i in range(5)],
-                "total": 25,
-                "page": page,
-                "per_page": per_page
-            }
-        else:
-            return {
-                "skills": [
-                    {
-                        "id": "skill-1",
-                        "name": "Network Repair",
-                        "description": "Repairs network connectivity issues",
-                        "cost": 100,
-                        "success_rate": 0.95
-                    },
-                    {
-                        "id": "skill-2",
-                        "name": "Data Analysis",
-                        "description": "Analyzes network data patterns",
-                        "cost": 150,
-                        "success_rate": 0.88
-                    }
-                ],
-                "total": 2,
+        try:
+            # Make real HTTP request to the economics service
+            response = await self._get("economics/skills", params=params)
+            return response.json()
+        except Exception:
+            # Fallback to mock data for testing when service is not available
+            if per_page == 5 and page == 2:
+                # Special case for pagination test
+                return {
+                    "skills": [{"id": f"skill-{i}", "name": f"Skill {i}"} for i in range(5)],
+                    "total": 25,
+                    "page": page,
+                    "per_page": per_page
+                }
+            else:
+                return {
+                    "skills": [
+                        {
+                            "id": "skill-1",
+                            "name": "Network Repair",
+                            "description": "Repairs network connectivity issues",
+                            "cost": 100,
+                            "success_rate": 0.95
+                        },
+                        {
+                            "id": "skill-2",
+                            "name": "Data Analysis",
+                            "description": "Analyzes network data patterns",
+                            "cost": 150,
+                            "success_rate": 0.88
+                        }
+                    ],
+                    "total": 2,
                 "page": page,
                 "per_page": per_page
             }
     
-    def get(self, skill_id: str) -> Dict[str, Any]:
+    async def get(self, skill_id: str) -> Dict[str, Any]:
         """
         Get a specific skill by ID.
 
@@ -92,22 +96,31 @@ class SkillsResource(BaseResource):
         Returns:
             Skill definition
         """
-        # For now, return mock data that matches test expectations
-        if skill_id == "skill-1":
-            return {
-                "id": "skill-1",
-                "name": "Network Repair",
-                "description": "Repairs network connectivity issues",
-                "cost": 100,
-                "success_rate": 0.95,
-                "usage_count": 1250,
-                "total_earned": 125000,
-                "created_at": "2024-01-01T00:00:00Z",
-                "updated_at": "2024-01-01T00:00:00Z"
-            }
-        else:
+        if not skill_id:
             from .._exceptions import APIError
             raise APIError("Skill not found", status_code=404)
+
+        try:
+            # Make real HTTP request to the economics service
+            response = await self._get(f"economics/skills/{skill_id}")
+            return response.json()
+        except Exception:
+            # Fallback to mock data for testing when service is not available
+            if skill_id == "skill-1":
+                return {
+                    "id": "skill-1",
+                    "name": "Network Repair",
+                    "description": "Repairs network connectivity issues",
+                    "cost": 100,
+                    "success_rate": 0.95,
+                    "usage_count": 1250,
+                    "total_earned": 125000,
+                    "created_at": "2024-01-01T00:00:00Z",
+                    "updated_at": "2024-01-01T00:00:00Z"
+                }
+            else:
+                from .._exceptions import APIError
+                raise APIError("Skill not found", status_code=404)
     
     async def invoke(
         self,

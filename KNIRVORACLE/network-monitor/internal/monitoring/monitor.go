@@ -16,14 +16,15 @@ import (
 
 // Monitor represents the main monitoring system
 type Monitor struct {
-	config     *config.Config
-	logger     *logrus.Logger
-	services   map[string]*ServiceMonitor
-	metrics    *metrics.Collector
-	prometheus v1.API
-	mu         sync.RWMutex
-	ctx        context.Context
-	cancel     context.CancelFunc
+	config      *config.Config
+	logger      *logrus.Logger
+	services    map[string]*ServiceMonitor
+	metrics     *metrics.Collector
+	prometheus  v1.API
+	testMonitor *TestMonitor
+	mu          sync.RWMutex
+	ctx         context.Context
+	cancel      context.CancelFunc
 }
 
 // ServiceStatus represents the status of a monitored service
@@ -40,25 +41,26 @@ type ServiceStatus struct {
 
 // NetworkStatus represents the overall network status
 type NetworkStatus struct {
-	Name           string                    `json:"name"`
-	OverallStatus  string                    `json:"overall_status"`
-	ServicesUp     int                       `json:"services_up"`
-	ServicesDown   int                       `json:"services_down"`
-	ServicesTotal  int                       `json:"services_total"`
-	LastUpdate     time.Time                 `json:"last_update"`
-	Services       map[string]ServiceStatus  `json:"services"`
+	Name          string                   `json:"name"`
+	OverallStatus string                   `json:"overall_status"`
+	ServicesUp    int                      `json:"services_up"`
+	ServicesDown  int                      `json:"services_down"`
+	ServicesTotal int                      `json:"services_total"`
+	LastUpdate    time.Time                `json:"last_update"`
+	Services      map[string]ServiceStatus `json:"services"`
 }
 
 // New creates a new monitoring system
 func New(cfg *config.Config, logger *logrus.Logger) (*Monitor, error) {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	monitor := &Monitor{
-		config:   cfg,
-		logger:   logger,
-		services: make(map[string]*ServiceMonitor),
-		ctx:      ctx,
-		cancel:   cancel,
+		config:      cfg,
+		logger:      logger,
+		services:    make(map[string]*ServiceMonitor),
+		testMonitor: NewTestMonitor(logger),
+		ctx:         ctx,
+		cancel:      cancel,
 	}
 
 	// Initialize metrics collector
@@ -97,7 +99,7 @@ func (m *Monitor) Start(ctx context.Context) error {
 	for _, service := range network.Services {
 		serviceMonitor := NewServiceMonitor(service, m.logger)
 		m.services[service.Name] = serviceMonitor
-		
+
 		// Start monitoring this service
 		go m.monitorService(ctx, serviceMonitor)
 	}
@@ -105,6 +107,11 @@ func (m *Monitor) Start(ctx context.Context) error {
 	// Start metrics collection
 	if err := m.metrics.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start metrics collection: %w", err)
+	}
+
+	// Start test monitoring
+	if err := m.testMonitor.Start(); err != nil {
+		return fmt.Errorf("failed to start test monitor: %w", err)
 	}
 
 	m.logger.Infof("Monitoring system started for network: %s", network.Name)
@@ -115,12 +122,21 @@ func (m *Monitor) Start(ctx context.Context) error {
 func (m *Monitor) Stop() {
 	m.logger.Info("Stopping monitoring system...")
 	m.cancel()
-	
+
 	if m.metrics != nil {
 		m.metrics.Stop()
 	}
-	
+
+	if m.testMonitor != nil {
+		m.testMonitor.Stop()
+	}
+
 	m.logger.Info("Monitoring system stopped")
+}
+
+// GetTestMonitor returns the test monitor instance
+func (m *Monitor) GetTestMonitor() *TestMonitor {
+	return m.testMonitor
 }
 
 // GetNetworkStatus returns the current status of the monitored network
@@ -129,7 +145,7 @@ func (m *Monitor) GetNetworkStatus() *NetworkStatus {
 	defer m.mu.RUnlock()
 
 	network, _ := m.config.GetActiveNetwork()
-	
+
 	status := &NetworkStatus{
 		Name:       network.Name,
 		LastUpdate: time.Now(),
@@ -138,11 +154,11 @@ func (m *Monitor) GetNetworkStatus() *NetworkStatus {
 
 	servicesUp := 0
 	servicesDown := 0
-	
+
 	for name, monitor := range m.services {
 		serviceStatus := monitor.GetStatus()
 		status.Services[name] = serviceStatus
-		
+
 		if serviceStatus.Status == "up" {
 			servicesUp++
 		} else {
@@ -301,7 +317,7 @@ func (sm *ServiceMonitor) GetStatus() ServiceStatus {
 // collectMetrics collects additional metrics from the service
 func (sm *ServiceMonitor) collectMetrics() {
 	metricsURL := sm.service.URL + sm.service.MetricsEndpoint
-	
+
 	resp, err := sm.client.Get(metricsURL)
 	if err != nil {
 		sm.logger.Debugf("Failed to collect metrics for %s: %v", sm.service.Name, err)

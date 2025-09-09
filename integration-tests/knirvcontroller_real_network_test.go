@@ -16,15 +16,7 @@ import (
 // These tests connect to actual KNIRV network services for real-world demos
 
 // Test configuration for real network integration
-const (
-	KNIRVControllerURL = "http://localhost:3000" // KNIRVCONTROLLER Unified Server
-	KNIRVRouterURL     = "http://localhost:8085" // KNIRVROUTER
-	KNIRVGraphURL      = "http://localhost:8081" // KNIRVGRAPH
-	KNIRVChainURL      = "http://localhost:8080" // KNIRVCHAIN
-	KNIRVOracleURL     = "http://localhost:8086" // KNIRVORACLE
-	KNIRVNexusURL      = "http://localhost:8084" // KNIRVNEXUS
-	TestTimeout        = 60 * time.Second        // Increased for real network
-)
+// Constants are defined in test_constants.go
 
 // KNIRVCONTROLLER-specific data structures
 type KNIRVControllerHealthResponse struct {

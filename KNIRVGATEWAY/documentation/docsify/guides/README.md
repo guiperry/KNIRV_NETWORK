@@ -102,6 +102,34 @@ The KNIRV Cognitive Shell is a comprehensive AI-driven interface system that imp
 
 ---
 
+### cortex-builder
+
+**Location:** `KNIRVCORTEX/cortex-builder/README.md`
+
+# Agentify: AI Agent Development Platform
+
+## Project Overview
+
+Agentify is a comprehensive platform for building, configuring, and deploying AI agents with enhanced developer experience. It provides ...
+
+[View Full Documentation](KNIRVCORTEX/cortex-builder/README.md)
+
+---
+
+### releases
+
+**Location:** `KNIRVCORTEX/cortex-builder/public/releases/README.md`
+
+# Agentic Engine Releases
+
+This directory contains the Agentic Engine release files that can be downloaded by users.
+
+## File Organization...
+
+[View Full Documentation](KNIRVCORTEX/cortex-builder/public/releases/README.md)
+
+---
+
 ### manager
 
 **Location:** `KNIRVCORTEX/manager/README.md`
@@ -125,34 +153,6 @@ The KNIRV Cognitive Shell is a comprehensive AI-driven interface system that imp
 KNIRVENGINE is a revolutionary three-engine cognitive architecture that combines Human-like Reasoning Models (HRM), QR code linkage systems, and Web...
 
 [View Full Documentation](KNIRVENGINE/README.md)
-
----
-
-### agent-builder
-
-**Location:** `KNIRVENGINE/agent-builder/README.md`
-
-# Agentify: AI Agent Development Platform
-
-## Project Overview
-
-Agentify is a comprehensive platform for building, configuring, and deploying AI agents with enhanced developer experience. It provides ...
-
-[View Full Documentation](KNIRVENGINE/agent-builder/README.md)
-
----
-
-### releases
-
-**Location:** `KNIRVENGINE/agent-builder/public/releases/README.md`
-
-# Agentic Engine Releases
-
-This directory contains the Agentic Engine release files that can be downloaded by users.
-
-## File Organization...
-
-[View Full Documentation](KNIRVENGINE/agent-builder/public/releases/README.md)
 
 ---
 
@@ -219,6 +219,34 @@ This directory contains examples demonstrating how to use the Agent Inferencer s
 ## Examples...
 
 [View Full Documentation](KNIRVENGINE/desktop-client/agentify/examples/README.md)
+
+---
+
+### gui
+
+**Location:** `KNIRVENGINE/desktop-client/gui/README.md`
+
+# KNIRV Desktop Client GUI
+
+[TOC]
+
+## Overview...
+
+[View Full Documentation](KNIRVENGINE/desktop-client/gui/README.md)
+
+---
+
+### test
+
+**Location:** `KNIRVENGINE/desktop-client/test/README.md`
+
+# KNIRV-Engine Comprehensive Test Suite
+
+[TOC]
+
+## Overview...
+
+[View Full Documentation](KNIRVENGINE/desktop-client/test/README.md)
 
 ---
 
@@ -516,6 +544,20 @@ The official TypeScript/JavaScript SDK for KNIRV Gateway services, providing acc
 
 ---
 
+### unified
+
+**Location:** `KNIRVSDK/ts/unified/README.md`
+
+# KNIRV Unified SDK for TypeScript/JavaScript
+
+✅ **Production Ready** - Comprehensive SDK providing access to all KNIRV Network services.
+
+## Overview...
+
+[View Full Documentation](KNIRVSDK/ts/unified/README.md)
+
+---
+
 ### KNIRVTESTNET
 
 **Location:** `KNIRVTESTNET/README.md`
@@ -527,18 +569,6 @@ The official TypeScript/JavaScript SDK for KNIRV Gateway services, providing acc
 **Status**: 100% Complete with comprehensive test validation...
 
 [View Full Documentation](KNIRVTESTNET/README.md)
-
----
-
-### agent-developer-portal
-
-**Location:** `KNIRVTESTNET/agent-developer-portal/README.md`
-
-# KNIRV Developer Portal
-
-The official developer portal for the KNIRV D-TEN (Decentralized Trusted Execution Network). This comprehensive web application provides developers with all the tools needed ...
-
-[View Full Documentation](KNIRVTESTNET/agent-developer-portal/README.md)
 
 ---
 
@@ -568,18 +598,6 @@ KNIRV-NEXUS is a unified implementation of the Decentralized Validation Environm
 
 ---
 
-### agent-developer-portal
-
-**Location:** `KNIRVTESTNET/data/testnet-gateway/agent-developer-portal/README.md`
-
-# KNIRV Developer Portal
-
-The official developer portal for the KNIRV D-TEN (Decentralized Trusted Execution Network). This comprehensive web application provides developers with all the tools needed ...
-
-[View Full Documentation](KNIRVTESTNET/data/testnet-gateway/agent-developer-portal/README.md)
-
----
-
 ### social
 
 **Location:** `KNIRVTESTNET/images/social/README.md`
@@ -598,11 +616,11 @@ This directory contains optimized social media sharing cards for different platf
 
 **Location:** `KNIRVTESTNET/scripts/README.md`
 
-# KNIRV TESTNET Unified Testing Suite
+# KNIRV TESTNET Unified Scripts Directory
 
 ## 🎯 Overview
 
-**PRODUCTION-READY** comprehensive test suite for the KNIRV TESTNET with **100% working implementation**. Features automated CORTEX demonstration...
+**PRODUCTION-READY** comprehensive script collection for the KNIRV TESTNET with **100% working implementation**. This directory contains all ...
 
 [View Full Documentation](KNIRVTESTNET/scripts/README.md)
 
@@ -716,6 +734,20 @@ This directory contains the production deployment configuration for KNIRV D-TEN 
 ## Overview...
 
 [View Full Documentation](deployment/ansible/README.md)
+
+---
+
+### terraform
+
+**Location:** `deployment/terraform/README.md`
+
+# KNIRV Network Terraform Infrastructure and Secure Deployment Guide
+
+[TOC]
+
+## Overview...
+
+[View Full Documentation](deployment/terraform/README.md)
 
 ---
 

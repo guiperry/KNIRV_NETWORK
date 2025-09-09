@@ -26,13 +26,13 @@ const AgentImage = ({
         let finalSrc = src;
 
         // Handle different image source types
-        if (!src || src === '/Agentify_logo_2.png' || src === './Agentify_logo_2.png') {
+        if (!src || src === '/knirv-logo.png' || src === './knirv-logo.png' || src === '/Agentify_logo_2.png' || src === './Agentify_logo_2.png') {
           // Use default agent image
           finalSrc = defaultAgentImage;
-        } else if (typeof window !== 'undefined' && window.electronAPI && src.startsWith('/Agentify_logo_2.png')) {
+        } else if (typeof window !== 'undefined' && window.electronAPI && (src.startsWith('/knirv-logo.png') || src.startsWith('/Agentify_logo_2.png'))) {
           // Resolve Electron asset path for the logo
           try {
-            finalSrc = await window.electronAPI.getAssetPath('Agentify_logo_2.png');
+            finalSrc = await window.electronAPI.getAssetPath('knirv-logo.png');
           } catch (error) {
             console.error('Failed to resolve asset path:', error);
             finalSrc = defaultAgentImage;
@@ -42,7 +42,7 @@ const AgentImage = ({
           finalSrc = src;
         } else if (src.startsWith('./') || src.startsWith('/')) {
           // Relative or absolute path - check if it's the logo
-          if (src.includes('Agentify_logo_2.png')) {
+          if (src.includes('knirv-logo.png') || src.includes('Agentify_logo_2.png')) {
             finalSrc = defaultAgentImage;
           } else {
             finalSrc = src;

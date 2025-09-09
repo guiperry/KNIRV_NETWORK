@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"Agentic_Engine/agentify"
+	"KNIRV_Engine/agentify"
 )
 
 // DesktopTEEManager manages TEE instances for the desktop application

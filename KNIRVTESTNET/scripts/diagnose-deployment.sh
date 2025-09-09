@@ -86,7 +86,7 @@ ls -la | head -15
 print_info "Checking for key files and directories:"
 KEY_ITEMS=(
     "package.json"
-    "render.yaml"
+    "config/render.yml"
     "testnet-gateway.Dockerfile"
     "data/testnet-gateway"
     "data/testnet-gateway/index.html"
@@ -188,7 +188,7 @@ if [ "$CONTAINER_MODE" = "true" ]; then
     fi
 else
     print_error "✗ Incorrect setup: Service should be containerized"
-    print_info "Recommendation: Check render.yaml has runtime: docker"
+    print_info "Recommendation: Check config/render.yml has runtime: docker"
     print_info "Action: Ensure Render dashboard is not overriding Docker config"
 fi
 
@@ -211,7 +211,7 @@ if [ "$CONTAINER_MODE" = "true" ]; then
     print_info "• knirv-nexus: ./knirv-nexus"
     print_info "• knirv-router: ./knirv-router"
 else
-    print_info "1. Verify render.yaml has runtime: docker for all services"
+    print_info "1. Verify config/render.yml has runtime: docker for all services"
     print_info "2. Check Render dashboard service configuration"
     print_info "3. Ensure Docker deployment is properly configured"
 fi

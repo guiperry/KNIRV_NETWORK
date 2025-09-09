@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -37,6 +39,14 @@ type DHTManager struct {
 	bootstrapPeers []peer.AddrInfo
 	mutex          sync.RWMutex
 	server         *Server
+
+	// Network pause state
+	pubsub              *pubsub.PubSub
+	networkControlTopic *pubsub.Topic
+	networkControlSub   *pubsub.Subscription
+	networkPaused       bool
+	pausedUntil         time.Time
+	pauseMutex          sync.RWMutex
 }
 
 // NewDHTManager creates a new DHT manager
@@ -162,6 +172,11 @@ func (dm *DHTManager) refreshLoop() {
 
 // AnnounceChain announces this node's chain to the DHT
 func (dm *DHTManager) AnnounceChain() error {
+	// Check if network is paused
+	if dm.IsNetworkPaused() {
+		return fmt.Errorf("network is paused, cannot announce chain")
+	}
+
 	// Get the chain ID from the server
 	chainID := dm.server.GetChainID()
 	if chainID == "" {
@@ -474,4 +489,105 @@ func (dm *DHTManager) TestDHTConnectivity() map[string]interface{} {
 		"value_integrity":        valueMatch,
 		"test_timestamp":         time.Now(),
 	}
+}
+
+// IsNetworkPaused returns whether the network is currently paused
+func (dm *DHTManager) IsNetworkPaused() bool {
+	dm.pauseMutex.RLock()
+	defer dm.pauseMutex.RUnlock()
+
+	if dm.networkPaused && time.Now().After(dm.pausedUntil) {
+		// Pause has expired
+		dm.pauseMutex.RUnlock()
+		dm.pauseMutex.Lock()
+		dm.networkPaused = false
+		dm.pauseMutex.Unlock()
+		dm.pauseMutex.RLock()
+		log.Printf("Network pause expired for KNIRVROUTER")
+	}
+
+	return dm.networkPaused
+}
+
+// handleNetworkControl processes network control messages (pause/resume)
+func (dm *DHTManager) handleNetworkControl() {
+	if dm.networkControlSub == nil {
+		return
+	}
+
+	for {
+		select {
+		case <-dm.ctx.Done():
+			return
+		default:
+			msg, err := dm.networkControlSub.Next(dm.ctx)
+			if err != nil {
+				if dm.ctx.Err() != nil {
+					return // Context cancelled
+				}
+				log.Printf("Error receiving network control message: %v", err)
+				continue
+			}
+
+			// Parse network control message
+			var networkMsg NetworkControlMessage
+			if err := json.Unmarshal(msg.Data, &networkMsg); err != nil {
+				log.Printf("Error parsing network control message: %v", err)
+				continue
+			}
+
+			log.Printf("KNIRVROUTER received network control message: %s", networkMsg.Type)
+
+			// Handle different network control message types
+			switch networkMsg.Type {
+			case "NetworkPause":
+				dm.handleNetworkPause(networkMsg.Payload, msg.ReceivedFrom.String())
+			case "NetworkResume":
+				dm.handleNetworkResume(networkMsg.Payload, msg.ReceivedFrom.String())
+			default:
+				log.Printf("Unknown network control message type: %s", networkMsg.Type)
+			}
+		}
+	}
+}
+
+// handleNetworkPause processes network pause messages
+func (dm *DHTManager) handleNetworkPause(payload interface{}, senderPeerID string) {
+	// Parse the pause payload
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		log.Printf("Error marshaling pause payload: %v", err)
+		return
+	}
+
+	var pausePayload NetworkPausePayload
+	if err := json.Unmarshal(payloadBytes, &pausePayload); err != nil {
+		log.Printf("Error unmarshaling pause payload: %v", err)
+		return
+	}
+
+	initiatorPeerID := pausePayload.InitiatorPeerID
+	reason := pausePayload.Reason
+
+	// Set network paused state
+	dm.pauseMutex.Lock()
+	dm.networkPaused = true
+	dm.pausedUntil = time.Now().Add(NetworkPauseTimeout)
+	dm.pauseMutex.Unlock()
+
+	log.Printf("KNIRVROUTER Network PAUSED by %s until %s - Reason: %s",
+		initiatorPeerID,
+		dm.pausedUntil.Format("2006-01-02 15:04:05 UTC"),
+		reason)
+
+	log.Printf("KNIRVROUTER operations paused - rejecting new route announcements")
+}
+
+// handleNetworkResume processes network resume messages
+func (dm *DHTManager) handleNetworkResume(payload interface{}, senderPeerID string) {
+	dm.pauseMutex.Lock()
+	dm.networkPaused = false
+	dm.pauseMutex.Unlock()
+
+	log.Printf("KNIRVROUTER Network RESUMED by %s", senderPeerID)
 }

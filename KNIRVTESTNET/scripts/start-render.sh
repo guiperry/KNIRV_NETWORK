@@ -157,7 +157,7 @@ print_status "Current directory contents:"
 ls -la | head -15 || print_error "Failed to list directory contents"
 
 if [ "$DEPLOYMENT_ENV" = "render" ]; then
-    # Render deployment - services are managed by render.yaml
+    # Render deployment - services are managed by config/render.yml
     print_status "=== RENDER DEPLOYMENT MODE ==="
     print_status "Docker containers managed by Render"
     print_status "Service Name: ${RENDER_SERVICE_NAME:-'not set'}"
@@ -200,13 +200,13 @@ if [ "$DEPLOYMENT_ENV" = "render" ]; then
             print_status "This start script should NOT be called in containerized mode"
             print_error "ERROR: npm start should not be called in Docker container"
             print_error "The Dockerfile CMD should start nginx directly"
-            print_error "Check render.yaml configuration - remove startCommand for Docker services"
+            print_error "Check config/render.yml configuration - remove startCommand for Docker services"
             exit 1
         else
             print_status "🖥️  Running on host (not containerized)"
-            print_status "This suggests render.yaml is not using Docker properly"
+            print_status "This suggests config/render.yml is not using Docker properly"
             print_error "ERROR: Service should be containerized but appears to be running on host"
-            print_error "Check render.yaml - ensure runtime: docker is set"
+            print_error "Check config/render.yml - ensure runtime: docker is set"
             exit 1
         fi
 
@@ -223,7 +223,7 @@ if [ "$DEPLOYMENT_ENV" = "render" ]; then
             exit 1
         else
             print_error "ERROR: Backend service should be containerized"
-            print_error "Check render.yaml configuration for ${RENDER_SERVICE_NAME}"
+            print_error "Check config/render.yml configuration for ${RENDER_SERVICE_NAME}"
             exit 1
         fi
     fi

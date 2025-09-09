@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -10,6 +11,8 @@ import (
 	"sync"
 	"text/template"
 	"time"
+
+	"KNIRV_Engine/services"
 
 	"github.com/google/uuid"
 )
@@ -100,11 +103,12 @@ type TemplateValidationError struct {
 
 // AgentBuilder manages the creation and execution of agents
 type AgentBuilder struct {
-	registry      *AgentRegistry
-	templatesPath string
-	outputPath    string
-	buildStatuses map[string]*BuildStatus
-	statusMutex   sync.RWMutex // Protects buildStatuses map
+	registry           *AgentRegistry
+	templatesPath      string
+	outputPath         string
+	buildStatuses      map[string]*BuildStatus
+	statusMutex        sync.RWMutex // Protects buildStatuses map
+	knirvoracleService *services.KNIRVOracleService
 }
 
 // NewAgentBuilder creates a new agent builder (deprecated - use NewAgentBuilderWithStorage)
@@ -140,12 +144,24 @@ func newAgentBuilderInternal(registry *AgentRegistry, templatesPath, outputPath 
 		return nil, fmt.Errorf("failed to create output directory: %v", err)
 	}
 
+	// Initialize KNIRVORACLE service
+	knirvoracleConfig := services.KNIRVOracleConfig{
+		BaseURL: os.Getenv("KNIRVORACLE_URL"),
+		APIKey:  os.Getenv("KNIRVORACLE_API_KEY"),
+		Timeout: 30,
+	}
+	if knirvoracleConfig.BaseURL == "" {
+		knirvoracleConfig.BaseURL = "http://localhost:8080" // Default KNIRVORACLE URL
+	}
+	knirvoracleService := services.NewKNIRVOracleService(knirvoracleConfig)
+
 	return &AgentBuilder{
-		registry:      registry,
-		templatesPath: templatesPath,
-		outputPath:    outputPath,
-		buildStatuses: make(map[string]*BuildStatus),
-		statusMutex:   sync.RWMutex{},
+		registry:           registry,
+		templatesPath:      templatesPath,
+		outputPath:         outputPath,
+		buildStatuses:      make(map[string]*BuildStatus),
+		statusMutex:        sync.RWMutex{},
+		knirvoracleService: knirvoracleService,
 	}, nil
 }
 
@@ -253,6 +269,9 @@ func (b *AgentBuilder) BuildAgent(config AgentConfig) (string, error) {
 	// Build completed successfully
 	b.updateBuildStatus(config.AgentID, "completed", "Agent build completed successfully", 100)
 	b.addBuildLog(config.AgentID, fmt.Sprintf("Agent %s built successfully at %s", config.Name, pluginPath))
+
+	// Mint agent as NFT on KNIRVORACLE
+	go b.mintAgentOnKNIRVOracle(config)
 
 	return config.AgentID, nil
 }
@@ -643,7 +662,6 @@ func (b *AgentBuilder) processTemplateFile(templatePath string, data map[string]
 
 	return nil
 }
-
 
 // compilePluginWithConfig compiles the generated source code into a plugin or WASM using provided config
 func (b *AgentBuilder) compilePluginWithConfig(config AgentConfig, sourceDir string) (string, error) {
@@ -1093,7 +1111,7 @@ func (b *AgentBuilder) validateBasicTemplate(content string) error {
 func (b *AgentBuilder) GetBuildStatus(agentID string) (*BuildStatus, error) {
 	b.statusMutex.RLock()
 	defer b.statusMutex.RUnlock()
-	
+
 	if status, exists := b.buildStatuses[agentID]; exists {
 		return status, nil
 	}
@@ -1104,7 +1122,7 @@ func (b *AgentBuilder) GetBuildStatus(agentID string) (*BuildStatus, error) {
 func (b *AgentBuilder) updateBuildStatus(agentID, status, message string, progress int) {
 	b.statusMutex.Lock()
 	defer b.statusMutex.Unlock()
-	
+
 	if buildStatus, exists := b.buildStatuses[agentID]; exists {
 		buildStatus.Status = status
 		buildStatus.Message = message
@@ -1121,7 +1139,7 @@ func (b *AgentBuilder) updateBuildStatus(agentID, status, message string, progre
 func (b *AgentBuilder) addBuildLog(agentID, logEntry string) {
 	b.statusMutex.Lock()
 	defer b.statusMutex.Unlock()
-	
+
 	if buildStatus, exists := b.buildStatuses[agentID]; exists {
 		buildStatus.LogOutput = append(buildStatus.LogOutput, logEntry)
 		fmt.Printf("Agent %s build log: %s\n", agentID, logEntry)
@@ -1272,4 +1290,75 @@ func (b *AgentBuilder) validateCompiledPlugin(pluginPath string) error {
 	}
 
 	return fmt.Errorf("plugin file does not appear to be a valid shared library")
+}
+
+// mintAgentOnKNIRVOracle mints the agent as an NFT on KNIRVORACLE
+func (b *AgentBuilder) mintAgentOnKNIRVOracle(config AgentConfig) {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	// Prepare agent metadata for minting
+	metadata := map[string]interface{}{
+		"agent_type":         config.AgentType,
+		"model":              config.Model,
+		"description":        config.Description,
+		"use_search":         config.UseSearch,
+		"use_code_execution": config.UseCodeExecution,
+		"use_vertex_search":  config.UseVertexSearch,
+		"created_at":         time.Now().Unix(),
+		"version":            "1.0",
+	}
+
+	// Add extra parameters to metadata
+	if config.ExtraParams != nil {
+		for k, v := range config.ExtraParams {
+			metadata[k] = v
+		}
+	}
+
+	// Create mint request
+	mintRequest := services.AgentMintRequest{
+		AgentID:     config.AgentID,
+		Name:        config.Name,
+		Description: config.Description,
+		Owner:       "desktop-client", // TODO: Get actual owner from context
+		Metadata:    metadata,
+		ImageURL:    "", // TODO: Generate or provide agent image
+	}
+
+	// Attempt to mint the agent
+	b.addBuildLog(config.AgentID, "Minting agent as NFT on KNIRVORACLE...")
+
+	response, err := b.knirvoracleService.MintAgent(ctx, mintRequest)
+	if err != nil {
+		b.addBuildLog(config.AgentID, fmt.Sprintf("Failed to mint agent on KNIRVORACLE: %v", err))
+		return
+	}
+
+	if response.Success {
+		b.addBuildLog(config.AgentID, fmt.Sprintf("Agent successfully minted as NFT! Transaction ID: %s, NFT ID: %s",
+			response.TransactionID, response.AgentNFTID))
+
+		// Update agent metadata with NFT information
+		b.updateAgentWithNFTInfo(config.AgentID, response.TransactionID, response.AgentNFTID)
+	} else {
+		b.addBuildLog(config.AgentID, fmt.Sprintf("Agent minting failed: %s", response.Message))
+	}
+}
+
+// updateAgentWithNFTInfo updates the agent configuration with NFT information
+func (b *AgentBuilder) updateAgentWithNFTInfo(agentID, transactionID, nftID string) {
+	// Get current agent configuration
+	configMap, err := b.registry.GetAgent(agentID)
+	if err != nil {
+		return // Silently fail - this is not critical
+	}
+
+	// Add NFT information
+	configMap["nft_transaction_id"] = transactionID
+	configMap["nft_id"] = nftID
+	configMap["minted_at"] = time.Now().Unix()
+
+	// Update the agent configuration
+	b.registry.RegisterAgent(agentID, configMap)
 }

@@ -25,12 +25,7 @@ type EconomicsResponse struct {
 	Error   string                 `json:"error,omitempty"`
 }
 
-// SkillInvocationRequest represents a skill invocation request
-type SkillInvocationRequest struct {
-	UserID  string `json:"user_id"`
-	SkillID string `json:"skill_id"`
-	Amount  string `json:"amount"`
-}
+// SkillInvocationRequest is defined in test_constants.go
 
 // LLMRegistrationRequest represents an LLM registration request
 type LLMRegistrationRequest struct {

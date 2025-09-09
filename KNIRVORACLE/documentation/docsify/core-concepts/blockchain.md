@@ -15,7 +15,7 @@
     *   **P2P Chain Synchronization:** Implements a `/knirv/chain-sync/1.0.0` protocol for nodes to directly exchange status and blocks to synchronize their chain state.
 *   **Consensus (Current):** Implements a basic longest-chain consensus rule by polling configured reflection nodes via HTTP (intended for root node coordination). Peer nodes rely on the P2P sync protocol.
 *   **Wallet:** ECDSA key pairs, address generation (using Base58Check encoding for public keys), transaction signing.
-*   **URI Scheme:** Defines and utilizes a `agent://<ID>.<ResourceType>/...` scheme for identifying resources on the network. Includes URI minting via transactions and announcement on the private DHT.
+*   **URI Scheme:** Defines and utilizes a `knirv://<ID>.<ResourceType>/...` scheme for identifying resources on the network. Includes URI minting via transactions and announcement on the private DHT.
 
 
 ### Model Context Protocol (MCP) Layer
@@ -41,7 +41,7 @@
 *   Core Blockchain (PoW, LevelDB Persistence)
 *   Advanced P2P Networking with Private DHT & NAT Traversal
 *   P2P Chain Synchronization
-*   Custom `agent://` URI Scheme with DHT-based Discovery
+*   Custom `knirv://` URI Scheme with DHT-based Discovery
 
 *   **Startup Modes:**
     *   **Network Mode (`-network`):** Starts two nodes (main and reflection) configured for root network operation.
@@ -68,7 +68,7 @@
 *   **`Block` (`block.go`) & `Transaction` (`transaction.go`):** Core data structures with hashing and verification methods.
 *   **`Wallet` (`wallet.go`):** Handles ECDSA key generation, storage, address derivation, and transaction signing.
 *   **MCP Types (`mcp_types.go`):** Defines Go structs for `CapabilityDescriptor` (Base, Resource, Tool, Prompt, MemoryService) and `ContextRecord`.
-*   **URI Handling (`uri_generation.go`,`uri_registration.go`, `uri_parsing.go`):** Defines, registers, parses, and generates the `agent://` URI scheme.
+*   **URI Handling (`uri_generation.go`,`uri_registration.go`, `uri_parsing.go`):** Defines, registers, parses, and generates the `knirv://` URI scheme.
 *   **Installation (`install.go`):** Handles the interactive process for dev nodes to obtain a ChainID from the root, configure ports, and prepare the configuration file.
 *   **Configuration (`config/config.go`):** Defines the configuration structure, loading logic (with search paths), saving, and default values.
 
@@ -178,7 +178,7 @@ Press `Ctrl+C` to initiate graceful shutdown.
 *   `GET /txn_pool`: Returns the transaction pool.
 *   `GET /ping`: Simple health check.
 *   `GET /health`: Detailed health check.
-*   `POST /uriGenerator`: Generates a `agent://` URI, checks DHT, announces on DHT.
+*   `POST /uriGenerator`: Generates a `knirv://` URI, checks DHT, announces on DHT.
 *   `GET /info`: Returns server information.
 *   `GET /devs`: Finds devs for the node's chain via the private DHT.
 *   `POST /test/faucet`: (Test Only) Funds an address.
@@ -205,7 +205,7 @@ Press `Ctrl+C` to initiate graceful shutdown.
 KNIRVORACLE uses a custom URI scheme for resource identification within its private network:
 
 ```
-agent://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1
+knirv://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1
 ```
 
 *   `<ID>`: Unique identifier (e.g., `agent-root-5000`, `myPeer`).

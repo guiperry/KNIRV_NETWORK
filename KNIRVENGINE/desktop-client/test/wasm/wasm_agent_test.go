@@ -93,7 +93,7 @@ func testBuildWASMAgent(t *testing.T, agentID string) {
 	waitForBuildCompletion(t, agentID)
 
 	// Verify WASM file exists
-	wasmPath := filepath.Join(os.Getenv("HOME"), ".config", "Agentic-Engine", "plugins", fmt.Sprintf("agent_%s_1.0.wasm", agentID))
+	wasmPath := filepath.Join(os.Getenv("HOME"), ".config", "KNIRV-Engine", "plugins", fmt.Sprintf("agent_%s_1.0.wasm", agentID))
 	assert.FileExists(t, wasmPath)
 
 	// Verify WASM file is not empty
@@ -260,7 +260,7 @@ func waitForBuildCompletion(t *testing.T, agentID string) {
 
 func cleanupAgent(t *testing.T, agentID string) {
 	// Clean up WASM file
-	wasmPath := filepath.Join(os.Getenv("HOME"), ".config", "Agentic-Engine", "plugins", fmt.Sprintf("agent_%s_1.0.wasm", agentID))
+	wasmPath := filepath.Join(os.Getenv("HOME"), ".config", "KNIRV-Engine", "plugins", fmt.Sprintf("agent_%s_1.0.wasm", agentID))
 	if err := os.Remove(wasmPath); err != nil {
 		t.Logf("Warning: Failed to cleanup WASM file %s: %v", wasmPath, err)
 	} else {
@@ -269,7 +269,7 @@ func cleanupAgent(t *testing.T, agentID string) {
 
 	// Clean up any other agent artifacts
 	// This is a best-effort cleanup
-	pluginDir := filepath.Join(os.Getenv("HOME"), ".config", "Agentic-Engine", "plugins", agentID)
+	pluginDir := filepath.Join(os.Getenv("HOME"), ".config", "KNIRV-Engine", "plugins", agentID)
 	if err := os.RemoveAll(pluginDir); err != nil {
 		t.Logf("Warning: Failed to cleanup plugin directory %s: %v", pluginDir, err)
 	} else {

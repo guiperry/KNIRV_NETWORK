@@ -5,7 +5,7 @@ This service provides NAT traversal, node registration, and URI resolution for t
 ## Features
 
 - **Node Registration**: Allows bootnodes and devs to register their internal P2P details and unique identifiers
-- **URI Generation/Resolution**: Generates and resolves `agent://` URIs, directing clients to tunneled connections when necessary
+- **URI Generation/Resolution**: Generates and resolves `knirv://` URIs, directing clients to tunneled connections when necessary
 - **NAT Tunneling (Relay)**: Provides relay services for nodes behind NAT by establishing persistent outbound connections
 - **STUN Server**: Assists with NAT traversal by providing STUN services
 
@@ -53,8 +53,8 @@ npm start
 
 ### URI
 
-- `POST /api/uri/generate`: Generate a agent:// URI
-- `GET /api/uri/resolve`: Resolve a agent:// URI
+- `POST /api/uri/generate`: Generate a knirv:// URI
+- `GET /api/uri/resolve`: Resolve a knirv:// URI
 
 ## Status Page
 

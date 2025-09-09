@@ -118,12 +118,13 @@ func TestTargetSystemHTTPHandlers(t *testing.T) {
 
 	// Test creating a target via HTTP
 	targetJSON := `{
-		"name": "Test Database",
-		"type": "database",
-		"description": "Test database connection",
+		"name": "Test Filesystem",
+		"type": "filesystem",
+		"description": "Test filesystem connection",
 		"config": {
-			"dbType": "sqlite3",
-			"path": ":memory:"
+			"basePath": "/tmp",
+			"readOnly": false,
+			"maxFileSize": 1048576
 		}
 	}`
 
@@ -162,13 +163,15 @@ func TestTargetSystemHTTPHandlers(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
-		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+		t.Errorf("Expected status %d, got %d. Response: %s", http.StatusOK, w.Code, w.Body.String())
 	}
 
 	// Test executing operation via HTTP
 	operationJSON := `{
-		"operation": "list_tables",
-		"params": {}
+		"operation": "list_directory",
+		"params": {
+			"path": "."
+		}
 	}`
 
 	req = httptest.NewRequest("POST", "/api/v1/targets/"+targetID+"/execute", strings.NewReader(operationJSON))
@@ -178,7 +181,7 @@ func TestTargetSystemHTTPHandlers(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
-		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+		t.Errorf("Expected status %d, got %d. Response: %s", http.StatusOK, w.Code, w.Body.String())
 	}
 
 	// Test getting status via HTTP

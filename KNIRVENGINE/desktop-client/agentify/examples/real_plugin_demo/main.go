@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"Agentic_Engine/agentify"
-	"Agentic_Engine/utils"
+	"KNIRV_Engine/agentify"
+	"KNIRV_Engine/utils"
 )
 
 // RealInferenceService demonstrates integration with actual inference service

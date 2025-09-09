@@ -7,7 +7,7 @@ This document outlines the implementation plan for creating a custom tunnel serv
 ## Core Goals
 
 1. **Node Registration**: Allow bootnodes and devs to register their internal P2P details and unique identifiers
-2. **URI Generation/Resolution**: Generate and resolve `agent://` URIs, directing clients to tunneled connections when necessary
+2. **URI Generation/Resolution**: Generate and resolve `knirv://` URIs, directing clients to tunneled connections when necessary
 3. **NAT Tunneling (Relay)**: Provide relay services for nodes behind NAT by establishing persistent outbound connections
 4. **Integration with KNIRVORACLE-ROOT**: Run the tunnel service alongside the Go-based KNIRVORACLE-ROOT node
 
@@ -1099,7 +1099,7 @@ module.exports = router;
 
 ### 3.2 URI Routes
 
-Create the URI routes for generating and resolving `agent://` URIs:
+Create the URI routes for generating and resolving `knirv://` URIs:
 
 ```javascript
 // agent-tunnel-registry/api/uriRoutes.js
@@ -1110,7 +1110,7 @@ const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
 
-// Generates a agent:// URI that implies tunneling through this server if the node is tunneled
+// Generates a knirv:// URI that implies tunneling through this server if the node is tunneled
 router.post('/generate', (req, res) => {
     const { devId, resourceType = 'dev', subPath = '' } = req.body; // Node requesting URI generation
     
@@ -1124,7 +1124,7 @@ router.post('/generate', (req, res) => {
     }
 
     let uri;
-    // The "ID" part of agent://<ID>.<ResourceType>
+    // The "ID" part of knirv://<ID>.<ResourceType>
     const resourceSpecificId = nodeInfo.chainId || nodeInfo.devId;
 
     if (nodeInfo.isTunneled) {
@@ -1132,10 +1132,10 @@ router.post('/generate', (req, res) => {
         const uniqueTunneledResourceId = uuidv4(); // Generate a unique ID for this tunneled resource
         registryManager.mapTunneledResource(uniqueTunneledResourceId, devId);
 
-        uri = `agent://${config.serverPublicHost}/${uniqueTunneledResourceId}.${resourceType}${subPath ? '/' + subPath.replace(/^\//, '') : ''}`;
+        uri = `knirv://${config.serverPublicHost}/${uniqueTunneledResourceId}.${resourceType}${subPath ? '/' + subPath.replace(/^\//, '') : ''}`;
     } else {
         // For directly reachable nodes, the URI might point to their public IP/hostname
-        uri = `agent://${nodeInfo.publicIp || nodeInfo.devId }/${resourceSpecificId}.${resourceType}${subPath ? '/' + subPath.replace(/^\//, '') : ''}`;
+        uri = `knirv://${nodeInfo.publicIp || nodeInfo.devId }/${resourceSpecificId}.${resourceType}${subPath ? '/' + subPath.replace(/^\//, '') : ''}`;
     }
 
     res.json({ 
@@ -1147,7 +1147,7 @@ router.post('/generate', (req, res) => {
     });
 });
 
-// Client calls this to understand how to connect given a agent:// URI
+// Client calls this to understand how to connect given a knirv:// URI
 router.get('/resolve', (req, res) => {
     const { uri } = req.query;
     if (!uri) {
@@ -1156,9 +1156,9 @@ router.get('/resolve', (req, res) => {
 
     try {
         // Basic parsing (highly simplified)
-        // agent://<authority>/<identifier>.<resourceType>/<subPath>?<query>
+        // knirv://<authority>/<identifier>.<resourceType>/<subPath>?<query>
         
-        const schemePrefix = "agent://";
+        const schemePrefix = "knirv://";
         if (!uri.startsWith(schemePrefix)) {
             return res.status(400).json({ error: 'Invalid URI scheme' });
         }
@@ -1797,12 +1797,12 @@ func shutdownNodeJSServices(services map[string]*nodeService, logger *logrus.Log
 
 ## Phase 5: Client Integration
 
-### 5.1 Go Client for Resolving agent:// URIs
+### 5.1 Go Client for Resolving knirv:// URIs
 
-Implement a Go client for resolving and connecting to `agent://` URIs:
+Implement a Go client for resolving and connecting to `knirv://` URIs:
 
 ```go
-// Example Go client code for resolving and connecting to agent:// URIs
+// Example Go client code for resolving and connecting to knirv:// URIs
 package agenturi
 
 import (
@@ -1817,7 +1817,7 @@ import (
     "github.com/multiformats/go-multiaddr"
 )
 
-// URIResolver handles resolution of agent:// URIs
+// URIResolver handles resolution of knirv:// URIs
 type URIResolver struct {
     RegistryURL string // Base URL of the registry service, e.g., "https://registry.knirv.com"
 }
@@ -1837,7 +1837,7 @@ type ResolveResponse struct {
     RelayProtocolInfo  string `json:"relayProtocolInfo,omitempty"`
 }
 
-// ResolveURI resolves a agent:// URI to connection details
+// ResolveURI resolves a knirv:// URI to connection details
 func (r *URIResolver) ResolveURI(ctx context.Context, uri string) (*ResolveResponse, error) {
     // Construct the request URL
     reqURL := fmt.Sprintf("%s/api/uri/resolve?uri=%s", r.RegistryURL, url.QueryEscape(uri))

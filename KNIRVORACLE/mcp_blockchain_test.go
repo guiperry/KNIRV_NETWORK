@@ -22,11 +22,12 @@ import (
 
 // TestMCPTransactionProcessing tests the processing of MCP transactions
 func TestMCPTransactionProcessing(t *testing.T) {
-	// Create a test database
-	dbPath := fmt.Sprintf("testdb_%d", time.Now().UnixNano())
-	searchableDBPath := fmt.Sprintf("test_chromem_mcp_proc_%d", time.Now().UnixNano())
-	defer os.RemoveAll(dbPath)
-	defer os.RemoveAll(searchableDBPath)
+	// Create a test database in test-reports directory
+	dbPath := utils.CreateTestDatabasePath("mcp_proc")
+	searchableDBPath := utils.CreateTestDatabasePath("chromem_mcp_proc")
+	defer func() {
+		utils.CleanupTestDatabases()
+	}()
 
 	db, err := NewLevelDB(dbPath)
 	if err != nil {
@@ -581,11 +582,12 @@ func TestCapabilityInvocation(t *testing.T) {
 
 // TestMCPCapabilityUpdate tests the update of an MCP capability
 func TestMCPCapabilityUpdate(t *testing.T) {
-	// Create a test database
-	dbPath := fmt.Sprintf("testdb_%d", time.Now().UnixNano())
-	searchableDBPathUpdate := fmt.Sprintf("test_chromem_update_%d", time.Now().UnixNano())
-	defer os.RemoveAll(dbPath)
-	defer os.RemoveAll(searchableDBPathUpdate)
+	// Create a test database in test-reports directory
+	dbPath := utils.CreateTestDatabasePath("mcp_update")
+	searchableDBPathUpdate := utils.CreateTestDatabasePath("chromem_update")
+	defer func() {
+		utils.CleanupTestDatabases()
+	}()
 
 	db, err := NewLevelDB(dbPath)
 	if err != nil {
@@ -935,11 +937,12 @@ func registerTestCapabilityWithOwner(db *LevelDB, capabilityID string, owner str
 
 // TestValidateTransactionInBlockContext_DuplicateCapability tests duplicate capability detection
 func TestValidateTransactionInBlockContext_DuplicateCapability(t *testing.T) {
-	// Create test database
-	dbPath := fmt.Sprintf("testdb_dup_%d", time.Now().UnixNano())
-	searchableDBPath := fmt.Sprintf("test_chromem_dup_%d", time.Now().UnixNano())
-	defer os.RemoveAll(dbPath)
-	defer os.RemoveAll(searchableDBPath)
+	// Create test database in test-reports directory
+	dbPath := utils.CreateTestDatabasePath("dup_capability")
+	searchableDBPath := utils.CreateTestDatabasePath("chromem_dup")
+	defer func() {
+		utils.CleanupTestDatabases()
+	}()
 
 	db, err := NewLevelDB(dbPath)
 	if err != nil {

@@ -18,6 +18,13 @@ npm start
 
 > **Note**: The start process now includes automatic toolchain detection and installation. If Go/Rust toolchains are missing, they will be installed automatically during startup.
 
+### 1.1. Configuration Files
+
+The deployment uses the following configuration files:
+
+- **Render Blueprint**: `config/render.yml` - Defines multi-service architecture
+- **Render Start Script**: `scripts/render-start.sh` - Service startup logic
+
 ### 2. Environment Variables
 
 Set these environment variables in your Render service:
@@ -152,3 +159,23 @@ To update the deployment:
 - **In-memory storage** is used (data doesn't persist between restarts)
 
 For production deployments, additional configuration may be required.
+
+## 📁 File Structure
+
+Key files for Render deployment:
+
+```
+KNIRVTESTNET/
+├── config/
+│   └── render.yml              # Render Blueprint (moved from root)
+├── scripts/
+│   ├── render-start.sh         # Unified start script (moved from root)
+│   ├── render-build.sh         # Build script for Render
+│   └── start-render.sh         # Local Docker deployment script
+├── data/
+│   └── testnet-gateway/        # Static web assets
+├── testnet-gateway.Dockerfile  # Gateway container definition
+└── package.json               # Main package configuration
+```
+
+> **Note**: The `render-start.sh` script has been moved to `scripts/` directory and `render.yaml` has been moved to `config/render.yml` for better organization.

@@ -8,13 +8,13 @@ import (
 
 const (
 	// AppName is the name of the application used for directory naming
-	AppName = "Agentic-Engine"
+	AppName = "KNIRV-Engine"
 )
 
 // GetAppDataDir returns the OS-specific application data directory
-// Linux: ~/.config/Agentic-Engine
-// Windows: %APPDATA%\Agentic-Engine
-// macOS: ~/Library/Application Support/Agentic-Engine
+// Linux: ~/.config/KNIRV-Engine
+// Windows: %APPDATA%\KNIRV-Engine
+// macOS: ~/Library/Application Support/KNIRV-Engine
 func GetAppDataDir() (string, error) {
 	switch runtime.GOOS {
 	case "windows":
@@ -105,9 +105,9 @@ func GetPluginsDir() (string, error) {
 }
 
 // GetCacheDir returns the OS-specific cache directory for the application
-// Linux: ~/.cache/Agentic-Engine
-// Windows: %LOCALAPPDATA%\Agentic-Engine
-// macOS: ~/Library/Caches/Agentic-Engine
+// Linux: ~/.cache/KNIRV-Engine
+// Windows: %LOCALAPPDATA%\KNIRV-Engine
+// macOS: ~/Library/Caches/KNIRV-Engine
 func GetCacheDir() (string, error) {
 	switch runtime.GOOS {
 	case "windows":

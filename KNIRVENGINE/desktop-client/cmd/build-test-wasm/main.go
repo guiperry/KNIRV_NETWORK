@@ -6,12 +6,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"Agentic_Engine/agent"
+	"KNIRV_Engine/agent"
 )
 
 func main() {
 	// Get config directory
-	configDir := filepath.Join(os.Getenv("HOME"), ".config", "Agentic-Engine")
+	configDir := filepath.Join(os.Getenv("HOME"), ".config", "KNIRV-Engine")
 	pluginsDir := filepath.Join(configDir, "plugins")
 	templatesDir := "../agent/templates"
 	dbPath := filepath.Join(configDir, "agents.db")

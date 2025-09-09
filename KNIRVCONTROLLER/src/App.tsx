@@ -14,6 +14,9 @@ import { EdgeColoring } from './components/EdgeColoring';
 import { AgentManager } from './components/AgentManager';
 import { FabricAlgorithm } from './components/FabricAlgorithm';
 import { CognitiveShellInterface } from './components/CognitiveShellInterface';
+import { CortexBuilder } from './components/CortexBuilder';
+import { ApiKeyManager } from './components/ApiKeyManager';
+import USDCToNRNPurchase from './components/USDCToNRNPurchase';
 interface CognitiveState {
   activeSkills: string[];
   confidenceLevel: number;
@@ -56,7 +59,7 @@ export interface NRV {
   id: string;
   problemDescription: string;
   sourceID: string;
-  inputType: 'Voice' | 'Screenshot' | 'Log' | 'Camera';
+  inputType: 'Voice' | 'Screenshot' | 'Log' | 'Camera' | 'Error' | 'Context' | 'Idea';
   visualContext?: {
     x: number;
     y: number;
@@ -156,6 +159,9 @@ const ReceiverInterface = () => {
   const [activePanels, setActivePanels] = useState<string[]>([]);
   const [nrnBalance, setNrnBalance] = useState(1250);
   const [cognitiveMode, setCognitiveMode] = useState(false);
+  const [isCortexBuilderOpen, setIsCortexBuilderOpen] = useState(false);
+  const [isApiKeyManagerOpen, setIsApiKeyManagerOpen] = useState(false);
+  const [isUSDCPurchaseOpen, setIsUSDCPurchaseOpen] = useState(false);
   const [networkConnections] = useState<{
     [key: string]: 'connected' | 'disconnected' | 'connecting';
   }>({
@@ -327,6 +333,115 @@ const ReceiverInterface = () => {
     }, 1500);
   };
 
+  const handleSubmitError = async () => {
+    setShellStatus('processing');
+
+    try {
+      // Add error node to personal KNIRVGRAPH
+      const { personalKNIRVGRAPHService } = await import('./services/PersonalKNIRVGRAPHService');
+
+      const errorId = `error-${Date.now()}`;
+      await personalKNIRVGRAPHService.addErrorNode({
+        errorId,
+        errorType: 'user-submitted',
+        description: 'User-submitted error for SkillNode training',
+        context: { source: 'KNIRV-CONTROLLER-user', submissionType: 'manual' },
+        timestamp: Date.now()
+      });
+
+      const newNRV: NRV = {
+        id: `nrv-${Date.now()}`,
+        problemDescription: 'User-submitted error for SkillNode training',
+        sourceID: 'KNIRV-CONTROLLER-user',
+        inputType: 'Error',
+        temporalContext: new Date(),
+        severity: 'High',
+        suggestedSolutionType: 'skill-training',
+        status: 'Identified'
+      };
+      setCurrentNRVs(prev => [...prev, newNRV]);
+      setShellStatus('idle');
+    } catch (error) {
+      console.error('Failed to submit error:', error);
+      setShellStatus('error');
+      setTimeout(() => setShellStatus('idle'), 2000);
+    }
+  };
+
+  const handleSubmitContext = async () => {
+    setShellStatus('processing');
+
+    try {
+      // Add context node to personal KNIRVGRAPH
+      const { personalKNIRVGRAPHService } = await import('./services/PersonalKNIRVGRAPHService');
+
+      const contextId = `context-${Date.now()}`;
+      await personalKNIRVGRAPHService.addContextNode({
+        contextId,
+        contextName: 'MCP Server Context',
+        description: 'MCP server context for CapabilityNode creation',
+        mcpServerInfo: {
+          serverType: 'user-submitted',
+          capabilities: ['data-processing', 'api-integration'],
+          version: '1.0.0'
+        },
+        category: 'integration',
+        timestamp: Date.now()
+      });
+
+      const newNRV: NRV = {
+        id: `nrv-${Date.now()}`,
+        problemDescription: 'MCP server context for CapabilityNode creation',
+        sourceID: 'KNIRV-CONTROLLER-user',
+        inputType: 'Context',
+        temporalContext: new Date(),
+        severity: 'Medium',
+        suggestedSolutionType: 'capability-mapping',
+        status: 'Identified'
+      };
+      setCurrentNRVs(prev => [...prev, newNRV]);
+      setShellStatus('idle');
+    } catch (error) {
+      console.error('Failed to submit context:', error);
+      setShellStatus('error');
+      setTimeout(() => setShellStatus('idle'), 2000);
+    }
+  };
+
+  const handleSubmitIdea = async () => {
+    setShellStatus('processing');
+
+    try {
+      // Add idea node to personal KNIRVGRAPH
+      const { personalKNIRVGRAPHService } = await import('./services/PersonalKNIRVGRAPHService');
+
+      const ideaId = `idea-${Date.now()}`;
+      await personalKNIRVGRAPHService.addIdeaNode({
+        ideaId,
+        ideaName: 'User Innovation Concept',
+        description: 'User idea for PropertyNode development',
+        timestamp: Date.now()
+      });
+
+      const newNRV: NRV = {
+        id: `nrv-${Date.now()}`,
+        problemDescription: 'User idea for PropertyNode development',
+        sourceID: 'KNIRV-CONTROLLER-user',
+        inputType: 'Idea',
+        temporalContext: new Date(),
+        severity: 'Low',
+        suggestedSolutionType: 'property-development',
+        status: 'Identified'
+      };
+      setCurrentNRVs(prev => [...prev, newNRV]);
+      setShellStatus('idle');
+    } catch (error) {
+      console.error('Failed to submit idea:', error);
+      setShellStatus('error');
+      setTimeout(() => setShellStatus('idle'), 2000);
+    }
+  };
+
   const handleNetworkToggle = () => {
     setActivePanels(prev =>
       prev.includes('network-status')
@@ -440,6 +555,18 @@ const ReceiverInterface = () => {
     setMenuOpen(false);
   };
 
+  const openCortexBuilder = () => {
+    setIsCortexBuilderOpen(true);
+  };
+
+  const openApiKeyManager = () => {
+    setIsApiKeyManagerOpen(true);
+  };
+
+  const openUSDCPurchase = () => {
+    setIsUSDCPurchaseOpen(true);
+  };
+
   const toggleNetworkPanel = () => {
     setActivePanels(prev =>
       prev.includes('network-status')
@@ -492,6 +619,15 @@ const ReceiverInterface = () => {
           <MenuItem onClick={openCognitiveShell} icon="🧠">
             Cognitive Shell
           </MenuItem>
+          <MenuItem onClick={openCortexBuilder} icon="🎯">
+            CORTEX Builder
+          </MenuItem>
+          <MenuItem onClick={openApiKeyManager} icon="🔑">
+            API Keys
+          </MenuItem>
+          <MenuItem onClick={openUSDCPurchase} icon="💰">
+            Buy NRN Tokens
+          </MenuItem>
           <MenuItem onClick={toggleNetworkPanel} icon="🌐">
             Network Status
           </MenuItem>
@@ -510,6 +646,9 @@ const ReceiverInterface = () => {
           nrnBalance={nrnBalance}
           onScreenshotCapture={handleScreenshotCapture}
           cognitiveMode={cognitiveMode}
+          onSubmitError={handleSubmitError}
+          onSubmitContext={handleSubmitContext}
+          onSubmitIdea={handleSubmitIdea}
         />
 
         <VoiceControl
@@ -580,6 +719,43 @@ const ReceiverInterface = () => {
             nrvCount={currentNRVs.length}
           />
         </SlidingPanel>
+
+        {/* CORTEX Builder Modal */}
+        <CortexBuilder
+          isOpen={isCortexBuilderOpen}
+          onClose={() => setIsCortexBuilderOpen(false)}
+        />
+
+        {/* API Key Manager Modal */}
+        <ApiKeyManager
+          isOpen={isApiKeyManagerOpen}
+          onClose={() => setIsApiKeyManagerOpen(false)}
+        />
+
+        {/* USDC to NRN Purchase Modal */}
+        {isUSDCPurchaseOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="relative">
+              <button
+                onClick={() => setIsUSDCPurchaseOpen(false)}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 z-10"
+              >
+                ×
+              </button>
+              <USDCToNRNPurchase
+                onPurchaseComplete={(result) => {
+                  console.log('Purchase completed:', result);
+                  // Update NRN balance if needed
+                  setNrnBalance(prev => prev + parseFloat(result.nrnAmount));
+                }}
+                onError={(error) => {
+                  console.error('Purchase error:', error);
+                  // Could show a toast notification here
+                }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Voice Status Indicator */}
         {isVoiceActive && (

@@ -3,7 +3,7 @@ package test
 import (
 	"testing"
 
-	"Agentic_Engine/utils"
+	"KNIRV_Engine/utils"
 )
 
 func TestUtilityFunctions(t *testing.T) {

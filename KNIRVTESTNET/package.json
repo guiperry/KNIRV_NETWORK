@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "npm run build:all && npm run testnet:start",
     "dev:parallel": "npm run install:deps && concurrently --kill-others --prefix-colors \"cyan,magenta,yellow,green,blue\" \"npm run server:dev\" \"npm run health:dev\"",
-    "start:render": "bash scripts/start-render.sh",
+    "start:render": "bash script nots/render-start.sh",
     "start:full": "npm run testnet:start",
     "testnet:start": "bash scripts/start-testnet.sh",
     "testnet:stop": "bash scripts/stop-testnet.sh",

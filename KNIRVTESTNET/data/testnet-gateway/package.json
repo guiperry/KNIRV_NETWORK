@@ -1,7 +1,7 @@
 {
-  "name": "knirv-gateway",
+  "name": "knirv-testnet-gateway",
   "version": "1.0.0",
-  "description": "KNIRV Gateway - Unified Web Portal and API Gateway for the KNIRV Decentralized Trusted Execution Network",
+  "description": "KNIRV Testnet Gateway - Lightweight local development gateway for KNIRV D-TEN testing and development",
   "main": "index.html",
   "scripts": {
     "dev": "npm run check-health && netlify dev",
@@ -63,10 +63,11 @@
   },
   "keywords": [
     "knirv",
-    "api-gateway",
-    "netlify",
-    "serverless",
-    "sse"
+    "testnet",
+    "local-development",
+    "gateway",
+    "testing",
+    "d-ten"
   ],
   "author": "KNIRV Team",
   "license": "MIT"

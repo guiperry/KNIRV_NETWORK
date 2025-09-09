@@ -1,14 +1,11 @@
 package integration_tests
 
 import (
-	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,7 +46,7 @@ type DemoNetworkStatusResponse struct {
 func TestKNIRVControllerDemoWorkflows(t *testing.T) {
 	// Ensure all services are ready for demo
 	t.Log("🚀 Starting KNIRVCONTROLLER Demo Workflow Tests")
-	
+
 	// Wait for all required services
 	require.NoError(t, waitForKNIRVControllerService(KNIRVControllerURL, TestTimeout))
 	require.NoError(t, waitForKNIRVControllerService(KNIRVRouterURL, TestTimeout))
@@ -178,11 +175,11 @@ func testDemoSkillInvocationWorkflow(t *testing.T) {
 		UserAddress: "knirv1demo123456789",
 		NRNAmount:   "250",
 		Parameters: map[string]interface{}{
-			"agentId":    "demo-agent-001",
-			"inputText":  "Hello, KNIRV Network! Please process this text.",
-			"operation":  "analyze",
-			"demoMode":   true,
-			"priority":   "high",
+			"agentId":   "demo-agent-001",
+			"inputText": "Hello, KNIRV Network! Please process this text.",
+			"operation": "analyze",
+			"demoMode":  true,
+			"priority":  "high",
 		},
 		Priority: "high",
 		UseP2P:   true,
@@ -198,7 +195,7 @@ func testDemoSkillInvocationWorkflow(t *testing.T) {
 		var skillResponse KNIRVControllerSkillResponse
 		err = json.NewDecoder(resp2.Body).Decode(&skillResponse)
 		require.NoError(t, err)
-		t.Logf("✅ Skill invoked successfully: RequestID=%s, ExecutionTime=%dms", 
+		t.Logf("✅ Skill invoked successfully: RequestID=%s, ExecutionTime=%dms",
 			skillResponse.RequestID, skillResponse.ExecutionTime)
 	} else {
 		t.Logf("ℹ️  Skill invocation returned status %d", resp2.StatusCode)
@@ -230,10 +227,10 @@ function processData(data) {
 }`,
 		Language: "javascript",
 		Context: map[string]interface{}{
-			"fileName":    "demo-processor.js",
-			"lineNumber":  15,
+			"fileName":     "demo-processor.js",
+			"lineNumber":   15,
 			"columnNumber": 9,
-			"demoMode":    true,
+			"demoMode":     true,
 		},
 	}
 
@@ -260,10 +257,10 @@ function processData(data) {
 		Rank:                   8,
 		Alpha:                  0.3,
 		Metadata: map[string]string{
-			"language":    "javascript",
-			"errorType":   "syntax",
-			"demoMode":    "true",
-			"capability":  "error-fixing",
+			"language":   "javascript",
+			"errorType":  "syntax",
+			"demoMode":   "true",
+			"capability": "error-fixing",
 		},
 	}
 
@@ -372,13 +369,13 @@ func testDemoNetworkIntegrationWorkflow(t *testing.T) {
 
 	// Step 2: Test cross-service communication
 	t.Log("🔄 Step 2: Testing cross-service communication...")
-	
+
 	// Test KNIRVCONTROLLER → KNIRVGRAPH
 	graphRequest := map[string]interface{}{
 		"query":    "demo-query",
 		"demoMode": true,
 	}
-	
+
 	resp2, err := makeKNIRVControllerRequest("POST", KNIRVControllerURL+"/api/graph-query", graphRequest)
 	require.NoError(t, err)
 	defer resp2.Body.Close()

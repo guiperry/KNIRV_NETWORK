@@ -874,7 +874,7 @@ agent-sdk-tool/
 ### Phase 6: URI Handling and Integration
 
 1. **agent URI Scheme Implementation**
-   - Implement `agent://` URI scheme parsing:
+   - Implement `knirv://` URI scheme parsing:
      ```go
      // agentUri represents a parsed agent URI
      type agentUri struct {
@@ -888,8 +888,8 @@ agent-sdk-tool/
      // ParseagentUri parses a agent URI string into a structured object
      func ParseagentUri(uriString string) (*agentUri, error) {
          // Validate URI format
-         if !strings.HasPrefix(uriString, "agent://") {
-             return nil, fmt.Errorf("invalid agent URI: must start with 'agent://'")
+         if !strings.HasPrefix(uriString, "knirv://") {
+             return nil, fmt.Errorf("invalid agent URI: must start with 'knirv://'")
          }
          
          // Parse URI
@@ -932,7 +932,7 @@ agent-sdk-tool/
      func (uri *agentUri) ToUriString() string {
          // Build base URI
          var builder strings.Builder
-         builder.WriteString("agent://")
+         builder.WriteString("knirv://")
          builder.WriteString(uri.ResourceType)
          builder.WriteString("/")
          builder.WriteString(uri.Identifier)
@@ -970,12 +970,12 @@ agent-sdk-tool/
          Short: "Process a agent URI",
          Long: `Process a agent URI and perform the associated action.
      
-     agent URIs follow the format: agent://<resource-type>/<identifier>[/<action>][?param1=value1&param2=value2]
+     agent URIs follow the format: knirv://<resource-type>/<identifier>[/<action>][?param1=value1&param2=value2]
      
      Examples:
-       agent://capability/resource_example_1234567890abcdef/invoke?param1=value1
-       agent://transaction/0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
-       agent://address/0x1234567890abcdef1234567890abcdef12345678/transfer?amount=100`,
+       knirv://capability/resource_example_1234567890abcdef/invoke?param1=value1
+       knirv://transaction/0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+       knirv://address/0x1234567890abcdef1234567890abcdef12345678/transfer?amount=100`,
          RunE: func(cmd *cobra.Command, args []string) error {
              if len(args) != 1 {
                  return fmt.Errorf("exactly one URI argument is required")
@@ -1447,7 +1447,7 @@ agent-sdk-tool uri <agent-uri> [--wallet <wallet_file_path>] [--node <node_url>]
   - `--password <pwd>`: Wallet password (will prompt if not provided)
 - **URI Format**:
   ```
-  agent://<resource>.<resourcetype>/<identifier>[/<action>][?param1=value1&param2=value2]
+  knirv://<resource>.<resourcetype>/<identifier>[/<action>][?param1=value1&param2=value2]
   ```
 - **Supported Resource Types**:
   - `capability`: Represents a capability on the blockchain
@@ -1459,9 +1459,9 @@ agent-sdk-tool uri <agent-uri> [--wallet <wallet_file_path>] [--node <node_url>]
   - For `address`: `transfer`, `balance` (default)
 - **Examples**:
   ```
-  agent://resource_example_1234567890abcdef.capability/invoke?param1=value1&param2=value2
-  agent://0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890.transaction
-  agent://0x1234567890abcdef1234567890abcdef12345678.address/transfer?amount=100&to=0xabcdef1234567890abcdef1234567890abcdef
+  knirv://resource_example_1234567890abcdef.capability/invoke?param1=value1&param2=value2
+  knirv://0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890.transaction
+  knirv://0x1234567890abcdef1234567890abcdef12345678.address/transfer?amount=100&to=0xabcdef1234567890abcdef1234567890abcdef
   ```
 - **Output**:
   The output depends on the resource type and action, matching the output of the corresponding command.

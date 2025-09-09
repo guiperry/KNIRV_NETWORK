@@ -12,7 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"Agentic_Engine/api/utils"
+	"KNIRV_Engine/api/utils"
 )
 
 // Pre-compiled regex patterns for better performance

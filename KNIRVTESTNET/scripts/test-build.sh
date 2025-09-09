@@ -35,7 +35,7 @@ print_warning() {
 print_status "Test 1: Checking required files..."
 REQUIRED_FILES=(
     "package.json"
-    "render.yaml"
+    "config/render.yml"
     "testnet-gateway.Dockerfile"
     "scripts/render-build.sh"
     "scripts/start-render.sh"
@@ -72,13 +72,13 @@ for dockerfile in "${DOCKERFILES[@]}"; do
     fi
 done
 
-# Test 3: Validate render.yaml syntax
-print_status "Test 3: Validating render.yaml..."
+# Test 3: Validate config/render.yml syntax
+print_status "Test 3: Validating config/render.yml..."
 if command -v python3 &> /dev/null; then
-    if python3 -c "import yaml; yaml.safe_load(open('render.yaml'))" 2>/dev/null; then
-        print_success "✓ render.yaml is valid YAML"
+    if python3 -c "import yaml; yaml.safe_load(open('config/render.yml'))" 2>/dev/null; then
+        print_success "✓ config/render.yml is valid YAML"
     else
-        print_error "✗ render.yaml has syntax errors"
+        print_error "✗ config/render.yml has syntax errors"
         exit 1
     fi
 else

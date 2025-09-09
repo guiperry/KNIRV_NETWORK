@@ -31,9 +31,14 @@ const (
 	BlockValidationTimeout  = 10 * time.Second
 	TransactionValidTimeout = 5 * time.Second
 
+	// Network control parameters (use shared constants from failover_manager.go)
+	NetworkPauseTimeout = 5 * time.Minute
+
 	// Gossip parameters
 	GossipHeartbeat = 1 * time.Second
 )
+
+// Note: Network control message types are defined in failover_manager.go
 
 // Chain sync message types
 type GetStatusRequest struct {
@@ -70,17 +75,21 @@ type P2PConsensusManager struct {
 	cancel           context.CancelFunc
 
 	// PubSub topics and subscriptions
-	blockTopic       *pubsub.Topic
-	blockSub         *pubsub.Subscription
-	transactionTopic *pubsub.Topic
-	transactionSub   *pubsub.Subscription
+	blockTopic          *pubsub.Topic
+	blockSub            *pubsub.Subscription
+	transactionTopic    *pubsub.Topic
+	transactionSub      *pubsub.Subscription
+	networkControlTopic *pubsub.Topic
+	networkControlSub   *pubsub.Subscription
 
 	// Consensus state
-	miningLocked bool
-	isSyncing    bool
-	mu           sync.Mutex
-	stopChan     chan struct{}
-	nodeRole     config.Role // Added
+	miningLocked  bool
+	isSyncing     bool
+	networkPaused bool
+	pausedUntil   time.Time
+	mu            sync.Mutex
+	stopChan      chan struct{}
+	nodeRole      config.Role // Added
 
 	// Fork resolution (removed unused longestChain)
 }
@@ -203,9 +212,22 @@ func (pcm *P2PConsensusManager) setupPubSub() error {
 		return fmt.Errorf("failed to subscribe to transaction topic: %w", err)
 	}
 
-	log.Printf("[%s][%s] P2P consensus manager subscribed to topics: %s, %s",
+	// Join the network control topic
+	networkControlTopicName := NetworkControlTopic // Using shared constant
+	pcm.networkControlTopic, err = pcm.pubsub.Join(networkControlTopicName)
+	if err != nil {
+		return fmt.Errorf("failed to join network control topic: %w", err)
+	}
+
+	// Subscribe to the network control topic
+	pcm.networkControlSub, err = pcm.networkControlTopic.Subscribe()
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to network control topic: %w", err)
+	}
+
+	log.Printf("[%s][%s] P2P consensus manager subscribed to topics: %s, %s, %s",
 		pcm.nodeRole.String(), pcm.blockchain.ChainID,
-		blockTopicName, transactionTopicName)
+		blockTopicName, transactionTopicName, networkControlTopicName)
 
 	return nil
 }
@@ -219,6 +241,9 @@ func (pcm *P2PConsensusManager) Start() {
 
 	// Start the transaction handler
 	go pcm.handleTransactions()
+
+	// Start the network control handler
+	go pcm.handleNetworkControl()
 
 	// Start the fork resolution process
 	go pcm.runForkResolution()
@@ -836,4 +861,156 @@ func (pcm *P2PConsensusManager) IsSyncing() bool {
 	pcm.mu.Lock()
 	defer pcm.mu.Unlock()
 	return pcm.isSyncing
+}
+
+// handleNetworkControl processes network control messages (pause/resume)
+func (pcm *P2PConsensusManager) handleNetworkControl() {
+	for {
+		select {
+		case <-pcm.ctx.Done():
+			return
+		default:
+			msg, err := pcm.networkControlSub.Next(pcm.ctx)
+			if err != nil {
+				if pcm.ctx.Err() == nil {
+					log.Printf("[%s][%s] Error receiving network control message: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, err)
+				}
+				continue
+			}
+
+			// Skip messages from ourselves
+			if msg.ReceivedFrom == pcm.host.ID() {
+				continue
+			}
+
+			// Decode the network control message
+			var networkMsg NetworkControlMessage
+			if err := json.Unmarshal(msg.Data, &networkMsg); err != nil {
+				log.Printf("[%s][%s] Error decoding network control message: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, err)
+				continue
+			}
+
+			log.Printf("[%s][%s] Received network control message: %s", pcm.nodeRole.String(), pcm.blockchain.ChainID, networkMsg.Type)
+
+			// Handle different network control message types
+			switch networkMsg.Type {
+			case "NetworkPause":
+				pcm.handleNetworkPause(networkMsg.Payload, msg.ReceivedFrom.String())
+			case "NetworkResume":
+				pcm.handleNetworkResume(networkMsg.Payload, msg.ReceivedFrom.String())
+			default:
+				log.Printf("[%s][%s] Unknown network control message type: %s", pcm.nodeRole.String(), pcm.blockchain.ChainID, networkMsg.Type)
+			}
+		}
+	}
+}
+
+// handleNetworkPause processes a NetworkPause message and pauses network operations
+func (pcm *P2PConsensusManager) handleNetworkPause(payload interface{}, fromPeerID string) {
+	pcm.mu.Lock()
+	defer pcm.mu.Unlock()
+
+	log.Printf("[%s][%s] Received NetworkPause message from peer: %s", pcm.nodeRole.String(), pcm.blockchain.ChainID, fromPeerID)
+
+	// Parse the NetworkPausePayload
+	pauseData, ok := payload.(map[string]interface{})
+	if !ok {
+		log.Printf("[%s][%s] Invalid NetworkPause payload format", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+		return
+	}
+
+	// Extract pause information
+	initiatorPeerID, ok := pauseData["initiator_peer_id"].(string)
+	if !ok {
+		log.Printf("[%s][%s] Invalid initiator_peer_id in NetworkPause", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+		return
+	}
+
+	reason, ok := pauseData["reason"].(string)
+	if !ok {
+		log.Printf("[%s][%s] Invalid reason in NetworkPause", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+		return
+	}
+
+	// Extract timestamp (optional for future use, but we don't use it for now)
+	_, ok = pauseData["timestamp"].(*time.Timer) // We'll extract but won't use
+	if !ok {
+		log.Printf("[%s][%s] Invalid timestamp in NetworkPause", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+		return
+	}
+
+	// Validate and normalize the pause duration
+	currentTime := time.Now()
+
+	// Set network paused state
+	pcm.networkPaused = true
+	pcm.pausedUntil = currentTime.Add(NetworkPauseTimeout)
+
+	log.Printf("[%s][%s] Network PAUSED by %s until %s - Reason: %s",
+		pcm.nodeRole.String(),
+		pcm.blockchain.ChainID,
+		initiatorPeerID,
+		pcm.pausedUntil.Format("2006-01-02 15:04:05 UTC"),
+		reason)
+
+	// Stop accepting new blocks and transactions during pause
+	log.Printf("[%s][%s] Network operations paused - rejecting new blocks and transactions", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+
+	// TODO: Signal to other components (HTTP server, blockchain miner, etc.) to pause
+}
+
+// handleNetworkResume processes a NetworkResume message and resumes network operations
+func (pcm *P2PConsensusManager) handleNetworkResume(payload interface{}, fromPeerID string) {
+	pcm.mu.Lock()
+	defer pcm.mu.Unlock()
+
+	log.Printf("[%s][%s] Received NetworkResume message from peer: %s", pcm.nodeRole.String(), pcm.blockchain.ChainID, fromPeerID)
+
+	// Validate payload format (even if we don't use specific fields yet)
+	if payload != nil {
+		if resumeData, ok := payload.(map[string]interface{}); ok {
+			if timestamp, exists := resumeData["timestamp"]; exists {
+				log.Printf("[%s][%s] Resume message timestamp: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, timestamp)
+			}
+		}
+	}
+
+	// Resume network operations
+	pcm.networkPaused = false
+	pcm.pausedUntil = time.Time{}
+
+	log.Printf("[%s][%s] Network operations RESUMED by %s", pcm.nodeRole.String(), pcm.blockchain.ChainID, fromPeerID)
+
+	// TODO: Signal to other components to resume normal operations
+}
+
+// IsNetworkPaused returns true if the network is currently paused
+func (pcm *P2PConsensusManager) IsNetworkPaused() bool {
+	pcm.mu.Lock()
+	defer pcm.mu.Unlock()
+
+	// Check if pause has expired
+	if pcm.networkPaused && time.Now().After(pcm.pausedUntil) {
+		log.Printf("[%s][%s] Network pause timeout expired, auto-resuming", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+		pcm.networkPaused = false
+		pcm.pausedUntil = time.Time{}
+		return false
+	}
+
+	return pcm.networkPaused
+}
+
+// GetPauseStatus returns information about the current network pause state
+func (pcm *P2PConsensusManager) GetPauseStatus() (bool, time.Time) {
+	pcm.mu.Lock()
+	defer pcm.mu.Unlock()
+
+	if pcm.networkPaused && time.Now().After(pcm.pausedUntil) {
+		log.Printf("[%s][%s] Network pause timeout expired, auto-resuming", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+		pcm.networkPaused = false
+		pcm.pausedUntil = time.Time{}
+		return false, time.Time{}
+	}
+
+	return pcm.networkPaused, pcm.pausedUntil
 }

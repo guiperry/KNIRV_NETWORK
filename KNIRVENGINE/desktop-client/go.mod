@@ -1,4 +1,4 @@
-module Agentic_Engine
+module KNIRV_Engine
 
 go 1.23.3
 
@@ -13,7 +13,6 @@ require (
 	github.com/invopop/jsonschema v0.13.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
-
 	github.com/philippgille/chromem-go v0.7.0
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/wk8/go-ordered-map/v2 v2.1.8

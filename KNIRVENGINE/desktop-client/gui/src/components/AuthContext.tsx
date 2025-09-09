@@ -20,6 +20,8 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
   hasPermission: (permission: string) => boolean;
+  canAccessPage: (pageId: string) => boolean;
+  canAccessSubPage: (parentPageId: string, subPageId: string) => boolean;
   refreshToken: () => Promise<boolean>;
   isAuthenticated: boolean;
 }
@@ -180,6 +182,106 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return user.permissions.includes(permission);
   };
 
+  // Role-based page access control
+  const pageAccess: Record<string, string[]> = {
+    'root': [
+      'dashboard', 'chat', 'monitor', 'models', 'agents', 'skills',
+      'capabilities', 'properties', 'api', 'settings', 'network-admin'
+    ],
+    'bootnode': [
+      'dashboard', 'chat', 'monitor', 'models', 'agents', 'skills',
+      'capabilities', 'properties', 'api', 'settings'
+    ],
+    'peer': [
+      'dashboard', 'chat', 'monitor', 'agents', 'skills',
+      'capabilities', 'properties', 'api', 'settings'
+    ],
+    'client': [
+      'dashboard', 'chat', 'agents', 'skills', 'capabilities', 'settings'
+    ],
+    'user': [
+      'dashboard', 'chat', 'agents', 'skills', 'capabilities', 'settings'
+    ]
+  };
+
+  // Sub-page access control
+  const subPageAccess: Record<string, Record<string, string[]>> = {
+    'chat': {
+      'root': ['chatchain', 'mychatbrain'],
+      'bootnode': ['chatchain', 'mychatbrain'],
+      'peer': ['chatchain', 'mychatbrain'],
+      'client': ['mychatbrain'],
+      'user': ['mychatbrain']
+    },
+    'monitor': {
+      'root': ['network-monitor', 'local-analytics', 'network-explorers'],
+      'bootnode': ['network-monitor', 'local-analytics', 'network-explorers'],
+      'peer': ['local-analytics', 'network-explorers'],
+      'client': ['local-analytics'],
+      'user': ['local-analytics']
+    },
+    'models': {
+      'root': ['codex-builder', 'fallback-config', 'dao-voting'],
+      'bootnode': ['codex-builder', 'fallback-config', 'dao-voting'],
+      'peer': ['codex-builder', 'fallback-config'],
+      'client': ['codex-builder'],
+      'user': ['codex-builder']
+    },
+    'agents': {
+      'root': ['my-agents', 'my-targets', 'my-workflows'],
+      'bootnode': ['my-agents', 'my-targets', 'my-workflows'],
+      'peer': ['my-agents', 'my-targets', 'my-workflows'],
+      'client': ['my-agents', 'my-workflows'],
+      'user': ['my-agents', 'my-workflows']
+    },
+    'skills': {
+      'root': ['skills-dex'],
+      'bootnode': ['skills-dex'],
+      'peer': ['skills-dex'],
+      'client': ['skills-dex'],
+      'user': ['skills-dex']
+    },
+    'capabilities': {
+      'root': ['capability-store', 'mcp-manager', 'mcp-servers'],
+      'bootnode': ['capability-store', 'mcp-manager', 'mcp-servers'],
+      'peer': ['capability-store', 'mcp-manager', 'mcp-servers'],
+      'client': ['capability-store', 'mcp-manager'],
+      'user': ['capability-store']
+    },
+    'properties': {
+      'root': ['nft-ip-vault'],
+      'bootnode': ['nft-ip-vault'],
+      'peer': ['nft-ip-vault'],
+      'client': ['nft-ip-vault'],
+      'user': ['nft-ip-vault']
+    },
+    'api': {
+      'root': ['personal-endpoints'],
+      'bootnode': ['personal-endpoints'],
+      'peer': ['personal-endpoints'],
+      'client': ['personal-endpoints'],
+      'user': ['personal-endpoints']
+    }
+  };
+
+  // Check if user can access a specific page
+  const canAccessPage = (pageId: string): boolean => {
+    if (!user) return false;
+    const userRole = user.role?.toLowerCase() || 'user';
+    const accessList = pageAccess[userRole] || pageAccess['user'];
+    return accessList.includes(pageId);
+  };
+
+  // Check if user can access a specific sub-page
+  const canAccessSubPage = (parentPageId: string, subPageId: string): boolean => {
+    if (!user) return false;
+    const userRole = user.role?.toLowerCase() || 'user';
+    const parentAccess = subPageAccess[parentPageId];
+    if (!parentAccess) return false;
+    const accessList = parentAccess[userRole] || parentAccess['user'] || [];
+    return accessList.includes(subPageId);
+  };
+
   // Register function
   const register = async (userData: RegisterData): Promise<AuthResult> => {
     try {
@@ -254,6 +356,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     updateUser,
     hasPermission,
+    canAccessPage,
+    canAccessSubPage,
     refreshToken,
     isAuthenticated: !!user,
   };

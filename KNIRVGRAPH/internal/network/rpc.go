@@ -21,6 +21,7 @@ type RPCServer struct {
 	nrvSystem       *nrv.NRVSystem
 	nrnIntegration  *economics.NRNIntegration
 	proofOfSolution *economics.ProofOfSolution
+	app             AppInterface
 	logger          *zap.Logger
 	server          *http.Server
 	port            int
@@ -36,6 +37,10 @@ type GraphChainInterface interface {
 	FindPath(fromID, toID string, maxDepth int) ([]string, error)
 	AddNode(node *types.GraphNode) error
 	AddEdge(edge *types.Edge) error
+}
+
+type AppInterface interface {
+	IsNetworkPaused() bool
 }
 
 func NewRPCServer(gc GraphChainInterface, logger *zap.Logger, port int) *RPCServer {
@@ -106,7 +111,7 @@ func NewRPCServerWithNRV(gc GraphChainInterface, nrvSys *nrv.NRVSystem, logger *
 }
 
 // NewRPCServerWithEconomics creates a new RPC server with economics integration
-func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *nrv.NRVSystem, nrnIntegration *economics.NRNIntegration, proofOfSolution *economics.ProofOfSolution, logger *zap.Logger, port int) *RPCServer {
+func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *nrv.NRVSystem, nrnIntegration *economics.NRNIntegration, proofOfSolution *economics.ProofOfSolution, app AppInterface, logger *zap.Logger, port int) *RPCServer {
 	router := mux.NewRouter()
 
 	rpc := &RPCServer{
@@ -114,6 +119,7 @@ func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *nrv.NRVSystem, nr
 		nrvSystem:       nrvSys,
 		nrnIntegration:  nrnIntegration,
 		proofOfSolution: proofOfSolution,
+		app:             app,
 		logger:          logger,
 	}
 
@@ -319,6 +325,12 @@ func (rpc *RPCServer) getAccount(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rpc *RPCServer) submitGraphTransaction(w http.ResponseWriter, r *http.Request) {
+	// Check if network is paused
+	if rpc.app != nil && rpc.app.IsNetworkPaused() {
+		http.Error(w, "network is paused, transactions not accepted", http.StatusServiceUnavailable)
+		return
+	}
+
 	var tx types.GraphTransaction
 	if err := json.NewDecoder(r.Body).Decode(&tx); err != nil {
 		http.Error(w, "invalid graph transaction format", http.StatusBadRequest)
@@ -337,6 +349,12 @@ func (rpc *RPCServer) submitGraphTransaction(w http.ResponseWriter, r *http.Requ
 }
 
 func (rpc *RPCServer) createNode(w http.ResponseWriter, r *http.Request) {
+	// Check if network is paused
+	if rpc.app != nil && rpc.app.IsNetworkPaused() {
+		http.Error(w, "network is paused, node creation not allowed", http.StatusServiceUnavailable)
+		return
+	}
+
 	var node types.GraphNode
 	if err := json.NewDecoder(r.Body).Decode(&node); err != nil {
 		http.Error(w, "invalid node format", http.StatusBadRequest)
@@ -355,6 +373,12 @@ func (rpc *RPCServer) createNode(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rpc *RPCServer) createEdge(w http.ResponseWriter, r *http.Request) {
+	// Check if network is paused
+	if rpc.app != nil && rpc.app.IsNetworkPaused() {
+		http.Error(w, "network is paused, edge creation not allowed", http.StatusServiceUnavailable)
+		return
+	}
+
 	var edge types.Edge
 	if err := json.NewDecoder(r.Body).Decode(&edge); err != nil {
 		http.Error(w, "invalid edge format", http.StatusBadRequest)
@@ -387,6 +411,12 @@ func (rpc *RPCServer) getAllVectors(w http.ResponseWriter, r *http.Request) {
 func (rpc *RPCServer) createVector(w http.ResponseWriter, r *http.Request) {
 	if rpc.nrvSystem == nil {
 		http.Error(w, "NRV system not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Check if network is paused
+	if rpc.app != nil && rpc.app.IsNetworkPaused() {
+		http.Error(w, "network is paused, vector creation not allowed", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -447,6 +477,12 @@ func (rpc *RPCServer) createError(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if network is paused
+	if rpc.app != nil && rpc.app.IsNetworkPaused() {
+		http.Error(w, "network is paused, error creation not allowed", http.StatusServiceUnavailable)
+		return
+	}
+
 	var req struct {
 		ErrorType   string                 `json:"error_type"`
 		Description string                 `json:"description"`
@@ -483,6 +519,12 @@ func (rpc *RPCServer) getAllSkills(w http.ResponseWriter, r *http.Request) {
 func (rpc *RPCServer) createSkill(w http.ResponseWriter, r *http.Request) {
 	if rpc.nrvSystem == nil {
 		http.Error(w, "NRV system not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Check if network is paused
+	if rpc.app != nil && rpc.app.IsNetworkPaused() {
+		http.Error(w, "network is paused, skill creation not allowed", http.StatusServiceUnavailable)
 		return
 	}
 

@@ -9,6 +9,6 @@ find backend -name "*.go" -exec sed -i 's|KNIRVNEXUS/backend|nexus-backend|g' {}
 
 # Replace other problematic imports
 find backend -name "*.go" -exec sed -i 's|KNIRVORACLE/messages|nexus-backend/internal/messages|g' {} \;
-find backend -name "*.go" -exec sed -i 's|Agentic_Engine/database|nexus-backend/internal/database|g' {} \;
+find backend -name "*.go" -exec sed -i 's|KNIRV_Engine/database|nexus-backend/internal/database|g' {} \;
 
 echo "Import paths fixed!"

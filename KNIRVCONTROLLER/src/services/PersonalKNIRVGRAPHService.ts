@@ -19,6 +19,29 @@ interface SkillNodeData {
   proficiency: number;
 }
 
+interface CapabilityNodeData {
+  capabilityId: string;
+  capabilityName: string;
+  description: string;
+  mcpServerInfo: Record<string, unknown>;
+  category: string;
+  timestamp: number;
+}
+
+interface PropertyNodeData {
+  propertyId: string;
+  propertyName: string;
+  description: string;
+  feasibilityReport: {
+    exists: boolean;
+    similarProjects: string[];
+    feasibilityScore: number;
+    marketAnalysis: Record<string, unknown>;
+  };
+  collaborators: string[];
+  timestamp: number;
+}
+
 interface ConnectionNodeData {
   connectionType: string;
   strength: number;
@@ -30,7 +53,7 @@ interface AgentNodeData {
   capabilities: string[];
 }
 
-type NodeData = ErrorNodeData | SkillNodeData | ConnectionNodeData | AgentNodeData;
+type NodeData = ErrorNodeData | SkillNodeData | CapabilityNodeData | PropertyNodeData | ConnectionNodeData | AgentNodeData;
 
 interface EdgeData {
   connectionType: string;
@@ -42,7 +65,7 @@ import { rxdbService } from './RxDBService';
 
 export interface GraphNode {
   id: string;
-  type: 'error' | 'skill' | 'connection' | 'agent';
+  type: 'error' | 'skill' | 'capability' | 'property' | 'connection' | 'agent';
   label: string;
   position: { x: number; y: number; z: number };
   data: NodeData;
@@ -53,7 +76,7 @@ export interface GraphEdge {
   id: string;
   source: string;
   target: string;
-  type: 'error_to_skill' | 'skill_chain' | 'agent_connection';
+  type: 'error_to_skill' | 'context_to_capability' | 'idea_to_property' | 'skill_chain' | 'agent_connection' | 'collaboration';
   weight: number;
   data: EdgeData;
 }
@@ -133,7 +156,7 @@ export class PersonalKNIRVGRAPHService {
     }
   }
 
-  // Add error node to graph
+  // Add error node to graph - Competitive process for SkillNode creation
   async addErrorNode(errorData: {
     errorId: string;
     errorType: string;
@@ -156,6 +179,87 @@ export class PersonalKNIRVGRAPHService {
 
     // Attempt to find related skills automatically
     await this.findRelatedSkills(node);
+
+    // Update graph
+    await this.updateGraph();
+
+    return node;
+  }
+
+  // Add context node to graph - Creates CapabilityNodes from MCP server information
+  async addContextNode(contextData: {
+    contextId: string;
+    contextName: string;
+    description: string;
+    mcpServerInfo: Record<string, unknown>;
+    category: string;
+    timestamp: number;
+  }): Promise<GraphNode> {
+    if (!this.currentGraph) throw new Error('No active graph');
+
+    const capabilityData: CapabilityNodeData = {
+      capabilityId: contextData.contextId,
+      capabilityName: contextData.contextName,
+      description: contextData.description,
+      mcpServerInfo: contextData.mcpServerInfo,
+      category: contextData.category,
+      timestamp: contextData.timestamp
+    };
+
+    const node: GraphNode = {
+      id: `capability_${contextData.contextId}`,
+      type: 'capability',
+      label: contextData.contextName,
+      position: this.calculateNodePosition(),
+      data: capabilityData,
+      connections: []
+    };
+
+    this.currentGraph.nodes.push(node);
+
+    // Find related capabilities and create connections
+    await this.findRelatedCapabilities(node);
+
+    // Update graph
+    await this.updateGraph();
+
+    return node;
+  }
+
+  // Add idea node to graph - Collaborative process for PropertyNode creation
+  async addIdeaNode(ideaData: {
+    ideaId: string;
+    ideaName: string;
+    description: string;
+    timestamp: number;
+  }): Promise<GraphNode> {
+    if (!this.currentGraph) throw new Error('No active graph');
+
+    // Generate feasibility report
+    const feasibilityReport = await this.generateFeasibilityReport(ideaData);
+
+    const propertyData: PropertyNodeData = {
+      propertyId: ideaData.ideaId,
+      propertyName: ideaData.ideaName,
+      description: ideaData.description,
+      feasibilityReport,
+      collaborators: [this.currentGraph.userId], // Start with current user
+      timestamp: ideaData.timestamp
+    };
+
+    const node: GraphNode = {
+      id: `property_${ideaData.ideaId}`,
+      type: 'property',
+      label: ideaData.ideaName,
+      position: this.calculateNodePosition(),
+      data: propertyData,
+      connections: []
+    };
+
+    this.currentGraph.nodes.push(node);
+
+    // Find potential collaborators and similar ideas
+    await this.findCollaborationOpportunities(node);
 
     // Update graph
     await this.updateGraph();
@@ -260,6 +364,72 @@ export class PersonalKNIRVGRAPHService {
         }
       }
     }
+  }
+
+  // Helper method to find related capabilities for context nodes
+  private async findRelatedCapabilities(capabilityNode: GraphNode): Promise<void> {
+    const existingCapabilities = this.currentGraph?.nodes.filter(n => n.type === 'capability') || [];
+
+    for (const existingCapability of existingCapabilities) {
+      if ('category' in existingCapability.data && 'category' in capabilityNode.data) {
+        const similarity = this.calculateSimilarity(
+          existingCapability.data.category as string,
+          capabilityNode.data.category as string
+        );
+        if (similarity > 0.6) {
+          await this.createConnection(capabilityNode.id, existingCapability.id, 'context_to_capability');
+        }
+      }
+    }
+  }
+
+  // Helper method to find collaboration opportunities for idea nodes
+  private async findCollaborationOpportunities(propertyNode: GraphNode): Promise<void> {
+    const existingProperties = this.currentGraph?.nodes.filter(n => n.type === 'property') || [];
+
+    for (const existingProperty of existingProperties) {
+      if ('description' in existingProperty.data && 'description' in propertyNode.data) {
+        const similarity = this.calculateSimilarity(
+          existingProperty.data.description as string,
+          propertyNode.data.description as string
+        );
+        if (similarity > 0.4) {
+          await this.createConnection(propertyNode.id, existingProperty.id, 'collaboration');
+        }
+      }
+    }
+  }
+
+  // Generate feasibility report for ideas
+  private async generateFeasibilityReport(ideaData: {
+    ideaId: string;
+    ideaName: string;
+    description: string;
+  }): Promise<PropertyNodeData['feasibilityReport']> {
+    // In a real implementation, this would query external APIs, databases, etc.
+    // For now, return a mock feasibility report
+    return {
+      exists: Math.random() > 0.7, // 30% chance idea already exists
+      similarProjects: [
+        `Similar project 1 for ${ideaData.ideaName}`,
+        `Related concept: ${ideaData.ideaName} variant`
+      ],
+      feasibilityScore: Math.random() * 100, // Random score 0-100
+      marketAnalysis: {
+        marketSize: Math.floor(Math.random() * 1000000),
+        competition: Math.floor(Math.random() * 50),
+        trendScore: Math.random() * 10
+      }
+    };
+  }
+
+  // Calculate similarity between two strings (simple implementation)
+  private calculateSimilarity(str1: string, str2: string): number {
+    const words1 = str1.toLowerCase().split(/\s+/);
+    const words2 = str2.toLowerCase().split(/\s+/);
+    const intersection = words1.filter(word => words2.includes(word));
+    const union = [...new Set([...words1, ...words2])];
+    return intersection.length / union.length;
   }
 
   // Calculate node position (simple algorithm)

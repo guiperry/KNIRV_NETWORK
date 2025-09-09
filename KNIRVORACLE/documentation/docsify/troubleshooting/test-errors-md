@@ -611,12 +611,12 @@ This installer will:
 1. Connect to the KNIRVORACLE Bootnode
 2. Generate a unique chain URI for this node
 5. Detect host operating system
-6. Register URI handler for agent:// protocol
+6. Register URI handler for knirv:// protocol
 7. Find next available ports for node
 8. Update the application configuration
 9. Start the node
 
-Using Root Node URI: agent://KNIRVORACLE-ROOT9999.chain/
+Using Root Node URI: knirv://KNIRVORACLE-ROOT9999.chain/
 Client Node: ChainID will be derived from the generated wallet address.
 Generating wallet for this node...
 2025/05/21 06:24:18 Using role-specific data directory: /home/gperry/.config/KNIRVORACLE/client_data for role Client
@@ -629,7 +629,7 @@ Generated Wallet Address: KNIRVORACLEf10788f503f413984f5f0a226c7233c268bc6b5d
 IMPORTANT: Securely back up the wallet file: /home/gperry/.config/KNIRVORACLE/client_data/wallet.dat
 Skipping registry registration (only required for bootnodes)
 Detected operating system: linux
-URI scheme 'agent://' definition files created successfully on Linux.
+URI scheme 'knirv://' definition files created successfully on Linux.
 Updating MIME database...
 MIME database updated successfully.
 Updating desktop database...
@@ -777,22 +777,22 @@ Launching the KNIRVORACLE Node Manager...
     uri_generator_test.go:38: Test node started and healthy
 === RUN   TestURIGeneratorHandler_Integration/Default_UUID_Generation
 2025/05/21 06:24:20 Health check request from 127.0.0.1:54368
-    uri_generator_test.go:66: Generated URI: agent://a4ed0243-f3dd-43ef-ba53-9d162f6e95cf.chain/
+    uri_generator_test.go:66: Generated URI: knirv://a4ed0243-f3dd-43ef-ba53-9d162f6e95cf.chain/
     uri_generator_test.go:67: Generated Txn Hash: 0x71f01e5987ee021674ab8b414ca55cfd8d2c826c3cc6d70ba71d73130906462d
     uri_generator_test.go:88: Parsed URI - ID: a4ed0243-f3dd-43ef-ba53-9d162f6e95cf, ResourceType: chain, Path: /, Params: map[]
 === RUN   TestURIGeneratorHandler_Integration/With_Available_Desired_ID
 2025/05/21 06:24:20 URI Generator: No desired ID, generated UUID: a4ed0243-f3dd-43ef-ba53-9d162f6e95cf
-2025/05/21 06:24:20 Generated URI: agent://a4ed0243-f3dd-43ef-ba53-9d162f6e95cf.chain/ (Using ID: a4ed0243-f3dd-43ef-ba53-9d162f6e95cf)
+2025/05/21 06:24:20 Generated URI: knirv://a4ed0243-f3dd-43ef-ba53-9d162f6e95cf.chain/ (Using ID: a4ed0243-f3dd-43ef-ba53-9d162f6e95cf)
 2025/05/21 06:24:20 URI Mint Transaction Hash: 0x71f01e5987ee021674ab8b414ca55cfd8d2c826c3cc6d70ba71d73130906462d
 2025/05/21 06:24:20 [Client][KNIRVORACLE-9090] Announcing resource: a4ed0243-f3dd-43ef-ba53-9d162f6e95cf.chain (CID: bafkreiambjsgoeyuwf4adm3jf4sbajaduhtcbzvwbgktajqx7upqgzgtzm)
 2025/05/21 06:24:20 [KNIRVORACLE-9090] WARNING: Failed to announce newly minted resource a4ed0243-f3dd-43ef-ba53-9d162f6e95cf on DHT: [Client][KNIRVORACLE-9090] failed to announce resource a4ed0243-f3dd-43ef-ba53-9d162f6e95cf.chain: failed to find any dev in table
-    uri_generator_test.go:127: Generated URI with desired ID: agent://my-test-id-123.chain/
+    uri_generator_test.go:127: Generated URI with desired ID: knirv://my-test-id-123.chain/
 === RUN   TestURIGeneratorHandler_Integration/Conflict_Scenario
 2025/05/21 06:24:20 URI Generator: Checking DHT availability for desired ID: my-test-id-123
 2025/05/21 06:24:20 [Client][KNIRVORACLE-9090] Looking for providers of resource: my-test-id-123.chain (CID: bafkreibjl7w2fvprldpckxr4wcvch32cbgps2bguafvpmgh4mvz5754ypu)
 2025/05/21 06:24:20 URI Generator: DHT lookup confirmed no providers for 'my-test-id-123'. ID is available. (Error: [Client][KNIRVORACLE-9090] no providers found for resource: my-test-id-123.chain)
 2025/05/21 06:24:20 URI Generator: Desired ID 'my-test-id-123' is available.
-2025/05/21 06:24:20 Generated URI: agent://my-test-id-123.chain/ (Using ID: my-test-id-123)
+2025/05/21 06:24:20 Generated URI: knirv://my-test-id-123.chain/ (Using ID: my-test-id-123)
 2025/05/21 06:24:20 URI Mint Transaction Hash: 0x6a9a1b707287967ca65ff8dacfcfd4e9e79439d50b4ecba800bc98b0b11e5f76
 2025/05/21 06:24:20 [Client][KNIRVORACLE-9090] Announcing resource: my-test-id-123.chain (CID: bafkreibjl7w2fvprldpckxr4wcvch32cbgps2bguafvpmgh4mvz5754ypu)
 2025/05/21 06:24:20 [KNIRVORACLE-9090] WARNING: Failed to announce newly minted resource my-test-id-123 on DHT: [Client][KNIRVORACLE-9090] failed to announce resource my-test-id-123.chain: failed to find any dev in table
@@ -801,7 +801,7 @@ Launching the KNIRVORACLE Node Manager...
 2025/05/21 06:24:20 [Client][KNIRVORACLE-9090] Looking for providers of resource: taken-id-456.chain (CID: bafkreiahyd3h2khehz2jynvstkbvop6ppbapc4k7m2quji53tdzkirkbh4)
 2025/05/21 06:24:20 URI Generator: DHT lookup confirmed no providers for 'taken-id-456'. ID is available. (Error: [Client][KNIRVORACLE-9090] no providers found for resource: taken-id-456.chain)
 2025/05/21 06:24:20 URI Generator: Desired ID 'taken-id-456' is available.
-2025/05/21 06:24:20 Generated URI: agent://taken-id-456.chain/ (Using ID: taken-id-456)
+2025/05/21 06:24:20 Generated URI: knirv://taken-id-456.chain/ (Using ID: taken-id-456)
 2025/05/21 06:24:20 URI Mint Transaction Hash: 0xb68ae29cce41415197e593fdda4b0b86ef17f5b16989255c0064f77113a914f3
 2025/05/21 06:24:20 [Client][KNIRVORACLE-9090] Announcing resource: taken-id-456.chain (CID: bafkreiahyd3h2khehz2jynvstkbvop6ppbapc4k7m2quji53tdzkirkbh4)
 2025/05/21 06:24:20 [KNIRVORACLE-9090] WARNING: Failed to announce newly minted resource taken-id-456 on DHT: [Client][KNIRVORACLE-9090] failed to announce resource taken-id-456.chain: failed to find any dev in table
@@ -809,11 +809,11 @@ Launching the KNIRVORACLE Node Manager...
 2025/05/21 06:24:20 [Client][KNIRVORACLE-9090] Looking for providers of resource: taken-id-456.chain (CID: bafkreiahyd3h2khehz2jynvstkbvop6ppbapc4k7m2quji53tdzkirkbh4)
 2025/05/21 06:24:20 URI Generator: DHT lookup confirmed no providers for 'taken-id-456'. ID is available. (Error: [Client][KNIRVORACLE-9090] no providers found for resource: taken-id-456.chain)
 2025/05/21 06:24:20 URI Generator: Desired ID 'taken-id-456' is available.
-2025/05/21 06:24:20 Generated URI: agent://taken-id-456.chain/ (Using ID: taken-id-456)
+2025/05/21 06:24:20 Generated URI: knirv://taken-id-456.chain/ (Using ID: taken-id-456)
 2025/05/21 06:24:20 URI Mint Transaction Hash: 0xb68ae29cce41415197e593fdda4b0b86ef17f5b16989255c0064f77113a914f3
 2025/05/21 06:24:20 [Client][KNIRVORACLE-9090] Announcing resource: taken-id-456.chain (CID: bafkreiahyd3h2khehz2jynvstkbvop6ppbapc4k7m2quji53tdzkirkbh4)
 2025/05/21 06:24:20 [KNIRVORACLE-9090] WARNING: Failed to announce newly minted resource taken-id-456 on DHT: [Client][KNIRVORACLE-9090] failed to announce resource taken-id-456.chain: failed to find any dev in table
-    uri_generator_test.go:161: Handler returned wrong status code for conflict: got 201 want 409, body: {"txn_hash":"0xb68ae29cce41415197e593fdda4b0b86ef17f5b16989255c0064f77113a914f3","uri":"agent://taken-id-456.chain/"}
+    uri_generator_test.go:161: Handler returned wrong status code for conflict: got 201 want 409, body: {"txn_hash":"0xb68ae29cce41415197e593fdda4b0b86ef17f5b16989255c0064f77113a914f3","uri":"knirv://taken-id-456.chain/"}
 Error copying stdout: read |0: file already closed
 Error copying stderr: read |0: file already closed
 --- FAIL: TestURIGeneratorHandler_Integration (5.53s)
@@ -843,13 +843,13 @@ Error copying stderr: read |0: file already closed
     --- PASS: TestParseResourceURI/Invalid_Resource_Type (0.00s)
 === RUN   TestGenerateResourceURI
 === RUN   TestGenerateResourceURI/Chain_URI
-    uri_generator_test.go:311: Generated URI: agent://abc123.chain/
+    uri_generator_test.go:311: Generated URI: knirv://abc123.chain/
 === RUN   TestGenerateResourceURI/Chain_URI_with_Path
-    uri_generator_test.go:311: Generated URI: agent://abc123.chain/block
+    uri_generator_test.go:311: Generated URI: knirv://abc123.chain/block
 === RUN   TestGenerateResourceURI/Chain_URI_with_Path_and_Params
-    uri_generator_test.go:311: Generated URI: agent://abc123.chain/block?hash=xyz789
+    uri_generator_test.go:311: Generated URI: knirv://abc123.chain/block?hash=xyz789
 === RUN   TestGenerateResourceURI/NRN_URI
-    uri_generator_test.go:311: Generated URI: agent://content123.nrn/
+    uri_generator_test.go:311: Generated URI: knirv://content123.nrn/
 --- PASS: TestGenerateResourceURI (0.00s)
     --- PASS: TestGenerateResourceURI/Chain_URI (0.00s)
     --- PASS: TestGenerateResourceURI/Chain_URI_with_Path (0.00s)

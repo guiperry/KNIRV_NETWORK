@@ -10,7 +10,7 @@ echo "=================================================="
 
 # Check if we're in the right directory
 if [ ! -f "go.mod" ]; then
-    echo "❌ Error: This script must be run from the root directory of the Agentic-Engine project"
+    echo "❌ Error: This script must be run from the root directory of the KNIRV-Engine project"
     exit 1
 fi
 
@@ -47,7 +47,7 @@ echo ""
 echo "🎉 Agent image update process completed!"
 echo ""
 echo "💡 Next steps:"
-echo "   1. Restart the Agentic-Engine application"
+echo "   1. Restart the KNIRV-Engine application"
 echo "   2. Refresh your browser to see the updated agent images"
 echo "   3. All existing agents will now display the Agentify logo by default"
 echo ""

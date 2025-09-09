@@ -29,6 +29,11 @@ type BlockchainAdapter interface {
 	SubmitNRNMintTx(recipient, amount, reason, proofID string) error
 }
 
+// NetworkPauseChecker interface for checking network pause state
+type NetworkPauseChecker interface {
+	IsNetworkPaused() bool
+}
+
 // FaucetRequest represents a request to the faucet (interface compatible)
 type FaucetRequest struct {
 	RequestID    string    `json:"request_id"`
@@ -39,6 +44,28 @@ type FaucetRequest struct {
 	Status       string    `json:"status"` // "pending", "completed", "failed"
 	TxHash       string    `json:"tx_hash,omitempty"`
 	ErrorMessage string    `json:"error_message,omitempty"`
+}
+
+// NRVMetadata represents a Network Resolution Vector with tokenized metadata
+type NRVMetadata struct {
+	NRVID             string                 `json:"nrv_id"`
+	ProofID           string                 `json:"proof_id"`
+	NodeID            peer.ID                `json:"node_id"`
+	RouteData         map[string]interface{} `json:"route_data"`
+	ConnectivityScore float64                `json:"connectivity_score"`
+	NRNValue          *big.Int               `json:"nrn_value"`
+	Timestamp         time.Time              `json:"timestamp"`
+	Signature         string                 `json:"signature"`
+	TreasuryAddress   string                 `json:"treasury_address"`
+	Status            string                 `json:"status"` // "minted", "transferred", "confirmed"
+}
+
+// TreasuryTransferRequest represents a request to transfer NRV to KNIRVORACLE treasury
+type TreasuryTransferRequest struct {
+	TransferID   string       `json:"transfer_id"`
+	NRVMetadata  *NRVMetadata `json:"nrv_metadata"`
+	TargetWallet string       `json:"target_wallet"`
+	Timestamp    time.Time    `json:"timestamp"`
 }
 
 // ConnectivityProofEngine manages proof-of-connectivity for KNIRV-ROUTER
@@ -54,6 +81,7 @@ type ConnectivityProofEngine struct {
 	faucetEndpoint    string
 	faucetClient      FaucetClient
 	blockchainAdapter BlockchainAdapter
+	pauseChecker      NetworkPauseChecker
 	minConnectivity   float64
 	measurementWindow time.Duration
 }
@@ -84,13 +112,14 @@ type ConnectivityProof struct {
 
 // ProofEngineConfig contains configuration for the proof engine
 type ProofEngineConfig struct {
-	NRNMintingEnabled bool              `json:"nrn_minting_enabled"`
-	FaucetEndpoint    string            `json:"faucet_endpoint"`
-	FaucetClient      FaucetClient      `json:"-"` // Not serialized
-	BlockchainAdapter BlockchainAdapter `json:"-"` // Not serialized
-	MinConnectivity   float64           `json:"min_connectivity"`
-	MeasurementWindow time.Duration     `json:"measurement_window"`
-	RewardMultiplier  float64           `json:"reward_multiplier"`
+	NRNMintingEnabled bool                `json:"nrn_minting_enabled"`
+	FaucetEndpoint    string              `json:"faucet_endpoint"`
+	FaucetClient      FaucetClient        `json:"-"` // Not serialized
+	BlockchainAdapter BlockchainAdapter   `json:"-"` // Not serialized
+	PauseChecker      NetworkPauseChecker `json:"-"` // Not serialized
+	MinConnectivity   float64             `json:"min_connectivity"`
+	MeasurementWindow time.Duration       `json:"measurement_window"`
+	RewardMultiplier  float64             `json:"reward_multiplier"`
 }
 
 // NewConnectivityProofEngine creates a new connectivity proof engine
@@ -107,6 +136,7 @@ func NewConnectivityProofEngine(host host.Host, config ProofEngineConfig) *Conne
 		faucetEndpoint:    config.FaucetEndpoint,
 		faucetClient:      config.FaucetClient,
 		blockchainAdapter: config.BlockchainAdapter,
+		pauseChecker:      config.PauseChecker,
 		minConnectivity:   config.MinConnectivity,
 		measurementWindow: config.MeasurementWindow,
 	}
@@ -407,10 +437,16 @@ func (cpe *ConnectivityProofEngine) submitProofForVerification(proof Connectivit
 	}
 }
 
-// requestNRNMinting requests NRN token minting for verified proof
+// requestNRNMinting requests NRN token minting for verified proof and handles treasury transfer
 func (cpe *ConnectivityProofEngine) requestNRNMinting(proof ConnectivityProof) {
 	if !cpe.nrnMintingEnabled {
 		log.Printf("NRN minting not enabled")
+		return
+	}
+
+	// Check if network is paused
+	if cpe.pauseChecker != nil && cpe.pauseChecker.IsNetworkPaused() {
+		log.Printf("Network is paused, cannot mint NRN for proof %s", proof.ProofID)
 		return
 	}
 
@@ -422,6 +458,20 @@ func (cpe *ConnectivityProofEngine) requestNRNMinting(proof ConnectivityProof) {
 
 	log.Printf("Requesting NRN minting for proof %s: %s NRN",
 		proof.ProofID, proof.NRNReward.String())
+
+	// First, mint the NRV (Network Resolution Vector) locally
+	nrvMetadata := cpe.mintNRV(proof)
+	if nrvMetadata == nil {
+		log.Printf("Failed to mint NRV for proof %s", proof.ProofID)
+		return
+	}
+
+	// Transfer NRV metadata to KNIRVORACLE treasury
+	err := cpe.transferNRVToTreasury(nrvMetadata)
+	if err != nil {
+		log.Printf("Failed to transfer NRV to treasury for proof %s: %v", proof.ProofID, err)
+		return
+	}
 
 	// Use the faucet client to request NRN tokens
 	request, err := cpe.faucetClient.RequestConnectivityReward(
@@ -617,4 +667,124 @@ func (cpe *ConnectivityProofEngine) GetConnectivityStats() map[string]interface{
 		"engine_uptime":     time.Since(time.Now().Add(-time.Hour)), // Placeholder
 		"last_measurement":  time.Now(),
 	}
+}
+
+// mintNRV creates a Network Resolution Vector from a verified connectivity proof
+func (cpe *ConnectivityProofEngine) mintNRV(proof ConnectivityProof) *NRVMetadata {
+	// Check if network is paused
+	if cpe.pauseChecker != nil && cpe.pauseChecker.IsNetworkPaused() {
+		log.Printf("Network is paused, cannot mint NRV for proof %s", proof.ProofID)
+		return nil
+	}
+
+	// Generate unique NRV ID
+	nrvID := fmt.Sprintf("nrv_%s_%d", proof.ProofID, time.Now().UnixNano())
+
+	// Create route data from proof and measurements
+	routeData := map[string]interface{}{
+		"source_node":       proof.NodeID.String(),
+		"proof_hash":        proof.ProofHash,
+		"aggregate_score":   proof.AggregateScore,
+		"measurement_count": len(proof.Measurements),
+		"verification_time": proof.Timestamp,
+		"verified":          proof.Verified,
+	}
+
+	// Add aggregated measurement data
+	if len(proof.Measurements) > 0 {
+		var totalLatency time.Duration
+		var totalBandwidth float64
+		var totalPacketLoss float64
+		var reliablePeers int
+
+		for _, measurement := range proof.Measurements {
+			totalLatency += measurement.Latency
+			totalBandwidth += measurement.Bandwidth
+			totalPacketLoss += measurement.PacketLoss
+			if measurement.IsReliable {
+				reliablePeers++
+			}
+		}
+
+		measurementCount := len(proof.Measurements)
+		routeData["avg_latency_ms"] = float64(totalLatency.Milliseconds()) / float64(measurementCount)
+		routeData["avg_bandwidth_mbps"] = totalBandwidth / float64(measurementCount)
+		routeData["avg_packet_loss"] = totalPacketLoss / float64(measurementCount)
+		routeData["reliable_peers"] = reliablePeers
+		routeData["reliability_ratio"] = float64(reliablePeers) / float64(measurementCount)
+	}
+
+	// Create NRV metadata
+	nrvMetadata := &NRVMetadata{
+		NRVID:             nrvID,
+		ProofID:           proof.ProofID,
+		NodeID:            proof.NodeID,
+		RouteData:         routeData,
+		ConnectivityScore: proof.AggregateScore,
+		NRNValue:          proof.NRNReward,
+		Timestamp:         time.Now(),
+		TreasuryAddress:   "knirvoracle_treasury_wallet", // Should be configurable
+		Status:            "minted",
+	}
+
+	// Generate signature for NRV (simplified - in production would use proper cryptographic signing)
+	nrvMetadata.Signature = cpe.generateNRVSignature(nrvMetadata)
+
+	log.Printf("Minted NRV %s for proof %s with value %s NRN",
+		nrvID, proof.ProofID, proof.NRNReward.String())
+
+	return nrvMetadata
+}
+
+// transferNRVToTreasury sends NRV metadata to KNIRVORACLE treasury
+func (cpe *ConnectivityProofEngine) transferNRVToTreasury(nrvMetadata *NRVMetadata) error {
+	// Create transfer request
+	transferID := fmt.Sprintf("transfer_%s_%d", nrvMetadata.NRVID, time.Now().UnixNano())
+	transferRequest := &TreasuryTransferRequest{
+		TransferID:   transferID,
+		NRVMetadata:  nrvMetadata,
+		TargetWallet: nrvMetadata.TreasuryAddress,
+		Timestamp:    time.Now(),
+	}
+
+	// Serialize transfer request
+	requestData, err := json.Marshal(transferRequest)
+	if err != nil {
+		return fmt.Errorf("failed to serialize transfer request: %w", err)
+	}
+
+	// Send to KNIRVORACLE treasury endpoint
+	treasuryEndpoint := "http://localhost:8081/api/treasury/receive-nrv" // Should be configurable
+	resp, err := http.Post(treasuryEndpoint, "application/json", bytes.NewBuffer(requestData))
+	if err != nil {
+		return fmt.Errorf("failed to send NRV to treasury: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("treasury transfer failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Update NRV status
+	nrvMetadata.Status = "transferred"
+
+	log.Printf("Successfully transferred NRV %s to treasury", nrvMetadata.NRVID)
+	return nil
+}
+
+// generateNRVSignature creates a signature for NRV metadata (simplified implementation)
+func (cpe *ConnectivityProofEngine) generateNRVSignature(nrvMetadata *NRVMetadata) string {
+	// Create hash of NRV data
+	data := fmt.Sprintf("%s:%s:%s:%f:%s:%d",
+		nrvMetadata.NRVID,
+		nrvMetadata.ProofID,
+		nrvMetadata.NodeID.String(),
+		nrvMetadata.ConnectivityScore,
+		nrvMetadata.NRNValue.String(),
+		nrvMetadata.Timestamp.Unix(),
+	)
+
+	hash := sha256.Sum256([]byte(data))
+	return hex.EncodeToString(hash[:])
 }

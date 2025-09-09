@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"KNIRVORACLE/types"
+	"KNIRVORACLE/utils"
 )
 
 // TestNetworkAuthorsManagement tests the Network Authors management functionality
@@ -254,8 +255,9 @@ func TestPoAuDConfiguration(t *testing.T) {
 
 // CreateTestBlockchain creates a blockchain for testing
 func CreateTestBlockchain() (*BlockchainStruct, error) {
-	// Create a temporary database
-	db, err := NewLevelDB("test_db_" + fmt.Sprintf("%d", time.Now().UnixNano()))
+	// Create a temporary database in test-reports directory
+	dbPath := utils.CreateTestDatabasePath("poaud")
+	db, err := NewLevelDB(dbPath)
 	if err != nil {
 		return nil, err
 	}
@@ -288,6 +290,8 @@ func CreateTestBlockchain() (*BlockchainStruct, error) {
 func CleanupTestBlockchain(bc *BlockchainStruct) {
 	if bc.db != nil {
 		bc.db.Close()
+		// Clean up test databases
+		utils.CleanupTestDatabases()
 	}
 }
 

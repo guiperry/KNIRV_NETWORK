@@ -4,7 +4,7 @@
  * Build Default Plugins Script
  * 
  * This script creates default agent plugins that users can choose from
- * when creating new agents in the Agentic-Engine.
+ * when creating new agents in the KNIRV-Engine.
  * 
  * Usage: node scripts/build-default-plugins.js [--server-url=http://localhost:8081]
  */
@@ -145,8 +145,8 @@ async function main() {
   
   if (!serverRunning) {
     console.error('❌ Server is not running or not accessible.');
-    console.log('   Please start the Agentic-Engine server first:');
-    console.log('   cd /path/to/Agentic-Engine && ./knirv-engine');
+    console.log('   Please start the KNIRV-Engine server first:');
+    console.log('   cd /path/to/KNIRV-Engine && ./knirv-engine');
     process.exit(1);
   }
   

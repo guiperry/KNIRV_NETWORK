@@ -14,13 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	// KNIRVNEXUS unified binary endpoint (updated for Phase 6)
-	KNIRVNEXUS_BASE_URL = "http://localhost:8084"
-
-	// Test timeout for integration tests
-	TEST_TIMEOUT = 30 * time.Second
-)
+// Constants are defined in test_constants.go
 
 // TestMain sets up the integration test environment
 func TestMain(m *testing.M) {
@@ -37,24 +31,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-// waitForService waits for a service to become available
-func waitForService(url string, timeout time.Duration) bool {
-	client := &http.Client{Timeout: 5 * time.Second}
-	deadline := time.Now().Add(timeout)
-
-	for time.Now().Before(deadline) {
-		resp, err := client.Get(url)
-		if err == nil && resp.StatusCode == http.StatusOK {
-			resp.Body.Close()
-			return true
-		}
-		if resp != nil {
-			resp.Body.Close()
-		}
-		time.Sleep(2 * time.Second)
-	}
-	return false
-}
+// Helper functions are defined in test_constants.go
 
 // makePhase6Request is a helper function for making HTTP requests
 func makePhase6Request(method, url string, body interface{}, headers map[string]string) (*http.Response, error) {

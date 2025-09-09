@@ -1,7 +1,6 @@
 package integration_tests
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -13,46 +12,10 @@ import (
 )
 
 // Test configuration - Updated for real network integration
-const (
-	KNIRVControllerURL = "http://localhost:3000" // KNIRVCONTROLLER Unified Server
-	KNIRVRouterURL     = "http://localhost:8085" // KNIRVROUTER
-	KNIRVGraphURL      = "http://localhost:8081" // KNIRVGRAPH
-	KNIRVChainURL      = "http://localhost:8080" // KNIRVCHAIN
-	KNIRVOracleURL     = "http://localhost:8086" // KNIRVORACLE
-	KNIRVNexusURL      = "http://localhost:8084" // KNIRVNEXUS
-	TestTimeout        = 60 * time.Second        // Increased for real network
-)
+// Constants are defined in test_constants.go
 
-// Test data structures
-type ErrorContext struct {
-	ErrorID      string                 `json:"errorId"`
-	ErrorType    string                 `json:"errorType"`
-	ErrorMessage string                 `json:"errorMessage"`
-	StackTrace   string                 `json:"stackTrace"`
-	UserContext  map[string]interface{} `json:"userContext"`
-	AgentID      string                 `json:"agentId"`
-	Timestamp    int64                  `json:"timestamp"`
-	Severity     string                 `json:"severity"`
-}
-
-type SkillInvocationRequest struct {
-	SkillID     string                 `json:"skillId"`
-	UserAddress string                 `json:"userAddress"`
-	NRNAmount   string                 `json:"nrnAmount"`
-	Parameters  map[string]interface{} `json:"parameters"`
-	Priority    string                 `json:"priority"`
-	UseP2P      bool                   `json:"useP2P"`
-	UseWASM     bool                   `json:"useWASM"`
-}
-
-type SkillInvocationResponse struct {
-	RequestID      string `json:"requestId"`
-	Status         string `json:"status"`
-	SkillNodeURI   string `json:"skillNodeUri,omitempty"`
-	ErrorMessage   string `json:"errorMessage,omitempty"`
-	ExecutionTime  int64  `json:"executionTime"`
-	NetworkLatency int64  `json:"networkLatency"`
-}
+// Test data structures - Common types are defined in test_constants.go
+// Local types specific to this test file:
 
 type LoRAAdapterRequest struct {
 	AdapterName            string            `json:"adapterName"`
@@ -70,56 +33,27 @@ type LoRAAdapterResponse struct {
 	Status      string `json:"status"`
 }
 
-// Test helper functions
-func waitForService(url string, timeout time.Duration) error {
-	client := &http.Client{Timeout: 5 * time.Second}
-	deadline := time.Now().Add(timeout)
+// Test helper functions are defined in test_constants.go
 
-	for time.Now().Before(deadline) {
-		resp, err := client.Get(url + "/health")
-		if err == nil && resp.StatusCode == 200 {
-			resp.Body.Close()
-			return nil
-		}
-		if resp != nil {
-			resp.Body.Close()
-		}
-		time.Sleep(2 * time.Second)
+// Local helper function for this test
+func waitForServiceWithError(url string, timeout time.Duration) error {
+	if waitForService(url, timeout) {
+		return nil
 	}
-
 	return fmt.Errorf("service at %s not ready within timeout", url)
-}
-
-func makeHTTPRequest(method, url string, payload interface{}) (*http.Response, error) {
-	client := &http.Client{Timeout: TestTimeout}
-
-	var body bytes.Buffer
-	if payload != nil {
-		if err := json.NewEncoder(&body).Encode(payload); err != nil {
-			return nil, err
-		}
-	}
-
-	req, err := http.NewRequest(method, url, &body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	return client.Do(req)
 }
 
 // Test functions
 func TestKNIRVControllerRouterIntegration(t *testing.T) {
 	// Wait for services to be ready
 	t.Log("Waiting for KNIRVCONTROLLER to be ready...")
-	require.NoError(t, waitForService(KNIRVControllerURL, TestTimeout))
+	require.NoError(t, waitForServiceWithError(KNIRVControllerURL, TestTimeout))
 
 	t.Log("Waiting for KNIRVROUTER to be ready...")
-	require.NoError(t, waitForService(KNIRVRouterURL, TestTimeout))
+	require.NoError(t, waitForServiceWithError(KNIRVRouterURL, TestTimeout))
 
 	t.Log("Waiting for KNIRVGRAPH to be ready...")
-	require.NoError(t, waitForService(KNIRVGraphURL, TestTimeout))
+	require.NoError(t, waitForServiceWithError(KNIRVGraphURL, TestTimeout))
 
 	t.Run("TestSkillInvocationViaErrorContext", testSkillInvocationViaErrorContext)
 	t.Run("TestLoRAAdapterRegistration", testLoRAAdapterRegistration)
@@ -133,17 +67,18 @@ func testSkillInvocationViaErrorContext(t *testing.T) {
 	t.Log("Testing skill invocation via ErrorContext → KNIRVGRAPH → KNIRVROUTER")
 
 	request := SkillInvocationRequest{
-		SkillID:     "test-skill-001",
-		UserAddress: "knirv1test123456789",
-		NRNAmount:   "100",
+		InvocationID: "test-invocation-001",
+		AgentID:      "test-agent-001",
+		SkillURI:     "knirv://skills/test-skill-001",
+		UserID:       "knirv1test123456789",
+		SkillID:      "test-skill-001",
+		Amount:       "100",
 		Parameters: map[string]interface{}{
-			"agentId":      "test-agent-001",
 			"capabilities": []string{"text-processing", "analysis"},
 			"priority":     "high",
+			"useP2P":       true,
+			"useWASM":      true,
 		},
-		Priority: "high",
-		UseP2P:   true,
-		UseWASM:  true,
 	}
 
 	resp, err := makeHTTPRequest("POST", KNIRVControllerURL+"/api/invoke-skill", request)
@@ -157,11 +92,11 @@ func testSkillInvocationViaErrorContext(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "SUCCESS", response.Status)
-	assert.NotEmpty(t, response.RequestID)
-	assert.Greater(t, response.ExecutionTime, int64(0))
+	assert.NotEmpty(t, response.InvocationID)
+	assert.NotEmpty(t, response.Result)
 
-	t.Logf("Skill invocation successful: RequestID=%s, ExecutionTime=%dms",
-		response.RequestID, response.ExecutionTime)
+	t.Logf("Skill invocation successful: InvocationID=%s, Result=%s",
+		response.InvocationID, response.Result)
 }
 
 func testLoRAAdapterRegistration(t *testing.T) {
@@ -273,17 +208,17 @@ func testErrorContextGeneration(t *testing.T) {
 	t.Log("Testing ErrorContext generation and processing")
 
 	errorContext := ErrorContext{
-		ErrorID:      "test-error-001",
+		AgentID:      "test-agent-001",
+		BaseModelID:  "hrm-cognitive-v1",
+		OS:           "linux",
+		Architecture: "x86_64",
+		Timestamp:    time.Now().Format(time.RFC3339),
 		ErrorType:    "skill_invocation_request",
 		ErrorMessage: "Test error for integration testing",
-		StackTrace:   "test stack trace",
-		UserContext: map[string]interface{}{
+		Context: map[string]interface{}{
 			"userAddress": "knirv1test123456789",
 			"nrnAmount":   "100",
 		},
-		AgentID:   "test-agent-001",
-		Timestamp: time.Now().UnixMilli(),
-		Severity:  "medium",
 	}
 
 	resp, err := makeHTTPRequest("POST", KNIRVControllerURL+"/api/process-error-context", errorContext)

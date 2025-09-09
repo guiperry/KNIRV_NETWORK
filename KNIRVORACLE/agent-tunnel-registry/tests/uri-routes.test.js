@@ -70,7 +70,7 @@ describe('URI Routes', () => {
       // Verify the response
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('uri');
-      expect(response.body.uri).toBe(`agent://${config.serverPublicHost}/test-uuid-123.chain/test/path`);
+      expect(response.body.uri).toBe(`knirv://${config.serverPublicHost}/test-uuid-123.chain/test/path`);
       expect(response.body).toHaveProperty('resourceId', 'test-uuid-123');
       expect(response.body).toHaveProperty('resourceType', 'chain');
       expect(response.body).toHaveProperty('subPath', 'test/path');
@@ -115,7 +115,7 @@ describe('URI Routes', () => {
       // Verify the response
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('uri');
-      expect(response.body.uri).toBe(`agent://192.168.1.1/test-uuid-123.dev`);
+      expect(response.body.uri).toBe(`knirv://192.168.1.1/test-uuid-123.dev`);
       expect(response.body).toHaveProperty('directInfo');
       expect(response.body.directInfo).toHaveProperty('ip', '192.168.1.1');
       expect(response.body.directInfo).toHaveProperty('port', 4001);
@@ -201,7 +201,7 @@ describe('URI Routes', () => {
       // Make the request
       const response = await request(app)
         .get('/api/uri/resolve')
-        .query({ uri: 'agent://relay.example.com/resource-123.chain/test/path' });
+        .query({ uri: 'knirv://relay.example.com/resource-123.chain/test/path' });
 
       // Verify the response
       expect(response.status).toBe(200);
@@ -209,7 +209,7 @@ describe('URI Routes', () => {
       expect(response.body).toHaveProperty('targetPeerId', 'QmTestPeerId123');
       expect(response.body).toHaveProperty('tunnelServerHost', config.serverPublicHost);
       expect(response.body).toHaveProperty('tunnelServerPort', config.publicRelayPort);
-      expect(response.body).toHaveProperty('originalUri', 'agent://relay.example.com/resource-123.chain/test/path');
+      expect(response.body).toHaveProperty('originalUri', 'knirv://relay.example.com/resource-123.chain/test/path');
       expect(response.body).toHaveProperty('resolvedIdentifier', 'resource-123');
       expect(response.body).toHaveProperty('resourceType', 'chain');
       expect(response.body).toHaveProperty('subPathWithQuery', '/test/path');
@@ -229,14 +229,14 @@ describe('URI Routes', () => {
       // Make the request
       const response = await request(app)
         .get('/api/uri/resolve')
-        .query({ uri: 'agent://example.com/QmTestPeerId456.dev' });
+        .query({ uri: 'knirv://example.com/QmTestPeerId456.dev' });
 
       // Verify the response
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('connectionType', 'DIRECT_P2P');
       expect(response.body).toHaveProperty('targetPeerId', 'QmTestPeerId456');
       expect(response.body).toHaveProperty('multiaddress', '/ip4/192.168.1.1/tcp/4001/p2p/QmTestPeerId456');
-      expect(response.body).toHaveProperty('originalUri', 'agent://example.com/QmTestPeerId456.dev');
+      expect(response.body).toHaveProperty('originalUri', 'knirv://example.com/QmTestPeerId456.dev');
       expect(response.body).toHaveProperty('resolvedIdentifier', 'QmTestPeerId456');
       expect(response.body).toHaveProperty('resourceType', 'dev');
       expect(response.body).toHaveProperty('authority', 'example.com');
@@ -255,14 +255,14 @@ describe('URI Routes', () => {
       // Make the request
       const response = await request(app)
         .get('/api/uri/resolve')
-        .query({ uri: 'agent://example.com/test-chain-3.chain' });
+        .query({ uri: 'knirv://example.com/test-chain-3.chain' });
 
       // Verify the response
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('connectionType', 'DIRECT_P2P');
       expect(response.body).toHaveProperty('targetPeerId', 'QmTestPeerId789');
       expect(response.body).toHaveProperty('multiaddress', '/ip4/192.168.1.2/tcp/4002/p2p/QmTestPeerId789');
-      expect(response.body).toHaveProperty('originalUri', 'agent://example.com/test-chain-3.chain');
+      expect(response.body).toHaveProperty('originalUri', 'knirv://example.com/test-chain-3.chain');
       expect(response.body).toHaveProperty('resolvedIdentifier', 'test-chain-3');
       expect(response.body).toHaveProperty('resourceType', 'chain');
       expect(response.body).toHaveProperty('authority', 'example.com');
@@ -280,14 +280,14 @@ describe('URI Routes', () => {
       // Make the request
       const response = await request(app)
         .get('/api/uri/resolve')
-        .query({ uri: 'agent://example.com/resource-456.chain' });
+        .query({ uri: 'knirv://example.com/resource-456.chain' });
 
       // Verify the response
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('connectionType', 'DIRECT_P2P');
       expect(response.body).toHaveProperty('targetPeerId', 'QmTestPeerId456');
       expect(response.body).toHaveProperty('multiaddress', '/ip4/192.168.1.1/tcp/4001/p2p/QmTestPeerId456');
-      expect(response.body).toHaveProperty('originalUri', 'agent://example.com/resource-456.chain');
+      expect(response.body).toHaveProperty('originalUri', 'knirv://example.com/resource-456.chain');
       expect(response.body).toHaveProperty('resolvedIdentifier', 'resource-456');
       expect(response.body).toHaveProperty('resourceType', 'chain');
       expect(response.body).toHaveProperty('authority', 'example.com');
@@ -314,14 +314,14 @@ describe('URI Routes', () => {
       // Make the request
       const response = await request(app)
         .get('/api/uri/resolve')
-        .query({ uri: 'agent://example.com/capability-123.capability' });
+        .query({ uri: 'knirv://example.com/capability-123.capability' });
 
       // Verify the response
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('connectionType', 'DIRECT_P2P');
       expect(response.body).toHaveProperty('targetPeerId', 'QmTestPeerId789');
       expect(response.body).toHaveProperty('multiaddress', '/ip4/192.168.1.2/tcp/4002/p2p/QmTestPeerId789');
-      expect(response.body).toHaveProperty('originalUri', 'agent://example.com/capability-123.capability');
+      expect(response.body).toHaveProperty('originalUri', 'knirv://example.com/capability-123.capability');
       expect(response.body).toHaveProperty('resolvedIdentifier', 'capability-123');
       expect(response.body).toHaveProperty('resourceType', 'capability');
       expect(response.body).toHaveProperty('authority', 'example.com');
@@ -347,7 +347,7 @@ describe('URI Routes', () => {
     it('should return 400 if URI format is invalid', async () => {
       const response = await request(app)
         .get('/api/uri/resolve')
-        .query({ uri: 'agent://example.com' });
+        .query({ uri: 'knirv://example.com' });
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error');
@@ -356,7 +356,7 @@ describe('URI Routes', () => {
     it('should return 400 if resource type is missing', async () => {
       const response = await request(app)
         .get('/api/uri/resolve')
-        .query({ uri: 'agent://example.com/resource-123' });
+        .query({ uri: 'knirv://example.com/resource-123' });
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error');
@@ -373,7 +373,7 @@ describe('URI Routes', () => {
 
       const response = await request(app)
         .get('/api/uri/resolve')
-        .query({ uri: 'agent://example.com/non-existent.chain' });
+        .query({ uri: 'knirv://example.com/non-existent.chain' });
 
       expect(response.status).toBe(404);
       expect(response.body).toHaveProperty('error');

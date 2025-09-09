@@ -1,6 +1,6 @@
 # Agent Server
 
-A standalone HTTP server for serving, uploading, and managing WASM Plugin Agent files in the AGENTCHAIN ecosystem.
+A standalone HTTP server for serving, uploading, and managing WASM Plugin Agent files in the KNIRVORACLE ecosystem.
 
 ## Overview
 
@@ -65,9 +65,9 @@ make clean
 |------|---------|-------------|
 | `--port` | `8080` | Port to listen on |
 | `--agents` | `./agents` | Directory containing Plugin Agents |
-| `--name` | `"AGENTCHAIN Plugin Agent Server"` | Name of this server instance |
-| `--register` | `false` | Register this server with the AGENTCHAIN system |
-| `--api` | `http://localhost:3000` | URL of the AGENTCHAIN API |
+| `--name` | `"KNIRVORACLE Plugin Agent Server"` | Name of this server instance |
+| `--register` | `false` | Register this server with the KNIRVORACLE system |
+| `--api` | `http://localhost:3000` | URL of the KNIRVORACLE API |
 | `--cors` | `true` | Enable CORS headers |
 
 ## API Endpoints
@@ -78,7 +78,7 @@ Get server information and status.
 **Response:**
 ```json
 {
-  "name": "AGENTCHAIN Plugin Agent Server",
+  "name": "KNIRVORACLE Plugin Agent Server",
   "port": 8080,
   "agent_dir": "./agents",
   "start_time": "2024-01-01T12:00:00Z",
@@ -175,9 +175,9 @@ curl -X DELETE http://localhost:8080/delete/my-agent.wasm
 - Only regular files are served (no directories or special files)
 - CORS can be disabled for production environments
 
-## Integration with AGENTCHAIN
+## Integration with KNIRVORACLE
 
-The server can be registered with the AGENTCHAIN system using the `--register` flag. This allows the blockchain to track server instances and their available plugin agents.
+The server can be registered with the KNIRVORACLE system using the `--register` flag. This allows the blockchain to track server instances and their available plugin agents.
 
 When registered, the server provides a reliable endpoint for:
 - Plugin agent distribution

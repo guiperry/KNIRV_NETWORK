@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
 /**
- * Agentic-Engine App Data Migration Script
+ * KNIRV-Engine App Data Migration Script
  * 
  * This script migrates data from the old Electron-generated app data directory
  * to the standardized directory that matches the Go backend.
  * 
  * Old directory: ~/.config/knirv-engine-desktop/
- * New directory: ~/.config/Agentic-Engine/
+ * New directory: ~/.config/KNIRV-Engine/
  * 
  * Usage: node scripts/migrate-appdata.js [--dry-run] [--force]
  */
@@ -23,7 +23,7 @@ const isForce = args.includes('--force');
 
 // Get app data directory paths
 function getAppDataPaths() {
-  const appName = 'Agentic-Engine';
+  const appName = 'KNIRV-Engine';
   
   let configDir;
   switch (process.platform) {
@@ -118,7 +118,7 @@ function formatBytes(bytes) {
 
 // Main migration function
 function migrate() {
-  console.log('🚀 Agentic-Engine App Data Migration Tool\n');
+  console.log('🚀 KNIRV-Engine App Data Migration Tool\n');
   
   const { newAppDataPath, oldAppDataPath } = getAppDataPaths();
   
@@ -177,7 +177,7 @@ function migrate() {
 // Show help
 function showHelp() {
   console.log(`
-Agentic-Engine App Data Migration Tool
+KNIRV-Engine App Data Migration Tool
 
 Usage: node scripts/migrate-appdata.js [options]
 

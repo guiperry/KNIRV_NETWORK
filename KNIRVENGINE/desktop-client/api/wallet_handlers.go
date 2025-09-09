@@ -1,12 +1,16 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
+
+	"KNIRV_Engine/services"
 
 	"github.com/gorilla/mux"
 )
@@ -93,10 +97,29 @@ type ControllerConnectionStatus struct {
 // WalletHandlers contains all wallet-related HTTP handlers
 type WalletHandlers struct {
 	// Mock data for demonstration
-	mockWallets      []WalletAccount
-	mockTransactions []WalletTransaction
-	mockBalance      WalletBalance
-	controllerStatus ControllerConnectionStatus
+	mockWallets        []WalletAccount
+	mockTransactions   []WalletTransaction
+	mockBalance        WalletBalance
+	controllerStatus   ControllerConnectionStatus
+	knirvoracleService *services.KNIRVOracleService
+}
+
+// initializeKNIRVOracleService initializes the KNIRVORACLE service
+func initializeKNIRVOracleService() *services.KNIRVOracleService {
+	config := services.KNIRVOracleConfig{
+		BaseURL: getEnvOrDefault("KNIRVORACLE_URL", "http://localhost:8080"),
+		APIKey:  getEnvOrDefault("KNIRVORACLE_API_KEY", ""),
+		Timeout: 30,
+	}
+	return services.NewKNIRVOracleService(config)
+}
+
+// getEnvOrDefault gets environment variable or returns default value
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }
 
 // NewWalletHandlers creates a new wallet handlers instance
@@ -177,6 +200,7 @@ func NewWalletHandlers() *WalletHandlers {
 			Connected:    false,
 			WalletLinked: false,
 		},
+		knirvoracleService: initializeKNIRVOracleService(),
 	}
 }
 
@@ -211,10 +235,48 @@ func (wh *WalletHandlers) GetWallet(w http.ResponseWriter, r *http.Request) {
 // GetBalance returns the wallet balance
 func (wh *WalletHandlers) GetBalance(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+
+	// Try to get balance from KNIRVORACLE first
+	if len(wh.mockWallets) > 0 {
+		activeWallet := wh.mockWallets[0] // Get first wallet as active
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		knirvoracleBalance, err := wh.knirvoracleService.GetWalletBalance(ctx, activeWallet.Address)
+		if err == nil && knirvoracleBalance.Success {
+			// Convert KNIRVORACLE response to our format
+			balance := WalletBalance{
+				NRNBalance:    parseFloat(knirvoracleBalance.NRNBalance),
+				USDValue:      parseFloat(knirvoracleBalance.USDValue),
+				Change24h:     wh.mockBalance.Change24h, // Keep mock change for now
+				WalletAddress: knirvoracleBalance.Address,
+				Assets:        wh.mockBalance.Assets, // Keep mock assets for now
+			}
+
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": true,
+				"data":    balance,
+			})
+			return
+		}
+
+		log.Printf("Failed to get balance from KNIRVORACLE: %v", err)
+	}
+
+	// Fallback to mock data
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"data":    wh.mockBalance,
 	})
+}
+
+// parseFloat safely parses a string to float64
+func parseFloat(s string) float64 {
+	if val, err := strconv.ParseFloat(s, 64); err == nil {
+		return val
+	}
+	return 0.0
 }
 
 // GetNRNBalance returns the NRN token balance details

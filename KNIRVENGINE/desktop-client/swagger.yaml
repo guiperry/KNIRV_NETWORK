@@ -7,7 +7,7 @@ info:
   version: 1.0.0
   contact:
     name: KNIRVENGINE Team
-    url: https://github.com/guiperry/Agentic-Engine
+    url: https://github.com/guiperry/KNIRV-Engine
 
 servers:
   - url: http://localhost:8080/api/v1

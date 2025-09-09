@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -27,8 +25,8 @@ func newTestConsensusManager(bc *BlockchainStruct) *ConsensusManager {
 }
 
 func TestTransactionFlow(t *testing.T) {
-	// Create test DB connection with unique test path
-	testDBPath := fmt.Sprintf("test_db/transaction_test_%d.db", time.Now().UnixNano())
+	// Create test DB connection with unique test path in test-reports directory
+	testDBPath := utils.CreateTestDatabasePath("transaction_test")
 	db, err := NewLevelDB(testDBPath)
 	if err != nil {
 		t.Fatalf("Failed to initialize test database: %v", err)
@@ -38,7 +36,7 @@ func TestTransactionFlow(t *testing.T) {
 			t.Logf("Warning: error closing test database: %v", err)
 		}
 		// Clean up test database files
-		if err := os.RemoveAll(filepath.Dir(testDBPath)); err != nil {
+		if err := utils.CleanupTestDatabases(); err != nil {
 			t.Logf("Warning: error cleaning up test database files: %v", err)
 		}
 	}()

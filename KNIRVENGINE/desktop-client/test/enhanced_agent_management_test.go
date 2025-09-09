@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"Agentic_Engine/agent"
+	"KNIRV_Engine/agent"
 )
 
 func TestEnhancedAgentManagement(t *testing.T) {

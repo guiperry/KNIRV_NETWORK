@@ -621,7 +621,12 @@ export class PerformanceMetrics extends EventEmitter {
       totalClusters: 0,
       totalAgents: 0,
       totalSkills: 0,
+      totalSolutions: 0,
       overallSuccessRate: 0,
+      averageClusterCompetition: 0,
+      totalBountyDistributed: 0,
+      systemThroughput: 0,
+      averageSkillCreationTime: 0,
       networkHealth: 0,
       lastUpdated: new Date()
     };

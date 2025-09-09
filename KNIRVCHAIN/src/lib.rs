@@ -15,6 +15,9 @@ pub mod multi_model_engine;
 pub mod ibc_handler;
 pub mod tendermint_consensus;
 
+// P2P and DHT
+pub mod dht_manager;
+
 // TEE and skill distribution
 pub mod tee_skill_distributor;
 

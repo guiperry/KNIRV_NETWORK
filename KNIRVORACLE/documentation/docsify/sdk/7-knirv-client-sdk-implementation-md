@@ -4,7 +4,7 @@ Each language-specific SDK (Go, Python, JS/TS) will be a separate, self-containe
 **Core Logic (Common to all SDKs, but implemented natively in each):**
 
 *   **URI Parsing Function:** The main function (e.g., `Parse`, `parse_agent_uri`, `parseagentURI`) that takes a string URI as input.
-*   **Scheme Validation:** Checks if the scheme is `agent://`.
+*   **Scheme Validation:** Checks if the scheme is `knirv://`.
 *   **Authority Parsing:**
     *   Splits the authority part (e.g., `mychain-alpha.chain`) into the `<ID>` and `<ResourceType>`.
     *   Validates that the authority contains exactly one `.` separating the `ID` and `ResourceType`.
@@ -51,7 +51,7 @@ Here's why and how it would work:
 
 **URI Parsing (Handled by the SDK internally):**
 
-The SDK itself will parse the `agent://` URI string into its components (`ID`, `ResourceType`, `Path`, and `Query`). This is local logic within the SDK, as outlined in `agent_Client_SDK_Implementation.md`. No external API call is needed for this step.
+The SDK itself will parse the `knirv://` URI string into its components (`ID`, `ResourceType`, `Path`, and `Query`). This is local logic within the SDK, as outlined in `agent_Client_SDK_Implementation.md`. No external API call is needed for this step.
 
 **Peer Discovery (DHT Resolution - Handled by the SDK via libp2p):**
 
@@ -83,8 +83,8 @@ No new REST API endpoints are needed on the `BlockchainServer` for this data fet
 *   **DHT Participation:** Your nodes are already designed to participate in the private DHT (announcing their own resources like `myPeer.chain` and finding others). The Client SDK will act as another DHT client.
 *   **libp2p Host:** Your nodes run a `libp2p` host capable of accepting incoming P2P connections and streams.
 *   **Stream Handling Logic (Needs to be robustly implemented/exposed):**
-    *   While `SYNC_Protocol.md` defines one such stream protocol (`/knirv/chain-sync/1.0.0`), you'll need to define and implement similar stream handlers on your KNIRVORACLE nodes for serving data based on the `Path` and `Query` of a `agent://` URI.
-    *   For example, if a Client SDK resolves `agent://mychain.chain/block?number=123` to PeerA, it will connect to PeerA and open a stream using a protocol like `/agent/resource-fetch/1.0.0`. It will send `Path: /block`, `Query: number=123` over this stream. PeerA's handler for `/agent/resource-fetch/1.0.0` will then look up block 123 and send it back.
+    *   While `SYNC_Protocol.md` defines one such stream protocol (`/knirv/chain-sync/1.0.0`), you'll need to define and implement similar stream handlers on your KNIRVORACLE nodes for serving data based on the `Path` and `Query` of a `knirv://` URI.
+    *   For example, if a Client SDK resolves `knirv://mychain.chain/block?number=123` to PeerA, it will connect to PeerA and open a stream using a protocol like `/agent/resource-fetch/1.0.0`. It will send `Path: /block`, `Query: number=123` over this stream. PeerA's handler for `/agent/resource-fetch/1.0.0` will then look up block 123 and send it back.
 
 **When would you still use the existing REST API?**
 
@@ -106,7 +106,7 @@ For the core "resolve URI and fetch resource" functionality of the agent Client 
 
 You will need to:
 
-*   Ensure your KNIRVORACLE nodes have robust `libp2p` stream handlers for the application-level protocols that serve data based on the `Path` and `Query` of resolved `agent://` URIs.
+*   Ensure your KNIRVORACLE nodes have robust `libp2p` stream handlers for the application-level protocols that serve data based on the `Path` and `Query` of resolved `knirv://` URIs.
 *   The Client SDK will implement the client side of these P2P stream protocols.
 
 The existing REST APIs remain valuable for transactional operations, broad queries, and administrative tasks, and the Client SDK might use them for those purposes as well, but the resource fetching itself can and should be more decentralized via P2P streams. This aligns better with the P2P nature of KNIRVORACLE.

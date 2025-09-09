@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"Agentic_Engine/agentify"
+	"KNIRV_Engine/agentify"
 )
 
 func BenchmarkAgentInferencer(b *testing.B) {

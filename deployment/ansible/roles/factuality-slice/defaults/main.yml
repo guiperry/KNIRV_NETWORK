@@ -1,0 +1,73 @@
+---
+# Default variables for the factuality-slice role
+
+# Base directory for KNIRV installation
+knirv_home: "/opt/knirv"
+
+# Factuality slice configuration
+factuality_slice:
+  id: "factuality-slice-001"
+  type: "factuality-verification"
+  version: "1.0.0"
+  name: "Factuality Verification Slice"
+  description: "Capability node for verifying factual accuracy of agent responses"
+
+# Network service ports (defaults)
+knirv_services:
+  controller:
+    port: 3000
+    health_endpoint: "/health"
+  router:
+    port: 8085
+    health_endpoint: "/health"
+  graph:
+    port: 8081
+    health_endpoint: "/health"
+  chain:
+    port: 8080
+    health_endpoint: "/health"
+  oracle:
+    port: 8086
+    health_endpoint: "/health"
+  nexus:
+    port: 8090
+    health_endpoint: "/health"
+
+# Initialization settings
+initialization:
+  timeout_seconds: 300
+  retry_attempts: 3
+  retry_delay_seconds: 10
+  health_check_timeout: 30
+
+# Capability configuration
+capability_config:
+  verification_threshold: 0.85
+  confidence_levels:
+    - "low"
+    - "medium" 
+    - "high"
+    - "verified"
+  supported_domains:
+    - "general"
+    - "technical"
+    - "scientific"
+    - "historical"
+  max_concurrent_verifications: 10
+  cache_duration_hours: 24
+
+# Deployment environment
+deployment_environment: "{{ env | default('production') }}"
+
+# Logging configuration
+logging:
+  level: "INFO"
+  max_file_size: "100MB"
+  max_files: 5
+  log_directory: "{{ knirv_home }}/logs"
+
+# Status monitoring
+status_monitoring:
+  enabled: true
+  status_file: "{{ knirv_home }}/status/factuality-slice-status.json"
+  health_check_interval: 300  # 5 minutes

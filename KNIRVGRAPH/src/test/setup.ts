@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom';
 import * as React from 'react';
+import './global.d.ts';
 
 // Polyfills for Node.js environment
 import { TextEncoder, TextDecoder } from 'util';
@@ -123,30 +124,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-// Global test utilities
-interface MockGraphData {
-  nodes: Array<{ id: string; label: string; type: string }>;
-  edges: Array<{ id: string; from: string; to: string }>;
-}
-
-interface MockBlockchainData {
-  blocks: Array<{ id: string; height: number; hash: string }>;
-  transactions: Array<{ id: string; from: string; to: string; amount: number }>;
-}
-
-interface MockNRVData {
-  vectors: Array<{ id: string; coordinates: number[]; confidence: number }>;
-}
-
-declare global {
-  const testUtils: {
-    createMockGraphData: () => MockGraphData;
-    createMockBlockchainData: () => MockBlockchainData;
-    createMockNRVData: () => MockNRVData;
-    waitFor: (condition: () => boolean, timeout?: number) => Promise<void>;
-    mockComponent: (name: string) => React.ComponentType<{ children?: React.ReactNode }>;
-  };
-}
+// Global test utilities implementation
 
 global.testUtils = {
   createMockGraphData: () => ({

@@ -32,13 +32,13 @@ export const useAssetPath = (imagePath) => {
  * @returns {string} The resolved app logo path
  */
 export const useAppLogo = () => {
-  const [logoPath, setLogoPath] = useState('./Agentify_logo_2.png');
+  const [logoPath, setLogoPath] = useState('./knirv-logo.png');
 
   useEffect(() => {
     const resolveLogo = async () => {
       try {
         if (typeof window !== 'undefined' && window.electronAPI) {
-          const resolved = await window.electronAPI.getAssetPath('Agentify_logo_2.png');
+          const resolved = await window.electronAPI.getAssetPath('knirv-logo.png');
           setLogoPath(resolved);
         }
       } catch (error) {
@@ -58,13 +58,13 @@ export const useAppLogo = () => {
  * @returns {string} The resolved default agent image path
  */
 export const useDefaultAgentImage = () => {
-  const [imagePath, setImagePath] = useState('./Agentify_logo_2.png');
+  const [imagePath, setImagePath] = useState('./knirv-logo.png');
 
   useEffect(() => {
     const resolveImage = async () => {
       try {
         if (typeof window !== 'undefined' && window.electronAPI) {
-          const resolved = await window.electronAPI.getAssetPath('Agentify_logo_2.png');
+          const resolved = await window.electronAPI.getAssetPath('knirv-logo.png');
           setImagePath(resolved);
         }
       } catch (error) {

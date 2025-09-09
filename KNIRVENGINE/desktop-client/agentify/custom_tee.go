@@ -12,33 +12,33 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/shirou/gopsutil/v3/process"
 	"github.com/shirou/gopsutil/v3/net"
+	"github.com/shirou/gopsutil/v3/process"
 )
 
 // CustomTEE implements the TEE interface using pure Go process isolation
 type CustomTEE struct {
-	config        TEEConfig
-	processID     int32
-	workingDir    string
+	config         TEEConfig
+	processID      int32
+	workingDir     string
 	resourceLimits ResourceLimits
 	securityPolicy SecurityPolicy
-	mutex         sync.Mutex
-	cmdContext    context.Context
-	cmdCancel     context.CancelFunc
-	processStats  *ProcessStats
-	isRunning     bool
+	mutex          sync.Mutex
+	cmdContext     context.Context
+	cmdCancel      context.CancelFunc
+	processStats   *ProcessStats
+	isRunning      bool
 }
 
 // ProcessStats tracks process statistics
 type ProcessStats struct {
-	PID           int32
-	StartTime     time.Time
-	LastUpdated   time.Time
-	MemoryUsage   []float64  // Historical memory usage in MB
-	CPUUsage      []float64  // Historical CPU usage in percent
-	DiskIO        []float64  // Historical disk I/O in MB
-	NetworkIO     []float64  // Historical network I/O in MB
+	PID            int32
+	StartTime      time.Time
+	LastUpdated    time.Time
+	MemoryUsage    []float64 // Historical memory usage in MB
+	CPUUsage       []float64 // Historical CPU usage in percent
+	DiskIO         []float64 // Historical disk I/O in MB
+	NetworkIO      []float64 // Historical network I/O in MB
 	ChildProcesses []int32   // Child process IDs
 }
 
@@ -74,14 +74,14 @@ func NewCustomTEE(config TEEConfig) *CustomTEE {
 	}
 
 	return &CustomTEE{
-		config:        config,
-		workingDir:    config.WorkingDir,
+		config:         config,
+		workingDir:     config.WorkingDir,
 		resourceLimits: resourceLimits,
 		securityPolicy: securityPolicy,
-		processStats:  &ProcessStats{
+		processStats: &ProcessStats{
 			StartTime:   time.Now(),
 			LastUpdated: time.Now(),
-			MemoryUsage: make([]float64, 0, 60),  // Store up to 60 data points
+			MemoryUsage: make([]float64, 0, 60), // Store up to 60 data points
 			CPUUsage:    make([]float64, 0, 60),
 			DiskIO:      make([]float64, 0, 60),
 			NetworkIO:   make([]float64, 0, 60),
@@ -103,7 +103,7 @@ func (t *CustomTEE) Start() error {
 		if err := os.MkdirAll(t.workingDir, 0755); err != nil {
 			return fmt.Errorf("failed to create working directory: %v", err)
 		}
-		
+
 		// Set secure permissions on working directory
 		if err := os.Chmod(t.workingDir, 0750); err != nil {
 			return fmt.Errorf("failed to set secure permissions on working directory: %v", err)
@@ -226,7 +226,9 @@ func (t *CustomTEE) ExecuteWithContext(ctx context.Context, command string, args
 
 	// Store the process ID for monitoring
 	if cmd.Process != nil {
+		t.mutex.Lock()
 		t.processID = int32(cmd.Process.Pid)
+		t.mutex.Unlock()
 	}
 
 	return stdout.String(), stderr.String(), exitCode, err
@@ -268,7 +270,11 @@ func (t *CustomTEE) monitorResources() {
 	for {
 		select {
 		case <-ticker.C:
-			if t.processID != 0 {
+			t.mutex.Lock()
+			processID := t.processID
+			t.mutex.Unlock()
+
+			if processID != 0 {
 				t.updateResourceStats()
 			}
 		case <-t.cmdContext.Done():

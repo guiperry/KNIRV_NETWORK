@@ -24,6 +24,7 @@ import MCPServerModal from './modals/MCPServerModal';
 import MCPCapabilityModal from './modals/MCPCapabilityModal';
 import AdvancedFilterModal from './modals/AdvancedFilterModal';
 import { fetchMCPServers } from '../utils/api';
+import knirvoracleService from '../services/knirvoracleService';
 
 export const MCPCapabilityManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -101,7 +102,7 @@ export const MCPCapabilityManager = () => {
     fetchInstalledServers();
   }, []);
 
-  // Function to simulate MCP server installation and transformation
+  // Function to transform MCP server to capability and register with KNIRVORACLE
   const simulateServerInstallation = async (serverId, serverName) => {
     // Add server to transforming state
     setTransformingServers(prev => new Set([...prev, serverId]));
@@ -116,7 +117,7 @@ export const MCPCapabilityManager = () => {
         name: serverName,
         provider: 'MCP Server',
         type: 'mcp_capability',
-        status: 'available',
+        status: 'registering',
         serverId: serverId,
         description: `${serverName} capability via MCP Server`,
         category: 'mcp',
@@ -126,8 +127,62 @@ export const MCPCapabilityManager = () => {
       // Add to recently transformed for animation
       setRecentlyTransformed(prev => [...prev, newCapability]);
 
-      // Add to capabilities list
+      // Add to capabilities list with registering status
       setCapabilities(prev => [...prev, newCapability]);
+
+      // Register capability with KNIRVORACLE
+      try {
+        const registrationRequest = {
+          name: serverName,
+          type: 'mcp_capability',
+          description: `${serverName} capability transformed from MCP Server`,
+          schema: {
+            type: 'object',
+            properties: {
+              input: { type: 'string', description: 'Input data for the capability' },
+              parameters: { type: 'object', description: 'Additional parameters' }
+            },
+            required: ['input']
+          },
+          owner: 'desktop-client', // TODO: Get actual owner from context
+          gas_fee_nrn: 1000, // Default gas fee
+          location_hints: [`mcp-server:${serverId}`]
+        };
+
+        const registrationResponse = await knirvoracleService.registerCapability(registrationRequest);
+
+        if (registrationResponse.success) {
+          // Update capability with successful registration
+          setCapabilities(prev => prev.map(cap =>
+            cap.id === newCapability.id
+              ? {
+                  ...cap,
+                  status: 'available',
+                  knirvoracle_id: registrationResponse.capability_id,
+                  tx_hash: registrationResponse.tx_hash,
+                  registered_at: Date.now()
+                }
+              : cap
+          ));
+
+          console.log(`Capability ${serverName} successfully registered with KNIRVORACLE:`, registrationResponse);
+        } else {
+          throw new Error(registrationResponse.message || 'Registration failed');
+        }
+      } catch (knirvoracleError) {
+        console.error('Failed to register capability with KNIRVORACLE:', knirvoracleError);
+
+        // Update capability status to show registration failure
+        setCapabilities(prev => prev.map(cap =>
+          cap.id === newCapability.id
+            ? {
+                ...cap,
+                status: 'registration_failed',
+                error: knirvoracleError.message
+              }
+            : cap
+        ));
+      }
 
       // Remove from transforming state
       setTransformingServers(prev => {

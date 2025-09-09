@@ -14,8 +14,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"Agentic_Engine/agent/migration"
-	"Agentic_Engine/utils"
+	"KNIRV_Engine/agent/migration"
+	"KNIRV_Engine/utils"
 )
 
 func main() {

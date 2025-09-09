@@ -254,19 +254,28 @@ test: test-unit test-integration
 ## test-unit: run unit tests only
 .PHONY: test-unit
 test-unit:
-	go test -v -race -buildvcs ./...
+	@echo "Cleaning up any existing test databases..."
+	@./scripts/cleanup-test-artifacts.sh 2>/dev/null || true
+	@mkdir -p test-reports logs
+	go test -v -race -buildvcs -coverprofile=test-reports/coverage.out ./...
+	@echo "Cleaning up test databases after tests..."
+	@./scripts/cleanup-test-artifacts.sh 2>/dev/null || true
 
 ## test-integration: run integration tests across all KNIRV components
 .PHONY: test-integration
 test-integration:
 	@echo "Running comprehensive integration tests..."
+	@mkdir -p test-reports logs
 	./scripts/run-integration-tests.sh
 
 ## test/cover: run all tests and display coverage
 .PHONY: test/cover
 test/cover:
-	go test -v -race -buildvcs -coverprofile=/tmp/coverage.out ./...
-	go tool cover -html=/tmp/coverage.out
+	@mkdir -p test-reports logs
+	@./scripts/cleanup-test-artifacts.sh 2>/dev/null || true
+	go test -v -race -buildvcs -coverprofile=test-reports/coverage.out ./...
+	go tool cover -html=test-reports/coverage.out
+	@./scripts/cleanup-test-artifacts.sh 2>/dev/null || true
 
 ## upgradeable: list direct dependencies that have upgrades available
 .PHONY: upgradeable
@@ -298,6 +307,12 @@ tidy:
 .PHONY: cache
 cache:
 	go clean -cache -modcache -testcache
+
+## cleanup-test: clean up test artifacts and databases
+.PHONY: cleanup-test
+cleanup-test:
+	@echo "Cleaning up test artifacts..."
+	@./scripts/cleanup-test-artifacts.sh
 
 ## build: build the application (default client role) and generate documentation
 .PHONY: build

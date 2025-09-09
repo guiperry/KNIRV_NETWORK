@@ -510,6 +510,7 @@ type Config struct {
 	IsBootnode             bool                       `json:"is_bootnode" mapstructure:"is_bootnode,IsBootnode"`            // General bootnode flag
 	IsPeer                 bool                       `json:"is_dev" mapstructure:"is_dev,IsPeer"`                          // New field
 	IsNetworkMode          bool                       `json:"is_network_mode" mapstructure:"is_network_mode,isNetworkMode"` // Network mode flag
+	CurrentOracleNodeAPIURL string                    `json:"current_oracle_node_api_url,omitempty" mapstructure:"current_oracle_node_api_url,omitempty"` // URL for bootnodes to monitor
 	PaymentProcessor       PaymentProcessorConfig     `json:"payment_processor" mapstructure:"paymentProcessor"`
 	Bootnode               BootnodeConfig             `json:"bootnode_settings" mapstructure:"bootnodeSettings"`                // Specific bootnode settings
 	ReflectionHTTPPort     uint64                     `json:"reflection_http_port,omitempty" mapstructure:"reflectionHTTPPort"` // Specific for network mode
@@ -1453,6 +1454,15 @@ func DefaultTerminalIntegration() *TerminalIntegration {
 		ZshCompletionsDir: filepath.Join(homeDir, ".KNIRVORACLE", "completions"),
 		Theme:             "dark",
 	}
+}
+
+// DefaultBootnodeConfig returns a configuration for a Bootnode role
+func DefaultBootnodeConfig() *Config {
+	cfg := DefaultConfig()
+	cfg.IsBootnode = true
+	cfg.ClientOnly = false
+	// cfg.CurrentOracleNodeAPIURL = "http://default-oracle-node:port" // Set a default or leave for installer
+	return cfg
 }
 
 // GetString returns a string value from the config

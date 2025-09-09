@@ -23,6 +23,25 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 )
 
+// Network pause constants
+const (
+	NetworkControlTopic = "network-control"
+	NetworkPauseTimeout = 30 * time.Minute
+)
+
+// NetworkControlMessage represents network control messages
+type NetworkControlMessage struct {
+	Type    string      `json:"type"`
+	Payload interface{} `json:"payload"`
+}
+
+// NetworkPausePayload represents network pause message payload
+type NetworkPausePayload struct {
+	InitiatorPeerID string `json:"initiator_peer_id"`
+	Reason          string `json:"reason"`
+	Timestamp       int64  `json:"timestamp"`
+}
+
 // P2PManager is the main entry point for all P2P functionality
 // It consolidates the functionality from DHTManager, DiscoveryManager, and P2PConsensusManager
 type P2PManager struct {
@@ -50,6 +69,13 @@ type P2PManager struct {
 
 	// Chain ID
 	chainID string
+
+	// Network pause state
+	networkControlTopic *pubsub.Topic
+	networkControlSub   *pubsub.Subscription
+	networkPaused       bool
+	pausedUntil         time.Time
+	pauseMutex          sync.RWMutex
 
 	// Callbacks for processing received blocks and transactions
 	// These will be set by the blockchain connector
@@ -186,6 +212,9 @@ func (pm *P2PManager) Start() error {
 	// Start the fork resolution process
 	go pm.runForkResolution()
 
+	// Start the network control handler
+	go pm.handleNetworkControl()
+
 	log.Println("P2P manager started successfully")
 	return nil
 }
@@ -236,7 +265,19 @@ func (pm *P2PManager) setupPubSub() error {
 		return fmt.Errorf("failed to subscribe to transaction topic: %w", err)
 	}
 
-	log.Printf("P2P manager subscribed to topics: %s.blocks, %s.transactions", pm.chainID, pm.chainID)
+	// Join the network control topic
+	pm.networkControlTopic, err = pm.pubsub.Join(NetworkControlTopic)
+	if err != nil {
+		return fmt.Errorf("failed to join network control topic: %w", err)
+	}
+
+	// Subscribe to the network control topic
+	pm.networkControlSub, err = pm.networkControlTopic.Subscribe()
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to network control topic: %w", err)
+	}
+
+	log.Printf("P2P manager subscribed to topics: %s.blocks, %s.transactions, %s", pm.chainID, pm.chainID, NetworkControlTopic)
 	return nil
 }
 
@@ -533,4 +574,105 @@ func (pm *P2PManager) GetDHT() *dht.IpfsDHT {
 // GetPubSub returns the pubsub instance
 func (pm *P2PManager) GetPubSub() *pubsub.PubSub {
 	return pm.pubsub
+}
+
+// IsNetworkPaused returns whether the network is currently paused
+func (pm *P2PManager) IsNetworkPaused() bool {
+	pm.pauseMutex.RLock()
+	defer pm.pauseMutex.RUnlock()
+
+	if pm.networkPaused && time.Now().After(pm.pausedUntil) {
+		// Pause has expired
+		pm.pauseMutex.RUnlock()
+		pm.pauseMutex.Lock()
+		pm.networkPaused = false
+		pm.pauseMutex.Unlock()
+		pm.pauseMutex.RLock()
+		log.Printf("Network pause expired for KNIRVROUTER")
+	}
+
+	return pm.networkPaused
+}
+
+// handleNetworkControl processes network control messages (pause/resume)
+func (pm *P2PManager) handleNetworkControl() {
+	if pm.networkControlSub == nil {
+		return
+	}
+
+	for {
+		select {
+		case <-pm.ctx.Done():
+			return
+		default:
+			msg, err := pm.networkControlSub.Next(pm.ctx)
+			if err != nil {
+				if pm.ctx.Err() != nil {
+					return // Context cancelled
+				}
+				log.Printf("Error receiving network control message: %v", err)
+				continue
+			}
+
+			// Parse network control message
+			var networkMsg NetworkControlMessage
+			if err := json.Unmarshal(msg.Data, &networkMsg); err != nil {
+				log.Printf("Error parsing network control message: %v", err)
+				continue
+			}
+
+			log.Printf("KNIRVROUTER received network control message: %s", networkMsg.Type)
+
+			// Handle different network control message types
+			switch networkMsg.Type {
+			case "NetworkPause":
+				pm.handleNetworkPause(networkMsg.Payload, msg.ReceivedFrom.String())
+			case "NetworkResume":
+				pm.handleNetworkResume(networkMsg.Payload, msg.ReceivedFrom.String())
+			default:
+				log.Printf("Unknown network control message type: %s", networkMsg.Type)
+			}
+		}
+	}
+}
+
+// handleNetworkPause processes network pause messages
+func (pm *P2PManager) handleNetworkPause(payload interface{}, senderPeerID string) {
+	// Parse the pause payload
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		log.Printf("Error marshaling pause payload: %v", err)
+		return
+	}
+
+	var pausePayload NetworkPausePayload
+	if err := json.Unmarshal(payloadBytes, &pausePayload); err != nil {
+		log.Printf("Error unmarshaling pause payload: %v", err)
+		return
+	}
+
+	initiatorPeerID := pausePayload.InitiatorPeerID
+	reason := pausePayload.Reason
+
+	// Set network paused state
+	pm.pauseMutex.Lock()
+	pm.networkPaused = true
+	pm.pausedUntil = time.Now().Add(NetworkPauseTimeout)
+	pm.pauseMutex.Unlock()
+
+	log.Printf("KNIRVROUTER Network PAUSED by %s until %s - Reason: %s",
+		initiatorPeerID,
+		pm.pausedUntil.Format("2006-01-02 15:04:05 UTC"),
+		reason)
+
+	log.Printf("KNIRVROUTER operations paused - rejecting new route announcements")
+}
+
+// handleNetworkResume processes network resume messages
+func (pm *P2PManager) handleNetworkResume(payload interface{}, senderPeerID string) {
+	pm.pauseMutex.Lock()
+	pm.networkPaused = false
+	pm.pauseMutex.Unlock()
+
+	log.Printf("KNIRVROUTER Network RESUMED by %s", senderPeerID)
 }

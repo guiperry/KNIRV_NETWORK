@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"Agentic_Engine/utils"
+	"KNIRV_Engine/utils"
 )
 
 // DesktopConfig represents the desktop application configuration

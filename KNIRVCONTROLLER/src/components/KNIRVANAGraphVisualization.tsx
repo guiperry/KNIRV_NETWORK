@@ -22,8 +22,10 @@ function GraphNodeComponent({ node, onClick }: GraphNodeProps) {
     switch (type) {
       case 'error': return '#ef4444'; // red
       case 'skill': return '#10b981'; // green
-      case 'connection': return '#3b82f6'; // blue
-      case 'agent': return '#f59e0b'; // amber
+      case 'capability': return '#3b82f6'; // blue
+      case 'property': return '#f59e0b'; // amber
+      case 'connection': return '#8b5cf6'; // purple
+      case 'agent': return '#06b6d4'; // cyan
       default: return '#6b7280'; // gray
     }
   };
@@ -33,6 +35,8 @@ function GraphNodeComponent({ node, onClick }: GraphNodeProps) {
     switch (type) {
       case 'error': return 0.8;
       case 'skill': return 0.6;
+      case 'capability': return 0.7;
+      case 'property': return 0.9;
       case 'connection': return 0.4;
       case 'agent': return 0.7;
       default: return 0.5;
@@ -94,8 +98,21 @@ function GraphEdgeComponent({ edge, nodes }: GraphEdgeProps) {
   ];
 
   const geometry = new THREE.BufferGeometry().setFromPoints(points);
+
+  const getEdgeColor = (edgeType: string): string => {
+    switch (edgeType) {
+      case 'error_to_skill': return '#f97316'; // orange
+      case 'context_to_capability': return '#3b82f6'; // blue
+      case 'idea_to_property': return '#f59e0b'; // amber
+      case 'collaboration': return '#8b5cf6'; // purple
+      case 'skill_chain': return '#10b981'; // green
+      case 'agent_connection': return '#06b6d4'; // cyan
+      default: return '#94a3b8'; // gray
+    }
+  };
+
   const material = new THREE.LineBasicMaterial({
-    color: edge.type === 'error_to_skill' ? '#f97316' : '#94a3b8',
+    color: getEdgeColor(edge.type),
     linewidth: 2
   });
 
