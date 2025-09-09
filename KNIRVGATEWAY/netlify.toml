@@ -83,6 +83,11 @@
 
 # API Gateway redirects
 [[redirects]]
+  from = "/provision"
+  to = "/.netlify/functions/provision"
+  status = 200
+
+[[redirects]]
   from = "/gateway/*"
   to = "/.netlify/functions/gateway-sse"
   status = 200

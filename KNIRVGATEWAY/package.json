@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "npm run check-health && netlify dev",
     "start": "node scripts/smart-start.js",
+    "start:render": "GATEWAY_MODE=persistent node server.js",
+    "start:netlify": "netlify-lambda serve src",
+    "start:vercel": "vercel dev",
     "build": "npm run load-endpoints && npm run check-health && npm install && npm run check-function-deps && echo 'KNIRV Gateway built with Netlify Functions support'",
     "build:nexus": "echo 'NEXUS now uses unified binary architecture - no separate frontend build needed'",
     "smart-build": "npm run check-health && npm run build || npm run auto-fix",
@@ -40,7 +43,12 @@
     "validate-function-names": "node scripts/validate-function-names.js",
     "dht:start": "node scripts/start-dht.js start",
     "dht:status": "node scripts/start-dht.js status",
-    "dht:export": "node scripts/start-dht.js export"
+    "dht:export": "node scripts/start-dht.js export",
+    "sync-failover-page": "make sync-failover-page",
+    "provision:test": "curl -f http://localhost:8080/provision || echo 'Provision endpoint not available'",
+    "deploy:render": "echo 'Deploy to Render using Git integration'",
+    "deploy:netlify": "netlify deploy --prod",
+    "deploy:vercel": "vercel --prod"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
@@ -57,10 +65,22 @@
     "mime-types": "^2.1.35",
     "nodemailer": "^6.9.8",
     "sharp": "^0.33.0",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "libp2p": "^1.2.0",
+    "@libp2p/tcp": "^9.0.0",
+    "@libp2p/mplex": "^10.0.0",
+    "@chainsafe/libp2p-noise": "^15.0.0",
+    "@libp2p/kad-dht": "^12.0.0",
+    "@libp2p/bootstrap": "^10.0.0",
+    "axios": "^1.6.0",
+    "node-cache": "^5.1.2",
+    "express": "^4.18.0",
+    "cors": "^2.8.5"
   },
   "devDependencies": {
-    "netlify-cli": "21.6.0"
+    "netlify-cli": "21.6.0",
+    "netlify-lambda": "^2.0.16",
+    "vercel": "^32.0.0"
   },
   "engines": {
     "node": ">=18.0.0"
