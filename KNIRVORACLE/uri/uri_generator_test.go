@@ -147,8 +147,8 @@ func TestURIGeneratorHandler_Integration(t *testing.T) {
 		t.Logf("Generated Txn Hash: %s", response.TxnHash)
 
 		// Validate URI format
-		if !strings.HasPrefix(response.URI, "agent://") {
-			t.Errorf("Invalid URI format: %s, expected agent:// prefix", response.URI)
+		if !strings.HasPrefix(response.URI, "knirv://") {
+			t.Errorf("Invalid URI format: %s, expected knirv:// prefix", response.URI)
 		}
 
 		// Parse the URI to validate its structure
@@ -200,7 +200,7 @@ func TestURIGeneratorHandler_Integration(t *testing.T) {
 		}
 
 		// Verify the ID was used in the URI
-		expectedURIStart := fmt.Sprintf("agent://%s.%s/", desiredID, ResourceTypeChainStr) // Using string constant for URI compatibility
+		expectedURIStart := fmt.Sprintf("knirv://%s.%s/", desiredID, ResourceTypeChainStr) // Using string constant for URI compatibility
 		if !strings.HasPrefix(response.URI, expectedURIStart) {
 			t.Errorf("Expected URI to start with '%s', got: %s", expectedURIStart, response.URI)
 		}
@@ -258,28 +258,28 @@ func TestParseResourceURI(t *testing.T) {
 	}{
 		{
 			name:         "Valid Chain URI",
-			uri:          "agent://abc123.chain/",
+			uri:          "knirv://abc123.chain/",
 			expectedID:   "abc123",
 			expectedType: "chain",
 			expectedPath: "/",
 		},
 		{
 			name:         "Valid Chain URI with Path",
-			uri:          "agent://abc123.chain/block",
+			uri:          "knirv://abc123.chain/block",
 			expectedID:   "abc123",
 			expectedType: "chain",
 			expectedPath: "/block",
 		},
 		{
 			name:         "Valid Chain URI with Query",
-			uri:          "agent://abc123.chain/block?hash=xyz789",
+			uri:          "knirv://abc123.chain/block?hash=xyz789",
 			expectedID:   "abc123",
 			expectedType: "chain",
 			expectedPath: "/block",
 		},
 		{
 			name:         "Valid NRN URI",
-			uri:          "agent://content123.nrn/",
+			uri:          "knirv://content123.nrn/",
 			expectedID:   "content123",
 			expectedType: "nrn",
 			expectedPath: "/",
@@ -291,12 +291,12 @@ func TestParseResourceURI(t *testing.T) {
 		},
 		{
 			name:          "Invalid Authority Format",
-			uri:           "agent://abc123/",
+			uri:           "knirv://abc123/",
 			expectedError: true,
 		},
 		{
 			name:          "Invalid Resource Type",
-			uri:           "agent://abc123.invalid/",
+			uri:           "knirv://abc123.invalid/",
 			expectedError: false, // We don't validate resource type in ParseResourceURI
 			expectedID:    "abc123",
 			expectedType:  "invalid",
@@ -352,7 +352,7 @@ func TestGenerateResourceURI(t *testing.T) {
 			resourceType:   "chain",
 			path:           "",
 			params:         nil,
-			expectedPrefix: "agent://abc123.chain/",
+			expectedPrefix: "knirv://abc123.chain/",
 		},
 		{
 			name:           "Chain URI with Path",
@@ -360,7 +360,7 @@ func TestGenerateResourceURI(t *testing.T) {
 			resourceType:   "chain",
 			path:           "block",
 			params:         nil,
-			expectedPrefix: "agent://abc123.chain/block",
+			expectedPrefix: "knirv://abc123.chain/block",
 		},
 		{
 			name:           "Chain URI with Path and Params",
@@ -368,7 +368,7 @@ func TestGenerateResourceURI(t *testing.T) {
 			resourceType:   "chain",
 			path:           "block",
 			params:         map[string]string{"hash": "xyz789"},
-			expectedPrefix: "agent://abc123.chain/block?hash=xyz789",
+			expectedPrefix: "knirv://abc123.chain/block?hash=xyz789",
 		},
 		{
 			name:           "NRN URI",
@@ -376,7 +376,7 @@ func TestGenerateResourceURI(t *testing.T) {
 			resourceType:   "nrn",
 			path:           "",
 			params:         nil,
-			expectedPrefix: "agent://content123.nrn/",
+			expectedPrefix: "knirv://content123.nrn/",
 		},
 	}
 

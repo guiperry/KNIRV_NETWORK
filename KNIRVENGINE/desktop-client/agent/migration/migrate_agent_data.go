@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"KNIRV_Engine/agent/service"
+	"KNIRVENGINE/desktop-client/agent/service"
 )
 
 // MigrateAgentData performs migration of agent data between database versions

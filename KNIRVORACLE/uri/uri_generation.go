@@ -29,18 +29,18 @@ func CalculateChainID() string {
 	return uuid.New().String()
 }
 
-// GenerateChainURI generates the agent:// URI according to the new scheme
+// GenerateChainURI generates the knirv:// URI according to the new scheme
 func GenerateChainURI(metadata ChainMetadata) string {
-	// Format: agent://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
-	baseURI := fmt.Sprintf("agent://%s.%s/", metadata.ChainID, ResourceTypeChainStr)
+	// Format: knirv://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
+	baseURI := fmt.Sprintf("knirv://%s.%s/", metadata.ChainID, ResourceTypeChainStr)
 	return baseURI
 }
 
 // GenerateResourceURI creates a URI for a specific resource and path
 // resourceType here is the string like "chain", "nrn", "resource", "tool"
 func GenerateResourceURI(id string, resourceType string, path string, params map[string]string) string {
-	// Format: agent://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
-	baseURI := fmt.Sprintf("agent://%s.%s", id, strings.ToLower(resourceType)) // Ensure resourceType is lowercase
+	// Format: knirv://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
+	baseURI := fmt.Sprintf("knirv://%s.%s", id, strings.ToLower(resourceType)) // Ensure resourceType is lowercase
 
 	// Add path if provided
 	if path != "" {
@@ -64,7 +64,7 @@ func GenerateResourceURI(id string, resourceType string, path string, params map
 	return baseURI
 }
 
-// ParseResourceURI parses a agent:// URI and extracts components
+// ParseResourceURI parses a knirv:// URI and extracts components
 func ParseResourceURI(uriString string) (id string, resourceType string, path string, params map[string]string, err error) {
 	u, err := url.Parse(uriString)
 	if err != nil {

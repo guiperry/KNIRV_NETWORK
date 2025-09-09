@@ -2,8 +2,8 @@
 package main
 
 import (
-	"KNIRV_Engine/agentify"
-	"KNIRV_Engine/utils"
+	"KNIRVENGINE/desktop-client/agentify"
+	"KNIRVENGINE/desktop-client/utils"
 	"context"
 	"fmt"
 	"os"

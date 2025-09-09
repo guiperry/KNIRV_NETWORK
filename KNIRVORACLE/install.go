@@ -144,7 +144,7 @@ func Install(configPath string, IsBootnode bool, role config.Role, nonInteractiv
 		}
 
 		fmt.Println("5. Detect host operating system")
-		fmt.Println("6. Register URI handler for agent:// protocol")
+		fmt.Println("6. Register URI handler for knirv:// protocol")
 		fmt.Println("7. Find next available ports for node")
 		fmt.Println("8. Update the application configuration")
 		fmt.Println("9. Start the node")
@@ -153,7 +153,7 @@ func Install(configPath string, IsBootnode bool, role config.Role, nonInteractiv
 
 	// Variables for chain identification
 	var chainID string  // This will be the node's unique identifier (UUID or Wallet Address)
-	var chainURI string // This is the full agent://<ID>.chain/, only for non-client/non-root
+	var chainURI string // This is the full knirv://<ID>.chain/, only for non-client/non-root
 	var hashID string   // Transaction hash from URI generation, only for non-client/non-root
 
 	// Skip URI generation for Root nodes
@@ -196,12 +196,12 @@ func Install(configPath string, IsBootnode bool, role config.Role, nonInteractiv
 		}
 
 		// Store the full URI and the extracted ID part
-		chainURI = uri // full agent://... URI
+		chainURI = uri // full knirv://... URI
 		hashID = hash  // txn hash from URI generation
 
 		// Extract the actual ID part from the generated URI
-		if strings.HasPrefix(chainURI, "agent://") {
-			parts := strings.Split(strings.TrimPrefix(chainURI, "agent://"), ".")
+		if strings.HasPrefix(chainURI, "knirv://") {
+			parts := strings.Split(strings.TrimPrefix(chainURI, "knirv://"), ".")
 			if len(parts) > 0 {
 				chainID = parts[0] // This is the <uuid> part
 			}
@@ -213,7 +213,7 @@ func Install(configPath string, IsBootnode bool, role config.Role, nonInteractiv
 		// For Root nodes, use a predefined URI format
 		// The ChainID will be derived from constants or default config in main.go
 		// For display purposes here, we can use a placeholder or the default port.
-		chainURI = fmt.Sprintf("agent://KNIRVORACLE-BOOT:%d.chain/", currentCfg.Port) // Port might be default here
+		chainURI = fmt.Sprintf("knirv://KNIRVORACLE-BOOT:%d.chain/", currentCfg.Port) // Port might be default here
 		fmt.Printf("Using Bootnode URI: %s\n", chainURI)
 	}
 	switch role {
@@ -891,18 +891,18 @@ func GenerateChainURI(rootEndpoint string, desiredURI string) (string, string, s
 
 	// Convert the URI to the new format if it's in the old format
 	// Old format: chain://<ID>
-	// New format: agent://<ID>.chain/
+	// New format: knirv://<ID>.chain/
 	uri := uriResponse.URI
 	if strings.HasPrefix(uri, "chain://") {
 		chainID := strings.TrimPrefix(uri, "chain://")
-		uri = fmt.Sprintf("agent://%s.chain/", chainID)
+		uri = fmt.Sprintf("knirv://%s.chain/", chainID)
 		log.Printf("Converted URI from old format to new format: %s", uri)
 	}
 
 	// Extract the chain ID from the URI
 	var extractedID string
-	if strings.HasPrefix(uri, "agent://") {
-		parts := strings.Split(strings.TrimPrefix(uri, "agent://"), ".")
+	if strings.HasPrefix(uri, "knirv://") {
+		parts := strings.Split(strings.TrimPrefix(uri, "knirv://"), ".")
 		if len(parts) > 0 {
 			extractedID = parts[0]
 		}
@@ -937,7 +937,7 @@ func promptForUint(prompt string, defaultValue uint64, nonInteractive bool) uint
 	return value
 }
 
-// registerURIHandlers registers the URI handler for agent:// protocol
+// registerURIHandlers registers the URI handler for knirv:// protocol
 // which now includes resource types like .chain and .nrn in the URI structure
 func RegisterURIHandlers(chainURI string) error {
 	// Define the URI scheme to register
@@ -1116,8 +1116,8 @@ func getLocalIP() (string, error) {
 func RegisterWithNodeRegistry(chainURI, ip, portStr string, nodeID string) error {
 	// Extract the chain ID from the URI
 	var chainID string
-	if strings.HasPrefix(chainURI, "agent://") {
-		parts := strings.Split(strings.TrimPrefix(chainURI, "agent://"), ".")
+	if strings.HasPrefix(chainURI, "knirv://") {
+		parts := strings.Split(strings.TrimPrefix(chainURI, "knirv://"), ".")
 		if len(parts) > 0 {
 			chainID = parts[0]
 		}

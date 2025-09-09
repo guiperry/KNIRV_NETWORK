@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"KNIRV_Engine/agentify"
+	"KNIRVENGINE/desktop-client/agentify"
 )
 
 func TestAgentInferencer(t *testing.T) {

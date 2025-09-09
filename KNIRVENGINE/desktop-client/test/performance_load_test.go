@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"KNIRV_Engine/agent"
-	"KNIRV_Engine/agentify"
-	"KNIRV_Engine/database"
+	"KNIRVENGINE/desktop-client/agent"
+	"KNIRVENGINE/desktop-client/agentify"
+	"KNIRVENGINE/desktop-client/database"
 )
 
 // LoadTestMetrics tracks performance metrics during load testing

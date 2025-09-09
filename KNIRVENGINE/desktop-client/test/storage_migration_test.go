@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"KNIRV_Engine/agent"
-	"KNIRV_Engine/agent/migration"
-	"KNIRV_Engine/database"
+	"KNIRVENGINE/desktop-client/agent"
+	"KNIRVENGINE/desktop-client/agent/migration"
+	"KNIRVENGINE/desktop-client/database"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

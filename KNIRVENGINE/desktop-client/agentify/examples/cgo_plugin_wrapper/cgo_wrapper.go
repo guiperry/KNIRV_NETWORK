@@ -7,7 +7,7 @@ import (
 	"plugin"
 	"time"
 
-	"KNIRV_Engine/agentify"
+	"KNIRVENGINE/desktop-client/agentify"
 )
 
 // CGOPluginWrapper wraps a CGO-based plugin to work with Agent Inferencer

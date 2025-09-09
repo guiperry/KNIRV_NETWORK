@@ -6,8 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"KNIRV_Engine/agent"
-	"KNIRV_Engine/services"
+	"KNIRVENGINE/desktop-client/agent"
+	"KNIRVENGINE/desktop-client/services"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -153,7 +154,7 @@ func TestAgentBuilderKNIRVOracleIntegration(t *testing.T) {
 
 	// Create temporary directory for test
 	tempDir := t.TempDir()
-	
+
 	// Initialize agent builder
 	builder, err := agent.NewAgentBuilderWithStorage(nil, "../../agent/templates", tempDir)
 	require.NoError(t, err, "Agent builder initialization should not fail")
@@ -193,7 +194,7 @@ func TestKNIRVOracleServiceConfiguration(t *testing.T) {
 			BaseURL: "http://localhost:8080",
 			Timeout: 30,
 		}
-		
+
 		service := services.NewKNIRVOracleService(config)
 		assert.NotNil(t, service, "Service should be created")
 	})
@@ -204,7 +205,7 @@ func TestKNIRVOracleServiceConfiguration(t *testing.T) {
 			APIKey:  "test-api-key",
 			Timeout: 60,
 		}
-		
+
 		service := services.NewKNIRVOracleService(config)
 		assert.NotNil(t, service, "Service should be created with API key")
 	})

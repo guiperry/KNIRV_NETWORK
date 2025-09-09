@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"KNIRV_Engine/agent/core"
+	"KNIRVENGINE/desktop-client/agent/core"
 )
 
 // AgentService provides a unified interface for all agent operations

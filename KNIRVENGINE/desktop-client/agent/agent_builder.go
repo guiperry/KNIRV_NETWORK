@@ -12,7 +12,7 @@ import (
 	"text/template"
 	"time"
 
-	"KNIRV_Engine/services"
+	"KNIRVENGINE/desktop-client/services"
 
 	"github.com/google/uuid"
 )

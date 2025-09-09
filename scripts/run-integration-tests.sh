@@ -276,6 +276,29 @@ run_testnet_tests() {
     fi
 }
 
+# Function to run KNIRVENGINE Desktop Client integration tests
+run_knirvengine_tests() {
+    print_step "Running KNIRVENGINE Desktop Client integration tests..."
+
+    local engine_test_file="$PROJECT_ROOT/integration-tests/knirvengine_desktop_client_integration_test.go"
+
+    if [ ! -f "$engine_test_file" ]; then
+        print_warning "KNIRVENGINE integration test file not found: $engine_test_file"
+        return 1
+    fi
+
+    print_status "Executing KNIRVENGINE Desktop Client tests..."
+    cd "$PROJECT_ROOT/integration-tests" || return 1
+
+    if go test -v -timeout 600s -run "TestKNIRVENGINE.*" ./knirvengine_desktop_client_integration_test.go; then
+        print_success "KNIRVENGINE Desktop Client integration tests completed successfully"
+        return 0
+    else
+        print_error "KNIRVENGINE Desktop Client integration tests failed"
+        return 1
+    fi
+}
+
 # Function to handle cleanup on script exit
 cleanup_on_exit() {
     local exit_code=$?
@@ -411,6 +434,11 @@ main() {
     # Run testnet tests only if previous tests succeeded
     if [ $test_result -eq 0 ]; then
         run_testnet_tests || test_result=$?
+    fi
+
+    # Run KNIRVENGINE tests only if previous tests succeeded
+    if [ $test_result -eq 0 ]; then
+        run_knirvengine_tests || test_result=$?
     fi
     
     teardown_test_environment

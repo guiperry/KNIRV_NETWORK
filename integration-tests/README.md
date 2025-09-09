@@ -60,6 +60,9 @@ go test -v -run TestPoAuDIntegrationSuite  # ⭐ NEW PoAu-D tests
 # Run PoAu-D tests only
 go test -v -run TestPoAuD
 
+# Run KNIRVENGINE tests only
+go test -v -run TestKNIRVENGINE
+
 # Run Developer Portal tests
 node portal-integration.test.js
 node validate-portal.js
@@ -146,6 +149,13 @@ node validate-portal.js
 - **Key Tests**: 6 comprehensive demo workflows showcasing all major features
 - **Validation**: End-to-end functionality, real-world scenarios, presentation readiness
 - **Execution**: Designed for live demonstrations and real-world testing
+
+### 14. KNIRVENGINE Desktop Client Integration (`knirvengine_desktop_client_integration_test.go`) ⭐ NEW
+- **Purpose**: Validate enhanced KNIRVENGINE desktop-client testing infrastructure and CI/CD integration
+- **Coverage**: Agentify package, Desktop package, Services package, Frontend testing, Build validation
+- **Key Tests**: Comprehensive package testing, coverage validation, service health checks, frontend integration
+- **Validation**: TypeSafe implementation, thread safety, cross-platform compatibility, coverage thresholds
+- **Execution**: Integrated with existing CI/CD pipeline and root Makefile targets
 
 ## Architecture
 

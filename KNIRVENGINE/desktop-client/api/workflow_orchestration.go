@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"KNIRV_Engine/inference"
+	"KNIRVENGINE/desktop-client/inference"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"

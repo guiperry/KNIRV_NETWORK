@@ -12,9 +12,9 @@ func RunURIExample() {
 
 	// Example URIs to resolve
 	uris := []string{
-		"agent://tunnel.agent.com/abc123.dev/some/path?query=value",
-		"agent://tunnel.agent.com/agent-default.chain",
-		"agent://192.168.1.100/QmExamplePeerID.dev",
+		"knirv://tunnel.agent.com/abc123.dev/some/path?query=value",
+		"knirv://tunnel.agent.com/agent-default.chain",
+		"knirv://192.168.1.100/QmExamplePeerID.dev",
 	}
 
 	for _, uri := range uris {

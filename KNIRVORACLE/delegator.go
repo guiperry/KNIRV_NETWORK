@@ -125,7 +125,7 @@ func DelegateTransaction(tx *Transaction, bc *BlockchainStruct, tpm *Transaction
 		return fmt.Errorf("failed to get ChainID for PAP address %s: %w", papAddress, err)
 	}
 
-	statusURI := fmt.Sprintf("agent://%s.chain/status", papChainID)
+	statusURI := fmt.Sprintf("knirv://%s.chain/status", papChainID)
 	status, err := PingPAPStatus(statusURI, discoveryMgr)
 	if err != nil {
 		return fmt.Errorf("failed to ping PAP status at %s: %w", statusURI, err)

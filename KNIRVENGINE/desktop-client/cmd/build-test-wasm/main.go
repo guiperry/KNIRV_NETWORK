@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"KNIRV_Engine/agent"
+	"KNIRVENGINE/desktop-client/agent"
 )
 
 func main() {

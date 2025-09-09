@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"KNIRV_Engine/utils"
+	"KNIRVENGINE/desktop-client/utils"
 )
 
 // DesktopConfig represents the desktop application configuration

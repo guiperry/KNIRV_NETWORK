@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"KNIRV_Engine/agentify"
+	"KNIRVENGINE/desktop-client/agentify"
 )
 
 func TestAgentHTTPAPI(t *testing.T) {

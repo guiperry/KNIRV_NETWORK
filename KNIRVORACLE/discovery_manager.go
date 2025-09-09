@@ -763,7 +763,7 @@ func (dm *DiscoveryManager) AnnounceMintedResource(ctx context.Context, id strin
 
 func (dm *DiscoveryManager) ResolveURI(uri string) ([]peer.AddrInfo, error) {
 	// Parse the URI
-	if !strings.HasPrefix(uri, "agent://") {
+	if !strings.HasPrefix(uri, "knirv://") {
 		return nil, fmt.Errorf("invalid URI scheme: %s", uri)
 	}
 

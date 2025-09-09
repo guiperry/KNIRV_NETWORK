@@ -14,11 +14,11 @@ import (
 	"sync"
 	"time"
 
-	"KNIRV_Engine/agent"
-	"KNIRV_Engine/agentify"
-	"KNIRV_Engine/database"
-	"KNIRV_Engine/inference"
-	"KNIRV_Engine/utils"
+	"KNIRVENGINE/desktop-client/agent"
+	"KNIRVENGINE/desktop-client/agentify"
+	"KNIRVENGINE/desktop-client/database"
+	"KNIRVENGINE/desktop-client/inference"
+	"KNIRVENGINE/desktop-client/utils"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"

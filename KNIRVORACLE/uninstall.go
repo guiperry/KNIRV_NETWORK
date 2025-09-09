@@ -20,7 +20,7 @@ func Uninstall() {
 	fmt.Printf("=== KNIRVORACLE %s Node Uninstallation ===\n", role.String())
 	fmt.Println("This uninstaller will:")
 	fmt.Println("1. Stop any running node processes")
-	fmt.Println("2. Remove URI handler for agent:// protocol")
+	fmt.Println("2. Remove URI handler for knirv:// protocol")
 	fmt.Println("3. Clean up configuration and wallet files")
 	fmt.Println("4. Remove system service")
 	fmt.Println()

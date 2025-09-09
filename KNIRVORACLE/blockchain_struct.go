@@ -602,25 +602,21 @@ func (bc *BlockchainStruct) ToJson() string {
 	}
 }
 
-// AddBlock validates a new block, processes its transactions (including MCP fee transfers),
-// updates account balances in the database, and adds the block to the chain.
-// It returns an error if the block is invalid or if any part of the processing fails.
-func (bc *BlockchainStruct) AddBlock(b *Block) error {
-	bc.Lock() // Lock for the entire duration of critical state modification
-	var mcpContextRecordsForSync []*proto.ContextRecordProto
+// verifyBlockContext checks if a block can be added to the current chain context.
+// It assumes the caller holds the necessary lock.
+func (bc *BlockchainStruct) verifyBlockContext(b *Block) error {
+	agentlog.LogInfo(fmt.Sprintf("Verifying context for block %d (Hash: %s)", b.BlockNumber, hex.EncodeToString(b.BlockHash)))
 
 	agentlog.LogInfo(fmt.Sprintf("Attempting to add block number %d (Hash: %s)", b.BlockNumber, hex.EncodeToString(b.BlockHash)))
 	agentlog.LogInfo(fmt.Sprintf("AddBlock: Current chain length before add: %d", len(bc.Blocks)))
 	// Check DB connection
 	if bc.db == nil {
 		bc.Unlock()
-		return fmt.Errorf("database connection is nil in AddBlock")
+		return fmt.Errorf("database connection is nil")
 	}
 
 	// --- Verification ---
 	if !b.VerifyBlock() {
-		agentlog.LogError(fmt.Sprintf("Block %d verification failed, not adding.", b.BlockNumber), nil)
-		bc.Unlock()
 		return fmt.Errorf("block %d verification failed", b.BlockNumber)
 	}
 
@@ -628,17 +624,12 @@ func (bc *BlockchainStruct) AddBlock(b *Block) error {
 	if len(bc.Blocks) == 0 {
 		if b.BlockNumber == 0 && bytes.Equal(b.Hash(), trueGenesisBlock.Hash()) {
 			agentlog.LogInfo("Received Genesis block matches deterministic one. Skipping add (already present).")
-			bc.Unlock()
-			return nil // Not an error, just already have it
+			return errors.New("genesis block already present") // Use a specific error or nil to indicate skip
 		} else if b.BlockNumber == 0 {
 			err := fmt.Errorf("received Genesis block hash %s does not match deterministic hash %s. Rejecting", hex.EncodeToString(b.Hash()), hex.EncodeToString(trueGenesisBlock.Hash()))
-			agentlog.LogError(err.Error(), nil)
-			bc.Unlock()
 			return err
 		} else {
 			err := fmt.Errorf("chain is empty, but received block %d is not Genesis. Rejecting", b.BlockNumber)
-			agentlog.LogError(err.Error(), nil)
-			bc.Unlock()
 			return err
 		}
 	}
@@ -647,11 +638,8 @@ func (bc *BlockchainStruct) AddBlock(b *Block) error {
 	lastBlockHashOnChain := lastBlock.Hash()
 
 	if !bytes.Equal(b.PrevHash, lastBlockHashOnChain) {
-		err := fmt.Errorf("block %d rejected: PrevHash (%s) doesn't match current last block's hash (%s)",
+		return fmt.Errorf("block %d rejected: PrevHash (%s) doesn't match current last block's hash (%s)",
 			b.BlockNumber, hex.EncodeToString(b.PrevHash), hex.EncodeToString(lastBlockHashOnChain))
-		agentlog.LogError(err.Error(), nil)
-		bc.Unlock()
-		return err
 	}
 
 	if b.BlockNumber <= lastBlock.BlockNumber {
@@ -660,22 +648,29 @@ func (bc *BlockchainStruct) AddBlock(b *Block) error {
 		} else {
 			agentlog.LogWarning(fmt.Sprintf("Block %d rejected: Block number is not greater than current last block number %d.", b.BlockNumber, lastBlock.BlockNumber))
 		}
-		bc.Unlock()
 		return fmt.Errorf("block %d number %d is not greater than current last block number %d", b.BlockNumber, b.BlockNumber, lastBlock.BlockNumber)
 	}
 
 	if b.BlockNumber != lastBlock.BlockNumber+1 {
-		err := fmt.Errorf("block %d rejected: Block number is not sequential (expected %d). Potential fork or missing block", b.BlockNumber, lastBlock.BlockNumber+1)
-		agentlog.LogWarning(err.Error())
-		bc.Unlock()
-		return err
+		return fmt.Errorf("block %d rejected: Block number is not sequential (expected %d). Potential fork or missing block", b.BlockNumber, lastBlock.BlockNumber+1)
 	}
+
+	return nil
+}
+
+// applyBlockTransactions processes transactions within a block and updates a temporary account state.
+// It assumes the caller holds the necessary lock.
+func (bc *BlockchainStruct) applyBlockTransactions(b *Block, tempBlockAccounts map[string]*big.Int) ([]*proto.ContextRecordProto, error) {
+	var mcpContextRecordsForSync []*proto.ContextRecordProto
 
 	// --- Checks Passed - Prepare to Modify State ---
 	agentlog.LogInfo(fmt.Sprintf("Checks passed for block %d. Proceeding to process transactions and update state.", b.BlockNumber))
 
 	// --- Atomically process transactions and update account balances ---
-	tempBlockAccounts := make(map[string]*big.Int)
+	// Clear the tempBlockAccounts map since it's passed as a parameter
+	for k := range tempBlockAccounts {
+		delete(tempBlockAccounts, k)
+	}
 	affectedAccounts := make(map[string]bool)
 
 	// Populate affectedAccounts set
@@ -717,9 +712,8 @@ func (bc *BlockchainStruct) AddBlock(b *Block) error {
 				agentlog.LogInfo(fmt.Sprintf("Account %s not found in DB, initializing with balance 0.", accAddr))
 				tempBlockAccounts[accAddr] = big.NewInt(0)
 			} else {
-				agentlog.LogError(fmt.Sprintf("Failed to load balance for account %s from DB: %v", accAddr, err), nil)
-				bc.Unlock()
-				return fmt.Errorf("failed to load balance for account %s: %w", accAddr, err)
+				agentlog.LogError(fmt.Sprintf("Failed to load balance for account %s from DB: %v", accAddr, err), err)
+				return nil, fmt.Errorf("failed to load balance for account %s: %w", accAddr, err)
 			}
 		} else {
 			tempBlockAccounts[accAddr] = new(big.Int).SetUint64(balance) // Convert uint64 to *big.Int
@@ -732,9 +726,10 @@ func (bc *BlockchainStruct) AddBlock(b *Block) error {
 		agentlog.LogInfo(fmt.Sprintf("Processing tx %d/%d (Hash: %s) in block %d", i+1, len(b.Transactions), tx.TransactionHash, b.BlockNumber))
 		// These functions are now methods of BlockchainStruct, defined in transaction.go (or moved to blockchain_struct.go)
 		if err := bc.validateTransactionInBlockContext(tx, tempBlockAccounts); err != nil {
-			agentlog.LogError(fmt.Sprintf("Invalid transaction %s in block %d during AddBlock: %v", tx.TransactionHash, b.BlockNumber, err), nil)
-			bc.Unlock()
-			return err // Reject block
+			// Mark the transaction as invalid in the block for auditability, even though the block will be rejected.
+			b.InvalidTxHashes[tx.TransactionHash] = err.Error()
+			agentlog.LogError(fmt.Sprintf("Invalid transaction %s in block %d during AddBlock: %v", tx.TransactionHash, b.BlockNumber, err), err)
+			return nil, err // Reject block
 		}
 
 		// Handle MCP transactions specially
@@ -745,9 +740,8 @@ func (bc *BlockchainStruct) AddBlock(b *Block) error {
 			if tx.Type == TransactionTypeMCPRegisterCapability || tx.Type == TransactionTypeMCPUpdateCapability {
 				contextRecord, err := bc.mcpProcessor.ApplyMCPTransactionEffects(tx, tempBlockAccounts)
 				if err != nil {
-					agentlog.LogError(fmt.Sprintf("Failed to apply MCP transaction effects for %s in block %d: %v", tx.TransactionHash, b.BlockNumber, err), nil)
-					bc.Unlock()
-					return err
+					agentlog.LogError(fmt.Sprintf("Failed to apply MCP transaction effects for %s in block %d: %v", tx.TransactionHash, b.BlockNumber, err), err)
+					return nil, err
 				}
 				if contextRecord != nil {
 					mcpContextRecordsForSync = append(mcpContextRecordsForSync, contextRecord)
@@ -758,13 +752,32 @@ func (bc *BlockchainStruct) AddBlock(b *Block) error {
 		// applyTransactionToState handles standard transfers and fee deductions
 		// It's called after MCP effects for MCP transactions, or directly for standard ones.
 		if err := bc.applyTransactionToState(tx, tempBlockAccounts, b.ProposerAddress); err != nil { // This was moved down
-			agentlog.LogError(fmt.Sprintf("Failed to apply transaction %s to state in block %d: %v", tx.TransactionHash, b.BlockNumber, err), nil)
-			bc.Unlock()
-			return err // Reject block
+			agentlog.LogError(fmt.Sprintf("Failed to apply transaction %s to state in block %d: %v", tx.TransactionHash, b.BlockNumber, err), err)
+			return nil, err // Reject block
 		}
+	}
+	return mcpContextRecordsForSync, nil
+}
+
+// AddBlock validates a new block, processes its transactions (including MCP fee transfers),
+// updates account balances in the database, and adds the block to the chain.
+// It returns an error if the block is invalid or if any part of the processing fails.
+func (bc *BlockchainStruct) AddBlock(b *Block) error {
+	bc.Lock() // Lock for the entire duration of critical state modification
+
+	if err := bc.verifyBlockContext(b); err != nil {
+		agentlog.LogError(fmt.Sprintf("Block %d context verification failed: %v", b.BlockNumber, err), err)
+		bc.Unlock()
+		return err
 	}
 
 	// --- All transactions in block are valid and effects applied to tempBlockAccounts ---
+	tempBlockAccounts := make(map[string]*big.Int)
+	mcpContextRecordsForSync, err := bc.applyBlockTransactions(b, tempBlockAccounts)
+	if err != nil {
+		bc.Unlock()
+		return err
+	}
 
 	// Persist updated account balances from tempBlockAccounts to LevelDB
 	// This must happen BEFORE the block is added to bc.Blocks and bc is saved.
@@ -772,8 +785,7 @@ func (bc *BlockchainStruct) AddBlock(b *Block) error {
 		// Only save if the balance actually changed or if it's an account that was involved.
 		// For simplicity, saving all accounts that were touched in this block.
 		if err := bc.db.SaveAccountBalance(addr, balance.Uint64()); err != nil { // SaveAccountBalance expects uint64
-			agentlog.LogError(fmt.Sprintf("Failed to save updated balance for account %s to DB: %v", addr, err), nil)
-			bc.Unlock()
+			agentlog.LogError(fmt.Sprintf("Failed to save updated balance for account %s to DB: %v", addr, err), err)
 			return fmt.Errorf("critical error saving account balance for %s: %w", addr, err)
 		}
 	}
@@ -807,7 +819,6 @@ func (bc *BlockchainStruct) AddBlock(b *Block) error {
 		// At this point, balances are saved, block is in memory. If this fails,
 		// on next load, the block won't be in bc.Blocks but balances reflect it.
 		// This is a state inconsistency.
-		bc.Unlock()
 		return fmt.Errorf("failed to marshal blockchain state for saving: %w", err)
 	}
 

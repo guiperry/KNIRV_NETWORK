@@ -62,7 +62,7 @@ A foundational example showing LLM integration patterns. This example demonstrat
 To integrate with the actual inference service from the `inference` package:
 
 ```go
-import "KNIRV_Engine/inference"
+import "KNIRVENGINE/desktop-client/inference"
 
 // Create the inference service
 inferenceService := inference.NewInferenceService()

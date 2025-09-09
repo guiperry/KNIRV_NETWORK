@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 )
@@ -355,4 +356,199 @@ func TestTEESecurityConfigManager(t *testing.T) {
 			t.Error("Expected config file to be created")
 		}
 	})
+}
+
+// TestTEESecurityManager_ConcurrentOperations tests thread safety
+func TestTEESecurityManager_ConcurrentOperations(t *testing.T) {
+	config := TEESecurityConfig{
+		DefaultSecurityLevel:    SecurityLevelMedium,
+		MaxConcurrentTEEs:       10,
+		AuditLogRetentionDays:   7,
+		IntegrityCheckInterval:  1 * time.Second,
+		EnableRuntimeMonitoring: false,
+		GlobalResourceLimits: ResourceLimits{
+			MemoryMB:         1024,
+			CPUCores:         2.0,
+			MaxProcesses:     10,
+			ExecutionTimeout: 30 * time.Second,
+		},
+	}
+
+	manager := NewTEESecurityManager(config)
+
+	const numOperations = 20
+	var wg sync.WaitGroup
+	errors := make(chan error, numOperations)
+
+	// Perform concurrent TEE operations
+	for i := 0; i < numOperations; i++ {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+
+			agentID := fmt.Sprintf("concurrent-agent-%d", id)
+			teeConfig := TEEConfig{
+				WorkingDir: fmt.Sprintf("/tmp/test_tee_%d", id),
+				ResourceLimits: ResourceLimits{
+					MemoryMB:         256,
+					CPUCores:         0.5,
+					ExecutionTimeout: 15 * time.Second,
+				},
+				SecurityPolicy: SecurityPolicy{
+					AllowNetworkAccess:   false,
+					AllowFileSystemWrite: false,
+					AllowedCommands:      []string{"echo"},
+					BlockedCommands:      []string{"rm"},
+					MaxExecutionTime:     10 * time.Second,
+				},
+			}
+
+			// Create TEE
+			tee, err := manager.CreateSecureTEE(agentID, SecurityLevelLow, teeConfig)
+			if err != nil {
+				errors <- fmt.Errorf("create TEE error for %s: %v", agentID, err)
+				return
+			}
+
+			if tee == nil {
+				errors <- fmt.Errorf("TEE is nil for %s", agentID)
+				return
+			}
+
+			// Validate execution
+			err = manager.ValidateAgentExecution(agentID, "echo", []string{"test"})
+			if err != nil {
+				errors <- fmt.Errorf("validation error for %s: %v", agentID, err)
+			}
+
+			// Destroy TEE
+			err = manager.DestroyTEE(agentID)
+			if err != nil {
+				errors <- fmt.Errorf("destroy TEE error for %s: %v", agentID, err)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+	close(errors)
+
+	// Check for errors
+	for err := range errors {
+		t.Errorf("Concurrent operation error: %v", err)
+	}
+}
+
+// TestTEESecurityManager_ResourceLimits tests resource limit enforcement
+func TestTEESecurityManager_ResourceLimits(t *testing.T) {
+	config := TEESecurityConfig{
+		DefaultSecurityLevel:    SecurityLevelHigh,
+		MaxConcurrentTEEs:       2, // Low limit for testing
+		AuditLogRetentionDays:   7,
+		IntegrityCheckInterval:  1 * time.Second,
+		EnableRuntimeMonitoring: false,
+		GlobalResourceLimits: ResourceLimits{
+			MemoryMB:         512,
+			CPUCores:         1.0,
+			MaxProcesses:     5,
+			ExecutionTimeout: 10 * time.Second,
+		},
+	}
+
+	manager := NewTEESecurityManager(config)
+
+	// Create TEEs up to the limit
+	for i := 0; i < 2; i++ {
+		agentID := fmt.Sprintf("limit-test-agent-%d", i)
+		teeConfig := TEEConfig{
+			WorkingDir: fmt.Sprintf("/tmp/test_tee_%d", i),
+			ResourceLimits: ResourceLimits{
+				MemoryMB:         256,
+				CPUCores:         0.5,
+				ExecutionTimeout: 5 * time.Second,
+			},
+		}
+
+		_, err := manager.CreateSecureTEE(agentID, SecurityLevelLow, teeConfig)
+		if err != nil {
+			t.Fatalf("Failed to create TEE %d: %v", i, err)
+		}
+	}
+
+	// Try to create one more TEE (should fail due to limit)
+	teeConfig := TEEConfig{
+		WorkingDir: "/tmp/test_tee_overflow",
+		ResourceLimits: ResourceLimits{
+			MemoryMB:         256,
+			CPUCores:         0.5,
+			ExecutionTimeout: 5 * time.Second,
+		},
+	}
+
+	_, err := manager.CreateSecureTEE("overflow-agent", SecurityLevelLow, teeConfig)
+	if err == nil {
+		t.Error("Expected error when exceeding TEE limit")
+	}
+
+	// Clean up
+	for i := 0; i < 2; i++ {
+		agentID := fmt.Sprintf("limit-test-agent-%d", i)
+		manager.DestroyTEE(agentID)
+	}
+}
+
+// TestTEESecurityManager_SecurityPolicyEnforcement tests security policy enforcement
+func TestTEESecurityManager_SecurityPolicyEnforcement(t *testing.T) {
+	config := TEESecurityConfig{
+		DefaultSecurityLevel:    SecurityLevelHigh,
+		MaxConcurrentTEEs:       5,
+		AuditLogRetentionDays:   7,
+		IntegrityCheckInterval:  1 * time.Second,
+		EnableRuntimeMonitoring: false,
+		GlobalResourceLimits: ResourceLimits{
+			MemoryMB:         1024,
+			CPUCores:         2.0,
+			MaxProcesses:     10,
+			ExecutionTimeout: 30 * time.Second,
+		},
+	}
+
+	manager := NewTEESecurityManager(config)
+
+	// Test strict security policy
+	strictTEEConfig := TEEConfig{
+		WorkingDir: "/tmp/strict_tee",
+		SecurityPolicy: SecurityPolicy{
+			AllowNetworkAccess:   false,
+			AllowFileSystemWrite: false,
+			AllowedCommands:      []string{"echo", "cat"},
+			BlockedCommands:      []string{"rm", "sudo", "chmod", "chown"},
+			MaxExecutionTime:     5 * time.Second,
+		},
+	}
+
+	_, err := manager.CreateSecureTEE("strict-agent", SecurityLevelHigh, strictTEEConfig)
+	if err != nil {
+		t.Fatalf("Failed to create strict TEE: %v", err)
+	}
+
+	// Test allowed commands
+	allowedCommands := []string{"echo", "cat"}
+	for _, cmd := range allowedCommands {
+		err = manager.ValidateAgentExecution("strict-agent", cmd, []string{"test"})
+		if err != nil {
+			t.Errorf("Expected allowed command '%s' to pass validation: %v", cmd, err)
+		}
+	}
+
+	// Test blocked commands
+	blockedCommands := []string{"rm", "sudo", "chmod", "chown"}
+	for _, cmd := range blockedCommands {
+		err = manager.ValidateAgentExecution("strict-agent", cmd, []string{"test"})
+		if err == nil {
+			t.Errorf("Expected blocked command '%s' to fail validation", cmd)
+		}
+	}
+
+	// Clean up
+	manager.DestroyTEE("strict-agent")
 }

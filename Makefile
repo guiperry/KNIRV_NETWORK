@@ -262,6 +262,7 @@ tests: test-setup ## Run comprehensive test suite for entire KNIRV network
 	@$(MAKE) test-wallet
 	@$(MAKE) test-nexus
 	@$(MAKE) test-root
+	@$(MAKE) test-engine
 	@$(MAKE) test-integration
 	@$(MAKE) test-reports
 	@echo ""
@@ -383,6 +384,26 @@ test-root: ## Test KNIRVORACLE (Core Network)
 		echo "$(YELLOW)⚠ KNIRVORACLE go.mod not found$(NC)"; \
 	fi
 
+.PHONY: test-engine
+test-engine: ## Test KNIRVENGINE (Desktop Client)
+	@echo "$(BLUE)Testing KNIRVENGINE Desktop Client...$(NC)"
+	@if [ -f "KNIRVENGINE/desktop-client/go.mod" ]; then \
+		cd KNIRVENGINE/desktop-client && go test -v -cover ./agentify/... ./desktop/... ./services/... ./utils/... ./inference/... ./database/... ./api/...; \
+		echo "$(GREEN)✓ KNIRVENGINE Desktop Client tests completed$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠ KNIRVENGINE desktop-client go.mod not found$(NC)"; \
+	fi
+
+.PHONY: test-engine-frontend
+test-engine-frontend: ## Test KNIRVENGINE Frontend (React/TypeScript)
+	@echo "$(BLUE)Testing KNIRVENGINE Frontend...$(NC)"
+	@if [ -f "KNIRVENGINE/desktop-client/gui/package.json" ]; then \
+		cd KNIRVENGINE/desktop-client/gui && npm test -- --watchAll=false --coverage; \
+		echo "$(GREEN)✓ KNIRVENGINE Frontend tests completed$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠ KNIRVENGINE GUI package.json not found$(NC)"; \
+	fi
+
 .PHONY: test-integration
 test-integration: ## Run integration tests
 	@echo "$(BLUE)Running integration tests...$(NC)"
@@ -406,6 +427,7 @@ test-reports: ## Generate comprehensive test reports
 	@echo "- KNIRVWALLET: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "- KNIRVNEXUS: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "- KNIRVORACLE: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
+	@echo "- KNIRVENGINE: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "- Integration Tests: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "## Report Locations" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md

@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	"KNIRV_Engine/services"
+	"KNIRVENGINE/desktop-client/services"
 
 	"github.com/gorilla/mux"
 )

@@ -7,8 +7,8 @@ import (
 	"log"
 	"time"
 
-	"KNIRV_Engine/agent"
-	"KNIRV_Engine/agent/core"
+	"KNIRVENGINE/desktop-client/agent"
+	"KNIRVENGINE/desktop-client/agent/core"
 )
 
 // DataMigrator handles migration from old agent system to new unified system

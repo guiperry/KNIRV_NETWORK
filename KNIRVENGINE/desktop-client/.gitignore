@@ -81,7 +81,7 @@ package-lock.json
 release_assets/*
 
 knirv-engine
-KNIRV_Engine
+KNIRVENGINE/desktop-client
 /dist
 .aider*
 

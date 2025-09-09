@@ -132,7 +132,7 @@ func StartStatusAdvertising(node *Node) {
 		ticker := time.NewTicker(30 * time.Minute)
 		defer ticker.Stop()
 
-		statusURI := fmt.Sprintf("agent://%s.chain/status", node.Blockchain.ChainID)
+		statusURI := fmt.Sprintf("knirv://%s.chain/status", node.Blockchain.ChainID)
 
 		for range ticker.C {
 			// Skip if PoAu-D was disabled

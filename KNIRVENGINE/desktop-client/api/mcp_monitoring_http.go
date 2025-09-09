@@ -1,7 +1,7 @@
 package api
 
 import (
-	"KNIRV_Engine/utils"
+	"KNIRVENGINE/desktop-client/utils"
 	"encoding/json"
 	"fmt"
 	"net/http"

@@ -9,13 +9,13 @@ import (
 	"strings"
 )
 
-// URIResolver handles resolution of agent:// URIs
+// URIResolver handles resolution of knirv:// URIs
 type URIResolver struct {
 	// Cache of resolved URIs
 	cache map[string]*ResolvedURI
 }
 
-// ResolvedURI contains the connection details for a agent:// URI
+// ResolvedURI contains the connection details for a knirv:// URI
 type ResolvedURI struct {
 	OriginalURI        string `json:"originalUri"`
 	ResolvedIdentifier string `json:"resolvedIdentifier"`
@@ -57,14 +57,14 @@ func (r *URIResolver) validateResourceType(resourceType string) error {
 	return nil
 }
 
-// ParseURI parses a agent:// URI into its components
+// ParseURI parses a knirv:// URI into its components
 func (r *URIResolver) ParseURI(uri string) (authority, identifier, resourceType, subPath string, err error) {
-	if !strings.HasPrefix(uri, "agent://") {
-		return "", "", "", "", fmt.Errorf("invalid URI scheme, must start with agent://")
+	if !strings.HasPrefix(uri, "knirv://") {
+		return "", "", "", "", fmt.Errorf("invalid URI scheme, must start with knirv://")
 	}
 
 	// Remove the scheme
-	uriWithoutScheme := strings.TrimPrefix(uri, "agent://")
+	uriWithoutScheme := strings.TrimPrefix(uri, "knirv://")
 
 	// Split by the first slash to get authority and path
 	parts := strings.SplitN(uriWithoutScheme, "/", 2)
@@ -102,7 +102,7 @@ func (r *URIResolver) ParseURI(uri string) (authority, identifier, resourceType,
 	return authority, identifier, resourceType, subPath, nil
 }
 
-// ResolveURI resolves a agent:// URI to connection details
+// ResolveURI resolves a knirv:// URI to connection details
 func (r *URIResolver) ResolveURI(uri string) (*ResolvedURI, error) {
 	// Check cache first
 	if resolved, ok := r.cache[uri]; ok {

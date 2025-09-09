@@ -187,7 +187,7 @@ func testURIResolver(t *testing.T) {
 	resolver := uri.NewURIResolver()
 
 	// Test URI parsing
-	authority, identifier, resourceType, subPath, err := resolver.ParseURI("agent://example.com/resource-123.chain/test/path")
+	authority, identifier, resourceType, subPath, err := resolver.ParseURI("knirv://example.com/resource-123.chain/test/path")
 	require.NoError(t, err, "Failed to parse URI")
 
 	assert.Equal(t, "example.com", authority, "Authority mismatch")

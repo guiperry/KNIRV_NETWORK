@@ -12,8 +12,10 @@ import (
 func TestAgentManager_AttachBadgeToAgent(t *testing.T) {
 	// Setup test environment
 	tempDir, chromemManager, wallet, agentManager := setupTestEnvironment(t)
-	defer os.RemoveAll(tempDir)
-	defer chromemManager.Close()
+	t.Cleanup(func() {
+		chromemManager.Close()
+		os.RemoveAll(tempDir)
+	})
 
 	// Create an agent
 	metadata := map[string]interface{}{"version": "1.0"}
@@ -90,8 +92,10 @@ func TestAgentManager_AttachBadgeToAgent(t *testing.T) {
 func TestAgentBadgeRetrieval(t *testing.T) {
 	// Setup test environment
 	tempDir, chromemManager, wallet, agentManager := setupTestEnvironment(t)
-	defer os.RemoveAll(tempDir)
-	defer chromemManager.Close()
+	t.Cleanup(func() {
+		chromemManager.Close()
+		os.RemoveAll(tempDir)
+	})
 
 	// Create an agent
 	metadata := map[string]interface{}{"version": "1.0"}
@@ -177,8 +181,10 @@ func TestAgentBadgeRetrieval(t *testing.T) {
 func TestBadgeAttachmentPersistence(t *testing.T) {
 	// Setup test environment
 	tempDir, chromemManager, wallet, agentManager := setupTestEnvironment(t)
-	defer os.RemoveAll(tempDir)
-	defer chromemManager.Close()
+	t.Cleanup(func() {
+		chromemManager.Close()
+		os.RemoveAll(tempDir)
+	})
 
 	// Create an agent
 	metadata := map[string]interface{}{"version": "1.0"}
@@ -276,8 +282,10 @@ func TestBadgeAttachmentPersistence(t *testing.T) {
 func TestMultipleAgentsBadges(t *testing.T) {
 	// Setup test environment
 	tempDir, chromemManager, wallet, agentManager := setupTestEnvironment(t)
-	defer os.RemoveAll(tempDir)
-	defer chromemManager.Close()
+	t.Cleanup(func() {
+		chromemManager.Close()
+		os.RemoveAll(tempDir)
+	})
 
 	// Create multiple agents
 	metadata := map[string]interface{}{"version": "1.0"}
@@ -347,8 +355,10 @@ func TestMultipleAgentsBadges(t *testing.T) {
 func TestBadgeAttachmentCryptographicSignature(t *testing.T) {
 	// Setup test environment
 	tempDir, chromemManager, wallet, agentManager := setupTestEnvironment(t)
-	defer os.RemoveAll(tempDir)
-	defer chromemManager.Close()
+	t.Cleanup(func() {
+		chromemManager.Close()
+		os.RemoveAll(tempDir)
+	})
 
 	// Create an agent
 	metadata := map[string]interface{}{"version": "1.0"}
@@ -431,8 +441,10 @@ func TestBadgeAttachmentCryptographicSignature(t *testing.T) {
 func TestBadgeAttachmentBlockchainRecording(t *testing.T) {
 	// Setup test environment
 	tempDir, chromemManager, wallet, agentManager := setupTestEnvironment(t)
-	defer os.RemoveAll(tempDir)
-	defer chromemManager.Close()
+	t.Cleanup(func() {
+		chromemManager.Close()
+		os.RemoveAll(tempDir)
+	})
 
 	// Create an agent
 	metadata := map[string]interface{}{"version": "1.0"}
@@ -497,8 +509,10 @@ func TestBadgeAttachmentBlockchainRecording(t *testing.T) {
 func TestBadgeAttachmentImmutability(t *testing.T) {
 	// Setup test environment
 	tempDir, chromemManager, wallet, agentManager := setupTestEnvironment(t)
-	defer os.RemoveAll(tempDir)
-	defer chromemManager.Close()
+	t.Cleanup(func() {
+		chromemManager.Close()
+		os.RemoveAll(tempDir)
+	})
 
 	// Create an agent
 	metadata := map[string]interface{}{"version": "1.0"}
@@ -616,8 +630,10 @@ func TestBadgeAttachmentImmutability(t *testing.T) {
 func TestBadgeAttachmentValidation(t *testing.T) {
 	// Setup test environment
 	tempDir, chromemManager, wallet, agentManager := setupTestEnvironment(t)
-	defer os.RemoveAll(tempDir)
-	defer chromemManager.Close()
+	t.Cleanup(func() {
+		chromemManager.Close()
+		os.RemoveAll(tempDir)
+	})
 
 	// Create an agent
 	metadata := map[string]interface{}{"version": "1.0"}

@@ -18,7 +18,7 @@ func TestParseURI(t *testing.T) {
 	}{
 		{
 			name:           "Valid URI with subpath",
-			uri:            "agent://tunnel.agent.com/abc123.dev/some/path?query=value",
+			uri:            "knirv://tunnel.agent.com/abc123.dev/some/path?query=value",
 			wantAuthority:  "tunnel.agent.com",
 			wantIdentifier: "abc123",
 			wantType:       "dev",
@@ -27,7 +27,7 @@ func TestParseURI(t *testing.T) {
 		},
 		{
 			name:           "Valid URI without subpath",
-			uri:            "agent://tunnel.agent.com/abc123.dev",
+			uri:            "knirv://tunnel.agent.com/abc123.dev",
 			wantAuthority:  "tunnel.agent.com",
 			wantIdentifier: "abc123",
 			wantType:       "dev",
@@ -36,7 +36,7 @@ func TestParseURI(t *testing.T) {
 		},
 		{
 			name:           "Valid URI with chainID",
-			uri:            "agent://tunnel.agent.com/agent-default.chain",
+			uri:            "knirv://tunnel.agent.com/agent-default.chain",
 			wantAuthority:  "tunnel.agent.com",
 			wantIdentifier: "agent-default",
 			wantType:       "chain",
@@ -50,17 +50,17 @@ func TestParseURI(t *testing.T) {
 		},
 		{
 			name:    "Missing path",
-			uri:     "agent://tunnel.agent.com",
+			uri:     "knirv://tunnel.agent.com",
 			wantErr: true,
 		},
 		{
 			name:    "Missing resource type",
-			uri:     "agent://tunnel.agent.com/abc123",
+			uri:     "knirv://tunnel.agent.com/abc123",
 			wantErr: true,
 		},
 		{
 			name:    "Invalid Resource Type",
-			uri:     "agent://tunnel.agent.com/abc123.invalid",
+			uri:     "knirv://tunnel.agent.com/abc123.invalid",
 			wantErr: true,
 		},
 	}

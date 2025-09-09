@@ -1,7 +1,7 @@
 package api
 
 import (
-	"KNIRV_Engine/database"
+	"KNIRVENGINE/desktop-client/database"
 
 	"encoding/json"
 	"net/http"

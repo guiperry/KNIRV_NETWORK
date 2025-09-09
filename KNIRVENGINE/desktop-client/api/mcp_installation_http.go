@@ -1,7 +1,7 @@
 package api
 
 import (
-	"KNIRV_Engine/utils"
+	"KNIRVENGINE/desktop-client/utils"
 	"bufio"
 	"context"
 	"encoding/json"

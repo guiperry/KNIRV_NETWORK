@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"KNIRV_Engine/utils"
+	"KNIRVENGINE/desktop-client/utils"
 )
 
 // MigrationManager handles data migration between application versions

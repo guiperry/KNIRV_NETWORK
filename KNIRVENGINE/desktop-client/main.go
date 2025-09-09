@@ -16,14 +16,14 @@ import (
 	"syscall"
 	"time"
 
-	"KNIRV_Engine/agent"
-	"KNIRV_Engine/agent/migration"
-	"KNIRV_Engine/agentify"
-	"KNIRV_Engine/api"
-	"KNIRV_Engine/database"
-	"KNIRV_Engine/desktop"
-	"KNIRV_Engine/inference"
-	"KNIRV_Engine/utils"
+	"KNIRVENGINE/desktop-client/agent"
+	"KNIRVENGINE/desktop-client/agent/migration"
+	"KNIRVENGINE/desktop-client/agentify"
+	"KNIRVENGINE/desktop-client/api"
+	"KNIRVENGINE/desktop-client/database"
+	"KNIRVENGINE/desktop-client/desktop"
+	"KNIRVENGINE/desktop-client/inference"
+	"KNIRVENGINE/desktop-client/utils"
 
 	"github.com/joho/godotenv"
 )
