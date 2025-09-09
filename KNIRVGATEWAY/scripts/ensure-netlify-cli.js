@@ -83,6 +83,13 @@ class NetlifyCliEnsurer {
         this.log('Installing netlify-cli...', 'fix');
 
         try {
+            // First ensure we have all dependencies including dev
+            this.log('Running: npm install --include=dev');
+            execSync('npm install --include=dev', {
+                stdio: 'inherit',
+                timeout: 120000 // 2 minutes timeout
+            });
+
             // Install specific version of netlify-cli
             this.log('Running: npm install netlify-cli@21.6.0 --save-dev');
             execSync('npm install netlify-cli@21.6.0 --save-dev', {
@@ -110,6 +117,10 @@ class NetlifyCliEnsurer {
             // Clear npm cache
             this.log('Clearing npm cache...');
             execSync('npm cache clean --force', { stdio: 'pipe' });
+
+            // Remove node_modules and package-lock.json for clean install
+            this.log('Removing node_modules for clean install...');
+            execSync('rm -rf node_modules package-lock.json', { stdio: 'pipe' });
 
             // Reinstall
             return this.installNetlifyCli();

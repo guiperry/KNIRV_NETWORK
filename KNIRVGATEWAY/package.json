@@ -12,7 +12,7 @@
     "start:vercel": "vercel dev",
     "build": "npm run ensure-netlify-cli && npm run load-endpoints && npm run check-health && npm install && npm run build:netlify-functions && npm run check-function-deps && echo 'KNIRV Gateway built with Netlify Functions support'",
     "build:persistent": "npm run build:persistent:safe || npm run build:persistent:recovery",
-    "build:persistent:safe": "npm run ensure-netlify-cli && GATEWAY_MODE=persistent npm run load-endpoints && npm run check-health:build && npm run build:nexus-portal && echo 'KNIRV Gateway built for persistent mode (Render deployment)'",
+    "build:persistent:safe": "npm install --include=dev && npm run ensure-netlify-cli && GATEWAY_MODE=persistent npm run load-endpoints && npm run check-health:build && npm run build:nexus-portal && echo 'KNIRV Gateway built for persistent mode (Render deployment)'",
     "build:persistent:recovery": "echo '🔧 Build failed, attempting recovery...' && npm run force-fix-netlify && npm run build:persistent:safe",
     "force-fix-netlify": "bash scripts/fix-netlify-cli.sh --auto",
     "ensure-netlify-cli": "node scripts/ensure-netlify-cli.js",

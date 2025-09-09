@@ -1,11 +1,10 @@
-# wrangler.toml
 name = "knirv-com"
 main = "index.ts"
-compatibility_date = "2023-12-01"
-
-[site]
-bucket = "./public" # Specifies the directory of static assets to upload.
+compatibility_date = "2024-09-09"
+assets = { directory = "./public" }
 
 [env.production]
 name = "knirv-com-production"
-route = { pattern = "knirv.com/*", custom_domain = true }
+routes = [
+  { pattern = "knirv.com/*", custom_domain = true }
+]

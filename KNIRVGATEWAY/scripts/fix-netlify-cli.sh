@@ -57,7 +57,11 @@ clean_and_reinstall() {
 
     # Reinstall dependencies with specific netlify-cli version
     echo "📦 Reinstalling dependencies..."
-    npm install
+    npm install --include=dev
+
+    # Explicitly install netlify-cli if not found
+    echo "🔧 Ensuring netlify-cli is installed..."
+    npm install netlify-cli@21.6.0 --save-dev
 
     # Verify netlify-cli installation
     echo "🔍 Verifying netlify-cli installation..."
