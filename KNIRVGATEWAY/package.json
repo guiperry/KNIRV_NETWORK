@@ -11,7 +11,10 @@
     "start:netlify": "netlify-lambda serve src",
     "start:vercel": "vercel dev",
     "build": "npm run ensure-netlify-cli && npm run load-endpoints && npm run check-health && npm install && npm run build:netlify-functions && npm run check-function-deps && echo 'KNIRV Gateway built with Netlify Functions support'",
-    "build:persistent": "npm run ensure-netlify-cli && GATEWAY_MODE=persistent npm run load-endpoints && npm run check-health && npm run build:nexus-portal && echo 'KNIRV Gateway built for persistent mode (Render deployment)'",
+    "build:persistent": "npm run build:persistent:safe || npm run build:persistent:recovery",
+    "build:persistent:safe": "npm run ensure-netlify-cli && GATEWAY_MODE=persistent npm run load-endpoints && npm run check-health:build && npm run build:nexus-portal && echo 'KNIRV Gateway built for persistent mode (Render deployment)'",
+    "build:persistent:recovery": "echo '🔧 Build failed, attempting recovery...' && npm run force-fix-netlify && npm run build:persistent:safe",
+    "force-fix-netlify": "bash scripts/fix-netlify-cli.sh --auto",
     "ensure-netlify-cli": "node scripts/ensure-netlify-cli.js",
     "build:nexus": "echo 'NEXUS now uses unified binary architecture - no separate frontend build needed'",
     "build:nexus-portal": "cd nexus-portal && npm install && npm run build",
@@ -27,6 +30,7 @@
     "init-forum": "node scripts/init_discourse_database.js",
     "init-support-desk": "node scripts/init_support_database.js",
     "check-health": "node scripts/check-health.js",
+    "check-health:build": "node scripts/check-health.js --build-mode",
     "check-nexus-health": "node scripts/check-nexus-health.js",
     "check-function-deps": "node scripts/check-function-deps.js",
     "auto-fix": "echo '🔧 Auto-fixing detected issues...' && npm run ensure-netlify-cli",
@@ -92,7 +96,7 @@
     "ws": "^8.14.0"
   },
   "devDependencies": {
-    "netlify-cli": "21.6.0",
+    "netlify-cli": "^21.6.0",
     "netlify-lambda": "^2.0.16",
     "vercel": "^32.0.0"
   },

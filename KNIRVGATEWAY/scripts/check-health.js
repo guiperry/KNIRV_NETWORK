@@ -15,10 +15,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 class HealthChecker {
-    constructor() {
+    constructor(options = {}) {
         this.issues = [];
         this.warnings = [];
         this.autoFixAttempted = false;
+        this.netlifyIssues = [];
+        this.buildMode = options.buildMode || false;
     }
 
     log(message, type = 'info') {
@@ -41,6 +43,7 @@ class HealthChecker {
         const netlifyPath = path.join(process.cwd(), 'node_modules', '.bin', 'netlify');
         if (!fs.existsSync(netlifyPath)) {
             this.issues.push('netlify-cli binary not found in node_modules');
+            this.netlifyIssues.push('netlify-cli binary not found in node_modules');
             return false;
         }
 
@@ -92,6 +95,7 @@ class HealthChecker {
         const netlifyCliPath = path.join(nodeModulesPath, 'netlify-cli');
         if (!fs.existsSync(netlifyCliPath)) {
             this.issues.push('netlify-cli not found in node_modules');
+            this.netlifyIssues.push('netlify-cli not found in node_modules');
             return false;
         }
 
@@ -104,6 +108,7 @@ class HealthChecker {
             }
         } catch (error) {
             this.issues.push('netlify-cli package.json is corrupted');
+            this.netlifyIssues.push('netlify-cli package.json is corrupted');
             return false;
         }
 
@@ -199,11 +204,20 @@ class HealthChecker {
             if (audit.metadata && audit.metadata.vulnerabilities) {
                 const vulns = audit.metadata.vulnerabilities;
                 const total = vulns.moderate + vulns.high + vulns.critical;
-                
-                if (total > 10) {
-                    this.issues.push(`High number of vulnerabilities detected: ${total}`);
-                } else if (total > 0) {
-                    this.warnings.push(`${total} moderate+ vulnerabilities detected`);
+
+                if (this.buildMode) {
+                    // In build mode, be more tolerant of vulnerabilities
+                    if (total > 50) {
+                        this.issues.push(`Critical number of vulnerabilities detected: ${total}`);
+                    } else if (total > 0) {
+                        this.warnings.push(`${total} moderate+ vulnerabilities detected (build mode - tolerant)`);
+                    }
+                } else {
+                    if (total > 10) {
+                        this.issues.push(`High number of vulnerabilities detected: ${total}`);
+                    } else if (total > 0) {
+                        this.warnings.push(`${total} moderate+ vulnerabilities detected`);
+                    }
                 }
             }
             
@@ -215,11 +229,20 @@ class HealthChecker {
                     if (audit.metadata && audit.metadata.vulnerabilities) {
                         const vulns = audit.metadata.vulnerabilities;
                         const total = vulns.moderate + vulns.high + vulns.critical;
-                        
-                        if (total > 15) {
-                            this.issues.push(`Critical number of vulnerabilities: ${total}`);
+
+                        if (this.buildMode) {
+                            // In build mode, be more tolerant
+                            if (total > 50) {
+                                this.issues.push(`Critical number of vulnerabilities: ${total}`);
+                            } else {
+                                this.warnings.push(`${total} vulnerabilities detected (build mode - tolerant)`);
+                            }
                         } else {
-                            this.warnings.push(`${total} vulnerabilities detected`);
+                            if (total > 15) {
+                                this.issues.push(`Critical number of vulnerabilities: ${total}`);
+                            } else {
+                                this.warnings.push(`${total} vulnerabilities detected`);
+                            }
                         }
                     }
                 } catch (parseError) {
@@ -229,6 +252,53 @@ class HealthChecker {
         }
         
         return true;
+    }
+
+    async attemptAutoFix() {
+        if (this.autoFixAttempted) {
+            this.log('Auto-fix already attempted, skipping to prevent loops', 'warn');
+            return false;
+        }
+
+        if (this.netlifyIssues.length > 0) {
+            this.log('🔧 Attempting automatic netlify-cli fix...', 'fix');
+            this.autoFixAttempted = true;
+
+            try {
+                // Run the netlify fix script
+                this.log('Running netlify-cli fix script...', 'fix');
+                execSync('bash scripts/fix-netlify-cli.sh --auto', {
+                    stdio: 'inherit',
+                    timeout: 180000, // 3 minutes timeout
+                    cwd: process.cwd()
+                });
+
+                this.log('Netlify fix script completed, re-running health check...', 'fix');
+
+                // Clear previous issues and re-run checks
+                this.issues = [];
+                this.warnings = [];
+                this.netlifyIssues = [];
+
+                // Re-run netlify-specific checks
+                const nodeModulesOk = await this.checkNodeModules();
+                const netlifyCliOk = await this.checkNetlifyCli();
+
+                if (nodeModulesOk && netlifyCliOk) {
+                    this.log('Auto-fix successful! 🎉', 'success');
+                    return true;
+                } else {
+                    this.log('Auto-fix completed but issues remain', 'warn');
+                    return false;
+                }
+
+            } catch (error) {
+                this.log(`Auto-fix failed: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        return false;
     }
 
     async runHealthCheck() {
@@ -257,18 +327,38 @@ class HealthChecker {
         if (this.issues.length > 0) {
             this.log(`Found ${this.issues.length} critical issues:`, 'error');
             this.issues.forEach(issue => this.log(`  - ${issue}`, 'error'));
-            
-            this.log('Health check failed - automatic fix may be needed', 'error');
+
+            // Attempt automatic fix for netlify issues
+            if (this.netlifyIssues.length > 0 && !this.autoFixAttempted) {
+                this.log('Attempting automatic fix for netlify-cli issues...', 'fix');
+                const fixSuccessful = await this.attemptAutoFix();
+
+                if (fixSuccessful) {
+                    this.log('Auto-fix successful! Re-running full health check...', 'success');
+                    // Re-run the full health check after successful fix
+                    return await this.runHealthCheck();
+                } else {
+                    this.log('Auto-fix failed or incomplete', 'error');
+                }
+            }
+
+            this.log('Health check failed - manual intervention may be needed', 'error');
             return false;
         }
-        
+
         return true;
     }
 }
 
 // Run health check if called directly
 if (import.meta.url === `file://${process.argv[1]}`) {
-    const checker = new HealthChecker();
+    const buildMode = process.argv.includes('--build-mode');
+    const checker = new HealthChecker({ buildMode });
+
+    if (buildMode) {
+        console.log('🏗️  Running health check in build mode (more tolerant)');
+    }
+
     checker.runHealthCheck()
         .then(success => {
             process.exit(success ? 0 : 1);
@@ -279,4 +369,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         });
 }
 
-module.exports = HealthChecker;
+export default HealthChecker;

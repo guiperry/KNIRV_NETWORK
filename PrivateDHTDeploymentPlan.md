@@ -28,23 +28,20 @@ This plan outlines the steps necessary to transition services from a public DHT 
     *   **Private DHT Implementation:** Decide on the specific private DHT library/framework if not already chosen (e.g., Kademlia-based, custom).
     *   **KNIRVGATEWAY Design:** Define API endpoints, configuration parameters, and the mechanism for becoming a bootstrap node. **Include the `/provision` endpoint design.**
     *   **Failover Logic:** Specify exact conditions for failover (primary gateway down, primary gateway not updating, performance degradation thresholds).
-    *   **DNS Management:** Outline CloudFlare API interaction for updating A/CNAME records.
-    *   **`knirv.com` Application Design:** Define a Node.js application within the `knirvcom-repo` to serve `knirv.com`. This app, hosted on A2 Hosting, will listen for Git commits to its own repository (`knirvcom-repo`) via a webhook and automatically pull/serve the updated web content.
+    *   **DNS Management:** Outline CloudFlare API interaction for updating A/CNAME records.    *   **`knirv.com` Static Site Design:** The `knirv.com` site will be a simple static homepage (`index.html` and assets) served by a **Cloudflare Worker**. The content will live in a `KNIRVGATEWAY/knirv.com/public` folder, and deployment will be handled by the Wrangler CLI.
     *   **`KNIRVGATEWAY` Frontend Failover:** Design the health check and redirection logic for `KNIRVGATEWAY/index.html` to ensure it redirects to `knirv.com` when healthy, or serves a local copy (`home.html`) upon failure.
     *   **Security Model:** Plan for secure communication within the private DHT and between gateways and CloudFlare.
     *   **Monitoring Strategy:** Define metrics to track gateway health, DHT status, and deployment updates.
-    *   **Git Repository Structure:** The primary repository will be `KNIRVGATEWAY`. The `knirvcom-repo`, which contains the public-facing website, will be included as a Git submodule within `KNIRVGATEWAY`. This allows for independent development of the website while maintaining a synchronized failover copy.
-    *   **Content Synchronization:** Define a `makefile` sync protocol within the `KNIRVGATEWAY` repository to automatically copy the `index.html` and other assets from the `knirvcom-repo` submodule to `KNIRVGATEWAY/home.html` and its assets, ensuring the failover page is always up-to-date.
+    *   **Git Repository Structure:** The primary repository is `KNIRV_NETWORK`. The content for the public-facing `knirv.com` website will be located in a `KNIRVGATEWAY/knirv.com/public` folder, eliminating the need for a separate submodule.
+    *   **Content Synchronization:** Define a `makefile` sync protocol in the root `Makefile.mk` to automatically copy the `index.html` and other assets from the `KNIRVGATEWAY/knirv.com/public` folder to `KNIRVGATEWAY/home.html` and its assets, ensuring the failover page is always up-to-date.
 
 2.  **Environment Setup & Tooling (Day 4-7)**
     *   **Version Control:** Ensure all relevant codebases are in Git repositories (GitHub/GitLab).
     *   **CI/CD Pipeline Setup:**
-        *   For `knirv.com`: Configure A2 Hosting's Git integration for automatic deployment on commits to `knirvcom-repo`.
+        *   For `knirv.com`: Set up deployment via the Cloudflare Wrangler CLI. This can be integrated into a GitHub Action for continuous deployment.
         *   For KNIRVGATEWAY: Set up CI/CD for Netlify, Render, and Vercel. (Note: While Netlify/Vercel are primarily for frontends, they *can* serve backend functions/serverless, but dedicated VM/container hosting like Render or traditional cloud VMs would be more robust for a persistent gateway. Clarify if Netlify/Vercel are used for serverless functions of the gateway or just for hosting related static assets/monitoring UIs.) Assume Render is for a persistent instance, and Netlify/Vercel might host specific gateway-related APIs or monitoring dashboards.
     *   **CloudFlare Account Access:** Secure API tokens for DNS management.
-    *   **Server Provisioning:** Ensure access to server environments for Netlify, Render, and Vercel instances.
-    *   **knirv.network Domain Setup:** Register and configure `knirv.network` with CloudFlare.
-    *   **A2 Hosting Setup:** Configure `knirv.com` on A2 Hosting.
+    *   **Server Provisioning:** Ensure access to server environments for Netlify, Render, and Vercel instances.    *   **knirv.network Domain Setup:** Register and configure `knirv.network` with CloudFlare.    *   **Cloudflare Worker Setup:** Configure `knirv.com` in your Cloudflare account and prepare for the worker deployment.
 
 ---
 
@@ -73,27 +70,20 @@ This plan outlines the steps necessary to transition services from a public DHT 
         *   If the check succeeds, redirect to `https://knirv.com`. If it fails, redirect to `/home.html`.
 
 3.  **Service Refactoring (Week 2-4)**
-    *   **Abstract DHT Access:** Create an abstraction layer/interface for DHT interactions within each service.
-    *   **Switching Mechanism:** Implement a configuration flag or environment variable to easily switch between public and private DHT (e.g., `DHT_MODE=public` or `DHT_MODE=private`).
-    *   **Integration with KNIRVGATEWAY:** Modify services to use the KNIRVGATEWAY API for private DHT interactions when `DHT_MODE=private`. This includes utilizing the `/provision` endpoint for enhanced peer discovery.
-    *   **Testing:** Thoroughly test each refactored service in a dedicated test environment.
+    *   **Abstract DHT Access:** Create an abstraction layer/interface for DHT interactions within each service.    *   **Switching Mechanism:** Implement a configuration flag or environment variable to easily switch between public and private DHT (e.g., `DHT_MODE=public` or `DHT_MODE=private`).    *   **Integration with KNIRVGATEWAY:** Modify services to use the KNIRVGATEWAY API for private DHT interactions when `DHT_MODE=private`. This includes utilizing the `/provision` endpoint for enhanced peer discovery.    *   **Testing:** Thoroughly test each refactored service in a dedicated test environment.
+4.  **`knirv.com` Content and Worker Creation (Week 2-3)**
+    *   **Static Content Creation:** In the `KNIRVGATEWAY/knirv.com/public` folder, create the `index.html` file and any necessary assets (CSS, images).
+    *   **Worker Creation:** Create the `KNIRVGATEWAY/knirv.com/wrangler.toml`, `package.json`, `tsconfig.json`, and `index.ts` files to define the Cloudflare Worker.
 
-4.  **`knirv.com` Application Development (Week 2-3)**
-    *   **Node.js Server:** In the `knirvcom-repo`, implement a Node.js application (e.g., using Express) to serve its own static files from a `public` directory.
-    *   **Webhook Endpoint:** Create a `/webhook/github` endpoint that securely listens for POST requests from GitHub. This endpoint must validate the request using a shared secret.
-    *   **Content Update Script:** Write a script (`update-content.sh`) that is executed by the webhook handler. This script will simply run `git pull` to update the `knirvcom-repo` checkout on the A2 Hosting server.
-    *   **Initial Content:** The `knirvcom-repo` will contain the `index.html` and all necessary assets for the public-facing website.
-
-5.  **`knirv.com` Deployment Setup (Week 1)**
-    *   **A2 Hosting Node.js Setup:** Configure the A2 Hosting environment to run the Node.js application from `knirvcom-repo` (e.g., using cPanel's Node.js App setup or PM2).
-    *   **GitHub Webhook Configuration:** In the `knirvcom-repo` GitHub repository settings, configure a webhook to point to `https://knirv.com/webhook/github`, triggering on `push` events to the main branch.
-    *   **Initial Deployment:** Deploy the Node.js application to A2 Hosting.
+5.  **`knirv.com` Worker Deployment (Week 1)**
+    *   **Install Wrangler:** Install the Cloudflare Wrangler CLI (`npm install -g wrangler`).
+    *   **Deploy:** Use `wrangler deploy` from the `KNIRVGATEWAY/knirv.com` directory to publish the worker and the static site content.
+    *   **Custom Domain:** Configure the `knirv.com` domain in your Cloudflare dashboard to use the worker.
 6.  **Content Sync Implementation (Week 2)**
-    *   **Makefile Sync Protocol:** In the `KNIRVGATEWAY` repository's `Makefile`, add a new target (e.g., `sync-failover-page`).
+    *   **Makefile Sync Protocol:** In the root `Makefile.mk`, add a new target (e.g., `sync-failover-page`).
     *   This target will execute a script that:
-        1.  Ensures the `knirvcom-repo` submodule is initialized and up-to-date (`git submodule update --init --remote`).
-        2.  Copies `knirvcom-repo/index.html` to `KNIRVGATEWAY/home.html`.
-        3.  Copies necessary assets from `knirvcom-repo/assets` to `KNIRVGATEWAY/assets`.
+        1.  Copies `KNIRVGATEWAY/knirv.com/public/index.html` to `KNIRVGATEWAY/home.html`.
+        2.  Copies necessary assets from `KNIRVGATEWAY/knirv.com/public/assets` to `KNIRVGATEWAY/assets`.
     *   Integrate this target into the build process for `KNIRVGATEWAY` to ensure the failover page is always included in new builds.
 ---
 
@@ -142,10 +132,9 @@ This plan outlines the steps necessary to transition services from a public DHT 
         *   **Race Conditions:** Test scenarios where multiple secondaries detect failure simultaneously.
     *   **Load Testing:** Test the KNIRVGATEWAY and private DHT under expected and peak load conditions.
     *   **Resilience Testing:** Introduce artificial failures (e.g., high latency, packet loss) to observe system behavior.
-    *   **`knirv.com` Webhook Test:** Trigger a commit to `KNIRVGATEWAY` and verify that `knirv.com` updates its content automatically and serves the new version.
-    *   **`KNIRVGATEWAY` Redirection Test:**
+    *   **`knirv.com` Deployment Test:** Make a change to `KNIRVGATEWAY/knirv.com/public/index.html` and run `wrangler deploy` from that directory. Verify the live site is updated.    *   **`KNIRVGATEWAY` Redirection Test:**
         *   Verify that accessing a `KNIRVGATEWAY` instance URL correctly redirects to `https://knirv.com` when it's healthy.
-        *   Simulate `knirv.com` being down (e.g., by stopping the Node.js app on A2 Hosting) and verify that the gateway instance correctly redirects to its local `/home.html` page.
+        *   Simulate `knirv.com` being down (e.g., by disabling the Cloudflare Worker route) and verify that the gateway instance correctly redirects to its local `/home.html` page.
 
 2.  **Monitoring & Alerting Integration (Week 1-2)**
     *   **Gateway Metrics:** Collect CPU, memory, network I/O, latency, error rates from all KNIRVGATEWAY instances.
@@ -536,64 +525,21 @@ func main() {
 
 ---
 
-## Enhanced Details: `knirv.com` and `KNIRVGATEWAY` Frontend Strategy
+## Enhanced Details: `knirv.com` and `KNIRVGATEWAY` Frontend Strategy (Cloudflare Worker)
 
-To enhance resilience and automate content delivery, `knirv.com` will be decoupled from the `KNIRVGATEWAY`'s direct deployment, while `KNIRVGATEWAY` will act as a failover for the public-facing site.
+To enhance resilience and simplify content delivery, `knirv.com` will be a static site served by a Cloudflare Worker. This decouples the public-facing site from the `KNIRVGATEWAY`'s direct deployment, while `KNIRVGATEWAY` still acts as a failover.
 
-### `knirv.com` Node.js Application (on A2 Hosting)
+### `knirv.com` Cloudflare Worker Deployment
 
-This application's sole purpose is to serve the latest version of the KNIRV Network's web content and update it automatically.
+This approach is truly "serverless" from a management perspective, as you don't manage any server infrastructure. The worker runs on Cloudflare's global edge network.
 
-**Example `server.js` for `knirv.com`:**
-```javascript
-// server.js for knirv.com
-const express = require('express');
-const crypto = require('crypto');
-const { exec } = require('child_process');
-const path = require('path');
+**Key Benefits:**
+*   **No Server Management:** Eliminates the need to configure and maintain a Node.js server.
+*   **Simple Deployments:** Deployment is handled by the `wrangler` CLI, which can be easily integrated into a CI/CD pipeline (e.g., GitHub Actions).
+*   **No Webhooks:** The webhook listener and `git pull` script logic are completely unnecessary.
+*   **Global CDN:** The worker serves content from Cloudflare's edge, providing excellent performance and availability for users worldwide.
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-const WEB_CONTENT_PATH = path.join(__dirname, 'public');
-const GITHUB_WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET;
-
-// Middleware to parse raw body for signature verification
-app.use(express.json({
-    verify: (req, res, buf) => {
-        req.rawBody = buf;
-    }
-}));
-
-// Serve the static web content
-app.use(express.static(WEB_CONTENT_PATH));
-
-// Webhook endpoint for GitHub
-app.post('/webhook/github', (req, res) => {
-    const signature = req.headers['x-hub-signature-256'];
-    const hmac = crypto.createHmac('sha256', GITHUB_WEBHOOK_SECRET);
-    const digest = `sha256=${hmac.update(req.rawBody).digest('hex')}`;
-
-    if (!signature || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest))) {
-        console.error('Webhook validation failed.');
-        return res.status(401).send('Invalid signature');
-    }
-
-    console.log('Webhook validated successfully. Pulling updates...');
-    exec('./scripts/update-content.sh', (error, stdout, stderr) => {
-        if (error) {
-            console.error(`exec error: ${error}`);
-            return res.status(500).send('Failed to update content.');
-        }
-        console.log(`stdout: ${stdout}`);
-        console.error(`stderr: ${stderr}`);
-        res.status(200).send('Content update initiated.');
-    });
-});
-
-app.listen(PORT, () => {
-    console.log(`knirv.com server listening on port ${PORT}`);
-});
-```
+The implementation consists of the static files in a `public` directory, a `wrangler.toml` config file, and a small `index.ts` worker script, along with `package.json` and `tsconfig.json` for dependency management and TypeScript compilation.
 
 ### `KNIRVGATEWAY/index.html` Redirection Logic
 
