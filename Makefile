@@ -104,6 +104,13 @@ docs: docs-deps ## Generate documentation from docs/ folder
 	@if [ -f "$(SCRIPTS_DIR)/doc_generator.js" ]; then \
 		cd $(PROJECT_ROOT) && node $(SCRIPTS_DIR)/doc_generator.js; \
 		echo "$(GREEN)✓ Documentation generated successfully$(NC)"; \
+		echo "$(BLUE)Generating static HTML from docsify...$(NC)"; \
+		cd $(KNIRVGATEWAY_DIR)/knirv.com/public/documentation && npm install; \
+		cd $(KNIRVGATEWAY_DIR)/knirv.com && node scripts/simple-static-generator.js; \
+		echo "$(BLUE)Updating links to point to static version...$(NC)"; \
+		cd $(KNIRVGATEWAY_DIR)/knirv.com && node scripts/update-docsify-links.js; \
+		echo "$(GREEN)✓ Static documentation generation completed$(NC)"; \
+		echo "$(YELLOW)📁 Static documentation available at: KNIRVGATEWAY/knirv.com/public/documentation/static/$(NC)"; \
 	else \
 		echo "$(RED)Error: doc_generator.js not found at $(SCRIPTS_DIR)/doc_generator.js$(NC)"; \
 		exit 1; \

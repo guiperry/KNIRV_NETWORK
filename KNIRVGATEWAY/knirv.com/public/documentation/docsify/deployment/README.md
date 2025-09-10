@@ -342,6 +342,20 @@ A responsive presentation system for KNIRV presentations with password protectio
 
 ---
 
+### scripts
+
+**Location:** `KNIRVGATEWAY/knirv.com/scripts/README.md`
+
+# KNIRV.com Build Scripts
+
+This directory contains scripts for generating static documentation from the Docsify site to solve CloudFlare Worker deployment issues.
+
+## Problem Solved...
+
+[View Full Documentation](KNIRVGATEWAY/knirv.com/scripts/README.md)
+
+---
+
 ### KNIRVGRAPH
 
 **Location:** `KNIRVGRAPH/README.md`

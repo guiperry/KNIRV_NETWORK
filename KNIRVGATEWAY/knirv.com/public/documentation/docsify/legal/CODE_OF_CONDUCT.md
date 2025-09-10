@@ -55,7 +55,7 @@ This Code of Conduct applies both online and offline. It governs spaces managed 
 ---
 
 <div class="footer-links">
-<a href="#/legal/CODE_OF_CONDUCT" class="footer-link">Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY" class="footer-link">Privacy Policy</a> | <a href="#/legal/TERMS_AND_CONDITIONS" class="footer-link">Terms and Conditions</a>
+<a href="documentation/static/legal/CODE_OF_CONDUCT.html" class="footer-link">Code of Conduct</a> | <a href="documentation/static/legal/PRIVACY_POLICY.html" class="footer-link">Privacy Policy</a> | <a href="documentation/static/legal/TERMS_AND_CONDITIONS.html" class="footer-link">Terms and Conditions</a>
 
 © 2025 KNIRV Network
 </div>

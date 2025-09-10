@@ -137,7 +137,7 @@ KNIRV-ENGINE will continue to evolve to meet the growing demands of the agent de
 The **KNIRV-ENGINE** represents a comprehensive desktop development environment that empowers developers to create sophisticated AI agents within the KNIRV ecosystem. By providing powerful desktop-native tools while maintaining seamless integration with KNIRV-CONTROLLER and the broader network, KNIRV-ENGINE enables developers to leverage the full capabilities of the KNIRV D-TEN while maintaining the productivity and power of desktop development environments. The platform's focus on security, validation, and comprehensive tooling ensures that developed agents meet the highest standards for quality and reliability while contributing to the network's collective intelligence and capabilities.
 
 <div class="footer-links">
-<a href="#/legal/CODE_OF_CONDUCT.md" class="footer-link">Contributor Covenant Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY.md" class="footer-link">PRIVACY_POLICY.md</a> | <a href="#/legal/TERMS_AND_CONDITIONS.md" class="footer-link">TERMS AND CONDITIONS</a>
+<a href="documentation/static/legal/CODE_OF_CONDUCT.md.html" class="footer-link">Contributor Covenant Code of Conduct</a> | <a href="documentation/static/legal/PRIVACY_POLICY.md.html" class="footer-link">PRIVACY_POLICY.md</a> | <a href="documentation/static/legal/TERMS_AND_CONDITIONS.md.html" class="footer-link">TERMS AND CONDITIONS</a>
 
 © 2025 KNIRV Network
 </div>

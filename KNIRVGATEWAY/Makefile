@@ -121,6 +121,20 @@ dev-vercel:
 	@echo "🔧 Starting development server in Vercel mode..."
 	@npm run start:vercel
 
+# Generate comprehensive documentation with static HTML
+docs:
+	@echo "📚 Generating comprehensive documentation..."
+	@echo "🔄 Step 1: Running doc_generator.js to consolidate all documentation"
+	@node scripts/doc_generator.js
+	@echo "🔄 Step 2: Installing documentation dependencies"
+	@cd knirv.com/public/documentation && npm install
+	@echo "🔄 Step 3: Generating static HTML from docsify"
+	@cd knirv.com && node scripts/simple-static-generator.js
+	@echo "🔄 Step 4: Updating links to point to static version"
+	@cd knirv.com && node scripts/update-docsify-links.js
+	@echo "✅ Documentation generation completed"
+	@echo "📁 Static documentation available at: knirv.com/public/documentation/static/"
+
 # Clean build artifacts
 clean:
 	@echo "🧹 Cleaning build artifacts..."
