@@ -65,7 +65,7 @@ class SimpleStaticGenerator {
       mainContent = this.convertMarkdownToHtml(fs.readFileSync(readmePath, 'utf8'));
     }
 
-    const html = this.createStaticHtml('KNIRV Network Documentation', mainContent, sidebarContent);
+    const html = this.createStaticHtml('KNIRV Network Documentation', mainContent, sidebarContent, '');
     
     const indexPath = path.join(this.staticDir, 'index.html');
     fs.writeFileSync(indexPath, html, 'utf8');
@@ -89,10 +89,10 @@ class SimpleStaticGenerator {
       sidebarContent = fs.readFileSync(sidebarPath, 'utf8');
     }
 
-    const html = this.createStaticHtml(title, htmlContent, sidebarContent);
-    
     // Create output path
     const outputPath = mdFile.replace(/\.md$/, '.html');
+
+    const html = this.createStaticHtml(title, htmlContent, sidebarContent, outputPath);
     const fullOutputPath = path.join(this.staticDir, outputPath);
     
     // Ensure directory exists
@@ -133,9 +133,9 @@ class SimpleStaticGenerator {
     return match ? match[1] : null;
   }
 
-  createStaticHtml(title, content, sidebar) {
+  createStaticHtml(title, content, sidebar, currentPath = '') {
     // Convert sidebar markdown to HTML navigation
-    const sidebarHtml = this.convertSidebarToHtml(sidebar);
+    const sidebarHtml = this.convertSidebarToHtml(sidebar, currentPath);
     
     return `<!DOCTYPE html>
 <html>
@@ -264,13 +264,17 @@ class SimpleStaticGenerator {
 </html>`;
   }
 
-  convertSidebarToHtml(sidebar) {
+  convertSidebarToHtml(sidebar, currentPath = '') {
     if (!sidebar) return this.getDefaultSidebar();
 
     // Clean up the sidebar content first
     let cleanSidebar = sidebar
       .replace(/<div class="sidebar-footer">[\s\S]*?<\/div>/gim, '') // Remove existing footer
       .trim();
+
+    // Calculate relative path prefix based on current file location
+    const pathDepth = currentPath.split('/').filter(p => p && p !== '.').length;
+    const relativePrefix = pathDepth > 0 ? '../'.repeat(pathDepth) : '';
 
     // Convert markdown sidebar to proper HTML navigation
     let html = cleanSidebar
@@ -301,6 +305,9 @@ class SimpleStaticGenerator {
               // No extension - assume it's a directory or needs .html
               staticUrl = url + '.html';
             }
+
+            // Add relative path prefix for proper navigation
+            staticUrl = relativePrefix + staticUrl;
 
             return `<a href="${staticUrl}">${text}</a>`;
           }

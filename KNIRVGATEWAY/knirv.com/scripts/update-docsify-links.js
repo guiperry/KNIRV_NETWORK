@@ -10,6 +10,24 @@ class DocsifyLinkUpdater {
     this.staticDocsPath = '/documentation/static';
   }
 
+  // Function to properly convert file paths to HTML extensions
+  convertToHtmlPath(filePath) {
+    // Fix .md.html to just .html (this is the main issue we're solving)
+    if (filePath.endsWith('.md.html')) {
+      return filePath.replace(/\.md\.html$/, '.html');
+    }
+    // Remove .md extension if present, then add .html
+    if (filePath.endsWith('.md')) {
+      return filePath.replace(/\.md$/, '.html');
+    }
+    // If it doesn't end with .html, add .html
+    if (!filePath.endsWith('.html')) {
+      return filePath + '.html';
+    }
+    // If it already ends with .html, return as is
+    return filePath;
+  }
+
   async updateLinks() {
     console.log('🔗 Updating docsify links to point to static version...');
 
@@ -49,9 +67,20 @@ class DocsifyLinkUpdater {
         // Remove docsify hash fragment (#/) if present
         staticUrl = staticUrl.replace('/#/', '/');
 
-        // Ensure .html extension for non-directory paths
-        if (!staticUrl.endsWith('/') && !staticUrl.endsWith('.html')) {
-          staticUrl += '.html';
+        // Ensure proper .html extension for non-directory paths
+        if (!staticUrl.endsWith('/')) {
+          // Extract the path part after the last slash
+          const pathParts = staticUrl.split('/');
+          const lastPart = pathParts[pathParts.length - 1];
+          if (lastPart && !lastPart.includes('.')) {
+            // If no extension, add .html
+            staticUrl += '.html';
+          } else if (lastPart) {
+            // Use the convertToHtmlPath function to handle .md -> .html conversion
+            const convertedPart = this.convertToHtmlPath(lastPart);
+            pathParts[pathParts.length - 1] = convertedPart;
+            staticUrl = pathParts.join('/');
+          }
         }
 
         modified = true;
@@ -78,12 +107,50 @@ class DocsifyLinkUpdater {
 
       // Handle direct docsify hash references (like href="#/legal/...")
       const directHashRegex = /href="#\/([^"]+)"/g;
-      content = content.replace(directHashRegex, (match, path) => {
+
+      // Handle absolute documentation/static paths that need to be made relative
+      const absoluteStaticRegex = /href="documentation\/static\/([^"]+)"/g;
+
+      // Calculate relative path based on current file location (outside the regex callback)
+      const relativePath = path.relative(this.publicDir, filePath);
+      const isStaticFile = relativePath.includes('documentation/static/');
+      let relativePrefix = '';
+
+      if (isStaticFile) {
+        // For static files, calculate relative path to static root
+        const staticRelativePath = relativePath.replace('documentation/static/', '');
+        const staticDepth = staticRelativePath.split('/').filter(p => p && p !== '.').length - 1; // -1 because we don't count the file itself
+        relativePrefix = staticDepth > 0 ? '../'.repeat(staticDepth) : '';
+      }
+
+      content = content.replace(directHashRegex, (match, urlPath) => {
         modified = true;
-        let staticPath = `documentation/static/${path}`;
-        if (!staticPath.endsWith('.html')) {
-          staticPath += '.html';
+        let staticPath = this.convertToHtmlPath(urlPath);
+
+        if (isStaticFile) {
+          // For static files, use relative path
+          staticPath = relativePrefix + staticPath;
+        } else {
+          // For source files, use absolute path from documentation root
+          staticPath = `documentation/static/${staticPath}`;
         }
+
+        return `href="${staticPath}"`;
+      });
+
+      // Handle absolute documentation/static paths
+      content = content.replace(absoluteStaticRegex, (match, urlPath) => {
+        modified = true;
+        let staticPath = this.convertToHtmlPath(urlPath);
+
+        if (isStaticFile) {
+          // For static files, convert to relative path
+          staticPath = relativePrefix + staticPath;
+        } else {
+          // For source files, keep the absolute path
+          staticPath = `documentation/static/${staticPath}`;
+        }
+
         return `href="${staticPath}"`;
       });
 

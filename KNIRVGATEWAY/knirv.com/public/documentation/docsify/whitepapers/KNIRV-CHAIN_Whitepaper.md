@@ -241,7 +241,7 @@ The `KNIRVCHAIN` will continuously evolve, driven by the needs of the D-TEN and 
 
 
 <div class="footer-links">
-<a href="documentation/static/legal/CODE_OF_CONDUCT.md.html" class="footer-link">Contributor Covenant Code of Conduct</a> | <a href="documentation/static/legal/PRIVACY_POLICY.md.html" class="footer-link">PRIVACY_POLICY.md</a> | <a href="documentation/static/legal/TERMS_AND_CONDITIONS.md.html" class="footer-link">TERMS AND CONDITIONS</a>
+<a href="documentation/static/legal/CODE_OF_CONDUCT.html" class="footer-link">Contributor Covenant Code of Conduct</a> | <a href="documentation/static/legal/PRIVACY_POLICY.html" class="footer-link">PRIVACY_POLICY.md</a> | <a href="documentation/static/legal/TERMS_AND_CONDITIONS.html" class="footer-link">TERMS AND CONDITIONS</a>
 
 © 2025 KNIRV Network
 </div>
