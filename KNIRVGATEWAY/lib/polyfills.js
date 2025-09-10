@@ -87,15 +87,25 @@ if (typeof globalThis.EventTarget === 'undefined') {
 
 // AbortController polyfill (if not available)
 if (typeof globalThis.AbortController === 'undefined') {
-  const { AbortController } = await import('abort-controller');
-  globalThis.AbortController = AbortController;
+  try {
+    // Use require for synchronous loading in Node.js
+    const { AbortController } = require('abort-controller');
+    globalThis.AbortController = AbortController;
+  } catch (error) {
+    console.warn('[Polyfills] AbortController polyfill failed to load:', error.message);
+  }
 }
 
 // TextEncoder/TextDecoder polyfills
 if (typeof globalThis.TextEncoder === 'undefined') {
-  const { TextEncoder, TextDecoder } = await import('util');
-  globalThis.TextEncoder = TextEncoder;
-  globalThis.TextDecoder = TextDecoder;
+  try {
+    // Use require for synchronous loading in Node.js
+    const { TextEncoder, TextDecoder } = require('util');
+    globalThis.TextEncoder = TextEncoder;
+    globalThis.TextDecoder = TextDecoder;
+  } catch (error) {
+    console.warn('[Polyfills] TextEncoder/TextDecoder polyfill failed to load:', error.message);
+  }
 }
 
 // Performance polyfill
