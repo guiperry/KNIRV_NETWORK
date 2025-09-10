@@ -28,6 +28,22 @@
 
 * [KNIRVENGINE User Guide: Setup, Usage, and Troubleshooting](knirvengine/README.md)
 
+## KNIRVCONTROLLER Documentation
+
+* [Consolidated Documentation](knirvcontroller/README.md)
+
+## KNIRVGATEWAY Documentation
+
+* [KNIRV GATEWAY](knirvgateway/README.md)
+
+## KNIRVTESTNET Documentation
+
+* [KNIRV Testnet](knirvtestnet/README.md)
+
+## KNIRVANA Documentation
+
+* [KNIRVANA - The Experiential Gateway](knirvana/README.md)
+
 ## 📄 Whitepapers
 
 * [📚 View All Whitepapers](whitepapers/)

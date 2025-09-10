@@ -61,7 +61,11 @@ const CONFIG = {
     'knirvrouter': 'KNIRVROUTER Documentation',
     'knirvsdk': 'KNIRVSDK Documentation',
     'knirvcortex': 'KNIRVCORTEX Documentation',
-    'knirvengine': 'KNIRVENGINE Documentation'
+    'knirvengine': 'KNIRVENGINE Documentation',
+    'knirvcontroller': 'KNIRVCONTROLLER Documentation',
+    'knirvgateway': 'KNIRVGATEWAY Documentation',
+    'knirvtestnet': 'KNIRVTESTNET Documentation',
+    'knirvana': 'KNIRVANA Documentation'
   },
   // Special files that should be processed differently
   specialFiles: {
@@ -896,8 +900,10 @@ function determineCategory(subproductName) {
     'KNIRVSDK': 'knirvsdk',
     'KNIRVCORTEX': 'knirvcortex',
     'KNIRVENGINE': 'knirvengine',
-    'KNIRVGATEWAY': 'guides',
-    'KNIRVTESTNET': 'deployment'
+    'KNIRVCONTROLLER': 'knirvcontroller',
+    'KNIRVGATEWAY': 'knirvgateway',
+    'KNIRVTESTNET': 'knirvtestnet',
+    'KNIRVANA': 'knirvana'
   };
   return categoryMap[subproductName] || 'guides';
 }

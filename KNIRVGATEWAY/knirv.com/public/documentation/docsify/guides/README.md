@@ -50,11 +50,10 @@ This section contains user guides for the KNIRV Network.
 
 **Location:** `KNIRVCONTROLLER/README.md`
 
-# KNIRVCONTROLLER: Autonomous Gateway to the KNIRV D-TEN Ecosystem
+# KNIRV Network: Decentralized Trusted Execution Network (D-TEN)
 
-## Table of Contents
-
-- [Overview](#overview)...
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Version](https://img...
 
 [View Full Documentation](KNIRVCONTROLLER/README.md)
 
@@ -148,11 +147,10 @@ This directory contains the Agentic Engine release files that can be downloaded 
 
 **Location:** `KNIRVENGINE/README.md`
 
-# Consolidated Documentation
+# KNIRV Network: Decentralized Trusted Execution Network (D-TEN)
 
-# KNIRVENGINE: Three-Engine Cognitive Architecture
-
-KNIRVENGINE is a revolutionary three-engine cognitive architecture that combines Human-like Reasoning Models (HRM), QR...
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Version](https://img...
 
 [View Full Documentation](KNIRVENGINE/README.md)
 
@@ -804,11 +802,10 @@ This directory contains validation reports and documentation for the KNIRV D-TEN
 
 **Location:** `scripts/README.md`
 
-# KNIRV Network Scripts Directory
+# KNIRV Network: Decentralized Trusted Execution Network (D-TEN)
 
-## 🎯 Overview
-
-This directory contains comprehensive utility scripts for managing the KNIRV D-TEN (Decentralized Trusted Execution Network) ecosystem. The scripts p...
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Version](https://img...
 
 [View Full Documentation](scripts/README.md)
 

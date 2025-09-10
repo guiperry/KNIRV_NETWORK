@@ -130,7 +130,7 @@ make test-performance    # Performance tests
 make test-e2e           # End-to-end tests
 ```
 
-[📖 Complete Testing Guide →](TESTING.md)
+[📖 Complete Testing Guide →](testing.md)
 
 ### Project Structure
 

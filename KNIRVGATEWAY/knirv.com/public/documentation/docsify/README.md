@@ -34,6 +34,22 @@ Welcome to the KNIRV Network documentation. This comprehensive guide provides in
 
 * [KNIRVENGINE User Guide: Setup, Usage, and Troubleshooting](knirvengine/README.md) - User guide for KNIRVENGINE
 
+### KNIRVCONTROLLER Documentation
+
+* [Consolidated Documentation](knirvcontroller/README.md) - User guide for KNIRVCONTROLLER
+
+### KNIRVGATEWAY Documentation
+
+* [KNIRV GATEWAY](knirvgateway/README.md) - User guide for KNIRVGATEWAY
+
+### KNIRVTESTNET Documentation
+
+* [KNIRV Testnet](knirvtestnet/README.md) - User guide for KNIRVTESTNET
+
+### KNIRVANA Documentation
+
+* [KNIRVANA - The Experiential Gateway](knirvana/README.md) - User guide for KNIRVANA
+
 ## 📄 Technical Whitepapers
 
 The KNIRV Network consists of multiple interconnected components, each with detailed technical specifications:
