@@ -19,6 +19,8 @@ services:
         value: 8080
       - key: DHT_PORT
         value: 4001
+      - key: DISABLE_DHT
+        value: "false"
       # These will need to be set in Render dashboard:
       # - KNIRV_BOOTSTRAP_PEERS (comma-separated list)
       # - CLOUDFLARE_API_TOKEN
@@ -26,6 +28,7 @@ services:
       # - CLOUDFLARE_GATEWAY_RECORD_ID
       # - INTERNAL_API_KEY (for serverless gateways to access)
       # - INSTANCE_IP (will be auto-detected or set manually)
+      # Set DISABLE_DHT=true in Render dashboard to disable DHT for debugging
 
     # Health check configuration
     healthCheckPath: /health

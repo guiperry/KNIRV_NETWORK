@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Success Enablers</title>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: 'Source Sans Pro', sans-serif;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            aspect-ratio: 16/9;
+            max-width: 100vw;
+            max-height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, rgba(25, 25, 112, 0.9), rgba(102, 51, 153, 0.9));
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 4vh 5vw;
+            overflow: hidden;
+        }
+
+        /* Ensure 16:9 aspect ratio on all screen sizes */
+        @media (max-aspect-ratio: 16/9) {
+            .slide {
+                width: calc(100vh * 16/9);
+                height: 100vh;
+                margin: 0 auto;
+            }
+        }
+
+        @media (min-aspect-ratio: 16/9) {
+            .slide {
+                width: 100vw;
+                height: calc(100vw * 9/16);
+                margin: auto 0;
+            }
+        }
+        .header {
+            margin-bottom: clamp(2vh, 4vh, 6vh);
+        }
+        .title {
+            font-size: clamp(2.5rem, 4vw, 3.5rem);
+            font-weight: 700;
+            margin-bottom: clamp(0.8rem, 1.5vh, 1.2rem);
+        }
+        .content {
+            display: flex;
+            flex-grow: 1;
+            gap: 30px;
+        }
+        .enabler-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .enabler-box {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 30px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .enabler-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+        }
+        .enabler-title i {
+            margin-right: 12px;
+            font-size: 32px;
+            color: #a78bfa;
+        }
+        .enabler-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+        .enabler-item:last-child {
+            margin-bottom: 0;
+        }
+        .enabler-icon {
+            background-color: rgba(167, 139, 250, 0.3);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            flex-shrink: 0;
+        }
+        .enabler-icon i {
+            font-size: 24px;
+            color: #a78bfa;
+        }
+        .enabler-content {
+            flex-grow: 1;
+        }
+        .enabler-name {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .enabler-description {
+            font-size: 18px;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+        .highlight {
+            color: #a78bfa;
+            font-weight: 600;
+        }
+        /* Mobile responsive breakpoints */
+        @media (max-width: 768px) {
+            .slide {
+                padding: 3vh 4vw;
+            }
+            .content {
+                flex-direction: column;
+                gap: clamp(1.5rem, 3vh, 2rem);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .slide {
+                padding: 2vh 3vw;
+            }
+            .title {
+                font-size: clamp(1.8rem, 6vw, 2.2rem);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="slide">
+        <div class="header">
+            <h1 class="title">Success Enablers</h1>
+        </div>
+        <div class="content">
+            <div class="enabler-column">
+                <div class="enabler-box">
+                    <h3 class="enabler-title">
+                        <i class="material-icons">rocket_launch</i>
+                        Genuine Technical Advantage
+                    </h3>
+                    <div class="enabler-item">
+                        <div class="enabler-icon">
+                            <i class="material-icons">security</i>
+                        </div>
+                        <div class="enabler-content">
+                            <h4 class="enabler-name">TEE-Based Security</h4>
+                            <p class="enabler-description">Superior <span class="highlight">hardware-based</span> trusted execution environments (Intel SGX, AMD SEV)</p>
+                        </div>
+                    </div>
+                    <div class="enabler-item">
+                        <div class="enabler-icon">
+                            <i class="material-icons">psychology</i>
+                        </div>
+                        <div class="enabler-content">
+                            <h4 class="enabler-name">Self-Improving Agents</h4>
+                            <p class="enabler-description">Framework for agents to learn from <span class="highlight">ErrorNodes</span> and enhance performance</p>
+                        </div>
+                    </div>
+                    <div class="enabler-item">
+                        <div class="enabler-icon">
+                            <i class="material-icons">verified</i>
+                        </div>
+                        <div class="enabler-content">
+                            <h4 class="enabler-name">Verifiable AI Decision-Making</h4>
+                            <p class="enabler-description"><span class="highlight">Immutable on-chain audit trail</span> addressing the "black box" problem</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="enabler-column">
+                <div class="enabler-box">
+                    <h3 class="enabler-title">
+                        <i class="material-icons">schedule</i>
+                        Perfect Market Timing
+                    </h3>
+                    <div class="enabler-item">
+                        <div class="enabler-icon">
+                            <i class="material-icons">trending_up</i>
+                        </div>
+                        <div class="enabler-content">
+                            <h4 class="enabler-name">Enterprise AI Adoption Accelerating</h4>
+                            <p class="enabler-description">Market projected to be worth <span class="highlight">$335.8B by 2030</span></p>
+                        </div>
+                    </div>
+                    <div class="enabler-item">
+                        <div class="enabler-icon">
+                            <i class="material-icons">gpp_good</i>
+                        </div>
+                        <div class="enabler-content">
+                            <h4 class="enabler-name">Security & Trust Paramount</h4>
+                            <p class="enabler-description">High-profile AI failures create <span class="highlight">strong demand</span> for TEE-based solutions</p>
+                        </div>
+                    </div>
+                    <div class="enabler-item">
+                        <div class="enabler-icon">
+                            <i class="material-icons">smart_toy</i>
+                        </div>
+                        <div class="enabler-content">
+                            <h4 class="enabler-name">Age of Autonomous Agents Beginning</h4>
+                            <p class="enabler-description">Growing demand for <span class="highlight">secure, decentralized platform</span> to build and verify agents</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="enabler-column">
+                <div class="enabler-box">
+                    <h3 class="enabler-title">
+                        <i class="material-icons">groups</i>
+                        Exceptional Team Expertise
+                    </h3>
+                    <div class="enabler-item">
+                        <div class="enabler-icon">
+                            <i class="material-icons">code</i>
+                        </div>
+                        <div class="enabler-content">
+                            <h4 class="enabler-name">Deep Technical Capabilities</h4>
+                            <p class="enabler-description"><span class="highlight">Rare expertise</span> required to design and build complex twelve-layer architecture</p>
+                        </div>
+                    </div>
+                    <div class="enabler-item">
+                        <div class="enabler-icon">
+                            <i class="material-icons">architecture</i>
+                        </div>
+                        <div class="enabler-content">
+                            <h4 class="enabler-name">Strong Architectural Vision</h4>
+                            <p class="enabler-description"><span class="highlight">Coherent and compelling</span> vision that will guide development and attract talent</p>
+                        </div>
+                    </div>
+                    <div class="enabler-item">
+                        <div class="enabler-icon">
+                            <i class="material-icons">done_all</i>
+                        </div>
+                        <div class="enabler-content">
+                            <h4 class="enabler-name">Proven Ability to Execute</h4>
+                            <p class="enabler-description">Functional <span class="highlight">KNIRV-TESNET</span> serves as tangible proof of execution capability</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

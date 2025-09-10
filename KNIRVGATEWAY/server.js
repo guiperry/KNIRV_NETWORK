@@ -76,15 +76,13 @@ function createApp() {
       if (GATEWAY_MODE === 'persistent') {
         // Persistent mode: return peers from local DHT
         if (!dhtManager || !dhtManager.isStarted) {
-          return res.status(503).json({ 
-            error: 'DHT not available',
-            message: 'DHT manager not started or not available'
-          });
+          console.log('[Gateway] DHT not available, returning empty peer list');
+          return res.json([]); // Return empty array instead of error for graceful degradation
         }
-        
+
         const peers = dhtManager.getProvisionPeers();
         console.log(`[Gateway] Provisioning ${peers.length} peers`);
-        
+
         res.json(peers);
       } else {
         // Serverless mode: proxy to persistent gateway
@@ -92,9 +90,9 @@ function createApp() {
       }
     } catch (error) {
       console.error('[Gateway] Provision endpoint error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Failed to fetch DHT peers',
-        details: error.message 
+        details: error.message
       });
     }
   });
@@ -213,9 +211,21 @@ function authenticateInternal(req, res, next) {
  */
 async function startPersistentGateway() {
   console.log('[Gateway] Starting in persistent mode...');
-  
+
+  // Check if DHT should be disabled for debugging
+  const DISABLE_DHT = process.env.DISABLE_DHT === 'true';
+  if (DISABLE_DHT) {
+    console.log('[Gateway] ⚠️  DHT disabled via DISABLE_DHT environment variable');
+    console.log('[Gateway] ✅ Persistent gateway started in DHT-disabled mode');
+    return;
+  }
+
   try {
-    // Initialize DHT manager
+    console.log('[Gateway] Bootstrap peers:', BOOTSTRAP_PEERS);
+    console.log('[Gateway] DHT port:', process.env.DHT_PORT || 'auto');
+
+    // Initialize DHT manager with timeout
+    console.log('[Gateway] Creating DHT manager...');
     dhtManager = new PrivateDHTManager(CHAIN_ID, 'knirvgateway', {
       clientMode: false, // This is a bootstrap node
       enableBootstrap: true,
@@ -223,35 +233,52 @@ async function startPersistentGateway() {
       listenPort: process.env.DHT_PORT || 0,
       capabilities: ['gateway', 'bootstrap', 'provision']
     });
-    
+    console.log('[Gateway] DHT manager created successfully');
+
     // Set up DHT event listeners
     dhtManager.on('initialized', (data) => {
-      console.log('[Gateway] DHT initialized:', data);
+      console.log('[Gateway] ✅ DHT initialized:', data);
     });
-    
+
     dhtManager.on('peer:connect', (data) => {
-      console.log('[Gateway] Peer connected:', data.peerId);
+      console.log('[Gateway] ✅ Peer connected:', data.peerId);
     });
-    
+
     dhtManager.on('service:discovered', (data) => {
-      console.log('[Gateway] Service discovered:', data.serviceType);
+      console.log('[Gateway] ✅ Service discovered:', data.serviceType);
     });
-    
+
     dhtManager.on('error', (error) => {
-      console.error('[Gateway] DHT error:', error);
+      console.error('[Gateway] ❌ DHT error:', error);
     });
-    
-    // Initialize DHT
-    const success = await dhtManager.initialize();
+
+    // Initialize DHT with timeout
+    console.log('[Gateway] Initializing DHT (with 30s timeout)...');
+    const initPromise = dhtManager.initialize();
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('DHT initialization timeout after 30 seconds')), 30000);
+    });
+
+    const success = await Promise.race([initPromise, timeoutPromise]);
     if (!success) {
       throw new Error('Failed to initialize DHT manager');
     }
-    
-    console.log('[Gateway] Persistent gateway DHT started successfully');
-    
+
+    console.log('[Gateway] ✅ Persistent gateway DHT started successfully');
+
   } catch (error) {
-    console.error('[Gateway] Failed to start persistent gateway:', error);
-    process.exit(1);
+    console.error('[Gateway] ❌ Failed to start persistent gateway:', error);
+    console.error('[Gateway] ❌ Error details:', error.message);
+
+    // In production, continue without DHT rather than failing completely
+    if (process.env.NODE_ENV === 'production') {
+      console.log('[Gateway] ⚠️  Continuing without DHT in production mode');
+      dhtManager = null;
+      return;
+    }
+
+    console.error('[Gateway] ❌ Stack trace:', error.stack);
+    throw error; // Re-throw to be caught by main()
   }
 }
 
@@ -267,53 +294,82 @@ async function startServerlessGateway() {
  * Main startup function
  */
 async function main() {
-  console.log(`[Gateway] KNIRVGATEWAY starting in ${GATEWAY_MODE} mode`);
-  console.log(`[Gateway] Chain ID: ${CHAIN_ID}`);
-  console.log(`[Gateway] Port: ${PORT}`);
-  
-  // Create Express app
-  app = createApp();
-  
-  // Initialize based on mode
-  if (GATEWAY_MODE === 'persistent') {
-    await startPersistentGateway();
-  } else {
-    await startServerlessGateway();
+  try {
+    console.log(`[Gateway] KNIRVGATEWAY starting in ${GATEWAY_MODE} mode`);
+    console.log(`[Gateway] Chain ID: ${CHAIN_ID}`);
+    console.log(`[Gateway] Port: ${PORT}`);
+    console.log(`[Gateway] Node.js version: ${process.version}`);
+    console.log(`[Gateway] Platform: ${process.platform}`);
+    console.log(`[Gateway] Architecture: ${process.arch}`);
+
+    // Create Express app
+    console.log(`[Gateway] Creating Express application...`);
+    app = createApp();
+    console.log(`[Gateway] Express application created successfully`);
+
+    // Initialize based on mode
+    if (GATEWAY_MODE === 'persistent') {
+      console.log(`[Gateway] Initializing persistent gateway mode...`);
+      await startPersistentGateway();
+      console.log(`[Gateway] Persistent gateway mode initialized successfully`);
+    } else {
+      console.log(`[Gateway] Initializing serverless gateway mode...`);
+      await startServerlessGateway();
+      console.log(`[Gateway] Serverless gateway mode initialized successfully`);
+    }
+
+    // Start HTTP server
+    console.log(`[Gateway] Starting HTTP server on port ${PORT}...`);
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`[Gateway] ✅ Server listening on port ${PORT}`);
+      console.log(`[Gateway] ✅ Health check: http://localhost:${PORT}/health`);
+      console.log(`[Gateway] ✅ Provision endpoint: http://localhost:${PORT}/provision`);
+      console.log(`[Gateway] ✅ KNIRVGATEWAY startup completed successfully`);
+    });
+
+    // Add error handling for server
+    server.on('error', (error) => {
+      console.error(`[Gateway] ❌ Server error:`, error);
+      if (error.code === 'EADDRINUSE') {
+        console.error(`[Gateway] ❌ Port ${PORT} is already in use`);
+      } else if (error.code === 'EACCES') {
+        console.error(`[Gateway] ❌ Permission denied to bind to port ${PORT}`);
+      }
+      process.exit(1);
+    });
+
+    // Graceful shutdown
+    process.on('SIGINT', async () => {
+      console.log('[Gateway] Shutting down gracefully...');
+
+      if (dhtManager) {
+        await dhtManager.stop();
+      }
+
+      server.close(() => {
+        console.log('[Gateway] Server closed');
+        process.exit(0);
+      });
+    });
+
+    process.on('SIGTERM', async () => {
+      console.log('[Gateway] Received SIGTERM, shutting down...');
+
+      if (dhtManager) {
+        await dhtManager.stop();
+      }
+
+      server.close(() => {
+        console.log('[Gateway] Server closed');
+        process.exit(0);
+      });
+    });
+
+  } catch (error) {
+    console.error(`[Gateway] ❌ Fatal startup error:`, error);
+    console.error(`[Gateway] ❌ Stack trace:`, error.stack);
+    process.exit(1);
   }
-  
-  // Start HTTP server
-  const server = app.listen(PORT, () => {
-    console.log(`[Gateway] Server listening on port ${PORT}`);
-    console.log(`[Gateway] Health check: http://localhost:${PORT}/health`);
-    console.log(`[Gateway] Provision endpoint: http://localhost:${PORT}/provision`);
-  });
-  
-  // Graceful shutdown
-  process.on('SIGINT', async () => {
-    console.log('[Gateway] Shutting down gracefully...');
-    
-    if (dhtManager) {
-      await dhtManager.stop();
-    }
-    
-    server.close(() => {
-      console.log('[Gateway] Server closed');
-      process.exit(0);
-    });
-  });
-  
-  process.on('SIGTERM', async () => {
-    console.log('[Gateway] Received SIGTERM, shutting down...');
-    
-    if (dhtManager) {
-      await dhtManager.stop();
-    }
-    
-    server.close(() => {
-      console.log('[Gateway] Server closed');
-      process.exit(0);
-    });
-  });
 }
 
 // Start the server if this file is run directly

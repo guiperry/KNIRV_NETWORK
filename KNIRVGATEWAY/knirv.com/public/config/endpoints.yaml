@@ -7,13 +7,13 @@ generated_at: "2025-01-17T20:30:00Z"
 
 # Production Service Endpoints
 endpoints:
-  KNIRVCHAIN_API: "https://chain.knirv.com"
-  KNIRVGRAPH_API: "https://graph.knirv.com"
-  KNIRVNEXUS_API: "https://nexus.knirv.com"
-  KNIRVORACLE_API: "https://oracle.knirv.com"
-  KNIRVROUTER_API: "https://router.knirv.com"
-  KNIRVANA_API: "https://knirvana.knirv.com"
-  KNIRVANA_INTERACTIVE_GRAPH: "https://knirvana.knirv.com"
+  KNIRVCHAIN_API: "https://chain.knirv.network"
+  KNIRVGRAPH_API: "https://graph.knirv.network"
+  KNIRVNEXUS_API: "https://nexus.knirv.network"
+  KNIRVORACLE_API: "https://oracle.knirv.network"
+  KNIRVROUTER_API: "https://router.knirv.network"
+  KNIRVANA_API: "https://knirvana-api.knirv.network"
+  KNIRVANA_INTERACTIVE_GRAPH: "https://knirvana.knirv.network"
 
 # Production Configuration
 config:

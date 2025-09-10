@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Package 3: AI Agent Development Platform Access</title>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: 'Source Sans Pro', sans-serif;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            aspect-ratio: 16/9;
+            max-width: 100vw;
+            max-height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, rgba(25, 25, 112, 0.9), rgba(102, 51, 153, 0.9));
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 4vh 5vw;
+            overflow: hidden;
+        }
+
+        /* Ensure 16:9 aspect ratio on all screen sizes */
+        @media (max-aspect-ratio: 16/9) {
+            .slide {
+                width: calc(100vh * 16/9);
+                height: 100vh;
+                margin: 0 auto;
+            }
+        }
+
+        @media (min-aspect-ratio: 16/9) {
+            .slide {
+                width: 100vw;
+                height: calc(100vw * 9/16);
+                margin: auto 0;
+            }
+        }
+        .header {
+            margin-bottom: clamp(2vh, 4vh, 6vh);
+        }
+        .title {
+            font-size: clamp(2.5rem, 4vw, 3.5rem);
+            font-weight: 700;
+            margin-bottom: clamp(0.8rem, 1.5vh, 1.2rem);
+        }
+        .content {
+            display: flex;
+            flex-grow: 1;
+            gap: 40px;
+        }
+        .left-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .right-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .info-box {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+        .info-box-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .info-box-title i {
+            margin-right: 12px;
+            font-size: 28px;
+        }
+        .info-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .info-item:last-child {
+            margin-bottom: 0;
+        }
+        .info-icon {
+            background-color: rgba(167, 139, 250, 0.3);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            flex-shrink: 0;
+        }
+        .info-icon i {
+            font-size: 22px;
+            color: #a78bfa;
+        }
+        .info-text {
+            font-size: 20px;
+            line-height: 1.4;
+        }
+        .deliverables {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 24px;
+            flex-grow: 1;
+        }
+        .deliverables-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .deliverables-title i {
+            margin-right: 12px;
+            font-size: 28px;
+        }
+        .deliverable-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        .deliverable-item:last-child {
+            margin-bottom: 0;
+        }
+        .deliverable-icon {
+            background-color: rgba(167, 139, 250, 0.3);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            flex-shrink: 0;
+        }
+        .deliverable-icon i {
+            font-size: 22px;
+            color: #a78bfa;
+        }
+        .deliverable-content {
+            flex-grow: 1;
+        }
+        .deliverable-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .deliverable-description {
+            font-size: 18px;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+        .benefits {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 24px;
+        }
+        .benefits-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .benefits-title i {
+            margin-right: 12px;
+            font-size: 28px;
+        }
+        .benefit-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .benefit-item:last-child {
+            margin-bottom: 0;
+        }
+        .benefit-icon {
+            background-color: rgba(167, 139, 250, 0.3);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            flex-shrink: 0;
+        }
+        .benefit-icon i {
+            font-size: 22px;
+            color: #a78bfa;
+        }
+        .benefit-text {
+            font-size: 20px;
+            line-height: 1.4;
+        }
+        .highlight {
+            color: #a78bfa;
+            font-weight: 600;
+        }
+
+        /* Mobile responsive breakpoints */
+        @media (max-width: 768px) {
+            .slide {
+                padding: 3vh 4vw;
+            }
+            .content {
+                flex-direction: column;
+                gap: clamp(1.5rem, 3vh, 2rem);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .slide {
+                padding: 2vh 3vw;
+            }
+            .title {
+                font-size: clamp(1.8rem, 6vw, 2.2rem);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="slide">
+        <div class="header">
+            <h1 class="title">Service Package 3: AI Agent Development Platform Access</h1>
+        </div>
+        <div class="content">
+            <div class="left-content">
+                <div class="info-box">
+                    <h3 class="info-box-title">
+                        <i class="material-icons">info</i>
+                        Package Details
+                    </h3>
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <i class="material-icons">payments</i>
+                        </div>
+                        <p class="info-text"><span class="highlight">Price:</span> $5,000/month per developer seat</p>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <i class="material-icons">groups</i>
+                        </div>
+                        <p class="info-text"><span class="highlight">Target:</span> Mid-market companies (500-5000 employees) and innovative startups</p>
+                    </div>
+                </div>
+                <div class="benefits">
+                    <h3 class="benefits-title">
+                        <i class="material-icons">stars</i>
+                        Key Benefits
+                    </h3>
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="material-icons">speed</i>
+                        </div>
+                        <p class="benefit-text"><span class="highlight">Accelerated development</span> with pre-built components</p>
+                    </div>
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="material-icons">support_agent</i>
+                        </div>
+                        <p class="benefit-text"><span class="highlight">Expert guidance</span> from KNIRV solution architects</p>
+                    </div>
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="material-icons">verified</i>
+                        </div>
+                        <p class="benefit-text"><span class="highlight">Priority access</span> to mainnet upon launch</p>
+                    </div>
+                </div>
+            </div>
+            <div class="right-content">
+                <div class="deliverables">
+                    <h3 class="deliverables-title">
+                        <i class="material-icons">inventory_2</i>
+                        What You Deliver
+                    </h3>
+                    <div class="deliverable-item">
+                        <div class="deliverable-icon">
+                            <i class="material-icons">code</i>
+                        </div>
+                        <div class="deliverable-content">
+                            <h4 class="deliverable-title">Priority Access to the <span class="highlight">KNIRV-SDK</span></h4>
+                            <p class="deliverable-description">Full access to multi-language SDK (Go, Python, JavaScript/TypeScript) with comprehensive support</p>
+                        </div>
+                    </div>
+                    <div class="deliverable-item">
+                        <div class="deliverable-icon">
+                            <i class="material-icons">dashboard_customize</i>
+                        </div>
+                        <div class="deliverable-content">
+                            <h4 class="deliverable-title">Pre-built Agent & Skill Templates</h4>
+                            <p class="deliverable-description">Access to library of <span class="highlight">KNIRV-CORTEX</span> templates and composable SkillNodes based on <span class="highlight">KNIRV-GRAPH</span> principles</p>
+                        </div>
+                    </div>
+                    <div class="deliverable-item">
+                        <div class="deliverable-icon">
+                            <i class="material-icons">schedule</i>
+                        </div>
+                        <div class="deliverable-content">
+                            <h4 class="deliverable-title">Dedicated Monthly Consulting Hours</h4>
+                            <p class="deliverable-description">10 hours of monthly consulting with KNIRV's core solution architects for guidance and troubleshooting</p>
+                        </div>
+                    </div>
+                    <div class="deliverable-item">
+                        <div class="deliverable-icon">
+                            <i class="material-icons">rocket_launch</i>
+                        </div>
+                        <div class="deliverable-content">
+                            <h4 class="deliverable-title">Guaranteed Priority Mainnet Access</h4>
+                            <p class="deliverable-description">First in line for full access to KNIRV mainnet upon launch, with preferential rates for transaction fees</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,295 @@
+/* KNIRV Forum Custom Styles */
+
+/* KNIRV Brand Colors */
+:root {
+    --knirv-primary: #667eea;
+    --knirv-secondary: #764ba2;
+    --knirv-accent: #f093fb;
+    --knirv-dark: #2d3748;
+    --knirv-light: #f7fafc;
+    --knirv-glass: rgba(255, 255, 255, 0.1);
+}
+
+/* Glass morphism effects */
+.glass-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* Header customizations */
+.d-header {
+    background: linear-gradient(135deg, var(--knirv-primary) 0%, var(--knirv-secondary) 100%);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.d-header .title a {
+    color: white;
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Navigation improvements */
+.nav-pills {
+    display: flex !important;
+    flex-wrap: wrap;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.nav-pills > li {
+    display: list-item !important;
+    margin: 0 5px;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.nav-pills > li > a {
+    display: block !important;
+    background: var(--knirv-glass);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 25px;
+    color: var(--knirv-dark) !important;
+    transition: all 0.3s ease;
+    padding: 10px 20px;
+    text-decoration: none;
+    font-weight: 500;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.nav-pills > li > a:hover,
+.nav-pills > li.active > a {
+    background: rgba(102, 126, 234, 0.2);
+    color: var(--knirv-primary) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Topic list improvements */
+.topic-list {
+    background: var(--knirv-glass);
+    border-radius: 15px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.topic-list-item {
+    border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+    padding: 15px 0;
+    transition: all 0.3s ease;
+}
+
+.topic-list-item:hover {
+    background: rgba(102, 126, 234, 0.05);
+    border-radius: 10px;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+/* Button improvements */
+.btn-primary {
+    background: linear-gradient(135deg, var(--knirv-primary) 0%, var(--knirv-secondary) 100%);
+    border: none;
+    border-radius: 25px;
+    padding: 12px 30px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+}
+
+/* Post improvements */
+.topic-post {
+    background: var(--knirv-glass);
+    border-radius: 15px;
+    margin: 20px 0;
+    padding: 20px;
+    border: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.topic-post .cooked {
+    line-height: 1.7;
+}
+
+/* User avatar improvements */
+.avatar {
+    border-radius: 50%;
+    border: 3px solid var(--knirv-primary);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* Category badges */
+.badge-category {
+    background: linear-gradient(135deg, var(--knirv-primary) 0%, var(--knirv-secondary) 100%);
+    border-radius: 15px;
+    padding: 5px 12px;
+    font-weight: 600;
+    color: white;
+}
+
+/* Search improvements */
+.search-input {
+    background: var(--knirv-glass);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 25px;
+    padding: 10px 20px;
+    color: white;
+}
+
+.search-input::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Modal improvements */
+.modal-content {
+    background: var(--knirv-glass);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.modal-header {
+    background: linear-gradient(135deg, var(--knirv-primary) 0%, var(--knirv-secondary) 100%);
+    color: white;
+    border-radius: 20px 20px 0 0;
+}
+
+/* Composer improvements */
+.composer {
+    background: var(--knirv-glass);
+    backdrop-filter: blur(20px);
+    border-radius: 20px 20px 0 0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Sidebar improvements */
+.sidebar {
+    background: var(--knirv-glass);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+/* Loading animations */
+.loading-spinner {
+    border: 3px solid rgba(102, 126, 234, 0.3);
+    border-top: 3px solid var(--knirv-primary);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .topic-list,
+    .topic-post,
+    .sidebar {
+        margin: 10px;
+        padding: 15px;
+    }
+    
+    .btn-primary {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --knirv-light: #1a202c;
+        --knirv-dark: #f7fafc;
+    }
+    
+    body {
+        background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+        color: var(--knirv-light);
+    }
+    
+    .topic-list,
+    .topic-post,
+    .sidebar {
+        background: rgba(0, 0, 0, 0.3);
+        color: var(--knirv-light);
+    }
+}
+
+/* Accessibility improvements */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Focus indicators */
+*:focus {
+    outline: 2px solid var(--knirv-primary);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .glass-card,
+    .topic-list,
+    .topic-post,
+    .sidebar {
+        background: white;
+        border: 2px solid var(--knirv-primary);
+    }
+
+    .btn-primary {
+        background: var(--knirv-primary);
+        border: 2px solid var(--knirv-dark);
+    }
+}
+
+/* Force navigation visibility - debugging */
+.d-navigation,
+.d-navigation .wrap,
+.nav,
+.nav-pills,
+.nav-item,
+.nav-link {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.nav,
+.nav-pills {
+    display: flex !important;
+}
+
+.nav-item {
+    display: list-item !important;
+}
+
+/* Ensure navigation is always on top */
+.d-navigation {
+    position: relative;
+    z-index: 1000;
+    background: var(--knirv-light);
+    border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+    padding: 10px 0;
+}

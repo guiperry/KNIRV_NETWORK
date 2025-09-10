@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 1: Immediate Services</title>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: 'Source Sans Pro', sans-serif;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            aspect-ratio: 16/9;
+            max-width: 100vw;
+            max-height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, rgba(25, 25, 112, 0.9), rgba(102, 51, 153, 0.9));
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 4vh 5vw;
+            overflow: hidden;
+        }
+
+        /* Ensure 16:9 aspect ratio on all screen sizes */
+        @media (max-aspect-ratio: 16/9) {
+            .slide {
+                width: calc(100vh * 16/9);
+                height: 100vh;
+                margin: 0 auto;
+            }
+        }
+
+        @media (min-aspect-ratio: 16/9) {
+            .slide {
+                width: 100vw;
+                height: calc(100vw * 9/16);
+                margin: auto 0;
+            }
+        }
+        .header {
+            margin-bottom: 3vh;
+        }
+        .title {
+            font-size: clamp(2.5rem, 5vw, 3.5rem);
+            font-weight: 700;
+            margin-bottom: 1.5vh;
+            line-height: 1.2;
+        }
+        .subtitle {
+            font-size: clamp(1.2rem, 2.5vw, 1.6rem);
+            font-weight: 400;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+        .content {
+            display: flex;
+            flex-grow: 1;
+            gap: 3vw;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+                gap: 2vh;
+            }
+
+            .slide {
+                padding: 3vh 4vw;
+            }
+        }
+        .left-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .right-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .focus-points {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 30px;
+            flex-grow: 1;
+        }
+        .focus-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .focus-title i {
+            margin-right: 10px;
+        }
+        .focus-point {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        .focus-point:last-child {
+            margin-bottom: 0;
+        }
+        .focus-point i {
+            margin-right: 10px;
+            font-size: 20px;
+            color: rgba(255, 255, 255, 0.8);
+            flex-shrink: 0;
+        }
+        .focus-text {
+            font-size: 20px;
+            line-height: 1.4;
+        }
+        .key-outcomes {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 24px;
+        }
+        .outcomes-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .outcomes-title i {
+            margin-right: 10px;
+        }
+        .outcome {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .outcome:last-child {
+            margin-bottom: 0;
+        }
+        .outcome-icon {
+            background-color: rgba(167, 139, 250, 0.3);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            flex-shrink: 0;
+        }
+        .outcome-icon i {
+            font-size: 22px;
+            color: #a78bfa;
+        }
+        .outcome-text {
+            font-size: 20px;
+            line-height: 1.4;
+        }
+        .image-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .image-container img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        .highlight {
+            color: #a78bfa;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide">
+        <div class="header">
+            <h1 class="title">Phase 1: Immediate Services (Days 1-30)</h1>
+            <p class="subtitle">Monetize a Glimpse of the Future</p>
+        </div>
+        <div class="content">
+            <div class="left-content">
+                <div class="focus-points">
+                    <h3 class="focus-title">
+                        <i class="material-icons">center_focus_strong</i>
+                        Focus Areas
+                    </h3>
+                    <div class="focus-point">
+                        <i class="material-icons">arrow_right</i>
+                        <p class="focus-text">Leverage <span class="highlight">KNIRV-CORTEX</span> framework for immediate enterprise solutions</p>
+                    </div>
+                    <div class="focus-point">
+                        <i class="material-icons">arrow_right</i>
+                        <p class="focus-text">Apply <span class="highlight">KNIRV-NEXUS</span> security principles for verifiable AI</p>
+                    </div>
+                    <div class="focus-point">
+                        <i class="material-icons">arrow_right</i>
+                        <p class="focus-text">Target <span class="highlight">high-value enterprise problems</span> in financial services, healthcare, logistics</p>
+                    </div>
+                    <div class="focus-point">
+                        <i class="material-icons">arrow_right</i>
+                        <p class="focus-text">Demonstrate capabilities through <span class="highlight">KNIRV-TESNET</span> sandbox environment</p>
+                    </div>
+                </div>
+                <div class="key-outcomes">
+                    <h3 class="outcomes-title">
+                        <i class="material-icons">emoji_events</i>
+                        Key Outcomes
+                    </h3>
+                    <div class="outcome">
+                        <div class="outcome-icon">
+                            <i class="material-icons">payments</i>
+                        </div>
+                        <p class="outcome-text">Generate <span class="highlight">initial revenue</span> through consulting services</p>
+                    </div>
+                    <div class="outcome">
+                        <div class="outcome-icon">
+                            <i class="material-icons">description</i>
+                        </div>
+                        <p class="outcome-text">Create <span class="highlight">case studies</span> for future marketing</p>
+                    </div>
+                    <div class="outcome">
+                        <div class="outcome-icon">
+                            <i class="material-icons">handshake</i>
+                        </div>
+                        <p class="outcome-text">Establish <span class="highlight">enterprise relationships</span> for long-term growth</p>
+                    </div>
+                </div>
+            </div>
+            <div class="right-content">
+                <div class="image-container">
+                    <img src="https://sfile.chatglm.cn/images-ppt/b3e5b86d548c.png" alt="AI Agent Technology Network">
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
