@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRVENGINE User Guide: Setup, Usage, and Troubleshooting - KNIRV Network Documentation</title>
+    <link rel="stylesheet" href="../styles.css">
+    <script src="../config/portal-links.yaml" type="text/yaml" id="portal-config"></script>
+    <script src="../js/config-loader.js"></script>
+    <script src="../js/universal-footer.js"></script>
+    <script>
+        // Override footer links for documentation site
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.knirvConfig && window.knirvConfig.config) {
+                // Update legal links to use documentation-specific paths
+                if (window.knirvConfig.config.footer && window.knirvConfig.config.footer.legal) {
+                    window.knirvConfig.config.footer.legal.terms = "../legal/TERMS_AND_CONDITIONS.html";
+                    window.knirvConfig.config.footer.legal.privacy = "../legal/PRIVACY_POLICY.html";
+                    window.knirvConfig.config.footer.legal.contribution = "../legal/CODE_OF_CONDUCT.html";
+                }
+            }
+        });
+    </script>
+</head>
+<body>
+    <header class="doc-header">
+        <div class="container">
+            <nav class="doc-nav">
+                <a href="../index.html">← Back to Documentation</a>
+            </nav>
+            <h1>KNIRVENGINE User Guide: Setup, Usage, and Troubleshooting</h1>
+            <p class="doc-description">User guide for KNIRVENGINE</p>
+        </div>
+    </header>
+
+    <main class="doc-main">
+        <div class="container">
+            <article class="doc-content">
+                <p><h1>KNIRVENGINE User Guide: Setup, Usage, and Troubleshooting</h1></p><p>KNIRVENGINE is a three-engine cognitive architecture for deploying and managing autonomous agents. It combines Human-like Reasoning Models (HRM), QR code linkage, and WebAssembly (WASM) for efficient cognitive processing. This guide helps you set up, use, and troubleshoot KNIRVENGINE.</p><p><h2>Prerequisites</h2></p><p>Before installing KNIRVENGINE, ensure you have the following:</p><p>* Go 1.21+
+* Node.js 18+
+* Rust 1.70+
+* Python 3.9+ (for HRM model)</p><p><h2>Installation</h2></p><p>To install KNIRVENGINE, follow these steps:</p><p>1. <strong>Clone the repository:</strong></p><p><code></code>`bash
+git clone https://github.com/guiperry/KNIRV_NETWORK.git
+cd KNIRV_NETWORK/KNIRVENGINE
+<code></code>`</p><p>2. <strong>Build the components:</strong></p><p><code></code>`bash
+cd desktop-client
+go build -o desktop-client main.go</p><p>cd ../mobile-controller
+npm install
+npm run build</p><p>cd ../agent-core/rust-wasm
+cargo build --release --target wasm32-unknown-unknown
+<code></code>`</p><p><h2>Running KNIRVENGINE</h2></p><p>To run KNIRVENGINE, follow these steps:</p><p>1. <strong>Start the Desktop Host:</strong></p><p><code></code>`bash
+cd ../desktop-client
+./desktop-client
+<code></code>`</p><p>2. <strong>Start the Mobile Tool (development):</strong></p><p><code></code>`bash
+cd ../mobile-controller
+npm run dev
+<code></code>`</p><p>3. <strong>Access the system:</strong></p><p>* Desktop Host: <code>http://localhost:8082</code>
+* Mobile Tool: <code>http://localhost:5173</code>
+* MCP WebSocket: <code>ws://localhost:8082/api/mcp/ws</code></p><p><h2>Using KNIRVENGINE</h2></p><p>KNIRVENGINE consists of three core engines:</p><p>* <strong>Desktop-Host Engine:</strong> Central coordination and HRM processing.
+* <strong>Mobile-Tool Engine:</strong> Enhanced mobile client with sensory processing (QR code scanning, voice and visual processing).
+* <strong>Agent-Core Engine (WASM):</strong> A lightweight cognitive shell for autonomous agents.</p><p><h3>QR Code Linkage</h3></p><p>KNIRVENGINE uses QR codes for secure pairing between desktop and mobile devices. Two types of QR codes are used:</p><p>* <strong>Target Assignment QR:</strong> Links a mobile device to a specific system, authorizing agent deployment.
+* <strong>Transaction Signing QR:</strong> Authorizes blockchain transactions.</p><p><h3>Human-like Reasoning Model (HRM)</h3></p><p>The HRM provides advanced cognitive capabilities. You can send requests to the HRM via the API (see API Reference below).</p><p><h3>Model Context Protocol (MCP)</h3></p><p>KNIRVENGINE uses MCP for standardized agent communication. You can interact with the MCP using a WebSocket connection (see example below).</p><p><h2>Troubleshooting</h2></p><p>* <strong>Desktop Host not starting:</strong> Check your Go installation and ensure the HRM model is correctly located (<code>./dist/weights.safetensors</code>).
+* <strong>Mobile Tool errors:</strong> Check your Node.js and npm installations. Ensure you have the necessary device permissions (camera access).
+* <strong>MCP connection issues:</strong> Verify that the WebSocket endpoint (<code>ws://localhost:8082/api/mcp/ws</code>) is accessible.</p><p><h2>Configuration</h2></p><p>You can configure various aspects of KNIRVENGINE (see detailed configuration options in the original README).</p><p><h2>API Reference</h2></p><p>The full API reference is available in the original README.</p><p><h2>Deployment</h2></p><p>For production deployment, build all components, configure environment variables, set up a reverse proxy (Nginx recommended), enable HTTPS/WSS, and configure monitoring and logging. A sample Dockerfile is provided in the original README.</p><p><h2>Integrated Wallet Functionality</h2></p><p>KNIRVENGINE includes a wallet that integrates with the KNIRV ecosystem, supporting multiple cryptocurrencies and NRN tokens. It requires linking with KNIRVCONTROLLER for full functionality. See the original README for detailed information on wallet features, architecture, and usage.</p><p><h2>Support</h2></p><p>For support and questions, please refer to the GitHub Issues or the KNIRV Network Discord community.</p><p>Improvements:</p><p>1. <strong>Simplified installation instructions:</strong> Break down the installation process into smaller, more manageable steps.
+2. <strong>Enhanced troubleshooting section:</strong> Provide more detailed error messages and solutions for common issues.
+3. <strong>Improved API documentation:</strong> Include more examples and use cases for the API endpoints.
+4. <strong>Clearer deployment instructions:</strong> Provide a step-by-step guide for deploying KNIRVENGINE in a production environment.
+5. <strong>Consistent formatting:</strong> Use a consistent formatting style throughout the guide to improve readability.</p><p><div class="footer-links">
+<a href="#/legal/CODE_OF_CONDUCT.md" class="footer-link">Contributor Covenant Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY.md" class="footer-link">PRIVACY_POLICY.md</a> | <a href="#/legal/TERMS_AND_CONDITIONS.md" class="footer-link">TERMS AND CONDITIONS</a></p><p>© 2025 KNIRV Network
+</div>
+</p>
+            </article>
+        </div>
+    </main>
+
+    <script src="../scripts.js"></script>
+
+    <!-- Footer will be automatically generated by universal-footer.js -->
+</body>
+</html>

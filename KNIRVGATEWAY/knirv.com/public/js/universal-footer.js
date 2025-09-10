@@ -56,7 +56,7 @@ class KNIRVUniversalFooter {
                         <h4>KNIRV Network</h4>
                         <ul>
                             <li><a href="${this.getLink('navigation.main_site')}" target="_blank">Main Site</a></li>
-                            <li><a href="products.html">Products</a></li>
+                            <li><a href="${this.getLink('navigation.products')}">Products</a></li>
                             <li><a href="${this.getLink('navigation.documentation')}">Documentation</a></li>
                             <li><a href="${this.getLink('footer.resources.support')}">Support</a></li>
                         </ul>
@@ -67,8 +67,8 @@ class KNIRVUniversalFooter {
                         <ul>
                             <li><a href="${this.getLink('navigation.graphchain_explorer')}">Graphchain Explorer</a></li>
                             <li><a href="${this.getLink('navigation.nanda_ans')}">NANDA+ANS</a></li>
-                            <li><a href="agent-developer-portal/">Developer Portal</a></li>
-                            <li><a href="agentify/">Agentify</a></li>
+                            <li><a href="${this.getLink('navigation.developer_portal')}">Developer Portal</a></li>
+                            <li><a href="${this.getLink('navigation.agentify')}">Agentify</a></li>
                         </ul>
                     </div>
 
@@ -129,7 +129,11 @@ class KNIRVUniversalFooter {
                 }
             }
 
-            return typeof value === 'string' ? value : fallback;
+            let result = typeof value === 'string' ? value : fallback;
+
+            // No longer overriding legal links - they should go to docsify for all pages
+
+            return result;
         } catch (error) {
             console.warn('Error getting link for path:', path, error);
             return fallback;

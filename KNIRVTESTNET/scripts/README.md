@@ -376,9 +376,9 @@ The KNIRVGATEWAY agent-developer-portal core concepts page has been successfully
 
 - **✅ Core concepts updated**: Reflected current 12 sovereign layers using whitepapers as source of truth
 - **✅ KNIRV-CORTEX renamed**: Changed title from "KNIRV-CORTEX" to "KNIRV-CONTROLLER" for layer 6
-- **✅ KNIRV-SHELL replaced**: Replaced outdated "KNIRV-SHELL" references with accurate "KNIRV-CORTEX" definition for layer 7
+- **✅ KNIRV-CLI replaced**: Replaced outdated "KNIRV-CLI" references with accurate "KNIRV-CORTEX" definition for layer 7
 - **✅ Layer structure corrected**: Updated to proper 12-layer architecture as defined in D-TEN whitepaper
-- **✅ Whitepaper links updated**: Fixed broken KNIRV-SHELL whitepaper link to KNIRV-CLI whitepaper
+- **✅ Whitepaper links updated**: Fixed broken KNIRV-CLI whitepaper link to KNIRV-CLI whitepaper
 - **✅ Accurate descriptions**: Updated all layer descriptions to match current architecture and functionality
 
 **Updated 12 Sovereign Layers:**

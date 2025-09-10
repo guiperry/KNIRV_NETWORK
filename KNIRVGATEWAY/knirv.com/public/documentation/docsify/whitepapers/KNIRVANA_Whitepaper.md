@@ -70,7 +70,7 @@ Beyond its function as a game, KNIRVANA is a critical component of the D-TEN's s
 KNIRVANA is the culmination of the KNIRV D-TEN's vision, bringing the network's complex and powerful architecture to life through an immersive, user-friendly, and economically integrated experience. It is the definitive experiential gateway, demonstrating the tangible benefits of a decentralized, self-improving AI ecosystem. By combining high-performance gaming with a powerful on-chain learning loop, KNIRVANA is poised to redefine the landscape of both decentralized AI and blockchain gaming, making a new era of intelligent systems accessible to everyone.
 
 <div class="footer-links">
-<a href="#/legal/CODE_OF_CONDUCT" class="footer-link">Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY" class="footer-link">Privacy Policy</a> | <a href="#/legal/TERMS_AND_CONDITIONS" class="footer-link">Terms and Conditions</a>
+<a href="#/legal/CODE_OF_CONDUCT.md" class="footer-link">Contributor Covenant Code of Conduct</a> | <a href="#/legal/PRIVACY_POLICY.md" class="footer-link">PRIVACY_POLICY.md</a> | <a href="#/legal/TERMS_AND_CONDITIONS.md" class="footer-link">TERMS AND CONDITIONS</a>
 
 © 2025 KNIRV Network
 </div>

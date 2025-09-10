@@ -4,11 +4,15 @@
 # Main Navigation Links
 navigation:
   main_site: "https://knirv.com"
-  documentation: "../documentation/docsify/"
-  graphchain_explorer: "../graphchain-explorer/"
-  nexus_portal: "../nexus-portal/"
-  support_desk: "../support-desk/src/"
-  nanda_ans: "../nanda_ans/"
+  documentation: "/documentation/"  # Updated to point to new static HTML site
+  documentation_legacy: "/documentation/docsify/"  # Legacy docsify site
+  graphchain_explorer: "/graphchain-explorer/"
+  nexus_portal: "/nexus-portal/"
+  support_desk: "/support-desk/src/"
+  nanda_ans: "/nanda_ans/"
+  developer_portal: "/agent-developer-portal/"
+  agentify: "/agentify/"
+  products: "/products.html"
 
 # External Services
 external_services:
@@ -18,24 +22,30 @@ external_services:
 
 # Documentation Links
 documentation:
+  # New static HTML documentation links
+  main_docs: "../documentation/"
+  whitepapers_index: "../documentation/whitepapers/"
+
+  # Individual whitepaper links (new static HTML format)
   whitepapers:
-    knirv_oracle: "../documentation/docsify/#/whitepapers/KNIRVROOT_Whitepaper.md"
-    knirv_router: "../documentation/docsify/#/whitepapers/KNIRV-ROUTER_Whitepaper.md"
-    knirvgraph: "../documentation/docsify/#/whitepapers/KNIRV-GRAPH_Whitepaper.md"
-    knirvchain: "../documentation/docsify/#/whitepapers/KNIRVCHAIN_Whitepaper.md"
-    knirv_nexus: "../documentation/docsify/#/whitepapers/KNIRV-NEXUS_Whitepaper.md"
-    knirv_cortex: "../documentation/docsify/#/whitepapers/KNIRV-AGENTIFIER_Whitepaper.md"
-    knirv_wallet: "../documentation/docsify/#/whitepapers/KNIRV-WALLET_Whitepaper.md"
-    knirv_gateway: "../documentation/docsify/#/whitepapers/KNIRV-GATEWAY_Whitepaper.md"
-    knirv_shell: "../documentation/docsify/#/whitepapers/KNIRV-SHELL_Whitepapers.md"
-    knirv_sdk: "../documentation/docsify/#/whitepapers/KNIRV-SDK_Whitepaper.md"
-    knirv_testnet: "../documentation/docsify/#/guides/TESTNET_DEPLOYMENT.md"
-    knirvana: "../documentation/docsify/#/whitepapers/KNIRVANA_Whitepaper.md"
-  
-  guides:
-    getting_started: "../documentation/docsify/#/guides/getting-started.md"
-    api_reference: "../documentation/docsify/#/api/reference.md"
-    deployment: "../documentation/docsify/#/guides/deployment.md"
+    knirv_oracle: "../documentation/whitepapers/KNIRV-ORACLE_Whitepaper.html"
+    knirv_router: "../documentation/whitepapers/KNIRV-ROUTER_Whitepaper.html"
+    knirvgraph: "../documentation/whitepapers/KNIRV-GRAPH_Whitepaper.html"
+    knirvchain: "../documentation/whitepapers/KNIRV-CHAIN_Whitepaper.html"
+    knirv_nexus: "../documentation/whitepapers/KNIRV-NEXUS_Whitepaper.html"
+    knirv_cortex: "../documentation/whitepapers/KNIRV-CORTEX_Whitepaper.html"
+    knirv_gateway: "../documentation/whitepapers/KNIRV-GATEWAY_Whitepaper.html"
+    knirv_sdk: "../documentation/whitepapers/KNIRV-SDK_Whitepaper.html"
+    knirvana: "../documentation/whitepapers/KNIRVANA_Whitepaper.html"
+    knirv_d_ten: "../documentation/whitepapers/KNIRV-D-TEN_Whitepaper.html"
+    knirv_engine: "../documentation/whitepapers/KNIRV-ENGINE_Whitepaper.html"
+    knirv_controller: "../documentation/whitepapers/KNIRV-CONTROLLER_Whitepaper.html"
+
+  # Legacy docsify links (for backward compatibility)
+  legacy:
+    whitepapers_docsify: "../documentation/docsify/#/whitepapers/"
+    guides_docsify: "../documentation/docsify/#/guides/"
+    api_docsify: "../documentation/docsify/#/api/"
 
 # Business Documents
 business:
@@ -44,9 +54,15 @@ business:
 # Footer Links
 footer:
   legal:
-    terms: "../documentation/docsify/#/legal/TERMS_AND_CONDITIONS"
-    privacy: "../documentation/docsify/#/legal/PRIVACY_POLICY"
-    contribution: "../documentation/docsify/#/legal/CODE_OF_CONDUCT"
+    terms: "/documentation/docsify/#/legal/TERMS_AND_CONDITIONS"
+    privacy: "/documentation/docsify/#/legal/PRIVACY_POLICY"
+    contribution: "/documentation/docsify/#/legal/CODE_OF_CONDUCT"
+
+  # Documentation site specific footer links (relative to documentation directory)
+  documentation:
+    terms: "legal/TERMS_AND_CONDITIONS.html"
+    privacy: "legal/PRIVACY_POLICY.html"
+    contribution: "legal/CODE_OF_CONDUCT.html"
   
   social:
     github: "https://github.com/knirv-network"
@@ -55,9 +71,10 @@ footer:
     telegram: "https://t.me/knirvnetwork"
   
   resources:
-    documentation: "../documentation/docsify/"
-    support: "../support-desk/src/"
-    forum: "../forum/src/"
+    documentation: "/documentation/"  # Updated to new static HTML site
+    documentation_legacy: "/documentation/docsify/"  # Legacy docsify site
+    support: "/support-desk/src/"
+    forum: "/forum/src/"
     blog: "https://blog.knirv.com"
 
 # API Endpoints
@@ -100,8 +117,13 @@ iframes:
     height: "800px"
   
   documentation:
-    url: "../documentation/docsify/"
+    url: "../documentation/"  # Updated to new static HTML site
     title: "KNIRV Documentation"
+    height: "800px"
+
+  documentation_legacy:
+    url: "../documentation/docsify/"  # Legacy docsify site
+    title: "KNIRV Documentation (Legacy)"
     height: "800px"
   
   nexus_portal:

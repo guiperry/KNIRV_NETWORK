@@ -36,11 +36,11 @@ This section contains user guides for the KNIRV Network.
 
 **Location:** `KNIRVANA/ts-client/README.md`
 
+# Consolidated Documentation
+
 # KNIRVANA TypeScript Client: The Experiential Gateway to the KNIRV D-TEN Ecosystem
 
-<div align="center">
-
-![TypeScript](https://img.shields.io/badge/TypeScript-5.6.3-blue?style=flat-square&logo=types...
+<div align="center">...
 
 [View Full Documentation](KNIRVANA/ts-client/README.md)
 
@@ -50,11 +50,11 @@ This section contains user guides for the KNIRV Network.
 
 **Location:** `KNIRVCONTROLLER/README.md`
 
-# Consolidated Documentation
+# KNIRVCONTROLLER: Autonomous Gateway to the KNIRV D-TEN Ecosystem
 
-KNIRV-CONTROLLER
+## Table of Contents
 
-### 🤖 KNIRV-CONTROLLER: The Autonomous Gateway...
+- [Overview](#overview)...
 
 [View Full Documentation](KNIRVCONTROLLER/README.md)
 
@@ -148,9 +148,11 @@ This directory contains the Agentic Engine release files that can be downloaded 
 
 **Location:** `KNIRVENGINE/README.md`
 
+# Consolidated Documentation
+
 # KNIRVENGINE: Three-Engine Cognitive Architecture
 
-KNIRVENGINE is a revolutionary three-engine cognitive architecture that combines Human-like Reasoning Models (HRM), QR code linkage systems, and Web...
+KNIRVENGINE is a revolutionary three-engine cognitive architecture that combines Human-like Reasoning Models (HRM), QR...
 
 [View Full Documentation](KNIRVENGINE/README.md)
 
@@ -254,25 +256,13 @@ This directory contains examples demonstrating how to use the Agent Inferencer s
 
 **Location:** `KNIRVGATEWAY/README.md`
 
+# Consolidated Documentation
+
 # KNIRV GATEWAY
 
-**The Unified Web Portal and API Gateway for the KNIRV Decentralized Trusted Execution Network**
-
-[![Netlify Status](https://api.netlify.com/api/v1/badges/your-badge-id/deploy-status)...
+**The Unified Web Portal and API Gateway for the KNIRV Decentralized Trusted Execution Network**...
 
 [View Full Documentation](KNIRVGATEWAY/README.md)
-
----
-
-### agent-developer-portal
-
-**Location:** `KNIRVGATEWAY/agent-developer-portal/README.md`
-
-# KNIRV Developer Portal
-
-The official developer portal for the KNIRV D-TEN (Decentralized Trusted Execution Network). This comprehensive web application provides developers with all the tools needed ...
-
-[View Full Documentation](KNIRVGATEWAY/agent-developer-portal/README.md)
 
 ---
 
@@ -287,6 +277,18 @@ This directory contains optimized social media sharing cards for different platf
 ## Image Specifications...
 
 [View Full Documentation](KNIRVGATEWAY/images/social/README.md)
+
+---
+
+### agent-developer-portal
+
+**Location:** `KNIRVGATEWAY/knirv.com/public/agent-developer-portal/README.md`
+
+# KNIRV Developer Portal
+
+The official developer portal for the KNIRV D-TEN (Decentralized Trusted Execution Network). This comprehensive web application provides developers with all the tools needed ...
+
+[View Full Documentation](KNIRVGATEWAY/knirv.com/public/agent-developer-portal/README.md)
 
 ---
 
@@ -320,7 +322,9 @@ KNIRV-NEXUS is a unified implementation of the Decentralized Validation Environm
 
 # KNIRVORACLE: A Decentralized Model Context Protocol Network
 
-KNIRVORACLE is a blockchain-based platform designed to facilitate a transparent, verifiable, and monetizable ecosystem for AI capabilitie...
+## Table of Contents
+
+- [Overview](#overview)...
 
 [View Full Documentation](KNIRVORACLE/README.md)
 
@@ -406,9 +410,11 @@ A unified monitoring platform for KNIRV production and testnet networks with cus
 
 **Location:** `KNIRVROUTER/README.md`
 
+# Consolidated Documentation
+
 # KNIRVROUTER Verifier Node - Blockchain Implementation in Go
 
-KNIRVROUTER Verifier Node is a specialized blockchain application written in Go, designed to verify and record network traffic data. It f...
+KNIRVROUTER Verifier Node is a specialized blockchain application written in Go, designed to verify and rec...
 
 [View Full Documentation](KNIRVROUTER/README.md)
 
@@ -700,10 +706,11 @@ This directory contains optimized social media sharing cards for different platf
 
 **Location:** `README.md`
 
+# Consolidated Documentation
+
 # KNIRV Network: Decentralized Trusted Execution Network (D-TEN)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Go Version](https://img...
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/M...
 
 [View Full Documentation](README.md)
 
@@ -769,11 +776,11 @@ This directory contains the production deployment configuration for KNIRV D-TEN 
 
 **Location:** `integration-tests/README.md`
 
+# Consolidated Documentation
+
 # KNIRV D-TEN Month 6 Integration Testing Suite
 
-## Overview
-
-This directory contains the complete integration testing suite for the KNIRV D-TEN ecosystem, implementing all Month 6 requirements from t...
+## Overview...
 
 [View Full Documentation](integration-tests/README.md)
 

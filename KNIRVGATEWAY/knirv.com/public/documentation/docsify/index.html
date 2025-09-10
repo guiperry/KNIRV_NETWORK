@@ -117,39 +117,6 @@
       max-width: 100%;
       height: auto;
     }
-
-    /* Enhanced whitepaper card styling for docsify integration */
-    .markdown-section .whitepaper-card {
-      background: rgba(26, 32, 44, 0.8) !important;
-      border: 1px solid #2d3748 !important;
-      color: #e0e0e0 !important;
-    }
-
-    .markdown-section .whitepaper-card:hover {
-      border-color: #4a9eff !important;
-      box-shadow: 0 20px 40px rgba(74, 158, 255, 0.1) !important;
-    }
-
-    .markdown-section .whitepaper-title {
-      color: #ffffff !important;
-    }
-
-    .markdown-section .whitepaper-description {
-      color: #94a3b8 !important;
-    }
-
-    .markdown-section .whitepaper-link {
-      color: #4a9eff !important;
-    }
-
-    .markdown-section .whitepaper-link:hover {
-      color: #6fb5ff !important;
-    }
-
-    /* Ensure proper spacing in docsify */
-    .markdown-section .whitepaper-container {
-      margin: 2rem 0;
-    }
   </style>
 </head>
 <body>
@@ -159,12 +126,10 @@
       name: 'KNIRV Network',
       repo: 'https://github.com/guiperry/KNIRV_NETWORK',
       loadSidebar: true,
-      subMaxLevel: 2,
+      subMaxLevel: 3,
       auto2top: true,
       relativePath: false,
       themeColor: '#4a9eff',
-      homepage: 'README.md',
-
       search: {
         maxAge: 86400000,
         paths: 'auto',
@@ -176,15 +141,6 @@
         function(hook, vm) {
           hook.ready(function() {
             mermaid.initialize({ startOnLoad: true, theme: 'dark' });
-          });
-
-          hook.doneEach(function() {
-            // Re-initialize whitepaper cards when page content changes
-            setTimeout(function() {
-              if (typeof initWhitepaperCards === 'function') {
-                initWhitepaperCards();
-              }
-            }, 100);
           });
         }
       ]

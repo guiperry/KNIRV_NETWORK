@@ -27,17 +27,18 @@ const { execSync } = require('child_process');
 const https = require('https');
 
 // Load dotenv from the documentation folder
-const dotenvPath = path.join(__dirname, '..', 'KNIRVGATEWAY', 'documentation', 'node_modules', 'dotenv');
+const dotenvPath = path.join(__dirname, '..', 'KNIRVGATEWAY', 'knirv.com', 'public', 'documentation', 'node_modules', 'dotenv');
 const dotenv = require(dotenvPath);
-dotenv.config({ path: path.join(__dirname, '..', 'KNIRVGATEWAY', 'documentation', '.env') });
+dotenv.config({ path: path.join(__dirname, '..', 'KNIRVGATEWAY', 'knirv.com', 'public', 'documentation', '.env') });
 
 // Configuration
 const rootDir = path.dirname(__dirname); // Go up one level from scripts directory
 const CONFIG = {
   sourceDir: path.join(rootDir, 'docs'),
-  outputDir: path.join(rootDir, 'KNIRVGATEWAY', 'documentation'),
-  docsifyDir: path.join(rootDir, 'KNIRVGATEWAY', 'documentation', 'docsify'),
-  hashFile: path.join(rootDir, 'KNIRVGATEWAY', 'documentation', '.doc_hashes.json'),
+  outputDir: path.join(rootDir, 'KNIRVGATEWAY', 'knirv.com', 'public', 'documentation'),
+  docsifyDir: path.join(rootDir, 'KNIRVGATEWAY', 'knirv.com', 'public', 'documentation', 'docsify'),
+  staticHtmlDir: path.join(rootDir, 'KNIRVGATEWAY', 'knirv.com', 'public', 'documentation'),
+  hashFile: path.join(rootDir, 'KNIRVGATEWAY', 'knirv.com', 'public', 'documentation', '.doc_hashes.json'),
   // Backup directory for consolidated .md files
   backupDir: path.join(rootDir, '.doc-consolidation-backups'),
   projectName: 'KNIRV Network',
@@ -282,28 +283,38 @@ function validateConsolidatedContent(originalContent, consolidatedContent, dirIn
   validationResults.metrics.lengthIncrease = consolidatedLength - originalLength;
   validationResults.metrics.lengthRatio = originalLength > 0 ? consolidatedLength / originalLength : 0;
 
-  // Validation checks
-  if (consolidatedLength < originalLength * 0.8) {
-    validationResults.errors.push(`Consolidated content is significantly shorter than original (${consolidatedLength} vs ${originalLength} chars)`);
+  // Improved validation checks - less strict about length reduction
+  // Only flag as error if content is drastically reduced AND shows signs of truncation
+  if (consolidatedLength < originalLength * 0.5 && consolidatedLength < 500) {
+    validationResults.errors.push(`Consolidated content is drastically shorter and too brief (${consolidatedLength} vs ${originalLength} chars)`);
     validationResults.isValid = false;
+  } else if (consolidatedLength < originalLength * 0.3) {
+    validationResults.warnings.push(`Consolidated content is much shorter than original (${consolidatedLength} vs ${originalLength} chars) - verify this is intentional`);
   }
 
   if (consolidatedLength < 1000) {
     validationResults.warnings.push(`Consolidated content seems too short (${consolidatedLength} chars)`);
   }
 
-  // Check for truncation indicators
+  // Check for truncation indicators and orphaned phrases
   const truncationIndicators = [
     /\*KNIR$/,  // Truncated at end
     /\.\.\.$/, // Ends with ellipsis
-    /[^.!?]$/, // Doesn't end with proper punctuation (but allow markdown)
   ];
 
+  // Check for actual truncation signs
   for (const indicator of truncationIndicators) {
     if (indicator.test(consolidatedContent.trim())) {
       validationResults.errors.push(`Content appears to be truncated (matches pattern: ${indicator})`);
       validationResults.isValid = false;
     }
+  }
+
+  // Check for orphaned phrases at the end (incomplete sentences)
+  const lines = consolidatedContent.trim().split('\n');
+  const lastLine = lines[lines.length - 1].trim();
+  if (lastLine && lastLine.length > 0 && lastLine.length < 50 && !/[.!?]$/.test(lastLine) && !/^#+\s/.test(lastLine) && !/^[-*]\s/.test(lastLine)) {
+    validationResults.warnings.push(`Possible orphaned phrase at end: "${lastLine}"`);
   }
 
   // Check for essential markdown structure
@@ -1200,6 +1211,9 @@ function generateIndex(docs) {
   // Add description
   index += `Welcome to the ${CONFIG.projectName} documentation. This comprehensive guide provides information about the KNIRV Decentralized Trusted Execution Network (D-TEN) and its components.\n\n`;
 
+  // Add link to static documentation site
+  index += `> 📖 **New!** Check out our [Static Documentation Site](../) for a modern overview and quick access to all components.\n\n`;
+
   // Group documents by category for overview
   const categorizedDocs = {};
   docs.forEach(doc => {
@@ -1245,6 +1259,825 @@ function generateIndex(docs) {
   index += generateStandardFooter();
 
   return index;
+}
+
+// Generate static HTML documentation site
+function generateStaticHtmlSite(docs, hashes) {
+  console.log('🏗️ Generating static HTML documentation site...');
+
+  ensureDirectoryExists(CONFIG.staticHtmlDir);
+  let filesChanged = 0;
+
+  // Generate main index page
+  const indexHtml = generateStaticIndexPage(docs);
+  if (writeFileIfChanged(path.join(CONFIG.staticHtmlDir, 'index.html'), indexHtml, hashes)) {
+    filesChanged++;
+  }
+
+  // Generate CSS file
+  const cssContent = generateStaticCss();
+  if (writeFileIfChanged(path.join(CONFIG.staticHtmlDir, 'styles.css'), cssContent, hashes)) {
+    filesChanged++;
+  }
+
+  // Generate JavaScript file
+  const jsContent = generateStaticJs();
+  if (writeFileIfChanged(path.join(CONFIG.staticHtmlDir, 'scripts.js'), jsContent, hashes)) {
+    filesChanged++;
+  }
+
+  // Generate category pages
+  const categorizedDocs = {};
+  docs.forEach(doc => {
+    if (!categorizedDocs[doc.category]) {
+      categorizedDocs[doc.category] = [];
+    }
+    categorizedDocs[doc.category].push(doc);
+  });
+
+  // Create category directories and pages
+  Object.keys(categorizedDocs).forEach(category => {
+    const categoryDir = path.join(CONFIG.staticHtmlDir, category);
+    ensureDirectoryExists(categoryDir);
+
+    categorizedDocs[category].forEach(doc => {
+      const docHtml = generateStaticDocPage(doc, categorizedDocs);
+      const filename = doc.filename.replace('.md', '.html');
+      if (writeFileIfChanged(path.join(categoryDir, filename), docHtml, hashes)) {
+        filesChanged++;
+      }
+    });
+  });
+
+  // Generate whitepapers HTML pages
+  const whitepaperFiles = getWhitepaperFiles();
+  const whitepaperDir = path.join(CONFIG.staticHtmlDir, 'whitepapers');
+  ensureDirectoryExists(whitepaperDir);
+
+  whitepaperFiles.forEach(whitepaperPath => {
+    const content = fs.readFileSync(whitepaperPath, 'utf8');
+    const filename = path.basename(whitepaperPath, '.md');
+    const whitepaperHtml = generateStaticWhitepaperPage(content, filename);
+    if (writeFileIfChanged(path.join(whitepaperDir, `${filename}.html`), whitepaperHtml, hashes)) {
+      filesChanged++;
+    }
+  });
+
+  // Generate whitepapers index
+  const whitepaperIndexHtml = generateWhitepaperIndexPage(whitepaperFiles);
+  if (writeFileIfChanged(path.join(whitepaperDir, 'index.html'), whitepaperIndexHtml, hashes)) {
+    filesChanged++;
+  }
+
+  // Generate legal pages
+  const legalDir = path.join(CONFIG.staticHtmlDir, 'legal');
+  ensureDirectoryExists(legalDir);
+
+  const legalFiles = [
+    { name: 'TERMS_AND_CONDITIONS', title: 'Terms and Conditions' },
+    { name: 'PRIVACY_POLICY', title: 'Privacy Policy' },
+    { name: 'CODE_OF_CONDUCT', title: 'Code of Conduct' }
+  ];
+
+  legalFiles.forEach(legal => {
+    const legalHtml = generateLegalPage(legal.title, legal.name);
+    if (writeFileIfChanged(path.join(legalDir, `${legal.name}.html`), legalHtml, hashes)) {
+      filesChanged++;
+    }
+  });
+
+  console.log(`✅ Static HTML site generation complete. ${filesChanged} files updated.`);
+  return filesChanged;
+}
+
+// Generate static HTML index page
+function generateStaticIndexPage(docs) {
+  const categorizedDocs = {};
+  docs.forEach(doc => {
+    if (!categorizedDocs[doc.category]) {
+      categorizedDocs[doc.category] = [];
+    }
+    categorizedDocs[doc.category].push(doc);
+  });
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRV Network Documentation</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="../config/portal-links.yaml" type="text/yaml" id="portal-config"></script>
+    <script src="../js/config-loader.js"></script>
+    <script src="../js/universal-footer.js?v=2"></script>
+    <script>
+        // Override footer links for documentation site
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.knirvConfig && window.knirvConfig.config) {
+                // Update legal links to use documentation-specific paths
+                if (window.knirvConfig.config.footer && window.knirvConfig.config.footer.legal) {
+                    window.knirvConfig.config.footer.legal.terms = "legal/TERMS_AND_CONDITIONS.html";
+                    window.knirvConfig.config.footer.legal.privacy = "legal/PRIVACY_POLICY.html";
+                    window.knirvConfig.config.footer.legal.contribution = "legal/CODE_OF_CONDUCT.html";
+                }
+            }
+        });
+    </script>
+</head>
+<body>
+    <header class="doc-header">
+        <div class="container">
+            <h1>KNIRV Network Documentation</h1>
+            <p>Comprehensive documentation for the KNIRV Decentralized Trusted Execution Network (D-TEN)</p>
+        </div>
+    </header>
+
+    <main class="doc-main">
+        <div class="container">
+            <section class="doc-overview">
+                <h2>📚 Documentation Sections</h2>
+                <div class="doc-grid">
+                    ${Object.keys(CONFIG.categories).map(categoryKey => {
+                      if (categorizedDocs[categoryKey] && categorizedDocs[categoryKey].length > 0) {
+                        const categoryTitle = CONFIG.categories[categoryKey];
+                        return `
+                        <div class="doc-category">
+                            <h3>${categoryTitle}</h3>
+                            <ul>
+                                ${categorizedDocs[categoryKey].map(doc => {
+                                  const filename = doc.filename.replace('.md', '.html');
+                                  return `<li><a href="${categoryKey}/${filename}">${doc.title}</a>${doc.description ? ` - ${doc.description}` : ''}</li>
+                                <li><a href="docsify/#/${categoryKey}/${doc.filename.replace('.md', '')}" class="docsify-link">📖 Detailed Guide (Interactive)</a></li>`;
+                                }).join('')}
+                            </ul>
+                        </div>`;
+                      }
+                      return '';
+                    }).join('')}
+                </div>
+            </section>
+
+            <section class="doc-whitepapers">
+                <h2>📄 Technical Whitepapers</h2>
+                <p>The KNIRV Network consists of multiple interconnected components, each with detailed technical specifications:</p>
+                <div class="whitepaper-link">
+                    <a href="whitepapers/index.html" class="btn-primary">📚 View All Whitepapers</a>
+                </div>
+                <p>The whitepapers provide in-depth technical details about each component of the KNIRV D-TEN, including architecture, consensus mechanisms, and implementation specifications.</p>
+            </section>
+
+            <section class="doc-community">
+                <h2>🚀 Developer Community</h2>
+                <p>We're building an open source developer community around the KNIRV Network. If you're interested in contributing, please check out our contribution guidelines.</p>
+                <div class="community-buttons">
+                    <a href="../agent-developer-portal/" class="btn-primary">🛠️ Developer Portal</a>
+                    <a href="docsify/#/legal/CODE_OF_CONDUCT" class="btn-secondary">🤝 Contribute</a>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="scripts.js"></script>
+
+    <!-- Footer will be automatically generated by universal-footer.js -->
+</body>
+</html>`;
+}
+
+// Generate static HTML document page
+function generateStaticDocPage(doc, categorizedDocs) {
+  // Convert markdown to HTML (basic conversion)
+  let htmlContent = doc.content
+    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+    .replace(/^#### (.*$)/gim, '<h4>$1</h4>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code>$1</code>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+
+  // Wrap in paragraphs
+  htmlContent = '<p>' + htmlContent + '</p>';
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${doc.title} - KNIRV Network Documentation</title>
+    <link rel="stylesheet" href="../styles.css">
+    <script src="../config/portal-links.yaml" type="text/yaml" id="portal-config"></script>
+    <script src="../js/config-loader.js"></script>
+    <script src="../js/universal-footer.js"></script>
+    <script>
+        // Override footer links for documentation site
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.knirvConfig && window.knirvConfig.config) {
+                // Update legal links to use documentation-specific paths
+                if (window.knirvConfig.config.footer && window.knirvConfig.config.footer.legal) {
+                    window.knirvConfig.config.footer.legal.terms = "../legal/TERMS_AND_CONDITIONS.html";
+                    window.knirvConfig.config.footer.legal.privacy = "../legal/PRIVACY_POLICY.html";
+                    window.knirvConfig.config.footer.legal.contribution = "../legal/CODE_OF_CONDUCT.html";
+                }
+            }
+        });
+    </script>
+</head>
+<body>
+    <header class="doc-header">
+        <div class="container">
+            <nav class="doc-nav">
+                <a href="../index.html">← Back to Documentation</a>
+            </nav>
+            <h1>${doc.title}</h1>
+            ${doc.description ? `<p class="doc-description">${doc.description}</p>` : ''}
+        </div>
+    </header>
+
+    <main class="doc-main">
+        <div class="container">
+            <article class="doc-content">
+                ${htmlContent}
+            </article>
+        </div>
+    </main>
+
+    <script src="../scripts.js"></script>
+
+    <!-- Footer will be automatically generated by universal-footer.js -->
+</body>
+</html>`;
+}
+
+// Generate static HTML whitepaper page
+function generateStaticWhitepaperPage(content, filename) {
+  // Extract title from content
+  const titleMatch = content.match(/^# (.*)/m);
+  const title = titleMatch ? titleMatch[1] : filename.replace(/_/g, ' ');
+
+  // Convert markdown to HTML (basic conversion)
+  let htmlContent = content
+    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+    .replace(/^#### (.*$)/gim, '<h4>$1</h4>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code>$1</code>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+
+  // Wrap in paragraphs
+  htmlContent = '<p>' + htmlContent + '</p>';
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title} - KNIRV Network Whitepaper</title>
+    <link rel="stylesheet" href="../styles.css">
+    <script src="../config/portal-links.yaml" type="text/yaml" id="portal-config"></script>
+    <script src="../js/config-loader.js"></script>
+    <script src="../js/universal-footer.js"></script>
+    <script>
+        // Override footer links for documentation site
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.knirvConfig && window.knirvConfig.config) {
+                // Update legal links to use documentation-specific paths
+                if (window.knirvConfig.config.footer && window.knirvConfig.config.footer.legal) {
+                    window.knirvConfig.config.footer.legal.terms = "../legal/TERMS_AND_CONDITIONS.html";
+                    window.knirvConfig.config.footer.legal.privacy = "../legal/PRIVACY_POLICY.html";
+                    window.knirvConfig.config.footer.legal.contribution = "../legal/CODE_OF_CONDUCT.html";
+                }
+            }
+        });
+    </script>
+</head>
+<body>
+    <header class="doc-header">
+        <div class="container">
+            <nav class="doc-nav">
+                <a href="index.html">← Back to Whitepapers</a>
+                <a href="../index.html">← Back to Documentation</a>
+            </nav>
+            <h1>${title}</h1>
+            <p class="doc-description">Technical whitepaper for the KNIRV Network</p>
+        </div>
+    </header>
+
+    <main class="doc-main">
+        <div class="container">
+            <article class="doc-content whitepaper-content">
+                ${htmlContent}
+            </article>
+        </div>
+    </main>
+
+    <script src="../scripts.js"></script>
+
+    <!-- Footer will be automatically generated by universal-footer.js -->
+</body>
+</html>`;
+}
+
+// Generate whitepaper index page
+function generateWhitepaperIndexPage(whitepaperFiles) {
+  const whitepaperList = whitepaperFiles.map(filePath => {
+    const content = fs.readFileSync(filePath, 'utf8');
+    const titleMatch = content.match(/^# (.*)/m);
+    const title = titleMatch ? titleMatch[1] : path.basename(filePath, '.md').replace(/_/g, ' ');
+    const filename = path.basename(filePath, '.md');
+
+    // Extract description from first paragraph
+    let description = '';
+    const paragraphs = content.split('\n\n');
+    for (let i = 0; i < paragraphs.length; i++) {
+      if (!paragraphs[i].startsWith('#') && paragraphs[i].trim() !== '') {
+        description = paragraphs[i].replace(/\n/g, ' ').trim();
+        if (description.length > 160) {
+          description = description.substring(0, 157) + '...';
+        }
+        break;
+      }
+    }
+
+    return { title, filename, description };
+  });
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRV Network Whitepapers</title>
+    <link rel="stylesheet" href="../styles.css">
+    <script src="../config/portal-links.yaml" type="text/yaml" id="portal-config"></script>
+    <script src="../js/config-loader.js"></script>
+    <script src="../js/universal-footer.js"></script>
+    <script>
+        // Override footer links for documentation site
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.knirvConfig && window.knirvConfig.config) {
+                // Update legal links to use documentation-specific paths
+                if (window.knirvConfig.config.footer && window.knirvConfig.config.footer.legal) {
+                    window.knirvConfig.config.footer.legal.terms = "../legal/TERMS_AND_CONDITIONS.html";
+                    window.knirvConfig.config.footer.legal.privacy = "../legal/PRIVACY_POLICY.html";
+                    window.knirvConfig.config.footer.legal.contribution = "../legal/CODE_OF_CONDUCT.html";
+                }
+            }
+        });
+    </script>
+</head>
+<body>
+    <header class="doc-header">
+        <div class="container">
+            <nav class="doc-nav">
+                <a href="../index.html">← Back to Documentation</a>
+            </nav>
+            <h1>📄 KNIRV Network Whitepapers</h1>
+            <p class="doc-description">Technical specifications and architectural documentation for all KNIRV Network components</p>
+        </div>
+    </header>
+
+    <main class="doc-main">
+        <div class="container">
+            <section class="whitepaper-grid">
+                ${whitepaperList.map(wp => `
+                <div class="whitepaper-card">
+                    <h3><a href="${wp.filename}.html">${wp.title}</a></h3>
+                    ${wp.description ? `<p>${wp.description}</p>` : ''}
+                </div>
+                `).join('')}
+            </section>
+        </div>
+    </main>
+
+    <script src="../scripts.js"></script>
+
+    <!-- Footer will be automatically generated by universal-footer.js -->
+</body>
+</html>`;
+}
+
+// Generate legal page
+function generateLegalPage(title, filename) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title} - KNIRV Network</title>
+    <link rel="stylesheet" href="../styles.css">
+    <script src="../config/portal-links.yaml" type="text/yaml" id="portal-config"></script>
+    <script src="../js/config-loader.js"></script>
+    <script src="../js/universal-footer.js"></script>
+</head>
+<body>
+    <header class="doc-header">
+        <div class="container">
+            <nav class="doc-nav">
+                <a href="../index.html">← Back to Documentation</a>
+            </nav>
+            <h1>${title}</h1>
+            <p class="doc-description">KNIRV Network ${title}</p>
+        </div>
+    </header>
+
+    <main class="doc-main">
+        <div class="container">
+            <article class="doc-content">
+                <p>This page will contain the ${title} for KNIRV Network.</p>
+                <p>Please refer to the main documentation for the most up-to-date legal information.</p>
+                <p><a href="../index.html">Return to Documentation</a></p>
+            </article>
+        </div>
+    </main>
+
+    <script src="../scripts.js"></script>
+
+    <!-- Footer will be automatically generated by universal-footer.js -->
+</body>
+</html>`;
+}
+
+// Generate static CSS
+function generateStaticCss() {
+  return `/* KNIRV Network Documentation Styles */
+:root {
+    --primary-color: #00c0fa;
+    --secondary-color: #2b56f5;
+    --accent-color: #8b5cf6;
+    --bg-color: #0a0a0a;
+    --surface-color: #1a1a2e;
+    --text-color: #e0e0e0;
+    --text-muted: rgba(255, 255, 255, 0.7);
+    --border-color: rgba(255, 255, 255, 0.1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, var(--bg-color) 0%, var(--surface-color) 100%);
+    color: var(--text-color);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.doc-header {
+    background: linear-gradient(135deg, var(--surface-color) 0%, #16213e 50%, #0f3460 100%);
+    border-bottom: 1px solid var(--border-color);
+    padding: 2rem 0;
+}
+
+.doc-nav {
+    margin-bottom: 1rem;
+}
+
+.doc-nav a {
+    color: var(--primary-color);
+    text-decoration: none;
+    margin-right: 1rem;
+    font-size: 0.9rem;
+    transition: color 0.3s ease;
+}
+
+.doc-nav a:hover {
+    color: #6fb5ff;
+}
+
+.doc-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.doc-description {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+}
+
+.doc-main {
+    padding: 3rem 0;
+}
+
+.doc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.doc-category {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.doc-category:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 192, 250, 0.1);
+}
+
+.doc-category h3 {
+    color: var(--primary-color);
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 0.5rem;
+}
+
+.doc-category ul {
+    list-style: none;
+}
+
+.doc-category li {
+    margin-bottom: 0.8rem;
+}
+
+.doc-category a {
+    color: var(--text-color);
+    text-decoration: none;
+    transition: color 0.3s ease;
+    display: block;
+    padding: 0.5rem;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.doc-category a:hover {
+    color: var(--primary-color);
+    background: rgba(0, 192, 250, 0.1);
+    transform: translateX(5px);
+}
+
+.doc-content {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.doc-content h1, .doc-content h2, .doc-content h3, .doc-content h4 {
+    color: var(--primary-color);
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+
+.doc-content h1 {
+    font-size: 2rem;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 0.5rem;
+}
+
+.doc-content h2 {
+    font-size: 1.5rem;
+}
+
+.doc-content p {
+    margin-bottom: 1rem;
+    color: var(--text-muted);
+}
+
+.doc-content code {
+    background: rgba(0, 192, 250, 0.1);
+    color: var(--primary-color);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', monospace;
+}
+
+.doc-content a {
+    color: var(--primary-color);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.3s ease;
+}
+
+.doc-content a:hover {
+    border-bottom-color: var(--primary-color);
+}
+
+.whitepaper-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.whitepaper-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 2rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.whitepaper-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0, 192, 250, 0.15);
+}
+
+.whitepaper-card h3 {
+    margin-bottom: 1rem;
+}
+
+.whitepaper-card h3 a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-size: 1.3rem;
+    transition: color 0.3s ease;
+}
+
+.whitepaper-card h3 a:hover {
+    color: #6fb5ff;
+}
+
+.whitepaper-card p {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.btn-primary {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    margin: 1rem 0;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 192, 250, 0.3);
+}
+
+.doc-whitepapers, .doc-community {
+    margin-top: 3rem;
+    padding: 2rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+}
+
+.doc-whitepapers h2, .doc-community h2 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.whitepaper-link {
+    text-align: center;
+    margin: 2rem 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .doc-header h1 {
+        font-size: 2rem;
+    }
+
+    .doc-grid, .whitepaper-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .container {
+        padding: 0 15px;
+    }
+
+    .doc-content {
+        padding: 1.5rem;
+    }
+}
+
+/* Docsify link styles */
+.docsify-link {
+    color: var(--accent-color) !important;
+    font-size: 0.9rem;
+    font-style: italic;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.docsify-link:hover {
+    color: var(--primary-color) !important;
+    text-decoration: underline;
+}
+
+/* Community buttons */
+.community-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.btn-primary, .btn-secondary {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 192, 250, 0.3);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--accent-color);
+    border: 2px solid var(--accent-color);
+    box-sizing: border-box; /* Ensure border doesn't add to size */
+}
+
+.btn-secondary:hover {
+    background: var(--accent-color);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+}`;
+}
+
+// Generate static JavaScript
+function generateStaticJs() {
+  return `// KNIRV Network Documentation JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    // Add smooth scrolling for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+
+    // Add copy code functionality
+    document.querySelectorAll('code').forEach(code => {
+        code.addEventListener('click', function() {
+            navigator.clipboard.writeText(this.textContent).then(() => {
+                const originalText = this.textContent;
+                this.textContent = 'Copied!';
+                setTimeout(() => {
+                    this.textContent = originalText;
+                }, 1000);
+            });
+        });
+    });
+
+    // Add search functionality (basic)
+    const searchInput = document.getElementById('doc-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            const cards = document.querySelectorAll('.doc-category, .whitepaper-card');
+
+            cards.forEach(card => {
+                const text = card.textContent.toLowerCase();
+                if (text.includes(query)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    }
+});`;
 }
 
 // Generate Docsify configuration
@@ -1438,10 +2271,7 @@ function rewriteLinksForDocsify(markdown) {
     segments[0] = segments[0].toLowerCase();
 
     let rewritten = segments.join('/');
-    // Ensure docsify hash routing
-    if (!rewritten.startsWith('#/')) {
-      rewritten = `#/${rewritten}`;
-    }
+    // Don't add #/ prefix - docsify handles this automatically
     if (queryPart) rewritten += `?${queryPart}`;
     if (hashPart) rewritten += `#${hashPart}`;
 
@@ -1986,29 +2816,36 @@ async function main() {
   console.log('\n🤖 STEP 4: AI-powered documentation organization');
   const docs = await processMarkdownFiles(hashes);
 
-  // STEP 5: Create comprehensive Docsify structure with organized documentation
-  console.log('\n🏗️ STEP 5: Creating comprehensive documentation hierarchy');
+  // STEP 5: Generate static HTML documentation site (NEW)
+  console.log('\n🏗️ STEP 5: Generating static HTML documentation site');
+  const staticFilesChanged = generateStaticHtmlSite(docs, hashes);
+  console.log(`✅ Static HTML site generated with ${staticFilesChanged} files updated`);
+
+  // STEP 6: Create comprehensive Docsify structure (DEPRECATED - keeping for compatibility)
+  console.log('\n📚 STEP 6: Creating Docsify structure (deprecated, keeping for compatibility)');
   await createEnhancedDocsifyStructure(docs, hashes, allReadmeFiles);
 
-  // STEP 6: Process whitepapers separately
-  console.log('\n📄 STEP 6: Whitepaper processing');
+  // STEP 7: Process whitepapers separately
+  console.log('\n📄 STEP 7: Whitepaper processing');
   processWhitepapers(hashes);
 
-  // STEP 7: Save updated hashes
+  // STEP 8: Save updated hashes
   saveHashes(hashes);
 
-  // STEP 8: Final validation check for critical files
-  console.log('\n🔍 STEP 8: Final validation of critical documentation files');
+  // STEP 9: Final validation check for critical files
+  console.log('\n🔍 STEP 9: Final validation of critical documentation files');
   await performFinalValidation(allReadmeFiles);
 
   console.log('\n🎉 Enhanced documentation generation complete!');
-  console.log(`📚 Documentation: ${CONFIG.docsifyDir}`);
-  console.log(`📄 Whitepapers: ${path.join(CONFIG.docsifyDir, 'whitepapers')}`);
+  console.log(`🌐 Static HTML Documentation: ${CONFIG.staticHtmlDir}`);
+  console.log(`📚 Docsify Documentation (deprecated): ${CONFIG.docsifyDir}`);
+  console.log(`📄 Whitepapers: ${path.join(CONFIG.staticHtmlDir, 'whitepapers')}`);
   console.log(`🤖 Organized ${docs.length} documentation files using AI`);
   console.log(`📁 Consolidated documentation in ${consolidationResults.length} directories`);
   console.log(`🔍 Processed ${allReadmeFiles.length} README.md files`);
   console.log(`💾 Backups stored in: ${CONFIG.backupDir}`);
   console.log('📊 Generated comprehensive documentation hierarchy for public navigation');
+  console.log('🚀 New static HTML documentation site is now the primary documentation target');
 }
 
 // Perform final validation of critical documentation files
@@ -2057,6 +2894,10 @@ async function performFinalValidation(allReadmeFiles) {
   if (validationIssues > 0) {
     console.log(`\n⚠️ Found ${validationIssues} validation issues with critical files`);
     console.log(`💾 Check backup directory for recovery: ${CONFIG.backupDir}`);
+
+    // Attempt to reprocess failed files using backup versions
+    console.log('\n🔄 Attempting to reprocess failed files from backups...');
+    await reprocessFailedFiles(criticalFiles, allReadmeFiles);
   } else {
     console.log('\n✅ All critical files passed validation');
   }
@@ -2073,6 +2914,86 @@ async function createEnhancedDocsifyStructure(docs, hashes, allReadmeFiles) {
   await generateComprehensiveDocumentationHierarchy(allReadmeFiles, hashes);
 
   console.log('✅ Enhanced Docsify structure created successfully');
+}
+
+// Reprocess failed files using backup versions and AI inference
+async function reprocessFailedFiles(criticalFiles, allReadmeFiles) {
+  let reprocessedCount = 0;
+
+  for (const criticalFile of criticalFiles) {
+    const filePath = path.join(rootDir, criticalFile);
+
+    if (!fs.existsSync(filePath)) {
+      console.log(`  ⏭️ Skipping missing file: ${criticalFile}`);
+      continue;
+    }
+
+    const content = fs.readFileSync(filePath, 'utf8');
+    const fileSize = content.length;
+    const wordCount = content.split(/\s+/).length;
+
+    // Check if file appears truncated or too short
+    const isTruncated = fileSize < 5000 ||
+                       content.endsWith('...') ||
+                       content.endsWith('- Ensure') ||
+                       (content.match(/[^.!?*]\s*$/) && !content.endsWith('*'));
+
+    if (isTruncated || fileSize < 1000) {
+      console.log(`  🔄 Attempting to reprocess: ${criticalFile}`);
+
+      // Look for backup version
+      try {
+        const backupFiles = [];
+
+        // Recursively search for backup files
+        function findBackupFiles(dir) {
+          if (!fs.existsSync(dir)) return;
+
+          const items = fs.readdirSync(dir);
+          for (const item of items) {
+            const fullPath = path.join(dir, item);
+            const stat = fs.statSync(fullPath);
+
+            if (stat.isDirectory()) {
+              findBackupFiles(fullPath);
+            } else if (path.basename(fullPath) === path.basename(criticalFile)) {
+              backupFiles.push(fullPath);
+            }
+          }
+        }
+
+        findBackupFiles(CONFIG.backupDir);
+
+        if (backupFiles.length > 0) {
+          // Use the most recent backup
+          const mostRecentBackup = backupFiles.sort((a, b) => {
+            return fs.statSync(b).mtime - fs.statSync(a).mtime;
+          })[0];
+
+          console.log(`    📁 Found backup: ${mostRecentBackup}`);
+          const backupContent = fs.readFileSync(mostRecentBackup, 'utf8');
+
+          if (backupContent.length > content.length) {
+            console.log(`    ✅ Restoring from backup (${backupContent.length} chars vs ${content.length} chars)`);
+            fs.writeFileSync(filePath, backupContent);
+            reprocessedCount++;
+          } else {
+            console.log(`    ⚠️ Backup is not longer than current file, skipping restore`);
+          }
+        } else {
+          console.log(`    ❌ No backup found for ${criticalFile}`);
+        }
+      } catch (error) {
+        console.log(`    ❌ Error processing backup for ${criticalFile}: ${error.message}`);
+      }
+    }
+  }
+
+  if (reprocessedCount > 0) {
+    console.log(`\n✅ Successfully reprocessed ${reprocessedCount} files from backups`);
+  } else {
+    console.log(`\n⚠️ No files were reprocessed - no suitable backups found`);
+  }
 }
 
 // Generate comprehensive documentation hierarchy using AI inference

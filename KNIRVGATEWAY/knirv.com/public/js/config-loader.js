@@ -17,8 +17,17 @@ class KNIRVConfigLoader {
 
     async _fetchConfig() {
         try {
+            // Check if there's a script tag with portal-config id that specifies the config path
+            const configScript = document.getElementById('portal-config');
+            let configPath = './config/portal-links.yaml'; // default path
+
+            if (configScript && configScript.src) {
+                // Extract path from script src attribute
+                configPath = configScript.src.replace(window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/'), '');
+            }
+
             // Try to load YAML config first
-            const yamlResponse = await fetch('./config/portal-links.yaml');
+            const yamlResponse = await fetch(configPath);
             if (yamlResponse.ok) {
                 const yamlText = await yamlResponse.text();
                 this.config = this._parseYAML(yamlText);
