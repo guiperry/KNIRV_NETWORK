@@ -2838,8 +2838,23 @@ async function main() {
   // STEP 8: Save updated hashes
   saveHashes(hashes);
 
-  // STEP 9: Final validation check for critical files
-  console.log('\n🔍 STEP 9: Final validation of critical documentation files');
+  // STEP 9: Copy Docsify assets for CloudFlare Worker deployment
+  console.log('\n📦 STEP 9: Copying Docsify assets for CloudFlare Worker deployment');
+  try {
+    const { execSync } = require('child_process');
+    execSync('npm run copy-docsify-assets', {
+      cwd: path.join(__dirname, '..', 'KNIRVGATEWAY'),
+      stdio: 'inherit'
+    });
+    console.log('✅ Docsify assets copied successfully for CloudFlare Workers!');
+  } catch (error) {
+    console.warn('⚠️  Failed to copy Docsify assets:', error.message);
+    console.warn('   Documentation may not work properly in CloudFlare Workers');
+    console.warn('   Run "npm run copy-docsify-assets" manually in KNIRVGATEWAY directory');
+  }
+
+  // STEP 10: Final validation check for critical files
+  console.log('\n🔍 STEP 10: Final validation of critical documentation files');
   await performFinalValidation(allReadmeFiles);
 
   console.log('\n🎉 Enhanced documentation generation complete!');

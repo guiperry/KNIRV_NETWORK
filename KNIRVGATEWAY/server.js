@@ -269,16 +269,20 @@ async function startPersistentGateway() {
   } catch (error) {
     console.error('[Gateway] ❌ Failed to start persistent gateway:', error);
     console.error('[Gateway] ❌ Error details:', error.message);
+    console.error('[Gateway] ❌ Stack trace:', error.stack);
 
     // In production, continue without DHT rather than failing completely
     if (process.env.NODE_ENV === 'production') {
       console.log('[Gateway] ⚠️  Continuing without DHT in production mode');
+      console.log('[Gateway] ⚠️  Gateway will operate in degraded mode (no P2P functionality)');
       dhtManager = null;
       return;
     }
 
-    console.error('[Gateway] ❌ Stack trace:', error.stack);
-    throw error; // Re-throw to be caught by main()
+    // In development, also continue without DHT for easier debugging
+    console.log('[Gateway] ⚠️  Continuing without DHT for debugging');
+    dhtManager = null;
+    return;
   }
 }
 
@@ -301,6 +305,15 @@ async function main() {
     console.log(`[Gateway] Node.js version: ${process.version}`);
     console.log(`[Gateway] Platform: ${process.platform}`);
     console.log(`[Gateway] Architecture: ${process.arch}`);
+
+    // Log environment variables for debugging
+    console.log(`[Gateway] Environment variables:`);
+    console.log(`[Gateway]   NODE_ENV: ${process.env.NODE_ENV}`);
+    console.log(`[Gateway]   GATEWAY_MODE: ${process.env.GATEWAY_MODE}`);
+    console.log(`[Gateway]   DISABLE_DHT: ${process.env.DISABLE_DHT}`);
+    console.log(`[Gateway]   DHT_PORT: ${process.env.DHT_PORT}`);
+    console.log(`[Gateway]   KNIRV_BOOTSTRAP_PEERS: ${process.env.KNIRV_BOOTSTRAP_PEERS ? 'SET' : 'NOT SET'}`);
+    console.log(`[Gateway]   INTERNAL_API_KEY: ${process.env.INTERNAL_API_KEY ? 'SET' : 'NOT SET'}`);
 
     // Create Express app
     console.log(`[Gateway] Creating Express application...`);
