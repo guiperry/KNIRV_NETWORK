@@ -1,15 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import { Zap, Settings, Download, Eye, Code, Shield, Globe, Database, Terminal, Package } from 'lucide-react';
+import React from 'react';
+import { Zap, Settings, Eye, Code, Shield, Globe, Database, Terminal, Package } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { CapabilityStore } from './CapabilityStore';
 import { MCPCapabilityManager } from './MCPCapabilityManager';
-import { MCPServerBrowser } from './MCPServerBrowser';
+import MCPServerBrowser from './MCPServerBrowser';
+
+// Interface for MCP capability objects
+interface MCPCapability {
+  id: string;
+  name: string;
+  provider: string;
+  type: string;
+  status: string;
+  serverId: string;
+  description: string;
+  category: string;
+  transformedAt: number;
+}
 
 export const Capabilities: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { canAccessSubPage } = useAuth();
+
+  // Handler for when a server is installed
+  const handleServerInstalled = (capability: MCPCapability) => {
+    console.log('Server installed and transformed to capability:', capability);
+    // Could update state or notify parent component here if needed
+  };
+
+  // Handler for navigating back to capabilities
+  const handleNavigateToCapabilities = () => {
+    console.log('Navigating back to capabilities overview...');
+    navigate('/capabilities');
+  };
 
   // Check if we're on a sub-route
   const isSubRoute = location.pathname !== '/capabilities';
@@ -20,7 +45,10 @@ export const Capabilities: React.FC = () => {
       <Routes>
         <Route path="/capability-store" element={<CapabilityStore />} />
         <Route path="/mcp-manager" element={<MCPCapabilityManager />} />
-        <Route path="/mcp-servers" element={<MCPServerBrowser />} />
+        <Route path="/mcp-servers" element={<MCPServerBrowser
+          onServerInstalled={handleServerInstalled}
+          onNavigateToCapabilities={handleNavigateToCapabilities}
+        />} />
       </Routes>
     );
   }

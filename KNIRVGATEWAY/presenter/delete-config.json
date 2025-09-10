@@ -1,6 +1,0 @@
-{
-  "deletePassword": "KNIRV_DELETE_2024_SECURE",
-  "description": "Password required for presentation deletion functionality",
-  "lastUpdated": "2024-08-09",
-  "securityNote": "Change this password regularly and keep it secure"
-}

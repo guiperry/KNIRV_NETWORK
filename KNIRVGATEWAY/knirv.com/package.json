@@ -8,7 +8,9 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "deploy:production": "wrangler deploy --env production",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "docs:serve": "cd public/documentation && npm run serve",
+    "docs:start": "cd public/documentation && npm start"
   },
   "dependencies": {
     "@cloudflare/kv-asset-handler": "^0.3.0"

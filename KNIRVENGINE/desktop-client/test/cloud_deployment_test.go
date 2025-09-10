@@ -143,7 +143,7 @@ func TestCloudDeployment(t *testing.T) {
 
 		if err == nil {
 			// Check if production binary exists
-			binaryPath := filepath.Join(projectRoot, "/tmp/bin/AgenticInferenceEngine")
+			binaryPath := filepath.Join(projectRoot, "/tmp/bin/KNIRVENGINE")
 			if _, err := os.Stat(binaryPath); err == nil {
 				assert.FileExists(t, binaryPath)
 			}

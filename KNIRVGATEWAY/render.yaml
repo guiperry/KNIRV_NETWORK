@@ -1,11 +1,11 @@
 # Render deployment configuration for KNIRVGATEWAY
 # This configures the persistent DHT gateway instance
+# Note: Additional environment variables should be set in Render dashboard
 
 services:
   - type: web
     name: knirvgateway-persistent
     runtime: node
-    plan: starter
     buildCommand: npm install --include=dev && npm run build:persistent
     startCommand: npm run start:render
     envVars:
@@ -21,48 +21,10 @@ services:
         value: 4001
       - key: DISABLE_DHT
         value: "false"
-      # These will need to be set in Render dashboard:
-      # - KNIRV_BOOTSTRAP_PEERS (comma-separated list)
-      # - CLOUDFLARE_API_TOKEN
-      # - CLOUDFLARE_ZONE_ID
-      # - CLOUDFLARE_GATEWAY_RECORD_ID
-      # - INTERNAL_API_KEY (for serverless gateways to access)
-      # - INSTANCE_IP (will be auto-detected or set manually)
-      # Set DISABLE_DHT=true in Render dashboard to disable DHT for debugging
-
-    # Health check configuration
-    healthCheckPath: /health
-
-    # Auto-deploy from main branch
-    autoDeploy: true
-
-    # Resource allocation
-    disk:
-      name: knirvgateway-data
-      mountPath: /app/data
-      sizeGB: 1
-
-    # Environment-specific settings
-    region: oregon # or your preferred region
-
-    # Scaling configuration
-    numInstances: 1 # Single instance for bootstrap node
-
-    # Build settings
-    buildFilter:
-      paths:
-        - "**"
-      ignoredPaths:
-        - "documentation/**"
-        - "presenter/**"
-        - "forum/**"
-        - "support-desk/**"
-        - "*.md"
-        - ".git/**"
-
-# Database configuration (if needed for future enhancements)
-databases:
-  - name: knirvgateway-cache
-    databaseName: gateway_cache
-    user: gateway_user
-    plan: free # or starter for production
+    # Additional environment variables to set in Render dashboard:
+    # - KNIRV_BOOTSTRAP_PEERS (comma-separated list)
+    # - CLOUDFLARE_API_TOKEN
+    # - CLOUDFLARE_ZONE_ID
+    # - CLOUDFLARE_GATEWAY_RECORD_ID
+    # - INTERNAL_API_KEY (for serverless gateways to access)
+    # - INSTANCE_IP (will be auto-detected or set manually)
