@@ -94,7 +94,7 @@ Efficient serialization for WASM communication:
 - Type-safe data exchange between layers
 - Performance optimization for large data transfers
 
-### 5. **Cortex API** (`api/`)
+### 5. **Agent-Core API** (`api/`)
 RESTful API for agent management:
 - Agent compilation endpoints
 - Skill management and invocation
