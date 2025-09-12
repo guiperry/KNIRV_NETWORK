@@ -12,7 +12,7 @@ jest.mock('../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/sr
 }));
 
 // Import after mocking
-const { KnirvWallet } = require('../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/wallet/wallet');
+import { KnirvWallet } from '../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/wallet/wallet';
 import { JSONRPCProvider } from '@gnolang/tm2-js-client';
 import {
   TEST_MNEMONICS,

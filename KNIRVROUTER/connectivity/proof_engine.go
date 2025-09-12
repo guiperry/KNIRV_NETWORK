@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"math/big"
 	"net/http"
 	"sync"
@@ -58,6 +59,67 @@ type NRVMetadata struct {
 	Signature         string                 `json:"signature"`
 	TreasuryAddress   string                 `json:"treasury_address"`
 	Status            string                 `json:"status"` // "minted", "transferred", "confirmed"
+	// Enhanced fields for production network
+	NetworkMetrics  *NetworkMetrics  `json:"network_metrics,omitempty"`
+	RouteQuality    *RouteQuality    `json:"route_quality,omitempty"`
+	TokenMetadata   *TokenMetadata   `json:"token_metadata,omitempty"`
+	ValidationProof *ValidationProof `json:"validation_proof,omitempty"`
+}
+
+// NetworkMetrics contains detailed network performance data
+type NetworkMetrics struct {
+	Latency          time.Duration `json:"latency"`
+	Throughput       float64       `json:"throughput"`
+	PacketLoss       float64       `json:"packet_loss"`
+	Jitter           time.Duration `json:"jitter"`
+	Bandwidth        float64       `json:"bandwidth"`
+	Reliability      float64       `json:"reliability"`
+	GeographicSpread []string      `json:"geographic_spread"`
+	PeerCount        int           `json:"peer_count"`
+	UpstreamNodes    []string      `json:"upstream_nodes"`
+	DownstreamNodes  []string      `json:"downstream_nodes"`
+}
+
+// RouteQuality represents the quality assessment of a network route
+type RouteQuality struct {
+	OverallScore       float64   `json:"overall_score"`
+	StabilityScore     float64   `json:"stability_score"`
+	PerformanceScore   float64   `json:"performance_score"`
+	SecurityScore      float64   `json:"security_score"`
+	RedundancyScore    float64   `json:"redundancy_score"`
+	QualityGrade       string    `json:"quality_grade"` // A, B, C, D, F
+	CertificationLevel string    `json:"certification_level"`
+	ValidatedAt        time.Time `json:"validated_at"`
+}
+
+// TokenMetadata contains NRV token-specific metadata
+type TokenMetadata struct {
+	TokenStandard        string                 `json:"token_standard"` // NRV-1.0
+	MintingAuthority     string                 `json:"minting_authority"`
+	TransferRestrictions []string               `json:"transfer_restrictions"`
+	ExpirationTime       *time.Time             `json:"expiration_time,omitempty"`
+	Attributes           map[string]interface{} `json:"attributes"`
+	IPFSHash             string                 `json:"ipfs_hash,omitempty"`
+	OnChainReference     string                 `json:"onchain_reference"`
+}
+
+// ValidationProof contains cryptographic proof of route validation
+type ValidationProof struct {
+	ProofType           string               `json:"proof_type"` // merkle, zk-snark, etc.
+	ProofData           []byte               `json:"proof_data"`
+	ValidatorSignatures []ValidatorSignature `json:"validator_signatures"`
+	MerkleRoot          string               `json:"merkle_root"`
+	BlockHeight         uint64               `json:"block_height"`
+	ConsensusRound      uint64               `json:"consensus_round"`
+}
+
+// ValidatorSignature represents a validator's signature on the proof
+type ValidatorSignature struct {
+	ValidatorID string    `json:"validator_id"`
+	PublicKey   string    `json:"public_key"`
+	Signature   string    `json:"signature"`
+	Timestamp   time.Time `json:"timestamp"`
+	StakeWeight *big.Int  `json:"stake_weight"`
 }
 
 // TreasuryTransferRequest represents a request to transfer NRV to KNIRVORACLE treasury
@@ -714,7 +776,19 @@ func (cpe *ConnectivityProofEngine) mintNRV(proof ConnectivityProof) *NRVMetadat
 		routeData["reliability_ratio"] = float64(reliablePeers) / float64(measurementCount)
 	}
 
-	// Create NRV metadata
+	// Create enhanced network metrics
+	networkMetrics := cpe.generateNetworkMetrics(proof)
+
+	// Create route quality assessment
+	routeQuality := cpe.assessRouteQuality(proof)
+
+	// Create token metadata
+	tokenMetadata := cpe.generateTokenMetadata(nrvID, proof)
+
+	// Create validation proof
+	validationProof := cpe.generateValidationProof(proof)
+
+	// Create NRV metadata with enhanced fields
 	nrvMetadata := &NRVMetadata{
 		NRVID:             nrvID,
 		ProofID:           proof.ProofID,
@@ -725,6 +799,10 @@ func (cpe *ConnectivityProofEngine) mintNRV(proof ConnectivityProof) *NRVMetadat
 		Timestamp:         time.Now(),
 		TreasuryAddress:   "knirvoracle_treasury_wallet", // Should be configurable
 		Status:            "minted",
+		NetworkMetrics:    networkMetrics,
+		RouteQuality:      routeQuality,
+		TokenMetadata:     tokenMetadata,
+		ValidationProof:   validationProof,
 	}
 
 	// Generate signature for NRV (simplified - in production would use proper cryptographic signing)
@@ -771,6 +849,216 @@ func (cpe *ConnectivityProofEngine) transferNRVToTreasury(nrvMetadata *NRVMetada
 
 	log.Printf("Successfully transferred NRV %s to treasury", nrvMetadata.NRVID)
 	return nil
+}
+
+// generateNetworkMetrics creates detailed network metrics from connectivity proof
+func (cpe *ConnectivityProofEngine) generateNetworkMetrics(proof ConnectivityProof) *NetworkMetrics {
+	if len(proof.Measurements) == 0 {
+		return &NetworkMetrics{
+			PeerCount:   0,
+			Reliability: 0.0,
+		}
+	}
+
+	var totalLatency time.Duration
+	var totalThroughput float64
+	var totalPacketLoss float64
+	var totalBandwidth float64
+	var reliableCount int
+	upstreamNodes := make([]string, 0)
+	downstreamNodes := make([]string, 0)
+	geoSpread := make(map[string]bool)
+
+	for _, measurement := range proof.Measurements {
+		totalLatency += measurement.Latency
+		totalThroughput += measurement.Bandwidth // Using bandwidth as throughput proxy
+		totalPacketLoss += measurement.PacketLoss
+		totalBandwidth += measurement.Bandwidth
+
+		if measurement.IsReliable {
+			reliableCount++
+		}
+
+		// Collect node information
+		nodeStr := measurement.PeerID.String()
+		upstreamNodes = append(upstreamNodes, nodeStr)
+
+		// Simulate geographic spread (in production, would use actual geo data)
+		geoSpread["region_"+nodeStr[:8]] = true
+	}
+
+	measurementCount := len(proof.Measurements)
+	geoSpreadSlice := make([]string, 0, len(geoSpread))
+	for region := range geoSpread {
+		geoSpreadSlice = append(geoSpreadSlice, region)
+	}
+
+	return &NetworkMetrics{
+		Latency:          totalLatency / time.Duration(measurementCount),
+		Throughput:       totalThroughput / float64(measurementCount),
+		PacketLoss:       totalPacketLoss / float64(measurementCount),
+		Jitter:           time.Duration(0), // Simplified - would calculate from latency variance in production
+		Bandwidth:        totalBandwidth / float64(measurementCount),
+		Reliability:      float64(reliableCount) / float64(measurementCount),
+		GeographicSpread: geoSpreadSlice,
+		PeerCount:        measurementCount,
+		UpstreamNodes:    upstreamNodes,
+		DownstreamNodes:  downstreamNodes,
+	}
+}
+
+// assessRouteQuality evaluates the quality of a network route
+func (cpe *ConnectivityProofEngine) assessRouteQuality(proof ConnectivityProof) *RouteQuality {
+	// Calculate individual scores based on proof data
+	stabilityScore := cpe.calculateStabilityScore(proof)
+	performanceScore := cpe.calculatePerformanceScore(proof)
+	securityScore := cpe.calculateSecurityScore(proof)
+	redundancyScore := cpe.calculateRedundancyScore(proof)
+
+	// Calculate overall score as weighted average
+	overallScore := (stabilityScore*0.3 + performanceScore*0.3 + securityScore*0.2 + redundancyScore*0.2)
+
+	// Determine quality grade
+	var grade string
+	switch {
+	case overallScore >= 0.9:
+		grade = "A"
+	case overallScore >= 0.8:
+		grade = "B"
+	case overallScore >= 0.7:
+		grade = "C"
+	case overallScore >= 0.6:
+		grade = "D"
+	default:
+		grade = "F"
+	}
+
+	// Determine certification level
+	certLevel := "basic"
+	if overallScore >= 0.85 {
+		certLevel = "premium"
+	} else if overallScore >= 0.75 {
+		certLevel = "standard"
+	}
+
+	return &RouteQuality{
+		OverallScore:       overallScore,
+		StabilityScore:     stabilityScore,
+		PerformanceScore:   performanceScore,
+		SecurityScore:      securityScore,
+		RedundancyScore:    redundancyScore,
+		QualityGrade:       grade,
+		CertificationLevel: certLevel,
+		ValidatedAt:        time.Now(),
+	}
+}
+
+// generateTokenMetadata creates token-specific metadata for NRV
+func (cpe *ConnectivityProofEngine) generateTokenMetadata(nrvID string, proof ConnectivityProof) *TokenMetadata {
+	attributes := make(map[string]interface{})
+	attributes["proof_type"] = "connectivity"
+	attributes["node_count"] = len(proof.Measurements)
+	attributes["aggregate_score"] = proof.AggregateScore
+	attributes["verification_timestamp"] = proof.Timestamp.Unix()
+	attributes["network_version"] = "knirv-1.0"
+
+	// Add route-specific attributes
+	if len(proof.Measurements) > 0 {
+		attributes["primary_node"] = proof.NodeID.String()
+		attributes["measurement_count"] = len(proof.Measurements)
+	}
+
+	return &TokenMetadata{
+		TokenStandard:        "NRV-1.0",
+		MintingAuthority:     "knirvrouter_proof_engine",
+		TransferRestrictions: []string{"treasury_only", "validated_nodes"},
+		Attributes:           attributes,
+		OnChainReference:     fmt.Sprintf("knirv://nrv/%s", nrvID),
+	}
+}
+
+// generateValidationProof creates cryptographic validation proof
+func (cpe *ConnectivityProofEngine) generateValidationProof(proof ConnectivityProof) *ValidationProof {
+	// Create simplified validation proof (in production would use proper cryptography)
+	proofData := []byte(fmt.Sprintf("proof_%s_%d", proof.ProofID, proof.Timestamp.Unix()))
+
+	// Generate mock validator signatures (in production would be real validators)
+	signatures := []ValidatorSignature{
+		{
+			ValidatorID: "validator_1",
+			PublicKey:   "mock_public_key_1",
+			Signature:   fmt.Sprintf("sig_%s_1", proof.ProofID),
+			Timestamp:   time.Now(),
+			StakeWeight: big.NewInt(1000000),
+		},
+	}
+
+	return &ValidationProof{
+		ProofType:           "merkle",
+		ProofData:           proofData,
+		ValidatorSignatures: signatures,
+		MerkleRoot:          fmt.Sprintf("merkle_%s", proof.ProofHash),
+		BlockHeight:         uint64(time.Now().Unix()),
+		ConsensusRound:      1,
+	}
+}
+
+// Helper methods for route quality calculation
+func (cpe *ConnectivityProofEngine) calculateStabilityScore(proof ConnectivityProof) float64 {
+	if len(proof.Measurements) == 0 {
+		return 0.0
+	}
+
+	reliableCount := 0
+	for _, measurement := range proof.Measurements {
+		if measurement.IsReliable {
+			reliableCount++
+		}
+	}
+
+	return float64(reliableCount) / float64(len(proof.Measurements))
+}
+
+func (cpe *ConnectivityProofEngine) calculatePerformanceScore(proof ConnectivityProof) float64 {
+	if len(proof.Measurements) == 0 {
+		return 0.0
+	}
+
+	var totalLatency time.Duration
+	var totalPacketLoss float64
+
+	for _, measurement := range proof.Measurements {
+		totalLatency += measurement.Latency
+		totalPacketLoss += measurement.PacketLoss
+	}
+
+	avgLatency := totalLatency / time.Duration(len(proof.Measurements))
+	avgPacketLoss := totalPacketLoss / float64(len(proof.Measurements))
+
+	// Score based on latency (lower is better) and packet loss (lower is better)
+	latencyScore := 1.0 - math.Min(float64(avgLatency.Milliseconds())/1000.0, 1.0)
+	packetLossScore := 1.0 - math.Min(avgPacketLoss, 1.0)
+
+	return (latencyScore + packetLossScore) / 2.0
+}
+
+func (cpe *ConnectivityProofEngine) calculateSecurityScore(proof ConnectivityProof) float64 {
+	// Simplified security score based on proof verification
+	if proof.Verified {
+		return 0.8 // Base security score for verified proofs
+	}
+	return 0.2
+}
+
+func (cpe *ConnectivityProofEngine) calculateRedundancyScore(proof ConnectivityProof) float64 {
+	// Score based on number of measurements (more redundancy is better)
+	measurementCount := len(proof.Measurements)
+	if measurementCount == 0 {
+		return 0.0
+	}
+
+	// Normalize to 0-1 scale, with diminishing returns
+	return math.Min(float64(measurementCount)/10.0, 1.0)
 }
 
 // generateNRVSignature creates a signature for NRV metadata (simplified implementation)

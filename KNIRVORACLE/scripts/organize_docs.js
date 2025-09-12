@@ -54,7 +54,7 @@ const STRUCTURE = {
   'components': {
     'index.md': { title: 'Components', content: '' },
     'agent-tunnel-registry.md': { title: 'Agent Tunnel Registry', content: '' },
-    'agent-bootnode-registry.md': { title: 'Agent Bootnode Registry', content: '' },
+    'operator-registry.md': { title: 'Agent Bootnode Registry', content: '' },
     'agent-payment-gateway.md': { title: 'Agent Payment Gateway', content: '' },
     'agent-developer-portal.md': { title: 'Agent Developer Portal', content: '' },
     'altgui.md': { title: 'Alternative GUI', content: '' }
@@ -112,7 +112,7 @@ const CONTENT_MAPPING = {
   'getting-started/configuration.md': ['protocols/Blockchain_README.md'],
   'getting-started/quick-start.md': ['protocols/Blockchain_README.md'],
   'components/agent-tunnel-registry.md': ['protocols/tunnel_relay_implementation_summary.md'],
-  'components/agent-bootnode-registry.md': ['protocols/Bootnode_Registry_Protocol.md'],
+  'components/operator-registry.md': ['protocols/Bootnode_Registry_Protocol.md'],
   'guides/running-a-node.md': ['protocols/Blockchain_README.md'],
   'guides/developing-plugins.md': ['protocols/Plugin_Updater_Protocol.md']
 };

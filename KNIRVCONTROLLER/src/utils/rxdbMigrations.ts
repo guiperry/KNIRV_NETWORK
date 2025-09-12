@@ -3,7 +3,7 @@
  * Handles database schema migrations and data transformations
  */
 
-import { RxDatabase, RxCollection, RxDocument } from 'rxdb';
+import { RxDatabase, RxCollection } from 'rxdb';
 
 export interface MigrationStrategy {
   fromVersion: number;
@@ -327,7 +327,7 @@ export class DatabaseMigrationManager {
         return versionDoc ? versionDoc.value : 0;
       }
       return 0;
-    } catch (error) {
+    } catch (_error) {
       console.warn('Could not determine database version, assuming version 0');
       return 0;
     }

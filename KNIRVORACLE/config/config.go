@@ -281,24 +281,24 @@ func MergeConfigs(dst, src *Config) *Config {
 	}
 
 	// Merge new Node.js services
-	if src.NodeJSServices.BootnodeRegistry.Enabled {
-		merged.NodeJSServices.BootnodeRegistry.Enabled = true
+	if src.NodeJSServices.OperatorRegistry.Enabled {
+		merged.NodeJSServices.OperatorRegistry.Enabled = true
 	}
-	if src.NodeJSServices.BootnodeRegistry.ScriptPath != "" {
-		merged.NodeJSServices.BootnodeRegistry.ScriptPath = src.NodeJSServices.BootnodeRegistry.ScriptPath
+	if src.NodeJSServices.OperatorRegistry.ScriptPath != "" {
+		merged.NodeJSServices.OperatorRegistry.ScriptPath = src.NodeJSServices.OperatorRegistry.ScriptPath
 	}
-	if src.NodeJSServices.BootnodeRegistry.HTTPPort != 0 {
-		merged.NodeJSServices.BootnodeRegistry.HTTPPort = src.NodeJSServices.BootnodeRegistry.HTTPPort
+	if src.NodeJSServices.OperatorRegistry.HTTPPort != 0 {
+		merged.NodeJSServices.OperatorRegistry.HTTPPort = src.NodeJSServices.OperatorRegistry.HTTPPort
 	}
 
-	if src.NodeJSServices.NotarySystem.Enabled {
-		merged.NodeJSServices.NotarySystem.Enabled = true
+	if src.NodeJSServices.WebGUI.Enabled {
+		merged.NodeJSServices.WebGUI.Enabled = true
 	}
-	if src.NodeJSServices.NotarySystem.ScriptPath != "" {
-		merged.NodeJSServices.NotarySystem.ScriptPath = src.NodeJSServices.NotarySystem.ScriptPath
+	if src.NodeJSServices.WebGUI.ScriptPath != "" {
+		merged.NodeJSServices.WebGUI.ScriptPath = src.NodeJSServices.WebGUI.ScriptPath
 	}
-	if src.NodeJSServices.NotarySystem.HTTPPort != 0 {
-		merged.NodeJSServices.NotarySystem.HTTPPort = src.NodeJSServices.NotarySystem.HTTPPort
+	if src.NodeJSServices.WebGUI.HTTPPort != 0 {
+		merged.NodeJSServices.WebGUI.HTTPPort = src.NodeJSServices.WebGUI.HTTPPort
 	}
 
 	if src.NodeJSServices.NetworkMonitor.Enabled {
@@ -432,15 +432,15 @@ type NodeJSServicesConfig struct {
 		APIKey     string `json:"api_key_secret"` // API key for interacting with the portal
 	} `json:"developer_portal"`
 
-	// BootnodeRegistry service
-	BootnodeRegistry struct {
+	// OperatorRegistry service
+	OperatorRegistry struct {
 		Enabled    bool   `json:"enabled"`
 		ScriptPath string `json:"script_path"` // Path to bootnode-registry-service.js
 		HTTPPort   uint   `json:"http_port"`   // Port for bootnode registry API (e.g., 3006)
 	} `json:"bootnode_registry"`
 
-	// NotarySystem service
-	NotarySystem struct {
+	// WebGUI service
+	WebGUI struct {
 		Enabled    bool   `json:"enabled"`
 		ScriptPath string `json:"script_path"` // Path to notary-system-service.js
 		HTTPPort   uint   `json:"http_port"`   // Port for notary system API (e.g., 3007)
@@ -487,44 +487,44 @@ type PoAuDConfig struct {
 
 // Config holds the application configuration
 type Config struct {
-	NodeName               string                     `json:"node_name,omitempty" mapstructure:"node_name,nodeName"` // Node name for identification
-	ExperimentalFeatures   ExperimentalFeaturesConfig `json:"experimental_features" mapstructure:"experimentalFeatures"`
-	Port                   uint64                     `json:"port" mapstructure:"port,httpPort"`        // Accept both port and httpPort in config
-	P2PPort                uint64                     `json:"p2p_port" mapstructure:"p2p_port,p2pPort"` // Accept both p2p_port and p2pPort in config
-	Relay                  RelayConfig                `json:"relay" mapstructure:"relay"`               // Circuit relay configuration
-	ConsensusPauseTime     int                        `json:"consensus_pause_time" mapstructure:"consensus_pause_time,consensusPauseTime"`
-	WalletPort             uint64                     `json:"wallet_port" mapstructure:"wallet_port,walletPort"`
-	AltGUIPort             uint64                     `json:"alt_gui_port" mapstructure:"alt_gui_port,altGUIPort"` // Port for alternate GUI (Next.js)
-	BlockchainDatabasePath string                     `json:"shared_database_path" mapstructure:"shared_database_path,sharedDatabasePath"`
-	SearchableDatabasePath string                     `json:"searchable_database_path,omitempty" mapstructure:"searchable_database_path,searchableDatabasePath"` // Specific for dev mode, corrected tag
-	ReflectionDatabasePath string                     `json:"reflection_database_path,omitempty" mapstructure:"reflection_database_path,reflectionDatabasePath"` // Specific for network mode
-	MinersAddress          string                     `json:"miners_address" mapstructure:"miners_address,minersAddress"`
-	MasterAddress          string                     `json:"master_address,omitempty" mapstructure:"master_address,masterAddress"`
-	NoWalletServer         bool                       `json:"no_wallet_server" mapstructure:"no_wallet_server,noWalletServer"`
-	ClientOnly             bool                       `json:"client_only" mapstructure:"client_only,clientOnly"`
-	UseGUI                 bool                       `json:"use_gui" mapstructure:"use_gui,useGUI"`
-	ReflectionURLs         []string                   `json:"reflection_urls" mapstructure:"reflection_urls,reflectionURLs"`
-	ChainID                string                     `json:"chain_id" mapstructure:"chainID"` // Changed to just "chainID" to exactly match JSON key
-	InstallComplete        bool                       `json:"install_complete" mapstructure:"install_complete,installComplete"`
-	IsRoot                 bool                       `json:"is_root" mapstructure:"is_root,IsRoot"`
-	IsBootnode             bool                       `json:"is_bootnode" mapstructure:"is_bootnode,IsBootnode"`            // General bootnode flag
-	IsPeer                 bool                       `json:"is_dev" mapstructure:"is_dev,IsPeer"`                          // New field
-	IsNetworkMode          bool                       `json:"is_network_mode" mapstructure:"is_network_mode,isNetworkMode"` // Network mode flag
-	CurrentOracleNodeAPIURL string                    `json:"current_oracle_node_api_url,omitempty" mapstructure:"current_oracle_node_api_url,omitempty"` // URL for bootnodes to monitor
-	PaymentProcessor       PaymentProcessorConfig     `json:"payment_processor" mapstructure:"paymentProcessor"`
-	Bootnode               BootnodeConfig             `json:"bootnode_settings" mapstructure:"bootnodeSettings"`                // Specific bootnode settings
-	ReflectionHTTPPort     uint64                     `json:"reflection_http_port,omitempty" mapstructure:"reflectionHTTPPort"` // Specific for network mode
-	ReflectionP2PPort      uint64                     `json:"reflection_p2p_port,omitempty" mapstructure:"reflectionP2PPort"`   // Specific for network mode
-	NodeJSServices         NodeJSServicesConfig       `json:"node_js_services" mapstructure:"nodeJSServices"`                   // Node.js services configuration
-	TunnelClient           TunnelClientConfig         `json:"tunnel_client" mapstructure:"tunnelClient"`                        // Tunnel client configuration
-	ReverseProxy           ReverseProxyConfig         `json:"reverse_proxy" mapstructure:"reverse_proxy"`
-	DataEngine             DataEngineConfig           `json:"data_engine" mapstructure:"data_engine"`               // Data engine configuration
-	InferenceEngine        InferenceEngineConfig      `json:"inference_engine" mapstructure:"inference_engine"`     // Inference engine configuration
-	AgentMode              AgentModeConfig            `json:"agent_mode" mapstructure:"agent_mode"`                 // Agent mode configuration
-	Testnet                TestnetConfig              `json:"testnet" mapstructure:"testnet"`                       // Testnet configuration
-	PublicIPInfo           map[string]interface{}     `json:"public_ip_info,omitempty" mapstructure:"publicIPInfo"` // Stores the full JSON response from IPinfo.io
-	Chromem                ChromemConfig              `json:"chromem_config" mapstructure:"chromem"`                // Add Chromem config struct
-	P2P                    struct {
+	NodeName                string                     `json:"node_name,omitempty" mapstructure:"node_name,nodeName"` // Node name for identification
+	ExperimentalFeatures    ExperimentalFeaturesConfig `json:"experimental_features" mapstructure:"experimentalFeatures"`
+	Port                    uint64                     `json:"port" mapstructure:"port,httpPort"`        // Accept both port and httpPort in config
+	P2PPort                 uint64                     `json:"p2p_port" mapstructure:"p2p_port,p2pPort"` // Accept both p2p_port and p2pPort in config
+	Relay                   RelayConfig                `json:"relay" mapstructure:"relay"`               // Circuit relay configuration
+	ConsensusPauseTime      int                        `json:"consensus_pause_time" mapstructure:"consensus_pause_time,consensusPauseTime"`
+	WalletPort              uint64                     `json:"wallet_port" mapstructure:"wallet_port,walletPort"`
+	AltGUIPort              uint64                     `json:"alt_gui_port" mapstructure:"alt_gui_port,altGUIPort"` // Port for alternate GUI (Next.js)
+	BlockchainDatabasePath  string                     `json:"shared_database_path" mapstructure:"shared_database_path,sharedDatabasePath"`
+	SearchableDatabasePath  string                     `json:"searchable_database_path,omitempty" mapstructure:"searchable_database_path,searchableDatabasePath"` // Specific for dev mode, corrected tag
+	ReflectionDatabasePath  string                     `json:"reflection_database_path,omitempty" mapstructure:"reflection_database_path,reflectionDatabasePath"` // Specific for network mode
+	MinersAddress           string                     `json:"miners_address" mapstructure:"miners_address,minersAddress"`
+	MasterAddress           string                     `json:"master_address,omitempty" mapstructure:"master_address,masterAddress"`
+	NoWalletServer          bool                       `json:"no_wallet_server" mapstructure:"no_wallet_server,noWalletServer"`
+	ClientOnly              bool                       `json:"client_only" mapstructure:"client_only,clientOnly"`
+	UseGUI                  bool                       `json:"use_gui" mapstructure:"use_gui,useGUI"`
+	ReflectionURLs          []string                   `json:"reflection_urls" mapstructure:"reflection_urls,reflectionURLs"`
+	ChainID                 string                     `json:"chain_id" mapstructure:"chainID"` // Changed to just "chainID" to exactly match JSON key
+	InstallComplete         bool                       `json:"install_complete" mapstructure:"install_complete,installComplete"`
+	IsRoot                  bool                       `json:"is_root" mapstructure:"is_root,IsRoot"`
+	IsBootnode              bool                       `json:"is_bootnode" mapstructure:"is_bootnode,IsBootnode"`                                          // General bootnode flag
+	IsPeer                  bool                       `json:"is_dev" mapstructure:"is_dev,IsPeer"`                                                        // New field
+	IsNetworkMode           bool                       `json:"is_network_mode" mapstructure:"is_network_mode,isNetworkMode"`                               // Network mode flag
+	CurrentOracleNodeAPIURL string                     `json:"current_oracle_node_api_url,omitempty" mapstructure:"current_oracle_node_api_url,omitempty"` // URL for bootnodes to monitor
+	PaymentProcessor        PaymentProcessorConfig     `json:"payment_processor" mapstructure:"paymentProcessor"`
+	Bootnode                BootnodeConfig             `json:"bootnode_settings" mapstructure:"bootnodeSettings"`                // Specific bootnode settings
+	ReflectionHTTPPort      uint64                     `json:"reflection_http_port,omitempty" mapstructure:"reflectionHTTPPort"` // Specific for network mode
+	ReflectionP2PPort       uint64                     `json:"reflection_p2p_port,omitempty" mapstructure:"reflectionP2PPort"`   // Specific for network mode
+	NodeJSServices          NodeJSServicesConfig       `json:"node_js_services" mapstructure:"nodeJSServices"`                   // Node.js services configuration
+	TunnelClient            TunnelClientConfig         `json:"tunnel_client" mapstructure:"tunnelClient"`                        // Tunnel client configuration
+	ReverseProxy            ReverseProxyConfig         `json:"reverse_proxy" mapstructure:"reverse_proxy"`
+	DataEngine              DataEngineConfig           `json:"data_engine" mapstructure:"data_engine"`               // Data engine configuration
+	InferenceEngine         InferenceEngineConfig      `json:"inference_engine" mapstructure:"inference_engine"`     // Inference engine configuration
+	AgentMode               AgentModeConfig            `json:"agent_mode" mapstructure:"agent_mode"`                 // Agent mode configuration
+	Testnet                 TestnetConfig              `json:"testnet" mapstructure:"testnet"`                       // Testnet configuration
+	PublicIPInfo            map[string]interface{}     `json:"public_ip_info,omitempty" mapstructure:"publicIPInfo"` // Stores the full JSON response from IPinfo.io
+	Chromem                 ChromemConfig              `json:"chromem_config" mapstructure:"chromem"`                // Add Chromem config struct
+	P2P                     struct {
 		RootNodeURI string `json:"root_node_uri" mapstructure:"rootNodeURI"`
 	} `json:"p2p" mapstructure:"p2p"`
 	TerminalIntegration *TerminalIntegration `json:"terminal_integration"`
@@ -671,22 +671,22 @@ func DefaultConfig() *Config {
 				HTTPPort:   3004,
 				APIKey:     "", // Will be set from environment or config
 			},
-			BootnodeRegistry: struct {
+			OperatorRegistry: struct {
 				Enabled    bool   `json:"enabled"`
 				ScriptPath string `json:"script_path"`
 				HTTPPort   uint   `json:"http_port"`
 			}{
 				Enabled:    true, // Enable by default for root nodes
-				ScriptPath: "agent-bootnode-registry/registry-service.js",
+				ScriptPath: "operator-registry/registry-service.js",
 				HTTPPort:   3003,
 			},
-			NotarySystem: struct {
+			WebGUI: struct {
 				Enabled    bool   `json:"enabled"`
 				ScriptPath string `json:"script_path"`
 				HTTPPort   uint   `json:"http_port"`
 			}{
 				Enabled:    true, // Enable by default for root nodes
-				ScriptPath: "agent-notary-system/server.js",
+				ScriptPath: "webGUI/server.js",
 				HTTPPort:   3007,
 			},
 			NetworkMonitor: struct {

@@ -31,7 +31,7 @@
       - name: "bootnode-registry"
         port: "{{ bootnode_registry_port }}"
         enabled: true
-        script_path: "agent-bootnode-registry/server.js"
+        script_path: "operator-registry/registry-service.js"
       - name: "tunnel-registry"
         port: "{{ tunnel_registry_port }}"
         enabled: true

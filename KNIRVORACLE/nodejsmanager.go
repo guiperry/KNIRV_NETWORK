@@ -239,34 +239,34 @@ func (m *NodeJSManager) StartPaymentGateway() error {
 	return nil
 }
 
-// StartBootnodeRegistry starts the bootnode registry service
-func (m *NodeJSManager) StartBootnodeRegistry() error {
+// StartOperatorRegistry starts the operator registry service
+func (m *NodeJSManager) StartOperatorRegistry() error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	if !m.Config.Enabled || !m.Config.BootnodeRegistry.Enabled {
-		return fmt.Errorf("bootnode registry service is not enabled in configuration")
+	if !m.Config.Enabled || !m.Config.OperatorRegistry.Enabled {
+		return fmt.Errorf("operator registry service is not enabled in configuration")
 	}
 
 	// Check if already running
-	if _, exists := m.Processes["bootnode-registry"]; exists {
-		return fmt.Errorf("bootnode registry service is already running")
+	if _, exists := m.Processes["operator-registry"]; exists {
+		return fmt.Errorf("operator registry service is already running")
 	}
 
-	scriptPath := m.Config.BootnodeRegistry.ScriptPath
+	scriptPath := m.Config.OperatorRegistry.ScriptPath
 	if scriptPath == "" {
-		return fmt.Errorf("no script path provided for bootnode registry service")
+		return fmt.Errorf("no script path provided for operator registry service")
 	}
 
 	// Check if the script exists
 	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
-		return fmt.Errorf("script not found for bootnode registry service: %s", scriptPath)
+		return fmt.Errorf("script not found for operator registry service: %s", scriptPath)
 	}
 
 	// --- Find available port ---
-	actualHTTPPort := utils.FindAvailablePort(uint64(m.Config.BootnodeRegistry.HTTPPort))
-	if actualHTTPPort != uint64(m.Config.BootnodeRegistry.HTTPPort) {
-		log.Printf("[BootnodeRegistry] HTTP Port %d in use, using %d instead.", m.Config.BootnodeRegistry.HTTPPort, actualHTTPPort)
+	actualHTTPPort := utils.FindAvailablePort(uint64(m.Config.OperatorRegistry.HTTPPort))
+	if actualHTTPPort != uint64(m.Config.OperatorRegistry.HTTPPort) {
+		log.Printf("[OperatorRegistry] HTTP Port %d in use, using %d instead.", m.Config.OperatorRegistry.HTTPPort, actualHTTPPort)
 	}
 
 	// Prepare environment variables
@@ -282,24 +282,24 @@ func (m *NodeJSManager) StartBootnodeRegistry() error {
 	// Capture stdout and stderr
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return fmt.Errorf("failed to capture stdout for bootnode registry service: %v", err)
+		return fmt.Errorf("failed to capture stdout for operator registry service: %v", err)
 	}
 
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		return fmt.Errorf("failed to capture stderr for bootnode registry service: %v", err)
+		return fmt.Errorf("failed to capture stderr for operator registry service: %v", err)
 	}
 
 	// Start the process
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start bootnode registry service: %v", err)
+		return fmt.Errorf("failed to start operator registry service: %v", err)
 	}
 
-	log.Printf("Started bootnode registry service (PID: %d)", cmd.Process.Pid)
+	log.Printf("Started operator registry service (PID: %d)", cmd.Process.Pid)
 
 	// Create a process object
 	process := &NodeJSProcess{
-		Name:       "bootnode-registry",
+		Name:       "operator-registry",
 		Cmd:        cmd,
 		StdoutPipe: bufio.NewScanner(stdout),
 		StderrPipe: bufio.NewScanner(stderr),
@@ -309,19 +309,19 @@ func (m *NodeJSManager) StartBootnodeRegistry() error {
 	// Handle stdout in a goroutine
 	go func() {
 		for process.StdoutPipe.Scan() {
-			log.Printf("[BootnodeRegistry] %s", process.StdoutPipe.Text())
+			log.Printf("[OperatorRegistry] %s", process.StdoutPipe.Text())
 		}
 	}()
 
 	// Handle stderr in a goroutine
 	go func() {
 		for process.StderrPipe.Scan() {
-			log.Printf("[BootnodeRegistry ERROR] %s", process.StderrPipe.Text())
+			log.Printf("[OperatorRegistry ERROR] %s", process.StderrPipe.Text())
 		}
 	}()
 
 	// Store the process
-	m.Processes["bootnode-registry"] = process
+	m.Processes["operator-registry"] = process
 
 	return nil
 }
@@ -331,7 +331,7 @@ func (m *NodeJSManager) StartNotarySystem() error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	if !m.Config.Enabled || !m.Config.NotarySystem.Enabled {
+	if !m.Config.Enabled || !m.Config.WebGUI.Enabled {
 		return fmt.Errorf("notary system service is not enabled in configuration")
 	}
 
@@ -340,7 +340,7 @@ func (m *NodeJSManager) StartNotarySystem() error {
 		return fmt.Errorf("notary system service is already running")
 	}
 
-	scriptPath := m.Config.NotarySystem.ScriptPath
+	scriptPath := m.Config.WebGUI.ScriptPath
 	if scriptPath == "" {
 		return fmt.Errorf("no script path provided for notary system service")
 	}
@@ -351,9 +351,9 @@ func (m *NodeJSManager) StartNotarySystem() error {
 	}
 
 	// --- Find available port ---
-	actualHTTPPort := utils.FindAvailablePort(uint64(m.Config.NotarySystem.HTTPPort))
-	if actualHTTPPort != uint64(m.Config.NotarySystem.HTTPPort) {
-		log.Printf("[NotarySystem] HTTP Port %d in use, using %d instead.", m.Config.NotarySystem.HTTPPort, actualHTTPPort)
+	actualHTTPPort := utils.FindAvailablePort(uint64(m.Config.WebGUI.HTTPPort))
+	if actualHTTPPort != uint64(m.Config.WebGUI.HTTPPort) {
+		log.Printf("[WebGUI] HTTP Port %d in use, using %d instead.", m.Config.WebGUI.HTTPPort, actualHTTPPort)
 	}
 
 	// Prepare environment variables
@@ -396,14 +396,14 @@ func (m *NodeJSManager) StartNotarySystem() error {
 	// Handle stdout in a goroutine
 	go func() {
 		for process.StdoutPipe.Scan() {
-			log.Printf("[NotarySystem] %s", process.StdoutPipe.Text())
+			log.Printf("[WebGUI] %s", process.StdoutPipe.Text())
 		}
 	}()
 
 	// Handle stderr in a goroutine
 	go func() {
 		for process.StderrPipe.Scan() {
-			log.Printf("[NotarySystem ERROR] %s", process.StderrPipe.Text())
+			log.Printf("[WebGUI ERROR] %s", process.StderrPipe.Text())
 		}
 	}()
 
@@ -520,13 +520,13 @@ func (m *NodeJSManager) StartAllServices() error {
 		}
 	}
 
-	if m.Config.BootnodeRegistry.Enabled {
-		if err := m.StartBootnodeRegistry(); err != nil {
-			errors = append(errors, fmt.Errorf("failed to start bootnode registry service: %w", err))
+	if m.Config.OperatorRegistry.Enabled {
+		if err := m.StartOperatorRegistry(); err != nil {
+			errors = append(errors, fmt.Errorf("failed to start operator registry service: %w", err))
 		}
 	}
 
-	if m.Config.NotarySystem.Enabled {
+	if m.Config.WebGUI.Enabled {
 		if err := m.StartNotarySystem(); err != nil {
 			errors = append(errors, fmt.Errorf("failed to start notary system service: %w", err))
 		}

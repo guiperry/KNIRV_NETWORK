@@ -51,7 +51,7 @@ class MockLoRAAdapterEngine {
       weightsB: Array.from(adapter.weightsB)
     };
 
-    const encoder = typeof TextEncoder !== 'undefined' ? new TextEncoder() : new (require('util').TextEncoder)();
+    const encoder = typeof TextEncoder !== 'undefined' ? new TextEncoder() : new (await import('util')).TextEncoder();
     const data = encoder.encode(JSON.stringify(serializableAdapter));
     const result = new Uint8Array(wasmHeader.length + data.length);
     result.set(wasmHeader, 0);

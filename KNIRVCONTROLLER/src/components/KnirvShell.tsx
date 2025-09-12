@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
-import { Cpu, Zap, AlertTriangle, FileText, Lightbulb, Plus, X } from 'lucide-react';
+import { Cpu, Zap, AlertTriangle, FileText, Lightbulb, Plus, X, Camera } from 'lucide-react';
 
 interface KnirvShellProps {
   status: 'idle' | 'processing' | 'listening' | 'error';
@@ -184,8 +184,9 @@ export const KnirvShell: React.FC<KnirvShellProps> = ({
             </div>
           </div>
 
-          {/* Floating Lightning Icon */}
+          {/* Floating Action Icons */}
           <div className="absolute top-6 left-6 flex flex-col space-y-4">
+            {/* Cognitive Mode Indicator */}
             <div className={`w-12 h-12 rounded-lg flex items-center justify-center backdrop-blur-sm transition-all duration-300 ${
               cognitiveMode
                 ? 'bg-yellow-500/30 border border-yellow-500/50'
@@ -195,6 +196,15 @@ export const KnirvShell: React.FC<KnirvShellProps> = ({
                 cognitiveMode ? 'text-yellow-300' : 'text-yellow-400'
               }`} fill={cognitiveMode ? 'currentColor' : 'none'} />
             </div>
+
+            {/* Screenshot Capture Button */}
+            <button
+              onClick={onScreenshotCapture}
+              className="w-12 h-12 rounded-lg flex items-center justify-center backdrop-blur-sm bg-gray-700/50 hover:bg-gray-600/50 transition-all duration-300 border border-gray-600/50 hover:border-gray-500/50"
+              title="Capture Screenshot"
+            >
+              <Camera className="w-6 h-6 text-gray-300 hover:text-white transition-colors" />
+            </button>
           </div>
         </div>
       </div>

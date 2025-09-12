@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
-import { Brain, Settings, Upload, Download, Play, Save, Trash2, BarChart3, Layers, Cpu } from 'lucide-react';
+import { Brain, Settings, Download, Play, Save, Trash2, BarChart3, Layers, Cpu } from 'lucide-react';
 import { personalKNIRVGRAPHService, GraphNode } from '../services/PersonalKNIRVGRAPHService';
 import { cortexTrainingService, TrainingConfig, CortexModel, TrainingProgress } from '../services/CortexTrainingService';
 
@@ -67,7 +67,8 @@ export const CortexBuilder: React.FC<CortexBuilderProps> = ({ isOpen, onClose })
         }
       );
 
-      // Refresh model versions
+      // Store the new model and refresh model versions
+      console.log('Training completed successfully:', newModel.id);
       await loadModelVersions();
 
       setIsTraining(false);

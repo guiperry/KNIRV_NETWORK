@@ -54,7 +54,7 @@ global.Response = jest.fn().mockImplementation((body, options = {}) => ({
 }));
 
 // Polyfill for TextEncoder/TextDecoder using Node.js built-in APIs
-const { TextEncoder, TextDecoder } = require('node:util');
+import { TextEncoder, TextDecoder } from 'node:util';
 
 // Global polyfill - ensure they're available globally
 if (!global.TextEncoder) {
@@ -77,14 +77,14 @@ if (typeof globalThis !== 'undefined') {
 }
 
 // Polyfill for crypto.subtle and crypto.getRandomValues
-const { webcrypto } = require('node:crypto');
+import { webcrypto } from 'node:crypto';
 if (!global.crypto) {
   // @ts-expect-error - Global polyfill
   global.crypto = webcrypto;
 }
 
 // Polyfill for URL constructor
-const { URL, URLSearchParams } = require('node:url');
+import { URL, URLSearchParams } from 'node:url';
 
 // @ts-expect-error - Global polyfill
 global.URL = URL;
@@ -135,7 +135,7 @@ const timers = {
   clearTimeout: global.clearTimeout.bind(global),
   setInterval: global.setInterval.bind(global),
   clearInterval: global.clearInterval.bind(global),
-  setImmediate: global.setImmediate?.bind(global) || ((fn: Function) => setTimeout(fn, 0)),
+  setImmediate: global.setImmediate?.bind(global) || ((fn: () => void) => setTimeout(fn, 0)),
   clearImmediate: global.clearImmediate?.bind(global) || clearTimeout
 };
 
@@ -143,7 +143,7 @@ const timers = {
 Object.assign(globalThis, timers);
 
 // Polyfill for window object in Node.js environment with event handling
-const eventListeners = new Map<string, Function[]>();
+const eventListeners = new Map<string, EventListener[]>();
 
 Object.defineProperty(global, 'window', {
   value: {
@@ -164,13 +164,13 @@ Object.defineProperty(global, 'window', {
       userAgent: 'Node.js Test Environment'
     },
     // Add event listener support for ErrorHandler and other services
-    addEventListener: jest.fn((event: string, listener: Function) => {
+    addEventListener: jest.fn((event: string, listener: EventListener) => {
       if (!eventListeners.has(event)) {
         eventListeners.set(event, []);
       }
       eventListeners.get(event)!.push(listener);
     }),
-    removeEventListener: jest.fn((event: string, listener: Function) => {
+    removeEventListener: jest.fn((event: string, listener: EventListener) => {
       if (eventListeners.has(event)) {
         const listeners = eventListeners.get(event)!;
         const index = listeners.indexOf(listener);
@@ -300,7 +300,7 @@ Object.defineProperty(global, 'MutationObserver', {
 
 // Polyfill for PerformanceObserver
 Object.defineProperty(global, 'PerformanceObserver', {
-  value: jest.fn().mockImplementation((callback: Function) => ({
+  value: jest.fn().mockImplementation((_callback: (list: PerformanceObserverEntryList, observer: PerformanceObserver) => void) => ({
     observe: jest.fn(),
     disconnect: jest.fn(),
     takeRecords: jest.fn(() => [])

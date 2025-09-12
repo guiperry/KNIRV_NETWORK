@@ -13,7 +13,7 @@ jest.mock('../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/sr
 }));
 
 // Import after mocking
-const { KnirvWallet } = require('../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/wallet/wallet');
+import { KnirvWallet } from '../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/wallet/wallet';
 import { MockLedgerConnector } from '../../../test-utils/mock-ledger-connector';
 import { 
   TEST_MNEMONICS, 

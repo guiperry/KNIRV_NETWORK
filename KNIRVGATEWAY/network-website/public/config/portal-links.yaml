@@ -43,9 +43,9 @@ documentation:
 
   # Legacy docsify links (for backward compatibility)
   legacy:
-    whitepapers_docsify: "../documentation/docsify/#/whitepapers/"
-    guides_docsify: "../documentation/docsify/#/guides/"
-    api_docsify: "../documentation/docsify/#/api/"
+    whitepapers_docsify: "../documentation/static/whitepapers/"
+    guides_docsify: "../documentation/static/guides/"
+    api_docsify: "../documentation/static/api/"
 
 # Business Documents
 business:
@@ -54,9 +54,9 @@ business:
 # Footer Links
 footer:
   legal:
-    terms: "/documentation/docsify/#/legal/TERMS_AND_CONDITIONS"
-    privacy: "/documentation/docsify/#/legal/PRIVACY_POLICY"
-    contribution: "/documentation/docsify/#/legal/CODE_OF_CONDUCT"
+    terms: "/documentation/static/legal/TERMS_AND_CONDITIONS"
+    privacy: "/documentation/static/legal/PRIVACY_POLICY"
+    contribution: "/documentation/static/legal/CODE_OF_CONDUCT"
 
   # Documentation site specific footer links (relative to documentation directory)
   documentation:

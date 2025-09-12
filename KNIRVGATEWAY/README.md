@@ -859,21 +859,21 @@ external_services:
 ```yaml
 documentation:
   whitepapers:
-    knirv_oracle: "../documentation/docsify/#/whitepapers/KNIRVROOT_Whitepaper.md"
-    knirv_router: "../documentation/docsify/#/whitepapers/KNIRV-ROUTER_Whitepaper.md"
+    knirv_oracle: "../documentation/static/whitepapers/KNIRVROOT_Whitepaper.md"
+    knirv_router: "../documentation/static/whitepapers/KNIRV-ROUTER_Whitepaper.md"
     # ... additional whitepapers
   guides:
-    getting_started: "../documentation/docsify/#/guides/getting-started.md"
-    api_reference: "../documentation/docsify/#/api/reference.md"
+    getting_started: "../documentation/static/guides/getting-started.md"
+    api_reference: "../documentation/static/api/reference.md"
 ```
 
 ### Footer Configuration
 ```yaml
 footer:
   legal:
-    terms: "../documentation/docsify/#/legal/terms-of-service.md"
-    privacy: "../documentation/docsify/#/legal/privacy-policy.md"
-    contribution: "../documentation/docsify/#/contributing/contribution-guidelines.md"
+    terms: "../documentation/static/legal/terms-of-service.md"
+    privacy: "../documentation/static/legal/privacy-policy.md"
+    contribution: "../documentation/static/contributing/contribution-guidelines.md"
   social:
     github: "https://github.com/knirv-network"
     discord: "https://discord.gg/knirv"

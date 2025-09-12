@@ -7,8 +7,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { jest } from '@jest/globals';
 import userEvent from '@testing-library/user-event';
 
-// Mock touch event support
-const mockTouchEvent = (type: string, touches: Touch[]) => {
+// Mock touch event support - utility function for creating touch events
+const createMockTouchEvent = (type: string, touches: Touch[]) => {
   return new TouchEvent(type, {
     touches,
     targetTouches: touches,
@@ -82,10 +82,9 @@ const createTouch = (x: number, y: number, identifier = 1): Touch => {
 };
 
 describe('Mobile Touch Interactions', () => {
-  let user: ReturnType<typeof userEvent.setup>;
-
   beforeEach(() => {
-    user = userEvent.setup({
+    // Setup user event for tests that need it
+    userEvent.setup({
       advanceTimers: jest.advanceTimersByTime,
     });
 
@@ -290,10 +289,13 @@ describe('Mobile Touch Interactions', () => {
 
       // On mobile (375px width), should show single column
       const container = screen.getByText('Item 1').closest('div');
-      const computedStyle = window.getComputedStyle(container!);
 
       // Verify mobile-first responsive classes are applied
       expect(container).toHaveClass('grid-cols-1');
+
+      // Verify computed styles for mobile layout
+      const computedStyle = window.getComputedStyle(container!);
+      expect(computedStyle.display).toBe('grid');
     });
 
     test('should handle horizontal swipe gestures', () => {

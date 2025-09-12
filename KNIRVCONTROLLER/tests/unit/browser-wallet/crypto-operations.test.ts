@@ -14,14 +14,14 @@ jest.mock('../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/sr
 }));
 
 // Import after mocking
-const {
+import {
   encryptAES,
   decryptAES,
   encryptSha256,
   executeKdf,
   makeCryptKey
-} = require('../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/wallet/wallet-crypto-util');
-const { toHex } = require('../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/encoding');
+} from '../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/wallet/wallet-crypto-util';
+import { toHex } from '../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/encoding';
 import { 
   TEST_ENCRYPTION_DATA,
   TEST_MNEMONICS,

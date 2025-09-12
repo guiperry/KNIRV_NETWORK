@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"KNIRVORACLE/economics"
 	"KNIRVORACLE/errors"
 	pb "KNIRVORACLE/proto"
 	"KNIRVORACLE/types"
@@ -30,16 +31,17 @@ import (
 )
 
 type BlockchainServer struct {
-	port             uint64
-	BlockchainPtr    *BlockchainStruct
-	server           *http.Server
-	db               *LevelDB
-	discoveryManager DiscoveryService
-	p2pPort          int
-	testMode         bool        // Flag indicating if running in test mode
-	xionBridge       *XionBridge // XION bridge integration
-	consensusManager *P2PConsensusManager // Reference to consensus manager for network pause checking
-	fm               *FailoverManager     // Reference to failover manager
+	port               uint64
+	BlockchainPtr      *BlockchainStruct
+	server             *http.Server
+	db                 *LevelDB
+	discoveryManager   DiscoveryService
+	p2pPort            int
+	testMode           bool                 // Flag indicating if running in test mode
+	xionBridge         *XionBridge          // XION bridge integration
+	xionPaymentGateway *XIONPaymentGateway  // XION payment gateway integration
+	consensusManager   *P2PConsensusManager // Reference to consensus manager for network pause checking
+	fm                 *FailoverManager     // Reference to failover manager
 }
 
 // NewBlockchainServerWithFailover creates a new BlockchainServer with failover integration
@@ -73,9 +75,9 @@ func (bcs *BlockchainServer) checkNetworkPauseAndRejectIfPaused(w http.ResponseW
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusServiceUnavailable)
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"error":   "Service temporarily unavailable",
-			"message": "Network is currently under maintenance or failover is in progress. Please try again in a few minutes.",
-			"paused":  true,
+			"error":    "Service temporarily unavailable",
+			"message":  "Network is currently under maintenance or failover is in progress. Please try again in a few minutes.",
+			"paused":   true,
 			"endpoint": endpoint,
 		})
 		return true
@@ -295,14 +297,21 @@ func NewBlockchainServer(port uint64, blockchain *BlockchainStruct, db *LevelDB,
 		xionBridge = nil
 	}
 
+	// Initialize XION Payment Gateway (will be properly initialized later with economics integration)
+	var xionPaymentGateway *XIONPaymentGateway
+	// TODO: Initialize XION payment gateway when economics integration is available
+	// xionGatewayConfig := &XIONGatewayConfig{...}
+	// xionPaymentGateway = NewXIONPaymentGateway(xionGatewayConfig, economicsAPI)
+
 	return &BlockchainServer{
-		port:             port,
-		BlockchainPtr:    blockchain,
-		db:               db,
-		discoveryManager: discoveryMgr,   // Store the passed-in manager
-		p2pPort:          p2pPort,        // Store the correct P2P port
-		server:           &http.Server{}, // Initialize empty server to prevent nil dereference
-		xionBridge:       xionBridge,
+		port:               port,
+		BlockchainPtr:      blockchain,
+		db:                 db,
+		discoveryManager:   discoveryMgr,   // Store the passed-in manager
+		p2pPort:            p2pPort,        // Store the correct P2P port
+		server:             &http.Server{}, // Initialize empty server to prevent nil dereference
+		xionBridge:         xionBridge,
+		xionPaymentGateway: xionPaymentGateway,
 	}
 }
 
@@ -371,6 +380,12 @@ func (bcs *BlockchainServer) Prepare() (uint64, error) {
 	mux.HandleFunc("/agent/capabilities/", bcs.handleGetAgentCapabilities) // Handles /agent/capabilities/{agentId}
 	mux.HandleFunc("/agent/capability/invoke", bcs.handleInvokeAgentCapability)
 
+	// Add XION Payment Gateway routes (if available)
+	if bcs.xionPaymentGateway != nil {
+		bcs.xionPaymentGateway.RegisterRoutes(mux)
+		log.Println("XION Payment Gateway routes registered")
+	}
+
 	// Add internal API endpoints for Node.js services
 	mux.HandleFunc("/internal/dht/findResource", bcs.handleInternalDHTFindResource)
 	mux.HandleFunc("/internal/dht/announceResource", bcs.handleInternalDHTAnnounceResource)
@@ -433,6 +448,38 @@ func (bcs *BlockchainServer) Prepare() (uint64, error) {
 	}
 	log.Printf("BlockchainServer for chain %s prepared for port %d", bcs.BlockchainPtr.ChainID, actualPort)
 	return actualPort, nil
+}
+
+// InitializeXIONPaymentGateway initializes the XION payment gateway with economics integration
+func (bcs *BlockchainServer) InitializeXIONPaymentGateway(economicsAPI *economics.EconomicsAPI) error {
+	if bcs.xionPaymentGateway != nil {
+		return nil // Already initialized
+	}
+
+	// Initialize XION Payment Gateway configuration
+	xionGatewayConfig := &XIONGatewayConfig{
+		XIONChainID:          "xion-testnet-1",
+		XIONRPCEndpoint:      "https://rpc.xion-testnet-1.burnt.com:443",
+		XIONRESTEndpoint:     "https://api.xion-testnet-1.burnt.com",
+		USDCContractAddr:     "xion1usdc_contract_address", // Would be set from config
+		NRNContractAddr:      "xion1nrn_contract_address",  // Would be set from config
+		TreasuryAddr:         "xion1treasury_address",      // Would be set from config
+		ConversionRate:       "10",                         // 1 USDC = 10 NRN
+		GaslessEnabled:       true,
+		MaxTransactionAmount: "10000000000", // 10,000 USDC (6 decimals)
+		MinTransactionAmount: "1000000",     // 1 USDC (6 decimals)
+	}
+
+	// Create XION payment gateway
+	bcs.xionPaymentGateway = NewXIONPaymentGateway(xionGatewayConfig, economicsAPI)
+
+	// Start the payment gateway
+	if err := bcs.xionPaymentGateway.Start(); err != nil {
+		return fmt.Errorf("failed to start XION payment gateway: %w", err)
+	}
+
+	log.Println("XION Payment Gateway initialized and started successfully")
+	return nil
 }
 
 // handleInternalDHTFindResource handles internal requests to find a resource on the DHT
@@ -758,7 +805,7 @@ func (bcs *BlockchainServer) handleAddReflection(w http.ResponseWriter, r *http.
 	if bcs.checkNetworkPauseAndRejectIfPaused(w, "add_reflection") {
 		return
 	}
-	
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -779,7 +826,7 @@ func (bcs *BlockchainServer) handleReceiveBlock(w http.ResponseWriter, r *http.R
 	if bcs.checkNetworkPauseAndRejectIfPaused(w, "block") {
 		return
 	}
-	
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -840,7 +887,7 @@ func (bcs *BlockchainServer) HandleReceiveTransaction(w http.ResponseWriter, r *
 	if bcs.checkNetworkPauseAndRejectIfPaused(w, "transaction") {
 		return
 	}
-	
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -1405,7 +1452,7 @@ func (bcs *BlockchainServer) handleMCPRegisterCapabilityInitiate(w http.Response
 	if bcs.checkNetworkPauseAndRejectIfPaused(w, "mcp_capability_initiate") {
 		return
 	}
-	
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -1694,7 +1741,7 @@ func (bcs *BlockchainServer) handleMCPRegisterCapabilityFinalize(w http.Response
 	if bcs.checkNetworkPauseAndRejectIfPaused(w, "mcp_capability_finalize") {
 		return
 	}
-	
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -1889,7 +1936,7 @@ func (bcs *BlockchainServer) handleMCPPrepareCapabilityRegistration(w http.Respo
 	if bcs.checkNetworkPauseAndRejectIfPaused(w, "mcp_capability_prepare") {
 		return
 	}
-	
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -2127,7 +2174,7 @@ func (bcs *BlockchainServer) handleMCPRegisterCapability(w http.ResponseWriter, 
 	if bcs.checkNetworkPauseAndRejectIfPaused(w, "mcp_capability_register") {
 		return
 	}
-	
+
 	// Log deprecation warning
 	log.Printf("[WARNING] Deprecated endpoint /mcp/capability/register used. Please migrate to the two-step registration process.")
 	if r.Method != http.MethodPost {
@@ -2276,7 +2323,7 @@ func (bcs *BlockchainServer) handleMCPInvokeCapability(w http.ResponseWriter, r 
 	if bcs.checkNetworkPauseAndRejectIfPaused(w, "mcp_capability_invoke") {
 		return
 	}
-	
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -2378,7 +2425,7 @@ func (bcs *BlockchainServer) handleMCPUpdateCapability(w http.ResponseWriter, r 
 	if bcs.checkNetworkPauseAndRejectIfPaused(w, "mcp_capability_update") {
 		return
 	}
-	
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return

@@ -333,6 +333,32 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ isOpen, onClose })
                     </div>
                   </div>
 
+                  {/* API Key Display with Visibility Toggle */}
+                  <div className="mt-3 p-3 bg-gray-700 rounded border">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-gray-400">API Key</span>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => toggleKeyVisibility(key.id)}
+                          className="p-1 text-gray-400 hover:text-white transition-colors"
+                          title={showKey[key.id] ? "Hide key" : "Show key"}
+                        >
+                          {showKey[key.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={() => copyToClipboard(key.key)}
+                          className="p-1 text-gray-400 hover:text-white transition-colors"
+                          title="Copy to clipboard"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <code className="text-sm font-mono text-green-400">
+                      {showKey[key.id] ? key.key : '••••••••••••••••••••••••••••••••'}
+                    </code>
+                  </div>
+
                   <div className="mt-3 flex flex-wrap gap-1">
                     {key.permissions.map(permission => (
                       <span

@@ -288,7 +288,7 @@ export { ${this.toPascalCase(request.agent_name)}CognitiveShell };
 `;
   }
 
-  private async createAgentWasm(cognitiveShell: string, config: AgentConfig): Promise<Uint8Array> {
+  private async createAgentWasm(cognitiveShell: string, _config: AgentConfig): Promise<Uint8Array> {
     console.log('Creating agent.wasm with TypeScript cognitive shell...');
 
     // In a full implementation, this would:

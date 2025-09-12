@@ -14,23 +14,23 @@
   },
   "documentation": {
     "whitepapers": {
-      "knirv_oracle": "../documentation/docsify/#/whitepapers/KNIRVORACLE_Whitepaper.md",
-      "knirv_router": "../documentation/docsify/#/whitepapers/KNIRV-ROUTER_Whitepaper.md",
-      "knirvgraph": "../documentation/docsify/#/whitepapers/KNIRV-GRAPH_Whitepaper.md",
-      "knirvchain": "../documentation/docsify/#/whitepapers/KNIRVCHAIN_Whitepaper.md",
-      "knirv_nexus": "../documentation/docsify/#/whitepapers/KNIRV-NEXUS_Whitepaper.md",
-      "knirv_cortex": "../documentation/docsify/#/whitepapers/KNIRV-AGENTIFIER_Whitepaper.md",
-      "knirv_wallet": "../documentation/docsify/#/whitepapers/KNIRV-WALLET_Whitepaper.md",
-      "knirv_gateway": "../documentation/docsify/#/whitepapers/KNIRV-GATEWAY_Whitepaper.md",
-      "knirv_shell": "../documentation/docsify/#/whitepapers/KNIRV-SHELL_Whitepapers.md",
-      "knirv_sdk": "../documentation/docsify/#/whitepapers/KNIRV-SDK_Whitepaper.md",
-      "knirv_testnet": "../documentation/docsify/#/guides/TESTNET_DEPLOYMENT.md",
-      "knirvana": "../documentation/docsify/#/whitepapers/KNIRVANA_Whitepaper.md"
+      "knirv_oracle": "../documentation/static/whitepapers/KNIRVORACLE_Whitepaper.md",
+      "knirv_router": "../documentation/static/whitepapers/KNIRV-ROUTER_Whitepaper.md",
+      "knirvgraph": "../documentation/static/whitepapers/KNIRV-GRAPH_Whitepaper.md",
+      "knirvchain": "../documentation/static/whitepapers/KNIRVCHAIN_Whitepaper.md",
+      "knirv_nexus": "../documentation/static/whitepapers/KNIRV-NEXUS_Whitepaper.md",
+      "knirv_cortex": "../documentation/static/whitepapers/KNIRV-AGENTIFIER_Whitepaper.md",
+      "knirv_wallet": "../documentation/static/whitepapers/KNIRV-WALLET_Whitepaper.md",
+      "knirv_gateway": "../documentation/static/whitepapers/KNIRV-GATEWAY_Whitepaper.md",
+      "knirv_shell": "../documentation/static/whitepapers/KNIRV-SHELL_Whitepapers.md",
+      "knirv_sdk": "../documentation/static/whitepapers/KNIRV-SDK_Whitepaper.md",
+      "knirv_testnet": "../documentation/static/guides/TESTNET_DEPLOYMENT.md",
+      "knirvana": "../documentation/static/whitepapers/KNIRVANA_Whitepaper.md"
     },
     "guides": {
-      "getting_started": "../documentation/docsify/#/guides/getting-started.md",
-      "api_reference": "../documentation/docsify/#/api/reference.md",
-      "deployment": "../documentation/docsify/#/guides/deployment.md"
+      "getting_started": "../documentation/static/guides/getting-started.md",
+      "api_reference": "../documentation/static/api/reference.md",
+      "deployment": "../documentation/static/guides/deployment.md"
     }
   },
   "business": {
@@ -38,9 +38,9 @@
   },
   "footer": {
     "legal": {
-      "terms": "../documentation/docsify/#/legal/terms-of-service.md",
-      "privacy": "../documentation/docsify/#/legal/privacy-policy.md",
-      "contribution": "../documentation/docsify/#/contributing/contribution-guidelines.md"
+      "terms": "../documentation/static/legal/terms-of-service.md",
+      "privacy": "../documentation/static/legal/privacy-policy.md",
+      "contribution": "../documentation/static/contributing/contribution-guidelines.md"
     },
     "social": {
       "github": "https://github.com/knirv-network",
