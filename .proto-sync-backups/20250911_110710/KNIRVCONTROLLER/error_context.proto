@@ -1,0 +1,157 @@
+syntax = "proto3";
+
+package knirv.graph.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+option go_package = "github.com/guiperry/KNIRV_NETWORK/pkg/gen/knirv/graph/v1;graphv1";
+
+// ErrorContext is the rich data payload sent by a KNIRV-CORTEX agent to the
+// KNIRVGRAPH when it encounters an error. The graph uses this context to find
+// similar, previously recorded ErrorNodes.
+message ErrorContext {
+  // --- Agent Information ---
+  // The unique identifier of the agent that encountered the error.
+  string agent_id = 1;
+  // The version of the agent's core logic.
+  string agent_version = 2;
+  // The identifier of the base LLM the agent is using (e.g., "CodeT5-base-v1.2").
+  string base_model_id = 3;
+
+  // --- Environment Information ---
+  // The operating system where the agent was running (e.g., "linux", "windows").
+  string os = 4;
+  // The CPU architecture (e.g., "x86_64", "arm64").
+  string architecture = 5;
+  // The runtime environment (e.g., "browser", "native_host", "knirv-nexus-dve").
+  string runtime_environment = 6;
+
+  // --- Error Details ---
+  // A high-level classification of the error (e.g., "NullPointerException", "NetworkTimeout").
+  string error_type = 7;
+  // The specific error message string. This is a key field for similarity search.
+  string error_message = 8;
+  // The full stack trace at the time of the error.
+  string stack_trace = 9;
+  // A snippet of the source code where the error occurred, if available.
+  string source_code_snippet = 10;
+
+  // --- Task Context ---
+  // A natural language description of the task the agent was attempting.
+  string task_description = 11;
+  // A hash of the input data that led to the error. Used to find errors
+  // caused by the same specific input without exposing the data itself.
+  string input_data_hash = 12;
+  // The ID of the skill being invoked when the error occurred, if any.
+  string skill_invoked_id = 13;
+
+  // --- State & Metadata ---
+  // A hash of the agent's internal state at the time of the error.
+  string agent_state_hash = 14;
+  // The timestamp when the error occurred.
+  google.protobuf.Timestamp timestamp = 15;
+  // Any additional, unstructured metadata that might be relevant for debugging.
+  google.protobuf.Struct additional_context = 16;
+}
+
+// Request to query KNIRVGRAPH for similar error clusters
+message ErrorClusterQueryRequest {
+  // The error context to search for
+  ErrorContext error_context = 1;
+  // Maximum number of similar errors to return
+  int32 max_results = 2;
+  // Minimum similarity threshold (0.0 to 1.0)
+  float similarity_threshold = 3;
+}
+
+// Response from KNIRVGRAPH error cluster query
+message ErrorClusterQueryResponse {
+  // Status of the query
+  QueryStatus status = 1;
+  // Error message if query failed
+  string error_message = 2;
+  // Found skill node result if match exists
+  SkillNodeResult skill_node_result = 3;
+  // Similar error clusters found
+  repeated ErrorCluster similar_clusters = 4;
+}
+
+// Skill node result from KNIRVGRAPH
+message SkillNodeResult {
+  // URI of the skill that can resolve this error type
+  string skill_uri = 1;
+  // ID of the skill node in the graph
+  string skill_node_id = 2;
+  // ID of the error cluster this skill resolves
+  string cluster_id = 3;
+  // Confidence score for this skill match (0.0 to 1.0)
+  float confidence = 4;
+  // Additional metadata about the skill
+  map<string, string> metadata = 5;
+}
+
+// Error cluster information
+message ErrorCluster {
+  // Unique identifier for the cluster
+  string cluster_id = 1;
+  // Representative error type for this cluster
+  string error_type = 2;
+  // Number of errors in this cluster
+  int32 error_count = 3;
+  // Average severity of errors in this cluster
+  float average_severity = 4;
+  // Tags associated with this cluster
+  repeated string tags = 5;
+  // Bounty amount for solving errors in this cluster
+  int64 bounty_amount = 6;
+}
+
+// Request to submit a new error node to KNIRVGRAPH
+message ErrorNodeSubmissionRequest {
+  // The error context to submit
+  ErrorContext error_context = 1;
+  // Bounty amount for solving this error
+  int64 bounty_amount = 2;
+  // Priority level for this error
+  ErrorPriority priority = 3;
+}
+
+// Response from error node submission
+message ErrorNodeSubmissionResponse {
+  // Status of the submission
+  SubmissionStatus status = 1;
+  // Error message if submission failed
+  string error_message = 2;
+  // ID of the created error node
+  string error_node_id = 3;
+  // ID of the cluster this error was assigned to
+  string cluster_id = 4;
+}
+
+// Query status enumeration
+enum QueryStatus {
+  QUERY_STATUS_UNSPECIFIED = 0;
+  QUERY_SUCCESS = 1;
+  QUERY_FAILED = 2;
+  QUERY_NO_MATCH = 3;
+  QUERY_PARTIAL_MATCH = 4;
+}
+
+// Submission status enumeration
+enum SubmissionStatus {
+  SUBMISSION_STATUS_UNSPECIFIED = 0;
+  SUBMISSION_SUCCESS = 1;
+  SUBMISSION_FAILED = 2;
+  SUBMISSION_DUPLICATE = 3;
+  SUBMISSION_INVALID = 4;
+}
+
+// Error priority enumeration
+enum ErrorPriority {
+  ERROR_PRIORITY_UNSPECIFIED = 0;
+  LOW = 1;
+  MEDIUM = 2;
+  HIGH = 3;
+  CRITICAL = 4;
+}

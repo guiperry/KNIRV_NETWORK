@@ -22,11 +22,7 @@ console.log('[Render] Script directory:', __dirname);
 process.env.GATEWAY_MODE = 'persistent';
 process.env.NODE_ENV = process.env.NODE_ENV || 'production';
 
-// Disable DHT by default for initial deployment
-if (!process.env.DISABLE_DHT) {
-  console.log('[Render] Setting DISABLE_DHT=true for initial deployment');
-  process.env.DISABLE_DHT = 'true';
-}
+console.log('[Render] DHT is disabled by default - use POST /dht/start to enable');
 
 // Log all environment variables for debugging
 console.log('[Render] Environment variables:');

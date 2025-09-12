@@ -14,7 +14,7 @@ import (
 )
 
 // Test helper functions
-func createTestHRMEngine(t *testing.T) *HRMEngine {
+func createTestHRMEngine(_ *testing.T) *HRMEngine {
 	engine := NewHRMEngine()
 	return engine
 }

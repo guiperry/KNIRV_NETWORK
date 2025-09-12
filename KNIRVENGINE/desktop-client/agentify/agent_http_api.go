@@ -14,13 +14,42 @@ import (
 
 // AgentHTTPAPI provides an HTTP API for inference clients
 type AgentHTTPAPI struct {
-	inferencer     *AgentInferencer
+	// inferencer is an abstraction so tests can inject mocks. Use the concrete
+	// *AgentInferencer in production; it implements this interface.
+	inferencer     InferencerInterface
 	authMiddleware *AuthMiddleware
 	upgrader       websocket.Upgrader
 }
 
 // NewAgentHTTPAPI creates a new HTTP API for inference clients
-func NewAgentHTTPAPI(inferencer *AgentInferencer) *AgentHTTPAPI {
+// InferencerInterface defines the minimal set of methods the HTTP API needs
+// from an inferencer. This allows tests to provide lightweight mocks.
+type InferencerInterface interface {
+	ListAvailableAgents(ctx context.Context) ([]string, error)
+	ActivateAgent(ctx context.Context, agentID, version, sessionID string, config map[string]interface{}) error
+	DeactivateAgent(ctx context.Context, sessionID string) error
+	ProcessInference(ctx context.Context, sessionID string, request *InferenceRequest) (*InferenceResponse, error)
+	GetAgentSchema(ctx context.Context, sessionID string) (*AgentSchema, error)
+	GetAgentCapabilities(ctx context.Context, sessionID string) (*AgentCapabilities, error)
+	GetTEEInfo(ctx context.Context, sessionID string) (map[string]interface{}, error)
+	GetAgentMemory(ctx context.Context, sessionID, key string) (interface{}, error)
+	SetAgentMemory(ctx context.Context, sessionID, key string, value interface{}) error
+	CreateTerminal(ctx context.Context, sessionID string, rows, cols int) (string, error)
+	ResizeTerminal(ctx context.Context, sessionID, terminalID string, rows, cols int) error
+	WriteToTerminal(ctx context.Context, sessionID, terminalID string, data []byte) error
+	ReadFromTerminal(ctx context.Context, sessionID, terminalID string) ([]byte, error)
+	CloseTerminal(ctx context.Context, sessionID, terminalID string) error
+	// WASM / plugin management helpers
+	DiscoverWASMPluginZips(ctx context.Context) ([]*WASMPluginInfo, error)
+	InstallWASMPlugin(ctx context.Context, zipPath string) (*WASMPluginInfo, error)
+	UninstallWASMPlugin(ctx context.Context, agentID, version string) error
+	ListInstalledWASMPlugins(ctx context.Context) ([]*WASMPluginInfo, error)
+	GetAvailableAgentsDetailed(ctx context.Context) (map[string]interface{}, error)
+	// GetTerminalOutputChannel returns a channel streaming terminal output for a session/terminal
+	GetTerminalOutputChannel(ctx context.Context, sessionID, terminalID string) (<-chan []byte, error)
+}
+
+func NewAgentHTTPAPI(inferencer InferencerInterface) *AgentHTTPAPI {
 	// Create a default API key auth provider
 	authProvider := NewAPIKeyAuthProvider()
 
@@ -557,29 +586,8 @@ func (a *AgentHTTPAPI) getTerminalOutputChannel(ctx context.Context, sessionID, 
 	default:
 	}
 
-	// Get the agent for this session
-	agentID, ok := a.inferencer.sessions[sessionID]
-	if !ok {
-		return nil, fmt.Errorf("no agent active for session %s", sessionID)
-	}
-
-	// Check context again before proceeding
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-
-	agent, ok := a.inferencer.activeAgents[agentID]
-	if !ok {
-		return nil, fmt.Errorf("agent %s not found", agentID)
-	}
-
-	// Get the terminal manager from the agent
-	baseAgent, ok := agent.(*BaseAgentPlugin)
-	if !ok {
-		return nil, fmt.Errorf("agent does not support terminal operations")
-	}
-
-	return baseAgent.terminalManager.GetTerminalOutput(terminalID)
+	// Delegate to the inferencer's terminal output accessor
+	return a.inferencer.GetTerminalOutputChannel(ctx, sessionID, terminalID)
 }
 
 // handleTerminalOutput handles sending terminal output to the WebSocket client

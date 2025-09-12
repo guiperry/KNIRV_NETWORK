@@ -1289,7 +1289,7 @@ This document outlines a structured, phased implementation plan based on the pro
     *   Ensure the `testnet-gateway` is not a standalone service and is initialized via `npm start` from the root of the `KNIRVTESTNET` directory.
 *   **Update Portal Links:**
     *   Remove the `agent-developer-portal` from the `testnet-gateway`.
-    *   Update the link to point to the production `agent-developer-portal` (e.g., `knirv.com/agent-developer-portal`).
+    *   Update the link to point to the production `agent-developer-portal` (e.g., `network-website/agent-developer-portal`).
     *   Ensure the `nexus-portal` link correctly directs to the local KNIRVNEXUS instance running within the testnet.
 
 ### Epic 2.2: KNIRVGATEWAY Content & Page Updates
@@ -1363,7 +1363,7 @@ This document outlines a structured, phased implementation plan based on the pro
 *   **Implement "Train Your Own KNIRVCORTEX":**
     *   Create the UI and backend logic within KNIRVCONTROLLER that allows users to train and configure the SLM that forms the core of their agents.
 *   **Fully Implement the CORTEX BUILDER:**
-    *   Use the agent-builder code located in KNIRVCORTEX/cortex-builder as a starting template to edit and build the new implementation from.
+    *   Use the agent-builder code located in KNIRVCORTEX/primary-website as a starting template to edit and build the new implementation from.
     *   The CORTEX BUILDER is a comprehensive interface for managing the core model of an agent.
     *   This interface will allow users to manage the entire lifecycle of their agent's core model, including data input, training parameters, and versioning.
     *   The CORTEX BUILDER will operate as a stand-alone web application accessible via the KNIRVCONTROLLER, KNIRVENGINE and any web browser.
@@ -2036,12 +2036,12 @@ This plan outlines the steps necessary to transition services from a public DHT 
     *   **Private DHT Implementation:** Decide on the specific private DHT library/framework if not already chosen (e.g., Kademlia-based, custom).
     *   **KNIRVGATEWAY Design:** Define API endpoints, configuration parameters, and the mechanism for becoming a bootstrap node. **Include the `/provision` endpoint design.**
     *   **Failover Logic:** Specify exact conditions for failover (primary gateway down, primary gateway not updating, performance degradation thresholds).
-    *   **DNS Management:** Outline CloudFlare API interaction for updating A/CNAME records.    *   **`knirv.com` Static Site Design:** The `knirv.com` site will be a simple static homepage (`index.html` and assets) served by a **Cloudflare Worker**. The content will live in a `KNIRVGATEWAY/knirv.com/public` folder, and deployment will be handled by the Wrangler CLI.
+    *   **DNS Management:** Outline CloudFlare API interaction for updating A/CNAME records.    *   **`knirv.com` Static Site Design:** The `knirv.com` site will be a simple static homepage (`index.html` and assets) served by a **Cloudflare Worker**. The content will live in a `KNIRVGATEWAY/network-website/public` folder, and deployment will be handled by the Wrangler CLI.
     *   **`KNIRVGATEWAY` Frontend Failover:** Design the health check and redirection logic for `KNIRVGATEWAY/index.html` to ensure it redirects to `knirv.com` when healthy, or serves a local copy (`home.html`) upon failure.
     *   **Security Model:** Plan for secure communication within the private DHT and between gateways and CloudFlare.
     *   **Monitoring Strategy:** Define metrics to track gateway health, DHT status, and deployment updates.
-    *   **Git Repository Structure:** The primary repository is `KNIRV_NETWORK`. The content for the public-facing `knirv.com` website will be located in a `KNIRVGATEWAY/knirv.com/public` folder, eliminating the need for a separate submodule.
-    *   **Content Synchronization:** Define a `makefile` sync protocol in the root `Makefile.mk` to automatically copy the `index.html` and other assets from the `KNIRVGATEWAY/knirv.com/public` folder to `KNIRVGATEWAY/home.html` and its assets, ensuring the failover page is always up-to-date.
+    *   **Git Repository Structure:** The primary repository is `KNIRV_NETWORK`. The content for the public-facing `knirv.com` website will be located in a `KNIRVGATEWAY/network-website/public` folder, eliminating the need for a separate submodule.
+    *   **Content Synchronization:** Define a `makefile` sync protocol in the root `Makefile.mk` to automatically copy the `index.html` and other assets from the `KNIRVGATEWAY/network-website/public` folder to `KNIRVGATEWAY/home.html` and its assets, ensuring the failover page is always up-to-date.
 
 2.  **Environment Setup & Tooling (Day 4-7)**
     *   **Version Control:** Ensure all relevant codebases are in Git repositories (GitHub/GitLab).
@@ -2080,18 +2080,18 @@ This plan outlines the steps necessary to transition services from a public DHT 
 3.  **Service Refactoring (Week 2-4)**
     *   **Abstract DHT Access:** Create an abstraction layer/interface for DHT interactions within each service.    *   **Switching Mechanism:** Implement a configuration flag or environment variable to easily switch between public and private DHT (e.g., `DHT_MODE=public` or `DHT_MODE=private`).    *   **Integration with KNIRVGATEWAY:** Modify services to use the KNIRVGATEWAY API for private DHT interactions when `DHT_MODE=private`. This includes utilizing the `/provision` endpoint for enhanced peer discovery.    *   **Testing:** Thoroughly test each refactored service in a dedicated test environment.
 4.  **`knirv.com` Content and Worker Creation (Week 2-3)**
-    *   **Static Content Creation:** In the `KNIRVGATEWAY/knirv.com/public` folder, create the `index.html` file and any necessary assets (CSS, images).
-    *   **Worker Creation:** Create the `KNIRVGATEWAY/knirv.com/wrangler.toml`, `package.json`, `tsconfig.json`, and `index.ts` files to define the Cloudflare Worker.
+    *   **Static Content Creation:** In the `KNIRVGATEWAY/network-website/public` folder, create the `index.html` file and any necessary assets (CSS, images).
+    *   **Worker Creation:** Create the `KNIRVGATEWAY/network-website/wrangler.toml`, `package.json`, `tsconfig.json`, and `index.ts` files to define the Cloudflare Worker.
 
 5.  **`knirv.com` Worker Deployment (Week 1)**
     *   **Install Wrangler:** Install the Cloudflare Wrangler CLI (`npm install -g wrangler`).
-    *   **Deploy:** Use `wrangler deploy` from the `KNIRVGATEWAY/knirv.com` directory to publish the worker and the static site content.
+    *   **Deploy:** Use `wrangler deploy` from the `KNIRVGATEWAY/network-website` directory to publish the worker and the static site content.
     *   **Custom Domain:** Configure the `knirv.com` domain in your Cloudflare dashboard to use the worker.
 6.  **Content Sync Implementation (Week 2)**
     *   **Makefile Sync Protocol:** In the root `Makefile.mk`, add a new target (e.g., `sync-failover-page`).
     *   This target will execute a script that:
-        1.  Copies `KNIRVGATEWAY/knirv.com/public/index.html` to `KNIRVGATEWAY/home.html`.
-        2.  Copies necessary assets from `KNIRVGATEWAY/knirv.com/public/assets` to `KNIRVGATEWAY/assets`.
+        1.  Copies `KNIRVGATEWAY/network-website/public/index.html` to `KNIRVGATEWAY/home.html`.
+        2.  Copies necessary assets from `KNIRVGATEWAY/network-website/public/assets` to `KNIRVGATEWAY/assets`.
     *   Integrate this target into the build process for `KNIRVGATEWAY` to ensure the failover page is always included in new builds.
 ---
 
@@ -2140,7 +2140,7 @@ This plan outlines the steps necessary to transition services from a public DHT 
         *   **Race Conditions:** Test scenarios where multiple secondaries detect failure simultaneously.
     *   **Load Testing:** Test the KNIRVGATEWAY and private DHT under expected and peak load conditions.
     *   **Resilience Testing:** Introduce artificial failures (e.g., high latency, packet loss) to observe system behavior.
-    *   **`knirv.com` Deployment Test:** Make a change to `KNIRVGATEWAY/knirv.com/public/index.html` and run `wrangler deploy` from that directory. Verify the live site is updated.    *   **`KNIRVGATEWAY` Redirection Test:**
+    *   **`network-website` Deployment Test:** Make a change to `KNIRVGATEWAY/network-website/public/index.html` and run `wrangler deploy` from that directory. Verify the live site is updated.    *   **`KNIRVGATEWAY` Redirection Test:**
         *   Verify that accessing a `KNIRVGATEWAY` instance URL correctly redirects to `https://knirv.com` when it's healthy.
         *   Simulate `knirv.com` being down (e.g., by disabling the Cloudflare Worker route) and verify that the gateway instance correctly redirects to its local `/home.html` page.
 

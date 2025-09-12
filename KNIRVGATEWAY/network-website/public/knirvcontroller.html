@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en" class="js">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="author" content="KNIRV Network">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="KNIRVCONTROLLER: The definitive desktop application for managing agents, wallets, and network operations on the KNIRV D-TEN. Includes the KNIRVWALLET functionality built-in.">
+    <meta name="keywords" content="KNIRVCONTROLLER, KNIRV controller, KNIRV wallet, D-TEN controller, KNIRVCLI, developer tools">
+
+    <link rel="canonical" href="https://knirv.network/knirvcontroller.html">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://knirv.network/knirvcontroller.html">
+    <meta property="og:title" content="KNIRVCONTROLLER | Manage Agents, Wallets, and Network Operations">
+    <meta property="og:description" content="A single, unified application that includes wallet functionality and powerful developer & operator tools for the KNIRV D-TEN.">
+    <meta property="og:image" content="https://knirv.network/images/social/knirvcontroller-card.png">
+
+    <link rel="shortcut icon" href="assets/favicon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+
+    <title>KNIRVCONTROLLER | Desktop Controller for the D-TEN</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/vendor.bundle.css?ver=210">
+    <link rel="stylesheet" href="assets/css/style-dark.css?ver=210">
+    <link rel="stylesheet" href="assets/css/theme.css?ver=210">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .animated-logo-container { width:200px; height:60px; display:flex; align-items:center; justify-content:center }
+        .download-btn { margin:0.5rem; min-width:200px }
+    </style>
+</head>
+
+<body class="nk-body body-wider theme-dark mode-onepage has-rtl" dir="rtl">
+    <div class="nk-wrap">
+        <!-- Header (kept consistent with other product pages) -->
+        <header class="nk-header page-header is-transparent is-sticky is-shrink is-dark" id="header">
+            <div class="header-main">
+                <div class="header-container container">
+                    <div class="header-wrap">
+                        <div class="header-logo logo animated">
+                            <a href="./" class="logo-link"><div id="animated-logo" class="animated-logo-container"></div></a>
+                        </div>
+                        <div class="header-nav-toggle">
+                            <a href="#" class="navbar-toggle" data-menu-toggle="example-menu-04"><div class="toggle-line"><span></span></div></a>
+                        </div>
+                        <div class="header-navbar header-navbar-s1">
+                            <nav class="header-menu" id="example-menu-04">
+                                <ul class="menu menu-s2 animated">
+                                    <li class="menu-item"><a class="menu-link nav-link" href="index.html">Home</a></li>
+                                    <li class="menu-item"><a class="menu-link nav-link" href="index.html#ecosystem">Ecosystem</a></li>
+                                    <li class="menu-item has-sub">
+                                        <a class="menu-link nav-link menu-toggle" href="#">Products</a>
+                                        <ul class="menu-sub menu-drop">
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvcontroller.html">KNIRVCONTROLLER</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvsdk.html">KNIRV SDK</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvrouter.html">KNIRVROUTER</a></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                                <ul class="menu-btns animated">
+                                    <li><a href="documentation/static/" class="btn btn-rg btn-auto btn-outline btn-grad on-bg-theme btn-round"><span>Documentation</span></a></li>
+                                    <li><a href="#download" class="btn btn-rg btn-auto btn-outline btn-grad on-bg-theme btn-round"><span>Download Controller</span></a></li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="nk-pages">
+            <section class="section mask-c-blend-dark bg-theme-dark-alt tc-light ov-h" id="features">
+                <div class="container">
+                    <div class="nk-block nk-block-text-wrap">
+                        <div class="row align-items-center justify-content-center">
+                            <div class="col-lg-6">
+                                <div class="banner-caption wide-auto text-center text-lg-start">
+                                    <h1 class="title title-xl-2 title-semibold">KNIRVCONTROLLER<br/> Unified Control for the D-TEN</h1>
+                                    <p class="lead">KNIRVCONTROLLER is the all-in-one desktop application for power users, operators, and developers. It includes the KNIRV wallet functionality but expands to provide agent management, network diagnostics, DVE access, and operator tooling for the KNIRV D-TEN.</p>
+                                    <ul class="list list-dot">
+                                        <li>Integrated KNIRVWALLET features (XION Meta Accounts)</li>
+                                        <li>Agent deployment & management (KNIRV-CORTEX integration)</li>
+                                        <li>NRN token operations and economic tools</li>
+                                        <li>Real-time network diagnostics & DVE access</li>
+                                        <li>Operator dashboards and advanced logs</li>
+                                    </ul>
+                                    <div class="cpn-btns">
+                                        <a href="#download" class="btn btn-md btn-grad btn-round">Download Controller</a>
+                                        <a href="documentation/static/" class="btn btn-md btn-outline btn-grad on-bg-theme btn-round">Documentation</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="nk-block-img text-center">
+                                    <img src="images/light/gfx-z-a.png" alt="KNIRV Controller UI">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section bg-theme-dark-alt tc-light" id="download">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4">Download KNIRVCONTROLLER</h2>
+                        <p>Download the controller for your platform. The application includes wallet features and is the recommended way to manage agents and network operations.</p>
+                    </div>
+                    <div class="nk-block">
+                        <div class="row justify-content-center">
+                            <div class="col-md-3 col-sm-6 text-center">
+                                <a href="#" class="btn btn-lg btn-grad btn-round download-btn" onclick="downloadController('windows')">Windows</a>
+                            </div>
+                            <div class="col-md-3 col-sm-6 text-center">
+                                <a href="#" class="btn btn-lg btn-grad btn-round download-btn" onclick="downloadController('mac')">macOS</a>
+                            </div>
+                            <div class="col-md-3 col-sm-6 text-center">
+                                <a href="#" class="btn btn-lg btn-grad btn-round download-btn" onclick="downloadController('linux')">Linux</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+    </div>
+
+    <script src="assets/js/jquery.bundle.js?ver=210"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/scripts.js?ver=210"></script>
+    <script src="js/config-loader.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoContainer = document.getElementById('animated-logo');
+            if (logoContainer) {
+                logoContainer.innerHTML = `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" stroke="#2b56f5" fill="none" stroke-width="3"/><text x="50" y="55" text-anchor="middle" fill="#2b56f5" font-size="14">CTRL</text></svg>`;
+            }
+        });
+    </script>
+</body>
+</html>

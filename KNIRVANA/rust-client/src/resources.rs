@@ -129,6 +129,8 @@ impl Default for PlayerResources {
 pub struct KnirvGraphState {
     pub error_nodes: HashMap<String, Entity>,
     pub skill_nodes: HashMap<String, Entity>,
+    pub idea_nodes: HashMap<String, Entity>,
+    pub property_nodes: HashMap<String, Entity>,
     pub agents: HashMap<String, Entity>,
     pub connections: Vec<(Entity, Entity)>,
     pub graph_center: Vec3,
@@ -136,6 +138,8 @@ pub struct KnirvGraphState {
     pub node_spawn_timer: f32,
     pub max_error_nodes: u32,
     pub max_skill_nodes: u32,
+    pub max_idea_nodes: u32,
+    pub max_property_nodes: u32,
 }
 
 /// Resource for competitive multiplayer state

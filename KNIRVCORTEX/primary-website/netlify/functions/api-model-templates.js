@@ -1,0 +1,177 @@
+// Auto-generated Netlify function from Next.js API route
+// Original route: /api/model/templates
+// Generated: 2025-09-11T18:53:02.810Z
+
+// NextResponse/NextRequest converted to native Netlify response format
+const { cortexModelCompiler } = require('../../src/lib/cortex-compiler/CortexModelCompiler.js');
+
+// CORS headers for all responses
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS'
+};
+
+async function GET(event, context) {
+  // Extract route parameters if this is a dynamic route
+  if (event.pathParameters) {
+    event.params = event.pathParameters;
+  }
+
+  // Parse request body if present
+  let requestBody = {};
+  if (event.body) {
+    try {
+      requestBody = JSON.parse(event.body);
+    } catch (e) {
+      requestBody = event.body;
+    }
+  }
+  
+
+  try {
+    const templates = cortexModelCompiler.getAvailableTemplates();
+    
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({success: true,
+      templates,
+      count: templates.length})
+    };
+
+  } catch (error) {
+    console.error('Get templates error:', error);
+    return {
+      statusCode: 500,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({success: false, 
+        error: 'Failed to get model templates',
+        details: error instanceof Error ? error.message : 'Unknown error'})
+    };
+  }
+}
+
+async function POST(event, context) {
+  // Extract route parameters if this is a dynamic route
+  if (event.pathParameters) {
+    event.params = event.pathParameters;
+  }
+
+  // Parse request body if present
+  let requestBody = {};
+  if (event.body) {
+    try {
+      requestBody = JSON.parse(event.body);
+    } catch (e) {
+      requestBody = event.body;
+    }
+  }
+  
+
+  try {
+    const { template_id } = requestBody;
+    
+    if (!template_id) {
+      return {
+      statusCode: 400,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({success: false, error: 'Template ID is required'})
+    };
+    }
+
+    const template = cortexModelCompiler.getTemplate(template_id);
+    
+    if (!template) {
+      return {
+      statusCode: 404,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({success: false, error: 'Template not found'})
+    };
+    }
+
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({success: true,
+      template: template})
+    };
+
+  } catch (error) {
+    console.error('Get template error:', error);
+    return {
+      statusCode: 500,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({success: false, 
+        error: 'Failed to get template',
+        details: error instanceof Error ? error.message : 'Unknown error'})
+    };
+  }
+}
+
+// Main Netlify function handler
+exports.handler = async (event, context) => {
+  // Handle preflight requests
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: ''
+    };
+  }
+
+  try {
+    const method = event.httpMethod;
+    
+    // Add route parameters to event if dynamic route
+    
+    
+    // Route to appropriate handler
+    switch (method) {
+      
+      case 'GET':
+        if (typeof GET === 'function') {
+          const result = await GET(event);
+          return {
+            ...result,
+            headers: { ...corsHeaders, ...(result.headers || {}) }
+          };
+        }
+        break;
+      case 'POST':
+        if (typeof POST === 'function') {
+          const result = await POST(event);
+          return {
+            ...result,
+            headers: { ...corsHeaders, ...(result.headers || {}) }
+          };
+        }
+        break;
+      
+      default:
+        return {
+          statusCode: 405,
+          headers: corsHeaders,
+          body: JSON.stringify({ error: 'Method not allowed' })
+        };
+    }
+    
+    return {
+      statusCode: 404,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Handler not found' })
+    };
+    
+  } catch (error) {
+    console.error('Function error:', error);
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Internal server error' })
+    };
+  }
+};
+
+// Export individual handlers for testing
+exports.get = GET;
+exports.post = POST;

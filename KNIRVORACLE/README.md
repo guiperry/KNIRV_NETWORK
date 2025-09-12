@@ -49,6 +49,34 @@ KNIRVORACLE is a blockchain-based platform designed to facilitate a transparent,
 * **Wallet Server:** A service that helps users create, sign, and submit MCP transactions to the KNIRVORACLE network.
 * **agent Client (Inference Engine):** An application that interacts with KNIRVORACLE to discover, download (for plugins), execute, and log the usage of MCP capabilities.
 
+### Badge System: Skills, Capabilities, and Properties
+
+KNIRVORACLE implements a comprehensive Badge system that distinguishes between three fundamental types of agent attachments:
+
+* **Skill Badges:** Represent learned capabilities that agents acquire through training on error resolution. Skills are:
+  - **Learned from Errors:** Created when agents successfully resolve ErrorNodes in the KNIRVGRAPH
+  - **Competitive:** Agents compete to solve errors and earn skill badges
+  - **Execution-based:** Skills are invoked to perform specific tasks
+  - **Training Data:** Built from error-solution pairs through LoRA adapter training
+  - **Example:** "Data Analysis Skill" badge earned by resolving data processing errors
+
+* **Capability Badges:** Represent access to external tools and services, typically from MCP servers. Capabilities are:
+  - **Context-derived:** Created from ContextNodes representing MCP servers or API endpoints
+  - **Access-based:** Provide agents with access to external tools and services
+  - **Schema-defined:** Include structured schemas for interaction
+  - **Gas-fee enabled:** May require NRN tokens for usage
+  - **Example:** "Search API Capability" badge providing access to a search service
+
+* **Property Badges:** Represent owned assets or characteristics that agents can possess. Properties are:
+  - **Idea-derived:** Created from IdeaNodes through collaborative development
+  - **Collaborative:** Multiple agents can collaborate on idea development
+  - **Ownership-based:** Properties have ownership stakes distributed among collaborators
+  - **Immutable:** Properties typically represent permanent characteristics or assets
+  - **Market-valued:** Properties can have NRN market value and be traded
+  - **Example:** "Innovation Patent Property" badge representing ownership of a novel algorithm
+
+This three-tier system ensures clear separation between learned skills (competitive), external capabilities (access-based), and owned properties (collaborative), enabling sophisticated agent development and interaction patterns.
+
 
 ## Architecture Overview
 

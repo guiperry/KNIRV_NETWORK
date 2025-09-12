@@ -2,6 +2,7 @@ package desktop
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -15,9 +16,9 @@ import (
 
 // DesktopClient represents the main desktop host system
 type DesktopClient struct {
-	// Core components
-	hrmEngine     *HRMEngine
-	qrLinkage     *QRLinkageService
+	// Core components (use interfaces so tests can inject mocks)
+	hrmEngine     HRMEngineInterface
+	qrLinkage     QRLinkageInterface
 	secureBridge  *SecureBridge
 	targetSystems *TargetSystemManager
 	agentPlugins  *AgentPluginManager
@@ -57,9 +58,12 @@ type MobileConnection struct {
 
 // AgentSession represents an active agent session
 type AgentSession struct {
-	SessionID       string              `json:"session_id"`
-	UserID          string              `json:"user_id"`
-	MobileDeviceID  string              `json:"mobile_device_id,omitempty"`
+	SessionID      string `json:"session_id"`
+	UserID         string `json:"user_id"`
+	MobileDeviceID string `json:"mobile_device_id,omitempty"`
+	// Backwards-compatible fields expected by tests
+	AgentID         string              `json:"agent_id,omitempty"`
+	DeviceID        string              `json:"device_id,omitempty"`
 	TargetSystemID  string              `json:"target_system_id,omitempty"`
 	PersonalityData *PersonalityProfile `json:"personality_data"`
 	CreatedAt       time.Time           `json:"created_at"`
@@ -209,19 +213,31 @@ func (dh *DesktopClient) Start() error {
 		return fmt.Errorf("desktop host already running")
 	}
 
+	if dh.httpServer == nil {
+		// Create a default HTTP server if not provided (used in tests)
+		dh.httpServer = &http.Server{
+			Addr:    ":0",
+			Handler: dh.router,
+		}
+	}
+
 	log.Printf("Starting desktop host server on %s", dh.httpServer.Addr)
 
-	// Start MCP server
-	if err := dh.mcpServer.Start(); err != nil {
-		return fmt.Errorf("failed to start MCP server: %w", err)
+	// Start MCP server if present
+	if dh.mcpServer != nil {
+		if err := dh.mcpServer.Start(); err != nil {
+			return fmt.Errorf("failed to start MCP server: %w", err)
+		}
 	}
 
 	dh.running = true
 
 	// Start HTTP server in goroutine
 	go func() {
-		if err := dh.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Printf("HTTP server error: %v", err)
+		if dh.httpServer != nil {
+			if err := dh.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				log.Printf("HTTP server error: %v", err)
+			}
 		}
 	}()
 
@@ -240,17 +256,21 @@ func (dh *DesktopClient) Stop() error {
 
 	log.Printf("Stopping desktop host server...")
 
-	// Stop HTTP server
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	// Stop HTTP server if present
+	if dh.httpServer != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 
-	if err := dh.httpServer.Shutdown(ctx); err != nil {
-		log.Printf("Error shutting down HTTP server: %v", err)
+		if err := dh.httpServer.Shutdown(ctx); err != nil {
+			log.Printf("Error shutting down HTTP server: %v", err)
+		}
 	}
 
-	// Stop MCP server
-	if err := dh.mcpServer.Stop(); err != nil {
-		log.Printf("Error stopping MCP server: %v", err)
+	// Stop MCP server if present
+	if dh.mcpServer != nil {
+		if err := dh.mcpServer.Stop(); err != nil {
+			log.Printf("Error stopping MCP server: %v", err)
+		}
 	}
 
 	// Close HRM engine
@@ -269,18 +289,43 @@ func (dh *DesktopClient) GetDesktopID() string {
 	return dh.desktopID
 }
 
+// handleStatus is a simple HTTP handler used by tests
+func (dh *DesktopClient) handleStatus(w http.ResponseWriter, _ *http.Request) {
+	status := map[string]interface{}{
+		"desktop_id": dh.desktopID,
+		"running":    dh.IsRunning(),
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(status)
+}
+
+// IsRunning reports whether the host is running
+func (dh *DesktopClient) IsRunning() bool {
+	dh.mutex.RLock()
+	defer dh.mutex.RUnlock()
+	return dh.running
+}
+
 // GetHRMEngine returns the HRM engine instance
 func (dh *DesktopClient) GetHRMEngine() *HRMEngine {
-	return dh.hrmEngine
+	if dh.hrmEngine == nil {
+		return nil
+	}
+	// Try to type assert to concrete HRMEngine if caller expects it, otherwise return nil
+	if concrete, ok := dh.hrmEngine.(*HRMEngine); ok {
+		return concrete
+	}
+	return nil
 }
 
 // GetQRLinkage returns the QR linkage service instance
-func (dh *DesktopClient) GetQRLinkage() *QRLinkageService {
+func (dh *DesktopClient) GetQRLinkage() QRLinkageInterface {
 	return dh.qrLinkage
 }
 
 // CreateAgentSession creates a new agent session
-func (dh *DesktopClient) CreateAgentSession(userID, mobileDeviceID string) (*AgentSession, error) {
+// createAgentSessionInternal creates and stores an AgentSession and returns it
+func (dh *DesktopClient) createAgentSessionInternal(userID, mobileDeviceID string) *AgentSession {
 	dh.mutex.Lock()
 	defer dh.mutex.Unlock()
 
@@ -290,6 +335,8 @@ func (dh *DesktopClient) CreateAgentSession(userID, mobileDeviceID string) (*Age
 		SessionID:      sessionID,
 		UserID:         userID,
 		MobileDeviceID: mobileDeviceID,
+		AgentID:        userID,
+		DeviceID:       mobileDeviceID,
 		PersonalityData: &PersonalityProfile{
 			UserID:  userID,
 			Metrics: make(map[string]interface{}),
@@ -303,7 +350,96 @@ func (dh *DesktopClient) CreateAgentSession(userID, mobileDeviceID string) (*Age
 
 	log.Printf("Created agent session: session=%s, user=%s, mobile=%s", sessionID, userID, mobileDeviceID)
 
-	return session, nil
+	return session
+}
+
+// CreateAgentSession (tests) creates an agent session and returns the session ID
+func (dh *DesktopClient) CreateAgentSession(agentID, deviceID string) (string, error) {
+	s := dh.createAgentSessionInternal(agentID, deviceID)
+	if s == nil {
+		return "", fmt.Errorf("failed to create session")
+	}
+	return s.SessionID, nil
+}
+
+// CreateAgentSessionObj returns the created AgentSession object (used by handlers)
+func (dh *DesktopClient) CreateAgentSessionObj(userID, mobileDeviceID string) (*AgentSession, error) {
+	s := dh.createAgentSessionInternal(userID, mobileDeviceID)
+	if s == nil {
+		return nil, fmt.Errorf("failed to create session")
+	}
+	return s, nil
+}
+
+// CreateAgentSession (compat) creates an agent session and returns the session ID.
+func (dh *DesktopClient) CreateAgentSessionCompat(agentID, deviceID string) (string, error) {
+	return dh.CreateAgentSessionID(agentID, deviceID)
+}
+
+// To keep original tests working, provide CreateAgentSession with the expected signature.
+func (dh *DesktopClient) CreateAgentSessionString(agentID, deviceID string) (string, error) {
+	return dh.CreateAgentSessionID(agentID, deviceID)
+}
+
+// Compatibility wrappers used by tests
+func (dh *DesktopClient) RegisterMobileDevice(deviceID, walletAddress, publicKey string) error {
+	dh.mutex.Lock()
+	defer dh.mutex.Unlock()
+	dh.mobileConnections[deviceID] = &MobileConnection{
+		DeviceID:      deviceID,
+		WalletAddress: walletAddress,
+		PublicKey:     publicKey,
+		Capabilities:  []string{},
+		LastHeartbeat: time.Now(),
+		Status:        ConnectionStatusConnected,
+	}
+	return nil
+}
+
+func (dh *DesktopClient) UnregisterMobileDevice(deviceID string) error {
+	dh.mutex.Lock()
+	defer dh.mutex.Unlock()
+	delete(dh.mobileConnections, deviceID)
+	return nil
+}
+
+func (dh *DesktopClient) GetMobileDevices() []*MobileConnection {
+	dh.mutex.RLock()
+	defer dh.mutex.RUnlock()
+	devices := make([]*MobileConnection, 0, len(dh.mobileConnections))
+	for _, v := range dh.mobileConnections {
+		devices = append(devices, v)
+	}
+	return devices
+}
+
+// CreateAgentSession creates a session and returns the session ID (compatibility wrapper)
+func (dh *DesktopClient) CreateAgentSessionID(agentID, deviceID string) (string, error) {
+	// Use the object-returning creation helper and then return the session ID
+	s, err := dh.CreateAgentSessionObj(agentID, deviceID)
+	if err != nil {
+		return "", err
+	}
+	// mirror fields for backwards compatibility and store
+	dh.mutex.Lock()
+	if s != nil {
+		s.AgentID = agentID
+		s.DeviceID = deviceID
+		dh.agentSessions[s.SessionID] = s
+	}
+	dh.mutex.Unlock()
+	return s.SessionID, nil
+}
+
+// CloseAgentSession removes a session by ID (compatibility wrapper)
+func (dh *DesktopClient) CloseAgentSession(sessionID string) error {
+	dh.mutex.Lock()
+	defer dh.mutex.Unlock()
+	if _, exists := dh.agentSessions[sessionID]; !exists {
+		return fmt.Errorf("session not found: %s", sessionID)
+	}
+	delete(dh.agentSessions, sessionID)
+	return nil
 }
 
 // HandleMobileLinkage handles mobile device linkage

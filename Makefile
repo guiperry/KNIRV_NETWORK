@@ -105,12 +105,12 @@ docs: docs-deps ## Generate documentation from docs/ folder
 		cd $(PROJECT_ROOT) && node $(SCRIPTS_DIR)/doc_generator.js; \
 		echo "$(GREEN)✓ Documentation generated successfully$(NC)"; \
 		echo "$(BLUE)Generating static HTML from docsify...$(NC)"; \
-		cd $(KNIRVGATEWAY_DIR)/knirv.com/public/documentation && npm install; \
-		cd $(KNIRVGATEWAY_DIR)/knirv.com && node scripts/simple-static-generator.js; \
+		cd $(KNIRVGATEWAY_DIR)/network-website/public/documentation && npm install; \
+		cd $(KNIRVGATEWAY_DIR)/network-website && node scripts/simple-static-generator.js; \
 		echo "$(BLUE)Updating links to point to static version...$(NC)"; \
-		cd $(KNIRVGATEWAY_DIR)/knirv.com && node scripts/update-docsify-links.js; \
+		cd $(KNIRVGATEWAY_DIR)/network-website && node scripts/update-docsify-links.js; \
 		echo "$(GREEN)✓ Static documentation generation completed$(NC)"; \
-		echo "$(YELLOW)📁 Static documentation available at: KNIRVGATEWAY/knirv.com/public/documentation/static/$(NC)"; \
+		echo "$(YELLOW)📁 Static documentation available at: KNIRVGATEWAY/network-website/public/documentation/static/$(NC)"; \
 	else \
 		echo "$(RED)Error: doc_generator.js not found at $(SCRIPTS_DIR)/doc_generator.js$(NC)"; \
 		exit 1; \
@@ -748,6 +748,34 @@ verify-nodejs-deps: ## Verify KNIRVORACLE Node.js dependencies are properly inst
 	@cd KNIRVORACLE/scripts && ./verify-nodejs-deps.sh
 
 # =============================================================================
+# PROTOBUF SYNCHRONIZATION
+# =============================================================================
+
+.PHONY: sync-protobuf
+sync-protobuf: ## Synchronize ProtoBuf definitions across all platforms
+	@echo "$(BLUE)Synchronizing ProtoBuf definitions across all platforms...$(NC)"
+	@$(SCRIPTS_DIR)/sync-protobuf.sh
+	@echo "$(GREEN)✓ ProtoBuf synchronization completed$(NC)"
+
+.PHONY: sync-protobuf-dry-run
+sync-protobuf-dry-run: ## Preview ProtoBuf synchronization changes
+	@echo "$(BLUE)Previewing ProtoBuf synchronization...$(NC)"
+	@$(SCRIPTS_DIR)/sync-protobuf.sh --dry-run
+	@echo "$(GREEN)✓ ProtoBuf synchronization preview completed$(NC)"
+
+.PHONY: sync-protobuf-validate
+sync-protobuf-validate: ## Validate ProtoBuf definitions only
+	@echo "$(BLUE)Validating ProtoBuf definitions...$(NC)"
+	@$(SCRIPTS_DIR)/sync-protobuf.sh --validate-only
+	@echo "$(GREEN)✓ ProtoBuf validation completed$(NC)"
+
+.PHONY: sync-protobuf-generate
+sync-protobuf-generate: ## Sync ProtoBuf and generate platform-specific code
+	@echo "$(BLUE)Synchronizing ProtoBuf and generating code...$(NC)"
+	@$(SCRIPTS_DIR)/sync-protobuf.sh --generate-code
+	@echo "$(GREEN)✓ ProtoBuf sync and code generation completed$(NC)"
+
+# =============================================================================
 # NETWORK FIX SYNCHRONIZATION
 # =============================================================================
 
@@ -895,7 +923,7 @@ prod: deploy-prod ## Shortcut for deploy-prod
 
 # Sync shortcuts
 .PHONY: sync
-sync: sync-dry-run ## Shortcut for sync-dry-run (safe preview)
+sync: sync-protobuf-dry-run sync-dry-run ## Shortcut for sync-dry-run (safe preview) including ProtoBuf
 
 .PHONY: sync-t2p
 sync-t2p: sync-testnet-to-prod ## Shortcut for sync-testnet-to-prod
@@ -1199,21 +1227,21 @@ watch-rust-client-ci: ## Watch the progress of KNIRVANA Rust client CI workflow
 # =============================================================================
 
 .PHONY: sync-failover-page
-sync-failover-page: ## Synchronize knirv.com content to the KNIRVGATEWAY failover page
-	@echo "$(BLUE)Syncing knirv.com content to KNIRVGATEWAY/home.html...$(NC)"
-	@if [ -f "KNIRVGATEWAY/knirv.com/public/index.html" ]; then \
-		cp KNIRVGATEWAY/knirv.com/public/index.html KNIRVGATEWAY/home.html; \
+sync-failover-page: ## Synchronize network-website content to the KNIRVGATEWAY failover page
+	@echo "$(BLUE)Syncing network-website content to KNIRVGATEWAY/home.html...$(NC)"
+	@if [ -f "KNIRVGATEWAY/network-website/public/index.html" ]; then \
+		cp KNIRVGATEWAY/network-website/public/index.html KNIRVGATEWAY/home.html; \
 		echo "$(GREEN)✓ Copied index.html$(NC)"; \
 	else \
-		echo "$(RED)Error: KNIRVGATEWAY/knirv.com/public/index.html not found.$(NC)"; \
+		echo "$(RED)Error: KNIRVGATEWAY/network-website/public/index.html not found.$(NC)"; \
 		exit 1; \
 	fi
-	@if [ -d "KNIRVGATEWAY/knirv.com/public/assets" ]; then \
+	@if [ -d "KNIRVGATEWAY/network-website/public/assets" ]; then \
 		rm -rf KNIRVGATEWAY/assets; \
-		cp -r KNIRVGATEWAY/knirv.com/public/assets KNIRVGATEWAY/assets; \
+		cp -r KNIRVGATEWAY/network-website/public/assets KNIRVGATEWAY/assets; \
 		echo "$(GREEN)✓ Copied assets directory$(NC)"; \
 	else \
-		echo "$(YELLOW)Warning: knirv.com/public/assets directory not found. Skipping.$(NC)"; \
+		echo "$(YELLOW)Warning: network-website/public/assets directory not found. Skipping.$(NC)"; \
 	fi
 	@echo "$(GREEN)✓ Failover page synchronized successfully.$(NC)"
 

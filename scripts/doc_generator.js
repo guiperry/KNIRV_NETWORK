@@ -27,18 +27,18 @@ const { execSync } = require('child_process');
 const https = require('https');
 
 // Load dotenv from the documentation folder
-const dotenvPath = path.join(__dirname, '..', 'KNIRVGATEWAY', 'knirv.com', 'public', 'documentation', 'node_modules', 'dotenv');
+const dotenvPath = path.join(__dirname, '..', 'KNIRVGATEWAY', 'network-website', 'public', 'documentation', 'node_modules', 'dotenv');
 const dotenv = require(dotenvPath);
-dotenv.config({ path: path.join(__dirname, '..', 'KNIRVGATEWAY', 'knirv.com', 'public', 'documentation', '.env') });
+dotenv.config({ path: path.join(__dirname, '..', 'KNIRVGATEWAY', 'network-website', 'public', 'documentation', '.env') });
 
 // Configuration
 const rootDir = path.dirname(__dirname); // Go up one level from scripts directory
 const CONFIG = {
   sourceDir: path.join(rootDir, 'docs'),
-  outputDir: path.join(rootDir, 'KNIRVGATEWAY', 'knirv.com', 'public', 'documentation'),
-  docsifyDir: path.join(rootDir, 'KNIRVGATEWAY', 'knirv.com', 'public', 'documentation', 'docsify'),
-  staticHtmlDir: path.join(rootDir, 'KNIRVGATEWAY', 'knirv.com', 'public', 'documentation'),
-  hashFile: path.join(rootDir, 'KNIRVGATEWAY', 'knirv.com', 'public', 'documentation', '.doc_hashes.json'),
+  outputDir: path.join(rootDir, 'KNIRVGATEWAY', 'network-website', 'public', 'documentation'),
+  docsifyDir: path.join(rootDir, 'KNIRVGATEWAY', 'network-website', 'public', 'documentation', 'docsify'),
+  staticHtmlDir: path.join(rootDir, 'KNIRVGATEWAY', 'network-website', 'public', 'documentation'),
+  hashFile: path.join(rootDir, 'KNIRVGATEWAY', 'network-website', 'public', 'documentation', '.doc_hashes.json'),
   // Backup directory for consolidated .md files
   backupDir: path.join(rootDir, '.doc-consolidation-backups'),
   projectName: 'KNIRV Network',

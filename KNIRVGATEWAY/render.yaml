@@ -19,8 +19,6 @@ services:
         value: 8080
       - key: DHT_PORT
         value: 4001
-      - key: DISABLE_DHT
-        value: "true"
     # Additional environment variables to set in Render dashboard:
     # - KNIRV_BOOTSTRAP_PEERS (comma-separated list)
     # - CLOUDFLARE_API_TOKEN

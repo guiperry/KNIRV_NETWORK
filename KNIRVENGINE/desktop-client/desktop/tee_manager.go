@@ -33,6 +33,17 @@ type DesktopTEEManager struct {
 	config         *DesktopTEEConfig
 }
 
+// TEEManagerInterface defines methods used by SecureBridge and tests
+type TEEManagerInterface interface {
+	CreateTEESession(clientID string) (*TEESession, error)
+	ValidateSession(sessionID string) bool
+	LoadPlugin(pluginID string, ctx *SecurityContext) error
+	UnloadPlugin(pluginID string) error
+	ExecuteInTEE(pluginID, command string, args []string) (string, string, int, error)
+	ListPlugins() []*PluginInfo
+	verifySignatureWithKey(hash, signature []byte, keyPath string) (bool, error)
+}
+
 // DesktopTEEConfig configuration for desktop TEE manager
 type DesktopTEEConfig struct {
 	// Security settings
@@ -301,6 +312,16 @@ func (m *DesktopTEEManager) verifySignatureWithKey(hash, signature []byte, keyPa
 	default:
 		return false, fmt.Errorf("unsupported public key type for verification")
 	}
+}
+
+// CreateTEESession creates a new TEESession for the client
+func (m *DesktopTEEManager) CreateTEESession(clientID string) (*TEESession, error) {
+	return &TEESession{SessionID: "tee-" + clientID, ClientID: clientID, CreatedAt: time.Now(), Active: true}, nil
+}
+
+func (m *DesktopTEEManager) ValidateSession(sessionID string) bool {
+	// Basic validation: check if sessionID is non-empty
+	return sessionID != ""
 }
 
 // GenerateKeyPair generates an RSA key pair for plugin signing (utility function)

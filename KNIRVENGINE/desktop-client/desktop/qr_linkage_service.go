@@ -72,11 +72,11 @@ type QRCode struct {
 
 // TransactionData represents transaction data for signing
 type TransactionData struct {
-	Hash      string  `json:"hash"`
-	Amount    string  `json:"amount"`
-	Recipient string  `json:"recipient"`
-	GasFee    string  `json:"gas_fee"`
-	Timestamp int64   `json:"timestamp"`
+	Hash      string `json:"hash"`
+	Amount    string `json:"amount"`
+	Recipient string `json:"recipient"`
+	GasFee    string `json:"gas_fee"`
+	Timestamp int64  `json:"timestamp"`
 }
 
 // MobileLinkageData represents data from mobile device during linkage
@@ -95,6 +95,15 @@ type QRLinkageService struct {
 	endpoint       string
 	publicKey      string
 	mutex          sync.RWMutex
+}
+
+// QRLinkageInterface defines the subset of methods used by DesktopClient and tests
+type QRLinkageInterface interface {
+	GenerateTargetAssignmentQR(targetSystemID string, capabilities []string) (*QRCode, error)
+	GenerateTransactionSignQR(transactionData *TransactionData) (*QRCode, error)
+	GetSession(sessionID string) (*LinkageSession, bool)
+	UpdateSessionStatus(sessionID string, status LinkageStatus, mobileID string) error
+	StartService()
 }
 
 // NewQRLinkageService creates a new QR linkage service
@@ -187,10 +196,10 @@ func (qls *QRLinkageService) GenerateTransactionSignQR(transactionData *Transact
 		EncryptionKey: encryptionKey,
 		Metadata: map[string]interface{}{
 			"transaction_hash": transactionData.Hash,
-			"amount":          transactionData.Amount,
-			"recipient":       transactionData.Recipient,
-			"gas_fee":         transactionData.GasFee,
-			"created_at":      time.Now(),
+			"amount":           transactionData.Amount,
+			"recipient":        transactionData.Recipient,
+			"gas_fee":          transactionData.GasFee,
+			"created_at":       time.Now(),
 		},
 		CreatedAt: time.Now(),
 	}
@@ -313,7 +322,3 @@ func generateEncryptionKey() []byte {
 	return key
 }
 
-// generateSecureID generates a secure random ID
-func generateSecureID() string {
-	return uuid.New().String()
-}

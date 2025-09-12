@@ -879,6 +879,45 @@ func (i *AgentInferencer) GetTerminalLogs(ctx context.Context, sessionID string,
 	}
 }
 
+// GetTerminalOutputChannel returns a realtime output channel for a terminal session
+func (i *AgentInferencer) GetTerminalOutputChannel(ctx context.Context, sessionID string, terminalID string) (<-chan []byte, error) {
+	i.mutex.RLock()
+	agentID, ok := i.sessions[sessionID]
+	if !ok {
+		i.mutex.RUnlock()
+		return nil, fmt.Errorf("no agent active for session %s", sessionID)
+	}
+
+	sessionType := i.sessionTypes[sessionID]
+	i.mutex.RUnlock()
+
+	switch sessionType {
+	case "wasm":
+		wasmAgent, ok := i.activeWASMAgents[agentID]
+		if !ok {
+			return nil, fmt.Errorf("WASM agent %s not found", agentID)
+		}
+
+		if wasmAgentImpl, ok := wasmAgent.(*WASMAgent); ok && wasmAgentImpl.terminalManager != nil {
+			return wasmAgentImpl.terminalManager.GetTerminalOutput(terminalID)
+		}
+
+		return nil, fmt.Errorf("WASM agent does not support terminal output for terminal %s", terminalID)
+	default:
+		// plugin agents
+		agent, ok := i.activeAgents[agentID]
+		if !ok {
+			return nil, fmt.Errorf("agent %s not found", agentID)
+		}
+
+		if baseAgent, ok := agent.(*BaseAgentPlugin); ok && baseAgent.terminalManager != nil {
+			return baseAgent.terminalManager.GetTerminalOutput(terminalID)
+		}
+
+		return nil, fmt.Errorf("agent does not support terminal output for terminal %s", terminalID)
+	}
+}
+
 // LogAgentProcessOutput logs output from an agent process to all its terminal sessions
 func (i *AgentInferencer) LogAgentProcessOutput(ctx context.Context, agentID string, outputType string, data []byte, processID int) error {
 	i.mutex.RLock()

@@ -1113,6 +1113,136 @@ pub fn skill_node_generation_system(
     }
 }
 
+/// System for collaborative idea node development (different from competitive error solving)
+pub fn idea_collaboration_system(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut knirv_graph: ResMut<KnirvGraphState>,
+    mut idea_node_query: Query<(Entity, &mut IdeaNode)>,
+    agent_query: Query<(Entity, &AIAgent, &Transform)>,
+    time: Res<Time>,
+) {
+    for (idea_entity, mut idea_node) in idea_node_query.iter_mut() {
+        if idea_node.status == IdeaStatus::Pending {
+            // Find nearby agents to collaborate on this idea
+            let mut nearby_agents = Vec::new();
+
+            for (agent_entity, agent, agent_transform) in agent_query.iter() {
+                // Check if agent is within collaboration range
+                if let Some(idea_transform) = commands.get_entity(idea_entity).and_then(|e| e.get::<Transform>()) {
+                    let distance = agent_transform.translation.distance(idea_transform.translation);
+                    if distance < 5.0 && !idea_node.collaborators.contains(&agent.id) {
+                        nearby_agents.push(agent.id.clone());
+                    }
+                }
+            }
+
+            // Add collaborators and assign stakes
+            for agent_id in nearby_agents {
+                idea_node.collaborators.push(agent_id.clone());
+                // Equal stakes for all collaborators initially
+                let stake = 1.0 / (idea_node.collaborators.len() as f32);
+                idea_node.stakes.insert(agent_id, stake);
+            }
+
+            if !idea_node.collaborators.is_empty() {
+                idea_node.status = IdeaStatus::Collaborative;
+                info!("IdeaNode {} entered collaborative phase with {} agents", idea_node.id, idea_node.collaborators.len());
+            }
+        }
+
+        // Progress collaborative development
+        if idea_node.status == IdeaStatus::Collaborative {
+            let collaboration_progress = idea_node.collaborators.len() as f32 * time.delta_seconds() * 0.1;
+            idea_node.feasibility_score = (idea_node.feasibility_score + collaboration_progress).min(1.0);
+
+            // Check if ready to create property
+            if idea_node.feasibility_score >= 0.8 && idea_node.collaborators.len() >= 2 {
+                // Create PropertyNode
+                create_property_from_idea(&mut commands, &mut meshes, &mut materials, &mut knirv_graph, &idea_node);
+                idea_node.status = IdeaStatus::PropertyCreated;
+            }
+        }
+    }
+}
+
+/// Helper function to create PropertyNode from IdeaNode
+fn create_property_from_idea(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+    knirv_graph: &mut ResMut<KnirvGraphState>,
+    idea_node: &IdeaNode,
+) {
+    let property_id = format!("property_{}", idea_node.id);
+
+    let property_node = PropertyNode {
+        id: property_id.clone(),
+        name: format!("Property from {}", idea_node.name),
+        property_type: match idea_node.idea_type {
+            IdeaType::Asset => PropertyType::Asset,
+            IdeaType::Characteristic => PropertyType::Characteristic,
+            IdeaType::Attribute => PropertyType::Attribute,
+            IdeaType::Innovation => PropertyType::Patent,
+            IdeaType::Improvement => PropertyType::License,
+            IdeaType::Feature => PropertyType::Trademark,
+        },
+        source_idea: idea_node.id.clone(),
+        value_type: "object".to_string(),
+        immutable: true,
+        category: "collaborative".to_string(),
+        owners: idea_node.stakes.clone(),
+        market_value: idea_node.collaboration_value,
+        usage_count: 0,
+        created_at: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs_f64(),
+    };
+
+    // Create visual representation
+    let property_mesh = meshes.add(Mesh::from(bevy::render::mesh::shape::Icosphere { radius: 0.4, subdivisions: 2 }));
+    let property_material = materials.add(StandardMaterial {
+        base_color: Color::rgb(1.0, 0.8, 0.0), // Golden color for properties
+        emissive: Color::rgb(0.5, 0.4, 0.0),
+        metallic: 0.9,
+        perceptual_roughness: 0.1,
+        ..default()
+    });
+
+    let property_position = Vec3::new(
+        (rand::random::<f32>() - 0.5) * 40.0,
+        1.0,
+        (rand::random::<f32>() - 0.5) * 40.0,
+    );
+
+    let entity = commands.spawn((
+        PbrBundle {
+            mesh: property_mesh,
+            material: property_material,
+            transform: Transform::from_translation(property_position),
+            ..default()
+        },
+        RigidBody::Fixed,
+        Collider::ball(0.4),
+        property_node.clone(),
+        TronEffect {
+            glow_intensity: 1.5,
+            pulse_speed: 0.8,
+            color: Color::rgb(1.0, 0.8, 0.0),
+            is_pulsing: true,
+            animation_time: 0.0,
+        },
+        Selectable {
+            is_selected: false,
+            is_hovered: false,
+            selection_radius: 50.0,
+        },
+        Name::new(format!("PropertyNode_{}", property_id)),
+    )).id();
+
+    knirv_graph.property_nodes.insert(property_id.clone(), entity);
+    info!("Created PropertyNode {} from collaborative IdeaNode {}", property_id, idea_node.id);
+}
+
 /// System to handle competitive resolution when multiple agents work on same ErrorNode
 pub fn competitive_resolution_system(
     mut agent_query: Query<&mut AIAgent>,

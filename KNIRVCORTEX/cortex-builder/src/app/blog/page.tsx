@@ -33,7 +33,7 @@ export default function BlogPage() {
     },
     {
       title: "Case Study: How TechStart Reduced Support Tickets by 60%",
-      excerpt: "Discover how one startup used Agentify to automate customer support and dramatically improve their response times.",
+    excerpt: "Discover how one startup used KNIRV to automate customer support and dramatically improve their response times.",
       author: "Emily Johnson",
       date: "Dec 10, 2024",
       readTime: "5 min read",
@@ -93,15 +93,15 @@ export default function BlogPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black">
       {/* Navigation */}
-      <nav className="border-b border-white/10 bg-black/20 backdrop-blur-lg">
+  <nav className="border-b border-white/10 bg-slate-900/50 backdrop-blur-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center space-x-2" aria-label="Go to homepage">
-              <Bot className="h-8 w-8 text-purple-400" />
-              <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-                Agentify
+              <Bot className="h-8 w-8 knirv-text-primary" />
+              <span className="text-2xl font-bold knirv-gradient-text">
+                KNIRV
               </span>
             </Link>
             <div className="flex items-center space-x-4">
@@ -112,7 +112,7 @@ export default function BlogPage() {
                   className="pl-10 bg-white/10 border-white/20 text-white placeholder-white/40 w-64"
                 />
               </div>
-              <Button variant="outline" className="border-purple-400/50 text-purple-400 hover:bg-purple-400/10">
+              <Button variant="outline" className="border-knirv-border-primary/50 text-knirv-text-primary hover:bg-knirv-bg-primary/10">
                 Subscribe
               </Button>
             </div>
@@ -124,7 +124,7 @@ export default function BlogPage() {
       <div className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-6xl md:text-7xl font-bold text-white mb-6">
-            <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Blog</span>
+            <span className="knirv-gradient-text">Blog</span>
           </h1>
           <p className="text-xl text-white/70 mb-8 max-w-3xl mx-auto leading-relaxed">
             Insights, tutorials, and stories from the frontier of AI agent technology.
@@ -150,7 +150,7 @@ export default function BlogPage() {
       <div className="py-20 bg-black/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <Badge variant="outline" className="border-purple-400/50 text-purple-400 mb-4">
+            <Badge variant="outline" className="border-knirv-border-primary/50 text-knirv-text-primary mb-4">
               Featured Article
             </Badge>
             <h2 className="text-3xl font-bold text-white">Latest Insights</h2>
@@ -159,7 +159,7 @@ export default function BlogPage() {
           <Card className="bg-white/5 border-white/10 backdrop-blur-lg hover:bg-white/10 transition-all duration-300 max-w-4xl mx-auto">
             <CardContent className="p-0">
               <div className="grid md:grid-cols-2 gap-0">
-                <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 p-12 flex items-center justify-center">
+                <div className="bg-gradient-to-br from-knirv-primary/20 to-knirv-secondary/20 p-12 flex items-center justify-center">
                   <span className="text-8xl">{featuredPost.image}</span>
                 </div>
                 <div className="p-8">
@@ -197,7 +197,7 @@ export default function BlogPage() {
                     ))}
                   </div>
                   
-                  <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white">
+                  <Button className="bg-gradient-to-r from-knirv-primary to-knirv-secondary hover:from-knirv-secondary hover:to-knirv-primary text-white">
                     Read Article
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -217,7 +217,7 @@ export default function BlogPage() {
                 key={index}
                 variant={index === 0 ? "default" : "outline"}
                 className={index === 0 
-                  ? "bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white" 
+                  ? "bg-gradient-to-r from-knirv-primary to-knirv-secondary hover:from-knirv-secondary hover:to-knirv-primary text-white" 
                   : "bg-white/10 border-white/20 text-white/80 hover:bg-white/20 backdrop-blur-lg"
                 }
               >
@@ -236,7 +236,7 @@ export default function BlogPage() {
             {posts.map((post, index) => (
               <Card key={index} className="bg-white/5 border-white/10 backdrop-blur-lg hover:bg-white/10 transition-all duration-300 cursor-pointer group">
                 <CardContent className="p-0">
-                  <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 p-8 flex items-center justify-center">
+                  <div className="bg-gradient-to-br from-knirv-primary/20 to-knirv-secondary/20 p-8 flex items-center justify-center">
                     <span className="text-4xl">{post.image}</span>
                   </div>
                   
@@ -251,7 +251,7 @@ export default function BlogPage() {
                       </div>
                     </div>
                     
-                    <h3 className="text-lg font-semibold text-white mb-3 group-hover:text-purple-400 transition-colors leading-tight">
+                    <h3 className="text-lg font-semibold text-white mb-3 group-hover:knirv-text-primary transition-colors leading-tight">
                       {post.title}
                     </h3>
                     
@@ -275,7 +275,7 @@ export default function BlogPage() {
                       ))}
                     </div>
                     
-                    <Button variant="outline" className="w-full border-purple-400/50 text-purple-400 hover:bg-purple-400/10">
+                    <Button variant="outline" className="w-full border-knirv-border-primary/50 text-knirv-text-primary hover:bg-knirv-bg-primary/10">
                       Read More
                       <ArrowRight className="ml-2 h-3 w-3" />
                     </Button>
@@ -299,7 +299,7 @@ export default function BlogPage() {
               placeholder="Enter your email..." 
               className="bg-white/10 border-white/20 text-white placeholder-white/40"
             />
-            <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white">
+            <Button className="bg-gradient-to-r from-knirv-primary to-knirv-secondary hover:from-knirv-secondary hover:to-knirv-primary text-white">
               Subscribe
             </Button>
           </div>

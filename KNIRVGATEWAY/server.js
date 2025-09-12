@@ -42,6 +42,8 @@ const cache = new NodeCache({ stdTTL: 60, checkperiod: 10 });
 // Global state
 let dhtManager = null;
 let app = null;
+let dhtInitialized = false;
+let dhtStartupInProgress = false;
 
 /**
  * Initialize Express application
@@ -60,13 +62,17 @@ function createApp() {
       status: 'healthy',
       mode: GATEWAY_MODE,
       timestamp: Date.now(),
-      chainId: CHAIN_ID
+      chainId: CHAIN_ID,
+      dhtInitialized,
+      dhtStartupInProgress
     };
-    
+
     if (dhtManager) {
       status.dht = dhtManager.getNetworkStatus();
+    } else {
+      status.dht = { status: 'not_initialized' };
     }
-    
+
     res.json(status);
   });
   
@@ -125,13 +131,127 @@ function createApp() {
     if (!dhtManager || !dhtManager.isStarted) {
       return res.status(503).json({ error: 'DHT not available' });
     }
-    
+
     const status = dhtManager.getNetworkStatus();
     res.json({
       discoveredServices: status.discoveredServices,
       connectedPeers: status.connectedPeers,
       chainId: CHAIN_ID
     });
+  });
+
+  // DHT control endpoints
+  app.post('/dht/start', async (req, res) => {
+    try {
+      if (GATEWAY_MODE !== 'persistent') {
+        return res.status(400).json({
+          error: 'DHT can only be started in persistent mode',
+          currentMode: GATEWAY_MODE
+        });
+      }
+
+      if (dhtInitialized) {
+        return res.json({
+          message: 'DHT already initialized',
+          status: dhtManager ? dhtManager.getNetworkStatus() : { status: 'unknown' }
+        });
+      }
+
+      if (dhtStartupInProgress) {
+        return res.json({
+          message: 'DHT startup already in progress',
+          status: 'starting'
+        });
+      }
+
+      console.log('[Gateway] DHT start requested via API');
+      dhtStartupInProgress = true;
+
+      // Start DHT initialization
+      await startPersistentGateway();
+
+      dhtStartupInProgress = false;
+      dhtInitialized = true;
+
+      res.json({
+        message: 'DHT started successfully',
+        status: dhtManager ? dhtManager.getNetworkStatus() : { status: 'started' }
+      });
+
+    } catch (error) {
+      console.error('[Gateway] DHT start failed:', error);
+      dhtStartupInProgress = false;
+
+      res.status(500).json({
+        error: 'Failed to start DHT',
+        details: error.message
+      });
+    }
+  });
+
+  app.post('/dht/stop', async (req, res) => {
+    try {
+      if (!dhtManager) {
+        return res.json({ message: 'DHT not running' });
+      }
+
+      console.log('[Gateway] DHT stop requested via API');
+      await dhtManager.stop();
+      dhtManager = null;
+      dhtInitialized = false;
+      dhtStartupInProgress = false;
+
+      res.json({ message: 'DHT stopped successfully' });
+
+    } catch (error) {
+      console.error('[Gateway] DHT stop failed:', error);
+      res.status(500).json({
+        error: 'Failed to stop DHT',
+        details: error.message
+      });
+    }
+  });
+
+  app.get('/dht/restart', async (req, res) => {
+    try {
+      if (GATEWAY_MODE !== 'persistent') {
+        return res.status(400).json({
+          error: 'DHT can only be restarted in persistent mode',
+          currentMode: GATEWAY_MODE
+        });
+      }
+
+      console.log('[Gateway] DHT restart requested via API');
+
+      // Stop if running
+      if (dhtManager) {
+        await dhtManager.stop();
+        dhtManager = null;
+      }
+
+      dhtInitialized = false;
+      dhtStartupInProgress = true;
+
+      // Start again
+      await startPersistentGateway();
+
+      dhtStartupInProgress = false;
+      dhtInitialized = true;
+
+      res.json({
+        message: 'DHT restarted successfully',
+        status: dhtManager ? dhtManager.getNetworkStatus() : { status: 'restarted' }
+      });
+
+    } catch (error) {
+      console.error('[Gateway] DHT restart failed:', error);
+      dhtStartupInProgress = false;
+
+      res.status(500).json({
+        error: 'Failed to restart DHT',
+        details: error.message
+      });
+    }
   });
   
   return app;
@@ -210,13 +330,13 @@ function authenticateInternal(req, res, next) {
  * Start persistent gateway mode
  */
 async function startPersistentGateway() {
-  console.log('[Gateway] Starting in persistent mode...');
+  console.log('[Gateway] Starting DHT initialization...');
 
   // Check if DHT should be disabled for debugging
   const DISABLE_DHT = process.env.DISABLE_DHT === 'true';
   if (DISABLE_DHT) {
     console.log('[Gateway] ⚠️  DHT disabled via DISABLE_DHT environment variable');
-    console.log('[Gateway] ✅ Persistent gateway started in DHT-disabled mode');
+    console.log('[Gateway] ✅ DHT initialization skipped');
     return;
   }
 
@@ -322,9 +442,9 @@ async function main() {
 
     // Initialize based on mode
     if (GATEWAY_MODE === 'persistent') {
-      console.log(`[Gateway] Initializing persistent gateway mode...`);
-      await startPersistentGateway();
-      console.log(`[Gateway] Persistent gateway mode initialized successfully`);
+      console.log(`[Gateway] Persistent mode - DHT will be started on demand`);
+      console.log(`[Gateway] Use POST /dht/start to initialize DHT when ready`);
+      console.log(`[Gateway] Persistent gateway mode initialized successfully (DHT disabled by default)`);
     } else {
       console.log(`[Gateway] Initializing serverless gateway mode...`);
       await startServerlessGateway();

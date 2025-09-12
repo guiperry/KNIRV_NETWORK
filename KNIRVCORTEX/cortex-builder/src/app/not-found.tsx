@@ -7,15 +7,15 @@ import Link from 'next/link';
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-knirv-primary to-slate-900 flex items-center justify-center">
       <div className="max-w-md mx-auto text-center px-4">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <Bot className="h-16 w-16 text-purple-400" />
+          <Bot className="h-16 w-16 knirv-text-primary" />
         </div>
         
         {/* 404 Text */}
-        <h1 className="text-8xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-4">
+  <h1 className="text-8xl font-bold knirv-gradient-text mb-4">
           404
         </h1>
         
@@ -31,7 +31,7 @@ export default function NotFound() {
         {/* Action Buttons */}
         <div className="space-y-4">
           <Link href="/">
-            <Button className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white">
+            <Button className="w-full bg-gradient-to-r from-knirv-primary to-knirv-secondary hover:from-knirv-secondary hover:to-knirv-primary text-white">
               <Home className="w-4 h-4 mr-2" />
               Go Home
             </Button>
@@ -53,16 +53,16 @@ export default function NotFound() {
             Need help? Try these popular pages:
           </p>
           <div className="space-y-2">
-            <Link href="/features" className="block text-purple-400 hover:text-purple-300 transition-colors text-sm">
+            <Link href="/features" className="block knirv-text-primary hover:knirv-text-primary/80 transition-colors text-sm">
               Features
             </Link>
-            <Link href="/pricing" className="block text-purple-400 hover:text-purple-300 transition-colors text-sm">
+            <Link href="/pricing" className="block knirv-text-primary hover:knirv-text-primary/80 transition-colors text-sm">
               Pricing
             </Link>
-            <Link href="/documentation" className="block text-purple-400 hover:text-purple-300 transition-colors text-sm">
+            <Link href="/documentation" className="block knirv-text-primary hover:knirv-text-primary/80 transition-colors text-sm">
               Documentation
             </Link>
-            <Link href="/about" className="block text-purple-400 hover:text-purple-300 transition-colors text-sm">
+            <Link href="/about" className="block knirv-text-primary hover:knirv-text-primary/80 transition-colors text-sm">
               About
             </Link>
           </div>

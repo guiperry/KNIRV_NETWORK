@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Bot, Play, Clock, User, Star, BookOpen, Code, Zap } from "lucide-react";
+import KnirvLogo from '@/components/KnirvLogo'
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +11,7 @@ import Link from "next/link";
 export default function TutorialsPage() {
   const tutorials = [
     {
-      title: "Getting Started with Agentify",
+      title: "Getting Started with KNIRV",
       description: "Learn the basics of creating your first AI agent in under 10 minutes.",
       duration: "8 min",
       level: "Beginner",
@@ -21,7 +22,7 @@ export default function TutorialsPage() {
     },
     {
       title: "Building a Customer Support Agent",
-      description: "Step-by-step guide to creating an intelligent customer support chatbot.",
+  description: "Step-by-step guide to creating an intelligent customer support chatbot.",
       duration: "15 min",
       level: "Intermediate",
       author: "Marcus Rodriguez",
@@ -31,7 +32,7 @@ export default function TutorialsPage() {
     },
     {
       title: "Advanced Agent Configuration",
-      description: "Deep dive into advanced settings and customization options.",
+  description: "Deep dive into advanced settings and customization options.",
       duration: "22 min",
       level: "Advanced",
       author: "Emily Johnson",
@@ -41,7 +42,7 @@ export default function TutorialsPage() {
     },
     {
       title: "Integrating with React Applications",
-      description: "How to seamlessly integrate Agentify agents into your React projects.",
+  description: "How to seamlessly integrate KNIRV agents into your React projects.",
       duration: "12 min",
       level: "Intermediate",
       author: "David Kim",
@@ -90,22 +91,17 @@ export default function TutorialsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black">
       {/* Navigation */}
-      <nav className="border-b border-white/10 bg-black/20 backdrop-blur-lg">
+      <nav className="border-b border-white/10 bg-slate-900/50 backdrop-blur-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <Link href="/" className="flex items-center space-x-2" aria-label="Go to homepage">
-              <Bot className="h-8 w-8 text-purple-400" />
-              <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-                Agentify
-              </span>
-            </Link>
+            <KnirvLogo />
             <div className="flex items-center space-x-4">
-              <Button variant="outline" className="border-purple-400/50 text-purple-400 hover:bg-purple-400/10">
+              <Button variant="outline" className="border-knirv-border-primary text-knirv-text-primary hover:bg-knirv-bg-primary/10">
                 <Link href="/documentation">Documentation</Link>
               </Button>
-              <Button variant="outline" className="border-purple-400/50 text-purple-400 hover:bg-purple-400/10">
+              <Button variant="outline" className="border-knirv-border-primary text-knirv-text-primary hover:bg-knirv-bg-primary/10">
                 <Link href="/support">Support</Link>
               </Button>
             </div>
@@ -117,7 +113,7 @@ export default function TutorialsPage() {
       <div className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-6xl md:text-7xl font-bold text-white mb-6">
-            <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Tutorials</span>
+            <span className="knirv-gradient-text">Tutorials</span>
           </h1>
           <p className="text-xl text-white/70 mb-8 max-w-3xl mx-auto leading-relaxed">
             Learn how to build, deploy, and optimize AI agents with our comprehensive video tutorials and guides.
@@ -148,7 +144,7 @@ export default function TutorialsPage() {
                 key={index}
                 variant={index === 0 ? "default" : "outline"}
                 className={index === 0 
-                  ? "bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white" 
+                  ? "bg-gradient-to-r from-knirv-primary to-knirv-secondary hover:from-knirv-secondary hover:to-knirv-primary text-white" 
                   : "bg-white/10 border-white/20 text-white/80 hover:bg-white/20 backdrop-blur-lg"
                 }
               >
@@ -163,11 +159,11 @@ export default function TutorialsPage() {
       <div className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-4xl font-bold text-white text-center mb-16">Featured Tutorials</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {tutorials.map((tutorial, index) => (
-              <Card key={index} className="bg-white/5 border-white/10 backdrop-blur-lg hover:bg-white/10 transition-all duration-300 cursor-pointer group">
+        <Card key={index} className="bg-white/5 border-white/10 knirv-card-gradient hover:bg-white/10 transition-all duration-300 cursor-pointer group">
                 <CardContent className="p-0">
-                  <div className="relative bg-gradient-to-br from-purple-500/20 to-blue-500/20 p-12 flex items-center justify-center">
+          <div className="relative bg-gradient-to-br from-knirv-primary/20 to-knirv-secondary/20 p-12 flex items-center justify-center">
                     <span className="text-6xl">{tutorial.thumbnail}</span>
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                       <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
@@ -189,7 +185,7 @@ export default function TutorialsPage() {
                       </Badge>
                     </div>
                     
-                    <h3 className="text-lg font-semibold text-white mb-3 group-hover:text-purple-400 transition-colors leading-tight">
+                    <h3 className="text-lg font-semibold text-white mb-3 group-hover:knirv-text-primary transition-colors leading-tight">
                       {tutorial.title}
                     </h3>
                     
@@ -214,7 +210,7 @@ export default function TutorialsPage() {
                       </div>
                     </div>
                     
-                    <Button variant="outline" className="w-full border-purple-400/50 text-purple-400 hover:bg-purple-400/10">
+                    <Button variant="outline" className="w-full border-knirv-border-primary/50 text-knirv-text-primary hover:bg-knirv-bg-primary/10">
                       <Play className="mr-2 h-3 w-3" />
                       Watch Tutorial
                     </Button>
@@ -231,7 +227,7 @@ export default function TutorialsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl font-bold text-white mb-6">Recommended Learning Path</h2>
           <p className="text-xl text-white/70 mb-12 max-w-2xl mx-auto">
-            Follow our structured learning path to master Agentify from basics to advanced concepts.
+            Follow our structured learning path to master KNIRV from basics to advanced concepts.
           </p>
           <div className="grid md:grid-cols-3 gap-8">
             <Card className="bg-white/5 border-white/10 backdrop-blur-lg">
@@ -262,12 +258,12 @@ export default function TutorialsPage() {
             
             <Card className="bg-white/5 border-white/10 backdrop-blur-lg">
               <CardContent className="p-8 text-center">
-                <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 bg-knirv-secondary/20 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl">⚡</span>
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-4">Advanced</h3>
                 <p className="text-white/70 mb-6">Master advanced features and production deployment.</p>
-                <Button variant="outline" className="border-purple-400/50 text-purple-400 hover:bg-purple-400/10">
+                <Button variant="outline" className="border-knirv-border-primary/50 text-knirv-text-primary hover:bg-knirv-bg-primary/10">
                   Master Skills
                 </Button>
               </CardContent>

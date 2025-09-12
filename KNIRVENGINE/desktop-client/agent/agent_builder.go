@@ -35,8 +35,11 @@ type AgentConfig struct {
 	CustomTools       []Tool                 `json:"custom_tools,omitempty"`
 	SubAgents         []string               `json:"sub_agents,omitempty"`
 	MaxIterations     int                    `json:"max_iterations,omitempty"`
-	BuildTarget       string                 `json:"build_target,omitempty"` // "plugin" or "wasm"
+	BuildTarget       string                 `json:"build_target,omitempty"` // "plugin", "wasm", or "agent_wasm"
 	ExtraParams       map[string]interface{} `json:"extra_params,omitempty"`
+	CortexWasm        []byte                 `json:"cortex_wasm,omitempty"`   // Pre-compiled cortex.wasm from Rust
+	LoRAAdapters      []LoRAAdapter          `json:"lora_adapters,omitempty"` // LoRA adapters to include
+	EnableLoRA        bool                   `json:"enable_lora,omitempty"`   // Enable LoRA functionality
 }
 
 // Tool represents a tool configuration for an agent
@@ -45,6 +48,20 @@ type Tool struct {
 	Description string                 `json:"description"`
 	Endpoint    string                 `json:"endpoint"`
 	Parameters  map[string]interface{} `json:"parameters"`
+}
+
+// LoRAAdapter represents a LoRA adapter for skill-based neural network modifications
+type LoRAAdapter struct {
+	SkillID                string            `json:"skill_id"`
+	SkillName              string            `json:"skill_name"`
+	Description            string            `json:"description"`
+	BaseModelCompatibility string            `json:"base_model_compatibility"`
+	Version                int               `json:"version"`
+	Rank                   int               `json:"rank"`
+	Alpha                  float64           `json:"alpha"`
+	WeightsA               []float32         `json:"weights_a"`
+	WeightsB               []float32         `json:"weights_b"`
+	AdditionalMetadata     map[string]string `json:"additional_metadata"`
 }
 
 // TemplateData represents the data used for template processing
@@ -79,6 +96,9 @@ type TemplateData struct {
 	ExtraParams              map[string]interface{}
 	PythonAgentServiceScript string
 	PythonRequirements       string
+	LoRAAdapters             []LoRAAdapter
+	EnableLoRA               bool
+	CortexWasmPath           string
 }
 
 // BuildStatus represents the status of an agent build operation
@@ -703,6 +723,39 @@ func (b *AgentBuilder) compilePluginWithConfig(config AgentConfig, sourceDir str
 
 		b.updateBuildStatus(agentID, "building", "Compiling WebAssembly", 70)
 		b.addBuildLog(agentID, "Running WASM build command")
+
+		cmd = exec.Command("go", "build", "-o", outputPath, ".")
+		cmd.Dir = sourceDir
+		cmd.Env = append(os.Environ(),
+			"GOOS=wasip1",
+			"GOARCH=wasm",
+			"CGO_ENABLED=0", // Disable CGO for WASM builds
+		)
+
+	case "agent_wasm":
+		// New agent.wasm compilation that imports cortex.wasm
+		pluginFilename = fmt.Sprintf("agent_%s_1.0.wasm", agentID)
+		outputPath = filepath.Join(b.outputPath, pluginFilename)
+
+		b.updateBuildStatus(agentID, "building", "Compiling Agent.wasm with Cortex integration", 70)
+		b.addBuildLog(agentID, "Running Agent.wasm build with cortex.wasm import")
+
+		// First, save the cortex.wasm to the source directory if provided
+		if len(config.CortexWasm) > 0 {
+			cortexPath := filepath.Join(sourceDir, "cortex.wasm")
+			if err := os.WriteFile(cortexPath, config.CortexWasm, 0644); err != nil {
+				return "", fmt.Errorf("failed to write cortex.wasm: %v", err)
+			}
+			b.addBuildLog(agentID, "Cortex.wasm imported successfully")
+		}
+
+		// Generate LoRA adapter integration code if adapters are provided
+		if config.EnableLoRA && len(config.LoRAAdapters) > 0 {
+			if err := b.generateLoRAIntegration(sourceDir, config.LoRAAdapters); err != nil {
+				return "", fmt.Errorf("failed to generate LoRA integration: %v", err)
+			}
+			b.addBuildLog(agentID, fmt.Sprintf("Generated LoRA integration for %d adapters", len(config.LoRAAdapters)))
+		}
 
 		cmd = exec.Command("go", "build", "-o", outputPath, ".")
 		cmd.Dir = sourceDir
@@ -1361,4 +1414,135 @@ func (b *AgentBuilder) updateAgentWithNFTInfo(agentID, transactionID, nftID stri
 
 	// Update the agent configuration
 	b.registry.RegisterAgent(agentID, configMap)
+}
+
+// generateLoRAIntegration generates Go code for LoRA adapter integration
+func (b *AgentBuilder) generateLoRAIntegration(sourceDir string, adapters []LoRAAdapter) error {
+	// Create LoRA integration file
+	loraFilePath := filepath.Join(sourceDir, "lora_integration.go")
+
+	// Generate LoRA integration code
+	loraCode := `package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"log"
+)
+
+// LoRAAdapter represents a LoRA adapter for skill-based neural network modifications
+type LoRAAdapter struct {
+	SkillID                string            ` + "`json:\"skill_id\"`" + `
+	SkillName              string            ` + "`json:\"skill_name\"`" + `
+	Description            string            ` + "`json:\"description\"`" + `
+	BaseModelCompatibility string            ` + "`json:\"base_model_compatibility\"`" + `
+	Version                int               ` + "`json:\"version\"`" + `
+	Rank                   int               ` + "`json:\"rank\"`" + `
+	Alpha                  float64           ` + "`json:\"alpha\"`" + `
+	WeightsA               []float32         ` + "`json:\"weights_a\"`" + `
+	WeightsB               []float32         ` + "`json:\"weights_b\"`" + `
+	AdditionalMetadata     map[string]string ` + "`json:\"additional_metadata\"`" + `
+}
+
+// LoRAManager manages LoRA adapters for the agent
+type LoRAManager struct {
+	adapters map[string]LoRAAdapter
+}
+
+// NewLoRAManager creates a new LoRA manager with pre-loaded adapters
+func NewLoRAManager() *LoRAManager {
+	manager := &LoRAManager{
+		adapters: make(map[string]LoRAAdapter),
+	}
+
+	// Load pre-compiled adapters
+	manager.loadPrecompiledAdapters()
+
+	return manager
+}
+
+// loadPrecompiledAdapters loads the adapters that were compiled into the agent
+func (lm *LoRAManager) loadPrecompiledAdapters() {
+	adaptersJSON := ` + "`" + `%s` + "`" + `
+
+	var adapters []LoRAAdapter
+	if err := json.Unmarshal([]byte(adaptersJSON), &adapters); err != nil {
+		log.Printf("Failed to load pre-compiled LoRA adapters: %v", err)
+		return
+	}
+
+	for _, adapter := range adapters {
+		lm.adapters[adapter.SkillID] = adapter
+		log.Printf("Loaded LoRA adapter: %s (%s)", adapter.SkillName, adapter.SkillID)
+	}
+}
+
+// GetAdapter retrieves a LoRA adapter by skill ID
+func (lm *LoRAManager) GetAdapter(skillID string) (LoRAAdapter, bool) {
+	adapter, exists := lm.adapters[skillID]
+	return adapter, exists
+}
+
+// GetAllAdapters returns all available LoRA adapters
+func (lm *LoRAManager) GetAllAdapters() []LoRAAdapter {
+	adapters := make([]LoRAAdapter, 0, len(lm.adapters))
+	for _, adapter := range lm.adapters {
+		adapters = append(adapters, adapter)
+	}
+	return adapters
+}
+
+// InvokeSkill invokes a LoRA skill with the given parameters
+func (lm *LoRAManager) InvokeSkill(skillID string, parameters map[string]string) (interface{}, error) {
+	adapter, exists := lm.GetAdapter(skillID)
+	if !exists {
+		return nil, fmt.Errorf("skill not found: %s", skillID)
+	}
+
+	// In a full implementation, this would apply the LoRA weights to the model
+	// For now, return a mock response
+	response := map[string]interface{}{
+		"skill_id": adapter.SkillID,
+		"skill_name": adapter.SkillName,
+		"invocation_id": fmt.Sprintf("inv_%d", len(parameters)),
+		"status": "success",
+		"parameters": parameters,
+		"result": fmt.Sprintf("Skill %s executed successfully", adapter.SkillName),
+	}
+
+	return response, nil
+}
+
+// Global LoRA manager instance
+var globalLoRAManager *LoRAManager
+
+// InitializeLoRA initializes the global LoRA manager
+func InitializeLoRA() {
+	globalLoRAManager = NewLoRAManager()
+}
+
+// GetLoRAManager returns the global LoRA manager
+func GetLoRAManager() *LoRAManager {
+	if globalLoRAManager == nil {
+		InitializeLoRA()
+	}
+	return globalLoRAManager
+}
+`
+
+	// Serialize adapters to JSON for embedding
+	adaptersJSON, err := json.MarshalIndent(adapters, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to serialize LoRA adapters: %v", err)
+	}
+
+	// Format the code with the embedded adapters
+	finalCode := fmt.Sprintf(loraCode, string(adaptersJSON))
+
+	// Write the LoRA integration file
+	if err := os.WriteFile(loraFilePath, []byte(finalCode), 0644); err != nil {
+		return fmt.Errorf("failed to write LoRA integration file: %v", err)
+	}
+
+	return nil
 }

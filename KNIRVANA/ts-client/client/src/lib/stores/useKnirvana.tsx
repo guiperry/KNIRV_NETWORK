@@ -22,6 +22,34 @@ export interface SkillNode {
   usageCount: number;
 }
 
+export interface IdeaNode {
+  id: string;
+  position: { x: number; y: number; z: number };
+  name: string;
+  ideaType: 'asset' | 'characteristic' | 'attribute' | 'innovation' | 'improvement' | 'feature';
+  description: string;
+  feasibilityScore: number;
+  existenceCheck: boolean;
+  collaborators: string[];
+  stakes: Record<string, number>;
+  collaborationValue: number;
+  status: 'pending' | 'collaborative' | 'property_created' | 'abandoned';
+}
+
+export interface PropertyNode {
+  id: string;
+  position: { x: number; y: number; z: number };
+  name: string;
+  propertyType: 'asset' | 'characteristic' | 'attribute' | 'license' | 'patent' | 'trademark';
+  sourceIdea: string;
+  valueType: string;
+  immutable: boolean;
+  category: string;
+  owners: Record<string, number>;
+  marketValue: number;
+  usageCount: number;
+}
+
 export interface Agent {
   id: string;
   position: { x: number; y: number; z: number };
@@ -41,14 +69,20 @@ interface KnirvanaState {
   nrnBalance: number;
   skillsLearned: number;
   errorsResolved: number;
-  
+  ideasDeveloped: number;
+  propertiesCreated: number;
+
   // Game objects
   errorNodes: ErrorNode[];
   skillNodes: SkillNode[];
+  ideaNodes: IdeaNode[];
+  propertyNodes: PropertyNode[];
   agents: Agent[];
-  
+
   // Selection
   selectedErrorNode: string | null;
+  selectedIdeaNode: string | null;
+  selectedPropertyNode: string | null;
   selectedAgent: string | null;
   
   // Actions

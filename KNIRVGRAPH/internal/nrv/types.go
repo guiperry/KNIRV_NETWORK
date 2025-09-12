@@ -82,6 +82,67 @@ type ValidationStatus struct {
 	LastValidated   time.Time `json:"last_validated"`
 }
 
+// ContextNode represents context data (MCP servers) that becomes capabilities
+type ContextNode struct {
+	ID           string                 `json:"id"`
+	ContextType  string                 `json:"context_type"` // "mcp_server", "api_endpoint", "tool"
+	Description  string                 `json:"description"`
+	Schema       map[string]interface{} `json:"schema"`
+	LocationHints []string              `json:"location_hints"`
+	GasFeeNRN    uint64                 `json:"gas_fee_nrn,omitempty"`
+	Timestamp    time.Time              `json:"timestamp"`
+	Status       string                 `json:"status"` // "pending", "processing", "capability_created"
+}
+
+// IdeaNode represents ideas that become properties through collaboration
+type IdeaNode struct {
+	ID              string                 `json:"id"`
+	IdeaType        string                 `json:"idea_type"` // "asset", "characteristic", "attribute"
+	Description     string                 `json:"description"`
+	FeasibilityData map[string]interface{} `json:"feasibility_data"`
+	ExistenceCheck  *ExistenceReport       `json:"existence_check,omitempty"`
+	Collaborators   []string               `json:"collaborators"` // Agent IDs working on this idea
+	Stakes          map[string]float64     `json:"stakes"`        // Agent stakes in resulting property
+	Timestamp       time.Time              `json:"timestamp"`
+	Status          string                 `json:"status"` // "pending", "collaborative", "property_created"
+}
+
+// CapabilityNode represents capabilities created from context nodes
+type CapabilityNode struct {
+	ID            string                 `json:"id"`
+	SourceContext string                 `json:"source_context"` // ContextNode ID
+	Name          string                 `json:"name"`
+	CapabilityType string                `json:"capability_type"`
+	Schema        map[string]interface{} `json:"schema"`
+	LocationHints []string               `json:"location_hints"`
+	GasFeeNRN     uint64                 `json:"gas_fee_nrn"`
+	Performance   *PerformanceMetrics    `json:"performance"`
+	Timestamp     time.Time              `json:"timestamp"`
+}
+
+// PropertyNode represents properties created from idea nodes
+type PropertyNode struct {
+	ID           string                 `json:"id"`
+	SourceIdea   string                 `json:"source_idea"` // IdeaNode ID
+	Name         string                 `json:"name"`
+	PropertyType string                 `json:"property_type"`
+	ValueType    string                 `json:"value_type"`
+	Constraints  map[string]interface{} `json:"constraints"`
+	Immutable    bool                   `json:"immutable"`
+	Category     string                 `json:"category,omitempty"`
+	Owners       map[string]float64     `json:"owners"` // Agent ownership stakes
+	Timestamp    time.Time              `json:"timestamp"`
+}
+
+// ExistenceReport tracks whether an idea already exists
+type ExistenceReport struct {
+	Exists        bool                   `json:"exists"`
+	ExistingRefs  []string               `json:"existing_refs,omitempty"`
+	Similarity    float64                `json:"similarity"`
+	Analysis      map[string]interface{} `json:"analysis"`
+	CheckedAt     time.Time              `json:"checked_at"`
+}
+
 // NRVConfig holds configuration for the NRV system
 type NRVConfig struct {
 	MaxVectors        int           `json:"max_vectors"`

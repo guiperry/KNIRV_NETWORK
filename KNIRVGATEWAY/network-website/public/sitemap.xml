@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  
+  <!-- Main Website Pages -->
+  <url>
+    <loc>https://knirv.network/</loc>
+    <lastmod>2024-12-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://knirv.network/images/dark/gfx-d-dark.png</image:loc>
+      <image:title>KNIRV D-TEN Decentralized AI Network</image:title>
+      <image:caption>Revolutionary Decentralized Trusted Execution Network for Self-Improving AI</image:caption>
+    </image:image>
+  </url>
+
+  <!-- KNIRV Testnet -->
+  <url>
+    <loc>https://knirv.network/knirvtestnet/</loc>
+    <lastmod>2024-12-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Developer Portal -->
+  <url>
+    <loc>https://knirv.network/agent-developer-portal/</loc>
+    <lastmod>2024-12-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Documentation -->
+  <url>
+    <loc>https://knirv.network/documentation/docsify/</loc>
+    <lastmod>2024-12-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Whitepapers -->
+  <url>
+    <loc>https://knirv.network/Whitepapers.html</loc>
+    <lastmod>2024-12-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Business Presentations -->
+  <url>
+    <loc>https://knirv.network/presenter/</loc>
+    <lastmod>2024-12-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Key Whitepaper Documents -->
+  <url>
+    <loc>https://knirv.network/documentation/whitepapers/KNIRV-D-TEN_Whitepaper</loc>
+    <lastmod>2024-12-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://knirv.network/documentation/whitepapers/KNIRVCHAIN_Whitepaper</loc>
+    <lastmod>2024-12-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://knirv.network/documentation/whitepapers/KNIRVGRAPH_Whitepaper</loc>
+    <lastmod>2024-12-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://knirv.network/documentation/whitepapers/KNIRV-CORTEX_Whitepaper</loc>
+    <lastmod>2024-12-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://knirv.network/documentation/whitepapers/KNIRV-NEXUS_Whitepaper</loc>
+    <lastmod>2024-12-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://knirv.network/documentation/whitepapers/KNIRV-WALLET_Whitepaper</loc>
+    <lastmod>2024-12-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://knirv.network/documentation/whitepapers/KNIRV-SHELL_Whitepaper</loc>
+    <lastmod>2024-12-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://knirv.network/documentation/whitepapers/KNIRV-SDK_Whitepaper</loc>
+    <lastmod>2024-12-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://knirv.network/documentation/whitepapers/KNIRVANA_Whitepaper</loc>
+    <lastmod>2024-12-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+</urlset>

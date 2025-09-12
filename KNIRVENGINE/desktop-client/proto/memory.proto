@@ -1,0 +1,162 @@
+syntax = "proto3";
+
+package knirv.memory.v1;
+
+option go_package = "github.com/guiperry/KNIRV_NETWORK/pkg/gen/knirv/memory/v1;memoryv1";
+
+// Memory Protocol Messages
+message MemoryRequest {
+  string request_id = 1;
+  MemoryOperation operation = 2;
+  bytes payload = 3;
+  MemoryPolicy policy = 4;
+  uint64 timestamp = 5;
+}
+
+message MemoryResponse {
+  string request_id = 1;
+  MemoryStatus status = 2;
+  bytes payload = 3;
+  optional string error_message = 4;
+  uint64 timestamp = 5;
+}
+
+enum MemoryOperation {
+  MEMORY_READ = 0;
+  MEMORY_WRITE = 1;
+  MEMORY_DELETE = 2;
+  MEMORY_SEARCH = 3;
+  MEMORY_COMPACT = 4;
+}
+
+enum MemoryStatus {
+  MEMORY_SUCCESS = 0;
+  MEMORY_FAILURE = 1;
+  MEMORY_NOT_FOUND = 2;
+  MEMORY_PERMISSION_DENIED = 3;
+}
+
+message MemoryPolicy {
+  uint32 short_term_window_size = 1;
+  uint32 episodic_top_k = 2;
+  uint32 semantic_top_k = 3;
+  uint32 procedural_top_k = 4;
+  float relevance_threshold = 5;
+  bool enable_compression = 6;
+  uint32 max_memory_mb = 7;
+}
+
+// Episodic Memory
+message EpisodicMemory {
+  string memory_id = 1;
+  string content = 2;
+  uint64 timestamp = 3;
+  float relevance_score = 4;
+  repeated string tags = 5;
+  map<string, string> metadata = 6;
+  optional bytes embedding = 7;
+}
+
+message EpisodicMemoryQuery {
+  string query = 1;
+  uint32 top_k = 2;
+  float min_relevance = 3;
+  repeated string required_tags = 4;
+  optional uint64 time_range_start = 5;
+  optional uint64 time_range_end = 6;
+}
+
+// Semantic Memory
+message SemanticTriple {
+  string subject = 1;
+  string predicate = 2;
+  string object = 3;
+  float confidence = 4;
+  repeated float embedding = 5;
+  uint64 timestamp = 6;
+  string source = 7;
+}
+
+message SemanticMemoryQuery {
+  optional string subject = 1;
+  optional string predicate = 2;
+  optional string object = 3;
+  float min_confidence = 4;
+  uint32 max_results = 5;
+}
+
+// Procedural Memory
+message ProceduralMemory {
+  string procedure_id = 1;
+  string name = 2;
+  string description = 3;
+  repeated ProcedureStep steps = 4;
+  repeated string prerequisites = 5;
+  float success_rate = 6;
+  uint64 last_used = 7;
+}
+
+message ProcedureStep {
+  uint32 step_number = 1;
+  string action = 2;
+  map<string, string> parameters = 3;
+  repeated string expected_outcomes = 4;
+  optional string error_handling = 5;
+}
+
+// Working Memory
+message WorkingMemory {
+  string session_id = 1;
+  repeated WorkingMemoryItem items = 2;
+  uint32 capacity = 3;
+  MemoryPolicy policy = 4;
+}
+
+message WorkingMemoryItem {
+  string item_id = 1;
+  string content = 2;
+  float activation_level = 3;
+  uint64 last_accessed = 4;
+  uint32 access_count = 5;
+}
+
+// Memory Consolidation
+message MemoryConsolidationRequest {
+  string session_id = 1;
+  ConsolidationType type = 2;
+  map<string, string> parameters = 3;
+}
+
+enum ConsolidationType {
+  CONSOLIDATION_EPISODIC_TO_SEMANTIC = 0;
+  CONSOLIDATION_WORKING_TO_EPISODIC = 1;
+  CONSOLIDATION_COMPRESS_EPISODIC = 2;
+  CONSOLIDATION_MERGE_SEMANTIC = 3;
+}
+
+message MemoryConsolidationResult {
+  string consolidation_id = 1;
+  ConsolidationStatus status = 2;
+  uint32 items_processed = 3;
+  uint32 items_consolidated = 4;
+  uint32 items_discarded = 5;
+  optional string error_message = 6;
+}
+
+enum ConsolidationStatus {
+  CONSOLIDATION_SUCCESS = 0;
+  CONSOLIDATION_FAILURE = 1;
+  CONSOLIDATION_PARTIAL = 2;
+}
+
+// Memory Statistics
+message MemoryStatistics {
+  uint64 total_memory_bytes = 1;
+  uint64 used_memory_bytes = 2;
+  uint32 episodic_count = 3;
+  uint32 semantic_count = 4;
+  uint32 procedural_count = 5;
+  uint32 working_memory_count = 6;
+  float average_relevance_score = 7;
+  uint64 last_consolidation = 8;
+}

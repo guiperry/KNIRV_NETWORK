@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+package knirv.lora.v1;
+
+option go_package = "github.com/guiperry/KNIRV_NETWORK/pkg/gen/knirv/lora/v1;lorav1";
+
+// LoRA Adapter Engine messages
+message LoRAAdapter {
+  string skill_id = 1;
+  string skill_name = 2;
+  string description = 3;
+  string base_model_compatibility = 4;
+  uint32 version = 5;
+  uint32 rank = 6;
+  float alpha = 7;
+  repeated float weights_a = 8;
+  repeated float weights_b = 9;
+  map<string, string> additional_metadata = 10;
+}
+
+message SkillCompilationRequest {
+  SkillData skill_data = 1;
+  SkillMetadata metadata = 2;
+}
+
+message SkillData {
+  repeated Solution solutions = 1;
+  repeated ErrorContext errors = 2;
+}
+
+message Solution {
+  string error_id = 1;
+  string solution = 2;
+  float confidence = 3;
+  string agent_id = 4;
+  int64 timestamp = 5;
+}
+
+message ErrorContext {
+  string error_id = 1;
+  string description = 2;
+  string context = 3;
+}
+
+message SkillMetadata {
+  string skill_name = 1;
+  string description = 2;
+  string base_model = 3;
+  optional uint32 rank = 4;
+  optional float alpha = 5;
+  map<string, string> additional_metadata = 6;
+}
+
+message SkillInvocationRequest {
+  string skill_id = 1;
+  map<string, string> parameters = 2;
+  string agent_core_id = 3;
+  string invocation_id = 4;
+}
+
+message SkillInvocationResponse {
+  string invocation_id = 1;
+  SkillInvocationStatus status = 2;
+  optional string error_message = 3;
+  optional LoRAAdapter skill = 4;
+}
+
+enum SkillInvocationStatus {
+  SKILL_SUCCESS = 0;
+  SKILL_FAILURE = 1;
+  SKILL_NOT_FOUND = 2;
+}
+
+message SkillChain {
+  string chain_id = 1;
+  repeated LoRAAdapter skills = 2;
+  LoRAAdapter merged_adapter = 3;
+  float consensus_score = 4;
+  uint64 last_updated = 5;
+}
+
+// LoRA Training Configuration
+message LoRATrainingConfig {
+  uint32 rank = 1;
+  float alpha = 2;
+  float dropout = 3;
+  string target_modules = 4; // JSON array of module names
+  bool bias = 5;
+  string task_type = 6; // "CAUSAL_LM", "SEQ_2_SEQ_LM", etc.
+}
+
+// LoRA Adapter Weights
+message LoRAWeights {
+  string module_name = 1;
+  repeated float lora_a = 2; // Low-rank matrix A
+  repeated float lora_b = 3; // Low-rank matrix B
+  uint32 rank = 4;
+  float alpha = 5;
+}
+
+// LoRA Model Configuration
+message LoRAModelConfig {
+  string base_model_name = 1;
+  LoRATrainingConfig training_config = 2;
+  repeated LoRAWeights weights = 3;
+  map<string, string> metadata = 4;
+}
+
+// LoRA Compilation Result
+message LoRACompilationResult {
+  string skill_id = 1;
+  LoRAModelConfig model_config = 2;
+  bytes compiled_weights = 3; // Serialized weights
+  uint64 size_bytes = 4;
+  string checksum = 5;
+  repeated string validation_errors = 6;
+  float performance_score = 7;
+}

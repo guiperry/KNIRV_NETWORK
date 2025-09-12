@@ -18,8 +18,7 @@ We usually label 1. - 3. as Long-Term memory and 5. as Short-Term memory.
 And that is it! The rest is all about how you architect the topology of your Agentic Systems.
 
 
-Below is a **complete, build-ready implementation plan** that turns every box, arrow and annotation in the supplied diagram into concrete work-packages, tech choices, interfaces, data contracts and delivery milestones.  
-Copy it into your project tracker (Jira, Linear, Notion, etc.) and treat each ✅ item as a sub-task.
+Below is a **complete, build-ready implementation plan** for building a complete Agentic Memory Platform.
 
 ---
 

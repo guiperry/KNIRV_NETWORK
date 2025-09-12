@@ -14,18 +14,26 @@ import (
 
 // NRVSystem manages Network Resolution Vectors
 type NRVSystem struct {
-	localPeerID   string
-	vectors       map[string]*NetworkResolutionVector
-	errorNodes    map[string]*ErrorNode
-	skillNodes    map[string]*SkillNode
-	vectorsMutex  sync.RWMutex
-	errorsMutex   sync.RWMutex
-	skillsMutex   sync.RWMutex
-	updateChannel chan VectorUpdate
-	config        *NRVConfig
-	ctx           context.Context
-	cancel        context.CancelFunc
-	stopOnce      sync.Once
+	localPeerID     string
+	vectors         map[string]*NetworkResolutionVector
+	errorNodes      map[string]*ErrorNode
+	skillNodes      map[string]*SkillNode
+	contextNodes    map[string]*ContextNode
+	ideaNodes       map[string]*IdeaNode
+	capabilityNodes map[string]*CapabilityNode
+	propertyNodes   map[string]*PropertyNode
+	vectorsMutex    sync.RWMutex
+	errorsMutex     sync.RWMutex
+	skillsMutex     sync.RWMutex
+	contextMutex    sync.RWMutex
+	ideaMutex       sync.RWMutex
+	capabilityMutex sync.RWMutex
+	propertyMutex   sync.RWMutex
+	updateChannel   chan VectorUpdate
+	config          *NRVConfig
+	ctx             context.Context
+	cancel          context.CancelFunc
+	stopOnce        sync.Once
 }
 
 // NewNRVSystem creates a new NRV system instance
@@ -37,14 +45,18 @@ func NewNRVSystem(peerID string, config *NRVConfig) *NRVSystem {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &NRVSystem{
-		localPeerID:   peerID,
-		vectors:       make(map[string]*NetworkResolutionVector),
-		errorNodes:    make(map[string]*ErrorNode),
-		skillNodes:    make(map[string]*SkillNode),
-		updateChannel: make(chan VectorUpdate, 100),
-		config:        config,
-		ctx:           ctx,
-		cancel:        cancel,
+		localPeerID:     peerID,
+		vectors:         make(map[string]*NetworkResolutionVector),
+		errorNodes:      make(map[string]*ErrorNode),
+		skillNodes:      make(map[string]*SkillNode),
+		contextNodes:    make(map[string]*ContextNode),
+		ideaNodes:       make(map[string]*IdeaNode),
+		capabilityNodes: make(map[string]*CapabilityNode),
+		propertyNodes:   make(map[string]*PropertyNode),
+		updateChannel:   make(chan VectorUpdate, 100),
+		config:          config,
+		ctx:             ctx,
+		cancel:          cancel,
 	}
 }
 
@@ -219,6 +231,82 @@ func (nrv *NRVSystem) CreateSkillNode(skillType string, capabilities []string, r
 	return skillNode, nil
 }
 
+// CreateContextNode creates a new context node (MCP server data → capability)
+func (nrv *NRVSystem) CreateContextNode(contextType, description string, schema map[string]interface{}, locationHints []string, gasFeeNRN uint64) (*ContextNode, error) {
+	contextID := nrv.generateContextID(contextType, description)
+
+	contextNode := &ContextNode{
+		ID:            contextID,
+		ContextType:   contextType,
+		Description:   description,
+		Schema:        schema,
+		LocationHints: locationHints,
+		GasFeeNRN:     gasFeeNRN,
+		Timestamp:     time.Now(),
+		Status:        "pending",
+	}
+
+	// Store context node
+	nrv.contextMutex.Lock()
+	nrv.contextNodes[contextID] = contextNode
+	nrv.contextMutex.Unlock()
+
+	// Create NRV for context processing
+	coordinates := nrv.calculateContextCoordinates(contextNode)
+	metadata := map[string]interface{}{
+		"node_type":      "context",
+		"context_type":   contextType,
+		"description":    description,
+		"gas_fee_nrn":    gasFeeNRN,
+		"transformation": "context_to_capability",
+	}
+
+	_, err := nrv.CreateVector(contextID, coordinates, metadata)
+	if err != nil {
+		log.Printf("Warning: Failed to create NRV for context node: %v", err)
+	}
+
+	return contextNode, nil
+}
+
+// CreateIdeaNode creates a new idea node (collaborative → property)
+func (nrv *NRVSystem) CreateIdeaNode(ideaType, description string, feasibilityData map[string]interface{}) (*IdeaNode, error) {
+	ideaID := nrv.generateIdeaID(ideaType, description)
+
+	ideaNode := &IdeaNode{
+		ID:              ideaID,
+		IdeaType:        ideaType,
+		Description:     description,
+		FeasibilityData: feasibilityData,
+		Collaborators:   []string{},
+		Stakes:          make(map[string]float64),
+		Timestamp:       time.Now(),
+		Status:          "pending",
+	}
+
+	// Store idea node
+	nrv.ideaMutex.Lock()
+	nrv.ideaNodes[ideaID] = ideaNode
+	nrv.ideaMutex.Unlock()
+
+	// Create NRV for idea collaboration
+	coordinates := nrv.calculateIdeaCoordinates(ideaNode)
+	metadata := map[string]interface{}{
+		"node_type":      "idea",
+		"idea_type":      ideaType,
+		"description":    description,
+		"collaboration":  "open",
+		"transformation": "idea_to_property",
+	}
+
+	_, err := nrv.CreateVector(ideaID, coordinates, metadata)
+	if err != nil {
+		log.Printf("Warning: Failed to create NRV for idea node: %v", err)
+	}
+
+	return ideaNode, nil
+}
+
 // GetSkillsForErrorType returns skills that can handle a specific error type
 func (nrv *NRVSystem) GetSkillsForErrorType(errorType string) ([]*SkillNode, error) {
 	var matchingSkills []*SkillNode
@@ -296,6 +384,18 @@ func (nrv *NRVSystem) generateSkillID(skillType string, capabilities []string) s
 	return hex.EncodeToString(hash[:])
 }
 
+func (nrv *NRVSystem) generateContextID(contextType, description string) string {
+	data := fmt.Sprintf("context:%s:%s:%d", contextType, description, time.Now().UnixNano())
+	hash := sha256.Sum256([]byte(data))
+	return hex.EncodeToString(hash[:])
+}
+
+func (nrv *NRVSystem) generateIdeaID(ideaType, description string) string {
+	data := fmt.Sprintf("idea:%s:%s:%d", ideaType, description, time.Now().UnixNano())
+	hash := sha256.Sum256([]byte(data))
+	return hex.EncodeToString(hash[:])
+}
+
 func (nrv *NRVSystem) calculateErrorCoordinates(errorNode *ErrorNode) []float64 {
 	// Calculate coordinates based on error characteristics
 	return []float64{float64(errorNode.Severity), float64(len(errorNode.Description))}
@@ -304,6 +404,20 @@ func (nrv *NRVSystem) calculateErrorCoordinates(errorNode *ErrorNode) []float64 
 func (nrv *NRVSystem) calculateSkillCoordinates(skillNode *SkillNode) []float64 {
 	// Calculate coordinates based on skill characteristics
 	return []float64{float64(len(skillNode.Capabilities)), skillNode.Performance.SuccessRate}
+}
+
+func (nrv *NRVSystem) calculateContextCoordinates(contextNode *ContextNode) []float64 {
+	// Calculate coordinates based on context characteristics
+	schemaComplexity := float64(len(contextNode.Schema))
+	gasFeeNormalized := float64(contextNode.GasFeeNRN) / 1000.0 // Normalize gas fee
+	return []float64{schemaComplexity, gasFeeNormalized}
+}
+
+func (nrv *NRVSystem) calculateIdeaCoordinates(ideaNode *IdeaNode) []float64 {
+	// Calculate coordinates based on idea characteristics
+	feasibilityComplexity := float64(len(ideaNode.FeasibilityData))
+	collaborationPotential := 1.0 // Default high collaboration potential for new ideas
+	return []float64{feasibilityComplexity, collaborationPotential}
 }
 
 // findResolutionPath attempts to find a resolution path for an error

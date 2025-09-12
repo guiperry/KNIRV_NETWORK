@@ -18,11 +18,12 @@ func createTestConfigManager(t *testing.T) (*ConfigManager, string) {
 	require.NoError(t, err)
 	t.Cleanup(func() { os.RemoveAll(tempDir) })
 
-	// Create a config manager using the standard constructor
-	manager, err := NewConfigManager()
+	configPath := filepath.Join(tempDir, "config.json")
+
+	// Create a config manager that uses the temp path
+	manager, err := NewDesktopConfigManager(configPath)
 	require.NoError(t, err)
 
-	configPath := filepath.Join(tempDir, "config.json")
 	return manager, configPath
 }
 
@@ -187,7 +188,7 @@ func TestDesktopConfigManager_UpdateConfig(t *testing.T) {
 	manager, _ := createTestConfigManager(t)
 
 	// Load initial config
-	config, err := manager.LoadConfig()
+	_, err := manager.LoadConfig()
 	require.NoError(t, err)
 
 	// Update some values
@@ -213,7 +214,7 @@ func TestDesktopConfigManager_UpdateConfig(t *testing.T) {
 
 // TestDesktopConfigManager_ResetConfig tests configuration reset
 func TestDesktopConfigManager_ResetConfig(t *testing.T) {
-	manager, configPath := createTestConfigManager(t)
+	manager, _ := createTestConfigManager(t)
 
 	// Save a custom config first
 	customConfig := createTestConfig()
@@ -350,7 +351,7 @@ func TestDesktopConfigManager_PermissionErrors(t *testing.T) {
 	defer os.Chmod(tempDir, 0755) // Restore permissions for cleanup
 
 	configPath := filepath.Join(tempDir, "config.json")
-	manager := NewDesktopConfigManager(configPath)
+	manager, _ := NewDesktopConfigManager(configPath)
 
 	testConfig := createTestConfig()
 

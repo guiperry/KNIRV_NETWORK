@@ -26,9 +26,9 @@ var (
 
 	rootCmd = &cobra.Command{
 		Use:   "knirv",
-		Short: "KNIRVCHAIN CLI tool for blockchain interaction",
-		Long: `KNIRVCHAIN CLI is a comprehensive command-line interface for interacting with the KNIRVCHAIN blockchain.
-It enables developers to manage wallets, register capabilities, and interact with the blockchain ecosystem.`,
+		Short: "KNIRV Network CLI tool for blockchain and model operations",
+		Long: `KNIRV Network CLI is a comprehensive command-line interface for interacting with the KNIRV ecosystem.
+It enables developers to manage wallets, register capabilities, forge models, and interact with the blockchain ecosystem.`,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			// Set up logging based on flags
 			if verbose {
@@ -76,6 +76,9 @@ func GetRootCmd() *cobra.Command {
 
 func init() {
 	cobra.OnInitialize(initConfig)
+
+	// Add WASM command
+	rootCmd.AddCommand(wasmCmd)
 
 	// Global flags
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.knirv.yaml)")

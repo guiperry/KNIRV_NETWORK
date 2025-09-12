@@ -139,6 +139,69 @@ pub enum SkillCategory {
     Automation,
 }
 
+/// IdeaNode component representing ideas that become properties through collaboration
+#[derive(Component, Serialize, Deserialize, Clone)]
+pub struct IdeaNode {
+    pub id: String,
+    pub name: String,
+    pub idea_type: IdeaType,
+    pub description: String,
+    pub feasibility_score: f32,      // 0.0 to 1.0 feasibility rating
+    pub existence_check: bool,       // Whether this idea already exists
+    pub collaborators: Vec<String>,  // Agent IDs collaborating on this idea
+    pub stakes: std::collections::HashMap<String, f32>, // Agent stakes in resulting property
+    pub collaboration_value: f64,    // Total NRN value from collaboration
+    pub created_at: f64,
+    pub status: IdeaStatus,
+}
+
+/// Types of ideas that can be developed
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum IdeaType {
+    Asset,
+    Characteristic,
+    Attribute,
+    Innovation,
+    Improvement,
+    Feature,
+}
+
+/// Status of idea development
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum IdeaStatus {
+    Pending,
+    Collaborative,
+    PropertyCreated,
+    Abandoned,
+}
+
+/// PropertyNode component representing properties created from ideas
+#[derive(Component, Serialize, Deserialize, Clone)]
+pub struct PropertyNode {
+    pub id: String,
+    pub name: String,
+    pub property_type: PropertyType,
+    pub source_idea: String,         // IdeaNode ID that created this property
+    pub value_type: String,          // "string", "number", "boolean", "object"
+    pub immutable: bool,
+    pub category: String,
+    pub owners: std::collections::HashMap<String, f32>, // Agent ownership stakes
+    pub market_value: f64,           // Current NRN market value
+    pub usage_count: u32,
+    pub created_at: f64,
+}
+
+/// Types of properties that can be owned
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum PropertyType {
+    Asset,
+    Characteristic,
+    Attribute,
+    License,
+    Patent,
+    Trademark,
+}
+
 /// AIAgent component representing player-controlled agent units
 #[derive(Component, Serialize, Deserialize, Clone)]
 pub struct AIAgent {

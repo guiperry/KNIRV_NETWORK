@@ -43,7 +43,7 @@ export const KnirvShell: React.FC<KnirvShellProps> = ({
             </div>
             <div>
               <h1 className="text-lg font-bold text-white">KNIRV Cortex</h1>
-              <p className="text-xs text-gray-400">AI Agent Framework</p>
+              <p className="text-xs text-gray-400">Train Your Own SLM Agent</p>
             </div>
           </div>
           
@@ -114,8 +114,9 @@ export const KnirvShell: React.FC<KnirvShellProps> = ({
                             <AlertTriangle className="w-6 h-6 text-white" />
                           </div>
                         </div>
-                        <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-xs text-red-400 font-medium whitespace-nowrap">
-                          Submit Error
+                        <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 text-xs text-red-400 font-medium whitespace-nowrap text-center">
+                          <div>Submit Error</div>
+                          <div className="text-gray-500 text-[10px]">→ Train Skill</div>
                         </div>
                       </button>
 
@@ -132,8 +133,9 @@ export const KnirvShell: React.FC<KnirvShellProps> = ({
                             <FileText className="w-6 h-6 text-white" />
                           </div>
                         </div>
-                        <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-xs text-blue-400 font-medium whitespace-nowrap">
-                          Submit Context
+                        <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 text-xs text-blue-400 font-medium whitespace-nowrap text-center">
+                          <div>Submit Context</div>
+                          <div className="text-gray-500 text-[10px]">→ Train Capability</div>
                         </div>
                       </button>
 
@@ -150,8 +152,9 @@ export const KnirvShell: React.FC<KnirvShellProps> = ({
                             <Lightbulb className="w-6 h-6 text-white" />
                           </div>
                         </div>
-                        <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-xs text-yellow-400 font-medium whitespace-nowrap">
-                          Submit Idea
+                        <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 text-xs text-yellow-400 font-medium whitespace-nowrap text-center">
+                          <div>Submit Idea</div>
+                          <div className="text-gray-500 text-[10px]">→ Train Property</div>
                         </div>
                       </button>
                     </div>
@@ -169,11 +172,11 @@ export const KnirvShell: React.FC<KnirvShellProps> = ({
                   {isExpanded && 'Choose Data Type'}
                 </h2>
                 <p className="text-gray-400 max-w-md mx-auto">
-                  {!isExpanded && status === 'idle' && 'Click the + button to capture errors, context, or ideas for the KNIRV network.'}
-                  {!isExpanded && status === 'processing' && 'The Fabric algorithm is analyzing your input and generating NRV objects.'}
-                  {!isExpanded && status === 'listening' && 'Speak clearly to interact with the KNIRV network.'}
-                  {!isExpanded && status === 'error' && 'An error has occurred. Please try again or check network connections.'}
-                  {isExpanded && 'Select the type of data you want to submit to the KNIRV network for processing.'}
+                  {!isExpanded && status === 'idle' && 'Train your own KNIRVCORTEX by capturing errors, context, or ideas. Each submission helps build your personalized SLM agent.'}
+                  {!isExpanded && status === 'processing' && 'Training your KNIRVCORTEX: The Fabric algorithm is analyzing your input and generating specialized neural pathways.'}
+                  {!isExpanded && status === 'listening' && 'Speak clearly to train your KNIRVCORTEX with voice commands and natural language patterns.'}
+                  {!isExpanded && status === 'error' && 'Error detected - this will help train your KNIRVCORTEX to handle similar issues in the future.'}
+                  {isExpanded && 'Train your KNIRVCORTEX: Errors become Skills, Context becomes Capabilities, Ideas become Properties.'}
                 </p>
               </div>
 

@@ -1,0 +1,135 @@
+syntax = "proto3";
+
+package knirv.agent.v1;
+
+import "lora/v1/lora.proto";
+
+option go_package = "github.com/guiperry/KNIRV_NETWORK/pkg/gen/knirv/agent/v1;agentv1";
+
+// Agent compilation messages
+message AgentCompilationRequest {
+  string agent_name = 1;
+  string agent_description = 2;
+  repeated knirv.lora.v1.LoRAAdapter adapters = 3;
+  AgentConfig config = 4;
+  bytes cortex_wasm = 5; // Pre-compiled cortex.wasm from Rust
+}
+
+message AgentConfig {
+  string target_platform = 1; // "typescript", "golang", "rust"
+  bool enable_lora = 2;
+  uint32 max_memory_mb = 3;
+  repeated string capabilities = 4;
+  map<string, string> environment = 5;
+}
+
+message AgentCompilationResult {
+  string agent_id = 1;
+  bytes agent_wasm = 2;
+  uint64 size_bytes = 3;
+  string checksum = 4;
+  repeated string validation_errors = 5;
+  AgentManifest manifest = 6;
+}
+
+message AgentManifest {
+  string agent_id = 1;
+  string agent_name = 2;
+  string description = 3;
+  string version = 4;
+  repeated string capabilities = 5;
+  repeated knirv.lora.v1.LoRAAdapter embedded_skills = 6;
+  AgentConfig config = 7;
+  uint64 created_timestamp = 8;
+  string checksum = 9;
+}
+
+// Agent Runtime Messages
+message AgentRuntimeConfig {
+  string runtime_type = 1; // "wasmtime", "wasmer", "browser"
+  map<string, string> options = 2;
+  uint32 memory_limit_mb = 3;
+  uint32 execution_timeout_ms = 4;
+  bool enable_debugging = 5;
+}
+
+message AgentExecutionRequest {
+  string agent_id = 1;
+  string task_description = 2;
+  map<string, string> parameters = 3;
+  AgentRuntimeConfig runtime_config = 4;
+  optional string context = 5;
+}
+
+message AgentExecutionResult {
+  string execution_id = 1;
+  AgentExecutionStatus status = 2;
+  optional string result = 3;
+  optional string error_message = 4;
+  uint64 execution_time_ms = 5;
+  uint64 memory_used_bytes = 6;
+  repeated string debug_logs = 7;
+}
+
+enum AgentExecutionStatus {
+  EXECUTION_SUCCESS = 0;
+  EXECUTION_FAILURE = 1;
+  EXECUTION_TIMEOUT = 2;
+  EXECUTION_MEMORY_LIMIT = 3;
+}
+
+// Agent Deployment Messages
+message AgentDeploymentRequest {
+  string agent_id = 1;
+  DeploymentTarget target = 2;
+  map<string, string> deployment_config = 3;
+}
+
+message DeploymentTarget {
+  string platform = 1; // "knirvcontroller", "knirvengine", "cloud"
+  string endpoint = 2;
+  map<string, string> credentials = 3;
+}
+
+message AgentDeploymentResult {
+  string deployment_id = 1;
+  DeploymentStatus status = 2;
+  optional string endpoint_url = 3;
+  optional string error_message = 4;
+  map<string, string> deployment_info = 5;
+}
+
+enum DeploymentStatus {
+  DEPLOYMENT_SUCCESS = 0;
+  DEPLOYMENT_FAILURE = 1;
+  DEPLOYMENT_PENDING = 2;
+}
+
+// Agent Validation Messages
+message AgentValidationRequest {
+  bytes agent_wasm = 1;
+  AgentConfig config = 2;
+  repeated ValidationTest tests = 3;
+}
+
+message ValidationTest {
+  string test_name = 1;
+  string test_type = 2; // "abi", "performance", "security", "functionality"
+  map<string, string> test_parameters = 3;
+}
+
+message AgentValidationResult {
+  bool passed = 1;
+  repeated ValidationTestResult test_results = 2;
+  repeated string errors = 3;
+  repeated string warnings = 4;
+  float overall_score = 5;
+}
+
+message ValidationTestResult {
+  string test_name = 1;
+  bool passed = 2;
+  float score = 3;
+  uint64 duration_ms = 4;
+  string details = 5;
+}

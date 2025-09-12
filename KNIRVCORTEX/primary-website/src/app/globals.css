@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 220 100% 50%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 220 100% 50%;
+
+    --radius: 0.5rem;
+
+    /* KNIRV Brand Colors */
+    --knirv-primary: #00c0fa;
+    --knirv-secondary: #2b56f5;
+    --knirv-primary-rgb: 0, 192, 250;
+    --knirv-secondary-rgb: 43, 86, 245;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .knirv-gradient {
+    background: linear-gradient(135deg, var(--knirv-primary) 0%, var(--knirv-secondary) 50%, #000000 100%);
+  }
+
+  .knirv-gradient-text {
+    background: linear-gradient(135deg, var(--knirv-primary) 0%, var(--knirv-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .knirv-card-gradient {
+    background: linear-gradient(135deg, rgba(0, 192, 250, 0.1) 0%, rgba(43, 86, 245, 0.1) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 192, 250, 0.2);
+  }
+
+  .knirv-glow {
+    box-shadow: 0 0 20px rgba(0, 192, 250, 0.3);
+  }
+
+  .knirv-border-gradient {
+    background: linear-gradient(135deg, var(--knirv-primary), var(--knirv-secondary));
+    padding: 1px;
+  }
+
+  .knirv-bg-primary {
+    background-color: var(--knirv-primary);
+  }
+
+  .knirv-bg-secondary {
+    background-color: var(--knirv-secondary);
+  }
+
+  .knirv-text-primary {
+    color: var(--knirv-primary);
+  }
+
+  .knirv-text-secondary {
+    color: var(--knirv-secondary);
+  }
+
+  .knirv-border-primary {
+    border-color: var(--knirv-primary);
+  }
+
+  .knirv-border-secondary {
+    border-color: var(--knirv-secondary);
+  }
+}

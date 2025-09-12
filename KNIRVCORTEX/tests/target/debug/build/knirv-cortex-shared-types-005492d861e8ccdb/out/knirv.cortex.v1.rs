@@ -295,6 +295,181 @@ pub struct HostCapabilities {
     #[prost(string, tag = "4")]
     pub host_version: ::prost::alloc::string::String,
 }
+/// LoRA Adapter Engine messages
+#[derive(serde::Serialize, serde::Deserialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LoRaAdapter {
+    #[prost(string, tag = "1")]
+    pub skill_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub skill_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub base_model_compatibility: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "5")]
+    pub version: u32,
+    #[prost(uint32, tag = "6")]
+    pub rank: u32,
+    #[prost(float, tag = "7")]
+    pub alpha: f32,
+    #[prost(float, repeated, tag = "8")]
+    pub weights_a: ::prost::alloc::vec::Vec<f32>,
+    #[prost(float, repeated, tag = "9")]
+    pub weights_b: ::prost::alloc::vec::Vec<f32>,
+    #[prost(map = "string, string", tag = "10")]
+    pub additional_metadata: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+}
+#[derive(serde::Serialize, serde::Deserialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SkillCompilationRequest {
+    #[prost(message, optional, tag = "1")]
+    pub skill_data: ::core::option::Option<SkillData>,
+    #[prost(message, optional, tag = "2")]
+    pub metadata: ::core::option::Option<SkillMetadata>,
+}
+#[derive(serde::Serialize, serde::Deserialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SkillData {
+    #[prost(message, repeated, tag = "1")]
+    pub solutions: ::prost::alloc::vec::Vec<Solution>,
+    #[prost(message, repeated, tag = "2")]
+    pub errors: ::prost::alloc::vec::Vec<ErrorContext>,
+}
+#[derive(serde::Serialize, serde::Deserialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Solution {
+    #[prost(string, tag = "1")]
+    pub error_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub solution: ::prost::alloc::string::String,
+    #[prost(float, tag = "3")]
+    pub confidence: f32,
+}
+#[derive(serde::Serialize, serde::Deserialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ErrorContext {
+    #[prost(string, tag = "1")]
+    pub error_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub context: ::prost::alloc::string::String,
+}
+#[derive(serde::Serialize, serde::Deserialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SkillMetadata {
+    #[prost(string, tag = "1")]
+    pub skill_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub base_model: ::prost::alloc::string::String,
+    #[prost(uint32, optional, tag = "4")]
+    pub rank: ::core::option::Option<u32>,
+    #[prost(float, optional, tag = "5")]
+    pub alpha: ::core::option::Option<f32>,
+}
+#[derive(serde::Serialize, serde::Deserialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SkillInvocationRequest {
+    #[prost(string, tag = "1")]
+    pub skill_id: ::prost::alloc::string::String,
+    #[prost(map = "string, string", tag = "2")]
+    pub parameters: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+}
+#[derive(serde::Serialize, serde::Deserialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SkillInvocationResponse {
+    #[prost(string, tag = "1")]
+    pub invocation_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "SkillInvocationStatus", tag = "2")]
+    pub status: i32,
+    #[prost(string, optional, tag = "3")]
+    pub error_message: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "4")]
+    pub skill: ::core::option::Option<LoRaAdapter>,
+}
+#[derive(serde::Serialize, serde::Deserialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SkillChain {
+    #[prost(string, tag = "1")]
+    pub chain_id: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "2")]
+    pub skills: ::prost::alloc::vec::Vec<LoRaAdapter>,
+    #[prost(message, optional, tag = "3")]
+    pub merged_adapter: ::core::option::Option<LoRaAdapter>,
+    #[prost(float, tag = "4")]
+    pub consensus_score: f32,
+    #[prost(uint64, tag = "5")]
+    pub last_updated: u64,
+}
+/// Agent compilation messages
+#[derive(serde::Serialize, serde::Deserialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AgentCompilationRequest {
+    #[prost(string, tag = "1")]
+    pub agent_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub agent_description: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "3")]
+    pub adapters: ::prost::alloc::vec::Vec<LoRaAdapter>,
+    #[prost(message, optional, tag = "4")]
+    pub config: ::core::option::Option<AgentConfig>,
+    /// Pre-compiled cortex.wasm from Rust
+    #[prost(bytes = "vec", tag = "5")]
+    pub cortex_wasm: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(serde::Serialize, serde::Deserialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AgentConfig {
+    /// "typescript", "golang", "rust"
+    #[prost(string, tag = "1")]
+    pub target_platform: ::prost::alloc::string::String,
+    #[prost(bool, tag = "2")]
+    pub enable_lora: bool,
+    #[prost(uint32, tag = "3")]
+    pub max_memory_mb: u32,
+    #[prost(string, repeated, tag = "4")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(map = "string, string", tag = "5")]
+    pub environment: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+}
+#[derive(serde::Serialize, serde::Deserialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AgentCompilationResponse {
+    #[prost(bool, tag = "1")]
+    pub success: bool,
+    #[prost(string, tag = "2")]
+    pub message: ::prost::alloc::string::String,
+    #[prost(bytes = "vec", tag = "3")]
+    pub agent_wasm: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "4")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "5")]
+    pub compilation_time_ms: u64,
+}
 #[derive(serde::Serialize, serde::Deserialize)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -321,6 +496,36 @@ impl EnvelopeKind {
             "ENVELOPE_KIND_UNSPECIFIED" => Some(Self::Unspecified),
             "ENVELOPE_KIND_OK" => Some(Self::Ok),
             "ENVELOPE_KIND_ERROR" => Some(Self::Error),
+            _ => None,
+        }
+    }
+}
+#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SkillInvocationStatus {
+    SkillSuccess = 0,
+    SkillFailure = 1,
+    SkillNotFound = 2,
+}
+impl SkillInvocationStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            SkillInvocationStatus::SkillSuccess => "SKILL_SUCCESS",
+            SkillInvocationStatus::SkillFailure => "SKILL_FAILURE",
+            SkillInvocationStatus::SkillNotFound => "SKILL_NOT_FOUND",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SKILL_SUCCESS" => Some(Self::SkillSuccess),
+            "SKILL_FAILURE" => Some(Self::SkillFailure),
+            "SKILL_NOT_FOUND" => Some(Self::SkillNotFound),
             _ => None,
         }
     }

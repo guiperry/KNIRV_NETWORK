@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en" class="js">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="author" content="KNIRV Network">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="KNIRV SDK: Multi-language software development kit for building on the KNIRV D-TEN ecosystem. Unified developer access through high-level abstractions.">
+    <meta name="keywords" content="KNIRV SDK, software development kit, API, developer tools, KNIRV D-TEN, blockchain SDK, AI development, multi-language SDK">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://knirv.network/knirvsdk.html">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://knirv.network/knirvsdk.html">
+    <meta property="og:title" content="KNIRV SDK | Multi-Language Development Kit for D-TEN">
+    <meta property="og:description" content="🚀 Build the future of AI with KNIRV SDK! Multi-language support, unified APIs, and seamless integration with the KNIRV D-TEN ecosystem. Start developing today! 👨‍💻">
+    <meta property="og:image" content="https://knirv.network/images/social/knirvsdk-card.png">
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://knirv.network/knirvsdk.html">
+    <meta name="twitter:title" content="KNIRV SDK | Multi-Language Development Kit 🚀">
+    <meta name="twitter:description" content="👨‍💻 Multi-language SDK for KNIRV D-TEN
+🔧 Unified APIs & high-level abstractions
+⚡ JavaScript, Python, Rust, Go support
+🌐 Download now and start building!
+
+#KNIRV #SDK #Developer #AI">
+    <meta name="twitter:image" content="https://knirv.network/images/social/knirvsdk-card.png">
+
+    <!-- Fav Icon  -->
+    <link rel="shortcut icon" href="assets/favicon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+
+    <!-- Site Title  -->
+    <title>KNIRV SDK | Multi-Language Development Kit for the D-TEN Ecosystem</title>
+
+    <!-- Bootstrap CSS for accordion functionality -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bundle and Base CSS -->
+    <link rel="stylesheet" href="assets/css/vendor.bundle.css?ver=210">
+    <link rel="stylesheet" href="assets/css/style-dark.css?ver=210">
+    <!-- Extra CSS -->
+    <link rel="stylesheet" href="assets/css/theme.css?ver=210">
+    <link rel="stylesheet" href="assets/css/rtl.css?ver=210">
+
+    <!-- Tailwind CSS for animated logo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom styles -->
+    <style>
+        .animated-logo-container {
+            width: 200px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .animated-logo-container svg {
+            width: 40px;
+            height: 40px;
+        }
+        .animated-logo-container h1 {
+            font-size: 1.5rem;
+            margin-left: 0.5rem;
+        }
+        .animated-logo-container h2 {
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+        .download-btn {
+            margin: 0.5rem;
+            min-width: 200px;
+        }
+        .language-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 8px;
+        }
+        .code-example {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            color: #00ff00;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+            <!-- CLI Section -->
+            <section class="section bg-theme-dark tc-light" id="cli">
+                <div class="container">
+<body class="nk-body body-wider theme-dark mode-onepage has-rtl" dir="rtl">
+    <div class="nk-wrap">
+        <header class="nk-header page-header is-transparent is-sticky is-shrink is-dark" id="header">
+            <!-- Header @s -->
+            <div class="header-main">
+                <div class="header-container container">
+                    <div class="header-wrap">
+                        <!-- Logo @s -->
+                        <div class="header-logo logo animated" data-animate="fadeInDown" data-delay=".65">
+                            <a href="./" class="logo-link">
+                                <div id="animated-logo" class="animated-logo-container"></div>
+                            </a>
+                        </div>
+                        <!-- Menu Toogle @s -->
+                        <div class="header-nav-toggle">
+                            <a href="#" class="navbar-toggle" data-menu-toggle="example-menu-04">
+                                <div class="toggle-line">
+                                    <span></span>
+                                </div>
+                            </a>
+                        </div>
+                        <!-- Menu @s -->
+                        <div class="header-navbar header-navbar-s1">
+                            <nav class="header-menu" id="example-menu-04">
+                                <ul class="menu menu-s2 animated" data-animate="fadeInDown" data-delay=".75">
+                                    <li class="menu-item"><a class="menu-link nav-link" href="index.html">Home</a></li>
+                                    <li class="menu-item"><a class="menu-link nav-link" href="index.html#d-ten">The D-TEN</a></li>
+                                    <li class="menu-item"><a class="menu-link nav-link" href="index.html#ecosystem">Ecosystem</a></li>
+                                    <li class="menu-item"><a class="menu-link nav-link" href="index.html#token">NRN Economics</a></li>
+                                    <li class="menu-item has-sub">
+                                        <a class="menu-link nav-link menu-toggle" href="#">Products</a>
+                                        <ul class="menu-sub menu-drop">
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvcontroller.html">KNIRVCONTROLLER</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvsdk.html">KNIRV SDK</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvrouter.html">KNIRVROUTER</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvoracle.html">KNIRVORACLE</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvnexus.html">KNIRVNEXUS DVE</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvana.html">KNIRVANA</a></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                                <ul class="menu-btns animated" data-animate="fadeInDown" data-delay=".85">
+                                    <li><a href="documentation/static/" class="btn btn-rg btn-auto btn-outline btn-grad on-bg-theme btn-round"><span>Documentation</span></a></li>
+                                    <li><a href="#download" class="btn btn-rg btn-auto btn-outline btn-grad on-bg-theme btn-round"><span>Download SDK</span></a></li>
+                                </ul>
+                            </nav>
+                        </div><!-- .header-navbar @e -->
+                    </div>
+                </div>
+            </div><!-- .header-main @e -->
+            <!-- Banner @s -->
+            <div class="header-banner bg-theme-dark">
+                <div class="nk-banner">
+                    <div class="banner banner-mask-fix banner-fs banner-single tc-light">
+                        <div class="banner-wrap">
+                            <div class="container">
+                                <div class="row align-items-center justify-content-center gutter-vr-30px">
+                                    <div class="col-lg-6 order-lg-last">
+                                        <div class="banner-gfx banner-gfx-re-s3 animated" data-animate="fadeInUp" data-delay="1.25">
+                                            <img src="images/dark/gfx-d-dark.png" alt="KNIRV SDK Development Environment">
+                                            <img class="banner-gfx-icon banner-gfx-icon-1" src="images/icons/icon-custom.png" alt="KNIRV SDK Icon">
+                                            <img class="banner-gfx-icon banner-gfx-icon-2" src="images/icons/icon-bitcoin.png" alt="Blockchain Development Icon">
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <div class="banner-caption wide-auto text-center text-lg-start">
+                                            <div class="cpn-head mt-0">
+                                                <h1 class="title title-xl-2 title-semibold animated" data-animate="fadeInUp" data-delay="1.35">KNIRV SDK <br/> Build the Future of AI</h1>
+                                            </div>
+                                            <div class="cpn-text cpn-text-s1">
+                                                <p class="lead animated" data-animate="fadeInUp" data-delay="1.45">Multi-language software development kit offering unified developer access to the KNIRV D-TEN ecosystem through high-level abstractions. Build, deploy, and scale AI applications with ease.</p>
+                                            </div>
+                                            <div class="cpn-btns">
+                                                <ul class="btn-grp animated" data-animate="fadeInUp" data-delay="1.55">
+                                                    <li><a href="#download" class="btn btn-md btn-grad btn-round">Download SDK</a></li>
+                                                    <li><a href="#examples" class="btn btn-md btn-grad btn-grad-alternet btn-round">Code Examples</a></li>
+                                                    <li><a href="agent-developer-portal/" class="btn btn-md btn-outline btn-grad on-bg-theme btn-round">Developer Portal</a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div><!-- .col -->
+                                </div><!-- .row -->
+                            </div>
+                        </div>
+                    </div>
+                </div><!-- .nk-banner -->
+                <div class="nk-ovm mask-c-dark shape-v mask-contain-bottom"></div>
+                <!-- Place Particle Js -->
+                <div id="particles-bg" class="particles-container particles-bg" data-pt-base="#00c0fa" data-pt-base-op=".3" data-pt-line="#2b56f5" data-pt-line-op=".5" data-pt-shape="#00c0fa" data-pt-shape-op=".2"></div>
+            </div>
+            <!-- .header-banner @e -->
+        </header>
+        <main class="nk-pages">
+            <!-- Features Section -->
+            <section class="section mask-c-blend-dark bg-theme-dark-alt tc-light ov-h" id="features">
+                <div class="container">
+                    <!-- Block @s -->
+                    <div class="nk-block nk-block-text-wrap">
+                        <div class="row align-items-center justify-content-center justify-content-md-between gutter-vr-30px">
+                            <div class="col-mb-9 col-sm-7 col-md-6 col-lg-5 order-md-last">
+                                <div class="nk-block-img animated" data-animate="fadeInUp" data-delay=".1">
+                                    <img src="images/light/gfx-z-a.png" alt="KNIRV SDK Multi-Language Support">
+                                </div>
+                            </div>
+                            <div class="col-sm-10 col-md-6 text-center text-md-start">
+                                <div class="nk-block-text">
+                                    <h2 class="title animated" data-animate="fadeInUp" data-delay=".2">Unified Development <br>Experience</h2>
+                                    <p class="lead animated" data-animate="fadeInUp" data-delay=".3">KNIRV SDK provides a consistent, high-level interface across multiple programming languages, enabling developers to build powerful AI applications on the D-TEN ecosystem with familiar tools and patterns.</p>
+                                    <ul class="list list-dot pdb-r">
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".4">Multi-Language Support (JS, Python, Rust, Go)</li>
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".45">Unified API Abstractions</li>
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".5">Real-time AI Agent Integration</li>
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".55">Comprehensive Documentation</li>
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".6">Active Community Support</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div><!-- .row -->
+                    </div><!-- .block @e -->
+                </div>
+            </section>
+
+            <!-- Code Examples Section -->
+            <section class="section bg-theme-dark tc-light" id="examples">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1">Quick Start Examples</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">Get started with KNIRV SDK in your favorite programming language. Simple, powerful, and intuitive APIs.</p>
+                    </div>
+                    <!-- Block @s -->
+                    <div class="nk-block">
+                        <div class="row justify-content-center gutter-vr-40px">
+                            <div class="col-lg-6">
+                                <div class="animated" data-animate="fadeInUp" data-delay=".3">
+                                    <h4>JavaScript/TypeScript</h4>
+                                    <div class="code-example">
+import { KnirvClient } from '@knirv/sdk';
+
+const client = new KnirvClient({
+  apiKey: 'your-api-key',
+  network: 'testnet'
+});
+
+// Deploy an AI agent
+const agent = await client.agents.deploy({
+  name: 'MyAgent',
+  skills: ['data-analysis', 'prediction']
+});
+
+// Invoke a skill
+const result = await agent.invoke('analyze', {
+  data: myDataset
+});
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="animated" data-animate="fadeInUp" data-delay=".4">
+                                    <h4>Python</h4>
+                                    <div class="code-example">
+from knirv_sdk import KnirvClient
+
+client = KnirvClient(
+    api_key='your-api-key',
+    network='testnet'
+)
+
+# Deploy an AI agent
+agent = client.agents.deploy(
+    name='MyAgent',
+    skills=['data-analysis', 'prediction']
+)
+
+# Invoke a skill
+result = agent.invoke('analyze', {
+    'data': my_dataset
+})
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- .block @e -->
+                </div>
+            </section>
+
+            <!-- Download Section -->
+            <section class="section bg-theme-dark-alt tc-light" id="download">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1">Download KNIRV SDK</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">Choose your preferred programming language and start building on the KNIRV D-TEN ecosystem today.</p>
+                    </div>
+                    <!-- Block @s -->
+                    <div class="nk-block">
+                        <div class="row justify-content-center gutter-vr-40px">
+                            <div class="col-lg-10">
+                                <div class="text-center">
+                                    <div class="row justify-content-center">
+                                        <div class="col-md-3 col-sm-6">
+                                            <div class="animated" data-animate="fadeInUp" data-delay=".3">
+                                                <a href="#" class="btn btn-lg btn-grad btn-round download-btn" onclick="downloadSDK('javascript')">
+                                                    <svg class="language-icon" viewBox="0 0 24 24" fill="currentColor">
+                                                        <path d="M3 3h18v18H3V3zm16.525 13.707c-.131-.821-.666-1.511-2.252-2.155-.552-.259-1.165-.438-1.349-.854-.068-.248-.078-.382-.034-.529.113-.484.687-.629 1.137-.495.293.09.563.315.732.676.775-.507.775-.507 1.316-.844-.203-.314-.304-.451-.439-.586-.473-.528-1.103-.798-2.126-.77l-.528.067c-.507.124-.991.395-1.283.754-.855.968-.608 2.655.427 3.354 1.023.765 2.521.933 2.712 1.653.18.878-.652 1.159-1.475 1.058-.607-.136-.945-.439-1.316-1.002l-1.372.788c.157.359.337.517.607.832 1.305 1.316 4.568 1.249 5.153-.754.021-.067.18-.528.056-1.237l.034.049zm-6.737-5.434h-1.686c0 1.453-.007 2.898-.007 4.354 0 .924.047 1.772-.104 2.033-.247.517-.886.451-1.175.359-.297-.146-.448-.349-.623-.641-.047-.078-.082-.146-.095-.146l-1.368.844c.229.473.563.879.994 1.137.641.383 1.502.507 2.404.305.588-.17 1.095-.519 1.358-1.059.384-.697.302-1.553.299-2.509.008-1.541 0-3.083 0-4.635l.003-.042z"/>
+                                                    </svg>
+                                                    JavaScript
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 col-sm-6">
+                                            <div class="animated" data-animate="fadeInUp" data-delay=".4">
+                                                <a href="#" class="btn btn-lg btn-grad btn-round download-btn" onclick="downloadSDK('python')">
+                                                    <svg class="language-icon" viewBox="0 0 24 24" fill="currentColor">
+                                                        <path d="M14.25.18l.9.2.73.26.59.3.45.32.34.34.25.34.16.33.1.3.04.26.02.2-.01.13V8.5l-.05.63-.13.55-.21.46-.26.38-.3.31-.33.25-.35.19-.35.14-.33.1-.3.07-.26.04-.21.02H8.77l-.69.05-.59.14-.5.22-.41.27-.33.32-.27.35-.2.36-.15.37-.1.35-.07.32-.04.27-.02.21v3.06H3.17l-.21-.03-.28-.07-.32-.12-.35-.18-.36-.26-.36-.36-.35-.46-.32-.59-.28-.73-.21-.88-.14-1.05-.05-1.23.06-1.22.16-1.04.24-.87.32-.71.36-.57.4-.44.42-.33.42-.24.4-.16.36-.1.32-.05.24-.01h.16l.06.01h8.16v-.83H6.18l-.01-2.75-.02-.37.05-.34.11-.31.17-.28.25-.26.31-.23.38-.2.44-.18.51-.15.58-.12.64-.1.71-.06.77-.04.84-.02 1.27.05zm-6.3 1.98l-.23.33-.08.41.08.41.23.34.33.22.41.09.41-.09.33-.22.23-.34.08-.41-.08-.41-.23-.33-.33-.22-.41-.09-.41.09zm13.09 3.95l.28.06.32.12.35.18.36.27.36.35.35.47.32.59.28.73.21.88.14 1.04.05 1.23-.06 1.23-.16 1.04-.24.86-.32.71-.36.57-.4.45-.42.33-.42.24-.4.16-.36.09-.32.05-.24.02-.16-.01h-8.22v.82h5.84l.01 2.76.02.36-.05.34-.11.31-.17.29-.25.25-.31.24-.38.2-.44.17-.51.15-.58.13-.64.09-.71.07-.77.04-.84.01-1.27-.04-1.07-.14-.9-.2-.73-.25-.59-.3-.45-.33-.34-.34-.25-.34-.16-.33-.1-.3-.04-.25-.02-.2.01-.13v-5.34l.05-.64.13-.54.21-.46.26-.38.3-.32.33-.24.35-.2.35-.14.33-.1.3-.06.26-.04.21-.02.13-.01h5.84l.69-.05.59-.14.5-.21.41-.28.33-.32.27-.35.2-.36.15-.36.1-.35.07-.32.04-.28.02-.21V6.07h2.09l.14.01zm-6.47 14.25l-.23.33-.08.41.08.41.23.33.33.23.41.08.41-.08.33-.23.23-.33.08-.41-.08-.41-.23-.33-.33-.23-.41-.08-.41.08z"/>
+                                                    </svg>
+                                                    Python
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 col-sm-6">
+                                            <div class="animated" data-animate="fadeInUp" data-delay=".5">
+                                                <a href="#" class="btn btn-lg btn-grad btn-round download-btn" onclick="downloadSDK('rust')">
+                                                    <svg class="language-icon" viewBox="0 0 24 24" fill="currentColor">
+                                                        <path d="M23.8346 11.7033l-1.0073-.6236a13.7268 13.7268 0 00-.0283-.2936l.8656-.8069a.3483.3483 0 00-.1154-.5719l-1.0347-.4101a13.7759 13.7759 0 00-.0566-.2898l.7003-.9581a.3462.3462 0 00-.2257-.5571l-1.0347-.2324a13.9578 13.9578 0 00-.0848-.2859l.5236-1.0792a.3462.3462 0 00-.3347-.5133l-1.0073-.0566a14.2111 14.2111 0 00-.113-.2859l.3347-1.1358a.3462.3462 0 00-.4252-.4535l-.9808.1132a14.4644 14.4644 0 00-.1415-.2859l.1415-1.1924a.3462.3462 0 00-.5236-.3914l-.9242.2858a14.7177 14.7177 0 00-.1698-.2859l-.0566-1.1924a.3462.3462 0 00-.5953-.3347l-.8656.4535a15.0277 15.0277 0 00-.1981-.2859l-.2547-1.1358a.3462.3462 0 00-.6519-.2324l-.7569.6236a15.3377 15.3377 0 00-.2264-.2859l-.4535-1.0792a.3462.3462 0 00-.7085-.1132l-.6236.7569a15.6477 15.6477 0 00-.2547-.2859l-.6236-1.0073a.3462.3462 0 00-.7651 0l-.6236 1.0073a15.9577 15.9577 0 00-.2547.2859l-.6236-.7569a.3462.3462 0 00-.7085.1132l-.4535 1.0792a16.2677 16.2677 0 00-.2264.2859l-.7569-.6236a.3462.3462 0 00-.6519.2324l-.2547 1.1358a16.5777 16.5777 0 00-.1981.2859l-.8656-.4535a.3462.3462 0 00-.5953.3347l-.0566 1.1924a16.8877 16.8877 0 00-.1698.2859l-.9242-.2858a.3462.3462 0 00-.5236.3914l.1415 1.1924a17.1977 17.1977 0 00-.1415.2859l-.9808-.1132a.3462.3462 0 00-.4252.4535l.3347 1.1358a17.5077 17.5077 0 00-.113.2859l-1.0073.0566a.3462.3462 0 00-.3347.5133l.5236 1.0792a17.8177 17.8177 0 00-.0848.2859l-1.0347.2324a.3462.3462 0 00-.2257.5571l.7003.9581a18.1277 18.1277 0 00-.0566.2898l-1.0347.4101a.3483.3483 0 00-.1154.5719l.8656.8069a18.4377 18.4377 0 00-.0283.2936l-1.0073.6236a.3462.3462 0 000 .6236l1.0073.6236a18.7477 18.7477 0 00.0283.2936l-.8656.8069a.3483.3483 0 00.1154.5719l1.0347.4101a19.0577 19.0577 0 00.0566.2898l-.7003.9581a.3462.3462 0 00.2257.5571l1.0347.2324a19.3677 19.3677 0 00.0848.2859l-.5236 1.0792a.3462.3462 0 00.3347.5133l1.0073.0566a19.6777 19.6777 0 00.113.2859l-.3347 1.1358a.3462.3462 0 00.4252.4535l.9808-.1132a19.9877 19.9877 0 00.1415.2859l-.1415 1.1924a.3462.3462 0 00.5236.3914l.9242-.2858a20.2977 20.2977 0 00.1698.2859l.0566 1.1924a.3462.3462 0 00.5953.3347l.8656-.4535a20.6077 20.6077 0 00.1981.2859l.2547 1.1358a.3462.3462 0 00.6519.2324l.7569-.6236a20.9177 20.9177 0 00.2264.2859l.4535 1.0792a.3462.3462 0 00.7085.1132l.6236-.7569a21.2277 21.2277 0 00.2547.2859l.6236 1.0073a.3462.3462 0 00.7651 0l.6236-1.0073a21.5377 21.5377 0 00.2547-.2859l.6236.7569a.3462.3462 0 00.7085-.1132l.4535-1.0792a21.8477 21.8477 0 00.2264-.2859l.7569.6236a.3462.3462 0 00.6519-.2324l.2547-1.1358a22.1577 22.1577 0 00.1981-.2859l.8656.4535a.3462.3462 0 00.5953-.3347l.0566-1.1924a22.4677 22.4677 0 00.1698-.2859l.9242.2858a.3462.3462 0 00.5236-.3914l-.1415-1.1924a22.7777 22.7777 0 00.1415-.2859l.9808.1132a.3462.3462 0 00.4252-.4535l-.3347-1.1358a23.0877 23.0877 0 00.113-.2859l1.0073-.0566a.3462.3462 0 00.3347-.5133l-.5236-1.0792a23.3977 23.3977 0 00.0848-.2859l1.0347-.2324a.3462.3462 0 00.2257-.5571l-.7003-.9581a23.7077 23.7077 0 00.0566-.2898l1.0347-.4101a.3483.3483 0 00.1154-.5719l-.8656-.8069a24.0177 24.0177 0 00.0283-.2936l1.0073-.6236a.3462.3462 0 000-.6236zM12 16.1132a4.1132 4.1132 0 110-8.2264 4.1132 4.1132 0 010 8.2264z"/>
+                                                    </svg>
+                                                    Rust
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 col-sm-6">
+                                            <div class="animated" data-animate="fadeInUp" data-delay=".6">
+                                                <a href="#" class="btn btn-lg btn-grad btn-round download-btn" onclick="downloadSDK('go')">
+                                                    <svg class="language-icon" viewBox="0 0 24 24" fill="currentColor">
+                                                        <path d="M1.811 10.231c-.047 0-.058-.023-.035-.059l.246-.315c.023-.035.081-.058.128-.058h4.172c.046 0 .058.035.035.07l-.199.303c-.023.036-.082.07-.117.07zM.047 11.306c-.047 0-.059-.023-.035-.058l.245-.316c.023-.035.082-.058.129-.058h5.516c.047 0 .07.035.058.07l-.093.28c-.012.047-.058.07-.105.07zM2.828 12.381c-.047 0-.07-.024-.047-.059l.163-.292c.023-.047.070-.070.117-.070h2.337c.047 0 .070.035.070.082l-.023.28c0 .047-.047.082-.082.082zm14.129-2.454c-.199.093-.375.14-.551.14-.387 0-.727-.175-.727-.727 0-.434.258-.657.657-.657.199 0 .375.047.551.14v.657c0 .199.07.375.07.447zm2.222-1.729c-.07-.14-.175-.21-.315-.21-.199 0-.375.117-.375.375 0 .14.07.28.21.35.14.07.315.105.48.105.14 0 .28-.035.42-.07-.07-.175-.21-.35-.42-.55zm-16.668 1.729c.199-.093.375-.14.551-.14.387 0 .727.175.727.727 0 .434-.258.657-.657.657-.199 0-.375-.047-.551-.14v-.657c0-.199-.07-.375-.07-.447zm-2.222 1.729c.07.14.175.21.315.21.199 0 .375-.117.375-.375 0-.14-.07-.28-.21-.35-.14-.07-.315-.105-.48-.105-.14 0-.28.035-.42.07.07.175.21.35.42.55z"/>
+                                                    </svg>
+                                                    Go
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-center mt-4">
+                                        <p class="text-sm animated" data-animate="fadeInUp" data-delay=".7">
+                                            Package Managers: npm, pip, cargo, go mod<br>
+                                            Latest version: v1.0.0 | Documentation: <a href="documentation/static/">docs.knirv.network</a>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- .block @e -->
+                </div>
+            </section>
+        </main>
+
+        <!-- Universal Footer will be inserted here by JavaScript -->
+    </div>
+
+    <!-- JavaScript -->
+    <script src="assets/js/jquery.bundle.js?ver=210"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/scripts.js?ver=210"></script>
+    <script src="js/config-loader.js"></script>
+    <script src="js/universal-footer.js"></script>
+    <script>
+        // Download function is now handled by config-loader.js
+        // The downloadSDK function is automatically set up when the page loads
+
+        // Initialize animated logo
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoContainer = document.getElementById('animated-logo');
+            if (logoContainer) {
+                logoContainer.innerHTML = `
+                    <svg viewBox="0 0 100 100" class="animate-pulse">
+                        <rect x="10" y="10" width="80" height="80" fill="none" stroke="#2b56f5" stroke-width="2"/>
+                        <text x="50" y="55" text-anchor="middle" fill="#2b56f5" font-size="18" font-weight="bold">SDK</text>
+                    </svg>
+                    <div>
+                        <h1>KNIRV SDK</h1>
+                        <h2>Developer Tools</h2>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,7 +1,8 @@
-'use client';
+`use client`;
 
 import React from "react";
 import { Bot, MessageSquare, Mail, Phone, Book, Search, Clock, ArrowRight, CheckCircle, AlertCircle } from "lucide-react";
+import KnirvLogo from '@/components/KnirvLogo'
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -46,7 +47,7 @@ export default function SupportPage() {
       questions: [
         "How do I create my first AI agent?",
         "What programming languages do you support?",
-        "How do I integrate Agentify with my website?",
+        "How do I integrate KNIRV with my website?",
         "What are the system requirements?"
       ]
     },
@@ -73,7 +74,7 @@ export default function SupportPage() {
       questions: [
         "How do I reset my password?",
         "How do I manage team members?",
-        "Is my data secure with Agentify?",
+        "Is my data secure with KNIRV?",
         "How do I delete my account?"
       ]
     }
@@ -87,22 +88,17 @@ export default function SupportPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black">
       {/* Navigation */}
-      <nav className="border-b border-white/10 bg-black/20 backdrop-blur-lg">
+      <nav className="border-b border-white/10 bg-slate-900/50 backdrop-blur-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <Link href="/" className="flex items-center space-x-2" aria-label="Go to homepage">
-              <Bot className="h-8 w-8 text-purple-400" />
-              <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-                Agentify
-              </span>
-            </Link>
+            <KnirvLogo />
             <div className="flex items-center space-x-4">
-              <Button variant="outline" className="border-purple-400/50 text-purple-400 hover:bg-purple-400/10">
+              <Button variant="outline" className="border-knirv-border-primary text-knirv-text-primary hover:bg-knirv-bg-primary/10">
                 <Link href="/documentation">Documentation</Link>
               </Button>
-              <Button variant="outline" className="border-purple-400/50 text-purple-400 hover:bg-purple-400/10">
+              <Button variant="outline" className="border-knirv-border-primary text-knirv-text-primary hover:bg-knirv-bg-primary/10">
                 <Link href="/community">Community</Link>
               </Button>
             </div>
@@ -114,10 +110,10 @@ export default function SupportPage() {
       <div className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-6xl md:text-7xl font-bold text-white mb-6">
-            <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Support</span>
+            <span className="knirv-gradient-text">Support</span>
           </h1>
           <p className="text-xl text-white/70 mb-8 max-w-3xl mx-auto leading-relaxed">
-            We're here to help you succeed with Agentify. Get the support you need, when you need it.
+            We're here to help you succeed with KNIRV. Get the support you need, when you need it.
           </p>
           
           {/* Search Bar */}
@@ -127,7 +123,7 @@ export default function SupportPage() {
               placeholder="Search for help articles, guides, or ask a question..." 
               className="pl-12 py-4 text-lg bg-white/10 border-white/20 text-white placeholder-white/40"
             />
-            <Button className="absolute right-2 top-2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white">
+            <Button className="absolute right-2 top-2 bg-gradient-to-r from-knirv-primary to-knirv-secondary hover:from-knirv-secondary hover:to-knirv-primary text-white">
               Search
             </Button>
           </div>
@@ -141,11 +137,11 @@ export default function SupportPage() {
           <div className="grid md:grid-cols-3 gap-8">
             {supportOptions.map((option, index) => (
               <Card key={index} className={`bg-white/5 border-white/10 backdrop-blur-lg hover:bg-white/10 transition-all duration-300 ${
-                option.primary ? 'ring-2 ring-purple-400/50' : ''
+                option.primary ? 'ring-2 ring-knirv-primary/30' : ''
               }`}>
                 <CardContent className="p-8 text-center">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-purple-500/20 to-blue-500/20 mb-6">
-                    <option.icon className="h-8 w-8 text-purple-400" />
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-knirv-primary/20 to-knirv-secondary/20 mb-6">
+                    <option.icon className="h-8 w-8 knirv-text-primary" />
                   </div>
                   <h3 className="text-2xl font-semibold text-white mb-4">{option.title}</h3>
                   <p className="text-white/70 mb-6">{option.description}</p>
@@ -164,7 +160,7 @@ export default function SupportPage() {
                   <Button 
                     className={`w-full ${
                       option.primary 
-                        ? 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white' 
+                        ? 'bg-gradient-to-r from-knirv-primary to-knirv-secondary hover:from-knirv-secondary hover:to-knirv-primary text-white' 
                         : 'bg-white/10 text-white hover:bg-white/20'
                     }`}
                   >
@@ -233,7 +229,7 @@ export default function SupportPage() {
                   <h3 className="text-2xl font-semibold text-white mb-6">{category.title}</h3>
                   <div className="space-y-4">
                     {category.questions.map((question, qIndex) => (
-                      <div key={qIndex} className="text-white/80 hover:text-purple-400 cursor-pointer transition-colors p-3 rounded hover:bg-white/5">
+                      <div key={qIndex} className="text-white/80 hover:text-knirv-text-primary cursor-pointer transition-colors p-3 rounded hover:bg-white/5">
                         {question}
                         <ArrowRight className="inline-block ml-2 h-4 w-4" />
                       </div>
@@ -283,7 +279,7 @@ export default function SupportPage() {
                   />
                 </div>
                 
-                <Button size="lg" className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white">
+                <Button size="lg" className="w-full bg-gradient-to-r from-knirv-primary to-knirv-secondary hover:from-knirv-secondary hover:to-knirv-primary text-white">
                   Send Message
                   <Mail className="ml-2 h-5 w-5" />
                 </Button>
@@ -298,22 +294,22 @@ export default function SupportPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl font-bold text-white mb-6">Additional Resources</h2>
           <p className="text-xl text-white/70 mb-12 max-w-2xl mx-auto">
-            Explore these helpful resources to get the most out of Agentify.
+            Explore these helpful resources to get the most out of KNIRV.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="outline" className="border-purple-400/50 text-purple-400 hover:bg-purple-400/10 px-8 py-6">
+            <Button size="lg" variant="outline" className="border-knirv-border-primary/50 text-knirv-text-primary hover:bg-knirv-bg-primary/10 px-8 py-6">
               <Link href="/documentation" className="flex items-center">
                 <Book className="mr-2 h-5 w-5" />
                 Documentation
               </Link>
             </Button>
-            <Button size="lg" variant="outline" className="border-purple-400/50 text-purple-400 hover:bg-purple-400/10 px-8 py-6">
+            <Button size="lg" variant="outline" className="border-knirv-border-primary/50 text-knirv-text-primary hover:bg-knirv-bg-primary/10 px-8 py-6">
               <Link href="/tutorials" className="flex items-center">
                 <MessageSquare className="mr-2 h-5 w-5" />
                 Tutorials
               </Link>
             </Button>
-            <Button size="lg" variant="outline" className="border-purple-400/50 text-purple-400 hover:bg-purple-400/10 px-8 py-6">
+            <Button size="lg" variant="outline" className="border-knirv-border-primary/50 text-knirv-text-primary hover:bg-knirv-bg-primary/10 px-8 py-6">
               <Link href="/community" className="flex items-center">
                 <MessageSquare className="mr-2 h-5 w-5" />
                 Community
