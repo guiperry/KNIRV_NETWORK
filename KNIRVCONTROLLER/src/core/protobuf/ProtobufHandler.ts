@@ -8,6 +8,19 @@ import pino from 'pino';
 
 const logger = pino({ name: 'protobuf-handler' });
 
+// Mock schema interface for testing
+interface MockSchema {
+  verify: jest.Mock;
+  encode: jest.Mock;
+  decode: jest.Mock;
+  create: jest.Mock;
+  fromObject: jest.Mock;
+  toObject: jest.Mock;
+}
+
+// Type for schema that can be either real protobuf.Type or mock
+type SchemaType = protobuf.Type | MockSchema;
+
 // Browser-compatible environment detection
 const isBrowser = typeof window !== 'undefined';
 // const isNode = typeof process !== 'undefined' && process.versions?.node;
@@ -35,7 +48,7 @@ const getModuleUrl = () => {
 
 export class ProtobufHandler {
   private root: protobuf.Root | null = null;
-  private schemas: Map<string, protobuf.Type> = new Map();
+  private schemas: Map<string, SchemaType> = new Map();
   private ready = false;
 
   async initialize(): Promise<void> {
@@ -83,25 +96,25 @@ export class ProtobufHandler {
         this.schemas.set('LoRaAdapterSkill', this.root.lookupType('knirv.chain.v1.LoRaAdapterSkill'));
       } catch {
         // Create a mock schema if not found
-        this.schemas.set('LoRaAdapterSkill', this.createMockSchema('LoRaAdapterSkill') as any);
+        this.schemas.set('LoRaAdapterSkill', this.createMockSchema('LoRaAdapterSkill'));
       }
 
       try {
         this.schemas.set('SkillInvocationResponse', this.root.lookupType('knirv.chain.v1.SkillInvocationResponse'));
       } catch {
-        this.schemas.set('SkillInvocationResponse', this.createMockSchema('SkillInvocationResponse') as any);
+        this.schemas.set('SkillInvocationResponse', this.createMockSchema('SkillInvocationResponse'));
       }
 
       try {
         this.schemas.set('SkillInvocationRequest', this.root.lookupType('knirv.chain.v1.SkillInvocationRequest'));
       } catch {
-        this.schemas.set('SkillInvocationRequest', this.createMockSchema('SkillInvocationRequest') as any);
+        this.schemas.set('SkillInvocationRequest', this.createMockSchema('SkillInvocationRequest'));
       }
 
       try {
         this.schemas.set('SkillCompilationRequest', this.root.lookupType('knirv.chain.v1.SkillCompilationRequest'));
       } catch {
-        this.schemas.set('SkillCompilationRequest', this.createMockSchema('SkillCompilationRequest') as any);
+        this.schemas.set('SkillCompilationRequest', this.createMockSchema('SkillCompilationRequest'));
       }
 
       logger.info({ schemaCount: this.schemas.size }, 'Protobuf schemas loaded from definitions');
@@ -404,7 +417,7 @@ enum Status {
   /**
    * Post-process deserialized objects to convert types correctly
    */
-  private postProcessDeserializedObject(object: any, schemaName: string): any {
+  private postProcessDeserializedObject(object: Record<string, unknown>, schemaName: string): Record<string, unknown> {
     switch (schemaName) {
       case 'LoRaAdapterSkill':
         // Convert byte arrays back to Float32Arrays
@@ -481,9 +494,13 @@ enum Status {
     const adapter = await this.deserialize(data, 'LoRaAdapterSkill');
     
     // Convert bytes back to Float32Arrays
-    const adapterObj = adapter as any;
-    adapterObj.weightsA = this.bytesToFloatArray(new Uint8Array(adapterObj.weights_a));
-    adapterObj.weightsB = this.bytesToFloatArray(new Uint8Array(adapterObj.weights_b));
+    const adapterObj = adapter as { weights_a?: ArrayLike<number>; weights_b?: ArrayLike<number>; weightsA?: Float32Array; weightsB?: Float32Array };
+    if (adapterObj.weights_a) {
+      adapterObj.weightsA = this.bytesToFloatArray(new Uint8Array(adapterObj.weights_a));
+    }
+    if (adapterObj.weights_b) {
+      adapterObj.weightsB = this.bytesToFloatArray(new Uint8Array(adapterObj.weights_b));
+    }
 
     return adapter;
   }
@@ -532,7 +549,7 @@ enum Status {
     this.ready = false;
   }
 
-  private createMockSchema(schemaName: string): Record<string, unknown> {
+  private createMockSchema(schemaName: string): MockSchema {
     // Create a mock schema that preserves input data during serialization/deserialization
     let lastSerializedData: unknown = null;
 

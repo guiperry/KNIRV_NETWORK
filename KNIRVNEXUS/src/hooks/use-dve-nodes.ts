@@ -67,21 +67,21 @@ export const useDVENodes = () => {
   }, []);
 
   // Register a new DVE node
-  const registerNode = useCallback(async (nodeData: RegisterNodeRequest): Promise<boolean> => {
+  const registerNode = useCallback(async (nodeData: RegisterNodeRequest): Promise<DVENode | null> => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const url = `${API_BASE_URL}/api/dve-nodes`;
       const response: APIResponse<DVENode> = await apiRequest(url, {
         method: 'POST',
         body: JSON.stringify(nodeData),
       });
-      
+
       if (response.success && response.data && !Array.isArray(response.data)) {
         // Add the new node to the current list
         setNodes(prevNodes => [...prevNodes, response.data as DVENode]);
-        return true;
+        return response.data as DVENode;
       } else {
         throw new Error(response.error || 'Failed to register DVE node');
       }
@@ -89,7 +89,7 @@ export const useDVENodes = () => {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
       console.error('Failed to register DVE node:', err);
-      return false;
+      return null;
     } finally {
       setIsLoading(false);
     }
@@ -215,6 +215,39 @@ export const useDVENodes = () => {
     setIsConnected(false);
   }, []);
 
+  // Update node status specifically
+  const updateNodeStatus = useCallback(async (nodeId: string, status: string): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const url = `${API_BASE_URL}/api/dve-nodes/${nodeId}/status`;
+      const response: APIResponse<DVENode> = await apiRequest(url, {
+        method: 'PUT',
+        body: JSON.stringify({ status }),
+      });
+
+      if (response.success && response.data && !Array.isArray(response.data)) {
+        // Update the node in the current list
+        setNodes(prevNodes =>
+          prevNodes.map(node =>
+            node.id === nodeId ? response.data as DVENode : node
+          )
+        );
+        return true;
+      } else {
+        throw new Error(response.error || 'Failed to update node status');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(errorMessage);
+      console.error('Failed to update node status:', err);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   // Convenience methods for common operations
   const getOnlineNodes = useCallback(() => fetchNodes({ status: 'online' }), [fetchNodes]);
   const getNodesByTEE = useCallback((teeType: string) => fetchNodes({ tee_type: teeType }), [fetchNodes]);
@@ -235,6 +268,7 @@ export const useDVENodes = () => {
     getNode,
     registerNode,
     updateNode,
+    updateNodeStatus,
     deleteNode,
     getOnlineNodes,
     getNodesByTEE,

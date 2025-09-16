@@ -320,7 +320,7 @@ export class AgentCore extends EventEmitter {
   /**
    * Main execution method - called from sensory-shell
    */
-  async execute(input: any, context: any = {}): Promise<any> {
+  async execute(input: unknown, context: Record<string, unknown> = {}): Promise<unknown> {
     if (!this.isInitialized) {
       throw new Error('Agent-Core not initialized');
     }
@@ -473,7 +473,7 @@ export interface {{toolName}}Context {
   sessionId?: string;
   userId?: string;
   environment: 'wasm' | 'browser' | 'node';
-  memory: Map<string, any>;
+  memory: Map<string, unknown>;
   logger: {
     log: (message: string) => void;
     error: (message: string) => void;
@@ -483,10 +483,10 @@ export interface {{toolName}}Context {
 
 export interface {{toolName}}Result {
   success: boolean;
-  result?: any;
+  result?: unknown;
   error?: string;
   executionTime: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**

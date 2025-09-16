@@ -22,6 +22,12 @@ export interface HRMWeightInfo {
   parameterCount: number;
 }
 
+export interface HRMProcessingResult {
+  l_module_activations?: number[];
+  h_module_activations?: number[];
+  [key: string]: unknown;
+}
+
 export class HRMLoRABridge extends EventEmitter {
   private hrmBridge: unknown = null;
   private enhancedLoraAdapter: unknown = null;
@@ -257,13 +263,13 @@ export class HRMLoRABridge extends EventEmitter {
       // Extract influence based on layer type
       if (hrmLayerName.startsWith('l_module_')) {
         const index = parseInt(hrmLayerName.split('_')[2]);
-        const activations = (recentProcessing as any).l_module_activations || [];
+        const activations = recentProcessing.l_module_activations || [];
         return activations[index] || 0;
       }
 
       if (hrmLayerName.startsWith('h_module_')) {
         const index = parseInt(hrmLayerName.split('_')[2]);
-        const activations = (recentProcessing as any).h_module_activations || [];
+        const activations = recentProcessing.h_module_activations || [];
         return activations[index] || 0;
       }
 
@@ -275,7 +281,7 @@ export class HRMLoRABridge extends EventEmitter {
     }
   }
 
-  private async getRecentHRMProcessing(): Promise<unknown> {
+  private async getRecentHRMProcessing(): Promise<HRMProcessingResult | null> {
     // This would get the most recent HRM processing results
     // For now, we'll simulate a simple request
     

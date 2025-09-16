@@ -7,14 +7,15 @@ import {
 } from 'rxdb';
 import { RxDBDevModePlugin, disableWarnings } from 'rxdb/plugins/dev-mode';
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
+import { getRxStorageMemory } from 'rxdb/plugins/storage-memory';
 import { RxDBQueryBuilderPlugin } from 'rxdb/plugins/query-builder';
+import { wrappedValidateAjvStorage } from 'rxdb/plugins/validate-ajv';
 
-// Add RxDB plugins
-addRxPlugin(RxDBDevModePlugin);
+// Add RxDB plugins conditionally
+if (process.env.NODE_ENV !== 'test') {
+  addRxPlugin(RxDBDevModePlugin);
+}
 addRxPlugin(RxDBQueryBuilderPlugin);
-
-// Schema validation is built into RxDB core, no separate plugin needed
-// Validation plugins like validate-ajv are available but not required for basic schema validation
 
 // Disable dev-mode warnings in development
 disableWarnings();
@@ -54,7 +55,8 @@ const agentSchema = {
       }
     },
     metadata: {
-      type: 'object'
+      type: 'object',
+      additionalProperties: true
     },
     wasmModule: {
       type: 'string'
@@ -71,7 +73,8 @@ const agentSchema = {
       format: 'date-time'
     }
   },
-  required: ['agentId', 'name', 'version', 'type', 'status', 'nrnCost']
+  required: ['agentId', 'name', 'version', 'type', 'status', 'nrnCost'],
+  additionalProperties: false
 };
 
 const skillSchema = {
@@ -90,7 +93,8 @@ const skillSchema = {
       type: 'string'
     },
     loraAdapter: {
-      type: 'object'
+      type: 'object',
+      additionalProperties: true
     },
     version: {
       type: 'number'
@@ -104,7 +108,8 @@ const skillSchema = {
       format: 'date-time'
     }
   },
-  required: ['skillId', 'name']
+  required: ['skillId', 'name'],
+  additionalProperties: false
 };
 
 const chatSessionSchema = {
@@ -122,7 +127,8 @@ const chatSessionSchema = {
     messages: {
       type: 'array',
       items: {
-        type: 'object'
+        type: 'object',
+        additionalProperties: true
       }
     },
     createdAt: {
@@ -134,7 +140,8 @@ const chatSessionSchema = {
       format: 'date-time'
     }
   },
-  required: ['id', 'title']
+  required: ['id', 'title'],
+  additionalProperties: false
 };
 
 // Type definitions
@@ -195,7 +202,11 @@ const initDatabase = async (): Promise<DatabaseType> => {
 
   database = await createRxDatabase<DatabaseCollections>({
     name: 'knirvcontroller',
-    storage: getRxStorageDexie(),
+    storage: process.env.NODE_ENV === 'test'
+      ? getRxStorageMemory()
+      : wrappedValidateAjvStorage({
+          storage: getRxStorageDexie()
+        }),
     ignoreDuplicate: true
   });
 
@@ -431,7 +442,7 @@ class DatabaseService {
             { name: { $regex: new RegExp(searchTerm, 'i') } },
             { description: { $regex: new RegExp(searchTerm, 'i') } }
           ]
-        } as any)
+        } as Record<string, unknown>)
         .limit(limit)
         .exec();
 

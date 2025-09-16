@@ -127,15 +127,15 @@ describe('VoiceProcessor', () => {
       // Give a small delay for async operations
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      const metrics = voiceProcessor.getMetrics();
-      expect((metrics as any).isListening).toBe(true);
+      const metrics = voiceProcessor.getMetrics() as { isListening: boolean };
+      expect(metrics.isListening).toBe(true);
     });
 
     it('should stop audio input successfully', async () => {
       await voiceProcessor.start();
       await voiceProcessor.stop();
-      const metrics = voiceProcessor.getMetrics();
-      expect((metrics as any).isListening).toBe(false);
+      const metrics = voiceProcessor.getMetrics() as { isListening: boolean };
+      expect(metrics.isListening).toBe(false);
     });
 
     it('should handle getUserMedia errors gracefully', async () => {
@@ -177,8 +177,8 @@ describe('VoiceProcessor', () => {
         mockMediaRecorder.onstart();
       }
 
-      const metrics = voiceProcessor.getMetrics();
-      expect((metrics as any).isRecording).toBe(true);
+      const metrics = voiceProcessor.getMetrics() as { isRecording: boolean };
+      expect(metrics.isRecording).toBe(true);
 
       voiceProcessor.stopRecording();
 
@@ -187,8 +187,8 @@ describe('VoiceProcessor', () => {
         mockMediaRecorder.onstop();
       }
 
-      const metricsAfterStop = voiceProcessor.getMetrics();
-      expect((metricsAfterStop as any).isRecording).toBe(false);
+      const metricsAfterStop = voiceProcessor.getMetrics() as { isRecording: boolean };
+      expect(metricsAfterStop.isRecording).toBe(false);
     });
 
     it('should handle language changes', () => {
@@ -231,12 +231,12 @@ describe('VoiceProcessor', () => {
       await voiceProcessor.start();
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      const metrics = voiceProcessor.getMetrics();
-      expect((metrics as any).isListening).toBe(true);
+      const metrics = voiceProcessor.getMetrics() as { isListening: boolean };
+      expect(metrics.isListening).toBe(true);
 
       await voiceProcessor.stop();
-      const metricsAfterStop = voiceProcessor.getMetrics();
-      expect((metricsAfterStop as any).isListening).toBe(false);
+      const metricsAfterStop = voiceProcessor.getMetrics() as { isListening: boolean };
+      expect(metricsAfterStop.isListening).toBe(false);
     });
 
     it('should handle speech synthesis', () => {
@@ -291,13 +291,19 @@ describe('VoiceProcessor', () => {
     });
 
     it('should provide metrics', () => {
-      const metrics = voiceProcessor.getMetrics();
+      const metrics = voiceProcessor.getMetrics() as {
+        isListening: boolean;
+        isRecording: boolean;
+        isSupported: boolean;
+        language: string;
+        wakeWordEnabled: boolean;
+      };
       expect(metrics).toBeDefined();
-      expect(typeof (metrics as any).isListening).toBe('boolean');
-      expect(typeof (metrics as any).isRecording).toBe('boolean');
-      expect(typeof (metrics as any).isSupported).toBe('boolean');
-      expect(typeof (metrics as any).language).toBe('string');
-      expect(typeof (metrics as any).wakeWordEnabled).toBe('boolean');
+      expect(typeof metrics.isListening).toBe('boolean');
+      expect(typeof metrics.isRecording).toBe('boolean');
+      expect(typeof metrics.isSupported).toBe('boolean');
+      expect(typeof metrics.language).toBe('string');
+      expect(typeof metrics.wakeWordEnabled).toBe('boolean');
     });
 
     it('should handle configuration updates', () => {
@@ -376,8 +382,8 @@ describe('VoiceProcessor', () => {
 
       voiceProcessor.dispose();
 
-      const metrics = voiceProcessor.getMetrics();
-      expect((metrics as any).isListening).toBe(false);
+      const metrics = voiceProcessor.getMetrics() as { isListening: boolean };
+      expect(metrics.isListening).toBe(false);
       expect(voiceProcessor.isInitialized()).toBe(false);
     });
 

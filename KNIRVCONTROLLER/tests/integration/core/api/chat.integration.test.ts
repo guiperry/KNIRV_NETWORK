@@ -4,7 +4,9 @@ import { NebulaDB } from 'nebuladb';
 import * as chatAPI from '../../../../src/core/api/chat';
 
 // Mock NebulaDB for integration tests
-jest.mock('nebuladb');
+jest.mock('nebuladb', () => ({
+  NebulaDB: jest.fn()
+}));
 
 interface MockDB {
   collection: (name: string) => MockCollection;
@@ -85,7 +87,7 @@ describe('Chat API Integration Tests', () => {
       listTables: jest.fn()
     };
 
-    (NebulaDB as jest.MockedClass<typeof NebulaDB>).mockImplementation(() => mockDB);
+    (NebulaDB as jest.MockedClass<typeof NebulaDB>).mockImplementation(() => mockDB as any);
 
     // Reset mocks
     jest.clearAllMocks();

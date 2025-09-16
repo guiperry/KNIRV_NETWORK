@@ -478,7 +478,11 @@ export class ModelManager extends EventEmitter {
   importConfiguration(config: unknown): void {
     if ((config as { availableModels?: unknown[]; currentModel?: string }).availableModels) {
       for (const model of (config as { availableModels: unknown[] }).availableModels) {
-        this.registerModel(model as any);
+        if (this.isValidModelDefinition(model)) {
+          this.registerModel(model);
+        } else {
+          console.warn('Invalid model definition in configuration:', model);
+        }
       }
     }
 
@@ -487,6 +491,32 @@ export class ModelManager extends EventEmitter {
     }
 
     this.emit('configuration_imported', { config });
+  }
+
+  /**
+   * Type guard for ModelDefinition
+   */
+  private isValidModelDefinition(model: unknown): model is ModelDefinition {
+    return (
+      typeof model === 'object' &&
+      model !== null &&
+      'id' in model &&
+      'name' in model &&
+      'description' in model &&
+      'type' in model &&
+      'size' in model &&
+      'parameters' in model &&
+      'wasmPath' in model &&
+      'capabilities' in model &&
+      'license' in model &&
+      'source' in model &&
+      'architecture' in model &&
+      'contextLength' in model &&
+      'recommended' in model &&
+      typeof (model as Record<string, unknown>).id === 'string' &&
+      typeof (model as Record<string, unknown>).name === 'string' &&
+      Array.isArray((model as Record<string, unknown>).capabilities)
+    );
   }
 
   /**

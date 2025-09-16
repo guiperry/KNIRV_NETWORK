@@ -75,6 +75,10 @@ export interface LoRAAdapterData {
   routerNodes: string[];
 }
 
+export interface LoRAAdapterFilter {
+  [key: string]: string | string[] | number | boolean | undefined;
+}
+
 export interface P2PRoutingInfo {
   sourceNode: string;
   targetNode: string;
@@ -553,7 +557,7 @@ export class KNIRVRouterIntegration extends EventEmitter {
   /**
    * Get LoRA adapters from KNIRVROUTER network
    */
-  public async getLoRAAdapters(filter?: unknown): Promise<LoRAAdapterData[]> {
+  public async getLoRAAdapters(filter?: LoRAAdapterFilter): Promise<LoRAAdapterData[]> {
     if (!this.isConnected) {
       throw new Error('KNIRVROUTER not connected');
     }
@@ -564,11 +568,12 @@ export class KNIRVRouterIntegration extends EventEmitter {
       if (filter) {
         const params = new URLSearchParams();
         Object.keys(filter).forEach(key => {
-          if ((filter as any)[key] !== undefined) {
-            if (Array.isArray((filter as any)[key])) {
-              (filter as any)[key].forEach((value: string) => params.append(key, value));
+          const value = filter[key];
+          if (value !== undefined) {
+            if (Array.isArray(value)) {
+              value.forEach((item: string) => params.append(key, item));
             } else {
-              params.append(key, (filter as any)[key].toString());
+              params.append(key, value.toString());
             }
           }
         });

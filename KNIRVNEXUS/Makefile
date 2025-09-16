@@ -122,7 +122,7 @@ test-frontend: deps-node ## Run frontend tests
 
 test-integration: binary ## Run integration tests
 	@echo "$(BLUE)Running integration tests...$(NC)"
-	cd $(BACKEND_DIR) && go test -v -tags=integration ./tests/integration/...
+	cd $(BACKEND_DIR) && go test -v ./tests
 
 test-e2e: binary ## Run end-to-end tests
 	@echo "$(BLUE)Running end-to-end tests...$(NC)"

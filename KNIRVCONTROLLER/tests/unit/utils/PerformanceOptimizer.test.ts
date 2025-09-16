@@ -301,12 +301,19 @@ describe('PerformanceOptimizer', () => {
     });
 
     it('should provide recommendations based on metrics', () => {
-      // Simulate high memory usage
-      jest.spyOn(optimizer, 'getMemoryUsage').mockReturnValue(85);
-      
+      // Simulate high memory usage by mocking getMetrics to return high memory usage
+      jest.spyOn(optimizer, 'getMetrics').mockReturnValue({
+        memoryUsage: 85,
+        networkLatency: 500,
+        renderTime: 2000,
+        cacheHitRate: 75,
+        errorRate: 0,
+        throughput: 100
+      });
+
       const report = optimizer.generateReport();
-      
-      expect(report.recommendations.some(rec => 
+
+      expect(report.recommendations.some(rec =>
         rec.includes('memory usage')
       )).toBe(true);
     });
@@ -341,10 +348,19 @@ describe('PerformanceOptimizer', () => {
 
   describe('Performance Observer Integration', () => {
     it('should initialize performance observers when available', () => {
+      // Mock window and PerformanceObserver to simulate browser environment
+      const originalWindow = global.window;
+      (global as { window?: unknown }).window = {
+        PerformanceObserver: global.PerformanceObserver
+      };
+
       new PerformanceOptimizer();
-      
+
       // PerformanceObserver should be called during initialization
       expect(global.PerformanceObserver).toHaveBeenCalled();
+
+      // Restore original window
+      (global as { window?: unknown }).window = originalWindow;
     });
 
     it('should handle performance observer errors gracefully', () => {

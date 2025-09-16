@@ -20,37 +20,31 @@ export interface AnalyticsMetric {
 
 export interface DashboardStats {
   activeAgents: number;
-  targetSystems: number;
-  inferencesToday: number;
-  successRate: number;
-  changes: Record<string, string>;
+  totalSkills: number;
+  totalTransactions: number;
+  networkHealth: string;
   lastUpdated: Date;
 }
 
 export interface PerformanceMetrics {
-  cpuUsage: number;
-  memoryUsage: number;
-  networkLatency: number;
-  responseTime: number;
   throughput: number;
   errorRate: number;
+  uptime: number;
+  lastMeasured: Date;
 }
 
 export interface UsageAnalytics {
   totalSessions: number;
   averageSessionDuration: number;
-  mostUsedFeatures: Array<{ feature: string; usage: number }>;
-  userEngagement: number;
-  peakUsageHours: number[];
+  popularFeatures: Array<{ feature: string; usage: number }>;
+  lastCalculated: Date;
 }
 
 export interface AgentAnalytics {
-  totalAgents: number;
-  activeAgents: number;
-  deploymentSuccess: number;
+  successRate: number;
   averageExecutionTime: number;
-  skillInvocations: number;
-  errorCount: number;
+  resourceUtilization: number;
+  lastAnalyzed: Date;
 }
 
 export interface AnalyticsConfig {
@@ -67,25 +61,25 @@ export class AnalyticsService {
     totalTransactions: 0,
     networkHealth: 'healthy',
     lastUpdated: new Date()
-  } as any;
+  };
   private performanceMetrics: PerformanceMetrics = {
     throughput: 0,
     errorRate: 0,
     uptime: 100,
     lastMeasured: new Date()
-  } as any;
+  };
   private usageAnalytics: UsageAnalytics = {
     totalSessions: 0,
     averageSessionDuration: 0,
     popularFeatures: [],
     lastCalculated: new Date()
-  } as any;
+  };
   private agentAnalytics: AgentAnalytics = {
     successRate: 0,
     averageExecutionTime: 0,
     resourceUtilization: 0,
     lastAnalyzed: new Date()
-  } as any;
+  };
   private baseUrl: string;
   private isCollecting: boolean = false;
   private collectionInterval: NodeJS.Timeout | null = null;
@@ -179,7 +173,7 @@ export class AnalyticsService {
           value: networkMetrics.averageLatency,
           unit: 'milliseconds',
           category: 'performance',
-          metadata: networkMetrics as any
+          metadata: networkMetrics
         });
       }
     }, 30000); // Every 30 seconds
@@ -192,7 +186,7 @@ export class AnalyticsService {
         value: perfMetrics.renderTime,
         unit: 'milliseconds',
         category: 'performance',
-        metadata: perfMetrics as any
+        metadata: perfMetrics
       });
     }, 10000); // Every 10 seconds
   }
@@ -203,7 +197,7 @@ export class AnalyticsService {
   private cleanupOldMetrics(): void {
     const cutoffTime = Date.now() - (24 * 60 * 60 * 1000); // 24 hours ago
     this.metrics = new Map([...this.metrics.entries()].filter(([_key, metrics]) =>
-      metrics.some((metric: any) => metric.timestamp.getTime() > cutoffTime)
+      metrics.some((metric: { timestamp: Date }) => metric.timestamp.getTime() > cutoffTime)
     ));
   }
 
@@ -246,7 +240,7 @@ export class AnalyticsService {
       // Start periodic data collection
       this.collectionInterval = setInterval(() => {
         this.collectMetrics();
-      }, 30000) as any; // Collect every 30 seconds
+      }, 30000); // Collect every 30 seconds
 
       console.log('Analytics collection started');
     } catch (error) {

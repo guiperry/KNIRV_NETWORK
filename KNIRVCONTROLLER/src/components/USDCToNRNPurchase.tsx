@@ -3,7 +3,7 @@
  * Implements seamless USDC to NRN token purchase flow using XION Meta Accounts
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAbstraxionWallet, ConversionRequest, ConversionResult } from '../services/AbstraxionWalletService';
 
 interface USDCToNRNPurchaseProps {
@@ -40,16 +40,16 @@ export const USDCToNRNPurchase: React.FC<USDCToNRNPurchaseProps> = ({
     if (isConnected) {
       loadConversionHistory();
     }
-  }, [isConnected]);
+  }, [isConnected, loadConversionHistory]);
 
-  const loadConversionHistory = async () => {
+  const loadConversionHistory = useCallback(async () => {
     try {
       const history = await getConversionHistory();
       setConversionHistory(history);
     } catch (error) {
       console.error('Failed to load conversion history:', error);
     }
-  };
+  }, [getConversionHistory]);
 
   const handleConnect = async () => {
     try {
@@ -114,7 +114,7 @@ export const USDCToNRNPurchase: React.FC<USDCToNRNPurchaseProps> = ({
           </label>
           <select
             value={authMethod}
-            onChange={(e) => setAuthMethod(e.target.value as any)}
+            onChange={(e) => setAuthMethod(e.target.value as 'email' | 'social' | 'wallet' | 'passkey')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="email">Email</option>

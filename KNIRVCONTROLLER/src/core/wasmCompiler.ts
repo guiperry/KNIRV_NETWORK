@@ -29,6 +29,24 @@ export interface Envelope {
   error?: CortexError;
 }
 
+// WASM export interfaces
+export interface CortexWasmExports extends WebAssembly.Exports {
+  memory: WebAssembly.Memory;
+  allocate_buffer?: (size: number) => number;
+  deallocate_buffer?: (ptr: number) => void;
+  load_lora_adapter?: (ptr: number, len: number) => number;
+  process_inference?: (ptr: number, len: number) => number;
+  get_result_ptr?: () => number;
+  get_result_len?: () => number;
+}
+
+interface LoRASkillResult {
+  success: boolean;
+  result?: Record<string, unknown>;
+  error?: string;
+  processingTime?: number;
+}
+
 export interface AgentCompilationRequest {
   agent_name: string;
   agent_description: string;
@@ -211,7 +229,7 @@ class ${this.toPascalCase(request.agent_name)}CognitiveShell {
 
     // Convert adapter to ProtoBuf bytes and load into cortex
     const adapterBytes = this.serializeAdapter(adapter);
-    const exports = this.cortexInstance.exports as any;
+    const exports = this.cortexInstance.exports as CortexWasmExports;
 
     // Call cortex WASM function to load adapter
     if (exports.compile_lora_adapter) {
@@ -224,7 +242,7 @@ class ${this.toPascalCase(request.agent_name)}CognitiveShell {
   async runCognitiveTask(prompt: string): Promise<InferenceOutput> {
     if (!this.cortexInstance) throw new Error('Cortex not initialized');
 
-    const exports = this.cortexInstance.exports as any;
+    const exports = this.cortexInstance.exports as CortexWasmExports;
 
     // Prepare input
     const input: InferenceInput = { prompt };
@@ -244,19 +262,19 @@ class ${this.toPascalCase(request.agent_name)}CognitiveShell {
 
   // Memory management utilities
   private allocateMemory(size: number): number {
-    const exports = this.cortexInstance!.exports as any;
+    const exports = this.cortexInstance!.exports as CortexWasmExports;
     return exports.allocate_buffer ? exports.allocate_buffer(size) : 0;
   }
 
   private writeMemory(ptr: number, data: Uint8Array) {
-    const exports = this.cortexInstance!.exports as any;
+    const exports = this.cortexInstance!.exports as CortexWasmExports;
     const memory = exports.memory as WebAssembly.Memory;
     const view = new Uint8Array(memory.buffer);
     view.set(data, ptr);
   }
 
   private readMemory(ptr: number, len: number): Uint8Array {
-    const exports = this.cortexInstance!.exports as any;
+    const exports = this.cortexInstance!.exports as CortexWasmExports;
     const memory = exports.memory as WebAssembly.Memory;
     const view = new Uint8Array(memory.buffer);
     return view.slice(ptr, ptr + len);
@@ -328,7 +346,7 @@ export { ${this.toPascalCase(request.agent_name)}CognitiveShell };
   }
 
   // Invoke LoRA skill
-  async invokeLoRASkill(skillId: string, parameters: Record<string, string>): Promise<any> {
+  async invokeLoRASkill(skillId: string, parameters: Record<string, string>): Promise<LoRASkillResult> {
     return this.loraEngine.invokeSkill(skillId, parameters);
   }
 

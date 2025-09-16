@@ -483,7 +483,10 @@ export const useI18nProvider = () => {
     document.documentElement.lang = newLanguage;
   }, []);
 
-  const t = useCallback(createTranslationFunction(language), [language]);
+  const t = useCallback((key: string, fallback?: string): string => {
+    const translation = translations[language]?.[key] || translations.en[key] || fallback || key;
+    return translation;
+  }, [language]);
 
   const isRTL = supportedLanguages.find(lang => lang.code === language)?.rtl || false;
 

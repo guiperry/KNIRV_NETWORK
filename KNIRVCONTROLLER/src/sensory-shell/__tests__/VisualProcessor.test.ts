@@ -147,22 +147,30 @@ describe('VisualProcessor', () => {
     });
 
     it('should initialize with default configuration', () => {
-      const metrics = visualProcessor.getMetrics();
+      const metrics = visualProcessor.getMetrics() as {
+        resolution: string;
+        frameRate: number;
+        isInitialized: boolean;
+        modelsLoaded: number;
+        isProcessing: boolean;
+        isSupported: boolean;
+        objectDetection: boolean;
+      };
       expect(metrics).toBeDefined();
-      expect((metrics as any).resolution).toBe('1280x720');
-      expect((metrics as any).frameRate).toBe(30);
+      expect(metrics.resolution).toBe('1280x720');
+      expect(metrics.frameRate).toBe(30);
     });
 
     it('should initialize successfully', async () => {
       await visualProcessor.initialize();
-      const metrics = visualProcessor.getMetrics();
-      expect((metrics as any).isInitialized).toBe(true);
+      const metrics = visualProcessor.getMetrics() as { isInitialized: boolean };
+      expect(metrics.isInitialized).toBe(true);
     });
 
     it('should load AI models on initialization', async () => {
       await visualProcessor.initialize();
-      const metrics = visualProcessor.getMetrics();
-      expect((metrics as any).modelsLoaded).toBeGreaterThanOrEqual(0);
+      const metrics = visualProcessor.getMetrics() as { modelsLoaded: number };
+      expect(metrics.modelsLoaded).toBeGreaterThanOrEqual(0);
     });
   });
 
@@ -173,15 +181,15 @@ describe('VisualProcessor', () => {
 
     it('should start visual processing successfully', async () => {
       await visualProcessor.start();
-      const metrics = visualProcessor.getMetrics();
-      expect((metrics as any).isProcessing).toBe(true);
+      const metrics = visualProcessor.getMetrics() as { isProcessing: boolean };
+      expect(metrics.isProcessing).toBe(true);
     });
 
     it('should stop visual processing successfully', async () => {
       await visualProcessor.start();
       await visualProcessor.stop();
-      const metrics = visualProcessor.getMetrics();
-      expect((metrics as any).isProcessing).toBe(false);
+      const metrics = visualProcessor.getMetrics() as { isProcessing: boolean };
+      expect(metrics.isProcessing).toBe(false);
     });
 
     it('should handle camera permission errors', async () => {
@@ -238,18 +246,26 @@ describe('VisualProcessor', () => {
       };
 
       visualProcessor.updateConfig(newConfig);
-      const metrics = visualProcessor.getMetrics();
-      expect((metrics as any).resolution).toBe('1920x1080');
-      expect((metrics as any).frameRate).toBe(60);
-      expect((metrics as any).objectDetection).toBe(false);
+      const metrics = visualProcessor.getMetrics() as {
+        resolution: string;
+        frameRate: number;
+        objectDetection: boolean;
+      };
+      expect(metrics.resolution).toBe('1920x1080');
+      expect(metrics.frameRate).toBe(60);
+      expect(metrics.objectDetection).toBe(false);
     });
 
     it('should provide processing metrics', () => {
-      const metrics = visualProcessor.getMetrics();
+      const metrics = visualProcessor.getMetrics() as {
+        isProcessing: boolean;
+        isSupported: boolean;
+        isInitialized: boolean;
+      };
       expect(metrics).toBeDefined();
-      expect(typeof (metrics as any).isProcessing).toBe('boolean');
-      expect(typeof (metrics as any).isSupported).toBe('boolean');
-      expect(typeof (metrics as any).isInitialized).toBe('boolean');
+      expect(typeof metrics.isProcessing).toBe('boolean');
+      expect(typeof metrics.isSupported).toBe('boolean');
+      expect(typeof metrics.isInitialized).toBe('boolean');
     });
   });
 
@@ -290,11 +306,15 @@ describe('VisualProcessor', () => {
 
   describe('Configuration and Metrics', () => {
     it('should provide configuration access', () => {
-      const metrics = visualProcessor.getMetrics();
+      const metrics = visualProcessor.getMetrics() as {
+        isProcessing: boolean;
+        isSupported: boolean;
+        isInitialized: boolean;
+      };
       expect(metrics).toBeDefined();
-      expect(typeof (metrics as any).isProcessing).toBe('boolean');
-      expect(typeof (metrics as any).isSupported).toBe('boolean');
-      expect(typeof (metrics as any).isInitialized).toBe('boolean');
+      expect(typeof metrics.isProcessing).toBe('boolean');
+      expect(typeof metrics.isSupported).toBe('boolean');
+      expect(typeof metrics.isInitialized).toBe('boolean');
     });
 
     it('should update configuration', () => {
@@ -305,10 +325,14 @@ describe('VisualProcessor', () => {
       };
 
       visualProcessor.updateConfig(newConfig);
-      const metrics = visualProcessor.getMetrics();
-      expect((metrics as any).resolution).toBe('1920x1080');
-      expect((metrics as any).frameRate).toBe(60);
-      expect((metrics as any).objectDetection).toBe(false);
+      const metrics = visualProcessor.getMetrics() as {
+        resolution: string;
+        frameRate: number;
+        objectDetection: boolean;
+      };
+      expect(metrics.resolution).toBe('1920x1080');
+      expect(metrics.frameRate).toBe(60);
+      expect(metrics.objectDetection).toBe(false);
     });
 
     it('should check if visual processing is supported', () => {

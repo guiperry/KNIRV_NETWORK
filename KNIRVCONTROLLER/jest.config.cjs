@@ -1,7 +1,11 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
-  setupFiles: ['<rootDir>/tests/polyfills.ts'],
+  testEnvironmentOptions: {
+    html: '<html><body><div id="root"></div></body></html>',
+    url: 'http://localhost:3000'
+  },
+  setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/jest.setup.js'],
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts'],
   clearMocks: true,
   moduleNameMapper: {
@@ -66,42 +70,61 @@ module.exports = {
   coverageReporters: ['text', 'lcov', 'html'],
   coverageThreshold: {
     global: {
-      branches: 30,
-      functions: 30,
-      lines: 30,
-      statements: 30
+      branches: 100,
+      functions: 100,
+      lines: 100,
+      statements: 100
     }
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-  testTimeout: 30000,
-  maxWorkers: '50%',
+  testTimeout: 15000,
+  maxWorkers: 1,
+  workerIdleMemoryLimit: '512MB',
+  detectOpenHandles: true,
+  forceExit: true,
   projects: [
     {
       displayName: 'Unit Tests',
       testMatch: ['<rootDir>/tests/unit/**/*.test.(ts|tsx|js|jsx)'],
       testEnvironment: 'jsdom',
-      setupFiles: ['<rootDir>/tests/polyfills.ts'],
+      testEnvironmentOptions: {
+        html: '<html><body><div id="root"></div></body></html>',
+        url: 'http://localhost:3000'
+      },
+      setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/jest.setup.js'],
       setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts']
     },
     {
       displayName: 'Integration Tests',
       testMatch: ['<rootDir>/tests/integration/**/*.test.(ts|tsx|js|jsx)'],
       testEnvironment: 'jsdom',
-      setupFiles: ['<rootDir>/tests/polyfills.ts'],
+      testEnvironmentOptions: {
+        html: '<html><body><div id="root"></div></body></html>',
+        url: 'http://localhost:3000'
+      },
+      setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/jest.setup.js'],
       setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts']
     },
     {
       displayName: 'Sensory Shell Tests',
       testMatch: ['<rootDir>/src/sensory-shell/**/__tests__/**/*.test.(ts|tsx|js|jsx)'],
       testEnvironment: 'jsdom',
-      setupFiles: ['<rootDir>/tests/polyfills.ts'],
+      testEnvironmentOptions: {
+        html: '<html><body><div id="root"></div></body></html>',
+        url: 'http://localhost:3000'
+      },
+      setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/jest.setup.js'],
       setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts']
     },
     {
       displayName: 'Phase 3 Tests',
       testMatch: ['<rootDir>/tests/phase3/**/*.test.(ts|tsx|js|jsx)'],
       testEnvironment: 'jsdom',
-      setupFiles: ['<rootDir>/tests/polyfills.ts'],
+      testEnvironmentOptions: {
+        html: '<html><body><div id="root"></div></body></html>',
+        url: 'http://localhost:3000'
+      },
+      setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/jest.setup.js'],
       setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts']
     },
 
@@ -109,7 +132,11 @@ module.exports = {
       displayName: 'Error Resolution Tests',
       testMatch: ['<rootDir>/tests/error-resolution/**/*.test.(ts|tsx|js|jsx)'],
       testEnvironment: 'jsdom',
-      setupFiles: ['<rootDir>/tests/polyfills.ts'],
+      testEnvironmentOptions: {
+        html: '<html><body><div id="root"></div></body></html>',
+        url: 'http://localhost:3000'
+      },
+      setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/jest.setup.js'],
       setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts']
     }
   ],

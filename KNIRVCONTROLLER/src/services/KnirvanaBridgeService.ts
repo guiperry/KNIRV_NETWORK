@@ -7,6 +7,32 @@
 import { personalKNIRVGRAPHService, GraphNode, PersonalGraph } from './PersonalKNIRVGRAPHService';
 import { rxdbService } from './RxDBService';
 
+// Import node data types for proper typing
+interface ErrorNodeData {
+  errorId: string;
+  errorType: string;
+  description: string;
+  context: Record<string, unknown>;
+  timestamp: number;
+}
+
+interface SkillNodeData {
+  skillId: string;
+  skillName: string;
+  description: string;
+  category: string;
+  proficiency: number;
+}
+
+interface CollectiveInsight {
+  id: string;
+  type: 'pattern' | 'optimization' | 'collaboration' | 'trend';
+  description: string;
+  confidence: number;
+  impact: number;
+  timestamp: number;
+}
+
 // Re-export types from KNIRVANA concepts but adapted for KNIRVCONTROLLER
 export interface KnirvanaErrorNode {
   id: string;
@@ -121,7 +147,12 @@ export class KnirvanaBridgeService {
   }
 
   private convertToKnirvanaErrorNode(node: GraphNode): KnirvanaErrorNode {
-    const errorData = node.data as any;
+    // Type guard to ensure we have error node data
+    if (node.type !== 'error') {
+      throw new Error(`Expected error node, got ${node.type}`);
+    }
+
+    const errorData = node.data as ErrorNodeData;
     return {
       id: node.id,
       position: node.position,
@@ -137,7 +168,12 @@ export class KnirvanaBridgeService {
   }
 
   private convertToKnirvanaSkillNode(node: GraphNode): KnirvanaSkillNode {
-    const skillData = node.data as any;
+    // Type guard to ensure we have skill node data
+    if (node.type !== 'skill') {
+      throw new Error(`Expected skill node, got ${node.type}`);
+    }
+
+    const skillData = node.data as SkillNodeData;
     return {
       id: node.id,
       position: node.position,
@@ -361,7 +397,7 @@ export class KnirvanaBridgeService {
   }
 
   // Collective Graph Integration
-  async mergeToCollectiveNetwork(_collectiveGraph: any): Promise<void> {
+  async mergeToCollectiveNetwork(_collectiveGraph: Record<string, unknown>): Promise<void> {
     console.log('Merging personal graph to collective KNIRVANA network');
 
     // This would connect to KNIRVANA collective graph API
@@ -384,18 +420,24 @@ export class KnirvanaBridgeService {
     }
   }
 
-  private async generateCollectiveInsights(): Promise<any[]> {
+  private async generateCollectiveInsights(): Promise<CollectiveInsight[]> {
     // Simulate collective insights from KNIRVANA network
     return [
       {
         id: 'advanced_error_patterns',
-        name: 'Advanced Error Pattern Recognition',
-        description: 'Recognize complex error patterns learned from collective experiences'
+        type: 'pattern',
+        description: 'Recognize complex error patterns learned from collective experiences',
+        confidence: 0.85,
+        impact: 0.9,
+        timestamp: Date.now()
       },
       {
         id: 'predictive_debugging',
-        name: 'Predictive Debugging',
-        description: 'Anticipate errors before they occur based on collective data'
+        type: 'optimization',
+        description: 'Anticipate errors before they occur based on collective data',
+        confidence: 0.78,
+        impact: 0.85,
+        timestamp: Date.now()
       }
     ];
   }

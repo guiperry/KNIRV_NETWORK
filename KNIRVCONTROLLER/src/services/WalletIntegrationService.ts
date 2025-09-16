@@ -342,10 +342,10 @@ export class WalletIntegrationService {
   /**
    * Check transaction status
    */
-  async checkTransactionStatus(transactionId: string): Promise<Transaction> {
+  async checkTransactionStatus(transactionId: string): Promise<Transaction | null> {
     const localTransaction = this.transactions.get(transactionId);
     if (!localTransaction) {
-      throw new Error(`Transaction ${transactionId} not found`);
+      return null;
     }
 
     try {

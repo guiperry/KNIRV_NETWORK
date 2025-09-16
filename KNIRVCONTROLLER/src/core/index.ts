@@ -248,7 +248,7 @@ class KNIRVCortexBackend {
 
       case 'wasm_compile':
         try {
-          const wasmModule = await this.wasmCompiler.compile(data.rustCode as string, data.options as any);
+          const wasmModule = await this.wasmCompiler.compile(data.rustCode as string, data.options as Record<string, unknown>);
           ws.send(JSON.stringify({
             type: 'wasm_compile_result',
             requestId: data.requestId,

@@ -13,9 +13,11 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/guiperry/gollm_cerebras v0.2.1
 	github.com/invopop/jsonschema v0.13.0
+	github.com/ipfs/go-cid v0.4.1
 	github.com/libp2p/go-libp2p v0.32.0
 	github.com/libp2p/go-libp2p-kad-dht v0.25.0
 	github.com/libp2p/go-libp2p-pubsub v0.10.0
+	github.com/multiformats/go-multihash v0.2.3
 	github.com/pkoukk/tiktoken-go v0.1.7
 	github.com/segmentio/kafka-go v0.4.48
 	github.com/spf13/viper v1.16.0
@@ -78,7 +80,6 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/ipfs/boxo v0.10.0 // indirect
-	github.com/ipfs/go-cid v0.4.1 // indirect
 	github.com/ipfs/go-datastore v0.6.0 // indirect
 	github.com/ipfs/go-log v1.0.5 // indirect
 	github.com/ipfs/go-log/v2 v2.5.1 // indirect
@@ -122,7 +123,6 @@ require (
 	github.com/multiformats/go-multiaddr-fmt v0.1.0 // indirect
 	github.com/multiformats/go-multibase v0.2.0 // indirect
 	github.com/multiformats/go-multicodec v0.9.0 // indirect
-	github.com/multiformats/go-multihash v0.2.3 // indirect
 	github.com/multiformats/go-multistream v0.5.0 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/onsi/ginkgo/v2 v2.13.0 // indirect

@@ -132,11 +132,16 @@ export class EcosystemCommunicationLayer extends EventEmitter {
       this.heartbeatInterval = null;
     }
 
+    interface ConnectionWithClose {
+      close?: () => void;
+    }
+
     // Close all connections
     this.connections.forEach((connection, componentId) => {
       try {
-        if ((connection as any).close) {
-          (connection as any).close();
+        const connectionTyped = connection as ConnectionWithClose;
+        if (connectionTyped.close) {
+          connectionTyped.close();
         }
         console.log(`Closed connection to ${componentId}`);
       } catch (error) {
@@ -581,9 +586,13 @@ export class EcosystemCommunicationLayer extends EventEmitter {
       const connection = this.connections.get(message.to);
       
       if (connection) {
+        interface ConnectionWithSend {
+          send: (message: EcosystemMessage) => Promise<unknown>;
+        }
+
         // Send message through the connection
-        const response = await (connection as any).send(message);
-        
+        const response = await (connection as ConnectionWithSend).send(message);
+
         if (message.requiresResponse) {
           this.emit('messageResponse', {
             correlationId: message.id,

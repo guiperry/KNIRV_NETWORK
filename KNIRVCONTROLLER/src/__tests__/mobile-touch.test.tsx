@@ -22,17 +22,17 @@ const createMockTouchEvent = (type: string, touches: Touch[]) => {
 if (typeof Touch === 'undefined') {
   global.Touch = class {
     constructor(public identifier: number, public target: EventTarget, public clientX = 0, public clientY = 0) {}
-  } as any;
+  } as typeof Touch;
 }
 
 // Mock TouchEvent constructor
 if (typeof TouchEvent === 'undefined') {
   global.TouchEvent = class extends Event {
-    constructor(type: string, options: any = {}) {
+    constructor(type: string, options: { touches?: Touch[]; changedTouches?: Touch[]; targetTouches?: Touch[] } = {}) {
       super(type, options);
       Object.assign(this, options);
     }
-  } as any;
+  } as typeof TouchEvent;
 }
 
 // Mock components and services
@@ -172,12 +172,7 @@ describe('Mobile Touch Interactions', () => {
       const element = screen.getByTestId('touchable');
 
       const touch = createTouch(50, 50, 1);
-      const touchEvent = new TouchEvent('touchstart', {
-        touches: [touch],
-        targetTouches: [touch],
-        changedTouches: [touch],
-        bubbles: true,
-      });
+      const touchEvent = createMockTouchEvent('touchstart', [touch]);
 
       fireEvent(element, touchEvent);
 
@@ -314,7 +309,7 @@ describe('Mobile Touch Interactions', () => {
               }
             };
 
-            e.target.addEventListener('touchend', handleTouchEnd as any, { once: true });
+            e.target.addEventListener('touchend', handleTouchEnd as EventListener, { once: true });
           }}
           style={{ width: 300, height: 100 }}
           data-testid="swipeable"

@@ -296,7 +296,7 @@ export default function AgentManagement({ isOpen, onClose }: AgentManagementProp
                             </div>
                             <div>
                               <p className="text-sm font-mono">{formatFileSize(agent.file_size)}</p>
-                              <p className="text-xs text-muted-foreground">{agent.capabilities.length} capabilities</p>
+                              <p className="text-xs text-muted-foreground">{agent.capabilities?.length || 0} capabilities</p>
                             </div>
                             <div>
                               <p className="text-xs text-muted-foreground">Uploaded</p>

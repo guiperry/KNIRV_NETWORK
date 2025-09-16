@@ -288,7 +288,7 @@ export const AILoading: React.FC<AILoadingProps> = ({
         </span>
       </div>
       {progress !== undefined && (
-        <ProgressBar progress={progress} color={config.color as any} />
+        <ProgressBar progress={progress} color={config.color as 'blue' | 'green' | 'yellow' | 'red' | 'purple'} />
       )}
     </div>
   );

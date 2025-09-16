@@ -8,7 +8,7 @@ interface PerformanceMetric {
   value: number;
   timestamp: number;
   category: 'memory' | 'network' | 'rendering' | 'user-interaction' | 'game';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 interface PerformanceAlert {
@@ -71,7 +71,7 @@ export class PerformanceMonitoringService {
   /**
    * Record a custom performance metric
    */
-  recordMetric(name: string, value: number, category: PerformanceMetric['category'], metadata?: Record<string, any>): void {
+  recordMetric(name: string, value: number, category: PerformanceMetric['category'], metadata?: Record<string, unknown>): void {
     const metric: PerformanceMetric = {
       name,
       value,
@@ -177,7 +177,7 @@ export class PerformanceMonitoringService {
     try {
       navObserver.observe({ entryTypes: ['navigation'] });
       this.observers.push(navObserver);
-    } catch (error) {
+    } catch {
       console.warn('Navigation timing observer not supported');
     }
 
@@ -197,7 +197,7 @@ export class PerformanceMonitoringService {
     try {
       resourceObserver.observe({ entryTypes: ['resource'] });
       this.observers.push(resourceObserver);
-    } catch (error) {
+    } catch {
       console.warn('Resource timing observer not supported');
     }
 
@@ -215,7 +215,7 @@ export class PerformanceMonitoringService {
     try {
       longTaskObserver.observe({ entryTypes: ['longtask'] });
       this.observers.push(longTaskObserver);
-    } catch (error) {
+    } catch {
       console.warn('Long task observer not supported');
     }
   }
@@ -303,7 +303,7 @@ export class PerformanceMonitoringService {
           this.recordMetric('game-agents', gameState.activeAgents || 0, 'game');
           this.recordMetric('game-errors-solved', gameState.errorsSolved || 0, 'game');
         }
-      } catch (error) {
+      } catch {
         // Game not active
       }
 
@@ -384,7 +384,8 @@ export class PerformanceMonitoringService {
    */
   private getCurrentMemoryUsage(): number {
     if ('memory' in performance) {
-      return (performance as any).memory.usedJSHeapSize;
+      const perfWithMemory = performance as Performance & { memory?: { usedJSHeapSize: number } };
+      return perfWithMemory.memory?.usedJSHeapSize || 0;
     }
     return 0;
   }
@@ -416,7 +417,7 @@ export class PerformanceMonitoringService {
   /**
    * Get game state (would integrate with actual game service)
    */
-  private getGameState(): any {
+  private getGameState(): { fps: number; activeAgents: number; memoryUsage: number; networkLatency: number } {
     // This would integrate with KnirvanaBridgeService
     // For now, return mock data
     return {

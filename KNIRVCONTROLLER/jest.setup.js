@@ -1,7 +1,3 @@
-// Setup jest-axe for accessibility testing
-import { toHaveNoViolations } from 'jest-axe';
-expect.extend(toHaveNoViolations);
-
 // Mock WebAssembly for Jest environment
 global.WebAssembly = {
   instantiate: jest.fn().mockResolvedValue({
@@ -10,7 +6,7 @@ global.WebAssembly = {
         agentCoreExecute: jest.fn().mockResolvedValue('{"success": true, "result": "mock response"}'),
         agentCoreInitialize: jest.fn().mockResolvedValue(true),
         agentCoreDispose: jest.fn().mockResolvedValue(true),
-        memory: new WebAssembly.Memory({ initial: 1 })
+        memory: { buffer: new ArrayBuffer(64 * 1024) }
       }
     },
     module: {}
@@ -18,9 +14,10 @@ global.WebAssembly = {
   compile: jest.fn().mockResolvedValue({}),
   Module: jest.fn(),
   Instance: jest.fn(),
-  Memory: jest.fn().mockImplementation(() => ({
-    buffer: new ArrayBuffer(1024 * 1024)
-  })),
+  Memory: jest.fn().mockImplementation(function(options) {
+    this.buffer = new ArrayBuffer((options?.initial || 1) * 64 * 1024);
+    return this;
+  }),
   Table: jest.fn(),
   CompileError: Error,
   RuntimeError: Error
@@ -45,20 +42,23 @@ global.MediaRecorder = jest.fn().mockImplementation(() => ({
 }));
 
 // Mock navigator.mediaDevices for VoiceProcessor tests
-global.navigator = {
-  ...global.navigator,
-  mediaDevices: {
-    getUserMedia: jest.fn().mockResolvedValue({
-      getTracks: jest.fn().mockReturnValue([
-        {
-          stop: jest.fn(),
-          kind: 'audio',
-          enabled: true
-        }
-      ])
-    })
-  }
-};
+Object.defineProperty(global, 'navigator', {
+  value: {
+    ...global.navigator,
+    mediaDevices: {
+      getUserMedia: jest.fn().mockResolvedValue({
+        getTracks: jest.fn().mockReturnValue([
+          {
+            stop: jest.fn(),
+            kind: 'audio',
+            enabled: true
+          }
+        ])
+      })
+    }
+  },
+  writable: true
+});
 
 // Mock WebSocket for integration tests
 global.WebSocket = jest.fn().mockImplementation(() => ({
@@ -83,55 +83,58 @@ global.fetch = jest.fn().mockResolvedValue({
 });
 
 // Mock crypto for random number generation
-global.crypto = {
-  getRandomValues: jest.fn().mockImplementation((array) => {
-    for (let i = 0; i < array.length; i++) {
-      array[i] = Math.floor(Math.random() * 256);
-    }
-    return array;
-  }),
-  randomUUID: jest.fn().mockReturnValue('mock-uuid-1234-5678-9abc-def0'),
-  randomBytes: jest.fn().mockImplementation((size) => {
-    // Return deterministic bytes for testing
-    const buffer = Buffer.alloc(size);
-    for (let i = 0; i < size; i++) {
-      buffer[i] = (i * 17 + 42) % 256; // Deterministic pattern
-    }
-    return buffer;
-  }),
-  pbkdf2Sync: jest.fn().mockImplementation((password, salt, iterations, keylen, digest) => {
-    // Return deterministic hash for testing
-    if (password === 'test123' && salt === 'testsalt' && keylen === 32) {
-      return Buffer.from('a6a22ebe2861e3c544e18232f0a909cb8b3def839e3ca751b885f220636b0a90', 'hex');
-    }
-    // Default deterministic response
-    const buffer = Buffer.alloc(keylen);
-    const hash = password + salt.toString();
-    for (let i = 0; i < keylen; i++) {
-      buffer[i] = hash.charCodeAt(i % hash.length) % 256;
-    }
-    return buffer;
-  }),
-  pbkdf2: jest.fn().mockImplementation((password, salt, iterations, keylen, digest, callback) => {
-    // Simple mock that returns a deterministic buffer based on password
-    const buffer = Buffer.alloc(keylen);
-    const hash = password + salt.toString();
-    for (let i = 0; i < keylen; i++) {
-      buffer[i] = hash.charCodeAt(i % hash.length) % 256;
-    }
-    setTimeout(() => callback(null, buffer), 0);
-  }),
-  createCipherGCM: jest.fn().mockImplementation(() => ({
-    update: jest.fn().mockReturnValue('encrypted'),
-    final: jest.fn().mockReturnValue(''),
-    getAuthTag: jest.fn().mockReturnValue(Buffer.from('authtag'))
-  })),
-  createDecipherGCM: jest.fn().mockImplementation(() => ({
-    update: jest.fn().mockReturnValue('decrypted'),
-    final: jest.fn().mockReturnValue(''),
-    setAuthTag: jest.fn()
-  }))
-};
+Object.defineProperty(global, 'crypto', {
+  value: {
+    getRandomValues: jest.fn().mockImplementation((array) => {
+      for (let i = 0; i < array.length; i++) {
+        array[i] = Math.floor(Math.random() * 256);
+      }
+      return array;
+    }),
+    randomUUID: jest.fn().mockReturnValue('mock-uuid-1234-5678-9abc-def0'),
+    randomBytes: jest.fn().mockImplementation((size) => {
+      // Return deterministic bytes for testing
+      const buffer = Buffer.alloc(size);
+      for (let i = 0; i < size; i++) {
+        buffer[i] = (i * 17 + 42) % 256; // Deterministic pattern
+      }
+      return buffer;
+    }),
+    pbkdf2Sync: jest.fn().mockImplementation((password, salt, iterations, keylen, digest) => {
+      // Return deterministic hash for testing
+      if (password === 'test123' && salt === 'testsalt' && keylen === 32) {
+        return Buffer.from('a6a22ebe2861e3c544e18232f0a909cb8b3def839e3ca751b885f220636b0a90', 'hex');
+      }
+      // Default deterministic response
+      const buffer = Buffer.alloc(keylen);
+      const hash = password + salt.toString();
+      for (let i = 0; i < keylen; i++) {
+        buffer[i] = hash.charCodeAt(i % hash.length) % 256;
+      }
+      return buffer;
+    }),
+    pbkdf2: jest.fn().mockImplementation((password, salt, iterations, keylen, digest, callback) => {
+      // Simple mock that returns a deterministic buffer based on password
+      const buffer = Buffer.alloc(keylen);
+      const hash = password + salt.toString();
+      for (let i = 0; i < keylen; i++) {
+        buffer[i] = hash.charCodeAt(i % hash.length) % 256;
+      }
+      setTimeout(() => callback(null, buffer), 0);
+    }),
+    createCipherGCM: jest.fn().mockImplementation(() => ({
+      update: jest.fn().mockReturnValue('encrypted'),
+      final: jest.fn().mockReturnValue(''),
+      getAuthTag: jest.fn().mockReturnValue(Buffer.from('authtag'))
+    })),
+    createDecipherGCM: jest.fn().mockImplementation(() => ({
+      update: jest.fn().mockReturnValue('decrypted'),
+      final: jest.fn().mockReturnValue(''),
+      setAuthTag: jest.fn()
+    }))
+  },
+  writable: true
+});
 
 // Mock URL constructor for import.meta.url issues
 global.URL = jest.fn().mockImplementation((url, base) => ({
@@ -199,3 +202,11 @@ jest.mock('react-native', () => ({
     get: jest.fn().mockReturnValue({ width: 375, height: 812 })
   }
 }));
+
+// Mock document.elementsFromPoint for jest-axe (only if not available)
+if (!document.elementsFromPoint) {
+  Object.defineProperty(document, 'elementsFromPoint', {
+    value: jest.fn().mockReturnValue([]),
+    writable: true
+  });
+}

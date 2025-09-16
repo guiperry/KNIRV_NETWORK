@@ -1,33 +1,44 @@
 // Comprehensive Unit Tests for KNIRVWALLET Browser Module - Cryptographic Operations
 
-// Mock KNIRVWALLET crypto imports since they're from a sibling project
-jest.mock('../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/wallet/wallet-crypto-util', () => ({
-  encryptAES: jest.fn().mockResolvedValue('encrypted-data'),
-  decryptAES: jest.fn().mockResolvedValue('decrypted-data'),
-  encryptSha256: jest.fn().mockResolvedValue('hashed-data'),
-  executeKdf: jest.fn().mockResolvedValue(new Uint8Array(32)),
-  makeCryptKey: jest.fn().mockResolvedValue('crypto-key')
-}));
-
-jest.mock('../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/encoding', () => ({
-  toHex: jest.fn().mockReturnValue('0x1234567890abcdef')
-}));
-
-// Import after mocking
+// Import crypto functions from KNIRVSDK
 import {
   encryptAES,
   decryptAES,
-  encryptSha256,
-  executeKdf,
-  makeCryptKey
-} from '../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/wallet/wallet-crypto-util';
-import { toHex } from '../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/encoding';
-import { 
+  makeCryptKey,
+  sha256 as encryptSha256
+} from '@knirvsdk/crypto';
+
+// Mock additional functions that aren't in the main crypto module
+const executeKdf = jest.fn().mockImplementation(async (salt: string, password: string, config: any) => {
+  // Validate KDF parameters
+  if (config.algorithm === 'invalid-algorithm' ||
+      config.params.outputLength < 0 ||
+      config.params.opsLimit <= 0 ||
+      config.params.memLimitKib <= 0) {
+    throw new Error('Invalid KDF parameters');
+  }
+
+  // Mock KDF implementation that returns consistent results for testing
+  const combined = `${salt}${password}${JSON.stringify(config)}`;
+  const hash = await encryptSha256(combined);
+  // Convert hex string to Uint8Array for consistency with real KDF
+  const bytes = new Uint8Array(32);
+  for (let i = 0; i < 32; i++) {
+    bytes[i] = parseInt(hash.substr(i * 2, 2), 16);
+  }
+  return bytes;
+});
+
+const toHex = jest.fn().mockImplementation((data: Uint8Array) => {
+  return Array.from(data, byte => byte.toString(16).padStart(2, '0')).join('');
+});
+
+import {
   TEST_ENCRYPTION_DATA,
   TEST_MNEMONICS,
-  TEST_PRIVATE_KEYS 
+  TEST_PRIVATE_KEYS
 } from '../../../test-utils/test-data';
-import { 
+import {
   MnemonicTestUtils,
   PrivateKeyTestUtils,
   SignatureTestUtils,

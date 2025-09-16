@@ -60,13 +60,21 @@ describe('TaskSchedulingService', () => {
     });
 
     it('should stop scheduler successfully', async () => {
+      // First start the scheduler
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true })
+      } as Response);
+      await service.start();
+
+      // Then stop it
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true })
       } as Response);
 
       await service.stop();
-      
+
       expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:3001/api/scheduler/stop',
         expect.objectContaining({

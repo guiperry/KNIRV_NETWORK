@@ -77,7 +77,7 @@ export class SentryMonitoringService {
   }
 
   // Public methods for manual error reporting
-  captureException(error: Error, context?: Record<string, any>): void {
+  captureException(error: Error, context?: Record<string, unknown>): void {
     if (!this.initialized) return;
 
     Sentry.withScope((scope) => {
@@ -90,22 +90,22 @@ export class SentryMonitoringService {
     });
   }
 
-  captureMessage(message: string, level: 'fatal' | 'error' | 'warning' | 'info' | 'debug' = 'info', context?: Record<string, any>): void {
+  captureMessage(message: string, level: 'fatal' | 'error' | 'warning' | 'info' | 'debug' = 'info', context?: Record<string, unknown>): void {
     if (!this.initialized) return;
 
     Sentry.withScope((scope) => {
-      scope.setLevel(level as any);
+      scope.setLevel(level as Sentry.SeverityLevel);
       if (context) {
         Object.keys(context).forEach(key => {
           scope.setTag(key, context[key]);
         });
       }
-      Sentry.captureMessage(message, level as any);
+      Sentry.captureMessage(message, level as Sentry.SeverityLevel);
     });
   }
 
   // Wallet transaction monitoring
-  trackWalletTransaction(transactionType: string, details: Record<string, any>): void {
+  trackWalletTransaction(transactionType: string, details: Record<string, unknown>): void {
     if (!this.initialized) return;
 
     Sentry.withScope((scope) => {
@@ -123,7 +123,7 @@ export class SentryMonitoringService {
   }
 
   // Game mechanics monitoring
-  trackGameEvent(eventType: string, details: Record<string, any>): void {
+  trackGameEvent(eventType: string, details: Record<string, unknown>): void {
     if (!this.initialized) return;
 
     Sentry.withScope((scope) => {
@@ -148,7 +148,7 @@ export class SentryMonitoringService {
   }
 
   // Mobile app crash reporting
-  trackMobileCrash(error: Error, context: Record<string, any>): void {
+  trackMobileCrash(error: Error, context: Record<string, unknown>): void {
     if (!this.initialized) return;
 
     Sentry.withScope((scope) => {

@@ -164,7 +164,8 @@ export class AgentCoreInterface extends EventEmitter {
       } else {
         // Verify required functions exist (with fallbacks for minimal WASM)
         const requiredFunctions = ['agentCoreExecute', 'agentCoreExecuteTool', 'agentCoreLoadLoRA', 'agentCoreApplySkill', 'agentCoreGetStatus'];
-        const missingFunctions = requiredFunctions.filter(func => !(this.agentCore as any)?.[func]);
+        const agentCoreObj = this.agentCore as Record<string, unknown>;
+        const missingFunctions = requiredFunctions.filter(func => !agentCoreObj?.[func]);
 
         if (missingFunctions.length > 0) {
           // If this is a test scenario with incomplete WASM, fail validation
@@ -391,7 +392,7 @@ export class AgentCoreInterface extends EventEmitter {
       // =======================================
       const response = await protobufHandler.deserialize(protoBytes, 'SkillInvocationResponse');
 
-      const responseObj = response as any;
+      const responseObj = response as { skill?: unknown };
       if (!responseObj.skill) {
         throw new Error('Skill payload was empty in the response');
       }
@@ -729,11 +730,11 @@ export class AgentCoreInterface extends EventEmitter {
   private createFallbackAgentCore(existingCore: unknown): AgentCoreWASM {
     const core = existingCore as Record<string, unknown>;
     return {
-      agentCoreExecute: (core?.agentCoreExecute as any) || this.fallbackExecute.bind(this),
-      agentCoreExecuteTool: (core?.agentCoreExecuteTool as any) || this.fallbackExecuteTool.bind(this),
-      agentCoreLoadLoRA: (core?.agentCoreLoadLoRA as any) || this.fallbackLoadLoRA.bind(this),
-      agentCoreApplySkill: (core?.agentCoreApplySkill as any) || this.fallbackApplySkill.bind(this),
-      agentCoreGetStatus: (core?.agentCoreGetStatus as any) || this.fallbackGetStatus.bind(this)
+      agentCoreExecute: (core?.agentCoreExecute as AgentCoreWASM['agentCoreExecute']) || this.fallbackExecute.bind(this),
+      agentCoreExecuteTool: (core?.agentCoreExecuteTool as AgentCoreWASM['agentCoreExecuteTool']) || this.fallbackExecuteTool.bind(this),
+      agentCoreLoadLoRA: (core?.agentCoreLoadLoRA as AgentCoreWASM['agentCoreLoadLoRA']) || this.fallbackLoadLoRA.bind(this),
+      agentCoreApplySkill: (core?.agentCoreApplySkill as AgentCoreWASM['agentCoreApplySkill']) || this.fallbackApplySkill.bind(this),
+      agentCoreGetStatus: (core?.agentCoreGetStatus as AgentCoreWASM['agentCoreGetStatus']) || this.fallbackGetStatus.bind(this)
     };
   }
 

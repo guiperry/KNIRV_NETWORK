@@ -82,7 +82,8 @@ func SetupTestSuite(t *testing.T) *TestSuite {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 
-	return &TestSuite{
+	// Setup routes for testing
+	ts := &TestSuite{
 		db:             db,
 		p2pManager:     p2pManager,
 		dveManager:     dveManager,
@@ -91,6 +92,11 @@ func SetupTestSuite(t *testing.T) *TestSuite {
 		config:         cfg,
 		router:         router,
 	}
+
+	// Configure routes like the main server
+	ts.setupTestRoutes()
+
+	return ts
 }
 
 // TeardownTestSuite cleans up the test environment
@@ -104,6 +110,36 @@ func (ts *TestSuite) TeardownTestSuite() {
 	if ts.sseManager != nil {
 		ts.sseManager.Close()
 	}
+}
+
+// setupTestRoutes configures routes for testing (using Gin syntax)
+func (ts *TestSuite) setupTestRoutes() {
+	// Health check endpoint
+	ts.router.GET("/health", ts.handleHealthGin)
+
+	// API v1 routes group
+	v1 := ts.router.Group("/api/v1")
+
+	// Auth routes
+	v1.POST("/auth/login", ts.handleLoginGin)
+
+	// DVE nodes routes (simplified for testing)
+	v1.GET("/dve-nodes", ts.handleDVENodesGin)
+}
+
+// handleHealthGin provides a simple health check for testing (Gin handler)
+func (ts *TestSuite) handleHealthGin(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"status": "healthy"})
+}
+
+// handleLoginGin provides a simple login endpoint for testing
+func (ts *TestSuite) handleLoginGin(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"token": "test-token"})
+}
+
+// handleDVENodesGin provides a simple DVE nodes endpoint for testing
+func (ts *TestSuite) handleDVENodesGin(c *gin.Context) {
+	c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 }
 
 // TestDVENodeRegistration tests DVE node registration

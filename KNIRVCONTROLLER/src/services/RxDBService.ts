@@ -77,11 +77,22 @@ interface SettingsDocType {
   updatedAt?: number;
 }
 
+interface GraphDocType {
+  id: string;
+  type: 'graph';
+  userId: string;
+  nodes: unknown[];
+  edges: unknown[];
+  metadata: Record<string, unknown>;
+  timestamp: number;
+}
+
 type DatabaseCollections = {
   wallets: RxCollection<WalletDocType>;
   transactions: RxCollection<TransactionDocType>;
   conversions: RxCollection<ConversionDocType>;
   settings: RxCollection<SettingsDocType>;
+  graphs: RxCollection<GraphDocType>;
 };
 
 export class RxDBService {
@@ -213,6 +224,26 @@ export class RxDBService {
             updatedAt: { type: 'number' }
           },
           required: ['id', 'type', 'key', 'value', 'timestamp']
+        }
+      }
+      ,
+
+      graphs: {
+        schema: {
+          title: 'graph schema',
+          version: 0,
+          type: 'object',
+          primaryKey: 'id',
+          properties: {
+            id: { type: 'string' },
+            type: { type: 'string' },
+            userId: { type: 'string' },
+            nodes: { type: 'array', items: { type: 'object' } },
+            edges: { type: 'array', items: { type: 'object' } },
+            metadata: { type: 'object' },
+            timestamp: { type: 'number' }
+          },
+          required: ['id', 'type', 'userId', 'nodes', 'edges', 'metadata', 'timestamp']
         }
       }
     });

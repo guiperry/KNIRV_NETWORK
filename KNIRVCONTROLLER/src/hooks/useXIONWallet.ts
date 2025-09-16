@@ -17,8 +17,8 @@ export interface XIONWalletState {
   isConnected: boolean;
   isConnecting: boolean;
   error: string | null;
-  paymentGatewayConfig: any | null;
-  conversionRates: any | null;
+  paymentGatewayConfig: unknown | null;
+  conversionRates: unknown | null;
 }
 
 export interface XIONWalletActions {
@@ -29,7 +29,7 @@ export interface XIONWalletActions {
   getPaymentHistory: () => Promise<ConversionResult[]>;
   refreshBalance: () => Promise<void>;
   refreshRates: () => Promise<void>;
-  connectMetaAccount: (authMethod: 'email' | 'social' | 'wallet' | 'passkey', identifier: string) => Promise<any>;
+  connectMetaAccount: (authMethod: 'email' | 'social' | 'wallet' | 'passkey', identifier: string) => Promise<{ success: boolean; account?: string; error?: string }>;
 }
 
 export function useXIONWallet(): XIONWalletState & XIONWalletActions {

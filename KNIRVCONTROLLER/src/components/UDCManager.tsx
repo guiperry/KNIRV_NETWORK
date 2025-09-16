@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Shield,
   Plus,
@@ -25,16 +25,7 @@ const UDCManager: React.FC<UDCManagerProps> = ({ isOpen, onClose }) => {
   const [selectedUDC, setSelectedUDC] = useState<UDC | null>(null);
   const [validationResults, setValidationResults] = useState<Record<string, UDCValidationResult>>({});
 
-  useEffect(() => {
-    if (isOpen) {
-      loadUDCs();
-      // Auto-refresh every 30 seconds
-      const interval = setInterval(loadUDCs, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [isOpen]);
-
-  const loadUDCs = async () => {
+  const loadUDCs = useCallback(async () => {
     setIsLoading(true);
     try {
       const allUDCs = udcManagementService.getAllUDCs();
@@ -51,7 +42,16 @@ const UDCManager: React.FC<UDCManagerProps> = ({ isOpen, onClose }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadUDCs();
+      // Auto-refresh every 30 seconds
+      const interval = setInterval(loadUDCs, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isOpen, loadUDCs]);
 
   const handleCreateUDC = async (request: UDCRequest) => {
     try {

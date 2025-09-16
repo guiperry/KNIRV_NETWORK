@@ -670,10 +670,10 @@ export class CognitiveEngine extends EventEmitter {
       if (this.adaptiveLearningPipeline) {
         this.adaptiveLearningPipeline.setHRMBridge(this.hrmBridge);
         if (this.enhancedLoraAdapter) {
-          this.adaptiveLearningPipeline.setEnhancedLoRAAdapter(this.enhancedLoraAdapter as any);
+          this.adaptiveLearningPipeline.setEnhancedLoRAAdapter(this.enhancedLoraAdapter);
         }
         if (this.hrmLoraBridge) {
-          this.adaptiveLearningPipeline.setHRMLoRABridge(this.hrmLoraBridge as any);
+          this.adaptiveLearningPipeline.setHRMLoRABridge(this.hrmLoraBridge);
         }
         await this.adaptiveLearningPipeline.loadLearnedPatterns();
         await this.adaptiveLearningPipeline.start();
@@ -1091,14 +1091,16 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     // Scene analysis confidence
-    if ((resultAny as any).sceneAnalysis && (resultAny as any).sceneAnalysis.confidence > 0) {
-      confidence += (resultAny as any).sceneAnalysis.confidence;
+    const resultWithScene = resultAny as { sceneAnalysis?: { confidence: number } };
+    if (resultWithScene.sceneAnalysis && resultWithScene.sceneAnalysis.confidence > 0) {
+      confidence += resultWithScene.sceneAnalysis.confidence;
       count++;
     }
 
     // Text recognition confidence
-    if ((resultAny as any).textRegions && (resultAny as any).textRegions.length > 0) {
-      confidence += (resultAny as any).textRegions.reduce((sum: number, text: { confidence?: number }) => sum + (text.confidence || 0), 0) / (resultAny as any).textRegions.length;
+    const resultWithText = resultAny as { textRegions?: Array<{ confidence?: number }> };
+    if (resultWithText.textRegions && resultWithText.textRegions.length > 0) {
+      confidence += resultWithText.textRegions.reduce((sum: number, text: { confidence?: number }) => sum + (text.confidence || 0), 0) / resultWithText.textRegions.length;
       count++;
     }
 
@@ -1258,7 +1260,7 @@ export class CognitiveEngine extends EventEmitter {
 
   private async focusOnObject(target: unknown): Promise<void> {
     console.log('Focusing on object:', target);
-    this.state.currentContext.set('focusTarget', target as any);
+    this.state.currentContext.set('focusTarget', target);
   }
 
   private async navigateInterface(direction: string): Promise<void> {
@@ -1339,12 +1341,15 @@ export class CognitiveEngine extends EventEmitter {
     try {
       this.enhancedLoraAdapter.enableTraining();
       // Convert unknown[] to TrainingData[] format
-      const formattedTrainingData = trainingData.map((item: any) => ({
-        input: item.input || item,
-        output: item.output || '',
-        feedback: item.feedback || 0,
-        timestamp: item.timestamp || Date.now()
-      }));
+      const formattedTrainingData = trainingData.map((item: unknown) => {
+        const trainingItem = item as Record<string, unknown>;
+        return {
+          input: trainingItem.input || item,
+          output: trainingItem.output || '',
+          feedback: trainingItem.feedback || 0,
+          timestamp: trainingItem.timestamp || Date.now()
+        };
+      });
       await this.enhancedLoraAdapter.trainOnBatch(formattedTrainingData);
       console.log('Enhanced LoRA training completed');
       return {
@@ -1520,7 +1525,7 @@ export class CognitiveEngine extends EventEmitter {
       return;
     }
 
-    this.hrmLoraBridge.updateSyncConfig(_config as any);
+    this.hrmLoraBridge.updateSyncConfig(_config);
     console.log('HRM-LoRA sync configuration updated');
   }
 
@@ -1582,8 +1587,8 @@ export class CognitiveEngine extends EventEmitter {
     try {
       await this.adaptiveLearningPipeline.recordInteraction({
         inputType: inputType as 'text' | 'voice' | 'visual' | 'gesture',
-        input: input as any,
-        output: response as any,
+        input: input,
+        output: response,
         context: Object.fromEntries(this.state.currentContext),
       });
     } catch (error) {
@@ -1645,8 +1650,8 @@ export class CognitiveEngine extends EventEmitter {
         const learningEvent: LearningEvent = {
           timestamp: new Date(),
           eventType: 'pattern_learning',
-          input: pattern.input as any,
-          output: pattern.output as any,
+          input: pattern.input,
+          output: pattern.output,
           feedback: pattern.feedback,
           adaptationApplied: false,
         };
@@ -1657,8 +1662,8 @@ export class CognitiveEngine extends EventEmitter {
         if (this.adaptiveLearningPipeline) {
           await this.adaptiveLearningPipeline.recordInteraction({
             inputType: 'text',
-            input: pattern.input as any,
-            output: pattern.output as any,
+            input: pattern.input,
+            output: pattern.output,
             userFeedback: pattern.feedback,
             context: { type: 'pattern_learning' },
           });
@@ -1762,7 +1767,7 @@ export class CognitiveEngine extends EventEmitter {
 
     try {
       if (this.loraAdapter) {
-        await this.loraAdapter.addTrainingData(loraWeights as any);
+        await this.loraAdapter.addTrainingData(loraWeights);
       }
 
       if (this.enhancedLoraAdapter) {
@@ -1893,7 +1898,7 @@ export class CognitiveEngine extends EventEmitter {
       return;
     }
 
-    this.adaptiveLearningPipeline.updateConfig(_config as any);
+    this.adaptiveLearningPipeline.updateConfig(_config);
     console.log('Adaptive learning configuration updated');
   }
 
@@ -1984,11 +1989,12 @@ export class CognitiveEngine extends EventEmitter {
 
     try {
       const balance = await this.walletIntegration.getBalance(accountId);
+      const balanceData = balance as { total?: string; available?: string; locked?: string; currency?: string };
       return {
-        total: (balance as any)?.total || '1000.0',
-        available: (balance as any)?.available || '950.0',
-        locked: (balance as any)?.locked || '50.0',
-        currency: (balance as any)?.currency || 'NRN'
+        total: balanceData?.total || '1000.0',
+        available: balanceData?.available || '950.0',
+        locked: balanceData?.locked || '50.0',
+        currency: balanceData?.currency || 'NRN'
       };
     } catch (error) {
       console.error('Failed to get wallet balance:', error);
@@ -2014,8 +2020,9 @@ export class CognitiveEngine extends EventEmitter {
 
     try {
       const balance = await this.walletIntegration.getNRNBalance(accountId);
+      const nrnBalance = balance as { balance?: string };
       return {
-        balance: (balance as any)?.balance || '500.0',
+        balance: nrnBalance?.balance || '500.0',
         currency: 'NRN',
         decimals: 18
       };
@@ -2039,7 +2046,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      const transactionId = await this.walletIntegration.createTransaction(request as any);
+      const transactionId = await this.walletIntegration.createTransaction(request);
       if (transactionId) {
         console.log(`Created wallet transaction: ${transactionId}`);
         return transactionId;
@@ -2063,7 +2070,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      const transactionId = await this.walletIntegration.invokeSkill(skillInvocation as any);
+      const transactionId = await this.walletIntegration.invokeSkill(skillInvocation);
       console.log(`Invoked skill with wallet: ${(skillInvocation as { skillName?: string }).skillName}`);
 
       // Record this as a learning interaction
@@ -2116,12 +2123,19 @@ export class CognitiveEngine extends EventEmitter {
 
     try {
       const status = await this.walletIntegration.checkTransactionStatus(transactionId);
+      const statusData = status as {
+        transactionId?: string;
+        status?: string;
+        confirmations?: number;
+        blockHeight?: number;
+        timestamp?: number
+      };
       return {
-        transactionId: (status as any)?.transactionId || transactionId,
-        status: (status as any)?.status || 'confirmed',
-        confirmations: (status as any)?.confirmations || 6,
-        blockHeight: (status as any)?.blockHeight || 12345,
-        timestamp: (status as any)?.timestamp || Date.now()
+        transactionId: statusData?.transactionId || transactionId,
+        status: statusData?.status || 'confirmed',
+        confirmations: statusData?.confirmations || 6,
+        blockHeight: statusData?.blockHeight || 12345,
+        timestamp: statusData?.timestamp || Date.now()
       };
     } catch (error) {
       console.error('Failed to check wallet transaction status:', error);
@@ -2158,7 +2172,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      this.walletIntegration.updateConfig(_config as any);
+      this.walletIntegration.updateConfig(_config);
       console.log('Wallet configuration updated');
     } catch (error) {
       console.error('Failed to update wallet _config:', error);
@@ -2189,16 +2203,23 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      const result = await this.chainIntegration.executeContractCall(call as any);
-      const callAny = call as { contract?: string; method?: string };
+      const result = await this.chainIntegration.executeContractCall(call);
+      const callData = call as { contract?: string; method?: string };
       if (result) {
-        console.log(`Executed contract call: ${callAny.contract}.${callAny.method}`);
+        console.log(`Executed contract call: ${callData.contract}.${callData.method}`);
+        const resultData = result as {
+          success?: boolean;
+          transactionHash?: string;
+          result?: unknown;
+          gasUsed?: string;
+          blockNumber?: number
+        };
         return {
-          success: (result as any)?.success || true,
-          transactionHash: (result as any)?.transactionHash || 'mock-tx-hash',
-          result: (result as any)?.result || result,
-          gasUsed: (result as any)?.gasUsed || '21000',
-          blockNumber: (result as any)?.blockNumber || 12345
+          success: resultData?.success || true,
+          transactionHash: resultData?.transactionHash || 'mock-tx-hash',
+          result: resultData?.result || result,
+          gasUsed: resultData?.gasUsed || '21000',
+          blockNumber: resultData?.blockNumber || 12345
         };
       } else {
         // No mock results - throw error for proper error handling
@@ -2273,7 +2294,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      const skillId = await this.chainIntegration.registerSkill(skillMetadata as any);
+      const skillId = await this.chainIntegration.registerSkill(skillMetadata);
       console.log(`Registered skill on chain: ${skillId}`);
       return skillId;
     } catch (error) {
@@ -2288,7 +2309,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      const modelId = await this.chainIntegration.registerLLMModel(llmMetadata as any);
+      const modelId = await this.chainIntegration.registerLLMModel(llmMetadata);
       console.log(`Registered LLM model on chain: ${modelId}`);
       return modelId;
     } catch (error) {
@@ -2350,11 +2371,17 @@ export class CognitiveEngine extends EventEmitter {
 
     try {
       const consensus = await this.chainIntegration.getNetworkConsensus();
+      const consensusData = consensus as {
+        consensusAlgorithm?: string;
+        blockTime?: number;
+        validators?: number;
+        networkHealth?: string
+      };
       return {
-        consensusAlgorithm: (consensus as any)?.consensusAlgorithm || 'proof-of-stake',
-        blockTime: (consensus as any)?.blockTime || 6.5,
-        validators: (consensus as any)?.validators || 50,
-        networkHealth: (consensus as any)?.networkHealth || 'healthy'
+        consensusAlgorithm: consensusData?.consensusAlgorithm || 'proof-of-stake',
+        blockTime: consensusData?.blockTime || 6.5,
+        validators: consensusData?.validators || 50,
+        networkHealth: consensusData?.networkHealth || 'healthy'
       };
     } catch (error) {
       console.error('Failed to get network consensus:', error);
@@ -2425,7 +2452,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      this.chainIntegration.updateConfig(_config as any);
+      this.chainIntegration.updateConfig(_config);
       console.log('Chain configuration updated');
     } catch (error) {
       console.error('Failed to update chain _config:', error);
@@ -2629,14 +2656,15 @@ export class CognitiveEngine extends EventEmitter {
       console.log('Wallet operation executed through ecosystem:', (operation as { type?: string }).type);
 
       // Ensure response has the expected structure
-      if (response && (response as any).success) {
+      const responseData = response as { success?: boolean; response?: { data?: Record<string, unknown> } };
+      if (response && responseData.success) {
         return {
           success: true,
           data: {
             nrnBalance: '1000.0', // Mock balance for testing
-            transactionId: (response as any).response?.data?.transactionId || `mock-tx-${Date.now()}`,
+            transactionId: responseData.response?.data?.transactionId || `mock-tx-${Date.now()}`,
             operation: (operation as { type?: string }).type,
-            ...(response as any).response?.data
+            ...responseData.response?.data
           },
           timestamp: Date.now()
         };
@@ -2740,7 +2768,7 @@ export class CognitiveEngine extends EventEmitter {
       return;
     }
 
-    this.ecosystemCommunication.updateConfig(_config as any);
+    this.ecosystemCommunication.updateConfig(_config);
     console.log('Ecosystem communication configuration updated');
   }
 
@@ -2782,37 +2810,41 @@ export class CognitiveEngine extends EventEmitter {
     const nrnCost = payloadAny.nrnCost || payloadAny.payment?.amount || '0';
 
     // 1. Check wallet balance
+    const payloadData = payloadAny as { accountId?: string; skillId?: string; parameters?: unknown };
     const walletResponse = await this.performWalletOperationThroughEcosystem({
       type: 'get_balance',
-      accountId: (payloadAny as any).accountId || 'default-account',
+      accountId: payloadData.accountId || 'default-account',
     });
 
-    if (!walletResponse || !(walletResponse as any).success ||
-        !(walletResponse as any).data ||
-        parseFloat((walletResponse as any).data.nrnBalance || '0') < parseFloat(nrnCost)) {
+    const walletResponseData = walletResponse as { success?: boolean; data?: { nrnBalance?: string } };
+    if (!walletResponse || !walletResponseData.success ||
+        !walletResponseData.data ||
+        parseFloat(walletResponseData.data.nrnBalance || '0') < parseFloat(nrnCost)) {
       throw new Error('Insufficient NRN balance');
     }
 
     // 2. Execute skill
-    const skillResponse = await this.executeSkillThroughEcosystem((payloadAny as any).skillId || 'default-skill', (payloadAny as any).parameters);
+    const skillResponse = await this.executeSkillThroughEcosystem(payloadData.skillId || 'default-skill', payloadData.parameters);
 
-    if (!(skillResponse as any).success) {
+    const skillResponseData = skillResponse as { success?: boolean };
+    if (!skillResponseData.success) {
       throw new Error('Skill execution failed');
     }
 
     // 3. Process payment
     const paymentResponse = await this.performWalletOperationThroughEcosystem({
       type: 'create_transaction',
-      from: (payloadAny as any).accountId || 'default-account',
+      from: payloadData.accountId || 'default-account',
       to: 'skill_contract',
       nrnAmount: nrnCost,
-      skillId: (payloadAny as any).skillId || 'default-skill',
+      skillId: payloadData.skillId || 'default-skill',
     });
 
+    const paymentResponseData = paymentResponse as { data?: unknown };
     return {
       success: true,
-      skillResult: (skillResponse as any).data,
-      paymentTransaction: (paymentResponse as any).data,
+      skillResult: (skillResponse as { data?: unknown }).data,
+      paymentTransaction: paymentResponseData.data,
       timestamp: Date.now(),
     };
   }
@@ -2824,16 +2856,19 @@ export class CognitiveEngine extends EventEmitter {
       ...(typeof payload === 'object' && payload !== null ? payload as Record<string, unknown> : {}),
     });
 
+    const walletResponseData = walletResponse as { success?: boolean; data?: unknown };
+
     // 2. Record on blockchain
     const chainResponse = await this.performBlockchainOperationThroughEcosystem({
       type: 'record_transaction',
-      transactionData: (walletResponse as any)?.data || {},
+      transactionData: walletResponseData?.data || {},
     });
 
+    const chainResponseData = chainResponse as { data?: unknown };
     return {
       success: true,
-      walletTransaction: (walletResponse as any)?.data || {},
-      blockchainRecord: (chainResponse as any)?.data || {},
+      walletTransaction: walletResponseData?.data || {},
+      blockchainRecord: chainResponseData?.data || {},
       timestamp: Date.now(),
     };
   }
@@ -2902,7 +2937,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      const success = await this.wasmAgentManager.loadLoRAAdapter(adapter as any);
+      const success = await this.wasmAgentManager.loadLoRAAdapter(adapter);
 
       if (success) {
         this.emit('wasmLoRAAdapterLoaded', {
@@ -3046,7 +3081,7 @@ export class CognitiveEngine extends EventEmitter {
       const config = this.convertSolutionsToSkillConfig(skillName, solutions, errors);
 
       // Compile the skill
-      const result = await this.typeScriptCompiler.compileSkill(this._config as any);
+      const result = await this.typeScriptCompiler.compileSkill(this._config);
 
       if (result.success) {
         this.emit('skillCompiledFromSolutions', {

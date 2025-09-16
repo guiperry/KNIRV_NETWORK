@@ -109,7 +109,7 @@ class PerformanceOptimizer {
    */
   private updateNavigationMetrics(entry: PerformanceNavigationTiming): void {
     this.metrics.networkLatency = entry.responseStart - entry.requestStart;
-    this.metrics.renderTime = entry.loadEventEnd - (entry as any).navigationStart;
+    this.metrics.renderTime = entry.loadEventEnd - entry.fetchStart;
   }
 
   /**
@@ -213,7 +213,7 @@ class PerformanceOptimizer {
         timeoutId = setTimeout(() => {
           func(...args);
           lastExecTime = Date.now();
-        }, delay - (currentTime - lastExecTime)) as any;
+        }, delay - (currentTime - lastExecTime));
       }
     };
   }
@@ -234,7 +234,7 @@ class PerformanceOptimizer {
 
       timeoutId = setTimeout(() => {
         func(...args);
-      }, delay) as any;
+      }, delay);
     };
   }
 
@@ -316,7 +316,7 @@ class PerformanceOptimizer {
    * Memory usage monitoring
    */
   public getMemoryUsage(): number {
-    if (typeof window !== 'undefined' && 'performance' in window && 'memory' in performance) {
+    if (typeof window !== 'undefined' && 'performance' in window && typeof performance !== 'undefined' && 'memory' in performance) {
       const perfWithMemory = performance as Performance & {
         memory?: {
           usedJSHeapSize: number;

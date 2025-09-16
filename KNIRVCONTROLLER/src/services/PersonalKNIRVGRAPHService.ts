@@ -3,6 +3,9 @@
  * Manages individual user's graph instance with error mapping and visualization
  */
 
+import { FactualitySlice } from '../slices/factualitySlice';
+import { FeasibilityReport } from '../slices/feasibilitySlice';
+
 interface ErrorNodeData {
   errorId: string;
   errorType: string;
@@ -27,6 +30,13 @@ interface CapabilityNodeData {
   category: string;
   timestamp: number;
 }
+
+// Allow node data to optionally include slice objects
+type NodeWithSlices = NodeData & {
+  factualitySlice?: FactualitySlice;
+  capabilitySlice?: FactualitySlice;
+  feasibilitySlice?: FeasibilityReport;
+};
 
 interface PropertyNodeData {
   propertyId: string;
@@ -68,7 +78,7 @@ export interface GraphNode {
   type: 'error' | 'skill' | 'capability' | 'property' | 'connection' | 'agent';
   label: string;
   position: { x: number; y: number; z: number };
-  data: NodeData;
+  data: NodeData | NodeWithSlices;
   connections: string[]; // IDs of connected nodes
 }
 
@@ -93,6 +103,7 @@ export interface PersonalGraph {
     complexity: number;
   };
 }
+
 
 export class PersonalKNIRVGRAPHService {
   private currentGraph: PersonalGraph | null = null;
@@ -133,12 +144,12 @@ export class PersonalKNIRVGRAPHService {
       }
     };
 
-    this.currentGraph = graph;
+  this.currentGraph = graph;
 
-    // Store in RxDB
-    await this.saveGraphToDatabase(graph);
+  // Store in RxDB
+  await this.saveGraphToDatabase(graph);
 
-    return graph;
+  return graph;
   }
 
   // Load user's personal graph
@@ -146,8 +157,35 @@ export class PersonalKNIRVGRAPHService {
     try {
       if (!this.isInitialized) await this.initialize();
 
-      // For now, create a new graph if none exists
-      // In a real implementation, this would load from the database
+      const db = rxdbService.getDatabase();
+
+      // Try to find an existing graph for the user
+      const existing = await db.graphs.findOne({ selector: { userId } }).exec();
+      if (existing) {
+        try {
+          const parsedNodes = (existing.nodes || []) as GraphNode[];
+          const parsedEdges = (existing.edges || []) as GraphEdge[];
+          const graph: PersonalGraph = {
+            id: existing.id,
+            userId: existing.userId,
+            nodes: parsedNodes,
+            edges: parsedEdges,
+                    metadata: (existing.metadata as PersonalGraph['metadata']) || {
+              createdAt: Date.now(),
+              lastModified: Date.now(),
+              version: 1,
+              complexity: 0
+            }
+          };
+
+          this.currentGraph = graph;
+          return graph;
+        } catch (err) {
+          console.error('Failed parsing existing graph, creating new one:', err);
+        }
+      }
+
+      // Create a new graph if none exists
       const graph = await this.createPersonalGraph(userId);
       return graph;
     } catch (error) {
@@ -163,6 +201,7 @@ export class PersonalKNIRVGRAPHService {
     description: string;
     context: Record<string, unknown>;
     timestamp: number;
+  factualitySlice?: FactualitySlice;
   }): Promise<GraphNode> {
     if (!this.currentGraph) throw new Error('No active graph');
 
@@ -171,7 +210,7 @@ export class PersonalKNIRVGRAPHService {
       type: 'error',
       label: errorData.description,
       position: this.calculateNodePosition(),
-      data: errorData,
+  data: { ...errorData, factualitySlice: errorData.factualitySlice },
       connections: []
     };
 
@@ -194,6 +233,7 @@ export class PersonalKNIRVGRAPHService {
     mcpServerInfo: Record<string, unknown>;
     category: string;
     timestamp: number;
+  capabilitySlice?: FactualitySlice;
   }): Promise<GraphNode> {
     if (!this.currentGraph) throw new Error('No active graph');
 
@@ -211,7 +251,7 @@ export class PersonalKNIRVGRAPHService {
       type: 'capability',
       label: contextData.contextName,
       position: this.calculateNodePosition(),
-      data: capabilityData,
+  data: { ...capabilityData, capabilitySlice: contextData.capabilitySlice },
       connections: []
     };
 
@@ -232,6 +272,7 @@ export class PersonalKNIRVGRAPHService {
     ideaName: string;
     description: string;
     timestamp: number;
+  feasibilitySlice?: FeasibilityReport;
   }): Promise<GraphNode> {
     if (!this.currentGraph) throw new Error('No active graph');
 
@@ -252,7 +293,7 @@ export class PersonalKNIRVGRAPHService {
       type: 'property',
       label: ideaData.ideaName,
       position: this.calculateNodePosition(),
-      data: propertyData,
+      data: { ...propertyData, feasibilitySlice: ideaData.feasibilitySlice },
       connections: []
     };
 
@@ -462,22 +503,18 @@ export class PersonalKNIRVGRAPHService {
     try {
       const db = rxdbService.getDatabase();
 
-      // Store as settings or create a graph document
-      await db.settings.insert({
-        id: `graph_${graph.id}`,
-        type: 'settings',
-        walletId: 'personal_graph',
-        autoSync: false,
-        biometricEnabled: false,
-        notificationsEnabled: false,
-        defaultNetwork: 'testnet',
-        preferredCurrency: 'NRN',
-        theme: 'dark',
-        createdAt: graph.metadata.createdAt,
-        updatedAt: graph.metadata.lastModified
+      // Upsert graph into graphs collection
+      await db.graphs.upsert({
+        id: graph.id,
+        type: 'graph',
+        userId: graph.userId,
+        nodes: graph.nodes,
+        edges: graph.edges,
+        metadata: graph.metadata,
+        timestamp: Date.now()
       });
 
-      console.log('Graph saved to database');
+      console.log('Graph saved to database (graphs collection)');
     } catch (error) {
       console.error('Failed to save graph to database:', error);
     }

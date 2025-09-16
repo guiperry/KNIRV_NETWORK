@@ -295,7 +295,7 @@ pub struct HostCapabilities {
     #[prost(string, tag = "4")]
     pub host_version: ::prost::alloc::string::String,
 }
-/// LoRA Adapter Engine messages
+/// LoRA Adapter Engine messages (for backward compatibility)
 #[derive(serde::Serialize, serde::Deserialize)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -419,7 +419,119 @@ pub struct SkillChain {
     #[prost(uint64, tag = "5")]
     pub last_updated: u64,
 }
-/// Agent compilation messages
+/// Capability invocation messages
+#[derive(serde::Serialize, serde::Deserialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CapabilityMetadata {
+    #[prost(string, tag = "1")]
+    pub capability_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub description: ::prost::alloc::string::String,
+    /// "mcp_server", "api_endpoint", "tool"
+    #[prost(string, tag = "3")]
+    pub capability_type: ::prost::alloc::string::String,
+    #[prost(map = "string, string", tag = "4")]
+    pub schema: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, repeated, tag = "5")]
+    pub location_hints: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(uint64, optional, tag = "6")]
+    pub gas_fee_nrn: ::core::option::Option<u64>,
+}
+#[derive(serde::Serialize, serde::Deserialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CapabilityInvocationRequest {
+    #[prost(string, tag = "1")]
+    pub capability_id: ::prost::alloc::string::String,
+    #[prost(map = "string, string", tag = "2")]
+    pub parameters: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, tag = "3")]
+    pub agent_core_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub invocation_id: ::prost::alloc::string::String,
+}
+#[derive(serde::Serialize, serde::Deserialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CapabilityInvocationResponse {
+    #[prost(string, tag = "1")]
+    pub invocation_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "CapabilityInvocationStatus", tag = "2")]
+    pub status: i32,
+    #[prost(string, optional, tag = "3")]
+    pub error_message: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(bytes = "vec", optional, tag = "4")]
+    pub result_data: ::core::option::Option<::prost::alloc::vec::Vec<u8>>,
+    #[prost(message, optional, tag = "5")]
+    pub capability: ::core::option::Option<CapabilityMetadata>,
+}
+/// Property invocation messages
+#[derive(serde::Serialize, serde::Deserialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PropertyMetadata {
+    #[prost(string, tag = "1")]
+    pub property_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub description: ::prost::alloc::string::String,
+    /// "asset", "characteristic", "attribute"
+    #[prost(string, tag = "3")]
+    pub property_type: ::prost::alloc::string::String,
+    /// "string", "number", "boolean", "object"
+    #[prost(string, tag = "4")]
+    pub value_type: ::prost::alloc::string::String,
+    #[prost(map = "string, string", tag = "5")]
+    pub constraints: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(bool, tag = "6")]
+    pub immutable: bool,
+    #[prost(string, optional, tag = "7")]
+    pub category: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(serde::Serialize, serde::Deserialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PropertyInvocationRequest {
+    #[prost(string, tag = "1")]
+    pub property_id: ::prost::alloc::string::String,
+    #[prost(map = "string, string", tag = "2")]
+    pub parameters: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, tag = "3")]
+    pub agent_core_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub invocation_id: ::prost::alloc::string::String,
+    /// "read", "validate", "transfer", "query"
+    #[prost(string, tag = "5")]
+    pub operation: ::prost::alloc::string::String,
+}
+#[derive(serde::Serialize, serde::Deserialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PropertyInvocationResponse {
+    #[prost(string, tag = "1")]
+    pub invocation_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "PropertyInvocationStatus", tag = "2")]
+    pub status: i32,
+    #[prost(string, optional, tag = "3")]
+    pub error_message: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(bytes = "vec", optional, tag = "4")]
+    pub property_data: ::core::option::Option<::prost::alloc::vec::Vec<u8>>,
+    #[prost(message, optional, tag = "5")]
+    pub property: ::core::option::Option<PropertyMetadata>,
+}
+/// Agent compilation messages (for backward compatibility)
 #[derive(serde::Serialize, serde::Deserialize)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -458,17 +570,17 @@ pub struct AgentConfig {
 #[derive(serde::Serialize, serde::Deserialize)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AgentCompilationResponse {
-    #[prost(bool, tag = "1")]
-    pub success: bool,
-    #[prost(string, tag = "2")]
-    pub message: ::prost::alloc::string::String,
-    #[prost(bytes = "vec", tag = "3")]
-    pub agent_wasm: ::prost::alloc::vec::Vec<u8>,
-    #[prost(string, tag = "4")]
+pub struct AgentCompilationResult {
+    #[prost(string, tag = "1")]
     pub agent_id: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "5")]
-    pub compilation_time_ms: u64,
+    #[prost(bytes = "vec", tag = "2")]
+    pub agent_wasm: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint64, tag = "3")]
+    pub size_bytes: u64,
+    #[prost(string, tag = "4")]
+    pub checksum: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "5")]
+    pub validation_errors: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[derive(serde::Serialize, serde::Deserialize)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
@@ -526,6 +638,85 @@ impl SkillInvocationStatus {
             "SKILL_SUCCESS" => Some(Self::SkillSuccess),
             "SKILL_FAILURE" => Some(Self::SkillFailure),
             "SKILL_NOT_FOUND" => Some(Self::SkillNotFound),
+            _ => None,
+        }
+    }
+}
+#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CapabilityInvocationStatus {
+    CapabilitySuccess = 0,
+    CapabilityFailure = 1,
+    CapabilityNotFound = 2,
+    CapabilityAccessDenied = 3,
+    CapabilityTimeout = 4,
+}
+impl CapabilityInvocationStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            CapabilityInvocationStatus::CapabilitySuccess => "CAPABILITY_SUCCESS",
+            CapabilityInvocationStatus::CapabilityFailure => "CAPABILITY_FAILURE",
+            CapabilityInvocationStatus::CapabilityNotFound => "CAPABILITY_NOT_FOUND",
+            CapabilityInvocationStatus::CapabilityAccessDenied => {
+                "CAPABILITY_ACCESS_DENIED"
+            }
+            CapabilityInvocationStatus::CapabilityTimeout => "CAPABILITY_TIMEOUT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "CAPABILITY_SUCCESS" => Some(Self::CapabilitySuccess),
+            "CAPABILITY_FAILURE" => Some(Self::CapabilityFailure),
+            "CAPABILITY_NOT_FOUND" => Some(Self::CapabilityNotFound),
+            "CAPABILITY_ACCESS_DENIED" => Some(Self::CapabilityAccessDenied),
+            "CAPABILITY_TIMEOUT" => Some(Self::CapabilityTimeout),
+            _ => None,
+        }
+    }
+}
+#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum PropertyInvocationStatus {
+    PropertySuccess = 0,
+    PropertyFailure = 1,
+    PropertyNotFound = 2,
+    PropertyAccessDenied = 3,
+    PropertyImmutable = 4,
+    PropertyInvalidOperation = 5,
+}
+impl PropertyInvocationStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            PropertyInvocationStatus::PropertySuccess => "PROPERTY_SUCCESS",
+            PropertyInvocationStatus::PropertyFailure => "PROPERTY_FAILURE",
+            PropertyInvocationStatus::PropertyNotFound => "PROPERTY_NOT_FOUND",
+            PropertyInvocationStatus::PropertyAccessDenied => "PROPERTY_ACCESS_DENIED",
+            PropertyInvocationStatus::PropertyImmutable => "PROPERTY_IMMUTABLE",
+            PropertyInvocationStatus::PropertyInvalidOperation => {
+                "PROPERTY_INVALID_OPERATION"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PROPERTY_SUCCESS" => Some(Self::PropertySuccess),
+            "PROPERTY_FAILURE" => Some(Self::PropertyFailure),
+            "PROPERTY_NOT_FOUND" => Some(Self::PropertyNotFound),
+            "PROPERTY_ACCESS_DENIED" => Some(Self::PropertyAccessDenied),
+            "PROPERTY_IMMUTABLE" => Some(Self::PropertyImmutable),
+            "PROPERTY_INVALID_OPERATION" => Some(Self::PropertyInvalidOperation),
             _ => None,
         }
     }

@@ -256,19 +256,27 @@ export class SEALFramework extends EventEmitter {
   }
 
   private formatHRMResponse(hrmOutput: unknown, context: unknown): unknown {
-    const hrmAny = hrmOutput as { reasoning_result?: unknown; confidence?: number; processing_time?: number };
+    interface HRMOutput {
+      reasoning_result?: unknown;
+      confidence?: number;
+      processing_time?: number;
+      l_module_activations?: unknown;
+      h_module_activations?: unknown;
+    }
+
+    const hrmTyped = hrmOutput as HRMOutput;
     const contextAny = context as Record<string, unknown>;
     return {
       type: 'hrm_response',
-      content: hrmAny.reasoning_result,
-      confidence: hrmAny.confidence,
-      processingTime: hrmAny.processing_time,
+      content: hrmTyped.reasoning_result,
+      confidence: hrmTyped.confidence,
+      processingTime: hrmTyped.processing_time,
       source: 'hrm_direct',
-      shouldSpeak: contextAny.inputType === 'voice' && (hrmAny.confidence || 0) > 0.7,
-      text: hrmAny.reasoning_result,
+      shouldSpeak: contextAny.inputType === 'voice' && (hrmTyped.confidence || 0) > 0.7,
+      text: hrmTyped.reasoning_result,
       metadata: {
-        l_module_activations: (hrmAny as any).l_module_activations,
-        h_module_activations: (hrmAny as any).h_module_activations,
+        l_module_activations: hrmTyped.l_module_activations,
+        h_module_activations: hrmTyped.h_module_activations,
       },
     };
   }
@@ -524,7 +532,18 @@ export class SEALFramework extends EventEmitter {
     console.log('Generating adaptation from learning history...');
 
     // Analyze learning history to generate adaptation
-    const adaptation = {
+    interface AdaptationChange {
+      type: string;
+      patterns: unknown[];
+      adjustments: unknown;
+    }
+
+    const adaptation: {
+      type: string;
+      changes: AdaptationChange[];
+      confidence: number;
+      timestamp: Date;
+    } = {
       type: 'performance_improvement',
       changes: [],
       confidence: 0.75,
@@ -537,7 +556,7 @@ export class SEALFramework extends EventEmitter {
 
     // Generate adaptation changes
     if (errorPatterns.length > 0) {
-      (adaptation.changes as any[]).push({
+      adaptation.changes.push({
         type: 'error_reduction',
         patterns: errorPatterns,
         adjustments: this.generateErrorAdjustments(errorPatterns),
@@ -545,7 +564,7 @@ export class SEALFramework extends EventEmitter {
     }
 
     if (successPatterns.length > 0) {
-      (adaptation.changes as any[]).push({
+      adaptation.changes.push({
         type: 'success_amplification',
         patterns: successPatterns,
         adjustments: this.generateSuccessAdjustments(successPatterns),

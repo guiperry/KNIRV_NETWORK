@@ -337,16 +337,23 @@ const ReceiverInterface = () => {
     setShellStatus('processing');
 
     try {
-      // Add error node to personal KNIRVGRAPH
-      const { personalKNIRVGRAPHService } = await import('./services/PersonalKNIRVGRAPHService');
-
+      // Generate factuality slice and POST to server endpoint
+      const { createFactualitySlice } = await import('./slices/factualitySlice');
       const errorId = `error-${Date.now()}`;
-      await personalKNIRVGRAPHService.addErrorNode({
-        errorId,
-        errorType: 'user-submitted',
-        description: 'User-submitted error for SkillNode training',
-        context: { source: 'KNIRV-CONTROLLER-user', submissionType: 'manual' },
-        timestamp: Date.now()
+      const factuality = createFactualitySlice('User-submitted error for SkillNode training', { source: 'KNIRV-CONTROLLER-user' });
+
+      await fetch('/api/graph/error', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: 'local-user',
+          errorId,
+          errorType: 'user-submitted',
+          description: 'User-submitted error for SkillNode training',
+          context: { source: 'KNIRV-CONTROLLER-user', submissionType: 'manual' },
+          timestamp: Date.now(),
+          factualitySlice: factuality
+        })
       });
 
       const newNRV: NRV = {
@@ -372,21 +379,28 @@ const ReceiverInterface = () => {
     setShellStatus('processing');
 
     try {
-      // Add context node to personal KNIRVGRAPH
-      const { personalKNIRVGRAPHService } = await import('./services/PersonalKNIRVGRAPHService');
-
+      // Generate a simple capability slice and POST to server
+      const { createFactualitySlice } = await import('./slices/factualitySlice');
       const contextId = `context-${Date.now()}`;
-      await personalKNIRVGRAPHService.addContextNode({
-        contextId,
-        contextName: 'MCP Server Context',
-        description: 'MCP server context for CapabilityNode creation',
-        mcpServerInfo: {
-          serverType: 'user-submitted',
-          capabilities: ['data-processing', 'api-integration'],
-          version: '1.0.0'
-        },
-        category: 'integration',
-        timestamp: Date.now()
+      const capabilitySlice = createFactualitySlice('MCP server context for CapabilityNode creation', { serverType: 'user-submitted' });
+
+      await fetch('/api/graph/context', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: 'local-user',
+          contextId,
+          contextName: 'MCP Server Context',
+          description: 'MCP server context for CapabilityNode creation',
+          mcpServerInfo: {
+            serverType: 'user-submitted',
+            capabilities: ['data-processing', 'api-integration'],
+            version: '1.0.0'
+          },
+          category: 'integration',
+          timestamp: Date.now(),
+          capabilitySlice
+        })
       });
 
       const newNRV: NRV = {
@@ -412,15 +426,22 @@ const ReceiverInterface = () => {
     setShellStatus('processing');
 
     try {
-      // Add idea node to personal KNIRVGRAPH
-      const { personalKNIRVGRAPHService } = await import('./services/PersonalKNIRVGRAPHService');
-
+      // Generate feasibility slice and POST to server
+      const { createFeasibilitySlice } = await import('./slices/feasibilitySlice');
       const ideaId = `idea-${Date.now()}`;
-      await personalKNIRVGRAPHService.addIdeaNode({
-        ideaId,
-        ideaName: 'User Innovation Concept',
-        description: 'User idea for PropertyNode development',
-        timestamp: Date.now()
+      const feasibility = createFeasibilitySlice('User Innovation Concept', 'User idea for PropertyNode development', []);
+
+      await fetch('/api/graph/idea', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: 'local-user',
+          ideaId,
+          ideaName: 'User Innovation Concept',
+          description: 'User idea for PropertyNode development',
+          timestamp: Date.now(),
+          feasibilitySlice: feasibility
+        })
       });
 
       const newNRV: NRV = {

@@ -65,29 +65,29 @@ module.exports = {
   // Coverage thresholds for integration tests
   coverageThreshold: {
     global: {
-      branches: 70,
-      functions: 70,
-      lines: 70,
-      statements: 70
+      branches: 100,
+      functions: 100,
+      lines: 100,
+      statements: 100
     },
     // Higher thresholds for critical integration components
     'src/sensory-shell/CognitiveEngine.ts': {
-      branches: 80,
-      functions: 80,
-      lines: 80,
-      statements: 80
+      branches: 100,
+      functions: 100,
+      lines: 100,
+      statements: 100
     },
     'src/sensory-shell/WASMOrchestrator.ts': {
-      branches: 80,
-      functions: 80,
-      lines: 80,
-      statements: 80
+      branches: 100,
+      functions: 100,
+      lines: 100,
+      statements: 100
     },
     'src/sensory-shell/KNIRVRouterIntegration.ts': {
-      branches: 85,
-      functions: 85,
-      lines: 85,
-      statements: 85
+      branches: 100,
+      functions: 100,
+      lines: 100,
+      statements: 100
     }
   },
   

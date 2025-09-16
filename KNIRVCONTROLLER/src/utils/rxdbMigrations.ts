@@ -8,7 +8,7 @@ import { RxDatabase, RxCollection } from 'rxdb';
 export interface MigrationStrategy {
   fromVersion: number;
   toVersion: number;
-  migrate: (oldDoc: any) => any;
+  migrate: (oldDoc: Record<string, unknown>) => Record<string, unknown>;
   description: string;
 }
 
@@ -16,7 +16,7 @@ export interface DatabaseMigration {
   version: number;
   collections: {
     [collectionName: string]: {
-      schema: any;
+      schema: Record<string, unknown>;
       migrationStrategies?: { [version: number]: MigrationStrategy };
     };
   };
@@ -31,7 +31,7 @@ export const migrationStrategies: { [collectionName: string]: { [version: number
     1: {
       fromVersion: 0,
       toVersion: 1,
-      migrate: (oldDoc: any) => {
+      migrate: (oldDoc: Record<string, unknown>) => {
         // Add new fields for enhanced graph structure
         return {
           ...oldDoc,
@@ -48,7 +48,7 @@ export const migrationStrategies: { [collectionName: string]: { [version: number
     2: {
       fromVersion: 1,
       toVersion: 2,
-      migrate: (oldDoc: any) => {
+      migrate: (oldDoc: Record<string, unknown>) => {
         // Add KNIRVANA integration fields
         return {
           ...oldDoc,
@@ -70,7 +70,7 @@ export const migrationStrategies: { [collectionName: string]: { [version: number
     1: {
       fromVersion: 0,
       toVersion: 1,
-      migrate: (oldDoc: any) => {
+      migrate: (oldDoc: Record<string, unknown>) => {
         // Add enhanced error tracking
         return {
           ...oldDoc,
@@ -88,7 +88,7 @@ export const migrationStrategies: { [collectionName: string]: { [version: number
     2: {
       fromVersion: 1,
       toVersion: 2,
-      migrate: (oldDoc: any) => {
+      migrate: (oldDoc: Record<string, unknown>) => {
         // Add KNIRVANA game integration
         return {
           ...oldDoc,
@@ -110,7 +110,7 @@ export const migrationStrategies: { [collectionName: string]: { [version: number
     1: {
       fromVersion: 0,
       toVersion: 1,
-      migrate: (oldDoc: any) => {
+      migrate: (oldDoc: Record<string, unknown>) => {
         // Add skill proficiency tracking
         return {
           ...oldDoc,
@@ -128,7 +128,7 @@ export const migrationStrategies: { [collectionName: string]: { [version: number
     2: {
       fromVersion: 1,
       toVersion: 2,
-      migrate: (oldDoc: any) => {
+      migrate: (oldDoc: Record<string, unknown>) => {
         // Add collective learning integration
         return {
           ...oldDoc,
@@ -150,7 +150,7 @@ export const migrationStrategies: { [collectionName: string]: { [version: number
     1: {
       fromVersion: 0,
       toVersion: 1,
-      migrate: (oldDoc: any) => {
+      migrate: (oldDoc: Record<string, unknown>) => {
         // Add enhanced wallet tracking
         return {
           ...oldDoc,
@@ -167,7 +167,7 @@ export const migrationStrategies: { [collectionName: string]: { [version: number
     2: {
       fromVersion: 1,
       toVersion: 2,
-      migrate: (oldDoc: any) => {
+      migrate: (oldDoc: Record<string, unknown>) => {
         // Add NRV/NRN token tracking
         return {
           ...oldDoc,
@@ -327,7 +327,7 @@ export class DatabaseMigrationManager {
         return versionDoc ? versionDoc.value : 0;
       }
       return 0;
-    } catch (_error) {
+    } catch {
       console.warn('Could not determine database version, assuming version 0');
       return 0;
     }
@@ -399,7 +399,7 @@ export class DatabaseMigrationManager {
     }
   }
 
-  private async migrateCollection(collection: RxCollection, config: any): Promise<void> {
+  private async migrateCollection(collection: RxCollection, config: Record<string, unknown>): Promise<void> {
     const documents = await collection.find().exec();
     
     console.log(`Migrating ${documents.length} documents in collection ${collection.name}`);
@@ -430,7 +430,7 @@ export class DatabaseMigrationManager {
 
   private async createBackup(migrationVersion: number): Promise<void> {
     try {
-      const backupData: any = {};
+      const backupData: Record<string, unknown[]> = {};
       
       // Export all collections
       for (const [name, collection] of Object.entries(this.database.collections)) {
@@ -463,7 +463,7 @@ export class DatabaseMigrationManager {
         const collection = this.database.collections[collectionName];
         if (collection) {
           await collection.remove();
-          await collection.bulkInsert(documents as any[]);
+          await collection.bulkInsert(documents as Record<string, unknown>[]);
         }
       }
 

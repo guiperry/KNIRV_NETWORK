@@ -115,18 +115,33 @@ describe('CognitiveEngine', () => {
     });
 
     it('should provide metrics', () => {
-      const metrics = cognitiveEngine.getMetrics();
+      const metrics = cognitiveEngine.getMetrics() as {
+        isRunning: boolean;
+        confidenceLevel: number;
+        adaptationLevel: number;
+        activeSkills: number;
+        learningEvents: number;
+        contextSize: number;
+      };
       expect(metrics).toBeDefined();
-      expect(typeof (metrics as any).isRunning).toBe('boolean');
-      expect(typeof (metrics as any).confidenceLevel).toBe('number');
-      expect(typeof (metrics as any).adaptationLevel).toBe('number');
+      expect(typeof metrics.isRunning).toBe('boolean');
+      expect(typeof metrics.confidenceLevel).toBe('number');
+      expect(typeof metrics.adaptationLevel).toBe('number');
     });
 
     it('should provide comprehensive status', () => {
-      const status = cognitiveEngine.getComprehensiveStatus();
+      const status = cognitiveEngine.getComprehensiveStatus() as {
+        engine: {
+          isRunning: boolean;
+          confidenceLevel: number;
+          activeSkills: number;
+        };
+        hrm: Record<string, unknown>;
+        lora: Record<string, unknown>;
+      };
       expect(status).toBeDefined();
-      expect((status as any).engine).toBeDefined();
-      expect(typeof (status as any).engine.isRunning).toBe('boolean');
+      expect(status.engine).toBeDefined();
+      expect(typeof status.engine.isRunning).toBe('boolean');
     });
   });
 
@@ -308,9 +323,9 @@ describe('CognitiveEngine', () => {
     });
 
     it('should get wallet status', () => {
-      const status = cognitiveEngine.getWalletStatus();
+      const status = cognitiveEngine.getWalletStatus() as { available: boolean };
       expect(status).toBeDefined();
-      expect(typeof (status as any).available).toBe('boolean');
+      expect(typeof status.available).toBe('boolean');
     });
 
     it('should update wallet config', () => {
@@ -346,9 +361,9 @@ describe('CognitiveEngine', () => {
     });
 
     it('should get chain status', () => {
-      const status = cognitiveEngine.getChainStatus();
+      const status = cognitiveEngine.getChainStatus() as { available: boolean };
       expect(status).toBeDefined();
-      expect(typeof (status as any).available).toBe('boolean');
+      expect(typeof status.available).toBe('boolean');
     });
 
     it('should update chain config', () => {
@@ -362,12 +377,12 @@ describe('CognitiveEngine', () => {
   describe('Engine Lifecycle', () => {
     it('should start and stop engine', async () => {
       await cognitiveEngine.start();
-      const metrics = cognitiveEngine.getMetrics();
-      expect((metrics as any).isRunning).toBe(true);
+      const metrics = cognitiveEngine.getMetrics() as { isRunning: boolean };
+      expect(metrics.isRunning).toBe(true);
 
       await cognitiveEngine.stop();
-      const stoppedMetrics = cognitiveEngine.getMetrics();
-      expect((stoppedMetrics as any).isRunning).toBe(false);
+      const stoppedMetrics = cognitiveEngine.getMetrics() as { isRunning: boolean };
+      expect(stoppedMetrics.isRunning).toBe(false);
     });
 
     it('should handle multiple start calls', async () => {
@@ -460,9 +475,9 @@ describe('CognitiveEngine', () => {
     });
 
     it('should get ecosystem status', () => {
-      const status = cognitiveEngine.getEcosystemStatus();
+      const status = cognitiveEngine.getEcosystemStatus() as { available: boolean };
       expect(status).toBeDefined();
-      expect(typeof (status as any).available).toBe('boolean');
+      expect(typeof status.available).toBe('boolean');
     });
   });
 
@@ -778,7 +793,7 @@ describe('CognitiveEngine', () => {
 
     it('should handle invalid operation types', async () => {
       const operation = {
-        type: 'skill_with_payment' as 'skill_with_payment' | 'cross_chain_transfer' | 'multi_service_query',
+        type: 'invalid_operation_type' as 'skill_with_payment' | 'cross_chain_transfer' | 'multi_service_query',
         payload: {}
       };
 
@@ -1030,8 +1045,8 @@ describe('CognitiveEngine', () => {
       });
 
       it('should validate skill parameters', async () => {
-        const circularObj: unknown = { circular: {} };
-        (circularObj as any).circular.ref = circularObj;
+        const circularObj: Record<string, unknown> = { circular: {} };
+        (circularObj.circular as Record<string, unknown>).ref = circularObj;
 
         const invalidParameters = [
           null,

@@ -3,6 +3,8 @@
  * Handles automated workflow management, task scheduling, and execution
  */
 
+import { analyticsService } from './AnalyticsService';
+
 export interface ScheduledTask {
   id: string;
   name: string;
@@ -276,6 +278,20 @@ export class TaskSchedulingService {
       task.runCount++;
       task.successCount++;
       task.lastRun = execution.startTime;
+
+      // Record analytics metric for task execution
+      await analyticsService.recordMetric({
+        name: 'task_execution',
+        value: execution.duration || 0,
+        unit: 'milliseconds',
+        category: 'performance',
+        metadata: {
+          taskId: task.id,
+          taskName: task.name,
+          taskType: task.type,
+          status: execution.status
+        }
+      });
       
       // Calculate next run for recurring tasks
       if (task.schedule.type === 'recurring' || task.schedule.type === 'cron') {
@@ -294,6 +310,21 @@ export class TaskSchedulingService {
       task.runCount++;
       task.failureCount++;
       task.lastRun = execution.startTime;
+
+      // Record analytics metric for failed task execution
+      await analyticsService.recordMetric({
+        name: 'task_execution',
+        value: execution.duration || 0,
+        unit: 'milliseconds',
+        category: 'performance',
+        metadata: {
+          taskId: task.id,
+          taskName: task.name,
+          taskType: task.type,
+          status: execution.status,
+          error: execution.error
+        }
+      });
     }
 
     this.executions.set(execution.id, execution);
@@ -418,7 +449,7 @@ export class TaskSchedulingService {
         this.executeTask(task.id);
       }, delay);
       
-      this.activeTimers.set(task.id, timer as any);
+      this.activeTimers.set(task.id, timer);
     }
   }
 
@@ -490,10 +521,16 @@ export class TaskSchedulingService {
   }
 
   private async executeApiCall(action: TaskAction): Promise<unknown> {
+    const params = action.parameters as {
+      method?: string;
+      headers?: Record<string, string>;
+      body?: unknown;
+    };
+
     const response = await fetch(action.target, {
-      method: (action.parameters as any).method || 'GET',
-      headers: (action.parameters as any).headers || {},
-      body: (action.parameters as any).body ? JSON.stringify((action.parameters as any).body) : undefined
+      method: params.method || 'GET',
+      headers: params.headers || {},
+      body: params.body ? JSON.stringify(params.body) : undefined
     });
 
     if (!response.ok) {

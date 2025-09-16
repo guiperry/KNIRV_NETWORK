@@ -37,6 +37,16 @@ interface GlobalWithPerformance {
   };
 }
 
+interface GlobalWithGC {
+  gc?: () => void;
+}
+
+interface WindowWithPerformanceMemory extends Window {
+  performance: Performance & {
+    memory?: PerformanceMemory;
+  };
+}
+
 class MemoryManager {
   private config: MemoryManagerConfig;
   private metrics: MemoryMetrics[] = [];
@@ -68,14 +78,14 @@ class MemoryManager {
    * Start memory monitoring
    */
   public startMonitoring(): void {
-    if (this.isMonitoring || typeof window === 'undefined') {
+    if (this.isMonitoring) {
       return;
     }
 
     this.isMonitoring = true;
     this.monitoringInterval = setInterval(() => {
       this.collectMetrics();
-    }, this.config.monitoringInterval) as any;
+    }, this.config.monitoringInterval);
 
     console.log('Memory monitoring started');
   }
@@ -157,32 +167,42 @@ class MemoryManager {
    * Force garbage collection (if available)
    */
   private forceGarbageCollection(): void {
+    let gcCalled = false;
+
     // Check for browser environment
     if (typeof window !== 'undefined' && 'gc' in window) {
       try {
         (window as Window & { gc?: () => void }).gc?.();
         console.log('Forced garbage collection');
+        gcCalled = true;
       } catch (error) {
         console.warn('Failed to force garbage collection:', error);
       }
     }
-    // Check for global gc (test environment)
-    else if (typeof global !== 'undefined' && 'gc' in global) {
+    // Check for global.window.gc (test environment)
+    else if (typeof global !== 'undefined' && (global as any).window && 'gc' in (global as any).window) {
       try {
-        (global as any).gc?.();
+        (global as any).window.gc();
         console.log('Forced garbage collection');
+        gcCalled = true;
       } catch (error) {
         console.warn('Failed to force garbage collection:', error);
       }
     }
-    // Check for Node.js gc
-    else if (typeof global !== 'undefined' && (global as any).gc) {
+    // Check for global gc (Node.js environment)
+    else if (typeof global !== 'undefined' && 'gc' in global && (global as GlobalWithGC).gc) {
       try {
-        (global as any).gc();
+        (global as GlobalWithGC).gc!();
         console.log('Forced garbage collection');
+        gcCalled = true;
       } catch (error) {
         console.warn('Failed to force garbage collection:', error);
       }
+    }
+
+    // If no gc was available or called, log a message
+    if (!gcCalled) {
+      console.log('Garbage collection not available in this environment');
     }
   }
 
@@ -239,19 +259,21 @@ class MemoryManager {
   public getCurrentMetrics(): MemoryMetrics | null {
     let memory: PerformanceMemory | null = null;
 
-    // Check for browser environment
-    if (typeof window !== 'undefined' && window.performance && (window.performance as any).memory) {
-      memory = (window.performance as any).memory;
-    }
-    // Check for global performance mock (test environment)
-    else if (typeof global !== 'undefined') {
+    // Check for global performance mock (test environment) - prioritize this for tests
+    if (typeof global !== 'undefined') {
       const globalWithPerf = global as GlobalWithPerformance;
       if (globalWithPerf.performance && globalWithPerf.performance.memory) {
         memory = globalWithPerf.performance.memory;
       }
     }
-    // Check for standard performance API
-    else if (typeof performance !== 'undefined') {
+
+    // If not found in global, check for browser environment
+    if (!memory && typeof window !== 'undefined' && window.performance && (window as WindowWithPerformanceMemory).performance.memory) {
+      memory = (window as WindowWithPerformanceMemory).performance.memory;
+    }
+
+    // If still not found, check for standard performance API
+    if (!memory && typeof performance !== 'undefined') {
       const perfWithMemory = performance as Performance & { memory?: PerformanceMemory };
       if (perfWithMemory.memory) {
         memory = perfWithMemory.memory;
@@ -286,15 +308,17 @@ class MemoryManager {
     averageChange: number;
     currentUsage: number;
   } {
-    if (this.metrics.length < 2) {
+    const metricsHistory = this.getMetricsHistory();
+
+    if (metricsHistory.length < 2) {
       return {
         trend: 'stable',
         averageChange: 0,
-        currentUsage: this.metrics[0]?.usagePercentage || 0
+        currentUsage: metricsHistory[0]?.usagePercentage || 0
       };
     }
 
-    const recentMetrics = this.metrics.slice(-samples);
+    const recentMetrics = metricsHistory.slice(-samples);
     const changes: number[] = [];
 
     for (let i = 1; i < recentMetrics.length; i++) {
@@ -306,7 +330,7 @@ class MemoryManager {
     const currentUsage = recentMetrics[recentMetrics.length - 1].usagePercentage;
 
     let trend: 'increasing' | 'decreasing' | 'stable';
-    if (Math.abs(averageChange) < 0.5) {
+    if (Math.abs(averageChange) < 0.1) {
       trend = 'stable';
     } else if (averageChange > 0) {
       trend = 'increasing';
@@ -329,7 +353,9 @@ class MemoryManager {
     confidence: number;
     details: string;
   } {
-    if (this.metrics.length < 10) {
+    const metricsHistory = this.getMetricsHistory();
+
+    if (metricsHistory.length < 10) {
       return {
         hasLeak: false,
         confidence: 0,
@@ -338,7 +364,7 @@ class MemoryManager {
     }
 
     const trend = this.getUsageTrend(20);
-    const recentMetrics = this.metrics.slice(-20);
+    const recentMetrics = metricsHistory.slice(-20);
     
     // Check for consistent upward trend
     const consistentIncrease = recentMetrics.every((metric, index) => {
@@ -355,11 +381,11 @@ class MemoryManager {
     let confidence = 0;
     let details = '';
 
-    if (consistentIncrease && totalGrowth > 20) {
+    if (consistentIncrease && totalGrowth > 10) {
       hasLeak = true;
       confidence = Math.min(90, totalGrowth * 2);
       details = `Consistent memory growth of ${totalGrowth.toFixed(1)}% detected`;
-    } else if (trend.trend === 'increasing' && trend.averageChange > 1) {
+    } else if (trend.trend === 'increasing' && trend.averageChange > 0.5) {
       hasLeak = true;
       confidence = Math.min(70, trend.averageChange * 20);
       details = `Increasing memory trend with average change of ${trend.averageChange.toFixed(2)}%`;

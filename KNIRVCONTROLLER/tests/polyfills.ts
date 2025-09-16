@@ -352,4 +352,67 @@ if (global.window) {
   (global.window as any).speechSynthesis = global.speechSynthesis;
 }
 
+// Polyfill for IE-specific event methods that React DOM might try to use
+// This fixes the "activeElement.attachEvent is not a function" error in JSDOM
+if (typeof document !== 'undefined') {
+  const originalCreateElement = document.createElement;
+  document.createElement = function(tagName: string, options?: ElementCreationOptions) {
+    const element = originalCreateElement.call(this, tagName, options);
+
+    // Add IE-specific event methods to all elements
+    if (!element.attachEvent) {
+      (element as any).attachEvent = function(event: string, handler: EventListener) {
+        return element.addEventListener(event.replace('on', ''), handler);
+      };
+    }
+
+    if (!element.detachEvent) {
+      (element as any).detachEvent = function(event: string, handler: EventListener) {
+        return element.removeEventListener(event.replace('on', ''), handler);
+      };
+    }
+
+    return element;
+  };
+
+  // Store the original activeElement getter to avoid recursion
+  const originalActiveElementDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'activeElement') ||
+    Object.getOwnPropertyDescriptor(document, 'activeElement');
+
+  // Add these methods to document.body and other common elements
+  const addEventMethodsToElement = (element: Element) => {
+    if (element && !(element as any).attachEvent) {
+      (element as any).attachEvent = function(event: string, handler: EventListener) {
+        return element.addEventListener(event.replace('on', ''), handler);
+      };
+      (element as any).detachEvent = function(event: string, handler: EventListener) {
+        return element.removeEventListener(event.replace('on', ''), handler);
+      };
+    }
+  };
+
+  // Add methods to body and html elements
+  if (document.body) addEventMethodsToElement(document.body);
+  if (document.documentElement) addEventMethodsToElement(document.documentElement);
+
+  // Override activeElement getter to add methods when accessed
+  Object.defineProperty(document, 'activeElement', {
+    get() {
+      let activeEl;
+      if (originalActiveElementDescriptor && originalActiveElementDescriptor.get) {
+        activeEl = originalActiveElementDescriptor.get.call(this);
+      } else {
+        activeEl = document.body; // Fallback
+      }
+
+      if (activeEl) {
+        addEventMethodsToElement(activeEl);
+      }
+
+      return activeEl;
+    },
+    configurable: true
+  });
+}
+
 console.log('✅ Jest polyfills loaded successfully');

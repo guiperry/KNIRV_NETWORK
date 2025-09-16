@@ -125,7 +125,7 @@ export const CortexBuilder: React.FC<CortexBuilderProps> = ({ isOpen, onClose })
           ].map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as 'overview' | 'training' | 'deployment' | 'monitoring')}
               className={`flex items-center space-x-2 px-6 py-3 border-b-2 transition-colors ${
                 activeTab === tab.id
                   ? 'border-purple-500 text-purple-400'

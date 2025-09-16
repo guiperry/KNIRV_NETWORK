@@ -271,8 +271,9 @@ describe('WalletScreen Component', () => {
 
       fireEvent.press(getByText('XION Meta'));
 
-      // Should show XION Meta Account Dashboard
-      expect(getByText(/MetaAccountDashboard with config: xion-testnet-1/)).toBeTruthy();
+      // Should show XION Meta content
+      expect(getByText('XION Meta Accounts')).toBeTruthy();
+      expect(getByText('Your meta accounts will appear here')).toBeTruthy();
     });
 
     it('should maintain active tab state', () => {
@@ -401,7 +402,8 @@ describe('WalletScreen Component', () => {
 
       fireEvent.press(getByText('XION Meta'));
 
-      expect(getByText(/MetaAccountDashboard with config: xion-testnet-1/)).toBeTruthy();
+      expect(getByText('XION Meta Accounts')).toBeTruthy();
+      expect(getByText('Your meta accounts will appear here')).toBeTruthy();
     });
 
     it('should pass correct config to MetaAccountDashboard', () => {

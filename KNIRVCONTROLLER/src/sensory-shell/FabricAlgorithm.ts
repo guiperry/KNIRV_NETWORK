@@ -193,12 +193,19 @@ export class FabricAlgorithm extends EventEmitter {
       // Update context with HRM insights
       this.updateContextWithHRM(input, result, enhancedOptions, hrmOutput);
 
+      interface HRMOutput {
+        confidence?: number;
+        reasoning_result?: unknown;
+      }
+
+      const hrmTyped = hrmOutput as HRMOutput;
+
       return {
         ...(result as Record<string, unknown>),
         nrv: nrv,
         hrmEnhanced: true,
-        hrmConfidence: (hrmOutput as any).confidence,
-        hrmReasoning: (hrmOutput as any).reasoning_result,
+        hrmConfidence: hrmTyped.confidence,
+        hrmReasoning: hrmTyped.reasoning_result,
         processingStrategy: processingStrategy,
       };
 
@@ -576,7 +583,7 @@ export class FabricAlgorithm extends EventEmitter {
       const weight = this.attentionMechanism.weights.get(key) || 0.5;
 
       if (weight > 0.3) {
-        (focusedInput as any)[key] = {
+        focusedInput[key] = {
           value,
           attentionWeight: weight,
           isFocused: this.attentionMechanism.focusAreas.includes(key),
@@ -719,21 +726,29 @@ export class FabricAlgorithm extends EventEmitter {
   }
 
   private updateMemoryState(input: unknown, result: unknown): void {
+    interface MemoryEntry {
+      lastSeen?: Date;
+      frequency?: number;
+      associatedResults?: string[];
+      associatedInputs?: string[];
+    }
+
     // Update memory with key patterns and relationships
     const inputKey = this.generateMemoryKey(input);
     const resultKey = this.generateMemoryKey(result);
 
-    (this.context.memoryState as any)[inputKey] = {
+    const memoryState = this.context.memoryState as Record<string, MemoryEntry>;
+
+    memoryState[inputKey] = {
       lastSeen: new Date(),
-      frequency: ((this.context.memoryState as any)[inputKey]?.frequency || 0) + 1,
+      frequency: (memoryState[inputKey]?.frequency || 0) + 1,
       associatedResults: [resultKey],
     };
 
     // Create associations
-    if ((this.context.memoryState as any)[resultKey]) {
-      (this.context.memoryState as any)[resultKey].associatedInputs =
-        (this.context.memoryState as any)[resultKey].associatedInputs || [];
-      (this.context.memoryState as any)[resultKey].associatedInputs.push(inputKey);
+    if (memoryState[resultKey]) {
+      memoryState[resultKey].associatedInputs = memoryState[resultKey].associatedInputs || [];
+      memoryState[resultKey].associatedInputs!.push(inputKey);
     }
   }
 

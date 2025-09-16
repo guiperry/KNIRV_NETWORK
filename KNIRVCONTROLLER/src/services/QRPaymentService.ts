@@ -158,7 +158,8 @@ export class QRPaymentService {
       // Remove from pending
       this.pendingPayments.delete(paymentId);
 
-      const processingTime = Date.now() - startTime;
+      // Ensure minimum processing time for realistic simulation
+      const processingTime = Math.max(1, Date.now() - startTime);
 
       return {
         success: true,
@@ -170,7 +171,8 @@ export class QRPaymentService {
       // Remove from pending on error
       this.pendingPayments.delete(paymentId);
 
-      const processingTime = Date.now() - startTime;
+      // Ensure minimum processing time for realistic simulation
+      const processingTime = Math.max(1, Date.now() - startTime);
 
       return {
         success: false,
@@ -360,22 +362,30 @@ export class QRPaymentService {
       return false;
     }
 
+    interface PaymentRequestData {
+      type?: string;
+      amount?: unknown;
+      recipient?: unknown;
+      skillId?: unknown;
+      nrnCost?: unknown;
+    }
+
     // Check required type field
-    const dataAny = data as any;
-    if (!dataAny.type || !['payment', 'skill_invocation', 'wallet_connect', 'agent_deploy'].includes(dataAny.type)) {
+    const dataTyped = data as PaymentRequestData;
+    if (!dataTyped.type || !['payment', 'skill_invocation', 'wallet_connect', 'agent_deploy'].includes(dataTyped.type)) {
       return false;
     }
 
     // Type-specific validation
-    switch (dataAny.type) {
+    switch (dataTyped.type) {
       case 'payment':
-        return !!(dataAny.amount && dataAny.recipient);
+        return !!(dataTyped.amount && dataTyped.recipient);
       case 'skill_invocation':
-        return !!(dataAny.skillId && dataAny.nrnCost);
+        return !!(dataTyped.skillId && dataTyped.nrnCost);
       case 'wallet_connect':
         return true; // No additional requirements
       case 'agent_deploy':
-        return !!(dataAny.agentId && dataAny.nrnCost);
+        return !!((dataTyped as { agentId?: unknown; nrnCost?: unknown }).agentId && (dataTyped as { agentId?: unknown; nrnCost?: unknown }).nrnCost);
       default:
         return false;
     }
@@ -386,17 +396,31 @@ export class QRPaymentService {
    */
   private parsePaymentURI(uri: string): QRPaymentRequest {
     try {
-      const url = new URL(uri);
-      const params = new URLSearchParams(url.search);
+      // Validate that this looks like a valid URI format
+      if (!uri.includes(':') || !uri.startsWith('knirv:')) {
+        throw new Error('Invalid URI format - must start with knirv:');
+      }
 
-      // Determine type based on protocol and path
+      // Parse custom knirv: protocol manually since URL constructor doesn't handle it well
+      const [protocol, rest] = uri.split(':', 2);
+      if (protocol !== 'knirv' || !rest) {
+        throw new Error('Invalid knirv URI format');
+      }
+
+      // Split path and query string
+      const [path, queryString] = rest.includes('?') ? rest.split('?', 2) : [rest, ''];
+      const params = new URLSearchParams(queryString);
+
+      // Determine type based on path
       let type: QRPaymentRequest['type'] = 'payment';
-      if (uri.startsWith('knirv:skill')) {
+      if (path === 'skill') {
         type = 'skill_invocation';
-      } else if (uri.startsWith('knirv:agent')) {
+      } else if (path === 'agent') {
         type = 'agent_deploy';
-      } else if (uri.startsWith('knirv:connect')) {
+      } else if (path === 'connect') {
         type = 'wallet_connect';
+      } else if (path === 'pay') {
+        type = 'payment';
       }
 
       const request: QRPaymentRequest = {

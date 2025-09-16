@@ -26,18 +26,21 @@ const localStorageMock = {
   clear: jest.fn()
 };
 Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+Object.defineProperty(global, 'localStorage', { value: localStorageMock });
 
 describe('SettingsService', () => {
   let service: SettingsService;
   const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
 
-  beforeEach(() => {
-    service = new SettingsService({ baseUrl: 'http://localhost:3001' });
+  beforeEach(async () => {
     mockFetch.mockClear();
     localStorageMock.getItem.mockClear();
     localStorageMock.setItem.mockClear();
     localStorageMock.removeItem.mockClear();
     localStorageMock.clear.mockClear();
+
+    service = new SettingsService({ baseUrl: 'http://localhost:3001' });
+    await service.waitForInitialization();
   });
 
   afterEach(() => {
@@ -88,12 +91,12 @@ describe('SettingsService', () => {
       };
 
       await service.updateSettings(updates);
-      
+
       const settings = service.getSettings();
       expect(settings.general.theme).toBe('light');
       expect(settings.general.language).toBe('es');
       expect(settings.cognitive.temperature).toBe(0.8);
-      
+
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
         'knirv-settings',
         expect.stringContaining('"theme":"light"')
@@ -507,7 +510,7 @@ describe('SettingsService', () => {
       );
     });
 
-    it('should load from localStorage on initialization', () => {
+    it('should load from localStorage on initialization', async () => {
       const storedSettings = {
         settings: {
           general: { theme: 'light' as const }
@@ -517,10 +520,11 @@ describe('SettingsService', () => {
       };
 
       localStorageMock.getItem.mockReturnValueOnce(JSON.stringify(storedSettings));
-      
+
       const newService = new SettingsService();
+      await newService.waitForInitialization();
       const settings = newService.getSettings();
-      
+
       expect(settings.general.theme).toBe('light');
     });
 

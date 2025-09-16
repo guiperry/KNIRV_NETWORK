@@ -143,7 +143,7 @@ export default function DVERentalManagement({ isOpen, onClose }: DVERentalManage
     return plan.price_per_hour * duration;
   };
 
-  const activeRentals = getActiveRentals();
+  const activeRentals = getActiveRentals() || [];
 
   if (!isOpen) return null;
 

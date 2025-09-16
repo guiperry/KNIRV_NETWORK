@@ -448,9 +448,10 @@ class MockLoRAAdapterTrainingPipeline {
   }
 }
 
-const ErrorNodeClustering = MockErrorNodeClustering;
-const AgentAssignmentSystem = MockAgentAssignmentSystem;
-const LoRAAdapterTrainingPipeline = MockLoRAAdapterTrainingPipeline;
+// Export mock classes for use in tests
+export const ErrorNodeClustering = MockErrorNodeClustering;
+export const AgentAssignmentSystem = MockAgentAssignmentSystem;
+export const LoRAAdapterTrainingPipeline = MockLoRAAdapterTrainingPipeline;
 
 describe('Phase 3.3: KNIRVGRAPH LoRA Adapter Creation Integration', () => {
   let errorClustering: MockErrorNodeClustering;

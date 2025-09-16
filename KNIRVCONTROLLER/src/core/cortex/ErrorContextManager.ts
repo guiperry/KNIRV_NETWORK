@@ -74,10 +74,10 @@ export class ErrorContextManager {
     taskDescription: string,
     additionalContext?: Record<string, unknown>
   ): Promise<SkillDiscoveryResult> {
-    logger.info({ 
+    logger.info({
       agentId: this.config.agentId,
       errorType: error.constructor.name,
-      taskDescription 
+      taskDescription
     }, 'Handling error and discovering skills');
 
     try {
@@ -94,20 +94,30 @@ export class ErrorContextManager {
       // Step 2: Query KNIRVGRAPH for similar error clusters
       const discoveryResult = await this.discoverSkillForError(errorContext);
 
-      logger.info({ 
+      logger.info({
         agentId: this.config.agentId,
         skillFound: discoveryResult.skillFound,
-        skillUri: discoveryResult.skillUri 
+        skillUri: discoveryResult.skillUri
       }, 'Error handling completed');
 
       return discoveryResult;
 
     } catch (handlingError) {
-      logger.error({ 
+      logger.error({
         error: handlingError,
-        agentId: this.config.agentId 
+        agentId: this.config.agentId
       }, 'Failed to handle error');
-      
+
+      // Check if this is a network error or critical failure that should be propagated
+      if (handlingError instanceof Error) {
+        if (handlingError.message.includes('Network error') ||
+            handlingError.message.includes('Invalid JSON') ||
+            handlingError.message.includes('fetch')) {
+          // Re-throw network and parsing errors for proper error handling
+          throw handlingError;
+        }
+      }
+
       return {
         skillFound: false,
         confidence: 0

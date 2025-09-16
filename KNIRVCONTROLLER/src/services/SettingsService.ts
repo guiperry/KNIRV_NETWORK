@@ -133,6 +133,7 @@ export class SettingsService {
   private activeProfileId: string = 'default';
   private baseUrl: string;
   private isInitialized: boolean = false;
+  private initializationPromise: Promise<void> | null = null;
   private changeListeners: Array<(settings: AppSettings) => void> = [];
   private config: SettingsConfig;
 
@@ -145,7 +146,16 @@ export class SettingsService {
     };
     this.baseUrl = this.config.baseUrl!;
     this.currentSettings = this.getDefaultSettings();
-    this.initializeService();
+    this.initializationPromise = this.initializeService();
+  }
+
+  /**
+   * Wait for service initialization to complete
+   */
+  async waitForInitialization(): Promise<void> {
+    if (this.initializationPromise) {
+      await this.initializationPromise;
+    }
   }
 
   private async initializeService(): Promise<void> {
@@ -164,6 +174,8 @@ export class SettingsService {
       console.error('Failed to initialize Settings Service:', error);
       // Continue with default settings if initialization fails
       this.isInitialized = true;
+    } finally {
+      this.initializationPromise = null;
     }
   }
 
@@ -315,36 +327,37 @@ export class SettingsService {
   async importSettings(settingsJson: string, overwrite: boolean = false): Promise<void> {
     try {
       const importData = JSON.parse(settingsJson);
-      
+
       if (!importData.settings) {
         throw new Error('Invalid settings format');
       }
 
-      // Validate imported settings
-      this.validateSettings(importData.settings);
-
       if (overwrite) {
+        // For overwrite, validate the complete settings structure
+        this.validateSettings(importData.settings);
         this.currentSettings = importData.settings;
-        
+
         if (importData.profiles) {
           this.profiles.clear();
           for (const [id, profile] of Object.entries(importData.profiles)) {
             this.profiles.set(id, profile as SettingsProfile);
           }
         }
-        
+
         if (importData.activeProfile) {
           this.activeProfileId = importData.activeProfile;
         }
       } else {
-        // Merge with existing settings
-        this.currentSettings = this.mergeSettings(this.currentSettings, importData.settings);
+        // For merge, create the merged settings first, then validate
+        const mergedSettings = this.mergeSettings(this.currentSettings, importData.settings);
+        this.validateSettings(mergedSettings);
+        this.currentSettings = mergedSettings;
       }
 
       this.saveToLocalStorage();
       await this.saveToBackend();
       this.notifyListeners();
-      
+
       console.log('Settings imported successfully');
     } catch (error) {
       console.error('Failed to import settings:', error);
@@ -378,7 +391,7 @@ export class SettingsService {
     
     for (const key of keys) {
       if (current && typeof current === 'object' && key in current) {
-        current = (current as any)[key];
+        current = (current as Record<string, unknown>)[key];
       } else {
         return undefined;
       }
@@ -504,12 +517,12 @@ export class SettingsService {
     
     for (const [key, value] of Object.entries(updates)) {
       if (value && typeof value === 'object' && !Array.isArray(value)) {
-        (merged as any)[key] = {
-          ...(merged as any)[key],
+        (merged as Record<string, unknown>)[key] = {
+          ...(merged as Record<string, unknown>)[key],
           ...value
         };
       } else {
-        (merged as any)[key] = value;
+        (merged as Record<string, unknown>)[key] = value;
       }
     }
     
@@ -521,11 +534,21 @@ export class SettingsService {
     if (!settings.general || !settings.cognitive || !settings.wallet) {
       throw new Error('Invalid settings structure');
     }
-    
+
+    // Validate general settings structure
+    if (settings.general) {
+      const validGeneralKeys = ['theme', 'language', 'timezone', 'autoSave', 'autoBackup', 'backupInterval', 'debugMode', 'telemetryEnabled'];
+      for (const key of Object.keys(settings.general)) {
+        if (!validGeneralKeys.includes(key)) {
+          throw new Error('Invalid settings structure');
+        }
+      }
+    }
+
     if (settings.cognitive.temperature < 0 || settings.cognitive.temperature > 2) {
       throw new Error('Invalid temperature value');
     }
-    
+
     if (settings.security.sessionTimeout < 5 || settings.security.sessionTimeout > 1440) {
       throw new Error('Invalid session timeout value');
     }
@@ -561,6 +584,10 @@ export class SettingsService {
   }
 
   private async saveToBackend(): Promise<void> {
+    if (!this.config.enableNetworking || !this.config.enableSync) {
+      return;
+    }
+
     try {
       await fetch(`${this.baseUrl}/api/settings/save`, {
         method: 'POST',
@@ -578,6 +605,10 @@ export class SettingsService {
   }
 
   private async saveProfilesToBackend(): Promise<void> {
+    if (!this.config.enableNetworking || !this.config.enableSync) {
+      return;
+    }
+
     try {
       await fetch(`${this.baseUrl}/api/settings/profiles`, {
         method: 'POST',

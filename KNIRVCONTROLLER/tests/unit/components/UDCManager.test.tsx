@@ -5,6 +5,7 @@
 
 import * as React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import UDCManager from '../../../src/components/UDCManager';
 import { udcManagementService, UDC } from '../../../src/services/UDCManagementService';
@@ -347,31 +348,58 @@ describe('UDCManager', () => {
     });
 
     it('should submit form with valid data', async () => {
+      const user = userEvent.setup();
+
       const agentIdInput = screen.getByLabelText('Agent ID') as HTMLInputElement;
       const scopeInput = screen.getByLabelText('Scope Description') as HTMLTextAreaElement;
 
-      await act(async () => {
-        fireEvent.change(agentIdInput, {
-          target: { value: 'test-agent-123' }
-        });
-        fireEvent.change(scopeInput, {
-          target: { value: 'Test UDC scope' }
-        });
-      });
+      // Fill in the required Agent ID field using userEvent for better simulation
+      await user.clear(agentIdInput);
+      await user.type(agentIdInput, 'test-agent-123');
+
+      // Fill in the scope description
+      await user.clear(scopeInput);
+      await user.type(scopeInput, 'Test UDC scope');
+
+      // Wait for form state to update
+      await waitFor(() => {
+        expect(agentIdInput.value).toBe('test-agent-123');
+        expect(scopeInput.value).toBe('Test UDC scope');
+      }, { container });
 
       const submitButton = screen.getByTestId('create-udc-submit-button');
 
-      await act(async () => {
-        fireEvent.click(submitButton);
+      // Submit the form
+      await user.click(submitButton);
+
+      // Wait for the service to be called and form to be submitted
+      await waitFor(() => {
+        expect(mockUDCManagementService.createUDC).toHaveBeenCalled();
+      }, { container, timeout: 5000 });
+
+      // Verify the service was called with correct data
+      expect(mockUDCManagementService.createUDC).toHaveBeenCalledWith({
+        agentId: 'test-agent-123',
+        type: 'basic',
+        authorityLevel: 'read',
+        validityPeriod: 30,
+        scope: 'Test UDC scope',
+        permissions: ['read'],
+        constraints: {
+          maxExecutions: 1000,
+          allowedHours: Array.from({length: 24}, (_, i) => i)
+        },
+        metadata: {
+          description: 'UDC for agent test-agent-123',
+          tags: ['basic', 'read']
+        }
       });
 
-      // Wait for the form to be submitted and tab to switch back to list
+      // Wait for the tab to switch back to list and UDCs to be reloaded
       await waitFor(() => {
+        // Should show existing UDCs after switching back to list tab
         expect(screen.getByText('UDC-udc-1')).toBeInTheDocument();
-      }, { container });
-
-      // Verify the service was called (form submission worked)
-      expect(mockUDCManagementService.createUDC).toHaveBeenCalled();
+      }, { container, timeout: 5000 });
     });
 
     it('should cancel form and return to list tab', () => {

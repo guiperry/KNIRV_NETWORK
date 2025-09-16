@@ -124,26 +124,26 @@ export const useTouchGestures = (
     return Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
   };
 
-  const getCenter = (points: TouchPoint[]): { x: number; y: number } => {
+  const getCenter = useCallback((points: TouchPoint[]): { x: number; y: number } => {
     const x = points.reduce((sum, p) => sum + p.x, 0) / points.length;
     const y = points.reduce((sum, p) => sum + p.y, 0) / points.length;
     return { x, y };
-  };
+  }, []);
 
-  const getVelocity = (start: TouchPoint[], current: TouchPoint[]): { x: number; y: number } => {
+  const getVelocity = useCallback((start: TouchPoint[], current: TouchPoint[]): { x: number; y: number } => {
     if (start.length === 0 || current.length === 0) return { x: 0, y: 0 };
-    
+
     const startCenter = getCenter(start);
     const currentCenter = getCenter(current);
     const timeDiff = (current[0].timestamp - start[0].timestamp) / 1000; // Convert to seconds
-    
+
     if (timeDiff === 0) return { x: 0, y: 0 };
-    
+
     return {
       x: (currentCenter.x - startCenter.x) / timeDiff,
       y: (currentCenter.y - startCenter.y) / timeDiff
     };
-  };
+  }, [getCenter]);
 
   // Clear long press timer
   const clearLongPressTimer = useCallback(() => {
@@ -258,7 +258,7 @@ export const useTouchGestures = (
         }
       }
     }
-  }, [enabled, preventDefault, onPan, onPinch, onRotation, pinchThreshold, rotationThreshold, clearLongPressTimer]);
+  }, [enabled, preventDefault, onPan, onPinch, onRotation, pinchThreshold, rotationThreshold, clearLongPressTimer, getVelocity, getCenter]);
 
   // Handle touch end
   const handleTouchEnd = useCallback((event: TouchEvent) => {

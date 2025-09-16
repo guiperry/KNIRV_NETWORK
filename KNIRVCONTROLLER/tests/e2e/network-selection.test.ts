@@ -52,6 +52,14 @@ test.describe('Network Selection E2E Tests', () => {
       // Should show current network
       const currentNetwork = page.locator('[data-testid="current-network"]');
       await expect(currentNetwork).toBeVisible();
+
+      // Verify all configured networks are available
+      for (const network of networks) {
+        const networkOption = page.locator(`[data-testid="${network.testId}"]`);
+        if (await networkOption.isVisible()) {
+          await expect(networkOption).toContainText(network.name);
+        }
+      }
     } else {
       // Network selector might be in settings or wallet section
       const settingsButton = page.locator('[data-testid="settings-button"]');

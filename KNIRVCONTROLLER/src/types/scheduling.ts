@@ -25,7 +25,7 @@ export interface ScheduledTask {
   action: {
     type: 'function' | 'api_call' | 'script' | 'workflow';
     target: string;
-    parameters: Record<string, any>;
+    parameters: Record<string, unknown>;
     timeout?: number;
   };
   dependencies?: string[]; // IDs of tasks that must complete first
@@ -37,7 +37,7 @@ export interface ScheduledTask {
   successCount: number;
   failureCount: number;
   averageExecutionTime?: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface TaskExecution {
@@ -47,18 +47,18 @@ export interface TaskExecution {
   startTime: Date;
   endTime?: Date;
   duration?: number;
-  result?: any;
+  result?: unknown;
   error?: {
     code: string;
     message: string;
     stack?: string;
-    details?: Record<string, any>;
+    details?: Record<string, unknown>;
   };
   logs: Array<{
     level: 'debug' | 'info' | 'warn' | 'error';
     message: string;
     timestamp: Date;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   }>;
   metrics?: {
     cpuUsage: number;
@@ -130,13 +130,13 @@ export interface TaskTemplate {
     name: string;
     type: 'string' | 'number' | 'boolean' | 'object' | 'array';
     required: boolean;
-    default?: any;
+    default?: unknown;
     description: string;
     validation?: {
       min?: number;
       max?: number;
       pattern?: string;
-      enum?: any[];
+      enum?: unknown[];
     };
   }>;
   tags: string[];
@@ -154,5 +154,5 @@ export interface TaskNotification {
   severity: 'info' | 'warning' | 'error' | 'success';
   timestamp: Date;
   isRead: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }

@@ -460,7 +460,13 @@ declare global {
   };
 }
 
-(global as any).testUtils = {
+interface GlobalTestUtils {
+  createMockEvent: (type: string, data?: Record<string, unknown>) => Event;
+  waitFor: (condition: () => boolean, timeout?: number) => Promise<void>;
+  mockComponent: (name: string) => React.ComponentType<Record<string, unknown>>;
+}
+
+(global as typeof global & { testUtils: GlobalTestUtils }).testUtils = {
   createMockEvent: (type: string, data: Record<string, unknown> = {}) => {
     const event = new Event(type);
     Object.assign(event, data);

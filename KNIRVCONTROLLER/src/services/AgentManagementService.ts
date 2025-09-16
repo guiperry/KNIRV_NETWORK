@@ -10,21 +10,35 @@ import { Agent, AgentMetadata } from '../types/common';
 export type { Agent, AgentMetadata };
 
 // Type conversion helper
-function convertDbAgentToAgent(dbAgent: any): Agent {
+function convertDbAgentToAgent(dbAgent: Record<string, unknown> & {
+  agentId: string;
+  name: string;
+  version: string;
+  baseModelId: string;
+  type: string;
+  status: string;
+  nrnCost: number;
+  capabilities: string[];
+  metadata?: Partial<AgentMetadata>;
+  wasmModule?: string;
+  loraAdapter?: string;
+  createdAt: string;
+  lastActivity?: string;
+}): Agent {
   // Ensure metadata conforms to AgentMetadata interface
   const metadata: AgentMetadata = {
     name: dbAgent.name,
     version: dbAgent.version,
     baseModelId: dbAgent.baseModelId,
-    description: (dbAgent.metadata as any)?.description || 'No description available',
-    author: (dbAgent.metadata as any)?.author || 'Unknown',
+    description: dbAgent.metadata?.description || 'No description available',
+    author: dbAgent.metadata?.author || 'Unknown',
     capabilities: dbAgent.capabilities,
     requirements: {
-      memory: (dbAgent.metadata as any)?.requirements?.memory || 512,
-      cpu: (dbAgent.metadata as any)?.requirements?.cpu || 1,
-      storage: (dbAgent.metadata as any)?.requirements?.storage || 100
+      memory: dbAgent.metadata?.requirements?.memory || 512,
+      cpu: dbAgent.metadata?.requirements?.cpu || 1,
+      storage: dbAgent.metadata?.requirements?.storage || 100
     },
-    permissions: (dbAgent.metadata as any)?.permissions || []
+    permissions: dbAgent.metadata?.permissions || []
   };
 
   return {
@@ -125,7 +139,7 @@ export class AgentManagementService {
         status: 'Compiling',
         nrnCost: this.calculateNRNCost(metadata.requirements),
         capabilities: metadata.capabilities,
-        metadata: metadata as any,
+        metadata: metadata,
         createdAt: new Date().toISOString()
       };
 
@@ -351,6 +365,11 @@ export class AgentManagementService {
     // Process LoRA adapter file
     const text = await file.text();
     agent.loraAdapter = text;
+
+    // Save LoRA adapter to database
+    await databaseService.updateAgent(agent.agentId, {
+      loraAdapter: text
+    });
   }
 
   private async compileHybridAgent(agent: Agent, file: File): Promise<void> {

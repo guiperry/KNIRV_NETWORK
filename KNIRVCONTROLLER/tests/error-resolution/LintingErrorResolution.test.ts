@@ -16,16 +16,12 @@ import { TaskSchedulingService } from '../../src/services/TaskSchedulingService'
 import { UDCManagementService } from '../../src/services/UDCManagementService';
 
 // Type extensions for testing private methods
-interface QRPaymentServiceWithPrivates {
-  processLightningPayment: jest.MockedFunction<() => Promise<PaymentResult>>;
-}
-
 interface TaskSchedulingServiceWithPrivates {
-  calculateNextRun: (schedule: TaskSchedule, date: Date) => Date;
+  calculateNextRun: (schedule: TaskSchedule) => Date | undefined;
 }
 
 interface UDCManagementServiceWithPrivates {
-  generateSignature: (data: string) => Promise<string>;
+  generateSignature: (udc: any) => Promise<string>;
 }
 
 describe('Linting Error Resolution Tests', () => {
@@ -50,74 +46,51 @@ describe('Linting Error Resolution Tests', () => {
     it('should handle case statement blocks with proper braces', async () => {
       // Test for the fix in QRPaymentService switch statements
       const paymentService = new QRPaymentService();
-      
-      const mockRequest: PaymentRequest = {
-        id: 'test-payment-123',
-        type: 'skill_invocation',
-        amount: 100,
-        currency: 'NRN',
-        recipient: 'test-address',
-        description: 'Test skill invocation payment',
-        timestamp: new Date()
-      };
 
-      // Mock the private method to avoid actual payment processing
-      const processLightningPaymentSpy = jest.spyOn(
-        paymentService as unknown as QRPaymentServiceWithPrivates,
-        'processLightningPayment'
-      ).mockResolvedValue({
-        id: 'result-123',
-        requestId: 'test-payment-123',
-        status: 'completed',
-        transactionHash: 'test-tx-123',
-        actualAmount: 100,
-        timestamp: new Date(),
-        completedAt: new Date(),
-        receipt: {
-          id: 'receipt-123',
-          amount: 100,
-          currency: 'NRN',
-          sender: 'test-sender',
-          recipient: 'test-address',
-          timestamp: new Date()
-        }
-      } as PaymentResult);
+      // Mock the wallet integration service module
+      const { walletIntegrationService } = await import('../../src/services/WalletIntegrationService');
+      const mockInvokeSkill = jest.spyOn(walletIntegrationService, 'invokeSkill')
+        .mockResolvedValue('test-tx-123');
 
-      // Convert PaymentRequest to QRPaymentRequest format
+      // Create a proper QRPaymentRequest
       const qrRequest = {
         type: 'skill_invocation' as const,
-        amount: mockRequest.amount.toString(),
-        recipient: mockRequest.recipient,
         skillId: 'test-skill-123',
-        skillName: 'Test Skill'
+        skillName: 'Test Skill',
+        nrnCost: '100'
       };
 
       const result = await paymentService.processPayment(qrRequest);
-      
+
       expect(result.success).toBe(true);
-      expect(processLightningPaymentSpy).toHaveBeenCalledWith(mockRequest);
-      
-      processLightningPaymentSpy.mockRestore();
+      expect(result.transactionId).toBe('test-tx-123');
+      expect(mockInvokeSkill).toHaveBeenCalled();
+
+      // Restore original method
+      mockInvokeSkill.mockRestore();
     });
 
     it('should handle recurring schedule case blocks correctly', () => {
       // Test for the fix in TaskSchedulingService switch statements
       const schedulingService = new TaskSchedulingService();
-      
+
+      // Use future dates to ensure the schedule is still valid
+      const now = new Date();
+      const futureStart = new Date(now.getTime() + 3600000); // 1 hour from now
+      const futureEnd = new Date(now.getTime() + 86400000 * 365); // 1 year from now
+
       const recurringSchedule: TaskSchedule = {
         type: 'recurring',
-        startTime: new Date('2024-01-01T10:00:00Z'),
+        startTime: futureStart,
         interval: 3600000, // 1 hour
-        endTime: new Date('2024-12-31T23:59:59Z')
+        endTime: futureEnd
       };
 
-      const nextRun = (schedulingService as any).calculateNextRun(
-        recurringSchedule,
-        new Date('2024-01-01T09:00:00Z')
-      );
-      
+      // The calculateNextRun method only takes a schedule parameter, not a date
+      const nextRun = (schedulingService as any).calculateNextRun(recurringSchedule);
+
       expect(nextRun).toBeInstanceOf(Date);
-      expect(nextRun.getTime()).toBeGreaterThan(new Date('2024-01-01T09:00:00Z').getTime());
+      expect(nextRun.getTime()).toBeGreaterThan(now.getTime());
     });
   });
 
@@ -275,10 +248,44 @@ describe('Linting Error Resolution Tests', () => {
 
     it('should handle UDC signature generation with proper crypto imports', async () => {
       // Test for the fix: const { createHash } = await import('crypto');
-      const testData = 'test-udc-data';
-      
-      const signature = await (udcService as unknown as UDCManagementServiceWithPrivates).generateSignature(testData);
-      
+      const testUDC = {
+        id: 'test-udc-123',
+        agentId: 'test-agent-456',
+        type: 'basic' as const,
+        authorityLevel: 'read' as const,
+        status: 'active' as const,
+        issuedDate: new Date(),
+        expiresDate: new Date(Date.now() + 86400000), // 24 hours from now
+        scope: 'test-scope',
+        permissions: ['read'],
+        metadata: {
+          version: '1.0',
+          description: 'Test UDC',
+          tags: [],
+          constraints: {
+            maxExecutions: 1000,
+            timeWindow: 86400000,
+            allowedHours: Array.from({length: 24}, (_, i) => i),
+            allowedDays: [0, 1, 2, 3, 4, 5, 6],
+            ipWhitelist: []
+          },
+          usage: {
+            executionCount: 0,
+            usageHistory: []
+          },
+          security: {
+            encryptionLevel: 'standard',
+            requiresMFA: false,
+            securityFlags: []
+          }
+        },
+        signature: '',
+        issuer: 'KNIRV-CONTROLLER',
+        subject: 'test-agent-456'
+      };
+
+      const signature = await (udcService as unknown as UDCManagementServiceWithPrivates).generateSignature(testUDC);
+
       expect(signature).toBeDefined();
       expect(typeof signature).toBe('string');
       expect(signature.length).toBeGreaterThan(0);

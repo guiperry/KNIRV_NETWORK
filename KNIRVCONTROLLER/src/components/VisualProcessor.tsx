@@ -84,7 +84,7 @@ function VisualProcessor({ onVisualData, onObjectDetection, isActive }: VisualPr
       console.error('Failed to initialize camera:', error);
       setError('Failed to access camera. Please check permissions.');
     }
-  }, []);
+  }, [processVideoFrame]);
 
   const processVideoFrame = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || !isProcessing) return;
@@ -139,7 +139,7 @@ function VisualProcessor({ onVisualData, onObjectDetection, isActive }: VisualPr
     if (isProcessing) {
       animationFrameRef.current = requestAnimationFrame(processVideoFrame);
     }
-  }, [isProcessing, onVisualData, onObjectDetection, stats.fps]);
+  }, [isProcessing, onVisualData, onObjectDetection, stats.fps, detectObjects]);
 
   const detectObjects = useCallback((imageData: ImageData): SensoryDetectedObject[] => {
     // Simple object detection using edge detection and blob analysis
@@ -156,7 +156,7 @@ function VisualProcessor({ onVisualData, onObjectDetection, isActive }: VisualPr
     const objects = performObjectDetection(imageData);
 
     return objects;
-  }, []);
+  }, [performObjectDetection]);
 
   useEffect(() => {
     if (isActive) {

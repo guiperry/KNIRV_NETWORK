@@ -286,8 +286,8 @@ describe('QRPaymentService', () => {
 
     it('should handle unsupported payment type', async () => {
       const invalidRequest = {
-        type: 'unsupported_type'
-      } as any;
+        type: 'unsupported_type' as never
+      };
 
       const result = await qrPaymentService.processPayment(invalidRequest);
 

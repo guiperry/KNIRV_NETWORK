@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Calendar,
   Clock,
@@ -25,22 +25,14 @@ const TaskScheduler: React.FC<TaskSchedulerProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<'tasks' | 'create' | 'executions'>('tasks');
   // const [selectedTask, setSelectedTask] = useState<ScheduledTask | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      loadTasks();
-      // Auto-refresh every 30 seconds
-      const interval = setInterval(loadTasks, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [isOpen]);
-
-  const loadTasks = async () => {
+  const loadTasks = useCallback(async () => {
     setIsLoading(true);
     try {
       const allTasks = taskSchedulingService.getAllTasks();
       setTasks(allTasks);
-      
+
       // Load executions for each task
       const executionData: Record<string, TaskExecution[]> = {};
       for (const task of allTasks) {
@@ -52,7 +44,32 @@ const TaskScheduler: React.FC<TaskSchedulerProps> = ({ isOpen, onClose }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  // Cleanup function for interval
+  const clearRefreshInterval = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadTasks();
+      // Auto-refresh every 30 seconds
+      clearRefreshInterval(); // Clear any existing interval
+      intervalRef.current = setInterval(loadTasks, 30000);
+    } else {
+      // Clear interval when modal is closed
+      clearRefreshInterval();
+    }
+
+    // Cleanup on unmount
+    return () => {
+      clearRefreshInterval();
+    };
+  }, [isOpen, loadTasks, clearRefreshInterval]);
 
   const handleCreateTask = async (taskData: Omit<ScheduledTask, 'id' | 'createdAt' | 'runCount' | 'successCount' | 'failureCount'>) => {
     try {
@@ -135,12 +152,14 @@ const TaskScheduler: React.FC<TaskSchedulerProps> = ({ isOpen, onClose }) => {
             <button
               onClick={loadTasks}
               disabled={isLoading}
+              aria-label="Refresh tasks"
               className="p-2 hover:bg-gray-700/50 rounded-lg text-gray-400 hover:text-white transition-all disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             </button>
             <button
               onClick={onClose}
+              aria-label="Close task scheduler"
               className="p-2 hover:bg-gray-700/50 rounded-lg text-gray-400 hover:text-white transition-all"
             >
               ×
@@ -202,12 +221,14 @@ const TaskScheduler: React.FC<TaskSchedulerProps> = ({ isOpen, onClose }) => {
                         </span>
                         <button
                           onClick={() => handleExecuteTask(task.id)}
+                          aria-label={`Execute task ${task.name}`}
                           className="p-1 hover:bg-gray-700/50 rounded text-gray-400 hover:text-white transition-all"
                         >
                           <Play className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteTask(task.id)}
+                          aria-label={`Delete task ${task.name}`}
                           className="p-1 hover:bg-gray-700/50 rounded text-gray-400 hover:text-red-400 transition-all"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -341,8 +362,9 @@ const TaskCreateForm: React.FC<TaskCreateFormProps> = ({ onSubmit, onCancel, isS
     <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Task Name</label>
+          <label htmlFor="task-name" className="block text-sm font-medium text-gray-300 mb-2">Task Name</label>
           <input
+            id="task-name"
             type="text"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -350,10 +372,11 @@ const TaskCreateForm: React.FC<TaskCreateFormProps> = ({ onSubmit, onCancel, isS
             required
           />
         </div>
-        
+
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Priority</label>
+          <label htmlFor="task-priority" className="block text-sm font-medium text-gray-300 mb-2">Priority</label>
           <select
+            id="task-priority"
             value={formData.priority}
             onChange={(e) => setFormData({ ...formData, priority: e.target.value as ScheduledTask['priority'] })}
             className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-purple-400 focus:outline-none"
@@ -367,8 +390,9 @@ const TaskCreateForm: React.FC<TaskCreateFormProps> = ({ onSubmit, onCancel, isS
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
+        <label htmlFor="task-description" className="block text-sm font-medium text-gray-300 mb-2">Description</label>
         <textarea
+          id="task-description"
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-purple-400 focus:outline-none"
@@ -378,8 +402,9 @@ const TaskCreateForm: React.FC<TaskCreateFormProps> = ({ onSubmit, onCancel, isS
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Schedule Type</label>
+          <label htmlFor="schedule-type" className="block text-sm font-medium text-gray-300 mb-2">Schedule Type</label>
           <select
+            id="schedule-type"
             value={formData.scheduleType}
             onChange={(e) => setFormData({ ...formData, scheduleType: e.target.value as 'once' | 'recurring' | 'cron' })}
             className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-purple-400 focus:outline-none"
@@ -391,8 +416,9 @@ const TaskCreateForm: React.FC<TaskCreateFormProps> = ({ onSubmit, onCancel, isS
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Start Time</label>
+          <label htmlFor="start-time" className="block text-sm font-medium text-gray-300 mb-2">Start Time</label>
           <input
+            id="start-time"
             type="datetime-local"
             value={formData.startTime}
             onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
@@ -404,8 +430,9 @@ const TaskCreateForm: React.FC<TaskCreateFormProps> = ({ onSubmit, onCancel, isS
 
       {formData.scheduleType === 'recurring' && (
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Interval (minutes)</label>
+          <label htmlFor="interval" className="block text-sm font-medium text-gray-300 mb-2">Interval (minutes)</label>
           <input
+            id="interval"
             type="number"
             value={formData.interval / 60000}
             onChange={(e) => setFormData({ ...formData, interval: parseInt(e.target.value) * 60000 })}
@@ -417,8 +444,9 @@ const TaskCreateForm: React.FC<TaskCreateFormProps> = ({ onSubmit, onCancel, isS
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Action Type</label>
+          <label htmlFor="action-type" className="block text-sm font-medium text-gray-300 mb-2">Action Type</label>
           <select
+            id="action-type"
             value={formData.actionType}
             onChange={(e) => setFormData({ ...formData, actionType: e.target.value as 'api_call' | 'agent_invoke' | 'system_command' })}
             className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-purple-400 focus:outline-none"
@@ -430,8 +458,9 @@ const TaskCreateForm: React.FC<TaskCreateFormProps> = ({ onSubmit, onCancel, isS
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Target</label>
+          <label htmlFor="target" className="block text-sm font-medium text-gray-300 mb-2">Target</label>
           <input
+            id="target"
             type="text"
             value={formData.target}
             onChange={(e) => setFormData({ ...formData, target: e.target.value })}
@@ -443,8 +472,9 @@ const TaskCreateForm: React.FC<TaskCreateFormProps> = ({ onSubmit, onCancel, isS
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">Parameters (JSON)</label>
+        <label htmlFor="parameters" className="block text-sm font-medium text-gray-300 mb-2">Parameters (JSON)</label>
         <textarea
+          id="parameters"
           value={formData.parameters}
           onChange={(e) => setFormData({ ...formData, parameters: e.target.value })}
           className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-purple-400 focus:outline-none font-mono text-sm"

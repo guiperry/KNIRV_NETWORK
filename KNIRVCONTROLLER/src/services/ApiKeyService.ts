@@ -235,7 +235,7 @@ class ApiKeyService {
           if (usageData.keyId === keyId) {
             usage.push(usageData);
           }
-        } catch (e) {
+        } catch {
           // Skip invalid records
         }
       }

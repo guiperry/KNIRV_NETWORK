@@ -43,6 +43,13 @@ interface HRMProcessingResponse {
   h_module_activations: number[];
 }
 
+interface WebSocketMessage {
+  type: 'hrm_response' | 'heartbeat' | 'error' | 'status' | string;
+  data?: HRMProcessingResponse | Record<string, unknown>;
+  timestamp?: number;
+  session_id?: string;
+}
+
 export class DesktopConnectionService {
   private connectionStatus: ConnectionStatus = { connected: false };
   private websocket: WebSocket | null = null;
@@ -196,10 +203,16 @@ export class DesktopConnectionService {
   private handleWebSocketMessage(message: unknown) {
     console.log('Received WebSocket message:', message);
 
-    switch ((message as any).type) {
+    // Type guard to ensure message has the expected structure
+    if (!this.isWebSocketMessage(message)) {
+      console.warn('Received invalid WebSocket message format:', message);
+      return;
+    }
+
+    switch (message.type) {
       case 'hrm_response':
-        if (this.onHRMResponse) {
-          this.onHRMResponse((message as any).data);
+        if (this.onHRMResponse && message.data) {
+          this.onHRMResponse(message.data as HRMProcessingResponse);
         }
         break;
       case 'heartbeat':
@@ -210,6 +223,16 @@ export class DesktopConnectionService {
           this.onMessage(message);
         }
     }
+  }
+
+  // Type guard for WebSocket messages
+  private isWebSocketMessage(message: unknown): message is WebSocketMessage {
+    return (
+      typeof message === 'object' &&
+      message !== null &&
+      'type' in message &&
+      typeof (message as Record<string, unknown>).type === 'string'
+    );
   }
 
   // Send HRM processing request to desktop

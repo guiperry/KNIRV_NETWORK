@@ -126,7 +126,7 @@ class CortexTrainingService {
     }
 
     if (node.type === 'property' && 'feasibilityReport' in node.data) {
-      const report = node.data.feasibilityReport as any;
+      const report = node.data.feasibilityReport as { feasibilityScore: number };
       vector[22] = report.feasibilityScore / 100;
     }
 
@@ -268,7 +268,7 @@ class CortexTrainingService {
   private simulateTrainingStep(
     trainingData: TrainingData,
     weights: Float32Array,
-    config: TrainingConfig
+    _config: TrainingConfig
   ): number {
     // Simplified loss calculation
     let totalLoss = 0;

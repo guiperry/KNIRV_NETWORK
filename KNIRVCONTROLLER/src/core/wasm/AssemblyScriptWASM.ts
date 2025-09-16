@@ -123,10 +123,10 @@ export class AssemblyScriptWASMLoader {
           max: Math.max,
           pow: Math.pow,
           sqrt: Math.sqrt
-        } as any,
+        } as Record<string, unknown>,
         Date: {
           now: Date.now
-        } as any,
+        } as Record<string, unknown>,
       }
     };
   }

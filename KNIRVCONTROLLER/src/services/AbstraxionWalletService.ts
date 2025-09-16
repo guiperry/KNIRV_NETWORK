@@ -43,12 +43,40 @@ export interface TreasuryConfig {
   allowedOperations: string[];
 }
 
+export interface TransactionMessage {
+  from: string;
+  to: string;
+  amount: string;
+  memo?: string;
+  gasLimit?: string;
+  fee?: string;
+}
+
+export interface TransactionResult {
+  transactionHash?: string;
+  gasUsed?: string;
+  fee?: string;
+  success: boolean;
+  error?: string;
+}
+
+export interface ContractMessage {
+  contractAddress: string;
+  msg: Record<string, unknown>;
+  funds?: Array<{ denom: string; amount: string }>;
+}
+
+export interface ConnectOptions {
+  authMethod?: 'email' | 'social' | 'wallet' | 'passkey';
+  autoConnect?: boolean;
+}
+
 // Abstraxion Wallet Service Class
 export class AbstraxionWalletService {
   private account: XIONAccount | null = null;
   private isInitialized = false;
   private treasuryConfig: TreasuryConfig;
-  private abstraxionSDK: any = null; // Will be @burnt-labs/abstraxion-react-native
+  private abstraxionSDK: unknown = null; // Will be @burnt-labs/abstraxion-react-native
 
   // Configuration
   private config = {
@@ -124,6 +152,9 @@ export class AbstraxionWalletService {
         authMethod,
         enableGasless: this.treasuryConfig.enabled
       });
+
+      // Log connection result for debugging
+      console.log('Connection established:', connectionResult.success);
 
       // Simulate connection with Meta Account features
       this.account = {
@@ -408,7 +439,7 @@ export class AbstraxionWalletService {
   }
 
   // Execute gasless transaction via Treasury Contract
-  private async executeGaslessTransaction(txMsg: any): Promise<any> {
+  private async executeGaslessTransaction(_txMsg: TransactionMessage): Promise<TransactionResult> {
     try {
       // In a real implementation, this would:
       // 1. Request permission from Treasury Contract
@@ -491,7 +522,7 @@ export class AbstraxionWalletService {
   }
 
   // Get payment gateway configuration
-  async getPaymentGatewayConfig(): Promise<any> {
+  async getPaymentGatewayConfig(): Promise<Record<string, unknown>> {
     try {
       const response = await fetch(`${this.config.endpoints.knirvOracle}/api/payment/config`);
 
@@ -521,7 +552,7 @@ export class AbstraxionWalletService {
   }
 
   // Get current conversion rates
-  async getConversionRates(): Promise<any> {
+  async getConversionRates(): Promise<Record<string, unknown>> {
     try {
       const response = await fetch(`${this.config.endpoints.knirvOracle}/api/payment/rates`);
 
@@ -569,7 +600,13 @@ export class AbstraxionWalletService {
       }
 
       // Convert KNIRVORACLE payment records to ConversionResult format
-      return historyResult.data.payments.map((payment: any) => ({
+      return historyResult.data.payments.map((payment: {
+        payment_id: string;
+        usdc_amount: string;
+        nrn_amount: string;
+        completed_at: string;
+        gas_fee?: string;
+      }) => ({
         transactionId: payment.payment_id,
         usdcAmount: payment.usdc_amount,
         nrnAmount: payment.nrn_amount,
@@ -585,7 +622,7 @@ export class AbstraxionWalletService {
   }
 
   // Connect Meta Account to KNIRVORACLE
-  async connectMetaAccount(authMethod: 'email' | 'social' | 'wallet' | 'passkey', identifier: string): Promise<any> {
+  async connectMetaAccount(authMethod: 'email' | 'social' | 'wallet' | 'passkey', identifier: string): Promise<Record<string, unknown>> {
     try {
       const response = await fetch(`${this.config.endpoints.knirvOracle}/api/payment/meta-account/connect`, {
         method: 'POST',
@@ -616,7 +653,12 @@ export class AbstraxionWalletService {
   }
 
   // Get account balance from KNIRVORACLE
-  async getAccountBalance(address?: string): Promise<any> {
+  async getAccountBalance(address?: string): Promise<{
+    address: string;
+    usdc_balance: string;
+    nrn_balance: string;
+    last_updated: string;
+  }> {
     const targetAddress = address || this.account?.address;
 
     if (!targetAddress) {
@@ -650,7 +692,7 @@ export class AbstraxionWalletService {
   }
 
   // Mock SDK methods (in real implementation, these would be from @burnt-labs/abstraxion-react-native)
-  private async mockConnect(options: any): Promise<any> {
+  private async mockConnect(options: ConnectOptions): Promise<{ success: boolean; account: string }> {
     console.log('Mock connect with options:', options);
     return { success: true, account: 'xion1...' };
   }
@@ -659,7 +701,7 @@ export class AbstraxionWalletService {
     console.log('Mock disconnect');
   }
 
-  private async mockSignTransaction(txMsg: any): Promise<any> {
+  private async mockSignTransaction(txMsg: TransactionMessage): Promise<TransactionResult> {
     console.log('Mock sign transaction:', txMsg);
     return {
       transactionHash: 'tx_' + Date.now(),
@@ -669,7 +711,7 @@ export class AbstraxionWalletService {
     };
   }
 
-  private async mockExecuteContract(contractMsg: any): Promise<any> {
+  private async mockExecuteContract(contractMsg: ContractMessage): Promise<TransactionResult> {
     console.log('Mock execute contract:', contractMsg);
     return {
       transactionHash: 'contract_tx_' + Date.now(),

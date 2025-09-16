@@ -70,7 +70,7 @@ export interface CognitiveSkill {
   description: string;
   category: string;
   version: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   metadata: {
     accuracy: number;
     usageCount: number;
@@ -89,7 +89,7 @@ export interface CognitiveAdaptation {
   id: string;
   type: 'lora' | 'hrm' | 'seal' | 'feedback';
   trigger: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   impact: {
     accuracy: number;
     performance: number;
@@ -106,11 +106,11 @@ export interface CognitiveContext {
     role: 'user' | 'assistant' | 'system';
     content: string;
     timestamp: Date;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   }>;
   activeSkills: string[];
-  memoryState: Record<string, any>;
-  preferences: Record<string, any>;
+  memoryState: Record<string, unknown>;
+  preferences: Record<string, unknown>;
   constraints: {
     maxTokens: number;
     timeoutMs: number;

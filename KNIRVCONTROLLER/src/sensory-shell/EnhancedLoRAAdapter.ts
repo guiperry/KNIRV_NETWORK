@@ -320,14 +320,22 @@ export class EnhancedLoRAAdapter extends EventEmitter {
         task_type: 'lora_adaptation',
       };
 
+      interface HRMOutput {
+        reasoning_result?: unknown;
+        confidence?: number;
+        l_module_activations?: unknown;
+        h_module_activations?: unknown;
+      }
+
       const hrmOutput = await (this.hrmBridge as { processCognitiveInput: (input: unknown) => Promise<unknown> }).processCognitiveInput(hrmInput);
+      const hrmTyped = hrmOutput as HRMOutput;
 
       return {
-        reasoning: (hrmOutput as any).reasoning_result,
-        confidence: (hrmOutput as any).confidence,
-        l_activations: (hrmOutput as any).l_module_activations,
-        h_activations: (hrmOutput as any).h_module_activations,
-        adaptationStrength: (hrmOutput as any).confidence * this.hrmConfig.hrmWeightInfluence,
+        reasoning: hrmTyped.reasoning_result,
+        confidence: hrmTyped.confidence,
+        l_activations: hrmTyped.l_module_activations,
+        h_activations: hrmTyped.h_module_activations,
+        adaptationStrength: (hrmTyped.confidence || 0) * this.hrmConfig.hrmWeightInfluence,
       };
 
     } catch (error) {

@@ -296,7 +296,8 @@ export class KNIRVChainIntegration extends EventEmitter {
         const skills = (response.data as { skills?: unknown[] }).skills || [];
         
         for (const skill of skills) {
-          this.skills.set((skill as any).id, skill as any);
+          const skillMetadata = skill as SkillMetadata;
+          this.skills.set(skillMetadata.id, skillMetadata);
         }
 
         console.log(`Loaded ${this.skills.size} skills from registry`);
@@ -322,7 +323,8 @@ export class KNIRVChainIntegration extends EventEmitter {
         const models = (response.data as { models?: unknown[] }).models || [];
         
         for (const model of models) {
-          this.llmModels.set((model as any).id, model as any);
+          const modelMetadata = model as LLMMetadata;
+          this.llmModels.set(modelMetadata.id, modelMetadata);
         }
 
         console.log(`Loaded ${this.llmModels.size} LLM models from registry`);

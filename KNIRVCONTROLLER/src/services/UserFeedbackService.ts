@@ -17,7 +17,7 @@ interface FeedbackItem {
   userId?: string;
   email?: string;
   attachments?: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 interface FeedbackStats {
@@ -274,8 +274,8 @@ export class UserFeedbackService {
   /**
    * Collect system information for bug reports
    */
-  private async collectSystemInfo(): Promise<Record<string, any>> {
-    const info: Record<string, any> = {
+  private async collectSystemInfo(): Promise<Record<string, unknown>> {
+    const info: Record<string, unknown> = {
       userAgent: navigator.userAgent,
       platform: navigator.platform,
       language: navigator.language,
@@ -296,21 +296,38 @@ export class UserFeedbackService {
 
     // Add memory info if available
     if ('memory' in performance) {
-      info.memory = {
-        usedJSHeapSize: (performance as any).memory.usedJSHeapSize,
-        totalJSHeapSize: (performance as any).memory.totalJSHeapSize,
-        jsHeapSizeLimit: (performance as any).memory.jsHeapSizeLimit
+      const perfWithMemory = performance as Performance & {
+        memory?: {
+          usedJSHeapSize: number;
+          totalJSHeapSize: number;
+          jsHeapSizeLimit: number;
+        };
       };
+      if (perfWithMemory.memory) {
+        info.memory = {
+          usedJSHeapSize: perfWithMemory.memory.usedJSHeapSize,
+          totalJSHeapSize: perfWithMemory.memory.totalJSHeapSize,
+          jsHeapSizeLimit: perfWithMemory.memory.jsHeapSizeLimit
+        };
+      }
     }
 
     // Add connection info if available
     if ('connection' in navigator) {
-      const connection = (navigator as any).connection;
-      info.connection = {
-        effectiveType: connection.effectiveType,
-        downlink: connection.downlink,
-        rtt: connection.rtt
+      const navWithConnection = navigator as Navigator & {
+        connection?: {
+          effectiveType: string;
+          downlink?: number;
+          rtt?: number;
+        };
       };
+      if (navWithConnection.connection) {
+        info.connection = {
+          effectiveType: navWithConnection.connection.effectiveType,
+          downlink: navWithConnection.connection.downlink,
+          rtt: navWithConnection.connection.rtt
+        };
+      }
     }
 
     return info;
@@ -328,14 +345,15 @@ export class UserFeedbackService {
   /**
    * Get performance snapshot
    */
-  private getPerformanceSnapshot(): Record<string, any> {
+  private getPerformanceSnapshot(): Record<string, unknown> {
     const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
     
     return {
       loadTime: navigation ? navigation.loadEventEnd - navigation.startTime : 0,
       domContentLoaded: navigation ? navigation.domContentLoadedEventEnd - navigation.startTime : 0,
       firstPaint: this.getFirstPaint(),
-      memoryUsage: 'memory' in performance ? (performance as any).memory.usedJSHeapSize : 0
+      memoryUsage: 'memory' in performance ?
+        ((performance as Performance & { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize || 0) : 0
     };
   }
 
@@ -351,7 +369,7 @@ export class UserFeedbackService {
   /**
    * Get user context
    */
-  private getUserContext(): Record<string, any> {
+  private getUserContext(): Record<string, unknown> {
     return {
       sessionDuration: Date.now() - (performance.timing?.navigationStart || Date.now()),
       pageViews: this.getPageViews(),
@@ -397,7 +415,7 @@ export class UserFeedbackService {
 
     if (resolvedFeedback.length === 0) return 0;
 
-    const totalTime = resolvedFeedback.reduce((sum, item) => {
+    const totalTime = resolvedFeedback.reduce((sum, _item) => {
       // Mock response time calculation
       return sum + (24 * 60 * 60 * 1000); // 24 hours in ms
     }, 0);

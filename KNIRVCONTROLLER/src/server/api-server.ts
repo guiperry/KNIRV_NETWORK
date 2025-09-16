@@ -66,7 +66,7 @@ const authenticateApiKey = async (req: express.Request, res: express.Response, n
     });
 
     // Attach API key info to request
-    (req as any).apiKey = validatedKey;
+    (req as express.Request & { apiKey: ApiKey }).apiKey = validatedKey;
     next();
   } catch (error) {
     console.error('API key authentication error:', error);
@@ -80,7 +80,7 @@ const authenticateApiKey = async (req: express.Request, res: express.Response, n
 // Permission checking middleware
 const requirePermission = (permission: string) => {
   return (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    const apiKey = (req as any).apiKey as ApiKey;
+    const apiKey = (req as express.Request & { apiKey: ApiKey }).apiKey;
 
     if (!apiKey) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -221,6 +221,53 @@ app.get('/api/status', (req, res) => {
     },
     uptime: process.uptime()
   });
+});
+
+// Graph ingestion endpoints: Error, Context, Idea
+import { personalKNIRVGRAPHService } from '../services/PersonalKNIRVGRAPHService';
+import { FactualitySlice } from '../slices/factualitySlice';
+import { FeasibilityReport } from '../slices/feasibilitySlice';
+
+app.post('/api/graph/error', authenticateApiKey, requirePermission('write:graph'), async (req, res) => {
+  try {
+  const { errorId, errorType, description, context, timestamp, factualitySlice } = req.body as { errorId?: string; errorType?: string; description?: string; context?: Record<string, unknown>; timestamp?: number; factualitySlice?: FactualitySlice };
+  if (!errorId || !description) return res.status(400).json({ error: 'Missing required fields: errorId or description' });
+
+  const node = await personalKNIRVGRAPHService.addErrorNode({ errorId, errorType: errorType || 'user-submitted', description, context: context || {}, timestamp: timestamp || Date.now(), factualitySlice });
+
+    res.json({ success: true, node });
+  } catch (err) {
+    console.error('Failed to create error node:', err);
+    res.status(500).json({ error: 'Failed to create error node' });
+  }
+});
+
+app.post('/api/graph/context', authenticateApiKey, requirePermission('write:graph'), async (req, res) => {
+  try {
+  const { contextId, contextName, description, mcpServerInfo, category, timestamp, capabilitySlice } = req.body as { contextId?: string; contextName?: string; description?: string; mcpServerInfo?: Record<string, unknown>; category?: string; timestamp?: number; capabilitySlice?: FactualitySlice };
+  if (!contextId || !contextName) return res.status(400).json({ error: 'Missing required fields: contextId or contextName' });
+
+  const node = await personalKNIRVGRAPHService.addContextNode({ contextId, contextName, description: description || '', mcpServerInfo: mcpServerInfo || {}, category: category || 'integration', timestamp: timestamp || Date.now(), capabilitySlice });
+
+    res.json({ success: true, node });
+  } catch (err) {
+    console.error('Failed to create context node:', err);
+    res.status(500).json({ error: 'Failed to create context node' });
+  }
+});
+
+app.post('/api/graph/idea', authenticateApiKey, requirePermission('write:graph'), async (req, res) => {
+  try {
+  const { ideaId, ideaName, description, timestamp, feasibilitySlice } = req.body as { ideaId?: string; ideaName?: string; description?: string; timestamp?: number; feasibilitySlice?: FeasibilityReport };
+  if (!ideaId || !ideaName) return res.status(400).json({ error: 'Missing required fields: ideaId or ideaName' });
+
+  const node = await personalKNIRVGRAPHService.addIdeaNode({ ideaId, ideaName, description: description || '', timestamp: timestamp || Date.now(), feasibilitySlice });
+
+    res.json({ success: true, node });
+  } catch (err) {
+    console.error('Failed to create idea node:', err);
+    res.status(500).json({ error: 'Failed to create idea node' });
+  }
 });
 
 // Agent Management Endpoints

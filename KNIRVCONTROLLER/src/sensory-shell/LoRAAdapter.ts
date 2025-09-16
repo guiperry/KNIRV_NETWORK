@@ -315,23 +315,30 @@ export class LoRAAdapter extends EventEmitter {
     // This is a simplified version - in reality, this would involve
     // matrix operations with the base model
 
+    interface AdaptedInput {
+      features?: number[];
+      text?: string;
+      confidence?: number;
+      [key: string]: unknown;
+    }
+
     const adaptedInput = typeof input === 'object' && input !== null ? { ...input as Record<string, unknown> } : {};
 
     this.weights.forEach((weights) => {
       // Simulate adaptation effect
       const adaptationStrength = weights.scaling;
 
-      const adaptedInputAny = adaptedInput as { features?: number[] };
-      if (adaptedInputAny.features && Array.isArray(adaptedInputAny.features)) {
-        adaptedInputAny.features = adaptedInputAny.features.map((feature: number) =>
+      const adaptedInputTyped = adaptedInput as AdaptedInput;
+      if (adaptedInputTyped.features && Array.isArray(adaptedInputTyped.features)) {
+        adaptedInputTyped.features = adaptedInputTyped.features.map((feature: number) =>
           feature * (1 + adaptationStrength * 0.1)
         );
       }
 
-      if ((adaptedInputAny as any).text) {
+      if (adaptedInputTyped.text) {
         // For text inputs, we might adjust confidence or add metadata
-        const currentConfidence = typeof (adaptedInputAny as any).confidence === 'number' ? (adaptedInputAny as any).confidence : 1.0;
-        (adaptedInputAny as any).confidence = currentConfidence * (1 + adaptationStrength * 0.05);
+        const currentConfidence = typeof adaptedInputTyped.confidence === 'number' ? adaptedInputTyped.confidence : 1.0;
+        adaptedInputTyped.confidence = currentConfidence * (1 + adaptationStrength * 0.05);
       }
     });
 

@@ -37,22 +37,23 @@ describe('Terminal', () => {
 
   it('should display custom prompt', () => {
     render(<Terminal onCommand={mockOnCommand} prompt="knirv> " />);
-    
-    expect(screen.getByText('knirv> ')).toBeInTheDocument();
+
+    // The prompt is rendered with HTML entities, so we need to check for the actual rendered text
+    expect(screen.getByText('knirv>')).toBeInTheDocument();
   });
 
   it('should execute command on Enter key press', async () => {
     const user = userEvent.setup();
-    render(<Terminal onCommand={mockOnCommand} />);
-    
+    const { container } = render(<Terminal onCommand={mockOnCommand} />);
+
     const input = screen.getByTestId('terminal-input');
-    
+
     await user.type(input, 'help');
     await user.keyboard('{Enter}');
-    
+
     await waitFor(() => {
       expect(mockTerminalCommandService.executeCommand).toHaveBeenCalledWith('help');
-    });
+    }, { container });
   });
 
   it('should not execute empty command', async () => {
@@ -71,32 +72,32 @@ describe('Terminal', () => {
 
   it('should clear input after command execution', async () => {
     const user = userEvent.setup();
-    render(<Terminal onCommand={mockOnCommand} />);
-    
+    const { container } = render(<Terminal onCommand={mockOnCommand} />);
+
     const input = screen.getByTestId('terminal-input') as HTMLInputElement;
-    
+
     await user.type(input, 'help');
     expect(input.value).toBe('help');
-    
+
     await user.keyboard('{Enter}');
-    
+
     await waitFor(() => {
       expect(input.value).toBe('');
-    });
+    }, { container });
   });
 
   it('should call onCommand callback when provided', async () => {
     const user = userEvent.setup();
-    render(<Terminal onCommand={mockOnCommand} />);
-    
+    const { container } = render(<Terminal onCommand={mockOnCommand} />);
+
     const input = screen.getByTestId('terminal-input');
-    
+
     await user.type(input, 'test command');
     await user.keyboard('{Enter}');
-    
+
     await waitFor(() => {
       expect(mockOnCommand).toHaveBeenCalledWith('test command');
-    });
+    }, { container });
   });
 
   it('should display command history from service', () => {
@@ -142,8 +143,8 @@ describe('Terminal', () => {
     expect(screen.getByText('$ help')).toBeInTheDocument();
     expect(screen.getByText('Help information')).toBeInTheDocument();
     expect(screen.getByText('$ ls')).toBeInTheDocument();
-    expect(screen.getByText('file1.txt')).toBeInTheDocument();
-    expect(screen.getByText('file2.txt')).toBeInTheDocument();
+    // Check for multiline output content
+    expect(screen.getByText(/file1\.txt.*file2\.txt/s)).toBeInTheDocument();
   });
 
   it('should display external history when provided', () => {
@@ -208,7 +209,7 @@ describe('Terminal', () => {
         result: {
           success: false,
           output: '',
-          error: 'Command not found',
+          error: 'Error: Command not found',
           executionTime: 10,
           exitCode: 127
         },
@@ -225,8 +226,8 @@ describe('Terminal', () => {
     mockTerminalCommandService.getCommandHistory.mockReturnValue(errorHistory);
 
     render(<Terminal onCommand={mockOnCommand} />);
-    
-    const errorElement = screen.getByText('Command not found');
+
+    const errorElement = screen.getByText('Error: Command not found');
     expect(errorElement).toHaveClass('text-red-400');
   });
 
@@ -241,7 +242,7 @@ describe('Terminal', () => {
     
     mockTerminalCommandService.executeCommand.mockReturnValue(commandPromise as Promise<{ success: boolean; output: string; executionTime: number; exitCode: number }>);
 
-    render(<Terminal onCommand={mockOnCommand} />);
+    const { container } = render(<Terminal onCommand={mockOnCommand} />);
     
     const input = screen.getByTestId('terminal-input') as HTMLInputElement;
     
@@ -264,16 +265,37 @@ describe('Terminal', () => {
     await waitFor(() => {
       expect(screen.queryByText('Executing...')).not.toBeInTheDocument();
       expect(input).not.toBeDisabled();
-    });
+    }, { container });
   });
 
   it('should auto-scroll to bottom when history updates', async () => {
-    const { rerender } = render(<Terminal onCommand={mockOnCommand} />);
-    
+    jest.useFakeTimers();
+
+    // Start with empty history
+    mockTerminalCommandService.getCommandHistory.mockReturnValue([]);
+
+    const { container } = render(<Terminal onCommand={mockOnCommand} />);
+
     const historyContainer = screen.getByTestId('terminal-history');
-    const scrollToBottomSpy = jest.spyOn(historyContainer, 'scrollTop', 'set');
-    
-    // Add new history
+
+    // Mock the scrollTop property with a setter that we can spy on
+    let scrollTopValue = 0;
+    const mockScrollTop = jest.fn((value) => {
+      scrollTopValue = value;
+    });
+
+    Object.defineProperty(historyContainer, 'scrollHeight', {
+      value: 1000,
+      configurable: true
+    });
+
+    Object.defineProperty(historyContainer, 'scrollTop', {
+      get: () => scrollTopValue,
+      set: mockScrollTop,
+      configurable: true
+    });
+
+    // Add new history - this should trigger the useEffect
     const newHistory = [
       {
         command: 'new command',
@@ -292,13 +314,18 @@ describe('Terminal', () => {
         }
       }
     ];
-    
+
     mockTerminalCommandService.getCommandHistory.mockReturnValue(newHistory);
-    
-    rerender(<Terminal onCommand={mockOnCommand} />);
-    
-    // Should scroll to bottom
-    expect(scrollToBottomSpy).toHaveBeenCalled();
+
+    // Trigger the interval that loads history (runs every 5 seconds)
+    jest.advanceTimersByTime(5000);
+
+    // Wait for the useEffect to run
+    await waitFor(() => {
+      expect(mockScrollTop).toHaveBeenCalledWith(1000);
+    }, { container });
+
+    jest.useRealTimers();
   });
 
   it('should handle command execution failure', async () => {
@@ -308,17 +335,17 @@ describe('Terminal', () => {
       new Error('Service unavailable')
     );
 
-    render(<Terminal onCommand={mockOnCommand} />);
-    
+    const { container } = render(<Terminal onCommand={mockOnCommand} />);
+
     const input = screen.getByTestId('terminal-input');
-    
+
     await user.type(input, 'failing command');
     await user.keyboard('{Enter}');
-    
+
     // Should not crash and should clear input
     await waitFor(() => {
       expect((input as HTMLInputElement).value).toBe('');
-    });
+    }, { container });
   });
 
   it('should apply custom className', () => {
@@ -330,6 +357,7 @@ describe('Terminal', () => {
   });
 
   it('should display timestamps for history entries', () => {
+    const testDate = new Date('2023-01-01T10:00:00Z');
     const historyWithTimestamp = [
       {
         command: 'test',
@@ -339,7 +367,7 @@ describe('Terminal', () => {
           executionTime: 50,
           exitCode: 0
         },
-        timestamp: new Date('2023-01-01T10:00:00Z'),
+        timestamp: testDate,
         context: {
           workingDirectory: '/knirv',
           environment: {},
@@ -352,9 +380,10 @@ describe('Terminal', () => {
     mockTerminalCommandService.getCommandHistory.mockReturnValue(historyWithTimestamp);
 
     render(<Terminal onCommand={mockOnCommand} />);
-    
-    // Should display formatted timestamp
-    expect(screen.getByText(/10:00:00/)).toBeInTheDocument();
+
+    // Should display formatted timestamp (check for any time format)
+    const expectedTime = testDate.toLocaleTimeString();
+    expect(screen.getByText(expectedTime)).toBeInTheDocument();
   });
 
   it('should refresh command history periodically', async () => {

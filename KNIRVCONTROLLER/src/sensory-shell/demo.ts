@@ -59,7 +59,11 @@ export class CognitiveShellDemo {
       this.displayCapabilities();
     });
 
-    this.engine.on('inputProcessed', (data: any) => {
+    this.engine.on('inputProcessed', (data: {
+      inputType: string;
+      processingTime: number;
+      response?: { type?: string };
+    }) => {
       console.log('📝 Input Processed:', {
         type: data.inputType,
         processingTime: `${data.processingTime}ms`,
@@ -67,7 +71,11 @@ export class CognitiveShellDemo {
       });
     });
 
-    this.engine.on('skillInvoked', (data: any) => {
+    this.engine.on('skillInvoked', (data: {
+      skillId: string;
+      parameters: Record<string, unknown>;
+      result?: { result?: unknown };
+    }) => {
       console.log('🎯 Skill Invoked:', {
         skillId: data.skillId,
         parameters: data.parameters,
@@ -75,7 +83,9 @@ export class CognitiveShellDemo {
       });
     });
 
-    this.engine.on('adaptationTriggered', (data: any) => {
+    this.engine.on('adaptationTriggered', (data: {
+      metrics?: { adaptationLevel?: number };
+    }) => {
       console.log('🔄 Adaptation Triggered:', {
         adaptationLevel: `${Math.round((data.metrics?.adaptationLevel || 0) * 100)}%`
       });
@@ -85,7 +95,10 @@ export class CognitiveShellDemo {
       console.log('📚 Learning Mode: ACTIVE');
     });
 
-    this.engine.on('cognitiveEvent', (event: any) => {
+    this.engine.on('cognitiveEvent', (event: {
+      type: string;
+      data: unknown;
+    }) => {
       console.log('🧠 Cognitive Event:', event.type, event.data);
     });
   }
@@ -149,8 +162,11 @@ export class CognitiveShellDemo {
     for (const input of testInputs) {
       console.log(`   Input: "${input}"`);
       try {
-        const result = await this.engine!.processInput(input, 'text');
-        console.log(`   Output: ${(result as any).type} (confidence: ${Math.round((result as any).confidence * 100)}%)`);
+        const result = await this.engine!.processInput(input, 'text') as {
+          type?: string;
+          confidence?: number;
+        };
+        console.log(`   Output: ${result.type || 'unknown'} (confidence: ${Math.round((result.confidence || 0) * 100)}%)`);
       } catch (error) {
         console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
       }
@@ -170,8 +186,10 @@ export class CognitiveShellDemo {
     for (const command of voiceCommands) {
       console.log(`   Voice: "${command}"`);
       try {
-        const result = await this.engine!.processInput(command, 'voice');
-        console.log(`   Response: ${(result as any).result?.text || 'Command processed'}`);
+        const result = await this.engine!.processInput(command, 'voice') as {
+          result?: { text?: string };
+        };
+        console.log(`   Response: ${result.result?.text || 'Command processed'}`);
       } catch (error) {
         console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
       }
@@ -191,8 +209,10 @@ export class CognitiveShellDemo {
     for (const skill of skills) {
       console.log(`   Invoking: ${skill.id}`);
       try {
-        const result = await this.engine!.invokeSkill(skill.id, skill.params);
-        console.log(`   Result: ${(result as any).result || 'Skill executed successfully'}`);
+        const result = await this.engine!.invokeSkill(skill.id, skill.params) as {
+          result?: unknown;
+        };
+        console.log(`   Result: ${result.result || 'Skill executed successfully'}`);
       } catch (error) {
         console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
       }

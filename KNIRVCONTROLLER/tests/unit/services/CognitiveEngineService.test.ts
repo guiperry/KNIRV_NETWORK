@@ -121,7 +121,11 @@ describe('CognitiveEngineService', () => {
 
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: async () => mockResponse
+        json: async () => {
+          // Advance time to simulate processing time
+          jest.advanceTimersByTime(50);
+          return mockResponse;
+        }
       });
 
       const request: CognitiveProcessingRequest = {
@@ -221,7 +225,11 @@ describe('CognitiveEngineService', () => {
 
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: async () => mockResponse
+        json: async () => {
+          // Advance time to simulate execution time
+          jest.advanceTimersByTime(100);
+          return mockResponse;
+        }
       });
 
       const request: SkillExecutionRequest = {
@@ -398,11 +406,19 @@ describe('CognitiveEngineService', () => {
       (fetch as jest.Mock)
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ output: 'result1', confidence: 0.9, skillsInvoked: [] })
+          json: async () => {
+            // Advance time to simulate processing time
+            jest.advanceTimersByTime(50);
+            return { output: 'result1', confidence: 0.9, skillsInvoked: [] };
+          }
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ output: 'result2', confidence: 0.8, skillsInvoked: ['skill1'] })
+          json: async () => {
+            // Advance time to simulate processing time
+            jest.advanceTimersByTime(75);
+            return { output: 'result2', confidence: 0.8, skillsInvoked: ['skill1'] };
+          }
         });
 
       const request: CognitiveProcessingRequest = {

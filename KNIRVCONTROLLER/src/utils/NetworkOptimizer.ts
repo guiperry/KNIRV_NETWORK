@@ -326,7 +326,7 @@ class NetworkOptimizer {
             results.push(result.value);
           } else {
             console.error(`Batch request ${i + index} failed:`, result.reason);
-            results.push(null as any); // Placeholder for failed request
+            results.push(null); // Placeholder for failed request
           }
         });
       } catch (error) {
@@ -396,12 +396,12 @@ class NetworkOptimizer {
 
     // Calculate and track failure response time
     const failureTime = Date.now() - startTime;
-    if (!(this.metrics as any).averageResponseTime) {
-      (this.metrics as any).averageResponseTime = failureTime;
+    if (!this.metrics.averageLatency) {
+      this.metrics.averageLatency = failureTime;
     } else {
       // Update running average including failed request time
-      (this.metrics as any).averageResponseTime =
-        ((this.metrics as any).averageResponseTime + failureTime) / 2;
+      this.metrics.averageLatency =
+        (this.metrics.averageLatency + failureTime) / 2;
     }
   }
 

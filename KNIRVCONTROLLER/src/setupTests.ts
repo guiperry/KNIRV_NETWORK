@@ -10,6 +10,19 @@ import { setupCustomMatchers } from '../test-utils/jest-matchers';
 // Setup custom matchers
 setupCustomMatchers();
 
+// Setup jest-axe for accessibility testing (after DOM is set up)
+try {
+  import('jest-axe').then(({ toHaveNoViolations }) => {
+    expect.extend(toHaveNoViolations);
+  }).catch((error) => {
+    // jest-axe not available or DOM not ready
+    console.warn('jest-axe setup skipped:', error.message);
+  });
+} catch (error) {
+  // jest-axe not available or DOM not ready
+  console.warn('jest-axe setup skipped:', error.message);
+}
+
 // Mock fetch globally for all tests
 global.fetch = jest.fn();
 
@@ -17,7 +30,16 @@ global.fetch = jest.fn();
 global.WebAssembly = {
   compile: jest.fn().mockResolvedValue({}),
   instantiate: jest.fn().mockResolvedValue({ instance: {}, module: {} }),
-  Module: jest.fn(),
+  Module: {
+    exports: jest.fn().mockReturnValue([
+      { name: 'init', kind: 'function' },
+      { name: 'process', kind: 'function' },
+      { name: 'cleanup', kind: 'function' },
+      { name: 'memory', kind: 'memory' }
+    ]),
+    imports: jest.fn().mockReturnValue([]),
+    customSections: jest.fn().mockReturnValue([])
+  },
   Instance: jest.fn(),
   Memory: jest.fn(),
   Table: jest.fn(),
@@ -28,7 +50,7 @@ global.WebAssembly = {
   instantiateStreaming: jest.fn().mockResolvedValue({ instance: {}, module: {} }),
   validate: jest.fn().mockReturnValue(true),
   Global: jest.fn()
-} as any;
+} as typeof WebAssembly;
 
 // Mock File constructor for file upload tests
 global.File = class MockFile {
@@ -70,13 +92,13 @@ global.File = class MockFile {
   }
 
   slice(): Blob {
-    return this as any;
+    return this as Blob;
   }
 
   bytes(): Promise<Uint8Array> {
     return Promise.resolve(new TextEncoder().encode(this.content));
   }
-} as any;
+} as typeof Blob;
 
 // Mock crypto.subtle for hash generation tests
 Object.defineProperty(global, 'crypto', {
@@ -134,7 +156,7 @@ global.IntersectionObserver = class IntersectionObserver {
   observe() {}
   unobserve() {}
   disconnect() {}
-} as any;
+} as typeof IntersectionObserver;
 
 // Mock ResizeObserver for components that might use it
 global.ResizeObserver = class ResizeObserver {

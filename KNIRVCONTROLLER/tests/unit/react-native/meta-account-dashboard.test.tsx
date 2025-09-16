@@ -1,8 +1,7 @@
 // Comprehensive Unit Tests for KNIRVWALLET React Native - MetaAccountDashboard Component
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { Alert, View, Text, TouchableOpacity } from 'react-native';
-import { TEST_ADDRESSES, TEST_MNEMONICS } from '../../../test-utils/test-data';
+// Test data for wallet operations - removed unused imports
 
 // Import the actual MetaAccountDashboard component
 import { MetaAccountDashboard } from '../../../src/components/MetaAccountDashboard';
@@ -127,6 +126,17 @@ describe('MetaAccountDashboard Component', () => {
       expect(getByText('Connecting...')).toBeTruthy();
     });
 
+    it('should initialize with mock wallet services', () => {
+      // Test that mock classes are properly instantiated
+      const metaAccount = new XionMetaAccount();
+      const walletManager = new WalletManager();
+
+      expect(metaAccount).toBeDefined();
+      expect(walletManager).toBeDefined();
+      expect(XionMetaAccount).toHaveBeenCalled();
+      expect(WalletManager).toHaveBeenCalled();
+    });
+
     it('should render connected wallet state', async () => {
       const mockConfig = {
         chainId: 'xion-testnet-1',
@@ -134,7 +144,7 @@ describe('MetaAccountDashboard Component', () => {
       };
 
       // Mock wallet service to return connected state
-      const mockWalletService = require('../../../src/services/WalletIntegrationService');
+      const mockWalletService = await import('../../../src/services/WalletIntegrationService');
       mockWalletService.walletIntegrationService.getCurrentAccount = jest.fn().mockReturnValue({
         id: 'test-account',
         address: 'xion1jg8mtutu9khhfwc4nxmuhcpftf0pajdhfvsqf5',
@@ -164,7 +174,7 @@ describe('MetaAccountDashboard Component', () => {
       };
 
       // Mock wallet service for connection flow
-      const mockWalletService = require('../../../src/services/WalletIntegrationService');
+      const mockWalletService = await import('../../../src/services/WalletIntegrationService');
       mockWalletService.walletIntegrationService.getCurrentAccount = jest.fn().mockReturnValue(null);
       mockWalletService.walletIntegrationService.connectWallet = jest.fn().mockResolvedValue({
         id: 'connected-account',
@@ -199,7 +209,7 @@ describe('MetaAccountDashboard Component', () => {
       };
 
       // Mock slow connection
-      const mockWalletService = require('../../../src/services/WalletIntegrationService');
+      const mockWalletService = await import('../../../src/services/WalletIntegrationService');
       mockWalletService.walletIntegrationService.getCurrentAccount = jest.fn().mockReturnValue(null);
       mockWalletService.walletIntegrationService.connectWallet = jest.fn().mockImplementation(() =>
         new Promise(resolve => setTimeout(() => resolve({
@@ -229,7 +239,7 @@ describe('MetaAccountDashboard Component', () => {
       };
 
       // Mock connected wallet state
-      const mockWalletService = require('../../../src/services/WalletIntegrationService');
+      const mockWalletService = await import('../../../src/services/WalletIntegrationService');
       mockWalletService.walletIntegrationService.getCurrentAccount = jest.fn().mockReturnValue({
         id: 'test-account',
         address: 'xion1jg8mtutu9khhfwc4nxmuhcpftf0pajdhfvsqf5',
@@ -262,7 +272,7 @@ describe('MetaAccountDashboard Component', () => {
       };
 
       // Mock connected wallet state with transaction error
-      const mockWalletService = require('../../../src/services/WalletIntegrationService');
+      const mockWalletService = await import('../../../src/services/WalletIntegrationService');
       mockWalletService.walletIntegrationService.getCurrentAccount = jest.fn().mockReturnValue({
         id: 'test-account',
         address: 'xion1jg8mtutu9khhfwc4nxmuhcpftf0pajdhfvsqf5',
@@ -299,7 +309,7 @@ describe('MetaAccountDashboard Component', () => {
       const onTransactionSend = jest.fn();
 
       // Mock connected wallet state
-      const mockWalletService = require('../../../src/services/WalletIntegrationService');
+      const mockWalletService = await import('../../../src/services/WalletIntegrationService');
       mockWalletService.walletIntegrationService.getCurrentAccount = jest.fn().mockReturnValue({
         id: 'test-account',
         address: 'xion1jg8mtutu9khhfwc4nxmuhcpftf0pajdhfvsqf5',
@@ -334,7 +344,7 @@ describe('MetaAccountDashboard Component', () => {
       const onBalanceUpdate = jest.fn();
 
       // Mock connected wallet state
-      const mockWalletService = require('../../../src/services/WalletIntegrationService');
+      const mockWalletService = await import('../../../src/services/WalletIntegrationService');
       mockWalletService.walletIntegrationService.getCurrentAccount = jest.fn().mockReturnValue({
         id: 'test-account',
         address: 'xion1jg8mtutu9khhfwc4nxmuhcpftf0pajdhfvsqf5',

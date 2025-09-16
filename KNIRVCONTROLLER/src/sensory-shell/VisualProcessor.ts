@@ -495,8 +495,9 @@ export class VisualProcessor extends EventEmitter {
 
     try {
       const objects = await (this.objectDetectionModel as { detect: (data: ImageData) => Promise<unknown> }).detect(imageData);
-      
-      if ((objects as any[]).length > 0) {
+
+      const objectsArray = Array.isArray(objects) ? objects : [];
+      if (objectsArray.length > 0) {
         this.emit('objectDetected', objects);
       }
     } catch (error) {
@@ -510,11 +511,12 @@ export class VisualProcessor extends EventEmitter {
     try {
       const gestures = await (this.gestureRecognizer as { recognize: (data: ImageData) => Promise<unknown> }).recognize(imageData as ImageData);
 
-      for (const gesture of (gestures as any[])) {
+      const gesturesArray = Array.isArray(gestures) ? gestures as GestureEvent[] : [];
+      for (const gesture of gesturesArray) {
         this.emit('gestureRecognized', gesture);
       }
 
-      return (gestures as any[]) || [];
+      return gesturesArray;
     } catch (error) {
       console.error('Gesture recognition error:', error);
       return [];

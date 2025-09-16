@@ -149,16 +149,16 @@ export class ComponentBridge {
   private updateState(message: ComponentMessage) {
     switch (message.type) {
       case 'component_status':
-        this.state.components[message.source] = (message.payload as any).status;
+        this.state.components[message.source] = (message.payload as { status: 'running' | 'stopped' | 'error' }).status;
         break;
       case 'cognitive_update':
-        this.state.cognitive = { ...this.state.cognitive, ...(message.payload as any) };
+        this.state.cognitive = { ...this.state.cognitive, ...(message.payload as Partial<CognitiveState>) };
         break;
       case 'wallet_update':
-        this.state.wallet = { ...this.state.wallet, ...(message.payload as any) };
+        this.state.wallet = { ...this.state.wallet, ...(message.payload as Partial<WalletState>) };
         break;
       case 'network_update':
-        this.state.network = { ...this.state.network, ...(message.payload as any) };
+        this.state.network = { ...this.state.network, ...(message.payload as Partial<{ connected: boolean; peers: number; blockHeight: number }>) };
         break;
     }
   }
@@ -174,7 +174,7 @@ export class ComponentBridge {
       type,
       source: this.config.name,
       target,
-      payload: { action, ...(payload as any) },
+      payload: { action, ...(typeof payload === 'object' && payload !== null ? payload as Record<string, unknown> : {}) },
       timestamp: Date.now()
     };
 
@@ -264,12 +264,18 @@ export class ComponentIntegration {
       }, 5000);
 
       bridge.onMessage('call_response', (message) => {
-        if ((message.payload as any).callId === callId) {
+        const payload = message.payload as {
+          callId: string;
+          success: boolean;
+          result?: unknown;
+          error?: string;
+        };
+        if (payload.callId === callId) {
           clearTimeout(timeout);
-          if ((message.payload as any).success) {
-            resolve((message.payload as any).result);
+          if (payload.success) {
+            resolve(payload.result);
           } else {
-            reject(new Error((message.payload as any).error));
+            reject(new Error(payload.error));
           }
         }
       });

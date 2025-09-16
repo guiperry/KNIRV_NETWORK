@@ -41,7 +41,6 @@ The KNIRV Decentralized Trusted Execution Network (D-TEN) is a groundbreaking "a
 - **Decentralized Verification**: No single point of failure or control
 
 ## 🏗️ Architecture Overview
-
 The KNIRV D-TEN comprises seven interconnected sovereign layers, each operating with specialized functions while communicating seamlessly via IBC and a unified API Gateway:
 
 ```mermaid

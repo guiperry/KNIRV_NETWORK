@@ -7,7 +7,7 @@ export interface PaymentRequest {
   recipient: string;
   sender?: string;
   description: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   timestamp: Date;
   expiresAt?: Date;
   priority?: 'low' | 'medium' | 'high' | 'urgent';
@@ -28,7 +28,7 @@ export interface PaymentResult {
   error?: {
     code: string;
     message: string;
-    details?: Record<string, any>;
+    details?: Record<string, unknown>;
   };
   receipt?: {
     id: string;
@@ -47,7 +47,7 @@ export interface PaymentMethod {
   name: string;
   isDefault: boolean;
   isActive: boolean;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   lastUsed?: Date;
   createdAt: Date;
 }
@@ -63,7 +63,7 @@ export interface PaymentHistory {
   timestamp: Date;
   transactionHash?: string;
   fee?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface PaymentConfig {
@@ -101,7 +101,7 @@ export interface PaymentProvider {
     perTransaction?: number;
   };
   isActive: boolean;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
 }
 
 export interface QRPaymentData {
@@ -110,7 +110,7 @@ export interface QRPaymentData {
   currency?: string;
   recipient?: string;
   description?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   expiresAt?: Date;
   signature?: string;
 }
@@ -124,5 +124,5 @@ export interface PaymentNotification {
   currency?: string;
   timestamp: Date;
   isRead: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }

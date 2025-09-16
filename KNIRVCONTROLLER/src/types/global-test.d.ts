@@ -20,7 +20,7 @@ declare global {
       toHaveDisplayValue(value: string | string[]): R;
       toBeChecked(): R;
       toHaveFocus(): R;
-      toHaveStyle(css: string | Record<string, any>): R;
+      toHaveStyle(css: string | Record<string, string | number>): R;
       toBeEmptyDOMElement(): R;
       toBeInvalid(): R;
       toBeRequired(): R;
@@ -31,7 +31,7 @@ declare global {
       toHaveAccessibleName(expectedAccessibleName?: string | RegExp): R;
       toHaveDescription(expectedDescription?: string | RegExp): R;
       toHaveErrorMessage(expectedErrorMessage?: string | RegExp): R;
-      toHaveFormValues(expectedValues: Record<string, any>): R;
+      toHaveFormValues(expectedValues: Record<string, string | number | boolean>): R;
       toBePartiallyChecked(): R;
     }
   }

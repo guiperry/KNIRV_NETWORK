@@ -140,7 +140,7 @@ export default function DNSManagement({ isOpen, onClose }: DNSManagementProps) {
     return zoneMatch && typeMatch;
   });
 
-  const recordTypesSummary = getRecordTypesSummary();
+  const recordTypesSummary = getRecordTypesSummary() || {};
 
   if (!isOpen) return null;
 

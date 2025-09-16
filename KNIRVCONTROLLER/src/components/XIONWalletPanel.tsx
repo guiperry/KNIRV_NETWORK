@@ -4,7 +4,7 @@
  * Integrates with KNIRVORACLE Payment Gateway
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import useXIONWallet from '../hooks/useXIONWallet';
 import { ConversionRequest, ConversionResult } from '../services/AbstraxionWalletService';
 
@@ -42,17 +42,17 @@ export const XIONWalletPanel: React.FC<XIONWalletPanelProps> = ({ className = ''
     if (isConnected) {
       loadPaymentHistory();
     }
-  }, [isConnected]);
+  }, [isConnected, loadPaymentHistory]);
 
   // Load payment history
-  const loadPaymentHistory = async () => {
+  const loadPaymentHistory = useCallback(async () => {
     try {
       const history = await getPaymentHistory();
       setConversionHistory(history);
     } catch (error) {
       console.error('Failed to load payment history:', error);
     }
-  };
+  }, [getPaymentHistory]);
 
   // Handle wallet connection
   const handleConnect = async () => {
@@ -177,7 +177,7 @@ export const XIONWalletPanel: React.FC<XIONWalletPanelProps> = ({ className = ''
             <label>Authentication Method:</label>
             <select 
               value={selectedAuthMethod} 
-              onChange={(e) => setSelectedAuthMethod(e.target.value as any)}
+              onChange={(e) => setSelectedAuthMethod(e.target.value as 'email' | 'social' | 'wallet' | 'passkey')}
             >
               <option value="email">Email</option>
               <option value="social">Social</option>
@@ -238,9 +238,16 @@ export const XIONWalletPanel: React.FC<XIONWalletPanelProps> = ({ className = ''
             <h3>Convert USDC to NRN</h3>
             
             {conversionRates && (
-              <p className="conversion-rate">
-                Rate: 1 USDC = {conversionRates.usdc_to_nrn} NRN
-              </p>
+              <div className="conversion-rate">
+                <p>Rate: 1 USDC = {conversionRates.usdc_to_nrn} NRN</p>
+                <button
+                  onClick={refreshRates}
+                  className="refresh-rates-btn"
+                  title="Refresh exchange rates"
+                >
+                  🔄
+                </button>
+              </div>
             )}
 
             <div className="conversion-input">

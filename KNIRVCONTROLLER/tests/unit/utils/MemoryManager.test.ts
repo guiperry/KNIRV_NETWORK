@@ -129,12 +129,15 @@ describe('MemoryManager', () => {
 
     it('should return null when memory API not available', () => {
       const originalPerformance = global.performance;
+      const originalWindow = global.window;
       delete global.performance;
-      
+      delete global.window;
+
       const metrics = manager.getCurrentMetrics();
       expect(metrics).toBeNull();
-      
+
       global.performance = originalPerformance;
+      global.window = originalWindow;
     });
 
     it('should calculate usage percentage correctly', () => {
@@ -173,11 +176,15 @@ describe('MemoryManager', () => {
     });
 
     it('should not start monitoring if already monitoring', () => {
-      manager.startMonitoring();
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      
+
+      manager.startMonitoring(); // First call
+      expect(consoleSpy).toHaveBeenCalledWith('Memory monitoring started');
+
+      consoleSpy.mockClear(); // Clear the spy to reset call count
+
       manager.startMonitoring(); // Second call
-      
+
       expect(consoleSpy).toHaveBeenCalledTimes(0);
       consoleSpy.mockRestore();
     });
@@ -246,27 +253,29 @@ describe('MemoryManager', () => {
     });
 
     it('should force garbage collection when available', () => {
-      const gcSpy = jest.spyOn(global.window?.gc as jest.Mock, 'mockImplementation');
-      
+      const gcSpy = global.window?.gc as jest.Mock;
+      gcSpy.mockClear();
+
       manager.triggerCleanup();
-      
+
       expect(gcSpy).toHaveBeenCalled();
     });
 
     it('should handle garbage collection errors', () => {
       if (global.window?.gc) {
-        const gcSpy = jest.spyOn(global.window.gc as jest.Mock, 'mockImplementation').mockImplementation(() => {
+        const gcSpy = global.window.gc as jest.Mock;
+        gcSpy.mockImplementation(() => {
           throw new Error('GC error');
         });
         const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
-        
+
         manager.triggerCleanup();
-        
+
         expect(consoleSpy).toHaveBeenCalledWith(
           'Failed to force garbage collection:',
           expect.any(Error)
         );
-        
+
         gcSpy.mockRestore();
         consoleSpy.mockRestore();
       }
@@ -297,17 +306,20 @@ describe('MemoryManager', () => {
   describe('Memory Listeners', () => {
     it('should add memory listeners', () => {
       const listener = jest.fn();
-      
+
       manager.addMemoryListener(listener);
-      
+
       // Simulate metric collection
-      const monitoringManager = new MemoryManager({ enableMonitoring: true });
+      const monitoringManager = new MemoryManager({
+        enableMonitoring: true,
+        monitoringInterval: 50 // Short interval for testing
+      });
       monitoringManager.addMemoryListener(listener);
-      
+
       jest.advanceTimersByTime(100);
-      
+
       expect(listener).toHaveBeenCalled();
-      
+
       monitoringManager.dispose();
     });
 
@@ -325,19 +337,22 @@ describe('MemoryManager', () => {
       const errorListener = jest.fn().mockImplementation(() => {
         throw new Error('Listener error');
       });
-      
+
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-      
-      const monitoringManager = new MemoryManager({ enableMonitoring: true });
+
+      const monitoringManager = new MemoryManager({
+        enableMonitoring: true,
+        monitoringInterval: 50 // Short interval for testing
+      });
       monitoringManager.addMemoryListener(errorListener);
-      
+
       jest.advanceTimersByTime(100);
-      
+
       expect(consoleSpy).toHaveBeenCalledWith(
         'Memory listener failed:',
         expect.any(Error)
       );
-      
+
       consoleSpy.mockRestore();
       monitoringManager.dispose();
     });
@@ -537,8 +552,6 @@ describe('MemoryManager', () => {
 
   describe('Threshold Monitoring', () => {
     it('should trigger cleanup on critical threshold', () => {
-      const cleanupSpy = jest.spyOn(manager, 'triggerCleanup');
-      
       // Mock high memory usage
       if (global.performance) {
         global.performance.memory = {
@@ -551,8 +564,11 @@ describe('MemoryManager', () => {
       const monitoringManager = new MemoryManager({
         enableMonitoring: true,
         enableAutoCleanup: true,
+        monitoringInterval: 50, // Short interval for testing
         thresholds: { warning: 70, critical: 85, cleanup: 90 }
       });
+
+      const cleanupSpy = jest.spyOn(monitoringManager, 'triggerCleanup');
 
       jest.advanceTimersByTime(100);
 
