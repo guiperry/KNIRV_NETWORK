@@ -4,14 +4,14 @@
 
 ## 1. Introduction
 
-This document outlines the design, structure, resolution process, and implementation considerations for the `knirv://` Uniform Resource Identifier (URI) scheme used within the KNIRVORACLE network. This scheme provides a standardized way to locate and interact with various resources, such as specific blockchain instances or tokenized content, in a decentralized manner.
+This document outlines the design, structure, resolution process, and implementation considerations for the `agent://` Uniform Resource Identifier (URI) scheme used within the KNIRVORACLE network. This scheme provides a standardized way to locate and interact with various resources, such as specific blockchain instances or tokenized content, in a decentralized manner.
 
 ## 2. URI Structure
 
 The standard format for a KNIRVORACLE URI is defined as follows, adhering to common URI patterns:
 
 ```plaintext
-knirv://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
+agent://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
 ```
 **2.1. Components**
 
@@ -93,22 +93,22 @@ These parameters refine requests made via the URI.
 
 **Examples:**
 
-*   General info about a specific chain: `knirv://<chainID>.chain/`
-*   Get a specific block by number: `knirv://<chainID>.chain/block?number=<BLOCK_NUMBER>`
-*   Get a specific block by hash: `knirv://<chainID>.chain/block?hash=<BLOCK_HASH>`
-*   Get a specific transaction: `knirv://<chainID>.chain/transaction?hash=<TX_HASH>`
-*   Get account info on a chain: `knirv://<chainID>.chain/account?address=<ADDRESS>`
-*   Get specific NRN content: `knirv://<contentID>.nrn/` or 
-`knirv://<contentID>.nrn/content?version=1.2`
-*   Get chain status: `knirv://<chainID>.chain/status`
-*   Get chain devs: `knirv://<chainID>.chain/devs`
-*   Get specific NRN content: `knirv://<contentID>.nrn/content?version=1.2`
-*   Get devs for a specific NRN content: `knirv://<contentID>.nrn/devs`
-*   Get devs for a specific chain network: `knirv://<chainID>.chain/devs`
+*   General info about a specific chain: `agent://<chainID>.chain/`
+*   Get a specific block by number: `agent://<chainID>.chain/block?number=<BLOCK_NUMBER>`
+*   Get a specific block by hash: `agent://<chainID>.chain/block?hash=<BLOCK_HASH>`
+*   Get a specific transaction: `agent://<chainID>.chain/transaction?hash=<TX_HASH>`
+*   Get account info on a chain: `agent://<chainID>.chain/account?address=<ADDRESS>`
+*   Get specific NRN content: `agent://<contentID>.nrn/` or 
+`agent://<contentID>.nrn/content?version=1.2`
+*   Get chain status: `agent://<chainID>.chain/status`
+*   Get chain devs: `agent://<chainID>.chain/devs`
+*   Get specific NRN content: `agent://<contentID>.nrn/content?version=1.2`
+*   Get devs for a specific NRN content: `agent://<contentID>.nrn/devs`
+*   Get devs for a specific chain network: `agent://<chainID>.chain/devs`
 
 **6. URI Resolution Process**
 
-Resolving a `knirv://` URI to interact with the target resource typically involves these steps:
+Resolving a `agent://` URI to interact with the target resource typically involves these steps:
 
 1.  **Parse URI:** A client application (e.g., wallet, browser extension, another node) parses the URI string into its components (Scheme, ID, ResourceType, Path, Query) using standard URL parsing libraries, supplemented with custom logic to split the Authority part.
 
@@ -219,5 +219,5 @@ func ParseagentURI(uriString string) (*agentURI, error) {
 
 **10. Conclusion**
 
-The `knirv://<ID>.<ResourceType>/<Path>?<Query>` scheme provides a flexible and decentralized method for addressing resources within the KNIRVORACLE network. Its resolution relies heavily on the libp2p DHT for discovering providers, followed by P2P stream communication for actual interaction. Proper implementation of minting, announcement, and resolution is key to the system's functionality.
+The `agent://<ID>.<ResourceType>/<Path>?<Query>` scheme provides a flexible and decentralized method for addressing resources within the KNIRVORACLE network. Its resolution relies heavily on the libp2p DHT for discovering providers, followed by P2P stream communication for actual interaction. Proper implementation of minting, announcement, and resolution is key to the system's functionality.
 ```

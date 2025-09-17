@@ -49,11 +49,11 @@
     *   Remove the transaction from the temporary pending store.
     *   Add the now fully signed and verified transaction to the main `TransactionPool`.
     *   Proceed with DHT announcement (using the `canonicalCapabilityID`).
-    *   Respond with HTTP 201 Created (or 200 OK) with the final transaction hash and the `knirv://` URI.
+    *   Respond with HTTP 201 Created (or 200 OK) with the final transaction hash and the `agent://` URI.
 
 This two-step process ensures the client signs exactly what the server intends to record, including the server-generated ID.
 
-**Refinement for `GenerateCapabilityID`:** You mentioned ensuring `capType` is not in the name since the URI scheme identifies `.Type`. The current `GenerateCapabilityID` already does this: `agent-<type>-<sanitized-name>`. The URI generation then uses this ID and the type to form `knirv://<id>.<type>/`. This seems correct. The ID itself should be unique and can be formed from the name, but the URI construction adds the type.
+**Refinement for `GenerateCapabilityID`:** You mentioned ensuring `capType` is not in the name since the URI scheme identifies `.Type`. The current `GenerateCapabilityID` already does this: `agent-<type>-<sanitized-name>`. The URI generation then uses this ID and the type to form `agent://<id>.<type>/`. This seems correct. The ID itself should be unique and can be formed from the name, but the URI construction adds the type.
 
 Let's implement the changes. This will involve new handlers and modifications to existing ones.
 
@@ -93,7 +93,7 @@ func GenerateCapabilityID(name string, capType CapabilityType) string {
 }
 ```
 
-This ID format `agent-<type>-<sanitized-name>` is fine. The URI `knirv://<id>.<type>/` will then be, for example, `knirv://agent-tool-my-tool.tool/`. This is a bit redundant with "tool" appearing twice.
+This ID format `agent-<type>-<sanitized-name>` is fine. The URI `agent://<id>.<type>/` will then be, for example, `agent://agent-tool-my-tool.tool/`. This is a bit redundant with "tool" appearing twice.
 
 Alternative `GenerateCapabilityID` (Simpler ID, type only in URI): If you want the ID to be just `agent-<sanitized-name>` and let the URI carry the type:
 
@@ -115,12 +115,12 @@ And then `GenerateMCPCapabilityURI` would be:
 ```go
 // In uri_generation.go
 func GenerateMCPCapabilityURI(capabilityID string, mcpCapabilityType CapabilityType, path string, params map[string]string) string {
-	// URI: knirv://<capabilityID>.<lowercaseMcCapabilityType>/path
+	// URI: agent://<capabilityID>.<lowercaseMcCapabilityType>/path
 	return GenerateResourceURI(capabilityID, strings.ToLower(string(mcpCapabilityType)), path, params)
 }
 ```
 
-This results in URIs like `knirv://agent-cap-my-tool.tool/`. This seems cleaner. Let's proceed with this simpler ID generation.
+This results in URIs like `agent://agent-cap-my-tool.tool/`. This seems cleaner. Let's proceed with this simpler ID generation.
 
 2.  **`mcp_types.go` (or `utils.go`) - Update `GenerateCapabilityID`**
 

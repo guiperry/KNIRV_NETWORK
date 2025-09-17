@@ -24,13 +24,13 @@ type EconomicsService struct {
 }
 
 type ServiceConfig struct {
-	Port            string          `json:"port"`
-	NRNContract     string          `json:"nrn_contract"`
-	XionRPC         string          `json:"xion_rpc"`
-	ComponentConfig ComponentConfig `json:"component_config"`
-	DatabasePath    string          `json:"database_path"`
-	EnableCORS      bool            `json:"enable_cors"`
-	LogLevel        string          `json:"log_level"`
+	Port              string          `json:"port"`
+	NRNContract       string          `json:"nrn_contract"`
+	XionRPC           string          `json:"xion_rpc"`
+	ComponentConfig   ComponentConfig `json:"component_config"`
+	DatabasePath      string          `json:"database_path"`
+	EnableCORS        bool            `json:"enable_cors"`
+	LogLevel          string          `json:"log_level"`
 }
 
 // MockLevelDB is a simple in-memory implementation for testing
@@ -106,13 +106,13 @@ func (es *EconomicsService) Start() error {
 
 	// Setup HTTP server
 	router := mux.NewRouter()
-
+	
 	// Register API routes
 	es.api.RegisterRoutes(router)
-
+	
 	// Add integration status endpoint
 	router.HandleFunc("/economics/integration/status", es.handleIntegrationStatus).Methods("GET")
-
+	
 	// Add service info endpoint
 	router.HandleFunc("/economics/info", es.handleServiceInfo).Methods("GET")
 
@@ -181,16 +181,16 @@ func (es *EconomicsService) handleIntegrationStatus(w http.ResponseWriter, r *ht
 
 func (es *EconomicsService) handleServiceInfo(w http.ResponseWriter, r *http.Request) {
 	info := map[string]interface{}{
-		"service":      "KNIRV Economics Service",
-		"version":      "1.0.0",
-		"port":         es.config.Port,
+		"service":     "KNIRV Economics Service",
+		"version":     "1.0.0",
+		"port":        es.config.Port,
 		"nrn_contract": es.config.NRNContract,
-		"xion_rpc":     es.config.XionRPC,
+		"xion_rpc":    es.config.XionRPC,
 		"components": map[string]string{
-			"knirvchain":  es.config.ComponentConfig.KNIRVChainURL,
-			"knirvnexus":  es.config.ComponentConfig.KNIRVNexusURL,
-			"knirvoracle": es.config.ComponentConfig.KNIRVRootURL,
-			"knirvgraph":  es.config.ComponentConfig.KNIRVGraphURL,
+			"knirvchain": es.config.ComponentConfig.KNIRVChainURL,
+			"knirvnexus": es.config.ComponentConfig.KNIRVNexusURL,
+			"knirvoracle":  es.config.ComponentConfig.KNIRVRootURL,
+			"knirvgraph": es.config.ComponentConfig.KNIRVGraphURL,
 		},
 		"started_at": time.Now(),
 		"status":     "running",
@@ -217,45 +217,26 @@ func GetDefaultConfig() *ServiceConfig {
 }
 
 // LoadConfigFromEnv loads configuration from environment variables
-// Updated to use KNIRV_ prefix for consistency
 func LoadConfigFromEnv() *ServiceConfig {
 	config := GetDefaultConfig()
 
-	// Updated environment variable names with KNIRV_ prefix
-	if port := os.Getenv("KNIRV_ECONOMICS_PORT"); port != "" {
+	if port := os.Getenv("ECONOMICS_PORT"); port != "" {
 		config.Port = port
 	}
-	if contract := os.Getenv("KNIRV_ECONOMICS_NRN_CONTRACT"); contract != "" {
+	if contract := os.Getenv("NRN_CONTRACT"); contract != "" {
 		config.NRNContract = contract
 	}
-	if rpc := os.Getenv("KNIRV_ECONOMICS_XION_RPC"); rpc != "" {
+	if rpc := os.Getenv("XION_RPC"); rpc != "" {
 		config.XionRPC = rpc
 	}
-	if chainURL := os.Getenv("KNIRV_ECONOMICS_KNIRVCHAIN_URL"); chainURL != "" {
+	if chainURL := os.Getenv("KNIRVCHAIN_URL"); chainURL != "" {
 		config.ComponentConfig.KNIRVChainURL = chainURL
 	}
-	if nexusURL := os.Getenv("KNIRV_ECONOMICS_KNIRVNEXUS_URL"); nexusURL != "" {
+	if nexusURL := os.Getenv("KNIRVNEXUS_URL"); nexusURL != "" {
 		config.ComponentConfig.KNIRVNexusURL = nexusURL
 	}
-	if rootURL := os.Getenv("KNIRV_ECONOMICS_KNIRVORACLE_URL"); rootURL != "" {
+	if rootURL := os.Getenv("KNIRVORACLE_URL"); rootURL != "" {
 		config.ComponentConfig.KNIRVRootURL = rootURL
-	}
-
-	// Backward compatibility - check old environment variables as fallback
-	if config.Port == "8090" { // Default value, check old env var
-		if port := os.Getenv("ECONOMICS_PORT"); port != "" {
-			config.Port = port
-		}
-	}
-	if config.NRNContract == "" {
-		if contract := os.Getenv("NRN_CONTRACT"); contract != "" {
-			config.NRNContract = contract
-		}
-	}
-	if config.XionRPC == "" {
-		if rpc := os.Getenv("XION_RPC"); rpc != "" {
-			config.XionRPC = rpc
-		}
 	}
 	if graphURL := os.Getenv("KNIRVGRAPH_URL"); graphURL != "" {
 		config.ComponentConfig.KNIRVGraphURL = graphURL
@@ -270,7 +251,7 @@ func LoadConfigFromEnv() *ServiceConfig {
 // Example usage function
 func RunEconomicsService() error {
 	config := LoadConfigFromEnv()
-
+	
 	service, err := NewEconomicsService(config)
 	if err != nil {
 		return fmt.Errorf("failed to create economics service: %w", err)

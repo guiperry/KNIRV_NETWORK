@@ -30,12 +30,12 @@ To replace the current centralized Node.js registry and STUN service with a dece
 The URI scheme for KNIRVORACLE will be updated to reflect the decentralized nature of the network and provide a clear structure resembling familiar domain patterns. The general format will be:
 
 ```plaintext
-knirv://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
+agent://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
 ```
 
 Where:
 
-*   **`knirv://`**: Protocol prefix indicating a KNIRVORACLE-specific URI.
+*   **`agent://`**: Protocol prefix indicating a KNIRVORACLE-specific URI.
 *   **`<ID>.<ResourceType>`**: The authority/host part, combining the unique identifier and the resource type.
     *   **`<ID>`**: Unique identifier for the chain, content, or node (e.g., `chainID`, `contentID`).
     *   **`<ResourceType>`**: Specifies the type of resource, acting like an internal TLD.
@@ -53,18 +53,18 @@ Where:
 
 **Examples:**
 
-*   General info about a specific chain: `knirv://<chainID>.chain/`
-*   Get a specific block by number: `knirv://<chainID>.chain/block?number=<BLOCK_NUMBER>`
-*   Get a specific block by hash: `knirv://<chainID>.chain/block?hash=<BLOCK_HASH>`
-*   Get a specific transaction: `knirv://<chainID>.chain/transaction?hash=<TX_HASH>`
-*   Get account info on a chain: `knirv://<chainID>.chain/account?address=<ADDRESS>`
-*   Get specific NRN content: `knirv://<contentID>.nrn/` or 
-`knirv://<contentID>.nrn/content?version=1.2`
-*   Get chain status: `knirv://<chainID>.chain/status`
-*   Get chain devs: `knirv://<chainID>.chain/devs`
-*   Get specific NRN content: `knirv://<contentID>.nrn/content?version=1.2`
-*   Get devs for a specific NRN content: `knirv://<contentID>.nrn/devs`
-*   Get devs for a specific chain network: `knirv://<chainID>.chain/devs`
+*   General info about a specific chain: `agent://<chainID>.chain/`
+*   Get a specific block by number: `agent://<chainID>.chain/block?number=<BLOCK_NUMBER>`
+*   Get a specific block by hash: `agent://<chainID>.chain/block?hash=<BLOCK_HASH>`
+*   Get a specific transaction: `agent://<chainID>.chain/transaction?hash=<TX_HASH>`
+*   Get account info on a chain: `agent://<chainID>.chain/account?address=<ADDRESS>`
+*   Get specific NRN content: `agent://<contentID>.nrn/` or 
+`agent://<contentID>.nrn/content?version=1.2`
+*   Get chain status: `agent://<chainID>.chain/status`
+*   Get chain devs: `agent://<chainID>.chain/devs`
+*   Get specific NRN content: `agent://<contentID>.nrn/content?version=1.2`
+*   Get devs for a specific NRN content: `agent://<contentID>.nrn/devs`
+*   Get devs for a specific chain network: `agent://<chainID>.chain/devs`
 
 **Note:** The exact structure and usage of the URI scheme may evolve. Flexibility is key, but this structure provides a more standard and extensible foundation compared to previous iterations.
 
@@ -102,7 +102,7 @@ Where:
 
 **Peer Discovery (Lookup):**
 
-1.  **Input:** Target URI (e.g., `knirv://<chainID>.chain/block?hash=...`).
+1.  **Input:** Target URI (e.g., `agent://<chainID>.chain/block?hash=...`).
 2.  **Parse URI:** Extract `<ID>`, `<ResourceType>`, `<OptionalSubPath>`, and query parameters.
 3.  **DHT Query:**
     *   **Option A (FindProviders via CID):** Generate the relevant CID (e.g., from `<ID>` or `<ID>.<ResourceType>`). Use `dht.FindProviders` to find PeerIDs associated with that CID.
@@ -117,7 +117,7 @@ Where:
 
 **URI Scheme Adaptation:**
 
-1.  Modify all code that generates, parses, or uses the `knirv://` URI to conform to the new structure (`knirv://<ID>.<ResourceType>/<OptionalSubPath>?...`).
+1.  Modify all code that generates, parses, or uses the `agent://` URI to conform to the new structure (`agent://<ID>.<ResourceType>/<OptionalSubPath>?...`).
 2.  Update internal logic to trigger DHT lookups based on the authority part (`<ID>.<ResourceType>`) of this URI instead of DNS/HTTP lookups.
 
 **Bootstrap Node Setup:**

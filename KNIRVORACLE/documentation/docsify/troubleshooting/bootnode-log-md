@@ -62,7 +62,7 @@ This installer will:
 3. Register with KNIRVORACLE Bootnode Registry
 4. Generate dev wallet and master wallet
 5. Detect host operating system
-6. Register URI handler for knirv:// protocol
+6. Register URI handler for agent:// protocol
 7. Find next available ports for node
 8. Update the application configuration
 9. Start the node
@@ -75,8 +75,8 @@ Leave empty for a randomly generated URI.
 Enter desired URI: 
 Connecting to http://localhost:9999/uriGenerator...
 2025/05/23 11:41:56 Received HTTP status code: 201
-2025/05/23 11:41:56 Raw response body: {"txn_hash":"0xd5e812b4c1371ebf4b0c042a92600286abfe94596a3140390b14cd87a3276aa2","uri":"knirv://be38e056-037d-4c90-a8d5-c824ffdc3c30.chain/"}
-Successfully generated Chain ID: be38e056-037d-4c90-a8d5-c824ffdc3c30 (from URI: knirv://be38e056-037d-4c90-a8d5-c824ffdc3c30.chain/)
+2025/05/23 11:41:56 Raw response body: {"txn_hash":"0xd5e812b4c1371ebf4b0c042a92600286abfe94596a3140390b14cd87a3276aa2","uri":"agent://be38e056-037d-4c90-a8d5-c824ffdc3c30.chain/"}
+Successfully generated Chain ID: be38e056-037d-4c90-a8d5-c824ffdc3c30 (from URI: agent://be38e056-037d-4c90-a8d5-c824ffdc3c30.chain/)
 Transaction Hash ID for URI: 0xd5e812b4c1371ebf4b0c042a92600286abfe94596a3140390b14cd87a3276aa2
 Generating wallet for this node...
 2025/05/23 11:41:56 Using role-specific data directory: /home/gperry/.config/KNIRVORACLE/bootnode_data for role Bootnode
@@ -112,7 +112,7 @@ You can register manually later using the registry API.
 The registry status page should open in your browser.
 If it doesn't, please visit: https://registry.knirv.com/status
 Detected operating system: linux
-URI scheme 'knirv://' definition files created successfully on Linux.
+URI scheme 'agent://' definition files created successfully on Linux.
 Updating MIME database...
 MIME database updated successfully.
 Updating desktop database...

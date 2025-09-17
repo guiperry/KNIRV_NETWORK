@@ -15,12 +15,12 @@ enable_tracing: true
 # =============================================================================
 
 cloud_provider: aws
-region: us-east-1
+region: us-east-2
 
 # Instance configuration for testnet
-instance_type: t3.large  # Larger instance for running full testnet
-ami_id: ami-0c7217cdde317cfec  # Ubuntu 22.04 LTS
-key_pair_name: knirv-testnet-key
+instance_type: t2.micro  # Larger instance for running full testnet
+ami_id: ami-0cfde0ea8edd312d4  # Ubuntu 22.04 LTS
+key_pair_name: AEGONG
 
 # =============================================================================
 # NETWORK CONFIGURATION
@@ -48,19 +48,23 @@ testnet_ports:
 # DNS CONFIGURATION
 # =============================================================================
 
-domain_name: knirv.com
+domain_name: knirv.network
 testnet_subdomain: testnet
 
 # Testnet-specific subdomains
 testnet_subdomains:
   - testnet
-  - testnet-api
-  - testnet-chain
-  - testnet-graph
-  - testnet-nexus
-  - testnet-root
-  - testnet-router
-  - testnet-gateway
+  - api-testnet
+  - chain-testnet
+  - graph-testnet
+  - nexus-testnet
+  - root-testnet
+  - router-testnet
+  - gateway-testnet
+  - oracle-testnet
+  - shell-testnet
+  - knirvana-testnet
+
 
 # =============================================================================
 # INSTANCE TAGS
@@ -144,7 +148,7 @@ monitoring:
 # =============================================================================
 
 backup_config:
-  enabled: true
+  enabled: false  # Disabled for testnet
   retention_days: 7  # Shorter retention for testnet
   schedule: "0 4 * * *"  # Daily at 4 AM
   s3_bucket: "knirv-testnet-backups"
@@ -165,8 +169,9 @@ database:
   type: postgresql
   host: postgres-testnet
   port: 5432
-  name: knirv_testnet
-  user: knirv_testnet
+  name: knirv_testnet_db
+  user: knirv_testnet_db_user
+  password: "{{ database_password | default('') }}"
 
 # =============================================================================
 # FRONTEND INTEGRATION
@@ -182,25 +187,24 @@ frontend_config:
 
 # API endpoints for frontend (testnet automatically updates KNIRVGATEWAY)
 api_endpoints:
-  testnet_base: "https://testnet.knirv.com"
-  chain_api: "https://testnet.knirv.com:8080"
-  graph_api: "https://testnet.knirv.com:8081"
-  nexus_api: "https://testnet.knirv.com:8082"
-  oracle_api: "https://testnet.knirv.com:1317"
-  router_api: "https://testnet.knirv.com:8086"
-  gateway_api: "https://testnet.knirv.com:8087"
-  knirvana_api: "https://testnet.knirv.com:3000"
+  testnet_base: "https://testnet.knirv.network"
+  chain_api: "https://chain-api-testnet.knirv.network:8080"
+  graph_api: "https://graph-api-testnet.knirv.network:8081"
+  nexus_api: "https://nexus-api-testnet.knirv.network:8082"
+  oracle_api: "https://oracle-api-testnet.knirv.network:1317"
+  router_api: "https://router-api-testnet.knirv.network:8086"
+  gateway_api: "https://gateway-api-testnet.knirv.network:8087"
+  knirvana_api: "https://knirvana-api-testnet.knirv.network:3000"
 
 # KNIRVGATEWAY endpoint configuration (auto-updated for testnet)
 gateway_endpoints:
-  KNIRVCHAIN_API: "https://testnet.knirv.com:8080"
-  KNIRVGRAPH_API: "https://testnet.knirv.com:8081"
-  KNIRVNEXUS_API: "https://testnet.knirv.com:8082"
-  KNIRVORACLE_API: "https://testnet.knirv.com:1317"
-  KNIRVROUTER_API: "https://testnet.knirv.com:8086"
-  KNIRVANA_API: "https://testnet.knirv.com:3000"
-  KNIRVANA_INTERACTIVE_GRAPH: "https://testnet.knirv.com:3000"
-
+  KNIRVCHAIN_API: "https://chain-api-testnet.knirv.network:8080"
+  KNIRVGRAPH_API: "https://graph-api-testnet.knirv.network:8081"
+  KNIRVNEXUS_API: "https://nexus-api-testnet.knirv.network:8082"
+  KNIRVORACLE_API: "https://oracle-api-testnet.knirv.network:1317"
+  KNIRVROUTER_API: "https://router-api-testnet.knirv.network:8086"
+  KNIRVANA_API: "https://knirvana-api-testnet.knirv.network:3000"
+  
 # =============================================================================
 # DEPLOYMENT CONFIGURATION
 # =============================================================================

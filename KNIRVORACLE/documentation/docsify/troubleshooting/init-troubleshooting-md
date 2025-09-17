@@ -49,7 +49,7 @@ This installer will:
 2. Generate a unique chain URI for this node
 4. Generate dev wallet
 5. Detect host operating system
-6. Register URI handler for knirv:// protocol
+6. Register URI handler for agent:// protocol
 7. Find next available ports for node
 8. Update the application configuration
 9. Start the node
@@ -104,7 +104,7 @@ This installer will:
 2. Generate a unique chain URI for this node
 4. Generate dev wallet
 5. Detect host operating system
-6. Register URI handler for knirv:// protocol
+6. Register URI handler for agent:// protocol
 7. Find next available ports for node
 8. Update the application configuration
 9. Start the node
@@ -118,8 +118,8 @@ Enter desired URI: my-test-dev
 Connecting to http://localhost:5000/uriGenerator...
 Requesting specific URI: my-test-dev
 2025/05/16 17:46:58 Received HTTP status code: 201
-2025/05/16 17:46:58 Raw response body: {"txn_hash":"0xb08c3322a4fd84a89af35cea8e639dc6bf074ebf5bdb78609ade2bd31c47ce87","uri":"knirv://my-test-dev.chain/"}
-Successfully generated chain URI: knirv://my-test-dev.chain/
+2025/05/16 17:46:58 Raw response body: {"txn_hash":"0xb08c3322a4fd84a89af35cea8e639dc6bf074ebf5bdb78609ade2bd31c47ce87","uri":"agent://my-test-dev.chain/"}
+Successfully generated chain URI: agent://my-test-dev.chain/
 Transaction Hash ID: 0xb08c3322a4fd84a89af35cea8e639dc6bf074ebf5bdb78609ade2bd31c47ce87
 Generating wallet for this node...
 2025/05/16 17:46:58 Wallet saved successfully to /home/gperry/.config/KNIRVORACLE/wallet.dat
@@ -131,7 +131,7 @@ Enter Peer HTTP Port [default: 6000]:
 Enter Peer P2P (Libp2p) Port [default: 6050]: 
 Skipping registry registration (only required for bootnodes)
 Detected operating system: linux
-URI scheme 'knirv://' definition files created successfully on Linux.
+URI scheme 'agent://' definition files created successfully on Linux.
 Updating MIME database...
 MIME database updated successfully.
 Updating desktop database...

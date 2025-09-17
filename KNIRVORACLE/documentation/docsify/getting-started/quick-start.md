@@ -93,7 +93,7 @@ Press `Ctrl+C` to initiate graceful shutdown.
 *   `GET /txn_pool`: Returns the transaction pool.
 *   `GET /ping`: Simple health check.
 *   `GET /health`: Detailed health check.
-*   `POST /uriGenerator`: Generates a `knirv://` URI, checks DHT, announces on DHT.
+*   `POST /uriGenerator`: Generates a `agent://` URI, checks DHT, announces on DHT.
 *   `GET /info`: Returns server information.
 *   `GET /devs`: Finds devs for the node's chain via the private DHT.
 *   `POST /test/faucet`: (Test Only) Funds an address.
@@ -120,7 +120,7 @@ Press `Ctrl+C` to initiate graceful shutdown.
 KNIRVORACLE uses a custom URI scheme for resource identification within its private network:
 
 ```
-knirv://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1
+agent://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1
 ```
 
 *   `<ID>`: Unique identifier (e.g., `agent-root-5000`, `myPeer`).

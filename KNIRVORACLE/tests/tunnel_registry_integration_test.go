@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"KNIRVORACLE/pkg/uri"
+	"KNIRVORACLE/uri"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -64,11 +64,15 @@ func startGoServer(t *testing.T) *exec.Cmd {
 }
 
 func startNodeServer(t *testing.T) *exec.Cmd {
-	// Check if the agent-tunnel-registry directory exists
-	registryDir := filepath.Join("..", "agent-tunnel-registry")
+	// Check if the embedded agent-tunnel-registry directory exists
+	registryDir := filepath.Join("..", "embedded", "nodejs", "tunnel", "agent-tunnel-registry")
 	if _, err := os.Stat(registryDir); os.IsNotExist(err) {
-		t.Skip("Skipping Node.js tunnel registry test - directory not found")
-		return nil
+		// Fallback to old location for backward compatibility
+		registryDir = filepath.Join("..", "agent-tunnel-registry")
+		if _, err := os.Stat(registryDir); os.IsNotExist(err) {
+			t.Skip("Skipping Node.js tunnel registry test - directory not found")
+			return nil
+		}
 	}
 
 	// Start the Node.js tunnel registry
@@ -187,7 +191,7 @@ func testURIResolver(t *testing.T) {
 	resolver := uri.NewURIResolver()
 
 	// Test URI parsing
-	authority, identifier, resourceType, subPath, err := resolver.ParseURI("knirv://example.com/resource-123.chain/test/path")
+	authority, identifier, resourceType, subPath, err := resolver.ParseURI("agent://example.com/resource-123.chain/test/path")
 	require.NoError(t, err, "Failed to parse URI")
 
 	assert.Equal(t, "example.com", authority, "Authority mismatch")

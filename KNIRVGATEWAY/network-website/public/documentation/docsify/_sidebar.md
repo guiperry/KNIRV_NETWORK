@@ -14,7 +14,7 @@
 
 ## KNIRVORACLE Documentation
 
-* [KNIRVORACLE: A Decentralized Model Context Protocol Network](knirvoracle/README.md)
+* [KNIRVORACLE: A Decentralized Model Context Protocol Network](knirvoracle/index.md)
 
 ## KNIRVROUTER Documentation
 

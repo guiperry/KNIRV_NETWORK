@@ -30,7 +30,7 @@ RELEASE_ASSETS_DIR := ./release_assets # Output dir for final archives, sigs, ch
 # Example: export GPG_KEY_ID="Your Name <your.email@example.com>" or your Key ID
 GPG_KEY_ID ?= YOUR_GPG_KEY_ID_HERE
 
-.PHONY: all clean build-binaries package-release upload-release upload-release-public release-public force-release-micro force-release-micro-public force-release-micro-nowebview force-release-micro-nowebview-public help
+.PHONY: all clean build-binaries package-release upload-release upload-release-public release-public force-release-micro force-release-micro-public force-release-micro-nowebview force-release-micro-nowebview-public help build-embedded-binaries build-embedded-go-binaries build-embedded-nodejs-services install-embedded-nodejs-deps build-embedded-webgui build-tunnel-registry build-payment-gateway build-operator-registry build-webgui build-docsify clean-embedded
 
 all: package-release
 
@@ -61,6 +61,19 @@ help:
 	@echo "  build/all/         Build the application for all target platforms (developer role)."
 	@echo "  build/all-platforms-all-roles Build the application for all platforms and all roles."
 	@echo ""
+	@echo "Embedded services targets:"
+	@echo "  build-embedded-binaries        Build all embedded services (Go binaries + Node.js services)."
+	@echo "  build-embedded-go-binaries     Build only Go binaries (network-monitor, economics)."
+	@echo "  build-embedded-nodejs-services Build and prepare all Node.js services."
+	@echo "  install-embedded-nodejs-deps   Install Node.js dependencies for all embedded services."
+	@echo "  build-embedded-webgui          Build Next.js WebGUI application."
+	@echo "  build-tunnel-registry          Build tunnel registry service individually."
+	@echo "  build-payment-gateway          Build payment gateway service individually."
+	@echo "  build-operator-registry        Build operator registry service individually."
+	@echo "  build-webgui                   Build WebGUI service individually."
+	@echo "  build-docsify                  Build docsify service individually."
+	@echo "  clean-embedded                 Clean all embedded services (remove node_modules, builds, binaries)."
+	@echo ""
 	@echo "Configuration:"
 	@echo "  VERSION          (default: $(VERSION)) - The version to build."
 	@echo "  APP_NAME         (default: $(APP_NAME)) - The application name."
@@ -68,22 +81,145 @@ help:
 	@echo 'Usage:'
 	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' |  sed -e 's/^/ /'
 
-clean:
+clean: clean-embedded
 	@echo "Cleaning up build artifacts and release assets..."
 	@rm -rf "$(CROSS_COMPILE_OUTPUT_DIR)" "$(RELEASE_ASSETS_DIR)"
 	@echo "Cleanup complete."
 
-# Target to build network-monitor binary first (optional, fallback to embedded)
-build-network-monitor:
-	@echo "Attempting to build network-monitor binary..."
-	@if cd ../network-monitor && go build -o ../KNIRVORACLE/bin/knirv-network-monitor ./cmd/monitor 2>/dev/null; then \
-		echo "Network-monitor binary built successfully."; \
+# Target to build all embedded services (binaries and Node.js services)
+build-embedded-binaries: build-embedded-go-binaries build-embedded-nodejs-services
+	@echo "All embedded services built successfully."
+
+# Target to build Go binaries for embedding
+build-embedded-go-binaries:
+	@echo "Building embedded Go binaries..."
+	@echo "Building network-monitor binary for embedding..."
+	@mkdir -p embedded/binaries/network
+	@if cd network-monitor && go build -o ../embedded/binaries/network/knirv-network-monitor ./cmd/monitor 2>/dev/null; then \
+		echo "Network-monitor binary built and embedded successfully."; \
 	else \
-		echo "Network-monitor binary build failed, will use embedded monitor instead."; \
+		echo "Network-monitor binary build failed, using existing embedded binary."; \
+	fi
+	@echo "Building economics service binary for embedding..."
+	@mkdir -p embedded/binaries/economics
+	@if cd economics && go build -o ../embedded/binaries/economics/economics-service ./cmd/main.go 2>/dev/null; then \
+		echo "Economics service binary built and embedded successfully."; \
+	else \
+		echo "Economics service binary build failed, using existing embedded binary."; \
 	fi
 
+# Target to build and prepare all embedded Node.js services
+build-embedded-nodejs-services: install-embedded-nodejs-deps build-embedded-webgui
+	@echo "All embedded Node.js services prepared successfully."
+
+# Target to install Node.js dependencies for all embedded services
+install-embedded-nodejs-deps:
+	@echo "Installing Node.js dependencies for embedded services..."
+	@echo "Installing dependencies for tunnel registry..."
+	@if [ -d "embedded/nodejs/tunnel/agent-tunnel-registry" ] && [ -f "embedded/nodejs/tunnel/agent-tunnel-registry/package.json" ]; then \
+		cd embedded/nodejs/tunnel/agent-tunnel-registry && npm install --silent 2>/dev/null || echo "Warning: Failed to install tunnel registry dependencies"; \
+	else \
+		echo "Tunnel registry not found, skipping..."; \
+	fi
+	@echo "Installing dependencies for payment gateway..."
+	@if [ -d "embedded/nodejs/payment/agent-payment-gateway" ] && [ -f "embedded/nodejs/payment/agent-payment-gateway/package.json" ]; then \
+		cd embedded/nodejs/payment/agent-payment-gateway && npm install --silent 2>/dev/null || echo "Warning: Failed to install payment gateway dependencies"; \
+	else \
+		echo "Payment gateway not found, skipping..."; \
+	fi
+	@echo "Installing dependencies for operator registry..."
+	@if [ -d "embedded/nodejs/operator/operator-registry" ] && [ -f "embedded/nodejs/operator/operator-registry/package.json" ]; then \
+		cd embedded/nodejs/operator/operator-registry && npm install --silent 2>/dev/null || echo "Warning: Failed to install operator registry dependencies"; \
+	else \
+		echo "Operator registry not found, skipping..."; \
+	fi
+	@echo "Installing dependencies for WebGUI..."
+	@if [ -d "embedded/nodejs/webgui/webGUI" ] && [ -f "embedded/nodejs/webgui/webGUI/package.json" ]; then \
+		cd embedded/nodejs/webgui/webGUI && npm install --silent 2>/dev/null || echo "Warning: Failed to install WebGUI dependencies"; \
+	else \
+		echo "WebGUI not found, skipping..."; \
+	fi
+	@echo "Installing dependencies for docsify..."
+	@if [ -d "embedded/nodejs/docsify/docsify" ] && [ -f "embedded/nodejs/docsify/docsify/package.json" ]; then \
+		cd embedded/nodejs/docsify/docsify && npm install --silent 2>/dev/null || echo "Warning: Failed to install docsify dependencies"; \
+	else \
+		echo "Docsify not found, skipping..."; \
+	fi
+
+# Target to build Next.js WebGUI application
+build-embedded-webgui:
+	@echo "Building embedded WebGUI (Next.js application)..."
+	@if [ -d "embedded/nodejs/webgui/webGUI" ] && [ -f "embedded/nodejs/webgui/webGUI/package.json" ]; then \
+		cd embedded/nodejs/webgui/webGUI && \
+		if npm run build --silent 2>/dev/null; then \
+			echo "WebGUI built successfully."; \
+		else \
+			echo "Warning: WebGUI build failed, using existing build or will run in development mode."; \
+		fi; \
+	else \
+		echo "WebGUI not found, skipping build..."; \
+	fi
+
+# Individual service build targets for development
+build-tunnel-registry:
+	@echo "Building tunnel registry service..."
+	@if [ -d "embedded/nodejs/tunnel/agent-tunnel-registry" ]; then \
+		cd embedded/nodejs/tunnel/agent-tunnel-registry && npm install --silent; \
+		echo "Tunnel registry ready."; \
+	else \
+		echo "Tunnel registry not found at embedded/nodejs/tunnel/agent-tunnel-registry"; \
+	fi
+
+build-payment-gateway:
+	@echo "Building payment gateway service..."
+	@if [ -d "embedded/nodejs/payment/agent-payment-gateway" ]; then \
+		cd embedded/nodejs/payment/agent-payment-gateway && npm install --silent; \
+		echo "Payment gateway ready."; \
+	else \
+		echo "Payment gateway not found at embedded/nodejs/payment/agent-payment-gateway"; \
+	fi
+
+build-operator-registry:
+	@echo "Building operator registry service..."
+	@if [ -d "embedded/nodejs/operator/operator-registry" ]; then \
+		cd embedded/nodejs/operator/operator-registry && npm install --silent; \
+		echo "Operator registry ready."; \
+	else \
+		echo "Operator registry not found at embedded/nodejs/operator/operator-registry"; \
+	fi
+
+build-webgui:
+	@echo "Building WebGUI service..."
+	@if [ -d "embedded/nodejs/webgui/webGUI" ]; then \
+		cd embedded/nodejs/webgui/webGUI && npm install --silent && npm run build; \
+		echo "WebGUI built successfully."; \
+	else \
+		echo "WebGUI not found at embedded/nodejs/webgui/webGUI"; \
+	fi
+
+build-docsify:
+	@echo "Building docsify service..."
+	@if [ -d "embedded/nodejs/docsify/docsify" ]; then \
+		cd embedded/nodejs/docsify/docsify && npm install --silent; \
+		echo "Docsify ready."; \
+	else \
+		echo "Docsify not found at embedded/nodejs/docsify/docsify"; \
+	fi
+
+# Clean embedded services
+clean-embedded:
+	@echo "Cleaning embedded services..."
+	@echo "Removing Node.js node_modules directories..."
+	@find embedded/nodejs -name "node_modules" -type d -exec rm -rf {} + 2>/dev/null || true
+	@echo "Removing Next.js build directories..."
+	@find embedded/nodejs -name ".next" -type d -exec rm -rf {} + 2>/dev/null || true
+	@echo "Removing embedded binaries..."
+	@rm -f embedded/binaries/network/knirv-network-monitor 2>/dev/null || true
+	@rm -f embedded/binaries/economics/economics-service 2>/dev/null || true
+	@echo "Embedded services cleaned."
+
 # Target to run the cross-compilation script
-build-binaries: build-network-monitor
+build-binaries: build-embedded-binaries
 	@echo "Starting cross-compilation for $(APP_NAME) version $(VERSION)..."
 	@echo "NO_WEBVIEW flag is set to: $(NO_WEBVIEW)"
 	@VERSION=$(VERSION) BINARY_NAME=$(APP_NAME) NO_WEBVIEW=$(NO_WEBVIEW) ./scripts/cross-compile.sh
@@ -254,28 +390,19 @@ test: test-unit test-integration
 ## test-unit: run unit tests only
 .PHONY: test-unit
 test-unit:
-	@echo "Cleaning up any existing test databases..."
-	@./scripts/cleanup-test-artifacts.sh 2>/dev/null || true
-	@mkdir -p test-reports logs
-	go test -v -race -buildvcs -coverprofile=test-reports/coverage.out ./...
-	@echo "Cleaning up test databases after tests..."
-	@./scripts/cleanup-test-artifacts.sh 2>/dev/null || true
+	go test -v -race -buildvcs ./...
 
 ## test-integration: run integration tests across all KNIRV components
 .PHONY: test-integration
 test-integration:
 	@echo "Running comprehensive integration tests..."
-	@mkdir -p test-reports logs
 	./scripts/run-integration-tests.sh
 
 ## test/cover: run all tests and display coverage
 .PHONY: test/cover
 test/cover:
-	@mkdir -p test-reports logs
-	@./scripts/cleanup-test-artifacts.sh 2>/dev/null || true
-	go test -v -race -buildvcs -coverprofile=test-reports/coverage.out ./...
-	go tool cover -html=test-reports/coverage.out
-	@./scripts/cleanup-test-artifacts.sh 2>/dev/null || true
+	go test -v -race -buildvcs -coverprofile=/tmp/coverage.out ./...
+	go tool cover -html=/tmp/coverage.out
 
 ## upgradeable: list direct dependencies that have upgrades available
 .PHONY: upgradeable
@@ -308,36 +435,30 @@ tidy:
 cache:
 	go clean -cache -modcache -testcache
 
-## cleanup-test: clean up test artifacts and databases
-.PHONY: cleanup-test
-cleanup-test:
-	@echo "Cleaning up test artifacts..."
-	@./scripts/cleanup-test-artifacts.sh
-
 ## build: build the application (default client role) and generate documentation
 .PHONY: build
-build: docs build-network-monitor
+build: docs build-embedded-binaries
 	@echo "Building $(APP_NAME) for host OS (client role)..."
 	@mkdir -p ${OUTPUT_DIR} # Ensure the output directory exists
 	go build -tags="client testnet no_webview" -o=${OUTPUT_DIR}/${BINARY_NAME} ${MAIN_PACKAGE_PATH}
 
 ## build/root: build the application with root role
 .PHONY: build/root
-build/root: build-network-monitor
+build/root: build-embedded-binaries
 	@echo "Building $(APP_NAME) for host OS (root role)..."
 	@mkdir -p ${OUTPUT_DIR} # Ensure the output directory exists
 	go build -tags="root testnet no_webview" -o=${OUTPUT_DIR}/${BINARY_NAME}_root ${MAIN_PACKAGE_PATH}
 
 ## build/bootnode: build the application with bootnode role
 .PHONY: build/bootnode
-build/bootnode: build-network-monitor
+build/bootnode: build-embedded-binaries
 	@echo "Building $(APP_NAME) for host OS (bootnode role)..."
 	@mkdir -p ${OUTPUT_DIR} # Ensure the output directory exists
 	go build -tags=bootnode -o=${OUTPUT_DIR}/${BINARY_NAME}_bootnode ${MAIN_PACKAGE_PATH}
 
 ## build/dev: build the application with developer role
 .PHONY: build/dev
-build/dev: build-network-monitor
+build/dev: build-embedded-binaries
 	@echo "Building $(APP_NAME) for host OS (developer role)..."
 	@mkdir -p ${OUTPUT_DIR} # Ensure the output directory exists
 	go build -tags=dev -o=${OUTPUT_DIR}/${BINARY_NAME}_dev ${MAIN_PACKAGE_PATH}

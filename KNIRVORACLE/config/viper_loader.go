@@ -92,23 +92,15 @@ func LoadConfigurationViper(role Role, cliConfigPath string) (*Config, string, e
 		}
 	}
 
-	// 3. Environment Variable Binding - Updated to use KNIRV_ prefix
-	v.SetEnvPrefix("KNIRV") // e.g., KNIRV_HTTP_PORT=5001
+	// 3. Environment Variable Binding
+	v.SetEnvPrefix("agent") // e.g., agent_HTTPPORT=5001
 	v.AutomaticEnv()
-	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_")) // e.g., http-port -> KNIRV_HTTP_PORT
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_")) // e.g., roles.Root.httpPort -> agent_ROLES_CREATOR_HTTPPORT
 
 	// Explicitly bind environment variables for Cerebras configuration
-	// Updated to use KNIRV_ prefix for consistency
-	v.BindEnv("chromem.cerebras_config.api_key", "KNIRV_CEREBRAS_API_KEY")
-	v.BindEnv("chromem.cerebras_config.base_url", "KNIRV_CEREBRAS_BASE_URL")
-
-	// Additional standardized environment variable bindings
-	v.BindEnv("port", "KNIRV_HTTP_PORT")
-	v.BindEnv("p2p_port", "KNIRV_P2P_PORT")
-	v.BindEnv("wallet_port", "KNIRV_WALLET_PORT")
-	v.BindEnv("chain_id", "KNIRV_CHAIN_ID")
-	v.BindEnv("data_dir", "KNIRV_DATA_DIR")
-	v.BindEnv("log_level", "KNIRV_LOG_LEVEL")
+	// These will be read from the environment after godotenv.Load() in main.go
+	v.BindEnv("chromem.cerebras_config.api_key", "DEFAULT_CEREBRAS_API_KEY")
+	v.BindEnv("chromem.cerebras_config.base_url", "DEFAULT_CEREBRAS_BASE_URL")
 
 	// Determine which config file path to report back (role-specific takes precedence if loaded)
 	finalConfigFileUsed := roleConfigFileLoaded

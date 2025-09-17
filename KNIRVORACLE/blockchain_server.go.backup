@@ -2514,7 +2514,7 @@ func (bcs *BlockchainServer) handleMCPListAllContextRecords(w http.ResponseWrite
 // resolveIdentifier checks if the input string is a URI and parses it to get the ID,
 // otherwise returns the input string as is (assuming it's a raw ID).
 func resolveIdentifier(identifierOrURI string) (string, error) {
-	if strings.HasPrefix(identifierOrURI, "knirv://") {
+	if strings.HasPrefix(identifierOrURI, "agent://") {
 		id, _, _, _, err := uri.ParseResourceURI(identifierOrURI) // We only need the ID part here
 		if err != nil {
 			return "", fmt.Errorf("invalid URI format '%s': %w", identifierOrURI, err)

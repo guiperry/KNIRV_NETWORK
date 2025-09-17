@@ -23,7 +23,7 @@
     tunnel_registry_port: "{{ tunnel_registry_port | default('3003', true) }}"
     notary_system_port: "{{ notary_system_port | default('3007', true) }}"
     network_monitor_port: "{{ network_monitor_port | default('3008', true) }}"
-    nanda_ans_port: "{{ nanda_ans_port | default('3009', true) }}"
+
     
     # DNS Records Configuration for KNIRVORACLE Services
     dns_records:
@@ -75,13 +75,7 @@
         proxied: true
         comment: "KNIRVORACLE Network Monitor Service"
 
-      # NANDA-ANS Service
-      - name: "nanda-ans"
-        type: "A"
-        content: "{{ cf_server_ip }}"
-        ttl: 300
-        proxied: true
-        comment: "KNIRVORACLE NANDA-ANS Agent Registry Service"
+
       
       # Environment-specific service records
       - name: "{{ env_name }}.bootnode-registry"
@@ -112,12 +106,7 @@
         proxied: false
         comment: "KNIRVORACLE Network Monitor {{ env_name | title }}"
 
-      - name: "{{ env_name }}.nanda-ans"
-        type: "A"
-        content: "{{ cf_server_ip }}"
-        ttl: 300
-        proxied: false
-        comment: "KNIRVORACLE NANDA-ANS {{ env_name | title }}"
+
 
   tasks:
     - name: Validate required variables
@@ -158,5 +147,5 @@
           - Tunnel Registry: tunnel-registry.{{ zone_name }} -> {{ cf_server_ip }}:{{ tunnel_registry_port }}
           - Notary System: notary-system.{{ zone_name }} -> {{ cf_server_ip }}:{{ notary_system_port }}
           - Network Monitor: network-monitor.{{ zone_name }} -> {{ cf_server_ip }}:{{ network_monitor_port }}
-          - NANDA-ANS: nanda-ans.{{ zone_name }} -> {{ cf_server_ip }}:{{ nanda_ans_port }}
+
           - Environment: {{ env_name }}

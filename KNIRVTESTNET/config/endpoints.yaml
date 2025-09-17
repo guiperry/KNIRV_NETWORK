@@ -7,20 +7,19 @@ generated_at: "2025-01-18T00:00:00Z"
 
 # Testnet Service Endpoints
 endpoints:
-  KNIRVCHAIN_API: "https://chain-test.knirv.com"
-  KNIRVGRAPH_API: "https://graph-test.knirv.com"
-  KNIRVNEXUS_API: "https://nexus-test.knirv.com"
-  KNIRVNEXUS_GUI_API: "https://nexus-test.knirv.com"
-  KNIRVNEXUS_DVE_API: "https://nexus-dve-test.knirv.com"
-  KNIRVNEXUS_VALIDATION_API: "https://nexus-validation-test.knirv.com"
-  KNIRVORACLE_API: "https://oracle-test.knirv.com"
-  KNIRVROUTER_API: "https://router-test.knirv.com"
-  KNIRVANA_API: "https://knirvana-test.knirv.com"
-  KNIRVANA_INTERACTIVE_GRAPH: "https://knirvana-test.knirv.com"
-
-# Testnet Configuration
-config:
-  NODE_ENV: testnet
+  KNIRVCHAIN_API: "https://chain-testnet.knirv.network"
+  KNIRVGRAPH_API: "https://graph-testnet.knirv.network"
+  KNIRVNEXUS_API: "https://nexus-testnet.knirv.network"
+  KNIRVNEXUS_GUI_API: "https://nexus-gui-testnet.knirv.network"
+  KNIRVNEXUS_DVE_API: "https://nexus-dve-testnet.knirv.network"
+  KNIRVNEXUS_VALIDATION_API: "https://nexus-validation-testnet.knirv.network"
+  KNIRVORACLE_API: "https://oracle-testnet.knirv.network"
+  KNIRVROUTER_API: "https://router-testnet.knirv.network"
+  KNIRVANA_API: "https://knirvana-api-testnet.knirv.network"
+  KNIRVANA_INTERACTIVE_GRAPH: "https://interactive-graph-testnet.knirv.network"
+  KNIRVANALYTICS_API: "https://analytics-testnet.knirv.network"
+  KNIRVANALYTICS_UI: "https://analytics-ui-testnet.knirv.network"
+  KNIRVANALYTICS_WEBHOOKS: "https://webhooks-analytics-testnet.knirv.network"
   DEPLOYMENT_ENV: testnet
   TESTNET_MODE: true
   DEBUG_MODE: true

@@ -2,10 +2,11 @@ package config
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	pb "KNIRVORACLE/pkg/protocol/proto"
+	pb "KNIRVORACLE/proto"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -28,7 +29,7 @@ func LoadEncryptedBootnodeKeyFile(path string) (*pb.EncryptedBootnodeKeyFile, er
 	}
 
 	// Read file
-	data, err := os.ReadFile(path)
+	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read bootnode key file: %w", err)
 	}

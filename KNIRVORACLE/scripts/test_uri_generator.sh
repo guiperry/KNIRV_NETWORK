@@ -59,8 +59,8 @@ if [ -z "$uri" ] || [ -z "$txn_hash" ]; then
 fi
 
 # Verify URI format
-if [[ ! "$uri" =~ ^knirv:// ]]; then
-    echo "Error: Invalid URI format, expected knirv:// prefix"
+if [[ ! "$uri" =~ ^agent:// ]]; then
+    echo "Error: Invalid URI format, expected agent:// prefix"
     echo "URI: $uri"
     exit 1
 fi

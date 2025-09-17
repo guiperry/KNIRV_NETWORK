@@ -51,7 +51,7 @@
   - [MCP API](./api-reference/mcp-api.md)
 - [Components](./components/)
   - [Agent Tunnel Registry](./components/agent-tunnel-registry.md)
-  - [Agent Bootnode Registry](./components/operator-registry.md)
+  - [Agent Bootnode Registry](./components/agent-bootnode-registry.md)
   - [Agent Payment Gateway](./components/agent-payment-gateway.md)
   - [Agent Developer Portal](./components/agent-developer-portal.md)
   - [Alternative GUI](./components/altgui.md)

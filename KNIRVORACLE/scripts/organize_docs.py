@@ -51,7 +51,7 @@ STRUCTURE = {
     'components': {
         'index.md': {'title': 'Components', 'content': ''},
         'agent-tunnel-registry.md': {'title': 'Agent Tunnel Registry', 'content': ''},
-        'operator-registry.md': {'title': 'Agent Bootnode Registry', 'content': ''},
+        'agent-bootnode-registry.md': {'title': 'Agent Bootnode Registry', 'content': ''},
         'agent-payment-gateway.md': {'title': 'Agent Payment Gateway', 'content': ''},
         'agent-developer-portal.md': {'title': 'Agent Developer Portal', 'content': ''},
         'altgui.md': {'title': 'Alternative GUI', 'content': ''}
@@ -109,7 +109,7 @@ CONTENT_MAPPING = {
     'getting-started/configuration.md': ['protocols/Blockchain_README.md'],
     'getting-started/quick-start.md': ['protocols/Blockchain_README.md'],
     'components/agent-tunnel-registry.md': ['protocols/tunnel_relay_implementation_summary.md'],
-    'components/operator-registry.md': ['protocols/Bootnode_Registry_Protocol.md'],
+    'components/agent-bootnode-registry.md': ['protocols/Bootnode_Registry_Protocol.md'],
     'guides/running-a-node.md': ['protocols/Blockchain_README.md'],
     'guides/developing-plugins.md': ['protocols/Plugin_Updater_Protocol.md']
 }
@@ -119,7 +119,7 @@ KEYWORD_MAPPING = {
     'core-concepts/blockchain.md': ['blockchain', 'consensus', 'p2p', 'libp2p'],
     'core-concepts/mcp.md': ['mcp', 'model context protocol', 'contextrecord'],
     'core-concepts/capabilities.md': ['capabilities', 'plugins', 'tools', 'prompts'],
-    'core-concepts/uri-scheme.md': ['uri', 'knirv://', 'scheme'],
+    'core-concepts/uri-scheme.md': ['uri', 'agent://', 'scheme'],
     'api-reference/blockchain-api.md': ['api', 'endpoints', 'http', 'get', 'post'],
     'api-reference/wallet-api.md': ['wallet', 'transaction', 'signing'],
     'api-reference/mcp-api.md': ['mcp', 'api', '/mcp/'],

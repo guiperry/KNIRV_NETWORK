@@ -2014,7 +2014,7 @@ agent-cli-tool mcp generate-plugin --opschema <opschema_file_path> --output <out
   Capability registered successfully!
   Transaction Hash: 0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
   Capability ID: resource_test-resource_1234567890abcdef
-  Capability URI: knirv://resource/resource_test-resource_1234567890abcdef
+  Capability URI: agent://resource/resource_test-resource_1234567890abcdef
   ```
 - **Error Handling**:
   - Validates the opSchema file
@@ -2078,7 +2078,7 @@ agent-cli-tool mcp register-capability --node <node_url> --wallet <wallet_file_p
   Capability registered successfully!
   Transaction Hash: 0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
   Capability ID: resource_test-resource_1234567890abcdef
-  Capability URI: knirv://resource/resource_test-resource_1234567890abcdef
+  Capability URI: agent://resource/resource_test-resource_1234567890abcdef
   
   Plugin file accessible at: http://192.168.1.100:8090/plugins/test-plugin.so
   OpSchema file accessible at: http://192.168.1.100:8090/opschemas/test-opschema.yaml
@@ -2146,7 +2146,7 @@ agent-cli-tool mcp register-server --node <node_url> --wallet <wallet_file_path>
   Server registered successfully!
   Transaction Hash: 0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
   Server ID: mcp-server_example-mcp-server_1234567890abcdef
-  Server URI: knirv://mcp-server/mcp-server_example-mcp-server_1234567890abcdef
+  Server URI: agent://mcp-server/mcp-server_example-mcp-server_1234567890abcdef
   
   Auto-registering capabilities...
   Registering capability: resource-provider...
@@ -2228,12 +2228,12 @@ agent-cli-tool mcp register-procedure --node <node_url> --wallet <wallet_file_pa
   Procedure registered successfully!
   Transaction Hash: 0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
   Procedure ID: procedure_skyrim-mod-validator_1234567890abcdef
-  Procedure URI: knirv://procedure/procedure_skyrim-mod-validator_1234567890abcdef
+  Procedure URI: agent://procedure/procedure_skyrim-mod-validator_1234567890abcdef
   
   Registering capability...
   Capability registered successfully!
   Capability ID: resource_skyrim-mod-validator_1234567890abcdef
-  Capability URI: knirv://resource/resource_skyrim-mod-validator_1234567890abcdef
+  Capability URI: agent://resource/resource_skyrim-mod-validator_1234567890abcdef
   
   Plugin file accessible at: http://192.168.1.100:8090/plugins/test-plugin.so
   OpSchema file accessible at: http://192.168.1.100:8090/opschemas/test-opschema.yaml

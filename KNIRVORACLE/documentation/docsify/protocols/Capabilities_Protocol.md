@@ -166,7 +166,7 @@ An application that enables llm inference within custom capability functionaliti
     *   `GasFeeNRN`: The NRN fee required for a client to log usage of this capability.
     *   `ContentHash`: SHA256 hash of the capability binary/package.
     *   `Schema`: JSON Schema defining the capability's expected input and output.
-    *   `LocationHints`: Array of URIs (e.g., `knirv://<dev_id>.chain/capabilities/<capability_id>`, IPFS CID) where the capability binary can be downloaded.
+    *   `LocationHints`: Array of URIs (e.g., `agent://<dev_id>.chain/capabilities/<capability_id>`, IPFS CID) where the capability binary can be downloaded.
 
     This transaction is submitted to the KNIRVORACLE network.
 3.  **Discovery (By Client):**

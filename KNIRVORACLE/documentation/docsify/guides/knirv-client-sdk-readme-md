@@ -2,14 +2,14 @@
 
 ## Overview
 
-The KNIRVORACLE Client SDK provides a high-level interface for developers to interact with the KNIRVORACLE network. It simplifies the process of resolving `knirv://` URIs, discovering devs on the private DHT, connecting to them, and fetching the underlying resources or interacting with services.
+The KNIRVORACLE Client SDK provides a high-level interface for developers to interact with the KNIRVORACLE network. It simplifies the process of resolving `agent://` URIs, discovering devs on the private DHT, connecting to them, and fetching the underlying resources or interacting with services.
 
 This SDK abstracts away the complexities of P2P networking and DHT lookups, allowing developers to focus on building applications that leverage KNIRVORACLE resources. It supports Go, Python, JavaScript, and TypeScript.
 
 ## KNIRVORACLE URI Structure Recap
 
 ```
-knirv://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
+agent://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
 ```
 
 *   **Scheme:** `agent`
@@ -23,7 +23,7 @@ For a detailed specification, please refer to the KNIRVORACLE URI Scheme Design 
 
 ## SDK Scope and Functionality
 
-The KNIRVORACLE Client SDK handles the entire pipeline for a given `knirv://` URI:
+The KNIRVORACLE Client SDK handles the entire pipeline for a given `agent://` URI:
 
 1.  **Parsing:** Deconstructs the URI string into its `ID`, `ResourceType`, `Path`, and `Query` components.
 2.  **Peer Discovery (DHT Resolution):** Uses the `ID` and `ResourceType` to query the KNIRVORACLE private DHT and find dev(s) advertising the resource.
@@ -92,13 +92,13 @@ import (
 
 func main() {
 	uriStrings := []string{
-		"knirv://mychain-alpha.chain/block?number=123&validator=node1",
-		"knirv://content-xyz-123.nrn/data?version=1.2&format=json",
-		"knirv://another-id.chain/",  // Path defaults to /
-		"knirv://short.nrn",          // Path defaults to /
+		"agent://mychain-alpha.chain/block?number=123&validator=node1",
+		"agent://content-xyz-123.nrn/data?version=1.2&format=json",
+		"agent://another-id.chain/",  // Path defaults to /
+		"agent://short.nrn",          // Path defaults to /
 		"invalid://mychain.chain/",   // Invalid scheme
-		"knirv://mychainchain",       // Invalid authority
-		"knirv://nonexistent.resource", // Valid URI, but resource might not be found
+		"agent://mychainchain",       // Invalid authority
+		"agent://nonexistent.resource", // Valid URI, but resource might not be found
 	}
 
 	// SDK Client Initialization (one-time setup)
@@ -196,12 +196,12 @@ import asyncio
 from agent_uri_sdk import agentClient, agentClientError  # Adjust import path
 
 uri_strings = [
-    "knirv://mychain-alpha.chain/block?number=123&validator=node1",
-    "knirv://content-xyz-123.nrn/data?version=1.2&format=json",
-    "knirv://another-id.chain/",
-    "knirv://short.nrn",
+    "agent://mychain-alpha.chain/block?number=123&validator=node1",
+    "agent://content-xyz-123.nrn/data?version=1.2&format=json",
+    "agent://another-id.chain/",
+    "agent://short.nrn",
     "invalid://mychain.chain/",
-    "knirv://nonexistent.resource",
+    "agent://nonexistent.resource",
 ]
 
 async def main():
@@ -280,12 +280,12 @@ export class agentClient {
 import { agentClient, agentClientConfig, agentClientError } from 'agent-uri-sdk'; // Adjust import path
 
 const uriStrings: string[] = [
-    "knirv://mychain-alpha.chain/block?number=123&validator=node1",
-    "knirv://content-xyz-123.nrn/data?version=1.2&format=json",
-    "knirv://another-id.chain/",
-    "knirv://short.nrn",
+    "agent://mychain-alpha.chain/block?number=123&validator=node1",
+    "agent://content-xyz-123.nrn/data?version=1.2&format=json",
+    "agent://another-id.chain/",
+    "agent://short.nrn",
     "invalid://mychain.chain/",
-    "knirv://nonexistent.resource",
+    "agent://nonexistent.resource",
 ];
 
 (async () => {
