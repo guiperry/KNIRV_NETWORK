@@ -1,0 +1,1620 @@
+# ChromemDB Integration Plan for Enhanced Semantic Search and Querying
+
+## 1. Overview
+
+This document outlines a plan to integrate ChromemDB into the KNIRVORACLE node software to provide enhanced querying capabilities, particularly for semantic search across blockchain transactions, context records, and capability descriptors. The primary goal is to create a fast, queryable local data store that complements the existing LevelDB-based blockchain storage by enabling powerful similarity searches and metadata-filtered queries.
+
+Currently, the KNIRVORACLE blockchain data is stored in LevelDB, which is excellent for key-value lookups but limited for complex and semantic queries. This implementation plan addresses this limitation by introducing ChromemDB as a secondary index, enabling advanced search capabilities while maintaining LevelDB as the source of truth.
+
+### 1.1 Key Benefits
+
+Integrating ChromemDB offers several significant advantages:
+
+#### Enhanced Semantic Querying for ContextRecords and Transactions:
+
+- **Semantic Search**: Enable queries like "find transactions or context records related to 'data processing tool failures'" by searching based on the meaning of the content in Transaction.Data or ContextRecord fields.
+- **Rich Metadata Filtering**: Combine semantic search with complex filtering on metadata attributes (e.g., "find all tool invocations by user X for capability Y within a specific date range, where the NRN fee was above Z, and the invocation description is similar to 'failed image generation'").
+- **Local Analytics & Audit**: Allow nodes to perform sophisticated local analysis of MCP interactions using semantic similarity and metadata.
+- **Performance for Complex Lookups**: Provide substantial performance improvements for queries that combine semantic meaning with structured metadata.
+
+#### Improved Discovery and Management of Capability Descriptors:
+
+- **Semantic Search for Capabilities**: Find capabilities based on natural language descriptions of their purpose or functionality (e.g., "find capabilities that can analyze sentiment in text").
+- **Metadata-based Filtering**: Filter capabilities by owner, type, version, registration date, etc., in conjunction with semantic search.
+
+#### Developer Experience and Data Modeling:
+
+- Leverage ChromemDB's client libraries for easier integration.
+- Model data as documents with associated metadata, suitable for both semantic search and structured querying.
+- Utilize embedding functions to automatically convert text data into searchable vectors.
+
+### 1.2 Integration Strategy
+
+The integration strategy follows these key principles:
+
+- **Supplemental Index**: ChromemDB acts as a supplemental, rich secondary index with vector search capabilities.
+- **LevelDB as Source of Truth**: The core blockchain data remains in LevelDB as the ultimate source of truth.
+- **Synchronization**: When new blocks are processed, relevant data is extracted, transformed (including embedding generation), and written to ChromemDB.
+- **Minimal Core Impact**: The core blockchain logic remains unchanged.
+
+### 1.3 Alignment with Data Consistency Implementation Plan
+
+This ChromemDB implementation plan is designed to work in harmony with the Data Consistency Implementation Plan, adhering to its guiding principles:
+
+1. **JSON for Transit, Protobuf for Storage and Hashing**:
+   - ChromemDB will store document content in standardized JSON format
+   - The JSON format will be consistent with the API transit format
+   - While the blockchain core uses Protobuf for storage and cryptographic operations, ChromemDB will use the JSON representation for semantic search
+
+2. **Consistent Transaction.Data Handling**:
+   - ChromemDB will index Transaction.Data in its JSON format
+   - The conversion functions will ensure proper JSON structure even when the original data might not be well-formed
+   - This maintains consistency with the principle that Transaction.Data remains in JSON format for transit and invocation
+
+3. **Complete Data Coverage**:
+   - ChromemDB collections will be designed to cover all transaction types, context records, and capability descriptors
+   - The schema will be flexible enough to accommodate future transaction types
+   - All data stored in ChromemDB will maintain consistent field naming and data types across different collections
+
+## 2. Current Transaction Search Capabilities
+
+(This section remains unchanged as it describes the existing system.)
+
+## 3. Goals
+
+- **Enhanced Transaction Search**: Enable semantic search on transaction data combined with rich metadata filtering (type, address, timestamp, etc.).
+- **Improved Context Record Querying**: Provide advanced semantic and metadata-based querying for ContextRecords.
+- **Capability Descriptor Search**: Enable searching for capabilities based on semantic descriptions and various attributes.
+- **Real-Time Indexing**: Maintain synchronization between LevelDB and ChromemDB.
+- **Minimal Core Impact**: Implement ChromemDB as a secondary index without modifying the core blockchain logic.
+
+## 4. ChromemDB Collection Design
+
+ChromemDB stores data in Collections. Each item in a collection consists of a document (textual content to be embedded), an embedding (vector representation of the document), metadata (filterable key-value pairs), and a unique ID. We will define an embedding function for each collection (ChromemDB can use default ones or custom ones like Sentence Transformers or OpenAI).
+
+### 4.1 Transaction Collection
+
+This collection will store transactions for semantic search on their data payload and metadata filtering.
+
+- **Collection Name**: `transactions`
+- **Document**: The DataJSON field (JSON string representation of Transaction.Data) will serve as the primary document for embedding. This allows semantic search on the content of the transaction data.
+- **Metadata**:
+  - TransactionHash (string, unique ID for ChromemDB item)
+  - BlockHash (string)
+  - BlockNumber (uint64)
+  - From (string)
+  - To (string, optional)
+  - Value (uint64)
+  - Type (string)
+  - Timestamp (int64, Unix timestamp)
+  - Fee (uint64)
+  - Status (string: "confirmed", "failed" - pending transactions are typically not indexed until confirmed)
+  - DataType (string, optional: Type of data in Transaction.Data)
+  - CreatedAt (int64, Unix timestamp for when it was added to ChromemDB)
+- **ID**: TransactionHash
+
+### 4.2 Context Record Collection
+
+This collection mirrors mcp_context.ContextRecord for rich semantic queries on MCP context.
+
+- **Collection Name**: `context_records`
+- **Document**: A concatenated string of key fields like CapabilityID, Status, and Error (if present), or a summary description if available. This allows searching for context records based on their operational aspects or issues.
+- **Metadata**:
+  - ID (string, Original ContextRecord.ID, unique ID for ChromemDB item)
+  - CapabilityID (string)
+  - InvokerNRN (string)
+  - ProviderNRN (string)
+  - Status (string: "INITIATED", "COMPLETED", "FAILED")
+  - InputDataHash (string)
+  - OutputDataHash (string)
+  - Error (string, optional)
+  - TimestampInitiated (int64, Unix timestamp)
+  - TimestampCompleted (int64, Unix timestamp, optional)
+  - GasFeeNRN (uint64)
+  - TransactionHash (string, the blockchain tx hash)
+  - BlockHeight (int64)
+  - BlockTimestamp (int64, Unix timestamp of the block)
+- **ID**: ContextRecord.ID
+
+### 4.3 Capability Descriptor Collection
+
+This collection stores metadata about registered capabilities for efficient semantic discovery.
+
+- **Collection Name**: `capability_descriptors`
+- **Document**: A combination of Name, Description, and CapabilityType. This allows natural language queries to find relevant capabilities.
+- **Metadata**:
+  - ID (string, The unique Capability ID, unique ID for ChromemDB item)
+  - Name (string)
+  - Owner (string, NRN of the owner)
+  - Version (string)
+  - Description (string) // Also part of the document, but useful as metadata too
+  - CapabilityType (string: "RESOURCE", "TOOL", "PROMPT")
+  - GasFeeNRN (uint64)
+  - RegisteredAt (int64, Unix timestamp of registration/update)
+  - TransactionHash (string)
+  - BlockHeight (int64)
+  - BlockTimestamp (int64, Unix timestamp of the block)
+  - IsLatest (bool, True if this is the latest version)
+  - FullDescriptorJSON (string, optional, if too large, consider storing a hash or omitting)
+- **ID**: CapabilityDescriptor.ID (Note: for versioning, the ID might need to incorporate version, or IsLatest must be managed carefully). A composite ID like capability_id_version or relying on TransactionHash as ID if updates create new entries. For simplicity, using ID and managing IsLatest via metadata updates is feasible.
+
+### 4.4 Plugin Metadata Collection (Optional)
+
+For searching plugin metadata (not caching binaries, which is a separate concern).
+
+- **Collection Name**: `plugin_metadata`
+- **Document**: A textual description of the plugin's functionality, if available.
+- **Metadata**:
+  - PluginID (string, unique ID for ChromemDB item, could be CapabilityID_Version_ContentHash)
+  - CapabilityID (string)
+  - ContentHash (string)
+  - Version (string)
+  - Size (int64)
+  - MimeType (string, optional)
+  - CachedAt (int64, Unix timestamp)
+  - Description (string, if not part of the main document)
+- **ID**: A unique identifier for the plugin version, e.g., CapabilityID + "_" + Version + "_" + ContentHash.
+
+### 4.5 Conversion Functions
+
+Helper functions will convert Go structs to ChromemDB document strings, metadata maps, and IDs. These functions must adhere to the data consistency principles outlined in the Data Consistency Implementation Plan and the standardized data format requirements for inference engine compatibility.
+
+#### 4.5.1 Optimizing Content for Embedding
+
+When working with ChromemDB, it's important to understand that the document field is what gets embedded for semantic search. For optimal results, this field should contain natural language text rather than structured JSON, as embedding models perform better on coherent text than on JSON syntax with braces, quotes, and keys.
+
+The key principles for effective embedding are:
+
+1. **Use Natural Language for Documents**: The text that gets embedded should be in natural language format, focusing on the semantic meaning.
+2. **Keep JSON for Metadata and Storage**: Use JSON for structured data in metadata, but not as the primary content for embedding.
+3. **Create Descriptive Summaries**: Generate human-readable summaries that capture the essence of the data for embedding.
+4. **Store Full Data in Metadata**: If needed, store the complete structured data in metadata for retrieval.
+
+```go
+// Example for ContextRecord
+// (Assuming mcptypes.ContextRecord is your Go struct)
+
+func PrepareContextRecordForChromem(cr *mcptypes.ContextRecord, txHash string, blockHeight int64, blockTimestamp int64) (
+    id string,
+    documentForEmbedding string, // Renamed for clarity
+    metadata map[string]interface{},
+) {
+    id = cr.ID
+    
+    // Document for semantic search (natural language representation)
+    // This is what gets embedded - a coherent text description rather than JSON
+    documentForEmbedding = fmt.Sprintf("Context record for capability %s. Status: %s. Invoked by %s, provided by %s. Error: %s. Initiated at %s, completed at %s.",
+        cr.CapabilityID, 
+        string(cr.Status), 
+        cr.InvokerNRN, 
+        cr.ProviderNRN, 
+        cr.Error,
+        time.Unix(cr.TimestampInitiated, 0).Format(time.RFC3339),
+        time.Unix(cr.TimestampCompleted, 0).Format(time.RFC3339)) // Added timestamps for more context
+    
+    // Create full JSON representation for storage/retrieval (optional to store in Chromem metadata)
+    documentObj := map[string]interface{}{
+        "record_type": "context_record",
+        "schema_version": "1.0",
+        "capability_id": cr.CapabilityID,
+        "status": string(cr.Status),
+        "invoker": cr.InvokerNRN,
+        "provider": cr.ProviderNRN,
+        "error": cr.Error,
+    }
+    fullRecordJSONBytes, _ := json.MarshalIndent(documentObj, "", "  ")
+
+    // Metadata follows a consistent structure for filtering
+    metadata = map[string]interface{}{
+        "ID":                 cr.ID, // Storing in metadata for exact matches too
+        "CapabilityID":       cr.CapabilityID,
+        "InvokerNRN":         cr.InvokerNRN,
+        "ProviderNRN":        cr.ProviderNRN,
+        "Status":             string(cr.Status),
+        "InputDataHash":      cr.InputDataHash,
+        "OutputDataHash":     cr.OutputDataHash,
+        "Error":              cr.Error,
+        "TimestampInitiated": cr.TimestampInitiated,
+        "TimestampCompleted": cr.TimestampCompleted,
+        "GasFeeNRN":          cr.GasFeeNRN,
+        "TransactionHash":    txHash,
+        "BlockHeight":        blockHeight,
+        "BlockTimestamp":     blockTimestamp,
+        "SchemaVersion":      "1.0", // Include schema version in metadata
+        "RecordType":         "context_record", // Explicit record type for filtering
+        "FullRecordJSON":     string(fullRecordJSONBytes), // Optional: store full JSON in metadata
+    }
+    return
+}
+
+// PrepareTransactionForChromem converts a Transaction to ChromemDB format
+func PrepareTransactionForChromem(tx *bctypes.Transaction, blockHeight int64, blockTimestamp int64) (
+    id string,
+    documentForEmbedding string,
+    metadata map[string]interface{},
+) {
+    id = tx.TransactionHash
+    
+    // For Transaction.Data, we need to ensure it's properly formatted JSON
+    var dataObj interface{}
+    var dataType string
+    var dataDescription string
+    
+    // First try to unmarshal the data to get its structure
+    if err := json.Unmarshal(tx.Data, &dataObj); err != nil {
+        // If not valid JSON, use the raw data as a string
+        dataDescription = string(tx.Data)
+        dataType = "unknown"
+    } else {
+        // Try to create a meaningful description of the data
+        dataDescription = createDataDescription(dataObj, string(tx.Type))
+        dataType = string(tx.Type)
+    }
+    
+    // Create a natural language description for embedding
+    // This is what gets embedded - a coherent text description rather than JSON
+    documentForEmbedding = fmt.Sprintf("Transaction of type '%s' from '%s'", string(tx.Type), tx.From)
+    if tx.To != "" {
+        documentForEmbedding += fmt.Sprintf(" to '%s'", tx.To)
+    }
+    documentForEmbedding += fmt.Sprintf(" with value %d and fee %d. Timestamp: %s. Data: %s", 
+        tx.Value, 
+        tx.Fee, 
+        time.Unix(tx.Timestamp, 0).Format(time.RFC3339),
+        dataDescription)
+    
+    // Store the full enriched data as JSON for retrieval if needed
+    enrichedDataObj := map[string]interface{}{
+        "transaction_type": string(tx.Type),
+        "schema_version": "1.0",
+        "data": dataObj,
+        "timestamp": tx.Timestamp,
+        "from_address": tx.From,
+    }
+    if tx.To != "" {
+        enrichedDataObj["to_address"] = tx.To
+    }
+    enrichedBytes, _ := json.MarshalIndent(enrichedDataObj, "", "  ")
+
+    // Consistent metadata structure for filtering
+    metadata = map[string]interface{}{
+        "TransactionHash": tx.TransactionHash,
+        "BlockHash":       tx.BlockHash,
+        "BlockNumber":     blockHeight,
+        "From":            tx.From,
+        "To":              tx.To,
+        "Value":           tx.Value,
+        "Type":            string(tx.Type),
+        "Timestamp":       tx.Timestamp,
+        "Fee":             tx.Fee,
+        "Status":          "confirmed", // Assuming confirmed if in a block
+        "DataType":        dataType,
+        "CreatedAt":       time.Now().Unix(),
+        "BlockHeight":     blockHeight,
+        "BlockTimestamp":  blockTimestamp,
+        "SchemaVersion":   "1.0",
+        "RecordType":      "transaction",
+        "FullDataJSON":    string(enrichedBytes), // Store full JSON in metadata
+    }
+    return
+}
+
+// Helper function to create a meaningful description of transaction data
+func createDataDescription(dataObj interface{}, txType string) string {
+    // This would be implemented based on your transaction types
+    // For example, for a capability registration:
+    // "Registration of capability 'Image Generator' (version 1.0) of type TOOL owned by nrn:user:alice"
+    
+    // For now, a simple fallback:
+    dataBytes, err := json.Marshal(dataObj)
+    if err != nil {
+        return "Unknown data format"
+    }
+    
+    // Limit the length to avoid overly long embeddings
+    if len(dataBytes) > 500 {
+        return fmt.Sprintf("%s... (truncated)", string(dataBytes[:500]))
+    }
+    return string(dataBytes)
+}
+
+// PrepareCapabilityDescriptorForChromemFromRegister converts a capability descriptor from registration data
+func PrepareCapabilityDescriptorForChromemFromRegister(data *mcptypes.MCPRegisterCapabilityData, txHash string, blockHeight int64, blockTimestamp int64) (
+    id string,
+    documentForEmbedding string,
+    metadata map[string]interface{},
+) {
+    // Extract capability ID and other details from the descriptor
+    capID := GetCapabilityIDFromDescriptor(data.CapabilityDescriptor)
+    capType := GetCapabilityTypeFromDescriptor(data.CapabilityDescriptor)
+    name := GetCapabilityNameFromDescriptor(data.CapabilityDescriptor)
+    description := GetCapabilityDescriptionFromDescriptor(data.CapabilityDescriptor)
+    owner := GetCapabilityOwnerFromDescriptor(data.CapabilityDescriptor)
+    version := GetCapabilityVersionFromDescriptor(data.CapabilityDescriptor)
+    
+    id = capID
+    
+    // Create a natural language summary for embedding
+    // This is what gets embedded - a coherent text description rather than JSON
+    documentForEmbedding = fmt.Sprintf("Capability '%s': %s (version %s). Type: %s. Owner: %s. Registered at %s.", 
+        name, 
+        description, 
+        version, 
+        capType, 
+        owner,
+        time.Unix(blockTimestamp, 0).Format(time.RFC3339))
+    
+    // Create structured document for storage
+    documentObj := map[string]interface{}{
+        "record_type": "capability_descriptor",
+        "schema_version": "1.0",
+        "capability_id": capID,
+        "capability_type": capType,
+        "name": name,
+        "description": description,
+        "owner": owner,
+        "version": version,
+    }
+    documentBytes, _ := json.MarshalIndent(documentObj, "", "  ")
+    
+    // Store the full descriptor as JSON for retrieval
+    fullDescriptorJSON, _ := json.Marshal(data.CapabilityDescriptor)
+    
+    // Consistent metadata structure
+    metadata = map[string]interface{}{
+        "ID":                capID,
+        "Name":              name,
+        "Owner":             owner,
+        "Version":           version,
+        "Description":       description,
+        "CapabilityType":    capType,
+        "RegisteredAt":      blockTimestamp,
+        "TransactionHash":   txHash,
+        "BlockHeight":       blockHeight,
+        "BlockTimestamp":    blockTimestamp,
+        "IsLatest":          true,
+        "FullDescriptorJSON": string(fullDescriptorJSON),
+        "StructuredJSON":    string(documentBytes),
+        "SchemaVersion":     "1.0",
+        "RecordType":        "capability_descriptor",
+    }
+    return
+}
+
+// Helper functions to extract information from capability descriptors
+// These would need to be implemented based on your capability descriptor structure
+func GetCapabilityIDFromDescriptor(descriptor interface{}) string { /* implementation */ return "" }
+func GetCapabilityTypeFromDescriptor(descriptor interface{}) string { /* implementation */ return "" }
+func GetCapabilityNameFromDescriptor(descriptor interface{}) string { /* implementation */ return "" }
+func GetCapabilityDescriptionFromDescriptor(descriptor interface{}) string { /* implementation */ return "" }
+func GetCapabilityOwnerFromDescriptor(descriptor interface{}) string { /* implementation */ return "" }
+func GetCapabilityVersionFromDescriptor(descriptor interface{}) string { /* implementation */ return "" }
+```
+
+These improved conversion functions ensure that:
+1. Natural language text is used for embedding, optimizing semantic search quality
+2. Full structured data is preserved in metadata for retrieval when needed
+3. Schema version information is included for future compatibility
+4. Metadata is standardized for efficient filtering
+5. Human-readable timestamps are included in the embedded text for better context
+6. The approach aligns with the Data Consistency Implementation Plan while optimizing for embedding quality
+## 5. Implementation Plan
+
+### 5.1 ChromemDB Integration
+
+#### 5.1.1 ChromemDB Manager
+
+Create a ChromemDB manager to handle database operations.
+
+```go
+// File: internal/chromemdb/manager.go
+package chromemdb
+
+import (
+    "context"
+    "log"
+    "sync"
+    "time"
+
+    "github.com/guiperry/chroma-go_cerebras" // Our forked version with Cerebras embedding support
+    "github.com/guiperry/chroma-go_cerebras/collection"
+    "github.com/guiperry/chroma-go_cerebras/embeddings"
+    "github.com/guiperry/chroma-go_cerebras/pkg/embeddings/cerebras"
+    // Assuming your Go structs are defined elsewhere
+    // bctypes "github.com/your_org/KNIRVORACLE/internal/blockchain/structs"
+)
+
+// ChromemManager handles ChromemDB operations
+type ChromemManager struct {
+    client              *chromem.Client
+    transactionCollection *collection.Collection
+    contextRecordCollection *collection.Collection
+    capabilityDescriptorCollection *collection.Collection
+    // Optional: pluginMetadataCollection *collection.Collection
+    config      *Config
+    mu          sync.RWMutex
+    // ef          embeddings.EmbeddingFunction // Define your embedding function
+}
+
+// ChromemConfig contains ChromemDB configuration
+type ChromemConfig struct {
+    URL             string // e.g., "http://localhost:8000"
+    DefaultEmbeddingFunction embeddings.EmbeddingFunction // Or configure per collection
+    
+    // Cerebras-specific configuration (if using Cerebras embedding function)
+    CerebrasConfig *CerebrasConfig
+}
+
+// CerebrasConfig contains configuration for Cerebras embedding function
+type CerebrasConfig struct {
+    APIKey         string // Direct API key (optional if using environment variables)
+    APIKeyEnvName  string // Name of environment variable for API key (default: "DEFAULT_CEREBRAS_API_KEY")
+    BaseURL        string // Direct base URL (optional if using environment variables)
+    BaseURLEnvName string // Name of environment variable for base URL (default: "DEFAULT_CEREBRAS_BASE_URL")
+    Model          string // Model to use (default: "llama3.1-8b")
+    TaskType       string // Task type for embedding (default: "retrieval_document")
+    Instruction    string // Instruction for embedding (default: "Generate a dense vector representation of the text suitable for semantic search.")
+    NormalizeOutput bool  // Whether to normalize output vectors (default: false)
+}
+
+// createCerebrasEmbeddingFunction creates a Cerebras embedding function from the configuration
+func createCerebrasEmbeddingFunction(cfg *CerebrasConfig) (embeddings.EmbeddingFunction, error) {
+    if cfg == nil {
+        return nil, fmt.Errorf("Cerebras configuration is nil")
+    }
+    
+    // Prepare client options
+    clientOpts := []cerebras.Option{}
+    
+    // Configure API key (either direct or from environment)
+    if cfg.APIKey != "" {
+        // Direct API key takes precedence
+        clientOpts = append(clientOpts, cerebras.WithBaseURL(cfg.APIKey))
+    } else if cfg.APIKeyEnvName != "" {
+        // Use environment variable
+        clientOpts = append(clientOpts, cerebras.WithAPIKeyFromEnv(cfg.APIKeyEnvName))
+    } else {
+        // Default to standard environment variable
+        clientOpts = append(clientOpts, cerebras.WithAPIKeyFromEnv(cerebras.DefaultAPIKeyEnvVarName))
+    }
+    
+    // Configure base URL (either direct or from environment)
+    if cfg.BaseURL != "" {
+        // Direct base URL takes precedence
+        clientOpts = append(clientOpts, cerebras.WithBaseURL(cfg.BaseURL))
+    } else if cfg.BaseURLEnvName != "" {
+        // Use environment variable
+        clientOpts = append(clientOpts, cerebras.WithBaseURLFromEnv(cfg.BaseURLEnvName))
+    } else {
+        // Default to standard environment variable
+        clientOpts = append(clientOpts, cerebras.WithBaseURLFromEnv(cerebras.DefaultBaseURLEnvVarName))
+    }
+    
+    // Configure model if specified
+    if cfg.Model != "" {
+        var model cerebras.CerebrasModel
+        switch cfg.Model {
+        case "llama-4-scout-17b-16e-instruct":
+            model = cerebras.Llama4Scout17B16EInstruct
+        case "llama3.1-8b":
+            model = cerebras.Llama3_1_8B
+        case "llama-3.3-70b":
+            model = cerebras.Llama3_3_70B
+        case "qwen-3-32b":
+            model = cerebras.Qwen3_32B
+        default:
+            // Use the string value directly
+            model = cerebras.CerebrasModel(cfg.Model)
+        }
+        clientOpts = append(clientOpts, cerebras.WithDefaultModel(model))
+    }
+    
+    // Prepare embedding function options
+    efOpts := []cerebras.EmbeddingFunctionOption{}
+    
+    // Configure task type if specified
+    if cfg.TaskType != "" {
+        efOpts = append(efOpts, cerebras.WithTaskType(cfg.TaskType))
+    }
+    
+    // Configure instruction if specified
+    if cfg.Instruction != "" {
+        efOpts = append(efOpts, cerebras.WithInstruction(cfg.Instruction))
+    }
+    
+    // Configure normalization
+    efOpts = append(efOpts, cerebras.WithNormalizeOutput(cfg.NormalizeOutput))
+    
+    // Create the embedding function
+    return cerebras.NewEmbeddingFunction("", clientOpts, efOpts...)
+}
+
+// NewChromemManager creates a new ChromemDB manager
+func NewChromemManager(cfg *ChromemConfig) (*ChromemManager, error) {
+    client := chromem.NewClient(cfg.URL)
+    
+    // Determine which embedding function to use
+    var ef embeddings.EmbeddingFunction
+    var err error
+    
+    if cfg.DefaultEmbeddingFunction != nil {
+        // Use the provided embedding function
+        ef = cfg.DefaultEmbeddingFunction
+    } else if cfg.CerebrasConfig != nil {
+        // Create a Cerebras embedding function from the configuration
+        ef, err = createCerebrasEmbeddingFunction(cfg.CerebrasConfig)
+        if err != nil {
+            return nil, fmt.Errorf("failed to create Cerebras embedding function: %w", err)
+        }
+    }
+    // If both are nil, ef will be nil and ChromemDB will use its default embedding function
+
+    // Get or create collections
+    txColl, err := client.GetOrCreateCollection(
+        context.Background(),
+        "transactions",
+        nil, // metadata for collection itself
+        ef,  // embedding function
+    )
+    if err != nil {
+        return nil, fmt.Errorf("failed to get/create transactions collection: %w", err)
+    }
+
+    ctxRecColl, err := client.GetOrCreateCollection(
+        context.Background(),
+        "context_records",
+        nil,
+        ef,
+    )
+    if err != nil {
+        return nil, fmt.Errorf("failed to get/create context_records collection: %w", err)
+    }
+
+    capDescColl, err := client.GetOrCreateCollection(
+        context.Background(),
+        "capability_descriptors",
+        nil,
+        ef,
+    )
+    if err != nil {
+        return nil, fmt.Errorf("failed to get/create capability_descriptors collection: %w", err)
+    }
+
+    return &ChromemManager{
+        client:              client,
+        transactionCollection: txColl,
+        contextRecordCollection: ctxRecColl,
+        capabilityDescriptorCollection: capDescColl,
+        config:              cfg,
+    }, nil
+}
+
+// Close is a placeholder, ChromemDB client might not have an explicit close.
+// Resources are managed by the HTTP client.
+func (m *ChromemManager) Close() error {
+    // ChromemDB go client does not have an explicit close method for the client itself.
+    // Connections are typically managed by the underlying HTTP client.
+    return nil
+}
+
+// AddTransaction indexes a transaction in ChromemDB
+// Assuming 'tx' is your internal transaction struct, and 'txDataJSON' is the string form of tx.Data
+func (m *ChromemManager) AddTransaction(
+    txHash, blockHash string,
+    blockNumber, value, fee uint64,
+    from, to, txType, status, dataType, txDataJSON string,
+    timestamp int64,
+) error {
+    m.mu.Lock()
+    defer m.mu.Unlock()
+
+    docID := txHash
+    documentContent := txDataJSON // Document for semantic search
+
+    metadata := map[string]interface{}{
+        "TransactionHash": txHash, // For metadata filtering
+        "BlockHash":       blockHash,
+        "BlockNumber":     blockNumber,
+        "From":            from,
+        "To":              to,
+        "Value":           value,
+        "Type":            txType,
+        "Timestamp":       timestamp,
+        "Fee":             fee,
+        "Status":          status,
+        "DataType":        dataType,
+        "CreatedAt":       time.Now().Unix(),
+    }
+
+    _, err := m.transactionCollection.Add(
+        context.Background(),
+        nil, // embeddings - will be generated by ChromemDB if EF is set
+        []map[string]interface{}{metadata},
+        []string{documentContent},
+        []string{docID},
+    )
+    return err
+}
+
+// Similar methods for ContextRecord and CapabilityDescriptor...
+// e.g., AddContextRecord(id string, document string, metadata map[string]interface{})
+// e.g., AddCapabilityDescriptor(id string, document string, metadata map[string]interface{})
+```
+### 5.2 Event Listeners for Blockchain Synchronization
+
+Implement event listeners to keep ChromemDB synchronized with LevelDB.
+
+#### 5.2.1 ChromemSyncManager Implementation
+
+```go
+// File: internal/chromemdb/sync_manager.go
+package chromemdb
+
+import (
+    "context"
+    "encoding/json"
+    "fmt"
+    "log"
+    "sync"
+    "time"
+
+
+    "github.com/amikos-tech/chroma-go"
+    "github.com/amikos-tech/chroma-go/collection"
+    "github.com/amikos-tech/chroma-go/embeddings" // Required for ChromemConfig
+
+    bctypes "github.com/your_org/KNIRVORACLE/internal/blockchain/structs"
+    mcptypes "github.com/your_org/KNIRVORACLE/internal/mcp/types"
+    // Assuming your conversion functions are in a 'utils' package or similar
+    // "github.com/your_org/KNIRVORACLE/internal/chromemdb/utils"
+)
+
+
+// ChromemSyncManager handles synchronization between LevelDB and ChromemDB
+type ChromemSyncManager struct {
+    client                     *chromem.Client
+    transactionCollection      *collection.Collection
+    contextRecordCollection    *collection.Collection
+    capabilityDescriptorCollection *collection.Collection
+    config                     *ChromemConfig // Use the ChromemConfig defined earlier
+    mu                         sync.RWMutex
+    // ef                         embeddings.EmbeddingFunction // Embedding function
+}
+
+// NewChromemSyncManager creates a new ChromemDB sync manager
+func NewChromemSyncManager(cfg *ChromemConfig) (*ChromemSyncManager, error) {
+    client := chromem.NewClient(cfg.URL)
+    // ef := cfg.DefaultEmbeddingFunction // Or your specific EF
+
+    txColl, err := client.GetOrCreateCollection(context.Background(), "transactions", nil, cfg.DefaultEmbeddingFunction)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get/create transactions collection: %w", err)
+    }
+    ctxRecColl, err := client.GetOrCreateCollection(context.Background(), "context_records", nil, cfg.DefaultEmbeddingFunction)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get/create context_records collection: %w", err)
+    }
+    capDescColl, err := client.GetOrCreateCollection(context.Background(), "capability_descriptors", nil, cfg.DefaultEmbeddingFunction)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get/create capability_descriptors collection: %w", err)
+    }
+
+    return &ChromemSyncManager{
+        client:                     client,
+        transactionCollection:      txColl,
+        contextRecordCollection:    ctxRecColl,
+        capabilityDescriptorCollection: capDescColl,
+        config:                     cfg,
+        // ef:                         ef,
+    }, nil
+}
+
+// Close placeholder
+func (csm *ChromemSyncManager) Close() error {
+    return nil
+}
+
+
+// OnNewBlockConfirmed is called when a new block is added to the canonical chain
+func (csm *ChromemSyncManager) OnNewBlockConfirmed(block *bctypes.Block) error {
+    csm.mu.Lock()
+    defer csm.mu.Unlock()
+
+    var (
+        ctxRecordIDsToAdd        []string
+        ctxRecordDocsToAdd       []string
+        ctxRecordMetadatasToAdd  []map[string]interface{}
+
+        capDescIDsToAdd       []string
+        capDescDocsToAdd      []string
+        capDescMetadatasToAdd []map[string]interface{}
+        
+        // For updating IsLatest on old capabilities
+        capDescIDsToUpdateOld   []string
+        capDescMetadatasToUpdateOld []map[string]interface{}
+
+
+        txIDsToAdd       []string
+        txDocsToAdd      []string
+        txMetadatasToAdd []map[string]interface{}
+    )
+
+    for _, tx := range block.Transactions {
+        // Index the transaction itself
+        txID, txDoc, txMetadata := PrepareTransactionForChromem(tx, block.Header.Height, block.Header.Timestamp) // You'll need to implement this
+        txIDsToAdd = append(txIDsToAdd, txID)
+        txDocsToAdd = append(txDocsToAdd, txDoc)
+        txMetadatasToAdd = append(txMetadatasToAdd, txMetadata)
+
+        switch tx.Type {
+        case bctypes.TransactionTypeMCPInvokeCapability:
+            var invokeData mcptypes.MCPInvokeCapabilityData
+            if err := json.Unmarshal(tx.Data, &invokeData); err != nil {
+                log.Printf("Error unmarshalling MCPInvokeCapabilityData for tx %s: %v", tx.TransactionHash, err)
+                continue
+            }
+            id, doc, meta := PrepareContextRecordForChromem(&invokeData.ContextRecord, tx.TransactionHash, block.Header.Height, block.Header.Timestamp)
+            ctxRecordIDsToAdd = append(ctxRecordIDsToAdd, id)
+            ctxRecordDocsToAdd = append(ctxRecordDocsToAdd, doc)
+            ctxRecordMetadatasToAdd = append(ctxRecordMetadatasToAdd, meta)
+            log.Printf("ChromemDB: Prepared ContextRecord %s from tx %s", id, tx.TransactionHash)
+
+        case bctypes.TransactionTypeMCPRegisterCapability:
+            var registerData mcptypes.MCPRegisterCapabilityData
+            if err := json.Unmarshal(tx.Data, &registerData); err != nil {
+                log.Printf("Error unmarshalling MCPRegisterCapabilityData for tx %s: %v", tx.TransactionHash, err)
+                continue
+            }
+            id, doc, meta := PrepareCapabilityDescriptorForChromemFromRegister(&registerData, tx.TransactionHash, block.Header.Height, block.Header.Timestamp) // Implement this
+            meta["IsLatest"] = true
+            capDescIDsToAdd = append(capDescIDsToAdd, id)
+            capDescDocsToAdd = append(capDescDocsToAdd, doc)
+            capDescMetadatasToAdd = append(capDescMetadatasToAdd, meta)
+            log.Printf("ChromemDB: Prepared CapabilityDescriptor %s from tx %s", id, tx.TransactionHash)
+
+        case bctypes.TransactionTypeMCPUpdateCapability:
+            var updateData mcptypes.MCPUpdateCapabilityData
+            if err := json.Unmarshal(tx.Data, &updateData); err != nil {
+                log.Printf("Error unmarshalling MCPUpdateCapabilityData for tx %s: %v", tx.TransactionHash, err)
+                continue
+            }
+            
+            // Find existing latest capability descriptor to mark as not latest
+            // This requires a query then update, or careful ID management.
+            // For simplicity, we'll assume an update means adding a new one and marking old one.
+            // This part is tricky with batched adds and needs careful thought on atomicity or multi-step processing.
+            // A simpler approach for Chromem might be to just add the new one as IsLatest=true.
+            // And rely on queries with sorting by BlockHeight/Timestamp and filtering by ID to find the "actual" latest.
+            // Or, perform a separate update for the old one.
+            
+            // Find the current "latest" version of this capability ID
+            queryResult, err := csm.capabilityDescriptorCollection.Get(
+                context.Background(),
+                nil, // no ids
+                map[string]interface{}{"ID": updateData.CapabilityID, "IsLatest": true}, // where
+                nil, // no whereDocument
+            )
+            if err == nil && len(queryResult.IDs) > 0 {
+                for i := range queryResult.IDs {
+                    oldID := queryResult.IDs[i]
+                    oldMetadata := queryResult.Metadatas[i]
+                    oldMetadata["IsLatest"] = false
+                    capDescIDsToUpdateOld = append(capDescIDsToUpdateOld, oldID)
+                    capDescMetadatasToUpdateOld = append(capDescMetadatasToUpdateOld, oldMetadata)
+                }
+            } else if err != nil {
+                 log.Printf("Error querying for old capability %s to update IsLatest: %v", updateData.CapabilityID, err)
+            }
+
+
+            id, doc, meta := PrepareCapabilityDescriptorForChromemFromUpdate(&updateData, tx.TransactionHash, block.Header.Height, block.Header.Timestamp) // Implement this
+            meta["IsLatest"] = true
+            capDescIDsToAdd = append(capDescIDsToAdd, id)
+            capDescDocsToAdd = append(capDescDocsToAdd, doc)
+            capDescMetadatasToAdd = append(capDescMetadatasToAdd, meta)
+            log.Printf("ChromemDB: Prepared updated CapabilityDescriptor %s from tx %s", id, tx.TransactionHash)
+        }
+    }
+
+    // Batch add to ChromemDB
+    if len(txIDsToAdd) > 0 {
+        _, err := csm.transactionCollection.Add(context.Background(), nil, txMetadatasToAdd, txDocsToAdd, txIDsToAdd)
+        if err != nil {
+            log.Printf("Error batch writing Transactions to ChromemDB: %v", err)
+            // Consider error handling strategy: retry, log and skip, etc.
+        } else {
+            log.Printf("ChromemDB: Added %d transactions.", len(txIDsToAdd))
+        }
+    }
+    if len(ctxRecordIDsToAdd) > 0 {
+        _, err := csm.contextRecordCollection.Add(context.Background(), nil, ctxRecordMetadatasToAdd, ctxRecordDocsToAdd, ctxRecordIDsToAdd)
+        if err != nil {
+            log.Printf("Error batch writing ContextRecords to ChromemDB: %v", err)
+        } else {
+            log.Printf("ChromemDB: Added %d context records.", len(ctxRecordIDsToAdd))
+        }
+    }
+    
+    // Update old capabilities first
+    if len(capDescIDsToUpdateOld) > 0 {
+        // ChromemDB's Go client might not have a direct batch update metadata.
+        // It has `collection.Update()` which can update documents, metadatas, embeddings by ID.
+        // We only want to update metadata.
+        // If embeddings and documents are nil, only metadata should be updated for the given IDs.
+        _, err := csm.capabilityDescriptorCollection.Update(
+            context.Background(),
+            nil, // embeddings
+            capDescMetadatasToUpdateOld,
+            nil, // documents
+            capDescIDsToUpdateOld,
+        )
+        if err != nil {
+            log.Printf("Error batch updating old CapabilityDescriptors in ChromemDB: %v", err)
+        } else {
+            log.Printf("ChromemDB: Updated %d old capability descriptors to IsLatest=false.", len(capDescIDsToUpdateOld))
+        }
+    }
+
+    if len(capDescIDsToAdd) > 0 {
+        _, err := csm.capabilityDescriptorCollection.Add(context.Background(), nil, capDescMetadatasToAdd, capDescDocsToAdd, capDescIDsToAdd)
+        if err != nil {
+            log.Printf("Error batch writing CapabilityDescriptors to ChromemDB: %v", err)
+        } else {
+            log.Printf("ChromemDB: Added %d capability descriptors.", len(capDescIDsToAdd))
+        }
+    }
+    return nil // Or return combined errors
+}
+
+
+// OnBlockOrphaned is called when a block is removed due to a chain reorganization
+func (csm *ChromemSyncManager) OnBlockOrphaned(block *bctypes.Block) error {
+    csm.mu.Lock()
+    defer csm.mu.Unlock()
+
+    blockHeight := block.Header.Height
+    log.Printf("ChromemDB: Handling orphaned block %d", blockHeight)
+
+    // Delete records associated with this block using a 'where' filter
+    // Note: ChromemDB's Delete method takes IDs or where/whereDocument filters.
+    // Deleting by blockHeight is a common pattern.
+
+    // Delete context records
+    // Construct where filter for deletion
+    whereFilterContext := map[string]interface{}{"BlockHeight": blockHeight}
+    deletedCtxCount, err := csm.contextRecordCollection.Delete(context.Background(), nil, whereFilterContext, nil)
+    if err != nil {
+        log.Printf("Error deleting ContextRecords from orphaned block %d: %v", blockHeight, err)
+    } else {
+        log.Printf("ChromemDB: Deleted %d ContextRecords from orphaned block %d", deletedCtxCount, blockHeight)
+    }
+
+    // Handle capability descriptors
+    // First, get all descriptors from the orphaned block
+    whereFilterCaps := map[string]interface{}{"BlockHeight": blockHeight}
+    orphanedCaps, err := csm.capabilityDescriptorCollection.Get(context.Background(), nil, whereFilterCaps, nil)
+    if err != nil {
+        log.Printf("Error fetching CapabilityDescriptors from orphaned block %d: %v", blockHeight, err)
+    } else {
+        var capIDsToDelete []string
+        var capIDsToUpdateToLatest []string
+        var capMetadatasToUpdateToLatest []map[string]interface{}
+
+        for i, orphanedCapID := range orphanedCaps.IDs {
+            capIDsToDelete = append(capIDsToDelete, orphanedCapID)
+            metadata := orphanedCaps.Metadatas[i]
+            isLatest, ok := metadata["IsLatest"].(bool)
+            if ok && isLatest {
+                // This was the latest version. We need to find the previous version and mark it as latest.
+                capabilityID, _ := metadata["ID"].(string)
+                // Query for the most recent version of this capability *before* the orphaned block
+                // This requires a more complex query if not using simple IsLatest flags or if versions are embedded in IDs.
+                // Assuming we query for ID, IsLatest=false, and sort by BlockTimestamp DESC, LIMIT 1
+                // ChromemDB query doesn't directly support sorting in Get or general Query for this update.
+                // This part is complex and might require iterating or a more sophisticated state management.
+                // A simpler approach: when adding a new "latest", the old one was already marked IsLatest=false.
+                // If an "add" of a new latest is orphaned, we need to find the one that *was* latest before it.
+                // This means querying for `ID == capabilityID` and `BlockHeight < orphanedBlockHeight`,
+                // then finding the one with the max `BlockHeight` (or `BlockTimestamp`) among those.
+                
+                // Simplified: find the highest blockHeight for this capID that is not the orphaned one
+                prevVersions, err := csm.capabilityDescriptorCollection.Query(
+                    context.Background(),
+                    []string{""}, // No semantic query text, just metadata filter
+                    1, // We want the top one
+                    map[string]interface{}{
+                        "ID": capabilityID,
+                        "$and": []map[string]interface{}{ // Ensure not the one we are about to delete
+                            {"BlockHeight": map[string]interface{}{"$ne": blockHeight}},
+                            // Add other conditions if necessary to ensure it's a valid previous version
+                        },
+                    },
+                    nil, // No where document
+                    []string{chromem.ID, chromem.Metadatas}, // Include IDs and Metadatas
+                    // ChromemDB Go client Query does not have explicit sort by metadata field.
+                    // This logic might need adjustment or multiple steps.
+                    // For now, we assume we can find it. If not, this capability might have no prior "latest".
+                )
+                if err == nil && prevVersions.IDs != nil && len(prevVersions.IDs) > 0 {
+                     // Assuming the first result is the one to make latest if sorted properly by Chromem (or post-process)
+                    prevCapID := prevVersions.IDs[0]
+                    prevMetadata := prevVersions.Metadatas[0]
+                    prevMetadata["IsLatest"] = true
+                    capIDsToUpdateToLatest = append(capIDsToUpdateToLatest, prevCapID)
+                    capMetadatasToUpdateToLatest = append(capMetadatasToUpdateToLatest, prevMetadata)
+                } else if err != nil {
+                    log.Printf("ChromemDB: Error finding previous version for CapabilityDescriptor %s: %v", capabilityID, err)
+                }
+            }
+        }
+        
+        if len(capIDsToDelete) > 0 {
+            deletedCapCount, err := csm.capabilityDescriptorCollection.Delete(context.Background(), capIDsToDelete, nil, nil)
+            if err != nil {
+                log.Printf("Error deleting CapabilityDescriptors from orphaned block %d: %v", blockHeight, err)
+            } else {
+                log.Printf("ChromemDB: Deleted %d CapabilityDescriptors from orphaned block %d", deletedCapCount, blockHeight)
+            }
+        }
+
+        if len(capIDsToUpdateToLatest) > 0 {
+             _, err := csm.capabilityDescriptorCollection.Update(context.Background(), nil, capMetadatasToUpdateToLatest, nil, capIDsToUpdateToLatest)
+             if err != nil {
+                 log.Printf("ChromemDB: Error restoring IsLatest for %d CapabilityDescriptors: %v", len(capIDsToUpdateToLatest), err)
+             } else {
+                 log.Printf("ChromemDB: Restored %d CapabilityDescriptors as IsLatest", len(capIDsToUpdateToLatest))
+             }
+        }
+    }
+
+
+    // Delete transactions
+    whereFilterTx := map[string]interface{}{"BlockHeight": blockHeight}
+    deletedTxCount, err := csm.transactionCollection.Delete(context.Background(), nil, whereFilterTx, nil)
+    if err != nil {
+        log.Printf("Error deleting Transactions from orphaned block %d: %v", blockHeight, err)
+    } else {
+        log.Printf("ChromemDB: Deleted %d Transactions from orphaned block %d", deletedTxCount, blockHeight)
+    }
+
+    return nil
+}
+
+// Helper function (you'll need to create these)
+func PrepareTransactionForChromem(tx *bctypes.Transaction, blockHeight int64, blockTimestamp int64) (id string, document string, metadata map[string]interface{}) {
+    id = tx.TransactionHash
+    dataJSONBytes, _ := json.Marshal(tx.Data) // Handle error appropriately
+    document = string(dataJSONBytes)
+
+    metadata = map[string]interface{}{
+        "TransactionHash": tx.TransactionHash,
+        "BlockHash":       tx.BlockHash, // Assuming this is populated in your tx struct
+        "BlockNumber":     blockHeight,  // Or tx.BlockNumber if available directly
+        "From":            tx.From,
+        "To":              tx.To,
+        "Value":           tx.Value,
+        "Type":            string(tx.Type),
+        "Timestamp":       tx.Timestamp, // Or blockTimestamp if tx doesn't have its own
+        "Fee":             tx.Fee,
+        "Status":          "confirmed", // Assuming confirmed if in a block
+        "DataType":        tx.DetermineDataType(), // You'll need a method like this
+        "DataJSON":        document, // Storing for retrieval, though it's also the embedded doc
+        "CreatedAt":       time.Now().Unix(),
+        "BlockHeight":     blockHeight,
+        "BlockTimestamp":  blockTimestamp,
+    }
+    return
+}
+
+func PrepareCapabilityDescriptorForChromemFromRegister( /* ... params ... */ ) (id string, document string, metadata map[string]interface{}) { /* ... */ return }
+func PrepareCapabilityDescriptorForChromemFromUpdate( /* ... params ... */ ) (id string, document string, metadata map[string]interface{}) { /* ... */ return }
+
+// Add a method to bctypes.Transaction to determine DataType string
+// func (tx *bctypes.Transaction) DetermineDataType() string { ... }
+```
+
+### 5.2.2 Integration with Blockchain Core
+Modify the blockchain struct to include the ChromemSyncManager.
+
+```go
+// File: blockchain_struct.go
+
+// Add to imports
+import (
+    
+    "github.com/guiperry/chroma-go_cerebras/embeddings/cerebras" // For ChromemConfig
+)
+
+// Add to BlockchainStruct
+type BlockchainStruct struct {
+    // Existing fields...
+    ChromemSync *chromemdb.ChromemSyncManager // Add ChromemDB Sync Manager
+}
+
+// Modify NewBlockchain to initialize ChromemSyncManager
+func NewBlockchain(dbPath string, chainID string, minerAddress string /*, chromemURL string */) (*BlockchainStruct, error) {
+    // Existing initialization...
+
+    // Initialize ChromemSyncManager
+    // You'll need to decide on an embedding function.
+    // For example, using Chromem's default or a sentence transformer.
+    // Configure Cerebras embedding function
+    // This can be loaded from configuration or environment variables
+    cerebrasConfig := &chromemdb.CerebrasConfig{
+        // Using environment variables for API key and base URL
+        APIKeyEnvName: "DEFAULT_CEREBRAS_API_KEY",
+        BaseURLEnvName: "DEFAULT_CEREBRAS_BASE_URL",
+        Model: "llama3.1-8b",
+        TaskType: "retrieval_document",
+        Instruction: "Generate a dense vector representation of the text suitable for semantic search.",
+        NormalizeOutput: true,
+    }
+
+    chromemCfg := &chromemdb.ChromemConfig{
+        URL: "http://localhost:8000", // Make this configurable
+        CerebrasConfig: cerebrasConfig, // Use Cerebras embedding function
+    }
+    chromemSync, err := chromemdb.NewChromemSyncManager(chromemCfg)
+    if err != nil {
+        return nil, fmt.Errorf("failed to initialize ChromemSyncManager: %w", err)
+    }
+
+    bc := &BlockchainStruct{
+        // Existing fields...
+        ChromemSync: chromemSync,
+    }
+    // ...
+    return bc, nil
+}
+
+// Modify AddBlock to notify ChromemSyncManager
+func (bc *BlockchainStruct) AddBlock(block *Block) error {
+    // Existing block validation and addition to LevelDB...
+
+    // Notify ChromemSyncManager about the new confirmed block
+    if bc.ChromemSync != nil {
+        // Consider if this should be synchronous or asynchronous
+        // For consistency, synchronous might be safer initially,
+        // but for performance, a go routine with proper error handling/retry is better.
+        go func(b *Block) {
+            if err := bc.ChromemSync.OnNewBlockConfirmed(b); err != nil {
+                log.Printf("Error processing block %d for ChromemDB: %v", b.Header.Height, err)
+                // Add more robust error handling (e.g., retry queue)
+            }
+        }(block)
+    }
+
+    return nil // return original error from block addition
+}
+
+// Modify HandleChainReorganization to handle chain reorganizations
+func (bc *BlockchainStruct) HandleChainReorganization(orphanedBlocks []*Block, newCanonicalBlocks []*Block) error {
+    // Existing chain reorganization logic...
+
+    if bc.ChromemSync != nil {
+        for _, block := range orphanedBlocks {
+            // Run in goroutines with error handling
+            go func(b *Block) {
+                if err := bc.ChromemSync.OnBlockOrphaned(b); err != nil {
+                    log.Printf("Error processing orphaned block %d for ChromemDB: %v", b.Header.Height, err)
+                }
+            }(block)
+        }
+
+        for _, block := range newCanonicalBlocks {
+            go func(b *Block) {
+                if err := bc.ChromemSync.OnNewBlockConfirmed(b); err != nil {
+                    log.Printf("Error processing new canonical block %d for ChromemDB: %v", b.Header.Height, err)
+                }
+            }(block)
+        }
+    }
+
+    return nil // return original error
+}
+```
+
+### 5.3 Transaction Search API
+Implement a flexible transaction search API using ChromemDB.
+
+```go
+// File: transaction_search.go
+package api
+
+import (
+    "encoding/json"
+    "net/http"
+    "strconv"
+    "time"
+    // "github.com/your_org/KNIRVORACLE/internal/chromemdb" // Your ChromemDB manager/search functions
+    // Assuming your Transaction struct for API response
+    // "github.com/your_org/KNIRVORACLE/internal/blockchain/structs"
+)
+
+// SearchTransactionsRequest defines the request structure for transaction search
+type SearchTransactionsRequest struct {
+    SemanticQuery string    `json:"semantic_query,omitempty"` // Text for semantic search
+    Type          string    `json:"type,omitempty"`           // Filter by transaction type
+    FromAddr      string    `json:"from,omitempty"`           // Filter by sender address
+    ToAddr        string    `json:"to,omitempty"`             // Filter by recipient address
+    StartTime     int64     `json:"start_time,omitempty"`     // Unix timestamp
+    EndTime       int64     `json:"end_time,omitempty"`       // Unix timestamp
+    MinAmount     uint64    `json:"min_amount,omitempty"`
+    MaxAmount     uint64    `json:"max_amount,omitempty"`
+    Page          int       `json:"page,omitempty"`           // For pagination (offset-based)
+    PageSize      int       `json:"page_size,omitempty"`      // N-Results for ChromemDB
+}
+
+// SearchTransactionsResponse (similar to original, but results are your API's Transaction type)
+type SearchTransactionsResponse struct {
+    Results    []YourApiTransaction `json:"results"` // Define YourApiTransaction
+    Total      int64                `json:"total"`     // Chromem might not give total matches easily for complex queries, this might be count of results returned
+    Page       int                  `json:"page"`
+    PageSize   int                  `json:"page_size"`
+    // TotalPages int               `json:"total_pages"` // May be hard to calculate without knowing total matches
+}
+
+// Define YourApiTransaction based on what you want to return
+type YourApiTransaction struct {
+    TransactionHash string `json:"transaction_hash"`
+    // ... other fields ...
+    SimilarityScore *float32 `json:"similarity_score,omitempty"` // If semantic search was used
+}
+
+
+// handleSearchTransactions handles searching for transactions
+func (s *Server) handleSearchTransactions(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodPost {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    var searchReq SearchTransactionsRequest
+    if err := json.NewDecoder(r.Body).Decode(&searchReq); err != nil {
+        http.Error(w, "Invalid request body", http.StatusBadRequest)
+        return
+    }
+
+    if searchReq.Page <= 0 {
+        searchReq.Page = 1
+    }
+    if searchReq.PageSize <= 0 || searchReq.PageSize > 100 {
+        searchReq.PageSize = 20
+    }
+
+    // Delegate to a search function in your ChromemDB manager/service
+    // This function would construct ChromemDB query
+    // results, totalReturned, err := s.chromemSearchService.SearchTransactions(searchReq)
+    // For now, placeholder:
+    // results, totalReturned, err := s.chromemManager.SearchTransactionsChromem(searchReq) // Assume this method exists
+
+    // Example call to a hypothetical search function in ChromemManager
+    apiResults, err := s.chromemManager.SearchTransactionsChromem( // s.chromemManager needs to be accessible by api.Server
+        context.Background(),
+        searchReq.SemanticQuery,
+        searchReq.PageSize,
+        searchReq.Page, // For calculating offset
+        searchReq.Type,
+        searchReq.FromAddr,
+        searchReq.ToAddr,
+        searchReq.StartTime,
+        searchReq.EndTime,
+        // ... other filters
+    )
+
+
+    if err != nil {
+        log.Printf("Failed to search transactions in ChromemDB: %v", err)
+        http.Error(w, "Failed to search transactions", http.StatusInternalServerError)
+        return
+    }
+
+    response := SearchTransactionsResponse{
+        Results:  apiResults, // This should be []YourApiTransaction
+        Total:    int64(len(apiResults)), // Chromem returns N results, not total matches for a filter.
+                                      // Getting total matches for a complex filter can be a separate count query.
+        Page:     searchReq.Page,
+        PageSize: searchReq.PageSize,
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(response)
+}
+
+// RegisterTransactionSearchHandlers (similar to original)
+// func (s *Server) RegisterTransactionSearchHandlers() {
+//    s.router.HandleFunc("/transactions/search", s.handleSearchTransactions).Methods("POST")
+// }
+5.4 ChromemDB Search Implementation
+Implement search in the ChromemManager (or a dedicated search service).
+
+go
+// File: search.go (or part of manager.go)
+package chromemdb
+
+import (
+    "context"
+    "fmt"
+    "log"
+    // "github.com/your_org/KNIRVORACLE/api" // For SearchTransactionsRequest and YourApiTransaction
+    "github.com/amikos-tech/chroma-go"
+    "github.com/amikos-tech/chroma-go/types"
+)
+
+// SearchTransactionsChromem searches transactions in ChromemDB
+// This is a simplified example. You'll need to map API request fields to ChromemDB's `where` and `where_document`.
+func (m *ChromemManager) SearchTransactionsChromem(
+    ctx context.Context,
+    semanticQuery string,
+    nResults int,
+    page int, // For offset calculation
+    txType string,
+    fromAddr string,
+    toAddr string,
+    startTime int64, // Unix timestamp
+    endTime int64,   // Unix timestamp
+    // ... other filter params
+) ([]YourApiTransaction, error) { // YourApiTransaction defined in API package
+    m.mu.RLock() // Use RLock for read operations
+    defer m.mu.RUnlock()
+
+    where := make(map[string]interface{})
+    var queryTexts []string
+
+    if txType != "" {
+        where["Type"] = txType
+    }
+    if fromAddr != "" {
+        where["From"] = fromAddr
+    }
+    if toAddr != "" {
+        where["To"] = toAddr
+    }
+
+    // Handle time range for Timestamp (which is int64)
+    timeFilters := make(map[string]interface{})
+    if startTime > 0 {
+        timeFilters["$gte"] = startTime
+    }
+    if endTime > 0 {
+        timeFilters["$lte"] = endTime
+    }
+    if len(timeFilters) > 0 {
+        where["Timestamp"] = timeFilters
+    }
+    
+    // Add other filters similarly...
+
+    if semanticQuery != "" {
+        queryTexts = []string{semanticQuery}
+    } else {
+        // If no semantic query, we are doing a metadata-only filter.
+        // ChromemDB's Query method expects queryTexts or queryEmbeddings.
+        // For metadata-only, you might provide a neutral or empty query text if your EF handles it,
+        // or use Get with filtering if appropriate (but Get is usually by ID or simpler filters).
+        // Providing a generic query text might be necessary if the collection expects it.
+        // Or, if EF is nil, you must provide query_embeddings.
+        // For now, let's assume if semanticQuery is empty, we still pass an empty queryTexts array,
+        // and rely purely on `where` filters. Some Chromem setups might require a query vector.
+        // Alternatively, if no semantic query, you might use `collection.Get` with `where` and `limit/offset`.
+        // However, `Get` doesn't return similarity scores.
+        // If semanticQuery is empty, we might need a different approach or ensure EF handles empty queryTexts gracefully.
+        // For this example, we'll proceed assuming Query can work with empty queryTexts for metadata-only filtering,
+        // or that a non-empty queryTexts is always provided for Query.
+        // If only metadata filtering is needed without semantic context, a different ChromemDB call might be better.
+        // For now, we'll assume semanticQuery is the primary mode for this function.
+        // If semanticQuery is empty, we could return an error or default to a non-semantic Get.
+        if semanticQuery == "" && len(where) == 0 {
+            return nil, fmt.Errorf("search requires a semantic query or at least one filter")
+        }
+        // If semanticQuery is empty but 'where' is present, we still need a query_text for Query method.
+        // A placeholder or a very generic text might be used, or this indicates a different type of query.
+        // For simplicity, let's assume semanticQuery is usually present for this "Search" endpoint.
+        // If not, the behavior of Query with empty queryTexts and only where clause needs to be tested.
+        queryTexts = []string{""} // Placeholder if semanticQuery is empty but filters exist. Behavior depends on EF.
+    }
+    
+    // Calculate offset for pagination
+    offset := (page - 1) * nResults
+
+    // Query ChromemDB
+    // Note: The Go client's QueryBuilder or direct Query method.
+    // The `Query` method in the Go client takes `offset` as part of `QueryOptions`.
+    // Let's assume we are using a version or method that supports offset.
+    // The current `chroma-go` client's `Query` method takes `nResults` but not directly `offset`.
+    // Pagination with `Query` often means fetching `page * nResults` and slicing, or if the API supports offset.
+    // For this example, we'll assume `nResults` is the primary control, and `page` implies fetching more and skipping.
+    // A more robust pagination would require `collection.Get` with limit & offset if not doing semantic search,
+    // or fetching `page * nResults` for semantic search and then taking the desired slice.
+    // Let's fetch up to `page * nResults` and then slice.
+    
+    effectiveNResults := page * nResults // Fetch enough to cover up to the current page
+
+    results, err := m.transactionCollection.Query(
+        context.Background(),
+        queryTexts,
+        int32(effectiveNResults), // Number of results
+        where,
+        nil, // WhereDocument filter (for filtering on the document text itself)
+        []types.QueryEnum{types.Metadatas, types.Distances, types.Documents}, // Include what you need
+    )
+    if err != nil {
+        return nil, fmt.Errorf("chromemdb query failed: %w", err)
+    }
+
+    // Apply pagination (manual slicing after fetching enough results)
+    startIndex := (page - 1) * nResults
+    endIndex := startIndex + nResults
+    if startIndex >= len(results.IDs) {
+        return []YourApiTransaction{}, nil // Page out of bounds
+    }
+    if endIndex > len(results.IDs) {
+        endIndex = len(results.IDs)
+    }
+
+    paginatedIDs := results.IDs[startIndex:endIndex]
+    paginatedMetadatas := results.Metadatas[startIndex:endIndex]
+    paginatedDistances := results.Distances[startIndex:endIndex]
+    // paginatedDocuments := results.Documents[startIndex:endIndex] // If included and needed
+
+
+    apiResults := make([]YourApiTransaction, len(paginatedIDs))
+    for i, id := range paginatedIDs {
+        metadata := paginatedMetadatas[i]
+        // Convert metadata map to YourApiTransaction struct
+        // This requires careful type assertions from map[string]interface{}
+        txHash, _ := metadata["TransactionHash"].(string)
+        // ... populate other fields ...
+        
+        apiResults[i] = YourApiTransaction{
+            TransactionHash: txHash,
+            // ... other fields from metadata ...
+        }
+        if len(paginatedDistances) > i && semanticQuery != "" {
+            score := float32(paginatedDistances[i]) // Chromem distances might need conversion to similarity
+            apiResults[i].SimilarityScore = &score
+        }
+    }
+
+    return apiResults, nil
+}
+
+
+
+## 6. Implementation Phases
+
+This phased approach adapts the original plan for ChromemDB:
+
+### Phase 1: Setup, Collection Design, and Embedding Strategy (Weeks 1-2)
+- Integrate ChromemDB Go SDK.
+  - Use our forked version of the chroma-go repository: `github.com/guiperry/chroma-go_cerebras`
+  - This fork extends the official chroma-go client with Cerebras embedding function support
+- Define ChromemDB collection structures (documents, metadata) for Transactions, ContextRecords, and CapabilityDescriptors.
+- Choose and configure an embedding function:
+  - Implement Cerebras embedding function integration using the LLMs tool-calling capabilities
+  - The Cerebras embedding function is implemented in our forked repository
+  - Set up environment variables for Cerebras API key and base URL
+  - Configure embedding parameters (model, task type, instruction, normalization)
+  - Example configuration:
+  
+    ```go
+    // Example of creating a ChromemManager with Cerebras embedding function
+    cfg := &ChromemConfig{
+        URL: "http://localhost:8000",
+        CerebrasConfig: &CerebrasConfig{
+            // Using environment variables for API key and base URL
+            APIKeyEnvName: cerebras.DefaultAPIKeyEnvVarName,  // "DEFAULT_CEREBRAS_API_KEY"
+            BaseURLEnvName: cerebras.DefaultBaseURLEnvVarName, // "DEFAULT_CEREBRAS_BASE_URL"
+            Model: "llama3.1-8b",
+            TaskType: "retrieval_document",
+            Instruction: "Generate a dense vector representation of the text suitable for semantic search.",
+            NormalizeOutput: true,
+        },
+    }
+    
+    // Create ChromemManager with Cerebras embedding function
+    manager, err := NewChromemManager(cfg)
+    if err != nil {
+        log.Fatalf("Failed to create ChromemManager: %v", err)
+    }
+    ```
+- Implement Go struct to ChromemDB (IDs, documents, metadatas) conversion functions.
+- Set up local ChromemDB instance for development.
+- Implement basic add/get operations for these collections.
+
+### Phase 2: Initial Synchronization Utility (Week 3)
+- Develop a utility for initial sync from LevelDB to ChromemDB.
+- Iterate through LevelDB, convert data, generate embeddings (if client-side), and batch-add to ChromemDB.
+- Handle IsLatest for capability descriptors during initial sync.
+- Ensure resumability. Test with existing data.
+
+### Phase 3: Real-time Sync Implementation (Weeks 4-5)
+- Implement ChromemSyncManager with OnNewBlockConfirmed.
+- Integrate ChromemSyncManager into BlockchainStruct.
+- Focus on ContextRecord and Transaction collections first.
+- Test with live blockchain operations.
+
+### Phase 4: Reorganization Handling (Weeks 6-7)
+- Implement OnBlockOrphaned in ChromemSyncManager.
+- Deletion of documents from orphaned blocks (using BlockHeight metadata).
+- Logic to correctly update IsLatest for CapabilityDescriptors (querying previous versions and updating their metadata).
+- Integrate with chain reorganization events in the core.
+- Thoroughly test reorg scenarios.
+
+### Phase 5: Capability Descriptor Sync & Query Layer (Weeks 8-9)
+- Fully implement synchronization for CapabilityDescriptorCollection, including robust IsLatest handling during sync and reorgs.
+- Develop query layer/API (gRPC/HTTP) for ChromemDB.
+- Endpoints for semantic search + metadata filtering on all indexed collections.
+- Example queries: "Find capabilities similar to 'text summarization tool' owned by User Y".
+- Implement pagination and result inclusion options (metadata, distances).
+
+### Phase 6: Plugin Metadata Search Layer (Optional, Weeks 10-11)
+If pursuing plugin metadata search:
+- Implement PluginMetadataCollection and its synchronization.
+- Develop search functionalities for discovering plugins based on semantic descriptions of their metadata.
+
+### Phase 7: Testing, Optimization, and Documentation (Weeks 12-14)
+- Comprehensive end-to-end testing of synchronization and querying.
+- Benchmark embedding generation and query performance.
+- Optimize batch sizes, embedding models, and ChromemDB configuration.
+- Document the ChromemDB integration, collection designs, embedding strategy, and query APIs.
+- Create developer guides and examples.
+
+## 7. Key Challenges and Considerations
+
+### 7.1 Data Consistency
+Ensuring ChromemDB reflects the canonical chain. Transactional logic for updates during OnNewBlockConfirmed and OnBlockOrphaned is crucial. ChromemDB itself is not transactional across multiple operations in the same way a relational DB is, so application-level consistency is key.
+
+### 7.2 Performance Considerations
+- **Embedding Generation**: 
+  - Using Cerebras LLM for embedding generation provides high-quality embeddings but requires API calls.
+  - The Cerebras embedding function uses the LLM's tool-calling capabilities to generate embeddings directly.
+  - This approach eliminates the need for a separate embedding service but introduces API call latency.
+  - Consider caching frequently used embeddings to reduce API calls.
+  - For high-volume scenarios, batch embedding requests to minimize API overhead.
+- **Write Overhead**: Adding embeddings and metadata to ChromemDB during block processing. Asynchronous processing with a queue can mitigate direct impact.
+- **Query Latency**: 
+  - Depends on embedding model, data size, and query complexity.
+  - Cerebras LLM-based embeddings may have higher latency than dedicated embedding models but offer potentially higher quality.
+  - Consider implementing a query cache for frequently used semantic queries.
+- **Concurrency**: 
+  - Manage concurrent access to ChromemDB client and collections.
+  - Implement rate limiting for Cerebras API calls to avoid throttling.
+
+### 7.3 Storage Overhead
+- Embeddings can consume significant disk space. Choose embedding dimensions wisely.
+- ChromemDB's storage requirements for metadata and indices.
+
+### 7.4 Implementation Complexity
+- **Embedding Model Management**: 
+  - Using Cerebras LLM for embeddings simplifies deployment but requires proper API key management.
+  - The Cerebras embedding function leverages the LLM's tool-calling capabilities, which requires careful prompt engineering.
+  - Monitoring and managing API usage and costs for Cerebras API calls.
+  - Implementing fallback mechanisms in case of API unavailability.
+- **Semantic Search Nuances**: 
+  - Understanding how to formulate effective semantic queries and interpret results (distances/scores).
+  - Tuning the embedding parameters (task type, instruction, normalization) for optimal search quality.
+  - Balancing embedding quality with performance considerations.
+- **Reorganization Logic**: 
+  - Correctly handling IsLatest flags and reverting data in a vector database during reorgs can be more complex than in traditional databases.
+  - Ensuring consistency between LevelDB and ChromemDB during chain reorganizations.
+
+### 7.5 Backwards Compatibility
+Upgraded nodes will need to run the initial sync. Provide utilities and clear documentation.
+
+### 7.6 Cerebras Embedding Function Integration
+
+The integration of Cerebras LLM as an embedding function provider offers several advantages and considerations. We've implemented this by forking the official chroma-go repository to create `github.com/guiperry/chroma-go_cerebras`, which extends the original client with Cerebras embedding capabilities:
+
+#### 7.6.1 Advantages of Cerebras Embedding Function
+
+- **High-Quality Embeddings**: Cerebras LLM models can generate high-quality embeddings that capture semantic meaning effectively.
+- **Flexibility**: The embedding function can be customized with different instructions and parameters to optimize for specific use cases.
+- **Simplified Infrastructure**: No need to deploy and maintain a separate embedding model or service.
+- **Consistent API**: Using the same Cerebras API for both inference and embeddings simplifies integration and maintenance.
+
+#### 7.6.2 Implementation Approach
+
+We've forked the official chroma-go repository to create `github.com/guiperry/chroma-go_cerebras`, which implements the Cerebras embedding function. The fork:
+
+1. **Maintains API Compatibility**: Preserves the original chroma-go API for seamless integration.
+2. **Adds Cerebras Package**: Implements a new package at `pkg/embeddings/cerebras` with the Cerebras embedding function.
+3. **Extends Embedding Interface**: The Cerebras embedding function implements the standard `embeddings.EmbeddingFunction` interface.
+
+The Cerebras embedding function uses the LLM's tool-calling capabilities to generate embeddings directly:
+
+1. **Tool Definition**: Define an embedding tool schema that the LLM can "call" to generate embeddings.
+2. **Two-Turn Conversation**:
+   - First turn: Request embeddings with specific parameters (input texts, task type, instruction, normalization).
+   - Second turn: The LLM generates the embeddings and returns them in a structured format.
+3. **Structured Output**: Use the `response_format` parameter to ensure the LLM returns properly structured embedding vectors.
+
+The forked repository provides a clean, modular implementation that can be easily maintained as the upstream chroma-go repository evolves.
+
+#### 7.6.3 Configuration Options
+
+The Cerebras embedding function supports several configuration options:
+
+- **Model Selection**: Choose from available Cerebras models (e.g., llama3.1-8b, llama-3.3-70b, qwen-3-32b).
+- **Task Type**: Specify the embedding task type (default: "retrieval_document").
+- **Instruction**: Provide a specific instruction to guide the embedding generation (default: "Generate a dense vector representation of the text suitable for semantic search.").
+- **Normalization**: Option to normalize output vectors (default: false).
+
+#### 7.6.4 Considerations and Challenges
+
+- **API Latency**: API calls introduce latency compared to local embedding generation.
+- **Cost Management**: Monitor and manage API usage costs.
+- **Rate Limiting**: Implement rate limiting to avoid API throttling.
+- **Error Handling**: Robust error handling for API failures or unexpected responses.
+- **Batch Processing**: Optimize batch sizes for embedding generation to balance throughput and API efficiency.
+- **Fork Maintenance**: Keep the forked repository (`github.com/guiperry/chroma-go_cerebras`) in sync with upstream changes to the official chroma-go repository.
+- **Dependency Management**: Ensure proper versioning and dependency management when using the forked repository.
+- **Documentation**: Maintain clear documentation about the fork and its extensions to facilitate onboarding of new developers.
+
+### 7.7 Data Format Standardization for Inference Engine Compatibility
+In alignment with the Data Consistency Implementation Plan, we must ensure that data stored in ChromemDB follows consistent serialization formats to facilitate seamless integration with our inference engine:
+
+1. **JSON Format for ChromemDB Documents**:
+   - All document content stored in ChromemDB must use a standardized JSON format
+   - Follow the "JSON for Transit" principle from the Data Consistency Implementation Plan
+   - Ensure all text fields are properly UTF-8 encoded for embedding generation
+   - Maintain consistent field naming conventions across all document types
+
+2. **Structured JSON Schema**:
+   - Define explicit JSON schemas for each document type (Transaction.Data, ContextRecord, CapabilityDescriptor)
+   - Include mandatory fields that the inference engine will rely on for context understanding
+   - Use consistent data types for similar concepts across different document types
+   - Avoid nested JSON structures deeper than 3 levels to maintain searchability
+
+3. **Embedding-Friendly Text Formatting**:
+   - Format text fields to optimize for embedding quality:
+     - Include descriptive headers/labels within text content
+     - Separate distinct concepts with appropriate delimiters
+     - Maintain consistent terminology for similar concepts
+     - Limit use of special characters that may impact embedding quality
+   - Concatenate multiple fields in a semantically meaningful order when creating document content
+
+4. **Metadata Standardization**:
+   - Store all filterable attributes as top-level metadata fields
+   - Use consistent data types for timestamp fields (Unix timestamp as int64)
+   - Include both raw and normalized versions of critical fields where appropriate
+   - Ensure all IDs follow consistent formatting rules
+
+5. **Versioning and Compatibility**:
+   - Include schema version information in metadata
+   - Maintain backward compatibility when evolving schemas
+   - Document all schema changes and their impact on embeddings
+
+6. **Inference Engine Integration Requirements**:
+   - Store sufficient context in each document to enable standalone inference
+   - Include relationship identifiers to allow the inference engine to connect related documents
+   - Optimize text content length to balance context richness with embedding quality
+   - Include explicit semantic tags/categories to aid in classification tasks
+
+By adhering to these standardized data formats, we ensure that:
+1. The inference engine can reliably process and understand the embedded data
+2. Semantic search results maintain high relevance and accuracy
+3. Data can be efficiently indexed and retrieved based on both semantic meaning and metadata
+4. Future enhancements to the inference engine can build upon a consistent data foundation
+
+## 8. Conclusion
+
+Integrating ChromemDB with Cerebras embedding function will pivot the KNIRVORACLE node's querying capabilities towards powerful semantic search combined with metadata filtering. This allows for more intuitive and flexible discovery of transactions, context records, and capabilities based on their meaning and content, rather than just exact keyword matches or predefined fields.
+
+The proposed implementation will enable:
+
+- Natural language and semantic queries on blockchain data using high-quality Cerebras LLM-generated embeddings.
+- Efficient filtering based on rich metadata alongside semantic similarity.
+- Improved discovery of capabilities through descriptive searches.
+- Enhanced analytics by finding semantically related records.
+- Flexible embedding generation through Cerebras LLM's tool-calling capabilities.
+
+The integration of Cerebras as the embedding function provider through our forked repository (`github.com/guiperry/chroma-go_cerebras`) offers several key advantages:
+- High-quality embeddings that capture semantic meaning effectively
+- Customizable embedding parameters to optimize for specific use cases
+- Simplified infrastructure with no need for a separate embedding model or service
+- Consistent API usage across both inference and embedding generation
+- Clean integration with ChromemDB through the standard embedding function interface
+- Maintainable codebase that can evolve alongside the upstream chromem-go repository
+
+These improvements align with providing a transparent, verifiable, and intelligently queryable blockchain for AI workflows. The phased approach, with a focus on robust synchronization and careful management of the embedding lifecycle, will be key to a successful implementation.

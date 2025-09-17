@@ -1,7 +1,7 @@
 package config
 
 import (
-	"KNIRVORACLE/utils"
+	"KNIRVORACLE/pkg/utils"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -311,13 +311,7 @@ func MergeConfigs(dst, src *Config) *Config {
 		merged.NodeJSServices.NetworkMonitor.HTTPPort = src.NodeJSServices.NetworkMonitor.HTTPPort
 	}
 
-	// NANDA-ANS
-	if src.NodeJSServices.NANDAANS.Enabled {
-		merged.NodeJSServices.NANDAANS.Enabled = true
-	}
-	if src.NodeJSServices.NANDAANS.HTTPPort != 0 {
-		merged.NodeJSServices.NANDAANS.HTTPPort = src.NodeJSServices.NANDAANS.HTTPPort
-	}
+	// NANDA-ANS service removed as per refactor plan
 
 	// Merge TunnelClient config
 	if src.TunnelClient.Enabled {
@@ -453,11 +447,7 @@ type NodeJSServicesConfig struct {
 		HTTPPort   uint   `json:"http_port"`   // Port for network monitor API (e.g., 3008)
 	} `json:"network_monitor"`
 
-	// NANDA-ANS service (served as static files from Go binary via main HTTP server)
-	NANDAANS struct {
-		Enabled  bool `json:"enabled" mapstructure:"enabled"`
-		HTTPPort uint `json:"http_port" mapstructure:"http_port"` // Port for NANDA-ANS static files (0 = use main HTTP server port)
-	} `json:"nanda_ans" mapstructure:"nanda_ans"`
+	// NANDA-ANS service removed as per refactor plan
 }
 
 // TunnelClientConfig configuration for nodes that need NAT traversal
@@ -698,13 +688,7 @@ func DefaultConfig() *Config {
 				ScriptPath: "",
 				HTTPPort:   0,
 			},
-			NANDAANS: struct {
-				Enabled  bool `json:"enabled" mapstructure:"enabled"`
-				HTTPPort uint `json:"http_port" mapstructure:"http_port"`
-			}{
-				Enabled:  true, // Enable by default for root nodes
-				HTTPPort: 0,    // Use main HTTP server port (served as static files)
-			},
+			// NANDA-ANS service removed as per refactor plan
 		},
 		TunnelClient: TunnelClientConfig{
 			Enabled:        false,           // Disabled by default

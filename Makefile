@@ -897,6 +897,56 @@ sync-clean-backups: ## Clean old synchronization backups (keeps last 10)
 	fi
 
 # =============================================================================
+# DEMO AND SHOWCASE
+# =============================================================================
+
+.PHONY: demo
+demo: ## Run full KNIRV Network demo with testnet and KNIRVCONTROLLER
+	@echo "$(BLUE)🚀 Starting KNIRV Network Full Demo...$(NC)"
+	@./run-full-demo.sh
+
+.PHONY: demo-quick
+demo-quick: ## Run quick demo (5 minutes, non-interactive, skip tests)
+	@echo "$(BLUE)🚀 Starting KNIRV Network Quick Demo...$(NC)"
+	@./run-full-demo.sh --duration 300 --non-interactive --skip-tests
+
+.PHONY: demo-interactive
+demo-interactive: ## Run interactive demo with user prompts
+	@echo "$(BLUE)🚀 Starting KNIRV Network Interactive Demo...$(NC)"
+	@./run-full-demo.sh --duration 600
+
+.PHONY: demo-extended
+demo-extended: ## Run extended demo (15 minutes) with full testing
+	@echo "$(BLUE)🚀 Starting KNIRV Network Extended Demo...$(NC)"
+	@./run-full-demo.sh --duration 900
+
+.PHONY: demo-development
+demo-development: ## Run demo without cleanup for development
+	@echo "$(BLUE)🚀 Starting KNIRV Network Development Demo...$(NC)"
+	@./run-full-demo.sh --no-cleanup
+
+.PHONY: demo-help
+demo-help: ## Show demo script help and options
+	@echo "$(BLUE)KNIRV Network Demo Commands$(NC)"
+	@echo "============================="
+	@echo ""
+	@echo "$(YELLOW)Available Demo Commands:$(NC)"
+	@echo "  $(GREEN)demo$(NC)                 Run full demo (default settings)"
+	@echo "  $(GREEN)demo-quick$(NC)           Quick 5-minute demo, non-interactive"
+	@echo "  $(GREEN)demo-interactive$(NC)     Interactive demo with user prompts"
+	@echo "  $(GREEN)demo-extended$(NC)        Extended 15-minute demo with full testing"
+	@echo "  $(GREEN)demo-development$(NC)     Demo without cleanup for development"
+	@echo "  $(GREEN)demo-validate$(NC)        Validate demo setup and prerequisites"
+	@echo ""
+	@echo "$(YELLOW)Direct Script Usage:$(NC)"
+	@./run-full-demo.sh --help
+
+.PHONY: demo-validate
+demo-validate: ## Validate demo setup and prerequisites
+	@echo "$(BLUE)🔍 Validating KNIRV Network Demo Setup...$(NC)"
+	@./validate-demo-setup.sh
+
+# =============================================================================
 # SHORTCUTS
 # =============================================================================
 

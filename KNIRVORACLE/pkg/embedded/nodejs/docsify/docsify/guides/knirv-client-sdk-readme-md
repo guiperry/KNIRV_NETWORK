@@ -1,0 +1,349 @@
+# KNIRVORACLE Client SDK
+
+## Overview
+
+The KNIRVORACLE Client SDK provides a high-level interface for developers to interact with the KNIRVORACLE network. It simplifies the process of resolving `knirv://` URIs, discovering devs on the private DHT, connecting to them, and fetching the underlying resources or interacting with services.
+
+This SDK abstracts away the complexities of P2P networking and DHT lookups, allowing developers to focus on building applications that leverage KNIRVORACLE resources. It supports Go, Python, JavaScript, and TypeScript.
+
+## KNIRVORACLE URI Structure Recap
+
+```
+knirv://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
+```
+
+*   **Scheme:** `agent`
+*   **Authority:** `<ID>.<ResourceType>` (e.g., `mychain.chain`, `content123.nrn`)
+    *   `<ID>`: Unique identifier for the chain, content, or node.
+    *   `<ResourceType>`: Specifies the type of resource (e.g., `chain`, `nrn`).
+*   **Path:** `/<OptionalSubPath>` (e.g., `/block`, `/content`, defaults to `/` if omitted).
+*   **Query:** `?param1=value1...` (Standard URL query parameters).
+
+For a detailed specification, please refer to the KNIRVORACLE URI Scheme Design Document.
+
+## SDK Scope and Functionality
+
+The KNIRVORACLE Client SDK handles the entire pipeline for a given `knirv://` URI:
+
+1.  **Parsing:** Deconstructs the URI string into its `ID`, `ResourceType`, `Path`, and `Query` components.
+2.  **Peer Discovery (DHT Resolution):** Uses the `ID` and `ResourceType` to query the KNIRVORACLE private DHT and find dev(s) advertising the resource.
+3.  **Peer Connection:** Establishes a connection with a suitable dev.
+4.  **Resource Fetching/Interaction:** Uses the `Path` and `Query` parameters to request the specific data or interact with the service on the connected dev, according to KNIRVORACLE's application-level protocols.
+
+The SDK returns the fetched resource data (e.g., as a byte array, string, stream, or structured object) or a handle for further interaction.
+
+## SDK Installation and Usage
+
+Below are instructions and examples for using the SDK in supported languages.
+
+---
+
+### 1. GoLang (`agent-uri-sdk-go`)
+
+The Go SDK provides a comprehensive package for resolving and fetching KNIRVORACLE resources.
+
+#### Installation
+
+```bash
+go get github.com/KNIRVORACLE/agent-uri-sdk-go # Replace with actual repository path
+```
+
+#### Core Functionality
+
+The primary function might be `FetchResource(uriString string) (ResourceData, error)` or similar.
+
+```go
+package client // or your chosen package name within the SDK
+
+import (
+	// "net/url" // Still needed internally for parsing
+	// "github.com/libp2p/go-libp2p" // Example: libp2p would be a dependency
+	// ... other necessary imports for networking, DHT, etc.
+)
+
+// agentURI struct might still exist internally or be part of an intermediate step.
+// type agentURI struct { ... }
+
+// ResourceData could be an interface or a struct depending on what's fetched
+type ResourceData interface {
+	Bytes() []byte
+	String() string
+	// Stream() io.ReadCloser // For streaming data
+}
+
+type ClientConfig struct {
+	BootstrapPeers []string // Multiaddresses of bootstrap devs
+	// Other DHT or network configurations
+}
+```
+
+#### Usage Example
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/KNIRVORACLE/agent-uri-sdk-go/parser"  // Adjust import path
+	agentclient "github.com/KNIRVORACLE/agent-uri-sdk-go/client" // Adjust import path
+)
+
+func main() {
+	uriStrings := []string{
+		"knirv://mychain-alpha.chain/block?number=123&validator=node1",
+		"knirv://content-xyz-123.nrn/data?version=1.2&format=json",
+		"knirv://another-id.chain/",  // Path defaults to /
+		"knirv://short.nrn",          // Path defaults to /
+		"invalid://mychain.chain/",   // Invalid scheme
+		"knirv://mychainchain",       // Invalid authority
+		"knirv://nonexistent.resource", // Valid URI, but resource might not be found
+	}
+
+	// SDK Client Initialization (one-time setup)
+	config := agentclient.ClientConfig{
+		BootstrapPeers: []string{"/ip4/127.0.0.1/tcp/6000/p2p/QmBoot1..."}, // Example
+	}
+
+	client, err := agentclient.New(config)
+	if err != nil {
+		log.Fatalf("Failed to initialize KNIRVORACLE client: %v", err)
+	}
+	defer client.Close() // Assuming the client needs to be closed
+
+	for _, uriString := range uriStrings {
+		fmt.Printf("Fetching URI: %s\n", uriString)
+		resource, err := client.FetchResource(uriString)
+		if err != nil {
+			log.Printf("  Error fetching resource: %v\n", err)
+			continue
+		}
+
+		parsedURI, err := parser.Parse(uriString)
+		if err != nil {
+			log.Printf("  Error: %v\n", err)
+			continue
+		}
+
+		fmt.Printf("  ID:           %s\n", parsedURI.ID)
+		fmt.Printf("  ResourceType: %s\n", parsedURI.ResourceType)
+		fmt.Printf("  Path:         %s\n", parsedURI.Path)
+		fmt.Printf("  Raw URI:      %s\n", parsedURI.Raw)
+		fmt.Println("  Query Parameters:")
+		for key, values := range parsedURI.Query {
+			for _, value := range values {
+				fmt.Printf("    %s: %s\n", key, value)
+			}
+		}
+		if parsedURI.Query.Has("number") {
+			fmt.Printf("  Extracted 'number': %s\n", parsedURI.Query.Get("number"))
+		}
+		fmt.Printf("  Fetched Data (first 50 bytes): %s...\n", string(resource.Bytes()[:min(50, len(resource.Bytes()))]))
+		fmt.Println("---")
+	}
+}
+```
+
+### 2. Python (`agent-uri-sdk-py`)
+
+The Python SDK offers a high-level API to resolve and fetch KNIRVORACLE resources.
+
+#### Installation
+
+```bash
+pip install agent-uri-sdk # Replace with actual PyPI package name
+```
+
+#### Core Functionality
+
+The primary function might be `fetch_agent_resource(uri_string: str) -> bytes` or similar, likely asynchronous.
+
+```python
+# Within the SDK:
+# from urllib.parse import urlparse, parse_qs # Still used internally
+from typing import Dict, List, Optional, Any, Union
+# import asyncio # For async operations
+# import libp2p # Example: if py-libp2p is used
+
+class agentClientError(Exception):
+    """Custom exception for KNIRVORACLE client errors."""
+    pass
+
+class agentClient:
+    def __init__(self, bootstrap_devs: List[str]):
+        self.bootstrap_devs = bootstrap_devs
+        # Initialize libp2p host, DHT client, etc.
+        pass
+
+    async def fetch_resource(self, uri_string: str) -> bytes: # Example: returns bytes
+        # 1. Parse URI (internal step)
+        # 2. DHT lookup
+        # 3. Connect to dev
+        # 4. Fetch resource data
+        # ...
+        raise NotImplementedError("fetch_resource not implemented")
+
+    async def close(self):
+        # Clean up network resources
+        pass
+```
+
+#### Usage Example
+
+```python
+import asyncio
+from agent_uri_sdk import agentClient, agentClientError  # Adjust import path
+
+uri_strings = [
+    "knirv://mychain-alpha.chain/block?number=123&validator=node1",
+    "knirv://content-xyz-123.nrn/data?version=1.2&format=json",
+    "knirv://another-id.chain/",
+    "knirv://short.nrn",
+    "invalid://mychain.chain/",
+    "knirv://nonexistent.resource",
+]
+
+async def main():
+    client = agentClient(bootstrap_devs=["/ip4/127.0.0.1/tcp/6000/p2p/QmBoot1..."])  # Example
+    try:
+        for uri_string in uri_strings:
+            print(f"Fetching URI: {uri_string}")
+            try:
+                data: bytes = await client.fetch_resource(uri_string)
+                print(f"  Fetched Data (first 50 bytes): {data[:min(50, len(data))].decode('utf-8', errors='replace')}...")
+            except agentClientError as e:
+                print(f"  Error fetching resource: {e}")
+            print("---")
+    finally:
+        await client.close()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### 3. JavaScript / TypeScript (`agent-uri-sdk-js`)
+
+The JavaScript/TypeScript SDK provides a high-level API to resolve and fetch KNIRVORACLE resources, suitable for both Node.js and browser environments (with appropriate libp2p configurations). It leverages `js-libp2p` and promises for asynchronous operations.
+
+#### Installation
+
+```bash
+npm install agent-uri-sdk # Replace with actual npm package name
+# or
+yarn add agent-uri-sdk
+```
+
+#### Core Functionality (TypeScript Interface)
+
+The primary function might be `fetchagentResource(uriString: string): Promise<ArrayBuffer | string>` or similar.
+
+```typescript
+// Within the SDK:
+// import { Libp2p } from 'libp2p'; // Example: js-libp2p would be a dependency
+
+export class agentClientError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "agentClientError";
+    }
+}
+
+export interface agentClientConfig {
+    bootstrapPeers: string[];
+    // Other js-libp2p or DHT configurations
+}
+
+export class agentClient {
+    constructor(config: agentClientConfig) {
+        // Initialize js-libp2p node, DHT, etc.
+    }
+
+    async fetchResource(uriString: string): Promise<ArrayBuffer> { // Example: returns ArrayBuffer
+        // 1. Parse URI (internal step, using URL and URLSearchParams)
+        // 2. DHT lookup
+        // 3. Connect to dev
+        // 4. Fetch resource data
+        // ...
+        throw new Error("fetchResource not implemented");
+    }
+
+    async stop(): Promise<void> {
+        // Stop libp2p node
+    }
+}
+```
+
+#### Usage Example (TypeScript)
+
+```typescript
+import { agentClient, agentClientConfig, agentClientError } from 'agent-uri-sdk'; // Adjust import path
+
+const uriStrings: string[] = [
+    "knirv://mychain-alpha.chain/block?number=123&validator=node1",
+    "knirv://content-xyz-123.nrn/data?version=1.2&format=json",
+    "knirv://another-id.chain/",
+    "knirv://short.nrn",
+    "invalid://mychain.chain/",
+    "knirv://nonexistent.resource",
+];
+
+(async () => {
+    const config: agentClientConfig = {
+        bootstrapPeers: ["/ip4/127.0.0.1/tcp/6000/p2p/QmBoot1..."], // Example
+    };
+    const client = new agentClient(config);
+
+    for (const uriString of uriStrings) {
+        console.log(`Fetching URI: ${uriString}`);
+        try {
+            const data: ArrayBuffer = await client.fetchResource(uriString);
+            const textDecoder = new TextDecoder('utf-8');
+            console.log(`  Fetched Data (first 50 bytes): ${textDecoder.decode(data.slice(0, Math.min(50, data.byteLength)))}...`);
+        } catch (e) {
+            if (e instanceof agentClientError) {
+                console.error(`  Error fetching resource: ${e.message}`);
+            } else if (e instanceof Error) {
+                console.error(`  Unexpected Error: ${e.message}`);
+            } else {
+                console.error(`  An unknown error occurred`);
+            }
+        }
+        console.log("---");
+    }
+    await client.stop();
+})();
+```
+
+#### Usage Example (JavaScript - ES Modules)
+
+```javascript
+// main.js
+import { agentClient, agentClientError } from 'agent-uri-sdk'; // Adjust import path
+
+// ... (similar async main function and loop as TypeScript example)
+// const client = new agentClient({ bootstrapPeers: [...] });
+// await client.fetchResource(uriString) ...
+// await client.stop();
+```
+
+#### Usage Example (JavaScript - CommonJS)
+
+```javascript
+// main.js
+const { parseagentURI, agentURIError } = require('agent-uri-sdk'); // Adjust import path
+
+// This would likely require a different setup if js-libp2p is involved,
+// as it's more ESM-centric. For Node.js, you might use dynamic import()
+// or ensure the SDK provides a CJS-compatible build if supporting older Node versions.
+```
+
+## Error Handling
+
+Each SDK version provides a custom error type (e.g., `client.ErrResourceNotFound` in Go, `agentClientError` in Python and JS/TS) that is raised/returned for various issues, including URI parsing failures, DHT lookup errors, dev connection problems, or if the resource cannot be fetched. Always handle potential errors when calling SDK functions.
+
+## Contributing
+
+We welcome contributions to the KNIRVORACLE Client SDKs! Please refer to the respective SDK repositories for contribution guidelines.
+
+This documentation should provide a solid starting point for developers looking to integrate KNIRVORACLE URI parsing into their applications. Remember to replace placeholder repository paths and package names with your actual ones once the SDKs are published.

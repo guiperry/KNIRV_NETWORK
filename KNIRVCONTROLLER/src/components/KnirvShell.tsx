@@ -90,7 +90,7 @@ export const KnirvShell: React.FC<KnirvShellProps> = ({
                   </button>
                 ) : (
                   /* Expanded 3-Button Interface */
-                  <div className="relative">
+                  <div className="relative mb-16">
                     {/* Close Button */}
                     <button
                       onClick={() => setIsExpanded(false)}

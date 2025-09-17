@@ -210,7 +210,7 @@ export class PersonalKNIRVGRAPHService {
       type: 'error',
       label: errorData.description,
       position: this.calculateNodePosition(),
-  data: { ...errorData, factualitySlice: errorData.factualitySlice },
+  data: { ...(errorData as ErrorNodeData), factualitySlice: errorData.factualitySlice } as NodeWithSlices,
       connections: []
     };
 
@@ -251,7 +251,7 @@ export class PersonalKNIRVGRAPHService {
       type: 'capability',
       label: contextData.contextName,
       position: this.calculateNodePosition(),
-  data: { ...capabilityData, capabilitySlice: contextData.capabilitySlice },
+  data: { ...capabilityData, capabilitySlice: contextData.capabilitySlice } as NodeWithSlices,
       connections: []
     };
 
@@ -293,7 +293,7 @@ export class PersonalKNIRVGRAPHService {
       type: 'property',
       label: ideaData.ideaName,
       position: this.calculateNodePosition(),
-      data: { ...propertyData, feasibilitySlice: ideaData.feasibilitySlice },
+      data: { ...propertyData, feasibilitySlice: ideaData.feasibilitySlice } as NodeWithSlices,
       connections: []
     };
 
