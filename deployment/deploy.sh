@@ -107,7 +107,7 @@ build_and_push_images() {
     log_step "Building and pushing Docker images..."
 
     # List of services to build
-    services=("knirvchain" "knirvgraph" "knirvnexus" "knirvoracle" "knirvrouter")
+    services=("knirvchain" "knirvgraph" "knirvnexus" "knirvoracle" "knirvrouter" "knirvcontroller")
 
     for service in "${services[@]}"; do
         log_info "Building $service..."
@@ -135,6 +135,20 @@ deploy_knirv_stack() {
     kubectl apply -f deployment/production-config/optimization.yaml
 
     log_info "KNIRV stack deployed successfully."
+}
+
+# Deploy KNIRVCONTROLLER PWA
+deploy_knirvcontroller_pwa() {
+    log_step "Deploying KNIRVCONTROLLER PWA..."
+
+    # Check if KNIRVCONTROLLER deployment script exists
+    if [[ -f "scripts/deploy-controller-pwa.sh" ]]; then
+        log_info "Running KNIRVCONTROLLER PWA deployment script..."
+        ./scripts/deploy-controller-pwa.sh production
+        log_info "✅ KNIRVCONTROLLER PWA deployment completed"
+    else
+        log_warn "KNIRVCONTROLLER PWA deployment script not found, skipping..."
+    fi
 }
 
 # Deploy monitoring stack
@@ -269,6 +283,7 @@ main() {
     deploy_secrets
     build_and_push_images
     deploy_knirv_stack
+    deploy_knirvcontroller_pwa
     deploy_monitoring
     verify_deployment
     run_final_tests
@@ -344,8 +359,11 @@ case "${1:-deploy}" in
     "infrastructure")
         deploy_infrastructure
         ;;
+    "controller-pwa")
+        deploy_knirvcontroller_pwa
+        ;;
     *)
-        echo "Usage: $0 [deploy|test|monitoring|rollback|verify|knirvoracle|infrastructure]"
+        echo "Usage: $0 [deploy|test|monitoring|rollback|verify|knirvoracle|infrastructure|controller-pwa]"
         echo "  deploy         - Full deployment (default)"
         echo "  test           - Run final test suite only"
         echo "  monitoring     - Deploy monitoring stack only"
@@ -353,6 +371,7 @@ case "${1:-deploy}" in
         echo "  verify         - Verify current deployment"
         echo "  knirvoracle    - Deploy KNIRVORACLE only"
         echo "  infrastructure - Deploy infrastructure + KNIRVORACLE"
+        echo "  controller-pwa - Deploy KNIRVCONTROLLER PWA only"
         exit 1
         ;;
 esac

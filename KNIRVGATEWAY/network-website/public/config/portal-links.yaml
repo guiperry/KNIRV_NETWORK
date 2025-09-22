@@ -215,14 +215,33 @@ downloads:
 
   # KNIRV Controller product - supersedes standalone wallet but includes wallet features
   knirvcontroller:
+    # Desktop applications
     windows: "https://releases.knirv.network/knirvcontroller/windows/knirvcontroller-setup.exe"
     mac: "https://releases.knirv.network/knirvcontroller/mac/knirvcontroller.dmg"
     linux: "https://releases.knirv.network/knirvcontroller/linux/knirvcontroller.AppImage"
+
+    # Mobile PWA applications (slim packages)
+    android: "https://releases.knirv.network/knirvcontroller/mobile/knirvcontroller-android-pwa.zip"
+    ios: "https://releases.knirv.network/knirvcontroller/mobile/knirvcontroller-ios-pwa.zip"
+
+    # PWA direct access
+    pwa_url: "https://beta-controller.knirv.network"
+    pwa_install_android: "https://beta-controller.knirv.network/?install=android"
+    pwa_install_ios: "https://beta-controller.knirv.network/?install=ios"
+
     requirements:
       windows: "Windows 10/11, 4GB RAM, 2GB Storage"
       mac: "macOS 10.15+, 4GB RAM, 2GB Storage"
       linux: "Ubuntu 20.04+, 4GB RAM, 2GB Storage"
-    note: "KNIRVCONTROLLER includes the wallet and adds agent management, network diagnostics, and operator tooling."
+      android: "Android 7.0+, 50MB Storage, Chrome 70+"
+      ios: "iOS 14.0+, 50MB Storage, Safari 14+"
+
+    features:
+      desktop: "Full desktop experience with advanced operator tools"
+      mobile: "Optimized mobile interface with offline capabilities"
+      pwa: "Progressive Web App with native-like experience"
+
+    note: "KNIRVCONTROLLER includes the wallet and adds agent management, network diagnostics, and operator tooling. Mobile versions provide core functionality with device-optimized interfaces."
 
   # KNIRV CLI for developers and operators
   knirvcli:

@@ -244,7 +244,7 @@ class FunctionDependencyChecker {
 
             this.log('='.repeat(60));
             this.log('💡 Suggested fixes:', 'info');
-            this.log('  1. Run: cd netlify/functions && npm install', 'info');
+            this.log('  1. Run: cd network-website/netlify/functions && npm install', 'info');
             this.log('  2. Or run: npm run install-function-deps', 'info');
             this.log('  3. Or add dependencies to main package.json', 'info');
 

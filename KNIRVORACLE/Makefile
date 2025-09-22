@@ -151,8 +151,11 @@ build-embedded-webgui:
 	@echo "Building embedded WebGUI (Next.js application)..."
 	@if [ -d "embedded/nodejs/webgui/webGUI" ] && [ -f "embedded/nodejs/webgui/webGUI/package.json" ]; then \
 		cd embedded/nodejs/webgui/webGUI && \
+		echo "Installing WebGUI dependencies..." && \
+		npm install --silent 2>/dev/null && \
+		echo "Building WebGUI..." && \
 		if npm run build --silent 2>/dev/null; then \
-			echo "WebGUI built successfully."; \
+			echo "WebGUI built successfully. Static files available in 'out' directory."; \
 		else \
 			echo "Warning: WebGUI build failed, using existing build or will run in development mode."; \
 		fi; \

@@ -10,7 +10,6 @@
   vars:
     # Override with testnet-specific settings
     instance_type: "{{ instance_type | default('t3.large') }}"
-    key_pair_name: "{{ key_pair_name | default('knirv-testnet-key') }}"
     security_group_name: "knirv-testnet-sg"
     
     # Testnet-specific ports
@@ -48,7 +47,7 @@
     # =============================================================================
     
     - name: Create VPC for testnet
-      amazon.aws.ec2_vpc:
+      amazon.aws.ec2_vpc_net:
         name: "knirv-testnet-vpc"
         cidr_block: "{{ vpc_cidr }}"
         region: "{{ region }}"
@@ -88,7 +87,7 @@
         state: present
       
     - name: Create Security Group for testnet
-      amazon.aws.ec2_security_group:
+      amazon.aws.ec2_group:
         name: "{{ security_group_name }}"
         description: "KNIRVTESTNET Security Group"
         vpc_id: "{{ testnet_vpc_result.vpc.id }}"
@@ -109,7 +108,18 @@
             rule_desc: "HTTP/HTTPS Access"
           # KNIRVTESTNET Service Ports
           - proto: tcp
-            ports: "{{ testnet_service_ports[:-5] }}"  # Exclude SSH, HTTP, HTTPS, STUN, metrics
+            ports:
+              - 5001   # IPFS API
+              - 8080   # IPFS Gateway / KNIRVCHAIN
+              - 8081   # KNIRVGRAPH
+              - 8082   # KNIRVNEXUS-1
+              - 8083   # KNIRVNEXUS-2
+              - 8086   # KNIRVROUTER
+              - 8087   # KNIRVGATEWAY
+              - 3000   # KNIRVANA
+              - 1317   # KNIRVORACLE API
+              - 26656  # Tendermint P2P
+              - 26657  # Tendermint RPC
             cidr_ip: "0.0.0.0/0"
             rule_desc: "KNIRVTESTNET Services"
           # STUN/TURN Ports
@@ -133,7 +143,11 @@
         tags: "{{ testnet_tags }}"
         state: present
       register: testnet_security_group_result
-      
+
+    - name: Debug key pair name
+      debug:
+        msg: "Using key pair: {{ key_pair_name }}"
+
     - name: Launch EC2 Instance for testnet
       amazon.aws.ec2_instance:
         name: "{{ testnet_tags.Name }}"

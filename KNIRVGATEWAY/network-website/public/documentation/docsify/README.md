@@ -30,9 +30,9 @@ Welcome to the KNIRV Network documentation. This comprehensive guide provides in
 
 * [KNIRV SDK](knirvsdk/README.md) - User guide for KNIRVSDK
 
-### KNIRVENGINE Documentation
+### KNIRVCORTEX Documentation
 
-* [KNIRVENGINE User Guide: Setup, Usage, and Troubleshooting](knirvengine/README.md) - User guide for KNIRVENGINE
+* [KNIRVCORTEX User Guide](knirvcortex/README.md) - KNIRVCORTEX is a WebAssembly cognitive engine for deterministic task execution.  It uses a standardized ProtoBuf interface and integrates with external AI models.
 
 ### KNIRVCONTROLLER Documentation
 

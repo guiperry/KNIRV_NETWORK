@@ -6,7 +6,7 @@ module.exports = {
     url: 'http://localhost:3000'
   },
   setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/jest.setup.js'],
-  setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts'],
+  setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts', '<rootDir>/tests/setup-safety-checks.ts'],
   clearMocks: true,
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
@@ -50,7 +50,8 @@ module.exports = {
     '<rootDir>/tests/e2e/',
     '<rootDir>/tests/playwright/',
     '<rootDir>/dist/',
-    '<rootDir>/build/'
+    '<rootDir>/build/',
+    '<rootDir>/tests/legacy/legacy/' // Prevent nested legacy directories from being tested
   ],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
@@ -92,7 +93,7 @@ module.exports = {
         url: 'http://localhost:3000'
       },
       setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/jest.setup.js'],
-      setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts']
+      setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts', '<rootDir>/tests/setup-safety-checks.ts']
     },
     {
       displayName: 'Integration Tests',
@@ -103,7 +104,7 @@ module.exports = {
         url: 'http://localhost:3000'
       },
       setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/jest.setup.js'],
-      setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts']
+      setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts', '<rootDir>/tests/setup-safety-checks.ts']
     },
     {
       displayName: 'Sensory Shell Tests',
@@ -114,7 +115,7 @@ module.exports = {
         url: 'http://localhost:3000'
       },
       setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/jest.setup.js'],
-      setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts']
+      setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts', '<rootDir>/tests/setup-safety-checks.ts']
     },
     {
       displayName: 'Phase 3 Tests',
@@ -125,7 +126,7 @@ module.exports = {
         url: 'http://localhost:3000'
       },
       setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/jest.setup.js'],
-      setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts']
+      setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts', '<rootDir>/tests/setup-safety-checks.ts']
     },
 
     {
@@ -137,7 +138,7 @@ module.exports = {
         url: 'http://localhost:3000'
       },
       setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/jest.setup.js'],
-      setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts']
+      setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts', '<rootDir>/tests/setup-safety-checks.ts']
     }
   ],
   reporters: [

@@ -58,9 +58,9 @@
     },
     "types": [
       "vite/client",
-      "jest",
+      "@types/jest",
       "@testing-library/jest-dom",
-      "node"
+      "@types/node"
     ]
   },
   "include": [

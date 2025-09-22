@@ -12,9 +12,9 @@ navigation:
 
 # External Services
 external_services:
-  payment_gateway: "https://pay.knirv.com/add-funds"
+  payment_gateway: "https://payments.knirv.network"
   knirv_website: "https://knirv.com"
-  testnet_access: "https://testnet.knirv.com"
+  testnet_access: "https://testnet.knirv.network"
 
 # Documentation Links
 documentation:
@@ -100,7 +100,7 @@ iframes:
     height: "800px"
   
   documentation:
-    url: "../documentation/docsify/"
+    url: "../documentation/"
     title: "KNIRV Documentation"
     height: "800px"
   

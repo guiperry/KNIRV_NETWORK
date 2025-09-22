@@ -84,7 +84,7 @@ class FunctionNameValidator {
             this.log('', 'info');
             this.log('To fix these issues, run:', 'info');
             invalidFiles.forEach(({ current, suggested }) => {
-                this.log(`  mv "netlify/functions/${current}" "netlify/functions/${suggested}"`, 'info');
+                this.log(`  mv "network-website/netlify/functions/${current}" "network-website/netlify/functions/${suggested}"`, 'info');
             });
 
             return false;

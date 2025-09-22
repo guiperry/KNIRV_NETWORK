@@ -84,7 +84,7 @@ All core functions and state transitions of KNIRV-ORACLE are implemented determi
 **Expanded Information:**
 *   **Predictable Behavior:** Deterministic programming ensures that given the same initial state and inputs, KNIRV-ORACLE will always produce the exact same output and state changes across all its validators. This is crucial for maintaining consensus and auditability.
 *   **Auditability & Reliability:** The deterministic nature allows for perfect replayability of the blockchain history, making it easy to audit and debug. This is vital for KNIRV-ORACLE's role as the NRN oracle and network orchestrator, where trust and reliability are paramount.
-*   **No Embedded KNIRV-CLI:** KNIRV-ORACLE does not embed a KNIRV-CLI for its operational logic. Its functions are purely programmatic, consensus-driven, and designed for maximum stability and security, avoiding the dynamic, evolving nature of KNIRV-CLI agents for its core responsibilities.
+*   **No Embedded KNIRV-SHELL:** KNIRV-ORACLE does not embed a KNIRV-SHELL for its operational logic. Its functions are purely programmatic, consensus-driven, and designed for maximum stability and security, avoiding the dynamic, evolving nature of KNIRV-SHELL agents for its core responsibilities.
 
 ### 3.4. Payment Gateway Integration
 KNIRV-ORACLE hosts and manages the Payment Gateway backend service, acting as the secure bridge between external fiat/crypto payment rails and the internal NRN economy.
@@ -99,7 +99,7 @@ KNIRV-ORACLE is strategically positioned at the nexus of the KNIRV D-TEN's econo
 **Expanded Information:**
 *   **KNIRVCHAIN:** KNIRV-ORACLE actively monitors KNIRVCHAIN for finalized Base LLM updates and SkillRegistry changes, propagating this canonical intelligence across the network. Conversely, KNIRVCHAIN sends `IBC` messages to KNIRV-ORACLE to trigger NRN burns upon Skill invocation, ensuring the economic loop.
 *   **KNIRV-ROUTERS:** These foundational nodes submit NRN minting requests (accompanied by "Proof-of-Connectivity" data) directly to the KNIRV-ORACLE blockchain. In return, they receive USDC from the KNIRV-ORACLE Faucet, incentivizing their continuous operation and network integrity validation.
-*   **KNIRV-CLI:** KNIRV-CLI agents receive canonical Base LLM and SkillRegistry updates directly from KNIRV-ORACLE, ensuring they operate with the latest collective intelligence. KNIRV-SHELLs' KNIRV-WALLETs acquire NRNs from the KNIRV-ORACLE Faucet to fund Skill invocations.
+*   **KNIRV-SHELL:** KNIRV-SHELL agents receive canonical Base LLM and SkillRegistry updates directly from KNIRV-ORACLE, ensuring they operate with the latest collective intelligence. KNIRV-SHELLs' KNIRV-WALLETs acquire NRNs from the KNIRV-ORACLE Faucet to fund Skill invocations.
 *   **KNIRV-GRAPH:** KNIRV-ORACLE observes KNIRV-GRAPH for newly minted SkillNodes (as "towers" within ErrorNode vector fields). After its own verification, KNIRV-ORACLE orchestrates the canonical minting of these SkillNodes onto KNIRVCHAIN. KNIRV-ORACLE may also observe KNIRV-GRAPH data to inform its NRN economic policy adjustments (e.g., minting rates) or to verify SkillNode contributions that drive Base LLM evolution.
 *   **KNIRV-WALLET:** Users' KNIRV-WALLETs (leveraging XION Meta Accounts for enhanced UX) are the direct beneficiaries of NRN disbursements from the KNIRV-ORACLE Faucet. They also manage wrapped NRNs on XION for seamless transactions within the broader XION ecosystem.
 *   **KNIRVANA:** Gameplay in KNIRVANA directly drives Skill invocation on KNIRVCHAIN. This, in turn, triggers NRN burns on KNIRV-ORACLE, making the economic utility of the NRN tangible and directly linked to the user's experience within the game.
@@ -134,7 +134,7 @@ The development of KNIRV-ORACLE will proceed in phases, focusing on strengthenin
     *   **Focus:** Secure and stable operation of the core `PoA` blockchain, NRN Module, Faucet Module, and initial Registry Module.
     *   **`IBC` Channels:** Establish stable `IBC` channels with XION for USDC inflow and wrapped NRNs, and with KNIRVCHAIN for Skill invocation burning and Base LLM/SkillRegistry observation.
     *   **Payment Gateway:** Fully integrate and secure the Payment Gateway backend service.
-    *   **Goal:** Establish KNIRV-ORACLE as the canonical NRN ledger and the primary orchestrator of the NRN economy, supporting initial KNIRV-ROUTER and KNIRV-CLI operations.
+    *   **Goal:** Establish KNIRV-ORACLE as the canonical NRN ledger and the primary orchestrator of the NRN economy, supporting initial KNIRV-ROUTER and KNIRV-SHELL operations.
 *   **Phase 2 (Decentralized Validator Set Expansion - Q4 2026):**
     *   **Focus:** Gradually expand the KNIRV-ORACLE validator set, onboarding more authorized and reputable entities to further enhance decentralization and security of the `PoA` consensus.
     *   **Advanced Oracle Logic:** Refine the Oracle Module to include more sophisticated observation and reconciliation logic for KNIRVGRAPH's SkillNode verification status, ensuring seamless orchestration of canonical SkillNode minting on KNIRVCHAIN.

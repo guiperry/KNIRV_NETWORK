@@ -2,8 +2,9 @@
   "name": "knirv-com-worker",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "build": "npm install && tsc --noEmit",
+    "build": "npm install && npm run build:netlify-functions && tsc --noEmit",
     "start": "wrangler dev",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
@@ -12,7 +13,15 @@
     "docs:serve": "cd public/documentation && npm run serve",
     "docs:start": "cd public/documentation && npm start",
     "docs:generate-static": "cd public/documentation && npm install && cd ../.. && node scripts/simple-static-generator.js && node scripts/update-docsify-links.js",
-    "docs:test-static": "node scripts/test-static-generation.js"
+    "docs:test-static": "node scripts/test-static-generation.js",
+
+    "build:netlify-functions": "cd netlify/functions && npm install && npm run postinstall",
+    "check-netlify-health": "node scripts/check-netlify-health.js",
+    "check-netlify-health:build": "node scripts/check-netlify-health.js --build-mode",
+    "smart-netlify-start": "node scripts/smart-netlify-start.js",
+    "netlify:dev": "npm run check-netlify-health || echo 'Warning: Netlify health check failed, but continuing...' && netlify dev",
+    "netlify:dev:safe": "echo 'Starting Netlify dev in safe mode...' && netlify dev || echo 'Netlify dev failed - check netlify-cli installation'",
+    "netlify:build": "npm run check-netlify-health:build && npm run build:netlify-functions && npm run build"
   },
   "dependencies": {
     "@cloudflare/kv-asset-handler": "^0.3.0"

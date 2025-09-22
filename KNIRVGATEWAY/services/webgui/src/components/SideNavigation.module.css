@@ -1,0 +1,59 @@
+.sidebar {
+  width: 250px;
+  background-color: var(--transparent-black-6);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboardTitle {
+  color: var(--bright-blue);
+  margin-bottom: 15px;
+}
+
+.roleIndicator {
+  margin-bottom: 20px;
+  padding: 8px 12px;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.roleBadge {
+  font-weight: bold;
+  color: var(--bright-blue);
+  margin-left: 5px;
+}
+
+.navItem {
+  padding: 10px 15px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.navItem:hover {
+  background-color: rgba(0, 123, 255, 0.2);
+}
+
+.active {
+  background-color: var(--bright-blue) !important;
+  color: white !important;
+}
+
+.inactive {
+  background-color: var(--transparent-white-05);
+}
+
+.navIcon {
+  margin-right: 10px;
+}
+
+.glassyContainer {
+  background-color: var(--transparent-white-05);
+  backdrop-filter: blur(8px);
+  border-radius: 15px;
+  border: 1px solid var(--transparent-white-1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+}

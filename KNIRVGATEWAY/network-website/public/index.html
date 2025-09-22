@@ -252,6 +252,91 @@ Join us: https://discord.gg/knirv">
             font-size: 0.75rem;
             margin-top: 0.25rem;
         }
+
+        /* Network Selector Styles */
+        .network-selector {
+            margin-right: 10px;
+        }
+
+        .network-status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+            background-color: #dc3545; /* Default red for disconnected */
+        }
+
+        .network-status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        /* Network Status Colors */
+        .network-status-indicator.mainnet,
+        .network-status-dot.mainnet {
+            background-color: #28a745; /* Green for mainnet */
+        }
+
+        .network-status-indicator.public-testnet,
+        .network-status-dot.public-testnet {
+            background-color: #ffc107; /* Yellow for public testnet */
+        }
+
+        .network-status-indicator.private-testnet,
+        .network-status-dot.private-testnet {
+            background-color: #fd7e14; /* Orange for private testnet */
+        }
+
+        .network-status-indicator.disconnected,
+        .network-status-dot.disconnected {
+            background-color: #dc3545; /* Red for disconnected */
+        }
+
+        /* Dropdown Menu Styling */
+        .dropdown-menu {
+            background-color: rgba(43, 86, 245, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .dropdown-item {
+            color: #ffffff;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+        }
+
+        .dropdown-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+        }
+
+        .dropdown-item small {
+            color: rgba(255, 255, 255, 0.7);
+            margin-left: auto;
+        }
+
+        /* Login Button Styling */
+        #loginBtn {
+            margin-right: 10px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .network-selector {
+                margin-bottom: 10px;
+            }
+
+            .menu-btns {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
     </style>
 </head>
 
@@ -323,8 +408,35 @@ Join us: https://discord.gg/knirv">
                                     </li>
                                 </ul>
                                 <ul class="menu-btns animated" data-animate="fadeInDown" data-delay=".85">
+                                    <!-- Network Selection Dropdown -->
+                                    <li class="network-selector">
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-outline btn-grad on-bg-theme btn-round dropdown-toggle" type="button" id="networkDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <span class="network-status-indicator" id="networkStatusIndicator"></span>
+                                                <span id="selectedNetwork">Not Connected</span>
+                                            </button>
+                                            <ul class="dropdown-menu" aria-labelledby="networkDropdown">
+                                                <li><a class="dropdown-item network-option" href="#" data-network="mainnet">
+                                                    <span class="network-status-dot mainnet"></span>Mainnet <small>(Coming Soon)</small>
+                                                </a></li>
+                                                <li><a class="dropdown-item network-option" href="#" data-network="public-testnet">
+                                                    <span class="network-status-dot public-testnet"></span>Public Testnet
+                                                </a></li>
+                                                <li><a class="dropdown-item network-option" href="#" data-network="private-testnet">
+                                                    <span class="network-status-dot private-testnet"></span>Private Testnet
+                                                </a></li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item network-option" href="#" data-network="disconnected">
+                                                    <span class="network-status-dot disconnected"></span>Disconnect
+                                                </a></li>
+                                            </ul>
+                                        </div>
+                                    </li>
+                                    <!-- Login Button -->
+                                    <li><button id="loginBtn" class="btn btn-rg btn-auto btn-outline btn-grad on-bg-theme btn-round" data-bs-toggle="modal" data-bs-target="#login-modal">
+                                        <span>Login</span>
+                                    </button></li>
                                     <li><a href="documentation/static/whitepapers/KNIRV-D-TEN_Whitepaper.html" class="btn btn-rg btn-auto btn-outline btn-grad on-bg-theme btn-round"><span>D-TEN Whitepaper</span></a></li>
-                                    <li><a href="#" data-bs-toggle="modal" data-bs-target="#login-popup" class="btn btn-rg btn-auto btn-outline btn-grad on-bg-theme btn-round"><span>Join D-TEN</span></a></li>
                                 </ul>
                             </nav>
                         </div><!-- .header-navbar @e -->
@@ -1785,6 +1897,240 @@ Join us: https://discord.gg/knirv">
           root.render(React.createElement(KnirvNetworkLogo));
         }
       });
+    </script>
+
+    <!-- Login Modal -->
+    <div class="modal fade" id="login-modal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="background: rgba(43, 86, 245, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1);">
+                <div class="modal-header border-bottom border-light border-opacity-25">
+                    <h5 class="modal-title text-white" id="loginModalLabel">Login to KNIRV Network</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-4">
+                        <p class="text-white-50">Select your role to access the appropriate interface</p>
+                    </div>
+
+                    <!-- Role Selection -->
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <button class="btn btn-outline-light w-100 role-btn" data-role="root">
+                                <i class="fas fa-crown mb-2"></i><br>
+                                <strong>Root</strong><br>
+                                <small>Network Administrator</small>
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-outline-light w-100 role-btn" data-role="bootnode">
+                                <i class="fas fa-server mb-2"></i><br>
+                                <strong>Bootnode</strong><br>
+                                <small>Node Operator</small>
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-outline-light w-100 role-btn" data-role="dev">
+                                <i class="fas fa-code mb-2"></i><br>
+                                <strong>Developer</strong><br>
+                                <small>Build & Deploy</small>
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-outline-light w-100 role-btn" data-role="general">
+                                <i class="fas fa-user mb-2"></i><br>
+                                <strong>General</strong><br>
+                                <small>Network User</small>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Network Status Info -->
+                    <div class="mt-4 p-3 rounded" style="background: rgba(0, 0, 0, 0.2);">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span class="text-white-50">Current Network:</span>
+                            <span class="text-white" id="modalNetworkStatus">Not Connected</span>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between mt-2">
+                            <span class="text-white-50">Status:</span>
+                            <span class="badge bg-danger" id="modalConnectionStatus">Disconnected</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-light border-opacity-25">
+                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="connectBtn" disabled>Connect</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Network & Authentication JavaScript -->
+    <script>
+        // Network and Authentication Management
+        class KnirvNetworkManager {
+            constructor() {
+                this.currentNetwork = 'disconnected';
+                this.selectedRole = null;
+                this.isConnected = false;
+                this.init();
+            }
+
+            init() {
+                this.setupNetworkSelector();
+                this.setupRoleSelection();
+                this.setupConnectButton();
+                this.updateUI();
+            }
+
+            setupNetworkSelector() {
+                const networkOptions = document.querySelectorAll('.network-option');
+                networkOptions.forEach(option => {
+                    option.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const network = e.currentTarget.dataset.network;
+                        this.selectNetwork(network);
+                    });
+                });
+            }
+
+            setupRoleSelection() {
+                const roleButtons = document.querySelectorAll('.role-btn');
+                roleButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        // Remove active class from all buttons
+                        roleButtons.forEach(b => b.classList.remove('btn-primary', 'btn-outline-light'));
+                        roleButtons.forEach(b => b.classList.add('btn-outline-light'));
+
+                        // Add active class to selected button
+                        btn.classList.remove('btn-outline-light');
+                        btn.classList.add('btn-primary');
+
+                        this.selectedRole = btn.dataset.role;
+                        this.updateConnectButton();
+                    });
+                });
+            }
+
+            setupConnectButton() {
+                const connectBtn = document.getElementById('connectBtn');
+                connectBtn.addEventListener('click', () => {
+                    this.connect();
+                });
+            }
+
+            selectNetwork(network) {
+                if (network === 'mainnet') {
+                    // Show coming soon message
+                    alert('Mainnet is coming soon! Please use one of the testnet options.');
+                    return;
+                }
+
+                this.currentNetwork = network;
+                this.isConnected = network !== 'disconnected';
+                this.updateUI();
+                this.updateConnectButton();
+            }
+
+            updateUI() {
+                const indicator = document.getElementById('networkStatusIndicator');
+                const selectedNetwork = document.getElementById('selectedNetwork');
+                const modalNetworkStatus = document.getElementById('modalNetworkStatus');
+                const modalConnectionStatus = document.getElementById('modalConnectionStatus');
+
+                // Update network indicator
+                indicator.className = `network-status-indicator ${this.currentNetwork}`;
+
+                // Update network text
+                const networkNames = {
+                    'mainnet': 'Mainnet',
+                    'public-testnet': 'Public Testnet',
+                    'private-testnet': 'Private Testnet',
+                    'disconnected': 'Not Connected'
+                };
+
+                const networkName = networkNames[this.currentNetwork] || 'Unknown';
+                selectedNetwork.textContent = networkName;
+                modalNetworkStatus.textContent = networkName;
+
+                // Update connection status
+                if (this.isConnected) {
+                    modalConnectionStatus.textContent = 'Connected';
+                    modalConnectionStatus.className = 'badge bg-success';
+                } else {
+                    modalConnectionStatus.textContent = 'Disconnected';
+                    modalConnectionStatus.className = 'badge bg-danger';
+                }
+            }
+
+            updateConnectButton() {
+                const connectBtn = document.getElementById('connectBtn');
+                const canConnect = this.selectedRole && this.currentNetwork !== 'disconnected';
+                connectBtn.disabled = !canConnect;
+            }
+
+            connect() {
+                if (!this.selectedRole || this.currentNetwork === 'disconnected') {
+                    return;
+                }
+
+                // Simulate connection process
+                const connectBtn = document.getElementById('connectBtn');
+                connectBtn.textContent = 'Connecting...';
+                connectBtn.disabled = true;
+
+                setTimeout(() => {
+                    // Generate auth token
+                    const authToken = this.generateAuthToken();
+
+                    // Redirect to appropriate interface based on role and network
+                    const baseUrl = this.getServiceUrl();
+                    const roleRoutes = {
+                        'root': '/network-admin',
+                        'bootnode': '/peers',
+                        'dev': '/dashboard',
+                        'general': '/dashboard'
+                    };
+
+                    const route = roleRoutes[this.selectedRole] || '/dashboard';
+                    const targetUrl = `${baseUrl}${route}?role=${this.selectedRole}&network=${this.currentNetwork}&token=${authToken}`;
+
+                    // Update login button to show logged in state
+                    const loginBtn = document.getElementById('loginBtn');
+                    loginBtn.innerHTML = `<span class="network-status-indicator ${this.currentNetwork}"></span>${this.selectedRole.toUpperCase()}`;
+
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('login-modal'));
+                    modal.hide();
+
+                    // Open the appropriate interface
+                    window.open(targetUrl, '_blank');
+
+                    connectBtn.textContent = 'Connect';
+                    connectBtn.disabled = false;
+                }, 1500);
+            }
+
+            getServiceUrl() {
+                // Return appropriate service URL based on network
+                const urls = {
+                    'public-testnet': 'http://localhost:3007', // WebGUI service
+                    'private-testnet': 'http://localhost:3007', // WebGUI service
+                    'mainnet': 'https://portal.knirv.com' // Future mainnet portal
+                };
+
+                return urls[this.currentNetwork] || 'http://localhost:3007';
+            }
+
+            generateAuthToken() {
+                // Generate a simple auth token for this session
+                return btoa(`${this.selectedRole}-${this.currentNetwork}-${Date.now()}`);
+            }
+        }
+
+        // Initialize network manager when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            window.knirvNetworkManager = new KnirvNetworkManager();
+        });
     </script>
 
     <!-- Universal Footer -->

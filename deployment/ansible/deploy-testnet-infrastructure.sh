@@ -2,6 +2,17 @@
 
 # KNIRVTESTNET Infrastructure Deployment Script
 # Deploys dedicated testnet infrastructure to AWS with Cloudflare DNS integration
+#
+# Features:
+# - Intelligent dependency checking (only installs Ansible if needed or outdated)
+# - Automatic Ansible collection management (checks and installs missing collections)
+# - Version compatibility checks (requires Ansible >= 2.16)
+# - Dry-run mode for testing dependencies without deployment
+#
+# Usage:
+#   ./deploy-testnet-infrastructure.sh           # Normal deployment
+#   ./deploy-testnet-infrastructure.sh --dry-run # Check dependencies only
+#   ./deploy-testnet-infrastructure.sh --help    # Show help
 
 set -e
 
@@ -49,14 +60,64 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-check_prerequisites() {
-    print_step "Checking prerequisites..."
-    
+check_ansible_version() {
+    print_step "Checking Ansible version..."
+
+    # Ensure we use the updated Ansible version if available
+    export PATH="$HOME/.local/bin:$PATH"
+
     # Check if ansible is installed
     if ! command -v ansible-playbook &> /dev/null; then
-        print_error "ansible-playbook not found. Please install Ansible."
+        print_warning "Ansible not found. Installing Ansible..."
+        install_ansible
+        return
+    fi
+
+    # Get current Ansible version
+    CURRENT_VERSION=$(ansible --version | head -n1 | grep -oE '[0-9]+\.[0-9]+' | head -n1)
+    REQUIRED_MAJOR=2
+    REQUIRED_MINOR=16
+
+    # Parse version numbers
+    CURRENT_MAJOR=$(echo "$CURRENT_VERSION" | cut -d. -f1)
+    CURRENT_MINOR=$(echo "$CURRENT_VERSION" | cut -d. -f2)
+
+    # Check if version is sufficient
+    if [ "$CURRENT_MAJOR" -lt "$REQUIRED_MAJOR" ] || \
+       ([ "$CURRENT_MAJOR" -eq "$REQUIRED_MAJOR" ] && [ "$CURRENT_MINOR" -lt "$REQUIRED_MINOR" ]); then
+        print_warning "Ansible version $CURRENT_VERSION is too old (need >= $REQUIRED_MAJOR.$REQUIRED_MINOR). Upgrading..."
+        install_ansible
+    else
+        print_success "Ansible version $CURRENT_VERSION is compatible"
+    fi
+}
+
+install_ansible() {
+    print_step "Installing/upgrading Ansible..."
+
+    # Install or upgrade ansible-core
+    if ! pip3 install --user --upgrade ansible-core; then
+        print_error "Failed to install Ansible. Please install manually."
         exit 1
     fi
+
+    # Update PATH for current session
+    export PATH="$HOME/.local/bin:$PATH"
+
+    # Add to bashrc if not already present
+    if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' ~/.bashrc; then
+        echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+        print_success "Added Ansible to PATH in ~/.bashrc"
+    fi
+
+    print_success "Ansible installed/upgraded successfully"
+}
+
+check_prerequisites() {
+    print_step "Checking prerequisites..."
+
+    # Check and install Ansible if needed
+    check_ansible_version
     
     # Check if .env file exists
     if [ ! -f "$ENV_FILE" ]; then
@@ -92,12 +153,54 @@ check_prerequisites() {
     print_success "Prerequisites check passed"
 }
 
+check_ansible_collections() {
+    print_step "Checking Ansible collections..."
+
+    cd "$ANSIBLE_DIR"
+    export PATH="$HOME/.local/bin:$PATH"
+
+    # Check if required collections are installed
+    local collections_needed=false
+    local missing_collections=()
+
+    # List of required collections from requirements.yml
+    local required_collections=(
+        "amazon.aws"
+        "community.general"
+        "community.crypto"
+        "kubernetes.core"
+        "google.cloud"
+        "azure.azcollection"
+        "community.digitalocean"
+    )
+
+    for collection in "${required_collections[@]}"; do
+        if ! ansible-galaxy collection list 2>/dev/null | grep -q "^$collection " 2>/dev/null; then
+            missing_collections+=("$collection")
+            collections_needed=true
+        fi
+    done
+
+    if [ "$collections_needed" = true ]; then
+        print_warning "Missing collections: ${missing_collections[*]}"
+        install_ansible_collections
+    else
+        print_success "All required Ansible collections are already installed"
+    fi
+}
+
 install_ansible_collections() {
     print_step "Installing Ansible collections..."
-    
+
     cd "$ANSIBLE_DIR"
-    ansible-galaxy collection install -r requirements.yml --force
-    
+    export PATH="$HOME/.local/bin:$PATH"
+
+    # Install collections from requirements.yml
+    if ! ansible-galaxy collection install -r requirements.yml --force; then
+        print_error "Failed to install Ansible collections"
+        exit 1
+    fi
+
     print_success "Ansible collections installed"
 }
 
@@ -112,14 +215,14 @@ create_inventory() {
 
 [testnet_nodes:vars]
 ansible_user=ubuntu
-ansible_ssh_private_key_file=~/.ssh/knirv-testnet-key.pem
+ansible_ssh_private_key_file=~/.ssh/AEGONG.pem
 ansible_ssh_common_args="-o StrictHostKeyChecking=no"
 
 [all:vars]
 environment=testnet
 cloud_provider=aws
-region=us-east-1
-domain_name=knirv.com
+region=us-east-2
+domain_name=knirv.network
 EOF
     
     print_success "Testnet inventory created"
@@ -127,9 +230,12 @@ EOF
 
 deploy_infrastructure() {
     print_step "Deploying KNIRVTESTNET infrastructure..."
-    
+
     cd "$ANSIBLE_DIR"
-    
+
+    # Ensure we use the updated Ansible version
+    export PATH="$HOME/.local/bin:$PATH"
+
     # Run the testnet infrastructure playbook
     ansible-playbook \
         -i "$INVENTORY_FILE" \
@@ -137,10 +243,10 @@ deploy_infrastructure() {
         -e "environment=$ENVIRONMENT" \
         -e "cloudflare_api_token=$CLOUDFLARE_API_TOKEN" \
         -e "cloudflare_zone_id=$CLOUDFLARE_ZONE_ID" \
-        -e "domain_name=${DOMAIN_NAME:-knirv.com}" \
-        -e "key_pair_name=${KEY_PAIR_NAME:-knirv-testnet-key}" \
+        -e "domain_name=${DOMAIN_NAME:-knirv.network}" \
+        -e "key_pair_name=${KEY_PAIR_NAME:-AEGONG}" \
         -v
-    
+
     print_success "Infrastructure deployment completed"
 }
 
@@ -176,7 +282,7 @@ create_ssh_config() {
 Host knirv-testnet
     HostName $TESTNET_IP
     User ubuntu
-    IdentityFile ~/.ssh/knirv-testnet-key.pem
+    IdentityFile ~/.ssh/AEGONG.pem
     StrictHostKeyChecking no
     UserKnownHostsFile /dev/null
 EOF
@@ -196,7 +302,7 @@ display_summary() {
         TESTNET_IP=$(cat "$ANSIBLE_DIR/testnet_ip.txt")
         echo -e "${YELLOW}Testnet Information:${NC}"
         echo -e "  🌐 Public IP: $TESTNET_IP"
-        echo -e "  🔗 Testnet URL: https://testnet.knirv.com"
+        echo -e "  🔗 Testnet URL: https://testnet.knirv.network"
         echo -e "  🔑 SSH Access: ssh knirv-testnet"
         echo ""
         echo -e "${YELLOW}Service Endpoints:${NC}"
@@ -218,9 +324,9 @@ display_summary() {
 # Main execution
 main() {
     print_header
-    
+
     check_prerequisites
-    install_ansible_collections
+    check_ansible_collections
     create_inventory
     deploy_infrastructure
     update_dns_records
@@ -243,13 +349,16 @@ case "${1:-}" in
         echo "  CLOUDFLARE_ZONE_ID      Cloudflare zone ID"
         echo "  AWS_ACCESS_KEY_ID       AWS access key"
         echo "  AWS_SECRET_ACCESS_KEY   AWS secret key"
-        echo "  DOMAIN_NAME             Domain name (default: knirv.com)"
-        echo "  KEY_PAIR_NAME           AWS key pair name (default: knirv-testnet-key)"
+        echo "  DOMAIN_NAME             Domain name (default: knirv.network)"
+        echo "  KEY_PAIR_NAME           AWS key pair name (default: AEGONG)"
         exit 0
         ;;
     --dry-run)
         print_warning "Dry run mode - no changes will be made"
-        # Add dry-run logic here
+        print_header
+        check_prerequisites
+        check_ansible_collections
+        print_success "Dry run completed - all dependencies are ready"
         exit 0
         ;;
     --force)

@@ -64,6 +64,7 @@ testnet_subdomains:
   - oracle-testnet
   - shell-testnet
   - knirvana-testnet
+  - controller-testnet
 
 
 # =============================================================================
@@ -195,6 +196,7 @@ api_endpoints:
   router_api: "https://router-api-testnet.knirv.network:8086"
   gateway_api: "https://gateway-api-testnet.knirv.network:8087"
   knirvana_api: "https://knirvana-api-testnet.knirv.network:3000"
+  controller_pwa: "https://controller-testnet.knirv.network"
 
 # KNIRVGATEWAY endpoint configuration (auto-updated for testnet)
 gateway_endpoints:
@@ -204,6 +206,7 @@ gateway_endpoints:
   KNIRVORACLE_API: "https://oracle-api-testnet.knirv.network:1317"
   KNIRVROUTER_API: "https://router-api-testnet.knirv.network:8086"
   KNIRVANA_API: "https://knirvana-api-testnet.knirv.network:3000"
+  KNIRVCONTROLLER_PWA: "https://controller-testnet.knirv.network"
   
 # =============================================================================
 # DEPLOYMENT CONFIGURATION
@@ -240,3 +243,37 @@ dev_features:
   enable_cors_all: true
   enable_swagger_ui: true
   log_level: debug
+
+# =============================================================================
+# KNIRVCONTROLLER PWA TESTNET CONFIGURATION
+# =============================================================================
+
+# PWA deployment configuration for testnet
+controller_pwa_testnet:
+  enabled: true
+  domain: "controller-testnet.knirv.network"
+  beta_domain: "beta-controller-testnet.knirv.network"
+  build_dir: "dist"
+  packages_dir: "packages"
+
+# CloudFlare Pages configuration for testnet PWA
+cloudflare_pages_testnet:
+  project_name: "knirv-controller-pwa-testnet"
+  production_branch: "main"
+  preview_branch: "develop"
+  build_command: "npm run build:pwa:testnet"
+  build_output_directory: "dist"
+
+# Mobile app distribution for testnet
+mobile_distribution_testnet:
+  android_package: "knirvcontroller-android-testnet.zip"
+  ios_package: "knirvcontroller-ios-testnet.zip"
+  max_package_size: "50MB"
+
+# PWA authentication configuration for testnet
+pwa_auth_testnet:
+  enable_biometric: true
+  enable_device_storage: true
+  session_timeout: 7200  # 2 hours for testnet
+  enable_offline_mode: true
+  enable_debug_mode: true

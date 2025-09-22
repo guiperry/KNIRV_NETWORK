@@ -16,6 +16,7 @@ PROJECT_ROOT := $(shell pwd)
 ANSIBLE_DIR := $(PROJECT_ROOT)/deployment/ansible
 SCRIPTS_DIR := $(PROJECT_ROOT)/scripts
 KNIRVGATEWAY_DIR := $(PROJECT_ROOT)/KNIRVGATEWAY
+KNIRVCONTROLLER_DIR := $(PROJECT_ROOT)/KNIRVCONTROLLER
 DOCS_DIR := $(PROJECT_ROOT)/KNIRVGATEWAY/documentation
 DEPLOYMENT_DIR := $(PROJECT_ROOT)/deployment
 
@@ -55,6 +56,10 @@ help: ## Show this help message
 	@echo "  make test-coverage           # Generate coverage reports"
 	@echo "  make deploy-infrastructure ENVIRONMENT=production"
 	@echo "  make deploy-full ENVIRONMENT=development CLOUD_PROVIDER=aws"
+	@echo "  make deploy-controller-pwa ENVIRONMENT=production"
+	@echo "  make health-check-controller-pwa"
+	@echo "  make setup-controller-db     # Setup KNIRVCONTROLLER database with accounts"
+	@echo "  make seed-controller-db      # Seed database with default accounts"
 	@echo "  make docs && make deploy-website"
 
 # =============================================================================
@@ -208,6 +213,7 @@ deploy-prod: ## Production deployment with confirmation
 	@echo "$(RED)WARNING: This will deploy to PRODUCTION environment$(NC)"
 	@read -p "Are you sure? (y/N): " confirm && [ "$$confirm" = "y" ]
 	@$(MAKE) deploy-full ENVIRONMENT=production CLOUD_PROVIDER=aws
+	@$(MAKE) deploy-controller-pwa ENVIRONMENT=production
 
 .PHONY: deploy-staging
 deploy-staging: ## Staging deployment
@@ -218,6 +224,7 @@ deploy-testnet: ## Deploy KNIRVTESTNET to AWS with Netlify frontend integration
 	@echo "$(BLUE)Deploying KNIRVTESTNET to AWS...$(NC)"
 	@$(MAKE) deploy-testnet-infrastructure
 	@$(MAKE) deploy-testnet-services
+	@$(MAKE) deploy-controller-pwa ENVIRONMENT=testnet
 	@$(MAKE) update-testnet-frontend
 	@echo "$(GREEN)✓ KNIRVTESTNET deployment completed!$(NC)"
 
@@ -233,6 +240,70 @@ deploy-testnet-services: ## Deploy KNIRVTESTNET services via Docker Compose
 	@cd $(PROJECT_ROOT) && ./scripts/deploy-testnet-services.sh
 	@echo "$(GREEN)✓ KNIRVTESTNET services deployed$(NC)"
 
+.PHONY: deploy-controller-pwa
+deploy-controller-pwa: check-prereqs ## Deploy KNIRVCONTROLLER PWA to CloudFlare CDN
+	@echo "$(BLUE)Deploying KNIRVCONTROLLER PWA...$(NC)"
+	@cd $(PROJECT_ROOT) && ./scripts/deploy-controller-pwa.sh $(ENVIRONMENT)
+	@echo "$(GREEN)✓ KNIRVCONTROLLER PWA deployed$(NC)"
+
+.PHONY: build-controller-pwa
+build-controller-pwa: ## Build KNIRVCONTROLLER PWA packages
+	@echo "$(BLUE)Building KNIRVCONTROLLER PWA packages...$(NC)"
+	@cd $(KNIRVCONTROLLER_DIR) && npm run build:pwa
+	@echo "$(GREEN)✓ KNIRVCONTROLLER PWA packages built$(NC)"
+
+.PHONY: setup-controller-db
+setup-controller-db: ## Setup KNIRVCONTROLLER database with default accounts
+	@echo "$(BLUE)Setting up KNIRVCONTROLLER database...$(NC)"
+	@cd $(KNIRVCONTROLLER_DIR) && npm run db:setup
+	@echo "$(GREEN)✓ KNIRVCONTROLLER database setup completed$(NC)"
+	@echo "$(YELLOW)🔐 Default credentials:$(NC)"
+	@echo "$(YELLOW)  Admin: admin@knirv.com / admin123$(NC)"
+	@echo "$(YELLOW)  Demo: demo@knirv.com / demo123$(NC)"
+	@echo "$(YELLOW)  Developer: dev@knirv.com / dev123$(NC)"
+	@echo "$(YELLOW)  Test User: test@example.com / test123$(NC)"
+
+.PHONY: seed-controller-db
+seed-controller-db: ## Seed KNIRVCONTROLLER database with default accounts
+	@echo "$(BLUE)Seeding KNIRVCONTROLLER database...$(NC)"
+	@cd $(KNIRVCONTROLLER_DIR) && npm run db:seed
+	@echo "$(GREEN)✓ KNIRVCONTROLLER database seeded$(NC)"
+
+# =============================================================================
+# TESTNET INSTANCE MANAGEMENT
+# =============================================================================
+
+.PHONY: testnet-ip
+testnet-ip: ## Get current testnet IP address and update SSH config
+	@echo "$(BLUE)Getting testnet IP address...$(NC)"
+	@./scripts/get-testnet-ip.sh get-ip
+
+.PHONY: testnet-start
+testnet-start: ## Start the testnet EC2 instance
+	@echo "$(BLUE)Starting testnet instance...$(NC)"
+	@./scripts/get-testnet-ip.sh start
+
+.PHONY: testnet-stop
+testnet-stop: ## Stop the testnet EC2 instance
+	@echo "$(BLUE)Stopping testnet instance...$(NC)"
+	@./scripts/get-testnet-ip.sh stop
+
+.PHONY: testnet-status
+testnet-status: ## Show testnet instance status
+	@echo "$(BLUE)Checking testnet status...$(NC)"
+	@./scripts/get-testnet-ip.sh status
+
+.PHONY: testnet-ssh
+testnet-ssh: ## SSH into the testnet instance
+	@echo "$(BLUE)Connecting to testnet...$(NC)"
+	@./scripts/get-testnet-ip.sh get-ip > /dev/null
+	@ssh knirv-testnet
+
+.PHONY: testnet-logs
+testnet-logs: ## View testnet service logs
+	@echo "$(BLUE)Viewing testnet service logs...$(NC)"
+	@./scripts/get-testnet-ip.sh get-ip > /dev/null
+	@ssh knirv-testnet 'cd /opt/knirv-testnet && docker-compose logs -f'
 
 # =============================================================================
 # COMPREHENSIVE TESTING SUITE
@@ -280,6 +351,16 @@ test-controller: ## Test KNIRVCONTROLLER (AI Agent Framework)
 		echo "$(GREEN)✓ KNIRVCONTROLLER tests completed$(NC)"; \
 	else \
 		echo "$(YELLOW)⚠ KNIRVCONTROLLER test script not found$(NC)"; \
+	fi
+
+.PHONY: test-controller-pwa
+test-controller-pwa: ## Test KNIRVCONTROLLER PWA functionality
+	@echo "$(BLUE)Testing KNIRVCONTROLLER PWA...$(NC)"
+	@if [ -f "KNIRVCONTROLLER/scripts/test-pwa.sh" ]; then \
+		cd KNIRVCONTROLLER && ./scripts/test-pwa.sh; \
+		echo "$(GREEN)✓ KNIRVCONTROLLER PWA tests completed$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠ KNIRVCONTROLLER PWA test script not found$(NC)"; \
 	fi
 
 .PHONY: test-sdk
@@ -664,6 +745,21 @@ health-check: ## Check health of all KNIRV services
 		done; \
 	else \
 		echo "$(YELLOW)curl not available - cannot check service health$(NC)"; \
+	fi
+
+.PHONY: health-check-controller-pwa
+health-check-controller-pwa: ## Check health of KNIRVCONTROLLER PWA endpoints
+	@echo "$(BLUE)Checking KNIRVCONTROLLER PWA health...$(NC)"
+	@if command -v curl >/dev/null 2>&1; then \
+		for endpoint in "https://beta-controller.knirv.network" "https://beta-controller.knirv.network/manifest.json" "https://beta-controller.knirv.network/sw.js"; do \
+			if curl -s -f "$$endpoint" >/dev/null 2>&1; then \
+				echo "$(GREEN)✓ $$endpoint: HEALTHY$(NC)"; \
+			else \
+				echo "$(RED)✗ $$endpoint: UNHEALTHY$(NC)"; \
+			fi; \
+		done; \
+	else \
+		echo "$(YELLOW)curl not available - cannot check PWA health$(NC)"; \
 	fi
 
 .PHONY: validate-config

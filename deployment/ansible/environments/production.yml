@@ -37,11 +37,13 @@ knirv_subdomains:
   - gateway    # gateway.knirv.com (hosts nexus and graph portals)
   - api        # api.knirv.com
   - www        # www.knirv.com
+  - controller # controller.knirv.com (PWA distribution)
 
 # CDN DNS redirects - point to KNIRVGATEWAY portals
 cdn_redirects:
   graph.knirv.com: "gateway.knirv.com/graphchain-explorer"
   nexus.knirv.com: "gateway.knirv.com/nexus-portal"
+  beta-controller.knirv.network: "controller.knirv.com"
 
 # Production endpoints (for endpoints.yaml generation)
 production_endpoints:
@@ -52,6 +54,9 @@ production_endpoints:
   KNIRVROUTER_API: "https://router.knirv.com"
   KNIRVANA_API: "https://knirvana.knirv.com"
   KNIRVANA_INTERACTIVE_GRAPH: "https://knirvana.knirv.com"
+  KNIRVCONTROLLER_PWA: "https://controller.knirv.com"
+  KNIRVCONTROLLER_ANDROID: "https://controller.knirv.com/android"
+  KNIRVCONTROLLER_IOS: "https://controller.knirv.com/ios"
 
 # =============================================================================
 # SECURITY CONFIGURATION
@@ -213,3 +218,36 @@ external_services:
   sentry_dsn: "{{ vault_sentry_dsn }}"
   datadog_api_key: "{{ vault_datadog_api_key }}"
   newrelic_license_key: "{{ vault_newrelic_license_key }}"
+
+# =============================================================================
+# KNIRVCONTROLLER PWA CONFIGURATION
+# =============================================================================
+
+# PWA deployment configuration
+controller_pwa:
+  enabled: true
+  domain: "controller.knirv.com"
+  beta_domain: "beta-controller.knirv.network"
+  build_dir: "dist"
+  packages_dir: "packages"
+
+# CloudFlare Pages configuration for PWA
+cloudflare_pages:
+  project_name: "knirv-controller-pwa"
+  production_branch: "main"
+  preview_branch: "develop"
+  build_command: "npm run build:pwa"
+  build_output_directory: "dist"
+
+# Mobile app distribution
+mobile_distribution:
+  android_package: "knirvcontroller-android.zip"
+  ios_package: "knirvcontroller-ios.zip"
+  max_package_size: "50MB"
+
+# PWA authentication configuration
+pwa_auth:
+  enable_biometric: true
+  enable_device_storage: true
+  session_timeout: 3600  # 1 hour
+  enable_offline_mode: true

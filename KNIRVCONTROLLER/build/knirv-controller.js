@@ -85,6 +85,44 @@ async function instantiate(module, imports = {}) {
       // assembly/index/getModelInfo() => ~lib/string/String
       return __liftString(exports.getModelInfo() >>> 0);
     },
+    configureExternalInference(provider, apiKey, endpoint, model) {
+      // assembly/index/configureExternalInference(~lib/string/String, ~lib/string/String, ~lib/string/String, ~lib/string/String) => bool
+      provider = __retain(__lowerString(provider) || __notnull());
+      apiKey = __retain(__lowerString(apiKey) || __notnull());
+      endpoint = __retain(__lowerString(endpoint) || __notnull());
+      model = __lowerString(model) || __notnull();
+      try {
+        return exports.configureExternalInference(provider, apiKey, endpoint, model) != 0;
+      } finally {
+        __release(provider);
+        __release(apiKey);
+        __release(endpoint);
+      }
+    },
+    setActiveInferenceProvider(provider) {
+      // assembly/index/setActiveInferenceProvider(~lib/string/String) => bool
+      provider = __lowerString(provider) || __notnull();
+      return exports.setActiveInferenceProvider(provider) != 0;
+    },
+    getConfiguredProviders() {
+      // assembly/index/getConfiguredProviders() => ~lib/string/String
+      return __liftString(exports.getConfiguredProviders() >>> 0);
+    },
+    performExternalInference(prompt, systemPrompt, maxTokens, temperature) {
+      // assembly/index/performExternalInference(~lib/string/String, ~lib/string/String?, i32?, f32?) => ~lib/string/String
+      prompt = __retain(__lowerString(prompt) || __notnull());
+      systemPrompt = __lowerString(systemPrompt) || __notnull();
+      try {
+        exports.__setArgumentsLength(arguments.length);
+        return __liftString(exports.performExternalInference(prompt, systemPrompt, maxTokens, temperature) >>> 0);
+      } finally {
+        __release(prompt);
+      }
+    },
+    getExternalInferenceStatus() {
+      // assembly/index/getExternalInferenceStatus() => ~lib/string/String
+      return __liftString(exports.getExternalInferenceStatus() >>> 0);
+    },
     getWasmVersion() {
       // assembly/index/getWasmVersion() => ~lib/string/String
       return __liftString(exports.getWasmVersion() >>> 0);
@@ -92,6 +130,22 @@ async function instantiate(module, imports = {}) {
     getSupportedFeatures() {
       // assembly/index/getSupportedFeatures() => ~lib/string/String
       return __liftString(exports.getSupportedFeatures() >>> 0);
+    },
+    performChatCompletion(messagesJson, configJson) {
+      // assembly/index/performChatCompletion(~lib/string/String, ~lib/string/String?) => ~lib/string/String
+      messagesJson = __retain(__lowerString(messagesJson) || __notnull());
+      configJson = __lowerString(configJson) || __notnull();
+      try {
+        exports.__setArgumentsLength(arguments.length);
+        return __liftString(exports.performChatCompletion(messagesJson, configJson) >>> 0);
+      } finally {
+        __release(messagesJson);
+      }
+    },
+    initializeExternalInferenceFromEnv(envConfigJson) {
+      // assembly/index/initializeExternalInferenceFromEnv(~lib/string/String) => bool
+      envConfigJson = __lowerString(envConfigJson) || __notnull();
+      return exports.initializeExternalInferenceFromEnv(envConfigJson) != 0;
     },
     allocateString(str) {
       // assembly/index/allocateString(~lib/string/String) => usize
@@ -158,8 +212,15 @@ export const {
   loadModelWeights,
   runModelInference,
   getModelInfo,
+  configureExternalInference,
+  setActiveInferenceProvider,
+  getConfiguredProviders,
+  performExternalInference,
+  getExternalInferenceStatus,
   getWasmVersion,
   getSupportedFeatures,
+  performChatCompletion,
+  initializeExternalInferenceFromEnv,
   allocateString,
   deallocateString,
   wasmInit,

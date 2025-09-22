@@ -2,56 +2,50 @@
 
 /**
  * KNIRV Gateway Smart Start
- * Automatically detects and fixes issues before starting the gateway
+ * Starts the main gateway server with service management
  */
 
-const { execSync, spawn } = require('child_process');
-const HealthChecker = require('./check-health.js');
-const NexusHealthChecker = require('./check-nexus-health.js');
-const { DHTStarter } = require('./start-dht.js');
+import { spawn } from 'child_process';
+import GatewayHealthChecker from './check-health.js';
 
-class SmartStart {
+class GatewaySmartStart {
     constructor() {
-        this.maxRetries = 2;
+        this.maxRetries = 3;
         this.currentRetry = 0;
-        this.dhtStarter = null;
-        this.dhtEnabled = process.env.KNIRV_DHT_ENABLED !== 'false';
+        this.gatewayProcess = null;
     }
 
     log(message, type = 'info') {
         const timestamp = new Date().toISOString();
         const prefix = {
-            'info': '🚀',
+            'info': 'ℹ️ ',
+            'success': '✅',
             'warn': '⚠️ ',
             'error': '❌',
-            'success': '✅',
             'fix': '🔧'
         }[type] || 'ℹ️ ';
         
-        console.log(`${prefix} [SMART-START] ${message}`);
+        console.log(`${prefix} [${timestamp}] ${message}`);
     }
 
-    async runHealthChecks() {
-        this.log('Running comprehensive health checks...');
+    async runHealthCheck() {
+        this.log('Running health check...');
         
-        // Run main health check
-        const mainChecker = new HealthChecker();
-        const mainHealthy = await mainChecker.runHealthCheck();
+        const checker = new GatewayHealthChecker();
+        const healthResult = await checker.runHealthCheck();
         
-        // Run NEXUS-specific health check
-        const nexusChecker = new NexusHealthChecker();
-        const nexusHealthy = await nexusChecker.runNexusHealthCheck();
+        if (!healthResult) {
+            this.log('Health check failed', 'error');
+            return false;
+        }
         
-        return {
-            main: mainHealthy,
-            nexus: nexusHealthy,
-            overall: mainHealthy && nexusHealthy
-        };
+        this.log('Health check passed', 'success');
+        return true;
     }
 
     async attemptAutoFix() {
         if (this.currentRetry >= this.maxRetries) {
-            this.log('Maximum retry attempts reached. Manual intervention required.', 'error');
+            this.log('Maximum retry attempts reached', 'error');
             return false;
         }
 
@@ -59,8 +53,22 @@ class SmartStart {
         this.log(`Attempting auto-fix (attempt ${this.currentRetry}/${this.maxRetries})...`, 'fix');
         
         try {
-            // Run the fix script in auto mode
-            execSync('./scripts/fix-netlify-cli.sh --auto', {
+            // Install dependencies
+            this.log('Installing main dependencies...', 'fix');
+            const { execSync } = await import('child_process');
+            execSync('npm install', {
+                stdio: 'inherit',
+                timeout: 300000 // 5 minutes
+            });
+            
+            this.log('Installing service dependencies...', 'fix');
+            execSync('npm run services:install', {
+                stdio: 'inherit',
+                timeout: 300000 // 5 minutes
+            });
+
+            this.log('Installing website dependencies...', 'fix');
+            execSync('npm run websites:install', {
                 stdio: 'inherit',
                 timeout: 300000 // 5 minutes
             });
@@ -74,120 +82,30 @@ class SmartStart {
         }
     }
 
-    async initializeDHT() {
-        if (!this.dhtEnabled) {
-            this.log('DHT service disabled, skipping initialization');
-            return true;
-        }
-
-        this.log('Initializing DHT service...');
-
-        try {
-            this.dhtStarter = new DHTStarter();
-            const success = await this.dhtStarter.initialize();
-
-            if (success) {
-                this.log('DHT service initialized successfully', 'success');
-                return true;
-            } else {
-                this.log('DHT service initialization failed', 'warn');
-                // Don't fail the entire startup if DHT fails
-                return true;
-            }
-        } catch (error) {
-            this.log(`DHT initialization error: ${error.message}`, 'warn');
-            // Don't fail the entire startup if DHT fails
-            return true;
-        }
-    }
-
-    async startDHT() {
-        if (!this.dhtEnabled || !this.dhtStarter) {
-            return true;
-        }
-
-        this.log('Starting DHT service...');
-
-        try {
-            const success = await this.dhtStarter.start();
-
-            if (success) {
-                this.log('DHT service started successfully', 'success');
-            } else {
-                this.log('DHT service failed to start', 'warn');
-            }
-
-            return true; // Don't fail startup if DHT fails
-        } catch (error) {
-            this.log(`DHT start error: ${error.message}`, 'warn');
-            return true; // Don't fail startup if DHT fails
-        }
-    }
-
-    async initializeApplications() {
-        this.log('Initializing applications...');
-
-        try {
-            // Initialize forum database
-            this.log('Initializing forum database...');
-            execSync('npm run init-forum', {
-                stdio: 'inherit',
-                timeout: 60000 // 1 minute
-            });
-
-            // Initialize support desk database
-            this.log('Initializing support desk database...');
-            execSync('npm run init-support-desk', {
-                stdio: 'inherit',
-                timeout: 60000 // 1 minute
-            });
-
-            this.log('Application initialization completed successfully', 'success');
-            return true;
-
-        } catch (error) {
-            this.log(`Application initialization failed: ${error.message}`, 'error');
-            return false;
-        }
-    }
-
-    async buildProject() {
-        this.log('Building project...');
-
-        try {
-            execSync('npm run build', {
-                stdio: 'inherit',
-                timeout: 300000 // 5 minutes
-            });
-
-            this.log('Build completed successfully', 'success');
-            return true;
-
-        } catch (error) {
-            this.log(`Build failed: ${error.message}`, 'error');
-            return false;
-        }
-    }
-
-    async startNetlifyDev() {
-        this.log('Starting Netlify development server...');
+    async startGatewayServer() {
+        this.log('Starting KNIRV Gateway server...');
         
         try {
-            // Start netlify dev in a child process
-            const netlifyProcess = spawn('npx', ['netlify', 'dev'], {
+            // Start the main server
+            this.gatewayProcess = spawn('node', ['server.js'], {
                 stdio: 'inherit',
-                detached: false
+                detached: false,
+                env: {
+                    ...process.env,
+                    NODE_ENV: process.env.NODE_ENV || 'development',
+                    PORT: process.env.PORT || '8080'
+                }
             });
             
             // Handle process events
-            netlifyProcess.on('error', (error) => {
-                this.log(`Failed to start netlify dev: ${error.message}`, 'error');
+            this.gatewayProcess.on('error', (error) => {
+                this.log(`Failed to start gateway server: ${error.message}`, 'error');
                 process.exit(1);
             });
             
-            netlifyProcess.on('exit', (code) => {
+            this.gatewayProcess.on('exit', (code) => {
                 if (code !== 0) {
-                    this.log(`netlify dev exited with code ${code}`, 'error');
+                    this.log(`Gateway server exited with code ${code}`, 'error');
                     process.exit(code);
                 }
             });
@@ -195,35 +113,33 @@ class SmartStart {
             // Handle graceful shutdown
             process.on('SIGINT', () => {
                 this.log('Shutting down...');
-                this.shutdown(netlifyProcess);
+                this.shutdown();
             });
 
             process.on('SIGTERM', () => {
                 this.log('Shutting down...');
-                this.shutdown(netlifyProcess);
+                this.shutdown();
             });
+            
+            this.log('Gateway server started successfully', 'success');
+            this.log('Server endpoints:', 'info');
+            this.log('  - Main Gateway: http://localhost:8080', 'info');
+            this.log('  - Health Check: http://localhost:8080/health', 'info');
+            this.log('  - Services Status: http://localhost:8080/services/status', 'info');
             
             return true;
             
         } catch (error) {
-            this.log(`Failed to start netlify dev: ${error.message}`, 'error');
+            this.log(`Failed to start gateway server: ${error.message}`, 'error');
             return false;
         }
     }
 
-    async shutdown(netlifyProcess) {
-        if (this.dhtStarter) {
-            try {
-                await this.dhtStarter.shutdown();
-            } catch (error) {
-                this.log(`Error shutting down DHT: ${error.message}`, 'error');
-            }
+    shutdown() {
+        if (this.gatewayProcess) {
+            this.log('Stopping gateway server...', 'info');
+            this.gatewayProcess.kill('SIGINT');
         }
-
-        if (netlifyProcess) {
-            netlifyProcess.kill('SIGINT');
-        }
-
         process.exit(0);
     }
 
@@ -231,23 +147,15 @@ class SmartStart {
         this.log('🏁 Starting KNIRV Gateway with smart health monitoring...');
         
         while (this.currentRetry <= this.maxRetries) {
-            // Run health checks
-            const health = await this.runHealthChecks();
+            // Run health check
+            const healthPassed = await this.runHealthCheck();
             
-            if (health.overall) {
-                this.log('All health checks passed! Starting gateway...', 'success');
+            if (healthPassed) {
+                this.log('All health checks passed! Starting gateway server...', 'success');
                 break;
             }
             
-            this.log('Health checks failed. Issues detected.', 'warn');
-            
-            if (!health.main) {
-                this.log('Main gateway issues detected', 'error');
-            }
-            
-            if (!health.nexus) {
-                this.log('NEXUS portal issues detected', 'error');
-            }
+            this.log('Health checks failed. Attempting auto-fix...', 'warn');
             
             // Attempt auto-fix
             const fixSuccessful = await this.attemptAutoFix();
@@ -260,48 +168,29 @@ class SmartStart {
             this.log('Auto-fix completed. Re-running health checks...', 'info');
         }
 
-        // Initialize DHT service
-        const dhtInitSuccessful = await this.initializeDHT();
-        if (!dhtInitSuccessful) {
-            this.log('DHT initialization failed. Continuing without DHT...', 'warn');
-        }
-
-        // Initialize applications
-        const initSuccessful = await this.initializeApplications();
-        if (!initSuccessful) {
-            this.log('Application initialization failed. Cannot start gateway.', 'error');
+        if (this.currentRetry > this.maxRetries) {
+            this.log('Maximum retry attempts exceeded. Cannot start gateway.', 'error');
             process.exit(1);
         }
 
-        // Build the project
-        const buildSuccessful = await this.buildProject();
-        if (!buildSuccessful) {
-            this.log('Build failed. Cannot start gateway.', 'error');
-            process.exit(1);
-        }
-
-        // Start DHT service
-        const dhtStartSuccessful = await this.startDHT();
-        if (!dhtStartSuccessful) {
-            this.log('DHT service failed to start. Continuing without DHT...', 'warn');
-        }
-
-        // Start the development server
-        const startSuccessful = await this.startNetlifyDev();
+        // Start the gateway server
+        const startSuccessful = await this.startGatewayServer();
         if (!startSuccessful) {
-            this.log('Failed to start development server.', 'error');
+            this.log('Failed to start gateway server.', 'error');
             process.exit(1);
         }
+
+        this.log('🎉 KNIRV Gateway started successfully!', 'success');
     }
 }
 
-// Run smart start if called directly
-if (require.main === module) {
-    const smartStart = new SmartStart();
-    smartStart.smartStart().catch(error => {
-        console.error('❌ Smart start failed with error:', error.message);
+// CLI execution
+if (import.meta.url === `file://${process.argv[1]}`) {
+    const starter = new GatewaySmartStart();
+    starter.smartStart().catch(error => {
+        console.error('Smart start failed:', error);
         process.exit(1);
     });
 }
 
-module.exports = SmartStart;
+export default GatewaySmartStart;

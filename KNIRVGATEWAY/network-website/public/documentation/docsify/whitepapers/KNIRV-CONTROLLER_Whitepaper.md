@@ -2,7 +2,7 @@
 
 ### **Abstract**
 
-The **KNIRV-CONTROLLER** serves as the comprehensive agent management platform within the KNIRV D-TEN ecosystem, representing a major architectural evolution that unifies agent management, skill development, wallet functionality, and network interaction capabilities. Following the major refactor, KNIRV-CONTROLLER has integrated the mobile-controller (now manager), KNIRVSHELL (as cli), agent-core (as receiver), and wallet functionality into a cohesive application. This unified platform allows users to manage agents, skills, UDCs, and wallets for network interaction while providing an integrated shell for minting agents on the oracle with trained capabilities. The CONTROLLER's primary agent-cortex serves as the foundation for user interactions across KNIRVENGINE and KNIRVNEXUS interfaces when linked through QR code scanning functionality.
+The **KNIRV-CONTROLLER** serves as the comprehensive agent management platform within the KNIRV D-TEN ecosystem, representing a major architectural evolution that unifies agent management, skill development, wallet functionality, and network interaction capabilities. This unified platform allows users to manage agents, skills, UDCs, and wallets for network interaction while providing an integrated shell for minting agents on the oracle with trained capabilities. The CONTROLLER's primary agent-cortex serves as the foundation for user interactions across KNIRVENGINE and KNIRVNEXUS interfaces when linked through QR code scanning functionality.
 
 ### **1. Introduction**
 

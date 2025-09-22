@@ -229,7 +229,7 @@ class NetlifyDepsPatcher {
         }
 
         try {
-            this.log('Running npm install in netlify/functions...');
+            this.log('Running npm install in network-website/netlify/functions...');
             execSync('npm install', {
                 cwd: this.functionsDir,
                 stdio: 'inherit'

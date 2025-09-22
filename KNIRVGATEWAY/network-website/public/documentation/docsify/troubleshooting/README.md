@@ -18,48 +18,6 @@ This section contains troubleshooting for the KNIRV Network.
 
 ---
 
-### ecosystem-game
-
-**Location:** `KNIRVANA/ecosystem-game/README.md`
-
-# KNIRVANA Ecosystem Game
-
-A React-based interactive debugging and skill management game extracted from the KNIRVANA_P3.md specification.
-
-## Overview...
-
-[View Full Documentation](KNIRVANA/ecosystem-game/README.md)
-
----
-
-### rust-client
-
-**Location:** `KNIRVANA/rust-client/README.md`
-
-# KNIRVANA Rust Game Client
-
-<div align="center">
-
-![Rust](https://img.shields.io/badge/Rust-1.70+-orange?style=flat-square&logo=rust)...
-
-[View Full Documentation](KNIRVANA/rust-client/README.md)
-
----
-
-### ts-client
-
-**Location:** `KNIRVANA/ts-client/README.md`
-
-# Consolidated Documentation
-
-# KNIRVANA TypeScript Client: The Experiential Gateway to the KNIRV D-TEN Ecosystem
-
-<div align="center">...
-
-[View Full Documentation](KNIRVANA/ts-client/README.md)
-
----
-
 ### KNIRVCHAIN
 
 **Location:** `KNIRVCHAIN/README.md`
@@ -88,14 +46,26 @@ A comprehensive blockchain implementation for the KNIRV network with advanced mu
 
 ---
 
+### KNIRVCLI
+
+**Location:** `KNIRVCLI/README.md`
+
+# KNIRV-CLI
+
+A comprehensive command-line interface that provides full integration with the entire KNIRV Network ecosystem. This sophisticated, fully-integrated interface manages and interacts with al...
+
+[View Full Documentation](KNIRVCLI/README.md)
+
+---
+
 ### KNIRVCONTROLLER
 
 **Location:** `KNIRVCONTROLLER/README.md`
 
-# KNIRV Network: Decentralized Trusted Execution Network (D-TEN)
+# KNIRV-CONTROLLER: The Unified Agent Management Platform
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Go Version](https://img...
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](https://nodejs.org/)
+[![Rust Version](https://img.shields.io...
 
 [View Full Documentation](KNIRVCONTROLLER/README.md)
 
@@ -143,17 +113,45 @@ The KNIRV Cognitive Shell is a comprehensive AI-driven interface system that imp
 
 ---
 
-### agent-core
+### KNIRVCORTEX
 
-**Location:** `KNIRVCORTEX/agent-core/README.md`
+**Location:** `KNIRVCORTEX/README.md`
 
-# KNIRV Controller Backend
+# KNIRV-CORTEX
 
-## ✅ Phase 5.2 Agent-Builder Updates - COMPLETED
+**Deterministic Cognitive Shell with ProtoBuf ABI**
 
-**Status**: 100% Complete with comprehensive test validation...
+KNIRV-CORTEX is a WebAssembly-based cognitive processing engine that bundles an orchestrator and model runtime into a single determ...
 
-[View Full Documentation](KNIRVCORTEX/agent-core/README.md)
+[View Full Documentation](KNIRVCORTEX/README.md)
+
+---
+
+### manager
+
+**Location:** `KNIRVCORTEX/manager/README.md`
+
+# KNIRV-AGENTIFIER: The Autonomous Gateway
+
+[TOC]
+
+## Overview...
+
+[View Full Documentation](KNIRVCORTEX/manager/README.md)
+
+---
+
+### model-forge
+
+**Location:** `KNIRVCORTEX/model-forge/README.md`
+
+# KNIRV Model Forge
+
+Advanced model compilation and training pipeline with external AI integration for validation and optimization.
+
+## 🆕 Recent Updates...
+
+[View Full Documentation](KNIRVCORTEX/model-forge/README.md)
 
 ---
 
@@ -161,11 +159,11 @@ The KNIRV Cognitive Shell is a comprehensive AI-driven interface system that imp
 
 **Location:** `KNIRVCORTEX/primary-website/README.md`
 
-# Agentify: AI Agent Development Platform
+# KNIRV Cortex Builder: Neural Intelligence Development Platform
 
 ## Project Overview
 
-Agentify is a comprehensive platform for building, configuring, and deploying AI agents with enhanced developer experience. It provides ...
+KNIRV Cortex Builder is a comprehensive platform for building, configuring, and deploying neural intelligence age...
 
 [View Full Documentation](KNIRVCORTEX/primary-website/README.md)
 
@@ -185,151 +183,17 @@ This directory contains the Agentic Engine release files that can be downloaded 
 
 ---
 
-### manager
+### rust-wasm
 
-**Location:** `KNIRVCORTEX/manager/README.md`
+**Location:** `KNIRVCORTEX/rust-wasm/README.md`
 
-# KNIRV-AGENTIFIER: The Autonomous Gateway
+# KNIRV-CORTEX Rust WASM
 
-[TOC]
+WebAssembly implementation of the KNIRV cognitive shell with external AI integration support.
 
-## Overview...
+## 🆕 Recent Updates...
 
-[View Full Documentation](KNIRVCORTEX/manager/README.md)
-
----
-
-### KNIRVENGINE
-
-**Location:** `KNIRVENGINE/README.md`
-
-# KNIRV Network: Decentralized Trusted Execution Network (D-TEN)
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Go Version](https://img...
-
-[View Full Documentation](KNIRVENGINE/README.md)
-
----
-
-### browser-bridge
-
-**Location:** `KNIRVENGINE/browser-bridge/README.md`
-
-# KNIRVWALLET - Browser Bridge: A Decentralized Wallet for the KNIRV Ecosystem
-
-[![Banner](banner.png)](#)
-
-## Table of Contents...
-
-[View Full Documentation](KNIRVENGINE/browser-bridge/README.md)
-
----
-
-### knirvwallet-extension
-
-**Location:** `KNIRVENGINE/browser-bridge/packages/knirvwallet-extension/README.md`
-
-# KNIRV Wallet Browser Extension
-
-A comprehensive browser extension for the KNIRV Network ecosystem, providing secure wallet management, transaction signing, and dApp integration directly in your brow...
-
-[View Full Documentation](KNIRVENGINE/browser-bridge/packages/knirvwallet-extension/README.md)
-
----
-
-### knirvwallet-torus-signin
-
-**Location:** `KNIRVENGINE/browser-bridge/packages/knirvwallet-torus-signin/README.md`
-
-# KNIRV Wallet Torus Sign-In Module
-
-A specialized authentication module that integrates Web3Auth (formerly Torus) social login capabilities into the KNIRV Wallet ecosystem, enabling users to create a...
-
-[View Full Documentation](KNIRVENGINE/browser-bridge/packages/knirvwallet-torus-signin/README.md)
-
----
-
-### desktop-client
-
-**Location:** `KNIRVENGINE/desktop-client/README.md`
-
-# KNIRVENGINE
-
-## Overview
-
-The KNIRVENGINE is a comprehensive platform for designing, deploying, and managing autonomous AI agents through an intuitive no-code interface. Built with a powerful Go bac...
-
-[View Full Documentation](KNIRVENGINE/desktop-client/README.md)
-
----
-
-### examples
-
-**Location:** `KNIRVENGINE/desktop-client/agentify/examples/README.md`
-
-# Agent Inferencer Examples
-
-This directory contains examples demonstrating how to use the Agent Inferencer system with real plugins and integrations.
-
-## Examples...
-
-[View Full Documentation](KNIRVENGINE/desktop-client/agentify/examples/README.md)
-
----
-
-### gui
-
-**Location:** `KNIRVENGINE/desktop-client/gui/README.md`
-
-# KNIRV Desktop Client GUI
-
-[TOC]
-
-## Overview...
-
-[View Full Documentation](KNIRVENGINE/desktop-client/gui/README.md)
-
----
-
-### knirvchain
-
-**Location:** `KNIRVENGINE/desktop-client/knirvchain/README.md`
-
-Key Considerations for this Service:
-
-Error Handling: The error handling is basic; you'll want to make it more robust, perhaps with custom error types.
-Wallet Management: This service assumes an initi...
-
-[View Full Documentation](KNIRVENGINE/desktop-client/knirvchain/README.md)
-
----
-
-### scripts
-
-**Location:** `KNIRVENGINE/desktop-client/scripts/README.md`
-
-# KNIRVENGINE Desktop Client Scripts
-
-[TOC]
-
-## Overview...
-
-[View Full Documentation](KNIRVENGINE/desktop-client/scripts/README.md)
-
----
-
-### test
-
-**Location:** `KNIRVENGINE/desktop-client/test/README.md`
-
-# KNIRV-Engine Comprehensive Test Suite
-
-[TOC]
-
-## Overview...
-
-[View Full Documentation](KNIRVENGINE/desktop-client/test/README.md)
+[View Full Documentation](KNIRVCORTEX/rust-wasm/README.md)
 
 ---
 
@@ -337,11 +201,10 @@ Wallet Management: This service assumes an initi...
 
 **Location:** `KNIRVGATEWAY/README.md`
 
-# Consolidated Documentation
+# KNIRV GATEWAY: Unified Web Portal and API Gateway
 
-# KNIRV GATEWAY
-
-**The Unified Web Portal and API Gateway for the KNIRV Decentralized Trusted Execution Network**...
+[![Netlify Status](https://api.netlify.com/api/v1/badges/your-badge-id/deploy-status)](https://app.netlify.com/sites/your-site-name/deploys)
+[![Nod...
 
 [View Full Documentation](KNIRVGATEWAY/README.md)
 
@@ -373,58 +236,6 @@ This directory contains optimized social media sharing cards for different platf
 
 ---
 
-### agent-developer-portal
-
-**Location:** `KNIRVGATEWAY/knirv.com/public/agent-developer-portal/README.md`
-
-# KNIRV Developer Portal
-
-The official developer portal for the KNIRV D-TEN (Decentralized Trusted Execution Network). This comprehensive web application provides developers with all the tools needed ...
-
-[View Full Documentation](KNIRVGATEWAY/knirv.com/public/agent-developer-portal/README.md)
-
----
-
-### graphchain-explorer
-
-**Location:** `KNIRVGATEWAY/knirv.com/public/graphchain-explorer/README.md`
-
-# KNIRV GraphChain Explorer
-
-A real-time KNIRV GraphChain data explorer integrated into the KNIRVGATEWAY platform. This application provides comprehensive monitoring and analysis of SkillNodes, ErrorN...
-
-[View Full Documentation](KNIRVGATEWAY/knirv.com/public/graphchain-explorer/README.md)
-
----
-
-### presenter
-
-**Location:** `KNIRVGATEWAY/knirv.com/public/presenter/README.md`
-
-# KNIRV Presenter System
-
-A responsive presentation system for KNIRV presentations with password protection and mobile-friendly design.
-
-## Overview...
-
-[View Full Documentation](KNIRVGATEWAY/knirv.com/public/presenter/README.md)
-
----
-
-### scripts
-
-**Location:** `KNIRVGATEWAY/knirv.com/scripts/README.md`
-
-# KNIRV.com Build Scripts
-
-This directory contains scripts for generating static documentation from the Docsify site to solve CloudFlare Worker deployment issues.
-
-## Problem Solved...
-
-[View Full Documentation](KNIRVGATEWAY/knirv.com/scripts/README.md)
-
----
-
 ### knirvchain-portal
 
 **Location:** `KNIRVGATEWAY/knirvchain-portal/README.md`
@@ -436,6 +247,58 @@ GraphChain Explorer for the KNIRV Network - migrated from KNIRVGRAPH with update
 ## Features...
 
 [View Full Documentation](KNIRVGATEWAY/knirvchain-portal/README.md)
+
+---
+
+### agent-developer-portal
+
+**Location:** `KNIRVGATEWAY/network-website/public/agent-developer-portal/README.md`
+
+# KNIRV Developer Portal
+
+The official developer portal for the KNIRV D-TEN (Decentralized Trusted Execution Network). This comprehensive web application provides developers with all the tools needed ...
+
+[View Full Documentation](KNIRVGATEWAY/network-website/public/agent-developer-portal/README.md)
+
+---
+
+### graphchain-explorer
+
+**Location:** `KNIRVGATEWAY/network-website/public/graphchain-explorer/README.md`
+
+# KNIRV GraphChain Explorer
+
+A real-time KNIRV GraphChain data explorer integrated into the KNIRVGATEWAY platform. This application provides comprehensive monitoring and analysis of SkillNodes, ErrorN...
+
+[View Full Documentation](KNIRVGATEWAY/network-website/public/graphchain-explorer/README.md)
+
+---
+
+### presenter
+
+**Location:** `KNIRVGATEWAY/network-website/public/presenter/README.md`
+
+# KNIRV Presenter System
+
+A responsive presentation system for KNIRV presentations with password protection and mobile-friendly design.
+
+## Overview...
+
+[View Full Documentation](KNIRVGATEWAY/network-website/public/presenter/README.md)
+
+---
+
+### scripts
+
+**Location:** `KNIRVGATEWAY/network-website/scripts/README.md`
+
+# KNIRV.com Build Scripts
+
+This directory contains scripts for generating static documentation from the Docsify site to solve CloudFlare Worker deployment issues.
+
+## Problem Solved...
+
+[View Full Documentation](KNIRVGATEWAY/network-website/scripts/README.md)
 
 ---
 
@@ -477,31 +340,6 @@ KNIRV-NEXUS is a unified implementation of the Decentralized Validation Environm
 
 ---
 
-### agent-notary-system
-
-**Location:** `KNIRVORACLE/agent-notary-system/README.md`
-
-
-# AgentVerse Registry - NANDA+ANS Security Blueprint
-
-**AgentVerse Registry** is a prototype application demonstrating a secure and federated registry for AI agent discovery and registration. It is b...
-
-[View Full Documentation](KNIRVORACLE/agent-notary-system/README.md)
-
----
-
-### altgui
-
-**Location:** `KNIRVORACLE/altgui/README.md`
-
-# AltGui Frontend - Blockchain Dashboard
-
-This project is a React-based frontend application designed to provide a comprehensive dashboard for interacting with blockchain data and functionalities. It ...
-
-[View Full Documentation](KNIRVORACLE/altgui/README.md)
-
----
-
 ### economics
 
 **Location:** `KNIRVORACLE/economics/README.md`
@@ -511,19 +349,6 @@ This project is a React-based frontend application designed to provide a compreh
 The KNIRV Economics Service is a comprehensive token economics system that manages the economic model for the entire KNIRV network. It handles token transactions, burn mecha...
 
 [View Full Documentation](KNIRVORACLE/economics/README.md)
-
----
-
-### nanda_ans
-
-**Location:** `KNIRVORACLE/nanda_ans/README.md`
-
-
-# AgentVerse Registry - NANDA+ANS Security Blueprint
-
-**AgentVerse Registry** is a prototype application demonstrating a secure and federated registry for AI agent discovery and registration. It is b...
-
-[View Full Documentation](KNIRVORACLE/nanda_ans/README.md)
 
 ---
 
@@ -564,18 +389,6 @@ KNIRVROUTER Verifier Node is a specialized blockchain application written in Go,
 This package implements the peer-to-peer networking layer for KNIRVROUTER Verifier nodes, enabling them to communicate, share transactions, and maintain c...
 
 [View Full Documentation](KNIRVROUTER/p2p/README.md)
-
----
-
-### KNIRVCLI
-
-**Location:** `KNIRVSDK/KNIRVCLI/README.md`
-
-# KNIRV-CLI
-
-A comprehensive command-line interface that provides full integration with the entire KNIRV Network ecosystem. This sophisticated, fully-integrated interface manages and interacts with al...
-
-[View Full Documentation](KNIRVSDK/KNIRVCLI/README.md)
 
 ---
 
@@ -839,18 +652,6 @@ A real-time KNIRV GraphChain data explorer integrated into the KNIRVGATEWAY plat
 
 ---
 
-### graphchain-explorer
-
-**Location:** `KNIRVTESTNET/graphchain-explorer/README.md`
-
-# KNIRV GraphChain Explorer
-
-A real-time KNIRV GraphChain data explorer integrated into the KNIRVGATEWAY platform. This application provides comprehensive monitoring and analysis of SkillNodes, ErrorN...
-
-[View Full Documentation](KNIRVTESTNET/graphchain-explorer/README.md)
-
----
-
 ### social
 
 **Location:** `KNIRVTESTNET/images/social/README.md`
@@ -981,11 +782,10 @@ This directory contains comprehensive tests for Phase 5 of the KNIRV Network Maj
 
 **Location:** `README.md`
 
-# Consolidated Documentation
-
 # KNIRV Network: Decentralized Trusted Execution Network (D-TEN)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/M...
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Version](https://img...
 
 [View Full Documentation](README.md)
 
@@ -1085,6 +885,18 @@ This directory contains validation reports and documentation for the KNIRV D-TEN
 [![Go Version](https://img...
 
 [View Full Documentation](scripts/README.md)
+
+---
+
+### shared-proto
+
+**Location:** `shared-proto/README.md`
+
+# KNIRV Network ProtoBuf Synchronization System
+
+This directory contains the unified ProtoBuf definitions for the KNIRV Network ecosystem. These definitions are automatically synchronized across all p...
+
+[View Full Documentation](shared-proto/README.md)
 
 ---
 

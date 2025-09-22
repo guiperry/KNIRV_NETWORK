@@ -21,6 +21,7 @@ import express from 'express';
 import path from 'path';
 import cors from 'cors';
 import { PrivateDHTManager } from './lib/p2p/private_dht_manager.js';
+import { NodeJSServiceManager } from './lib/services/nodejs_service_manager.js';
 import axios from 'axios';
 import NodeCache from 'node-cache';
 import { fileURLToPath } from 'url';
@@ -41,6 +42,7 @@ const cache = new NodeCache({ stdTTL: 60, checkperiod: 10 });
 
 // Global state
 let dhtManager = null;
+let nodeJSServiceManager = null;
 let app = null;
 let dhtInitialized = false;
 let dhtStartupInProgress = false;
@@ -73,9 +75,91 @@ function createApp() {
       status.dht = { status: 'not_initialized' };
     }
 
+    if (nodeJSServiceManager) {
+      status.nodeJSServices = nodeJSServiceManager.getServicesStatus();
+    } else {
+      status.nodeJSServices = { status: 'not_initialized' };
+    }
+
     res.json(status);
   });
-  
+
+  // Node.js Services Management Endpoints
+  app.get('/services/status', (req, res) => {
+    if (!nodeJSServiceManager) {
+      return res.status(503).json({ error: 'Node.js Service Manager not initialized' });
+    }
+    res.json(nodeJSServiceManager.getServicesStatus());
+  });
+
+  app.get('/services/endpoints', (req, res) => {
+    if (!nodeJSServiceManager) {
+      return res.status(503).json({ error: 'Node.js Service Manager not initialized' });
+    }
+    res.json(nodeJSServiceManager.getServiceEndpoints());
+  });
+
+  app.post('/services/start', async (req, res) => {
+    if (!nodeJSServiceManager) {
+      return res.status(503).json({ error: 'Node.js Service Manager not initialized' });
+    }
+
+    try {
+      const result = await nodeJSServiceManager.startAllServices();
+      res.json({ success: result, message: result ? 'Services started' : 'Failed to start services' });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/services/stop', async (req, res) => {
+    if (!nodeJSServiceManager) {
+      return res.status(503).json({ error: 'Node.js Service Manager not initialized' });
+    }
+
+    try {
+      await nodeJSServiceManager.stopAllServices();
+      res.json({ success: true, message: 'Services stopped' });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/services/:serviceName/start', async (req, res) => {
+    if (!nodeJSServiceManager) {
+      return res.status(503).json({ error: 'Node.js Service Manager not initialized' });
+    }
+
+    const { serviceName } = req.params;
+    const serviceConfig = nodeJSServiceManager.config.services[serviceName];
+
+    if (!serviceConfig) {
+      return res.status(404).json({ error: `Service ${serviceName} not found` });
+    }
+
+    try {
+      const result = await nodeJSServiceManager.startService(serviceName, serviceConfig);
+      res.json({ success: result, message: result ? `Service ${serviceName} started` : `Failed to start ${serviceName}` });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/services/:serviceName/stop', async (req, res) => {
+    if (!nodeJSServiceManager) {
+      return res.status(503).json({ error: 'Node.js Service Manager not initialized' });
+    }
+
+    const { serviceName } = req.params;
+
+    try {
+      const result = await nodeJSServiceManager.stopService(serviceName);
+      res.json({ success: result, message: result ? `Service ${serviceName} stopped` : `Service ${serviceName} was not running` });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Provision endpoint - core functionality
   app.get('/provision', async (req, res) => {
     try {
@@ -440,6 +524,52 @@ async function main() {
     app = createApp();
     console.log(`[Gateway] Express application created successfully`);
 
+    // Initialize Node.js Service Manager
+    console.log(`[Gateway] Initializing Node.js Service Manager...`);
+    nodeJSServiceManager = new NodeJSServiceManager({
+      enabled: process.env.NODEJS_SERVICES_ENABLED !== 'false',
+      chainId: CHAIN_ID,
+      nodeId: `knirvgateway-${Date.now()}`,
+      publicHost: process.env.PUBLIC_HOST || 'localhost',
+      paymentGateway: {
+        enabled: process.env.PAYMENT_GATEWAY_ENABLED !== 'false',
+        port: parseInt(process.env.PAYMENT_GATEWAY_PORT) || 3001
+      },
+      tunnelRegistry: {
+        enabled: process.env.TUNNEL_REGISTRY_ENABLED !== 'false',
+        httpPort: parseInt(process.env.TUNNEL_REGISTRY_HTTP_PORT) || 3002,
+        controlPort: parseInt(process.env.TUNNEL_REGISTRY_CONTROL_PORT) || 3003,
+        publicRelayPort: parseInt(process.env.TUNNEL_REGISTRY_PUBLIC_RELAY_PORT) || 3004,
+        stunPort: parseInt(process.env.TUNNEL_REGISTRY_STUN_PORT) || 3005
+      },
+      operatorRegistry: {
+        enabled: process.env.OPERATOR_REGISTRY_ENABLED !== 'false',
+        port: parseInt(process.env.OPERATOR_REGISTRY_PORT) || 3006
+      },
+      webgui: {
+        enabled: process.env.WEBGUI_ENABLED !== 'false',
+        port: parseInt(process.env.WEBGUI_PORT) || 3007
+      }
+    });
+    console.log(`[Gateway] Node.js Service Manager initialized`);
+
+    // Auto-start Node.js services if enabled
+    if (process.env.NODEJS_SERVICES_AUTOSTART !== 'false') {
+      console.log(`[Gateway] Auto-starting Node.js services...`);
+      try {
+        const servicesStarted = await nodeJSServiceManager.startAllServices();
+        if (servicesStarted) {
+          console.log(`[Gateway] ✅ Node.js services started successfully`);
+          const endpoints = nodeJSServiceManager.getServiceEndpoints();
+          console.log(`[Gateway] Service endpoints:`, endpoints);
+        } else {
+          console.log(`[Gateway] ⚠️  Some Node.js services failed to start`);
+        }
+      } catch (error) {
+        console.error(`[Gateway] ❌ Failed to start Node.js services:`, error);
+      }
+    }
+
     // Initialize based on mode
     if (GATEWAY_MODE === 'persistent') {
       console.log(`[Gateway] Persistent mode - DHT will be started on demand`);
@@ -475,6 +605,10 @@ async function main() {
     process.on('SIGINT', async () => {
       console.log('[Gateway] Shutting down gracefully...');
 
+      if (nodeJSServiceManager) {
+        await nodeJSServiceManager.stopAllServices();
+      }
+
       if (dhtManager) {
         await dhtManager.stop();
       }
@@ -487,6 +621,10 @@ async function main() {
 
     process.on('SIGTERM', async () => {
       console.log('[Gateway] Received SIGTERM, shutting down...');
+
+      if (nodeJSServiceManager) {
+        await nodeJSServiceManager.stopAllServices();
+      }
 
       if (dhtManager) {
         await dhtManager.stop();

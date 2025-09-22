@@ -14,7 +14,7 @@
 
 ## KNIRVORACLE Documentation
 
-* [KNIRVORACLE: A Decentralized Model Context Protocol Network](knirvoracle/index.md)
+* [KNIRVORACLE: A Decentralized Model Context Protocol Network](knirvoracle/README.md)
 
 ## KNIRVROUTER Documentation
 
@@ -24,9 +24,9 @@
 
 * [KNIRV SDK](knirvsdk/README.md)
 
-## KNIRVENGINE Documentation
+## KNIRVCORTEX Documentation
 
-* [KNIRVENGINE User Guide: Setup, Usage, and Troubleshooting](knirvengine/README.md)
+* [KNIRVCORTEX User Guide](knirvcortex/README.md)
 
 ## KNIRVCONTROLLER Documentation
 

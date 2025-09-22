@@ -106,18 +106,74 @@
                 <div class="container">
                     <div class="section-head text-center wide-auto-sm">
                         <h2 class="title title-s4">Download KNIRVCONTROLLER</h2>
-                        <p>Download the controller for your platform. The application includes wallet features and is the recommended way to manage agents and network operations.</p>
+                        <p>Get the KNIRV Controller app for your device. Available for desktop and mobile platforms with seamless synchronization across all your devices.</p>
                     </div>
+
+                    <!-- Mobile Apps Section -->
+                    <div class="nk-block mb-5">
+                        <div class="row justify-content-center">
+                            <div class="col-lg-8">
+                                <h3 class="title title-s3 text-center mb-4">Mobile Apps</h3>
+                                <div class="row">
+                                    <div class="col-md-6 text-center mb-3">
+                                        <div class="card bg-dark border-primary p-4">
+                                            <div class="mb-3">
+                                                <img src="images/icons/android-icon.png" alt="Android" style="width: 64px; height: 64px;" onerror="this.style.display='none'">
+                                                <h4 class="text-primary mt-2">Android</h4>
+                                            </div>
+                                            <p class="text-muted mb-3">Full-featured mobile app with offline capabilities</p>
+                                            <a href="#" class="btn btn-lg btn-primary btn-round download-btn" onclick="downloadMobileApp('android')">
+                                                <i class="fas fa-download me-2"></i>Download for Android
+                                            </a>
+                                            <small class="text-muted d-block mt-2">Android 7.0+ • 50MB</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 text-center mb-3">
+                                        <div class="card bg-dark border-primary p-4">
+                                            <div class="mb-3">
+                                                <img src="images/icons/ios-icon.png" alt="iOS" style="width: 64px; height: 64px;" onerror="this.style.display='none'">
+                                                <h4 class="text-primary mt-2">iOS</h4>
+                                            </div>
+                                            <p class="text-muted mb-3">Native iOS experience with Apple integration</p>
+                                            <a href="#" class="btn btn-lg btn-primary btn-round download-btn" onclick="downloadMobileApp('ios')">
+                                                <i class="fas fa-download me-2"></i>Download for iPhone
+                                            </a>
+                                            <small class="text-muted d-block mt-2">iOS 14.0+ • 50MB</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Apps Section -->
                     <div class="nk-block">
                         <div class="row justify-content-center">
-                            <div class="col-md-3 col-sm-6 text-center">
-                                <a href="#" class="btn btn-lg btn-grad btn-round download-btn" onclick="downloadController('windows')">Windows</a>
-                            </div>
-                            <div class="col-md-3 col-sm-6 text-center">
-                                <a href="#" class="btn btn-lg btn-grad btn-round download-btn" onclick="downloadController('mac')">macOS</a>
-                            </div>
-                            <div class="col-md-3 col-sm-6 text-center">
-                                <a href="#" class="btn btn-lg btn-grad btn-round download-btn" onclick="downloadController('linux')">Linux</a>
+                            <div class="col-lg-10">
+                                <h3 class="title title-s3 text-center mb-4">Desktop Applications</h3>
+                                <div class="row">
+                                    <div class="col-md-4 text-center mb-3">
+                                        <div class="card bg-dark border-secondary p-3">
+                                            <h5 class="text-light">Windows</h5>
+                                            <p class="text-muted small">Windows 10/11 • 4GB RAM</p>
+                                            <a href="#" class="btn btn-outline-light btn-round" onclick="downloadController('windows')">Download</a>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 text-center mb-3">
+                                        <div class="card bg-dark border-secondary p-3">
+                                            <h5 class="text-light">macOS</h5>
+                                            <p class="text-muted small">macOS 10.15+ • 4GB RAM</p>
+                                            <a href="#" class="btn btn-outline-light btn-round" onclick="downloadController('mac')">Download</a>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 text-center mb-3">
+                                        <div class="card bg-dark border-secondary p-3">
+                                            <h5 class="text-light">Linux</h5>
+                                            <p class="text-muted small">Ubuntu 20.04+ • 4GB RAM</p>
+                                            <a href="#" class="btn btn-outline-light btn-round" onclick="downloadController('linux')">Download</a>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -137,7 +193,189 @@
             if (logoContainer) {
                 logoContainer.innerHTML = `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" stroke="#2b56f5" fill="none" stroke-width="3"/><text x="50" y="55" text-anchor="middle" fill="#2b56f5" font-size="14">CTRL</text></svg>`;
             }
+
+            // Load portal configuration
+            loadPortalConfig();
         });
+
+        let portalConfig = null;
+
+        async function loadPortalConfig() {
+            try {
+                const response = await fetch('/config/portal-links.yaml');
+                const yamlText = await response.text();
+                // Simple YAML parsing for our needs
+                portalConfig = parseSimpleYAML(yamlText);
+            } catch (error) {
+                console.warn('Failed to load portal config:', error);
+            }
+        }
+
+        function parseSimpleYAML(yamlText) {
+            const config = {};
+            const lines = yamlText.split('\n');
+            let currentSection = null;
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('#') || !trimmed) continue;
+
+                if (trimmed.endsWith(':') && !trimmed.includes('  ')) {
+                    currentSection = trimmed.slice(0, -1);
+                    config[currentSection] = {};
+                } else if (currentSection && trimmed.includes(':')) {
+                    const [key, ...valueParts] = trimmed.split(':');
+                    const value = valueParts.join(':').trim().replace(/"/g, '');
+                    config[currentSection][key.trim()] = value;
+                }
+            }
+            return config;
+        }
+
+        async function downloadMobileApp(platform) {
+            // Show loading state
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Preparing Download...';
+            button.disabled = true;
+
+            try {
+                // Get download URL from config
+                const downloadUrl = getDownloadUrl(platform);
+
+                if (platform === 'android') {
+                    await downloadAndroidApp(downloadUrl);
+                } else if (platform === 'ios') {
+                    await downloadIOSApp(downloadUrl);
+                }
+            } catch (error) {
+                console.error('Download failed:', error);
+                alert('Download failed. Please try again or contact support.');
+            } finally {
+                // Restore button state
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        async function downloadAndroidApp(downloadUrl) {
+            // Check if we're on Android
+            const isAndroid = /Android/i.test(navigator.userAgent);
+
+            if (isAndroid) {
+                // Direct PWA installation on Android
+                window.location.href = 'https://beta-controller.knirv.network/?install=android';
+            } else {
+                // Download APK package for sideloading
+                const link = document.createElement('a');
+                link.href = downloadUrl || 'https://releases.knirv.network/knirvcontroller/android/knirvcontroller-android-pwa.zip';
+                link.download = 'knirvcontroller-android.zip';
+                link.click();
+
+                // Show installation instructions
+                showInstallationModal('android');
+            }
+        }
+
+        async function downloadIOSApp(downloadUrl) {
+            // Check if we're on iOS
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+            if (isIOS) {
+                // Direct PWA installation on iOS
+                window.location.href = 'https://beta-controller.knirv.network/?install=ios';
+            } else {
+                // Download iOS package
+                const link = document.createElement('a');
+                link.href = downloadUrl || 'https://releases.knirv.network/knirvcontroller/ios/knirvcontroller-ios-pwa.zip';
+                link.download = 'knirvcontroller-ios.zip';
+                link.click();
+
+                // Show installation instructions
+                showInstallationModal('ios');
+            }
+        }
+
+        function downloadController(platform) {
+            const downloadUrls = {
+                windows: 'https://releases.knirv.network/knirvcontroller/windows/knirvcontroller-setup.exe',
+                mac: 'https://releases.knirv.network/knirvcontroller/mac/knirvcontroller.dmg',
+                linux: 'https://releases.knirv.network/knirvcontroller/linux/knirvcontroller.AppImage'
+            };
+
+            const url = downloadUrls[platform];
+            if (url) {
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = '';
+                link.click();
+            }
+        }
+
+        function getDownloadUrl(platform) {
+            if (!portalConfig || !portalConfig.downloads || !portalConfig.downloads.knirvcontroller) {
+                return null;
+            }
+
+            const downloads = portalConfig.downloads.knirvcontroller;
+            return downloads[platform] || null;
+        }
+
+        function showInstallationModal(platform) {
+            const instructions = platform === 'android' ?
+                'To install on Android:\n1. Extract the downloaded file\n2. Open the folder and tap on the app link\n3. Follow the installation prompts\n4. The app will be added to your home screen' :
+                'To install on iOS:\n1. Extract the downloaded file\n2. Open Safari and navigate to the app URL\n3. Tap the Share button and select "Add to Home Screen"\n4. The app will be installed like a native app';
+
+            alert(instructions);
+        }
+
+        // PWA installation handling
+        let deferredPrompt;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+
+            // Show custom install button if we're on the PWA site
+            if (window.location.hostname === 'beta-controller.knirv.network') {
+                showPWAInstallPrompt();
+            }
+        });
+
+        function showPWAInstallPrompt() {
+            const installBanner = document.createElement('div');
+            installBanner.className = 'alert alert-info position-fixed top-0 start-50 translate-middle-x mt-3';
+            installBanner.style.zIndex = '9999';
+            installBanner.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <span class="me-3">Install KNIRV Controller for the best experience</span>
+                    <button class="btn btn-sm btn-primary me-2" onclick="installPWA()">Install</button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="dismissInstallPrompt()">Later</button>
+                </div>
+            `;
+            document.body.appendChild(installBanner);
+            window.installBanner = installBanner;
+        }
+
+        async function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+
+                if (outcome === 'accepted') {
+                    console.log('PWA installed successfully');
+                }
+
+                deferredPrompt = null;
+                dismissInstallPrompt();
+            }
+        }
+
+        function dismissInstallPrompt() {
+            if (window.installBanner) {
+                window.installBanner.remove();
+            }
+        }
     </script>
 </body>
 </html>

@@ -1,0 +1,45 @@
+[package]
+name = "knirv-cortex-wasm"
+version = "0.1.0"
+edition = "2021"
+description = "KNIRV-CORTEX WASM module - deterministic cognitive shell"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+prost = "0.12"
+shared-types = { path = "../shared-types", package = "knirv-cortex-shared-types" }
+lora-engine = { path = "../lora-engine", package = "knirv-lora-engine" }
+
+# Required for external inference integration
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["alloc"] }
+wasm-bindgen-futures = "0.4"
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+  "console",
+  "Performance",
+  "Window",
+  "Request",
+  "RequestInit",
+  "RequestMode",
+  "Response",
+  "Headers",
+  "AbortController",
+  "AbortSignal",
+]
+
+[features]
+default = ["external-inference"]
+external-inference = []
+
+[profile.release]
+# Tell `rustc` to optimize for small code size.
+opt-level = "s"
+lto = true
+codegen-units = 1

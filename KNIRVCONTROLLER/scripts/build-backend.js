@@ -8,6 +8,7 @@
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import { join, dirname } from 'path';
+import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -159,8 +160,23 @@ class BackendBuilder {
     }
   }
 
-  async copyDirectory(source, target) {
+  /**
+   * Safely copy directory with path validation to prevent recursive copying
+   * @param {string} source - Source directory path
+   * @param {string} target - Target directory path
+   * @param {number} maxDepth - Maximum directory depth to prevent infinite recursion
+   */
+  async copyDirectory(source, target, maxDepth = 10) {
     try {
+      // TypeSafe path validation
+      this.validateCopyPaths(source, target);
+
+      // Check directory depth to prevent excessive nesting
+      const targetDepth = target.split(path.sep).length;
+      if (targetDepth > maxDepth) {
+        throw new Error(`Directory depth ${targetDepth} exceeds maximum allowed depth ${maxDepth}`);
+      }
+
       await fs.mkdir(target, { recursive: true });
       const entries = await fs.readdir(source, { withFileTypes: true });
 
@@ -169,11 +185,12 @@ class BackendBuilder {
         const targetPath = join(target, entry.name);
 
         if (entry.isDirectory()) {
-          // Skip node_modules and target directories
-          if (entry.name === 'node_modules' || entry.name === 'target') {
+          // Skip problematic directories and prevent legacy recursion
+          if (entry.name === 'node_modules' || entry.name === 'target' ||
+              entry.name === '.git' || entry.name === 'legacy') {
             continue;
           }
-          await this.copyDirectory(sourcePath, targetPath);
+          await this.copyDirectory(sourcePath, targetPath, maxDepth);
         } else {
           await fs.copyFile(sourcePath, targetPath);
         }
@@ -181,6 +198,33 @@ class BackendBuilder {
     } catch (error) {
       console.warn(`Warning: Could not copy ${source} to ${target}:`, error.message);
     }
+  }
+
+  /**
+   * Validate copy paths to prevent recursive copying and other issues
+   * @param {string} source - Source directory path
+   * @param {string} target - Target directory path
+   */
+  validateCopyPaths(source, target) {
+    const sourcePath = path.resolve(source);
+    const targetPath = path.resolve(target);
+
+    // Prevent copying directory into itself
+    if (sourcePath === targetPath) {
+      throw new Error('Source and target cannot be the same directory');
+    }
+
+    // Prevent copying directory into its subdirectory
+    if (targetPath.startsWith(sourcePath + path.sep)) {
+      throw new Error('Cannot copy directory into its own subdirectory');
+    }
+
+    // Prevent copying into parent directory with same name (potential recursion)
+    if (sourcePath.startsWith(targetPath + path.sep)) {
+      throw new Error('Cannot copy directory into its parent with potential recursion');
+    }
+
+    console.log(`✅ Path validation passed: ${sourcePath} → ${targetPath}`);
   }
 
   async createDistPackage() {

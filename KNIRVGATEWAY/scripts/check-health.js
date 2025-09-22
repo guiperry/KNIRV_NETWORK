@@ -2,83 +2,31 @@
 
 /**
  * KNIRV Gateway Health Checker
- * Automatically detects netlify-cli corruption and other build issues
+ * Focuses on service health and basic dependencies for the main gateway
  */
 
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
-import { fileURLToPath } from 'url';
 
-// ES module compatibility
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-class HealthChecker {
+class GatewayHealthChecker {
     constructor(options = {}) {
         this.issues = [];
         this.warnings = [];
-        this.autoFixAttempted = false;
-        this.netlifyIssues = [];
         this.buildMode = options.buildMode || false;
     }
 
     log(message, type = 'info') {
         const timestamp = new Date().toISOString();
         const prefix = {
-            'info': '🔍',
+            'info': 'ℹ️ ',
+            'success': '✅',
             'warn': '⚠️ ',
             'error': '❌',
-            'success': '✅',
             'fix': '🔧'
         }[type] || 'ℹ️ ';
-        
+
         console.log(`${prefix} [${timestamp}] ${message}`);
-    }
-
-    async checkNetlifyCli() {
-        this.log('Checking netlify-cli health...');
-
-        // First check if netlify-cli binary exists
-        const netlifyPath = path.join(process.cwd(), 'node_modules', '.bin', 'netlify');
-        if (!fs.existsSync(netlifyPath)) {
-            this.issues.push('netlify-cli binary not found in node_modules');
-            this.netlifyIssues.push('netlify-cli binary not found in node_modules');
-            return false;
-        }
-
-        this.log('netlify-cli binary found in node_modules', 'success');
-
-        try {
-            // Try a quick version check with reasonable timeout
-            this.log('Testing netlify-cli version command...');
-            const version = execSync('timeout 15s npx netlify --version', {
-                encoding: 'utf8',
-                stdio: 'pipe',
-                shell: true
-            }).trim();
-
-            this.log(`netlify-cli version: ${version}`, 'success');
-
-            // Check for known problematic versions
-            if (version.includes('17.')) {
-                this.warnings.push('netlify-cli version 17.x detected - known to have issues but proceeding');
-            }
-
-            return true;
-
-        } catch (error) {
-            // If the command fails, check if it's a timeout or other issue
-            if (error.message.includes('ETIMEDOUT') || error.status === 124) {
-                this.log('netlify-cli command timed out, but binary exists - treating as working', 'warn');
-                this.warnings.push('netlify-cli commands are slow but binary is present');
-                return true; // Don't fail the build for slow commands
-            } else {
-                this.log(`netlify-cli error: ${error.message}`, 'warn');
-                this.warnings.push(`netlify-cli may have issues: ${error.message}`);
-                return true; // Don't fail the build, just warn
-            }
-        }
     }
 
     async checkNodeModules() {
@@ -91,260 +39,199 @@ class HealthChecker {
             return false;
         }
 
-        // Check netlify-cli (required for netlify/functions routes)
-        const netlifyCliPath = path.join(nodeModulesPath, 'netlify-cli');
-        if (!fs.existsSync(netlifyCliPath)) {
-            this.issues.push('netlify-cli not found in node_modules');
-            this.netlifyIssues.push('netlify-cli not found in node_modules');
-            return false;
-        }
+        // Check essential dependencies for the gateway
+        const essentialDeps = [
+            'express',
+            'cors',
+            'axios',
+            'uuid',
+            'ws'
+        ];
 
-        // Check netlify-cli package.json
-        try {
-            const netlifyPackageJson = path.join(netlifyCliPath, 'package.json');
-            if (fs.existsSync(netlifyPackageJson)) {
-                const packageData = JSON.parse(fs.readFileSync(netlifyPackageJson, 'utf8'));
-                this.log(`netlify-cli package version: ${packageData.version}`, 'success');
+        for (const dep of essentialDeps) {
+            const depPath = path.join(nodeModulesPath, dep);
+            if (!fs.existsSync(depPath)) {
+                this.issues.push(`Essential dependency missing: ${dep}`);
             }
-        } catch (error) {
-            this.issues.push('netlify-cli package.json is corrupted');
-            this.netlifyIssues.push('netlify-cli package.json is corrupted');
-            return false;
         }
 
-        // Check for common corruption indicators
-        const packageLockPath = path.join(process.cwd(), 'package-lock.json');
-        if (!fs.existsSync(packageLockPath)) {
-            this.warnings.push('package-lock.json missing - may cause dependency issues');
-        }
-
+        this.log('Node modules check completed', 'success');
         return true;
     }
 
+    async checkServiceDirectories() {
+        this.log('Checking service directories...');
 
+        const serviceDirectories = [
+            'services/payment-gateway',
+            'services/tunnel-registry',
+            'services/operator-registry',
+            'services/webgui'
+        ];
 
-    async checkDependencyConflicts() {
-        this.log('Checking for dependency conflicts...');
-        
-        try {
-            // Run npm audit to check for issues
-            const auditResult = execSync('npm audit --audit-level=moderate --json', { 
-                encoding: 'utf8',
-                timeout: 30000,
-                stdio: 'pipe'
-            });
-            
-            const audit = JSON.parse(auditResult);
-            
-            if (audit.metadata && audit.metadata.vulnerabilities) {
-                const vulns = audit.metadata.vulnerabilities;
-                const total = vulns.moderate + vulns.high + vulns.critical;
-
-                if (this.buildMode) {
-                    // In build mode, be more tolerant of vulnerabilities
-                    if (total > 50) {
-                        this.issues.push(`Critical number of vulnerabilities detected: ${total}`);
-                    } else if (total > 0) {
-                        this.warnings.push(`${total} moderate+ vulnerabilities detected (build mode - tolerant)`);
-                    }
-                } else {
-                    if (total > 10) {
-                        this.issues.push(`High number of vulnerabilities detected: ${total}`);
-                    } else if (total > 0) {
-                        this.warnings.push(`${total} moderate+ vulnerabilities detected`);
-                    }
-                }
+        for (const serviceDir of serviceDirectories) {
+            const servicePath = path.join(process.cwd(), serviceDir);
+            if (!fs.existsSync(servicePath)) {
+                this.issues.push(`Service directory missing: ${serviceDir}`);
+                continue;
             }
-            
-        } catch (error) {
-            // npm audit returns non-zero exit code when vulnerabilities found
-            if (error.stdout) {
-                try {
-                    const audit = JSON.parse(error.stdout);
-                    if (audit.metadata && audit.metadata.vulnerabilities) {
-                        const vulns = audit.metadata.vulnerabilities;
-                        const total = vulns.moderate + vulns.high + vulns.critical;
 
-                        if (this.buildMode) {
-                            // In build mode, be more tolerant
-                            if (total > 50) {
-                                this.issues.push(`Critical number of vulnerabilities: ${total}`);
-                            } else {
-                                this.warnings.push(`${total} vulnerabilities detected (build mode - tolerant)`);
-                            }
-                        } else {
-                            if (total > 15) {
-                                this.issues.push(`Critical number of vulnerabilities: ${total}`);
-                            } else {
-                                this.warnings.push(`${total} vulnerabilities detected`);
-                            }
-                        }
-                    }
-                } catch (parseError) {
-                    this.warnings.push('Could not parse npm audit results');
+            // Check if service has package.json
+            const packageJsonPath = path.join(servicePath, 'package.json');
+            if (!fs.existsSync(packageJsonPath)) {
+                this.warnings.push(`Service ${serviceDir} missing package.json`);
+                continue;
+            }
+
+            // Check if service has node_modules (if not in build mode)
+            if (!this.buildMode) {
+                const serviceNodeModules = path.join(servicePath, 'node_modules');
+                if (!fs.existsSync(serviceNodeModules)) {
+                    this.warnings.push(`Service ${serviceDir} dependencies not installed`);
                 }
             }
         }
-        
+
+        this.log('Service directories check completed', 'success');
         return true;
     }
 
-    async verifyNetlifyCliBroken() {
-        this.log('Verifying if netlify-cli is actually broken...', 'info');
+    async checkWebsiteDirectories() {
+        this.log('Checking website directories...');
 
-        try {
-            // Check if binary exists
-            const netlifyPath = path.join(process.cwd(), 'node_modules', '.bin', 'netlify');
-            if (!fs.existsSync(netlifyPath)) {
-                this.log('netlify-cli binary not found - confirmed broken', 'error');
-                return true;
+        const websiteDirectories = [
+            'network-website',
+            'primary-website'
+        ];
+
+        for (const websiteDir of websiteDirectories) {
+            const websitePath = path.join(process.cwd(), websiteDir);
+            if (!fs.existsSync(websitePath)) {
+                this.issues.push(`Website directory missing: ${websiteDir}`);
+                continue;
             }
 
-            // Test if command works
-            const version = execSync('timeout 10s npx netlify --version', {
-                encoding: 'utf8',
-                stdio: 'pipe',
-                shell: true
-            }).trim();
+            // Check if website has package.json
+            const packageJsonPath = path.join(websitePath, 'package.json');
+            if (!fs.existsSync(packageJsonPath)) {
+                this.warnings.push(`Website ${websiteDir} missing package.json`);
+                continue;
+            }
 
-            this.log(`netlify-cli test successful: ${version}`, 'success');
-            return false; // Not broken
-
-        } catch (error) {
-            this.log(`netlify-cli test failed: ${error.message}`, 'error');
-            return true; // Confirmed broken
+            // Check if website has node_modules (if not in build mode)
+            if (!this.buildMode) {
+                const websiteNodeModules = path.join(websitePath, 'node_modules');
+                if (!fs.existsSync(websiteNodeModules)) {
+                    this.warnings.push(`Website ${websiteDir} dependencies not installed`);
+                }
+            }
         }
+
+        this.log('Website directories check completed', 'success');
+        return true;
     }
 
-    async attemptAutoFix() {
-        if (this.autoFixAttempted) {
-            this.log('Auto-fix already attempted, skipping to prevent loops', 'warn');
+    async checkServerFile() {
+        this.log('Checking main server file...');
+
+        const serverPath = path.join(process.cwd(), 'server.js');
+        if (!fs.existsSync(serverPath)) {
+            this.issues.push('Main server.js file missing');
             return false;
         }
 
-        if (this.netlifyIssues.length > 0) {
-            this.log('🔧 Attempting automatic netlify-cli fix...', 'fix');
-            this.autoFixAttempted = true;
+        // Check if NodeJSServiceManager exists
+        const serviceManagerPath = path.join(process.cwd(), 'lib/services/nodejs_service_manager.js');
+        if (!fs.existsSync(serviceManagerPath)) {
+            this.issues.push('NodeJSServiceManager missing');
+            return false;
+        }
 
+        this.log('Server file check completed', 'success');
+        return true;
+    }
+
+    async checkPortAvailability() {
+        if (this.buildMode) {
+            this.log('Skipping port availability check in build mode');
+            return true;
+        }
+
+        this.log('Checking port availability...');
+
+        const portsToCheck = [8080]; // Main gateway port
+
+        for (const port of portsToCheck) {
             try {
-                // Run the netlify fix script
-                this.log('Running netlify-cli fix script...', 'fix');
-                execSync('bash scripts/fix-netlify-cli.sh --auto', {
-                    stdio: 'inherit',
-                    timeout: 180000, // 3 minutes timeout
-                    cwd: process.cwd()
+                const result = execSync(`netstat -tuln | grep :${port}`, {
+                    encoding: 'utf8',
+                    stdio: 'pipe'
                 });
 
-                this.log('Netlify fix script completed, re-running health check...', 'fix');
-
-                // Clear previous issues and re-run checks
-                this.issues = [];
-                this.warnings = [];
-                this.netlifyIssues = [];
-
-                // Re-run netlify-specific checks
-                const nodeModulesOk = await this.checkNodeModules();
-                const netlifyCliOk = await this.checkNetlifyCli();
-
-                if (nodeModulesOk && netlifyCliOk) {
-                    this.log('Auto-fix successful! 🎉', 'success');
-                    return true;
-                } else {
-                    this.log('Auto-fix completed but issues remain', 'warn');
-                    return false;
+                if (result.trim()) {
+                    this.warnings.push(`Port ${port} appears to be in use`);
                 }
-
             } catch (error) {
-                this.log(`Auto-fix failed: ${error.message}`, 'error');
-                return false;
+                // Port is available (netstat returns non-zero when no matches)
+                this.log(`Port ${port} is available`, 'success');
             }
         }
 
-        return false;
+        return true;
     }
 
     async runHealthCheck() {
         this.log('🏥 Starting KNIRV Gateway health check...');
-        
+
         const checks = [
             this.checkNodeModules(),
-            this.checkNetlifyCli(),
-            this.checkDependencyConflicts()
+            this.checkServiceDirectories(),
+            this.checkWebsiteDirectories(),
+            this.checkServerFile(),
+            this.checkPortAvailability()
         ];
-        
+
         await Promise.all(checks);
-        
+
         // Report results
-        if (this.issues.length === 0 && this.warnings.length === 0) {
-            this.log('All health checks passed! 🎉', 'success');
-            return true;
-        }
-        
+        this.log('='.repeat(60));
+        this.log('Health Check Results:', 'info');
+        this.log('='.repeat(60));
+
         if (this.warnings.length > 0) {
             this.log(`Found ${this.warnings.length} warnings:`, 'warn');
             this.warnings.forEach(warning => this.log(`  - ${warning}`, 'warn'));
         }
-        
+
         if (this.issues.length > 0) {
             this.log(`Found ${this.issues.length} critical issues:`, 'error');
             this.issues.forEach(issue => this.log(`  - ${issue}`, 'error'));
 
-            // Attempt automatic fix for netlify issues
-            if (this.netlifyIssues.length > 0 && !this.autoFixAttempted) {
-                // Double-check if netlify-cli is actually working before attempting fix
-                this.log('Double-checking netlify-cli status before attempting fix...', 'info');
-                const netlifyActuallyBroken = await this.verifyNetlifyCliBroken();
+            this.log('='.repeat(60));
+            this.log('💡 Suggested fixes:', 'info');
+            this.log('  1. Run: npm install', 'info');
+            this.log('  2. Run: npm run services:install', 'info');
+            this.log('  3. Run: npm run websites:install', 'info');
 
-                if (netlifyActuallyBroken) {
-                    this.log('Confirmed netlify-cli is broken, attempting automatic fix...', 'fix');
-                    const fixSuccessful = await this.attemptAutoFix();
-
-                    if (fixSuccessful) {
-                        this.log('Auto-fix successful! Re-running full health check...', 'success');
-                        // Re-run the full health check after successful fix
-                        return await this.runHealthCheck();
-                    } else {
-                        this.log('Auto-fix failed or incomplete', 'error');
-                    }
-                } else {
-                    this.log('netlify-cli is actually working, skipping auto-fix', 'info');
-                    // Remove netlify issues since they're false positives
-                    this.issues = this.issues.filter(issue => !issue.includes('netlify-cli'));
-                    this.netlifyIssues = [];
-
-                    // Re-check if we still have issues
-                    if (this.issues.length === 0) {
-                        this.log('All issues resolved - netlify-cli is working properly', 'success');
-                        return true;
-                    }
-                }
-            }
-
-            this.log('Health check failed - manual intervention may be needed', 'error');
             return false;
+        } else {
+            this.log('All health checks passed! 🎉', 'success');
+            return true;
         }
-
-        return true;
     }
 }
 
-// Run health check if called directly
+// CLI execution
 if (import.meta.url === `file://${process.argv[1]}`) {
     const buildMode = process.argv.includes('--build-mode');
-    const checker = new HealthChecker({ buildMode });
+    const checker = new GatewayHealthChecker({ buildMode });
 
-    if (buildMode) {
-        console.log('🏗️  Running health check in build mode (more tolerant)');
-    }
-
-    checker.runHealthCheck()
-        .then(success => {
-            process.exit(success ? 0 : 1);
-        })
-        .catch(error => {
-            console.error('❌ Health check failed with error:', error.message);
-            process.exit(1);
-        });
+    checker.runHealthCheck().then(success => {
+        process.exit(success ? 0 : 1);
+    }).catch(error => {
+        console.error('Health check failed:', error);
+        process.exit(1);
+    });
 }
 
-export default HealthChecker;
+export default GatewayHealthChecker;
