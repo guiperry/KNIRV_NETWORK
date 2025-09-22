@@ -308,7 +308,7 @@ describe('PerformanceOptimizer', () => {
         renderTime: 2000,
         cacheHitRate: 75,
         errorRate: 0,
-        throughput: 100
+        cpuUsage: 100
       });
 
       const report = optimizer.generateReport();

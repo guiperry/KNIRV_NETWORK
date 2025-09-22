@@ -8,7 +8,7 @@ export default function KnirvLogo() {
       <Network className="h-8 w-8 knirv-text-primary" />
       <div className="leading-none">
         <span className="text-2xl font-bold knirv-gradient-text">KNIRV</span>
-        <div className="text-xs text-white/60">CORTEX</div>
+        <div className="text-[10px] leading-tight text-white/60">Key Neural Intelligence<br />Reasoning Validation</div>
       </div>
     </Link>
   )

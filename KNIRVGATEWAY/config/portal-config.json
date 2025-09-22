@@ -8,9 +8,66 @@
     "nanda_ans": "../nanda_ans/"
   },
   "external_services": {
-    "payment_gateway": "https://pay.knirv.com/add-funds",
+    "payment_gateway": "https://payments.knirv.network",
+    "tunnel_registry": "https://tunnel.knirv.network",
+    "operator_registry": "https://operators.knirv.network",
+    "webgui": "https://dashboard.knirv.network",
     "knirv_website": "https://knirv.com",
     "testnet_access": "https://testnet.knirv.com"
+  },
+  "gateway_services": {
+    "public_testnet": {
+      "payment_gateway": {
+        "domain": "payments.knirv.network",
+        "port": 3001,
+        "path": "/",
+        "health_endpoint": "/health"
+      },
+      "tunnel_registry": {
+        "domain": "tunnel.knirv.network",
+        "port": 3004,
+        "path": "/",
+        "health_endpoint": "/status"
+      },
+      "operator_registry": {
+        "domain": "operators.knirv.network",
+        "port": 3007,
+        "path": "/",
+        "health_endpoint": "/health"
+      },
+      "webgui": {
+        "domain": "dashboard.knirv.network",
+        "port": 3007,
+        "path": "/",
+        "health_endpoint": "/health"
+      }
+    },
+    "private_testnet": {
+      "payment_gateway": {
+        "domain": "localhost",
+        "port": 3001,
+        "path": "/",
+        "health_endpoint": "/health"
+      },
+      "tunnel_registry": {
+        "domain": "localhost",
+        "port": 3004,
+        "path": "/",
+        "health_endpoint": "/status"
+      },
+      "operator_registry": {
+        "domain": "localhost",
+        "port": 3007,
+        "path": "/",
+        "health_endpoint": "/health"
+      },
+      "webgui": {
+        "domain": "localhost",
+        "port": 3007,
+        "path": "/",
+        "health_endpoint": "/health"
+      }
+    }
   },
   "documentation": {
     "whitepapers": {

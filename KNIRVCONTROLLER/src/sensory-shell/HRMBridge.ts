@@ -59,7 +59,13 @@ export class HRMBridge extends EventEmitter {
       console.log('Initializing HRM WASM bridge...');
 
       // Load the WASM module
-      this.wasmModule = await import('../wasm-pkg/knirv_cortex_wasm');
+      try {
+        const wasmPath = '../wasm-pkg/knirv_cortex_wasm';
+        this.wasmModule = await import(wasmPath) as any;
+      } catch (error) {
+        console.warn('WASM module not available, using mock implementation');
+        this.wasmModule = null;
+      }
       
       if (!this.wasmModule) {
         throw new Error('Failed to load HRM WASM module');

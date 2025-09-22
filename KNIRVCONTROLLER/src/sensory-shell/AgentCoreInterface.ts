@@ -164,7 +164,7 @@ export class AgentCoreInterface extends EventEmitter {
       } else {
         // Verify required functions exist (with fallbacks for minimal WASM)
         const requiredFunctions = ['agentCoreExecute', 'agentCoreExecuteTool', 'agentCoreLoadLoRA', 'agentCoreApplySkill', 'agentCoreGetStatus'];
-        const agentCoreObj = this.agentCore as Record<string, unknown>;
+        const agentCoreObj = this.agentCore as unknown as Record<string, unknown>;
         const missingFunctions = requiredFunctions.filter(func => !agentCoreObj?.[func]);
 
         if (missingFunctions.length > 0) {
@@ -397,7 +397,7 @@ export class AgentCoreInterface extends EventEmitter {
         throw new Error('Skill payload was empty in the response');
       }
 
-      const skill = responseObj.skill;
+      const skill = responseObj.skill as any;
       console.log(`Applying skill: '${skill.skill_name}' (ID: ${skill.skill_id})`);
 
       // 2. CONVERT WEIGHTS FROM BYTES TO FLOAT32ARRAYS
@@ -435,7 +435,7 @@ export class AgentCoreInterface extends EventEmitter {
         this.emit('skill_applied', {
           skillId: skill.skill_id,
           skillName: skill.skill_name,
-          invocationId: responseObj.invocation_id
+          invocationId: (responseObj as any).invocation_id
         });
       } else {
         this.emit('skill_application_failed', {

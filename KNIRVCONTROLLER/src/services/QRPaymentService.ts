@@ -312,9 +312,11 @@ export class QRPaymentService {
       // Update status from wallet service
       const transaction = await walletIntegrationService.checkTransactionStatus(transactionId);
       
-      localReceipt.status = transaction.status;
-      localReceipt.blockHeight = transaction.blockHeight;
-      localReceipt.gasUsed = transaction.gasUsed;
+      if (transaction) {
+        localReceipt.status = transaction.status;
+        localReceipt.blockHeight = transaction.blockHeight;
+        localReceipt.gasUsed = transaction.gasUsed;
+      }
 
       return localReceipt;
     } catch (error) {

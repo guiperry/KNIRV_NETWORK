@@ -1,6 +1,6 @@
 // Auto-generated Netlify function from Next.js API route
 // Original route: /api/compile
-// Generated: 2025-09-11T18:53:02.791Z
+// Generated: 2025-09-22T04:34:49.523Z
 
 // NextResponse/NextRequest converted to native Netlify response format
 const { createAgentCompilerService } = require('./lib/agent-compiler-interface.js');

@@ -53,23 +53,14 @@ export default function Home({ onboardingCompleted }) {
         subtitle="Welcome to your blockchain dashboard"
       />
 
-      {/* Welcome Banner */}
-      {!isBlockchainEnabled && (
-        <GlassyCard darker className={styles.welcomeBanner}>
-          <div className={styles.iconCircle}>🚀</div>
-          <h2 className={styles.welcomeTitle}>Get Started with Blockchain</h2>
-          <p className={styles.welcomeText}>
-            Complete the onboarding process to tokenize your inventory and unlock blockchain features.
-            This will allow you to mint NFT contracts, trade on DEX, and more.
-          </p>
-          <button
-            onClick={() => setShowOnboarding(true)}
-            className={`${styles.button} ${styles.primary}`}
-          >
-            Start Onboarding
-          </button>
-        </GlassyCard>
-      )}
+      {/* Welcome Banner - Onboarding disabled */}
+      <GlassyCard darker className={styles.welcomeBanner}>
+        <div className={styles.iconCircle}>🏠</div>
+        <h2 className={styles.welcomeTitle}>KNIRV Network Dashboard</h2>
+        <p className={styles.welcomeText}>
+          Welcome to your KNIRV Network dashboard. Monitor network activity, manage your models, and access all KNIRV services.
+        </p>
+      </GlassyCard>
 
       {/* Cards Row */}
       <div className={styles.cryptoCardsContainer}>

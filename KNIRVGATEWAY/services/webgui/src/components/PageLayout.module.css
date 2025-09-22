@@ -9,6 +9,13 @@
 .mainContent {
   flex: 1;
   padding: 20px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.pageContent {
+  flex: 1;
 }
 
 .topNav {

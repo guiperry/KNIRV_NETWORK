@@ -27,6 +27,30 @@ const CLOUDFLARE_CONFIG = {
   LEADER_ELECTION_TIMEOUT: 60000, // 1 minute
 };
 
+// Gateway services configuration
+const GATEWAY_SERVICES = {
+  payment_gateway: {
+    domain: 'payments.knirv.network',
+    port: 3001,
+    subdomain: 'payments'
+  },
+  tunnel_registry: {
+    domain: 'tunnel.knirv.network',
+    port: 3004,
+    subdomain: 'tunnel'
+  },
+  operator_registry: {
+    domain: 'operators.knirv.network',
+    port: 3007,
+    subdomain: 'operators'
+  },
+  webgui: {
+    domain: 'dashboard.knirv.network',
+    port: 3007,
+    subdomain: 'dashboard'
+  }
+};
+
 class CloudFlareManager extends EventEmitter {
   constructor(options = {}) {
     super();
@@ -168,9 +192,9 @@ class CloudFlareManager extends EventEmitter {
         console.log('[CloudFlare] Not leader - skipping DNS update');
         return false;
       }
-      
+
       console.log(`[CloudFlare] Updating gateway record to ${newIP} (${reason})`);
-      
+
       const recordData = {
         type: 'A',
         name: CLOUDFLARE_CONFIG.GATEWAY_RECORD_NAME,
@@ -178,7 +202,7 @@ class CloudFlareManager extends EventEmitter {
         ttl: CLOUDFLARE_CONFIG.TTL,
         comment: `Updated by ${this.instanceId} - ${reason}`
       };
-      
+
       let response;
       if (this.gatewayRecordId) {
         // Update existing record
@@ -188,9 +212,9 @@ class CloudFlareManager extends EventEmitter {
         response = await this.makeAPIRequest('POST', `/zones/${this.zoneId}/dns_records`, recordData);
         this.gatewayRecordId = response.result.id;
       }
-      
+
       this.currentRecord = response.result;
-      
+
       console.log(`[CloudFlare] DNS record updated successfully: ${newIP}`);
       this.emit('dns:updated', {
         oldIP: this.currentRecord?.content,
@@ -198,12 +222,108 @@ class CloudFlareManager extends EventEmitter {
         reason: reason,
         timestamp: Date.now()
       });
-      
+
       return true;
     } catch (error) {
       console.error('[CloudFlare] Failed to update DNS record:', error);
       this.emit('dns:error', error);
       throw error;
+    }
+  }
+
+  /**
+   * Update all gateway service DNS records
+   */
+  async updateGatewayServiceRecords(newIP, reason = 'Gateway service update') {
+    try {
+      if (!this.isLeader) {
+        console.log('[CloudFlare] Not leader - skipping gateway service DNS updates');
+        return false;
+      }
+
+      console.log(`[CloudFlare] Updating gateway service records to ${newIP} (${reason})`);
+
+      const results = [];
+      for (const [serviceName, serviceConfig] of Object.entries(GATEWAY_SERVICES)) {
+        try {
+          const success = await this.updateServiceRecord(serviceName, serviceConfig, newIP, reason);
+          results.push({ service: serviceName, success });
+        } catch (error) {
+          console.error(`[CloudFlare] Failed to update ${serviceName}:`, error.message);
+          results.push({ service: serviceName, success: false, error: error.message });
+        }
+      }
+
+      const successCount = results.filter(r => r.success).length;
+      console.log(`[CloudFlare] Updated ${successCount}/${results.length} gateway service records`);
+
+      return results;
+    } catch (error) {
+      console.error('[CloudFlare] Failed to update gateway service records:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update individual service DNS record
+   */
+  async updateServiceRecord(serviceName, serviceConfig, newIP, reason) {
+    try {
+      // Get existing record
+      const existingRecord = await this.getServiceRecord(serviceConfig.subdomain);
+
+      const recordData = {
+        type: 'A',
+        name: serviceConfig.domain,
+        content: newIP,
+        ttl: CLOUDFLARE_CONFIG.TTL,
+        comment: `${serviceName} - Updated by ${this.instanceId} - ${reason}`
+      };
+
+      let response;
+      if (existingRecord) {
+        // Update existing record
+        response = await this.makeAPIRequest('PUT', `/zones/${this.zoneId}/dns_records/${existingRecord.id}`, recordData);
+      } else {
+        // Create new record
+        response = await this.makeAPIRequest('POST', `/zones/${this.zoneId}/dns_records`, recordData);
+      }
+
+      console.log(`[CloudFlare] ✅ ${serviceName} DNS record updated: ${serviceConfig.domain} -> ${newIP}:${serviceConfig.port}`);
+
+      this.emit('service:dns:updated', {
+        service: serviceName,
+        domain: serviceConfig.domain,
+        oldIP: existingRecord?.content,
+        newIP: newIP,
+        port: serviceConfig.port,
+        reason: reason,
+        timestamp: Date.now()
+      });
+
+      return true;
+    } catch (error) {
+      console.error(`[CloudFlare] Failed to update ${serviceName} DNS record:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get existing DNS record for a service subdomain
+   */
+  async getServiceRecord(subdomain) {
+    const recordName = `${subdomain}.knirv.network`;
+
+    try {
+      const response = await this.makeAPIRequest('GET', `/zones/${this.zoneId}/dns_records`, {
+        name: recordName,
+        type: 'A'
+      });
+
+      return response.result && response.result.length > 0 ? response.result[0] : null;
+    } catch (error) {
+      console.error(`[CloudFlare] Failed to get service record for ${recordName}:`, error);
+      return null;
     }
   }
 

@@ -2,7 +2,7 @@
 
 ![Banner](browser-wallet/banner.png)
 
-A comprehensive, multi-platform wallet ecosystem designed as the seamless gateway to the KNIRV Decentralized Trusted Execution Network (D-TEN). KNIRVWALLET provides unified access to NRN tokens, KNIRV-CORTEX agents, and the entire KNIRV ecosystem through intuitive, Web2-like experiences powered by XION's Meta Accounts.
+A comprehensive, multi-platform wallet ecosystem designed as the seamless gateway to the KNIRV Decentralized Trusted Execution Network (D-TEN). KNIRVWALLET provides unified access to NRN tokens, KNIRV-INFERENCE agents, and the entire KNIRV ecosystem through intuitive, Web2-like experiences powered by XION's Meta Accounts.
 
 ## Table of Contents
 
@@ -72,7 +72,7 @@ Both implementations share core functionality while optimizing for their respect
 - Hardware Wallet Support: Ledger integration for enhanced security
 
 ### 🤖 KNIRV Ecosystem Integration
-- KNIRV-CORTEX Control: Manage and control your AI agents
+- KNIRV-INFERENCE Control: Manage and control your AI agents
 - User Delegation Certificates (UDCs): Secure agent authorization
 - NRV System Integration: Submit ErrorNodes and SkillNodes
 - Economics Module: Skill registration and fee management
@@ -257,7 +257,7 @@ KNIRVWALLET seamlessly integrates with the broader KNIRV ecosystem:
 
 - **[KNIRV-ORACLE](../KNIRVORACLE/)**: Foundational blockchain for NRN tokens
 - **[KNIRVCHAIN](../KNIRVCHAIN/)**: Smart contract platform for Skills and Base LLMs  
-- **[KNIRV-CORTEX](../KNIRVCORTEX/)**: AI agent framework
+- **[KNIRV-INFERENCE](../KNIRVINFERENCE/)**: AI agent framework
 - **[KNIRV-NEXUS](../KNIRVNEXUS/)**: Distributed verification engine
 - **[KNIRVGATEWAY](../KNIRVGATEWAY/)**: Unified API gateway
 - **[KNIRVSDK](../KNIRVSDK/)**: Development tools and libraries

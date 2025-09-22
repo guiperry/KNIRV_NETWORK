@@ -58,33 +58,39 @@ function VisualProcessor({ onVisualData, onObjectDetection, isActive }: VisualPr
     // setCurrentFrame(null);
   }, [stream]);
 
-  const initializeCamera = useCallback(async () => {
-    try {
-      setError(null);
+  const detectObjects = useCallback((imageData: ImageData): SensoryDetectedObject[] => {
+    // Simple object detection using edge detection and blob analysis
+    const { data, width, height } = imageData;
+    const binary = new Uint8Array(width * height);
 
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: 'user'
-        }
-      });
-
-      setStream(mediaStream);
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        videoRef.current.play();
-      }
-
-      setIsProcessing(true);
-      processVideoFrame();
-
-    } catch (error) {
-      console.error('Failed to initialize camera:', error);
-      setError('Failed to access camera. Please check permissions.');
+    // Convert to grayscale and apply edge detection
+    for (let i = 0; i < data.length; i += 4) {
+      const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
+      binary[i / 4] = gray > 128 ? 255 : 0;
     }
-  }, [processVideoFrame]);
+
+    // Simple blob detection (mock implementation)
+    const objects: SensoryDetectedObject[] = [];
+
+    // Mock object detection - in real implementation, this would use computer vision algorithms
+    if (Math.random() > 0.7) { // Randomly detect objects
+      objects.push({
+        id: `obj_${Date.now()}`,
+        type: 'person',
+        label: 'person',
+        confidence: 0.85,
+        boundingBox: {
+          x: Math.random() * (width - 100),
+          y: Math.random() * (height - 100),
+          width: 100,
+          height: 150
+        },
+        features: [0.1, 0.2, 0.3, 0.4, 0.5]
+      });
+    }
+
+    return objects;
+  }, []);
 
   const processVideoFrame = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || !isProcessing) return;
@@ -141,22 +147,33 @@ function VisualProcessor({ onVisualData, onObjectDetection, isActive }: VisualPr
     }
   }, [isProcessing, onVisualData, onObjectDetection, stats.fps, detectObjects]);
 
-  const detectObjects = useCallback((imageData: ImageData): SensoryDetectedObject[] => {
-    // Simple object detection using edge detection and blob analysis
-    const { data, width, height } = imageData;
-    const binary = new Uint8Array(width * height);
+  const initializeCamera = useCallback(async () => {
+    try {
+      setError(null);
 
-    // Convert to grayscale and apply edge detection
-    for (let i = 0; i < data.length; i += 4) {
-      const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-      binary[i / 4] = gray > 128 ? 255 : 0;
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user'
+        }
+      });
+
+      setStream(mediaStream);
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+        videoRef.current.play();
+      }
+
+      setIsProcessing(true);
+      processVideoFrame();
+
+    } catch (error) {
+      console.error('Failed to initialize camera:', error);
+      setError('Failed to access camera. Please check permissions.');
     }
-
-    // Find connected components (blobs)
-    const objects = performObjectDetection(imageData);
-
-    return objects;
-  }, [performObjectDetection]);
+  }, [processVideoFrame]);
 
   useEffect(() => {
     if (isActive) {

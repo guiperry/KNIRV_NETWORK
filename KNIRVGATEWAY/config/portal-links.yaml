@@ -13,8 +13,60 @@ navigation:
 # External Services
 external_services:
   payment_gateway: "https://payments.knirv.network"
+  tunnel_registry: "https://tunnel.knirv.network"
+  operator_registry: "https://operators.knirv.network"
+  webgui: "https://dashboard.knirv.network"
   knirv_website: "https://knirv.com"
   testnet_access: "https://testnet.knirv.network"
+
+# Gateway Services Configuration
+# These services are dynamically managed based on deployment environment
+gateway_services:
+  # Public Testnet Configuration (when CloudFlare credentials available)
+  public_testnet:
+    payment_gateway:
+      domain: "payments.knirv.network"
+      port: 3001
+      path: "/"
+      health_endpoint: "/health"
+    tunnel_registry:
+      domain: "tunnel.knirv.network"
+      port: 3004
+      path: "/"
+      health_endpoint: "/status"
+    operator_registry:
+      domain: "operators.knirv.network"
+      port: 3007
+      path: "/"
+      health_endpoint: "/health"
+    webgui:
+      domain: "dashboard.knirv.network"
+      port: 3007
+      path: "/"
+      health_endpoint: "/health"
+
+  # Private Testnet Configuration (localhost fallback)
+  private_testnet:
+    payment_gateway:
+      domain: "localhost"
+      port: 3001
+      path: "/"
+      health_endpoint: "/health"
+    tunnel_registry:
+      domain: "localhost"
+      port: 3004
+      path: "/"
+      health_endpoint: "/status"
+    operator_registry:
+      domain: "localhost"
+      port: 3007
+      path: "/"
+      health_endpoint: "/health"
+    webgui:
+      domain: "localhost"
+      port: 3007
+      path: "/"
+      health_endpoint: "/health"
 
 # Documentation Links
 documentation:

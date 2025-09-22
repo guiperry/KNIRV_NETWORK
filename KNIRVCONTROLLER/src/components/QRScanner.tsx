@@ -230,7 +230,7 @@ export default function QRScanner({
       setPaymentState({
         step: 'success',
         request,
-        transaction
+        transaction: transaction || undefined
       });
 
       // Refresh balance

@@ -372,9 +372,9 @@ describe('WalletIntegrationService', () => {
 
       const transaction = await walletIntegrationService.checkTransactionStatus(txId);
 
-      expect(transaction.status).toBe('confirmed');
-      expect(transaction.blockHeight).toBe(12345);
-      expect(transaction.gasUsed).toBe(21000);
+      expect(transaction!.status).toBe('confirmed');
+      expect(transaction!.blockHeight).toBe(12345);
+      expect(transaction!.gasUsed).toBe(21000);
     });
 
     it('should return null for non-existent transaction', async () => {

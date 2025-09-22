@@ -21,10 +21,10 @@ const NETWORKS = {
   },
   'public-testnet': {
     name: 'Public Testnet',
-    token: 'tNRV',
+    token: 'NRV',
     faucetEnabled: true,
     paymentEnabled: false,
-    faucetAmount: 1000 // 1000 tNRV tokens
+    faucetAmount: 1000 // 1000 NRV tokens
   },
   'private-testnet': {
     name: 'Private Testnet',

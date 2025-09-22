@@ -326,7 +326,7 @@ class NetworkOptimizer {
             results.push(result.value);
           } else {
             console.error(`Batch request ${i + index} failed:`, result.reason);
-            results.push(null); // Placeholder for failed request
+            results.push(null as unknown as T); // Placeholder for failed request
           }
         });
       } catch (error) {

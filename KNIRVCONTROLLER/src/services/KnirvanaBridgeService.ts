@@ -178,8 +178,8 @@ export class KnirvanaBridgeService {
       id: node.id,
       position: node.position,
       name: skillData.skillName || node.label,
-      creator: skillData.creator || 'System',
-      usageCount: skillData.usageCount || 0,
+      creator: (skillData as any).creator || 'System',
+      usageCount: (skillData as any).usageCount || 0,
       proficiency: skillData.proficiency || 0.5,
       category: skillData.category || 'general',
       description: skillData.description || node.label
@@ -409,7 +409,7 @@ export class KnirvanaBridgeService {
       for (const insight of collectiveInsights) {
         await personalKNIRVGRAPHService.addSkillNode({
           skillId: `collective_${insight.id}`,
-          skillName: insight.name,
+          skillName: (insight as any).name || `Insight ${insight.id}`,
           description: insight.description,
           category: 'collective',
           proficiency: 0.8

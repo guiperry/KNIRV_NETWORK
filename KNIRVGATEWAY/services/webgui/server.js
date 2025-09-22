@@ -17,7 +17,7 @@ console.log(`[WebGUI] Starting Web GUI on port ${port}...`);
 process.chdir(__dirname);
 
 // Start the Next.js application
-const nextProcess = spawn('npm', ['run', 'start', '--', '-p', port], {
+const nextProcess = spawn('npm', ['run', 'start'], {
     stdio: 'inherit',
     env: {
         ...process.env,

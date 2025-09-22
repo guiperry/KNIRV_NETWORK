@@ -28,9 +28,15 @@ if (typeof Touch === 'undefined') {
 // Mock TouchEvent constructor
 if (typeof TouchEvent === 'undefined') {
   global.TouchEvent = class extends Event {
+    touches: Touch[];
+    changedTouches: Touch[];
+    targetTouches: Touch[];
+
     constructor(type: string, options: { touches?: Touch[]; changedTouches?: Touch[]; targetTouches?: Touch[] } = {}) {
-      super(type, options);
-      Object.assign(this, options);
+      super(type);
+      this.touches = options.touches || [];
+      this.changedTouches = options.changedTouches || [];
+      this.targetTouches = options.targetTouches || [];
     }
   } as typeof TouchEvent;
 }

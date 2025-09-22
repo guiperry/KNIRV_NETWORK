@@ -24,6 +24,10 @@ export interface DashboardStats {
   totalTransactions: number;
   networkHealth: string;
   lastUpdated: Date;
+  targetSystems: number;
+  inferencesToday: number;
+  successRate: number;
+  changes: Record<string, string>;
 }
 
 export interface PerformanceMetrics {
@@ -31,6 +35,10 @@ export interface PerformanceMetrics {
   errorRate: number;
   uptime: number;
   lastMeasured: Date;
+  cpuUsage: number;
+  memoryUsage: number;
+  networkLatency: number;
+  responseTime: number;
 }
 
 export interface UsageAnalytics {
@@ -38,6 +46,9 @@ export interface UsageAnalytics {
   averageSessionDuration: number;
   popularFeatures: Array<{ feature: string; usage: number }>;
   lastCalculated: Date;
+  mostUsedFeatures: Array<{ feature: string; usage: number }>;
+  userEngagement: number;
+  peakUsageHours: number[];
 }
 
 export interface AgentAnalytics {
@@ -45,6 +56,11 @@ export interface AgentAnalytics {
   averageExecutionTime: number;
   resourceUtilization: number;
   lastAnalyzed: Date;
+  totalAgents: number;
+  activeAgents: number;
+  deploymentSuccess: number;
+  skillInvocations: number;
+  errorCount: number;
 }
 
 export interface AnalyticsConfig {
@@ -60,29 +76,45 @@ export class AnalyticsService {
     totalSkills: 0,
     totalTransactions: 0,
     networkHealth: 'healthy',
-    lastUpdated: new Date()
+    lastUpdated: new Date(),
+    targetSystems: 0,
+    inferencesToday: 0,
+    successRate: 0,
+    changes: {}
   };
   private performanceMetrics: PerformanceMetrics = {
     throughput: 0,
     errorRate: 0,
     uptime: 100,
-    lastMeasured: new Date()
+    lastMeasured: new Date(),
+    cpuUsage: 0,
+    memoryUsage: 0,
+    networkLatency: 0,
+    responseTime: 0
   };
   private usageAnalytics: UsageAnalytics = {
     totalSessions: 0,
     averageSessionDuration: 0,
     popularFeatures: [],
-    lastCalculated: new Date()
+    lastCalculated: new Date(),
+    mostUsedFeatures: [],
+    userEngagement: 0,
+    peakUsageHours: []
   };
   private agentAnalytics: AgentAnalytics = {
     successRate: 0,
     averageExecutionTime: 0,
     resourceUtilization: 0,
-    lastAnalyzed: new Date()
+    lastAnalyzed: new Date(),
+    totalAgents: 0,
+    activeAgents: 0,
+    deploymentSuccess: 0,
+    skillInvocations: 0,
+    errorCount: 0
   };
   private baseUrl: string;
   private isCollecting: boolean = false;
-  private collectionInterval: NodeJS.Timeout | null = null;
+  private collectionInterval: number | null = null;
   private config: AnalyticsConfig;
 
   constructor(config: AnalyticsConfig = {}) {
@@ -101,6 +133,9 @@ export class AnalyticsService {
     // Initialize dashboard stats
     this.dashboardStats = {
       activeAgents: 0,
+      totalSkills: 0,
+      totalTransactions: 0,
+      networkHealth: 'healthy',
       targetSystems: 0,
       inferencesToday: 0,
       successRate: 0,
@@ -115,13 +150,17 @@ export class AnalyticsService {
       networkLatency: 0,
       responseTime: 0,
       throughput: 0,
-      errorRate: 0
+      errorRate: 0,
+      uptime: 100,
+      lastMeasured: new Date()
     };
 
     // Initialize usage analytics
     this.usageAnalytics = {
       totalSessions: 0,
       averageSessionDuration: 0,
+      popularFeatures: [],
+      lastCalculated: new Date(),
       mostUsedFeatures: [],
       userEngagement: 0,
       peakUsageHours: []
@@ -134,7 +173,10 @@ export class AnalyticsService {
       deploymentSuccess: 0,
       averageExecutionTime: 0,
       skillInvocations: 0,
-      errorCount: 0
+      errorCount: 0,
+      successRate: 0,
+      resourceUtilization: 0,
+      lastAnalyzed: new Date()
     };
 
     console.log('Analytics Service initialized');
@@ -173,7 +215,7 @@ export class AnalyticsService {
           value: networkMetrics.averageLatency,
           unit: 'milliseconds',
           category: 'performance',
-          metadata: networkMetrics
+          metadata: networkMetrics as unknown as Record<string, unknown>
         });
       }
     }, 30000); // Every 30 seconds
@@ -186,7 +228,7 @@ export class AnalyticsService {
         value: perfMetrics.renderTime,
         unit: 'milliseconds',
         category: 'performance',
-        metadata: perfMetrics
+        metadata: perfMetrics as unknown as Record<string, unknown>
       });
     }, 10000); // Every 10 seconds
   }
@@ -512,6 +554,9 @@ export class AnalyticsService {
 
     this.dashboardStats = {
       activeAgents: Math.max(0, Math.floor(45 + hourVariation + dayVariation)),
+      totalSkills: Math.max(0, Math.floor(150 + dayVariation * 3)),
+      totalTransactions: Math.max(0, Math.floor(5000 + hourVariation * 100 + dayVariation * 50)),
+      networkHealth: 'healthy',
       targetSystems: Math.max(0, Math.floor(20 + dayVariation / 2)),
       inferencesToday: Math.max(0, Math.floor(1500 + hourVariation * 50 + dayVariation * 20)),
       successRate: Math.round((96.5 + Math.sin(now.getTime() / 86400000) * 2) * 10) / 10,
@@ -532,7 +577,9 @@ export class AnalyticsService {
       networkLatency: Math.round(Math.random() * 50 + 10),
       responseTime: Math.round(Math.random() * 200 + 50),
       throughput: Math.round(Math.random() * 1000 + 500),
-      errorRate: Math.round(Math.random() * 5 * 100) / 100
+      errorRate: Math.round(Math.random() * 5 * 100) / 100,
+      uptime: Math.round((Math.random() * 5 + 95) * 10) / 10,
+      lastMeasured: new Date()
     };
   }
 
@@ -540,6 +587,13 @@ export class AnalyticsService {
     this.usageAnalytics = {
       totalSessions: Math.floor(Math.random() * 1000 + 500),
       averageSessionDuration: Math.round(Math.random() * 30 + 15),
+      popularFeatures: [
+        { feature: 'Agent Management', usage: Math.floor(Math.random() * 100 + 50) },
+        { feature: 'Cognitive Shell', usage: Math.floor(Math.random() * 80 + 40) },
+        { feature: 'Terminal', usage: Math.floor(Math.random() * 60 + 30) },
+        { feature: 'QR Scanner', usage: Math.floor(Math.random() * 40 + 20) }
+      ],
+      lastCalculated: new Date(),
       mostUsedFeatures: [
         { feature: 'Agent Management', usage: Math.floor(Math.random() * 100 + 50) },
         { feature: 'Cognitive Shell', usage: Math.floor(Math.random() * 80 + 40) },
@@ -558,7 +612,10 @@ export class AnalyticsService {
       deploymentSuccess: Math.round((Math.random() * 10 + 90) * 10) / 10,
       averageExecutionTime: Math.round(Math.random() * 500 + 100),
       skillInvocations: Math.floor(Math.random() * 1000 + 500),
-      errorCount: Math.floor(Math.random() * 10)
+      errorCount: Math.floor(Math.random() * 10),
+      successRate: Math.round((Math.random() * 10 + 90) * 10) / 10,
+      resourceUtilization: Math.round((Math.random() * 30 + 40) * 10) / 10,
+      lastAnalyzed: new Date()
     };
   }
 

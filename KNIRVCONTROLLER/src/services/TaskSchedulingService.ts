@@ -77,7 +77,7 @@ export class TaskSchedulingService {
   private tasks: Map<string, ScheduledTask> = new Map();
   private executions: Map<string, TaskExecution> = new Map();
   private workflows: Map<string, WorkflowTemplate> = new Map();
-  private activeTimers: Map<string, NodeJS.Timeout> = new Map();
+  private activeTimers: Map<string, number> = new Map();
   private baseUrl: string;
   private isRunning: boolean = false;
 

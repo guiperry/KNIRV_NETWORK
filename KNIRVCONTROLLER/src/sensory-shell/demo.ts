@@ -59,7 +59,7 @@ export class CognitiveShellDemo {
       this.displayCapabilities();
     });
 
-    this.engine.on('inputProcessed', (data: {
+    this.engine.on('inputProcessed', ((data: {
       inputType: string;
       processingTime: number;
       response?: { type?: string };
@@ -69,9 +69,9 @@ export class CognitiveShellDemo {
         processingTime: `${data.processingTime}ms`,
         response: data.response?.type || 'unknown'
       });
-    });
+    }) as any);
 
-    this.engine.on('skillInvoked', (data: {
+    this.engine.on('skillInvoked', ((data: {
       skillId: string;
       parameters: Record<string, unknown>;
       result?: { result?: unknown };
@@ -81,26 +81,26 @@ export class CognitiveShellDemo {
         parameters: data.parameters,
         result: data.result?.result || 'completed'
       });
-    });
+    }) as any);
 
-    this.engine.on('adaptationTriggered', (data: {
+    this.engine.on('adaptationTriggered', ((data: {
       metrics?: { adaptationLevel?: number };
     }) => {
       console.log('🔄 Adaptation Triggered:', {
         adaptationLevel: `${Math.round((data.metrics?.adaptationLevel || 0) * 100)}%`
       });
-    });
+    }) as any);
 
     this.engine.on('learningModeStarted', () => {
       console.log('📚 Learning Mode: ACTIVE');
     });
 
-    this.engine.on('cognitiveEvent', (event: {
+    this.engine.on('cognitiveEvent', ((event: {
       type: string;
       data: unknown;
     }) => {
       console.log('🧠 Cognitive Event:', event.type, event.data);
-    });
+    }) as any);
   }
 
   private displayCapabilities(): void {

@@ -50,6 +50,12 @@ export const RoleProvider = ({ children }) => {
       // Fallback to backend detection
       setRole(normalizeRole(serverInfo.role));
       setIsAuthenticated(true);
+    } else if (localStorage.getItem('knirv_demo_mode') === 'true') {
+      // Demo mode - allow access with General role
+      setRole('General');
+      setNetwork('demo');
+      setIsAuthenticated(true);
+      console.log('[RoleContext] Demo mode enabled');
     }
   }, [serverInfo]);
 
@@ -73,20 +79,20 @@ export const RoleProvider = ({ children }) => {
     Root: [
       'dashboard', 'inventory', 'vault', 'blockchain', 'dex', 'daos',
       'nft-vault', 'nft-capability-manager', 'add-capability',
-      'settlement', 'network-admin', 'peers', 'explorer', 'capabilities'
+      'settlement', 'network-admin', 'peers', 'explorer', 'capabilities', 'auth-test'
     ],
     Bootnode: [
       'dashboard', 'inventory', 'vault', 'blockchain', 'dex', 'daos',
       'nft-vault', 'nft-capability-manager', 'add-capability',
-      'settlement', 'peers', 'explorer', 'capabilities'
+      'settlement', 'peers', 'explorer', 'capabilities', 'auth-test'
     ],
     Dev: [
       'dashboard', 'inventory', 'vault', 'blockchain', 'dex',
       'nft-vault', 'nft-capability-manager', 'add-capability',
-      'explorer', 'capabilities'
+      'explorer', 'capabilities', 'auth-test'
     ],
     General: [
-      'dashboard', 'inventory', 'dex', 'nft-capability-manager', 'capabilities'
+      'dashboard', 'inventory', 'dex', 'nft-capability-manager', 'capabilities', 'auth-test'
     ]
   };
   
@@ -105,6 +111,7 @@ export const RoleProvider = ({ children }) => {
     localStorage.removeItem('knirv_user_role');
     localStorage.removeItem('knirv_network');
     localStorage.removeItem('knirv_auth_token');
+    localStorage.removeItem('knirv_demo_mode');
     router.push('/');
   };
 
@@ -116,7 +123,8 @@ export const RoleProvider = ({ children }) => {
     displayName: role,
     networkDisplay: network === 'public-testnet' ? 'Public Testnet' :
                    network === 'private-testnet' ? 'Private Testnet' :
-                   network === 'mainnet' ? 'Mainnet' : 'Disconnected'
+                   network === 'mainnet' ? 'Mainnet' :
+                   network === 'demo' ? 'Demo Mode' : 'Disconnected'
   });
 
   return (

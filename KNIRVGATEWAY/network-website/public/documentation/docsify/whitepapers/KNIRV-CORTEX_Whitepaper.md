@@ -1,22 +1,22 @@
-# **KNIRV-CORTEX: The Agent Intelligence Development Platform**
+# **KNIRV-INFERENCE: The Agent Intelligence Development Platform**
 
 ### **Abstract**
 
-The **KNIRV-CORTEX** serves as the specialized development platform for creating, training, and deploying WASM-based agent cores within the KNIRV D-TEN ecosystem. Following the major refactor, KNIRV-CORTEX has evolved from a frontend-heavy application to a focused backend development environment that provides the essential WASM compilation pipeline, model training infrastructure, and deployment sequence for agent core build files. It operates as the foundational layer that enables the creation of intelligent agent cores that power both KNIRV-CONTROLLER and other agent-driven applications throughout the network.
+The **KNIRV-INFERENCE** serves as the specialized development platform for creating, training, and deploying WASM-based agent cores within the KNIRV D-TEN ecosystem. Following the major refactor, KNIRV-INFERENCE has evolved from a frontend-heavy application to a focused backend development environment that provides the essential WASM compilation pipeline, model training infrastructure, and deployment sequence for agent core build files. It operates as the foundational layer that enables the creation of intelligent agent cores that power both KNIRV-CONTROLLER and other agent-driven applications throughout the network.
 
 ### **1. Introduction**
 
-The **KNIRV-CORTEX** represents a fundamental shift in how AI agent cores are developed and deployed within the KNIRV ecosystem. Rather than providing direct user interfaces, KNIRV-CORTEX focuses on the critical backend infrastructure needed to compile, train, and deploy WASM-based agent cores. This specialized platform ensures that agent intelligence can be developed efficiently, validated securely, and deployed seamlessly across the entire D-TEN network.
+The **KNIRV-INFERENCE** represents a fundamental shift in how AI agent cores are developed and deployed within the KNIRV ecosystem. Rather than providing direct user interfaces, KNIRV-INFERENCE focuses on the critical backend infrastructure needed to compile, train, and deploy WASM-based agent cores. This specialized platform ensures that agent intelligence can be developed efficiently, validated securely, and deployed seamlessly across the entire D-TEN network.
 
-The platform integrates closely with the KNIRV-CONTROLLER architecture, where agent cores developed in KNIRV-CORTEX are deployed as the cognitive foundation for user-facing agent applications. This separation of concerns allows for specialized development workflows while maintaining seamless integration with the broader ecosystem.
+The platform integrates closely with the KNIRV-CONTROLLER architecture, where agent cores developed in KNIRV-INFERENCE are deployed as the cognitive foundation for user-facing agent applications. This separation of concerns allows for specialized development workflows while maintaining seamless integration with the broader ecosystem.
 
 ### **2. Core Architecture & Responsibilities**
 
-The **KNIRV-CORTEX** architecture is built around three primary pillars: compilation, training, and deployment.
+The **KNIRV-INFERENCE** architecture is built around three primary pillars: compilation, training, and deployment.
 
 #### **2.1. WASM Compilation Pipeline**
 
-The heart of KNIRV-CORTEX is its sophisticated WASM compilation pipeline, originally implemented in GoLang but now being translated to TypeScript for better integration with the broader ecosystem.
+The heart of KNIRV-INFERENCE is its sophisticated WASM compilation pipeline, originally implemented in GoLang but now being translated to TypeScript for better integration with the broader ecosystem.
 
 *   **TypeScript Compiler Integration**: The compilation pipeline has been migrated from GoLang to TypeScript, enabling better integration with the KNIRV-CONTROLLER's cognitive shell and providing a more unified development experience.
 *   **Template System**: Comprehensive template library for different agent core architectures, providing standardized starting points for various use cases including navigation, reasoning, and specialized domain applications.
@@ -25,7 +25,7 @@ The heart of KNIRV-CORTEX is its sophisticated WASM compilation pipeline, origin
 
 #### **2.2. Model Training Infrastructure**
 
-KNIRV-CORTEX provides comprehensive model training capabilities specifically designed for agent core development.
+KNIRV-INFERENCE provides comprehensive model training capabilities specifically designed for agent core development.
 
 *   **Tiny LLM Core Model Pre-training**: Specialized infrastructure for training compact language models that can operate efficiently within WASM environments while maintaining sophisticated reasoning capabilities.
 *   **LoRA Adapter Training**: Advanced training pipelines for Low-Rank Adaptation (LoRA) adapters that enable efficient fine-tuning of base models without requiring full model retraining.
@@ -43,30 +43,30 @@ The platform provides comprehensive deployment management for agent cores across
 
 ### **3. Integration with KNIRV-CONTROLLER**
 
-The relationship between KNIRV-CORTEX and KNIRV-CONTROLLER represents a sophisticated separation of concerns that enables specialized development while maintaining seamless integration.
+The relationship between KNIRV-INFERENCE and KNIRV-CONTROLLER represents a sophisticated separation of concerns that enables specialized development while maintaining seamless integration.
 
 #### **3.1. Agent Core Development Workflow**
 
-*   **Development Environment**: KNIRV-CORTEX provides the specialized development environment where agent cores are created, trained, and optimized.
-*   **Compilation to WASM**: Agent cores are compiled to WASM format within KNIRV-CORTEX, ensuring they can be efficiently executed within the KNIRV-CONTROLLER's cognitive shell.
-*   **Testing and Validation**: Comprehensive testing infrastructure within KNIRV-CORTEX ensures agent cores meet performance and reliability requirements.
+*   **Development Environment**: KNIRV-INFERENCE provides the specialized development environment where agent cores are created, trained, and optimized.
+*   **Compilation to WASM**: Agent cores are compiled to WASM format within KNIRV-INFERENCE, ensuring they can be efficiently executed within the KNIRV-CONTROLLER's cognitive shell.
+*   **Testing and Validation**: Comprehensive testing infrastructure within KNIRV-INFERENCE ensures agent cores meet performance and reliability requirements.
 *   **Export and Integration**: Completed agent cores are exported as WASM files that can be seamlessly integrated into KNIRV-CONTROLLER applications.
 
 #### **3.2. Cognitive Shell Integration**
 
-*   **WASM Runtime Compatibility**: Agent cores developed in KNIRV-CORTEX are specifically designed to operate within the KNIRV-CONTROLLER's cognitive shell runtime environment.
+*   **WASM Runtime Compatibility**: Agent cores developed in KNIRV-INFERENCE are specifically designed to operate within the KNIRV-CONTROLLER's cognitive shell runtime environment.
 *   **API Standardization**: Standardized APIs ensure that agent cores can interact consistently with the cognitive shell's capabilities and external services.
 *   **Resource Management**: Sophisticated resource management ensures agent cores operate efficiently within the constraints of the cognitive shell environment.
 *   **Update Mechanisms**: Seamless update mechanisms allow agent cores to be updated without disrupting the broader KNIRV-CONTROLLER application.
 
 ### **4. Developer Experience & Documentation**
 
-KNIRV-CORTEX prioritizes developer experience through comprehensive documentation and streamlined workflows.
+KNIRV-INFERENCE prioritizes developer experience through comprehensive documentation and streamlined workflows.
 
 #### **4.1. Developer Documentation**
 
 *   **Comprehensive Guides**: Detailed documentation covering the complete agent core development lifecycle, from initial setup through deployment.
-*   **API Reference**: Complete API documentation for all KNIRV-CORTEX services and interfaces.
+*   **API Reference**: Complete API documentation for all KNIRV-INFERENCE services and interfaces.
 *   **Best Practices**: Curated best practices for agent core development, including performance optimization, security considerations, and testing strategies.
 *   **Integration Examples**: Practical examples demonstrating how to integrate agent cores with various KNIRV ecosystem components.
 
@@ -79,7 +79,7 @@ KNIRV-CORTEX prioritizes developer experience through comprehensive documentatio
 
 ### **5. Model Architecture & Training**
 
-KNIRV-CORTEX implements advanced model architectures specifically optimized for agent core applications.
+KNIRV-INFERENCE implements advanced model architectures specifically optimized for agent core applications.
 
 #### **5.1. Tiny LLM Architecture**
 
@@ -99,7 +99,7 @@ KNIRV-CORTEX implements advanced model architectures specifically optimized for 
 
 ### **6. Security & Validation**
 
-Security and validation are paramount in KNIRV-CORTEX, ensuring that agent cores meet the highest standards for safety and reliability.
+Security and validation are paramount in KNIRV-INFERENCE, ensuring that agent cores meet the highest standards for safety and reliability.
 
 #### **6.1. Compilation Security**
 
@@ -117,7 +117,7 @@ Security and validation are paramount in KNIRV-CORTEX, ensuring that agent cores
 
 ### **7. Integration with External Models**
 
-KNIRV-CORTEX supports integration with various external model architectures and training systems.
+KNIRV-INFERENCE supports integration with various external model architectures and training systems.
 
 #### **7.1. Multi-Model Support**
 
@@ -135,7 +135,7 @@ KNIRV-CORTEX supports integration with various external model architectures and 
 
 ### **8. Future Roadmap**
 
-KNIRV-CORTEX will continue to evolve to meet the growing demands of the agent development community.
+KNIRV-INFERENCE will continue to evolve to meet the growing demands of the agent development community.
 
 #### **8.1. Phase 1 (Current - Q2 2026)**
 
@@ -160,7 +160,7 @@ KNIRV-CORTEX will continue to evolve to meet the growing demands of the agent de
 
 ### **9. Conclusion**
 
-The **KNIRV-CORTEX** represents a fundamental advancement in agent development infrastructure, providing the specialized tools and capabilities needed to create sophisticated WASM-based agent cores. By focusing on compilation, training, and deployment, KNIRV-CORTEX enables developers to create intelligent agents that can operate efficiently within the KNIRV ecosystem while maintaining the highest standards for performance, security, and reliability. The platform's integration with KNIRV-CONTROLLER and the broader D-TEN ecosystem ensures that agent cores developed within KNIRV-CORTEX can seamlessly contribute to the network's collective intelligence and capabilities.
+The **KNIRV-INFERENCE** represents a fundamental advancement in agent development infrastructure, providing the specialized tools and capabilities needed to create sophisticated WASM-based agent cores. By focusing on compilation, training, and deployment, KNIRV-INFERENCE enables developers to create intelligent agents that can operate efficiently within the KNIRV ecosystem while maintaining the highest standards for performance, security, and reliability. The platform's integration with KNIRV-CONTROLLER and the broader D-TEN ecosystem ensures that agent cores developed within KNIRV-INFERENCE can seamlessly contribute to the network's collective intelligence and capabilities.
 
 <div class="footer-links">
 <a href="documentation/static/legal/CODE_OF_CONDUCT.html" class="footer-link">Contributor Covenant Code of Conduct</a> | <a href="documentation/static/legal/PRIVACY_POLICY.html" class="footer-link">PRIVACY_POLICY.md</a> | <a href="documentation/static/legal/TERMS_AND_CONDITIONS.html" class="footer-link">TERMS AND CONDITIONS</a>

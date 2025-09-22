@@ -9,8 +9,9 @@
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
-    "start": "node registry-service.js",
-    "start:nextjs": "next start -p ${PORT:-3006}",
+    "start": "next start -p ${PORT:-3007}",
+    "start:wrapper": "node registry-service.js",
+    "start:nextjs": "next start -p ${PORT:-3007}",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"

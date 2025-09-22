@@ -181,13 +181,13 @@ describe('DatabaseService', () => {
     });
   });
 
-  describe('Database Initialization', () => {
-    test('should initialize database successfully', async () => {
-      (databaseService.initDatabase as jest.Mock).mockResolvedValue({});
-
-      await databaseService.initDatabase();
-
-      expect(databaseService.initDatabase).toHaveBeenCalled();
+  describe('Database Service', () => {
+    test('should get instance successfully', () => {
+      const instance = databaseService;
+      expect(instance).toBeDefined();
+      expect(instance.agents).toBeDefined();
+      expect(instance.skills).toBeDefined();
+      expect(instance.chatSessions).toBeDefined();
     });
   });
 });

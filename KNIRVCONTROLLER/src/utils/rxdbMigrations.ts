@@ -36,7 +36,7 @@ export const migrationStrategies: { [collectionName: string]: { [version: number
         return {
           ...oldDoc,
           metadata: {
-            ...oldDoc.metadata,
+            ...(oldDoc.metadata as Record<string, unknown>),
             version: '1.0.0',
             lastSync: new Date().toISOString(),
             capabilities: []
@@ -93,7 +93,7 @@ export const migrationStrategies: { [collectionName: string]: { [version: number
         return {
           ...oldDoc,
           game: {
-            bounty: oldDoc.tracking?.difficulty * 10 || 10,
+            bounty: (oldDoc.tracking as any)?.difficulty * 10 || 10,
             isBeingSolved: false,
             solverAgent: null,
             progress: 0,
@@ -406,14 +406,14 @@ export class DatabaseMigrationManager {
 
     for (const doc of documents) {
       const currentVersion = doc.get('_version') || 0;
-      const targetVersion = config.schema.version;
+      const targetVersion = (config.schema as any).version;
 
       if (currentVersion < targetVersion) {
         let migratedData = doc.toJSON();
 
         // Apply migration strategies sequentially
         for (let version = currentVersion + 1; version <= targetVersion; version++) {
-          const strategy = config.migrationStrategies?.[version];
+          const strategy = (config.migrationStrategies as any)?.[version];
           if (strategy) {
             migratedData = strategy.migrate(migratedData);
             migratedData._version = version;

@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agent Management - KNIRV Developer Portal</title>
-    <meta name="description" content="Register, monitor, and manage your agents on the KNIRV-CHAIN">
+    <title>Model Management - KNIRV Developer Portal</title>
+    <meta name="description" content="Register, monitor, and manage your models on the KNIRV-CHAIN">
     <link rel="shortcut icon" href="favicon.png">
 
     <!-- Font Awesome for icons -->
@@ -37,7 +37,7 @@
             </a>
             <a href="agent-management.html" class="nav-item active">
                 <i class="fas fa-robot"></i>
-                <span>Agent Management</span>
+                <span>Model Management</span>
             </a>
             <a href="skill-registry.html" class="nav-item">
                 <i class="fas fa-cogs"></i>
@@ -49,7 +49,7 @@
             </a>
             <a href="agent-skill-exchange.html" class="nav-item">
                 <i class="fas fa-exchange-alt"></i>
-                <span>Agent/Skill Exchange</span>
+                <span>Model/Skill Exchange</span>
             </a>
             <a href="error-node-explorer.html" class="nav-item">
                 <i class="fas fa-search"></i>
@@ -78,7 +78,7 @@
             <!-- Top Navigation -->
             <div class="top-nav">
                 <div>
-                    <h1 class="page-title">Agent Management</h1>
+                    <h1 class="page-title">Model Management</h1>
                 </div>
                 <div class="user-controls">
                     <i class="control-icon fas fa-bell" title="Notifications"></i>
@@ -93,9 +93,9 @@
                     <div style="width: 80px; height: 80px; border-radius: 50%; background-color: rgba(0, 192, 250, 0.2); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 2.5em;">
                         <i class="fas fa-robot" style="color: var(--bright-blue);"></i>
                     </div>
-                    <h1 style="color: var(--bright-blue); margin-bottom: 10px; font-size: 2rem;">Agent Management</h1>
+                    <h1 style="color: var(--bright-blue); margin-bottom: 10px; font-size: 2rem;">Model Management</h1>
                     <p style="color: var(--transparent-white-7); max-width: 600px; margin: 0 auto;">
-                        Register, deploy, and manage your autonomous agents on the KNIRV-CHAIN network.
+                        Register, deploy, and manage your autonomous models on the KNIRV-CHAIN network.
                     </p>
                 </div>
             </div>
@@ -106,32 +106,32 @@
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
                     <button class="btn-primary" onclick="showRegisterModal()" style="padding: 20px; text-align: center;">
                         <i class="fas fa-plus" style="font-size: 1.5em; margin-bottom: 10px; display: block;"></i>
-                        <h4 style="margin-bottom: 5px;">Register New Agent</h4>
-                        <p style="font-size: 0.9em; opacity: 0.8;">Create a new agent identity</p>
+                        <h4 style="margin-bottom: 5px;">Register New Model</h4>
+                        <p style="font-size: 0.9em; opacity: 0.8;">Create a new model identity</p>
                     </button>
                     <button class="btn-secondary" onclick="importAgent()" style="padding: 20px; text-align: center;">
                         <i class="fas fa-upload" style="font-size: 1.5em; margin-bottom: 10px; display: block;"></i>
-                        <h4 style="margin-bottom: 5px;">Import Agent</h4>
-                        <p style="font-size: 0.9em; opacity: 0.8;">Import existing agent config</p>
+                        <h4 style="margin-bottom: 5px;">Import Model</h4>
+                        <p style="font-size: 0.9em; opacity: 0.8;">Import existing model config</p>
                     </button>
                     <button class="btn-outline" onclick="deployAgent()" style="padding: 20px; text-align: center;">
                         <i class="fas fa-rocket" style="font-size: 1.5em; margin-bottom: 10px; display: block;"></i>
-                        <h4 style="margin-bottom: 5px;">Deploy Agent</h4>
+                        <h4 style="margin-bottom: 5px;">Deploy Model</h4>
                         <p style="font-size: 0.9em; opacity: 0.8;">Deploy to KNIRV network</p>
                     </button>
                 </div>
             </div>
 
-            <!-- Registered Agents -->
+            <!-- Registered Models -->
             <div class="glass-card">
-                <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">Your Agents</h2>
+                <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">Your Models</h2>
                 <div id="agentsList">
                     <div style="text-align: center; padding: 40px; color: var(--transparent-white-7);">
                         <i class="fas fa-robot" style="font-size: 3em; margin-bottom: 20px; opacity: 0.3;"></i>
-                        <h3>No agents registered yet</h3>
-                        <p>Register your first agent to get started with the KNIRV network.</p>
+                        <h3>No models registered yet</h3>
+                        <p>Register your first model to get started with the KNIRV network.</p>
                         <button class="btn-primary" onclick="showRegisterModal()" style="margin-top: 20px;">
-                            <i class="fas fa-plus" style="margin-right: 8px;"></i>Register Your First Agent
+                            <i class="fas fa-plus" style="margin-right: 8px;"></i>Register Your First Model
                         </button>
                     </div>
                 </div>
@@ -144,13 +144,13 @@
         <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
                 <h2 style="color: var(--bright-blue); margin: 0;">
-                    <i class="fas fa-robot" style="margin-right: 10px;"></i>Register Agent on KNIRV-ORACLE
+                    <i class="fas fa-robot" style="margin-right: 10px;"></i>Register Model on KNIRV-ORACLE
                 </h2>
                 <span class="close" onclick="closeNandaModal()">&times;</span>
             </div>
             <div class="modal-body">
                 <p style="color: var(--transparent-white-7); margin-bottom: 20px;">
-                    Register your agent on the KNIRV-ORACLE network using the NANDA+ANS platform. This creates a decentralized identity and establishes your agent's presence on the D-TEN network.
+                    Register your model on the KNIRV-ORACLE network using the NANDA+ANS platform. This creates a decentralized identity and establishes your model's presence on the D-TEN network.
                 </p>
 
                 <!-- NANDA+ANS iFrame -->
@@ -159,7 +159,7 @@
                         id="nandaFrame"
                         src="../nanda_ans/register"
                         style="width: 100%; height: 600px; border: none; background-color: white;"
-                        title="NANDA+ANS Agent Registration">
+                        title="NANDA+ANS Model Registration">
                     </iframe>
                 </div>
 
@@ -168,8 +168,8 @@
                         <i class="fas fa-info-circle" style="margin-right: 8px;"></i>About NANDA+ANS Registration
                     </h4>
                     <ul style="color: var(--transparent-white-7); margin: 0; padding-left: 20px;">
-                        <li>Creates a decentralized identifier (DID) for your agent</li>
-                        <li>Establishes cryptographic proof of agent ownership</li>
+                        <li>Creates a decentralized identifier (DID) for your model</li>
+                        <li>Establishes cryptographic proof of model ownership</li>
                         <li>Enables discovery through the KNIRV network</li>
                         <li>Supports both PKI and DID-based trust models</li>
                     </ul>
@@ -206,11 +206,11 @@
         }
 
         function importAgent() {
-            window.knirvPortal.showNotification('Agent import functionality coming soon', 'info');
+            window.knirvPortal.showNotification('Model import functionality coming soon', 'info');
         }
 
         function deployAgent() {
-            window.knirvPortal.showNotification('Agent deployment functionality coming soon', 'info');
+            window.knirvPortal.showNotification('Model deployment functionality coming soon', 'info');
         }
 
         // Close modal when clicking outside of it

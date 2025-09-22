@@ -292,7 +292,7 @@ export class HRMLoRABridge extends EventEmitter {
         task_type: 'weight_sync',
       };
 
-      return await (this.hrmBridge as { processCognitiveInput?: (input: unknown) => Promise<unknown> }).processCognitiveInput?.(dummyInput);
+      return await (this.hrmBridge as { processCognitiveInput?: (input: unknown) => Promise<unknown> }).processCognitiveInput?.(dummyInput) as HRMProcessingResult | null;
 
     } catch (error) {
       console.error('Error getting recent HRM processing:', error);

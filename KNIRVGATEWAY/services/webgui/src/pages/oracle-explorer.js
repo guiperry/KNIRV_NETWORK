@@ -4,10 +4,10 @@ import { useNavigation } from '../hooks/useNavigation';
 import PageLayout from '../components/PageLayout';
 import PageHeader from '../components/PageHeader';
 import GlassyCard from '../components/GlassyCard';
-import styles from './explorer.module.css';
+import styles from './oracle-explorer.module.css';
 
-export default function Explorer({ onboardingCompleted }) {
-  const { activePage } = useNavigation('explorer');
+export default function OracleExplorer({ onboardingCompleted }) {
+  const { activePage } = useNavigation('oracle-explorer');
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isBlockchainEnabled, setIsBlockchainEnabled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -84,7 +84,7 @@ export default function Explorer({ onboardingCompleted }) {
   };
 
   return (
-    <PageLayout activePage={activePage} pageTitle="Explorer" onSearch={handleSearch}>
+    <PageLayout activePage={activePage} pageTitle="Oracle Explorer" onSearch={handleSearch}>
       {showOnboarding && <OnboardingFlow onComplete={handleOnboardingComplete} />}
 
       {/* Status Overlays */}

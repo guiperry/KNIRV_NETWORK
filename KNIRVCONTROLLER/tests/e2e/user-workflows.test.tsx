@@ -57,6 +57,9 @@ describe('End-to-End User Workflows', () => {
     // Setup default mock responses
     mockAnalyticsService.getDashboardStats.mockResolvedValue({
       activeAgents: 25,
+      totalSkills: 50,
+      totalTransactions: 1200,
+      networkHealth: 'healthy',
       targetSystems: 12,
       inferencesToday: 1500,
       successRate: 96.5,

@@ -26,34 +26,35 @@ function convertDbAgentToAgent(dbAgent: Record<string, unknown> & {
   lastActivity?: string;
 }): Agent {
   // Ensure metadata conforms to AgentMetadata interface
+  const dbMetadata = dbAgent.metadata as any;
   const metadata: AgentMetadata = {
     name: dbAgent.name,
     version: dbAgent.version,
     baseModelId: dbAgent.baseModelId,
-    description: dbAgent.metadata?.description || 'No description available',
-    author: dbAgent.metadata?.author || 'Unknown',
-    capabilities: dbAgent.capabilities,
+    description: dbMetadata?.description || 'No description available',
+    author: dbMetadata?.author || 'Unknown',
+    capabilities: dbAgent.capabilities || [],
     requirements: {
-      memory: dbAgent.metadata?.requirements?.memory || 512,
-      cpu: dbAgent.metadata?.requirements?.cpu || 1,
-      storage: dbAgent.metadata?.requirements?.storage || 100
+      memory: dbMetadata?.requirements?.memory || 512,
+      cpu: dbMetadata?.requirements?.cpu || 1,
+      storage: dbMetadata?.requirements?.storage || 100
     },
-    permissions: dbAgent.metadata?.permissions || []
+    permissions: dbMetadata?.permissions || []
   };
 
   return {
     agentId: dbAgent.agentId,
     name: dbAgent.name,
     version: dbAgent.version,
-    baseModelId: dbAgent.baseModelId,
-    type: dbAgent.type,
-    status: dbAgent.status,
+    baseModelId: dbAgent.baseModelId || '',
+    type: dbAgent.type as 'wasm' | 'lora' | 'hybrid',
+    status: dbAgent.status as 'Available' | 'Deployed' | 'Error' | 'Compiling',
     nrnCost: dbAgent.nrnCost,
-    capabilities: dbAgent.capabilities,
+    capabilities: dbAgent.capabilities || [],
     metadata,
     wasmModule: dbAgent.wasmModule,
     loraAdapter: dbAgent.loraAdapter,
-    createdAt: dbAgent.createdAt,
+    createdAt: dbAgent.createdAt || new Date().toISOString(),
     lastActivity: dbAgent.lastActivity
   };
 }
@@ -139,7 +140,7 @@ export class AgentManagementService {
         status: 'Compiling',
         nrnCost: this.calculateNRNCost(metadata.requirements),
         capabilities: metadata.capabilities,
-        metadata: metadata,
+        metadata: metadata as unknown as Record<string, unknown>,
         createdAt: new Date().toISOString()
       };
 
@@ -147,7 +148,7 @@ export class AgentManagementService {
       const agent = await databaseService.createAgent(agentData);
 
       // Process the uploaded file based on type
-      const convertedAgent = convertDbAgentToAgent(agent);
+      const convertedAgent = convertDbAgentToAgent(agent as any);
       if (request.type === 'wasm') {
         await this.compileWASMAgent(convertedAgent, request.file);
       } else if (request.type === 'lora') {
@@ -162,7 +163,7 @@ export class AgentManagementService {
         lastActivity: new Date().toISOString()
       });
 
-      return updatedAgent ? convertDbAgentToAgent(updatedAgent) : convertDbAgentToAgent(agent);
+      return updatedAgent ? convertDbAgentToAgent(updatedAgent as any) : convertDbAgentToAgent(agent as any);
     } catch (error) {
       console.error('Agent upload failed:', error);
       throw new Error(`Agent upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -275,7 +276,7 @@ export class AgentManagementService {
    */
   async getAgents(): Promise<Agent[]> {
     const dbAgents = await databaseService.listAgents();
-    return dbAgents.map(convertDbAgentToAgent);
+    return dbAgents.map(agent => convertDbAgentToAgent(agent as any));
   }
 
   /**
@@ -285,7 +286,7 @@ export class AgentManagementService {
     const allAgents = await databaseService.listAgents();
     return allAgents
       .filter(agent => agent.status === 'Deployed')
-      .map(convertDbAgentToAgent);
+      .map(agent => convertDbAgentToAgent(agent as any));
   }
 
   /**
@@ -293,7 +294,7 @@ export class AgentManagementService {
    */
   async getAgent(agentId: string): Promise<Agent | null> {
     const dbAgent = await databaseService.getAgent(agentId);
-    return dbAgent ? convertDbAgentToAgent(dbAgent) : null;
+    return dbAgent ? convertDbAgentToAgent(dbAgent as any) : null;
   }
 
   /**

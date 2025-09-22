@@ -58,7 +58,7 @@ const CONFIG = {
     'knirvoracle': 'KNIRVORACLE Documentation',
     'knirvrouter': 'KNIRVROUTER Documentation',
     'knirvsdk': 'KNIRVSDK Documentation',
-    'knirvshell': 'KNIRVCORTEX Documentation',
+    'knirvshell': 'KNIRVINFERENCE Documentation',
     'knirvwallet': 'KNIRVWALLET Documentation'
   },
   // Special files that should be processed differently
@@ -79,7 +79,7 @@ const CONFIG = {
     'KNIRVORACLE',
     'KNIRVROUTER',
     'KNIRVSDK',
-    'KNIRVCORTEX',
+    'KNIRVINFERENCE',
     'KNIRVWALLET',
     'KNIRVCLI',
     'KNIRVGATEWAY',
@@ -881,7 +881,7 @@ function determineCategory(subproductName) {
     'KNIRVORACLE': 'knirvoracle',
     'KNIRVROUTER': 'knirvrouter',
     'KNIRVSDK': 'knirvsdk',
-    'KNIRVCORTEX': 'knirvshell',
+    'KNIRVINFERENCE': 'knirvshell',
     'KNIRVWALLET': 'knirvwallet',
     'KNIRVCLI': 'knirvshell',
     'KNIRVGATEWAY': 'guides',

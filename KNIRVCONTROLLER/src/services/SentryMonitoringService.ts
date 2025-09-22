@@ -83,7 +83,7 @@ export class SentryMonitoringService {
     Sentry.withScope((scope) => {
       if (context) {
         Object.keys(context).forEach(key => {
-          scope.setTag(key, context[key]);
+          scope.setTag(key, String(context[key]));
         });
       }
       Sentry.captureException(error);
@@ -97,7 +97,7 @@ export class SentryMonitoringService {
       scope.setLevel(level as Sentry.SeverityLevel);
       if (context) {
         Object.keys(context).forEach(key => {
-          scope.setTag(key, context[key]);
+          scope.setTag(key, String(context[key]));
         });
       }
       Sentry.captureMessage(message, level as Sentry.SeverityLevel);

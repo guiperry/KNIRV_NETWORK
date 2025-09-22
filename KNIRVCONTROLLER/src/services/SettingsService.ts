@@ -518,7 +518,7 @@ export class SettingsService {
     for (const [key, value] of Object.entries(updates)) {
       if (value && typeof value === 'object' && !Array.isArray(value)) {
         (merged as Record<string, unknown>)[key] = {
-          ...(merged as Record<string, unknown>)[key],
+          ...((merged as Record<string, unknown>)[key] as Record<string, unknown>),
           ...value
         };
       } else {

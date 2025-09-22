@@ -30,7 +30,7 @@ The **KNIRV-CONTROLLER** features a unified architecture that integrates four co
 #### **2.2. WASM Agent Core System**
 
 *   **Agent Core Upload and LoRA Integration**: The receiver enables users to upload and compile agent WASM files with embedded LoRA adapter capabilities, creating a cognitive shell that includes the uploaded agent.wasm file with its associated LoRA adapter chain as the primary agent within the CONTROLLER.
-*   **TypeScript LoRA Compilation Pipeline**: The compilation functionality from KNIRVCORTEX/agent-builder has been translated from GoLang to TypeScript and enhanced with LoRA adapter compilation, enabling seamless agent and LoRA adapter compilation within the CONTROLLER interface.
+*   **TypeScript LoRA Compilation Pipeline**: The compilation functionality from KNIRVINFERENCE/agent-builder has been translated from GoLang to TypeScript and enhanced with LoRA adapter compilation, enabling seamless agent and LoRA adapter compilation within the CONTROLLER interface.
 *   **LoRA-Enhanced Agent Export**: When users request agent export, the CONTROLLER exports the agent.wasm file with its embedded LoRA adapter capabilities, providing a complete neural network modification package.
 *   **Primary Agent with LoRA Chain Management**: The resulting shell serves as the primary agent with its LoRA adapter chain within the CONTROLLER, enabling dynamic skill loading and cluster competition participation until users designate another saved agent configuration as primary.
 

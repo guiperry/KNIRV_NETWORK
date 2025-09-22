@@ -34,6 +34,16 @@
 
 KNIRVGATEWAY serves as the primary web portal and API gateway for the KNIRV D-TEN (Decentralized Trusted Execution Network). It combines a modern, responsive website with serverless API gateway functionality, providing a unified entry point for users, developers, and services within the KNIRV ecosystem. Migrated from a Go-based WebSocket gateway, it now utilizes Netlify Functions and Server-Sent Events (SSE) for improved performance and browser compatibility.
 
+### Recent Major Updates (2025)
+
+- **Model-Centric Terminology**: Comprehensive update from "Agent" to "Model" training across all interfaces
+- **WebGUI Modernization**: Complete overhaul with hierarchical navigation and improved UX
+- **Network Management**: Multi-network support with dynamic switching capabilities
+- **Payment Gateway**: Updated testnet token configuration (NRV instead of tNRV)
+- **Authentication Streamlining**: Simplified auth flow for better developer experience
+- **Footer Migration**: Dynamic footer system migrated from static HTML to React components
+- **Testing Infrastructure**: Comprehensive Jest testing suite with React Testing Library
+
 
 ## Key Features
 
@@ -46,8 +56,13 @@ KNIRVGATEWAY serves as the primary web portal and API gateway for the KNIRV D-TE
 - 🔐 **Authentication**: Secure API access and user management (JWT-based, configurable)
 - 📊 **Health Monitoring**: Real-time service health and metrics
 - 🎨 **Glass Morphism UI**: Modern design with balanced blue/purple color scheme
-- 🗣️ **Social Media Optimization**: Platform-specific content and meta tags for enhanced sharing.
-- ⚙️ **Centralized Configuration Management**: YAML-based configuration for links, settings, and feature flags.
+- 🗣️ **Social Media Optimization**: Platform-specific content and meta tags for enhanced sharing
+- ⚙️ **Centralized Configuration Management**: YAML-based configuration for links, settings, and feature flags
+- 🔄 **Model-Centric Terminology**: Updated from "Agent" to "Model" training throughout the system
+- 🏗️ **Hierarchical Navigation**: Expandable/collapsible navigation structure in WebGUI
+- 🌐 **Multi-Network Support**: Switch between mainnet, testnet, local, and private networks
+- 📱 **KNIRVCONTROLLER Integration**: QR code connection and mobile app integration
+- 🔧 **Comprehensive Testing**: Jest-based testing suite with React Testing Library
 - ⬇️ **Centralized Download Management**: Configuration-driven download links for all products.
 - 🔄 **Private DHT Implementation**: libp2p-based Private DHT with multi-platform support and automated failover.
 - 🎛️ **DHT Control API**: REST API endpoints for on-demand DHT initialization and control.
@@ -218,6 +233,39 @@ healthSource.onmessage = function(event) {
 - `make clean` - Clean build artifacts
 - `make clean-all` - Full clean including node_modules
 - `make audit` - Security audit
+
+### WebGUI Development
+
+The WebGUI service (`services/webgui`) provides a modern React-based interface:
+
+```bash
+cd services/webgui
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Run tests
+npm test
+
+# Run tests with coverage
+npm test -- --coverage
+
+# Build for production
+npm run build
+```
+
+#### WebGUI Features
+
+- **Hierarchical Navigation**: Expandable/collapsible menu structure
+- **Network Switching**: Dynamic backend configuration for different networks
+- **Model Management**: Comprehensive model building, training, and deployment tools
+- **Marketplace Integration**: Skills, capabilities, and properties trading
+- **Personal Vault**: User asset management (models, wallets, skills)
+- **Real-time Monitoring**: Network health and performance metrics
+- **KNIRVCONTROLLER Integration**: QR code connection for mobile apps
 
 
 ### Local Development

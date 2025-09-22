@@ -217,6 +217,7 @@ create_inventory() {
 ansible_user=ubuntu
 ansible_ssh_private_key_file=~/.ssh/AEGONG.pem
 ansible_ssh_common_args="-o StrictHostKeyChecking=no"
+    ansible_remote_tmp=/home/ubuntu/.ansible/tmp
 
 [all:vars]
 environment=testnet
@@ -252,21 +253,45 @@ deploy_infrastructure() {
 
 update_dns_records() {
     print_step "Updating Cloudflare DNS records..."
-    
+
     # Get the public IP from the deployment
     if [ -f "$ANSIBLE_DIR/testnet_ip.txt" ]; then
         TESTNET_IP=$(cat "$ANSIBLE_DIR/testnet_ip.txt")
         print_success "Testnet IP: $TESTNET_IP"
-        
+
         # Update DNS records via Cloudflare API
         curl -X PUT "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/dns_records" \
              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
              -H "Content-Type: application/json" \
              --data "{\"type\":\"A\",\"name\":\"testnet\",\"content\":\"$TESTNET_IP\",\"ttl\":300}"
-        
+
         print_success "DNS records updated"
     else
         print_warning "Could not find testnet IP file"
+    fi
+}
+
+create_instance_id_file() {
+    print_step "Creating instance ID file..."
+
+    if [ -f "$ANSIBLE_DIR/testnet_ip.txt" ]; then
+        TESTNET_IP=$(cat "$ANSIBLE_DIR/testnet_ip.txt")
+
+        # Find the instance ID by public IP
+        INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=network-interface.addresses.public-ip,Values=$TESTNET_IP" \
+            --query 'Reservations[*].Instances[*].InstanceId' \
+            --output text \
+            --region "${AWS_REGION:-us-east-1}" 2>/dev/null | head -1)
+
+        if [ -n "$INSTANCE_ID" ] && [ "$INSTANCE_ID" != "None" ]; then
+            echo "$INSTANCE_ID" > "$ANSIBLE_DIR/testnet_instance_id.txt"
+            print_success "Instance ID saved: $INSTANCE_ID"
+        else
+            print_warning "Could not determine instance ID for IP $TESTNET_IP"
+        fi
+    else
+        print_warning "No testnet IP file found, cannot create instance ID file"
     fi
 }
 
@@ -330,6 +355,7 @@ main() {
     create_inventory
     deploy_infrastructure
     update_dns_records
+    create_instance_id_file
     create_ssh_config
     display_summary
 }

@@ -17,7 +17,7 @@ console.log(`[OperatorRegistry] Starting Operator Registry System on port ${port
 process.chdir(__dirname);
 
 // Start the Next.js application
-const nextProcess = spawn('npm', ['run', 'start', '--', '-p', port], {
+const nextProcess = spawn('npm', ['run', 'start:nextjs'], {
     stdio: 'inherit',
     env: {
         ...process.env,

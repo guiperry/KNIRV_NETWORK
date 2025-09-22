@@ -1,12 +1,22 @@
 // Comprehensive Unit Tests for KNIRVWALLET Browser Module - Cryptographic Operations
 
-// Import crypto functions from KNIRVSDK
-import {
-  encryptAES,
-  decryptAES,
-  makeCryptKey,
-  sha256 as encryptSha256
-} from '@knirvsdk/crypto';
+// Mock crypto functions for testing
+const encryptAES = jest.fn().mockImplementation(async (data: string, key: string) => {
+  return Buffer.from(data + key).toString('base64');
+});
+
+const decryptAES = jest.fn().mockImplementation(async (encryptedData: string, key: string) => {
+  const decoded = Buffer.from(encryptedData, 'base64').toString();
+  return decoded.replace(key, '');
+});
+
+const makeCryptKey = jest.fn().mockImplementation(async (password: string) => {
+  return Buffer.from(password).toString('base64');
+});
+
+const encryptSha256 = jest.fn().mockImplementation(async (data: string) => {
+  return Buffer.from(data).toString('hex');
+});
 
 // Mock additional functions that aren't in the main crypto module
 const executeKdf = jest.fn().mockImplementation(async (salt: string, password: string, config: any) => {

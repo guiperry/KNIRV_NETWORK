@@ -398,7 +398,7 @@ export class PerformanceMonitoringService {
     
     const errorCount = metrics.filter(m => 
       m.name === 'network-error' || 
-      (m.metadata?.status && m.metadata.status >= 400)
+      (m.metadata?.status && typeof m.metadata.status === 'number' && m.metadata.status >= 400)
     ).length;
     
     return errorCount / metrics.length;
@@ -417,12 +417,14 @@ export class PerformanceMonitoringService {
   /**
    * Get game state (would integrate with actual game service)
    */
-  private getGameState(): { fps: number; activeAgents: number; memoryUsage: number; networkLatency: number } {
+  private getGameState(): { fps: number; activeAgents: number; memoryUsage: number; networkLatency: number; errorsSolved?: number } {
     // This would integrate with KnirvanaBridgeService
     // For now, return mock data
     return {
       fps: 60,
       activeAgents: 3,
+      memoryUsage: 45,
+      networkLatency: 20,
       errorsSolved: 15
     };
   }

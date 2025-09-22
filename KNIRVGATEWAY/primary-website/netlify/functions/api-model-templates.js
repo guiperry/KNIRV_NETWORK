@@ -1,6 +1,6 @@
 // Auto-generated Netlify function from Next.js API route
 // Original route: /api/model/templates
-// Generated: 2025-09-11T18:53:02.810Z
+// Generated: 2025-09-22T04:34:49.545Z
 
 // NextResponse/NextRequest converted to native Netlify response format
 const { cortexModelCompiler } = require('../../src/lib/cortex-compiler/CortexModelCompiler.js');

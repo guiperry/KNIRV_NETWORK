@@ -57,12 +57,156 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
   const [audioLevel, setAudioLevel] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [lastCommand, setLastCommand] = useState<string>('');
+  const [transcript, setTranscript] = useState<string>('');
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const microphoneRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  const processVoiceCommand = useCallback((transcript: string, _confidence: number) => {
+    const command = transcript.toLowerCase().trim();
+
+    // Basic command processing
+    if (command.includes('scan qr') || command.includes('scan code')) {
+      console.log('QR scan command detected');
+    } else if (command.includes('connect') || command.includes('link')) {
+      console.log('Connection command detected');
+    } else if (command.includes('wallet') || command.includes('transaction')) {
+      console.log('Wallet command detected');
+    }
+  }, []);
+
+  const stopVoiceRecognition = useCallback(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+  }, []);
+
+  const stopAudioAnalysis = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setIsRecording(false);
+    setAudioLevel(0);
+  }, []);
+
+  const initializeVoiceRecognition = useCallback(() => {
+    if (!('SpeechRecognition' in window) && !('webkitSpeechRecognition' in window)) {
+      setError('Speech recognition not supported in this browser');
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setError(null);
+    };
+
+    recognition.onresult = (event) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        const confidence = event.results[i][0].confidence;
+
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+          processVoiceCommand(transcript, confidence);
+          onVoiceCommand(transcript, confidence);
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+
+      setTranscript(finalTranscript || interimTranscript);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      setError(`Speech recognition error: ${event.error}`);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      if (isActive) {
+        // Restart recognition if still active
+        setTimeout(() => recognition.start(), 100);
+      }
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  }, [isActive, onVoiceCommand, processVoiceCommand]);
+
+  const initializeAudioAnalysis = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+
+      streamRef.current = stream;
+      setIsRecording(true);
+      setError(null);
+
+      // Create audio context for analysis
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const analyser = audioContext.createAnalyser();
+      const source = audioContext.createMediaStreamSource(stream);
+
+      source.connect(analyser);
+      analyser.fftSize = 256;
+
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      const floatArray = new Float32Array(bufferLength);
+
+      const updateAudioLevel = () => {
+        if (!isActive || !streamRef.current) return;
+
+        analyser.getByteFrequencyData(dataArray);
+        analyser.getFloatFrequencyData(floatArray);
+
+        // Calculate average volume
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          sum += dataArray[i];
+        }
+        const average = sum / bufferLength;
+        const normalizedLevel = average / 255;
+
+        setAudioLevel(normalizedLevel);
+
+        // Send audio data to parent
+        onAudioData(floatArray);
+
+        if (isActive) {
+          requestAnimationFrame(updateAudioLevel);
+        }
+      };
+
+      updateAudioLevel();
+    } catch (error) {
+      console.error('Failed to initialize audio analysis:', error);
+      setError('Failed to access microphone. Please check permissions.');
+    }
+  }, [isActive, onAudioData]);
 
   useEffect(() => {
     if (isActive) {
@@ -79,119 +223,6 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
     };
   }, [isActive, initializeAudioAnalysis, initializeVoiceRecognition, stopAudioAnalysis, stopVoiceRecognition]);
 
-  const processVoiceCommand = useCallback((transcript: string, _confidence: number) => {
-    const command = transcript.toLowerCase().trim();
-
-    // Basic command processing
-    if (command.includes('scan qr') || command.includes('scan code')) {
-      console.log('QR scan command detected');
-    } else if (command.includes('connect') || command.includes('link')) {
-      console.log('Connection command detected');
-    } else if (command.includes('wallet') || command.includes('transaction')) {
-      console.log('Wallet command detected');
-    }
-  }, []);
-
-  const initializeVoiceRecognition = useCallback(() => {
-    if (!('SpeechRecognition' in window) && !('webkitSpeechRecognition' in window)) {
-      setError('Speech recognition not supported in this browser');
-      return;
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = 'en-US';
-    recognition.maxAlternatives = 3;
-
-    recognition.onstart = () => {
-      setIsListening(true);
-      setError(null);
-      console.log('Voice recognition started');
-    };
-
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let finalTranscript = '';
-
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        const transcript = result[0].transcript;
-        const confidence = result[0].confidence;
-
-        if (result.isFinal) {
-          finalTranscript += transcript;
-          console.log('Final transcript:', transcript, 'Confidence:', confidence);
-
-          // Process voice command
-          processVoiceCommand(transcript, confidence);
-        }
-        // Interim results are ignored for now
-      }
-
-      if (finalTranscript) {
-        setLastCommand(finalTranscript);
-        onVoiceCommand(finalTranscript, event.results[event.resultIndex][0].confidence);
-      }
-    };
-
-    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.error('Speech recognition error:', event.error);
-      setError(`Voice recognition error: ${event.error}`);
-      setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-      console.log('Voice recognition ended');
-      
-      // Restart if still active
-      if (isActive) {
-        setTimeout(() => {
-          if (recognitionRef.current && isActive) {
-            recognitionRef.current.start();
-          }
-        }, 1000);
-      }
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
-  }, [isActive, onVoiceCommand, processVoiceCommand]);
-
-  const initializeAudioAnalysis = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        } 
-      });
-      
-      streamRef.current = stream;
-      
-      const audioContext = new (window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
-      const analyser = audioContext.createAnalyser();
-      const microphone = audioContext.createMediaStreamSource(stream);
-      
-      analyser.fftSize = 256;
-      microphone.connect(analyser);
-      
-      audioContextRef.current = audioContext;
-      analyserRef.current = analyser;
-      microphoneRef.current = microphone;
-      
-      setIsRecording(true);
-      startAudioLevelMonitoring();
-      
-    } catch (err) {
-      console.error('Failed to initialize audio analysis:', err);
-      setError('Failed to access microphone');
-    }
-  }, [startAudioLevelMonitoring]);
-
   const startAudioLevelMonitoring = useCallback(() => {
     if (!analyserRef.current) return;
 
@@ -201,13 +232,13 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
     const floatArray = new Float32Array(bufferLength);
 
     const updateAudioLevel = () => {
-      if (!analyser || !isActive) return;
+      if (!analyserRef.current || !isActive) return;
 
       analyser.getByteFrequencyData(dataArray);
       analyser.getFloatFrequencyData(floatArray);
 
       // Calculate audio level
-      const sum = dataArray.reduce((a, b) => a + b, 0);
+      const sum = dataArray.reduce((a: number, b: number) => a + b, 0);
       const average = sum / bufferLength;
       const level = average / 255;
 
@@ -223,36 +254,6 @@ export default function VoiceProcessor({ onVoiceCommand, onAudioData, isActive }
   }, [isActive, onAudioData]);
 
 
-
-  const stopVoiceRecognition = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-    }
-    setIsListening(false);
-  }, []);
-
-  const stopAudioAnalysis = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
-
-    analyserRef.current = null;
-    microphoneRef.current = null;
-    setIsRecording(false);
-    setAudioLevel(0);
-  }, []);
-
-  /* const cleanup = useCallback(() => {
-    stopVoiceRecognition();
-    stopAudioAnalysis();
-  }, []); */
 
   const toggleVoiceRecognition = () => {
     if (isListening) {

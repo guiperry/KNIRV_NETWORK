@@ -277,7 +277,7 @@ const ModelConfig = ({
             Configure Your <span className="knirv-gradient-text">KNIRV Neural Model</span>
           </h1>
           <p className="text-slate-300">
-            Connected to: <span className="knirv-text-primary font-medium">{connectedApp.name}</span>
+            Connected to: <span className="knirv-text-primary font-medium">{connectedApp?.name || 'No app connected'}</span>
           </p>
         </div>
 

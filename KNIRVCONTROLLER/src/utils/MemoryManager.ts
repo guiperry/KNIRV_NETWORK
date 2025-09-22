@@ -50,7 +50,7 @@ interface WindowWithPerformanceMemory extends Window {
 class MemoryManager {
   private config: MemoryManagerConfig;
   private metrics: MemoryMetrics[] = [];
-  private monitoringInterval: NodeJS.Timeout | null = null;
+  private monitoringInterval: number | null = null;
   private cleanupCallbacks: (() => void)[] = [];
   private memoryListeners: ((metrics: MemoryMetrics) => void)[] = [];
   private isMonitoring: boolean = false;
@@ -269,7 +269,7 @@ class MemoryManager {
 
     // If not found in global, check for browser environment
     if (!memory && typeof window !== 'undefined' && window.performance && (window as WindowWithPerformanceMemory).performance.memory) {
-      memory = (window as WindowWithPerformanceMemory).performance.memory;
+      memory = (window as WindowWithPerformanceMemory).performance.memory || null;
     }
 
     // If still not found, check for standard performance API

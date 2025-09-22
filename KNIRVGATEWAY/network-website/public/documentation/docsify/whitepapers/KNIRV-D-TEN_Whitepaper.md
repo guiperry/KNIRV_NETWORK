@@ -16,7 +16,7 @@ Following the major refactor, the D-TEN unifies twelve sovereign layers, each op
 *   **KNIRVCHAIN:** Transformed into a `Rust`-compiled WASM inference model embedded within agent-core cognitive shells, featuring LoRA adapter chains and autonomous skill execution.
 *   **KNIRV-NEXUS DVE:** The `GoLang`-based network of Decentralized Validation Environments (CLEAN), providing verifiable execution, cryptographic proofs, and agent core pre-training infrastructure.
 *   **KNIRV-CONTROLLER:** The unified agent management platform integrating mobile-controller (manager), KNIRVSHELL (cli), agent-core (receiver), and wallet functionality with QR code connectivity.
-*   **KNIRV-CORTEX:** The specialized agent intelligence development platform providing WASM compilation pipeline, model training infrastructure, and deployment sequence management.
+*   **KNIRV-INFERENCE:** The specialized agent intelligence development platform providing WASM compilation pipeline, model training infrastructure, and deployment sequence management.
 *   **KNIRV-ENGINE:** The desktop agent development environment with chromem-go database, electron wrapper, and seamless KNIRV-CONTROLLER integration via QR code connectivity.
 *   **KNIRV-WALLET:** The agent treasury system leveraging XION's Meta Accounts, integrated within KNIRV-CONTROLLER for autonomous agent asset management.
 *   **KNIRV-GATEWAY:** The unified web portal and serverless API gateway enhanced with GraphChain Explorer integration and SSE functionality.
@@ -33,7 +33,7 @@ The **KNIRV Decentralized Trusted Execution Network (D-TEN)** is proposed as the
 
 This whitepaper serves as the definitive overview of the KNIRV D-TEN. It synthesizes the intricate details of its twelve sovereign layers, demonstrating how they synergistically interact to create a secure, economically self-sustaining, and continuously evolving ecosystem for decentralized AI. We will explore the unique responsibilities of each component, their precise interconnections, the flow of value and information, and the overarching security and governance models that underpin this ambitious vision.
 
-**Note:** This document reflects the current state of all component whitepapers following the major refactor, incorporating significant architectural transformations including **KNIRV-CONTROLLER** (unified agent management platform), **KNIRV-CORTEX** (specialized development platform), **KNIRV-ENGINE** (desktop development environment), **KNIRVCHAIN** (embedded WASM inference model), **KNIRVGRAPH** (embedded distributed vector graph), and synchronized **KNIRV-SHELL** deployment across multiple components.
+**Note:** This document reflects the current state of all component whitepapers following the major refactor, incorporating significant architectural transformations including **KNIRV-CONTROLLER** (unified agent management platform), **KNIRV-INFERENCE** (specialized development platform), **KNIRV-ENGINE** (desktop development environment), **KNIRVCHAIN** (embedded WASM inference model), **KNIRVGRAPH** (embedded distributed vector graph), and synchronized **KNIRV-SHELL** deployment across multiple components.
 
 # 2. The KNIRV D-TEN Vision: Compounding Intelligence through Collective Resolution
 The core vision of the KNIRV D-TEN is to create a permissionless, transparent, and incentivized network where AI systems learn from every mistake, collectively and autonomously. This is achieved by transforming ephemeral errors into permanent, verifiable knowledge, and effective solutions into composable, monetizable Skills.

@@ -16,7 +16,6 @@ global.fetch = jest.fn(() =>
   })
 );
 
-// @ts-expect-error - Global polyfill
 global.Headers = jest.fn().mockImplementation((init) => {
   const headers = new Map();
   if (init) {
@@ -33,7 +32,6 @@ global.Headers = jest.fn().mockImplementation((init) => {
   };
 });
 
-// @ts-expect-error - Global polyfill
 global.Request = jest.fn().mockImplementation((url, options = {}) => ({
   url,
   method: options.method || 'GET',
@@ -360,13 +358,13 @@ if (typeof document !== 'undefined') {
     const element = originalCreateElement.call(this, tagName, options);
 
     // Add IE-specific event methods to all elements
-    if (!element.attachEvent) {
+    if (!(element as any).attachEvent) {
       (element as any).attachEvent = function(event: string, handler: EventListener) {
         return element.addEventListener(event.replace('on', ''), handler);
       };
     }
 
-    if (!element.detachEvent) {
+    if (!(element as any).detachEvent) {
       (element as any).detachEvent = function(event: string, handler: EventListener) {
         return element.removeEventListener(event.replace('on', ''), handler);
       };

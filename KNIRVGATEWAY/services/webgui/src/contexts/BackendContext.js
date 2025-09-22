@@ -27,16 +27,28 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
        try {
          const isConnected = await checkBackendConnection();
          setIsRunning(isConnected);
-         
+
          if (isConnected) {
            const info = await getServerInfo();
            setServerInfo(info);
+         } else {
+           // Set default server info when backend is not available
+           setServerInfo({
+             role: 'General',
+             network: 'standalone',
+             mode: 'standalone'
+           });
          }
-         
+
          setIsLoading(false);
        } catch (error) {
-         console.error('Error checking backend status:', error);
+         console.warn('Error checking backend status:', error.message);
          setIsRunning(false);
+         setServerInfo({
+           role: 'General',
+           network: 'standalone',
+           mode: 'standalone'
+         });
          setIsLoading(false);
        }
      };

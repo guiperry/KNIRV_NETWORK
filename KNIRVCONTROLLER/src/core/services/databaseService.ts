@@ -56,7 +56,7 @@ const agentSchema = {
     },
     metadata: {
       type: 'object',
-      additionalProperties: true
+      additionalProperties: false
     },
     wasmModule: {
       type: 'string'
@@ -75,7 +75,7 @@ const agentSchema = {
   },
   required: ['agentId', 'name', 'version', 'type', 'status', 'nrnCost'],
   additionalProperties: false
-};
+} as const;
 
 const skillSchema = {
   version: 0,
@@ -94,7 +94,7 @@ const skillSchema = {
     },
     loraAdapter: {
       type: 'object',
-      additionalProperties: true
+      additionalProperties: false
     },
     version: {
       type: 'number'
@@ -110,7 +110,7 @@ const skillSchema = {
   },
   required: ['skillId', 'name'],
   additionalProperties: false
-};
+} as const;
 
 const chatSessionSchema = {
   version: 0,
@@ -128,7 +128,7 @@ const chatSessionSchema = {
       type: 'array',
       items: {
         type: 'object',
-        additionalProperties: true
+        additionalProperties: false
       }
     },
     createdAt: {
@@ -142,7 +142,7 @@ const chatSessionSchema = {
   },
   required: ['id', 'title'],
   additionalProperties: false
-};
+} as const;
 
 // Type definitions
 type AgentDocType = {

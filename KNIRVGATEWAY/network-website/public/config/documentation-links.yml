@@ -90,7 +90,7 @@ components:
     icon: "🛠️"
     
   knirvcortex:
-    title: "KNIRVCORTEX Documentation"
+    title: "KNIRVINFERENCE Documentation"
     description: "AI and machine learning components"
     icon: "🧠"
     
@@ -124,7 +124,7 @@ whitepapers:
       title: "Applications & Interfaces"
       papers:
         - "KNIRV-GATEWAY_Whitepaper"
-        - "KNIRV-CORTEX_Whitepaper"
+        - "KNIRV-INFERENCE_Whitepaper"
         - "KNIRVANA_Whitepaper"
 
 # Footer Configuration

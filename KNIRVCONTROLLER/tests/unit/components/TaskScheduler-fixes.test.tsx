@@ -82,11 +82,11 @@ describe('TaskScheduler Architectural Fixes', () => {
 
   it('should call loadTasks on mount when modal is open', async () => {
     const container = document.getElementById('root');
-    render(<TaskScheduler isOpen={true} onClose={jest.fn()} />, { container });
+    render(<TaskScheduler isOpen={true} onClose={jest.fn()} />, container ? { container } : {});
 
     await waitFor(() => {
       expect(mockTaskSchedulingService.getAllTasks).toHaveBeenCalledTimes(1);
-    }, { container });
+    }, container ? { container } : {});
   });
 
   it('should not call loadTasks when modal is closed', () => {

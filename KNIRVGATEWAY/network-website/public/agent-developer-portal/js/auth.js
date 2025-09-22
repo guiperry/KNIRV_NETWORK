@@ -1,4 +1,7 @@
 // KNIRV Developer Portal Authentication System
+// *** AUTHENTICATION DISABLED ***
+// This system has been modified to provide guest access without authentication requirements.
+// All users are automatically logged in as guest users with full permissions.
 class KNIRVAuth {
     constructor() {
         this.currentUser = null;
@@ -7,25 +10,21 @@ class KNIRVAuth {
     }
 
     init() {
-        // Check for existing session
-        const storedUser = localStorage.getItem('knirv_dev_user');
-        const storedToken = localStorage.getItem('knirv_dev_token');
+        // AUTHENTICATION DISABLED - Auto-login as guest user
+        this.currentUser = {
+            id: 'guest',
+            username: 'Guest User',
+            email: 'guest@knirv.network',
+            role: 'developer',
+            joinDate: new Date().toISOString(),
+            permissions: ['read', 'write', 'admin']
+        };
+        this.isAuthenticated = true;
+        this.updateUIForAuthenticatedUser();
 
-        if (storedUser && storedToken) {
-            try {
-                this.currentUser = JSON.parse(storedUser);
-                this.isAuthenticated = true;
-                this.updateUIForAuthenticatedUser();
-            } catch (error) {
-                console.error('Error parsing stored user data:', error);
-                this.logout();
-            }
-        } else {
-            // Don't show modal immediately, wait for page to fully load
-            setTimeout(() => {
-                this.showLoginModal();
-            }, 500);
-        }
+        // Store guest session to maintain consistency
+        localStorage.setItem('knirv_dev_user', JSON.stringify(this.currentUser));
+        localStorage.setItem('knirv_dev_token', 'guest_token_' + Date.now());
     }
 
     async login(credentials) {
@@ -107,11 +106,9 @@ class KNIRVAuth {
     }
 
     logout() {
-        this.currentUser = null;
-        this.isAuthenticated = false;
-        localStorage.removeItem('knirv_dev_user');
-        localStorage.removeItem('knirv_dev_token');
-        this.showLoginModal();
+        // AUTHENTICATION DISABLED - Redirect to guest mode instead of logout
+        console.log('Logout disabled. Refreshing page to reset guest session.');
+        window.location.reload();
     }
 
     getStoredUsers() {
@@ -124,42 +121,22 @@ class KNIRVAuth {
     }
 
     updateUIForAuthenticatedUser() {
-        // Update user controls in the top navigation
+        // Update user controls in the top navigation - simplified for guest access
         const userControls = document.querySelector('.user-controls');
         if (userControls && this.currentUser) {
             userControls.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <span style="color: var(--white); font-size: 0.9rem;">Welcome, ${this.currentUser.username}</span>
-                    <i class="control-icon fas fa-bell" title="Notifications"></i>
+                    <span style="color: var(--white); font-size: 0.9rem;">Welcome to KNIRV Developer Portal</span>
+                    <i class="control-icon fas fa-info-circle" title="Guest Access - No Authentication Required"></i>
                     <i class="control-icon fas fa-cog" title="Settings"></i>
-                    <div class="user-dropdown" style="position: relative;">
-                        <i class="control-icon fas fa-user-circle" title="Profile" onclick="toggleUserDropdown()"></i>
-                        <div id="userDropdown" class="dropdown-menu" style="display: none; position: absolute; right: 0; top: 100%; background: var(--dark-bg); border: 1px solid var(--transparent-white-2); border-radius: 8px; padding: 10px; min-width: 150px; z-index: 1000;">
-                            <div style="padding: 8px 0; border-bottom: 1px solid var(--transparent-white-2); margin-bottom: 8px;">
-                                <div style="color: var(--white); font-weight: 600;">${this.currentUser.username}</div>
-                                <div style="color: var(--transparent-white-7); font-size: 0.8rem;">${this.currentUser.email}</div>
-                            </div>
-                            <div onclick="window.knirvAuth.logout()" style="padding: 8px 0; color: var(--white); cursor: pointer; border-radius: 4px;" onmouseover="this.style.backgroundColor='var(--transparent-white-1)'" onmouseout="this.style.backgroundColor='transparent'">
-                                <i class="fas fa-sign-out-alt" style="margin-right: 8px;"></i>Logout
-                            </div>
-                        </div>
-                    </div>
                 </div>
             `;
         }
     }
 
     showLoginModal() {
-        // Create login modal if it doesn't exist
-        if (!document.getElementById('authModal')) {
-            this.createAuthModal();
-        }
-        const modal = document.getElementById('authModal');
-        modal.style.display = 'flex';
-        // Only prevent body scrolling if modal is actually visible and not just being initialized
-        if (modal.offsetParent !== null) {
-            document.body.style.overflow = 'hidden';
-        }
+        // AUTHENTICATION DISABLED - Do nothing
+        console.log('Authentication is disabled. Access granted as guest user.');
     }
 
     hideLoginModal() {

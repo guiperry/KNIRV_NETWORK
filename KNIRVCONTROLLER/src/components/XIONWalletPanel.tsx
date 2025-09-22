@@ -37,13 +37,6 @@ export const XIONWalletPanel: React.FC<XIONWalletPanelProps> = ({ className = ''
   const [selectedAuthMethod, setSelectedAuthMethod] = useState<'email' | 'social' | 'wallet' | 'passkey'>('email');
   const [metaAccountIdentifier, setMetaAccountIdentifier] = useState('');
 
-  // Load payment history when connected
-  useEffect(() => {
-    if (isConnected) {
-      loadPaymentHistory();
-    }
-  }, [isConnected, loadPaymentHistory]);
-
   // Load payment history
   const loadPaymentHistory = useCallback(async () => {
     try {
@@ -53,6 +46,13 @@ export const XIONWalletPanel: React.FC<XIONWalletPanelProps> = ({ className = ''
       console.error('Failed to load payment history:', error);
     }
   }, [getPaymentHistory]);
+
+  // Load payment history when connected
+  useEffect(() => {
+    if (isConnected) {
+      loadPaymentHistory();
+    }
+  }, [isConnected, loadPaymentHistory]);
 
   // Handle wallet connection
   const handleConnect = async () => {
@@ -140,7 +140,7 @@ export const XIONWalletPanel: React.FC<XIONWalletPanelProps> = ({ className = ''
 
     try {
       const result = await connectMetaAccount(selectedAuthMethod, metaAccountIdentifier);
-      alert(`Meta account connected: ${result.account_address}`);
+      alert(`Meta account connected: ${result.account || 'Unknown'}`);
       setMetaAccountIdentifier('');
     } catch (error) {
       console.error('Meta account connection failed:', error);
@@ -152,7 +152,9 @@ export const XIONWalletPanel: React.FC<XIONWalletPanelProps> = ({ className = ''
   const calculateNRNAmount = () => {
     if (!conversionAmount || !conversionRates) return '0';
     const usdcAmount = parseFloat(conversionAmount);
-    const rate = parseFloat(conversionRates.usdc_to_nrn);
+    const rate = parseFloat(
+      (conversionRates as { usdc_to_nrn?: string })?.usdc_to_nrn || '0'
+    );
     return (usdcAmount * rate).toFixed(2);
   };
 
@@ -237,9 +239,9 @@ export const XIONWalletPanel: React.FC<XIONWalletPanelProps> = ({ className = ''
           <div className="conversion-section">
             <h3>Convert USDC to NRN</h3>
             
-            {conversionRates && (
+            {(conversionRates && typeof conversionRates === 'object' && conversionRates !== null && (
               <div className="conversion-rate">
-                <p>Rate: 1 USDC = {conversionRates.usdc_to_nrn} NRN</p>
+                <p>Rate: 1 USDC = {(conversionRates as { usdc_to_nrn?: string })?.usdc_to_nrn || '0'} NRN</p>
                 <button
                   onClick={refreshRates}
                   className="refresh-rates-btn"
@@ -248,7 +250,7 @@ export const XIONWalletPanel: React.FC<XIONWalletPanelProps> = ({ className = ''
                   🔄
                 </button>
               </div>
-            )}
+            )) as React.ReactNode}
 
             <div className="conversion-input">
               <input
@@ -301,15 +303,15 @@ export const XIONWalletPanel: React.FC<XIONWalletPanelProps> = ({ className = ''
         </div>
       )}
 
-      {paymentGatewayConfig && (
+      {(paymentGatewayConfig && typeof paymentGatewayConfig === 'object' && paymentGatewayConfig !== null && (
         <div className="gateway-info">
           <h4>Payment Gateway Info</h4>
-          <p><strong>Chain:</strong> {paymentGatewayConfig.chain_id}</p>
-          <p><strong>Gasless:</strong> {paymentGatewayConfig.gasless_enabled ? 'Enabled' : 'Disabled'}</p>
-          <p><strong>Min Amount:</strong> {(parseFloat(paymentGatewayConfig.min_transaction_amount) / 1000000).toFixed(2)} USDC</p>
-          <p><strong>Max Amount:</strong> {(parseFloat(paymentGatewayConfig.max_transaction_amount) / 1000000).toFixed(0)} USDC</p>
+          <p><strong>Chain:</strong> {(paymentGatewayConfig as { chain_id?: string })?.chain_id || 'Unknown'}</p>
+          <p><strong>Gasless:</strong> {(paymentGatewayConfig as { gasless_enabled?: boolean })?.gasless_enabled ? 'Enabled' : 'Disabled'}</p>
+          <p><strong>Min Amount:</strong> {(parseFloat((paymentGatewayConfig as { min_transaction_amount?: string })?.min_transaction_amount || '0') / 1000000).toFixed(2)} USDC</p>
+          <p><strong>Max Amount:</strong> {(parseFloat((paymentGatewayConfig as { max_transaction_amount?: string })?.max_transaction_amount || '0') / 1000000).toFixed(0)} USDC</p>
         </div>
-      )}
+      )) as React.ReactNode}
     </div>
   );
 };

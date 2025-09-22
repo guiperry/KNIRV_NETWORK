@@ -25,7 +25,7 @@ const TaskScheduler: React.FC<TaskSchedulerProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<'tasks' | 'create' | 'executions'>('tasks');
   // const [selectedTask, setSelectedTask] = useState<ScheduledTask | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<number | null>(null);
 
   const loadTasks = useCallback(async () => {
     setIsLoading(true);

@@ -113,23 +113,23 @@ The KNIRV Cognitive Shell is a comprehensive AI-driven interface system that imp
 
 ---
 
-### KNIRVCORTEX
+### KNIRVINFERENCE
 
-**Location:** `KNIRVCORTEX/README.md`
+**Location:** `KNIRVINFERENCE/README.md`
 
-# KNIRV-CORTEX
+# KNIRV-INFERENCE
 
 **Deterministic Cognitive Shell with ProtoBuf ABI**
 
-KNIRV-CORTEX is a WebAssembly-based cognitive processing engine that bundles an orchestrator and model runtime into a single determ...
+KNIRV-INFERENCE is a WebAssembly-based cognitive processing engine that bundles an orchestrator and model runtime into a single determ...
 
-[View Full Documentation](KNIRVCORTEX/README.md)
+[View Full Documentation](KNIRVINFERENCE/README.md)
 
 ---
 
 ### manager
 
-**Location:** `KNIRVCORTEX/manager/README.md`
+**Location:** `KNIRVINFERENCE/manager/README.md`
 
 # KNIRV-AGENTIFIER: The Autonomous Gateway
 
@@ -137,13 +137,13 @@ KNIRV-CORTEX is a WebAssembly-based cognitive processing engine that bundles an 
 
 ## Overview...
 
-[View Full Documentation](KNIRVCORTEX/manager/README.md)
+[View Full Documentation](KNIRVINFERENCE/manager/README.md)
 
 ---
 
 ### model-forge
 
-**Location:** `KNIRVCORTEX/model-forge/README.md`
+**Location:** `KNIRVINFERENCE/model-forge/README.md`
 
 # KNIRV Model Forge
 
@@ -151,13 +151,13 @@ Advanced model compilation and training pipeline with external AI integration fo
 
 ## 🆕 Recent Updates...
 
-[View Full Documentation](KNIRVCORTEX/model-forge/README.md)
+[View Full Documentation](KNIRVINFERENCE/model-forge/README.md)
 
 ---
 
 ### primary-website
 
-**Location:** `KNIRVCORTEX/primary-website/README.md`
+**Location:** `KNIRVINFERENCE/primary-website/README.md`
 
 # KNIRV Cortex Builder: Neural Intelligence Development Platform
 
@@ -165,13 +165,13 @@ Advanced model compilation and training pipeline with external AI integration fo
 
 KNIRV Cortex Builder is a comprehensive platform for building, configuring, and deploying neural intelligence age...
 
-[View Full Documentation](KNIRVCORTEX/primary-website/README.md)
+[View Full Documentation](KNIRVINFERENCE/primary-website/README.md)
 
 ---
 
 ### releases
 
-**Location:** `KNIRVCORTEX/primary-website/public/releases/README.md`
+**Location:** `KNIRVINFERENCE/primary-website/public/releases/README.md`
 
 # Agentic Engine Releases
 
@@ -179,21 +179,21 @@ This directory contains the Agentic Engine release files that can be downloaded 
 
 ## File Organization...
 
-[View Full Documentation](KNIRVCORTEX/primary-website/public/releases/README.md)
+[View Full Documentation](KNIRVINFERENCE/primary-website/public/releases/README.md)
 
 ---
 
 ### rust-wasm
 
-**Location:** `KNIRVCORTEX/rust-wasm/README.md`
+**Location:** `KNIRVINFERENCE/rust-wasm/README.md`
 
-# KNIRV-CORTEX Rust WASM
+# KNIRV-INFERENCE Rust WASM
 
 WebAssembly implementation of the KNIRV cognitive shell with external AI integration support.
 
 ## 🆕 Recent Updates...
 
-[View Full Documentation](KNIRVCORTEX/rust-wasm/README.md)
+[View Full Documentation](KNIRVINFERENCE/rust-wasm/README.md)
 
 ---
 

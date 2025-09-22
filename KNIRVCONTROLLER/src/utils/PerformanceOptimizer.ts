@@ -196,7 +196,7 @@ class PerformanceOptimizer {
     func: T,
     delay: number = this.config.throttleDelay
   ): (...args: Parameters<T>) => void {
-    let timeoutId: NodeJS.Timeout | null = null;
+    let timeoutId: number | null = null;
     let lastExecTime = 0;
 
     return (...args: Parameters<T>) => {
@@ -225,7 +225,7 @@ class PerformanceOptimizer {
     func: T,
     delay: number = this.config.throttleDelay
   ): (...args: Parameters<T>) => void {
-    let timeoutId: NodeJS.Timeout | null = null;
+    let timeoutId: number | null = null;
 
     return (...args: Parameters<T>) => {
       if (timeoutId) {

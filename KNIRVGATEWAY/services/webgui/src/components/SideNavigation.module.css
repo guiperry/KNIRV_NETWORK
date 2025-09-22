@@ -30,11 +30,38 @@
   margin-bottom: 10px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   cursor: pointer;
+  transition: all 0.3s ease;
 }
 
 .navItem:hover {
   background-color: rgba(0, 123, 255, 0.2);
+}
+
+.subNavItems {
+  margin-left: 20px;
+  margin-bottom: 10px;
+}
+
+.subNavItem {
+  padding: 8px 12px;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.subNavItem:hover {
+  background-color: rgba(0, 123, 255, 0.15);
+}
+
+.expandIcon {
+  font-size: 0.8rem;
+  color: var(--bright-blue);
+  transition: transform 0.3s ease;
 }
 
 .active {
@@ -48,6 +75,8 @@
 
 .navIcon {
   margin-right: 10px;
+  min-width: 20px;
+  text-align: center;
 }
 
 .glassyContainer {

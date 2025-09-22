@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
  */
 
 const sourceDir = path.join(__dirname, '..', 'node_modules');
-const targetDir = path.join(__dirname, '..', 'knirv.com', 'public', 'assets', 'docsify');
+const targetDir = path.join(__dirname, '..', 'network-website', 'public', 'assets', 'docsify');
 
 // Ensure target directory exists
 function ensureDir(dir) {

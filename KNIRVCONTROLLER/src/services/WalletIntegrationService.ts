@@ -357,12 +357,14 @@ export class WalletIntegrationService {
         const statusData = await response.json();
         
         // Update local transaction
-        localTransaction.status = statusData.status;
-        localTransaction.hash = statusData.hash || localTransaction.hash;
-        localTransaction.blockHeight = statusData.blockHeight;
-        localTransaction.gasUsed = statusData.gasUsed;
-        
-        this.transactions.set(transactionId, localTransaction);
+        if (localTransaction) {
+          localTransaction.status = statusData.status;
+          localTransaction.hash = statusData.hash || localTransaction.hash;
+          localTransaction.blockHeight = statusData.blockHeight;
+          localTransaction.gasUsed = statusData.gasUsed;
+
+          this.transactions.set(transactionId, localTransaction);
+        }
       }
     } catch (error) {
       console.error('Failed to check transaction status:', error);

@@ -670,10 +670,10 @@ export class CognitiveEngine extends EventEmitter {
       if (this.adaptiveLearningPipeline) {
         this.adaptiveLearningPipeline.setHRMBridge(this.hrmBridge);
         if (this.enhancedLoraAdapter) {
-          this.adaptiveLearningPipeline.setEnhancedLoRAAdapter(this.enhancedLoraAdapter);
+          this.adaptiveLearningPipeline.setEnhancedLoRAAdapter(this.enhancedLoraAdapter as any);
         }
         if (this.hrmLoraBridge) {
-          this.adaptiveLearningPipeline.setHRMLoRABridge(this.hrmLoraBridge);
+          this.adaptiveLearningPipeline.setHRMLoRABridge(this.hrmLoraBridge as any);
         }
         await this.adaptiveLearningPipeline.loadLearnedPatterns();
         await this.adaptiveLearningPipeline.start();
@@ -1260,7 +1260,7 @@ export class CognitiveEngine extends EventEmitter {
 
   private async focusOnObject(target: unknown): Promise<void> {
     console.log('Focusing on object:', target);
-    this.state.currentContext.set('focusTarget', target);
+    this.state.currentContext.set('focusTarget', target as any);
   }
 
   private async navigateInterface(direction: string): Promise<void> {
@@ -1350,7 +1350,7 @@ export class CognitiveEngine extends EventEmitter {
           timestamp: trainingItem.timestamp || Date.now()
         };
       });
-      await this.enhancedLoraAdapter.trainOnBatch(formattedTrainingData);
+      await this.enhancedLoraAdapter.trainOnBatch(formattedTrainingData as any);
       console.log('Enhanced LoRA training completed');
       return {
         success: true,
@@ -1525,7 +1525,7 @@ export class CognitiveEngine extends EventEmitter {
       return;
     }
 
-    this.hrmLoraBridge.updateSyncConfig(_config);
+    this.hrmLoraBridge.updateSyncConfig(_config as any);
     console.log('HRM-LoRA sync configuration updated');
   }
 
@@ -1587,8 +1587,8 @@ export class CognitiveEngine extends EventEmitter {
     try {
       await this.adaptiveLearningPipeline.recordInteraction({
         inputType: inputType as 'text' | 'voice' | 'visual' | 'gesture',
-        input: input,
-        output: response,
+        input: input as any,
+        output: response as any,
         context: Object.fromEntries(this.state.currentContext),
       });
     } catch (error) {
@@ -1650,8 +1650,8 @@ export class CognitiveEngine extends EventEmitter {
         const learningEvent: LearningEvent = {
           timestamp: new Date(),
           eventType: 'pattern_learning',
-          input: pattern.input,
-          output: pattern.output,
+          input: pattern.input as any,
+          output: pattern.output as any,
           feedback: pattern.feedback,
           adaptationApplied: false,
         };
@@ -1662,8 +1662,8 @@ export class CognitiveEngine extends EventEmitter {
         if (this.adaptiveLearningPipeline) {
           await this.adaptiveLearningPipeline.recordInteraction({
             inputType: 'text',
-            input: pattern.input,
-            output: pattern.output,
+            input: pattern.input as any,
+            output: pattern.output as any,
             userFeedback: pattern.feedback,
             context: { type: 'pattern_learning' },
           });
@@ -1767,7 +1767,7 @@ export class CognitiveEngine extends EventEmitter {
 
     try {
       if (this.loraAdapter) {
-        await this.loraAdapter.addTrainingData(loraWeights);
+        await this.loraAdapter.addTrainingData(loraWeights as any);
       }
 
       if (this.enhancedLoraAdapter) {
@@ -1898,7 +1898,7 @@ export class CognitiveEngine extends EventEmitter {
       return;
     }
 
-    this.adaptiveLearningPipeline.updateConfig(_config);
+    this.adaptiveLearningPipeline.updateConfig(_config as any);
     console.log('Adaptive learning configuration updated');
   }
 
@@ -2046,7 +2046,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      const transactionId = await this.walletIntegration.createTransaction(request);
+      const transactionId = await this.walletIntegration.createTransaction(request as any);
       if (transactionId) {
         console.log(`Created wallet transaction: ${transactionId}`);
         return transactionId;
@@ -2070,7 +2070,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      const transactionId = await this.walletIntegration.invokeSkill(skillInvocation);
+      const transactionId = await this.walletIntegration.invokeSkill(skillInvocation as any);
       console.log(`Invoked skill with wallet: ${(skillInvocation as { skillName?: string }).skillName}`);
 
       // Record this as a learning interaction
@@ -2172,7 +2172,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      this.walletIntegration.updateConfig(_config);
+      this.walletIntegration.updateConfig(_config as any);
       console.log('Wallet configuration updated');
     } catch (error) {
       console.error('Failed to update wallet _config:', error);
@@ -2203,7 +2203,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      const result = await this.chainIntegration.executeContractCall(call);
+      const result = await this.chainIntegration.executeContractCall(call as any);
       const callData = call as { contract?: string; method?: string };
       if (result) {
         console.log(`Executed contract call: ${callData.contract}.${callData.method}`);
@@ -2223,7 +2223,7 @@ export class CognitiveEngine extends EventEmitter {
         };
       } else {
         // No mock results - throw error for proper error handling
-        throw new Error(`Contract call ${callAny.contract}.${callAny.method} returned undefined result`);
+        throw new Error(`Contract call ${(call as any).contract}.${(call as any).method} returned undefined result`);
       }
     } catch (error) {
       console.error('Failed to execute contract call:', error);
@@ -2294,7 +2294,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      const skillId = await this.chainIntegration.registerSkill(skillMetadata);
+      const skillId = await this.chainIntegration.registerSkill(skillMetadata as any);
       console.log(`Registered skill on chain: ${skillId}`);
       return skillId;
     } catch (error) {
@@ -2309,7 +2309,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      const modelId = await this.chainIntegration.registerLLMModel(llmMetadata);
+      const modelId = await this.chainIntegration.registerLLMModel(llmMetadata as any);
       console.log(`Registered LLM model on chain: ${modelId}`);
       return modelId;
     } catch (error) {
@@ -2371,7 +2371,7 @@ export class CognitiveEngine extends EventEmitter {
 
     try {
       const consensus = await this.chainIntegration.getNetworkConsensus();
-      const consensusData = consensus as {
+      const consensusData = consensus as unknown as {
         consensusAlgorithm?: string;
         blockTime?: number;
         validators?: number;
@@ -2452,7 +2452,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      this.chainIntegration.updateConfig(_config);
+      this.chainIntegration.updateConfig(_config as any);
       console.log('Chain configuration updated');
     } catch (error) {
       console.error('Failed to update chain _config:', error);
@@ -2768,7 +2768,7 @@ export class CognitiveEngine extends EventEmitter {
       return;
     }
 
-    this.ecosystemCommunication.updateConfig(_config);
+    this.ecosystemCommunication.updateConfig(_config as any);
     console.log('Ecosystem communication configuration updated');
   }
 
@@ -2937,7 +2937,7 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      const success = await this.wasmAgentManager.loadLoRAAdapter(adapter);
+      const success = await this.wasmAgentManager.loadLoRAAdapter(adapter as any);
 
       if (success) {
         this.emit('wasmLoRAAdapterLoaded', {
@@ -3081,7 +3081,7 @@ export class CognitiveEngine extends EventEmitter {
       const config = this.convertSolutionsToSkillConfig(skillName, solutions, errors);
 
       // Compile the skill
-      const result = await this.typeScriptCompiler.compileSkill(this._config);
+      const result = await this.typeScriptCompiler.compileSkill(config as any);
 
       if (result.success) {
         this.emit('skillCompiledFromSolutions', {

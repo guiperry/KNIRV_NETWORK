@@ -801,7 +801,7 @@ export class KNIRVChainIntegration extends EventEmitter {
     }
 
     try {
-      return await this.knirvRouter.getLoRAAdapters(filter);
+      return await this.knirvRouter.getLoRAAdapters(filter as any);
     } catch (error) {
       console.error('Failed to get LoRA adapters from KNIRVROUTER:', error);
       throw error;

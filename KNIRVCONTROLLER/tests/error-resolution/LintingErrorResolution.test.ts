@@ -308,8 +308,7 @@ describe('Linting Error Resolution Tests', () => {
       ).mockReturnValue(new Date('2024-01-02T09:00:00Z'));
 
       const nextRun = (schedulingService as unknown as TaskSchedulingServiceWithPrivates).calculateNextRun(
-        cronSchedule,
-        new Date('2024-01-01T10:00:00Z')
+        cronSchedule
       );
 
       expect(nextRun).toBeInstanceOf(Date);

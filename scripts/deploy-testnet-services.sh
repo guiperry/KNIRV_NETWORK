@@ -1,11 +1,30 @@
+
 #!/bin/bash
 
-# KNIRVTESTNET Services Deployment Script
-# Deploys KNIRVTESTNET services to AWS EC2 instance via Docker, Podman, or Native
+# KNIRV Testnet Services Deployment Script
 # Enhanced with container runtime detection, interactive selection, and native npm deployment
 # Includes XION bridge and KNIRVANA components for complete testnet deployment
 
 set -e
+
+# Global error handler for uncaught errors
+trap 'handle_uncaught_error' ERR
+
+handle_uncaught_error() {
+    local exit_code=$?
+    local last_command="${BASH_COMMAND}"
+    
+    print_error "Unexpected error occurred (exit code: $exit_code)"
+    print_error "Last command: $last_command"
+    
+    # Log the failure
+    log_checkpoint "UNCAUGHT_ERROR: $last_command (exit code: $exit_code)"
+    
+    # Invoke AI troubleshooter for uncaught errors
+    invoke_ai_troubleshooter "UNCAUGHT_ERROR" "Unexpected error: $last_command (exit code: $exit_code)" ""
+    
+    exit $exit_code
+}
 
 # Colors for output
 RED='\033[0;31m'
@@ -24,8 +43,99 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TESTNET_DIR="$PROJECT_ROOT/KNIRVTESTNET"
 ANSIBLE_DIR="$PROJECT_ROOT/deployment/ansible"
 TESTNET_IP_FILE="$ANSIBLE_DIR/testnet_ip.txt"
+TESTNET_INSTANCE_ID_FILE="$ANSIBLE_DIR/testnet_instance_id.txt"
 SSH_KEY="~/.ssh/AEGONG.pem"
-INSTANCE_ID="i-06813be8a8a23ea5b"
+
+# Load environment variables from deployment/ansible/.env if present
+# Deployment session log file
+DEPLOYMENT_LOG="$ANSIBLE_DIR/deployment_session.log"
+
+load_dotenv() {
+  local env_file="$ANSIBLE_DIR/.env"
+  if [ -f "$env_file" ]; then
+    print_status "Loading environment variables from $env_file"
+    # shellcheck disable=SC1090
+    set -a
+    # Use a subshell to source safely
+    . "$env_file"
+    set +a
+  else
+    print_warning "Environment file $env_file not found; proceeding with current environment"
+  fi
+
+  # Prefer AWS_REGION if set, otherwise fall back to AWS_DEFAULT_REGION, then default to us-east-1
+  if [ -n "${AWS_REGION:-}" ]; then
+    AWS_REGION_VAL="$AWS_REGION"
+  elif [ -n "${AWS_DEFAULT_REGION:-}" ]; then
+    AWS_REGION_VAL="$AWS_DEFAULT_REGION"
+  else
+    AWS_REGION_VAL="us-east-1"
+  fi
+
+  export AWS_REGION_VAL
+  print_status "Using AWS region: $AWS_REGION_VAL"
+}
+
+# Note: load_dotenv will be called after helper print_* functions are defined
+
+# Will be set based on deployment type
+INSTANCE_ID=""
+DEPLOYMENT_TYPE=""
+
+# Function to find existing running instances
+find_existing_instances() {
+    # Don't use print_step here as it will be captured by command substitution
+    # Instead, the calling function should handle the step display
+    
+    # Query AWS for instances with KNIRV tags that are running
+    local instances=$(aws ec2 describe-instances \
+        --filters "Name=tag:Project,Values=KNIRV" "Name=tag:Environment,Values=testnet" "Name=instance-state-name,Values=running" \
+        --query 'Reservations[*].Instances[*].[InstanceId,State.Name,LaunchTime,Tags[?Key==`DeploymentType`].Value | [0]]' \
+        --output text \
+        --region "$AWS_REGION_VAL" 2>/dev/null | sort -k3 -r || true)
+    
+    # Return only the raw instance data (without any formatted output)
+    echo "$instances"
+}
+
+# Function to select the most appropriate instance
+select_appropriate_instance() {
+    local deployment_type="$1"
+    local existing_instances="$2"
+    
+    # First, try to find an instance with matching deployment type
+    local matching_instance=$(echo "$existing_instances" | grep "$deployment_type" | head -1 | awk '{print $1}')
+    
+    if [ -n "$matching_instance" ] && [ "$matching_instance" != "None" ]; then
+        print_success "Found existing $deployment_type instance: $matching_instance"
+        INSTANCE_ID="$matching_instance"
+        DEPLOYMENT_TYPE="$deployment_type"
+        return 0
+    fi
+    
+    # If no matching deployment type, use the most recent running instance
+    local most_recent_instance=$(echo "$existing_instances" | head -1 | awk '{print $1}')
+    local most_recent_type=$(echo "$existing_instances" | head -1 | awk '{print $4}')
+    
+    # Handle cases where deployment type might be None or empty
+    if [ -z "$most_recent_type" ] || [ "$most_recent_type" = "None" ]; then
+        most_recent_type="unknown"
+    fi
+    
+    if [ -n "$most_recent_instance" ] && [ "$most_recent_type" != "None" ]; then
+        print_warning "No $deployment_type instance found. Using most recent $most_recent_type instance: $most_recent_instance"
+        INSTANCE_ID="$most_recent_instance"
+        DEPLOYMENT_TYPE="$most_recent_type"
+        return 0
+    fi
+    
+    # No existing instances found
+    return 1
+}
+
+# Deployment options
+INCREMENTAL_DEPLOYMENT=false
+FORCE_FULL_DEPLOYMENT=false
 
 # Container runtime selection (will be set by detect_container_runtime)
 CONTAINER_RUNTIME=""
@@ -57,6 +167,138 @@ print_error() {
 
 print_status() {
     echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+# Log deployment checkpoints
+log_checkpoint() {
+    local message="$1"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $message" >> "$DEPLOYMENT_LOG"
+}
+
+# Read the last checkpoint from the log
+read_last_checkpoint() {
+    if [[ -f "$DEPLOYMENT_LOG" ]]; then
+        tail -n 1 "$DEPLOYMENT_LOG" 2>/dev/null | cut -d'-' -f2- | xargs
+    else
+        echo "No previous deployment log found"
+    fi
+}
+
+# Check if the last deployment failed
+check_previous_failure() {
+    if [[ -f "$DEPLOYMENT_LOG" ]]; then
+        local last_entry=$(tail -n 1 "$DEPLOYMENT_LOG" 2>/dev/null)
+        if [[ "$last_entry" == *"FAILED"* ]] || [[ "$last_entry" == *"EXIT"* ]]; then
+            return 0  # Previous failure detected
+        fi
+    fi
+    return 1  # No previous failure
+}
+
+# AI Troubleshooter integration
+invoke_ai_troubleshooter() {
+    local failure_type="$1"
+    local error_message="$2"
+    local unhealthy_services="$3"
+    
+    print_step "🔧 AI Troubleshooter: Analyzing $failure_type..."
+    
+    # Check if AI troubleshooter script exists
+    if [ ! -f "$SCRIPT_DIR/ai_troubleshoot.js" ]; then
+        print_warning "AI troubleshooter script not found at $SCRIPT_DIR/ai_troubleshoot.js"
+        return 1
+    fi
+    
+    # Check if testnet IP is available
+    if [ -z "$TESTNET_IP" ]; then
+        print_warning "Testnet IP not available - cannot invoke AI troubleshooter"
+        return 1
+    fi
+    
+    print_status "Failure type: $failure_type"
+    print_status "Error: $error_message"
+    
+    if [ -n "$unhealthy_services" ]; then
+        print_status "Unhealthy services: $unhealthy_services"
+    fi
+    
+    # Ask user if they want to run AI troubleshooter
+    echo ""
+    echo -e "${YELLOW}Would you like to run the AI troubleshooter to diagnose the issue?${NC}"
+    read -p "Run AI troubleshooter? (y/N): " -n 1 -r
+    echo
+    
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_status "AI troubleshooter skipped by user"
+        return 0
+    fi
+    
+    print_step "Starting AI troubleshooter analysis..."
+    
+    # Run the AI troubleshooter
+    if node "$SCRIPT_DIR/ai_troubleshoot.js" --ip "$TESTNET_IP" --ssh-key "$SSH_KEY"; then
+        print_success "AI troubleshooter completed successfully"
+        return 0
+    else
+        print_error "AI troubleshooter failed or was interrupted"
+        return 1
+    fi
+}
+
+# Enhanced error handler with AI troubleshooter integration
+handle_deployment_error() {
+    local error_type="$1"
+    local error_message="$2"
+    local unhealthy_services="$3"
+    
+    print_error "$error_message"
+    
+    # Log the failure
+    log_checkpoint "FAILED: $error_type - $error_message"
+    
+    # Invoke AI troubleshooter
+    invoke_ai_troubleshooter "$error_type" "$error_message" "$unhealthy_services"
+    
+    # Exit with error code
+    exit 1
+}
+
+# Now that helper functions are defined, load environment variables
+load_dotenv
+
+# Determine AMI to use for the target AWS region. Prefers AMI_ID from .env, otherwise queries AWS for
+# the latest Ubuntu 22.04 LTS (Jammy) AMI owned by Canonical (owner 099720109477) or via SSM parameter.
+determine_ami() {
+  if [ -n "${AMI_ID:-}" ]; then
+    print_status "Using AMI_ID from environment: $AMI_ID"
+    return 0
+  fi
+
+  print_status "Determining latest Ubuntu 22.04 (Jammy) AMI for region $AWS_REGION_VAL"
+
+  # Try AWS Systems Manager parameter which is the most reliable
+  AMI_ID=$(aws ssm get-parameter --name /aws/service/canonical/ubuntu/server/jammy/stable/current/amd64/hvm/ebs-gp2/ami-id \
+    --query Parameter.Value --output text --region "$AWS_REGION_VAL" 2>/dev/null || true)
+
+  if [ -n "$AMI_ID" ]; then
+    print_success "Found AMI via SSM: $AMI_ID"
+    return 0
+  fi
+
+  # Fallback: query images owned by Canonical and pick the newest matching name pattern
+  AMI_ID=$(aws ec2 describe-images \
+    --owners 099720109477 \
+    --filters 'Name=name,Values=ubuntu-jammy-22.04-amd64-server*' 'Name=root-device-type,Values=ebs' 'Name=virtualization-type,Values=hvm' \
+    --query 'Images | sort_by(@, &CreationDate)[-1].ImageId' --output text --region "$AWS_REGION_VAL" 2>/dev/null || true)
+
+  if [ -n "$AMI_ID" ] && [ "$AMI_ID" != "None" ]; then
+    print_success "Found AMI via describe-images: $AMI_ID"
+    return 0
+  fi
+
+  print_warning "Failed to determine latest Ubuntu AMI for region $AWS_REGION_VAL. Falling back to a default ami if set."
+  # If still unset, set AMI_ID to empty and let downstream steps fail with an informative message
+  AMI_ID=""
 }
 
 # New function to detect and select container runtime
@@ -204,44 +446,641 @@ detect_container_runtime() {
     print_success "Container runtime configured: $CONTAINER_RUNTIME with $COMPOSE_COMMAND"
 }
 
-get_instance_ip() {
-    # Use the utility script to get current IP (only the IP, not the verbose output)
-    TESTNET_IP=$("$PROJECT_ROOT/scripts/get-testnet-ip.sh" get-ip 2>/dev/null | tail -n1)
-    if [ $? -ne 0 ] || [ -z "$TESTNET_IP" ]; then
-        print_error "Failed to get testnet IP address"
-        # Try the verbose version to see what's wrong
-        "$PROJECT_ROOT/scripts/get-testnet-ip.sh" get-ip
+run_infrastructure_deployment() {
+    print_step "Running infrastructure deployment..."
+
+    # Path to infrastructure script
+    local infra_script="$PROJECT_ROOT/deployment/ansible/deploy-testnet-infrastructure.sh"
+
+    if [ ! -f "$infra_script" ]; then
+        print_error "Infrastructure script not found at $infra_script"
         exit 1
     fi
+
+    # Run the infrastructure script
+    if bash "$infra_script"; then
+        print_success "Infrastructure deployment completed"
+
+        # The infrastructure script should have created the instance ID file
+        if [ -f "$TESTNET_INSTANCE_ID_FILE" ]; then
+            INSTANCE_ID=$(cat "$TESTNET_INSTANCE_ID_FILE")
+            print_success "Using instance created by infrastructure: $INSTANCE_ID"
+            DEPLOYMENT_TYPE="$CONTAINER_RUNTIME"
+            return 0
+        fi
+
+        # Fallback: try to find by IP if instance ID file wasn't created
+        if [ -f "$TESTNET_IP_FILE" ]; then
+            local testnet_ip=$(cat "$TESTNET_IP_FILE")
+            print_status "Infrastructure created IP: $testnet_ip"
+
+            # Try to find the instance by public IP
+            local instance_from_ip=$(aws ec2 describe-instances \
+                --filters "Name=network-interface.addresses.public-ip,Values=$testnet_ip" \
+                --query 'Reservations[*].Instances[*].InstanceId' \
+                --output text \
+                --region "$AWS_REGION_VAL" 2>/dev/null | head -1)
+
+            if [ -n "$instance_from_ip" ] && [ "$instance_from_ip" != "None" ]; then
+                print_success "Found newly created instance: $instance_from_ip"
+                INSTANCE_ID="$instance_from_ip"
+                DEPLOYMENT_TYPE="$CONTAINER_RUNTIME"
+                return 0
+            fi
+        fi
+
+        print_error "Could not find instance ID after infrastructure deployment"
+        exit 1
+    else
+        print_error "Infrastructure deployment failed"
+        exit 1
+    fi
+}
+
+select_deployment_instance() {
+    print_step "Selecting deployment EC2 instance..."
+
+    # First, check if infrastructure has been deployed and we have an instance ID file
+    if [ -f "$TESTNET_INSTANCE_ID_FILE" ]; then
+        local instance_id=$(cat "$TESTNET_INSTANCE_ID_FILE")
+        print_status "Found existing testnet instance ID: $instance_id"
+
+        # Verify the instance exists and is running
+        local instance_state=$(aws ec2 describe-instances \
+            --instance-ids "$instance_id" \
+            --query 'Reservations[0].Instances[0].State.Name' \
+            --output text \
+            --region "$AWS_REGION_VAL" 2>/dev/null || echo "not-found")
+
+        if [ "$instance_state" = "running" ]; then
+            print_success "Instance $instance_id is running"
+            INSTANCE_ID="$instance_id"
+            DEPLOYMENT_TYPE="$CONTAINER_RUNTIME"  # Assume it matches our container runtime
+
+            # Ask user if they want to use this instance or create a new one
+            echo ""
+            print_warning "Found existing instance from infrastructure: $INSTANCE_ID"
+            read -p "Do you want to use this existing instance or create a new one? (use/new): " -n 1 -r
+            echo
+
+            if [[ $REPLY =~ ^[Uu]$ ]]; then
+                print_status "Using existing instance: $INSTANCE_ID"
+                return 0
+            else
+                print_status "Creating new instance for $CONTAINER_RUNTIME deployment..."
+                create_new_instance_with_confirmation
+                return 0
+            fi
+        else
+            print_warning "Instance $instance_id is not running (state: $instance_state)"
+        fi
+    fi
+
+    # Second, check if we have an IP file but no instance ID file
+    if [ -f "$TESTNET_IP_FILE" ]; then
+        local testnet_ip=$(cat "$TESTNET_IP_FILE")
+        print_status "Found existing testnet IP: $testnet_ip"
+
+        # Try to find the instance by public IP
+        local instance_from_ip=$(aws ec2 describe-instances \
+            --filters "Name=network-interface.addresses.public-ip,Values=$testnet_ip" \
+            --query 'Reservations[*].Instances[*].InstanceId' \
+            --output text \
+            --region "$AWS_REGION_VAL" 2>/dev/null | head -1)
+
+        if [ -n "$instance_from_ip" ] && [ "$instance_from_ip" != "None" ]; then
+            print_success "Found instance from IP: $instance_from_ip"
+            INSTANCE_ID="$instance_from_ip"
+            DEPLOYMENT_TYPE="$CONTAINER_RUNTIME"  # Assume it matches our container runtime
+
+            # Ask user if they want to use this instance or create a new one
+            echo ""
+            print_warning "Found existing instance from infrastructure: $INSTANCE_ID"
+            read -p "Do you want to use this existing instance or create a new one? (use/new): " -n 1 -r
+            echo
+
+            if [[ $REPLY =~ ^[Uu]$ ]]; then
+                print_status "Using existing instance: $INSTANCE_ID"
+                return 0
+            else
+                print_status "Creating new instance for $CONTAINER_RUNTIME deployment..."
+                create_new_instance_with_confirmation
+                return 0
+            fi
+        else
+            print_warning "Could not find instance for IP $testnet_ip, instance may not be running yet"
+        fi
+    fi
+
+    # Fallback: Find existing running instances by tags
+    print_step "Searching for existing KNIRV testnet instances..."
+    local existing_instances=$(find_existing_instances)
+    
+    # Display the results to the user
+    if [ -n "$existing_instances" ]; then
+        print_success "Found existing KNIRV testnet instances:"
+        echo "$existing_instances" | while read -r instance_id state launch_time deployment_type; do
+            echo "  - $instance_id ($deployment_type) - Launched: $launch_time"
+        done
+    else
+        print_warning "No existing running KNIRV testnet instances found"
+    fi
+
+    # Try to select an appropriate existing instance
+    if select_appropriate_instance "$CONTAINER_RUNTIME" "$existing_instances"; then
+        # Verify that INSTANCE_ID was actually set
+        if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" = "None" ]; then
+            print_error "Instance selection failed - no valid instance ID found"
+            print_status "Running infrastructure deployment to create a new instance..."
+            run_infrastructure_deployment
+        else
+            print_success "Found existing instance: $INSTANCE_ID ($DEPLOYMENT_TYPE)"
+
+            # Ask user if they want to use this instance or create a new one
+            echo ""
+            print_warning "Found existing instance: $INSTANCE_ID ($DEPLOYMENT_TYPE)"
+            read -p "Do you want to use this existing instance or create a new one? (use/new): " -n 1 -r
+            echo
+
+            if [[ $REPLY =~ ^[Uu]$ ]]; then
+                print_status "Using existing instance: $INSTANCE_ID"
+            else
+                print_status "Creating new instance for $CONTAINER_RUNTIME deployment..."
+                create_new_instance_with_confirmation
+            fi
+        fi
+    else
+        # No existing instances found - call infrastructure script to create one
+        print_warning "No existing KNIRV testnet instances found."
+        print_status "Running infrastructure deployment to create a new instance..."
+        run_infrastructure_deployment
+    fi
+
+    # Check for previous failures and prompt user for resume or clean start
+    if check_previous_failure; then
+        print_warning "Previous deployment failure detected for $DEPLOYMENT_TYPE deployment."
+        print_warning "Last checkpoint: $(read_last_checkpoint)"
+        
+        while true; do
+            read -p "Do you want to resume from last checkpoint or start fresh? (resume/fresh): " choice
+            case $choice in
+                resume|r)
+                    print_status "Resuming $DEPLOYMENT_TYPE deployment from last checkpoint..."
+                    # We'll implement resume logic later in the main function
+                    RESUME_DEPLOYMENT=true
+                    break
+                    ;;
+                fresh|f)
+                    print_status "Starting fresh $DEPLOYMENT_TYPE deployment..."
+                    RESUME_DEPLOYMENT=false
+                    # Clean the deployment log for fresh start
+                    echo "" > "$DEPLOYMENT_LOG"
+                    break
+                    ;;
+                *)
+                    print_error "Invalid choice. Please enter 'resume' or 'fresh'."
+                    ;;
+            esac
+        done
+    else
+        print_status "No previous deployment failures detected. Starting fresh deployment."
+        RESUME_DEPLOYMENT=false
+    fi
+
+    # Update the IP file path to be deployment-specific
+    TESTNET_IP_FILE="$ANSIBLE_DIR/testnet_ip_${CONTAINER_RUNTIME}.txt"
+
+    print_success "Instance selected: $INSTANCE_ID for $DEPLOYMENT_TYPE deployment"
+}
+
+create_new_instance_with_confirmation() {
+    print_step "Creating new EC2 instance for $CONTAINER_RUNTIME deployment..."
+    
+    # Show instance creation details
+    print_status "Instance type: t3.medium"
+    print_status "AMI: Ubuntu 22.04 LTS"
+    print_status "Region: $AWS_REGION_VAL"
+    print_status "Key pair: AEGONG"
+    
+    # Final confirmation
+    read -p "Are you sure you want to create a new instance? (y/N): " -n 1 -r
+    echo
+    
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_error "Instance creation cancelled"
+        exit 0
+    fi
+    
+    # Create the new instance
+    create_deployment_instance
+    DEPLOYMENT_TYPE="$CONTAINER_RUNTIME"
+}
+
+validate_instance_id() {
+    # Validate that INSTANCE_ID is properly set and not empty
+    if [ -z "$INSTANCE_ID" ]; then
+        print_error "Instance ID is empty. Instance selection failed."
+        return 1
+    fi
+    
+    if [ "$INSTANCE_ID" = "None" ]; then
+        print_error "Instance ID is 'None'. Instance selection failed."
+        return 1
+    fi
+    
+    # Check if it looks like a valid AWS instance ID (starts with i-)
+    if [[ ! "$INSTANCE_ID" =~ ^i-[a-z0-9]+$ ]]; then
+        print_error "Instance ID '$INSTANCE_ID' does not look like a valid AWS instance ID."
+        return 1
+    fi
+    
+    return 0
+}
+
+ensure_instance_exists() {
+    print_step "Ensuring deployment instance exists and is properly tagged..."
+
+    # First validate the instance ID format
+    if ! validate_instance_id; then
+        print_error "Invalid instance ID detected: $INSTANCE_ID"
+        print_error "Please run the deployment script again to select a valid instance."
+        exit 1
+    fi
+
+    # Check if instance exists
+  INSTANCE_STATE=$(aws ec2 describe-instances \
+    --instance-ids "$INSTANCE_ID" \
+    --query 'Reservations[0].Instances[0].State.Name' \
+    --output text \
+    --region "$AWS_REGION_VAL" 2>/dev/null || echo "not-found")
+
+    if [ "$INSTANCE_STATE" = "not-found" ]; then
+        print_error "Instance $INSTANCE_ID not found. This should not happen with smart instance selection."
+        print_error "Please run the deployment script again to select a valid instance."
+        exit 1
+    else
+        print_status "Instance $INSTANCE_ID exists (state: $INSTANCE_STATE)"
+        update_instance_tags
+    fi
+}
+
+create_deployment_instance() {
+    print_step "Creating new EC2 instance for $DEPLOYMENT_TYPE deployment..."
+
+  # Ensure we have a valid AMI for the target region
+  determine_ami
+
+  # Build run-instances arguments conditionally based on provided env vars
+  run_args=(--image-id "$AMI_ID" --instance-type t3.medium --key-name AEGONG)
+
+  # Allow override from .env: SECURITY_GROUP_ID (single) or SECURITY_GROUP_IDS (comma-separated)
+  if [ -n "${SECURITY_GROUP_IDS:-}" ]; then
+    # split comma-separated into multiple --security-group-ids entries
+    IFS=',' read -ra SG_ARR <<< "$SECURITY_GROUP_IDS"
+    for sg in "${SG_ARR[@]}"; do
+      run_args+=(--security-group-ids "$sg")
+    done
+  elif [ -n "${SECURITY_GROUP_ID:-}" ]; then
+    run_args+=(--security-group-ids "$SECURITY_GROUP_ID")
+  fi
+
+  # Subnet: if provided, include --subnet-id; otherwise let AWS pick (may use default subnet)
+  if [ -n "${SUBNET_ID:-}" ]; then
+    run_args+=(--subnet-id "$SUBNET_ID")
+  fi
+
+  # Tag specifications
+  run_args+=(--tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=KNIRV-Testnet-${DEPLOYMENT_TYPE}},{Key=DeploymentType,Value=${CONTAINER_RUNTIME}},{Key=Project,Value=KNIRV},{Key=Environment,Value=testnet}]" --query 'Instances[0].InstanceId' --output text)
+
+  # Run instance
+  NEW_INSTANCE=$(aws ec2 run-instances "${run_args[@]}" --region "$AWS_REGION_VAL" 2>/dev/null || true)
+
+  # If aws returned JSON, extract InstanceId; if empty, keep NEW_INSTANCE as-is
+  if [ -n "$NEW_INSTANCE" ]; then
+    # If response was InstanceId directly, keep it. If full JSON, try to parse
+    if echo "$NEW_INSTANCE" | jq -e . >/dev/null 2>&1; then
+      NEW_INSTANCE=$(echo "$NEW_INSTANCE" | jq -r '.Instances[0].InstanceId' 2>/dev/null || true)
+    fi
+  fi
+
+    if [ $? -eq 0 ] && [ -n "$NEW_INSTANCE" ]; then
+        print_success "Created new instance: $NEW_INSTANCE"
+
+        # Update the instance ID variable based on deployment type
+        case "$CONTAINER_RUNTIME" in
+            "native") NATIVE_INSTANCE_ID="$NEW_INSTANCE" ;;
+            "docker") DOCKER_INSTANCE_ID="$NEW_INSTANCE" ;;
+            "podman") PODMAN_INSTANCE_ID="$NEW_INSTANCE" ;;
+        esac
+
+        INSTANCE_ID="$NEW_INSTANCE"
+
+        # Save the instance ID to file
+        echo "$NEW_INSTANCE" > "$TESTNET_INSTANCE_ID_FILE"
+        print_status "Instance ID saved to $TESTNET_INSTANCE_ID_FILE"
+
+        # Wait for instance to be running
+        print_status "Waiting for instance to be running..."
+  aws ec2 wait instance-running --instance-ids "$INSTANCE_ID" --region "$AWS_REGION_VAL"
+
+        print_success "Instance $INSTANCE_ID is now running"
+    else
+        print_error "Failed to create new instance"
+        exit 1
+    fi
+}
+
+update_instance_tags() {
+    print_step "Updating instance tags for $DEPLOYMENT_TYPE deployment..."
+
+  aws ec2 create-tags \
+    --resources "$INSTANCE_ID" \
+    --tags "Key=Name,Value=KNIRV-Testnet-${DEPLOYMENT_TYPE}" \
+         "Key=DeploymentType,Value=${CONTAINER_RUNTIME}" \
+         "Key=Project,Value=KNIRV" \
+         "Key=Environment,Value=testnet" \
+         "Key=LastDeployment,Value=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --region "$AWS_REGION_VAL" > /dev/null 2>&1
+
+    print_success "Instance tags updated for $DEPLOYMENT_TYPE deployment"
+}
+
+get_instance_ip() {
+    # Use the utility script to get current IP for the selected instance
+    if [ -n "$INSTANCE_ID" ]; then
+        TESTNET_IP=$("$PROJECT_ROOT/scripts/get-testnet-ip.sh" get-ip "$INSTANCE_ID" 2>/dev/null | tail -n1)
+    else
+        TESTNET_IP=$("$PROJECT_ROOT/scripts/get-testnet-ip.sh" get-ip 2>/dev/null | tail -n1)
+    fi
+    
+    if [ $? -ne 0 ] || [ -z "$TESTNET_IP" ]; then
+        print_error "Failed to get testnet IP address for instance $INSTANCE_ID"
+        # Try the verbose version to see what's wrong
+        if [ -n "$INSTANCE_ID" ]; then
+            "$PROJECT_ROOT/scripts/get-testnet-ip.sh" get-ip "$INSTANCE_ID"
+        else
+            "$PROJECT_ROOT/scripts/get-testnet-ip.sh" get-ip
+        fi
+        exit 1
+    fi
+    
+    # Update the deployment-specific IP file
+    mkdir -p "$(dirname "$TESTNET_IP_FILE")"
+    echo "$TESTNET_IP" > "$TESTNET_IP_FILE"
+    
     print_success "Testnet IP: $TESTNET_IP"
 }
 
-check_prerequisites() {
-    print_step "Checking prerequisites..."
+detect_subnet_environment() {
+    print_step "Detecting network environment..."
 
+    # Check if the server is behind a subnet/NAT
+    SUBNET_DETECTED=$(ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" << 'EOF'
+# Check if we're behind NAT by comparing internal and external IPs
+INTERNAL_IP=$(hostname -I | awk '{print $1}')
+EXTERNAL_IP=$(curl -s --max-time 10 ifconfig.me 2>/dev/null || curl -s --max-time 10 ipinfo.io/ip 2>/dev/null || echo "unknown")
+
+echo "Internal IP: $INTERNAL_IP"
+echo "External IP: $EXTERNAL_IP"
+
+# Check if internal IP is in private ranges
+if [[ "$INTERNAL_IP" =~ ^10\. ]] || [[ "$INTERNAL_IP" =~ ^172\.(1[6-9]|2[0-9]|3[0-1])\. ]] || [[ "$INTERNAL_IP" =~ ^192\.168\. ]]; then
+    echo "SUBNET_DETECTED=true"
+else
+    echo "SUBNET_DETECTED=false"
+fi
+EOF
+)
+
+    if echo "$SUBNET_DETECTED" | grep -q "SUBNET_DETECTED=true"; then
+        BEHIND_SUBNET=true
+        print_warning "Server is behind a subnet/NAT - NGINX network manager will be activated"
+    else
+        BEHIND_SUBNET=false
+        print_success "Server has direct public IP - NGINX network manager will remain inactive"
+    fi
+
+    echo "$SUBNET_DETECTED"
+}
+
+configure_ufw_firewall() {
+    # Check if we should skip this step when resuming
+    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Configuring UFW firewall..." ]; then
+        print_status "Skipping configure_ufw_firewall (already completed)"
+        return 0
+    fi
+    
+    log_checkpoint "Configuring UFW firewall..."
+    print_step "Configuring UFW firewall to match AWS EC2 security group..."
+
+    ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" << 'EOF'
+# Install UFW if not present
+if ! command -v ufw >/dev/null 2>&1; then
+    echo "Installing UFW..."
+    sudo apt-get update && sudo apt-get install -y ufw
+fi
+
+# Reset UFW to defaults
+sudo ufw --force reset
+
+# Set default policies
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+
+# Allow SSH (port 22)
+sudo ufw allow 22/tcp
+
+# Allow HTTP/HTTPS
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+
+# Allow KNIRV service ports (matching AWS EC2 security group)
+sudo ufw allow 1317/tcp   # KNIRVORACLE
+sudo ufw allow 8090/tcp   # KNIRVCHAIN
+sudo ufw allow 8082/tcp   # KNIRVGRAPH
+sudo ufw allow 8084/tcp   # KNIRVNEXUS DVE
+sudo ufw allow 8085/tcp   # KNIRVNEXUS Validation
+sudo ufw allow 8086/tcp   # KNIRVROUTER
+sudo ufw allow 10000/tcp  # TESTNET GATEWAY
+sudo ufw allow 3000/tcp   # KNIRVANA
+sudo ufw allow 8088/tcp   # XION Bridge
+sudo ufw allow 5001/tcp   # IPFS API
+sudo ufw allow 8081/tcp   # IPFS Gateway
+sudo ufw allow 3478/tcp   # STUN/TURN
+sudo ufw allow 5349/tcp   # TURN TLS
+
+# Allow internal Docker network communication
+sudo ufw allow from 172.16.0.0/12
+sudo ufw allow from 10.0.0.0/8
+
+# Enable UFW
+sudo ufw --force enable
+
+# Show status
+sudo ufw status numbered
+
+echo "UFW firewall configured successfully"
+EOF
+
+    print_success "UFW firewall configured to match AWS EC2 ports"
+}
+
+generate_docker_compose_file() {
+    local temp_dir="$1"
+    local include_nginx="$2"
+
+    print_step "Generating Docker Compose file..."
+
+    if [ "$include_nginx" = "true" ]; then
+        print_status "Including NGINX Network Manager (subnet detected)"
+        cat > "$temp_dir/docker-compose-prod.yml" << 'EOF'
+version: '3.8'
+
+services:
+  # NGINX Network Manager - Routes traffic to containers (ACTIVE)
+  nginx:
+    image: nginx:alpine
+    container_name: knirv-testnet-nginx
+    ports:
+      - "80:80"       # HTTP
+      - "443:443"     # HTTPS
+      - "1317:1317"   # KNIRVORACLE
+      - "8090:8090"   # KNIRVCHAIN
+      - "8082:8082"   # KNIRVGRAPH
+      - "8084:8084"   # KNIRVNEXUS-1
+      - "8085:8085"   # KNIRVNEXUS-2
+      - "8086:8086"   # KNIRVROUTER
+      - "10000:10000" # TESTNET-GATEWAY
+      - "3000:3000"   # KNIRVANA
+      - "8088:8088"   # XION-BRIDGE
+      - "5001:5001"   # IPFS-API
+      - "8081:8081"   # IPFS-GATEWAY
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - ipfs
+      - knirv-oracle
+      - knirv-chain
+      - knirv-graph
+      - knirv-nexus
+      - knirv-router
+      - testnet-gateway
+      - knirvana
+      - xion-bridge
+    networks:
+      - knirv-testnet
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/nginx-health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+EOF
+    else
+        print_status "NGINX Network Manager disabled (direct public IP detected)"
+        cat > "$temp_dir/docker-compose-prod.yml" << 'EOF'
+version: '3.8'
+
+services:
+  # NGINX Network Manager - DISABLED (direct public IP)
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: knirv-testnet-nginx-disabled
+  #   restart: "no"
+  #   command: ["echo", "NGINX disabled - direct public IP detected"]
+EOF
+    fi
+
+    # Continue with the rest of the services (common to both configurations)
+    cat >> "$temp_dir/docker-compose-prod.yml" << 'EOF'
+
+  # IPFS for distributed storage
+  ipfs:
+    image: ipfs/kubo:latest
+    container_name: knirv-testnet-ipfs
+EOF
+
+    if [ "$include_nginx" = "true" ]; then
+        cat >> "$temp_dir/docker-compose-prod.yml" << 'EOF'
+    expose:
+      - "5001"        # API port (internal only)
+      - "8080"        # Gateway port (internal only)
+EOF
+    else
+        cat >> "$temp_dir/docker-compose-prod.yml" << 'EOF'
+    ports:
+      - "5001:5001"   # API port (direct)
+      - "8081:8080"   # Gateway port (direct)
+EOF
+    fi
+
+    cat >> "$temp_dir/docker-compose-prod.yml" << 'EOF'
+    volumes:
+      - ./data/ipfs:/data/ipfs
+    environment:
+      - IPFS_PROFILE=server
+    networks:
+      - knirv-testnet
+    restart: unless-stopped
+
+  # Testnet Gateway - Node.js application
+  testnet-gateway:
+    image: node:20-alpine
+    container_name: knirv-testnet-gateway
+    working_dir: /app
+EOF
+
+    if [ "$include_nginx" = "true" ]; then
+        cat >> "$temp_dir/docker-compose-prod.yml" << 'EOF'
+    expose:
+      - "10000"       # Internal port only
+EOF
+    else
+        cat >> "$temp_dir/docker-compose-prod.yml" << 'EOF'
+    ports:
+      - "10000:10000" # Direct port
+EOF
+    fi
+
+    print_success "Docker Compose file generated with NGINX $([ "$include_nginx" = "true" ] && echo "enabled" || echo "disabled")"
+}
+
+
+check_prerequisites() {
+    # Check if we should skip this step when resuming
+    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Checking prerequisites..." ]; then
+        print_status "Skipping check_prerequisites (already completed)"
+        return 0
+    fi
+    
+    log_checkpoint "Checking prerequisites..."
+    print_step "Checking prerequisites..."
     # Detect and select container runtime first
     detect_container_runtime
+
+    # Select deployment-specific instance
+    select_deployment_instance
+
+    # Ensure instance exists and is properly tagged
+    ensure_instance_exists
 
     # Get current IP address dynamically from AWS
     get_instance_ip
 
     # Check if SSH key exists
     if [ ! -f "${SSH_KEY/#\~/$HOME}" ]; then
-        print_error "SSH key not found at $SSH_KEY"
-        print_warning "Please ensure your AWS key pair is available"
-        exit 1
+        handle_deployment_error "SSH_KEY_MISSING" "SSH key not found at $SSH_KEY. Please ensure your AWS key pair is available."
     fi
 
     # Check if KNIRVTESTNET directory exists
     if [ ! -d "$TESTNET_DIR" ]; then
-        print_error "KNIRVTESTNET directory not found at $TESTNET_DIR"
-        exit 1
+        handle_deployment_error "TESTNET_DIR_MISSING" "KNIRVTESTNET directory not found at $TESTNET_DIR"
     fi
 
     # Check if docker-compose.yml exists
     if [ ! -f "$TESTNET_DIR/docker-compose.yml" ]; then
-        print_error "docker-compose.yml not found in KNIRVTESTNET directory"
-        exit 1
+        handle_deployment_error "DOCKER_COMPOSE_MISSING" "docker-compose.yml not found in KNIRVTESTNET directory"
     fi
 
     print_success "Prerequisites check passed"
@@ -250,18 +1089,24 @@ check_prerequisites() {
 }
 
 test_ssh_connection() {
+    # Check if we should skip this step when resuming
+    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Testing SSH connection..." ]; then
+        print_status "Skipping test_ssh_connection (already completed)"
+        return 0
+    fi
+    
+    log_checkpoint "Testing SSH connection..."
     print_step "Testing SSH connection to testnet..."
 
     if ssh -i "${SSH_KEY/#\~/$HOME}" -o ConnectTimeout=10 -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" "echo 'SSH connection successful'" > /dev/null 2>&1; then
         print_success "SSH connection established"
     else
-        print_error "Cannot connect to testnet via SSH"
-        print_warning "Please check your SSH key and security group settings"
-        exit 1
+        handle_deployment_error "SSH_CONNECTION_FAILED" "Cannot connect to testnet via SSH. Please check your SSH key and security group settings."
     fi
 }
 
 check_disk_space() {
+    log_checkpoint "Checking disk space..."
     print_step "Checking available disk space on testnet server..."
 
     # Get disk usage information
@@ -271,27 +1116,160 @@ check_disk_space() {
 
     print_status "Current disk usage: $DISK_USAGE% (Available: $AVAILABLE_SPACE)"
 
-    # Check if disk usage is too high (>80%)
-    if [ "$DISK_USAGE" -gt 80 ]; then
+    # Check if disk usage is too high (>85%)
+    if [ "$DISK_USAGE" -gt 85 ]; then
         print_error "Disk usage is too high ($DISK_USAGE%). Available space: $AVAILABLE_SPACE"
-        print_warning "Please clean up the server or increase disk size before deployment"
-        print_warning "You can clean up with: ssh knirv-testnet 'sudo rm -rf /opt/knirv-testnet'"
-        exit 1
+        print_warning "Attempting to clean server automatically..."
+        print_warning "To clean up manually, you can use: ssh -i ${SSH_KEY/#\~/$HOME} -o StrictHostKeyChecking=no ubuntu@$TESTNET_IP 'sudo rm -rf /opt/knirv-testnet/*'"
+
+        # Clean server deployment
+        clean_server_deployment
+
+        # Recheck disk space after cleaning
+        DISK_INFO=$(ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" "df -h / | tail -n1")
+        DISK_USAGE=$(echo "$DISK_INFO" | awk '{print $5}' | sed 's/%//')
+        AVAILABLE_SPACE=$(echo "$DISK_INFO" | awk '{print $4}')
+
+        print_status "Disk usage after cleaning: $DISK_USAGE% (Available: $AVAILABLE_SPACE)"
+
+        # If still high, optionally attempt to expand root EBS volume
+        if [ "$DISK_USAGE" -gt 85 ]; then
+            if [ "${AUTO_INCREASE_ROOT_VOLUME:-false}" = "true" ]; then
+                print_status "AUTO_INCREASE_ROOT_VOLUME=true - attempting to expand root EBS volume"
+
+        # Determine root device name and volume id
+        ROOT_DEV=$(aws ec2 describe-instances --instance-ids "$INSTANCE_ID" --query 'Reservations[0].Instances[0].RootDeviceName' --output text --region "$AWS_REGION_VAL" 2>/dev/null || true)
+        if [ -z "$ROOT_DEV" ] || [ "$ROOT_DEV" = "None" ]; then
+          handle_deployment_error "ROOT_DEVICE_UNKNOWN" "Unable to determine root device for instance $INSTANCE_ID"
+        fi
+
+        VOLUME_ID=$(aws ec2 describe-instances --instance-ids "$INSTANCE_ID" --query "Reservations[0].Instances[0].BlockDeviceMappings[?DeviceName=='$ROOT_DEV'].Ebs.VolumeId | [0]" --output text --region "$AWS_REGION_VAL" 2>/dev/null || true)
+        if [ -z "$VOLUME_ID" ] || [ "$VOLUME_ID" = "None" ]; then
+          handle_deployment_error "VOLUME_ID_UNKNOWN" "Unable to determine volume ID for root device $ROOT_DEV on instance $INSTANCE_ID"
+        fi
+
+        print_status "Root device: $ROOT_DEV (volume: $VOLUME_ID)"
+
+        # Get current size (GiB) and choose new size (+20 GiB)
+        CUR_SIZE=$(aws ec2 describe-volumes --volume-ids "$VOLUME_ID" --query 'Volumes[0].Size' --output text --region "$AWS_REGION_VAL" 2>/dev/null || true)
+        if [ -z "$CUR_SIZE" ] || [ "$CUR_SIZE" = "None" ]; then
+          handle_deployment_error "VOLUME_SIZE_UNKNOWN" "Unable to determine current volume size for $VOLUME_ID"
+        fi
+
+        # Allow override via env var ROOT_VOLUME_GROW_GB, default to +20 GiB
+        GROW_GB=${ROOT_VOLUME_GROW_GB:-20}
+        NEW_SIZE=$((CUR_SIZE + GROW_GB))
+        print_status "Modifying volume $VOLUME_ID: $CUR_SIZE -> ${NEW_SIZE} GiB"
+
+        aws ec2 modify-volume --volume-id "$VOLUME_ID" --size "$NEW_SIZE" --region "$AWS_REGION_VAL" >/dev/null 2>&1 || {
+          handle_deployment_error "VOLUME_MODIFY_FAILED" "Failed to submit modify-volume request for $VOLUME_ID"
+        }
+
+        # Wait for modification state
+        print_status "Waiting for volume modification to reach 'completed' or 'optimizing' state (this may take a minute)"
+        for i in {1..60}; do
+          MOD_STATE=$(aws ec2 describe-volumes-modifications --volume-id "$VOLUME_ID" --query 'VolumesModifications[0].ModificationState' --output text --region "$AWS_REGION_VAL" 2>/dev/null || true)
+          if [ "$MOD_STATE" = "completed" ] || [ "$MOD_STATE" = "optimizing" ]; then
+            print_status "Volume modification state: $MOD_STATE"
+            break
+          fi
+          sleep 5
+        done
+
+        # Resize partition & filesystem on the instance
+        print_status "Expanding partition and filesystem on instance $INSTANCE_ID"
+        ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" bash -s <<'EOF'
+set -e
+ROOT_PART=$(df -P / | tail -1 | awk '{print $1}')
+ROOT_DISK=$(echo "$ROOT_PART" | sed -E 's/([0-9]+)$//')
+PART_NUM=$(echo "$ROOT_PART" | sed -E 's/^.*[^0-9]([0-9]+)$/\1/')
+
+# Install growpart if needed
+if ! command -v growpart >/dev/null 2>&1; then
+  sudo apt-get update -y && sudo apt-get install -y cloud-guest-utils
+fi
+
+sudo growpart "$ROOT_DISK" "$PART_NUM" || true
+
+FSTYPE=$(df -T / | tail -1 | awk '{print $2}')
+if [ "$FSTYPE" = "xfs" ]; then
+  sudo xfs_growfs /
+else
+  sudo resize2fs "$ROOT_PART"
+fi
+EOF
+
+        # Re-check disk usage
+        DISK_INFO=$(ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" "df -h / | tail -n1")
+        DISK_USAGE=$(echo "$DISK_INFO" | awk '{print $5}' | sed 's/%//')
+        AVAILABLE_SPACE=$(echo "$DISK_INFO" | awk '{print $4}')
+        print_status "Post-resize disk usage: $DISK_USAGE% (Available: $AVAILABLE_SPACE)"
+
+        if [ "$DISK_USAGE" -gt 85 ]; then
+          handle_deployment_error "DISK_SPACE_CRITICAL" "Disk usage still high after resize: $DISK_USAGE%. To clean up manually, use: ssh -i ${SSH_KEY/#\~/$HOME} -o StrictHostKeyChecking=no ubuntu@$TESTNET_IP 'sudo rm -rf /opt/knirv-testnet/*'"
+        fi
+
+        print_success "Disk resized and filesystem expanded successfully"
+      else
+        handle_deployment_error "DISK_SPACE_INSUFFICIENT" "Disk usage is still too high ($DISK_USAGE%) after cleaning. Available space: $AVAILABLE_SPACE. Please clean up the server or increase disk size before deployment. To auto-expand root EBS volume, set AUTO_INCREASE_ROOT_VOLUME=true in $ANSIBLE_DIR/.env and re-run"
+      fi
     fi
+  fi
 
     print_success "Sufficient disk space available ($AVAILABLE_SPACE free)"
 }
 
 prepare_native_testnet_files() {
+    # Check if we should skip this step when resuming
+    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Preparing native testnet files..." ]; then
+        print_status "Skipping prepare_native_testnet_files (already completed)"
+        return 0
+    fi
+    
+    log_checkpoint "Preparing native testnet files..."
     print_step "Preparing KNIRVTESTNET directory for native deployment..."
-    print_status "Including XION bridge and KNIRVANA components..."
+    print_status "Building locally and excluding node_modules from upload..."
 
     # Create temporary directory for native deployment
     TEMP_DIR=$(mktemp -d)
+    echo "$TEMP_DIR" > /tmp/testnet_temp_dir
 
-    # Copy the entire KNIRVTESTNET directory
-    print_status "Copying KNIRVTESTNET directory..."
-    cp -r "$TESTNET_DIR" "$TEMP_DIR/knirvtestnet"
+    # Build testnet-gateway locally first
+    print_status "Building testnet-gateway locally..."
+    if [ -d "$TESTNET_DIR/data/testnet-gateway" ] && [ -f "$TESTNET_DIR/data/testnet-gateway/package.json" ]; then
+        cd "$TESTNET_DIR/data/testnet-gateway"
+        if [ -d "node_modules" ]; then
+            print_status "Installing/updating dependencies..."
+            npm install --production --no-optional --no-audit --no-fund
+        else
+            print_status "Installing dependencies..."
+            npm install --production --no-optional --no-audit --no-fund
+        fi
+
+        # Build if build script exists
+        if npm run build --if-present > /dev/null 2>&1; then
+            print_status "Build completed successfully"
+        else
+            print_status "No build script found or build not needed"
+        fi
+        cd - > /dev/null
+    fi
+
+    # Copy KNIRVTESTNET directory excluding node_modules and build artifacts
+    print_status "Copying KNIRVTESTNET directory (excluding node_modules and build artifacts)..."
+    rsync -av --exclude='node_modules' --exclude='dist' --exclude='build' --exclude='.next' \
+          --exclude='.netlify' --exclude='*.log' --exclude='.git' --exclude='.cache' \
+          --exclude='coverage' --exclude='.nyc_output' --exclude='*.tmp' \
+          "$TESTNET_DIR/" "$TEMP_DIR/knirvtestnet/" || {
+        # Fallback if rsync is not available
+        print_warning "rsync not available, using cp with find exclusions..."
+        mkdir -p "$TEMP_DIR/knirvtestnet"
+        find "$TESTNET_DIR" -type f \
+            ! -path "*/node_modules/*" ! -path "*/dist/*" ! -path "*/build/*" ! -path "*/.next/*" \
+            ! -path "*/.netlify/*" ! -name "*.log" ! -path "*/.git/*" ! -path "*/.cache/*" \
+            ! -path "*/coverage/*" ! -path "*/.nyc_output/*" ! -name "*.tmp" \
+            -exec cp --parents {} "$TEMP_DIR/knirvtestnet/" \; 2>/dev/null || true
+    }
 
     # Add XION bridge components from KNIRVORACLE
     if [ -d "KNIRVORACLE" ]; then
@@ -315,20 +1293,204 @@ prepare_native_testnet_files() {
         cp -r KNIRVANA/orb-menu/* "$TEMP_DIR/knirvtestnet/knirvana-orb/" 2>/dev/null || true
     fi
 
-    print_success "Native testnet files prepared in $TEMP_DIR"
+    print_success "Native testnet files prepared in $TEMP_DIR (node_modules excluded)"
+}
+
+clean_server_deployment() {
+    log_checkpoint "Cleaning server deployment..."
+    print_step "Cleaning server of old build files..."
+
+    # Clean old deployment files but preserve data
+    ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" << 'EOF'
+# Stop any running services first
+pkill -f "node.*server" || true
+pkill -f "npm.*start" || true
+
+# Clean old files but preserve data directories
+if [ -d "/opt/knirv-testnet" ]; then
+    # Backup important data
+    if [ -d "/opt/knirv-testnet/data" ]; then
+        sudo cp -r /opt/knirv-testnet/data /tmp/knirv-data-backup 2>/dev/null || true
+    fi
+
+    # Remove old deployment
+    sudo rm -rf /opt/knirv-testnet/* 2>/dev/null || true
+
+    # Restore data if backup exists
+    if [ -d "/tmp/knirv-data-backup" ]; then
+        sudo mkdir -p /opt/knirv-testnet/data
+        sudo cp -r /tmp/knirv-data-backup/* /opt/knirv-testnet/data/ 2>/dev/null || true
+        sudo rm -rf /tmp/knirv-data-backup
+    fi
+fi
+
+# Ensure proper ownership
+sudo mkdir -p /opt/knirv-testnet
+sudo chown -R ubuntu:ubuntu /opt/knirv-testnet
+EOF
+
+    print_success "Server cleaned and ready for new deployment"
+}
+
+check_for_changes() {
+    print_step "Checking for file changes since last deployment..."
+
+    local deployment_type="$1"
+    local checksum_file="$ANSIBLE_DIR/checksums_${deployment_type}.txt"
+    local current_checksums=$(mktemp)
+
+    # Generate current checksums
+    if [ "$deployment_type" = "native" ]; then
+        find "$TESTNET_DIR" -type f \
+            ! -path "*/node_modules/*" ! -path "*/dist/*" ! -path "*/build/*" ! -path "*/.next/*" \
+            ! -path "*/.netlify/*" ! -name "*.log" ! -path "*/.git/*" ! -path "*/.cache/*" \
+            ! -path "*/coverage/*" ! -path "*/.nyc_output/*" ! -name "*.tmp" \
+            -exec md5sum {} \; | sort > "$current_checksums"
+    else
+        # For container deployments, check essential files only
+        find "$TESTNET_DIR/bin" "$TESTNET_DIR/config" -type f -exec md5sum {} \; 2>/dev/null | sort > "$current_checksums"
+        find "$TESTNET_DIR/data" -type f \
+            ! -path "*/node_modules/*" ! -path "*/dist/*" ! -path "*/build/*" \
+            ! -name "*.log" ! -name "*.tmp" \
+            -exec md5sum {} \; 2>/dev/null | sort >> "$current_checksums"
+    fi
+
+    if [ -f "$checksum_file" ]; then
+        if diff -q "$checksum_file" "$current_checksums" > /dev/null; then
+            print_success "No changes detected since last deployment"
+            CHANGES_DETECTED=false
+        else
+            print_warning "Changes detected since last deployment"
+            print_status "Changed files:"
+            diff "$checksum_file" "$current_checksums" | grep "^>" | cut -d' ' -f3- | head -10
+            if [ $(diff "$checksum_file" "$current_checksums" | grep "^>" | wc -l) -gt 10 ]; then
+                print_status "... and $(( $(diff "$checksum_file" "$current_checksums" | grep "^>" | wc -l) - 10 )) more files"
+            fi
+            CHANGES_DETECTED=true
+        fi
+    else
+        print_status "No previous deployment checksums found - full deployment required"
+        CHANGES_DETECTED=true
+    fi
+
+    # Save current checksums for next time
+    cp "$current_checksums" "$checksum_file"
+    rm "$current_checksums"
+}
+
+incremental_upload_native() {
+    # Check if we should skip this step when resuming
+    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Performing incremental upload for native deployment..." ]; then
+        print_status "Skipping incremental_upload_native (already completed)"
+        return 0
+    fi
+    
+    print_step "Performing incremental upload for native deployment..."
+
+    # Use rsync for incremental sync
+    print_status "Syncing changes to server..."
+    rsync -avz --delete \
+          --exclude='node_modules' --exclude='dist' --exclude='build' --exclude='.next' \
+          --exclude='.netlify' --exclude='*.log' --exclude='.git' --exclude='.cache' \
+          --exclude='coverage' --exclude='.nyc_output' --exclude='*.tmp' \
+          -e "ssh -i ${SSH_KEY/#\~/$HOME} -o StrictHostKeyChecking=no" \
+          "$TESTNET_DIR/" ubuntu@"$TESTNET_IP":/opt/knirv-testnet/ || {
+        print_error "Incremental sync failed, falling back to full upload"
+        return 1
+    }
+
+    print_success "Incremental upload completed"
+}
+
+incremental_upload_container() {
+    # Check if we should skip this step when resuming
+    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Performing incremental upload for container deployment..." ]; then
+        print_status "Skipping incremental_upload_container (already completed)"
+        return 0
+    fi
+    
+    print_step "Performing incremental upload for container deployment..."
+
+    # Create temporary directory with only changed files
+    TEMP_DIR=$(mktemp -d)
+    echo "$TEMP_DIR" > /tmp/testnet_temp_dir
+
+    # Copy essential files
+    mkdir -p "$TEMP_DIR/bin" "$TEMP_DIR/config" "$TEMP_DIR/data"
+
+    # Copy binaries
+    cp "$TESTNET_DIR/bin"/* "$TEMP_DIR/bin/" 2>/dev/null || true
+
+    # Copy configs
+    cp -r "$TESTNET_DIR/config"/* "$TEMP_DIR/config/" 2>/dev/null || true
+
+    # Copy essential data (excluding large files)
+    rsync -av --exclude='node_modules' --exclude='dist' --exclude='build' \
+          --exclude='*.log' --exclude='*.tmp' \
+          "$TESTNET_DIR/data/" "$TEMP_DIR/data/" 2>/dev/null || true
+
+    # Generate Docker compose file
+    detect_subnet_environment > /dev/null
+    generate_docker_compose_file "$TEMP_DIR" "$BEHIND_SUBNET"
+
+    # Upload using rsync
+    rsync -avz --delete \
+          -e "ssh -i ${SSH_KEY/#\~/$HOME} -o StrictHostKeyChecking=no" \
+          "$TEMP_DIR/" ubuntu@"$TESTNET_IP":/opt/knirv-testnet/ || {
+        print_error "Incremental container sync failed, falling back to full upload"
+        return 1
+    }
+
+    print_success "Incremental container upload completed"
 }
 
 upload_native_testnet_files() {
+    # Check if we should skip this step when resuming
+    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Uploading native testnet files..." ]; then
+        print_status "Skipping upload_native_testnet_files (already completed)"
+        return 0
+    fi
+    
+    log_checkpoint "Uploading native testnet files..."
     print_step "Uploading KNIRVTESTNET directory to testnet server..."
 
-    # Upload the entire prepared directory
-    print_status "Uploading complete KNIRVTESTNET with XION bridge and KNIRVANA components..."
-    scp -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no -r "$TEMP_DIR/knirvtestnet" ubuntu@"$TESTNET_IP":/opt/knirv-testnet
+    # Clean server first
+    clean_server_deployment
+
+  # Upload the prepared directory (without node_modules)
+  print_status "Uploading optimized KNIRVTESTNET with XION bridge and KNIRVANA components..."
+
+  # Use rsync to a remote temporary directory as the ubuntu user, then move into /opt with sudo
+  REMOTE_TMP_DIR="/tmp/knirv_deploy_$(date +%s)"
+  ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" "mkdir -p $REMOTE_TMP_DIR"
+
+  rsync -avz -e "ssh -i ${SSH_KEY/#\~/$HOME} -o StrictHostKeyChecking=no" \
+      "$TEMP_DIR/knirvtestnet/" ubuntu@"$TESTNET_IP":$REMOTE_TMP_DIR/ || {
+    print_error "Rsync upload failed"
+    return 1
+  }
+
+  # Move files into place with sudo to avoid permission issues, then set ownership
+  ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" << EOF
+sudo mkdir -p /opt/knirv-testnet
+sudo rm -rf /opt/knirv-testnet/* || true
+sudo mv $REMOTE_TMP_DIR/* /opt/knirv-testnet/
+sudo chown -R ubuntu:ubuntu /opt/knirv-testnet
+sudo chmod -R 755 /opt/knirv-testnet
+rm -rf $REMOTE_TMP_DIR
+EOF
 
     print_success "Native testnet files uploaded to testnet server"
 }
 
 prepare_testnet_files() {
+    # Check if we should skip this step when resuming
+    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Preparing testnet files..." ]; then
+        print_status "Skipping prepare_testnet_files (already completed)"
+        return 0
+    fi
+    
+    log_checkpoint "Preparing testnet files..."
     print_step "Preparing testnet files for deployment..."
 
     # Create temporary directory for deployment files
@@ -414,69 +1576,12 @@ prepare_testnet_files() {
     # Copy docker-compose file
     cp "$TESTNET_DIR/docker-compose.yml" "$TEMP_DIR/" 2>/dev/null || true
 
-    # Create production docker-compose file using pre-built binaries (fixed port conflicts)
-    print_status "Creating production docker-compose file..."
-    cat > "$TEMP_DIR/docker-compose-prod.yml" << 'EOF'
-version: '3.8'
+    # Detect subnet environment and generate appropriate Docker compose file
+    detect_subnet_environment > /dev/null
+    generate_docker_compose_file "$TEMP_DIR" "$BEHIND_SUBNET"
 
-services:
-  # NGINX Network Manager - Routes traffic to containers
-  nginx:
-    image: nginx:alpine
-    container_name: knirv-testnet-nginx
-    ports:
-      - "80:80"       # HTTP
-      - "443:443"     # HTTPS
-      - "1317:1317"   # KNIRVORACLE
-      - "8090:8090"   # KNIRVCHAIN
-      - "8082:8082"   # KNIRVGRAPH
-      - "8084:8084"   # KNIRVNEXUS-1
-      - "8085:8085"   # KNIRVNEXUS-2
-      - "8086:8086"   # KNIRVROUTER
-      - "10000:10000" # TESTNET-GATEWAY
-      - "3000:3000"   # KNIRVANA
-      - "8088:8088"   # XION-BRIDGE
-      - "5001:5001"   # IPFS-API
-      - "8081:8081"   # IPFS-GATEWAY
-    volumes:
-      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./logs/nginx:/var/log/nginx
-    depends_on:
-      - ipfs
-      - knirv-oracle
-      - knirv-chain
-      - knirv-graph
-      - knirv-nexus
-      - knirv-router
-      - testnet-gateway
-      - knirvana
-      - xion-bridge
-    networks:
-      - knirv-testnet
-    restart: unless-stopped
-
-  # IPFS for distributed storage
-  ipfs:
-    image: ipfs/kubo:latest
-    container_name: knirv-testnet-ipfs
-    expose:
-      - "5001"        # API port (internal only)
-      - "8080"        # Gateway port (internal only)
-    volumes:
-      - ./data/ipfs:/data/ipfs
-    environment:
-      - IPFS_PROFILE=server
-    networks:
-      - knirv-testnet
-    restart: unless-stopped
-
-  # Testnet Gateway - Node.js application
-  testnet-gateway:
-    image: node:20-alpine
-    container_name: knirv-testnet-gateway
-    working_dir: /app
-    expose:
-      - "10000"       # Internal port only
+    # Continue with the rest of the services (this will be appended to the generated file)
+    cat >> "$TEMP_DIR/docker-compose-prod.yml" << 'EOF'
     environment:
       - DEPLOYMENT_ENV=production
       - KNIRVORACLE_API=http://knirv-oracle:1317
@@ -950,6 +2055,13 @@ EOF
 }
 
 setup_container_permissions() {
+    # Check if we should skip this step when resuming
+    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Setting up container permissions..." ]; then
+        print_status "Skipping setup_container_permissions (already completed)"
+        return 0
+    fi
+    
+    log_checkpoint "Setting up container permissions..."
     print_step "Setting up container runtime permissions on server..."
 
     if [ "$CONTAINER_RUNTIME" = "podman" ]; then
@@ -1000,16 +2112,38 @@ EOF
 }
 
 upload_testnet_files() {
+    # Check if we should skip this step when resuming
+    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Uploading testnet files..." ]; then
+        print_status "Skipping upload_testnet_files (already completed)"
+        return 0
+    fi
+    
+    log_checkpoint "Uploading testnet files..."
     print_step "Uploading testnet files to server..."
 
-    TEMP_DIR=$(cat /tmp/testnet_temp_dir)
+  TEMP_DIR=$(cat /tmp/testnet_temp_dir)
 
-    # Create testnet directory on server
-    ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" \
-        "sudo mkdir -p /opt/knirv-testnet && sudo chown ubuntu:ubuntu /opt/knirv-testnet"
+  # Ensure remote /opt dir exists (will be used after move)
+  ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" \
+    "sudo mkdir -p /opt/knirv-testnet && sudo chown ubuntu:ubuntu /opt/knirv-testnet"
 
-    # Upload files
-    scp -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no -r "$TEMP_DIR"/* ubuntu@"$TESTNET_IP":/opt/knirv-testnet/
+  # Rsync to a remote temp dir then move with sudo to avoid permission denied errors
+  REMOTE_TMP_DIR="/tmp/knirv_deploy_$(date +%s)"
+  ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" "mkdir -p $REMOTE_TMP_DIR"
+
+  rsync -avz --delete -e "ssh -i ${SSH_KEY/#\~/$HOME} -o StrictHostKeyChecking=no" \
+      "$TEMP_DIR/" ubuntu@"$TESTNET_IP":$REMOTE_TMP_DIR/ || {
+    print_error "Rsync upload failed"
+    return 1
+  }
+
+  ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" << EOF
+sudo rm -rf /opt/knirv-testnet/* || true
+sudo mv $REMOTE_TMP_DIR/* /opt/knirv-testnet/
+sudo chown -R ubuntu:ubuntu /opt/knirv-testnet
+sudo chmod -R 755 /opt/knirv-testnet
+rm -rf $REMOTE_TMP_DIR
+EOF
 
     # Set up container runtime permissions
     setup_container_permissions
@@ -1018,6 +2152,13 @@ upload_testnet_files() {
 }
 
 install_node_dependencies() {
+    # Check if we should skip this step when resuming
+    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Installing Node.js dependencies..." ]; then
+        print_status "Skipping install_node_dependencies (already completed)"
+        return 0
+    fi
+    
+    log_checkpoint "Installing Node.js dependencies..."
     print_step "Installing Node.js dependencies on testnet server..."
 
     # First, ensure Node.js is installed
@@ -1044,6 +2185,13 @@ install_node_dependencies() {
 }
 
 build_container_images() {
+    # Check if we should skip this step when resuming
+    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Building container images..." ]; then
+        print_status "Skipping build_container_images (already completed)"
+        return 0
+    fi
+    
+    log_checkpoint "Building container images..."
     print_step "Building container images on testnet server..."
     print_warning "Using real KNIRV binaries for production testnet deployment."
 
@@ -1192,10 +2340,17 @@ EOF
 }
 
 deploy_native_testnet() {
+    # Check if we should skip this step when resuming
+    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Deploying native testnet..." ]; then
+        print_status "Skipping deploy_native_testnet (already completed)"
+        return 0
+    fi
+    
+    log_checkpoint "Deploying native testnet..."
     print_step "Deploying KNIRVTESTNET in Native mode..."
     print_status "Installing Node.js and running npm scripts on server..."
 
-    # Upload the entire KNIRVTESTNET directory and run npm scripts
+    # Install Node.js and dependencies on server
     ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" << 'EOF'
 cd /opt/knirv-testnet
 
@@ -1208,30 +2363,57 @@ else
     echo "Node.js is already installed: $(node --version)"
 fi
 
-# Install npm dependencies
-echo "Installing npm dependencies..."
-npm install
+# Install main npm dependencies (node_modules was excluded from upload)
+echo "Installing main npm dependencies..."
+if [ -f "package.json" ]; then
+    npm install --production --no-optional --no-audit --no-fund
+else
+    echo "No package.json found in root, skipping main dependencies"
+fi
+
+# Install testnet-gateway dependencies if it exists
+if [ -d "data/testnet-gateway" ] && [ -f "data/testnet-gateway/package.json" ]; then
+    echo "Installing testnet-gateway dependencies..."
+    cd data/testnet-gateway
+    npm install --production --no-optional --no-audit --no-fund
+    cd ../..
+else
+    echo "No testnet-gateway package.json found, skipping"
+fi
 
 # Load testnet endpoints
 echo "Loading testnet endpoints..."
-npm run load-endpoints:testnet
+npm run load-endpoints:testnet || echo "Endpoint loading completed"
 
 # Start the testnet services
 echo "Starting KNIRVTESTNET services..."
-npm start
+npm start &
+
+# Store the main process PID
+MAIN_PID=$!
+echo $MAIN_PID > /tmp/knirv-testnet-main.pid
+
+# Wait a bit for services to start
+sleep 15
 
 # Check if services are running
 echo "Checking service status..."
-sleep 10
 npm run testnet:status || echo "Status check completed"
 
-echo "Native deployment completed!"
+echo "Native deployment completed! Main PID: $MAIN_PID"
 EOF
 
     print_success "Native KNIRVTESTNET deployment completed"
 }
 
 deploy_testnet_services() {
+    # Check if we should skip this step when resuming
+    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Deploying testnet services..." ]; then
+        print_status "Skipping deploy_testnet_services (already completed)"
+        return 0
+    fi
+    
+    log_checkpoint "Deploying testnet services..."
     print_step "Deploying KNIRVTESTNET services..."
 
     # Deploy services using the selected container runtime
@@ -1266,8 +2448,7 @@ if command -v docker-compose &> /dev/null; then
 elif docker compose version &> /dev/null; then
     COMPOSE_CMD="docker compose"
 else
-    echo "Error: Docker Compose not found on remote server"
-    exit 1
+    handle_deployment_error "REMOTE_DOCKER_COMPOSE_MISSING" "Docker Compose not found on remote server"
 fi
 
 echo "Using Docker Compose command: \$COMPOSE_CMD"
@@ -1290,13 +2471,43 @@ EOF
 }
 
 verify_deployment() {
+    # Check if we should skip this step when resuming
+    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Verifying deployment..." ]; then
+        print_status "Skipping verify_deployment (already completed)"
+        return 0
+    fi
+    
+    log_checkpoint "Verifying deployment..."
     print_step "Verifying testnet deployment with dynamic service discovery..."
 
-    # Deploy the dynamic health check script
-    print_status "Deploying dynamic health check script..."
+    # Deploy the dynamic health check script and AI troubleshooter
+    print_status "Deploying diagnostic scripts..."
     if scp -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no scripts/remote-health-check.sh ubuntu@"$TESTNET_IP":/tmp/remote-health-check.sh >/dev/null 2>&1; then
         ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" "chmod +x /tmp/remote-health-check.sh" >/dev/null 2>&1
         print_success "Dynamic health check script deployed"
+        
+        # Also deploy AI troubleshooter script
+        if scp -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no scripts/ai_troubleshoot.js ubuntu@"$TESTNET_IP":/tmp/ai_troubleshoot.js >/dev/null 2>&1; then
+            print_success "AI troubleshooter script deployed"
+            
+            # Install Node.js dependencies for AI troubleshooter on remote server if needed
+            print_status "Ensuring AI troubleshooter dependencies are available..."
+            ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" << 'EOF'
+            if command -v node >/dev/null 2>&1; then
+                echo "Node.js is available on remote server"
+                # Check if dependencies are installed
+                if [ ! -d "/opt/knirv-testnet/node_modules" ]; then
+                    echo "Installing AI troubleshooter dependencies..."
+                    cd /opt/knirv-testnet
+                    npm install dotenv yargs --no-save --no-package-lock >/dev/null 2>&1 || echo "Dependency installation completed"
+                fi
+            else
+                echo "Node.js not available on remote server - AI troubleshooter will run locally"
+            fi
+EOF
+        else
+            print_warning "Could not deploy AI troubleshooter script"
+        fi
     else
         print_warning "Could not deploy dynamic health check script, using basic verification"
 
@@ -1310,6 +2521,7 @@ verify_deployment() {
             "knirv-oracle:1317:/health"
         )
 
+        local unhealthy_services=()
         for service in "${basic_services[@]}"; do
             name=$(echo "$service" | cut -d: -f1)
             port=$(echo "$service" | cut -d: -f2)
@@ -1319,8 +2531,35 @@ verify_deployment() {
                 echo -e "  ${GREEN}✅ $name ($port): HEALTHY${NC}"
             else
                 echo -e "  ${RED}❌ $name ($port): UNHEALTHY${NC}"
+                unhealthy_services+=("$name:$port")
             fi
         done
+
+        # Check if any services are unhealthy and offer AI troubleshooting
+        if [ ${#unhealthy_services[@]} -gt 0 ]; then
+            print_warning "${#unhealthy_services[@]} service(s) are unhealthy: ${unhealthy_services[*]}"
+            
+            # Ask user if they want to run AI troubleshooter
+            echo ""
+            echo -e "${YELLOW}Some services are unhealthy. Would you like to run the AI troubleshooter?${NC}"
+            read -p "Run AI troubleshooter? (y/N): " -n 1 -r
+            echo
+            
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                print_step "Starting AI troubleshooter for unhealthy services..."
+                
+                # Try to run AI troubleshooter on remote server first, fallback to local
+                if ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" "cd /opt/knirv-testnet && node /tmp/ai_troubleshoot.js --ip localhost --ssh-key $SSH_KEY --health-endpoint /health" 2>/dev/null; then
+                    print_success "AI troubleshooter completed (remote execution)"
+                elif node "$SCRIPT_DIR/ai_troubleshoot.js" --ip "$TESTNET_IP" --ssh-key "$SSH_KEY"; then
+                    print_success "AI troubleshooter completed (local execution)"
+                else
+                    print_warning "AI troubleshooter failed or was interrupted"
+                fi
+            else
+                print_status "AI troubleshooter skipped by user"
+            fi
+        fi
 
         print_success "Basic deployment verification completed"
         return
@@ -1331,15 +2570,136 @@ verify_deployment() {
     echo ""
     echo -e "${YELLOW}Dynamic Service Discovery Results:${NC}"
 
-    if ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" "/tmp/remote-health-check.sh --simple" 2>/dev/null; then
+    # Run dynamic health check and capture output
+    local health_output=$(ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" "/tmp/remote-health-check.sh --json" 2>/dev/null || echo "{}")
+    
+    if echo "$health_output" | grep -q "HEALTHY" || echo "$health_output" | jq -e '.services | length > 0' >/dev/null 2>&1; then
         print_success "Dynamic deployment verification completed"
+        
+        # Parse JSON output to check for unhealthy services
+        if command -v jq >/dev/null 2>&1 && echo "$health_output" | jq -e '.services' >/dev/null 2>&1; then
+            local unhealthy_count=$(echo "$health_output" | jq '[.services[] | select(.status != "HEALTHY")] | length')
+            if [ "$unhealthy_count" -gt 0 ]; then
+                print_warning "$unhealthy_count service(s) are unhealthy"
+                
+                # Extract unhealthy service names
+                local unhealthy_services=$(echo "$health_output" | jq -r '[.services[] | select(.status != "HEALTHY") | "\(.service_name):\(.port)"] | join(",")')
+                
+                # Ask user if they want to run AI troubleshooter
+                echo ""
+                echo -e "${YELLOW}Some services are unhealthy. Would you like to run the AI troubleshooter?${NC}"
+                read -p "Run AI troubleshooter? (y/N): " -n 1 -r
+                echo
+                
+                if [[ $REPLY =~ ^[Yy]$ ]]; then
+                    print_step "Starting AI troubleshooter for unhealthy services..."
+                    
+                    # Try to run AI troubleshooter on remote server first, fallback to local
+                    if ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" "cd /opt/knirv-testnet && node /tmp/ai_troubleshoot.js --ip localhost --ssh-key $SSH_KEY --health-endpoint /health" 2>/dev/null; then
+                        print_success "AI troubleshooter completed (remote execution)"
+                    elif node "$SCRIPT_DIR/ai_troubleshoot.js" --ip "$TESTNET_IP" --ssh-key "$SSH_KEY"; then
+                        print_success "AI troubleshooter completed (local execution)"
+                    else
+                        print_warning "AI troubleshooter failed or was interrupted"
+                    fi
+                else
+                    print_status "AI troubleshooter skipped by user"
+                fi
+            fi
+        fi
     else
-        print_warning "Dynamic health check failed, but deployment may still be successful"
+        print_warning "Dynamic health check failed or no healthy services detected"
         print_status "Services may still be starting up - check again in a few minutes"
+        
+        # Offer AI troubleshooting even if health check fails completely
+        echo ""
+        echo -e "${YELLOW}Health check failed. Would you like to run the AI troubleshooter to diagnose the issue?${NC}"
+        read -p "Run AI troubleshooter? (y/N): " -n 1 -r
+        echo
+        
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            print_step "Starting AI troubleshooter for deployment diagnosis..."
+            
+            # Try to run AI troubleshooter on remote server first, fallback to local
+            if ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" "cd /opt/knirv-testnet && node /tmp/ai_troubleshoot.js --ip localhost --ssh-key $SSH_KEY --health-endpoint /health" 2>/dev/null; then
+                print_success "AI troubleshooter completed (remote execution)"
+            elif node "$SCRIPT_DIR/ai_troubleshoot.js" --ip "$TESTNET_IP" --ssh-key "$SSH_KEY"; then
+                print_success "AI troubleshooter completed (local execution)"
+            else
+                print_warning "AI troubleshooter failed or was interrupted"
+            fi
+        else
+            print_status "AI troubleshooter skipped by user"
+        fi
     fi
 }
 
+verify_service_ports() {
+    # Check if we should skip this step when resuming
+    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Verifying service ports..." ]; then
+        print_status "Skipping verify_service_ports (already completed)"
+        return 0
+    fi
+    
+    log_checkpoint "Verifying service ports..."
+    print_step "Verifying service ports and UFW configuration..."
+
+    # Define expected services and ports
+    declare -A expected_services=(
+        ["knirvoracle"]="1317"
+        ["knirvchain"]="8090"
+        ["knirvgraph"]="8082"
+        ["knirvnexus-dve"]="8084"
+        ["knirvnexus-val"]="8085"
+        ["knirvrouter"]="8086"
+        ["testnet-gateway"]="10000"
+        ["knirvana"]="3000"
+        ["xion-bridge"]="8088"
+        ["ipfs-api"]="5001"
+        ["ipfs-gateway"]="8081"
+    )
+
+    local verified_services=()
+    local failed_services=()
+
+    for service in "${!expected_services[@]}"; do
+        local port="${expected_services[$service]}"
+        print_status "Verifying $service on port $port..."
+
+        # Test port connectivity
+        if timeout 10 bash -c "echo >/dev/tcp/$TESTNET_IP/$port" 2>/dev/null; then
+            print_success "✅ $service ($port): Port accessible"
+            verified_services+=("$service:$port")
+        else
+            print_warning "❌ $service ($port): Port not accessible"
+            failed_services+=("$service:$port")
+        fi
+    done
+
+    echo ""
+    print_status "Port verification summary:"
+    print_success "Verified services: ${#verified_services[@]}"
+    print_warning "Failed services: ${#failed_services[@]}"
+
+    if [ ${#failed_services[@]} -gt 0 ]; then
+        print_warning "Failed services will not have DNS records updated:"
+        for failed in "${failed_services[@]}"; do
+            print_warning "  - $failed"
+        done
+    fi
+
+    # Return the list of verified services
+    printf '%s\n' "${verified_services[@]}"
+}
+
 update_cloudflare_dns() {
+    # Check if we should skip this step when resuming
+    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Updating CloudFlare DNS..." ]; then
+        print_status "Skipping update_cloudflare_dns (already completed)"
+        return 0
+    fi
+    
+    log_checkpoint "Updating CloudFlare DNS..."
     print_step "Updating CloudFlare DNS records for healthy services..."
 
     # Check if CloudFlare credentials are available
@@ -1352,31 +2712,74 @@ update_cloudflare_dns() {
     fi
 
     # Wait for services to fully start before testing
-    print_status "Waiting 30 seconds for services to fully initialize..."
-    sleep 30
+    print_status "Waiting 45 seconds for services to fully initialize..."
+    sleep 45
 
-    # Run CloudFlare DNS update script
+    # Verify UFW and port accessibility first
+    print_status "Checking UFW status and port accessibility..."
+    ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" << 'EOF'
+echo "UFW Status:"
+sudo ufw status numbered | head -20
+echo ""
+echo "Active listening ports:"
+sudo netstat -tlnp | grep -E ':(1317|8090|8082|8084|8085|8086|10000|3000|8088|5001|8081)\s' | head -10
+EOF
+
+    # Verify service ports before DNS updates
+    local verified_services_output=$(verify_service_ports)
+    local verified_count=$(echo "$verified_services_output" | wc -l)
+
+    if [ "$verified_count" -eq 0 ]; then
+        print_error "No services are accessible - skipping DNS updates"
+        print_warning "Please check service status and firewall configuration"
+        return 1
+    fi
+
+    # Run CloudFlare DNS update script with enhanced error handling
     if [ -f "./scripts/update-cloudflare-dns.sh" ]; then
         chmod +x "./scripts/update-cloudflare-dns.sh"
 
         print_status "Testing service health before DNS updates..."
-        ./scripts/update-cloudflare-dns.sh test "$TESTNET_IP"
+        if ./scripts/update-cloudflare-dns.sh test "$TESTNET_IP" 2>&1 | tee /tmp/dns_test.log; then
+            print_success "Service health test completed"
+        else
+            print_warning "Service health test had issues - check /tmp/dns_test.log"
+        fi
 
         echo ""
-        print_status "Updating DNS records for healthy services..."
-        ./scripts/update-cloudflare-dns.sh update "$TESTNET_IP"
-
-        if [ $? -eq 0 ]; then
+        print_status "Updating DNS records for verified healthy services only..."
+        if ./scripts/update-cloudflare-dns.sh update "$TESTNET_IP" 2>&1 | tee /tmp/dns_update.log; then
             print_success "CloudFlare DNS records updated successfully"
+
+            # Show updated records
+            print_status "Updated DNS records:"
+            grep -E "(Updated DNS record|Created DNS record)" /tmp/dns_update.log | head -10 || true
         else
-            print_warning "Some DNS updates may have failed - check logs above"
+            print_error "DNS update failed - check /tmp/dns_update.log for details"
+            print_warning "Common issues:"
+            print_warning "  - Invalid CloudFlare credentials"
+            print_warning "  - Zone not found or access denied"
+            print_warning "  - Rate limiting"
+            print_warning "  - Network connectivity issues"
+            return 1
         fi
     else
-        print_warning "CloudFlare DNS update script not found - skipping DNS updates"
+        print_warning "CloudFlare DNS update script not found at ./scripts/update-cloudflare-dns.sh"
+        print_warning "DNS updates skipped - services are accessible but DNS won't be updated"
     fi
+
+    # Cleanup temporary log files
+    rm -f /tmp/dns_test.log /tmp/dns_update.log
 }
 
 cleanup() {
+    # Check if we should skip this step when resuming
+    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Cleaning up temporary files..." ]; then
+        print_status "Skipping cleanup (already completed)"
+        return 0
+    fi
+    
+    log_checkpoint "Cleaning up temporary files..."
     print_step "Cleaning up temporary files..."
 
     if [ -f /tmp/testnet_temp_dir ]; then
@@ -1389,6 +2792,14 @@ cleanup() {
 }
 
 display_summary() {
+    # Check if we should skip this step when resuming
+    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Displaying deployment summary..." ]; then
+        print_status "Skipping display_summary (already completed)"
+        return 0
+    fi
+    
+    log_checkpoint "Displaying deployment summary..."
+  print_step "Displaying deployment summary..."
     echo ""
     echo -e "${GREEN}🎉 KNIRVTESTNET Services Deployment Complete!${NC}"
     echo -e "${BLUE}=============================================${NC}"
@@ -1444,21 +2855,90 @@ display_summary() {
 main() {
     print_header
 
+    # Check prerequisites and detect deployment type
     check_prerequisites
     test_ssh_connection
-    check_disk_space
 
-    if [ "$CONTAINER_RUNTIME" = "native" ]; then
-        # Native deployment: upload entire KNIRVTESTNET directory
-        prepare_native_testnet_files
-        upload_native_testnet_files
+    # If resuming from previous deployment, skip already completed steps
+    if [ "$RESUME_DEPLOYMENT" = "true" ]; then
+        print_status "Resuming deployment from last checkpoint..."
+        print_status "Last checkpoint: $(read_last_checkpoint)"
+        
+        # Skip steps that were already completed based on the last checkpoint
+        case "$(read_last_checkpoint)" in
+            "Checking prerequisites..."|"Testing SSH connection..."|"Configuring UFW firewall..."|"Checking disk space..."|"Checking for file changes..."|"Preparing testnet files..."|"Preparing native testnet files..."|"Uploading testnet files..."|"Uploading native testnet files..."|"Installing Node.js dependencies..."|"Building container images..."|"Deploying testnet services..."|"Deploying native testnet..."|"Verifying deployment..."|"Verifying service ports..."|"Updating CloudFlare DNS..."|"Cleaning up temporary files..."|"Displaying deployment summary...")
+                # These steps are already completed or will be handled by individual function resume logic
+                print_status "Resuming from checkpoint: $(read_last_checkpoint)"
+                ;;
+            *)
+                print_warning "Unknown checkpoint: $(read_last_checkpoint), starting from beginning"
+                RESUME_DEPLOYMENT=false
+                ;;
+        esac
+    fi
+
+    # Configure UFW firewall to match AWS EC2 ports (unless resuming and already completed)
+    if [ "$RESUME_DEPLOYMENT" != "true" ] || [ "$(read_last_checkpoint)" != "Configuring UFW firewall..." ]; then
+        configure_ufw_firewall
+    fi
+
+    # Check for changes and determine deployment strategy (unless resuming)
+    if [ "$RESUME_DEPLOYMENT" != "true" ]; then
+        if [ "$FORCE_FULL_DEPLOYMENT" = "true" ]; then
+            print_status "Force full deployment requested"
+            CHANGES_DETECTED=true
+        elif [ "$INCREMENTAL_DEPLOYMENT" = "true" ]; then
+            check_for_changes "$CONTAINER_RUNTIME"
+            if [ "$CHANGES_DETECTED" = "false" ]; then
+                print_success "No changes detected - skipping deployment"
+                print_status "Use --force to deploy anyway"
+                exit 0
+            fi
+        else
+            print_status "Full deployment mode (default)"
+            CHANGES_DETECTED=true
+        fi
     else
-        # Container deployment: prepare optimized files
-        prepare_testnet_files
-        upload_testnet_files
+        # When resuming, assume changes are detected to continue deployment
+        CHANGES_DETECTED=true
+        print_status "Resuming deployment - assuming changes detected to continue"
+    fi
+
+    # Handle deployment based on container runtime
+    if [ "$CONTAINER_RUNTIME" = "native" ]; then
+        # Native deployment
+        if [ "$INCREMENTAL_DEPLOYMENT" = "true" ] && [ "$CHANGES_DETECTED" = "true" ]; then
+            print_status "Performing incremental native deployment..."
+            if ! incremental_upload_native; then
+                print_warning "Incremental upload failed, falling back to full deployment"
+                prepare_native_testnet_files
+                upload_native_testnet_files
+            fi
+        else
+            print_status "Performing full native deployment..."
+            prepare_native_testnet_files
+            upload_native_testnet_files
+        fi
+    else
+        # Container deployment
+        if [ "$INCREMENTAL_DEPLOYMENT" = "true" ] && [ "$CHANGES_DETECTED" = "true" ]; then
+            print_status "Performing incremental container deployment..."
+            if ! incremental_upload_container; then
+                print_warning "Incremental upload failed, falling back to full deployment"
+                prepare_testnet_files
+                upload_testnet_files
+            fi
+        else
+            print_status "Performing full container deployment..."
+            prepare_testnet_files
+            upload_testnet_files
+        fi
         install_node_dependencies
         build_container_images
     fi
+
+    # After uploads and any cleaning have been performed, verify disk space again
+    check_disk_space
 
     deploy_testnet_services
     verify_deployment
@@ -1468,13 +2948,16 @@ main() {
 }
 
 # Handle script arguments
-case "${1:-}" in
-    --help|-h)
-        echo "Usage: $0 [options]"
-        echo ""
-        echo "Options:"
-        echo "  --help, -h    Show this help message"
-        echo "  --force       Skip confirmation prompts"
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --help|-h)
+            echo "Usage: $0 [options]"
+            echo ""
+            echo "Options:"
+            echo "  --help, -h         Show this help message"
+            echo "  --force            Skip confirmation prompts and force full deployment"
+            echo "  --incremental      Enable incremental deployment (only upload changed files)"
+            echo "  --full             Force full deployment (default)"
         echo ""
         echo "Features:"
         echo "  - Automatic detection of Docker and Podman"
@@ -1495,30 +2978,58 @@ case "${1:-}" in
         echo "  - SSH key must be available at ~/.ssh/AEGONG.pem"
         echo "  - KNIRVTESTNET directory must exist"
         echo "  - For container deployment: Docker or Podman must be installed"
-        echo "  - For native deployment: Node.js will be installed automatically"
-        exit 0
-        ;;
-    --force)
-        print_warning "Force mode - skipping confirmations"
-        ;;
-    *)
-        # Confirm deployment
-        echo -e "${YELLOW}This will deploy KNIRVTESTNET services to AWS EC2.${NC}"
-        echo -e "${YELLOW}The script will:${NC}"
-        echo -e "${YELLOW}  - Detect available deployment options (Docker/Podman/Native)${NC}"
-        echo -e "${YELLOW}  - Include XION bridge and KNIRVANA components${NC}"
-        echo -e "${YELLOW}  - Check for existing services and handle them gracefully${NC}"
-        echo -e "${YELLOW}  - Set up proper permissions for the selected deployment method${NC}"
-        echo -e "${YELLOW}  - Deploy services using the chosen deployment method${NC}"
-        echo ""
-        read -p "Continue? (y/N): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            echo "Deployment cancelled."
+            echo "  - For native deployment: Node.js will be installed automatically"
+            echo ""
+            echo "Deployment Modes:"
+            echo "  --incremental      Only upload files that have changed since last deployment"
+            echo "  --full             Upload all files (default, slower but more reliable)"
+            echo "  --force            Force full deployment even if no changes detected"
+            echo ""
             exit 0
-        fi
-        ;;
-esac
+            ;;
+        --force)
+            print_warning "Force mode - skipping confirmations and forcing full deployment"
+            FORCE_FULL_DEPLOYMENT=true
+            ;;
+        --incremental)
+            print_status "Incremental deployment mode enabled"
+            INCREMENTAL_DEPLOYMENT=true
+            ;;
+        --full)
+            print_status "Full deployment mode enabled"
+            INCREMENTAL_DEPLOYMENT=false
+            ;;
+        *)
+            if [[ $1 == --* ]]; then
+                print_error "Unknown option: $1"
+                handle_deployment_error "INVALID_ARGUMENT" "Unknown option: $1. Use --help for usage information"
+            fi
+            break
+            ;;
+    esac
+    shift
+done
+
+# Confirm deployment if not in force mode
+if [ "$FORCE_FULL_DEPLOYMENT" != "true" ]; then
+    echo -e "${YELLOW}This will deploy KNIRVTESTNET services to AWS EC2.${NC}"
+    echo -e "${YELLOW}The script will:${NC}"
+    echo -e "${YELLOW}  - Detect available deployment options (Docker/Podman/Native)${NC}"
+    echo -e "${YELLOW}  - Include XION bridge and KNIRVANA components${NC}"
+    echo -e "${YELLOW}  - Check for existing services and handle them gracefully${NC}"
+    echo -e "${YELLOW}  - Set up proper permissions for the selected deployment method${NC}"
+    echo -e "${YELLOW}  - Deploy services using the chosen deployment method${NC}"
+    if [ "$INCREMENTAL_DEPLOYMENT" = "true" ]; then
+        echo -e "${YELLOW}  - Use incremental deployment (only upload changed files)${NC}"
+    fi
+    echo ""
+    read -p "Continue? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Deployment cancelled."
+        exit 0
+    fi
+fi
 
 # Run main function
 main

@@ -482,7 +482,7 @@ describe('KnirvWallet Core Functionality', () => {
   });
 
   describe('Account Management', () => {
-    let wallet: typeof KnirvWallet;
+    let wallet: any;
 
     beforeEach(async () => {
       wallet = await KnirvWallet.createByMnemonic(TEST_MNEMONICS.VALID_12_WORD);
@@ -536,7 +536,7 @@ describe('KnirvWallet Core Functionality', () => {
   });
 
   describe('Keyring Management', () => {
-    let wallet: typeof KnirvWallet;
+    let wallet: any;
 
     beforeEach(async () => {
       wallet = await KnirvWallet.createByMnemonic(TEST_MNEMONICS.VALID_12_WORD);

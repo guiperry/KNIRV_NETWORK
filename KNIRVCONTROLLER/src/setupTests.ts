@@ -13,14 +13,14 @@ setupCustomMatchers();
 // Setup jest-axe for accessibility testing (after DOM is set up)
 try {
   import('jest-axe').then(({ toHaveNoViolations }) => {
-    expect.extend(toHaveNoViolations);
+    expect.extend(toHaveNoViolations as any);
   }).catch((error) => {
     // jest-axe not available or DOM not ready
     console.warn('jest-axe setup skipped:', error.message);
   });
 } catch (error) {
   // jest-axe not available or DOM not ready
-  console.warn('jest-axe setup skipped:', error.message);
+  console.warn('jest-axe setup skipped:', (error as Error).message);
 }
 
 // Mock fetch globally for all tests
@@ -31,6 +31,7 @@ global.WebAssembly = {
   compile: jest.fn().mockResolvedValue({}),
   instantiate: jest.fn().mockResolvedValue({ instance: {}, module: {} }),
   Module: {
+    prototype: {},
     exports: jest.fn().mockReturnValue([
       { name: 'init', kind: 'function' },
       { name: 'process', kind: 'function' },
@@ -39,7 +40,7 @@ global.WebAssembly = {
     ]),
     imports: jest.fn().mockReturnValue([]),
     customSections: jest.fn().mockReturnValue([])
-  },
+  } as any,
   Instance: jest.fn(),
   Memory: jest.fn(),
   Table: jest.fn(),
@@ -58,6 +59,7 @@ global.File = class MockFile {
   size: number;
   type: string;
   lastModified: number;
+  webkitRelativePath: string = '';
   content: string;
 
   constructor(content: string[], name: string, options: { type?: string; lastModified?: number } = {}) {
@@ -65,7 +67,7 @@ global.File = class MockFile {
     this.name = name;
     this.size = this.content.length;
     this.type = options.type || '';
-    this.lastModified = Date.now();
+    this.lastModified = options.lastModified || Date.now();
   }
 
   async arrayBuffer(): Promise<ArrayBuffer> {
@@ -98,7 +100,7 @@ global.File = class MockFile {
   bytes(): Promise<Uint8Array> {
     return Promise.resolve(new TextEncoder().encode(this.content));
   }
-} as typeof Blob;
+} as any;
 
 // Mock crypto.subtle for hash generation tests
 Object.defineProperty(global, 'crypto', {
@@ -152,11 +154,16 @@ afterEach(() => {
 
 // Mock IntersectionObserver for components that might use it
 global.IntersectionObserver = class IntersectionObserver {
+  root: Element | null = null;
+  rootMargin: string = '0px';
+  thresholds: ReadonlyArray<number> = [0];
+
   constructor() {}
   observe() {}
   unobserve() {}
   disconnect() {}
-} as typeof IntersectionObserver;
+  takeRecords(): IntersectionObserverEntry[] { return []; }
+} as any;
 
 // Mock ResizeObserver for components that might use it
 global.ResizeObserver = class ResizeObserver {

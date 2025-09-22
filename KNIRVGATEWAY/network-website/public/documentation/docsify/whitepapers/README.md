@@ -7,7 +7,7 @@ This section contains the technical whitepapers for the KNIRV Network components
 * [KNIRV-CHAIN Whitepaper](whitepapers/KNIRV-CHAIN_Whitepaper)
 * [KNIRV-CLI Whitepaper](whitepapers/KNIRV-CLI_Whitepaper)
 * [KNIRV-CONTROLLER Whitepaper](whitepapers/KNIRV-CONTROLLER_Whitepaper)
-* [KNIRV-CORTEX Whitepaper](whitepapers/KNIRV-CORTEX_Whitepaper)
+* [KNIRV-INFERENCE Whitepaper](whitepapers/KNIRV-INFERENCE_Whitepaper)
 * [KNIRV-D-TEN Whitepaper](whitepapers/KNIRV-D-TEN_Whitepaper)
 * [KNIRV-GATEWAY Whitepaper](whitepapers/KNIRV-GATEWAY_Whitepaper)
 * [KNIRV-GRAPH Whitepaper](whitepapers/KNIRV-GRAPH_Whitepaper)

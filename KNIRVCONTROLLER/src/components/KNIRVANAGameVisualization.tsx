@@ -387,7 +387,7 @@ export default function KNIRVANAGameVisualization() {
   };
 
   const handleMergeToCollective = async () => {
-    await knirvanaBridgeService.mergeToCollectiveNetwork(null);
+    await knirvanaBridgeService.mergeToCollectiveNetwork({});
     setGameState(knirvanaBridgeService.getGameState());
   };
 

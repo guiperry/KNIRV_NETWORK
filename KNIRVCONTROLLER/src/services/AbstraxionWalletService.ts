@@ -148,7 +148,7 @@ export class AbstraxionWalletService {
 
       // In a real implementation, this would call Abstraxion's connect method
       // with the specified authentication method
-      const connectionResult = await this.abstraxionSDK.connect({
+      const connectionResult = await (this.abstraxionSDK as any).connect({
         authMethod,
         enableGasless: this.treasuryConfig.enabled
       });
@@ -180,7 +180,7 @@ export class AbstraxionWalletService {
   // Disconnect wallet
   async disconnectWallet(): Promise<void> {
     if (this.abstraxionSDK) {
-      await this.abstraxionSDK.disconnect();
+      await (this.abstraxionSDK as any).disconnect();
     }
     this.account = null;
     console.log('Disconnected from XION wallet');
@@ -318,10 +318,10 @@ export class AbstraxionWalletService {
       let txResult;
       if (request.gasless && this.treasuryConfig.enabled) {
         console.log('Executing gasless transaction via Treasury Contract...');
-        txResult = await this.executeGaslessTransaction(txMsg);
+        txResult = await this.executeGaslessTransaction(txMsg as any);
       } else {
         console.log('Executing standard transaction...');
-        txResult = await this.abstraxionSDK.signTransaction(txMsg);
+        txResult = await (this.abstraxionSDK as any).signTransaction(txMsg);
       }
 
       const result: ConversionResult = {

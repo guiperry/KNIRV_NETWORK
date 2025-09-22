@@ -22,7 +22,7 @@ export const USDCToNRNPurchase: React.FC<USDCToNRNPurchaseProps> = ({
     connect,
     disconnect,
     convertUSDCToNRN,
-    getConversionHistory
+    getUSDCBalance
   } = useAbstraxionWallet();
 
   const [usdcAmount, setUsdcAmount] = useState('');
@@ -36,20 +36,22 @@ export const USDCToNRNPurchase: React.FC<USDCToNRNPurchaseProps> = ({
   const conversionRate = 10; // 1 USDC = 10 NRN
   const estimatedNRN = usdcAmount ? (parseFloat(usdcAmount) * conversionRate).toString() : '0';
 
+  const loadConversionHistory = useCallback(async () => {
+    try {
+      // TODO: Implement getConversionHistory in useXIONWallet
+      // const history = await getConversionHistory();
+      // setConversionHistory(history);
+      setConversionHistory([]);
+    } catch (error) {
+      console.error('Failed to load conversion history:', error);
+    }
+  }, []);
+
   useEffect(() => {
     if (isConnected) {
       loadConversionHistory();
     }
   }, [isConnected, loadConversionHistory]);
-
-  const loadConversionHistory = useCallback(async () => {
-    try {
-      const history = await getConversionHistory();
-      setConversionHistory(history);
-    } catch (error) {
-      console.error('Failed to load conversion history:', error);
-    }
-  }, [getConversionHistory]);
 
   const handleConnect = async () => {
     try {
@@ -153,21 +155,23 @@ export const USDCToNRNPurchase: React.FC<USDCToNRNPurchaseProps> = ({
       </div>
 
       {/* Account Info */}
-      <div className="bg-gray-50 rounded-lg p-4 mb-6">
-        <div className="text-sm text-gray-600 mb-2">
-          <span className="font-medium">Account:</span> {account.name}
+      {account && (
+        <div className="bg-gray-50 rounded-lg p-4 mb-6">
+          <div className="text-sm text-gray-600 mb-2">
+            <span className="font-medium">Account:</span> {account.name}
+          </div>
+          <div className="text-sm text-gray-600 mb-2">
+            <span className="font-medium">Type:</span> {account.metaAccountType}
+            {account.gasless && <span className="ml-2 text-green-600">⚡ Gasless</span>}
+          </div>
+          <div className="text-sm text-gray-600 mb-1">
+            <span className="font-medium">USDC Balance:</span> {account.usdcBalance}
+          </div>
+          <div className="text-sm text-gray-600">
+            <span className="font-medium">NRN Balance:</span> {account.nrnBalance}
+          </div>
         </div>
-        <div className="text-sm text-gray-600 mb-2">
-          <span className="font-medium">Type:</span> {account.metaAccountType}
-          {account.gasless && <span className="ml-2 text-green-600">⚡ Gasless</span>}
-        </div>
-        <div className="text-sm text-gray-600 mb-1">
-          <span className="font-medium">USDC Balance:</span> {account.usdcBalance}
-        </div>
-        <div className="text-sm text-gray-600">
-          <span className="font-medium">NRN Balance:</span> {account.nrnBalance}
-        </div>
-      </div>
+      )}
 
       {/* Purchase Form */}
       <div className="space-y-4">
@@ -199,7 +203,7 @@ export const USDCToNRNPurchase: React.FC<USDCToNRNPurchaseProps> = ({
             type="text"
             value={nrnTargetAddress}
             onChange={(e) => setNrnTargetAddress(e.target.value)}
-            placeholder={account.address}
+            placeholder={account?.address || 'Enter NRN address'}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>

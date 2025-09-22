@@ -111,7 +111,7 @@ const KnirvWallet = {
       currentAccountId: 'account-0',
       signTransaction: jest.fn().mockImplementation(async (transaction: unknown) => {
         return {
-          ...transaction,
+          ...(transaction as Record<string, unknown>),
           signatures: [{
             pub_key: 'mock-public-key',
             signature: 'mock-signature'
@@ -231,7 +231,7 @@ jest.mock('@gnolang/tm2-js-client', () => ({
 }));
 
 describe('KnirvWallet Transaction Signing', () => {
-  let wallet: typeof KnirvWallet;
+  let wallet: any;
   let mockProvider: JSONRPCProvider;
 
   beforeEach(async () => {
@@ -285,11 +285,11 @@ describe('KnirvWallet Transaction Signing', () => {
   describe('HD Wallet Transaction Signing', () => {
     it('should sign basic transfer transaction', async () => {
       const transaction = TransactionTestUtils.createTestTransaction({
-        from: wallet.accounts[0].address
+        from: (wallet as any).accounts[0].address
       });
 
       // Mock the signing process
-      const signedTx = await wallet.signTransaction(transaction);
+      const signedTx = await (wallet as any).signTransaction(transaction);
       
       expect(signedTx).toBeDefined();
       expect(signedTx).toHaveProperty('signatures');
@@ -298,11 +298,11 @@ describe('KnirvWallet Transaction Signing', () => {
 
     it('should sign transaction with memo', async () => {
       const transaction = TransactionTestUtils.createTestTransaction({
-        from: wallet.accounts[0].address,
+        from: (wallet as any).accounts[0].address,
         memo: 'Test transaction with memo'
       });
 
-      const signedTx = await wallet.signTransaction(transaction);
+      const signedTx = await (wallet as any).signTransaction(transaction);
       
       expect(signedTx).toBeDefined();
       expect(signedTx.memo).toBe('Test transaction with memo');
@@ -310,9 +310,9 @@ describe('KnirvWallet Transaction Signing', () => {
 
     it('should sign NRN burn transaction for skill invocation', async () => {
       const burnTransaction = TransactionTestUtils.createTestNRNBurnTransaction('skill-123', '1000000');
-      burnTransaction.from = wallet.accounts[0].address!;
+      burnTransaction.from = (wallet as any).accounts[0].address!;
 
-      const signedTx = await wallet.signTransaction(burnTransaction);
+      const signedTx = await (wallet as any).signTransaction(burnTransaction);
       
       expect(signedTx).toBeDefined();
       expect(signedTx.memo).toContain('skill-123');
@@ -320,11 +320,11 @@ describe('KnirvWallet Transaction Signing', () => {
 
     it('should handle transaction signing with custom gas parameters', async () => {
       const transaction = TransactionTestUtils.createTestTransaction({
-        from: wallet.accounts[0].address,
+        from: (wallet as any).accounts[0].address,
         gasLimit: '300000'
       });
 
-      const signedTx = await wallet.signTransaction(transaction);
+      const signedTx = await (wallet as any).signTransaction(transaction);
       
       expect(signedTx).toBeDefined();
       expect(signedTx.fee).toBeDefined();
@@ -335,16 +335,16 @@ describe('KnirvWallet Transaction Signing', () => {
         from: 'g1differentaddress1234567890abcdef12345678'
       });
 
-      await expect(wallet.signTransaction(transaction))
+      await expect((wallet as any).signTransaction(transaction))
         .rejects.toThrow();
     });
   });
 
   describe('Private Key Wallet Transaction Signing', () => {
-    let privateKeyWallet: typeof KnirvWallet;
+    let privateKeyWallet: any;
 
     beforeEach(async () => {
-      privateKeyWallet = await KnirvWallet.createByWeb3Auth(TEST_PRIVATE_KEYS.VALID_HEX);
+      privateKeyWallet = await KnirvWallet.createByWeb3Auth(TEST_PRIVATE_KEYS.VALID_KEY);
     });
 
     it('should sign transaction with private key wallet', async () => {
@@ -374,7 +374,7 @@ describe('KnirvWallet Transaction Signing', () => {
   });
 
   describe('Address-only Wallet Transaction Signing', () => {
-    let addressOnlyWallet: typeof KnirvWallet;
+    let addressOnlyWallet: any;
 
     beforeEach(async () => {
       addressOnlyWallet = await KnirvWallet.createByAddress(TEST_ADDRESSES.GNOLANG);
@@ -401,7 +401,7 @@ describe('KnirvWallet Transaction Signing', () => {
   });
 
   describe('Multi-Account Transaction Signing', () => {
-    let multiAccountWallet: typeof KnirvWallet;
+    let multiAccountWallet: any;
 
     beforeEach(async () => {
       const paths = [0, 1, 2];

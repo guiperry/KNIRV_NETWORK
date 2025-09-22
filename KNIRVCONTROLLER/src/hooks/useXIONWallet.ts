@@ -230,16 +230,24 @@ export function useXIONWallet(): XIONWalletState & XIONWalletActions {
   }, [walletService]);
 
   // Connect Meta Account
-  const connectMetaAccount = useCallback(async (authMethod: 'email' | 'social' | 'wallet' | 'passkey', identifier: string) => {
+  const connectMetaAccount = useCallback(async (authMethod: 'email' | 'social' | 'wallet' | 'passkey', identifier: string): Promise<{ success: boolean; account?: string; error?: string }> => {
     try {
-      return await walletService.connectMetaAccount(authMethod, identifier);
+      const result = await walletService.connectMetaAccount(authMethod, identifier);
+      return {
+        success: true,
+        account: typeof result === 'object' && result !== null && 'account' in result ? String(result.account) : undefined
+      };
     } catch (error) {
       console.error('Failed to connect meta account:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to connect meta account';
       setState(prev => ({
         ...prev,
-        error: error instanceof Error ? error.message : 'Failed to connect meta account',
+        error: errorMessage,
       }));
-      throw error;
+      return {
+        success: false,
+        error: errorMessage
+      };
     }
   }, [walletService]);
 

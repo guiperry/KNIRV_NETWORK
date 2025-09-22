@@ -235,7 +235,7 @@ deploy-testnet-infrastructure: check-prereqs ## Deploy testnet infrastructure on
 	@echo "$(GREEN)✓ KNIRVTESTNET infrastructure deployed$(NC)"
 
 .PHONY: deploy-testnet-services
-deploy-testnet-services: ## Deploy KNIRVTESTNET services via Docker Compose
+deploy-testnet-services: ## Deploy KNIRVTESTNET services via Native, Podman, or Docker Compose
 	@echo "$(BLUE)Deploying KNIRVTESTNET services...$(NC)"
 	@cd $(PROJECT_ROOT) && ./scripts/deploy-testnet-services.sh
 	@echo "$(GREEN)✓ KNIRVTESTNET services deployed$(NC)"

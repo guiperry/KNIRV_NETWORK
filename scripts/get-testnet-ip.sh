@@ -7,7 +7,8 @@
 set -e
 
 # Configuration
-INSTANCE_ID="i-06813be8a8a23ea5b"
+# Instance ID will be determined dynamically or passed as parameter
+INSTANCE_ID=""
 REGION="us-east-2"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TESTNET_IP_FILE="$PROJECT_ROOT/deployment/ansible/testnet_ip.txt"
@@ -36,35 +37,54 @@ print_step() {
 }
 
 get_instance_ip() {
-    print_step "Getting current IP address for instance $INSTANCE_ID..."
+    local instance_id="$1"
+    
+    # If no instance ID provided, try to find a running KNIRV testnet instance
+    if [ -z "$instance_id" ]; then
+        print_step "No instance ID provided, searching for running KNIRV testnet instances..."
+        instance_id=$(aws ec2 describe-instances \
+            --filters "Name=tag:Project,Values=KNIRV" "Name=tag:Environment,Values=testnet" "Name=instance-state-name,Values=running" \
+            --query 'Reservations[*].Instances[*].[InstanceId]' \
+            --output text \
+            --region "$REGION" | head -1)
+        
+        if [ -z "$instance_id" ]; then
+            print_error "No running KNIRV testnet instances found"
+            print_warning "Please provide an instance ID or ensure a KNIRV testnet instance is running"
+            exit 1
+        fi
+        print_success "Found running instance: $instance_id"
+    fi
+    
+    print_step "Getting current IP address for instance $instance_id..."
     
     # Check if instance exists and get its state
     INSTANCE_STATE=$(aws ec2 describe-instances \
-        --instance-ids "$INSTANCE_ID" \
+        --instance-ids "$instance_id" \
         --query 'Reservations[0].Instances[0].State.Name' \
         --output text \
         --region "$REGION" 2>/dev/null || echo "not-found")
     
     if [ "$INSTANCE_STATE" = "not-found" ]; then
-        print_error "Instance $INSTANCE_ID not found"
+        print_error "Instance $instance_id not found"
         exit 1
     fi
     
     if [ "$INSTANCE_STATE" != "running" ]; then
-        print_error "Instance $INSTANCE_ID is in state: $INSTANCE_STATE"
-        print_warning "Please start the instance first: aws ec2 start-instances --instance-ids $INSTANCE_ID"
+        print_error "Instance $instance_id is in state: $INSTANCE_STATE"
+        print_warning "Please start the instance first: aws ec2 start-instances --instance-ids $instance_id"
         exit 1
     fi
     
     # Get the current public IP address of the instance
     TESTNET_IP=$(aws ec2 describe-instances \
-        --instance-ids "$INSTANCE_ID" \
+        --instance-ids "$instance_id" \
         --query 'Reservations[0].Instances[0].PublicIpAddress' \
         --output text \
         --region "$REGION")
     
     if [ "$TESTNET_IP" = "None" ] || [ -z "$TESTNET_IP" ]; then
-        print_error "Instance $INSTANCE_ID does not have a public IP address"
+        print_error "Instance $instance_id does not have a public IP address"
         print_warning "Please ensure the instance has a public IP assigned"
         exit 1
     fi
@@ -110,38 +130,92 @@ EOF
 }
 
 start_instance() {
-    print_step "Starting instance $INSTANCE_ID..."
+    local instance_id="$1"
     
-    aws ec2 start-instances --instance-ids "$INSTANCE_ID" --region "$REGION" > /dev/null
+    # If no instance ID provided, try to find a KNIRV testnet instance
+    if [ -z "$instance_id" ]; then
+        print_step "No instance ID provided, searching for KNIRV testnet instances..."
+        instance_id=$(aws ec2 describe-instances \
+            --filters "Name=tag:Project,Values=KNIRV" "Name=tag:Environment,Values=testnet" \
+            --query 'Reservations[*].Instances[*].[InstanceId]' \
+            --output text \
+            --region "$REGION" | head -1)
+        
+        if [ -z "$instance_id" ]; then
+            print_error "No KNIRV testnet instances found"
+            exit 1
+        fi
+        print_success "Found instance: $instance_id"
+    fi
+    
+    print_step "Starting instance $instance_id..."
+    
+    aws ec2 start-instances --instance-ids "$instance_id" --region "$REGION" > /dev/null
     
     print_step "Waiting for instance to be running..."
-    aws ec2 wait instance-running --instance-ids "$INSTANCE_ID" --region "$REGION"
+    aws ec2 wait instance-running --instance-ids "$instance_id" --region "$REGION"
     
     print_success "Instance is now running"
     
     # Get the new IP address
-    get_instance_ip
+    get_instance_ip "$instance_id"
 }
 
 stop_instance() {
-    print_step "Stopping instance $INSTANCE_ID..."
+    local instance_id="$1"
     
-    aws ec2 stop-instances --instance-ids "$INSTANCE_ID" --region "$REGION" > /dev/null
+    # If no instance ID provided, try to find a running KNIRV testnet instance
+    if [ -z "$instance_id" ]; then
+        print_step "No instance ID provided, searching for running KNIRV testnet instances..."
+        instance_id=$(aws ec2 describe-instances \
+            --filters "Name=tag:Project,Values=KNIRV" "Name=tag:Environment,Values=testnet" "Name=instance-state-name,Values=running" \
+            --query 'Reservations[*].Instances[*].[InstanceId]' \
+            --output text \
+            --region "$REGION" | head -1)
+        
+        if [ -z "$instance_id" ]; then
+            print_error "No running KNIRV testnet instances found"
+            exit 1
+        fi
+        print_success "Found running instance: $instance_id"
+    fi
+    
+    print_step "Stopping instance $instance_id..."
+    
+    aws ec2 stop-instances --instance-ids "$instance_id" --region "$REGION" > /dev/null
     
     print_step "Waiting for instance to be stopped..."
-    aws ec2 wait instance-stopped --instance-ids "$INSTANCE_ID" --region "$REGION"
+    aws ec2 wait instance-stopped --instance-ids "$instance_id" --region "$REGION"
     
     print_success "Instance is now stopped"
 }
 
 show_status() {
-    print_step "Getting instance status..."
+    local instance_id="$1"
     
-    INSTANCE_INFO=$(aws ec2 describe-instances \
-        --instance-ids "$INSTANCE_ID" \
-        --query 'Reservations[0].Instances[0].{State:State.Name,PublicIP:PublicIpAddress,PrivateIP:PrivateIpAddress,InstanceType:InstanceType}' \
-        --output table \
-        --region "$REGION")
+    # If no instance ID provided, show all KNIRV testnet instances
+    if [ -z "$instance_id" ]; then
+        print_step "Getting status for all KNIRV testnet instances..."
+        
+        INSTANCE_INFO=$(aws ec2 describe-instances \
+            --filters "Name=tag:Project,Values=KNIRV" "Name=tag:Environment,Values=testnet" \
+            --query 'Reservations[*].Instances[*].{InstanceId:InstanceId,State:State.Name,PublicIP:PublicIpAddress,PrivateIP:PrivateIpAddress,InstanceType:InstanceType,LaunchTime:LaunchTime}' \
+            --output table \
+            --region "$REGION")
+        
+        if [ -z "$INSTANCE_INFO" ] || [ "$INSTANCE_INFO" = "None" ]; then
+            print_warning "No KNIRV testnet instances found"
+            return 0
+        fi
+    else
+        print_step "Getting instance status for $instance_id..."
+        
+        INSTANCE_INFO=$(aws ec2 describe-instances \
+            --instance-ids "$instance_id" \
+            --query 'Reservations[0].Instances[0].{State:State.Name,PublicIP:PublicIpAddress,PrivateIP:PrivateIpAddress,InstanceType:InstanceType,LaunchTime:LaunchTime}' \
+            --output table \
+            --region "$REGION")
+    fi
     
     echo "$INSTANCE_INFO"
 }
@@ -149,19 +223,19 @@ show_status() {
 # Main execution
 case "${1:-get-ip}" in
     get-ip|ip)
-        get_instance_ip
+        get_instance_ip "$2"
         ;;
     start)
-        start_instance
+        start_instance "$2"
         ;;
     stop)
-        stop_instance
+        stop_instance "$2"
         ;;
     status)
-        show_status
+        show_status "$2"
         ;;
     --help|-h)
-        echo "Usage: $0 [command]"
+        echo "Usage: $0 [command] [instance-id]"
         echo ""
         echo "Commands:"
         echo "  get-ip, ip    Get current IP address (default)"
@@ -170,7 +244,15 @@ case "${1:-get-ip}" in
         echo "  status        Show instance status"
         echo "  --help, -h    Show this help message"
         echo ""
-        echo "Instance ID: $INSTANCE_ID"
+        echo "Parameters:"
+        echo "  instance-id   Optional instance ID. If not provided, script will search for KNIRV testnet instances"
+        echo ""
+        echo "Examples:"
+        echo "  $0 get-ip                    # Get IP of first running KNIRV testnet instance"
+        echo "  $0 get-ip i-1234567890abcdef # Get IP of specific instance"
+        echo "  $0 start                     # Start first KNIRV testnet instance"
+        echo "  $0 status                    # Show status of all KNIRV testnet instances"
+        echo ""
         echo "Region: $REGION"
         exit 0
         ;;

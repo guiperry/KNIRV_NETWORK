@@ -596,7 +596,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
         if (message.requiresResponse) {
           this.emit('messageResponse', {
             correlationId: message.id,
-            ...response,
+            ...(response as Record<string, unknown>),
           });
         }
       } else {

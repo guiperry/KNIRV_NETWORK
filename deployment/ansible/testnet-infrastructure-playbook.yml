@@ -195,12 +195,35 @@
 - name: Configure KNIRVTESTNET Server
   hosts: testnet_nodes
   become: true
-  gather_facts: true
+  # Disable automatic fact gathering so we can ensure a usable remote tmp dir exists
+  gather_facts: false
   vars_files:
     - environments/testnet.yml
   vars:
     docker_compose_version: "2.21.0"
-    
+  pre_tasks:
+    - name: Attempt to free disk space (safe cleanup)
+      raw: |
+        # Conservative cleanup steps; each command is allowed to fail without stopping the play
+        sudo apt-get clean || true
+        sudo rm -rf /var/cache/apt/archives/* || true
+        sudo journalctl --vacuum-size=100M || true
+        # If docker is present, prune unused data
+        if command -v docker >/dev/null 2>&1; then sudo docker system prune -af || true; fi
+        # Clean temporary dirs
+        sudo rm -rf /tmp/* /var/tmp/* || true
+      changed_when: false
+      # raw runs over SSH and doesn't require Python on the remote side
+
+    - name: Ensure Ansible remote tmp directory exists (fallback)
+      raw: |
+        sudo mkdir -p /home/ubuntu/.ansible/tmp && sudo chown ubuntu:ubuntu /home/ubuntu/.ansible/tmp && sudo chmod 700 /home/ubuntu/.ansible/tmp
+      # raw runs over SSH and doesn't require Python on the remote side or remote tmp
+      # This ensures subsequent module uploads can use the specified directory.
+
+    - name: Gather facts
+      ansible.builtin.setup:
+  
   tasks:
     - name: Wait for SSH to become available
       wait_for_connection:

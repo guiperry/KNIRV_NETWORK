@@ -218,10 +218,10 @@ export class UserFeedbackService {
 
     const satisfactionRatings = this.feedback
       .filter(item => item.category === 'satisfaction' && item.metadata?.rating)
-      .map(item => item.metadata!.rating);
+      .map(item => Number(item.metadata!.rating));
 
     const satisfactionScore = satisfactionRatings.length > 0
-      ? satisfactionRatings.reduce((sum, rating) => sum + rating, 0) / satisfactionRatings.length
+      ? satisfactionRatings.reduce((sum: number, rating: number) => sum + rating, 0) / satisfactionRatings.length
       : 0;
 
     return {
