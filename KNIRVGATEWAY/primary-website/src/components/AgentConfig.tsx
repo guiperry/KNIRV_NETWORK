@@ -1116,7 +1116,7 @@ const AgentConfig = ({
           setConfigProcessComplete(true);
           toast({
             title: "Configuration Processing Complete",
-            description: "All configuration steps have been processed successfully. You can now deploy your agent.",
+            description: "All configuration steps have been processed successfully. You can now deploy your model.",
           });
         } else {
           // Check if the failure is compilation-related
@@ -1332,9 +1332,9 @@ const AgentConfig = ({
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div className="flex items-center justify-between mb-12">
         <div className="text-center md:text-left w-full">
-          <h2 className="text-4xl font-bold text-white mb-4">Configure Your AI Agent</h2>
+          <h2 className="text-4xl font-bold text-white mb-4">Configure Your Model</h2>
           <p className="text-xl text-white/70">
-            Customize how your AI agent will interact with users of {connectedApp.name}
+            Customize how your model will interact with users of {connectedApp.name}
           </p>
 
           {/* Demo Mode Indicator */}
@@ -1467,15 +1467,15 @@ const AgentConfig = ({
             <TabsContent value="identity" className="space-y-6">
               <Card className="bg-white/5 border-white/10 backdrop-blur-lg">
                 <CardHeader>
-                  <CardTitle className="text-white">Agent Identity</CardTitle>
+                  <CardTitle className="text-white">Model Identity</CardTitle>
                   <CardDescription className="text-white/70">
-                    Define your agent's core identity and generate Agent Facts
+                    Define your model's core identity and generate Model Facts
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-white font-medium mb-2 block">Agent Name</label>
+                      <label className="text-white font-medium mb-2 block">Nodel Name</label>
                       <Input
                         value={agentFacts.agent_name}
                         onChange={(e) => {
@@ -1760,7 +1760,7 @@ const AgentConfig = ({
                     API Keys Configuration
                   </CardTitle>
                   <CardDescription className="text-white/70">
-                    Configure API keys for different LLM providers. These keys will be securely stored and used by your agent.
+                    Configure API keys for different LLM providers. These keys will be securely stored and used by your model.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -1834,7 +1834,7 @@ const AgentConfig = ({
                       <div>
                         <h4 className="text-blue-400 font-medium mb-1">Security Notice</h4>
                         <p className="text-blue-300/80 text-sm">
-                          API keys are stored securely and only used by your agent. They are not shared with other users or services.
+                          API keys are stored securely and only used by your model. They are not shared with other users or services.
                           You can update or remove these keys at any time.
                         </p>
                       </div>
@@ -1849,7 +1849,7 @@ const AgentConfig = ({
                 <CardHeader>
                   <CardTitle className="text-white">Agent Personality</CardTitle>
                   <CardDescription className="text-white/70">
-                    Configure your agent's personality traits and behavior
+                    Configure your model's personality traits and behavior
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -1909,9 +1909,9 @@ const AgentConfig = ({
             <TabsContent value="capabilities" className="space-y-6">
               <Card className="bg-white/5 border-white/10 backdrop-blur-lg">
                 <CardHeader>
-                  <CardTitle className="text-white">Agent Features</CardTitle>
+                  <CardTitle className="text-white">Model Features</CardTitle>
                   <CardDescription className="text-white/70">
-                    Enable the capabilities your agent should have
+                    Enable the capabilities your model should have
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -1942,7 +1942,7 @@ const AgentConfig = ({
                     MCP Server Connections
                   </CardTitle>
                   <CardDescription className="text-white/70">
-                    Connect your agent to Model Context Protocol (MCP) servers for enhanced capabilities
+                    Connect your model to Model Context Protocol (MCP) servers for enhanced capabilities
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -2037,7 +2037,7 @@ const AgentConfig = ({
                     <div className="text-center py-8 text-white/50">
                       <Server className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p>No MCP servers connected yet</p>
-                      <p className="text-sm">Add your first server above to enhance your agent's capabilities</p>
+                      <p className="text-sm">Add your first server above to enhance your model's capabilities</p>
                     </div>
                   )}
                 </CardContent>
@@ -2153,7 +2153,7 @@ const AgentConfig = ({
 
           </Tabs>
 
-          {/* Compile Agent Section */}
+          {/* Compile Model Section */}
           <div className="mt-6 space-y-4">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
@@ -2195,7 +2195,7 @@ const AgentConfig = ({
                 ) : (
                   <>
                     <Code className="mr-2 h-4 w-4" />
-                    Compile Agent
+                    Compile Model
                   </>
                 )}
               </Button>
@@ -2203,7 +2203,7 @@ const AgentConfig = ({
             {compileStatus === 'success' && (
               <div className="space-y-2">
                 <div className="text-green-400 text-sm">
-                  ✅ Agent compiled successfully! Ready for deployment.
+                  ✅ Model compiled successfully! Ready for deployment.
                 </div>
               </div>
             )}
@@ -2214,7 +2214,7 @@ const AgentConfig = ({
             )}
           </div>
 
-          {/* Register Agent and Process Configuration Buttons */}
+          {/* Register Model and Process Configuration Buttons */}
           <div className="space-y-4">
             {/* Demo Mode Notice for Registration */}
             {!auth.isAuthenticated && !agentRegistered && (
@@ -2224,9 +2224,9 @@ const AgentConfig = ({
                     <Bot className="h-5 w-5 text-blue-600 mt-0.5" />
                   </div>
                   <div>
-                    <h4 className="text-blue-900 font-medium text-sm">Ready to Register Your Agent?</h4>
+                    <h4 className="text-blue-900 font-medium text-sm">Ready to Register Your Model?</h4>
                     <p className="text-blue-700 text-sm mt-1">
-                      Create an account to save your agent configuration and access all features.
+                      Create an account to save your model configuration and access all features.
                     </p>
                   </div>
                 </div>
@@ -2234,7 +2234,7 @@ const AgentConfig = ({
             )}
 
             <div className="flex justify-start space-x-4 items-center">
-              {/* Register Agent Button */}
+              {/* Register Model Button */}
               <Button
                 onClick={handleRegisterAgent}
                 disabled={agentRegistered}
@@ -2246,7 +2246,7 @@ const AgentConfig = ({
                 size="lg"
               >
                 <Bot className="h-5 w-5 mr-2" />
-                {agentRegistered ? 'Agent Registered' : 'Register Agent'}
+                {agentRegistered ? 'Model Registered' : 'Register Model'}
               </Button>
 
             {/* Process Configuration Button */}

@@ -94,9 +94,9 @@ const DashboardDownloadDialog = ({
         </AlertDialogTrigger>
         <AlertDialogContent className="bg-slate-900 border-white/10">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Download KNIRV Engine</AlertDialogTitle>
+            <AlertDialogTitle className="text-white">Download Agentic Engine</AlertDialogTitle>
             <AlertDialogDescription className="text-white/70">
-              Choose your platform to download the KNIRV Engine software for advanced agent management and control.
+              Choose your platform to download the Agentic Engine software for advanced agent management and control.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="grid grid-cols-1 gap-3 my-4">

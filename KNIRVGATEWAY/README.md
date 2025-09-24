@@ -1,4 +1,4 @@
-# KNIRV GATEWAY: Unified Web Portal and API Gateway
+# KNIRVGATEWAY: Unified Web Portal and API Gateway
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/your-badge-id/deploy-status)](https://app.netlify.com/sites/your-site-name/deploys)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
@@ -12,6 +12,8 @@
 - [Quick Start](#quick-start)
 - [API Gateway Functionality](#api-gateway-functionality)
 - [Server-Sent Events (SSE)](#server-sent-events-sse)
+- [WebGUI Development](#webgui-development)
+- [WebGUI Authentication Testing](#webgui-authentication-testing)
 - [Development](#development)
 - [Environment Variables](#environment-variables)
 - [Portal Sections](#portal-sections)
@@ -32,7 +34,7 @@
 
 ## Overview
 
-KNIRVGATEWAY serves as the primary web portal and API gateway for the KNIRV D-TEN (Decentralized Trusted Execution Network). It combines a modern, responsive website with serverless API gateway functionality, providing a unified entry point for users, developers, and services within the KNIRV ecosystem. Migrated from a Go-based WebSocket gateway, it now utilizes Netlify Functions and Server-Sent Events (SSE) for improved performance and browser compatibility.
+KNIRVGATEWAY serves as the primary web portal and API gateway for the KNIRV D-TEN (Decentralized Trusted Execution Network). It combines a modern, responsive website with serverless API gateway functionality, providing a unified entry point for users, developers, and services within the KNIRV ecosystem. Migrated from a Go-based WebSocket gateway, it now utilizes Netlify Functions and Server-Sent Events (SSE) for improved performance and browser compatibility.  The system has undergone a major update in 2025, shifting from an "Agent"-centric to a "Model"-centric terminology and featuring a modernized WebGUI.
 
 ### Recent Major Updates (2025)
 
@@ -202,39 +204,7 @@ healthSource.onmessage = function(event) {
 ```
 
 
-## Development
-
-### Available Scripts
-
-- `npm run dev` - Start development server with hot reload
-- `npm run build` - Build for production
-- `npm run deploy` - Deploy to Netlify
-- `npm run functions:test` - Test gateway functions
-- `npm run validate` - Validate Netlify Functions
-- `npm run dht:control:start` - Start DHT (for testing)
-- `npm run dht:control:stop` - Stop DHT (for testing)
-- `npm run dht:control:restart` - Restart DHT (for testing)
-- `npm run dht:control:status` - Get DHT status (for testing)
-- `npm run ensure-netlify-cli` - Ensure netlify-cli is installed (for Render)
-- `npm run check-health` - Check gateway and DHT health
-- `npm run check-function-deps` - Check Netlify function dependencies
-- `npm run install-function-deps` - Install Netlify function dependencies
-- `npm run smart-build-with-apps` - Build with application support (for Netlify)
-- `make deploy-render` - Deploy to Render
-- `make deploy-netlify` - Deploy to Netlify
-- `make deploy-vercel` - Deploy to Vercel
-- `make sync-failover-page` - Sync failover page content
-- `make update-submodules` - Update all submodules
-- `make setup-submodules` - Setup submodules
-- `make test-provision` - Test provision endpoints
-- `make test-health` - Test health endpoints
-- `make status` - Check system status
-- `make ci-build` - Run full CI build
-- `make clean` - Clean build artifacts
-- `make clean-all` - Full clean including node_modules
-- `make audit` - Security audit
-
-### WebGUI Development
+## WebGUI Development
 
 The WebGUI service (`services/webgui`) provides a modern React-based interface:
 
@@ -267,6 +237,96 @@ npm run build
 - **Real-time Monitoring**: Network health and performance metrics
 - **KNIRVCONTROLLER Integration**: QR code connection for mobile apps
 
+
+## WebGUI Authentication Testing
+
+The WebGUI includes comprehensive authentication testing tools:
+
+### Role Switcher (Top-Right Corner)
+
+- Switch between Root, Bootnode, Dev, and General roles instantly.
+- Change network contexts (Mainnet, Public Testnet, Private Testnet, Demo).
+- View current authentication state.
+- Clear authentication to test the login screen.
+
+### Authentication Testing Page ("Auth Testing" in sidebar)
+
+- Real-time authentication status display.
+- Page access testing for the current role.
+- Role permission comparison matrix.
+- Authentication history tracking.
+- Comprehensive testing instructions.
+
+### Testing Different Roles
+
+Follow the instructions in the Role Switcher to test Root, Bootnode, Developer, and General roles.  Expected access is detailed for each role.
+
+### Testing Login Screen
+
+Use either the "Clear Auth & Show Login" button in the Role Switcher or manually clear localStorage items (`knirv_user_role`, `knirv_network`, `knirv_auth_token`, `knirv_demo_mode`) to test the login screen.
+
+### Testing Page Access Controls
+
+Use the Auth Testing page or manually navigate to restricted pages to test access controls. A Role Permission Matrix is provided:
+
+| Page | Root | Bootnode | Dev | General |
+|------|------|----------|-----|---------|
+| Dashboard | ✅ | ✅ | ✅ | ✅ |
+| Inventory | ✅ | ✅ | ✅ | ✅ |
+| DEX | ✅ | ✅ | ✅ | ✅ |
+| NFT Capability Manager | ✅ | ✅ | ✅ | ✅ |
+| Capabilities | ✅ | ✅ | ✅ | ✅ |
+| Auth Testing | ✅ | ✅ | ✅ | ✅ |
+| Vault | ✅ | ✅ | ✅ | ❌ |
+| Blockchain | ✅ | ✅ | ✅ | ❌ |
+| NFT Vault | ✅ | ✅ | ✅ | ❌ |
+| Add Capability | ✅ | ✅ | ✅ | ❌ |
+| Explorer | ✅ | ✅ | ✅ | ❌ |
+| DAOs | ✅ | ✅ | ❌ | ❌ |
+| Settlement | ✅ | ✅ | ❌ | ❌ |
+| Peers | ✅ | ✅ | ❌ | ❌ |
+| Network Admin | ✅ | ❌ | ❌ | ❌ |
+
+### Testing Network Contexts
+
+Use the Role Switcher to change networks (Demo Mode, Private Testnet, Public Testnet, Mainnet) and observe the effects on available features.
+
+### Troubleshooting
+
+Refer to the troubleshooting section in the Authentication Testing Guide for common issues.
+
+
+## Development
+
+### Available Scripts
+
+- `npm run dev` - Start development server with hot reload
+- `npm run build` - Build for production
+- `npm run deploy` - Deploy to Netlify
+- `npm run functions:test` - Test gateway functions
+- `npm run validate` - Validate Netlify Functions
+- `npm run dht:control:start` - Start DHT (for testing)
+- `npm run dht:control:stop` - Stop DHT (for testing)
+- `npm run dht:control:restart` - Restart DHT (for testing)
+- `npm run dht:control:status` - Get DHT status (for testing)
+- `npm run ensure-netlify-cli` - Ensure netlify-cli is installed (for Render)
+- `npm run check-health` - Check gateway and DHT health
+- `npm run check-function-deps` - Check Netlify function dependencies
+- `npm run install-function-deps` - Install Netlify function dependencies
+- `npm run smart-build-with-apps` - Build with application support (for Netlify)
+- `make deploy-render` - Deploy to Render
+- `make deploy-netlify` - Deploy to Netlify
+- `make deploy-vercel` - Deploy to Vercel
+- `make sync-failover-page` - Sync failover page content
+- `make update-submodules` - Update all submodules
+- `make setup-submodules` - Setup submodules
+- `make test-provision` - Test provision endpoints
+- `make test-health` - Test health endpoints
+- `make status` - Check system status
+- `make ci-build` - Run full CI build
+- `make clean` - Clean build artifacts
+- `make clean-all` - Full clean including node_modules
+- `make audit` - Security audit
 
 ### Local Development
 
@@ -402,6 +462,10 @@ The project is configured for Netlify deployment with:
 ./integration-tests/run_gateway_migration_tests.sh
 ```
 
+### WebGUI Testing
+
+The WebGUI uses Jest and React Testing Library.  See the WebGUI Development section for testing commands.  Test coverage details are in the Implementation Summary.
+
 
 ## Support
 
@@ -416,128 +480,3 @@ The project is configured for Netlify deployment with:
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 
-## Acknowledgments
-
-- Built with [Netlify Functions](https://www.netlify.com/products/functions/)
-- Documentation powered by [Docsify](https://docsify.js.org/)
-- UI components from [Bootstrap](https://getbootstrap.com/)
-- Icons from [Feather Icons](https://feathericons.com/)
-
----
-
-**KNIRV Gateway** - Powering the future of decentralized AI and trusted execution networks.
-
-For more information about the KNIRV ecosystem, visit [knirv.com](https://knirv.com).
-
-
-## Changelog
-
-All notable changes to the KNIRV Gateway project will be documented in this section.  The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [1.0.0] - 2025-01-08
-
-### Added
-- **Initial Release**: KNIRV Gateway unified web portal and API gateway
-- **Netlify Functions**: Serverless API gateway with SSE support
-- **Web Portal**: Modern responsive website for KNIRV D-TEN
-- **Developer Portal**: Comprehensive documentation and tools
-- **Documentation Hub**: Integrated Docsify-based documentation
-- **Real-time Updates**: Server-Sent Events (SSE) for live data streaming
-- **Authentication System**: Secure API access and user management
-- **Health Monitoring**: Real-time service health and metrics
-- **Glass Morphism UI**: Modern design with balanced blue/purple color scheme
-
-### Gateway Functions
-- `gateway-sse.js`: Main API gateway with SSE support
-  - Service discovery and routing
-  - Authentication and authorization
-  - Real-time event streaming
-  - Proxy functionality for KNIRV services
-- `health-monitor.js`: Service health monitoring
-  - Real-time health status
-  - Performance metrics
-  - SSE health updates
-
-### API Endpoints
-- **Gateway Management**: `/gateway/*` endpoints
-- **Health Monitoring**: `/health-monitor/*` endpoints  
-- **Authentication**: `/auth/*` endpoints
-- **Service Proxy**: `/api/*`, `/economics/*`, `/tunnel/*` endpoints
-
-### Infrastructure
-- **Netlify Deployment**: Production-ready serverless deployment
-- **Build System**: Proper build configuration for static site + functions
-- **Environment Configuration**: Production environment variable support
-- **SSL/HTTPS**: Secure connections and API access
-- **CDN**: Global content delivery network
-
-### Documentation
-- **README.md**: Comprehensive project documentation
-- **API Documentation**: Complete API reference
-- **Developer Guide**: Getting started and development instructions
-- **Deployment Guide**: Production deployment instructions
-
-### Development Tools
-- **Local Development**: `npm run dev` with hot reload
-- **Testing Scripts**: Gateway function validation
-- **Build Scripts**: Production build process
-- **Deployment Scripts**: Automated deployment to Netlify
-
-## [0.9.0] - 2025-01-07 (Pre-release)
-
-### Added
-- **Gateway Migration**: Migrated from KNIRVGATEWAY Go-based WebSocket gateway
-- **SSE Conversion**: Converted WebSocket functionality to Server-Sent Events
-- **Netlify Functions**: Implemented serverless functions architecture
-- **Economics Integration**: Integrated economics module into KNIRVORACLE
-- **Tunnel Registry Migration**: Moved tunnel registry to KNIRVORACLE
-
-### Changed
-- **Architecture**: Moved from centralized gateway to distributed serverless functions
-- **Communication**: Replaced WebSockets with Server-Sent Events for better browser compatibility
-- **Service Location**: Moved economics and tunnel registry to KNIRVORACLE for better architecture
-- **Build Process**: Updated from static-only to static + functions build
-
-### Removed
-- **Go WebSocket Gateway**: Replaced with Netlify Functions
-- **Centralized Gateway Server**: Distributed functionality across serverless functions
-
-## Migration History
-
-### From KNIRVGATEWAY to KNIRVGATEWAY
-- **Renamed**: Project renamed from KNIRVGATEWAY to KNIRVGATEWAY to better reflect its role
-- **Enhanced**: Added comprehensive API gateway functionality
-- **Unified**: Combined web portal and API gateway into single project
-- **Modernized**: Updated architecture for serverless deployment
-
-### Architecture Evolution
-1. **Static Website** (Original): Pure static HTML/CSS/JS website
-2. **Website + Functions** (v0.9): Added Netlify Functions for API gateway
-3. **Unified Gateway** (v1.0): Full integration as KNIRV Gateway portal
-
-## Technical Debt Addressed
-
-### Build Configuration
-- ✅ Fixed build command from static-only to proper dependency installation
-- ✅ Updated Netlify configuration for functions support
-- ✅ Proper environment variable handling
-
-### Security
-- ✅ Added proper authentication system
-- ✅ Implemented secure API access
-- ✅ Added security headers and HTTPS enforcement
-
-### Performance
-- ✅ Optimized for global CDN delivery
-- ✅ Implemented efficient SSE streaming
-- ✅ Added proper caching strategies
-
-### Maintainability
-- ✅ Comprehensive documentation
-- ✅ Proper project structure
-- ✅ Development and testing tools
-- ✅ Clear deployment procedures
-
-## Future Roadmap
-
-### Planned

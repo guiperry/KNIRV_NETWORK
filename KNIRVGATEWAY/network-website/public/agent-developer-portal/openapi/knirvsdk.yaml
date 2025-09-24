@@ -19,9 +19,9 @@ servers:
     description: Local KNIRVORACLE development server
   - url: http://localhost:3000/api
     description: Local Agentify development server
-  - url: https://api.knirv.com/v1
+  - url: https://api.knirv.network/v1
     description: Production KNIRV API Gateway
-  - url: https://api-staging.knirv.com/v1
+  - url: https://api-staging.knirv.network/v1
     description: Staging KNIRV API Gateway
 
 tags:

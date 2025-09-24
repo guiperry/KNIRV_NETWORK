@@ -12,7 +12,7 @@ export default function TutorialsPage() {
   const tutorials = [
     {
       title: "Getting Started with KNIRV",
-      description: "Learn the basics of creating your first AI agent in under 10 minutes.",
+      description: "Learn the basics of creating your first AI model in under 10 minutes.",
       duration: "8 min",
       level: "Beginner",
       author: "Sarah Chen",
@@ -21,7 +21,7 @@ export default function TutorialsPage() {
       category: "Getting Started"
     },
     {
-      title: "Building a Customer Support Agent",
+      title: "Building a Customer Support Model",
   description: "Step-by-step guide to creating an intelligent customer support chatbot.",
       duration: "15 min",
       level: "Intermediate",
@@ -31,7 +31,7 @@ export default function TutorialsPage() {
       category: "Use Cases"
     },
     {
-      title: "Advanced Agent Configuration",
+      title: "Advanced NIM Configuration",
   description: "Deep dive into advanced settings and customization options.",
       duration: "22 min",
       level: "Advanced",
@@ -61,7 +61,7 @@ export default function TutorialsPage() {
       category: "Security"
     },
     {
-      title: "Deploying Agents to Production",
+      title: "Deploying NIMS to Production",
       description: "Complete guide to deploying and scaling your agents in production.",
       duration: "25 min",
       level: "Advanced",
@@ -99,7 +99,7 @@ export default function TutorialsPage() {
             <KnirvLogo />
             <div className="flex items-center space-x-4">
                 <Button variant="outline" className="border-knirv-border-primary text-knirv-text-primary hover:bg-knirv-bg-primary/10">
-                <Link href="/documentation" data-config-nav="documentation">Documentation</Link>
+                <Link href="https://knirv.network/agent-developer-portal/" data-config-nav="documentation">Documentation</Link>
               </Button>
               <Button variant="outline" className="border-knirv-border-primary text-knirv-text-primary hover:bg-knirv-bg-primary/10">
                 <Link href="/support" data-config-nav="support">Support</Link>
@@ -116,7 +116,7 @@ export default function TutorialsPage() {
             <span className="knirv-gradient-text">Tutorials</span>
           </h1>
           <p className="text-xl text-white/70 mb-8 max-w-3xl mx-auto leading-relaxed">
-            Learn how to build, deploy, and optimize AI agents with our comprehensive video tutorials and guides.
+            Learn how to build, deploy, and optimize Neural Intellegence Models with our comprehensive video tutorials and guides.
           </p>
           <div className="flex items-center justify-center space-x-8 text-white/60">
             <div className="flex items-center space-x-2">

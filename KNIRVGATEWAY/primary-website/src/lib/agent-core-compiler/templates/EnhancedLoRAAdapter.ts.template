@@ -1,0 +1,456 @@
+/**
+ * Cognitive Shell Template: EnhancedLoRAAdapter.ts
+ * Generated from: KNIRVCONTROLLER/receiver/src/sensory-shell/EnhancedLoRAAdapter.ts
+ * 
+ * This template is compiled into agent.wasm for embedded cognitive processing
+ * Communication with sensory-shell happens through WASM interface
+ */
+
+import { EventEmitter } from './EventEmitter';
+import { LoRAAdapter, LoRAWeights, AdapterMetadata } from './LoRAAdapter';
+
+export interface EnhancedLoRAConfig {
+  multiLayerEnabled: boolean;
+  dynamicRankEnabled: boolean;
+  adaptiveAlphaEnabled: boolean;
+  performanceTracking: boolean;
+  autoOptimization: boolean;
+}
+
+export interface LayerWeights {
+  layerId: string;
+  weights: LoRAWeights;
+  performance: number;
+  lastUsed: Date;
+}
+
+export interface AdaptationMetrics {
+  totalAdaptations: number;
+  successRate: number;
+  averagePerformance: number;
+  optimalRank: number;
+  optimalAlpha: number;
+}
+
+/**
+ * Enhanced LoRA Adapter with advanced features
+ * Provides multi-layer adaptation, dynamic optimization, and performance tracking
+ */
+export class EnhancedLoRAAdapter extends EventEmitter {
+  private config: EnhancedLoRAConfig;
+  private baseAdapter: LoRAAdapter;
+  private layerWeights: Map<string, LayerWeights> = new Map();
+  private performanceHistory: number[] = [];
+  private isInitialized = false;
+
+  constructor(config?: Partial<EnhancedLoRAConfig>) {
+    super();
+    this.config = {
+      multiLayerEnabled: true,
+      dynamicRankEnabled: true,
+      adaptiveAlphaEnabled: true,
+      performanceTracking: true,
+      autoOptimization: true,
+      ...config
+    };
+    
+    this.baseAdapter = new LoRAAdapter();
+  }
+
+  async initialize(): Promise<void> {
+    try {
+      this.emit('enhanced_lora_initialization_started');
+      
+      // Initialize base adapter
+      await this.baseAdapter.initialize();
+      
+      // Initialize layer weights storage
+      this.layerWeights.clear();
+      this.performanceHistory = [];
+      
+      this.isInitialized = true;
+      this.emit('enhanced_lora_initialized');
+    } catch (error) {
+      this.emit('enhanced_lora_initialization_failed', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Process input with enhanced LoRA adaptation
+   */
+  async process(input: any, context: Map<string, any>): Promise<any> {
+    if (!this.isInitialized) {
+      throw new Error('Enhanced LoRA adapter not initialized');
+    }
+
+    const startTime = Date.now();
+
+    try {
+      this.emit('enhanced_processing_started', { input });
+
+      // Apply base LoRA adaptation
+      let result = await this.baseAdapter.adapt(input, context);
+
+      // Apply multi-layer adaptation if enabled
+      if (this.config.multiLayerEnabled) {
+        result = await this.applyMultiLayerAdaptation(result, context);
+      }
+
+      // Apply dynamic optimization if enabled
+      if (this.config.dynamicRankEnabled || this.config.adaptiveAlphaEnabled) {
+        result = await this.applyDynamicOptimization(result, context);
+      }
+
+      // Track performance if enabled
+      if (this.config.performanceTracking) {
+        const performance = this.calculatePerformance(input, result, Date.now() - startTime);
+        this.trackPerformance(performance);
+      }
+
+      // Auto-optimize if enabled
+      if (this.config.autoOptimization) {
+        await this.autoOptimize();
+      }
+
+      this.emit('enhanced_processing_completed', { input, result });
+      return result;
+
+    } catch (error) {
+      this.emit('enhanced_processing_failed', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Apply multi-layer LoRA adaptation
+   */
+  private async applyMultiLayerAdaptation(input: any, context: Map<string, any>): Promise<any> {
+    let result = input;
+
+    // Apply each layer in sequence
+    for (const [layerId, layerWeights] of this.layerWeights) {
+      try {
+        result = await this.applyLayerWeights(result, layerWeights, context);
+        
+        // Update layer usage
+        layerWeights.lastUsed = new Date();
+        
+        this.emit('layer_applied', { layerId, performance: layerWeights.performance });
+      } catch (error) {
+        this.emit('layer_application_failed', { layerId, error: error.message });
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Apply dynamic optimization
+   */
+  private async applyDynamicOptimization(input: any, context: Map<string, any>): Promise<any> {
+    const metrics = this.getAdaptationMetrics();
+    
+    // Adjust parameters based on performance
+    if (this.config.dynamicRankEnabled && metrics.optimalRank > 0) {
+      await this.adjustRank(metrics.optimalRank);
+    }
+    
+    if (this.config.adaptiveAlphaEnabled && metrics.optimalAlpha > 0) {
+      await this.adjustAlpha(metrics.optimalAlpha);
+    }
+
+    return input;
+  }
+
+  /**
+   * Add layer weights
+   */
+  async addLayer(layerId: string, weights: LoRAWeights): Promise<boolean> {
+    try {
+      const layerWeights: LayerWeights = {
+        layerId,
+        weights,
+        performance: 0.5, // Initial neutral performance
+        lastUsed: new Date()
+      };
+
+      this.layerWeights.set(layerId, layerWeights);
+      this.emit('layer_added', { layerId });
+      return true;
+
+    } catch (error) {
+      this.emit('layer_addition_failed', { layerId, error: error.message });
+      return false;
+    }
+  }
+
+  /**
+   * Remove layer weights
+   */
+  async removeLayer(layerId: string): Promise<boolean> {
+    try {
+      const removed = this.layerWeights.delete(layerId);
+      if (removed) {
+        this.emit('layer_removed', { layerId });
+      }
+      return removed;
+    } catch (error) {
+      this.emit('layer_removal_failed', { layerId, error: error.message });
+      return false;
+    }
+  }
+
+  /**
+   * Apply layer weights to input
+   */
+  private async applyLayerWeights(
+    input: any, 
+    layerWeights: LayerWeights, 
+    context: Map<string, any>
+  ): Promise<any> {
+    // Use base adapter to apply the layer weights
+    const tempAdapter = new LoRAAdapter();
+    await tempAdapter.initialize();
+    
+    const metadata: AdapterMetadata = {
+      id: layerWeights.layerId,
+      name: `Layer ${layerWeights.layerId}`,
+      description: 'Enhanced LoRA layer',
+      version: '1.0.0',
+      targetModel: '{{agentId}}',
+      createdAt: new Date(),
+      performance: layerWeights.performance
+    };
+
+    await tempAdapter.loadAdapter(metadata, layerWeights.weights);
+    await tempAdapter.activateAdapter(layerWeights.layerId);
+    
+    const result = await tempAdapter.adapt(input, context);
+    await tempAdapter.dispose();
+    
+    return result;
+  }
+
+  /**
+   * Calculate performance score
+   */
+  private calculatePerformance(input: any, output: any, processingTime: number): number {
+    // Simple performance calculation - can be enhanced
+    let score = 0.5; // Base score
+
+    // Factor in processing time (faster is better)
+    if (processingTime < 100) score += 0.2;
+    else if (processingTime > 1000) score -= 0.2;
+
+    // Factor in output quality
+    if (output && typeof output === 'object') {
+      const keys = Object.keys(output);
+      if (keys.length > 0) score += 0.1;
+      if (keys.length > 5) score += 0.1;
+    }
+
+    if (typeof output === 'string' && output.length > 10) {
+      score += 0.1;
+    }
+
+    return Math.max(0, Math.min(1, score));
+  }
+
+  /**
+   * Track performance metrics
+   */
+  private trackPerformance(performance: number): void {
+    this.performanceHistory.push(performance);
+    
+    // Maintain history size
+    if (this.performanceHistory.length > 1000) {
+      this.performanceHistory.shift();
+    }
+
+    this.emit('performance_tracked', { performance, historySize: this.performanceHistory.length });
+  }
+
+  /**
+   * Auto-optimize adapter parameters
+   */
+  private async autoOptimize(): Promise<void> {
+    if (this.performanceHistory.length < 10) {
+      return; // Need more data for optimization
+    }
+
+    const metrics = this.getAdaptationMetrics();
+    
+    // Remove poorly performing layers
+    if (metrics.successRate < 0.5) {
+      await this.prunePoorPerformingLayers();
+    }
+
+    // Optimize layer order based on performance
+    await this.optimizeLayerOrder();
+
+    this.emit('auto_optimization_completed', { metrics });
+  }
+
+  /**
+   * Prune poorly performing layers
+   */
+  private async prunePoorPerformingLayers(): Promise<void> {
+    const layersToRemove: string[] = [];
+
+    for (const [layerId, layerWeights] of this.layerWeights) {
+      if (layerWeights.performance < 0.3) {
+        layersToRemove.push(layerId);
+      }
+    }
+
+    for (const layerId of layersToRemove) {
+      await this.removeLayer(layerId);
+    }
+
+    if (layersToRemove.length > 0) {
+      this.emit('layers_pruned', { removedLayers: layersToRemove });
+    }
+  }
+
+  /**
+   * Optimize layer application order
+   */
+  private async optimizeLayerOrder(): Promise<void> {
+    // Sort layers by performance (best first)
+    const sortedLayers = Array.from(this.layerWeights.entries())
+      .sort((a, b) => b[1].performance - a[1].performance);
+
+    // Rebuild the map with optimized order
+    this.layerWeights.clear();
+    for (const [layerId, layerWeights] of sortedLayers) {
+      this.layerWeights.set(layerId, layerWeights);
+    }
+
+    this.emit('layer_order_optimized', { layerCount: sortedLayers.length });
+  }
+
+  /**
+   * Adjust rank parameter
+   */
+  private async adjustRank(newRank: number): Promise<void> {
+    // This would adjust the rank in the base adapter
+    // Implementation depends on base adapter capabilities
+    this.emit('rank_adjusted', { newRank });
+  }
+
+  /**
+   * Adjust alpha parameter
+   */
+  private async adjustAlpha(newAlpha: number): Promise<void> {
+    // This would adjust the alpha in the base adapter
+    // Implementation depends on base adapter capabilities
+    this.emit('alpha_adjusted', { newAlpha });
+  }
+
+  /**
+   * Get adaptation metrics
+   */
+  getAdaptationMetrics(): AdaptationMetrics {
+    const recentPerformance = this.performanceHistory.slice(-100);
+    const successfulAdaptations = recentPerformance.filter(p => p > 0.5).length;
+
+    return {
+      totalAdaptations: this.performanceHistory.length,
+      successRate: recentPerformance.length > 0 ? successfulAdaptations / recentPerformance.length : 0,
+      averagePerformance: recentPerformance.length > 0 ? 
+        recentPerformance.reduce((sum, p) => sum + p, 0) / recentPerformance.length : 0,
+      optimalRank: this.calculateOptimalRank(),
+      optimalAlpha: this.calculateOptimalAlpha()
+    };
+  }
+
+  /**
+   * Calculate optimal rank based on performance history
+   */
+  private calculateOptimalRank(): number {
+    // Simplified calculation - in practice this would be more sophisticated
+    const avgPerformance = this.performanceHistory.length > 0 ?
+      this.performanceHistory.reduce((sum, p) => sum + p, 0) / this.performanceHistory.length : 0.5;
+
+    if (avgPerformance > 0.8) return 8;  // High performance, lower rank
+    if (avgPerformance > 0.6) return 16; // Medium performance, medium rank
+    return 32; // Lower performance, higher rank
+  }
+
+  /**
+   * Calculate optimal alpha based on performance history
+   */
+  private calculateOptimalAlpha(): number {
+    // Simplified calculation
+    const avgPerformance = this.performanceHistory.length > 0 ?
+      this.performanceHistory.reduce((sum, p) => sum + p, 0) / this.performanceHistory.length : 0.5;
+
+    return Math.max(1, Math.min(64, avgPerformance * 64));
+  }
+
+  /**
+   * Get layer information
+   */
+  getLayerInfo(): any[] {
+    return Array.from(this.layerWeights.values()).map(layer => ({
+      layerId: layer.layerId,
+      performance: layer.performance,
+      lastUsed: layer.lastUsed,
+      rank: layer.weights.rank,
+      alpha: layer.weights.alpha
+    }));
+  }
+
+  /**
+   * Export enhanced adapter state
+   */
+  exportState(): any {
+    return {
+      config: this.config,
+      layers: Array.from(this.layerWeights.entries()),
+      performanceHistory: this.performanceHistory,
+      metrics: this.getAdaptationMetrics(),
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  /**
+   * Import enhanced adapter state
+   */
+  importState(state: any): void {
+    if (state.config) {
+      this.config = { ...this.config, ...state.config };
+    }
+
+    if (state.layers) {
+      this.layerWeights = new Map(state.layers);
+    }
+
+    if (state.performanceHistory) {
+      this.performanceHistory = state.performanceHistory;
+    }
+
+    this.emit('state_imported', { layerCount: this.layerWeights.size });
+  }
+
+  /**
+   * Check if adapter is ready
+   */
+  isReady(): boolean {
+    return this.isInitialized && this.baseAdapter.isReady();
+  }
+
+  /**
+   * Cleanup resources
+   */
+  async dispose(): Promise<void> {
+    await this.baseAdapter.dispose();
+    this.layerWeights.clear();
+    this.performanceHistory = [];
+    this.isInitialized = false;
+    this.emit('enhanced_lora_disposed');
+  }
+}
+
+export default EnhancedLoRAAdapter;

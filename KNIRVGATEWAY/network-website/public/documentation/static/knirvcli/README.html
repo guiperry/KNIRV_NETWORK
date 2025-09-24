@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>KNIRVWALLET - KNIRV Network</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #0a0a0a;
+      color: #e0e0e0;
+      line-height: 1.6;
+    }
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 300px;
+      background-color: #1a1a2e;
+      border-right: 1px solid #333;
+      padding: 20px;
+      padding-bottom: 120px;
+      overflow-y: auto;
+      position: fixed;
+      height: 100vh;
+      box-sizing: border-box;
+    }
+    .content {
+      flex: 1;
+      margin-left: 300px;
+      padding: 40px;
+      max-width: 800px;
+    }
+    .sidebar h1, .sidebar h2, .sidebar h3 {
+      color: #4a9eff;
+      margin-top: 30px;
+      margin-bottom: 10px;
+    }
+    .sidebar a {
+      color: #e0e0e0;
+      text-decoration: none;
+      display: block;
+      padding: 5px 0;
+      border-left: 3px solid transparent;
+      padding-left: 10px;
+    }
+    .sidebar a:hover {
+      color: #4a9eff;
+      border-left-color: #4a9eff;
+    }
+    .nav-section {
+      margin-bottom: 20px;
+    }
+    .sidebar-footer {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+    }
+    .sidebar-footer hr {
+      border: 1px solid #333;
+      margin: 20px 0;
+    }
+    .sidebar-footer p {
+      font-size: 0.9em;
+      color: #888;
+      text-align: center;
+      margin: 0;
+    }
+    .sidebar-footer a {
+      color: #4a9eff !important;
+      border: none !important;
+      padding: 0 !important;
+    }
+    .content h1, .content h2, .content h3 {
+      color: #4a9eff;
+    }
+    .content a {
+      color: #4a9eff;
+    }
+    .content a:hover {
+      color: #6fb5ff;
+    }
+    .content code {
+      background-color: #16213e;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Monaco', 'Consolas', monospace;
+    }
+    .content pre {
+      background-color: #16213e;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+    .content pre code {
+      background: none;
+      padding: 0;
+    }
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-300px);
+        transition: transform 0.3s ease;
+      }
+      .content {
+        margin-left: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <h1>KNIRV Network</h1>
+      <div class="nav-section"><h2>KNIRVCHAIN Documentation</h2>
+<a href="../../knirvchain/README.html">KNIRVCHAIN</a>
+<h2>KNIRVGRAPH Documentation</h2>
+<a href="../../knirvgraph/README.html">KNIRVGRAPH - Decentralized Knowledge Graph with Economics</a>
+<h2>KNIRVNEXUS Documentation</h2>
+<a href="../../knirvnexus/README.html">KNIRV-NEXUS: Decentralized Validation Environment</a>
+<h2>KNIRVORACLE Documentation</h2>
+<a href="../../knirvoracle/README.html">KNIRVORACLE: A Decentralized Model Context Protocol Network</a>
+<h2>KNIRVROUTER Documentation</h2>
+<a href="../../knirvrouter/README.html">KNIRVROUTER Verifier Node - Blockchain Implementation in Go</a>
+<h2>KNIRVSDK Documentation</h2>
+<a href="../../knirvsdk/README.html">KNIRV SDK</a>
+<h2>KNIRVINFERENCE Documentation</h2>
+<a href="../../knirvinference/README.html">KNIRVINFERENCE User Guide</a>
+<h2>KNIRVCONTROLLER Documentation</h2>
+<a href="../../knirvcontroller/README.html">Consolidated Documentation</a>
+<h2>KNIRVGATEWAY Documentation</h2>
+<a href="../../knirvgateway/README.html">KNIRV GATEWAY</a>
+<h2>KNIRVTESTNET Documentation</h2>
+<a href="../../knirvtestnet/README.html">KNIRV Testnet</a>
+<h2>KNIRVANA Documentation</h2>
+<a href="../../knirvana/README.html">KNIRVANA - The Experiential Gateway</a>
+<h2>📄 Whitepapers</h2>
+<a href="../../whitepapers/index.html">📚 View All Whitepapers</a></div>
+      <div class="sidebar-footer">
+        <hr style="border: 1px solid #333; margin: 20px 0;">
+        <p style="font-size: 0.9em; color: #888; text-align: center;">
+          © 2025 KNIRV Network<br>
+          <a href="https://knirv.network" style="color: #4a9eff;">knirv.network</a>
+        </p>
+      </div>
+    
+    </div>
+    <div class="content">
+      <h1>KNIRVWALLET</h1><br><br>!<a href="browser-wallet/banner.png">Banner</a><br><br>A comprehensive, multi-platform wallet ecosystem designed as the seamless gateway to the KNIRV Decentralized Trusted Execution Network (D-TEN). KNIRVWALLET provides unified access to NRN tokens, KNIRV-INFERENCE agents, and the entire KNIRV ecosystem through intuitive, Web2-like experiences powered by XION's Meta Accounts.<br><br><h2>Table of Contents</h2><br><br>- <a href="#-overview">🚀 Overview</a><br>- <a href="#-key-features">✨ Key Features</a><br>- <a href="#-platform-implementations">📱 Platform Implementations</a><br>    - <a href="#agentic-wallet-mobile">Agentic Wallet (Mobile)</a><br>    - <a href="#browser-wallet-webextension">Browser Wallet (Web/Extension)</a><br>- <a href="#-installation--setup">🛠️ Installation & Setup</a><br>    - <a href="#prerequisites">Prerequisites</a><br>    - <a href="#quick-start">Quick Start</a><br>    - <a href="#configuration">Configuration</a><br>        - <a href="#xion-integration">XION Integration</a><br>        - <a href="#browser-extension-installation">Browser Extension Installation</a><br>- <a href="#-architecture">🏗️ Architecture</a><br>    - <a href="#unified-wallet-architecture">Unified Wallet Architecture</a><br>    - <a href="#cross-platform-communication">Cross-Platform Communication</a><br>- <a href="#-usage-examples">📚 Usage Examples</a><br>    - <a href="#creating-a-wallet">Creating a Wallet</a><br>    - <a href="#nrn-token-operations">NRN Token Operations</a><br>    - <a href="#agent-management">Agent Management</a><br>- <a href="#-knirv-ecosystem-integration">🔗 KNIRV Ecosystem Integration</a><br>- <a href="#-testing">🧪 Testing</a><br>    - <a href="#test-architecture">Test Architecture</a><br>    - <a href="#test-categories">Test Categories</a><br>        - <a href="#unit-tests">Unit Tests</a><br>        - <a href="#integration-tests">Integration Tests</a><br>        - <a href="#end-to-end-tests">End-to-End Tests</a><br>    - <a href="#test-utilities">Test Utilities</a><br>    - <a href="#running-tests">Running Tests</a><br>    - <a href="#test-configuration">Test Configuration</a><br>    - <a href="#test-data-and-mocking">Test Data and Mocking</a><br>    - <a href="#coverage-and-reporting">Coverage and Reporting</a><br>    - <a href="#continuous-integration">Continuous Integration</a><br>    - <a href="#best-practices">Best Practices</a><br>    - <a href="#debugging-tests">Debugging Tests</a><br>    - <a href="#performance-testing">Performance Testing</a><br>    - <a href="#security-testing">Security Testing</a><br>    - <a href="#troubleshooting">Troubleshooting</a><br>    - <a href="#contributing-1">Contributing</a><br>- <a href="#-deployment">🚀 Deployment</a><br>    - <a href="#mobile-app-deployment">Mobile App Deployment</a><br>    - <a href="#browser-extension-deployment">Browser Extension Deployment</a><br>- <a href="#-contributing">🤝 Contributing</a><br>    - <a href="#development-guidelines">Development Guidelines</a><br>- <a href="#-license">📄 License</a><br>- <a href="#-support">🆘 Support</a><br><br><br><h2>🚀 Overview</h2><br><br>KNIRVWALLET consists of two complementary implementations that provide seamless integration between mobile and browser environments:<br><br>- <strong>🔗 Agentic Wallet</strong>: React Native mobile application with Go backend for native mobile experiences. Located at <code>agentic-wallet/</code>.<br>- <strong>🌐 Browser Wallet</strong>: Browser extension and web application for desktop and web-based interactions. Located at <code>browser-wallet/</code>.<br><br>Both implementations share core functionality while optimizing for their respective platforms, ensuring users can access their KNIRV assets and agents from any device.<br><br><br><h2>✨ Key Features</h2><br><br><h3>🔐 Core Wallet Functionality</h3><br>- Multi-Chain Support: BTC, ETH, Solana, and KNIRV-ORACLE blockchain<br>- NRN Token Management: Native support for KNIRV Network's NRN tokens<br>- XION Meta Accounts: Gasless transactions and Web2-like authentication<br>- Biometric Authentication: Secure, convenient access across platforms<br>- Hardware Wallet Support: Ledger integration for enhanced security<br><br><h3>🤖 KNIRV Ecosystem Integration</h3><br>- KNIRV-INFERENCE Control: Manage and control your AI agents<br>- User Delegation Certificates (UDCs): Secure agent authorization<br>- NRV System Integration: Submit ErrorNodes and SkillNodes<br>- Economics Module: Skill registration and fee management<br>- Real-time Communication: WebSocket and SSE support<br><br><h3>🌍 Cross-Platform Features</h3><br>- QR Code Connectivity: Seamless connection between mobile and browser<br>- Unified Account Management: Consistent experience across platforms<br>- Progressive Web App: Browser wallet works offline<br>- Native Mobile Performance: Optimized React Native implementation<br><br><br><h2>📱 Platform Implementations</h2><br><br><h3>Agentic Wallet (Mobile)</h3><br><br>A React Native application with Go backend providing:<br>- Native mobile performance and UX<br>- Expo-based development for rapid iteration<br>- XION Meta Account integration<br>- Go backend with WASM-based AI agent execution<br>- Android APK compilation support<br>- Biometric authentication<br>- Camera integration for QR codes<br><br><strong>Tech Stack</strong>:<br>- React Native 0.79.1 with Expo 53.0.0<br>- Go 1.21+ backend with WASM runtime<br>- CosmJS for blockchain interactions<br>- PostgreSQL and Redis for data storage<br><br><h3>Browser Wallet (Web/Extension)</h3><br><br>A comprehensive browser extension and web application featuring:<br>- Chrome/Firefox extension support<br>- Progressive Web App capabilities<br>- Multi-workspace architecture<br>- Torus signin integration<br>- Advanced transaction management<br>- Web3 login support<br>- Airgap account support<br><br><strong>Tech Stack</strong>:<br>- TypeScript 4.9.5 with React 18.2.0<br>- Webpack 5.90.3 build system<br>- Yarn workspaces for modular architecture<br>- Jest testing framework<br><br><br><h2>🛠️ Installation & Setup</h2><br><br><h3>Prerequisites</h3><br>- Node.js 18.14.2+<br>- Go 1.21+ (for agentic wallet backend)<br>- PostgreSQL 13+ and Redis 6+ (for agentic wallet)<br>- Yarn package manager<br><br><h3>Quick Start</h3><br><br>#### 1. Clone and Setup<br><pre><code>bash<br>git clone <repository-url><br>cd KNIRVWALLET<br></code></pre><br><br>#### 2. Browser Wallet Setup<br><pre><code>bash<br>cd browser-wallet<br>yarn install<br>yarn build<br></code></pre><br><br>#### 3. Agentic Wallet Setup<br><pre><code>bash<br>cd agentic-wallet<br><br><h1>Install dependencies</h1><br>yarn install<br><br><h1>Setup Go backend</h1><br>cd go-backend<br>make deps<br>cp .env.example .env<br><h1>Edit .env with your configuration</h1><br>make migrate-up<br><br><h1>Start development</h1><br>cd ..<br>yarn dev<br></code></pre><br><br><h3>Configuration</h3><br><br>#### XION Integration<br>1. Copy environment configuration:<br><pre><code>bash<br>cp agentic-wallet/.env.example agentic-wallet/.env<br></code></pre><br><br>2. Configure XION contract addresses:<br><pre><code>env<br>EXPO_PUBLIC_NRN_CONTRACT=xion1your_nrn_contract_address<br>EXPO_PUBLIC_FAUCET_CONTRACT=xion1your_faucet_contract_address<br></code></pre><br><br>#### Browser Extension Installation<br>1. Build the extension:<br><pre><code>bash<br>cd browser-wallet<br>yarn build<br></code></pre><br><br>2. Load in browser:<br>   - Chrome: Go to <code>chrome://extensions/</code>, enable Developer mode, click "Load unpacked", select <code>packages/knirvwallet-extension/dist</code><br>   - Firefox: Go to <code>about:debugging</code>, click "This Firefox", click "Load Temporary Add-on", select manifest file<br><br><br><h2>🏗️ Architecture</h2><br><br><h3>Unified Wallet Architecture</h3><br><pre><code><br>KNIRVWALLET/<br>├── agentic-wallet/          # Mobile React Native App<br>│   ├── src/                 # React Native components<br>│   ├── go-backend/          # Go API server<br>│   ├── services/            # Blockchain services<br>│   └── components/          # UI components<br>├── browser-wallet/          # Browser Extension & Web App<br>│   ├── packages/<br>│   │   ├── knirvwallet-extension/    # Browser extension<br>│   │   ├── knirvwallet-module/       # Core wallet module<br>│   │   └── knirvwallet-torus-signin/ # Torus integration<br>│   └── scripts/             # Build and deployment scripts<br>└── shared/                  # Shared utilities (future)<br></code></pre><br><br><h3>Cross-Platform Communication</h3><br>- QR Code Pairing: Mobile app generates QR codes for browser connection<br>- WebSocket Bridge: Real-time synchronization between platforms<br>- Shared State Management: Consistent wallet state across devices<br>- Universal Deep Links: Seamless handoff between applications<br><br><br><h2>📚 Usage Examples</h2><br><br><h3>Creating a Wallet</h3><br><pre><code>typescript<br>// Agentic Wallet (React Native)<br>import { WalletManager, getXionConfig } from './src/xion-meta-accounts';<br><br>const config = getXionConfig('testnet');<br>const walletManager = new WalletManager(config);<br>const wallet = await walletManager.createWallet('my-wallet');<br></code></pre><br><br><h3>NRN Token Operations</h3><br><pre><code>typescript<br>// Get balance<br>const balance = await wallet.getNRNBalance();<br><br>// Transfer tokens<br>const txHash = await wallet.transferNRN(recipientAddress, amount);<br><br>// Burn for skills<br>const txHash = await wallet.burnNRNForSkill(skillId, amount);<br></code></pre><br><br><h3>Agent Management</h3><br><pre><code>typescript<br>// Execute AI agent<br>const result = await agentService.executeAgent(agentId, parameters);<br><br>// Submit to NRV system<br>await nrvService.submitErrorNode(errorType, description);<br>await nrvService.submitSkillNode(skillType, capabilities);<br></code></pre><br><br><br><h2>🔗 KNIRV Ecosystem Integration</h2><br><br>KNIRVWALLET seamlessly integrates with the broader KNIRV ecosystem:<br><br>- <strong><a href="../KNIRVORACLE/">KNIRV-ORACLE</a></strong>: Foundational blockchain for NRN tokens<br>- <strong><a href="../KNIRVCHAIN/">KNIRVCHAIN</a></strong>: Smart contract platform for Skills and Base LLMs  <br>- <strong><a href="../KNIRVINFERENCE/">KNIRV-INFERENCE</a></strong>: AI agent framework<br>- <strong><a href="../KNIRVNEXUS/">KNIRV-NEXUS</a></strong>: Distributed verification engine<br>- <strong><a href="../KNIRVGATEWAY/">KNIRVGATEWAY</a></strong>: Unified API gateway<br>- <strong><a href="../KNIRVSDK/">KNIRVSDK</a></strong>: Development tools and libraries<br><br><br><h2>🧪 Testing</h2><br><br><h3>Test Architecture</h3><br><pre><code><br>KNIRVWALLET/<br>├── tests/<br>│   ├── unit/                    # Unit tests<br>│   │   ├── browser-wallet/      # Browser extension tests<br>│   │   ├── react-native/        # Mobile app tests<br>│   │   └── go-backend/          # Backend service tests<br>│   ├── integration/             # Integration tests<br>│   │   ├── cross-platform-sync.test.go<br>│   │   └── xion-integration.test.go<br>│   └── e2e/                     # End-to-end tests<br>│       ├── wallet-workflow.test.js<br>│       ├── playwright.config.js<br>│       ├── global-setup.js<br>│       └── global-teardown.js<br>├── test-utils/                  # Shared test utilities<br>│   ├── test-data.ts<br>│   ├── wallet-test-utils.ts<br>│   ├── crypto-test-utils.ts<br>│   ├── xion-test-utils.ts<br>│   ├── mock-services.ts<br>│   └── test-helpers.ts<br>├── jest.config.js              # Jest configuration<br>└── scripts/<br>    └── run-tests.sh            # Test runner script<br></code></pre><br><br><h3>Test Categories</h3><br><br>#### 1. Unit Tests<br><br>##### Browser Wallet Module Tests<br>- <strong>Location</strong>: <code>tests/unit/browser-wallet/</code><br>- <strong>Framework</strong>: Jest + Testing Library<br>- <strong>Coverage</strong>: Wallet core functionality, Transaction signing, Keyring management, Cryptographic operations<br><br>##### React Native Mobile Tests<br>- <strong>Location</strong>: <code>tests/unit/react-native/</code><br>- <strong>Framework</strong>: Jest + React Native Testing Library<br>- <strong>Coverage</strong>: XION meta accounts, Mobile UI components, Wallet screens, Cross-platform functionality<br><br>##### Go Backend Tests<br>- <strong>Location</strong>: <code>tests/unit/go-backend/</code><br>- <strong>Framework</strong>: Go testing + Testify<br>- <strong>Coverage</strong>: Multichain wallet service, XION integration, Wallet synchronization, API handlers<br><br>#### 2. Integration Tests<br><br>##### Cross-Platform Synchronization<br>- <strong>File</strong>: <code>tests/integration/cross-platform-sync.test.go</code><br>- <strong>Coverage</strong>: QR code pairing, WebSocket communication, Wallet data synchronization, Session management<br><br>##### XION Blockchain Integration<br>- <strong>File</strong>: <code>tests/integration/xion-integration.test.go</code><br>- <strong>Coverage</strong>: Meta account management, NRN token operations, Skill invocation, Gasless transactions, Faucet integration<br><br>#### 3. End-to-End Tests<br><br>##### Complete Wallet Workflow<br>- <strong>File</strong>: <code>tests/e2e/wallet-workflow.test.js</code><br>- <strong>Framework</strong>: Playwright<br>- <strong>Coverage</strong>: Browser extension workflow, Mobile app workflow, Cross-platform synchronization, Error handling, Performance testing, Security validation<br><br><h3>Test Utilities</h3><br><br>- <strong>Shared Test Data</strong>: <code>test-utils/test-data.ts</code> (Test mnemonics, private keys, addresses, transactions, XION data, wallet templates)<br>- <strong>Wallet Test Utilities</strong>: <code>test-utils/wallet-test-utils.ts</code> (Wallet factory, transaction validation, account/keyring utilities, mock services)<br>- <strong>Cryptographic Test Utilities</strong>: <code>test-utils/crypto-test-utils.ts</code> (Mnemonic validation, private key testing, encryption/decryption, signature verification, key derivation)<br>- <strong>XION Test Utilities</strong>: <code>test-utils/xion-test-utils.ts</code> (XION meta account mocking, transaction simulation, contract interaction, gasless transaction testing)<br><br><br><h3>Running Tests</h3><br><br><h3>Prerequisites</h3><br><pre><code>bash<br><h1>Install dependencies</h1><br>cd KNIRVWALLET<br>npm install<br><br><h1>Install Go dependencies</h1><br>cd agentic-wallet/go-backend<br>go mod download<br><br><h1>Install Playwright browsers</h1><br>npx playwright install<br></code></pre><br><br><h3>Running All Tests</h3><br><pre><code>bash<br><h1>Run comprehensive test suite</h1><br>./scripts/run-tests.sh<br><br><h1>Run with specific options</h1><br>./scripts/run-tests.sh --unit-only<br>./scripts/run-tests.sh --integration-only<br>./scripts/run-tests.sh --e2e-only<br>./scripts/run-tests.sh --all --verbose<br></code></pre><br><br><h3>Running Specific Test Categories</h3><br><br>#### Unit Tests Only<br><pre><code>bash<br><h1>Browser wallet tests</h1><br>cd browser-wallet<br>npm test<br><br><h1>React Native tests</h1><br>cd agentic-wallet<br>npm test<br><br><h1>Go backend tests</h1><br>cd agentic-wallet/go-backend<br>go test ./...<br></code></pre><br><br>#### Integration Tests Only<br><pre><code>bash<br>cd integration-tests<br>go test -v ./...<br></code></pre><br><br>#### End-to-End Tests Only<br><pre><code>bash<br><h1>All browsers</h1><br>npx playwright test<br><br><h1>Specific browser</h1><br>npx playwright test --project=chromium<br><br><h1>Mobile testing</h1><br>npx playwright test --project="Mobile Chrome"<br><br><h1>Cross-platform tests</h1><br>npx playwright test cross-platform<br></code></pre><br><br><h3>Test Configuration</h3><br><br>#### Jest Configuration<br>- <strong>File</strong>: <code>jest.config.js</code><br>- <strong>Features</strong>: Multi-project setup, Coverage reporting, Custom matchers, Mock configurations, Parallel execution<br><br>#### Playwright Configuration<br>- <strong>File</strong>: <code>tests/e2e/playwright.config.js</code><br>- <strong>Features</strong>: Multi-browser testing, Mobile device simulation, Cross-platform test projects, Video/screenshot capture, Test reporting<br><br><h3>Test Data and Mocking</h3><br><br>- <strong>Mock Services</strong>: <code>test-utils/mock-services.ts</code> (Mock XION client, wallet manager, transaction service, synchronization service)<br>- <strong>Test Data Management</strong>: Deterministic test data, isolated environments, automatic cleanup, secure credential handling<br><br><h3>Coverage and Reporting</h3><br><br>- <strong>Coverage Targets</strong>: Unit Tests (80% line coverage minimum), Integration Tests (critical path coverage), E2E Tests (user workflow coverage)<br>- <strong>Report Generation</strong>: <code>npm run test:coverage</code>, <code>npm run test:report</code><br><br><h3>Continuous Integration</h3><br><br>- <strong>GitHub Actions Integration</strong>: Example CI configuration provided in the original document.<br><br><h3>Best Practices</h3><br><br>- <strong>Writing Tests</strong>: Descriptive names, Arrange-Act-Assert pattern, test isolation, mock external dependencies, test edge cases.<br>- <strong>Test Maintenance</strong>: Regular updates, flaky test management, performance monitoring, documentation.<br>- <strong>Security Testing</strong>: Sensitive data handling, input validation, authentication, authorization.<br><br><h3>Debugging Tests</h3><br><br>- <strong>Debug Configuration</strong>: <code>npm run test:debug</code>, running specific test files, verbose output, watch mode.<br>- <strong>Common Issues</strong>: Timing issues, mock configuration, environment setup, data cleanup.<br><br><h3>Performance Testing</h3><br><br>- <strong>Load Testing</strong>: Transaction throughput, concurrent user simulation, memory usage, response time.<br>- <strong>Stress Testing</strong>: High-volume transactions, resource exhaustion, recovery, scalability.<br><br><h3>Security Testing</h3><br><br>- <strong>Vulnerability Testing</strong>: Input sanitization, authentication bypass, authorization escalation, data exposure.<br>- <strong>Cryptographic Testing</strong>: Key generation, signature verification, encryption/decryption, random number generation.<br><br><h3>Troubleshooting</h3><br><br>- <strong>Common Test Failures</strong>: Service unavailability, network timeouts, mock failures, data conflicts.<br>- <strong>Getting Help</strong>: Check test logs, review screenshots/videos, consult documentation, contact development team.<br><br><h3>Contributing</h3><br><br>#### Adding New Tests<br>1. Follow existing test patterns<br>2. Add appropriate test utilities<br>3. Update documentation<br>4. Ensure CI/CD integration<br><br>#### Test Review Process<br>1. Code review for test quality<br>2. Coverage impact assessment<br>3. Performance impact evaluation<br>4. Documentation updates<br><br><br><h2>🚀 Deployment</h2><br><br><h3>Mobile App Deployment</h3><br><pre><code>bash<br>cd agentic-wallet<br><br><h1>Build for iOS</h1><br>expo build:ios<br><br><h1>Build for Android</h1><br>expo build:android<br><br><h1>Or build Android APK with Go backend</h1><br>cd go-backend<br>make android-build<br></code></pre><br><br><h3>Browser Extension Deployment</h3><br><pre><code>bash<br>cd browser-wallet<br>yarn build<br><h1>Upload to Chrome Web Store / Firefox Add-ons</h1><br></code></pre><br><br><br><h2>🤝 Contributing</h2><br><br>We welcome contributions to KNIRVWALLET! Please see our contributing guidelines:<br><br>1. <strong>Fork the repository</strong><br>2. <strong>Create a feature branch</strong>: <code>git checkout -b feature/amazing-feature</code><br>3. <strong>Make your changes</strong> with appropriate tests<br>4. <strong>Follow code style</strong>: Run <code>yarn lint</code> and <code>yarn fmt</code><br>5. <strong>Submit a pull request</strong><br><br><h3>Development Guidelines</h3><br>- Follow TypeScript best practices<br>- Write comprehensive tests<br>- Document new features<br>- Ensure cross-platform compatibility<br>- Test on both mobile and browser implementations<br><br><br><h2>📄 License</h2><br><br>Copyright (c) 2025 KNIRV Network<br><br>This project is part of the KNIRV Network ecosystem. See LICENSE file for details.<br><br><br><h2>🆘 Support</h2><br><br>- <strong>Documentation</strong>: Check this README file and the comprehensive KNIRV documentation<br>- <strong>Issues</strong>: Open an issue on our GitHub repository with detailed reproduction steps<br>- <strong>Community</strong>: Join the KNIRV community for discussions, support, and collaboration<br>- <strong>Security</strong>: Report security issues privately to the maintainers following responsible disclosure<br>- <strong>Development</strong>: Contribute to the project by following our development guidelines<br><br><h2>📄 License</h2><br><br>This project is licensed under the MIT License - see the <a href="LICENSE">LICENSE</a> file for details.<br><br><h2>🙏 Acknowledgments</h2><br><br>- <strong>XION Network</strong>: For providing the Meta Accounts infrastructure that enables seamless Web2-like experiences<br>- <strong>React Native Community</strong>: For the robust mobile development framework<br>- <strong>Web3 Community</strong>: For the foundational technologies and standards<br>- <strong>KNIRV Contributors</strong>: For their dedication to building the decentralized future<br>- <strong>Security Researchers</strong>: For helping us maintain the highest security standards<br><br><h2>📚 Additional Resources</h2><br><br><h3>Documentation Links</h3><br>- <a href="../docs/">KNIRV Network Documentation</a><br>- <a href="https://docs.xion.burnt.com/">XION Meta Accounts Documentation</a><br>- <a href="https://reactnative.dev/docs/getting-started">React Native Documentation</a><br>- <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions">Web Extension API Documentation</a><br><br><h3>Community Resources</h3><br>- <a href="https://github.com/knirv-network">KNIRV GitHub Organization</a><br>- <a href="https://discord.gg/knirv">KNIRV Discord Community</a><br>- <a href="https://twitter.com/knirvnetwork">KNIRV Twitter</a><br>- <a href="https://blog.knirv.network">KNIRV Blog</a><br><br><h3>Developer Resources</h3><br>- <a href="../KNIRVSDK/">KNIRV SDK Documentation</a><br>- <a href="../docs/api/">KNIRV API Reference</a><br>- <a href="../docs/development/">Development Setup Guide</a><br>- <a href="../CONTRIBUTING.md">Contributing Guidelines</a><br><br><h2>🔮 Future Roadmap</h2><br><br><h3>Upcoming Features</h3><br>- <strong>Multi-Chain Support</strong>: Expand beyond XION to support additional blockchain networks<br>- <strong>Advanced Agent Interactions</strong>: Enhanced UI for complex agent workflows and automation<br>- <strong>Social Features</strong>: Wallet-to-wallet communication and social trading features<br>- <strong>DeFi Integration</strong>: Built-in DeFi protocols and yield farming opportunities<br>- <strong>NFT Marketplace</strong>: Integrated NFT trading and collection management<br>- <strong>Hardware Wallet Support</strong>: Integration with Ledger, Trezor, and other hardware wallets<br><br><h3>Long-term Vision</h3><br>- <strong>Decentralized Identity</strong>: Self-sovereign identity management with verifiable credentials<br>- <strong>Cross-Platform Sync</strong>: Seamless synchronization across all devices and platforms<br>- <strong>AI-Powered Insights</strong>: Intelligent portfolio management and trading recommendations<br>- <strong>Governance Participation</strong>: Direct participation in KNIRV network governance<br>- <strong>Enterprise Solutions</strong>: Business-grade wallet solutions for organizations<br><br><h2>🔐 Security Considerations</h2><br><br><h3>Security Best Practices</h3><br>- <strong>Private Key Management</strong>: Never share your private keys or seed phrases<br>- <strong>Phishing Protection</strong>: Always verify URLs and never enter credentials on suspicious sites<br>- <strong>Regular Updates</strong>: Keep your wallet software updated to the latest version<br>- <strong>Backup Strategy</strong>: Maintain secure backups of your seed phrases and important data<br>- <strong>Network Security</strong>: Use secure networks and avoid public WiFi for sensitive operations<br><br><h3>Security Features</h3><br>- <strong>Biometric Authentication</strong>: Fingerprint and face recognition for mobile access<br>- <strong>Hardware Security</strong>: Secure enclave storage for sensitive cryptographic operations<br>- <strong>Multi-Factor Authentication</strong>: Additional security layers for high-value operations<br>- <strong>Transaction Signing</strong>: Secure transaction signing with user confirmation<br>- <strong>Audit Trail</strong>: Comprehensive logging of all wallet operations and transactions<br><br><h2>🌟 Why Choose KNIRVWALLET?</h2><br><br><h3>Unique Value Propositions</h3><br>1. <strong>Seamless Web2 Experience</strong>: No complex seed phrases or gas fees for basic operations<br>2. <strong>Unified Ecosystem Access</strong>: Single wallet for all KNIRV network services and features<br>3. <strong>Cross-Platform Consistency</strong>: Identical experience across mobile and browser platforms<br>4. <strong>Agent-First Design</strong>: Built specifically for AI agent interactions and automation<br>5. <strong>Enterprise Ready</strong>: Scalable architecture suitable for both individual and business use<br>6. <strong>Open Source</strong>: Transparent, auditable, and community-driven development<br><br><h3>Competitive Advantages</h3><br>- <strong>XION Meta Accounts</strong>: Leverage cutting-edge account abstraction technology<br>- <strong>Native Agent Support</strong>: First-class support for AI agent interactions<br>- <strong>Unified Architecture</strong>: Consistent API and experience across all platforms<br>- <strong>Developer Friendly</strong>: Comprehensive SDK and documentation for easy integration<br>- <strong>Security First</strong>: Multiple layers of security with regular audits and updates<br>- <strong>Community Driven</strong>: Open development process with community input and governance<br><br>---<br><br><strong>KNIRVWALLET</strong> - <em>Your Gateway to the Decentralized Future</em><br><br><em>Built with ❤️ by the KNIRV Network Community</em><br><br><em>© 2024 KNIRV Network. All rights reserved.</em>
+    </div>
+  </div>
+</body>
+</html>

@@ -30,10 +30,6 @@ Welcome to the KNIRV Network documentation. This comprehensive guide provides in
 
 * [KNIRV SDK](knirvsdk/README.md) - User guide for KNIRVSDK
 
-### KNIRVINFERENCE Documentation
-
-* [KNIRVINFERENCE User Guide](knirvcortex/README.md) - KNIRVINFERENCE is a WebAssembly cognitive engine for deterministic task execution.  It uses a standardized ProtoBuf interface and integrates with external AI models.
-
 ### KNIRVCONTROLLER Documentation
 
 * [Consolidated Documentation](knirvcontroller/README.md) - User guide for KNIRVCONTROLLER

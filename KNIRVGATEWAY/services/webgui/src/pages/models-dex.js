@@ -7,38 +7,26 @@ import DataTable from '../components/DataTable';
 import OnboardingFlow from '../components/OnboardingFlowUpdated';
 import styles from './models-dex.module.css';
 
-// TypeScript-style interface definition for ModelListing
-// interface ModelListing {
-//   id: string;
-//   name: string;
-//   type: string;
-//   owner: string;
-//   price: string;
-//   performance: string;
-//   status: 'active' | 'pending' | 'sold';
-//   description: string;
-// }
-
 export default function ModelsDEX() {
   const { activePage } = useNavigation('models-dex');
-  const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [models, setModels] = useState<ModelListing[]>([]);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [models, setModels] = useState([]);
 
-  const handleOnboardingComplete = (): void => {
+  const handleOnboardingComplete = () => {
     setShowOnboarding(false);
     // Refresh model listings after onboarding
     loadModelListings();
   };
 
-  const handleSearch = (query: string): void => {
+  const handleSearch = (query) => {
     setSearchQuery(query);
   };
 
-  const loadModelListings = (): void => {
+  const loadModelListings = () => {
     // Simulate loading model listings from API
-    const mockModels: ModelListing[] = [
+    const mockModels = [
       {
         id: '1',
         name: 'GPT-4 Fine-tuned',
@@ -101,14 +89,14 @@ export default function ModelsDEX() {
     { label: 'Model Name' },
     { label: 'Type' },
     { label: 'Owner' },
-    { label: 'Price', align: 'right' as const },
-    { label: 'Performance', align: 'right' as const },
-    { label: 'Status', align: 'center' as const },
-    { label: 'Actions', align: 'center' as const },
+    { label: 'Price', align: 'right' },
+    { label: 'Performance', align: 'right' },
+    { label: 'Status', align: 'center' },
+    { label: 'Actions', align: 'center' },
   ];
 
   // Render table row
-  const renderTableRow = (model: ModelListing, index: number): JSX.Element => (
+  const renderTableRow = (model, index) => (
     <tr className={styles.tableRow} key={model.id}>
       <td className={styles.tableCell}>
         <div className={styles.modelInfo}>

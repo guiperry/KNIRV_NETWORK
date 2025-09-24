@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const path = require('path');
-const glob = require('glob');
+import fs from 'fs';
+import path from 'path';
+import { glob } from 'glob';
+import { fileURLToPath } from 'url';
 
 class DocsifyLinkUpdater {
   constructor() {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
     this.publicDir = path.join(__dirname, '../public');
     this.staticDocsPath = '/documentation/static';
   }
@@ -176,9 +179,9 @@ class DocsifyLinkUpdater {
 }
 
 // Run if called directly
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   const updater = new DocsifyLinkUpdater();
   updater.run();
 }
 
-module.exports = DocsifyLinkUpdater;
+export default DocsifyLinkUpdater;

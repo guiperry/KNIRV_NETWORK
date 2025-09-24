@@ -89,7 +89,7 @@ components:
     description: "Software development kit"
     icon: "🛠️"
     
-  knirvcortex:
+  knirvinference:
     title: "KNIRVINFERENCE Documentation"
     description: "AI and machine learning components"
     icon: "🧠"

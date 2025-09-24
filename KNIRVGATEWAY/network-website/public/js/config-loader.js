@@ -134,38 +134,38 @@ class KNIRVConfigLoader {
         return {
             navigation: {
                 main_site: "https://knirv.com",
-                documentation: "documentation/docsify/",
+                documentation: "documentation/static/",
                 graphchain_explorer: "graphchain-explorer/",
                 nexus_portal: "nexus-portal/",
                 support_desk: "support-desk/src/",
                 nanda_ans: "nanda_ans/"
             },
             external_services: {
-                payment_gateway: "https://pay.knirv.com/add-funds",
+                payment_gateway: "https://payments.knirv.network/add-funds",
                 knirv_website: "https://knirv.com",
-                testnet_access: "https://testnet.knirv.com"
+                testnet_access: "https://testnet.knirv.network"
             },
             documentation: {
                 whitepapers: {
-                    knirv_oracle: "documentation/docsify/#/whitepapers/KNIRVROOT_Whitepaper.md",
-                    knirv_router: "documentation/docsify/#/whitepapers/KNIRV-ROUTER_Whitepaper.md",
-                    knirvgraph: "documentation/docsify/#/whitepapers/KNIRV-GRAPH_Whitepaper.md",
-                    knirvchain: "documentation/docsify/#/whitepapers/KNIRVCHAIN_Whitepaper.md",
-                    knirv_nexus: "documentation/docsify/#/whitepapers/KNIRV-NEXUS_Whitepaper.md",
-                    knirv_cortex: "documentation/docsify/#/whitepapers/KNIRV-AGENTIFIER_Whitepaper.md",
-                    knirv_wallet: "documentation/docsify/#/whitepapers/KNIRV-WALLET_Whitepaper.md",
-                    knirv_gateway: "documentation/docsify/#/whitepapers/KNIRV-GATEWAY_Whitepaper.md",
-                    knirv_shell: "documentation/docsify/#/whitepapers/KNIRV-SHELL_Whitepapers.md",
-                    knirv_sdk: "documentation/docsify/#/whitepapers/KNIRV-SDK_Whitepaper.md",
-                    knirv_testnet: "documentation/docsify/#/guides/TESTNET_DEPLOYMENT.md",
-                    knirvana: "documentation/docsify/#/whitepapers/KNIRVANA_Whitepaper.md"
+                    knirv_oracle: "documentation/static/whitepapers/KNIRVROOT_Whitepaper.md",
+                    knirv_router: "documentation/static/whitepapers/KNIRV-ROUTER_Whitepaper.md",
+                    knirvgraph: "documentation/static/whitepapers/KNIRV-GRAPH_Whitepaper.md",
+                    knirvchain: "documentation/static/whitepapers/KNIRVCHAIN_Whitepaper.md",
+                    knirv_nexus: "documentation/static/whitepapers/KNIRV-NEXUS_Whitepaper.md",
+                    knirv_cortex: "documentation/static/whitepapers/KNIRV-AGENTIFIER_Whitepaper.md",
+                    knirv_wallet: "documentation/static/whitepapers/KNIRV-WALLET_Whitepaper.md",
+                    knirv_gateway: "documentation/static/whitepapers/KNIRV-GATEWAY_Whitepaper.md",
+                    knirv_shell: "documentation/static/whitepapers/KNIRV-SHELL_Whitepapers.md",
+                    knirv_sdk: "documentation/static/whitepapers/KNIRV-SDK_Whitepaper.md",
+                    knirv_testnet: "documentation/static/guides/TESTNET_DEPLOYMENT.md",
+                    knirvana: "documentation/static/whitepapers/KNIRVANA_Whitepaper.md"
                 }
             },
             footer: {
                 legal: {
-                    terms: "documentation/docsify/#/legal/terms-of-service.md",
-                    privacy: "documentation/docsify/#/legal/privacy-policy.md",
-                    contribution: "documentation/docsify/#/contributing/contribution-guidelines.md"
+                    terms: "documentation/static/legal/terms-of-service.md",
+                    privacy: "documentation/static/legal/privacy-policy.md",
+                    contribution: "documentation/static/contributing/contribution-guidelines.md"
                 },
                 social: {
                     github: "https://github.com/knirv-network",
@@ -174,7 +174,7 @@ class KNIRVConfigLoader {
                     telegram: "https://t.me/knirvnetwork"
                 },
                 resources: {
-                    documentation: "documentation/docsify/",
+                    documentation: "documentation/static/",
                     support: "support-desk/src/",
                     forum: "forum/src/",
                     blog: "https://blog.knirv.com"

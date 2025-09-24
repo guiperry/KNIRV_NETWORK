@@ -1,20 +1,31 @@
-# KNIRV D-TEN Production Deployment
+# KNIRV D-TEN Deployment Documentation
 
-This directory contains the production deployment configuration for KNIRV D-TEN (Months 14-18 implementation), including KNIRVORACLE integration.
+[TOC]
 
 ## Overview
 
+This document provides comprehensive instructions for deploying KNIRV D-TEN, including production and testnet deployments, KNIRVORACLE integration, and detailed troubleshooting information.  This encompasses Months 14-18 implementations.
+
+## Production Deployment
+
+### KNIRV D-TEN Production Deployment
+
+This section details the production deployment of KNIRV D-TEN (Months 14-18 implementation), including KNIRVORACLE integration.
+
+#### Overview
+
 The deployment includes:
+
 - **KNIRVORACLE deployment** with embedded services
-- **Production-optimized Kubernetes manifests**
-- **Comprehensive monitoring stack** (Prometheus, Grafana, Alertmanager)
-- **Infrastructure provisioning** with Ansible
+- **Production-optimized Kubernetes manifests** (`production-config/optimization.yaml`)
+- **Comprehensive monitoring stack** (Prometheus, Grafana, Alertmanager, Node Exporter, cAdvisor) (`monitoring/`)
+- **Infrastructure provisioning** with Ansible (`ansible/`)
 - **CloudFlare DNS management**
-- **Final test suite** for validation
-- **Automated deployment scripts**
+- **Final test suite** (`testing/final-test-suite.sh`) for validation
+- **Automated deployment scripts** (`deploy.sh`, `ansible/deploy-knirvoracle.sh`)
 - **Security hardening configurations**
 
-## Directory Structure
+#### Directory Structure
 
 ```
 deployment/
@@ -28,7 +39,7 @@ deployment/
 ├── production-config/
 │   └── optimization.yaml          # Kubernetes deployment with optimization settings
 ├── monitoring/
-│   ├── prometheus.yml             # Prometheus configuration
+│   ├��─ prometheus.yml             # Prometheus configuration
 │   ├── alert_rules.yml            # Alert rules for monitoring
 │   ├── alertmanager.yml           # Alertmanager configuration
 │   └── grafana-dashboard.json     # Grafana dashboard
@@ -39,21 +50,16 @@ deployment/
 └── README.md                      # This file
 ```
 
-## Prerequisites
-
-Before deploying, ensure you have:
+#### Prerequisites
 
 1. **Kubernetes cluster** (v1.20+)
 2. **kubectl** configured and connected
 3. **Docker** installed and running
-4. **Sufficient cluster resources**:
-   - 8+ CPU cores
-   - 16+ GB RAM
-   - 100+ GB storage
+4. **Sufficient cluster resources**: 8+ CPU cores, 16+ GB RAM, 100+ GB storage
 
-## Quick Start
+#### Quick Start
 
-### 1. Full Production Deployment
+##### Full Production Deployment
 
 ```bash
 # Deploy everything (KNIRV stack + monitoring)
@@ -66,25 +72,23 @@ Before deploying, ensure you have:
 ./deploy.sh knirvoracle
 ```
 
-### 2. Deploy Only Monitoring
+##### Deploy Only Monitoring
 
 ```bash
 # Deploy monitoring stack only
 ./deploy.sh monitoring
 ```
 
-### 3. Run Tests Only
+##### Run Tests Only
 
 ```bash
 # Run the final test suite
 ./deploy.sh test
 ```
 
-## Deployment Components
+#### Deployment Components
 
-### KNIRV Stack
-
-The main KNIRV D-TEN stack includes:
+##### KNIRV Stack
 
 - **API Gateway** (Port 8000)
 - **KNIRVCHAIN** (Port 8080) - Blockchain layer
@@ -93,7 +97,7 @@ The main KNIRV D-TEN stack includes:
 - **KNIRVORACLE** (Port 8083) - Core orchestration with XION bridge
 - **KNIRVROUTER** (Ports 3478/5349/9090) - Connectivity with proof engine
 
-### Monitoring Stack
+##### Monitoring Stack
 
 - **Prometheus** (Port 9090) - Metrics collection
 - **Grafana** (Port 3000) - Visualization dashboard
@@ -101,31 +105,34 @@ The main KNIRV D-TEN stack includes:
 - **Node Exporter** (Port 9100) - System metrics
 - **cAdvisor** (Port 8080) - Container metrics
 
-### Key Features
+#### Key Features
 
-#### Performance Optimization
+##### Performance Optimization
+
 - Connection pooling and caching
 - Resource limits and requests
 - Horizontal pod autoscaling
 - Load balancing configuration
 
-#### Security Hardening
+##### Security Hardening
+
 - TLS 1.3 enforcement
 - JWT authentication with rotation
 - Rate limiting and CORS protection
 - Network policies and security contexts
 
-#### Monitoring & Alerting
+##### Monitoring & Alerting
+
 - Real-time metrics collection
 - Custom KNIRV-specific alerts
 - Health checks and connectivity monitoring
 - Performance and error rate tracking
 
-## KNIRVORACLE Deployment
+#### KNIRVORACLE Deployment
 
-KNIRVORACLE is the core oracle service with embedded agent services. See [ansible/KNIRVORACLE-DEPLOYMENT.md](ansible/KNIRVORACLE-DEPLOYMENT.md) for detailed documentation.
+KNIRVORACLE is the core oracle service with embedded agent services. See `ansible/KNIRVORACLE-DEPLOYMENT.md` for detailed documentation.
 
-### Quick KNIRVORACLE Deployment
+##### Quick KNIRVORACLE Deployment
 
 ```bash
 # Deploy infrastructure + KNIRVORACLE
@@ -139,7 +146,7 @@ cd deployment/ansible
 ./deploy-knirvoracle.sh dns-only --env production
 ```
 
-### KNIRVORACLE Services
+##### KNIRVORACLE Services
 
 - **Oracle API** (Port 1317) - `oracle.knirv.com`
 - **Bootnode Registry** (Port 3006) - `bootnode-registry.knirv.com`
@@ -148,11 +155,9 @@ cd deployment/ansible
 - **Network Monitor** (Port 3008) - `network-monitor.knirv.com`
 - **NANDA-ANS** (Port 3009) - `nanda-ans.knirv.com`
 
-## Configuration
+#### Configuration
 
-### Environment Variables
-
-Key environment variables for production:
+##### Environment Variables
 
 ```bash
 # CloudFlare DNS (required for KNIRVORACLE)
@@ -174,33 +179,29 @@ MINTING_ENABLED=true
 KNIRVORACLE_API_KEY=your-api-key
 ```
 
-### Resource Requirements
+##### Resource Requirements
 
-**Minimum per service:**
-- CPU: 500m-1000m
-- Memory: 512Mi-2Gi
+**Minimum per service:** CPU: 500m-1000m, Memory: 512Mi-2Gi
 
-**Recommended for production:**
-- CPU: 1000m-3000m
-- Memory: 1Gi-4Gi
+**Recommended for production:** CPU: 1000m-3000m, Memory: 1Gi-4Gi
 
-## Testing
+#### Testing
 
 The final test suite validates:
 
-1. **Service Health** - All services responding
-2. **Authentication** - JWT token flow
-3. **LLM Registration** - Model registration and retrieval
-4. **NRV System** - Error/skill node creation and resolution
-5. **Token Economics** - Skill invocation and token burning
-6. **Cross-Chain Bridge** - XION bridge functionality
-7. **Load Performance** - Concurrent user handling
-8. **Security** - Rate limiting and authentication
-9. **WebSocket** - Real-time connectivity
-10. **KNIRV-ROUTER** - Connectivity proof engine
-11. **Data Consistency** - Cross-service data integrity
+1. **Service Health**
+2. **Authentication**
+3. **LLM Registration**
+4. **NRV System**
+5. **Token Economics**
+6. **Cross-Chain Bridge**
+7. **Load Performance**
+8. **Security**
+9. **WebSocket**
+10. **KNIRV-ROUTER**
+11. **Data Consistency**
 
-### Running Tests
+##### Running Tests
 
 ```bash
 # Run all tests
@@ -211,28 +212,22 @@ cd testing/
 ./final-test-suite.sh
 ```
 
-## Monitoring
+#### Monitoring
 
-### Accessing Dashboards
-
-After deployment:
+##### Accessing Dashboards
 
 - **Grafana**: http://localhost:3000 (admin/admin123)
 - **Prometheus**: http://localhost:9090
 - **Alertmanager**: http://localhost:9093
 
-### Key Metrics
+##### Key Metrics
 
-Monitor these critical metrics:
+- `knirv_router_connectivity_score`
+- `knirv_bridge_pending_transactions`
+- `http_request_duration_seconds`
+- `up`
 
-- `knirv_router_connectivity_score` - Connectivity health
-- `knirv_bridge_pending_transactions` - Bridge transaction queue
-- `http_request_duration_seconds` - API response times
-- `up` - Service availability
-
-### Alerts
-
-Configured alerts include:
+##### Alerts
 
 - Service downtime
 - High CPU/memory usage
@@ -240,38 +235,23 @@ Configured alerts include:
 - Bridge transaction failures
 - Connectivity proof failures
 
-## Troubleshooting
+#### Troubleshooting
 
-### Common Issues
+##### Common Issues
 
-1. **Pods not starting**
-   ```bash
-   kubectl describe pod -n knirv-production
-   kubectl logs -n knirv-production <pod-name>
-   ```
+1. **Pods not starting**: `kubectl describe pod -n knirv-production`, `kubectl logs -n knirv-production <pod-name>`
+2. **Service connectivity issues**: `kubectl get svc -n knirv-production`, `kubectl port-forward -n knirv-production svc/knirv-service 8080:8080`
+3. **Monitoring not working**: `docker-compose -f docker-compose.monitoring.yml logs`
 
-2. **Service connectivity issues**
-   ```bash
-   kubectl get svc -n knirv-production
-   kubectl port-forward -n knirv-production svc/knirv-service 8080:8080
-   ```
-
-3. **Monitoring not working**
-   ```bash
-   docker-compose -f docker-compose.monitoring.yml logs
-   ```
-
-### Rollback
-
-If deployment fails:
+##### Rollback
 
 ```bash
 ./deploy.sh rollback
 ```
 
-## Security Considerations
+#### Security Considerations
 
-### Production Checklist
+##### Production Checklist
 
 - [ ] Update default passwords
 - [ ] Configure TLS certificates
@@ -282,9 +262,7 @@ If deployment fails:
 - [ ] Set up secret rotation
 - [ ] Configure firewall rules
 
-### Secrets Management
-
-Update these secrets before production:
+##### Secrets Management
 
 ```bash
 kubectl create secret generic blockchain-secrets \
@@ -296,36 +274,30 @@ kubectl create secret generic database-secrets \
   --namespace=knirv-production
 ```
 
-## Maintenance
+#### Maintenance
 
-### Regular Tasks
+##### Regular Tasks
 
-1. **Monitor resource usage** - Scale as needed
-2. **Update dependencies** - Security patches
-3. **Backup data** - Database and configurations
-4. **Review logs** - Error patterns and performance
-5. **Test disaster recovery** - Backup restoration
+1. **Monitor resource usage**
+2. **Update dependencies**
+3. **Backup data**
+4. **Review logs**
+5. **Test disaster recovery**
 
-### Scaling
-
-To scale services:
+##### Scaling
 
 ```bash
 kubectl scale deployment knirv-production-stack --replicas=5 -n knirv-production
 ```
 
-## Support
-
-For issues and questions:
+#### Support
 
 1. Check the monitoring dashboards
 2. Review application logs
 3. Run the test suite for validation
 4. Check Kubernetes events and pod status
 
-## Next Steps
-
-After successful deployment:
+#### Next Steps
 
 1. Configure DNS and SSL certificates
 2. Set up external monitoring integrations
@@ -334,9 +306,7 @@ After successful deployment:
 5. Set up log aggregation
 6. Plan capacity scaling strategies
 
-
-
-**Production Deployment Checklist:**
+#### Production Deployment Checklist
 
 - [ ] All services containerized and orchestrated with Kubernetes
 - [ ] SSL/TLS certificates configured with automatic renewal
@@ -352,17 +322,199 @@ After successful deployment:
 - [ ] Documentation updated with production setup instructions
 - [ ] User acceptance testing performed
 
-**Success Metrics:**
+#### Success Metrics
+
 - 99.9% uptime SLA
 - <500ms average API response time
 - <5% error rate under normal load
 - Support for 10,000+ concurrent users
 - 24/7 monitoring and alerting
 
----
-### Future Sprints
+#### Future Sprints
+
 - [ ] Update Kubernetes deployments
 - [ ] Performance optimization
 - [ ] Advanced monitoring integration
 - [ ] Security hardening
 - [ ] Production deployment
+
+
+## Testnet Deployment Fixes
+
+### KNIRV Testnet Deployment Fixes Summary
+
+#### Overview
+
+This section summarizes fixes implemented to resolve deployment errors in the KNIRV testnet deployment system.
+
+#### Issues Resolved
+
+##### 1. Native Deployment File Upload Issue
+
+**Problem**: File upload reaching server capacity due to uploading the entire KNIRVTESTNET directory including `node_modules`.
+
+**Solutions Implemented**:
+
+- **Local Build Process**: Modified `prepare_native_testnet_files()` to build testnet-gateway locally before upload.
+- **Exclude node_modules**: Added rsync-based file copying that excludes `node_modules`, `dist`, `build`, and other large development artifacts.
+- **Server Cleanup**: Added `clean_server_deployment()` function to clean old files while preserving data.
+- **Server-side npm install**: Updated `deploy_native_testnet()` to install npm dependencies on the server after upload.
+- **Fallback Support**: Added fallback to `cp` with find exclusions if rsync is not available.
+
+**Key Changes**:
+
+```bash
+# Before: Uploaded entire directory including node_modules
+cp -r "$TESTNET_DIR" "$TEMP_DIR/knirvtestnet"
+
+# After: Exclude large development files
+rsync -av --exclude='node_modules' --exclude='dist' --exclude='build' \
+      --exclude='.next' --exclude='.netlify' --exclude='*.log' \
+      "$TESTNET_DIR/" "$TEMP_DIR/knirvtestnet/"
+```
+
+##### 2. Docker Deployment Network Issue
+
+**Problem**: NGINX network manager over-complicating the system and services not reachable through the network.
+
+**Solutions Implemented**:
+
+- **Subnet Detection**: Added `detect_subnet_environment()` to check if the server is behind NAT/subnet.
+- **Conditional NGINX**: Created `generate_docker_compose_file()` that conditionally includes NGINX based on subnet detection.
+- **UFW Configuration**: Added `configure_ufw_firewall()` to match AWS EC2 security group ports.
+- **Port Verification**: Enhanced CloudFlare DNS integration with proper port verification before updates.
+
+**Key Features**:
+
+- NGINX network manager only activates when the server is detected behind a subnet.
+- Direct port exposure when the server has a public IP.
+- UFW firewall automatically configured to match AWS EC2 ports.
+- Comprehensive port verification before DNS updates.
+
+##### 3. Separate EC2 Instance Management
+
+**Problem**: All deployment types using the same EC2 instance, causing overwrites.
+
+**Solutions Implemented**:
+
+- **Instance Separation**: Added separate instance IDs for Native, Docker, and Podman deployments.
+- **Automatic Instance Creation**: Added `create_deployment_instance()` for missing instances.
+- **Instance Tagging**: Implemented a proper tagging system for deployment tracking.
+- **Dynamic Selection**: Added `select_deployment_instance()` based on deployment type.
+
+**Instance Configuration**:
+
+```bash
+NATIVE_INSTANCE_ID="i-06813be8a8a23ea5b"      # Native deployment
+DOCKER_INSTANCE_ID="i-0a1b2c3d4e5f6g7h8"     # Docker deployment  
+PODMAN_INSTANCE_ID="i-0x1y2z3a4b5c6d7e8f"     # Podman deployment
+```
+
+##### 4. Incremental Deployment Option
+
+**Problem**: No mechanism for uploading only changed files vs. full deployment.
+
+**Solutions Implemented**:
+
+- **Change Detection**: Added `check_for_changes()` using MD5 checksums.
+- **Incremental Upload**: Implemented `incremental_upload_native()` and `incremental_upload_container()`.
+- **Command Line Options**: Added `--incremental`, `--full`, and `--force` flags.
+- **Fallback Mechanism**: Automatic fallback to full deployment if incremental fails.
+
+**Usage Examples**:
+
+```bash
+# Incremental deployment (only upload changed files)
+./deploy-testnet-services.sh --incremental
+
+# Force full deployment
+./deploy-testnet-services.sh --force
+
+# Full deployment (default)
+./deploy-testnet-services.sh --full
+```
+
+##### 5. Enhanced CloudFlare DNS Integration
+
+**Problem**: DNS updates happening without proper port verification.
+
+**Solutions Implemented**:
+
+- **Port Verification**: Added `verify_service_ports()` to test port accessibility.
+- **UFW Status Check**: Enhanced verification to check UFW and netstat output.
+- **Error Handling**: Comprehensive error handling with detailed logging.
+- **Selective Updates**: Only update DNS for verified healthy services.
+
+**Verification Process**:
+
+1. Wait 45 seconds for services to initialize.
+2. Check UFW status and listening ports.
+3. Test port connectivity for each service.
+4. Only update DNS for accessible services.
+5. Provide detailed error reporting.
+
+#### New Command Line Options
+
+```bash
+Usage: ./deploy-testnet-services.sh [options]
+
+Options:
+  --help, -h         Show help message
+  --force            Skip confirmations and force full deployment
+  --incremental      Enable incremental deployment (only upload changed files)
+  --full             Force full deployment (default)
+
+Deployment Modes:
+  --incremental      Only upload files that have changed since last deployment
+  --full             Upload all files (default, slower but more reliable)
+  --force            Force full deployment even if no changes detected
+```
+
+#### Architecture Improvements
+
+##### Network Management
+
+- **Conditional NGINX**: Only active when behind subnet/NAT.
+- **Direct Port Exposure**: When the server has a public IP.
+- **UFW Integration**: Automatic firewall configuration.
+
+##### Instance Management
+
+- **Deployment Isolation**: Separate instances prevent overwrites.
+- **Automatic Provisioning**: Missing instances created automatically.
+- **Proper Tagging**: Deployment tracking and management.
+
+##### File Management
+
+- **Smart Exclusions**: Exclude development artifacts.
+- **Incremental Sync**: Only upload changed files.
+- **Local Building**: Build before upload to reduce server load.
+
+#### Testing and Verification
+
+The deployment system now includes comprehensive verification:
+
+1. **Prerequisites Check**: SSH, disk space, instance availability.
+2. **Subnet Detection**: Automatic network environment detection.
+3. **UFW Configuration**: Firewall setup matching AWS security groups.
+4. **Port Verification**: Test all service ports before DNS updates.
+5. **Health Monitoring**: Comprehensive service health checks.
+
+#### Benefits
+
+1. **Reduced Upload Time**: Incremental deployments significantly faster.
+2. **Server Capacity**: No more server capacity issues from large uploads.
+3. **Network Reliability**: Conditional NGINX prevents over-complication.
+4. **Deployment Isolation**: Separate instances prevent conflicts.
+5. **Better Monitoring**: Enhanced verification and error reporting.
+6. **Idempotent Operations**: Safe to run multiple times.
+
+#### Files Modified
+
+- `scripts/deploy-testnet-services.sh` - Main deployment script with all enhancements.
+- Enhanced functions for subnet detection, UFW configuration, incremental deployment.
+- Improved CloudFlare DNS integration with port verification.
+- Added separate EC2 instance management.
+
+All changes maintain backward compatibility while adding new functionality.
+

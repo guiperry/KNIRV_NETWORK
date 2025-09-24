@@ -69,7 +69,7 @@ const ModelConfig = ({
   const [loraAlpha, setLoraAlpha] = useState([32]);
   const [enableQuantization, setEnableQuantization] = useState(false);
   const [quantizationBits, setQuantizationBits] = useState<4 | 8 | 16>(8);
-  const [exportTargets, setExportTargets] = useState<string[]>(['cortex_wasm']);
+  const [exportTargets, setExportTargets] = useState<('cortex_wasm' | 'onnx' | 'safetensors' | 'pytorch')[]>(['cortex_wasm']);
   const [deploymentTargets, setDeploymentTargets] = useState({
     knirvcontroller: true,
     knirvengine: false,
@@ -233,7 +233,7 @@ const ModelConfig = ({
           bits: quantizationBits,
           method: 'dynamic'
         } : undefined,
-        export_targets: exportTargets as any
+        export_targets: exportTargets
       };
 
       // Validate with compiler
@@ -261,11 +261,11 @@ const ModelConfig = ({
     }
   };
 
-  const toggleExportTarget = (target: string) => {
-    setExportTargets(prev => 
-      prev.includes(target) 
-        ? prev.filter(t => t !== target)
-        : [...prev, target]
+  const toggleExportTarget = (target: 'cortex_wasm' | 'onnx' | 'safetensors' | 'pytorch') => {
+    setExportTargets(prev =>
+      prev.includes(target)
+        ? prev.filter(t => t !== target) as ('cortex_wasm' | 'onnx' | 'safetensors' | 'pytorch')[]
+        : [...prev, target] as ('cortex_wasm' | 'onnx' | 'safetensors' | 'pytorch')[]
     );
   };
 
@@ -792,8 +792,8 @@ const ModelConfig = ({
                       <input
                         type="checkbox"
                         id={format.id}
-                        checked={exportTargets.includes(format.id)}
-                        onChange={() => toggleExportTarget(format.id)}
+                        checked={exportTargets.includes(format.id as 'cortex_wasm' | 'onnx' | 'safetensors' | 'pytorch')}
+                        onChange={() => toggleExportTarget(format.id as 'cortex_wasm' | 'onnx' | 'safetensors' | 'pytorch')}
                         className="rounded border-slate-600"
                       />
                       <div>

@@ -10,7 +10,7 @@ import Footer from "@/components/Footer";
 const fontClass = 'font-sans';
 
 export const metadata: Metadata = {
-  title: 'KNIRV - Transform Any App Into An AI Agent',
+  title: 'KNIRV - Key Neural Intelligence Reasoning Validation',
   description: 'Add conversational AI, automation, and smart features to existing apps without code.',
 };
 

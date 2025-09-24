@@ -49,7 +49,7 @@ class KNIRVConfigLoader {
             external_services: {
                 payment_gateway: "https://pay.knirv.com/add-funds",
                 knirv_website: "https://knirv.com",
-                testnet_access: "https://testnet.knirv.com"
+                testnet_access: "https://testnet.knirv.network"
             },
             documentation: {
                 whitepapers: {

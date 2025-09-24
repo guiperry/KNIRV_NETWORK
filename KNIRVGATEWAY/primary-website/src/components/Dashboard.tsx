@@ -1,20 +1,23 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import SettingsModal from "./SettingsModal";
-import { MessageCircle, TrendingUp, Activity, Users, Bot, History, Monitor, Rocket, Clock, CheckCircle, XCircle } from "lucide-react";
+import QRConnectionModal from "./QRConnectionModal";
+import { MessageCircle, TrendingUp, Activity, Users, Bot, History, Monitor, Rocket, Clock, CheckCircle, XCircle, QrCode, Smartphone } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 
 // props required for status/settings, now provided from parent Index
 interface DashboardProps {
-  connectedApp: {url: string, name: string, type: string};
+  connectedApp: {url: string, name: string, type: string} | null;
   isActive: boolean;
   setIsActive: (active: boolean) => void;
   settingsModalOpen: boolean;
   setSettingsModalOpen: (open: boolean) => void;
+  onConnectApp?: (appData: {url: string, name: string, type: string}) => void;
 }
 
 const Dashboard = ({
@@ -23,7 +26,16 @@ const Dashboard = ({
   setIsActive,
   settingsModalOpen,
   setSettingsModalOpen,
+  onConnectApp,
 }: DashboardProps) => {
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+
+  const handleAppConnected = (appData: {url: string, name: string, type: string}) => {
+    if (onConnectApp) {
+      onConnectApp(appData);
+    }
+    setQrModalOpen(false);
+  };
   const stats = [
     { label: 'Total Conversations', value: '1,247', change: '+12%', icon: MessageCircle },
     { label: 'Active Users', value: '342', change: '+8%', icon: Users },
@@ -88,32 +100,41 @@ const Dashboard = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px:8 py-16">
-      <div>
-        <h2 className="text-4xl font-bold text-white mb-4"><span className="knirv-gradient-text">KNIRV</span> Agent Dashboard</h2>
-        <p className="text-xl text-white/70">
-          Monitoring {connectedApp.name} <span className="knirv-text-primary">Neural Agent</span>
-        </p>
-      </div>
+      {/* QR Connection Modal */}
+      <QRConnectionModal
+        isOpen={qrModalOpen}
+        onClose={() => setQrModalOpen(false)}
+        onConnected={handleAppConnected}
+      />
 
-      {/* Stats Grid */}
-      <div className="grid md:grid-cols-4 gap-6 mb-8 mt-12">
-        {stats.map((stat, index) => (
-          <Card key={index} className="bg-white/5 border-white/10 backdrop-blur-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <stat.icon className="h-8 w-8 text-purple-400" />
-                <Badge variant="outline" className="border-green-400/50 text-green-400">
-                  {stat.change}
-                </Badge>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white">{stat.value}</p>
-                <p className="text-white/70 text-sm">{stat.label}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {connectedApp ? (
+        <>
+          <div>
+            <h2 className="text-4xl font-bold text-white mb-4"><span className="knirv-gradient-text">KNIRV</span> Model Dashboard</h2>
+            <p className="text-xl text-white/70">
+              Monitoring {connectedApp.name} <span className="knirv-text-primary">Neural Intellence Model</span>
+            </p>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid md:grid-cols-4 gap-6 mb-8 mt-12">
+            {stats.map((stat, index) => (
+              <Card key={index} className="bg-white/5 border-white/10 backdrop-blur-lg">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <stat.icon className="h-8 w-8 text-purple-400" />
+                    <Badge variant="outline" className="border-green-400/50 text-green-400">
+                      {stat.change}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-white">{stat.value}</p>
+                    <p className="text-white/70 text-sm">{stat.label}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="grid w-full grid-cols-5 bg-white/5 border border-white/10">
@@ -205,7 +226,7 @@ const Dashboard = ({
               <div className="text-center py-12">
                 <MessageCircle className="h-12 w-12 text-white/40 mx-auto mb-4" />
                 <p className="text-white/70">No active conversations</p>
-                <p className="text-white/50 text-sm">Conversations will appear here when users interact with your agent</p>
+                <p className="text-white/50 text-sm">Conversations will appear here when users interact with your model</p>
               </div>
             </CardContent>
           </Card>
@@ -428,10 +449,35 @@ const Dashboard = ({
         </TabsContent>
       </Tabs>
 
-      <SettingsModal 
-        open={settingsModalOpen} 
-        onOpenChange={setSettingsModalOpen} 
+      <SettingsModal
+        open={settingsModalOpen}
+        onOpenChange={setSettingsModalOpen}
       />
+        </>
+      ) : (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+          <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8 max-w-md w-full">
+            <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Smartphone className="w-8 h-8 text-blue-400" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">Connect Your Controller</h3>
+            <p className="text-slate-300 mb-6">
+              Connect your KNIRV Controller app to monitor and manage your deployed models
+            </p>
+            <Button
+              onClick={() => setQrModalOpen(true)}
+              size="lg"
+              className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white w-full"
+            >
+              <QrCode className="w-5 h-5 mr-2" />
+              Connect with QR Code
+            </Button>
+            <p className="text-sm text-slate-400 mt-4">
+              Open the KNIRV Controller app and scan the QR code to connect
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

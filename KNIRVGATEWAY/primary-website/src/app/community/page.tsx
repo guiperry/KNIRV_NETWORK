@@ -45,7 +45,7 @@ export default function CommunityPage() {
 
   const events = [
     {
-      title: "AI Agent Workshop",
+      title: "Neural Intellegence Model Workshop",
       date: "Dec 28, 2024",
       time: "2:00 PM PST",
       type: "Workshop",
@@ -124,7 +124,7 @@ export default function CommunityPage() {
             <span className="knirv-gradient-text">Community</span>
           </h1>
           <p className="text-xl text-white/70 mb-8 max-w-3xl mx-auto leading-relaxed">
-            Connect with developers, share knowledge, and build AI agents across the KNIRV network. Join the KNIRV community of creators and innovators.
+            Connect with developers, share knowledge, and build Neural Intellegence Models across the KNIRV network. Join the KNIRV community of creators and innovators.
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
             {communityStats.map((stat, index) => (

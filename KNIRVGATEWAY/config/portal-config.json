@@ -1,11 +1,11 @@
 {
   "navigation": {
     "main_site": "https://knirv.com",
-    "documentation": "../documentation/docsify/",
+    "documentation": "../documentation/static/",
     "graphchain_explorer": "../graphchain-explorer/",
     "nexus_portal": "../nexus-portal/",
-    "support_desk": "../support-desk/",
-    "nanda_ans": "../nanda_ans/"
+    "support_desk": "../support-desk/src/",
+    "agentify": "https://agentify.knirv.com"
   },
   "external_services": {
     "payment_gateway": "https://payments.knirv.network",
@@ -95,27 +95,27 @@
   },
   "footer": {
     "legal": {
-      "terms": "../documentation/static/legal/terms-of-service.md",
-      "privacy": "../documentation/static/legal/privacy-policy.md",
-      "contribution": "../documentation/static/contributing/contribution-guidelines.md"
+      "terms": "../documentation/static/legal/TERMS_AND_CONDITIONS.html",
+      "privacy": "../documentation/static/legal/documentation/static/legal/PRIVACY_POLICY.html",
+      "contribution": "../documentation/static/legal/CODE_OF_CONDUCT.html"
     },
     "social": {
-      "github": "https://github.com/knirv-network",
+      "github": "https://github.com/guiperry/KNIRVCONTROLLER",
       "discord": "https://discord.gg/knirv",
       "twitter": "https://twitter.com/knirvnetwork",
       "telegram": "https://t.me/knirvnetwork"
     },
     "resources": {
-      "documentation": "../documentation/docsify/",
-      "support": "../support-desk/",
-      "forum": "../forum/",
+      "documentation": "../documentation/static/",
+      "support": "../support-desk/src/",
+      "forum": "../forum/src/",
       "blog": "https://blog.knirv.com"
     }
   },
   "api": {
     "base_url": "/.netlify/functions",
     "endpoints": {
-      "agents": "/agents",
+      "nims": "/nims",
       "skills": "/skills",
       "auth": "/auth",
       "payments": "/payments",
@@ -150,7 +150,7 @@
       "height": "800px"
     },
     "documentation": {
-      "url": "../documentation/docsify/",
+      "url": "../documentation/static/",
       "title": "KNIRV Documentation",
       "height": "800px"
     },

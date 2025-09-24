@@ -1,0 +1,496 @@
+.tabsCard {
+  margin-bottom: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.tabsContainer {
+  display: flex;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.tabButton {
+  flex: 1;
+  padding: 15px 20px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  color: #666;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tabButton:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.tabButton.active {
+  color: #007bff;
+  background: rgba(0, 123, 255, 0.1);
+  border-bottom: 3px solid #007bff;
+}
+
+.tabIcon {
+  margin-right: 8px;
+  font-size: 18px;
+}
+
+.builderSection {
+  margin-top: 20px;
+}
+
+.builderCard {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.builderHeader {
+  margin-bottom: 20px;
+}
+
+.builderTitle {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+}
+
+.builderForm {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.formSection {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.formSection h4 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #333;
+  font-weight: 600;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.formGroup label {
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #555;
+}
+
+.formInput,
+.formSelect {
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+}
+
+.architectureBuilder {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.layersList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.layer {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 15px;
+  background: rgba(0, 123, 255, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(0, 123, 255, 0.3);
+}
+
+.layerType {
+  font-weight: 600;
+  color: #007bff;
+}
+
+.layerParams {
+  color: #666;
+}
+
+.layerControls {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.addLayerButton {
+  padding: 8px 15px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+
+.addLayerButton:hover {
+  background: #0056b3;
+}
+
+.builderActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.saveButton,
+.trainButton,
+.previewButton {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.saveButton {
+  background: #28a745;
+  color: white;
+}
+
+.saveButton:hover {
+  background: #218838;
+}
+
+.trainButton {
+  background: #007bff;
+  color: white;
+}
+
+.trainButton:hover {
+  background: #0056b3;
+}
+
+.previewButton {
+  background: #6c757d;
+  color: white;
+}
+
+.previewButton:hover {
+  background: #545b62;
+}
+
+.templatesSection {
+  margin-top: 20px;
+}
+
+.templatesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.templateCard {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: transform 0.3s ease;
+}
+
+.templateCard:hover {
+  transform: translateY(-5px);
+}
+
+.templateHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.templateName {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+}
+
+.templateCategory {
+  background: #007bff;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.templateDescription {
+  color: #666;
+  margin-bottom: 15px;
+}
+
+.templateMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.templateMetaItem {
+  display: flex;
+  justify-content: space-between;
+}
+
+.metaLabel {
+  font-weight: 500;
+  color: #555;
+}
+
+.metaValue {
+  font-weight: 500;
+}
+
+.templateFeatures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.featureTag {
+  background: rgba(108, 117, 125, 0.2);
+  color: #6c757d;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+}
+
+.templateActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.useTemplateButton,
+.previewTemplateButton {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.useTemplateButton {
+  background: #007bff;
+  color: white;
+}
+
+.useTemplateButton:hover {
+  background: #0056b3;
+}
+
+.previewTemplateButton {
+  background: rgba(108, 117, 125, 0.1);
+  color: #6c757d;
+  border: 1px solid #6c757d;
+}
+
+.previewTemplateButton:hover {
+  background: rgba(108, 117, 125, 0.2);
+}
+
+.projectsSection {
+  margin-top: 20px;
+}
+
+.projectsCard {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.projectsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.projectsTitle {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+}
+
+.newProjectButton {
+  padding: 10px 20px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.newProjectButton:hover {
+  background: #0056b3;
+}
+
+.projectsList {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.projectItem {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.projectInfo {
+  flex: 1;
+}
+
+.projectName {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 5px 0;
+  color: #333;
+}
+
+.projectDescription {
+  color: #666;
+  margin: 0 0 10px 0;
+  font-size: 14px;
+}
+
+.projectMeta {
+  display: flex;
+  gap: 15px;
+}
+
+.projectType {
+  background: rgba(0, 123, 255, 0.1);
+  color: #007bff;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.projectDate {
+  color: #999;
+  font-size: 12px;
+}
+
+.projectStatus {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.statusInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.statusLabel {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.progressBar {
+  width: 120px;
+  height: 8px;
+  background: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: #007bff;
+  border-radius: 4px;
+}
+
+.progressText {
+  font-size: 12px;
+  color: #666;
+}
+
+.projectActions {
+  display: flex;
+  gap: 8px;
+}
+
+.editButton,
+.deployButton,
+.deleteButton {
+  padding: 6px 10px;
+  background: rgba(108, 117, 125, 0.1);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.editButton:hover {
+  background: rgba(0, 123, 255, 0.1);
+  color: #007bff;
+}
+
+.deployButton:hover {
+  background: rgba(40, 167, 69, 0.1);
+  color: #28a745;
+}
+
+.deleteButton:hover {
+  background: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+}

@@ -6,7 +6,7 @@ const isTestnet = process.env.TESTNET_MODE === 'true' || process.env.NODE_ENV ==
 // GraphChain service configuration
 const graphChainService = {
   name: "knirvgraph",
-  url: process.env.KNIRVGRAPH_URL || (isTestnet ? "http://localhost:8080" : "https://graph.knirv.com"),
+  url: process.env.KNIRVGRAPH_URL || (isTestnet ? "http://localhost:8080" : "https://graph.knirv.network"),
   healthPath: "/height",
   isHealthy: true,
   lastCheck: new Date()

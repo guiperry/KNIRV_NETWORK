@@ -1,8 +1,8 @@
-# Compiler Implementation Plan for AI Agent Plugins
+# Compiler Implementation Plan for Neural Intellegence Model Plugins
 
 ## Overview
 
-This document outlines a comprehensive plan for implementing a TypeScript program that can construct, configure, and compile small GoLang plugin binaries (.dll or .so files). These plugin binaries will function as containerized schemas of tools, resources, and prompts with in-memory persistence (chromem-go) for use by any inference-enabled client. Each plugin binary will be known as an "AI Agent" and will be equipped with embedded Python runtime capabilities to spawn sub-agents within their self-controlled Trusted Execution Environments (TEEs).
+This document outlines a comprehensive plan for implementing a TypeScript program that can construct, configure, and compile small GoLang plugin binaries (.dll or .so files). These plugin binaries will function as containerized schemas of tools, resources, and prompts with in-memory persistence (chromem-go) for use by any inference-enabled client. Each plugin binary will be known as an "Neural Intellegence Model" and will be equipped with embedded Python runtime capabilities to spawn sub-agents within their self-controlled Trusted Execution Environments (TEEs).
 
 ## Architecture
 
@@ -1950,7 +1950,7 @@ if __name__ == '__main__':
 
 ## Trusted Execution Environment (TEE) Implementation
 
-The TEE will provide isolation and security for the AI Agents, ensuring they operate within defined boundaries. Each plugin will include its own TEE implementation in GoLang, allowing it to instantiate and manage its own secure execution environment.
+The TEE will provide isolation and security for the Neural Intellegence Models, ensuring they operate within defined boundaries. Each plugin will include its own TEE implementation in GoLang, allowing it to instantiate and manage its own secure execution environment.
 
 ```go
 // tee.go.template
@@ -2667,7 +2667,7 @@ export class AgentPluginLoader {
 
 ## AgentFacts Integration
 
-The compiler will generate and include AgentFacts metadata in each AI Agent plugin, following the industry standard format. This metadata enables discovery, verification, and routing of agent capabilities.
+The compiler will generate and include AgentFacts metadata in each Neural Intellegence Model plugin, following the industry standard format. This metadata enables discovery, verification, and routing of agent capabilities.
 
 ### AgentFacts Example
 
@@ -2772,7 +2772,7 @@ The compiler will need to manage dependencies for both Go and Python:
 
 ## Conclusion
 
-This implementation plan provides a comprehensive approach to creating a TypeScript program that can construct, configure, and compile small GoLang plugin binaries that represent AI Agents. By leveraging the strengths of TypeScript, Go, and Python, we can create a flexible and powerful system for building and deploying AI Agents with in-memory persistence and sub-agent capabilities within Trusted Execution Environments.
+This implementation plan provides a comprehensive approach to creating a TypeScript program that can construct, configure, and compile small GoLang plugin binaries that represent Neural Intellegence Models. By leveraging the strengths of TypeScript, Go, and Python, we can create a flexible and powerful system for building and deploying Neural Intellegence Models with in-memory persistence and sub-agent capabilities within Trusted Execution Environments.
 
 The integration with the existing ADK infrastructure, as outlined in the ADK Integration Plan, ensures compatibility and leverages the advanced features provided by Google's Agent Development Kit. The use of chromem-go for in-memory persistence provides a fast and efficient way to store and retrieve agent state, while the embedded Python runtime enables the use of advanced AI capabilities.
 

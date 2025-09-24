@@ -57,7 +57,6 @@ class KNIRVUniversalFooter {
                         <ul>
                             <li><a href="${this.getLink('navigation.main_site')}" target="_blank">Main Site</a></li>
                             <li><a href="${this.getLink('navigation.products')}">Products</a></li>
-                            <li><a href="${this.getLink('navigation.documentation')}">Documentation</a></li>
                             <li><a href="${this.getLink('footer.resources.support')}">Support</a></li>
                         </ul>
                     </div>
@@ -66,7 +65,7 @@ class KNIRVUniversalFooter {
                         <h4>Developer Tools</h4>
                         <ul>
                             <li><a href="${this.getLink('navigation.graphchain_explorer')}">Graphchain Explorer</a></li>
-                            <li><a href="${this.getLink('navigation.nanda_ans')}">NANDA+ANS</a></li>
+                            <li><a href="${this.getLink('navigation.documentation')}">Documentation</a></li>
                             <li><a href="${this.getLink('navigation.developer_portal')}">Developer Portal</a></li>
                             <li><a href="${this.getLink('navigation.agentify')}">Agentify</a></li>
                         </ul>

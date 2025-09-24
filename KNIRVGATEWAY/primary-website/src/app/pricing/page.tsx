@@ -15,7 +15,7 @@ export default function Pricing() {
       price: "Free",
       description: "Perfect for trying out KNIRV",
       features: [
-        "1 AI Agent",
+        "1 Neural Intellegence Model",
         "1,000 messages/month",
         "Basic integrations",
         "Community support",
@@ -31,7 +31,7 @@ export default function Pricing() {
       period: "/month",
       description: "Ideal for growing businesses",
       features: [
-        "5 AI Agents",
+        "5 Neural Intellegence Models",
         "50,000 messages/month",
         "Advanced integrations",
         "Priority support",
@@ -48,7 +48,7 @@ export default function Pricing() {
       price: "Custom",
       description: "For large-scale deployments",
       features: [
-        "Unlimited AI Agents",
+        "Unlimited Neural Intellegence Models",
         "Unlimited messages",
         "Custom integrations",
         "24/7 dedicated support",

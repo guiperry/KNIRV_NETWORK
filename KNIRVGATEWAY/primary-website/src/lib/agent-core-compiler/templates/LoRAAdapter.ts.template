@@ -1,0 +1,415 @@
+/**
+ * Cognitive Shell Template: LoRAAdapter.ts
+ * Generated from: KNIRVCONTROLLER/receiver/src/sensory-shell/LoRAAdapter.ts
+ * 
+ * This template is compiled into agent.wasm for embedded cognitive processing
+ * Communication with sensory-shell happens through WASM interface
+ */
+
+import { EventEmitter } from './EventEmitter';
+
+export interface LoRAConfig {
+  rank: number;
+  alpha: number;
+  dropout: number;
+  targetModules: string[];
+  taskType: 'FEATURE_EXTRACTION' | 'CAUSAL_LM' | 'SEQ_2_SEQ_LM';
+}
+
+export interface LoRAWeights {
+  weightsA: Float32Array;
+  weightsB: Float32Array;
+  rank: number;
+  alpha: number;
+}
+
+export interface AdapterMetadata {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  targetModel: string;
+  createdAt: Date;
+  performance: number;
+}
+
+/**
+ * LoRA (Low-Rank Adaptation) Adapter
+ * Enables efficient fine-tuning and skill adaptation
+ */
+export class LoRAAdapter extends EventEmitter {
+  private config: LoRAConfig;
+  private adapters: Map<string, LoRAWeights> = new Map();
+  private activeAdapters: Set<string> = new Set();
+  private isInitialized = false;
+
+  constructor(config?: Partial<LoRAConfig>) {
+    super();
+    this.config = {
+      rank: 16,
+      alpha: 32,
+      dropout: 0.1,
+      targetModules: ['q_proj', 'v_proj', 'k_proj', 'o_proj'],
+      taskType: 'CAUSAL_LM',
+      ...config
+    };
+  }
+
+  async initialize(): Promise<void> {
+    try {
+      this.emit('lora_initialization_started');
+      
+      // Initialize adapter storage
+      this.adapters.clear();
+      this.activeAdapters.clear();
+      
+      this.isInitialized = true;
+      this.emit('lora_initialized');
+    } catch (error) {
+      this.emit('lora_initialization_failed', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Load LoRA adapter weights
+   */
+  async loadAdapter(metadata: AdapterMetadata, weights: LoRAWeights): Promise<boolean> {
+    if (!this.isInitialized) {
+      throw new Error('LoRA adapter not initialized');
+    }
+
+    try {
+      this.emit('adapter_loading_started', { adapterId: metadata.id });
+
+      // Validate weights
+      if (!this.validateWeights(weights)) {
+        throw new Error('Invalid LoRA weights format');
+      }
+
+      // Store adapter
+      this.adapters.set(metadata.id, weights);
+      
+      this.emit('adapter_loaded', { adapterId: metadata.id, metadata });
+      return true;
+
+    } catch (error) {
+      this.emit('adapter_loading_failed', { adapterId: metadata.id, error: error.message });
+      return false;
+    }
+  }
+
+  /**
+   * Activate LoRA adapter
+   */
+  async activateAdapter(adapterId: string): Promise<boolean> {
+    if (!this.adapters.has(adapterId)) {
+      this.emit('adapter_activation_failed', { adapterId, error: 'Adapter not found' });
+      return false;
+    }
+
+    try {
+      this.activeAdapters.add(adapterId);
+      this.emit('adapter_activated', { adapterId });
+      return true;
+    } catch (error) {
+      this.emit('adapter_activation_failed', { adapterId, error: error.message });
+      return false;
+    }
+  }
+
+  /**
+   * Deactivate LoRA adapter
+   */
+  async deactivateAdapter(adapterId: string): Promise<boolean> {
+    try {
+      this.activeAdapters.delete(adapterId);
+      this.emit('adapter_deactivated', { adapterId });
+      return true;
+    } catch (error) {
+      this.emit('adapter_deactivation_failed', { adapterId, error: error.message });
+      return false;
+    }
+  }
+
+  /**
+   * Apply LoRA adaptation to input
+   */
+  async adapt(input: any, context: Map<string, any>): Promise<any> {
+    if (this.activeAdapters.size === 0) {
+      return input; // No active adapters
+    }
+
+    try {
+      let adaptedInput = input;
+
+      // Apply each active adapter
+      for (const adapterId of this.activeAdapters) {
+        const weights = this.adapters.get(adapterId);
+        if (weights) {
+          adaptedInput = await this.applyAdapterWeights(adaptedInput, weights, context);
+        }
+      }
+
+      this.emit('adaptation_applied', { 
+        input, 
+        adaptedInput, 
+        activeAdapters: Array.from(this.activeAdapters) 
+      });
+
+      return adaptedInput;
+
+    } catch (error) {
+      this.emit('adaptation_failed', { error: error.message });
+      return input;
+    }
+  }
+
+  /**
+   * Create new LoRA adapter from training data
+   */
+  async createAdapter(
+    adapterId: string, 
+    trainingData: any[], 
+    metadata: AdapterMetadata
+  ): Promise<boolean> {
+    try {
+      this.emit('adapter_creation_started', { adapterId });
+
+      // Generate LoRA weights from training data
+      const weights = await this.generateLoRAWeights(trainingData);
+      
+      // Store the new adapter
+      this.adapters.set(adapterId, weights);
+      
+      this.emit('adapter_created', { adapterId, metadata });
+      return true;
+
+    } catch (error) {
+      this.emit('adapter_creation_failed', { adapterId, error: error.message });
+      return false;
+    }
+  }
+
+  /**
+   * Merge multiple LoRA adapters
+   */
+  async mergeAdapters(adapterIds: string[], newAdapterId: string): Promise<boolean> {
+    try {
+      this.emit('adapter_merging_started', { adapterIds, newAdapterId });
+
+      const adaptersToMerge = adapterIds
+        .map(id => this.adapters.get(id))
+        .filter(adapter => adapter !== undefined) as LoRAWeights[];
+
+      if (adaptersToMerge.length === 0) {
+        throw new Error('No valid adapters to merge');
+      }
+
+      const mergedWeights = this.mergeWeights(adaptersToMerge);
+      this.adapters.set(newAdapterId, mergedWeights);
+
+      this.emit('adapters_merged', { adapterIds, newAdapterId });
+      return true;
+
+    } catch (error) {
+      this.emit('adapter_merging_failed', { adapterIds, error: error.message });
+      return false;
+    }
+  }
+
+  /**
+   * Validate LoRA weights format
+   */
+  private validateWeights(weights: LoRAWeights): boolean {
+    return weights.weightsA instanceof Float32Array &&
+           weights.weightsB instanceof Float32Array &&
+           typeof weights.rank === 'number' &&
+           typeof weights.alpha === 'number' &&
+           weights.rank > 0 &&
+           weights.alpha > 0;
+  }
+
+  /**
+   * Apply LoRA weights to input
+   */
+  private async applyAdapterWeights(
+    input: any, 
+    weights: LoRAWeights, 
+    context: Map<string, any>
+  ): Promise<any> {
+    // Simplified LoRA application - in practice this would involve matrix operations
+    if (typeof input === 'string') {
+      // Apply text transformation based on weights
+      return this.applyTextAdaptation(input, weights);
+    }
+
+    if (Array.isArray(input)) {
+      // Apply array transformation
+      return this.applyArrayAdaptation(input, weights);
+    }
+
+    if (typeof input === 'object') {
+      // Apply object transformation
+      return this.applyObjectAdaptation(input, weights);
+    }
+
+    return input;
+  }
+
+  /**
+   * Apply LoRA adaptation to text
+   */
+  private applyTextAdaptation(text: string, weights: LoRAWeights): string {
+    // Simplified text adaptation using weights
+    const adaptationStrength = weights.alpha / (weights.alpha + weights.rank);
+    
+    if (adaptationStrength > 0.5) {
+      // Strong adaptation - modify text more significantly
+      return text + ` [adapted:${weights.rank}]`;
+    } else {
+      // Weak adaptation - minor modifications
+      return text;
+    }
+  }
+
+  /**
+   * Apply LoRA adaptation to arrays
+   */
+  private applyArrayAdaptation(array: any[], weights: LoRAWeights): any[] {
+    // Apply weights-based transformation to array elements
+    return array.map((item, index) => {
+      const weightIndex = index % weights.weightsA.length;
+      const adaptationFactor = weights.weightsA[weightIndex];
+      
+      if (typeof item === 'number') {
+        return item * (1 + adaptationFactor * 0.1);
+      }
+      
+      return item;
+    });
+  }
+
+  /**
+   * Apply LoRA adaptation to objects
+   */
+  private applyObjectAdaptation(obj: any, weights: LoRAWeights): any {
+    const adapted = { ...obj };
+    
+    // Add adaptation metadata
+    adapted._loraAdapted = true;
+    adapted._loraRank = weights.rank;
+    adapted._loraAlpha = weights.alpha;
+    
+    return adapted;
+  }
+
+  /**
+   * Generate LoRA weights from training data
+   */
+  private async generateLoRAWeights(trainingData: any[]): Promise<LoRAWeights> {
+    // Simplified weight generation - in practice this would involve proper training
+    const rank = this.config.rank;
+    const weightsA = new Float32Array(rank * 128); // Simplified dimensions
+    const weightsB = new Float32Array(128 * rank);
+
+    // Initialize with small random values
+    for (let i = 0; i < weightsA.length; i++) {
+      weightsA[i] = (Math.random() - 0.5) * 0.02;
+    }
+    
+    for (let i = 0; i < weightsB.length; i++) {
+      weightsB[i] = (Math.random() - 0.5) * 0.02;
+    }
+
+    return {
+      weightsA,
+      weightsB,
+      rank,
+      alpha: this.config.alpha
+    };
+  }
+
+  /**
+   * Merge multiple LoRA weight sets
+   */
+  private mergeWeights(adapters: LoRAWeights[]): LoRAWeights {
+    const firstAdapter = adapters[0];
+    const mergedWeightsA = new Float32Array(firstAdapter.weightsA.length);
+    const mergedWeightsB = new Float32Array(firstAdapter.weightsB.length);
+
+    // Average the weights
+    for (let i = 0; i < mergedWeightsA.length; i++) {
+      let sum = 0;
+      for (const adapter of adapters) {
+        sum += adapter.weightsA[i] || 0;
+      }
+      mergedWeightsA[i] = sum / adapters.length;
+    }
+
+    for (let i = 0; i < mergedWeightsB.length; i++) {
+      let sum = 0;
+      for (const adapter of adapters) {
+        sum += adapter.weightsB[i] || 0;
+      }
+      mergedWeightsB[i] = sum / adapters.length;
+    }
+
+    return {
+      weightsA: mergedWeightsA,
+      weightsB: mergedWeightsB,
+      rank: firstAdapter.rank,
+      alpha: firstAdapter.alpha
+    };
+  }
+
+  /**
+   * Get adapter information
+   */
+  getAdapterInfo(adapterId: string): any {
+    const weights = this.adapters.get(adapterId);
+    if (!weights) return null;
+
+    return {
+      id: adapterId,
+      rank: weights.rank,
+      alpha: weights.alpha,
+      weightsASize: weights.weightsA.length,
+      weightsBSize: weights.weightsB.length,
+      active: this.activeAdapters.has(adapterId)
+    };
+  }
+
+  /**
+   * List all adapters
+   */
+  listAdapters(): string[] {
+    return Array.from(this.adapters.keys());
+  }
+
+  /**
+   * Get active adapters
+   */
+  getActiveAdapters(): string[] {
+    return Array.from(this.activeAdapters);
+  }
+
+  /**
+   * Check if adapter is ready
+   */
+  isReady(): boolean {
+    return this.isInitialized;
+  }
+
+  /**
+   * Cleanup resources
+   */
+  async dispose(): Promise<void> {
+    this.adapters.clear();
+    this.activeAdapters.clear();
+    this.isInitialized = false;
+    this.emit('lora_disposed');
+  }
+}
+
+export default LoRAAdapter;

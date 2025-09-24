@@ -5,10 +5,10 @@ const fs = require('fs');
 const path = require('path');
 
 const services = {
-  knirvchain: process.env.KNIRVCHAIN_URL || "https://chain.knirv.com",
-  knirvgraph: process.env.KNIRVGRAPH_URL || "https://graph.knirv.com",
-  knirvnexus: process.env.KNIRVNEXUS_URL || "https://nexus.knirv.com",
-  knirvoracle: process.env.KNIRVORACLE_URL || "https://root.knirv.com"
+  knirvchain: process.env.KNIRVCHAIN_URL || "https://chain.knirv.network",
+  knirvgraph: process.env.KNIRVGRAPH_URL || "https://graph.knirv.network",
+  knirvnexus: process.env.KNIRVNEXUS_URL || "https://nexus.knirv.network",
+  knirvoracle: process.env.KNIRVORACLE_URL || "https://root.knirv.network"
 };
 
 exports.handler = async (event, context) => {

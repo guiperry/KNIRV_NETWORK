@@ -146,10 +146,10 @@ healthSource.onmessage = function(event) {
    curl -N -H "Accept: text/event-stream" http://localhost:8888/gateway/events
    <code></code>`</p><p><h2>Environment Variables</h2></p><p>Configure these environment variables for production:</p><p><code></code>`bash
 <h1>Service URLs</h1>
-KNIRVORACLE_URL=https://root.knirv.com
-KNIRVCHAIN_URL=https://chain.knirv.com
-KNIRVGRAPH_URL=https://graph.knirv.com
-KNIRVNEXUS_URL=https://nexus.knirv.com</p><p><h1>Authentication</h1>
+KNIRVORACLE_URL=https://root.knirv.network
+KNIRVCHAIN_URL=https://chain.knirv.network
+KNIRVGRAPH_URL=https://graph.knirv.network
+KNIRVNEXUS_URL=https://nexus.knirv.network</p><p><h1>Authentication</h1>
 JWT_SECRET=your-jwt-secret
 AUTH_ENABLED=true</p><p><h1>Monitoring</h1>
 HEALTH_CHECK_INTERVAL=30000
@@ -189,13 +189,13 @@ METRICS_ENABLED=true
 <code></code>`</p><p><h3>Integration Testing</h3></p><p><code></code>`bash
 <h1>Run integration tests</h1>
 ./integration-tests/run_gateway_migration_tests.sh
-<code></code>`</p><p><h2>Support</h2></p><p>- <strong>Documentation</strong>: <a href="https://docs.knirv.com">docs.knirv.com</a>
-- <strong>Developer Portal</strong>: <a href="https://portal.knirv.com">portal.knirv.com</a>
-- <strong>Community</strong>: <a href="https://community.knirv.com">community.knirv.com</a>
+<code></code>`</p><p><h2>Support</h2></p><p>- <strong>Documentation</strong>: <a href="https://docs.knirv.network">docs.knirv.network</a>
+- <strong>Developer Portal</strong>: <a href="https://portal.knirv.network">portal.knirv.network</a>
+- <strong>Community</strong>: <a href="https://community.knirv.network">community.knirv.network</a>
 - <strong>Issues</strong>: <a href="https://github.com/knirv/issues">GitHub Issues</a></p><p><h2>License</h2></p><p>This project is licensed under the MIT License - see the <a href="license">LICENSE</a> file for details.</p><p><h2>Acknowledgments</h2></p><p>- Built with <a href="https://www.netlify.com/products/functions/">Netlify Functions</a>
 - Documentation powered by <a href="https://docsify.js.org/">Docsify</a>
 - UI components from <a href="https://getbootstrap.com/">Bootstrap</a>
-- Icons from <a href="https://feathericons.com/">Feather Icons</a></p><p>---</p><p><strong>KNIRV Gateway</strong> - Powering the future of decentralized AI and trusted execution networks.</p><p>For more information about the KNIRV ecosystem, visit <a href="https://knirv.com">knirv.com</a>.</p><p>
+- Icons from <a href="https://feathericons.com/">Feather Icons</a></p><p>---</p><p><strong>KNIRV Gateway</strong> - Powering the future of decentralized AI and trusted execution networks.</p><p>For more information about the KNIRV ecosystem, visit <a href="https://knirv.network">knirv.network</a>.</p><p>
 <h2>Changelog</h2></p><p>All notable changes to the KNIRV Gateway project will be documented in this section.  The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>, and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p><p><h2>[1.0.0] - 2025-01-08</h2></p><p><h3>Added</h3>
 - <strong>Initial Release</strong>: KNIRV Gateway unified web portal and API gateway
 - <strong>Netlify Functions</strong>: Serverless API gateway with SSE support

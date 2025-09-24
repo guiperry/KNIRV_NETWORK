@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines a comprehensive plan for implementing a seamless onboarding process in the Agentify application. The implementation will enable users to connect their applications via URL or configuration file, configure their AI agents, and deploy them with persistent configuration data flowing through each step of the process.
+This document outlines a comprehensive plan for implementing a seamless onboarding process in the Agentify application. The implementation will enable users to connect their applications via URL or configuration file, configure their Neural Intellegence Models, and deploy them with persistent configuration data flowing through each step of the process.
 
 ## Current Architecture Analysis
 
@@ -1069,7 +1069,7 @@ const AgentDeployer = () => {
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div className="flex items-center justify-between mb-12">
         <div className="text-center md:text-left w-full">
-          <h2 className="text-4xl font-bold text-white mb-4">Deploy Your AI Agent</h2>
+          <h2 className="text-4xl font-bold text-white mb-4">Deploy Your Neural Intellegence Model</h2>
           <p className="text-xl text-white/70">
             Test and deploy your agent for {connectedApp?.name}
           </p>
@@ -1345,13 +1345,13 @@ export default Index;
 
 ## Conclusion
 
-This implementation plan provides a comprehensive approach to enhancing the onboarding process in the Agentify application. By implementing a persistent state management system, real application connection functionality, and seamless data flow between steps, users will be able to connect their applications, configure AI agents, and deploy them with minimal friction.
+This implementation plan provides a comprehensive approach to enhancing the onboarding process in the Agentify application. By implementing a persistent state management system, real application connection functionality, and seamless data flow between steps, users will be able to connect their applications, configure Neural Intellegence Models, and deploy them with minimal friction.
 
 The plan focuses on creating a simple, elegant solution that maintains state throughout the onboarding funnel while providing a rich, interactive experience. Each step builds upon the previous one, ensuring that configuration data is carried forward and utilized effectively.
 
 Upon completion, users will be able to:
 1. Connect real applications via URL or configuration files
-2. Configure AI agents with pre-populated settings based on the connected application
+2. Configure Neural Intellegence Models with pre-populated settings based on the connected application
 3. Deploy agents with all necessary configuration data
 4. Monitor and manage their deployed agents
 

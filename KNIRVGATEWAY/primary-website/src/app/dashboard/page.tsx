@@ -50,7 +50,7 @@ export default function Dashboard() {
         <div className="text-center md:text-left w-full">
           <h2 className="text-4xl font-bold text-white mb-4">Agent Dashboard</h2>
           <p className="text-xl text-white/70">
-            Build, test, and deploy your AI agents
+            Build, test, and deploy your Neural Intellegence Models
           </p>
         </div>
       </div>

@@ -133,7 +133,7 @@ class KNIRVGatewayLinks {
       },
       external_services: {
         knirv_website: 'https://knirv.com',
-        testnet_access: 'https://testnet.knirv.com'
+        testnet_access: 'https://testnet.knirv.network'
       },
       navigation: {},
       timestamp: new Date().toISOString()

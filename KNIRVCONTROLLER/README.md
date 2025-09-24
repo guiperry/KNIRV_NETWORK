@@ -1,4 +1,4 @@
-# KNIRV-CONTROLLER: The Unified Agent Management Platform
+# KNIRV-CONTROLLER: The Unified Neural Intelligence Model Management Platform
 
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](https://nodejs.org/)
 [![Rust Version](https://img.shields.io/badge/rust-%3E%3D1.70.0-orange)](https://www.rust-lang.org/)
@@ -7,7 +7,7 @@
 
 ## Overview
 
-The **KNIRV-CONTROLLER** serves as the comprehensive agent management platform within the KNIRV D-TEN ecosystem. Following a major architectural refactor, it unifies previously separate components into a cohesive application that provides seamless agent management, skill development, wallet functionality, and network interaction capabilities.
+The **KNIRV-CONTROLLER** serves as the comprehensive Neural Intelligence Model (NIM) management platform within the KNIRV D-TEN ecosystem. It unifies separate tools into a cohesive application that provides seamless NIM management, skill development, wallet functionality, and network interaction capabilities.
 
 ## 🆕 Recent Updates
 
@@ -16,7 +16,7 @@ The **KNIRV-CONTROLLER** serves as the comprehensive agent management platform w
 - **Cognitive Engine Enhancement**: Updated cognitive shell orchestrator to route inference through external API channels
 - **Model Creation Workflow**: Complete 5-step model creation and training page with external API configuration
 - **Onboarding Sequence**: Guided setup for new users with cortex.wasm compilation and API key configuration
-- **Agent Management**: Enhanced agent management page with sample starter agent and navigation to model creation
+- **Neural Intelligence Model Management**: Enhanced NIM management page with sample starter NIM and navigation to model creation
 
 ### 🔧 Cognitive Engine Improvements
 - **Real-time Status Updates**: Cognitive engine start/stop now properly updates UI state and status indicators
@@ -42,63 +42,63 @@ The CONTROLLER integrates four core components into a unified platform:
   - **NEW**: Visual cognitive mode indicator (lightning icon fills when active)
   - **NEW**: Dynamic status updates (idle → monitoring → processing)
 
-#### 2. **Manager** (Agent Lifecycle Management)
+#### 2. **Manager** (Neural Intelligence Model Lifecycle Management)
 - **Location**: `src/pages/` (Skills, UDC, Wallet, Badges)
-- **Purpose**: Evolved mobile-controller for comprehensive agent management
+- **Purpose**: Evolved mobile-controller for comprehensive NIM management
 - **Features**:
-  - Agent registration and deployment
+  - Neural Intelligence Model registration and deployment
   - LoRA adapter skill management
   - UDC (User Delegation Certificate) management
   - Network connectivity monitoring
   - Performance analytics
   - **NEW**: Model creation and training with external AI integration
-  - **NEW**: Sample starter agent with default cortex.wasm
+  - **NEW**: Sample starter NIM with default cortex.wasm
   - **NEW**: External API configuration and management
 
 #### 3. **CLI** (Terminal Interface)
 - **Location**: Integrated via sliding panels and terminal services
 - **Purpose**: Command-line interface for advanced operations
 - **Features**:
-  - Agent minting on the oracle
+  - Neural Intelligence Model minting on the oracle
   - Network diagnostics
   - Direct blockchain interactions
   - Terminal command execution
 
-#### 4. **Wallet** (Agent's Treasury)
+#### 4. **Wallet** (Neural Intelligence Model's Treasury)
 - **Location**: `src/services/KnirvWalletService.ts`
-- **Purpose**: XION Meta Account-based wallet for autonomous agent operations
+- **Purpose**: XION Meta Account-based wallet for autonomous NIM operations
 - **Features**:
   - Gasless transactions via XION
   - NRN token management
   - UDC issuance and validation
   - Secure key management
 
-### WASM Agent Core System
+### WASM Neural Intelligence Model Core System
 
-#### Agent Compilation Pipeline
+#### Neural Intelligence Model Compilation Pipeline
 - **TypeScript LoRA Compilation**: `src/core/wasm/WASMCompiler.ts`
 - **AssemblyScript Integration**: `assembly/index.ts`
 - **Rust WASM Support**: `rust-wasm/` directory
 - **Cognitive Shell Orchestration**: `src/sensory-shell/`
 
 #### Key Capabilities
-- **Agent Core Upload**: Upload and compile WASM files with LoRA adapters
-- **LoRA-Enhanced Export**: Export agents with embedded neural network modifications
-- **Primary Agent Management**: Dynamic skill loading and cluster competition participation
+- **Neural Intelligence Model Core Upload**: Upload and compile WASM files with LoRA adapters
+- **LoRA-Enhanced Export**: Export NIMs with embedded neural network modifications
+- **Primary Neural Intelligence Model Management**: Dynamic skill loading and cluster competition participation
 
 ## Core Features
 
-### Agent Management & LoRA Development
-- **Complete Agent Lifecycle**: Creation, training, deployment, and management
+### Neural Intelligence Model Management & LoRA Development
+- **Complete Neural Intelligence Model Lifecycle**: Creation, training, deployment, and management
 - **LoRA Adapter Skills**: Skills ARE LoRA adapters containing weights and biases
 - **Cluster Competition**: Participate in KNIRVGRAPH error cluster competitions
-- **UDC Management**: Precise agent permission control
+- **UDC Management**: Precise NIM permission control
 
 ### Network Integration
 - **Universal Connectivity**: Connect with all KNIRV network services
 - **QR Code Scanning**: Seamless integration with KNIRVENGINE and KNIRVNEXUS
-- **Primary Agent Cloning**: Consistent behavior across platforms
-- **Cross-Platform Synchronization**: Real-time agent configuration sync
+- **Primary Neural Intelligence Model Cloning**: Consistent behavior across platforms
+- **Cross-Platform Synchronization**: Real-time NIM configuration sync
 
 ### Cognitive Processing
 - **Factuality Slicing**: Evidence-based validation for Error submissions
@@ -130,7 +130,7 @@ The CONTROLLER integrates four core components into a unified platform:
 ### WASM & Compilation
 - **AssemblyScript**: For high-performance WASM modules
 - **Rust**: Alternative WASM compilation target
-- **TypeScript Compiler**: Custom agent compilation pipeline
+- **TypeScript Compiler**: Custom NIM compilation pipeline
 
 ### Blockchain Integration
 - **XION Meta Accounts**: Gasless transaction support
@@ -155,8 +155,8 @@ npm or yarn package manager
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/guiperry/KNIRV_NETWORK.git
-cd KNIRV_NETWORK/KNIRVCONTROLLER
+git clone https://github.com/guiperry/KNIRVCONTROLLER.git
+cd KNIRVCONTROLLER
 
 # Install dependencies
 npm install
@@ -242,13 +242,13 @@ KNIRVCONTROLLER/
 - `POST /api/graph/error` - Submit error for processing
 - `POST /api/graph/context` - Submit context/server info
 - `POST /api/graph/idea` - Submit new idea/concept
-- `GET /api/agents` - List available agents
-- `POST /api/agents/:id/deploy` - Deploy agent
+- `GET /api/nims` - List available NIMs
+- `POST /api/nims/:id/deploy` - Deploy NIM
 - `GET /api/wallet/balance` - Get wallet balance
 
 ### WebSocket Events
 - `cognitive_state` - Real-time cognitive processing updates
-- `agent_status` - Agent deployment and execution status
+- `nim_status` - Neural Intelligence Model deployment and execution status
 - `network_status` - Network connectivity updates
 
 ## Configuration
@@ -256,10 +256,12 @@ KNIRVCONTROLLER/
 ### Environment Variables
 ```bash
 # .env
-VITE_API_BASE_URL=http://localhost:3001
-VITE_XION_CHAIN_ID=local-1
-VITE_KNIRV_GRAPH_ENDPOINT=https://api.knirv.network/graph
+VITE_API_BASE_URL=http://gateway-testnet.knirv.network
+VITE_ORACLE_ENDPOINT=http://oracle-testnet.knirv.network
 VITE_WALLET_CONNECT_PROJECT_ID=your_project_id
+VITE_WALLET_CONNECT_RPC_URL=http://localhost:8545
+VITE_XION_CHAIN_ID=local-1
+VITE_KNIRV_GRAPH_ENDPOINT=https://graph-testnet.knirv.network
 ```
 
 ### Network Configuration
@@ -433,7 +435,7 @@ npm run test:coverage
 ## Performance
 
 ### Optimization Features
-- **WASM Compilation**: High-performance agent execution
+- **WASM Compilation**: High-performance NIM execution
 - **Lazy Loading**: Component and route lazy loading
 - **Caching**: Intelligent caching with RxDB
 - **Memory Management**: Automatic memory optimization
@@ -463,18 +465,18 @@ npm run build:wasm -- --verbose
 
 ## Documentation
 
-- **[Whitepaper](./docs/whitepapers/KNIRV-CONTROLLER_Whitepaper.md)**: Comprehensive technical specification
-- **[API Documentation](./docs/api/)**: Detailed API endpoint documentation
-- **[Gap Analysis](./Gap_Analysis.md)**: Current implementation status and roadmap
+- **[Whitepaper](https://knirv.network/documentation/static/whitepapers/)**: Comprehensive technical specification
+- **[API Documentation](https://knirv.network/documentation/static/knirvsdk/README)**: Detailed API endpoint documentation
+- **[Gap Analysis](https://knirv.network/documentation/knirvcontroller/README)**: Current implementation status and roadmap
 
 ## License
 
-MIT License - see [LICENSE](../LICENSE) file for details.
+MIT License - see [LICENSE](https://knirv.network/documentation/static/legal/TERMS_AND_CONDITIONS) file for details.
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/guiperry/KNIRV_NETWORK/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/guiperry/KNIRV_NETWORK/discussions)
+- **Issues**: [GitHub Issues](https://github.com/guiperry/KNIRVCONTROLLER/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/guiperry/KNIRVCONTROLLER/discussions)
 - **Documentation**: [KNIRV Network Docs](https://docs.knirv.network)
 
 ---

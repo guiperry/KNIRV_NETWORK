@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 class StaticGenerationTester {
   constructor() {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
     this.staticDir = path.join(__dirname, '../public/documentation/static');
   }
 
@@ -86,9 +89,9 @@ class StaticGenerationTester {
 }
 
 // Run if called directly
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   const tester = new StaticGenerationTester();
   tester.run();
 }
 
-module.exports = StaticGenerationTester;
+export default StaticGenerationTester;

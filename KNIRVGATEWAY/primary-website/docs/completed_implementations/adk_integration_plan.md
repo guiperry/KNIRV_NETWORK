@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines a comprehensive plan for integrating Google's Agent Development Kit (ADK) with our existing Inference Engine. The integration will enable dynamic creation and management of AI agents at runtime, with the Golang backend handling agent creation and the TypeScript frontend managing them.
+This document outlines a comprehensive plan for integrating Google's Agent Development Kit (ADK) with our existing Inference Engine. The integration will enable dynamic creation and management of Neural Intellegence Models at runtime, with the Golang backend handling agent creation and the TypeScript frontend managing them.
 
 ## Architecture
 

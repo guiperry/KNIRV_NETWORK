@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Agentify is a framework for building, configuring, and deploying AI agents with enhanced developer experience. This guide provides comprehensive documentation on how to use Agentify to create and configure agents with various capabilities.
+Agentify is a framework for building, configuring, and deploying Neural Intellegence Models with enhanced developer experience. This guide provides comprehensive documentation on how to use Agentify to create and configure agents with various capabilities.
 
 ## Table of Contents
 

@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-KNIRV Cortex Builder is a comprehensive platform for building, configuring, and deploying neural intelligence agents with enhanced developer experience. It provides a user-friendly interface for creating custom AI agents that can be integrated with various applications and services.
+KNIRV Cortex Builder is a comprehensive platform for building, configuring, and deploying neural intelligence agents with enhanced developer experience. It provides a user-friendly interface for creating custom Neural Intellegence Models that can be integrated with various applications and services.
 
 **Project URL**: https://ai-agentify.vercel.app/
 

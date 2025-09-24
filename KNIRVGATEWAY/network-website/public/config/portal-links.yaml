@@ -11,7 +11,7 @@ navigation:
   support_desk: "/support-desk/src/"
   nanda_ans: "/nanda_ans/"
   developer_portal: "/agent-developer-portal/"
-  agentify: "/agentify/"
+  agentify: "agentify.knirv.com/"
   products: "/products.html"
 
 # External Services
@@ -21,7 +21,7 @@ external_services:
   operator_registry: "https://operators.knirv.network"
   webgui: "https://dashboard.knirv.network"
   knirv_website: "https://knirv.com"
-  testnet_access: "https://testnet.knirv.com"
+  testnet_access: "https://testnet.knirv.network"
 
 # Gateway Services Configuration
 # These services are dynamically managed based on deployment environment
@@ -145,7 +145,7 @@ api_documentation:
   openapi_specs:
     knirvsdk: "/agent-developer-portal/openapi/knirvsdk.yaml"
     knirvengine: "/agent-developer-portal/openapi/knirvengine.yaml"
-    knirvcortex: "/agent-developer-portal/openapi/knirvcortex.yaml"
+    knirvinference: "/agent-developer-portal/openapi/knirvinference.yaml"
 
 # Feature Flags
 features:

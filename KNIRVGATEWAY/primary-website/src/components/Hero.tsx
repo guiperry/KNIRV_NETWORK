@@ -18,7 +18,7 @@ const Hero = ({ onGetStarted }: HeroProps) => {
             Build and Deploy <span className="knirv-gradient-text">Neural Intelligence Models</span> with KNIRV
           </h1>
           <p className="text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto mb-10">
-            Create, train, and deploy advanced neural intelligence models using the KNIRV Cortex Builder. Build custom AI agents for your specific needs.
+            Create, train, and deploy advanced neural intelligence models using the KNIRV NIM Builder. Build custom AI language models for your specific needs.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             {onGetStarted ? (
@@ -27,11 +27,11 @@ const Hero = ({ onGetStarted }: HeroProps) => {
                 size="lg"
                 className="knirv-gradient hover:opacity-90 text-white font-semibold"
               >
-                Build Your AI Agent
+                Build Your AI Model
               </Button>
             ) : (
               <Button asChild size="lg" className="knirv-gradient hover:opacity-90 text-white font-semibold">
-                <Link href="/dashboard" data-config-nav="dashboard">Build Your AI Agent</Link>
+                <Link href="/dashboard" data-config-nav="dashboard">Build Your AI Model</Link>
               </Button>
             )}
             <Button asChild size="lg" variant="outline" className="knirv-border-primary knirv-text-primary hover:bg-slate-800">

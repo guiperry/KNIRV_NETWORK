@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const path = require('path');
-const glob = require('glob');
+import fs from 'fs';
+import path from 'path';
+import { glob } from 'glob';
+import { fileURLToPath } from 'url';
 
 class SimpleStaticGenerator {
   constructor() {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
     this.docsifyDir = path.join(__dirname, '../public/documentation/docsify');
     this.staticDir = path.join(__dirname, '../public/documentation/static');
     this.templatePath = path.join(this.docsifyDir, 'index.html');
@@ -349,7 +352,7 @@ class SimpleStaticGenerator {
         <hr style="border: 1px solid #333; margin: 20px 0;">
         <p style="font-size: 0.9em; color: #888; text-align: center;">
           © 2025 KNIRV Network<br>
-          <a href="https://knirv.com" style="color: #4a9eff;">knirv.com</a>
+          <a href="https://knirv.network" style="color: #4a9eff;">knirv.network</a>
         </p>
       </div>
     `;
@@ -369,9 +372,9 @@ class SimpleStaticGenerator {
 }
 
 // Run if called directly
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   const generator = new SimpleStaticGenerator();
   generator.run();
 }
 
-module.exports = SimpleStaticGenerator;
+export default SimpleStaticGenerator;

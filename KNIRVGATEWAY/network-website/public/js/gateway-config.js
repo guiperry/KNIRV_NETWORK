@@ -44,7 +44,7 @@ window.KNIRV_GATEWAY_CONFIG = {
     "testnet_access": "https://testnet.knirv.network"
   },
   "navigation": {
-    "main_site": "https://knirv.com",
+    "main_site": "https://knirv.network",
     "documentation": "../documentation/docsify/",
     "graphchain_explorer": "../graphchain-explorer/",
     "nexus_portal": "../nexus-portal/",

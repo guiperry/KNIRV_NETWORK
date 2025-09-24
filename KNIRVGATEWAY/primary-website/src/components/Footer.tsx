@@ -13,11 +13,11 @@ const Footer = () => {
             <Link href="/" data-config-nav="home" className="flex items-center space-x-2" aria-label="Go to homepage">
               <Network className="h-8 w-8 knirv-text-primary" />
               <span className="text-2xl font-bold knirv-gradient-text">
-                KNIRV CORTEX
+                KNIRV
               </span>
             </Link>
             <p className="text-white/70 text-sm leading-relaxed">
-              Build and deploy neural intelligence agents with the KNIRV platform. Create, configure, and manage AI agents for the decentralized future.
+              Build and deploy neural intelligence models with the KNIRV platform. Create, configure, and manage AI models for the decentralized future.
             </p>
             <div className="flex space-x-4">
               <a href="#" className="text-white/60 hover:knirv-text-primary transition-colors">
@@ -116,33 +116,18 @@ const Footer = () => {
         <div className="mt-12 pt-8 border-t border-white/10">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-6 text-sm text-white/60">
-              <p>&copy; 2024 KNIRV Network. All rights reserved.</p>
+              <p>&copy; 2024 <Link href="knirv.network" className="hover:text-white transition-colors">KNIRV NETWORK</Link>. All rights reserved.</p>
               <div className="flex space-x-6">
                 <Link href="/privacy-policy" data-config-footer="legal.privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
                 <Link href="/terms-of-service" data-config-footer="legal.terms" className="hover:text-white transition-colors">Terms of Service</Link>
                 <Link href="/cookie-policy" data-config-footer="legal.cookie" className="hover:text-white transition-colors">Cookie Policy</Link>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-1 text-sm text-white/60">
+            <div className="flex items-center space-x-1 text-sm text-white/60">
                 <span>Built with</span>
                 <Heart className="h-4 w-4 text-red-400" />
                 <span>for the decentralized future</span>
               </div>
-              <a
-                href="https://bolt.new"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="opacity-70 hover:opacity-100 transition-opacity"
-                aria-label="Powered by Bolt"
-              >
-                <img
-                  src="/bolt_poweredby_360w.png"
-                  alt="Powered by Bolt"
-                  className="h-8 w-auto"
-                />
-              </a>
-            </div>
           </div>
         </div>
       </div>

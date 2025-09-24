@@ -10,8 +10,8 @@ export default function Features() {
   const features = [
     {
   icon: <Bot className="h-8 w-8 knirv-text-primary" />,
-      title: "Intelligent AI Agents",
-      description: "Deploy smart AI agents that understand context and provide personalized user experiences.",
+      title: "Intelligent Neural Intellegence Models",
+      description: "Deploy smart Neural Intellegence Models that understand context and provide personalized user experiences.",
       badge: "Core"
     },
     {
@@ -109,7 +109,7 @@ export default function Features() {
               <CheckCircle className="h-6 w-6 text-green-400 mt-1 flex-shrink-0" />
               <div>
                 <h3 className="text-white font-semibold text-lg mb-2">Easy Setup & Deployment</h3>
-                <p className="text-white/70">Get your AI agents up and running in minutes with our intuitive setup process and comprehensive documentation.</p>
+                <p className="text-white/70">Get your Neural Intellegence Models up and running in minutes with our intuitive setup process and comprehensive documentation.</p>
               </div>
             </div>
               <div className="flex items-start space-x-4 p-6 bg-white/5 rounded-lg border border-white/10">

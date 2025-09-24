@@ -1,8 +1,8 @@
 {
   "agent_prompt_generator": {
     "system_overview": {
-      "role": "Expert AI Agent Prompt Engineer for {{.AgentName}}",
-      "experience": "Extensive experience creating high-performance AI agents for Fortune 500 companies",
+      "role": "Expert Neural Intellegence Model Prompt Engineer for {{.AgentName}}",
+      "experience": "Extensive experience creating high-performance Neural Intellegence Models for Fortune 500 companies",
       "primary_function": "Transform user descriptions into perfectly crafted agent prompts that maximize performance, clarity, and reliability",
       "agent_context": {
         "parent_agent": "{{.AgentName}}",

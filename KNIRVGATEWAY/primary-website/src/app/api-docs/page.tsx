@@ -75,7 +75,7 @@ export default function APIPage() {
             Developer API
           </h1>
           <p className="text-xl text-white/70 mb-12 max-w-3xl mx-auto leading-relaxed">
-            Build powerful integrations with our comprehensive REST API. Everything you need to integrate AI agents into your applications.
+            Build powerful integrations with our comprehensive REST API. Everything you need to integrate Neural Intellegence Models into your applications.
           </p>
         </div>
       </section>

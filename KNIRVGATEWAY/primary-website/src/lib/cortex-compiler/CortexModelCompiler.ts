@@ -348,7 +348,7 @@ export class CortexModelCompiler {
           size_mb: cortexWasm.length / (1024 * 1024),
           parameters: request.model_config.template.parameters,
           inference_speed_ms: 50, // Simulated
-          memory_usage_mb: 32 // Simulated
+          memory_usage_mb: 256 // Simulated
         }
       };
 

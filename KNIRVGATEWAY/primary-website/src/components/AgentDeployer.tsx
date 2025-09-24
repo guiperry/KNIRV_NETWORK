@@ -136,9 +136,9 @@ const AgentDeployer = ({
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div className="flex items-center justify-between mb-12">
         <div className="text-center md:text-left w-full">
-          <h2 className="text-4xl font-bold text-white mb-4">Deploy Your AI Agent</h2>
+          <h2 className="text-4xl font-bold text-white mb-4">Deploy Your custom Neural Intellegence Model </h2>
           <p className="text-xl text-white/70">
-            Deploy your agent for {connectedApp.name} to the cloud or locally
+            Deploy your model for {connectedApp.name} to the cloud or locally
           </p>
         </div>
       </div>
@@ -199,7 +199,7 @@ const AgentDeployer = ({
               Cloud Deploy
             </CardTitle>
             <CardDescription className="text-white/70">
-              Deploy your agent to cloud platforms for global access
+              Deploy your model to cloud platforms for global access
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -253,7 +253,7 @@ const AgentDeployer = ({
               Local Deploy
             </CardTitle>
             <CardDescription className="text-white/70">
-              Download and run your agent locally on your machine
+              Download and run your model locally on your machine
             </CardDescription>
           </CardHeader>
           <CardContent>

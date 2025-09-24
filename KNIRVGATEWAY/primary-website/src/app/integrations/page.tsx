@@ -136,7 +136,7 @@ export default function IntegrationsPage() {
                 <Zap className="h-8 w-8 text-green-400" />
               </div>
               <h3 className="text-white font-semibold text-lg mb-2">Deploy</h3>
-              <p className="text-white/70">Go live with intelligent AI agents enhancing your user experience.</p>
+              <p className="text-white/70">Go live with intelligent Neural Intellegence Models enhancing your user experience.</p>
             </div>
           </div>
         </div>

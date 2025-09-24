@@ -24,10 +24,6 @@
 
 * [KNIRV SDK](knirvsdk/README.md)
 
-## KNIRVINFERENCE Documentation
-
-* [KNIRVINFERENCE User Guide](knirvcortex/README.md)
-
 ## KNIRVCONTROLLER Documentation
 
 * [Consolidated Documentation](knirvcontroller/README.md)

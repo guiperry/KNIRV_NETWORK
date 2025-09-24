@@ -12,6 +12,8 @@ ansible.log
 *.log
 *.retry
 .ansible/
+*.csv
+
 
 # SSH keys and certificates
 *.pem

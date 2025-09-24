@@ -4,7 +4,7 @@
 # Main Navigation Links
 navigation:
   main_site: "https://knirv.com"
-  documentation: "../documentation/docsify/"
+  documentation: "../documentation/static/"
   graphchain_explorer: "../graphchain-explorer/"
   nexus_portal: "../nexus-portal/"
   support_desk: "../support-desk/src/"
@@ -96,18 +96,18 @@ business:
 # Footer Links
 footer:
   legal:
-    terms: "../documentation/static/legal/TERMS_AND_CONDITIONS"
-    privacy: "../documentation/static/legal/PRIVACY_POLICY"
-    contribution: "../documentation/static/legal/CODE_OF_CONDUCT"
+    terms: "../documentation/static/legal/TERMS_AND_CONDITIONS.html"
+    privacy: "../documentation/static/legal/PRIVACY_POLICY.html"
+    contribution: "../documentation/static/legal/CODE_OF_CONDUCT.html"
   
   social:
-    github: "https://github.com/knirv-network"
+    github: "https://github.com/guiperry/KNIRVCONTROLLER"
     discord: "https://discord.gg/knirv"
     twitter: "https://twitter.com/knirvnetwork"
     telegram: "https://t.me/knirvnetwork"
   
   resources:
-    documentation: "../documentation/docsify/"
+    documentation: "../documentation/static/"
     support: "../support-desk/src/"
     forum: "../forum/src/"
     blog: "https://blog.knirv.com"
@@ -116,7 +116,7 @@ footer:
 api:
   base_url: "/.netlify/functions"
   endpoints:
-    agents: "/agents"
+    nims: "/nims"
     skills: "/skills"
     auth: "/auth"
     payments: "/payments"
@@ -152,7 +152,7 @@ iframes:
     height: "800px"
   
   documentation:
-    url: "../documentation/"
+    url: "../documentation/static/"
     title: "KNIRV Documentation"
     height: "800px"
   

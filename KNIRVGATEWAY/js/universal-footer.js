@@ -68,7 +68,7 @@ class KNIRVUniversalFooter {
                             <li><a href="${this.getLink('navigation.graphchain_explorer')}">Graphchain Explorer</a></li>
                             <li><a href="${this.getLink('navigation.nanda_ans')}">NANDA+ANS</a></li>
                             <li><a href="agent-developer-portal/">Developer Portal</a></li>
-                            <li><a href="agentify/">Agentify</a></li>
+                            <li><a href="agentify.knirv.com">Agentify</a></li>
                         </ul>
                     </div>
 

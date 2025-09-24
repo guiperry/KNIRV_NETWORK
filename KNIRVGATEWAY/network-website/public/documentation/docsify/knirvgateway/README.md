@@ -200,10 +200,10 @@ Configure these environment variables for production:
 
 ```bash
 # Service URLs
-KNIRVORACLE_URL=https://root.knirv.com
-KNIRVCHAIN_URL=https://chain.knirv.com
-KNIRVGRAPH_URL=https://graph.knirv.com
-KNIRVNEXUS_URL=https://nexus.knirv.com
+KNIRVORACLE_URL=https://root.knirv.network
+KNIRVCHAIN_URL=https://chain.knirv.network
+KNIRVGRAPH_URL=https://graph.knirv.network
+KNIRVNEXUS_URL=https://nexus.knirv.network
 
 # Authentication
 JWT_SECRET=your-jwt-secret
@@ -287,9 +287,9 @@ The project is configured for Netlify deployment with:
 
 ## Support
 
-- **Documentation**: [docs.knirv.com](https://docs.knirv.com)
-- **Developer Portal**: [portal.knirv.com](https://portal.knirv.com)
-- **Community**: [community.knirv.com](https://community.knirv.com)
+- **Documentation**: [docs.knirv.network](https://docs.knirv.network)
+- **Developer Portal**: [portal.knirv.network](https://portal.knirv.network)
+- **Community**: [community.knirv.network](https://community.knirv.network)
 - **Issues**: [GitHub Issues](https://github.com/knirv/issues)
 
 ## License
@@ -307,7 +307,7 @@ This project is licensed under the MIT License - see the [LICENSE](license) file
 
 **KNIRV Gateway** - Powering the future of decentralized AI and trusted execution networks.
 
-For more information about the KNIRV ecosystem, visit [knirv.com](https://knirv.com).
+For more information about the KNIRV ecosystem, visit [knirv.network](https://knirv.network).
 
 
 ## Changelog

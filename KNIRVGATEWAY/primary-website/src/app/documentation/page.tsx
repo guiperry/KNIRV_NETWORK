@@ -78,9 +78,9 @@ export default function DocumentationPage() {
   ];
 
   const quickLinks = [
-    { title: 'Installation Guide', href: '#installation', icon: Download },
-    { title: 'API Reference', href: '#api', icon: Code },
-    { title: 'Examples', href: '#examples', icon: FileText },
+    { title: 'Installation Guide', href: 'https://knirv.network/agent-developer-portal/', icon: Download },
+    { title: 'API Reference', href: 'https://knirv.network/agent-developer-portal/', icon: Code },
+    { title: 'Examples', href: 'https://knirv.network/agent-developer-portal/', icon: FileText },
     { title: 'Tutorials', href: '/tutorials', icon: Play }
   ];
 
@@ -91,7 +91,7 @@ export default function DocumentationPage() {
           <div className="flex justify-between items-center h-16">
             <KnirvLogo />
             <Link href="/" className="text-white/70 hover:text-white transition-colors">
-               Back to Home
+               Back to Home
             </Link>
           </div>
         </div>
@@ -176,7 +176,7 @@ export default function DocumentationPage() {
                   <Badge variant="outline" className="knirv-border-primary knirv-text-primary">
                     Beginner
                   </Badge>
-                  <Link href="#quick-start" data-config-nav="documentation" className="text-blue-400 hover:text-blue-300 flex items-center">
+                  <Link href="https://knirv.network/agent-developer-portal/" data-config-nav="documentation" className="text-blue-400 hover:text-blue-300 flex items-center">
                     Read Guide <ExternalLink className="h-4 w-4 ml-1" />
                   </Link>
                 </div>

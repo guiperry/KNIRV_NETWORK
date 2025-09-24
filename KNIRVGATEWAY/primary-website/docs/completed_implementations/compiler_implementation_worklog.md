@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document tracks the progress of implementing the AI Agent Plugin Compiler as detailed in the compiler_implementation_plan.md file. The implementation follows the phased approach outlined in the original plan.
+This document tracks the progress of implementing the Neural Intellegence Model Plugin Compiler as detailed in the compiler_implementation_plan.md file. The implementation follows the phased approach outlined in the original plan.
 
 ## Phase 1: Core Infrastructure
 

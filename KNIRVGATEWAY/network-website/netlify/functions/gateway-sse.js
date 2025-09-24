@@ -66,28 +66,28 @@ if (isTestnet) {
   services = {
     knirvchain: {
       name: "knirvchain",
-      url: process.env.KNIRVCHAIN_URL || "https://chain.knirv.com",
+      url: process.env.KNIRVCHAIN_URL || "https://chain.knirv.network",
       healthPath: "/health",
       isHealthy: true,
       lastCheck: new Date()
     },
     knirvgraph: {
       name: "knirvgraph",
-      url: process.env.KNIRVGRAPH_URL || "https://graph.knirv.com",
+      url: process.env.KNIRVGRAPH_URL || "https://graph.knirv.network",
       healthPath: "/height",
       isHealthy: true,
       lastCheck: new Date()
     },
     knirvnexus_dve: {
       name: "knirvnexus_dve",
-      url: process.env.KNIRVNEXUS_DVE_URL || "https://nexus-dve.knirv.com",
+      url: process.env.KNIRVNEXUS_DVE_URL || "https://nexus-dve.knirv.network",
       healthPath: "/health",
       isHealthy: true,
       lastCheck: new Date()
     },
     knirvnexus_validation: {
       name: "knirvnexus_validation",
-      url: process.env.KNIRVNEXUS_VALIDATION_URL || "https://nexus-validation.knirv.com",
+      url: process.env.KNIRVNEXUS_VALIDATION_URL || "https://nexus-validation.knirv.network",
       healthPath: "/health",
       isHealthy: true,
       lastCheck: new Date()

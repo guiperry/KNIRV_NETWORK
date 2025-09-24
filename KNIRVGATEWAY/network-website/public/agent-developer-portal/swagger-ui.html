@@ -244,7 +244,7 @@
                     <select id="apiSelector" onchange="loadAPI()">
                         <option value="knirvsdk">KNIRV Unified API (Blockchain + Agents)</option>
                         <option value="knirvengine">KNIRV-ENGINE API</option>
-                        <option value="knirvcortex">KNIRV-INFERENCE API (Agentify)</option>
+                        <option value="knirvinference">KNIRV-INFERENCE API (Agentify)</option>
                         <option value="unified">Gateway API (Demo)</option>
                     </select>
                 </div>
@@ -279,7 +279,7 @@
                         description: "Development server"
                     },
                     {
-                        url: "https://api.knirv.com",
+                        url: "https://api.knirv.network",
                         description: "Production server"
                     }
                 ],
@@ -589,8 +589,8 @@
                     case 'knirvengine':
                         apiUrl = 'openapi/knirvengine.yaml';
                         break;
-                    case 'knirvcortex':
-                        apiUrl = 'openapi/knirvcortex.yaml';
+                    case 'knirvinference':
+                        apiUrl = 'openapi/knirvinference.yaml';
                         break;
                 }
 

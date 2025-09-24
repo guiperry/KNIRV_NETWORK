@@ -218,7 +218,7 @@ The application is configured for Netlify deployment with:
 
 ### Environment Variables
 ```bash
-KNIRVGRAPH_URL=https://graph.knirv.com
+KNIRVGRAPH_URL=https://graph.knirv.network
 TESTNET_MODE=false
 NODE_ENV=production
 ```

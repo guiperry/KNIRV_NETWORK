@@ -42,6 +42,22 @@ interface ModelDeployerProps {
 const ModelDeployer = ({ modelConfig, onDeployed }: ModelDeployerProps) => {
   const { toast } = useToast();
   
+  // Debug logging
+  console.log('ModelDeployer rendering with modelConfig:', modelConfig);
+  
+  // Validate modelConfig structure
+  if (!modelConfig || !modelConfig.template) {
+    console.error('Invalid modelConfig:', modelConfig);
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-6">
+        <div className="max-w-6xl mx-auto text-center text-white">
+          <h1 className="text-3xl font-bold mb-4">Configuration Error</h1>
+          <p>Invalid model configuration. Please go back and configure your model again.</p>
+        </div>
+      </div>
+    );
+  }
+  
   // Compilation state
   const [isCompiling, setIsCompiling] = useState(false);
   const [compilationProgress, setCompilationProgress] = useState<TrainingProgress | null>(null);
@@ -52,9 +68,9 @@ const ModelDeployer = ({ modelConfig, onDeployed }: ModelDeployerProps) => {
   const [trainingMetrics, setTrainingMetrics] = useState({
     currentLoss: 0,
     currentAccuracy: 0,
-    learningRate: modelConfig.training_config.learning_rate,
+    learningRate: modelConfig.training_config?.learning_rate || 0.001,
     epochsCompleted: 0,
-    totalEpochs: modelConfig.training_config.epochs
+    totalEpochs: modelConfig.training_config?.epochs || 10
   });
 
   const handleStartCompilation = async () => {
@@ -137,6 +153,8 @@ const ModelDeployer = ({ modelConfig, onDeployed }: ModelDeployerProps) => {
   };
 
   const handleDeploy = () => {
+    console.log('handleDeploy called, onDeployed function:', onDeployed);
+    
     // In a real implementation, this would trigger deployment to the selected targets
     toast({
       title: "Deployment Started",
@@ -145,7 +163,12 @@ const ModelDeployer = ({ modelConfig, onDeployed }: ModelDeployerProps) => {
     
     // Simulate deployment completion
     setTimeout(() => {
-      onDeployed();
+      console.log('Calling onDeployed callback');
+      if (typeof onDeployed === 'function') {
+        onDeployed();
+      } else {
+        console.error('onDeployed is not a function:', onDeployed);
+      }
       toast({
         title: "Deployment Complete",
         description: "Your model is now live and ready to use",
@@ -212,24 +235,24 @@ const ModelDeployer = ({ modelConfig, onDeployed }: ModelDeployerProps) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
                     <h4 className="text-white font-medium mb-2">Template</h4>
-                    <p className="text-slate-300">{modelConfig.template.name}</p>
+                    <p className="text-slate-300">{modelConfig.template?.name || 'Unknown'}</p>
                     <Badge variant="outline" className="mt-1 text-blue-400 border-blue-400">
-                      {modelConfig.template.size}
+                      {modelConfig.template?.size || 'Unknown'}
                     </Badge>
                   </div>
                   <div>
                     <h4 className="text-white font-medium mb-2">Parameters</h4>
-                    <p className="text-slate-300">{modelConfig.template.parameters.toLocaleString()}</p>
-                    <p className="text-sm text-slate-400">{modelConfig.template.type} architecture</p>
+                    <p className="text-slate-300">{modelConfig.template?.parameters?.toLocaleString() || '0'}</p>
+                    <p className="text-sm text-slate-400">{modelConfig.template?.type || 'Unknown'} architecture</p>
                   </div>
                   <div>
                     <h4 className="text-white font-medium mb-2">Training Config</h4>
                     <p className="text-slate-300">
-                      {modelConfig.training_config.epochs} epochs, 
-                      LR: {modelConfig.training_config.learning_rate}
+                      {modelConfig.training_config?.epochs || 0} epochs,
+                      LR: {modelConfig.training_config?.learning_rate || 0}
                     </p>
                     <p className="text-sm text-slate-400">
-                      Batch size: {modelConfig.training_config.batch_size}
+                      Batch size: {modelConfig.training_config?.batch_size || 0}
                     </p>
                   </div>
                 </div>

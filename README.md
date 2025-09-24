@@ -11,13 +11,13 @@ The KNIRV Decentralized Trusted Execution Network (D-TEN) is a groundbreaking "a
 
 ## 🌟 Vision Statement
 
-**From Isolated Failures to Global Knowledge**: The D-TEN fundamentally shifts the paradigm from private, siloed AI learning to public, shared intelligence. When an AI fails, that failure becomes a structured `ErrorNode` within a global knowledge graph. The network incentivizes autonomous AI agents and developers to diagnose these errors and propose Skills (solutions), which are rigorously validated and added to a canonical registry, enriching the entire network's capabilities.
+**From Isolated Failures to Global Knowledge**: The D-TEN fundamentally shifts the paradigm from private, siloed AI learning to public, shared intelligence. When an AI fails, that failure becomes a structured `ErrorNode` within a global knowledge graph. The network incentivizes autonomous Neural Intellegence Models and developers to diagnose these errors and propose Skills (solutions), which are rigorously validated and added to a canonical registry, enriching the entire network's capabilities.
 
 ## ⚡ Key Innovations
 
 ### 🧠 Self-Healing AI Ecosystem
 - **Collective Learning**: Transform individual AI failures into network-wide knowledge
-- **Autonomous Resolution**: AI agents independently identify and solve problems
+- **Autonomous Resolution**: Neural Intellegence Models independently identify and solve problems
 - **Verifiable Improvement**: Cryptographic proofs of solution effectiveness
 - **Compounding Intelligence**: Each resolution makes the entire network smarter
 
@@ -48,7 +48,7 @@ graph TB
     subgraph "User Interface Layer"
         KW[KNIRV-WALLET<br/>User Gateway]
         KN[KNIRVANA<br/>RTS Game]
-        KS[KNIRV-CORTEX<br/>AI Agents]
+        KS[KNIRV-INFERENCE<br/>Neural Intellegence Models]
     end
     
     subgraph "API & Integration Layer"
@@ -96,7 +96,7 @@ graph TB
   - XION bridge for cross-chain asset transfers with real-time monitoring
   - USDC Faucet management via XION Meta Accounts integration
   - Global state synchronization across all layers
-  - Agent and Tunnel Relay registries
+  - Model and Tunnel Relay registries
   - Production monitoring with health checks and bridge metrics
   - Automated alerting for stuck transactions and bridge issues
 
@@ -138,8 +138,8 @@ graph TB
   - RESTful API for connectivity status and metrics
   - Production monitoring integration with Prometheus metrics
 
-### 🤖 KNIRV-CORTEX: The User's Autonomous Gateway
-**Technology**: Rust WASM-powered AI agents with SEAL loop
+### 🤖 KNIRV-CONTROLLER: The User's Autonomous Gateway
+**Technology**: Rust WASM-powered Neural Intellegence Models with SEAL loop
 - **Purpose**: A mobile-native adapter that empowers existing AI assistants with autonomous agentic abilities, acting as the primary user gateway to the D-TEN.
 - **Key Features**:
   - CodeT5 Base LLM + personalized LoRA adapters
@@ -149,24 +149,24 @@ graph TB
 
 ### 💼 KNIRV-WALLET: The Agent's Treasury
 **Technology**: Multi-platform wallet with XION Meta Accounts
-- **Purpose**: A secure, non-custodial wallet that allows agents to autonomously manage user assets and permissions on their behalf. Users will not interact directly with the wallet.
+- **Purpose**: A secure, non-custodial wallet that allows NIMs to autonomously manage user assets and permissions on their behalf. Users will not interact directly with the wallet.
 - **Key Features**:
   - Multiplatform support: Desktop, Mobile, Web
   - XION Meta Account integration for seamless asset management
   - Secure key storage and encryption
-  - User-friendly UI for managing assets and delegating authority to KNIRV-CORTEX's Key Features:
+  - User-friendly UI for managing assets and delegating authority to KNIRV-CONTROLLER's Key Features:
   - Web2-like authentication (email, social, biometrics)
   - Secure Gasless transactions via XION
   - NRN management and autonomous agent control
   - UDC issuance for agent delegation
 
-Clarification: An AI assistant is typically a tool that responds to user commands or queries within a confined scope, performing tasks or providing information based on direct input. In contrast, an AI agent is an autonomous entity that can understand high-level goals and initiate actions to achieve them without constant user intervention. It can proactively manage resources, interact with other systems, and make decisions on behalf of the user, such as a KNIRV-CORTEX, which will use the KNIRV-WALLET to perform transactions and manage assets autonomously.
+Clarification: An AI assistant is typically a tool that responds to user commands or queries within a confined scope, performing tasks or providing information based on direct input. In contrast, an AI agent is an autonomous entity that can understand high-level goals and initiate actions to achieve them without constant user intervention. It can proactively manage resources, interact with other systems, and make decisions on behalf of the user, such as a KNIRV Neural Intellegence Model, which will use the KNIRV-WALLET to perform transactions and manage assets autonomously.
 
 ### 🎮 KNIRVANA: The Experiential Gateway
-**Technology**: Real-Time Strategy game with direct KNIRV-CORTEX integration
+**Technology**: Real-Time Strategy game with direct KNIRV-CONTROLLER integration
 - **Purpose**: Gamified interaction with the D-TEN ecosystem
 - **Key Features**:
-  - Agent unit management and task assignment
+  - Agent management and task assignment
   - Direct NRN consumption through gameplay
   - Live learning feedback loop contribution
   - Decentralized multiplayer via KNIRV-ROUTERs
@@ -243,7 +243,7 @@ GET  /knirvrouter/*          # KNIRV-ROUTER connectivity
 
 ### Prerequisites
 - **Go**: 1.21+ for blockchain components
-- **Rust**: 1.70+ for KNIRVCHAIN and KNIRV-CORTEX
+- **Rust**: 1.70+ for KNIRVCHAIN and KNIRV-CONTROLLER
 - **Node.js**: 18+ for frontend components
 - **Docker**: 24+ for containerized deployment
 - **Kubernetes**: 1.20+ for production deployment (optional)
@@ -403,7 +403,7 @@ make tests
 ```
 
 This command orchestrates testing across all components:
-- **KNIRVCORTEX**: AI Agent Framework (TypeScript/React + WASM)
+- **KNIRVCORTEX**: Neural Intellegence Model Framework (TypeScript/React + WASM)
 - **KNIRVSDK**: Multi-language SDK (Go, Python, TypeScript)
 - **KNIRVGRAPH**: Blockchain Explorer (Go backend + TypeScript frontend)
 - **KNIRVWALLET**: Wallet System (React Native + Web)
@@ -454,7 +454,7 @@ All test results and coverage reports are automatically generated in organized d
 ```bash
 make test-quick          # Run unit tests only (faster feedback)
 make test-coverage       # Generate coverage reports
-make test-cortex         # Test AI Agent Framework only
+make test-cortex         # Test Neural Intellegence Model Framework only
 make test-sdk           # Test multi-language SDK only
 make test-graph         # Test blockchain explorer only
 ```
@@ -771,7 +771,7 @@ rm -rf node_modules package-lock.json && npm install
 ### Component Testing
 | Command | Component | Languages |
 |---------|-----------|-----------|
-| `make test-cortex` | AI Agent Framework | TypeScript/React + WASM |
+| `make test-cortex` | Neural Intellegence Model Framework | TypeScript/React + WASM |
 | `make test-sdk` | Multi-language SDK | Go + Python + TypeScript |
 | `make test-graph` | Blockchain Explorer | Go + TypeScript |
 | `make test-wallet` | Wallet System | React Native + Web |
@@ -907,7 +907,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - ✅ Advanced KNIRVGRAPH querying capabilities
 - ✅ KNIRV-NEXUS DVE specialization
 - 🔄 Skill licensing and royalty systems
-- 🔄 Enhanced KNIRV-CORTEX SDK
+- 🔄 Enhanced KNIRV-CONTROLLER SDK
 - ✅ Production monitoring integration
 - ✅ Load testing and performance optimization
 
@@ -1041,7 +1041,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### For End Users
 - **Gaming**: Experience AI-driven gameplay in KNIRVANA
-- **Personal AI**: Deploy and manage personal AI agents
+- **Personal AI**: Deploy and manage personal Neural Intellegence Models
 - **Learning**: Participate in the collective intelligence evolution
 - **Rewards**: Earn NRN tokens for valuable contributions
 
@@ -1098,7 +1098,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### ✅ Fully Implemented & Production Ready
 
 #### Core Infrastructure
-- **All 7 Sovereign Layers**: KNIRV-ORACLE, KNIRVCHAIN, KNIRVGRAPH, KNIRV-NEXUS, KNIRV-ROUTER, KNIRV-CORTEX, KNIRV-WALLET
+- **All 7 Sovereign Layers**: KNIRV-ORACLE, KNIRVCHAIN, KNIRVGRAPH, KNIRV-NEXUS, KNIRV-ROUTER, KNIRV-CONTROLLER, KNIRV-WALLET
 - **Unified API Gateway**: Complete service orchestration with load balancing and authentication
 - **Cross-Chain Bridge**: XION integration with Meta Accounts and USDC faucet
 - **Economic Model**: NRN token minting, burning, and circulation

@@ -18,6 +18,48 @@ This section contains api documentation for the KNIRV Network.
 
 ---
 
+### rust-client
+
+**Location:** `KNIRVANA/rust-client/README.md`
+
+# KNIRVANA Rust Game Client
+
+<div align="center">
+
+![Rust](https://img.shields.io/badge/Rust-1.70+-orange?style=flat-square&logo=rust)...
+
+[View Full Documentation](KNIRVANA/rust-client/README.md)
+
+---
+
+### ts-client
+
+**Location:** `KNIRVANA/ts-client/README.md`
+
+# Consolidated Documentation
+
+# KNIRVANA TypeScript Client: The Experiential Gateway to the KNIRV D-TEN Ecosystem
+
+<div align="center">...
+
+[View Full Documentation](KNIRVANA/ts-client/README.md)
+
+---
+
+### ecosystem-menu
+
+**Location:** `KNIRVANA/ts-client/ecosystem-menu/README.md`
+
+# KNIRVANA Ecosystem Game
+
+A React-based interactive debugging and skill management game extracted from the KNIRVANA_P3.md specification.
+
+## Overview...
+
+[View Full Documentation](KNIRVANA/ts-client/ecosystem-menu/README.md)
+
+---
+
 ### KNIRVCHAIN
 
 **Location:** `KNIRVCHAIN/README.md`
@@ -62,10 +104,10 @@ A comprehensive command-line interface that provides full integration with the e
 
 **Location:** `KNIRVCONTROLLER/README.md`
 
-# KNIRV-CONTROLLER: The Unified Agent Management Platform
+# KNIRV-CONTROLLER: The Unified Neural Intelligence Model Management Platform
 
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](https://nodejs.org/)
-[![Rust Version](https://img.shields.io...
+[![Rust Version](ht...
 
 [View Full Documentation](KNIRVCONTROLLER/README.md)
 
@@ -113,98 +155,14 @@ The KNIRV Cognitive Shell is a comprehensive AI-driven interface system that imp
 
 ---
 
-### KNIRVINFERENCE
-
-**Location:** `KNIRVINFERENCE/README.md`
-
-# KNIRV-INFERENCE
-
-**Deterministic Cognitive Shell with ProtoBuf ABI**
-
-KNIRV-INFERENCE is a WebAssembly-based cognitive processing engine that bundles an orchestrator and model runtime into a single determ...
-
-[View Full Documentation](KNIRVINFERENCE/README.md)
-
----
-
-### manager
-
-**Location:** `KNIRVINFERENCE/manager/README.md`
-
-# KNIRV-AGENTIFIER: The Autonomous Gateway
-
-[TOC]
-
-## Overview...
-
-[View Full Documentation](KNIRVINFERENCE/manager/README.md)
-
----
-
-### model-forge
-
-**Location:** `KNIRVINFERENCE/model-forge/README.md`
-
-# KNIRV Model Forge
-
-Advanced model compilation and training pipeline with external AI integration for validation and optimization.
-
-## 🆕 Recent Updates...
-
-[View Full Documentation](KNIRVINFERENCE/model-forge/README.md)
-
----
-
-### primary-website
-
-**Location:** `KNIRVINFERENCE/primary-website/README.md`
-
-# KNIRV Cortex Builder: Neural Intelligence Development Platform
-
-## Project Overview
-
-KNIRV Cortex Builder is a comprehensive platform for building, configuring, and deploying neural intelligence age...
-
-[View Full Documentation](KNIRVINFERENCE/primary-website/README.md)
-
----
-
-### releases
-
-**Location:** `KNIRVINFERENCE/primary-website/public/releases/README.md`
-
-# Agentic Engine Releases
-
-This directory contains the Agentic Engine release files that can be downloaded by users.
-
-## File Organization...
-
-[View Full Documentation](KNIRVINFERENCE/primary-website/public/releases/README.md)
-
----
-
-### rust-wasm
-
-**Location:** `KNIRVINFERENCE/rust-wasm/README.md`
-
-# KNIRV-INFERENCE Rust WASM
-
-WebAssembly implementation of the KNIRV cognitive shell with external AI integration support.
-
-## 🆕 Recent Updates...
-
-[View Full Documentation](KNIRVINFERENCE/rust-wasm/README.md)
-
----
-
 ### KNIRVGATEWAY
 
 **Location:** `KNIRVGATEWAY/README.md`
 
-# KNIRV GATEWAY: Unified Web Portal and API Gateway
+# KNIRVGATEWAY: Unified Web Portal and API Gateway
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/your-badge-id/deploy-status)](https://app.netlify.com/sites/your-site-name/deploys)
-[![Nod...
+[![Node...
 
 [View Full Documentation](KNIRVGATEWAY/README.md)
 
@@ -260,6 +218,60 @@ A responsive presentation system for KNIRV presentations with password protectio
 
 ---
 
+### primary-website
+
+**Location:** `KNIRVGATEWAY/primary-website/README.md`
+
+# KNIRV Cortex Builder: Neural Intelligence Development Platform
+
+## Project Overview
+
+KNIRV Cortex Builder is a comprehensive platform for building, configuring, and deploying neural intelligence age...
+
+[View Full Documentation](KNIRVGATEWAY/primary-website/README.md)
+
+---
+
+### releases
+
+**Location:** `KNIRVGATEWAY/primary-website/public/releases/README.md`
+
+# Agentic Engine Releases
+
+This directory contains the Agentic Engine release files that can be downloaded by users.
+
+## File Organization...
+
+[View Full Documentation](KNIRVGATEWAY/primary-website/public/releases/README.md)
+
+---
+
+### payment-gateway
+
+**Location:** `KNIRVGATEWAY/services/payment-gateway/README.md`
+
+# KNIRVORACLE Payment Gateway Client Example
+
+This is a client application demonstrating how to integrate with the KNIRVORACLE payment gateway. It shows how to accept payments via Stripe and Coinbase ...
+
+[View Full Documentation](KNIRVGATEWAY/services/payment-gateway/README.md)
+
+---
+
+### webgui
+
+**Location:** `KNIRVGATEWAY/services/webgui/README.md`
+
+# KNIRV WebGUI
+
+A modern React-based web interface for the KNIRV network, providing comprehensive access to model management, network monitoring, and marketplace functionality.
+
+## 🚀 Features...
+
+[View Full Documentation](KNIRVGATEWAY/services/webgui/README.md)
+
+---
+
 ### KNIRVGRAPH
 
 **Location:** `KNIRVGRAPH/README.md`
@@ -269,6 +281,62 @@ A responsive presentation system for KNIRV presentations with password protectio
 A comprehensive graph-based blockchain application featuring Network Resolution Vectors (NRV), Proof-of-Solution consensus, NRN token econo...
 
 [View Full Documentation](KNIRVGRAPH/README.md)
+
+---
+
+### KNIRVINFERENCE
+
+**Location:** `KNIRVINFERENCE/README.md`
+
+# KNIRV-CORTEX
+
+**Deterministic Cognitive Shell with ProtoBuf ABI**
+
+KNIRV-CORTEX is a WebAssembly-based cognitive processing engine that bundles an orchestrator and model runtime into a single determ...
+
+[View Full Documentation](KNIRVINFERENCE/README.md)
+
+---
+
+### manager
+
+**Location:** `KNIRVINFERENCE/manager/README.md`
+
+# KNIRV-AGENTIFIER: The Autonomous Gateway
+
+[TOC]
+
+## Overview...
+
+[View Full Documentation](KNIRVINFERENCE/manager/README.md)
+
+---
+
+### model-forge
+
+**Location:** `KNIRVINFERENCE/model-forge/README.md`
+
+# KNIRV Model Forge
+
+Advanced model compilation and training pipeline with external AI integration for validation and optimization.
+
+## 🆕 Recent Updates...
+
+[View Full Documentation](KNIRVINFERENCE/model-forge/README.md)
+
+---
+
+### rust-wasm
+
+**Location:** `KNIRVINFERENCE/rust-wasm/README.md`
+
+# KNIRV-CORTEX Rust WASM
+
+WebAssembly implementation of the KNIRV cognitive shell with external AI integration support.
+
+## 🆕 Recent Updates...
+
+[View Full Documentation](KNIRVINFERENCE/rust-wasm/README.md)
 
 ---
 
@@ -727,9 +795,9 @@ This directory contains comprehensive tests for Phase 5 of the KNIRV Network Maj
 
 **Location:** `deployment/README.md`
 
-# KNIRV D-TEN Production Deployment
+# KNIRV D-TEN Deployment Documentation
 
-This directory contains the production deployment configuration for KNIRV D-TEN (Months 14-18 implementation), including KNIRVORACLE integration.
+[TOC]
 
 ## Overview...
 

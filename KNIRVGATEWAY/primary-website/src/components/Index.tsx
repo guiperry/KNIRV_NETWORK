@@ -31,6 +31,9 @@ const Index = () => {
   
   // Extract values from the onboarding context
   const { currentStep, connectedApp, modelConfig } = state;
+  
+  // Debug logging
+  console.log('Index component rendering, currentStep:', currentStep, 'connectedApp:', connectedApp, 'modelConfig:', modelConfig);
 
   // Initial loading effect
   useEffect(() => {
@@ -71,6 +74,7 @@ const Index = () => {
 
   // Add handler for deployment completion
   const handleModelDeployed = () => {
+    console.log('handleModelDeployed called, updating state to dashboard');
     updateState({
       currentStep: 'dashboard'
     });
@@ -202,20 +206,25 @@ const Index = () => {
         )}
         
         {/* Deploy Step - Full ModelDeployer component */}
-        {currentStep === 'deploy' && connectedApp && modelConfig && (
+        {currentStep === 'deploy' && modelConfig && (
           <ModelDeployer
             modelConfig={modelConfig}
             onDeployed={handleModelDeployed}
           />
         )}
         
-        {currentStep === 'dashboard' && connectedApp && (
-          <Dashboard 
+        {currentStep === 'dashboard' && (
+          <Dashboard
             connectedApp={connectedApp}
             isActive={dashboardIsActive}
             setIsActive={setDashboardIsActive}
             settingsModalOpen={settingsModalOpen}
             setSettingsModalOpen={setSettingsModalOpen}
+            onConnectApp={(appData) => {
+              updateState({
+                connectedApp: appData
+              });
+            }}
           />
         )}
       </main>
@@ -228,7 +237,7 @@ const Index = () => {
           // Handle any post-login actions if needed
           toast({
             title: "Login Successful",
-            description: "Welcome back to KNIRV Cortex Builder!",
+            description: "Welcome back to KNIRV NIM Builder!",
           });
         }}
       />

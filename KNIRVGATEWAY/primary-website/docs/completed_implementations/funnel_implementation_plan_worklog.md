@@ -111,7 +111,7 @@ The onboarding funnel implementation has been successfully completed with all fo
 
 4. **Enhanced AppConnector Component**: Updated the AppConnector component to use the new services, added file upload functionality, and improved the user experience with better feedback and error handling.
 
-The implementation now provides a seamless onboarding experience with persistent state management, allowing users to connect their applications via URL or configuration file, configure their AI agents, and deploy them with data flowing through each step of the process.
+The implementation now provides a seamless onboarding experience with persistent state management, allowing users to connect their applications via URL or configuration file, configure their Neural Intellegence Models, and deploy them with data flowing through each step of the process.
 
 ## Future Enhancements
 
