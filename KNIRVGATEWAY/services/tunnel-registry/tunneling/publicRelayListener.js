@@ -27,6 +27,27 @@ class PublicRelayListener {
 
         const onData = (data) => {
             initialDataBuffer += data.toString();
+            
+            // Check if this is an HTTP request (starts with HTTP methods)
+            if (initialDataBuffer.startsWith('GET ') || initialDataBuffer.startsWith('POST ') || initialDataBuffer.startsWith('HEAD ') ||
+                initialDataBuffer.startsWith('PUT ') || initialDataBuffer.startsWith('DELETE ') || initialDataBuffer.startsWith('OPTIONS ')) {
+                
+                console.log(`[PublicRelayListener] Received HTTP request from external client, sending service info`);
+                const httpResponse = `HTTP/1.1 200 OK\r
+Content-Type: text/plain\r
+Connection: close\r
+\r
+KNIRV Tunnel Registry Public Relay Service
+This port (${this.port}) is for external client tunnel connections.
+Use the HTTP API on port ${config.httpApiPort} for web requests.
+Protocol: Send target PeerID as first line (JSON or plain text)
+Example: {"targetPeerId": "Qm..."} or QmExamplePeerId
+`;
+                externalClientSocket.write(httpResponse);
+                externalClientSocket.end();
+                return;
+            }
+            
             const newlineIndex = initialDataBuffer.indexOf('\n');
 
             if (newlineIndex !== -1) {

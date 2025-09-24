@@ -4,6 +4,9 @@ const config = require('../config');
 const registryManager = require('../registry/registryManager');
 const tunnelManager = require('./tunnelManager');
 
+// Access the global connection registry
+const connectionRegistry = global.connectionRegistry || {};
+
 class ControlListener {
     constructor() {
         this.port = config.controlListenerPort;
@@ -27,8 +30,29 @@ class ControlListener {
         let identifiedPeerId = null;
 
         socket.on('data', (data) => {
+            const dataStr = data.toString();
+            
+            // Check if this is an HTTP request (starts with HTTP methods)
+            if (dataStr.startsWith('GET ') || dataStr.startsWith('POST ') || dataStr.startsWith('HEAD ') ||
+                dataStr.startsWith('PUT ') || dataStr.startsWith('DELETE ') || dataStr.startsWith('OPTIONS ')) {
+                // This is an HTTP request - send appropriate response
+                console.log(`[ControlListener] Received HTTP request from ${socket.id}, sending service info`);
+                const httpResponse = `HTTP/1.1 200 OK\r
+Content-Type: text/plain\r
+Connection: close\r
+\r
+KNIRV Tunnel Registry Control Service
+This port (${this.port}) is for internal node control connections.
+Use the HTTP API on port ${config.httpApiPort} for web requests.
+Protocol: JSON messages (IDENTIFY, PING, etc.)
+`;
+                socket.write(httpResponse);
+                socket.end();
+                return;
+            }
+            
             try {
-                const message = JSON.parse(data.toString());
+                const message = JSON.parse(dataStr);
                 // Expect: { action: 'IDENTIFY', devId: 'Qm...', chainId: '...', internalIp: '192...', internalP2pPort: 5050, type: 'bootnode' }
                 if (message.action === 'IDENTIFY' && message.devId && message.internalIp && message.internalP2pPort) {
                     identifiedPeerId = message.devId;
@@ -64,7 +88,7 @@ class ControlListener {
                         };
                     }
                     // Send PONG response back to the client
-                    socket.write(JSON.stringify({ 
+                    socket.write(JSON.stringify({
                         action: 'PONG',
                         timestamp: Date.now(),
                         status: 'active'
@@ -73,7 +97,7 @@ class ControlListener {
                     console.warn(`[ControlListener] Unknown message from ${socket.id}:`, message);
                 }
             } catch (e) {
-                console.error(`[ControlListener] Error processing data from ${socket.id}:`, e.message, data.toString());
+                console.error(`[ControlListener] Error processing data from ${socket.id}:`, e.message, dataStr);
             }
         });
 
