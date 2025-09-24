@@ -1,0 +1,7 @@
+{
+  "name": "@cloudflare/workers-types",
+  "version": "4.0.0-stub",
+  "description": "Stub types for @cloudflare/workers-types - used when building on Render",
+  "types": "index.d.ts",
+  "main": "index.d.ts"
+}
