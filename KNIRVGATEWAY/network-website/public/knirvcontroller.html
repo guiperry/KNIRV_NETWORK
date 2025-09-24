@@ -268,7 +268,7 @@
             } else {
                 // Download APK package for sideloading
                 const link = document.createElement('a');
-                link.href = downloadUrl || 'https://releases.knirv.network/knirvcontroller/android/knirvcontroller-android-pwa.zip';
+                link.href = downloadUrl || 'https://releases.knirv.network/knirvcontroller-android-pwa.zip';
                 link.download = 'knirvcontroller-android.zip';
                 link.click();
 
@@ -287,7 +287,7 @@
             } else {
                 // Download iOS package
                 const link = document.createElement('a');
-                link.href = downloadUrl || 'https://releases.knirv.network/knirvcontroller/ios/knirvcontroller-ios-pwa.zip';
+                link.href = downloadUrl || 'https://releases.knirv.network/knirvcontroller-ios-pwa.zip';
                 link.download = 'knirvcontroller-ios.zip';
                 link.click();
 
@@ -298,9 +298,9 @@
 
         function downloadController(platform) {
             const downloadUrls = {
-                windows: 'https://releases.knirv.network/knirvcontroller/windows/knirvcontroller-setup.exe',
-                mac: 'https://releases.knirv.network/knirvcontroller/mac/knirvcontroller.dmg',
-                linux: 'https://releases.knirv.network/knirvcontroller/linux/knirvcontroller.AppImage'
+                windows: 'https://releases.knirv.network/knirvcontroller-setup.exe',
+                mac: 'https://releases.knirv.network/knirvcontroller.dmg',
+                linux: 'https://releases.knirv.network/knirvcontroller.AppImage'
             };
 
             const url = downloadUrls[platform];
