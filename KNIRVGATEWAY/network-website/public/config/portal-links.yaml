@@ -4,22 +4,20 @@
 # Main Navigation Links
 navigation:
   main_site: "https://knirv.com"
-  documentation: "/documentation/"  # Updated to point to new static HTML site
-  documentation_legacy: "/documentation/docsify/"  # Legacy docsify site
+  documentation: "/documentation/static/"  # Updated to point to new static HTML site
   graphchain_explorer: "/graphchain-explorer/"
   nexus_portal: "/nexus-portal/"
   support_desk: "/support-desk/src/"
-  nanda_ans: "/nanda_ans/"
   developer_portal: "/agent-developer-portal/"
-  agentify: "agentify.knirv.com/"
   products: "/products.html"
 
 # External Services
 external_services:
-  payment_gateway: "https://payments.knirv.network"
-  tunnel_registry: "https://tunnel.knirv.network"
-  operator_registry: "https://operators.knirv.network"
-  webgui: "https://dashboard.knirv.network"
+  agentify: "https://agentify.knirv.com"
+  payment_gateway: "https://knirvgateway.onrender.com/payments"
+  tunnel_registry: "https://knirvgateway.onrender.com/tunnel"
+  operator_registry: "https://knirvgateway.onrender.com/operators"
+  webgui: "https://knirvgateway.onrender.com"
   knirv_website: "https://knirv.com"
   testnet_access: "https://testnet.knirv.network"
 
@@ -28,24 +26,24 @@ external_services:
 gateway_services:
   # Public Testnet Configuration (when CloudFlare credentials available)
   public_testnet:
-    payment_gateway:
-      domain: "payments.knirv.network"
+     payment_gateway:
+      domain: "https://knirvgateway.onrender.com/payments"
       port: 3001
       path: "/"
       health_endpoint: "/health"
-    tunnel_registry:
-      domain: "tunnel.knirv.network"
+     tunnel_registry:
+      domain: "https://knirvgateway.onrender.com/tunnel"
       port: 3004
       path: "/"
       health_endpoint: "/status"
-    operator_registry:
-      domain: "operators.knirv.network"
+     operator_registry:
+      domain: "https://knirvgateway.onrender.com/operators"
       port: 3007
       path: "/"
       health_endpoint: "/health"
-    webgui:
-      domain: "dashboard.knirv.network"
-      port: 3007
+     webgui:
+      domain: "https://knirvgateway.onrender.com/gateway"
+      port: 3008
       path: "/"
       health_endpoint: "/health"
 
@@ -75,7 +73,7 @@ gateway_services:
 # Documentation Links
 documentation:
   # New static HTML documentation links
-  main_docs: "../documentation/"
+  main_docs: "../documentation/static/"
   whitepapers_index: "../documentation/whitepapers/"
 
   # Individual whitepaper links (new static HTML format)
@@ -123,7 +121,7 @@ footer:
     telegram: "https://t.me/knirvnetwork"
   
   resources:
-    documentation: "/documentation/"  # Updated to new static HTML site
+    documentation: "/documentation/static/"  # Updated to new static HTML site
     documentation_legacy: "/documentation/docsify/"  # Legacy docsify site
     support: "/support-desk/src/"
     forum: "/forum/src/"
@@ -177,7 +175,7 @@ iframes:
     height: "800px"
   
   documentation:
-    url: "../documentation/"  # Updated to new static HTML site
+    url: "../documentation/static/"  # Updated to new static HTML site
     title: "KNIRV Documentation"
     height: "800px"
 

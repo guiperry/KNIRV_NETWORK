@@ -1,0 +1,16 @@
+{
+  "name": "knirv-controller-assemblyscript",
+  "version": "1.0.0",
+  "description": "KNIRV Controller AssemblyScript WASM modules",
+  "compiler": "AssemblyScript",
+  "targets": ["release", "debug"],
+  "features": [
+    "agent-core",
+    "model-inference", 
+    "typescript-compilation",
+    "memory-management"
+  ],
+  "buildDate": "2025-09-24T17:05:34Z",
+  "assemblyScriptVersion": "Version 0.27.37",
+  "nodeVersion": "v18.20.7"
+}

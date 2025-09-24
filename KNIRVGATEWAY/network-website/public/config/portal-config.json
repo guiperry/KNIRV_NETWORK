@@ -1,11 +1,11 @@
 {
   "navigation": {
     "main_site": "https://knirv.com",
-    "documentation": "../documentation/docsify/",
+    "documentation": "../documentation/static/",
     "graphchain_explorer": "../graphchain-explorer/",
     "nexus_portal": "../nexus-portal/",
     "support_desk": "../support-desk/",
-    "nanda_ans": "../nanda_ans/"
+    "forum": "../forum/"
   },
   "external_services": {
     "payment_gateway": "https://payments.knirv.network",
@@ -106,7 +106,7 @@
       "telegram": "https://t.me/knirvnetwork"
     },
     "resources": {
-      "documentation": "../documentation/docsify/",
+      "documentation": "../documentation/static/",
       "support": "../support-desk/",
       "forum": "../forum/",
       "blog": "https://blog.knirv.com"
@@ -150,7 +150,7 @@
       "height": "800px"
     },
     "documentation": {
-      "url": "../documentation/docsify/",
+      "url": "../documentation/static/",
       "title": "KNIRV Documentation",
       "height": "800px"
     },

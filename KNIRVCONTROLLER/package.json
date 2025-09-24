@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "tsc --noEmit && npm run build:wasm && vite build",
+    "build:simple": "./scripts/build-simple.sh",
     "build:pwa": "node scripts/build-pwa.js",
     "build:pwa:android": "npm run build && npx cap sync android",
     "build:pwa:ios": "npm run build && npx cap sync ios",

@@ -8,10 +8,10 @@ navigation:
   graphchain_explorer: "../graphchain-explorer/"
   nexus_portal: "../nexus-portal/"
   support_desk: "../support-desk/src/"
-  nanda_ans: "../nanda_ans/"
 
 # External Services
 external_services:
+  agentify: "https://agentify.knirv.com"
   payment_gateway: "https://knirvgateway.onrender.com/payments"
   tunnel_registry: "https://knirvgateway.onrender.com/tunnel"
   operator_registry: "https://knirvgateway.onrender.com/operators"
@@ -41,7 +41,7 @@ gateway_services:
       health_endpoint: "/health"
     webgui:
       domain: "https://knirvgateway.onrender.com/gateway"
-      port: 3007
+      port: 3008
       path: "/"
       health_endpoint: "/health"
 

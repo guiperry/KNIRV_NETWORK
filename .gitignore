@@ -45,6 +45,7 @@ node_modules
 .sync-backups/
 .sync-backups/*
 sync_backups/
+.proto-sync-backups/
 
 .doc-consolidation-backups/
 doc-consolidation-backups/*

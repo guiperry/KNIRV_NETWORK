@@ -9,8 +9,8 @@ set -euo pipefail
 # Configuration
 SOURCE_DIR="KNIRVCONTROLLER"
 TARGET_DIR="../KNIRVCONTROLLER_public"
-BACKUP_DIR="./sync_backups"
-LOG_FILE="./sync_controller.log"
+BACKUP_DIR="./.sync-backups"
+LOG_FILE="./logs/sync_controller.log"
 DRY_RUN=false
 FORCE=false
 VERBOSE=false

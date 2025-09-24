@@ -57,10 +57,11 @@ function createApp() {
   // Middleware
   app.use(cors());
   app.use(express.json());
-  app.use(express.static('.'));
 
   // Route: /gateway -> WebGUI (Next.js) running on localhost:3007 (configurable via WEBGUI_PORT)
   const WEBGUI_PORT = parseInt(process.env.WEBGUI_PORT) || 3007;
+
+  // Proxy the WebGUI app itself (mounted at /gateway)
   app.use('/gateway', createProxyMiddleware({
     target: `http://localhost:${WEBGUI_PORT}`,
     changeOrigin: true,
@@ -71,6 +72,26 @@ function createApp() {
       proxyReq.setHeader('X-Forwarded-Proto', req.protocol || 'http');
     }
   }));
+
+  // Also proxy Next.js static asset routes that are referenced with absolute paths (e.g., /_next/*)
+  // Without this, requests like /_next/static/... would hit the gateway directly and return HTML/404, causing MIME errors
+  app.use('/_next', createProxyMiddleware({
+    target: `http://localhost:${WEBGUI_PORT}`,
+    changeOrigin: true,
+    ws: true,
+  }));
+
+  // Optional: common root assets served by Next.js
+  app.use(['/favicon.ico', '/favicon.png', '/manifest.json', '/robots.txt'], createProxyMiddleware({
+    target: `http://localhost:${WEBGUI_PORT}`,
+    changeOrigin: true,
+  }));
+
+  // Serve landing page and static assets (after proxy mounts to avoid intercepting Next.js assets)
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+  });
+  app.use(express.static(__dirname));
 
   // Mock central API gateway. Replace with real delegations to services when ready.
   app.use('/api', (req, res) => {
