@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Connecting to KNIRV Network...</title>
-    <meta http-equiv="refresh" content="10;url=/network-website/public/index.html"> <!-- Fallback redirect after 10 seconds -->
+    <meta http-equiv="refresh" content="5;url=/gateway"> <!-- Fallback redirect to WebGUI after 5 seconds -->
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -98,13 +98,13 @@
     </div>
     <div class="error" id="error" style="display: none;"></div>
     <div class="fallback-link">
-        <a href="/network-website/public/index.html">Continue to Gateway Portal</a>
+        <a href="/gateway">Continue to Gateway Portal</a>
     </div>
 
     <script>
         // Configuration
-        const PRIMARY_URL = 'https://knirv.network';
-        const FALLBACK_URL = '/network-website/public/index.html';
+        const PRIMARY_URL = '/gateway';
+        const FALLBACK_URL = '/gateway';
         const HEALTH_CHECK_TIMEOUT = 5000; // 5 seconds
         const MAX_RETRIES = 2;
 

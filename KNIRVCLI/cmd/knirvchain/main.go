@@ -157,10 +157,7 @@ func runInteractiveMode() {
 	}
 
 	// Create wallet manager
-	walletManager, err := core.NewWalletManager(viper.GetString("wallet.directory"))
-	if err != nil {
-		logger.Fatalf("Failed to create wallet manager: %v", err)
-	}
+	walletManager := core.NewWalletManager(viper.GetString("wallet.directory"), logger)
 
 	// Create server manager
 	serverManager, err := core.NewMCPServerManager(

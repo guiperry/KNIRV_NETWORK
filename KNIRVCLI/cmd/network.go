@@ -540,7 +540,7 @@ func outputJSON(data interface{}) error {
 	return encoder.Encode(data)
 }
 
-func outputYAML(data interface{}) error {
+func outputYAML(_ interface{}) error {
 	// TODO: Implement YAML output
 	fmt.Println("YAML output not yet implemented")
 	return nil

@@ -112,8 +112,7 @@ func TestMCPCapabilityCommand(t *testing.T) {
 
 	// Create a test wallet
 	walletPath := filepath.Join(tempDir, "test-wallet.json")
-	walletManager, err := core.NewWalletManager(tempDir)
-	require.NoError(t, err)
+	walletManager := core.NewWalletManager(tempDir, nil)
 
 	privateKey, err := walletManager.GenerateKeyPair()
 	require.NoError(t, err)
@@ -143,7 +142,7 @@ func TestMCPCapabilityCommand(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
-	err = cmd.Run()
+	_ = cmd.Run()
 
 	// This will likely fail in the test environment due to plugin validation,
 	// but we can check that the command structure is correct
@@ -184,8 +183,7 @@ func TestMCPServerCommand(t *testing.T) {
 
 	// Create a test wallet
 	walletPath := filepath.Join(tempDir, "test-wallet.json")
-	walletManager, err := core.NewWalletManager(tempDir)
-	require.NoError(t, err)
+	walletManager := core.NewWalletManager(tempDir, nil)
 
 	privateKey, err := walletManager.GenerateKeyPair()
 	require.NoError(t, err)
@@ -213,7 +211,7 @@ func TestMCPServerCommand(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
-	err = cmd.Run()
+	_ = cmd.Run()
 
 	// This will likely fail in the test environment due to server validation,
 	// but we can check that the command structure is correct

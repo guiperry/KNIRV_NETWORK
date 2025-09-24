@@ -2,13 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="./vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>KNIRV Controller - Unified Interface</title>
     <meta name="description" content="KNIRV Controller - Unified cognitive shell and management interface" />
 
     <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="./manifest.json" />
 
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#1e40af" />
@@ -18,19 +18,18 @@
     <meta name="mobile-web-app-capable" content="yes" />
 
     <!-- Apple Touch Icons -->
-    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="./icons/icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-180x180.png" />
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./icons/icon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="./icons/icon-16x16.png" />
 
     <!-- PWA Installation Styles -->
-    <link rel="stylesheet" href="/install.css" />
+    <link rel="stylesheet" href="./install.css" />
 
     <!-- Preload critical resources -->
-    <link rel="preload" href="/src/main.tsx" as="script" type="module" />
-    <link rel="preload" href="/install.js" as="script" />
+    <link rel="preload" href="./install.js" as="script" />
 
     <!-- Theme and styling -->
     <style>
@@ -99,7 +98,7 @@
     </div>
     
     <!-- PWA Installation Script -->
-    <script src="/install.js"></script>
+    <script src="./install.js"></script>
 
     <script type="module" src="/src/main.tsx"></script>
 
@@ -127,10 +126,15 @@
         console.error('Unhandled promise rejection:', event.reason);
       });
 
-      // Service Worker Registration
+      // Service Worker Registration (guard non-secure contexts like file://)
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
+          const isSecureContext = (location.protocol === 'https:' || location.protocol === 'http:');
+          if (!isSecureContext) {
+            console.log('Skipping SW on non-secure context');
+            return;
+          }
+          navigator.serviceWorker.register('./sw.js')
             .then((registration) => {
               console.log('SW registered: ', registration);
 

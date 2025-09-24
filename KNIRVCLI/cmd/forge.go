@@ -171,7 +171,7 @@ func callModelForge(command string, params map[string]string) error {
 	// Find the forge binary in the KNIRVCORTEX directory
 	forgeBinary := findForgeBinary()
 	if forgeBinary == "" {
-		return fmt.Errorf("Model Forge binary not found. Please build it first with: cd KNIRVCORTEX/model-forge && cargo build --release")
+		return fmt.Errorf("model forge binary not found. Please build it first with: cd KNIRVCORTEX/model-forge && cargo build --release")
 	}
 
 	// Build command arguments

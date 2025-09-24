@@ -60,9 +60,12 @@ const ESSENTIAL_FILES = [
   'index.html',
   'manifest.json',
   'sw.js',
+  'install.css',
+  'install.js',
   'assets/**/*',
   'icons/**/*',
-  'wasm/**/*'
+  'build/**/*',
+  'vite.svg'
 ];
 
 const SLIM_PACKAGE_SIZE_LIMIT = 50 * 1024 * 1024; // 50MB limit for slim packages
@@ -129,19 +132,31 @@ class PWABuilder {
     
     // Copy essential files
     await this.copyEssentialFiles(androidDir);
+
+    // Post-process HTML for file:// compatibility and relative paths
+    await this.postProcessIndexHtml(androidDir);
     
-    // Generate Android-specific manifest
+    // Generate Android-specific manifest (file:// safe with relative paths)
     const androidManifest = {
       ...PWA_CONFIG.android,
       id: 'com.knirv.controller',
       lang: 'en',
-      dir: 'ltr'
+      dir: 'ltr',
+      start_url: './',
+      scope: './',
+      icons: (PWA_CONFIG.android.icons || []).map(icon => ({
+        ...icon,
+        src: icon.src ? icon.src.replace(/^\//, './') : './icons/icon-192x192.png'
+      }))
     };
     
     fs.writeFileSync(
       path.join(androidDir, 'manifest.json'),
       JSON.stringify(androidManifest, null, 2)
     );
+
+    // Ensure placeholder icons exist so links don't 404 when opened via file://
+    await this.ensureIcons(androidDir);
     
     // Generate Android-specific service worker
     await this.generateServiceWorker(androidDir, 'android');
@@ -162,19 +177,31 @@ class PWABuilder {
     
     // Copy essential files
     await this.copyEssentialFiles(iosDir);
+
+    // Post-process HTML for file:// compatibility and relative paths
+    await this.postProcessIndexHtml(iosDir);
     
-    // Generate iOS-specific manifest
+    // Generate iOS-specific manifest (file:// safe with relative paths)
     const iosManifest = {
       ...PWA_CONFIG.ios,
       id: 'com.knirv.controller.ios',
       lang: 'en',
-      dir: 'ltr'
+      dir: 'ltr',
+      start_url: './',
+      scope: './',
+      icons: (PWA_CONFIG.ios.icons || []).map(icon => ({
+        ...icon,
+        src: icon.src ? icon.src.replace(/^\//, './') : './icons/icon-192x192.png'
+      }))
     };
     
     fs.writeFileSync(
       path.join(iosDir, 'manifest.json'),
       JSON.stringify(iosManifest, null, 2)
     );
+
+    // Ensure placeholder icons exist so links don't 404 when opened via file://
+    await this.ensureIcons(iosDir);
     
     // Generate iOS-specific service worker
     await this.generateServiceWorker(iosDir, 'ios');
@@ -232,23 +259,22 @@ class PWABuilder {
 
   async generateServiceWorker(targetDir, platform) {
     console.log(`⚙️ Generating service worker for ${platform}...`);
-    
+
+    // Collect hashed asset references from built index.html
+    const assets = await this.extractAssetsFromIndex(targetDir);
+
     const swContent = `
 // KNIRV Controller PWA Service Worker - ${platform.toUpperCase()}
 const CACHE_NAME = 'knirv-controller-${platform}-v1.0.0';
-const OFFLINE_URL = '/offline.html';
+const OFFLINE_URL = './index.html';
 
 const ESSENTIAL_RESOURCES = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/assets/index.css',
-  '/assets/index.js',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png'
+  './',
+  './index.html',
+  './manifest.json',
+  ${assets.map(a => `'${a}'`).join(',\n  ')}
 ];
 
-// Install event - cache essential resources
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -257,27 +283,18 @@ self.addEventListener('install', event => {
   );
 });
 
-// Activate event - clean up old caches
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(cacheNames => {
-        return Promise.all(
-          cacheNames
-            .filter(cacheName => cacheName !== CACHE_NAME)
-            .map(cacheName => caches.delete(cacheName))
-        );
-      })
+      .then(cacheNames => Promise.all(cacheNames.filter(n => n !== CACHE_NAME).map(n => caches.delete(n))))
       .then(() => self.clients.claim())
   );
 });
 
-// Fetch event - serve from cache with network fallback
 self.addEventListener('fetch', event => {
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request)
-        .catch(() => caches.match('/index.html'))
+      fetch(event.request).catch(() => caches.match('./index.html'))
     );
   } else {
     event.respondWith(
@@ -285,27 +302,42 @@ self.addEventListener('fetch', event => {
         .then(response => response || fetch(event.request))
         .catch(() => {
           if (event.request.destination === 'document') {
-            return caches.match('/index.html');
+            return caches.match('./index.html');
           }
         })
     );
   }
 });
-
-// Background sync for offline actions
-self.addEventListener('sync', event => {
-  if (event.tag === 'background-sync') {
-    event.waitUntil(doBackgroundSync());
-  }
-});
-
-async function doBackgroundSync() {
-  // Handle offline actions when connection is restored
-  console.log('Background sync triggered');
-}
 `;
 
     fs.writeFileSync(path.join(targetDir, 'sw.js'), swContent.trim());
+  }
+
+  // Parse built index.html to extract asset URLs (scripts, styles, modulepreload, icons)
+  async extractAssetsFromIndex(targetDir) {
+    const indexPath = path.join(targetDir, 'index.html');
+    if (!fs.existsSync(indexPath)) return [];
+    const html = fs.readFileSync(indexPath, 'utf-8');
+
+    const refs = new Set();
+    const add = (u) => {
+      if (!u) return;
+      // make relative and ignore external urls
+      if (/^https?:/i.test(u) || /^data:/i.test(u)) return;
+      const rel = u.startsWith('/') ? `.${u}` : u;
+      refs.add(rel);
+    };
+
+    // scripts
+    for (const m of html.matchAll(/<script[^>]+src="([^"]+)"/g)) add(m[1]);
+    // stylesheets
+    for (const m of html.matchAll(/<link[^>]+rel=["']stylesheet["'][^>]+href="([^"]+)"/g)) add(m[1]);
+    // modulepreload
+    for (const m of html.matchAll(/<link[^>]+rel=["']modulepreload["'][^>]+href="([^"]+)"/g)) add(m[1]);
+    // icons referenced in head
+    for (const m of html.matchAll(/<link[^>]+href="(\.\/icons\/[^"]+)"/g)) add(m[1]);
+
+    return Array.from(refs);
   }
 
   async createInstallationInstructions(targetDir, platform) {
@@ -392,7 +424,76 @@ async function doBackgroundSync() {
       archive.finalize();
     });
   }
+
+  // Rewrite absolute paths to relative and guard SW registration for file://
+  async postProcessIndexHtml(targetDir) {
+    const indexPath = path.join(targetDir, 'index.html');
+    if (!fs.existsSync(indexPath)) return;
+    let html = fs.readFileSync(indexPath, 'utf-8');
+
+    // Replace absolute-leading slashes with relative './'
+    html = html
+      .replace(/href="\/(manifest\.json)"/g, 'href="./$1"')
+      .replace(/href="\/(icons\/[^"]+)"/g, 'href="./$1"')
+      .replace(/src="\/(assets\/[^"]+)"/g, 'src="./$1"')
+      .replace(/href="\/(assets\/[^"]+)"/g, 'href="./$1"')
+      .replace(/src="\/(install\.js)"/g, 'src="./$1"')
+      .replace(/href="\/(install\.css)"/g, 'href="./$1"')
+      .replace(/href="\/vite\.svg"/g, 'href="./vite.svg"')
+      .replace(/serviceWorker\.register\('\/sw\.js'\)/g, "serviceWorker.register('./sw.js')");
+
+    // Guard SW registration to secure contexts only
+    html = html.replace(
+      /(if \('serviceWorker' in navigator\) \{[\s\S]*?navigator\.serviceWorker\.register\([^\)]*\)[\s\S]*?\}\);)/,
+      (match) => {
+        return match.replace(
+          'window.addEventListener(\'load\', () => {',
+          "window.addEventListener('load', () => {\n          const isSecureContext = (location.protocol === 'https:' || location.protocol === 'http:');\n          if (!isSecureContext) { console.log('Skipping SW on non-secure context'); return; }"
+        );
+      }
+    );
+
+    fs.writeFileSync(indexPath, html, 'utf-8');
+  }
+
+  // Ensure basic icon set exists by copying from dist/icons or writing placeholders
+  async ensureIcons(targetDir) {
+    const iconsDir = path.join(targetDir, 'icons');
+    if (!fs.existsSync(iconsDir)) fs.mkdirSync(iconsDir, { recursive: true });
+
+    const needed = [
+      'icon-16x16.png','icon-32x32.png','icon-72x72.png','icon-96x96.png','icon-120x120.png',
+      'icon-128x128.png','icon-144x144.png','icon-152x152.png','icon-167x167.png','icon-180x180.png',
+      'icon-192x192.png','icon-384x384.png','icon-512x512.png'
+    ];
+
+    for (const name of needed) {
+      const dest = path.join(iconsDir, name);
+      if (fs.existsSync(dest)) continue;
+      const srcInDist = path.join(this.distDir, 'icons', name);
+      if (fs.existsSync(srcInDist)) {
+        fs.copyFileSync(srcInDist, dest);
+      } else {
+        // Write a tiny 1x1 PNG placeholder to avoid 404s (transparent pixel)
+        const transparentPngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
+        fs.writeFileSync(dest, Buffer.from(transparentPngBase64, 'base64'));
+      }
+    }
+
+    // Ensure vite.svg placeholder
+    const viteSvgDest = path.join(targetDir, 'vite.svg');
+    if (!fs.existsSync(viteSvgDest)) {
+      const viteSvgSrc = path.join(this.distDir, 'vite.svg');
+      const svgContent = fs.existsSync(viteSvgSrc) ? fs.readFileSync(viteSvgSrc, 'utf-8') : '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"></svg>';
+      fs.writeFileSync(viteSvgDest, svgContent, 'utf-8');
+    }
+  }
 }
+
+new PWABuilder().build().catch(err => {
+  console.error('Build failed:', err);
+  process.exit(1);
+});
 
 // Main execution
 if (import.meta.url === `file://${process.argv[1]}`) {

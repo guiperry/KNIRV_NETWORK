@@ -44,7 +44,7 @@ node_modules
 .sync-state/*    
 .sync-backups/
 .sync-backups/*
-
+sync_backups/
 
 .doc-consolidation-backups/
 doc-consolidation-backups/*

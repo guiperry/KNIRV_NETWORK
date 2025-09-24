@@ -24,6 +24,7 @@ import { PrivateDHTManager } from './lib/p2p/private_dht_manager.js';
 import { NodeJSServiceManager } from './lib/services/nodejs_service_manager.js';
 import axios from 'axios';
 import NodeCache from 'node-cache';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 import { fileURLToPath } from 'url';
 
 // ES module compatibility
@@ -57,6 +58,38 @@ function createApp() {
   app.use(cors());
   app.use(express.json());
   app.use(express.static('.'));
+
+  // Route: /gateway -> WebGUI (Next.js) running on localhost:3007 (configurable via WEBGUI_PORT)
+  const WEBGUI_PORT = parseInt(process.env.WEBGUI_PORT) || 3007;
+  app.use('/gateway', createProxyMiddleware({
+    target: `http://localhost:${WEBGUI_PORT}`,
+    changeOrigin: true,
+    ws: true,
+    pathRewrite: { '^/gateway': '' },
+    onProxyReq: (proxyReq, req) => {
+      proxyReq.setHeader('X-Forwarded-Host', req.headers.host || '');
+      proxyReq.setHeader('X-Forwarded-Proto', req.protocol || 'http');
+    }
+  }));
+
+  // Mock central API gateway. Replace with real delegations to services when ready.
+  app.use('/api', (req, res) => {
+    if (req.method === 'GET' && (req.path === '/' || req.path === '/health')) {
+      return res.json({
+        status: 'ok',
+        message: 'Mock KNIRV central API gateway',
+        chainId: CHAIN_ID,
+        timestamp: Date.now(),
+      });
+    }
+
+    return res.status(501).json({
+      error: 'Not Implemented',
+      message: 'Central API routing is not yet implemented. This is a mock endpoint.',
+      method: req.method,
+      route: req.originalUrl
+    });
+  });
   
   // Health check endpoint
   app.get('/health', (req, res) => {

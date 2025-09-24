@@ -2,13 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="./vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>KNIRV Controller - Unified Interface</title>
     <meta name="description" content="KNIRV Controller - Unified cognitive shell and management interface" />
 
     <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="./manifest.json" />
 
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#1e40af" />
@@ -18,16 +18,19 @@
     <meta name="mobile-web-app-capable" content="yes" />
 
     <!-- Apple Touch Icons -->
-    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="./icons/icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-180x180.png" />
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./icons/icon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="./icons/icon-16x16.png" />
+
+    <!-- PWA Installation Styles -->
+    <link rel="stylesheet" href="./install.css" />
 
     <!-- Preload critical resources -->
-    <link rel="preload" href="data:application/octet-stream;base64,aW1wb3J0IHsgU3RyaWN0TW9kZSB9IGZyb20gJ3JlYWN0JzsKaW1wb3J0IHsgY3JlYXRlUm9vdCB9IGZyb20gJ3JlYWN0LWRvbS9jbGllbnQnOwppbXBvcnQgQXBwIGZyb20gJy4vQXBwJzsKaW1wb3J0IEVycm9yQm91bmRhcnkgZnJvbSAnLi9jb21wb25lbnRzL0Vycm9yQm91bmRhcnknOwppbXBvcnQgJy4vaW5kZXguY3NzJzsKCmNyZWF0ZVJvb3QoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3Jvb3QnKSEpLnJlbmRlcigKICA8U3RyaWN0TW9kZT4KICAgIDxFcnJvckJvdW5kYXJ5PgogICAgICA8QXBwIC8+CiAgICA8L0Vycm9yQm91bmRhcnk+CiAgPC9TdHJpY3RNb2RlPgopOwo=" as="script" type="module" />
-    
+    <link rel="preload" href="./install.js" as="script" />
+
     <!-- Theme and styling -->
     <style>
       body {
@@ -84,12 +87,12 @@
         font-weight: 500;
       }
     </style>
-    <script type="module" crossorigin src="/assets/main-eP8YNJ4I.js"></script>
-    <link rel="modulepreload" crossorigin href="/assets/vendor-BXttUi4B.js">
-    <link rel="modulepreload" crossorigin href="/assets/ui-BGfAbGa7.js">
-    <link rel="modulepreload" crossorigin href="/assets/blockchain-g7UmDSZc.js">
-    <link rel="modulepreload" crossorigin href="/assets/database-Bu7_AzBH.js">
-    <link rel="stylesheet" crossorigin href="/assets/main-DsEmai-T.css">
+    <script type="module" crossorigin src="./assets/main-CLN7z47v.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/vendor-BXttUi4B.js">
+    <link rel="modulepreload" crossorigin href="./assets/ui-BklU9til.js">
+    <link rel="modulepreload" crossorigin href="./assets/blockchain-DRtzGIWH.js">
+    <link rel="modulepreload" crossorigin href="./assets/database-CeK0uOht.js">
+    <link rel="stylesheet" crossorigin href="./assets/main-CrBmO3ty.css">
   </head>
   <body>
     <div id="root">
@@ -100,7 +103,10 @@
       </div>
     </div>
     
-    
+    <!-- PWA Installation Script -->
+    <script src="./install.js"></script>
+
+
     <script>
       // Hide loading screen once app is ready
       window.addEventListener('load', () => {
@@ -125,10 +131,15 @@
         console.error('Unhandled promise rejection:', event.reason);
       });
 
-      // Service Worker Registration
+      // Service Worker Registration (guard non-secure contexts like file://)
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
+          const isSecureContext = (location.protocol === 'https:' || location.protocol === 'http:');
+          if (!isSecureContext) {
+            console.log('Skipping SW on non-secure context');
+            return;
+          }
+          navigator.serviceWorker.register('./sw.js')
             .then((registration) => {
               console.log('SW registered: ', registration);
 

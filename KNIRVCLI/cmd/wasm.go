@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -134,7 +133,7 @@ func init() {
 }
 
 // runWasm implements the wasm run command
-func runWasm(cmd *cobra.Command, args []string) error {
+func runWasm(cmd *cobra.Command, _ []string) error {
 	// Parse flags
 	wasmFile, _ := cmd.Flags().GetString("file")
 	runtime, _ := cmd.Flags().GetString("runtime")
@@ -204,7 +203,7 @@ func runWasm(cmd *cobra.Command, args []string) error {
 }
 
 // validateWasm implements the wasm validate command
-func validateWasm(cmd *cobra.Command, args []string) error {
+func validateWasm(cmd *cobra.Command, _ []string) error {
 	// Parse flags
 	wasmFile, _ := cmd.Flags().GetString("file")
 	checkExports, _ := cmd.Flags().GetBool("check-exports")
@@ -249,7 +248,7 @@ func validateWasm(cmd *cobra.Command, args []string) error {
 }
 
 // getWasmInfo implements the wasm info command
-func getWasmInfo(cmd *cobra.Command, args []string) error {
+func getWasmInfo(cmd *cobra.Command, _ []string) error {
 	// Parse flags
 	wasmFile, _ := cmd.Flags().GetString("file")
 	showExports, _ := cmd.Flags().GetBool("show-exports")
@@ -304,7 +303,7 @@ func getWasmInfo(cmd *cobra.Command, args []string) error {
 }
 
 // connectToWasm implements the wasm connect command
-func connectToWasm(cmd *cobra.Command, args []string) error {
+func connectToWasm(cmd *cobra.Command, _ []string) error {
 	// Parse flags
 	url, _ := cmd.Flags().GetString("url")
 	moduleID, _ := cmd.Flags().GetString("module-id")
@@ -426,11 +425,11 @@ func sendResultToNode(nodeURL, result string, timeout int) error {
 		"timestamp": time.Now().Unix(),
 	}
 
-	_, err := apiClient.SendData(ctx, "/wasm/result", payload)
+	err := apiClient.Post(ctx, "/wasm/result", payload, nil)
 	return err
 }
 
-func callRemoteWasmMethod(url, moduleID, method string, args map[string]interface{}, timeout int) (string, error) {
+func callRemoteWasmMethod(_, moduleID, method string, args map[string]interface{}, _ int) (string, error) {
 	// This would implement WebSocket connection to remote WASM service
 	// For now, return a placeholder
 	wasmLog.Infof("Calling remote WASM method: %s.%s", moduleID, method)

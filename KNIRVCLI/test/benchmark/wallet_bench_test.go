@@ -17,10 +17,7 @@ func BenchmarkWalletCreation(b *testing.B) {
 	defer os.RemoveAll(tempDir)
 
 	// Create wallet manager
-	walletManager, err := core.NewWalletManager(tempDir)
-	if err != nil {
-		b.Fatalf("Failed to create wallet manager: %v", err)
-	}
+	walletManager := core.NewWalletManager(tempDir, nil)
 
 	// Reset timer before the loop
 	b.ResetTimer()
@@ -55,10 +52,7 @@ func BenchmarkWalletLoading(b *testing.B) {
 	defer os.RemoveAll(tempDir)
 
 	// Create wallet manager
-	walletManager, err := core.NewWalletManager(tempDir)
-	if err != nil {
-		b.Fatalf("Failed to create wallet manager: %v", err)
-	}
+	walletManager := core.NewWalletManager(tempDir, nil)
 
 	// Generate key pair
 	privateKey, err := walletManager.GenerateKeyPair()
@@ -92,10 +86,7 @@ func BenchmarkWalletLoading(b *testing.B) {
 
 func BenchmarkTransactionSigning(b *testing.B) {
 	// Create wallet manager
-	walletManager, err := core.NewWalletManager(".")
-	if err != nil {
-		b.Fatalf("Failed to create wallet manager: %v", err)
-	}
+	walletManager := core.NewWalletManager(".", nil)
 
 	// Generate key pair
 	privateKey, err := walletManager.GenerateKeyPair()

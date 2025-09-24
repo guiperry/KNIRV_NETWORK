@@ -48,4 +48,4 @@ process.on('SIGINT', () => {
     nextProcess.kill('SIGINT');
 });
 
-console.log(`[WebGUI] Agent Notary System server wrapper started`);
+console.log(`[WebGUI] Web Gui started`);

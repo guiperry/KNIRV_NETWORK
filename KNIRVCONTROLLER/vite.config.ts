@@ -16,6 +16,9 @@ export default defineConfig({
     ...(process.env.ANALYZE === 'true' ? [visualizer()] : [])
   ],
   
+  // Use relative base so builds work from file:// and subpaths
+  base: './',
+  
   // Root source directory
   root: '.',
   

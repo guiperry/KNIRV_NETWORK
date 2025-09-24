@@ -276,9 +276,10 @@ func runSystemStatus(cmd *cobra.Command, args []string) error {
 		
 		for name, result := range healthStatus {
 			statusIcon := "❌"
-			if result.Status == core.ServiceStatusHealthy {
+			switch result.Status {
+			case core.ServiceStatusHealthy:
 				statusIcon = "✅"
-			} else if result.Status == core.ServiceStatusUnknown {
+			case core.ServiceStatusUnknown:
 				statusIcon = "❓"
 			}
 			

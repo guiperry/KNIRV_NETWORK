@@ -8,35 +8,35 @@
     "agentify": "https://agentify.knirv.com"
   },
   "external_services": {
-    "payment_gateway": "https://payments.knirv.network",
-    "tunnel_registry": "https://tunnel.knirv.network",
-    "operator_registry": "https://operators.knirv.network",
-    "webgui": "https://dashboard.knirv.network",
+    "payment_gateway": "https://knirvgateway.onrender.com/payments",
+    "tunnel_registry": "https://knirvgateway.onrender.com/tunnel",
+    "operator_registry": "https://knirvgateway.onrender.com/operators",
+    "webgui": "https://knirvgateway.onrender.com/gateway",
     "knirv_website": "https://knirv.com",
     "testnet_access": "https://testnet.knirv.com"
   },
   "gateway_services": {
     "public_testnet": {
       "payment_gateway": {
-        "domain": "payments.knirv.network",
+        "domain": "https://knirvgateway.onrender.com/payments",
         "port": 3001,
         "path": "/",
         "health_endpoint": "/health"
       },
       "tunnel_registry": {
-        "domain": "tunnel.knirv.network",
+        "domain": "https://knirvgateway.onrender.com/tunnel",
         "port": 3004,
         "path": "/",
         "health_endpoint": "/status"
       },
       "operator_registry": {
-        "domain": "operators.knirv.network",
+        "domain": "https://knirvgateway.onrender.com/operators",
         "port": 3007,
         "path": "/",
         "health_endpoint": "/health"
       },
       "webgui": {
-        "domain": "dashboard.knirv.network",
+        "domain": "https://knirvgateway.onrender.com/gateway",
         "port": 3007,
         "path": "/",
         "health_endpoint": "/health"

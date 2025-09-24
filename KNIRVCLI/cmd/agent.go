@@ -169,7 +169,7 @@ func init() {
 }
 
 // createAgent implements the agent create command
-func createAgent(cmd *cobra.Command, args []string) error {
+func createAgent(cmd *cobra.Command, _ []string) error {
 	// Parse and validate flags
 	nodeURL, _ := cmd.Flags().GetString("node")
 	walletPath, _ := cmd.Flags().GetString("wallet")
@@ -274,7 +274,7 @@ func createAgent(cmd *cobra.Command, args []string) error {
 }
 
 // registerAgentPlugin implements the agent register-plugin command
-func registerAgentPlugin(cmd *cobra.Command, args []string) error {
+func registerAgentPlugin(cmd *cobra.Command, _ []string) error {
 	// Parse and validate flags
 	nodeURL, _ := cmd.Flags().GetString("node")
 	walletPath, _ := cmd.Flags().GetString("wallet")
@@ -387,7 +387,7 @@ func registerAgentPlugin(cmd *cobra.Command, args []string) error {
 }
 
 // listAgents implements the agent list command
-func listAgents(cmd *cobra.Command, args []string) error {
+func listAgents(cmd *cobra.Command, _ []string) error {
 	// Parse flags
 	nodeURL, _ := cmd.Flags().GetString("node")
 	owner, _ := cmd.Flags().GetString("owner")
@@ -439,7 +439,7 @@ func listAgents(cmd *cobra.Command, args []string) error {
 }
 
 // getAgentInfo implements the agent info command
-func getAgentInfo(cmd *cobra.Command, args []string) error {
+func getAgentInfo(cmd *cobra.Command, _ []string) error {
 	// Parse flags
 	nodeURL, _ := cmd.Flags().GetString("node")
 	agentID, _ := cmd.Flags().GetString("agent-id")

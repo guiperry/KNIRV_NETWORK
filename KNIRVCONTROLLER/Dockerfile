@@ -20,6 +20,7 @@ COPY config/ ./config/
 COPY scripts/ ./scripts/
 COPY assembly/ ./assembly/
 COPY build/ ./build/
+COPY test-utils/ ./test-utils/
 COPY *.config.* ./
 COPY index.html ./
 
@@ -49,9 +50,8 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/build ./build
 COPY --from=builder /app/config ./config
 COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/test-utils ./test-utils
 
-# Copy migration script
-COPY scripts/migrate-to-nebuladb.ts ./scripts/
 
 # Create non-root user
 USER node

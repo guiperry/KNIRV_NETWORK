@@ -273,13 +273,13 @@ downloads:
     linux: "https://releases.knirv.network/knirvcontroller/linux/knirvcontroller.AppImage"
 
     # Mobile PWA applications (slim packages)
-    android: "https://releases.knirv.network/knirvcontroller/mobile/knirvcontroller-android-pwa.zip"
-    ios: "https://releases.knirv.network/knirvcontroller/mobile/knirvcontroller-ios-pwa.zip"
+    android: "https://releases.knirv.network/knirvcontroller-android-pwa.zip"
+    ios: "https://releases.knirv.network/knirvcontroller-ios-pwa.zip"
 
     # PWA direct access
-    pwa_url: "https://beta-controller.knirv.network"
-    pwa_install_android: "https://beta-controller.knirv.network/?install=android"
-    pwa_install_ios: "https://beta-controller.knirv.network/?install=ios"
+    pwa_url: "https://beta-controller.knirv.com"
+    pwa_install_android: "https://beta-controller.knirv.com/?install=android"
+    pwa_install_ios: "https://beta-controller.knirv.com/?install=ios"
 
     requirements:
       windows: "Windows 10/11, 4GB RAM, 2GB Storage"
