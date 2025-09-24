@@ -45,12 +45,14 @@ npm run type-check           # Uses Render configuration
 1. **Render Builds**:
    - Sets `skipLibCheck: true` to ignore missing Cloudflare types
    - Removes Cloudflare-specific type references from `index.ts`
-   - Uses simplified TypeScript configuration
+   - Replaces `ExecutionContext` with `any` type for compatibility
+   - Uses minimal TypeScript configuration without typeRoots
 
 2. **Cloudflare Builds**:
    - Uses the real `@cloudflare/workers-types` package
    - Includes proper type roots and type references
    - Maintains full Cloudflare Workers compatibility
+   - Restores original `index.ts` with Cloudflare types
 
 ### File Modifications
 

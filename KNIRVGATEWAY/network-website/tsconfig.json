@@ -15,7 +15,14 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true
+    "noEmit": true,
+    "types": [
+      "@cloudflare/workers-types"
+    ],
+    "typeRoots": [
+      "./node_modules/@types",
+      "./node_modules/@cloudflare"
+    ]
   },
   "include": [
     "./index.ts"

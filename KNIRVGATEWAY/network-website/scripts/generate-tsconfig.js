@@ -49,11 +49,10 @@ if (isCloudflare) {
   baseConfig.compilerOptions.skipLibCheck = true;
   console.log('Using Cloudflare Workers types configuration');
 } else {
-  // For Render or other environments, completely skip Cloudflare types
+  // For Render or other environments, use a minimal configuration
+  // Don't specify types or typeRoots to avoid Cloudflare type resolution
   baseConfig.compilerOptions.skipLibCheck = true;
-  delete baseConfig.compilerOptions.types;
-  delete baseConfig.compilerOptions.typeRoots;
-  console.log('Using simplified configuration for Render (skipLibCheck enabled)');
+  console.log('Using minimal configuration for Render (skipLibCheck enabled)');
 }
 
 // Write the generated tsconfig
@@ -72,7 +71,7 @@ if (!fs.existsSync(originalPath)) {
   }
 }
 
-// For Render builds, also create a modified index.ts without Cloudflare reference
+// For Render builds, also create a modified index.ts with type-safe fallbacks
 if (!isCloudflare) {
   const indexPath = path.join(__dirname, '..', 'index.ts');
   if (fs.existsSync(indexPath)) {
@@ -80,6 +79,10 @@ if (!isCloudflare) {
     
     // Remove the Cloudflare types reference
     indexContent = indexContent.replace('/// <reference types="@cloudflare/workers-types" />\n', '');
+    
+    // Replace Cloudflare-specific types with 'any' for Render compatibility
+    indexContent = indexContent.replace('env: any, ctx: ExecutionContext', 'env: any, ctx: any');
+    indexContent = indexContent.replace('ctx: ExecutionContext', 'ctx: any');
     
     // Create a backup of the original index.ts
     const indexBackupPath = path.join(__dirname, '..', 'index.original.ts');
@@ -90,7 +93,7 @@ if (!isCloudflare) {
     
     // Write the modified index.ts
     fs.writeFileSync(indexPath, indexContent);
-    console.log('Removed Cloudflare types reference from index.ts for Render build');
+    console.log('Modified index.ts for Render build (replaced ExecutionContext with any)');
   }
 } else {
   // For Cloudflare builds, restore the original index.ts if it exists
