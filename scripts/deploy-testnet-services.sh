@@ -1,16 +1,5 @@
 
 #!/bin/bash
-
-# KNIRV Testnet Services Deployment Script
-# Enhanced with container runtime detection, interactive selection, and native npm deployment
-# Includes XION bridge and KNIRVANA components for complete testnet deployment
-
-set -e
-
-# Global error handler for uncaught errors
-trap 'handle_uncaught_error' ERR
-
-handle_uncaught_error() {
     local exit_code=$?
     local last_command="${BASH_COMMAND}"
     
@@ -50,31 +39,7 @@ SSH_KEY="~/.ssh/AEGONG.pem"
 # Deployment session log file
 DEPLOYMENT_LOG="$ANSIBLE_DIR/deployment_session.log"
 
-load_dotenv() {
-  local env_file="$ANSIBLE_DIR/.env"
-  if [ -f "$env_file" ]; then
-    print_status "Loading environment variables from $env_file"
-    # shellcheck disable=SC1090
-    set -a
-    # Use a subshell to source safely
-    . "$env_file"
-    set +a
-  else
-    print_warning "Environment file $env_file not found; proceeding with current environment"
-  fi
 
-  # Prefer AWS_REGION if set, otherwise fall back to AWS_DEFAULT_REGION, then default to us-east-1
-  if [ -n "${AWS_REGION:-}" ]; then
-    AWS_REGION_VAL="$AWS_REGION"
-  elif [ -n "${AWS_DEFAULT_REGION:-}" ]; then
-    AWS_REGION_VAL="$AWS_DEFAULT_REGION"
-  else
-    AWS_REGION_VAL="us-east-1"
-  fi
-
-  export AWS_REGION_VAL
-  print_status "Using AWS region: $AWS_REGION_VAL"
-}
 
 # Note: load_dotenv will be called after helper print_* functions are defined
 
@@ -263,8 +228,7 @@ handle_deployment_error() {
     exit 1
 }
 
-# Now that helper functions are defined, load environment variables
-load_dotenv
+
 
 # Determine AMI to use for the target AWS region. Prefers AMI_ID from .env, otherwise queries AWS for
 # the latest Ubuntu 22.04 LTS (Jammy) AMI owned by Canonical (owner 099720109477) or via SSM parameter.
@@ -410,7 +374,8 @@ detect_container_runtime() {
                 ;;
             3)
                 CONTAINER_RUNTIME="native"
-                print_success "Selected Native deployment"
+                print_success "Selected Native deployment with Go orchestrator"
+                build_and_upload_orchestrator
                 break
                 ;;
             *)
@@ -1219,269 +1184,28 @@ EOF
     print_success "Sufficient disk space available ($AVAILABLE_SPACE free)"
 }
 
-prepare_native_testnet_files() {
-    # Check if we should skip this step when resuming
-    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Preparing native testnet files..." ]; then
-        print_status "Skipping prepare_native_testnet_files (already completed)"
-        return 0
-    fi
-    
-    log_checkpoint "Preparing native testnet files..."
-    print_step "Preparing KNIRVTESTNET directory for native deployment..."
-    print_status "Building locally and excluding node_modules from upload..."
+build_and_upload_orchestrator() {
+    log_checkpoint "Building and uploading Go orchestrator..."
+    print_step "Building and uploading Go orchestrator..."
 
-    # Create temporary directory for native deployment
-    TEMP_DIR=$(mktemp -d)
-    echo "$TEMP_DIR" > /tmp/testnet_temp_dir
+    # Build the orchestrator
+    print_status "Building the Go orchestrator..."
+    cd "$TESTNET_DIR"
+    ./scripts/build-all.sh
+    cd -
 
-    # Build testnet-gateway locally first
-    print_status "Building testnet-gateway locally..."
-    if [ -d "$TESTNET_DIR/data/testnet-gateway" ] && [ -f "$TESTNET_DIR/data/testnet-gateway/package.json" ]; then
-        cd "$TESTNET_DIR/data/testnet-gateway"
-        if [ -d "node_modules" ]; then
-            print_status "Installing/updating dependencies..."
-            npm install --production --no-optional --no-audit --no-fund
-        else
-            print_status "Installing dependencies..."
-            npm install --production --no-optional --no-audit --no-fund
-        fi
+    # Upload the orchestrator
+    print_status "Uploading the Go orchestrator..."
+    scp -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no "$TESTNET_DIR/knirvtestnet" ubuntu@"$TESTNET_IP":/tmp/knirvtestnet
 
-        # Build if build script exists
-        if npm run build --if-present > /dev/null 2>&1; then
-            print_status "Build completed successfully"
-        else
-            print_status "No build script found or build not needed"
-        fi
-        cd - > /dev/null
-    fi
+    # Execute the orchestrator
+    print_status "Executing the Go orchestrator..."
+    ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" "sudo mv /tmp/knirvtestnet /usr/local/bin/knirvtestnet && sudo /usr/local/bin/knirvtestnet"
 
-    # Copy KNIRVTESTNET directory excluding node_modules and build artifacts
-    print_status "Copying KNIRVTESTNET directory (excluding node_modules and build artifacts)..."
-    rsync -av --exclude='node_modules' --exclude='dist' --exclude='build' --exclude='.next' \
-          --exclude='.netlify' --exclude='*.log' --exclude='.git' --exclude='.cache' \
-          --exclude='coverage' --exclude='.nyc_output' --exclude='*.tmp' \
-          "$TESTNET_DIR/" "$TEMP_DIR/knirvtestnet/" || {
-        # Fallback if rsync is not available
-        print_warning "rsync not available, using cp with find exclusions..."
-        mkdir -p "$TEMP_DIR/knirvtestnet"
-        find "$TESTNET_DIR" -type f \
-            ! -path "*/node_modules/*" ! -path "*/dist/*" ! -path "*/build/*" ! -path "*/.next/*" \
-            ! -path "*/.netlify/*" ! -name "*.log" ! -path "*/.git/*" ! -path "*/.cache/*" \
-            ! -path "*/coverage/*" ! -path "*/.nyc_output/*" ! -name "*.tmp" \
-            -exec cp --parents {} "$TEMP_DIR/knirvtestnet/" \; 2>/dev/null || true
-    }
-
-    # Add XION bridge components from KNIRVORACLE
-    if [ -d "KNIRVORACLE" ]; then
-        print_status "Adding XION bridge components..."
-        mkdir -p "$TEMP_DIR/knirvtestnet/xion-bridge"
-        cp KNIRVORACLE/xion_bridge.go "$TEMP_DIR/knirvtestnet/xion-bridge/" 2>/dev/null || true
-        cp -r KNIRVORACLE/xion-bridge/* "$TEMP_DIR/knirvtestnet/xion-bridge/" 2>/dev/null || true
-    fi
-
-    # Add KNIRVANA ts-client web game
-    if [ -d "KNIRVANA/ts-client" ]; then
-        print_status "Adding KNIRVANA ts-client web game..."
-        mkdir -p "$TEMP_DIR/knirvtestnet/knirvana-game"
-        cp -r KNIRVANA/ts-client/* "$TEMP_DIR/knirvtestnet/knirvana-game/" 2>/dev/null || true
-    fi
-
-    # Add KNIRVANA orb-menu if available
-    if [ -d "KNIRVANA/orb-menu" ]; then
-        print_status "Adding KNIRVANA orb-menu..."
-        mkdir -p "$TEMP_DIR/knirvtestnet/knirvana-orb"
-        cp -r KNIRVANA/orb-menu/* "$TEMP_DIR/knirvtestnet/knirvana-orb/" 2>/dev/null || true
-    fi
-
-    print_success "Native testnet files prepared in $TEMP_DIR (node_modules excluded)"
+    print_success "Go orchestrator deployed and executed successfully"
 }
 
-clean_server_deployment() {
-    log_checkpoint "Cleaning server deployment..."
-    print_step "Cleaning server of old build files..."
 
-    # Clean old deployment files but preserve data
-    ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" << 'EOF'
-# Stop any running services first
-pkill -f "node.*server" || true
-pkill -f "npm.*start" || true
-
-# Clean old files but preserve data directories
-if [ -d "/opt/knirv-testnet" ]; then
-    # Backup important data
-    if [ -d "/opt/knirv-testnet/data" ]; then
-        sudo cp -r /opt/knirv-testnet/data /tmp/knirv-data-backup 2>/dev/null || true
-    fi
-
-    # Remove old deployment
-    sudo rm -rf /opt/knirv-testnet/* 2>/dev/null || true
-
-    # Restore data if backup exists
-    if [ -d "/tmp/knirv-data-backup" ]; then
-        sudo mkdir -p /opt/knirv-testnet/data
-        sudo cp -r /tmp/knirv-data-backup/* /opt/knirv-testnet/data/ 2>/dev/null || true
-        sudo rm -rf /tmp/knirv-data-backup
-    fi
-fi
-
-# Ensure proper ownership
-sudo mkdir -p /opt/knirv-testnet
-sudo chown -R ubuntu:ubuntu /opt/knirv-testnet
-EOF
-
-    print_success "Server cleaned and ready for new deployment"
-}
-
-check_for_changes() {
-    print_step "Checking for file changes since last deployment..."
-
-    local deployment_type="$1"
-    local checksum_file="$ANSIBLE_DIR/checksums_${deployment_type}.txt"
-    local current_checksums=$(mktemp)
-
-    # Generate current checksums
-    if [ "$deployment_type" = "native" ]; then
-        find "$TESTNET_DIR" -type f \
-            ! -path "*/node_modules/*" ! -path "*/dist/*" ! -path "*/build/*" ! -path "*/.next/*" \
-            ! -path "*/.netlify/*" ! -name "*.log" ! -path "*/.git/*" ! -path "*/.cache/*" \
-            ! -path "*/coverage/*" ! -path "*/.nyc_output/*" ! -name "*.tmp" \
-            -exec md5sum {} \; | sort > "$current_checksums"
-    else
-        # For container deployments, check essential files only
-        find "$TESTNET_DIR/bin" "$TESTNET_DIR/config" -type f -exec md5sum {} \; 2>/dev/null | sort > "$current_checksums"
-        find "$TESTNET_DIR/data" -type f \
-            ! -path "*/node_modules/*" ! -path "*/dist/*" ! -path "*/build/*" \
-            ! -name "*.log" ! -name "*.tmp" \
-            -exec md5sum {} \; 2>/dev/null | sort >> "$current_checksums"
-    fi
-
-    if [ -f "$checksum_file" ]; then
-        if diff -q "$checksum_file" "$current_checksums" > /dev/null; then
-            print_success "No changes detected since last deployment"
-            CHANGES_DETECTED=false
-        else
-            print_warning "Changes detected since last deployment"
-            print_status "Changed files:"
-            diff "$checksum_file" "$current_checksums" | grep "^>" | cut -d' ' -f3- | head -10
-            if [ $(diff "$checksum_file" "$current_checksums" | grep "^>" | wc -l) -gt 10 ]; then
-                print_status "... and $(( $(diff "$checksum_file" "$current_checksums" | grep "^>" | wc -l) - 10 )) more files"
-            fi
-            CHANGES_DETECTED=true
-        fi
-    else
-        print_status "No previous deployment checksums found - full deployment required"
-        CHANGES_DETECTED=true
-    fi
-
-    # Save current checksums for next time
-    cp "$current_checksums" "$checksum_file"
-    rm "$current_checksums"
-}
-
-incremental_upload_native() {
-    # Check if we should skip this step when resuming
-    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Performing incremental upload for native deployment..." ]; then
-        print_status "Skipping incremental_upload_native (already completed)"
-        return 0
-    fi
-    
-    print_step "Performing incremental upload for native deployment..."
-
-    # Use rsync for incremental sync
-    print_status "Syncing changes to server..."
-    rsync -avz --delete \
-          --exclude='node_modules' --exclude='dist' --exclude='build' --exclude='.next' \
-          --exclude='.netlify' --exclude='*.log' --exclude='.git' --exclude='.cache' \
-          --exclude='coverage' --exclude='.nyc_output' --exclude='*.tmp' \
-          -e "ssh -i ${SSH_KEY/#\~/$HOME} -o StrictHostKeyChecking=no" \
-          "$TESTNET_DIR/" ubuntu@"$TESTNET_IP":/opt/knirv-testnet/ || {
-        print_error "Incremental sync failed, falling back to full upload"
-        return 1
-    }
-
-    print_success "Incremental upload completed"
-}
-
-incremental_upload_container() {
-    # Check if we should skip this step when resuming
-    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Performing incremental upload for container deployment..." ]; then
-        print_status "Skipping incremental_upload_container (already completed)"
-        return 0
-    fi
-    
-    print_step "Performing incremental upload for container deployment..."
-
-    # Create temporary directory with only changed files
-    TEMP_DIR=$(mktemp -d)
-    echo "$TEMP_DIR" > /tmp/testnet_temp_dir
-
-    # Copy essential files
-    mkdir -p "$TEMP_DIR/bin" "$TEMP_DIR/config" "$TEMP_DIR/data"
-
-    # Copy binaries
-    cp "$TESTNET_DIR/bin"/* "$TEMP_DIR/bin/" 2>/dev/null || true
-
-    # Copy configs
-    cp -r "$TESTNET_DIR/config"/* "$TEMP_DIR/config/" 2>/dev/null || true
-
-    # Copy essential data (excluding large files)
-    rsync -av --exclude='node_modules' --exclude='dist' --exclude='build' \
-          --exclude='*.log' --exclude='*.tmp' \
-          "$TESTNET_DIR/data/" "$TEMP_DIR/data/" 2>/dev/null || true
-
-    # Generate Docker compose file
-    detect_subnet_environment > /dev/null
-    generate_docker_compose_file "$TEMP_DIR" "$BEHIND_SUBNET"
-
-    # Upload using rsync
-    rsync -avz --delete \
-          -e "ssh -i ${SSH_KEY/#\~/$HOME} -o StrictHostKeyChecking=no" \
-          "$TEMP_DIR/" ubuntu@"$TESTNET_IP":/opt/knirv-testnet/ || {
-        print_error "Incremental container sync failed, falling back to full upload"
-        return 1
-    }
-
-    print_success "Incremental container upload completed"
-}
-
-upload_native_testnet_files() {
-    # Check if we should skip this step when resuming
-    if [ "$RESUME_DEPLOYMENT" = "true" ] && [ "$(read_last_checkpoint)" = "Uploading native testnet files..." ]; then
-        print_status "Skipping upload_native_testnet_files (already completed)"
-        return 0
-    fi
-    
-    log_checkpoint "Uploading native testnet files..."
-    print_step "Uploading KNIRVTESTNET directory to testnet server..."
-
-    # Clean server first
-    clean_server_deployment
-
-  # Upload the prepared directory (without node_modules)
-  print_status "Uploading optimized KNIRVTESTNET with XION bridge and KNIRVANA components..."
-
-  # Use rsync to a remote temporary directory as the ubuntu user, then move into /opt with sudo
-  REMOTE_TMP_DIR="/tmp/knirv_deploy_$(date +%s)"
-  ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" "mkdir -p $REMOTE_TMP_DIR"
-
-  rsync -avz -e "ssh -i ${SSH_KEY/#\~/$HOME} -o StrictHostKeyChecking=no" \
-      "$TEMP_DIR/knirvtestnet/" ubuntu@"$TESTNET_IP":$REMOTE_TMP_DIR/ || {
-    print_error "Rsync upload failed"
-    return 1
-  }
-
-  # Move files into place with sudo to avoid permission issues, then set ownership
-  ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" << EOF
-sudo mkdir -p /opt/knirv-testnet
-sudo rm -rf /opt/knirv-testnet/* || true
-sudo mv $REMOTE_TMP_DIR/* /opt/knirv-testnet/
-sudo chown -R ubuntu:ubuntu /opt/knirv-testnet
-sudo chmod -R 755 /opt/knirv-testnet
-rm -rf $REMOTE_TMP_DIR
-EOF
-
-    print_success "Native testnet files uploaded to testnet server"
-}
 
 prepare_testnet_files() {
     # Check if we should skip this step when resuming
@@ -2855,97 +2579,46 @@ display_summary() {
 main() {
     print_header
 
-    # Check prerequisites and detect deployment type
+    # Check prerequisites
     check_prerequisites
+
+    # Test SSH connection
     test_ssh_connection
 
-    # If resuming from previous deployment, skip already completed steps
-    if [ "$RESUME_DEPLOYMENT" = "true" ]; then
-        print_status "Resuming deployment from last checkpoint..."
-        print_status "Last checkpoint: $(read_last_checkpoint)"
-        
-        # Skip steps that were already completed based on the last checkpoint
-        case "$(read_last_checkpoint)" in
-            "Checking prerequisites..."|"Testing SSH connection..."|"Configuring UFW firewall..."|"Checking disk space..."|"Checking for file changes..."|"Preparing testnet files..."|"Preparing native testnet files..."|"Uploading testnet files..."|"Uploading native testnet files..."|"Installing Node.js dependencies..."|"Building container images..."|"Deploying testnet services..."|"Deploying native testnet..."|"Verifying deployment..."|"Verifying service ports..."|"Updating CloudFlare DNS..."|"Cleaning up temporary files..."|"Displaying deployment summary...")
-                # These steps are already completed or will be handled by individual function resume logic
-                print_status "Resuming from checkpoint: $(read_last_checkpoint)"
-                ;;
-            *)
-                print_warning "Unknown checkpoint: $(read_last_checkpoint), starting from beginning"
-                RESUME_DEPLOYMENT=false
-                ;;
-        esac
-    fi
-
-    # Configure UFW firewall to match AWS EC2 ports (unless resuming and already completed)
-    if [ "$RESUME_DEPLOYMENT" != "true" ] || [ "$(read_last_checkpoint)" != "Configuring UFW firewall..." ]; then
-        configure_ufw_firewall
-    fi
-
-    # Check for changes and determine deployment strategy (unless resuming)
-    if [ "$RESUME_DEPLOYMENT" != "true" ]; then
-        if [ "$FORCE_FULL_DEPLOYMENT" = "true" ]; then
-            print_status "Force full deployment requested"
-            CHANGES_DETECTED=true
-        elif [ "$INCREMENTAL_DEPLOYMENT" = "true" ]; then
-            check_for_changes "$CONTAINER_RUNTIME"
-            if [ "$CHANGES_DETECTED" = "false" ]; then
-                print_success "No changes detected - skipping deployment"
-                print_status "Use --force to deploy anyway"
-                exit 0
-            fi
-        else
-            print_status "Full deployment mode (default)"
-            CHANGES_DETECTED=true
-        fi
-    else
-        # When resuming, assume changes are detected to continue deployment
-        CHANGES_DETECTED=true
-        print_status "Resuming deployment - assuming changes detected to continue"
-    fi
-
-    # Handle deployment based on container runtime
-    if [ "$CONTAINER_RUNTIME" = "native" ]; then
-        # Native deployment
-        if [ "$INCREMENTAL_DEPLOYMENT" = "true" ] && [ "$CHANGES_DETECTED" = "true" ]; then
-            print_status "Performing incremental native deployment..."
-            if ! incremental_upload_native; then
-                print_warning "Incremental upload failed, falling back to full deployment"
-                prepare_native_testnet_files
-                upload_native_testnet_files
-            fi
-        else
-            print_status "Performing full native deployment..."
-            prepare_native_testnet_files
-            upload_native_testnet_files
-        fi
-    else
-        # Container deployment
-        if [ "$INCREMENTAL_DEPLOYMENT" = "true" ] && [ "$CHANGES_DETECTED" = "true" ]; then
-            print_status "Performing incremental container deployment..."
-            if ! incremental_upload_container; then
-                print_warning "Incremental upload failed, falling back to full deployment"
-                prepare_testnet_files
-                upload_testnet_files
-            fi
-        else
-            print_status "Performing full container deployment..."
-            prepare_testnet_files
-            upload_testnet_files
-        fi
-        install_node_dependencies
-        build_container_images
-    fi
-
-    # After uploads and any cleaning have been performed, verify disk space again
+    # Check disk space
     check_disk_space
 
-    deploy_testnet_services
-    verify_deployment
-    update_cloudflare_dns
-    cleanup
-    display_summary
+    # Deploy based on selected container runtime
+    if [ "$CONTAINER_RUNTIME" = "native" ]; then
+        build_and_upload_orchestrator
+    else
+        # For container runtimes, prepare and upload files
+        prepare_testnet_files
+        upload_testnet_files
+
+        # Install Node.js dependencies on the server
+        install_node_dependencies
+
+        # Build container images on the server
+        build_container_images
+
+        # Start services
+        start_services
+    fi
+
+    # Final health check
+    health_check
+
+    print_success "KNIRV Testnet deployment completed successfully!"
 }
+
+main
+
+main
+
+main
+
+main
 
 # Handle script arguments
 while [[ $# -gt 0 ]]; do
