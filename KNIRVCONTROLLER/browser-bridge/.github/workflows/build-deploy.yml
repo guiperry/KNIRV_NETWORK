@@ -1,0 +1,85 @@
+name: Build And Deploy
+
+on:
+  push:
+    tags:
+      - v*.*.*
+
+jobs:
+  aws-deployment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Remove adena-torus-signin mock repository
+        run: |
+          rm -rf packages/adena-torus-signin
+
+      - name: Branch info
+        id: branch-info
+        run: |
+          echo ::set-output name=BRANCH_TAG::${GITHUB_REF#refs/tags/}
+
+      - name: Clone adena-torus-signin repository
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PRIVATE_ACCESS_TOKEN }}
+          repository: onbloc/adena-torus-signin
+          path: 'packages/adena-torus-signin'
+
+      - name: Build project
+        run: |
+          yarn
+          yarn build
+
+      - name: Make build files
+        run: |
+          bash scripts/build-qa.sh "$BRANCH_TAG"
+        env:
+          BRANCH_TAG: ${{ steps.branch-info.outputs.BRANCH_TAG }}
+
+      - name: Deploy AWS S3 (QA)
+        uses: shallwefootball/s3-upload-action@master
+        with:
+          aws_key_id: ${{ secrets.AWS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
+          aws_bucket: ${{ secrets.AWS_BUCKET }}
+          source_dir: 'deploy'
+          destination_dir: '.'
+
+      - name: Deploy AWS S3 (Latest)
+        uses: shallwefootball/s3-upload-action@master
+        with:
+          aws_key_id: ${{ secrets.AWS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
+          aws_bucket: ${{ secrets.AWS_BUCKET }}
+          source_dir: 'deploy-latest'
+          destination_dir: '.'
+
+      - name: Run notification scripts
+        env:
+          RESOURCE_URI: ${{ secrets.RESOURCE_URI }}
+          HOOK_URI: ${{ secrets.HOOK_URI }}
+        run: |
+          bash scripts/notification-success.sh "$RESOURCE_URI" "$HOOK_URI"
+
+  # TODO: Discuss and decide to adopt Chromatic UI
+  # chromatic-deployment:
+  #   needs: wait-on-tests
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+
+  #     - name: Setup
+  #       uses: ./.github/actions/setup
+
+  #     - name: Push chromatic UI
+  #       uses: chromaui/action@v1
+  #       with:
+  #         projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN_2 }}
+  #         workingDir: packages/web

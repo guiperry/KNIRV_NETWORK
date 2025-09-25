@@ -9,7 +9,7 @@ import axios from 'axios';
        const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/health`);
        return res.status(200).json({
          status: response.data.status,
-         isRunning: response.data.status === 'ok'
+         isRunning: response.data.status === 'ok' || response.data.status === 'healthy'
        });
      } catch (error) {
        console.error('Error checking backend status:', error);

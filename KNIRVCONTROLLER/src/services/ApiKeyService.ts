@@ -4,7 +4,28 @@
  */
 
 import { rxdbService } from './RxDBService';
-import crypto from 'crypto';
+// Browser-compatible crypto implementation
+const browserCrypto = {
+  randomBytes: (size: number): { toString: (encoding: string) => string } => {
+    const array = new Uint8Array(size);
+    if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
+      window.crypto.getRandomValues(array);
+    } else {
+      // Fallback for older browsers
+      for (let i = 0; i < size; i++) {
+        array[i] = Math.floor(Math.random() * 256);
+      }
+    }
+    return {
+      toString: (encoding: string) => {
+        if (encoding === 'hex') {
+          return Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+        return array.toString();
+      }
+    };
+  }
+};
 
 export interface ApiKey {
   id: string;
@@ -66,6 +87,8 @@ class ApiKeyService {
     'write:wallet',
     'read:skills',
     'write:skills',
+    'read:capabilities',
+    'read:properties',
     'read:analytics',
     'admin:all'
   ];
@@ -279,12 +302,12 @@ class ApiKeyService {
    */
   private generateApiKey(): string {
     const prefix = 'knirv_';
-    const randomBytes = crypto.randomBytes(32).toString('hex');
+    const randomBytes = browserCrypto.randomBytes(32).toString('hex');
     return prefix + randomBytes;
   }
 
   private generateId(): string {
-    return crypto.randomBytes(16).toString('hex');
+    return browserCrypto.randomBytes(16).toString('hex');
   }
 
   private validatePermissions(permissions: string[]): string[] {

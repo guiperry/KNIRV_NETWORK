@@ -27,10 +27,8 @@ expect.extend({
 
 // Extend Jest matchers for TypeScript
 declare global {
-  namespace jest {
-    interface Matchers<R> {
-      toHaveTransactionStructure(): R;
-    }
+  interface Matchers<R> {
+    toHaveTransactionStructure(): R;
   }
 }
 

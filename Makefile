@@ -231,7 +231,7 @@ deploy-testnet: ## Deploy KNIRVTESTNET to AWS with Netlify frontend integration
 .PHONY: deploy-testnet-infrastructure
 deploy-testnet-infrastructure: check-prereqs ## Deploy testnet infrastructure only
 	@echo "$(BLUE)Deploying KNIRVTESTNET infrastructure...$(NC)"
-	@cd $(ANSIBLE_DIR) && ./deploy-testnet-infrastructure.sh
+	@cd $(ANSIBLE_DIR) && ./deploy-testnet-infrastructure.sh --force
 	@echo "$(GREEN)✓ KNIRVTESTNET infrastructure deployed$(NC)"
 
 .PHONY: deploy-testnet-services

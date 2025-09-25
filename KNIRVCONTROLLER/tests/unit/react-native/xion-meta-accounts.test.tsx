@@ -34,6 +34,7 @@ class MockStorage implements StorageInterface {
     this.storage.clear();
   }
 }
+
 import {
   TEST_ADDRESSES,
   TEST_MNEMONICS
@@ -75,10 +76,8 @@ global.fetch = jest.fn((url: string) => {
 
 describe('XionMetaAccount', () => {
   let metaAccount: XionMetaAccount;
-  let mockStorage: MockStorage;
 
   beforeEach(() => {
-    mockStorage = new MockStorage();
     metaAccount = new XionMetaAccount(testMetaAccountConfig);
   });
 

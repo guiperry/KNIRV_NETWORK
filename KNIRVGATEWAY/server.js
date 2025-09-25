@@ -26,6 +26,7 @@ import axios from 'axios';
 import NodeCache from 'node-cache';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { fileURLToPath } from 'url';
+import crypto from 'crypto';
 
 // ES module compatibility
 const __filename = fileURLToPath(import.meta.url);
@@ -57,6 +58,57 @@ function createApp() {
   // Middleware
   app.use(cors());
   app.use(express.json());
+
+  // --- Minimal cookie/session handling for per-user controller URL ---
+  const sessions = new Map(); // In-memory session store: sid -> { controllerUrl?: string }
+
+  function parseCookies(cookieHeader = '') {
+    return cookieHeader.split(';').reduce((acc, part) => {
+      const [k, v] = part.split('=');
+      if (!k) return acc;
+      acc[k.trim()] = decodeURIComponent((v || '').trim());
+      return acc;
+    }, {});
+  }
+
+  function getOrInitSession(req, res) {
+    const cookies = parseCookies(req.headers.cookie || '');
+    let sid = cookies.knirv_sid;
+    if (!sid) {
+      sid = crypto.randomBytes(16).toString('hex');
+      const cookie = `knirv_sid=${encodeURIComponent(sid)}; Path=/; HttpOnly; SameSite=Lax`;
+      res.setHeader('Set-Cookie', cookie);
+    }
+    if (!sessions.has(sid)) sessions.set(sid, {});
+    return { sid, data: sessions.get(sid) };
+  }
+
+  // Expose simple session endpoints for controller URL
+  app.get('/session/controller', (req, res) => {
+    const { data } = getOrInitSession(req, res);
+    res.json({ controllerUrl: data.controllerUrl || null });
+  });
+
+  app.post('/session/controller', (req, res) => {
+    const { data } = getOrInitSession(req, res);
+    const { controllerUrl } = req.body || {};
+    try {
+      if (!controllerUrl || typeof controllerUrl !== 'string') {
+        return res.status(400).json({ error: 'controllerUrl (string) required' });
+      }
+      // Basic validation and normalization
+      const u = new URL(controllerUrl);
+      if (!['http:', 'https:'].includes(u.protocol)) {
+        return res.status(400).json({ error: 'controllerUrl must be http(s)' });
+      }
+      // Trim trailing slash for consistency
+      u.pathname = '/';
+      data.controllerUrl = u.toString().replace(/\/$/, '');
+      res.json({ ok: true, controllerUrl: data.controllerUrl });
+    } catch (e) {
+      res.status(400).json({ error: 'Invalid controllerUrl', message: e.message });
+    }
+  });
 
   // Route: /gateway -> WebGUI (Next.js) running on localhost:3007 (configurable via WEBGUI_PORT)
   const WEBGUI_PORT = parseInt(process.env.WEBGUI_PORT) || 3007;
@@ -92,6 +144,81 @@ function createApp() {
     res.sendFile(path.join(__dirname, 'index.html'));
   });
   app.use(express.static(__dirname));
+
+  // Helper to resolve service URL dynamically from the NodeJSServiceManager
+  function resolveServiceUrl(serviceName, preferred = 'main') {
+    try {
+      if (!nodeJSServiceManager) return null;
+      const svc = nodeJSServiceManager.processes?.get(serviceName);
+      if (!svc || !svc.ports) return null;
+      const { port, httpPort } = svc.ports;
+      const chosenPort = preferred === 'api' ? (httpPort || port) : (port || httpPort);
+      if (!chosenPort) return null;
+      return `http://localhost:${chosenPort}`;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Primary route: Payment Gateway
+  app.use('/payment', (req, res, next) => {
+    const target = resolveServiceUrl('paymentGateway', 'main');
+    if (!target) {
+      return res.status(503).json({ error: 'Payment Gateway unavailable', hint: 'Service not started yet' });
+    }
+    return createProxyMiddleware({
+      target,
+      changeOrigin: true,
+      ws: true,
+      pathRewrite: { '^/payment': '' }
+    })(req, res, next);
+  });
+
+  // Dynamic Controller proxy: use per-session controllerUrl
+  app.use('/controller', (req, res, next) => {
+    const { data } = getOrInitSession(req, res);
+    const target = data.controllerUrl;
+    if (!target) {
+      return res.status(428).json({
+        error: 'ControllerNotConnected',
+        message: 'No controller URL set in session. Use QR Connect or POST /session/controller to set it.'
+      });
+    }
+    return createProxyMiddleware({
+      target,
+      changeOrigin: true,
+      ws: true,
+      pathRewrite: { '^/controller': '' }
+    })(req, res, next);
+  });
+
+  // Primary route: Operator Registry (Next.js + API)
+  app.use('/operator-registry', (req, res, next) => {
+    const target = resolveServiceUrl('operatorRegistry', 'main');
+    if (!target) {
+      return res.status(503).json({ error: 'Operator Registry unavailable', hint: 'Service not started yet' });
+    }
+    return createProxyMiddleware({
+      target,
+      changeOrigin: true,
+      ws: true,
+      pathRewrite: { '^/operator-registry': '' }
+    })(req, res, next);
+  });
+
+  // Primary route: Tunnel Registry (HTTP API + Status)
+  app.use('/tunnel-registry', (req, res, next) => {
+    const target = resolveServiceUrl('tunnelRegistry', 'api');
+    if (!target) {
+      return res.status(503).json({ error: 'Tunnel Registry unavailable', hint: 'Service not started yet' });
+    }
+    return createProxyMiddleware({
+      target,
+      changeOrigin: true,
+      ws: true,
+      pathRewrite: { '^/tunnel-registry': '' }
+    })(req, res, next);
+  });
 
   // Mock central API gateway. Replace with real delegations to services when ready.
   app.use('/api', (req, res) => {

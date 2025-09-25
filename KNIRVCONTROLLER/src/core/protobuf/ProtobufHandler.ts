@@ -60,17 +60,23 @@ export class ProtobufHandler {
         await this.loadSchemasFromDefinitions();
       } else {
         // Node.js mode: Load schemas from file system (for testing/server)
-        const { promises: fs } = await import('fs');
-        const { join, dirname } = await import('path');
-        const { fileURLToPath } = await import('url');
+        // Skip file system operations in browser environment
+        if (typeof process !== 'undefined' && process.versions?.node) {
+          const { promises: fs } = await import('fs');
+          const { join, dirname } = await import('path');
+          const { fileURLToPath } = await import('url');
 
-        const __filename = fileURLToPath(getModuleUrl());
-        const __dirname = dirname(__filename);
-        const protoDir = join(__dirname, '../protobuf/schemas');
+          const __filename = fileURLToPath(getModuleUrl());
+          const __dirname = dirname(__filename);
+          const protoDir = join(__dirname, '../protobuf/schemas');
 
-        await fs.mkdir(protoDir, { recursive: true });
-        await this.generateLoRAAdapterSchema(protoDir, join);
-        await this.loadSchemas(protoDir, join);
+          await fs.mkdir(protoDir, { recursive: true });
+          await this.generateLoRAAdapterSchema(protoDir, join);
+          await this.loadSchemas(protoDir, join);
+        } else {
+          // Browser mode: Use embedded schemas
+          await this.loadSchemasFromDefinitions();
+        }
       }
 
       this.ready = true;
@@ -314,8 +320,10 @@ enum Status {
 }`;
 
     const schemaPath = join(protoDir, 'lora_adapter.proto');
-    const { promises: fs } = await import('fs');
-    await fs.writeFile(schemaPath, schemaContent);
+    if (typeof process !== 'undefined' && process.versions?.node) {
+      const { promises: fs } = await import('fs');
+      await fs.writeFile(schemaPath, schemaContent);
+    }
     logger.info({ schemaPath }, 'LoRA adapter protobuf schema generated');
   }
 
@@ -324,13 +332,15 @@ enum Status {
       this.root = new protobuf.Root();
 
       // Load all .proto files in the directory
-      const { promises: fs } = await import('fs');
-      const files = await fs.readdir(protoDir);
-      const protoFiles = files.filter((file: string) => file.endsWith('.proto'));
+      if (typeof process !== 'undefined' && process.versions?.node) {
+        const { promises: fs } = await import('fs');
+        const files = await fs.readdir(protoDir);
+        const protoFiles = files.filter((file: string) => file.endsWith('.proto'));
 
-      for (const file of protoFiles) {
-        const filePath = join(protoDir, file);
-        await this.root.load(filePath);
+        for (const file of protoFiles) {
+          const filePath = join(protoDir, file);
+          await this.root.load(filePath);
+        }
       }
 
       // Cache commonly used message types

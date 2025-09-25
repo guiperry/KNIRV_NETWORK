@@ -2,16 +2,7 @@
 
 // Import real implementations instead of mocks
 import { WalletIntegrationService } from '../../../src/services/WalletIntegrationService';
-import { KNIRVWalletIntegration, WalletAccount } from '../../../src/sensory-shell/KNIRVWalletIntegration';
-// Mock crypto functions for testing
-const encryptAES = jest.fn().mockImplementation(async (data: string, key: string) => {
-  return Buffer.from(data + key).toString('base64');
-});
-
-const decryptAES = jest.fn().mockImplementation(async (encryptedData: string, key: string) => {
-  const decoded = Buffer.from(encryptedData, 'base64').toString();
-  return decoded.replace(key, '');
-});
+import { KNIRVWalletIntegration } from '../../../src/sensory-shell/KNIRVWalletIntegration';
 
 const makeCryptKey = jest.fn().mockImplementation(async (password: string) => {
   return Buffer.from(password).toString('base64');

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styles from './SideNavigation.module.css';
 import { useNavigation } from '../hooks/useNavigation';
 import { useRole } from '../contexts/RoleContext';
+import IframeModal from './IframeModal';
 
 const SideNavigation = ({ activePage }) => {
   const { handleNavigation } = useNavigation(activePage);
@@ -14,6 +15,11 @@ const SideNavigation = ({ activePage }) => {
       [sectionId]: !prev[sectionId]
     }));
   };
+
+  // Simple modal state and open helpers
+  const [modal, setModal] = useState({ open: false, title: '', src: '' });
+  const openModal = (title, src) => setModal({ open: true, title, src });
+  const closeModal = () => setModal({ open: false, title: '', src: '' });
   
   // New navigation structure
   const navItems = [
@@ -23,6 +29,28 @@ const SideNavigation = ({ activePage }) => {
       label: 'Dashboard',
       icon: '🏠',
     },
+    // Quick Access
+    {
+      id: 'controller-status',
+      label: 'KNIRVCONTROLLER Status',
+      icon: '🔌',
+    },
+    {
+      id: 'qr-connect',
+      label: 'QR Connect',
+      icon: '📱',
+    },
+    {
+      id: 'my-endpoints',
+      label: 'My API Endpoints',
+      icon: '🔗',
+    },
+    {
+      id: 'payment-gateway',
+      label: 'Payment Gateway',
+      icon: '💳',
+    },
+
     // Monitor section
     {
       id: 'monitor',
@@ -55,6 +83,16 @@ const SideNavigation = ({ activePage }) => {
           icon: '🔮',
         },
         {
+          id: 'operator-registry',
+          label: 'Operator Registry',
+          icon: '🧾',
+        },
+        {
+          id: 'tunnel-registry',
+          label: 'Tunnel Registry',
+          icon: '🛰️',
+        },
+        {
           id: 'error-explorer',
           label: 'Error Explorer',
           icon: '🚨',
@@ -81,6 +119,16 @@ const SideNavigation = ({ activePage }) => {
           id: 'knirvinference-dao',
           label: 'KNIRVINFERENCE DAO',
           icon: '🏛️',
+        },
+        {
+          id: 'bootnode-election',
+          label: 'Bootnode Election Governance',
+          icon: '🗳️',
+        },
+        {
+          id: 'model-governance',
+          label: 'Network Inference Model Governance',
+          icon: '📜',
         }
       ]
     },
@@ -165,6 +213,44 @@ const SideNavigation = ({ activePage }) => {
     }
   ];
 
+  const handleItemClick = async (id, hasChildren) => {
+    if (hasChildren) return toggleSection(id);
+    // Open selected items in modal
+    if (id === 'operator-registry') return openModal('Operator Registry', '/operator-registry');
+    if (id === 'tunnel-registry') return openModal('Tunnel Registry', '/tunnel-registry');
+
+    // Payment gateway opens proxied service in a new tab
+    if (id === 'payment-gateway') {
+      window.open('/payment', '_blank', 'noopener');
+      return;
+    }
+
+    // My API Endpoints -> open user's controller or route to QR Connect
+    if (id === 'my-endpoints') {
+      try {
+        const r = await fetch('/session/controller', { credentials: 'include' });
+        const j = await r.json();
+        if (j && j.controllerUrl) {
+          window.open('/controller', '_blank', 'noopener');
+          return;
+        }
+        alert('No controller connected. Use QR Connect to link your controller.');
+        return handleNavigation('qr-connect');
+      } catch (_) {
+        alert('Unable to check controller session.');
+        return;
+      }
+    }
+
+    // Vault items now always navigate to dedicated WebGUI pages (no legacy modals)
+    if (['my-models','my-wallets','my-skills','my-capabilities','my-properties'].includes(id)) {
+      return handleNavigation(id);
+    }
+
+    // Default navigation
+    return handleNavigation(id);
+  };
+
   const renderNavItem = (item) => {
     if (!canAccess(item.id)) return null;
 
@@ -175,7 +261,7 @@ const SideNavigation = ({ activePage }) => {
     return (
       <div key={item.id}>
         <div
-          onClick={() => hasChildren ? toggleSection(item.id) : handleNavigation(item.id)}
+          onClick={() => handleItemClick(item.id, hasChildren)}
           className={`${styles.navItem} ${styles.glassyContainer} ${
             isActive ? styles.active : styles.inactive
           }`}
@@ -195,7 +281,7 @@ const SideNavigation = ({ activePage }) => {
               canAccess(child.id) && (
                 <div
                   key={child.id}
-                  onClick={() => handleNavigation(child.id)}
+                  onClick={() => handleItemClick(child.id, false)}
                   className={`${styles.subNavItem} ${styles.glassyContainer} ${
                     activePage === child.id ? styles.active : styles.inactive
                   }`}
@@ -219,6 +305,10 @@ const SideNavigation = ({ activePage }) => {
       </div>
 
       {navItems.map(item => renderNavItem(item))}
+
+      {modal.open && (
+        <IframeModal title={modal.title} src={modal.src} onClose={closeModal} />
+      )}
     </div>
   );
 };

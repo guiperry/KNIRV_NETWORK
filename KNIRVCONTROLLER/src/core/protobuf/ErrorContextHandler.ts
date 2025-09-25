@@ -6,7 +6,37 @@
  */
 
 import pino from 'pino';
-import * as crypto from 'crypto';
+// Browser-compatible crypto implementation
+const crypto = {
+  createHash: (algorithm: string) => {
+    if (algorithm !== 'sha256') {
+      throw new Error(`Algorithm ${algorithm} not supported in browser`);
+    }
+    
+    let buffer = '';
+    const hashObject = {
+      update: (data: string) => {
+        buffer += data;
+        return hashObject;
+      },
+      digest: (encoding: string) => {
+        // Simple hash simulation for browser environment
+        let hash = 0;
+        for (let i = 0; i < buffer.length; i++) {
+          const char = buffer.charCodeAt(i);
+          hash = ((hash << 5) - hash) + char;
+          hash = hash & hash; // Convert to 32bit integer
+        }
+        
+        if (encoding === 'hex') {
+          return Math.abs(hash).toString(16).padStart(64, '0');
+        }
+        return hash.toString();
+      }
+    };
+    return hashObject;
+  }
+};
 
 const logger = pino({ name: 'error-context-handler' });
 

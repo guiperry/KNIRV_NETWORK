@@ -6,13 +6,12 @@
 import { createRxDatabase, RxDatabase, RxCollection, addRxPlugin } from 'rxdb';
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode';
-// import { RxDBValidatePlugin } from 'rxdb/plugins/validate-ajv';
+import { wrappedValidateAjvStorage } from 'rxdb/plugins/validate-ajv';
 
 // Add plugins for development mode
 if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
   addRxPlugin(RxDBDevModePlugin);
 }
-// addRxPlugin(RxDBValidatePlugin);
 
 // Database interfaces
 interface WalletDocType {
@@ -112,7 +111,9 @@ export class RxDBService {
 
       this.db = await createRxDatabase<DatabaseCollections>({
         name: 'knirv_wallet_db',
-        storage: getRxStorageDexie()
+        storage: wrappedValidateAjvStorage({
+          storage: getRxStorageDexie()
+        })
       });
 
       await this.createCollections();

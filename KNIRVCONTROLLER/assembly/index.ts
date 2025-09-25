@@ -1,7 +1,12 @@
-/**
- * KNIRV Controller AssemblyScript WASM Module
- * Revolutionary AI agent-core implementation in TypeScript compiled to WASM
- */
+// KNIRV Controller AssemblyScript WASM Module
+// Revolutionary AI agent-core implementation in TypeScript compiled to WASM
+
+// Editor-only shims so TS service understands AssemblyScript primitives/builtins
+type bool = boolean;
+type i32 = number;
+type f32 = number;
+type usize = number;
+declare function changetype<T>(value: any): T;
 
 // Agent Core State Management
 let agentId: string = "";
@@ -21,26 +26,26 @@ export function initializeAgent(): bool {
   return true;
 }
 
-export function executeAgent(input: string, _context: string): string {
+export function executeAgent(input: string, context: string): string {
   if (!agentInitialized) {
     return '{"error": "Agent not initialized"}';
   }
 
-  console.log(`Executing agent with input: ${input}`);
+  console.log(`Executing agent with input: ${input}, context: ${context}`);
 
   // Placeholder implementation - in practice this would contain
   // the compiled cognitive processing logic
-  return `{"success": true, "result": "Processed: ${input}", "agentId": "${agentId}"}`;
+  return `{"success": true, "result": "Processed: ${input}", "agentId": "${agentId}", "context": "${context}"}`;
 }
 
-export function executeAgentTool(toolName: string, parameters: string, _context: string): string {
+export function executeAgentTool(toolName: string, parameters: string, context: string): string {
   if (!agentInitialized) {
     return '{"error": "Agent not initialized"}';
   }
 
-  console.log(`Executing tool: ${toolName} with parameters: ${parameters}`);
+  console.log(`Executing tool: ${toolName} with parameters: ${parameters}, context: ${context}`);
 
-  return `{"success": true, "result": "Tool ${toolName} executed", "parameters": ${parameters}}`;
+  return `{"success": true, "result": "Tool ${toolName} executed", "parameters": ${parameters}, "context": "${context}"}`;
 }
 
 export function loadLoraAdapter(adapter: string): bool {
@@ -60,9 +65,9 @@ let modelLoaded: bool = false;
 // External Inference Configuration
 let externalInferenceEnabled: bool = false;
 let activeProvider: string = "";
-let apiKeys: Map<string, string> = new Map<string, string>();
-let providerEndpoints: Map<string, string> = new Map<string, string>();
-let providerModels: Map<string, string> = new Map<string, string>();
+const apiKeys: Map<string, string> = new Map<string, string>();
+const providerEndpoints: Map<string, string> = new Map<string, string>();
+const providerModels: Map<string, string> = new Map<string, string>();
 
 // Model WASM Functions (exported to WASM)
 export function createModel(type: string): bool {
@@ -72,21 +77,21 @@ export function createModel(type: string): bool {
   return true;
 }
 
-export function loadModelWeights(_weightsPtr: usize, weightsLen: i32): bool {
-  console.log(`Loading weights for model: ${modelType} (${weightsLen} bytes)`);
+export function loadModelWeights(weightsPtr: usize, weightsLen: i32): bool {
+  console.log(`Loading weights for model: ${modelType} at ptr ${weightsPtr} (${weightsLen} bytes)`);
   modelLoaded = true;
   return true;
 }
 
-export function runModelInference(input: string, _context: string): string {
+export function runModelInference(input: string, context: string): string {
   if (!modelLoaded) {
     return '{"error": "Model not loaded"}';
   }
 
-  console.log(`Running inference on model: ${modelType}`);
+  console.log(`Running inference on model: ${modelType}, context: ${context}`);
 
   // Placeholder implementation
-  return `{"success": true, "result": "Model ${modelType} inference result for: ${input}", "modelType": "${modelType}"}`;
+  return `{"success": true, "result": "Model ${modelType} inference result for: ${input}", "modelType": "${modelType}", "context": "${context}"}`;
 }
 
 export function getModelInfo(): string {
@@ -118,10 +123,9 @@ export function setActiveInferenceProvider(provider: string): bool {
 }
 
 export function getConfiguredProviders(): string {
-  let providers: string[] = [];
-  let keys = apiKeys.keys();
-  for (let i = 0; i < keys.length; i++) {
-    providers.push(keys[i]);
+  const providers: string[] = [];
+  for (const key of apiKeys.keys()) {
+    providers.push(key);
   }
   return `{"providers": [${providers.map<string>((p: string) => `"${p}"`).join(", ")}]}`;
 }
@@ -139,7 +143,7 @@ export function performExternalInference(prompt: string, systemPrompt: string = 
   const endpoint = providerEndpoints.get(activeProvider);
   const model = providerModels.get(activeProvider);
 
-  console.log(`Performing external inference with ${activeProvider} using model: ${model}`);
+  console.log(`Performing external inference with ${activeProvider} using model: ${model}, maxTokens: ${maxTokens}, temperature: ${temperature}`);
 
   // For AssemblyScript WASM, we'll simulate the API call since we can't make HTTP requests directly
   // In a real implementation, this would be handled by the host environment
@@ -150,6 +154,8 @@ export function performExternalInference(prompt: string, systemPrompt: string = 
     "content": "${simulatedResponse}",
     "provider": "${activeProvider}",
     "model": "${model}",
+    "maxTokens": ${maxTokens},
+    "temperature": ${temperature},
     "processingTime": 150.5,
     "usage": {
       "promptTokens": ${prompt.length / 4},
@@ -214,7 +220,7 @@ export function getSupportedFeatures(): string {
 
 // Chat Completion Function - Main interface for chat responses
 export function performChatCompletion(messagesJson: string, configJson: string = "{}"): string {
-  console.log("Performing chat completion with external inference");
+  console.log(`Performing chat completion with external inference, config: ${configJson}`);
 
   if (!externalInferenceEnabled || activeProvider === "") {
     return '{"success": false, "error": "External inference not configured"}';
@@ -255,7 +261,7 @@ export function performChatCompletion(messagesJson: string, configJson: string =
 
 // Initialize external inference with API keys from environment
 export function initializeExternalInferenceFromEnv(envConfigJson: string): bool {
-  console.log("Initializing external inference from environment configuration");
+  console.log(`Initializing external inference from environment configuration: ${envConfigJson}`);
 
   // In a real implementation, this would parse the JSON configuration
   // For now, we'll simulate initialization with test keys

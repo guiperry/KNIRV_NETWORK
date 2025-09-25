@@ -7,6 +7,7 @@ import express from 'express';
 import cors from 'cors';
 import { WebSocketServer } from 'ws';
 import { createServer } from 'http';
+import crypto from 'crypto';
 import { apiKeyService, ApiKey } from '../services/ApiKeyService';
 
 const app = express();
@@ -100,7 +101,110 @@ const requirePermission = (permission: string) => {
 };
 
 // Apply authentication middleware to API routes
+// --- QR Onboarding: ephemeral temp key issuance (public, IP-bound) ---
+const qrChallenges = new Map<string, { createdAt: number, ip: string }>();
+const QR_CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const QR_TEMP_KEY_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+// Begin QR handshake: issue a short-lived nonce the client can embed in a QR payload
+app.post('/public/qr/start', (req, res) => {
+  try {
+    const nonce = crypto.randomBytes(16).toString('hex');
+    qrChallenges.set(nonce, { createdAt: Date.now(), ip: req.ip || 'unknown' });
+    res.json({
+      success: true,
+      nonce,
+      expiresInSeconds: Math.floor(QR_CHALLENGE_TTL_MS / 1000),
+      instructions: 'Present this nonce to /public/qr/complete within 5 minutes to receive a temporary read-only API key.'
+    });
+  } catch (e) {
+    console.error('QR start error:', e);
+    res.status(500).json({ error: 'Failed to start QR onboarding' });
+  }
+});
+
+// Complete QR handshake: validate nonce and issue a temporary, scoped API key
+app.post('/public/qr/complete', async (req, res) => {
+  try {
+    const { nonce } = req.body || {};
+    if (!nonce) return res.status(400).json({ error: 'nonce required' });
+
+    const record = qrChallenges.get(nonce);
+    if (!record) return res.status(400).json({ error: 'invalid_or_expired_nonce' });
+
+    // TTL check
+    if (Date.now() - record.createdAt > QR_CHALLENGE_TTL_MS) {
+      qrChallenges.delete(nonce);
+      return res.status(400).json({ error: 'expired_nonce' });
+    }
+
+    // Basic binding: require same source IP
+    if ((req.ip || 'unknown') !== record.ip) {
+      return res.status(403).json({ error: 'ip_mismatch' });
+    }
+
+    // One-time use
+    qrChallenges.delete(nonce);
+
+    // Issue limited, temporary key
+    const expiresAt = new Date(Date.now() + QR_TEMP_KEY_TTL_MS);
+    const key = await apiKeyService.createApiKey({
+      name: `qr-temp-${nonce.slice(0, 6)}`,
+      description: 'Temporary QR-issued key (read-only)',
+      permissions: ['read:skills', 'read:capabilities', 'read:properties'],
+      expiresAt
+    });
+
+    return res.json({
+      success: true,
+      apiKey: {
+        id: key.id,
+        key: key.key,
+        permissions: key.permissions,
+        expiresAt: key.expiresAt
+      }
+    });
+  } catch (e) {
+    console.error('QR complete error:', e);
+    return res.status(500).json({ error: 'Failed to complete QR onboarding' });
+  }
+});
+
 app.use('/api', authenticateApiKey);
+
+// --- Vault: Skills, Capabilities & Properties (user-scoped placeholders) ---
+// These endpoints return mock data for the authenticated key owner until real storage is wired.
+app.get('/api/skills', requirePermission('read:skills'), (req, res) => {
+  const owner = (req.query.owner as string) || 'me';
+  // TODO: replace with DB queries filtered by req.apiKey/owner
+  res.json({
+    skills: [
+      { id: 'skill_001', name: 'LoRA Adapter: Vision-Base', type: 'lora-adapter', owner, metadata: { baseModel: 'ResNet50', rankDim: 8, version: '1.0.0' } },
+      { id: 'skill_002', name: 'LoRA Adapter: LLM-Summarize', type: 'lora-adapter', owner, metadata: { baseModel: 'Llama-3-8B', rankDim: 16, version: '0.9.2' } }
+    ]
+  });
+});
+app.get('/api/capabilities', requirePermission('read:capabilities'), (req, res) => {
+  const owner = (req.query.owner as string) || 'me';
+  // TODO: replace with DB queries filtered by req.apiKey/owner
+  res.json({
+    capabilities: [
+      { id: 'cap_001', name: 'Image Classifier', type: 'ml-model', owner, descriptor: { version: '1.0.0' } },
+      { id: 'cap_002', name: 'Text Summarizer', type: 'ml-model', owner, descriptor: { version: '2.1.0' } }
+    ]
+  });
+});
+
+app.get('/api/properties', requirePermission('read:properties'), (req, res) => {
+  const owner = (req.query.owner as string) || 'me';
+  // TODO: replace with DB queries filtered by req.apiKey/owner
+  res.json({
+    properties: [
+      { id: 'prop_001', name: 'Training Dataset #1', type: 'Data', size: '2.4 GB', value: '150 NRN', owner, createdAt: '2024-01-05' },
+      { id: 'prop_002', name: 'Model Weights #1', type: 'Model', size: '1.8 GB', value: '300 NRN', owner, createdAt: '2024-02-10' }
+    ]
+  });
+});
 
 // In-memory storage for demo (replace with real database in production)
 const agents = new Map();

@@ -68,6 +68,9 @@ echo "6/7 Building KNIRVCONTROLLER (optional)..."
 echo "7/7 Building KNIRV-GATEWAY..."
 ./scripts/build-knirvgateway.sh
 
+echo "8/8 Building KNIRVTESTNET orchestrator..."
+go build -o knirvtestnet main.go
+
 echo ""
 echo "=========================================="
 echo "Build Summary:"

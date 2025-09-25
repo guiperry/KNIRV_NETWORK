@@ -74,6 +74,7 @@
     "build",
     "coverage",
     "backups",
-    "src/core/agent-core-compiler/build/**/*"
+    "src/core/agent-core-compiler/build/**/*",
+    "assembly/**/*"
   ]
 }

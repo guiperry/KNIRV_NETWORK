@@ -4,10 +4,13 @@ import PageLayout from '../components/PageLayout';
 import PageHeader from '../components/PageHeader';
 import GlassyCard from '../components/GlassyCard';
 import DataTable from '../components/DataTable';
+import api from '../utils/api';
+import { useBackend } from '../contexts/BackendContext';
 import styles from './my-skills.module.css';
 
 export default function MySkills() {
   const { activePage } = useNavigation('my-skills');
+  const { isRunning } = useBackend();
   const [searchQuery, setSearchQuery] = useState('');
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [skills, setSkills] = useState([]);
@@ -18,72 +21,36 @@ export default function MySkills() {
     setSearchQuery(query);
   };
 
-  // Mock skills data
+  // Load skills from Controller API when backend is running
   useEffect(() => {
-    const mockSkills = [
-      {
-        id: '1',
-        name: 'Advanced Code Generation',
-        category: 'Development',
-        level: 'Expert',
-        status: 'Published',
-        usage: 1234,
-        rating: 4.8,
-        description: 'High-quality code generation skill for multiple programming languages including Python, JavaScript, and Go',
-        version: '2.1.0',
-        publishedAt: '2024-01-15',
-        lastUpdated: '2024-01-20',
-        earnings: '450 NRN',
-        downloads: 2847
-      },
-      {
-        id: '2',
-        name: 'Image Analysis Pro',
-        category: 'Computer Vision',
-        level: 'Advanced',
-        status: 'Active',
-        usage: 567,
-        rating: 4.6,
-        description: 'Advanced image analysis and object detection skill with support for medical imaging',
-        version: '1.5.2',
-        publishedAt: '2024-01-10',
-        lastUpdated: '2024-01-18',
-        earnings: '320 NRN',
-        downloads: 1523
-      },
-      {
-        id: '3',
-        name: 'Natural Language Processing',
-        category: 'Language',
-        level: 'Expert',
-        status: 'Draft',
-        usage: 89,
-        rating: 4.9,
-        description: 'Comprehensive NLP skill with sentiment analysis, entity recognition, and text summarization',
-        version: '3.0.0-beta',
-        publishedAt: null,
-        lastUpdated: '2024-01-22',
-        earnings: '0 NRN',
-        downloads: 0
-      },
-      {
-        id: '4',
-        name: 'Data Visualization',
-        category: 'Analytics',
-        level: 'Intermediate',
-        status: 'Inactive',
-        usage: 234,
-        rating: 4.2,
-        description: 'Create interactive charts and graphs from various data sources',
-        version: '1.2.1',
-        publishedAt: '2023-12-20',
-        lastUpdated: '2024-01-05',
-        earnings: '180 NRN',
-        downloads: 892
+    if (!isRunning) return;
+    (async () => {
+      try {
+        const resp = await api.get('/api/skills?owner=me');
+        const list = (resp.data && resp.data.skills) || [];
+        // Normalize minimal fields for the table view
+        const normalized = list.map((s, idx) => ({
+          id: s.id || String(idx + 1),
+          name: s.name || s.metadata?.name || 'LoRA Adapter',
+          category: s.metadata?.baseModel ? 'Computer Vision' : 'Language',
+          level: 'N/A',
+          status: 'Active',
+          usage: 0,
+          rating: 0,
+          description: s.metadata ? JSON.stringify(s.metadata) : 'LoRA adapter',
+          version: s.metadata?.version || '1.0.0',
+          publishedAt: null,
+          lastUpdated: null,
+          earnings: '0 NRN',
+          downloads: 0,
+        }));
+        setSkills(normalized);
+      } catch (e) {
+        console.error('Failed to load skills from /api/skills', e);
+        setSkills([]);
       }
-    ];
-    setSkills(mockSkills);
-  }, []);
+    })();
+  }, [isRunning]);
 
   // Filter skills based on search query and category
   const filteredSkills = skills.filter((skill) => {
@@ -95,6 +62,16 @@ export default function MySkills() {
   });
 
   const categories = ['all', 'Development', 'Computer Vision', 'Language', 'Analytics', 'Audio', 'Security'];
+
+  if (!isRunning) {
+    return (
+      <PageLayout activePage={activePage} pageTitle="My Skills">
+        <GlassyCard darker className={styles.emptyState}>
+          Backend is not running. Please start the Controller API.
+        </GlassyCard>
+      </PageLayout>
+    );
+  }
 
   // Table headers
   const tableHeaders = [

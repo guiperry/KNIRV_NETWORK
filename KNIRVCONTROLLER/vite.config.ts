@@ -55,6 +55,9 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 3000,
     open: false,
+    headers: {
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' ws: wss: http://localhost:3001 https://wallet.knirv.com; frame-src 'none';"
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:3001',
@@ -64,6 +67,12 @@ export default defineConfig({
       '/ws': {
         target: 'ws://localhost:3001',
         ws: true
+      },
+      '/wallet': {
+        target: 'https://wallet.knirv.com',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/wallet/, '')
       }
     }
   },
@@ -114,6 +123,7 @@ export default defineConfig({
   // Environment variables
   define: {
     __DEV__: JSON.stringify(process.env.NODE_ENV === 'development'),
-    __PROD__: JSON.stringify(process.env.NODE_ENV === 'production')
+    __PROD__: JSON.stringify(process.env.NODE_ENV === 'production'),
+    global: 'globalThis'
   }
 });

@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals
 
 // Import types and interfaces that were fixed
 import type { CognitiveConfig, CognitiveState } from '../../src/types/cognitive';
-import type { PaymentRequest, PaymentResult } from '../../src/types/payment';
+import type { PaymentResult } from '../../src/types/payment';
 import type { TaskSchedule, ScheduledTask } from '../../src/types/scheduling';
 
 // Import services that had critical fixes

@@ -67,7 +67,7 @@ export class CognitiveEngineService {
   private wasmModule: WebAssembly.Module | null = null;
   private hrmBridge: unknown = null;
 
-  constructor(baseUrl: string = 'http://localhost:3001') {
+  constructor(baseUrl: string = '') {
     this.baseUrl = baseUrl;
     this.metrics = this.initializeMetrics();
     this.initializeCognitiveEngine();

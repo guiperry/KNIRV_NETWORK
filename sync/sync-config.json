@@ -1,0 +1,189 @@
+{
+  "script_patterns": [
+    {
+      "name": "build_scripts",
+      "pattern": "build*.sh",
+      "source_dirs": ["scripts"],
+      "target_dir": "scripts",
+      "transform": "build",
+      "enabled": true
+    },
+    {
+      "name": "test_scripts",
+      "pattern": "*test*.sh",
+      "source_dirs": ["scripts"],
+      "target_dir": "scripts",
+      "transform": "test",
+      "enabled": true
+    },
+    {
+      "name": "run_scripts",
+      "pattern": "run*.sh",
+      "source_dirs": ["scripts"],
+      "target_dir": "scripts",
+      "transform": "testnet",
+      "enabled": true
+    },
+    {
+      "name": "setup_scripts",
+      "pattern": "setup*.sh",
+      "source_dirs": ["scripts"],
+      "target_dir": "scripts",
+      "transform": "testnet",
+      "enabled": true
+    },
+    {
+      "name": "cross_compile_scripts",
+      "pattern": "cross-compile*.sh",
+      "source_dirs": ["scripts"],
+      "target_dir": "scripts",
+      "transform": "testnet",
+      "enabled": true
+    },
+    {
+      "name": "integration_scripts",
+      "pattern": "*integration*.sh",
+      "source_dirs": ["scripts"],
+      "target_dir": "scripts",
+      "transform": "testnet",
+      "enabled": true
+    },
+    {
+      "name": "deployment_scripts",
+      "pattern": "deploy*.sh",
+      "source_dirs": ["scripts", "ansible"],
+      "target_dir": "scripts",
+      "transform": "testnet",
+      "enabled": true
+    },
+    {
+      "name": "makefile_patterns",
+      "pattern": "Makefile*",
+      "source_dirs": ["."],
+      "target_dir": ".",
+      "transform": "testnet",
+      "enabled": true
+    }
+  ],
+  "test_patterns": [
+    {
+      "name": "go_unit_tests",
+      "pattern": "*_test.go",
+      "source_dirs": ["."],
+      "target_dir": "tests/unit",
+      "framework": "go",
+      "enabled": true
+    },
+    {
+      "name": "go_integration_tests",
+      "pattern": "*integration*test*.go",
+      "source_dirs": ["tests"],
+      "target_dir": "tests/integration",
+      "framework": "go",
+      "enabled": true
+    },
+    {
+      "name": "rust_unit_tests",
+      "pattern": "*test*.rs",
+      "source_dirs": ["src", "tests"],
+      "target_dir": "tests/unit",
+      "framework": "rust",
+      "enabled": true
+    },
+    {
+      "name": "rust_integration_tests",
+      "pattern": "integration_tests.rs",
+      "source_dirs": ["tests"],
+      "target_dir": "tests/integration",
+      "framework": "rust",
+      "enabled": true
+    },
+    {
+      "name": "performance_tests",
+      "pattern": "*performance*test*.rs",
+      "source_dirs": ["tests"],
+      "target_dir": "tests/performance",
+      "framework": "rust",
+      "enabled": true
+    },
+    {
+      "name": "javascript_tests",
+      "pattern": "*.test.js",
+      "source_dirs": ["tests"],
+      "target_dir": "tests/javascript",
+      "framework": "jest",
+      "enabled": true
+    },
+    {
+      "name": "comprehensive_test_scripts",
+      "pattern": "*comprehensive*test*.sh",
+      "source_dirs": ["scripts"],
+      "target_dir": "tests/scripts",
+      "framework": "bash",
+      "enabled": true
+    }
+  ],
+  "exclude_files": [
+    "node_modules",
+    "target",
+    "build",
+    "dist",
+    ".git",
+    "*.log",
+    "*.lock",
+    "*.pid",
+    "wallets",
+    "data",
+    "logs"
+  ],
+  "components": [
+    {
+      "name": "KNIRVORACLE",
+      "production_path": "KNIRVORACLE",
+      "testnet_path": "sync/patterns/knirvoracle",
+      "enabled": true
+    },
+    {
+      "name": "KNIRVCHAIN",
+      "production_path": "KNIRVCHAIN",
+      "testnet_path": "sync/patterns/knirvchain",
+      "enabled": true
+    },
+    {
+      "name": "KNIRVGRAPH",
+      "production_path": "KNIRVGRAPH",
+      "testnet_path": "sync/patterns/knirvgraph",
+      "enabled": true
+    },
+    {
+      "name": "KNIRVNEXUS",
+      "production_path": "KNIRVNEXUS",
+      "testnet_path": "sync/patterns/knirvnexus",
+      "enabled": true
+    },
+    {
+      "name": "KNIRVROUTER",
+      "production_path": "KNIRVROUTER",
+      "testnet_path": "sync/patterns/knirvrouter",
+      "enabled": true
+    },
+    {
+      "name": "KNIRVGATEWAY",
+      "production_path": "KNIRVGATEWAY",
+      "testnet_path": "sync/patterns/knirvgateway",
+      "enabled": true
+    },
+    {
+      "name": "KNIRVCONTROLLER",
+      "production_path": "KNIRVCONTROLLER",
+      "testnet_path": "sync/patterns/knirvcontroller",
+      "enabled": true
+    },
+    {
+      "name": "KNIRVINFERENCE",
+      "production_path": "KNIRVINFERENCE",
+      "testnet_path": "sync/patterns/knirvinference",
+      "enabled": true
+    }
+  ]
+}

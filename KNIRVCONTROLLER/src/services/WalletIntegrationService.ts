@@ -81,8 +81,8 @@ export class WalletIntegrationService {
       }
     }
 
-    // Production environment or non-browser environment
-    return 'https://wallet.knirv.com';
+    // Production environment or non-browser environment - use proxy
+    return '/wallet';
   }
 
   /**

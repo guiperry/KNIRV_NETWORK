@@ -296,6 +296,74 @@ Use the Role Switcher to change networks (Demo Mode, Private Testnet, Public Tes
 Refer to the troubleshooting section in the Authentication Testing Guide for common issues.
 
 
+## API Key Testing Guide
+
+This guide shows how to manually provision and test an API key for the Controller from the Gateway/WebGUI.
+
+- Important: API key provisioning is not performed automatically by the QR Connect flow. The QR page stores a controller base URL but does not create or exchange an API key.
+
+### 1) Prerequisites
+- Ensure KNIRVCONTROLLER is running and reachable (e.g., http://localhost:3000 or your remote host).
+- Have an admin-scoped API key to create additional keys. Admin endpoints require the 'admin:all' permission.
+
+### 2) Create a test API key (admin only)
+Use your admin key to create a scoped, read-only key for Vault endpoints.
+
+```bash
+# Replace values as needed
+CONTROLLER_BASE="http://localhost:3000"
+ADMIN_KEY="<your-admin-key>"
+
+curl -sS -X POST "$CONTROLLER_BASE/api/keys" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $ADMIN_KEY" \
+  -d '{
+    "name": "webgui-readonly",
+    "description": "Read-only WebGUI testing key",
+    "permissions": ["read:skills","read:capabilities","read:properties"]
+  }'
+```
+
+- The response includes `apiKey.key`. Copy this value as TEST_KEY.
+
+### 3) Configure the WebGUI client to use the key
+Choose one:
+
+- Option A: Environment variable (recommended for local dev)
+  - In `services/webgui/.env.local` set:
+    ```bash
+    NEXT_PUBLIC_BACKEND_URL="http://localhost:3000"
+    NEXT_PUBLIC_CONTROLLER_API_KEY="<TEST_KEY>"
+    ```
+
+- Option B: Browser session storage (quick test)
+  - In the browser DevTools Console on the WebGUI origin:
+    ```javascript
+    localStorage.setItem('controller_api_key', '<TEST_KEY>');
+    ```
+
+Notes:
+- The WebGUI axios client sends the key via `X-API-Key` header when either `NEXT_PUBLIC_CONTROLLER_API_KEY` or `localStorage('controller_api_key')` is present.
+- To set the controller base URL without rebuilding, use the QR Connect page to save it via `/session/controller`; for axios-based calls, `NEXT_PUBLIC_BACKEND_URL` controls the base URL.
+
+### 4) Test Vault endpoints
+- From terminal:
+  ```bash
+  CONTROLLER_BASE="http://localhost:3000"
+  TEST_KEY="<TEST_KEY>"
+
+  curl -sS "$CONTROLLER_BASE/api/skills" -H "X-API-Key: $TEST_KEY" | jq .
+  curl -sS "$CONTROLLER_BASE/api/capabilities" -H "X-API-Key: $TEST_KEY" | jq .
+  curl -sS "$CONTROLLER_BASE/api/properties" -H "X-API-Key: $TEST_KEY" | jq .
+  ```
+
+- From WebGUI: open Vault pages. If the key and URL are set correctly, data loads.
+
+### 5) Troubleshooting
+- 401/403: Verify the key is set and has the required permissions.
+- Network errors: Confirm `NEXT_PUBLIC_BACKEND_URL` points to the running Controller.
+- Health check mismatch: the Controller returns `{ status: "healthy" }`, while some UI checks expect `"ok"`; treat `healthy` as running.
+
 ## Development
 
 ### Available Scripts

@@ -159,36 +159,25 @@
         });
       }
 
-      // PWA Install Prompt
-      let deferredPrompt;
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-
-        // Show custom install button or banner
-        const installBanner = document.createElement('div');
-        installBanner.innerHTML = `
-          <div style="position: fixed; bottom: 20px; left: 20px; right: 20px; background: #1e40af; color: white; padding: 16px; border-radius: 8px; z-index: 10000; display: flex; justify-content: space-between; align-items: center;">
-            <span>Install KNIRV Controller for better experience</span>
-            <button id="install-btn" style="background: white; color: #1e40af; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Install</button>
-            <button id="dismiss-btn" style="background: transparent; color: white; border: 1px solid white; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-left: 8px;">Dismiss</button>
+      // Secondary banner: Offer Chrome Browser Wallet installation
+      // Keep primary PWA install flow managed by public/install.js
+      window.addEventListener('beforeinstallprompt', () => {
+        const walletBanner = document.createElement('div');
+        walletBanner.innerHTML = `
+          <div style="position: fixed; bottom: 90px; left: 20px; right: 20px; background: #0b1020; color: white; padding: 16px; border-radius: 8px; z-index: 10000; display: flex; justify-content: space-between; align-items: center; border: 1px solid #334155;">
+            <span>Install Browser Wallet in Chrome</span>
+            <div>
+              <button id="install-wallet-btn" style="background: #22c55e; color: #0b1020; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Install Wallet</button>
+              <button id="dismiss-wallet-btn" style="background: transparent; color: white; border: 1px solid #64748b; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-left: 8px;">Dismiss</button>
+            </div>
           </div>
         `;
-        document.body.appendChild(installBanner);
-
-        document.getElementById('install-btn').addEventListener('click', () => {
-          deferredPrompt.prompt();
-          deferredPrompt.userChoice.then((choiceResult) => {
-            if (choiceResult.outcome === 'accepted') {
-              console.log('User accepted the install prompt');
-            }
-            deferredPrompt = null;
-            installBanner.remove();
-          });
+        document.body.appendChild(walletBanner);
+        document.getElementById('install-wallet-btn')?.addEventListener('click', () => {
+          window.location.href = '/wallet/install';
         });
-
-        document.getElementById('dismiss-btn').addEventListener('click', () => {
-          installBanner.remove();
+        document.getElementById('dismiss-wallet-btn')?.addEventListener('click', () => {
+          walletBanner.remove();
         });
       });
     </script>
