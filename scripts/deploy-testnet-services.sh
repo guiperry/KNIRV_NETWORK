@@ -2612,14 +2612,6 @@ main() {
     print_success "KNIRV Testnet deployment completed successfully!"
 }
 
-main
-
-main
-
-main
-
-main
-
 # Handle script arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
