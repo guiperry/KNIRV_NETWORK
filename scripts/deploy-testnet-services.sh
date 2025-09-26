@@ -156,15 +156,29 @@ read_last_checkpoint() {
     fi
 }
 
-# Check if the last deployment failed
-check_previous_failure() {
+# Check deployment state
+check_deployment_state() {
     if [[ -f "$DEPLOYMENT_LOG" ]]; then
         local last_entry=$(tail -n 1 "$DEPLOYMENT_LOG" 2>/dev/null)
         if [[ "$last_entry" == *"FAILED"* ]] || [[ "$last_entry" == *"EXIT"* ]]; then
-            return 0  # Previous failure detected
+            echo "failed"
+        elif [[ "$last_entry" == *"COMPLETED"* ]]; then
+            echo "completed"
+        else
+            echo "in-progress"
         fi
+    else
+        echo "new"
     fi
-    return 1  # No previous failure
+}
+
+# Get last checkpoint message
+get_last_checkpoint() {
+    if [[ -f "$DEPLOYMENT_LOG" ]]; then
+        tail -n 1 "$DEPLOYMENT_LOG" 2>/dev/null | cut -d'-' -f2- | xargs
+    else
+        echo "No previous deployment found"
+    fi
 }
 
 # AI Troubleshooter integration
@@ -588,10 +602,36 @@ select_deployment_instance() {
         run_infrastructure_deployment
     fi
 
-    # Check for previous failures and prompt user for resume or clean start
-    if check_previous_failure; then
-        print_warning "Previous deployment failure detected for $DEPLOYMENT_TYPE deployment."
-        print_warning "Last checkpoint: $(read_last_checkpoint)"
+    # Check deployment state and handle resume/restart
+    local deployment_state=$(check_deployment_state)
+    if [[ "$deployment_state" == "failed" || "$deployment_state" == "in-progress" ]]; then
+        print_warning "Previous deployment detected: $(get_last_checkpoint)"
+        
+        if [[ "$RESUME_DEPLOYMENT" == "true" ]]; then
+            print_status "Resuming deployment from last checkpoint..."
+            return 0
+        elif [[ "$CLEAN_DEPLOYMENT" == "true" ]]; then
+            print_status "Starting fresh deployment..."
+            RESUME_DEPLOYMENT=false
+            echo "" > "$DEPLOYMENT_LOG"
+        else
+            while true; do
+                read -p "Do you want to (R)esume from last checkpoint or (S)tart fresh? [R/s]: " choice
+                case $choice in
+                    [Ss]* )
+                        print_status "Starting fresh deployment..."
+                        RESUME_DEPLOYMENT=false
+                        echo "" > "$DEPLOYMENT_LOG"
+                        break
+                        ;;
+                    * )
+                        print_status "Resuming deployment from last checkpoint..."
+                        RESUME_DEPLOYMENT=true
+                        break
+                        ;;
+                esac
+            done
+        fi
         
         while true; do
             read -p "Do you want to resume from last checkpoint or start fresh? (resume/fresh): " choice
