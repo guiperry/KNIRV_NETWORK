@@ -110,15 +110,15 @@ function createApp() {
     }
   });
 
-  // Route: /gateway -> WebGUI (Next.js) running on localhost:3007 (configurable via WEBGUI_PORT)
+  // Route: /dashboard -> WebGUI (Next.js) running on localhost:3007 (configurable via WEBGUI_PORT)
   const WEBGUI_PORT = parseInt(process.env.WEBGUI_PORT) || 3007;
 
-  // Proxy the WebGUI app itself (mounted at /gateway)
-  app.use('/gateway', createProxyMiddleware({
+  // Proxy the WebGUI app itself (mounted at /dashboard)
+  app.use('/dashboard', createProxyMiddleware({
     target: `http://localhost:${WEBGUI_PORT}`,
     changeOrigin: true,
     ws: true,
-    pathRewrite: { '^/gateway': '' },
+    pathRewrite: { '^/dashboard': '' },
     onProxyReq: (proxyReq, req) => {
       proxyReq.setHeader('X-Forwarded-Host', req.headers.host || '');
       proxyReq.setHeader('X-Forwarded-Proto', req.protocol || 'http');
