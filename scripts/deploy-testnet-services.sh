@@ -2719,7 +2719,7 @@ main() {
     fi
 
     # Final health check
-    health_check
+    verify_deployment
 
     print_success "KNIRV Testnet deployment completed successfully!"
 }
