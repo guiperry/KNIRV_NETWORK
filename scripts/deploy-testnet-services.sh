@@ -679,19 +679,66 @@ ensure_instance_exists() {
         exit 1
     fi
 
-    # Check if instance exists
-  INSTANCE_STATE=$(aws ec2 describe-instances \
-    --instance-ids "$INSTANCE_ID" \
-    --query 'Reservations[0].Instances[0].State.Name' \
-    --output text \
-    --region "$AWS_REGION_VAL" 2>/dev/null || echo "not-found")
+    # Check if instance exists with more flexible approach
+    print_status "Checking instance $INSTANCE_ID with flexible filters..."
+
+    # Try multiple approaches to find the instance
+    INSTANCE_STATE=$(aws ec2 describe-instances \
+        --instance-ids "$INSTANCE_ID" \
+        --query 'Reservations[0].Instances[0].State.Name' \
+        --output text \
+        --region "$AWS_REGION_VAL" 2>/dev/null || echo "not-found")
+
+    # If not found by exact instance ID, try to find by IP or tags
+    if [ "$INSTANCE_STATE" = "not-found" ]; then
+        print_warning "Instance $INSTANCE_ID not found by exact ID, trying alternative methods..."
+
+        # Get the testnet IP if available
+        if [ -f "$TESTNET_IP_FILE" ]; then
+            local testnet_ip=$(cat "$TESTNET_IP_FILE")
+            print_status "Searching for instance by IP: $testnet_ip"
+
+            # Try to find instance by public IP
+            local instance_from_ip=$(aws ec2 describe-instances \
+                --filters "Name=ip-address,Values=$testnet_ip" \
+                --query 'Reservations[*].Instances[*].InstanceId' \
+                --output text \
+                --region "$AWS_REGION_VAL" 2>/dev/null | head -1)
+
+            if [ -n "$instance_from_ip" ] && [ "$instance_from_ip" != "None" ]; then
+                print_success "Found instance by IP: $instance_from_ip"
+                INSTANCE_ID="$instance_from_ip"
+                INSTANCE_STATE="running"
+            fi
+        fi
+
+        # If still not found, try broader tag search
+        if [ "$INSTANCE_STATE" = "not-found" ]; then
+            print_status "Searching for instance with broader tag filters..."
+
+            # Try to find any running KNIRV instances (less restrictive)
+            local instances=$(aws ec2 describe-instances \
+                --filters "Name=tag:Project,Values=KNIRV" "Name=instance-state-name,Values=running" \
+                --query 'Reservations[*].Instances[*].[InstanceId,State.Name,LaunchTime]' \
+                --output text \
+                --region "$AWS_REGION_VAL" 2>/dev/null | sort -k3 -r || true)
+
+            if [ -n "$instances" ]; then
+                local most_recent_instance=$(echo "$instances" | head -1 | awk '{print $1}')
+                print_success "Found most recent KNIRV instance: $most_recent_instance"
+                INSTANCE_ID="$most_recent_instance"
+                INSTANCE_STATE="running"
+            fi
+        fi
+    fi
 
     if [ "$INSTANCE_STATE" = "not-found" ]; then
-        print_error "Instance $INSTANCE_ID not found. This should not happen with smart instance selection."
+        print_error "Instance $INSTANCE_ID not found with any method."
+        print_error "This suggests the instance may have been terminated or there's a region mismatch."
         print_error "Please run the deployment script again to select a valid instance."
         exit 1
     else
-        print_status "Instance $INSTANCE_ID exists (state: $INSTANCE_STATE)"
+        print_success "Instance $INSTANCE_ID exists (state: $INSTANCE_STATE)"
         update_instance_tags
     fi
 }
@@ -971,6 +1018,9 @@ EOF
   ipfs:
     image: ipfs/kubo:latest
     container_name: knirv-testnet-ipfs
+    ports:
+      - "5001:5001"   # API port
+      - "8081:8080"   # Gateway port (changed from 8080 to 8081)
 EOF
 
     if [ "$include_nginx" = "true" ]; then
@@ -1577,7 +1627,7 @@ services:
     image: knirvchain:latest
     container_name: knirv-testnet-chain
     ports:
-      - "8080:8080"
+      - "8090:8090"
     volumes:
       - ./data/knirvchain:/app/data:Z
       - ./config/knirvchain-config.toml:/app/config.toml:Z
@@ -2638,6 +2688,9 @@ display_summary() {
 main() {
     print_header
 
+    # Load environment variables first
+    load_dotenv
+
     # Check prerequisites
     check_prerequisites
 
@@ -2662,7 +2715,7 @@ main() {
         build_container_images
 
         # Start services
-        start_services
+        deploy_testnet_services
     fi
 
     # Final health check
