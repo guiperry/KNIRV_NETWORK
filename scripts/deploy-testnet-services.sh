@@ -18,9 +18,8 @@ handle_uncaught_error() {
     exit $exit_code
 }
 
-# Set up error handling
+# Set up error handling - moved to after function definitions
 set -e
-trap 'handle_uncaught_error' ERR
 
 # Colors for output
 RED='\033[0;31m'
@@ -1635,7 +1634,7 @@ services:
     container_name: knirv-testnet-ipfs
     ports:
       - "5001:5001"
-      - "8080:8080"
+      - "8081:8081"
     volumes:
       - ./data/ipfs:/data/ipfs:Z # Add :Z for SELinux
     environment:
@@ -2686,8 +2685,8 @@ display_summary() {
     echo -e "  📊 IPFS API: http://$TESTNET_IP:5001"
     echo -e "  📊 IPFS Gateway: http://$TESTNET_IP:8081"
     echo -e "  🌐 Testnet Gateway: http://$TESTNET_IP:10000"
-    echo -e "  🏛️  KNIRVORACLE: http://$TESTNET_IP:1317"
-    echo -e "  ⛓️  KNIRVCHAIN: http://$TESTNET_IP:8090"
+    echo -e "  🏛️ KNIRVORACLE: http://$TESTNET_IP:1317"
+    echo -e "  ⛓️ KNIRVCHAIN: http://$TESTNET_IP:8090"
     echo -e "  📈 KNIRVGRAPH: http://$TESTNET_IP:8082"
     echo -e "  🤖 KNIRVNEXUS DVE: http://$TESTNET_IP:8084"
     echo -e "  🤖 KNIRVNEXUS VAL: http://$TESTNET_IP:8085"
@@ -2847,6 +2846,9 @@ if [ "$FORCE_FULL_DEPLOYMENT" != "true" ]; then
         exit 0
     fi
 fi
+
+# Set up error handling AFTER all functions are defined
+trap 'handle_uncaught_error' ERR
 
 # Run main function
 main

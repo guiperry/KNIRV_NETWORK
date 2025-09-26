@@ -34,10 +34,11 @@ check_services() {
         echo -e "${RED}❌ No testnet IP found${NC}"
         return 1
     fi
-    
+
     echo -e "${YELLOW}Checking service statuses...${NC}"
+    # Use ss instead of netstat (netstat is deprecated and not available on newer systems)
     ssh -i ~/.ssh/AEGONG.pem -o StrictHostKeyChecking=no ubuntu@"$ip" \
-        "sudo netstat -tulpn | grep -E ':(1317|8090|8082|8084|8085|8086|10000|3000|8088|5001|8081)'"
+        "ss -tulpn | grep -E ':(1317|8090|8082|8084|8085|8086|10000|3000|8088|5001|8081)' || echo 'No matching services found'"
 }
 
 main() {
