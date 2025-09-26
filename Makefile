@@ -237,8 +237,13 @@ deploy-testnet-infrastructure: check-prereqs ## Deploy testnet infrastructure on
 .PHONY: deploy-testnet-services
 deploy-testnet-services: ## Deploy KNIRVTESTNET services via Native, Podman, or Docker Compose
 	@echo "$(BLUE)Deploying KNIRVTESTNET services...$(NC)"
-	@cd $(PROJECT_ROOT) && bash ./scripts/deploy-testnet-services.sh
+	@cd $(PROJECT_ROOT) && ./scripts/deploy-testnet-services.sh $(if $(RESUME),--resume,) $(if $(CLEAN),--clean)
 	@echo "$(GREEN)✓ KNIRVTESTNET services deployed$(NC)"
+
+.PHONY: check-testnet
+check-testnet: ## Check status of KNIRVTESTNET deployment
+	@echo "$(BLUE)Checking KNIRVTESTNET status...$(NC)"
+	@./scripts/check-testnet-state.sh
 
 .PHONY: deploy-controller-pwa
 deploy-controller-pwa: check-prereqs ## Deploy KNIRVCONTROLLER PWA to CloudFlare CDN
