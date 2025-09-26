@@ -5,7 +5,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import compression from 'compression';
 import helmet from 'helmet';
-import fetch from 'node-fetch';
 import fs from 'fs';
 import http from 'http';
 import net from 'net';

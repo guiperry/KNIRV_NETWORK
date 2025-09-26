@@ -1,5 +1,8 @@
 
 #!/bin/bash
+
+# Enhanced error handler function
+handle_uncaught_error() {
     local exit_code=$?
     local last_command="${BASH_COMMAND}"
     
@@ -14,6 +17,10 @@
     
     exit $exit_code
 }
+
+# Set up error handling
+set -e
+trap 'handle_uncaught_error' ERR
 
 # Colors for output
 RED='\033[0;31m'
@@ -441,7 +448,7 @@ run_infrastructure_deployment() {
 
             # Try to find the instance by public IP
             local instance_from_ip=$(aws ec2 describe-instances \
-                --filters "Name=network-interface.addresses.public-ip,Values=$testnet_ip" \
+                --filters "Name=ip-address,Values=$testnet_ip" \
                 --query 'Reservations[*].Instances[*].InstanceId' \
                 --output text \
                 --region "$AWS_REGION_VAL" 2>/dev/null | head -1)
@@ -508,7 +515,7 @@ select_deployment_instance() {
 
         # Try to find the instance by public IP
         local instance_from_ip=$(aws ec2 describe-instances \
-            --filters "Name=network-interface.addresses.public-ip,Values=$testnet_ip" \
+            --filters "Name=ip-address,Values=$testnet_ip" \
             --query 'Reservations[*].Instances[*].InstanceId' \
             --output text \
             --region "$AWS_REGION_VAL" 2>/dev/null | head -1)
@@ -1203,6 +1210,58 @@ build_and_upload_orchestrator() {
     ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" "sudo mv /tmp/knirvtestnet /usr/local/bin/knirvtestnet && sudo /usr/local/bin/knirvtestnet"
 
     print_success "Go orchestrator deployed and executed successfully"
+}
+
+# Function to clean server deployment
+clean_server_deployment() {
+    print_step "Cleaning server deployment..."
+    
+    ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" << 'EOF'
+# Stop and remove containers
+if command -v docker &> /dev/null; then
+    docker stop $(docker ps -q) 2>/dev/null || true
+    docker rm $(docker ps -aq) 2>/dev/null || true
+    docker system prune -f 2>/dev/null || true
+fi
+
+if command -v podman &> /dev/null; then
+    podman stop --all 2>/dev/null || true
+    podman rm --all 2>/dev/null || true
+    podman system prune -f 2>/dev/null || true
+fi
+
+# Clean deployment directory
+sudo rm -rf /opt/knirv-testnet/* 2>/dev/null || true
+
+# Clean temporary files
+rm -rf /tmp/knirv* 2>/dev/null || true
+
+# Clean logs
+sudo rm -rf /var/log/knirv* 2>/dev/null || true
+
+echo "Server cleaned successfully"
+EOF
+
+    print_success "Server deployment cleaned"
+}
+
+# Function to load environment variables
+load_dotenv() {
+    local env_file="$ANSIBLE_DIR/.env"
+    if [ -f "$env_file" ]; then
+        print_status "Loading environment variables from $env_file"
+        set -a  # automatically export all variables
+        source "$env_file"
+        set +a  # stop automatically exporting
+        
+        # Set AWS_REGION_VAL from AWS_DEFAULT_REGION or AWS_REGION, fallback to us-east-1
+        export AWS_REGION_VAL="${AWS_DEFAULT_REGION:-${AWS_REGION:-us-east-1}}"
+        print_success "Environment variables loaded (AWS Region: $AWS_REGION_VAL)"
+    else
+        print_warning "No .env file found at $env_file"
+        print_warning "Using default AWS region: us-east-1"
+        export AWS_REGION_VAL="us-east-1"
+    fi
 }
 
 

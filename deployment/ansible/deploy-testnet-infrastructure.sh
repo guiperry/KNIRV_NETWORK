@@ -277,18 +277,43 @@ create_instance_id_file() {
     if [ -f "$ANSIBLE_DIR/testnet_ip.txt" ]; then
         TESTNET_IP=$(cat "$ANSIBLE_DIR/testnet_ip.txt")
 
+        # Use AWS_DEFAULT_REGION from .env file, fallback to AWS_REGION, then us-east-1
+        REGION="${AWS_DEFAULT_REGION:-${AWS_REGION:-us-east-1}}"
+        print_status "Looking for instance in region: $REGION"
+
         # Find the instance ID by public IP
         INSTANCE_ID=$(aws ec2 describe-instances \
-            --filters "Name=network-interface.addresses.public-ip,Values=$TESTNET_IP" \
+            --filters "Name=ip-address,Values=$TESTNET_IP" \
             --query 'Reservations[*].Instances[*].InstanceId' \
             --output text \
-            --region "${AWS_REGION:-us-east-1}" 2>/dev/null | head -1)
+            --region "$REGION" 2>/dev/null | head -1)
 
         if [ -n "$INSTANCE_ID" ] && [ "$INSTANCE_ID" != "None" ]; then
             echo "$INSTANCE_ID" > "$ANSIBLE_DIR/testnet_instance_id.txt"
             print_success "Instance ID saved: $INSTANCE_ID"
         else
-            print_warning "Could not determine instance ID for IP $TESTNET_IP"
+            print_warning "Could not determine instance ID for IP $TESTNET_IP in region $REGION"
+            # Try a few common regions if the default didn't work
+            for try_region in us-east-1 us-west-2 eu-west-1; do
+                if [ "$try_region" != "$REGION" ]; then
+                    print_status "Trying region: $try_region"
+                    INSTANCE_ID=$(aws ec2 describe-instances \
+                        --filters "Name=ip-address,Values=$TESTNET_IP" \
+                        --query 'Reservations[*].Instances[*].InstanceId' \
+                        --output text \
+                        --region "$try_region" 2>/dev/null | head -1)
+                    
+                    if [ -n "$INSTANCE_ID" ] && [ "$INSTANCE_ID" != "None" ]; then
+                        echo "$INSTANCE_ID" > "$ANSIBLE_DIR/testnet_instance_id.txt"
+                        print_success "Instance ID saved: $INSTANCE_ID (found in region $try_region)"
+                        break
+                    fi
+                fi
+            done
+            
+            if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" = "None" ]; then
+                print_warning "Could not determine instance ID for IP $TESTNET_IP in any region"
+            fi
         fi
     else
         print_warning "No testnet IP file found, cannot create instance ID file"
