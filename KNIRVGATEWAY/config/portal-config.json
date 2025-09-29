@@ -95,9 +95,9 @@
   },
   "footer": {
     "legal": {
-      "terms": "../documentation/static/legal/TERMS_AND_CONDITIONS.html",
-      "privacy": "../documentation/static/legal/documentation/static/legal/PRIVACY_POLICY.html",
-      "contribution": "../documentation/static/legal/CODE_OF_CONDUCT.html"
+      "terms": "../documentation/static/legal/TERMS_AND_CONDITIONS",
+      "privacy": "../documentation/static/legal/documentation/static/legal/PRIVACY_POLICY",
+      "contribution": "../documentation/static/legal/CODE_OF_CONDUCT"
     },
     "social": {
       "github": "https://github.com/guiperry/KNIRVCONTROLLER",
