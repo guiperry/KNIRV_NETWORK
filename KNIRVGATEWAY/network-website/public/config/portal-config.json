@@ -95,9 +95,9 @@
   },
   "footer": {
     "legal": {
-      "terms": "../documentation/static/legal/terms-of-service.md",
-      "privacy": "../documentation/static/legal/privacy-policy.md",
-      "contribution": "../documentation/static/contributing/contribution-guidelines.md"
+      "terms": "../documentation/static/legal/TERMS_AND_CONDITIONS",
+      "privacy": "../documentation/static/legal/PRIVACY_POLICY",
+      "contribution": "../documentation/static/contributing/CONTRIBUTION_GUIDELINES"
     },
     "social": {
       "github": "https://github.com/knirv-network",

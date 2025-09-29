@@ -227,8 +227,8 @@ class KNIRVConfigLoader {
                 documentation: "documentation/static/",
                 graphchain_explorer: "graphchain-explorer/",
                 nexus_portal: "nexus-portal/",
-                support_desk: "support-desk/src/",
-                nanda_ans: "nanda_ans/"
+                support_desk: "support-desk/src/"
+                
             },
             external_services: {
                 payment_gateway: "https://payments.knirv.network/add-funds",
@@ -253,9 +253,9 @@ class KNIRVConfigLoader {
             },
             footer: {
                 legal: {
-                    terms: "documentation/static/legal/terms-of-service.md",
-                    privacy: "documentation/static/legal/privacy-policy.md",
-                    contribution: "documentation/static/contributing/contribution-guidelines.md"
+                    terms: "documentation/static/legal/TERMS_AND_CONDITIONS",
+                    privacy: "documentation/static/legal/PRIVACY_POLICY",
+                    contribution: "documentation/static/contributing/CONTRIBUTION_GUIDELINES"
                 },
                 social: {
                     github: "https://github.com/knirv-network",
@@ -285,7 +285,7 @@ class KNIRVConfigLoader {
                     height: "800px"
                 },
                 documentation: {
-                    url: "documentation/docsify/",
+                    url: "documentation/static/",
                     title: "KNIRV Documentation",
                     height: "800px"
                 },

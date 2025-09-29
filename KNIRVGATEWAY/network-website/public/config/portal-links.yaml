@@ -105,9 +105,9 @@ business:
 # Footer Links
 footer:
   legal:
-    terms: "documentation/static/legal/terms-of-service.html"
-    privacy: "documentation/static/legal/privacy-policy.html"
-    contribution: "documentation/static/contributing/contribution-guidelines.html"
+    terms: "documentation/static/legal/TERMS_AND_CONDITIONS"
+    privacy: "documentation/static/legal/PRIVACY_POLICY"
+    contribution: "documentation/static/contributing/CONTRIBUTION_GUIDELINES"
 
   social:
     github: "https://github.com/knirv-network"
