@@ -1,9 +1,11 @@
-// KNIRV Portal Configuration Loader
+// KNIRV Portal Configuration Loader - Unified Configuration System
 class KNIRVConfigLoader {
     constructor() {
         this.config = null;
         this.isLoaded = false;
         this.loadPromise = null;
+        this.gatewayConfig = null;
+        this.portalConfig = null;
     }
 
     async loadConfig() {
@@ -11,8 +13,96 @@ class KNIRVConfigLoader {
             return this.loadPromise;
         }
 
-        this.loadPromise = this._fetchConfig();
+        this.loadPromise = this._fetchUnifiedConfig();
         return this.loadPromise;
+    }
+
+    async _fetchUnifiedConfig() {
+        try {
+            // Load both configurations
+            await this._loadGatewayConfig();
+            await this._loadPortalConfig();
+
+            // Merge configurations with portal config taking precedence
+            this.config = this._mergeConfigurations();
+            this.isLoaded = true;
+            return this.config;
+        } catch (error) {
+            console.warn('Failed to load unified config, using fallback:', error);
+            this.config = this._getFallbackConfig();
+            this.isLoaded = true;
+            return this.config;
+        }
+    }
+
+    async _loadGatewayConfig() {
+        // Gateway config is already loaded by gateway-config.js
+        if (window.KNIRV_GATEWAY_CONFIG) {
+            this.gatewayConfig = window.KNIRV_GATEWAY_CONFIG;
+        }
+    }
+
+    async _loadPortalConfig() {
+        try {
+            // Check if there's a script tag with portal-config id that specifies the config path
+            const configScript = document.getElementById('portal-config');
+            let configPath = './config/portal-links.yaml'; // default path
+
+            if (configScript && configScript.src) {
+                // Extract path from script src attribute
+                configPath = configScript.src.replace(window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/'), '');
+            }
+
+            // Try to load YAML config first
+            const yamlResponse = await fetch(configPath);
+            if (yamlResponse.ok) {
+                const yamlText = await yamlResponse.text();
+                this.portalConfig = this._parseYAML(yamlText);
+                this._resolvePaths(this.portalConfig);
+                return;
+            }
+
+            // Fallback to JSON config
+            const jsonResponse = await fetch('./config/portal-config.json');
+            if (jsonResponse.ok) {
+                this.portalConfig = await jsonResponse.json();
+                this._resolvePaths(this.portalConfig);
+                return;
+            }
+
+            throw new Error('No portal config file found');
+        } catch (error) {
+            console.warn('Failed to load portal config:', error);
+            this.portalConfig = null;
+        }
+    }
+
+    _mergeConfigurations() {
+        const merged = {};
+
+        // Start with fallback config as base
+        const baseConfig = this._getFallbackConfig();
+
+        // Deep merge function
+        const deepMerge = (target, source) => {
+            const result = { ...target };
+
+            for (const key in source) {
+                if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+                    result[key] = deepMerge(result[key] || {}, source[key]);
+                } else {
+                    result[key] = source[key];
+                }
+            }
+
+            return result;
+        };
+
+        // Merge in order of precedence: base -> gateway -> portal
+        let mergedConfig = deepMerge(baseConfig, this.gatewayConfig || {});
+        mergedConfig = deepMerge(mergedConfig, this.portalConfig || {});
+
+        return mergedConfig;
     }
 
     async _fetchConfig() {

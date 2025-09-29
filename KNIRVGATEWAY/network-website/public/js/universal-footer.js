@@ -13,7 +13,7 @@ class KNIRVUniversalFooter {
             // Wait for config to load
             await this.waitForConfig();
         }
-        
+
         this.renderFooter();
     }
 
@@ -130,12 +130,49 @@ class KNIRVUniversalFooter {
 
             let result = typeof value === 'string' ? value : fallback;
 
-            // No longer overriding legal links - they should go to docsify for all pages
+            // Handle relative paths based on current location
+            if (result && result !== '#') {
+                result = this.resolvePath(result);
+            }
 
             return result;
         } catch (error) {
             console.warn('Error getting link for path:', path, error);
             return fallback;
+        }
+    }
+
+    resolvePath(url) {
+        if (!url || url === '#') return url;
+
+        // If it's already an absolute URL, return as-is
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+            return url;
+        }
+
+        // Get current path context
+        const currentPath = window.location.pathname;
+        const isInNetworkWebsite = currentPath.includes('/network-website/');
+
+        // Handle different path contexts
+        if (isInNetworkWebsite) {
+            // We're in the network-website subdirectory
+            if (url.startsWith('/')) {
+                // Absolute path from domain root
+                return url;
+            } else {
+                // Relative path - add network-website prefix
+                return `/network-website/${url}`;
+            }
+        } else {
+            // We're at the root level or other context
+            if (url.startsWith('/')) {
+                // Absolute path from domain root
+                return url;
+            } else {
+                // Relative path - keep as relative
+                return url;
+            }
         }
     }
 

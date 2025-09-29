@@ -3,13 +3,14 @@
 
 # Main Navigation Links
 navigation:
-  main_site: "https://knirv.com"
-  documentation: "/documentation/static/"  # Updated to point to new static HTML site
-  graphchain_explorer: "/graphchain-explorer/"
-  nexus_portal: "/nexus-portal/"
-  support_desk: "/support-desk/src/"
-  developer_portal: "/agent-developer-portal/"
-  products: "/products.html"
+  main_site: "https://knirv.network"
+  documentation: "documentation/static/"
+  graphchain_explorer: "graphchain-explorer/"
+  nexus_portal: "nexus-portal/"
+  support_desk: "support-desk/src/"
+  developer_portal: "agent-developer-portal/"
+  products: "products.html"
+  agentify: "https://agentify.knirv.com"
 
 # External Services
 external_services:
@@ -104,27 +105,20 @@ business:
 # Footer Links
 footer:
   legal:
-    terms: "/documentation/static/legal/TERMS_AND_CONDITIONS"
-    privacy: "/documentation/static/legal/PRIVACY_POLICY"
-    contribution: "/documentation/static/legal/CODE_OF_CONDUCT"
+    terms: "documentation/static/legal/terms-of-service.html"
+    privacy: "documentation/static/legal/privacy-policy.html"
+    contribution: "documentation/static/contributing/contribution-guidelines.html"
 
-  # Documentation site specific footer links (relative to documentation directory)
-  documentation:
-    terms: "legal/TERMS_AND_CONDITIONS.html"
-    privacy: "legal/PRIVACY_POLICY.html"
-    contribution: "legal/CODE_OF_CONDUCT.html"
-  
   social:
     github: "https://github.com/knirv-network"
     discord: "https://discord.gg/knirv"
     twitter: "https://twitter.com/knirvnetwork"
     telegram: "https://t.me/knirvnetwork"
-  
+
   resources:
-    documentation: "/documentation/static/"  # Updated to new static HTML site
-    documentation_legacy: "/documentation/docsify/"  # Legacy docsify site
-    support: "/support-desk/src/"
-    forum: "/forum/src/"
+    documentation: "documentation/static/"
+    support: "support-desk/src/"
+    forum: "forum/src/"
     blog: "https://blog.knirv.com"
 
 # API Endpoints

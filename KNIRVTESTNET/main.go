@@ -11,7 +11,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 )
@@ -28,29 +27,31 @@ var dataFS embed.FS
 //go:embed scripts/*
 var scriptsFS embed.FS
 
-//go:embed ../deployment/ansible/.env
+//go:embed server/*
+var serverFS embed.FS
+
+//go:embed .env
 var envFS embed.FS
 
 // Service represents a KNIRV service to be managed by the orchestrator
 type Service struct {
-	Name          string
-	Path          string
-	Args          []string
-	LogFile       string
-	PidFile       string
-	HealthCheck   string
+	Name            string
+	Path            string
+	Args            []string
+	LogFile         string
+	PidFile         string
+	HealthCheck     string
 	HealthCheckPort string
 }
 
 func loadEnv() {
 	fmt.Println("--- Loading environment variables...")
-	envData, err := envFS.ReadFile("../deployment/ansible/.env")
+	envData, err := envFS.ReadFile(".env")
 	if err != nil {
 		log.Fatalf("Error reading .env file: %v", err)
 	}
 
-	lines := strings.Split(string(envData), "
-")
+	lines := strings.Split(string(envData), "\n")
 	for _, line := range lines {
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
@@ -78,52 +79,53 @@ func main() {
 	extractAndDeploy("config", configFS, deployDir)
 	extractAndDeploy("data", dataFS, deployDir)
 	extractAndDeploy("scripts", scriptsFS, deployDir)
+	extractAndDeploy("server", serverFS, deployDir)
 
 	// Define the services to be orchestrated
 	services := []Service{
 		{
-			Name:    "KNIRV-ORACLE",
-			Path:    filepath.Join(deployDir, "bin", "knirvoracle"),
-			Args:    []string{"--testnet", "--disable-p2p", "--config", filepath.Join(deployDir, "config", "knirvoracle-testnet-config.json"), "--port", "1317", "--p2p.port", "26656", "--shared_database_path", filepath.Join(deployDir, "data", "testnet", "blockchain.db"), "--miners_address", "KNIRVORACLE_Faucet", "--root", "--non-interactive", "--skip-install"},
-			LogFile: filepath.Join(deployDir, "logs", "knirvoracle.log"),
-			PidFile: filepath.Join(deployDir, "data", "knirvoracle.pid"),
-			HealthCheck: "/health",
+			Name:            "KNIRV-ORACLE",
+			Path:            filepath.Join(deployDir, "bin", "knirvoracle"),
+			Args:            []string{"--testnet", "--disable-p2p", "--config", filepath.Join(deployDir, "config", "knirvoracle-testnet-config.json"), "--port", "1317", "--p2p.port", "26656", "--shared_database_path", filepath.Join(deployDir, "data", "testnet", "blockchain.db"), "--miners_address", "KNIRVORACLE_Faucet", "--root", "--non-interactive", "--skip-install"},
+			LogFile:         filepath.Join(deployDir, "logs", "knirvoracle.log"),
+			PidFile:         filepath.Join(deployDir, "data", "knirvoracle.pid"),
+			HealthCheck:     "/health",
 			HealthCheckPort: "1317",
 		},
 		{
-			Name:    "KNIRVCHAIN",
-			Path:    filepath.Join(deployDir, "bin", "knirvchain"),
-			Args:    []string{"--testnet", "--disable-mining"},
-			LogFile: filepath.Join(deployDir, "logs", "knirvchain.log"),
-			PidFile: filepath.Join(deployDir, "data", "knirvchain.pid"),
-			HealthCheck: "/health",
+			Name:            "KNIRVCHAIN",
+			Path:            filepath.Join(deployDir, "bin", "knirvchain"),
+			Args:            []string{"--testnet", "--disable-mining"},
+			LogFile:         filepath.Join(deployDir, "logs", "knirvchain.log"),
+			PidFile:         filepath.Join(deployDir, "data", "knirvchain.pid"),
+			HealthCheck:     "/health",
 			HealthCheckPort: "8090",
 		},
 		{
-			Name:    "KNIRVGRAPH",
-			Path:    filepath.Join(deployDir, "bin", "knirvgraph"),
-			Args:    []string{"--testnet", "--memory", "--populate", "--max-nodes", "250", "--rpc-port", "8082", "--home", filepath.Join(deployDir, "data", "knirvgraph")},
-			LogFile: filepath.Join(deployDir, "logs", "knirvgraph.log"),
-			PidFile: filepath.Join(deployDir, "data", "knirvgraph.pid"),
-			HealthCheck: "/height",
+			Name:            "KNIRVGRAPH",
+			Path:            filepath.Join(deployDir, "bin", "knirvgraph"),
+			Args:            []string{"--testnet", "--memory", "--populate", "--max-nodes", "250", "--rpc-port", "8082", "--home", filepath.Join(deployDir, "data", "knirvgraph")},
+			LogFile:         filepath.Join(deployDir, "logs", "knirvgraph.log"),
+			PidFile:         filepath.Join(deployDir, "data", "knirvgraph.pid"),
+			HealthCheck:     "/height",
 			HealthCheckPort: "8082",
 		},
 		{
-			Name:    "KNIRV-NEXUS",
-			Path:    filepath.Join(deployDir, "bin", "knirvnexus"),
-			Args:    []string{"--testnet", "--port", "8084", "--host", "0.0.0.0", "--config", filepath.Join(deployDir, "config", "nexus-testnet.yaml")},
-			LogFile: filepath.Join(deployDir, "logs", "knirvnexus.log"),
-			PidFile: filepath.Join(deployDir, "data", "knirvnexus.pid"),
-			HealthCheck: "/",
+			Name:            "KNIRV-NEXUS",
+			Path:            filepath.Join(deployDir, "bin", "knirvnexus"),
+			Args:            []string{"--testnet", "--port", "8084", "--host", "0.0.0.0", "--config", filepath.Join(deployDir, "config", "nexus-testnet.yaml")},
+			LogFile:         filepath.Join(deployDir, "logs", "knirvnexus.log"),
+			PidFile:         filepath.Join(deployDir, "data", "knirvnexus.pid"),
+			HealthCheck:     "/",
 			HealthCheckPort: "8084",
 		},
 		{
-			Name:    "KNIRV-ROUTER",
-			Path:    filepath.Join(deployDir, "bin", "knirvrouter"),
-			Args:    []string{"-testnet", "-local-network", "-mock-nrn", "-port", "8086", "-miners_address", "KNIRVROUTER_Testnet_Miner"},
-			LogFile: filepath.Join(deployDir, "logs", "knirvrouter.log"),
-			PidFile: filepath.Join(deployDir, "data", "knirvrouter.pid"),
-			HealthCheck: "/status",
+			Name:            "KNIRV-ROUTER",
+			Path:            filepath.Join(deployDir, "bin", "knirvrouter"),
+			Args:            []string{"-testnet", "-local-network", "-mock-nrn", "-port", "8086", "-miners_address", "KNIRVROUTER_Testnet_Miner"},
+			LogFile:         filepath.Join(deployDir, "logs", "knirvrouter.log"),
+			PidFile:         filepath.Join(deployDir, "data", "knirvrouter.pid"),
+			HealthCheck:     "/status",
 			HealthCheckPort: "8086",
 		},
 		// Node.js services will be handled separately
@@ -152,8 +154,7 @@ func main() {
 }
 
 func extractAndDeploy(fsName string, embedFS embed.FS, deployDir string) {
-	fmt.Printf("- Extracting and deploying %s...
-", fsName)
+	fmt.Printf("- Extracting and deploying %s...\n", fsName)
 	err := fs.WalkDir(embedFS, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -204,8 +205,7 @@ func createDirectories(deployDir string) {
 }
 
 func startService(s Service) {
-	fmt.Printf("🚀 Starting service: %s
-", s.Name)
+	fmt.Printf("🚀 Starting service: %s\n", s.Name)
 
 	logFile, err := os.Create(s.LogFile)
 	if err != nil {
@@ -249,15 +249,13 @@ func waitForService(s Service) {
 		return
 	}
 
-	fmt.Printf("⏳ Waiting for %s to be healthy...
-", s.Name)
+	fmt.Printf("⏳ Waiting for %s to be healthy...\n", s.Name)
 	healthURL := fmt.Sprintf("http://localhost:%s%s", s.HealthCheckPort, s.HealthCheck)
 
 	for i := 0; i < 30; i++ {
 		resp, err := http.Get(healthURL)
 		if err == nil && resp.StatusCode == http.StatusOK {
-			fmt.Printf("✅ %s is healthy!
-", s.Name)
+			fmt.Printf("✅ %s is healthy!\n", s.Name)
 			return
 		}
 		time.Sleep(2 * time.Second)
@@ -280,8 +278,7 @@ func startNodeServices(deployDir string) {
 }
 
 func startNodeService(name string, command string, args ...string) {
-	fmt.Printf("🚀 Starting Node.js service: %s
-", name)
+	fmt.Printf("🚀 Starting Node.js service: %s\n", name)
 
 	logFile, err := os.Create(filepath.Join("/opt/knirv-testnet", "logs", name+".log"))
 	if err != nil {
