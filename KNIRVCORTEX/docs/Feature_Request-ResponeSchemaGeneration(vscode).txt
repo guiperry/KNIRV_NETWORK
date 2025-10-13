@@ -1,0 +1,227 @@
+We're essentially aiming for the AI to not just respond, but to tailor the structure of its response based on a dynamically built understanding of the user.
+
+While the Cerebras API (like most current LLM APIs) doesn't have a built-in feature to dynamically generate an output schema based on external metrics within a single call, we can definitely orchestrate this behavior using the VS Code extension as the "brain" that guides the process.
+
+Here's a breakdown of how we could implement this multi-step approach:
+
+1. Track User Metrics (Extension-Side Logic)
+
+This happens continuously or periodically within our extension.js or dedicated helper modules.
+
+Sentiment Analysis:
+Use a simple library like sentiment. After receiving a user message in the webview, analyze it before adding it to the history.
+Store an aggregated score (e.g., rolling average sentiment) in workspaceState.
+javascript
+// Example using 'sentiment' library (npm install sentiment)
+// const Sentiment = require('sentiment');
+// const sentiment = new Sentiment();
+// ...
+// function analyzeAndStoreSentiment(context, userMessage) {
+//     const result = sentiment.analyze(userMessage);
+//     let currentAvg = context.workspaceState.get('userSentimentAvg') || 0;
+//     let messageCount = context.workspaceState.get('userSentimentCount') || 0;
+//     // Simple rolling average
+//     let newAvg = ((currentAvg * messageCount) + result.comparative) / (messageCount + 1);
+//     context.workspaceState.update('userSentimentAvg', newAvg);
+//     context.workspaceState.update('userSentimentCount', messageCount + 1);
+// }
+Interest Profiling:
+Extract keywords (simple frequency count, or use a library like natural).
+Store a map of topics/keywords and their frequency/recency in workspaceState.
+javascript
+// Example: Simple keyword tracking
+// function trackKeywords(context, userMessage) {
+//     const keywords = userMessage.toLowerCase().split(/\s+/).filter(word => word.length > 3); // Basic filtering
+//     let interests = context.workspaceState.get('userInterests') || {};
+//     keywords.forEach(kw => {
+//         interests[kw] = (interests[kw] || 0) + 1;
+//     });
+//     // Prune less frequent keywords occasionally
+//     context.workspaceState.update('userInterests', interests);
+// }
+Goal Tracking:
+Implement VS Code commands (wscode.addGoal, wscode.viewGoals).
+Store user-defined goals (text descriptions, maybe status) in an array/object in workspaceState.
+javascript
+// Example: Storing goals
+// vscode.commands.registerCommand('wscode.addGoal', async () => {
+//     const goalDescription = await vscode.window.showInputBox({ prompt: "Describe our goal" });
+//     if (goalDescription) {
+//         let goals = context.workspaceState.get('userGoals') || [];
+//         goals.push({ description: goalDescription, status: 'active' });
+//         context.workspaceState.update('userGoals', goals);
+//         vscode.window.showInformationMessage('Goal added!');
+//     }
+// });
+Personality Modeling (Simplified):
+Start simple: Track average message length, question frequency, use of formal/informal language markers.
+Store these simple metrics in workspaceState. More complex modeling is significantly harder.
+2. Determine Desired Output Schema (Extension-Side Logic)
+
+This is the core logic we'll write. Before calling the Cerebras API, this function analyzes the tracked metrics and the user's current query to decide on the response structure.
+
+javascript
+function determineOutputSchema(userMetrics, userQuestion) {
+    let schema = {
+        type: "object",
+        properties: {
+            main_response: { type: "string", description: "The primary answer to the user's query." }
+        },
+        required: ["main_response"]
+    };
+
+    // --- Example Rules ---
+
+    // Rule: If sentiment is low, add empathy
+    if (userMetrics.sentimentAvg < -0.1) {
+        schema.properties.empathy_statement = {
+            type: "string",
+            description: "A brief statement acknowledging the user's likely feeling (e.g., frustration)."
+        };
+        // schema.required.push("empathy_statement"); // Make it required? Optional.
+    }
+
+    // Rule: If query relates to a known interest, add related info
+    const interests = userMetrics.interests || {};
+    const queryLower = userQuestion.toLowerCase();
+    const relevantInterests = Object.keys(interests).filter(kw => queryLower.includes(kw));
+    if (relevantInterests.length > 0) {
+        schema.properties.related_interest_info = {
+            type: "string",
+            description: `Briefly mention or elaborate on the related topic: ${relevantInterests.join(', ')}.`
+        };
+    }
+
+    // Rule: If query relates to a tracked goal
+    const goals = userMetrics.goals || [];
+    const relevantGoal = goals.find(g => queryLower.includes(g.description.substring(0, 20))); // Basic match
+    if (relevantGoal) {
+        schema.properties.goal_context = {
+            type: "object",
+            properties: {
+                goal_mentioned: { type: "string", description: "The goal being discussed." },
+                status_update: { type: "string", description: "A comment on the goal's status or progress." },
+                next_step_suggestion: { type: "string", description: "A suggestion for the next step towards the goal." }
+            },
+            required: ["goal_mentioned"]
+        };
+    }
+
+    // Rule: If personality suggests concise answers are preferred (example metric)
+    if (userMetrics.prefersConcise) { // Assuming we track this
+         schema.properties.main_response.description += " Keep this part concise.";
+         schema.properties.summary = { type: "string", description: "A one-sentence summary if the main response is long." };
+    }
+
+
+    // Return the schema description (e.g., as a JSON string or object for the prompt)
+    // Using JSON.stringify is often easiest for inserting into the prompt.
+    return JSON.stringify(schema, null, 2);
+}
+
+// Helper to load metrics (call this before determineOutputSchema)
+function loadUserMetrics(context) {
+    return {
+        sentimentAvg: context.workspaceState.get('userSentimentAvg'),
+        interests: context.workspaceState.get('userInterests'),
+        goals: context.workspaceState.get('userGoals'),
+        // Add other tracked metrics
+        prefersConcise: context.workspaceState.get('userPrefersConcise')
+    };
+}
+3. Prompt Cerebras to Fill the Schema (API Call)
+
+Modify our API call preparation to include instructions for JSON output based on the dynamically determined schema.
+
+javascript
+// Modify preparePromptForApi (or similar function)
+
+async function preparePromptForApiWithSchema(userQuestion, conversationHistory, context /*, other context */) {
+    let prompt = `You are a helpful AI assistant integrated into VS Code.
+Analyze the conversation history and the user's question.
+Your response MUST be ONLY a single, valid JSON object matching the structure described below.
+Do not include any text, explanations, or markdown formatting before or after the JSON object.
+
+Conversation History:
+${formatHistory(conversationHistory)}
+`;
+    // Add other context like active editor if needed
+
+    prompt += `\nUser Question: ${userQuestion}\n`;
+
+    // --- Determine and Inject Schema ---
+    const userMetrics = loadUserMetrics(context);
+    const schemaDescription = determineOutputSchema(userMetrics, userQuestion);
+    prompt += `\nJSON Response Structure:\n\`\`\`json\n${schemaDescription}\n\`\`\`\n`;
+    prompt += `\nJSON Response:`; // Signal where the JSON should start
+
+    // --- Context Length Management ---
+    // VERY IMPORTANT: Ensure the prompt, including the schema description, fits the limit.
+    const MAX_PROMPT_LENGTH = 8000; // Check Cerebras docs
+    if (prompt.length > MAX_PROMPT_LENGTH) {
+        console.warn('[Cerebras] Prompt exceeds max length, truncating...');
+        // Implement truncation (e.g., shorten history, simplify schema description?)
+        prompt = prompt.substring(0, MAX_PROMPT_LENGTH);
+    }
+
+    return prompt;
+}
+
+// --- In our main ask function ---
+// const finalPrompt = await preparePromptForApiWithSchema(userQuestion, conversationHistory, context, activeContext);
+// const response = await makeCerebrasApiCall(finalPrompt, apiKey, selectedModel);
+// const responseText = response.choices[0].message.content; // Or appropriate path
+// processStructuredResponse(responseText); // Go to Step 4
+4. Process the Structured Response (Extension-Side Logic)
+
+Parse the JSON and use its contents.
+
+javascript
+function processStructuredResponse(responseText, webviewPanel) {
+    try {
+        // Clean potential markdown fences if the LLM adds them accidentally
+        const cleanedText = responseText.replace(/^```json\s*|```\s*$/g, '');
+        const structuredData = JSON.parse(cleanedText);
+
+        // Now use the structured data to build a user-friendly display
+        let displayHtml = `<p>${structuredData.main_response}</p>`; // Always expect main_response
+
+        if (structuredData.empathy_statement) {
+            displayHtml = `<p><em>${structuredData.empathy_statement}</em></p>` + displayHtml;
+        }
+        if (structuredData.related_interest_info) {
+            displayHtml += `<p><small>Related topic: ${structuredData.related_interest_info}</small></p>`;
+        }
+        if (structuredData.goal_context) {
+            displayHtml += `<div><strong>Regarding Goal: ${structuredData.goal_context.goal_mentioned}</strong><br/>`;
+            if(structuredData.goal_context.status_update) displayHtml += `Status: ${structuredData.goal_context.status_update}<br/>`;
+            if(structuredData.goal_context.next_step_suggestion) displayHtml += `Suggestion: ${structuredData.goal_context.next_step_suggestion}<br/>`;
+            displayHtml += `</div>`;
+        }
+        if (structuredData.summary) {
+             displayHtml += `<p><b>Summary:</b> ${structuredData.summary}</p>`;
+        }
+
+
+        // Send the formatted HTML to the webview
+        webviewPanel.webview.postMessage({ command: 'addResponse', content: displayHtml });
+
+    } catch (error) {
+        console.error('[Cerebras] Failed to parse structured JSON response:', error);
+        console.log('[Cerebras] Raw response:', responseText);
+        // Fallback: Display the raw response (or an error message)
+        webviewPanel.webview.postMessage({
+             command: 'addResponse',
+             content: `<p>Error processing response. Raw output:</p><pre>${responseText}</pre>`
+         });
+    }
+}
+Key Considerations:
+
+LLM Reliability: Getting the LLM to consistently output valid JSON matching a dynamic schema requires careful prompt engineering and a capable model. Test extensively.
+Schema Complexity: Keep the dynamically generated schemas relatively simple at first. Overly complex or deeply nested schemas increase the chance of LLM errors.
+Error Handling: Robust try...catch blocks around JSON parsing are essential. Decide on a good fallback behavior (show raw text, ask the LLM to retry, show an error message).
+Prompt Length: Injecting the schema description into the prompt consumes tokens. Ensure our context length management accounts for this.
+Metric Quality: The effectiveness hinges on how well our extension tracks meaningful user metrics. Start simple and refine.
+
+This approach shifts the "schema generation" intelligence into our extension code, using the LLM as a powerful engine to fill the structure we define based on our understanding of the user. It's a complex but potentially very rewarding way to create a more adaptive AI assistant!

@@ -23,7 +23,7 @@ export default function DocumentationPage() {
     {
       icon: Code,
       title: 'API Reference',
-      description: 'Complete API documentation for KNIRV Cortex Builder',
+      description: 'Complete API documentation for NIM Cortex Builder',
       items: [
         'Model Configuration API',
         'Deployment API',
@@ -164,7 +164,7 @@ export default function DocumentationPage() {
                   Quick Start Guide
                 </CardTitle>
                 <CardDescription className="text-white/70">
-                  Get up and running with KNIRV Cortex Builder in under 10 minutes
+                  Get up and running with NIM Cortex Builder in under 10 minutes
                 </CardDescription>
               </CardHeader>
               <CardContent>

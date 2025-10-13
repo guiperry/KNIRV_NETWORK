@@ -3,7 +3,6 @@ use anyhow::{anyhow, Result};
 use hex;
 use k256::ecdsa::{signature::Signer, SigningKey};
 use k256::elliptic_curve::sec1::EncodedPoint; // Import remains the same
-use k256::FieldBytes;
 use num_bigint::BigInt;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
@@ -234,7 +233,7 @@ impl NRN {
         let transaction_data = format!("Transfer {} from {} to {}", amount, from_address, to);
 
         let private_key_bytes = hex::decode(from_private_key)?;
-        let signing_key = SigningKey::from_bytes(FieldBytes::from_slice(&private_key_bytes))
+        let signing_key = SigningKey::from_bytes(private_key_bytes.as_slice().into())
             .map_err(|e| anyhow!("Failed to parse private key: {}", e))?;
         let signature: k256::ecdsa::Signature = signing_key.sign(transaction_data.as_bytes());
         let signature_hex = hex::encode(signature.to_der());
@@ -283,7 +282,7 @@ impl NRN {
         );
 
         let private_key_bytes = hex::decode(from_private_key)?;
-        let signing_key = SigningKey::from_bytes(FieldBytes::from_slice(&private_key_bytes))
+        let signing_key = SigningKey::from_slice(&private_key_bytes)
             .map_err(|e| anyhow!("Failed to parse private key: {}", e))?;
         let signature: k256::ecdsa::Signature = signing_key.sign(transaction_data.as_bytes());
         let signature_hex = hex::encode(signature.to_der());

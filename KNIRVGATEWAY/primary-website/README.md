@@ -1,8 +1,8 @@
-# KNIRV Cortex Builder: Neural Intelligence Development Platform
+# NIM Cortex Builder: Neural Intelligence Development Platform
 
 ## Project Overview
 
-KNIRV Cortex Builder is a comprehensive platform for building, configuring, and deploying neural intelligence agents with enhanced developer experience. It provides a user-friendly interface for creating custom Neural Intellegence Models that can be integrated with various applications and services.
+NIM Cortex Builder is a comprehensive platform for building, configuring, and deploying neural intelligence agents with enhanced developer experience. It provides a user-friendly interface for creating custom Neural Intellegence Models that can be integrated with various applications and services.
 
 **Project URL**: https://ai-agentify.vercel.app/
 
@@ -21,7 +21,7 @@ KNIRV Cortex Builder is a comprehensive platform for building, configuring, and 
 
 ## Technical Architecture
 
-KNIRV Cortex Builder uses a modern full-stack architecture:
+NIM Cortex Builder uses a modern full-stack architecture:
 
 ### 1. Frontend Application
 

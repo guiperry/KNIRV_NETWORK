@@ -332,7 +332,7 @@ This opens an interactive shell with command history, tab completion, and more:
 Example session:
 ```
 ╔════════════════════════════════════════════════════════════╗
-║                KNIRV-CLI Interactive Mode             ║
+║                KNIRV-CLI Interactive Mode                  ║
 ╠════════════════════════════════════════════════════════════╣
 ║ • Type 'help' for a list of available commands             ║
 ║ • Use <tab> for command completion                         ║

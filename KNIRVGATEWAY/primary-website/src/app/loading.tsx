@@ -6,7 +6,7 @@ export default function Loading() {
   return (
     <LoadingScreen
       isVisible={true}
-      message="Loading KNIRV Cortex Builder..."
+      message="Loading NIM Cortex Builder..."
       progress={null}
     />
   );

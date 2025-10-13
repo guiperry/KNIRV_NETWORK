@@ -4,7 +4,7 @@ import KnirvNetworkLogo from './KnirvNetworkLogo.jsx';
 
 const LoadingScreen = ({
   isVisible = true,
-  message = "Starting KNIRV Cortex Builder...",
+  message = "Starting NIM Cortex Builder...",
   progress = null,
   onComplete = null
 }) => {
@@ -46,11 +46,7 @@ const LoadingScreen = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-gradient-to-br from-slate-900 via-slate-800 to-black flex items-center justify-center">
-      {/* Background pattern */}
-      <div className="absolute inset-0 opacity-20">
-        <div className="absolute inset-0 knirv-gradient animate-pulse"></div>
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(120,119,198,0.1),transparent_50%)]"></div>
-      </div>
+
 
       {/* Loading content */}
       <div className="relative z-10 flex flex-col items-center space-y-8 max-w-lg mx-auto px-6">
@@ -65,8 +61,8 @@ const LoadingScreen = ({
 
         {/* App title */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold knirv-gradient-text mb-2">KNIRV CORTEX</h1>
-          <p className="text-slate-300 text-lg">Neural Intelligence Platform</p>
+          <h1 className="text-3xl font-bold knirv-gradient-text mb-2">KNIRV</h1>
+          <p className="text-slate-300 text-lg">Key Neural Intelligence Reasoning Validation</p>
         </div>
 
         {/* Loading message and spinner */}
@@ -96,8 +92,8 @@ const LoadingScreen = ({
 
         {/* Version info */}
         <div className="text-center text-slate-400 text-sm">
-          <p>KNIRV Cortex Builder v1.0.0</p>
-          <p>Initializing neural services...</p>
+          <p>NIM Cortex Builder v1.0.0</p>
+          <p>Initializing core services...</p>
         </div>
       </div>
 

@@ -81,6 +81,7 @@ graph TB
     KS <--> KNEXUS
     KS <--> KROUTER
 ```
+![Network Deployment](https://excalidraw.com/#json=c0DUvp6oRMzekylGHCR1z,Nu-JA5lg6oe9tLfwJlIZUA "Network Deployment")
 
 ## 🔧 Core Components
 
@@ -104,7 +105,7 @@ graph TB
 **Technology**: Rust-based Layer 1 blockchain with Tendermint consensus
 - **Purpose**: Immutable Base LLM ledger and canonical SkillRegistry
 - **Key Features**:
-  - CodeT5 Base LLM evolution tracking
+  - HART Base LLM evolution tracking
   - Skill certification and invocation
   - NRN consumption enforcement
   - Continuous model improvement through validated Skills
@@ -118,8 +119,8 @@ graph TB
   - BluntDB integration for complex graph queries
   - Proof-of-Solution economy
 
-### 🔬 KNIRV-NEXUS DVE: The Validation Crucible
-**Technology**: GoLang-based CLEAN (Cognitive Logistic Execution Adaptability Network)
+### 🔬 KNIRV-NEXUS: The Validation Crucible
+**Technology**: GoLang-based Distribusted Validation Environments(DVE) utilizing Cognitive Logistic Execution Adaptability Network(CLEAN) architecture.
 - **Purpose**: Trustless, deterministic validation environments
 - **Key Features**:
   - Hardened Kali Linux-based TEE implementation
@@ -142,7 +143,7 @@ graph TB
 **Technology**: Rust WASM-powered Neural Intellegence Models with SEAL loop
 - **Purpose**: A mobile-native adapter that empowers existing AI assistants with autonomous agentic abilities, acting as the primary user gateway to the D-TEN.
 - **Key Features**:
-  - CodeT5 Base LLM + personalized LoRA adapters
+  - HART Base LLM + personalized LoRA adapters
   - Continuous failure detection and solution proposal
   - User Delegation Certificate (UDC) orchestration
   - Skill invocation and NRN consumption
@@ -499,16 +500,6 @@ make test-clean         # Remove all test artifacts and reports
 - ✅ **Performance Tests**: Large dataset handling
 - ✅ **Coverage Target**: 70%+ for both backend and frontend
 
-**KNIRVENGINE (Go + React + WASM Hybrid)** ⭐ **RECENTLY ENHANCED**
-- ✅ **Comprehensive Unit Tests**: 64.6% utils coverage (improved from 25.9%)
-- ✅ **Database Integration Tests**: 14.0% coverage with SQLite and ChromeDB validation
-- ✅ **API Layer Tests**: 9.6% coverage with foundational server function testing
-- ✅ **TypeSafe Implementation**: Zero `any` types, comprehensive error handling
-- ✅ **Cross-Platform Testing**: Windows, macOS, and Linux compatibility validation
-- ✅ **Edge Case Coverage**: Nil inputs, malformed data, boundary conditions
-- ✅ **Bug Discovery**: Identified and documented critical implementation issues
-- ✅ **Table-Driven Tests**: Comprehensive scenario coverage with multiple test cases
-- ✅ **Coverage Target**: 70%+ with systematic package-by-package approach
 
 #### **Test Types & Scope**
 
@@ -1068,7 +1059,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Blockchain**: IBC Protocol, Cosmos SDK
 
 ### Research Foundations
-- **CodeT5**: Base Large Language Model
+- **HART**: Base Large Language Model
 - **SEAL**: Self-Adapting Language Models methodology
 - **CLEAN**: Cognitive Logistic Execution Adaptability Network
 - **Proof-of-Connectivity**: Novel consensus mechanism

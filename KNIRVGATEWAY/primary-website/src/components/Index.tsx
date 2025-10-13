@@ -97,7 +97,7 @@ const Index = () => {
       {isLoading && (
         <LoadingScreen
           isVisible={true}
-          message="Starting KNIRV Cortex Builder..."
+          message="Starting NIM Cortex Builder..."
           progress={loadingProgress}
         />
       )}
@@ -114,7 +114,7 @@ const Index = () => {
                   KNIRV
                 </span>
                 <span className="text-sm font-light text-gray-400 tracking-wider">
-                  CORTEX
+                  Key Neural Intelligence Reasoning Validation
                 </span>
               </div>
               {/* Back then Sign In button */}
