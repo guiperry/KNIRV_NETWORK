@@ -100,6 +100,27 @@ export default function Dashboard() {
   const [showAgentManagement, setShowAgentManagement] = useState(false);
   const [showDVERentalManagement, setShowDVERentalManagement] = useState(false);
 
+  // Helper functions to check connection/setup status
+  const isControllerConnected = () => {
+    // Check if controller is connected (placeholder logic)
+    return false;
+  };
+
+  const isDNSPorted = () => {
+    // Check if DNS is ported (placeholder logic) 
+    return false;
+  };
+
+  const hasAgentsAdded = () => {
+    // Check if agents are added (placeholder logic)
+    return false;
+  };
+
+  const hasDVERentals = () => {
+    // Check if DVE rentals exist
+    return (rentalStats?.active_rentals || 0) > 0;
+  };
+
   // Use real backend hooks instead of mock data
   const { nodes: dveNodes, isLoading: dveLoading, error: dveError } = useDVENodes();
   const { rentals, stats: rentalStats, isLoading: rentalLoading } = useDVERental();
@@ -192,7 +213,7 @@ export default function Dashboard() {
   };
 
   return (
-    <DashboardWrapper>
+    <DashboardWrapper onRentDVE={() => setShowDVERentalManagement(true)}>
       <div className="space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
@@ -207,42 +228,6 @@ export default function Dashboard() {
               {securityAlerts.length > 0 && (
                 <Badge className="bg-red-500"><Bell className="w-3 h-3 mr-1" /> {securityAlerts.length}</Badge>
               )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowQRCode(true)}
-                className="ml-2"
-              >
-                <QrCode className="w-4 h-4 mr-2" />
-                Pair Device
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowDNSManagement(true)}
-                className="ml-2"
-              >
-                <Globe className="w-4 h-4 mr-2" />
-                DNS
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAgentManagement(true)}
-                className="ml-2"
-              >
-                <Bot className="w-4 h-4 mr-2" />
-                Agents
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowDVERentalManagement(true)}
-                className="ml-2"
-              >
-                <CreditCard className="w-4 h-4 mr-2" />
-                DVE Rental
-              </Button>
             </div>
           </div>
           <p className="text-lg text-muted-foreground">
@@ -250,180 +235,108 @@ export default function Dashboard() {
           </p>
         </div>
 
-      {/* Overview Cards */}
+      {/* Getting Started Action Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="knirv-card-gradient">
+        <Card 
+          className="knirv-card-gradient cursor-pointer hover:bg-primary/5 transition-colors border-white/20 hover:border-primary/50"
+          onClick={() => setShowQRCode(true)}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active DVE Nodes</CardTitle>
-            <Server className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">
+              {isControllerConnected() ? "Update Controller" : "Connect Controller"}
+            </CardTitle>
+            <QrCode className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dveNodes.filter(n => n.status === 'online').length}</div>
+            <div className="text-2xl font-bold">
+              {isControllerConnected() ? "Connected" : "Setup Required"}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {dveNodes.length} total nodes
+              {isControllerConnected() 
+                ? "Click to update controller settings" 
+                : "Pair your device to get started"}
             </p>
           </CardContent>
         </Card>
 
-        <Card className="knirv-card-gradient">
+        <Card 
+          className="knirv-card-gradient cursor-pointer hover:bg-primary/5 transition-colors border-white/20 hover:border-primary/50"
+          onClick={() => setShowDNSManagement(true)}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Validation Tasks</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">
+              {isDNSPorted() ? "Manage DNS" : "Port DNS"}
+            </CardTitle>
+            <Globe className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{validationTasks.filter(t => t.status === 'running').length}</div>
+            <div className="text-2xl font-bold">
+              {isDNSPorted() ? "Active" : "Setup Required"}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {validationTasks.filter(t => t.status === 'pending').length} pending
+              {isDNSPorted() 
+                ? "Click to manage DNS settings" 
+                : "Configure DNS for network access"}
             </p>
           </CardContent>
         </Card>
 
-        <Card className="knirv-card-gradient">
+        <Card 
+          className="knirv-card-gradient cursor-pointer hover:bg-primary/5 transition-colors border-white/20 hover:border-primary/50"
+          onClick={() => setShowAgentManagement(true)}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Security Score</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">
+              {hasAgentsAdded() ? "Manage Agents" : "Add Agents"}
+            </CardTitle>
+            <Bot className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{teeSecurityStatus?.security_score || 0}%</div>
+            <div className="text-2xl font-bold">
+              {hasAgentsAdded() ? "Active" : "Setup Required"}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {teeSecurityStatus?.enclave_count || 0} active enclaves
+              {hasAgentsAdded() 
+                ? "Click to manage your agents" 
+                : "Deploy AI agents to the network"}
             </p>
           </CardContent>
         </Card>
 
-        <Card className="knirv-card-gradient">
+        <Card 
+          className="knirv-card-gradient cursor-pointer hover:bg-primary/5 transition-colors border-white/20 hover:border-primary/50"
+          onClick={() => setShowDVERentalManagement(true)}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">DVE Rentals</CardTitle>
-            <Coins className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">
+              {hasDVERentals() ? "Manage DVE Rentals" : "Rent DVE Instance"}
+            </CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{rentalStats?.active_rentals || 0}</div>
+            <div className="text-2xl font-bold">
+              {hasDVERentals() ? `${rentalStats?.active_rentals || 0} Active` : "Get Started"}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {rentalStats?.total_rentals || 0} total rentals
+              {hasDVERentals() 
+                ? "Click to manage your rentals" 
+                : "Rent computing resources"}
             </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Main Content Tabs */}
-      <Tabs defaultValue="nodes" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="nodes">DVE Nodes</TabsTrigger>
-          <TabsTrigger value="tasks">Validation Tasks</TabsTrigger>
+      <Tabs defaultValue="cognitive" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="cognitive">Cognitive Engine</TabsTrigger>
           <TabsTrigger value="security">TEE Security</TabsTrigger>
-          <TabsTrigger value="staking">DVE Rentals</TabsTrigger>
           <TabsTrigger value="admin">Admin</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="nodes" className="space-y-4">
-          <div className="grid gap-4">
-            {dveNodes.map((node) => (
-              <Card key={node.id} className="knirv-card-gradient">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <Server className="h-5 w-5" />
-                        {node.name}
-                      </CardTitle>
-                      <CardDescription>Node ID: {node.id}</CardDescription>
-                    </div>
-                    {getStatusBadge(node.status)}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">CPU Usage</p>
-                      <div className="flex items-center gap-2">
-                        <Progress value={node.cpu_usage} className="flex-1" />
-                        <span className="text-sm">{node.cpu_usage}%</span>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Memory Usage</p>
-                      <div className="flex items-center gap-2">
-                        <Progress value={node.memory_usage} className="flex-1" />
-                        <span className="text-sm">{node.memory_usage}%</span>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">TEE Type</p>
-                      <Badge variant="outline">{node.tee_type}</Badge>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Reputation</p>
-                      <div className="flex items-center gap-2">
-                        <Progress value={node.reputation_score} className="flex-1" />
-                        <span className="text-sm">{node.reputation_score}%</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-4 grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Stake Amount</p>
-                      <p className="font-semibold">{node.stake_amount.toLocaleString()} NRN</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Last Heartbeat</p>
-                      <p className="font-semibold">{new Date(node.last_heartbeat).toLocaleString()}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
 
-        <TabsContent value="tasks" className="space-y-4">
-          <div className="grid gap-4">
-            {validationTasks.map((task) => (
-              <Card key={task.id} className="knirv-card-gradient">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <Activity className="h-5 w-5" />
-                        Task {task.id}
-                      </CardTitle>
-                      <CardDescription>{task.type.replace('_', ' ').toUpperCase()}</CardDescription>
-                    </div>
-                    <div className="flex gap-2">
-                      {getPriorityBadge(task.priority.toString())}
-                      {getStatusBadge(task.status)}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Progress</p>
-                      <div className="flex items-center gap-2">
-                        <Progress value={task.completion_percentage || 0} className="flex-1" />
-                        <span className="text-sm">{task.completion_percentage || 0}%</span>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Assigned Node</p>
-                      <p className="font-semibold">{task.assigned_node_id || "Unassigned"}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Created</p>
-                      <p className="font-semibold">{new Date(task.created_at).toLocaleString()}</p>
-                    </div>
-                  </div>
-                  {task.estimated_completion_time && (
-                    <div className="mt-4">
-                      <p className="text-sm text-muted-foreground">Estimated Completion</p>
-                      <p className="font-semibold">{new Date(task.estimated_completion_time).toLocaleString()}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
+
+
 
         <TabsContent value="cognitive" className="space-y-4">
           {cognitiveEngine && (
@@ -523,53 +436,7 @@ export default function Dashboard() {
           )}
         </TabsContent>
 
-        <TabsContent value="staking" className="space-y-4">
-          {rentalStats && (
-            <div className="grid gap-4">
-              <Card className="knirv-card-gradient">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Coins className="h-5 w-5" />
-                    DVE Rental Overview
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Total Rentals</p>
-                      <p className="text-2xl font-bold">{rentalStats.total_rentals}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Active Rentals</p>
-                      <p className="text-2xl font-bold">{rentalStats.active_rentals}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Total Revenue</p>
-                      <p className="text-2xl font-bold">{rentalStats.total_revenue.toFixed(0)} NRN</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Avg Duration</p>
-                      <p className="text-2xl font-bold">{rentalStats.average_duration.toFixed(1)}h</p>
-                    </div>
-                  </div>
-                  {rentalStats.popular_plans.length > 0 && (
-                    <div className="mt-4">
-                      <p className="text-sm text-muted-foreground mb-2">Popular Plans</p>
-                      <div className="space-y-1">
-                        {rentalStats.popular_plans.slice(0, 3).map((plan, index) => (
-                          <div key={plan.plan_id} className="flex justify-between text-sm">
-                            <span>{plan.plan_name}</span>
-                            <span className="font-semibold">{plan.rental_count} rentals</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </TabsContent>
+
 
         <TabsContent value="admin" className="space-y-4">
           <div className="grid gap-4">

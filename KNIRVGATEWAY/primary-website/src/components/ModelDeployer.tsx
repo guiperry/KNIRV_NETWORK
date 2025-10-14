@@ -85,7 +85,7 @@ const ModelDeployer = ({ modelConfig, onDeployed }: ModelDeployerProps) => {
       },
       deployment_targets: {
         knirvcontroller: true,
-        knirvengine: false,
+        knirvnexus: false,
         cloud_hosting: {
           provider: 'vercel'
         }

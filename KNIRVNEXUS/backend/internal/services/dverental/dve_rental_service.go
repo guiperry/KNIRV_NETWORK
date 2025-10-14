@@ -1,6 +1,7 @@
 package dverental
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
@@ -206,6 +207,55 @@ func (drs *DVERentalService) GetActiveRentals(userID string) ([]*models.DVERenta
 	}
 
 	return userRentals, nil
+}
+
+// GetAllUserRentals returns all rentals (active, expired, cancelled) for a user from database
+func (drs *DVERentalService) GetAllUserRentals(userID string) ([]*models.DVERental, error) {
+	drs.mu.RLock()
+	defer drs.mu.RUnlock()
+
+	var userRentals []*models.DVERental
+
+	// Query database for all rentals belonging to this user
+	err := drs.db.View(func(tx *buntdb.Tx) error {
+		return tx.Ascend("", func(key, value string) bool {
+			if len(key) > 8 && key[:8] == "rental:" {
+				var rental models.DVERental
+				if err := json.Unmarshal([]byte(value), &rental); err == nil {
+					if rental.UserID == userID {
+						userRentals = append(userRentals, &rental)
+					}
+				}
+			}
+			return true
+		})
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to query user rentals: %w", err)
+	}
+
+	return userRentals, nil
+}
+
+// GetUserRentedNodeIDs returns a list of DVE node IDs that a user has rented (all statuses)
+func (drs *DVERentalService) GetUserRentedNodeIDs(userID string) ([]string, error) {
+	rentals, err := drs.GetAllUserRentals(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	nodeIDMap := make(map[string]bool)
+	for _, rental := range rentals {
+		nodeIDMap[rental.DVENodeID] = true
+	}
+
+	nodeIDs := make([]string, 0, len(nodeIDMap))
+	for nodeID := range nodeIDMap {
+		nodeIDs = append(nodeIDs, nodeID)
+	}
+
+	return nodeIDs, nil
 }
 
 // GetRentalPlans returns all available rental plans

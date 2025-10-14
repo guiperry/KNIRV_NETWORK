@@ -8,17 +8,22 @@ import (
 	"time"
 
 	"nexus-backend/internal/services/dvemanager"
+	"nexus-backend/internal/services/dverental"
 	"nexus-backend/internal/web/middleware"
 
 	"github.com/gorilla/mux"
 )
 
 type DVEHandlers struct {
-	dveManager *dvemanager.DVEManager
+	dveManager       *dvemanager.DVEManager
+	dveRentalService *dverental.DVERentalService
 }
 
-func NewDVEHandlers(dveManager *dvemanager.DVEManager) *DVEHandlers {
-	return &DVEHandlers{dveManager: dveManager}
+func NewDVEHandlers(dveManager *dvemanager.DVEManager, dveRentalService *dverental.DVERentalService) *DVEHandlers {
+	return &DVEHandlers{
+		dveManager:       dveManager,
+		dveRentalService: dveRentalService,
+	}
 }
 
 // getCurrentTimestamp returns the current timestamp in RFC3339 format
@@ -79,6 +84,51 @@ func (h *DVEHandlers) GetDVENodes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Apply role-based filtering for observer (Developer) role
+	authCtx := middleware.GetAuthContext(r)
+	if authCtx != nil && authCtx.Role == "observer" && h.dveRentalService != nil {
+		// Get the list of node IDs that this user has rented
+		rentedNodeIDs, err := h.dveRentalService.GetUserRentedNodeIDs(authCtx.UserID)
+		if err != nil {
+			// Log error but don't fail the request - return empty array for developers with no rentals
+			response := DVENodeResponse{
+				Success:   true,
+				Data:      []interface{}{}, // Empty array
+				Total:     0,
+				Timestamp: getCurrentTimestamp(),
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+
+		// Create a map for quick lookup
+		rentedNodeMap := make(map[string]bool)
+		for _, nodeID := range rentedNodeIDs {
+			rentedNodeMap[nodeID] = true
+		}
+
+		// Filter nodes to only include those the user has rented
+		filteredNodes := make([]interface{}, 0)
+		for _, node := range nodes {
+			// Access ID field directly from the DVENode struct
+			if rentedNodeMap[node.ID] {
+				filteredNodes = append(filteredNodes, node)
+			}
+		}
+
+		response := DVENodeResponse{
+			Success:   true,
+			Data:      filteredNodes,
+			Total:     len(filteredNodes),
+			Timestamp: getCurrentTimestamp(),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// For admin and validator roles, return all nodes
 	response := DVENodeResponse{
 		Success:   true,
 		Data:      nodes,
@@ -306,9 +356,17 @@ func (h *DVEHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.A
 	// Create a subrouter for DVE endpoints
 	dveRouter := r.PathPrefix("/api/dve-nodes").Subrouter()
 
-	// Public routes for monitoring
-	dveRouter.HandleFunc("", h.GetDVENodes).Methods("GET")
-	dveRouter.HandleFunc("/{id}", h.GetDVENode).Methods("GET")
+	// Routes with optional auth (for role-based filtering)
+	if authMiddleware != nil {
+		optionalAuthRouter := dveRouter.PathPrefix("").Subrouter()
+		optionalAuthRouter.Use(authMiddleware.OptionalAuth)
+		optionalAuthRouter.HandleFunc("", h.GetDVENodes).Methods("GET")
+		optionalAuthRouter.HandleFunc("/{id}", h.GetDVENode).Methods("GET")
+	} else {
+		// If no auth middleware, allow public access
+		dveRouter.HandleFunc("", h.GetDVENodes).Methods("GET")
+		dveRouter.HandleFunc("/{id}", h.GetDVENode).Methods("GET")
+	}
 
 	// Protected routes for management
 	if authMiddleware != nil {

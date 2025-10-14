@@ -59,7 +59,7 @@ export interface ModelCompilationRequest {
   };
   deployment_targets: {
     knirvcontroller?: boolean;
-    knirvengine?: boolean;
+    knirvnexus?: boolean;
     cloud_hosting?: {
       provider: 'vercel' | 'netlify' | 'aws' | 'gcp';
       region?: string;
@@ -79,7 +79,7 @@ export interface ModelCompilationResponse {
   };
   deployment_urls?: {
     knirvcontroller?: string;
-    knirvengine?: string;
+    knirvnexus?: string;
     cloud?: string;
   };
   compilation_time_ms: number;
@@ -415,8 +415,8 @@ export class CortexModelCompiler {
       urls.knirvcontroller = '/api/deploy/knirvcontroller';
     }
 
-    if (targets.knirvengine) {
-      urls.knirvengine = '/api/deploy/knirvengine';
+    if (targets.knirvnexus) {
+      urls.knirvnexus = 'https://knirv.com/nexus-portal';
     }
 
     if (targets.cloud_hosting) {

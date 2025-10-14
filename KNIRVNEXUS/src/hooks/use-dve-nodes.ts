@@ -26,17 +26,30 @@ export const useDVENodes = () => {
     try {
       const queryString = buildQueryString(filter || {});
       const url = `${API_BASE_URL}/api/dve-nodes${queryString}`;
-      const response: APIResponse<DVENode[]> = await apiRequest(url, { method: 'GET' });
+      console.log('[DVE Nodes] Fetching from:', url);
+      console.log('[DVE Nodes] Filter:', filter);
       
-      if (response.success && Array.isArray(response.data)) {
-        setNodes(response.data);
+      const response: APIResponse<DVENode[]> = await apiRequest(url, { method: 'GET' });
+      console.log('[DVE Nodes] Raw API Response:', JSON.stringify(response, null, 2));
+      
+      if (response.success) {
+        if (Array.isArray(response.data)) {
+          console.log('[DVE Nodes] Received nodes count:', response.data.length);
+          console.log('[DVE Nodes] Nodes data:', response.data);
+          setNodes(response.data);
+        } else {
+          console.warn('[DVE Nodes] Response data is not an array:', typeof response.data, response.data);
+          // If data is not an array but success is true, set empty array
+          setNodes([]);
+        }
       } else {
+        console.error('[DVE Nodes] API returned error:', response.error);
         throw new Error(response.error || 'Failed to fetch DVE nodes');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
-      console.error('Failed to fetch DVE nodes:', err);
+      console.error('[DVE Nodes] Exception during fetch:', err);
     } finally {
       setIsLoading(false);
     }
@@ -171,33 +184,58 @@ export const useDVENodes = () => {
     };
 
     const handleDVENodeUpdate = (payload: any) => {
-      // Update specific node in the list
-      setNodes(prevNodes =>
-        prevNodes.map(node =>
-          node.id === payload.id
-            ? {
-                ...node,
-                cpu_usage: payload.cpu_usage || node.cpu_usage,
-                memory_usage: payload.memory_usage || node.memory_usage,
-                status: payload.status || node.status,
-                last_heartbeat: payload.last_heartbeat || node.last_heartbeat
-              }
-            : node
-        )
-      );
+      console.log('[DVE Nodes] WebSocket update received:', payload);
+      // Update specific node in the list, or add if it doesn't exist
+      setNodes(prevNodes => {
+        const existingIndex = prevNodes.findIndex(node => node.id === payload.id);
+        if (existingIndex >= 0) {
+          // Update existing node
+          return prevNodes.map(node =>
+            node.id === payload.id
+              ? {
+                  ...node,
+                  cpu_usage: payload.cpu_usage || node.cpu_usage,
+                  memory_usage: payload.memory_usage || node.memory_usage,
+                  status: payload.status || node.status,
+                  last_heartbeat: payload.last_heartbeat || node.last_heartbeat
+                }
+              : node
+          );
+        } else if (payload.id && payload.name) {
+          // Add new node if it has required fields
+          console.log('[DVE Nodes] Adding new node from WebSocket:', payload);
+          return [...prevNodes, payload as DVENode];
+        }
+        return prevNodes;
+      });
     };
 
     const handleSystemNotification = (payload: any) => {
-      console.log('DVE Nodes system notification:', payload);
+      console.log('[DVE Nodes] System notification:', payload);
+    };
+
+    const handleDVENodeDiscovered = (payload: any) => {
+      console.log('[DVE Nodes] Node discovered via WebSocket:', payload);
+      // Add newly discovered node to the list
+      if (payload.id && payload.name) {
+        setNodes(prevNodes => {
+          const exists = prevNodes.some(node => node.id === payload.id);
+          if (!exists) {
+            return [...prevNodes, payload as DVENode];
+          }
+          return prevNodes;
+        });
+      }
     };
 
     // Register event handlers
     webSocketService.on('connection', handleConnection);
     webSocketService.on('dve-node-updated', handleDVENodeUpdate);
+    webSocketService.on('dve-node-discovered', handleDVENodeDiscovered);
     webSocketService.on('system-notification', handleSystemNotification);
 
     // Subscribe to events
-    webSocketService.subscribe(['dve-node-updated', 'system-notification']);
+    webSocketService.subscribe(['dve-node-updated', 'dve-node-discovered', 'system-notification']);
 
     // Set initial connection status
     setIsConnected(webSocketService.getConnectionStatus());
@@ -206,6 +244,7 @@ export const useDVENodes = () => {
     return () => {
       webSocketService.off('connection', handleConnection);
       webSocketService.off('dve-node-updated', handleDVENodeUpdate);
+      webSocketService.off('dve-node-discovered', handleDVENodeDiscovered);
       webSocketService.off('system-notification', handleSystemNotification);
     };
   }, []);

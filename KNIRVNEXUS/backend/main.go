@@ -174,9 +174,9 @@ func NewServer(cfg *config.Config) (*Server, error) {
 
 	// Initialize DNS service with minimal configuration for development
 	dnsConfig := dns.DNSConfig{
-		CloudFlareAPIToken: "dev-token", // Placeholder for development
-		ZoneName:          "knirv.com",
-		UpdateInterval:    time.Minute * 5,
+		CloudFlareAPIToken:  "dev-token", // Placeholder for development
+		ZoneName:            "knirv.com",
+		UpdateInterval:      time.Minute * 5,
 		ForceUpdateInterval: time.Hour,
 		Records: []dns.DNSRecordConfig{
 			{
@@ -187,9 +187,9 @@ func NewServer(cfg *config.Config) (*Server, error) {
 			},
 		},
 		EnableHealthCheck: false, // Disable for development
-		MaxRetries:       3,
-		RetryDelay:       time.Second * 5,
-		BackoffFactor:    2.0,
+		MaxRetries:        3,
+		RetryDelay:        time.Second * 5,
+		BackoffFactor:     2.0,
 	}
 
 	dnsService, err := dns.NewDynamicDNSService(dataEngine, dnsConfig)
@@ -309,7 +309,7 @@ func (s *Server) setupRoutes() {
 
 	// Register DVE manager routes
 	if s.dveManager != nil {
-		dveHandlers := web.NewDVEHandlers(s.dveManager)
+		dveHandlers := web.NewDVEHandlers(s.dveManager, s.dveRentalService)
 		dveHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("DVE manager routes configured")
 	}

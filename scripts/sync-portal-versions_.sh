@@ -1,8 +1,8 @@
-#!/bin/bash
+-#!/bin/bash
 
 # KNIRV Portal Version Synchronization Script
-# Synchronizes nexus-portal and graphchain-explorer implementations across all locations
-# Performs intelligent, idempotent updates without breaking target implementations
+# Synchronizes nexus-portal from KNIRVNEXUS to GATEWAY only
+# Performs intelligent, idempotent updates while preserving intentional styling differences
 
 set -euo pipefail
 
@@ -25,7 +25,7 @@ NC='\033[0m' # No Color
 
 # Default options
 DRY_RUN=false
-PORTAL_TYPE="both"
+PORTAL_TYPE="nexus"
 FORCE=false
 VERBOSE=false
 
@@ -33,28 +33,12 @@ VERBOSE=false
 # PORTAL LOCATIONS
 # =============================================================================
 
-# Nexus Portal locations (migrated to KNIRVTESTNET only)
+# Nexus Portal locations - only sync from KNIRVNEXUS to GATEWAY
 declare -A NEXUS_PORTALS=(
-    ["knirvtestnet"]="KNIRVTESTNET/nexus-portal"
+    ["knirvgateway"]="KNIRVGATEWAY/primary-website/public/nexus-portal"
     ["knirvnexus"]="KNIRVNEXUS"
 )
 
-# GraphChain Explorer locations (migrated to KNIRVTESTNET only)
-declare -A GRAPHCHAIN_EXPLORERS=(
-    ["knirvtestnet"]="KNIRVTESTNET/graphchain-explorer"
-)
-
-# GraphChain CLI binary locations
-declare -A GRAPHCHAIN_CLI_BINARIES=(
-    ["knirvgraph"]="KNIRVGRAPH/bin"
-    ["knirvshell"]="KNIRVCLI/bin"
-)
-
-# KNIRVGRAPH build binaries locations
-declare -A KNIRVGRAPH_BINARIES=(
-    ["knirvgraph"]="KNIRVGRAPH/build"
-    ["knirvana-rust"]="KNIRVANA/rust-client/bin"
-)
 
 # =============================================================================
 # UTILITY FUNCTIONS
@@ -190,85 +174,6 @@ detect_latest_nexus_portal() {
     fi
 }
 
-detect_latest_graphchain_explorer() {
-    # KNIRVGATEWAY is always considered the authoritative source for GraphChain Explorer
-    # We sync FROM KNIRVGATEWAY TO other locations, not the other way around
-    local authoritative_location="knirvgateway"
-    local authoritative_path="$PROJECT_ROOT/${GRAPHCHAIN_EXPLORERS[$authoritative_location]}"
-
-    log "INFO" "Using KNIRVGATEWAY as authoritative source for graphchain-explorer..." >&2
-
-    if [[ -d "$authoritative_path" ]]; then
-        # Check for key files to verify it's a valid GraphChain Explorer
-        local key_files=("index.html" "js/graphchain-core.js" "css/graphchain.css")
-        local file_count=0
-
-        for file in "${key_files[@]}"; do
-            local file_path="$authoritative_path/$file"
-            if [[ -f "$file_path" ]]; then
-                ((file_count++))
-            fi
-        done
-
-        if [[ $file_count -gt 0 ]]; then
-            log "INFO" "Found $authoritative_location: $file_count key files present" >&2
-            log "SUCCESS" "Using authoritative graphchain-explorer: $authoritative_location" >&2
-            echo "$authoritative_location"
-        else
-            log "WARNING" "KNIRVGATEWAY GraphChain Explorer appears incomplete, falling back..." >&2
-        fi
-    else
-        log "WARNING" "KNIRVGATEWAY GraphChain Explorer not found, falling back..." >&2
-    fi
-
-    # Fallback to timestamp-based detection if KNIRVGATEWAY is not available
-    if [[ ! -d "$authoritative_path" ]] || [[ $file_count -eq 0 ]]; then
-        log "WARNING" "Falling back to timestamp-based detection..." >&2
-
-        local latest_timestamp=0
-        local latest_location=""
-
-        for location in "${!GRAPHCHAIN_EXPLORERS[@]}"; do
-            local explorer_path="$PROJECT_ROOT/${GRAPHCHAIN_EXPLORERS[$location]}"
-
-            if [[ -d "$explorer_path" ]]; then
-                # Check for key files to determine "freshness"
-                local key_files=("index.html" "js/graphchain-core.js" "css/graphchain.css")
-                local total_timestamp=0
-                local fallback_file_count=0
-
-                for file in "${key_files[@]}"; do
-                    local file_path="$explorer_path/$file"
-                    if [[ -f "$file_path" ]]; then
-                        local timestamp=$(get_file_timestamp "$file_path")
-                        total_timestamp=$((total_timestamp + timestamp))
-                        ((fallback_file_count++))
-                    fi
-                done
-
-                if [[ $fallback_file_count -gt 0 ]]; then
-                    local avg_timestamp=$((total_timestamp / fallback_file_count))
-                    log "INFO" "Found $location: average timestamp $avg_timestamp" >&2
-
-                    if [[ $avg_timestamp -gt $latest_timestamp ]]; then
-                        latest_timestamp="$avg_timestamp"
-                        latest_location="$location"
-                    fi
-                fi
-            else
-                log "WARNING" "GraphChain explorer not found at $explorer_path" >&2
-            fi
-        done
-
-        if [[ -n "$latest_location" ]]; then
-            log "SUCCESS" "Fallback latest graphchain-explorer: $latest_location" >&2
-            echo "$latest_location"
-        else
-            log "ERROR" "No valid graphchain-explorer found" >&2
-            return 1
-        fi
-    fi
-}
 
 # =============================================================================
 # SYNCHRONIZATION FUNCTIONS
@@ -310,7 +215,7 @@ sync_to_knirvnexus() {
     
     log "INFO" "Syncing to KNIRVNEXUS (Next.js structure)"
     
-    # Files to sync for KNIRVNEXUS
+    # Files to sync for KNIRVNEXUS - exclude styling files to preserve black theme
     local sync_patterns=(
         "src/components/auth/*"
         "src/components/dashboard/*"
@@ -319,7 +224,6 @@ sync_to_knirvnexus() {
         "src/lib/*"
         "src/app/page.tsx"
         "src/app/layout.tsx"
-        "src/app/globals.css"
     )
     
     for pattern in "${sync_patterns[@]}"; do
@@ -353,15 +257,14 @@ sync_to_gateway_portal() {
     local source_path="$1"
     local target_path="$2"
     
-    log "INFO" "Syncing to Gateway portal (Vite/React structure)"
+    log "INFO" "Syncing to Gateway portal (Vite/React structure) - preserving purple theme"
     
-    # Files to sync for Gateway portals
+    # Files to sync for Gateway portals - exclude styling files to preserve purple theme
     local sync_patterns=(
         "src/*"
         "package.json"
         "vite.config.ts"
         "tsconfig.json"
-        "tailwind.config.js"
         "index.html"
         "dashboard.html"
         "landing.html"
@@ -369,13 +272,13 @@ sync_to_gateway_portal() {
     
     for pattern in "${sync_patterns[@]}"; do
         if [[ "$pattern" == "src/*" ]]; then
-            # Recursively sync src directory
+            # Recursively sync src directory but exclude CSS files to preserve purple theme
             if [[ -d "$source_path/src" ]]; then
                 if [[ "$DRY_RUN" == "true" ]]; then
-                    log "INFO" "[DRY RUN] Would sync src directory"
+                    log "INFO" "[DRY RUN] Would sync src directory (excluding CSS files)"
                 else
-                    rsync -av --exclude='node_modules' --exclude='dist' "$source_path/src/" "$target_path/src/"
-                    log "SUCCESS" "Synced src directory"
+                    rsync -av --exclude='node_modules' --exclude='dist' --exclude='*.css' "$source_path/src/" "$target_path/src/"
+                    log "SUCCESS" "Synced src directory (CSS files excluded to preserve purple theme)"
                 fi
             fi
         else
@@ -395,36 +298,6 @@ sync_to_gateway_portal() {
     done
 }
 
-sync_graphchain_explorer() {
-    local source_location="$1"
-    local target_location="$2"
-    
-    local source_path="$PROJECT_ROOT/${GRAPHCHAIN_EXPLORERS[$source_location]}"
-    local target_path="$PROJECT_ROOT/${GRAPHCHAIN_EXPLORERS[$target_location]}"
-    
-    log "INFO" "Syncing graphchain-explorer from $source_location to $target_location"
-    
-    if [[ ! -d "$source_path" ]]; then
-        log "ERROR" "Source path does not exist: $source_path"
-        return 1
-    fi
-    
-    # Backup target before sync
-    if [[ -d "$target_path" ]]; then
-        backup_directory "$target_path" "graphchain-explorer-${target_location}"
-    fi
-    
-    # Create target directory if it doesn't exist
-    mkdir -p "$target_path"
-    
-    # Sync all files except node_modules and build artifacts
-    if [[ "$DRY_RUN" == "true" ]]; then
-        log "INFO" "[DRY RUN] Would sync graphchain-explorer directory"
-    else
-        rsync -av --exclude='node_modules' --exclude='dist' --exclude='build' "$source_path/" "$target_path/"
-        log "SUCCESS" "Synced graphchain-explorer directory"
-    fi
-}
 
 should_sync_file() {
     local source_file="$1"
@@ -500,152 +373,25 @@ sync_all_nexus_portals() {
     done
 }
 
-sync_all_graphchain_explorers() {
-    local latest_location
-    latest_location=$(detect_latest_graphchain_explorer 2>/dev/null)
-
-    if [[ $? -ne 0 || -z "$latest_location" ]]; then
-        log "ERROR" "Failed to detect latest graphchain-explorer"
-        return 1
-    fi
-
-    log "INFO" "Syncing from latest graphchain-explorer: $latest_location"
-
-    for target_location in "${!GRAPHCHAIN_EXPLORERS[@]}"; do
-        if [[ "$target_location" != "$latest_location" ]]; then
-            sync_graphchain_explorer "$latest_location" "$target_location"
-        fi
-    done
-}
-
-# =============================================================================
-# BINARY SYNC FUNCTIONS
-# =============================================================================
-
-sync_graphchain_cli_to_knirvshell() {
-    log "INFO" "Syncing GraphChain CLI binary to KNIRVCLI"
-
-    local source_dir="$PROJECT_ROOT/KNIRVGRAPH/build"
-    local target_dir="$PROJECT_ROOT/KNIRVCLI/bin"
-    local cli_binary="graphchain-cli"
-
-    # Ensure source binary exists
-    if [[ ! -f "$source_dir/$cli_binary" ]]; then
-        log "WARNING" "GraphChain CLI binary not found at $source_dir/$cli_binary"
-        log "INFO" "Building GraphChain CLI binary..."
-
-        # Build the CLI binary to build directory
-        cd "$PROJECT_ROOT/KNIRVGRAPH"
-        mkdir -p build
-        if ! go build -o "build/$cli_binary" ./cmd/cli/main.go; then
-            log "ERROR" "Failed to build GraphChain CLI binary"
-            return 1
-        fi
-        cd "$PROJECT_ROOT"
-    fi
-
-    # Create target directory
-    mkdir -p "$target_dir"
-
-    # Backup existing binary if it exists
-    if [[ -f "$target_dir/$cli_binary" ]]; then
-        local backup_file="$BACKUP_DIR/$(date +%Y%m%d_%H%M%S)_knirvshell_$cli_binary"
-        mkdir -p "$(dirname "$backup_file")"
-        cp "$target_dir/$cli_binary" "$backup_file"
-        log "INFO" "Backed up existing $cli_binary to $backup_file"
-    fi
-
-    # Sync the binary
-    if [[ "$DRY_RUN" == "true" ]]; then
-        log "INFO" "[DRY RUN] Would sync: $source_dir/$cli_binary -> $target_dir/$cli_binary"
-    else
-        cp "$source_dir/$cli_binary" "$target_dir/$cli_binary"
-        chmod +x "$target_dir/$cli_binary"
-        log "SUCCESS" "Synced GraphChain CLI binary to KNIRVCLI"
-    fi
-}
-
-sync_knirvgraph_binaries_to_knirvana() {
-    log "INFO" "Syncing KNIRVGRAPH build binaries to KNIRVANA rust-client"
-
-    local source_dir="$PROJECT_ROOT/KNIRVGRAPH/build"
-    local target_dir="$PROJECT_ROOT/KNIRVANA/rust-client/bin"
-
-    # Ensure source directory exists
-    if [[ ! -d "$source_dir" ]]; then
-        log "WARNING" "KNIRVGRAPH build directory not found at $source_dir"
-        log "INFO" "Building KNIRVGRAPH binaries..."
-
-        # Build the binaries
-        cd "$PROJECT_ROOT/KNIRVGRAPH"
-        if ! make build; then
-            log "ERROR" "Failed to build KNIRVGRAPH binaries"
-            return 1
-        fi
-        cd "$PROJECT_ROOT"
-    fi
-
-    # Create target directory
-    mkdir -p "$target_dir"
-
-    # Backup existing binaries
-    if [[ -d "$target_dir" ]] && [[ "$(ls -A "$target_dir" 2>/dev/null)" ]]; then
-        local backup_dir="$BACKUP_DIR/$(date +%Y%m%d_%H%M%S)_knirvana_binaries"
-        mkdir -p "$backup_dir"
-        cp -r "$target_dir"/* "$backup_dir/" 2>/dev/null || true
-        log "INFO" "Backed up existing KNIRVANA binaries to $backup_dir"
-    fi
-
-    # Sync all binaries
-    if [[ "$DRY_RUN" == "true" ]]; then
-        log "INFO" "[DRY RUN] Would sync KNIRVGRAPH binaries from $source_dir to $target_dir"
-        if [[ -d "$source_dir" ]]; then
-            find "$source_dir" -type f -executable | while read -r binary; do
-                local binary_name=$(basename "$binary")
-                log "INFO" "[DRY RUN] Would sync: $binary -> $target_dir/$binary_name"
-            done
-        fi
-    else
-        # Copy all executable files from source to target
-        if [[ -d "$source_dir" ]]; then
-            find "$source_dir" -type f -executable | while read -r binary; do
-                local binary_name=$(basename "$binary")
-                cp "$binary" "$target_dir/$binary_name"
-                chmod +x "$target_dir/$binary_name"
-                log "SUCCESS" "Synced binary: $binary_name"
-            done
-        fi
-        log "SUCCESS" "Synced KNIRVGRAPH binaries to KNIRVANA rust-client"
-    fi
-}
-
-sync_all_binaries() {
-    local success=true
-
-    sync_graphchain_cli_to_knirvshell || success=false
-    sync_knirvgraph_binaries_to_knirvana || success=false
-
-    return $([[ "$success" == "true" ]] && echo 0 || echo 1)
-}
 
 show_usage() {
     cat << EOF
 KNIRV Portal Version Synchronization Script
+Syncs nexus-portal from KNIRVNEXUS to GATEWAY only, preserving intentional styling differences
 
 Usage: $0 [OPTIONS]
 
 OPTIONS:
-    -t, --type TYPE        Portal type to sync: nexus, graphchain, binaries, both (default: both)
+    -t, --type TYPE        Portal type to sync: nexus (default: nexus)
     -n, --dry-run         Show what would be done without making changes
     -f, --force           Force sync even if target files are newer
     -v, --verbose         Enable verbose logging
     -h, --help            Show this help message
 
 EXAMPLES:
-    $0                           # Sync both portal types and binaries
-    $0 -t nexus                  # Sync only nexus-portal
-    $0 -t graphchain -n          # Dry run for graphchain-explorer only
-    $0 -t binaries               # Sync only binaries (GraphChain CLI to KNIRVCLI, KNIRVGRAPH to KNIRVANA)
+    $0                           # Sync nexus-portal from KNIRVNEXUS to GATEWAY
+    $0 -t nexus                  # Sync only nexus-portal (same as default)
+    $0 -n                        # Dry run - show what would be synced
     $0 -f -v                     # Force sync with verbose output
 
 EOF
@@ -696,19 +442,8 @@ main() {
         "nexus")
             sync_all_nexus_portals || success=false
             ;;
-        "graphchain")
-            sync_all_graphchain_explorers || success=false
-            ;;
-        "binaries")
-            sync_all_binaries || success=false
-            ;;
-        "both")
-            sync_all_nexus_portals || success=false
-            sync_all_graphchain_explorers || success=false
-            sync_all_binaries || success=false
-            ;;
         *)
-            log "ERROR" "Invalid portal type: $PORTAL_TYPE"
+            log "ERROR" "Invalid portal type: $PORTAL_TYPE (only 'nexus' is supported)"
             show_usage
             exit 1
             ;;
@@ -716,6 +451,8 @@ main() {
     
     if [[ "$success" == "true" ]]; then
         log "SUCCESS" "Portal synchronization completed successfully"
+        log "INFO" "Note: Styling files were excluded to preserve intentional theme differences"
+        log "INFO" "KNIRVNEXUS maintains black theme, GATEWAY maintains purple theme"
         exit 0
     else
         log "ERROR" "Portal synchronization completed with errors"
@@ -725,3 +462,4 @@ main() {
 
 # Run main function with all arguments
 main "$@"
+

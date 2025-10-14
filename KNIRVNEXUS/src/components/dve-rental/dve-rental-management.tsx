@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -45,6 +46,11 @@ export default function DVERentalManagement({ isOpen, onClose }: DVERentalManage
   const [selectedPlan, setSelectedPlan] = useState<DVERentalPlan | null>(null);
   const [paymentTxHash, setPaymentTxHash] = useState('');
   const [rentalDuration, setRentalDuration] = useState(1);
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log('[DVE Rental Modal] isOpen changed:', isOpen);
+  }, [isOpen]);
 
   const {
     plans,
@@ -147,9 +153,30 @@ export default function DVERentalManagement({ isOpen, onClose }: DVERentalManage
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="w-full max-w-7xl max-h-[90vh] bg-background border shadow-2xl rounded-lg overflow-hidden">
+  const modalContent = (
+    <div 
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-8 pt-16 pb-16"
+      onClick={(e) => {
+        // Close modal when clicking backdrop
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+      style={{ 
+        position: 'fixed', 
+        top: 0, 
+        left: 0, 
+        right: 0, 
+        bottom: 0,
+        pointerEvents: 'auto',
+        zIndex: 9999
+      }}
+    >
+      <div 
+        className="w-full max-w-7xl max-h-[90vh] bg-background border shadow-2xl rounded-lg overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+        style={{ pointerEvents: 'auto' }}
+      >
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-primary/10 to-secondary/10">
@@ -484,4 +511,10 @@ export default function DVERentalManagement({ isOpen, onClose }: DVERentalManage
       )}
     </div>
   );
+
+  // Use portal to render modal at document root, avoiding z-index issues with nested tabs
+  // Ensure we're in browser environment before using createPortal
+  if (typeof window === 'undefined') return null;
+  
+  return createPortal(modalContent, document.body);
 }

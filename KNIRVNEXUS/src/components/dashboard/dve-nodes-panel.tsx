@@ -1,19 +1,23 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Server, Cpu, HardDrive, Wifi, Shield, MapPin, Clock, AlertCircle, CheckCircle, Activity } from 'lucide-react';
+import { Server, Cpu, HardDrive, Wifi, Shield, MapPin, Clock, AlertCircle, CheckCircle, Activity, CreditCard, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useDVENodes } from '@/hooks/use-dve-nodes';
+import { useAuth } from '@/lib/auth-context';
 import type { DVENode } from '@/types/api';
 
 interface DVENodesPanelProps {
   className?: string;
+  onRentClick?: () => void;
 }
 
-export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className }) => {
+export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentClick }) => {
+  const { user } = useAuth();
   const {
     nodes,
     isLoading,
@@ -111,6 +115,17 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className }) => {
 
   return (
     <div className={`space-y-4 ${className}`}>
+      {/* Developer Role Scoped View Alert */}
+      {user?.role === 'observer' && (
+        <Alert className="border-blue-200 bg-blue-50">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-800">
+            <strong>Developer View:</strong> You are viewing only the DVE instances you have rented. 
+            Root and Operator roles can see all network resources.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Stats Overview */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="knirv-card-gradient">
@@ -168,7 +183,7 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className }) => {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center space-x-2">
               <Server className="w-5 h-5" />
-              <span>DVE Nodes</span>
+              <span>{user?.role === 'observer' ? 'My DVE Instances' : 'DVE Nodes'}</span>
             </CardTitle>
             <div className="flex space-x-2">
               <Button
@@ -201,6 +216,17 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className }) => {
                 <Activity className="w-4 h-4 mr-2" />
                 Refresh
               </Button>
+              {onRentClick && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={onRentClick}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Rent
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>

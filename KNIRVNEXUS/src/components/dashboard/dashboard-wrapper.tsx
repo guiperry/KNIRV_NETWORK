@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAuth } from '@/lib/auth-context';
+import { useAuth, ROLES } from '@/lib/auth-context';
 import { LoginForm } from '@/components/auth/login-form';
 import { UserProfile } from '@/components/auth/user-profile';
 import { RoleGuard, DVEAccess, ValidationAccess, SystemAccess } from '@/components/auth/role-guard';
@@ -39,9 +39,10 @@ import {
 
 interface DashboardWrapperProps {
   children: React.ReactNode;
+  onRentDVE?: () => void;
 }
 
-export function DashboardWrapper({ children }: DashboardWrapperProps) {
+export function DashboardWrapper({ children, onRentDVE }: DashboardWrapperProps) {
   const { user, isLoading } = useAuth();
   const [cdeModalOpen, setCdeModalOpen] = useState(false);
   const [knirvEngineModalOpen, setKnirvEngineModalOpen] = useState(false);
@@ -90,7 +91,7 @@ export function DashboardWrapper({ children }: DashboardWrapperProps) {
                 <span className="text-muted-foreground">Welcome,</span>
                 <span className="font-medium">{user.user}</span>
                 <Badge variant={user.role === 'admin' ? 'destructive' : user.role === 'validator' ? 'secondary' : 'outline'}>
-                  {user.role.toUpperCase()}
+                  {ROLES[user.role]?.displayName || user.role.toUpperCase()}
                 </Badge>
               </div>
               <UserProfile />
@@ -217,7 +218,7 @@ export function DashboardWrapper({ children }: DashboardWrapperProps) {
                       </TabsList>
 
                       <TabsContent value="nodes" className="space-y-4">
-                        <DVENodesPanel />
+                        <DVENodesPanel onRentClick={onRentDVE} />
                       </TabsContent>
 
                       <TabsContent value="validation" className="space-y-4">

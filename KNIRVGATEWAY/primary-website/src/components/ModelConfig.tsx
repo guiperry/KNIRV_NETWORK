@@ -72,7 +72,7 @@ const ModelConfig = ({
   const [exportTargets, setExportTargets] = useState<('cortex_wasm' | 'onnx' | 'safetensors' | 'pytorch')[]>(['cortex_wasm']);
   const [deploymentTargets, setDeploymentTargets] = useState({
     knirvcontroller: true,
-    knirvengine: false,
+    knirvnexus: false,
     cloud_hosting: null as any
   });
 
@@ -824,12 +824,12 @@ const ModelConfig = ({
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-white font-medium">KNIRV Engine</h4>
-                      <p className="text-sm text-slate-400">Deploy to Go runtime</p>
+                      <h4 className="text-white font-medium">KNIRV Nexus</h4>
+                      <p className="text-sm text-slate-400">Deploy to KNIRV-NEXUS cloud portal</p>
                     </div>
-                    <Switch 
-                      checked={deploymentTargets.knirvengine} 
-                      onCheckedChange={(checked) => setDeploymentTargets(prev => ({...prev, knirvengine: checked}))}
+                    <Switch
+                      checked={deploymentTargets.knirvnexus}
+                      onCheckedChange={(checked) => setDeploymentTargets(prev => ({...prev, knirvnexus: checked}))}
                     />
                   </div>
                 </CardContent>

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { QrCode, Copy, CheckCircle, RefreshCw, Smartphone } from "lucide-react";
+import { QrCode, Copy, CheckCircle, RefreshCw, Smartphone, Download } from "lucide-react";
 import { QRCodeSVG } from 'qrcode.react';
 import { useToast } from "@/hooks/use-toast";
 
@@ -204,10 +204,34 @@ const QRConnectionModal = ({ isOpen, onClose, onConnected }: QRConnectionModalPr
             </div>
           </div>
 
+          {/* Mobile Downloads */}
+          <div className="space-y-3">
+            <h4 className="text-white font-medium">Download KNIRV Controller</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                variant="outline"
+                onClick={() => window.open('https://releases.knirv.network/knirvcontroller-ios-pwa.zip', '_blank')}
+                className="border-slate-600 text-slate-300 hover:bg-slate-700"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                iOS PWA
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => window.open('https://releases.knirv.network/knirvcontroller-android-pwa.zip', '_blank')}
+                className="border-slate-600 text-slate-300 hover:bg-slate-700"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Android PWA
+              </Button>
+            </div>
+          </div>
+
           {/* Instructions */}
           <div className="space-y-3">
             <h4 className="text-white font-medium">How to connect:</h4>
             <ol className="text-sm text-slate-300 space-y-2 list-decimal list-inside">
+              <li>Download and install KNIRV Controller app for your device</li>
               <li>Open KNIRV Controller app on your device</li>
               <li>Tap the QR scanner button</li>
               <li>Point your camera at this QR code</li>

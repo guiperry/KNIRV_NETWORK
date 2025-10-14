@@ -145,7 +145,7 @@ export default function DNSManagement({ isOpen, onClose }: DNSManagementProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-8 pt-16 pb-16">
       <div className="w-full max-w-6xl max-h-[90vh] bg-background border shadow-2xl rounded-lg overflow-hidden">
         <div className="flex flex-col h-full">
           {/* Header */}
@@ -411,7 +411,7 @@ export default function DNSManagement({ isOpen, onClose }: DNSManagementProps) {
 
       {/* Create Record Modal would go here - simplified for now */}
       {showCreateForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60 p-8">
           <Card className="w-full max-w-md">
             <CardHeader>
               <CardTitle>Create DNS Record</CardTitle>

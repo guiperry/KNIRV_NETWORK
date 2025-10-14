@@ -386,10 +386,15 @@ func (dm *DVEManager) handleNodeAnnouncement(msg *models.P2PMessage) error {
 		return err
 	}
 
-	// Update node tracker
+	// Update node tracker (in-memory)
 	dm.nodeTracker.UpdateNode(&node)
 
-	log.Printf("Received node announcement from %s", node.ID)
+	// Persist to database so it's visible to API queries
+	if err := dm.storeNode(&node); err != nil {
+		log.Printf("Warning: Failed to persist P2P discovered node %s to database: %v", node.ID, err)
+	}
+
+	log.Printf("Received node announcement from %s and persisted to database", node.ID)
 	return nil
 }
 

@@ -8,17 +8,20 @@ export const ROLES = {
   admin: {
     permissions: ['*:*'],
     nexus_access: ['dve:*', 'validation:*', 'system:*'],
-    description: 'Full administrative access'
+    description: 'Full administrative access',
+    displayName: 'Root'
   },
   validator: {
     permissions: ['nexus:read', 'nexus:validate', 'nexus:update_assigned'],
     nexus_access: ['dve:read', 'validation:read', 'validation:execute', 'system:read'],
-    description: 'Validator node operator with scoped access'
+    description: 'Validator node operator with scoped access',
+    displayName: 'Operator'
   },
   observer: {
     permissions: ['*:read'],
     nexus_access: ['dve:read', 'validation:read', 'system:read'],
-    description: 'Read-only access to all services'
+    description: 'Read-only access to all services',
+    displayName: 'Developer'
   }
 } as const;
 
