@@ -23,13 +23,13 @@
                 clearTimeout(timeoutId);
 
                 if (response.ok) {
-                    window.location.href = './app.html';
+                    window.location.href = './nexus-portal/app.html';
                 } else {
-                    window.location.href = './landing.html';
+                    window.location.href = './nexus-portal/landing.html';
                 }
             } catch (error) {
                 console.log('API unavailable, redirecting to landing page:', error.message);
-                window.location.href = './landing.html';
+                window.location.href = './nexus-portal/landing.html';
             }
         }
 
