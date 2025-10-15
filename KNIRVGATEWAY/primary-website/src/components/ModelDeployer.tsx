@@ -37,9 +37,11 @@ import {
 interface ModelDeployerProps {
   modelConfig: ModelConfiguration;
   onDeployed: () => void;
+  onConnectToTargets?: () => void;
+  onCompilationSuccess?: () => void;
 }
 
-const ModelDeployer = ({ modelConfig, onDeployed }: ModelDeployerProps) => {
+const ModelDeployer = ({ modelConfig, onDeployed, onConnectToTargets, onCompilationSuccess }: ModelDeployerProps) => {
   const { toast } = useToast();
   
   // Debug logging
@@ -153,27 +155,20 @@ const ModelDeployer = ({ modelConfig, onDeployed }: ModelDeployerProps) => {
   };
 
   const handleDeploy = () => {
-    console.log('handleDeploy called, onDeployed function:', onDeployed);
-    
-    // In a real implementation, this would trigger deployment to the selected targets
-    toast({
-      title: "Deployment Started",
-      description: "Your model is being deployed to the selected targets",
-    });
-    
-    // Simulate deployment completion
-    setTimeout(() => {
-      console.log('Calling onDeployed callback');
-      if (typeof onDeployed === 'function') {
-        onDeployed();
-      } else {
-        console.error('onDeployed is not a function:', onDeployed);
-      }
+    console.log('handleDeploy called, onConnectToTargets function:', onConnectToTargets);
+
+    // Call the onConnectToTargets callback to navigate to the dashboard
+    if (typeof onConnectToTargets === 'function') {
+      onConnectToTargets();
+    } else {
+      console.error('onConnectToTargets is not a function:', onConnectToTargets);
+      // Fallback to the old behavior if callback is not provided
       toast({
-        title: "Deployment Complete",
-        description: "Your model is now live and ready to use",
+        title: "Navigation Error",
+        description: "Unable to navigate to deployment dashboard",
+        variant: "destructive",
       });
-    }, 3000);
+    }
   };
 
   const getStageIcon = (stage: string) => {
@@ -202,12 +197,56 @@ const ModelDeployer = ({ modelConfig, onDeployed }: ModelDeployerProps) => {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-6">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">
-            Compile & Deploy Model
-          </h1>
-          <p className="text-slate-300">
-            Model: <span className="text-blue-400 font-medium">{modelConfig.name}</span>
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-white mb-2">
+                Compile & Pre-Train Model
+              </h1>
+              <p className="text-slate-300">
+                Model: <span className="text-blue-400 font-medium">{modelConfig.name}</span>
+              </p>
+            </div>
+            {compilationResult?.success && (
+              <div className="flex items-center space-x-4">
+                <Button
+                  onClick={handleDownload}
+                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download cortex.wasm
+                </Button>
+                <Button
+                  onClick={handleDeploy}
+                  className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
+                >
+                  <Server className="w-4 h-4 mr-2" />
+                  Connect to Targets
+                </Button>
+              </div>
+            )}
+            {!compilationResult?.success && (
+              <div className="flex items-center space-x-4">
+                <Button
+                  onClick={handleStartCompilation}
+                  disabled={isCompiling}
+                  size="lg"
+                  className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-8"
+                >
+                  {isCompiling ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Compiling Model...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-5 h-5 mr-2" />
+                      Start Compilation
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -217,8 +256,8 @@ const ModelDeployer = ({ modelConfig, onDeployed }: ModelDeployerProps) => {
               Compilation
             </TabsTrigger>
             <TabsTrigger value="monitoring" disabled={!isCompiling && !compilationResult} className="data-[state=active]:bg-blue-600">
-              <Activity className="w-4 h-4 mr-2" />
-              Monitoring
+              <Brain className="w-4 h-4 mr-2" />
+              Training
             </TabsTrigger>
             <TabsTrigger value="results" disabled={!compilationResult} className="data-[state=active]:bg-blue-600">
               <Target className="w-4 h-4 mr-2" />
@@ -276,27 +315,6 @@ const ModelDeployer = ({ modelConfig, onDeployed }: ModelDeployerProps) => {
                 )}
               </CardContent>
             </Card>
-
-            <div className="flex justify-center">
-              <Button
-                onClick={handleStartCompilation}
-                disabled={isCompiling}
-                size="lg"
-                className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-8"
-              >
-                {isCompiling ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Compiling Model...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-5 h-5 mr-2" />
-                    Start Compilation
-                  </>
-                )}
-              </Button>
-            </div>
           </TabsContent>
 
           <TabsContent value="monitoring" className="space-y-6">
@@ -446,49 +464,32 @@ const ModelDeployer = ({ modelConfig, onDeployed }: ModelDeployerProps) => {
                 {compilationResult.success && (
                   <Card className="bg-slate-800 border-slate-700">
                     <CardHeader>
-                      <CardTitle className="text-white">Download & Deploy</CardTitle>
+                      <CardTitle className="text-white">Next Steps</CardTitle>
                       <CardDescription className="text-slate-300">
-                        Your model is ready for download and deployment
+                        Your model compilation is complete! Here's what happens next:
                       </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <div className="flex flex-col sm:flex-row gap-4">
-                        <Button
-                          onClick={handleDownload}
-                          className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          Download cortex.wasm
-                        </Button>
-                        <Button
-                          onClick={handleDeploy}
-                          className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
-                        >
-                          <Server className="w-4 h-4 mr-2" />
-                          Deploy to Targets
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="border-slate-600 text-slate-300"
-                        >
-                          <Share className="w-4 h-4 mr-2" />
-                          Share Model
-                        </Button>
-                      </div>
-
-                      {compilationResult.deployment_urls && (
-                        <div className="mt-4 p-3 bg-blue-900/20 border border-blue-500/30 rounded">
-                          <h4 className="text-blue-400 font-medium mb-2">Deployment URLs</h4>
-                          <div className="space-y-1 text-sm">
-                            {Object.entries(compilationResult.deployment_urls).map(([target, url]) => (
-                              <div key={target} className="flex justify-between">
-                                <span className="text-slate-300 capitalize">{target}:</span>
-                                <span className="text-blue-400 font-mono">{url}</span>
-                              </div>
-                            ))}
-                          </div>
+                    <CardContent className="space-y-4">
+                      <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+                        <h4 className="text-blue-400 font-medium mb-2 flex items-center">
+                          <Target className="w-4 h-4 mr-2" />
+                          Model Deployment Dashboard
+                        </h4>
+                        <p className="text-slate-300 text-sm mb-3">
+                          When you click "Connect to Targets", you'll be taken to the Model Deployment Dashboard where you can:
+                        </p>
+                        <ul className="text-sm text-slate-300 space-y-1 mb-4">
+                          <li>• View all available deployment targets</li>
+                          <li>• Manage your model deployments</li>
+                          <li>• Monitor deployment status and health</li>
+                          <li>• Configure target-specific settings</li>
+                        </ul>
+                        <div className="bg-slate-800/50 rounded p-3 border-l-4 border-blue-400">
+                          <p className="text-blue-300 text-sm">
+                            <strong>💡 Tip:</strong> Look for the "Connect Your Controller" card in the dashboard to set up your KNIRVCONTROLLER mobile app connection.
+                          </p>
                         </div>
-                      )}
+                      </div>
                     </CardContent>
                   </Card>
                 )}

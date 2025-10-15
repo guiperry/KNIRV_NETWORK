@@ -514,7 +514,7 @@ func (s *InferenceService) reconfigureMOAInternal() error {
 			},
 		},
 		MaxParallel:  2,                // Or make configurable
-		ModelTimeout: 60 * time.Second, // Or make configurable
+		AgentTimeout: 60 * time.Second, // Or make configurable
 	}
 	// Aggregator uses the options of the currently selected MOA fallback model
 	aggregatorOpts := s.moaFallbackOpts

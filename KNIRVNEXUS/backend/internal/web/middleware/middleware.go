@@ -33,7 +33,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 			wrapped.statusCode,
 			duration,
 			r.RemoteAddr,
-			r.UserModel(),
+			r.UserAgent(),
 		)
 	})
 }

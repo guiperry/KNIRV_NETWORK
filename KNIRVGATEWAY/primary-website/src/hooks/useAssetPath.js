@@ -23,7 +23,7 @@ export function useAssetPath(assetPath) {
  */
 export function useAppLogo() {
   const [isLoaded, setIsLoaded] = useState(false);
-  const logoPath = useAssetPath('logo/logo.png');
+  const logoPath = useAssetPath('logo/knirv-logo.png');
   
   useEffect(() => {
     if (logoPath) {

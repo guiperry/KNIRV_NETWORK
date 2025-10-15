@@ -11,8 +11,9 @@ interface StepIndicatorProps {
 const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep }) => {
   const steps = [
     { id: 'configure', label: 'Configure Model' },
-    { id: 'deploy', label: 'Compile & Deploy' },
-    { id: 'dashboard', label: 'Connection Dashboard' }
+    { id: 'deploy', label: 'Compile & Pre-Train' },
+    { id: 'results', label: 'Download & Connect' },
+    { id: 'dashboard', label: 'Deployment Dashboard' }
   ];
 
   // Determine which steps are active based on the current step
@@ -21,9 +22,11 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep }) => {
 
     switch (stepId) {
       case 'configure':
-        return ['connect', 'configure', 'deploy', 'dashboard'].includes(currentStep);
+        return ['connect', 'configure', 'deploy', 'results', 'dashboard'].includes(currentStep);
       case 'deploy':
-        return ['deploy', 'dashboard'].includes(currentStep);
+        return ['deploy', 'results', 'dashboard'].includes(currentStep);
+      case 'results':
+        return ['results', 'dashboard'].includes(currentStep);
       case 'dashboard':
         return currentStep === 'dashboard';
       default:

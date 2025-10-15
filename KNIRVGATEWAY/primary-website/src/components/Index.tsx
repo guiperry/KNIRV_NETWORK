@@ -117,16 +117,7 @@ const Index = () => {
                   Key Neural Intelligence Reasoning Validation
                 </span>
               </div>
-              {/* Back then Sign In button */}
-              {currentStep !== 'hero' && (
-                <Button 
-                  variant="ghost" 
-                  onClick={goBack} 
-                  className="text-white/70 hover:text-white hover:bg-white/10"
-                >
-                  ← Back
-                </Button>
-              )}
+
               {isAuthenticated && user ? (
                 <div className="flex items-center space-x-2">
                   <div className="flex items-center space-x-2 text-white/70">
@@ -202,6 +193,7 @@ const Index = () => {
             }}
             settingsModalOpen={settingsModalOpen}
             setSettingsModalOpen={setSettingsModalOpen}
+            goBack={goBack}
           />
         )}
         
@@ -210,6 +202,7 @@ const Index = () => {
           <ModelDeployer
             modelConfig={modelConfig}
             onDeployed={handleModelDeployed}
+            onConnectToTargets={() => updateState({ currentStep: 'dashboard' })}
           />
         )}
         
@@ -225,6 +218,7 @@ const Index = () => {
                 connectedApp: appData
               });
             }}
+            modelConfig={modelConfig}
           />
         )}
       </main>

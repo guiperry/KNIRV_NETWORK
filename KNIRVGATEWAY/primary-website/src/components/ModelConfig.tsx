@@ -33,6 +33,7 @@ export interface ModelConfigProps {
   onDownload: (platform: 'windows' | 'mac' | 'linux') => void;
   settingsModalOpen: boolean;
   setSettingsModalOpen: (open: boolean) => void;
+  goBack?: () => void;
 }
 
 const ModelConfig = ({
@@ -44,7 +45,8 @@ const ModelConfig = ({
   setDownloadModalOpen,
   onDownload,
   settingsModalOpen,
-  setSettingsModalOpen
+  setSettingsModalOpen,
+  goBack
 }: ModelConfigProps) => {
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
@@ -83,6 +85,62 @@ const ModelConfig = ({
   // UI state
   const [activeTab, setActiveTab] = useState('model-selection');
   const [isConfiguring, setIsConfiguring] = useState(false);
+
+  // Next button state
+  const [nextButtonEnabled, setNextButtonEnabled] = useState(false);
+
+  // Update Next button state based on current tab and progress
+  useEffect(() => {
+    const updateNextButtonState = () => {
+      switch (activeTab) {
+        case 'model-selection':
+          setNextButtonEnabled(modelSource !== 'template' || selectedTemplate !== null);
+          break;
+        case 'template':
+          setNextButtonEnabled(selectedTemplate !== null);
+          break;
+        case 'configuration':
+          setNextButtonEnabled(modelName.trim() !== '' && modelDescription.trim() !== '');
+          break;
+        case 'training':
+          setNextButtonEnabled(trainingData.trim().length > 0 || uploadedFiles.length > 0);
+          break;
+        case 'deployment':
+          setNextButtonEnabled(exportTargets.length > 0);
+          break;
+        default:
+          setNextButtonEnabled(false);
+      }
+    };
+
+    updateNextButtonState();
+  }, [activeTab, modelSource, selectedTemplate, modelName, modelDescription, trainingData, uploadedFiles, exportTargets]);
+
+  const handleNext = () => {
+    switch (activeTab) {
+      case 'model-selection':
+        if (modelSource === 'template') {
+          setActiveTab('template');
+        } else {
+          setActiveTab('configuration');
+        }
+        break;
+      case 'template':
+        setActiveTab('configuration');
+        break;
+      case 'configuration':
+        setActiveTab('training');
+        break;
+      case 'training':
+        setActiveTab('deployment');
+        break;
+      case 'deployment':
+        handleConfigure();
+        break;
+      default:
+        break;
+    }
+  };
 
   const handleTemplateSelect = (template: ModelTemplate) => {
     setSelectedTemplate(template);
@@ -269,16 +327,60 @@ const ModelConfig = ({
     );
   };
 
+  const handleBackNavigation = () => {
+    const tabOrder = ['model-selection', 'template', 'configuration', 'training', 'deployment'];
+    const currentIndex = tabOrder.indexOf(activeTab);
+
+    if (currentIndex > 0) {
+      // Go to previous tab
+      setActiveTab(tabOrder[currentIndex - 1]);
+    } else {
+      // On first tab, use goBack prop or fallback to browser history
+      if (goBack) {
+        goBack();
+      } else {
+        window.history.back();
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-6">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">
-            Configure Your <span className="knirv-gradient-text">KNIRV Neural Model</span>
-          </h1>
-          <p className="text-slate-300">
-            Connected to: <span className="knirv-text-primary font-medium">{connectedApp?.name || 'No app connected'}</span>
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-white mb-2">
+                Configure Your <span className="knirv-gradient-text">KNIRV Neural Model</span>
+              </h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="outline"
+                onClick={handleBackNavigation}
+                className="border-slate-600 text-slate-300 hover:bg-slate-700"
+              >
+                ← Back
+              </Button>
+              <Button
+                onClick={handleNext}
+                disabled={!nextButtonEnabled || isConfiguring}
+                className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-6"
+              >
+                {activeTab === 'deployment' ? (
+                  <>
+                    <Cpu className="w-4 h-4 mr-2" />
+                    Configure Model
+                  </>
+                ) : (
+                  <>
+                    Next
+                    <Zap className="w-4 h-4 ml-2" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
