@@ -17,13 +17,13 @@ import (
 	dataengine "nexus-backend/internal/data-engine"
 	"nexus-backend/internal/database"
 	"nexus-backend/internal/inference"
-	agentserver "nexus-backend/internal/services/agent-server"
-	"nexus-backend/internal/services/agentmanagement"
 	"nexus-backend/internal/services/cde"
 	"nexus-backend/internal/services/controllerintegration"
 	"nexus-backend/internal/services/dns"
 	"nexus-backend/internal/services/dvemanager"
 	"nexus-backend/internal/services/dverental"
+	modelserver "nexus-backend/internal/services/model-server"
+	"nexus-backend/internal/services/modelmanagement"
 	"nexus-backend/internal/services/systemhealth"
 	"nexus-backend/internal/services/teesecurity"
 	"nexus-backend/internal/services/validation"
@@ -56,13 +56,13 @@ type Server struct {
 	validationCore               *validation.ValidationCore
 	cdeService                   *cde.CDEService
 	dnsService                   *dns.DynamicDNSService
-	agentServer                  *agentserver.AgentServer
+	modelServer                  *modelserver.ModelServer
 	dataEngine                   *dataengine.BuntDBDataEngine
 	inferenceService             *inference.InferenceService
 	websocketService             *websocket.WebSocketService
 	teeSecurityService           *teesecurity.TEESecurityService
 	systemHealthService          *systemhealth.SystemHealthService
-	agentManagementService       *agentmanagement.AgentManagementService
+	modelManagementService       *modelmanagement.ModelManagementService
 	controllerIntegrationService *controllerintegration.ControllerIntegrationService
 	dveRentalService             *dverental.DVERentalService
 
@@ -102,9 +102,9 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize validation core: %w", err)
 	}
 
-	agentServer, err := agentserver.NewAgentServer(cfg, dbManager)
+	modelServer, err := modelserver.NewModelServer(cfg, dbManager)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize agent server: %w", err)
+		return nil, fmt.Errorf("failed to initialize model server: %w", err)
 	}
 
 	// Initialize data engine
@@ -141,9 +141,9 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	systemHealthService := systemhealth.NewSystemHealthService(dbManager.GetDB())
 	systemHealthService.SetServiceReferences(dveManager, validationCore, inferenceService, teeSecurityService)
 
-	// Initialize Agent Management service
-	agentManagementService := agentmanagement.NewAgentManagementService(dbManager.GetDB())
-	agentManagementService.SetAgentServerReference(agentServer)
+	// Initialize Model Management service
+	modelManagementService := modelmanagement.NewModelManagementService(dbManager.GetDB())
+	modelManagementService.SetModelServerReference(modelServer)
 
 	// Initialize Controller Integration service
 	controllerIntegrationService := controllerintegration.NewControllerIntegrationService(dbManager.GetDB())
@@ -218,13 +218,13 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		validationCore:               validationCore,
 		cdeService:                   cdeService,
 		dnsService:                   dnsService,
-		agentServer:                  agentServer,
+		modelServer:                  modelServer,
 		dataEngine:                   dataEngine,
 		inferenceService:             inferenceService,
 		websocketService:             websocketService,
 		teeSecurityService:           teeSecurityService,
 		systemHealthService:          systemHealthService,
-		agentManagementService:       agentManagementService,
+		modelManagementService:       modelManagementService,
 		controllerIntegrationService: controllerIntegrationService,
 		dveRentalService:             dveRentalService,
 		ctx:                          ctx,
@@ -279,9 +279,9 @@ func (s *Server) setupRoutes() {
 		s.validationCore.RegisterRoutes(s.router, authMiddleware)
 	}
 
-	// Register agent server routes
-	if s.agentServer != nil {
-		s.agentServer.RegisterRoutes(s.router)
+	// Register model server routes
+	if s.modelServer != nil {
+		s.modelServer.RegisterRoutes(s.router)
 	}
 
 	// Register CDE service routes (when available)
@@ -335,11 +335,11 @@ func (s *Server) setupRoutes() {
 		log.Println("System health service routes configured")
 	}
 
-	// Register agent management service routes
-	if s.agentManagementService != nil {
-		agentManagementHandlers := web.NewAgentManagementHandlers(s.agentManagementService)
-		agentManagementHandlers.RegisterRoutes(s.router, authMiddleware)
-		log.Println("Agent management service routes configured")
+	// Register model management service routes
+	if s.modelManagementService != nil {
+		modelManagementHandlers := web.NewModelManagementHandlers(s.modelManagementService)
+		modelManagementHandlers.RegisterRoutes(s.router, authMiddleware)
+		log.Println("Model management service routes configured")
 	}
 
 	// Register controller integration service routes
@@ -387,12 +387,12 @@ func (s *Server) Start() error {
 		log.Println("Validation Core started")
 	}
 
-	// Start agent server
-	if s.agentServer != nil {
-		if err := s.agentServer.Start(); err != nil {
-			return fmt.Errorf("failed to start agent server: %w", err)
+	// Start model server
+	if s.modelServer != nil {
+		if err := s.modelServer.Start(); err != nil {
+			return fmt.Errorf("failed to start model server: %w", err)
 		}
-		log.Println("Agent Server started")
+		log.Println("Model Server started")
 	}
 
 	// Start CDE service
@@ -440,12 +440,12 @@ func (s *Server) Start() error {
 		log.Println("System Health Service started")
 	}
 
-	// Start Agent Management service
-	if s.agentManagementService != nil {
-		if err := s.agentManagementService.Start(); err != nil {
-			return fmt.Errorf("failed to start Agent Management service: %w", err)
+	// Start Model Management service
+	if s.modelManagementService != nil {
+		if err := s.modelManagementService.Start(); err != nil {
+			return fmt.Errorf("failed to start Model Management service: %w", err)
 		}
-		log.Println("Agent Management Service started")
+		log.Println("Model Management Service started")
 	}
 
 	// Start Controller Integration service
@@ -535,9 +535,9 @@ func (s *Server) Stop() error {
 		}
 	}
 
-	if s.agentManagementService != nil {
-		if err := s.agentManagementService.Stop(); err != nil {
-			log.Printf("Error stopping Agent Management service: %v", err)
+	if s.modelManagementService != nil {
+		if err := s.modelManagementService.Stop(); err != nil {
+			log.Printf("Error stopping Model Management service: %v", err)
 		}
 	}
 
@@ -571,9 +571,9 @@ func (s *Server) Stop() error {
 		}
 	}
 
-	if s.agentServer != nil {
-		if err := s.agentServer.Stop(); err != nil {
-			log.Printf("Error stopping agent server: %v", err)
+	if s.modelServer != nil {
+		if err := s.modelServer.Stop(); err != nil {
+			log.Printf("Error stopping model server: %v", err)
 		}
 	}
 
@@ -622,7 +622,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 			"p2p_manager":       s.p2pManager != nil,
 			"dve_manager":       s.dveManager != nil,
 			"validation_core":   s.validationCore != nil,
-			"agent_server":      s.agentServer != nil,
+			"model_server":      s.modelServer != nil,
 			"data_engine":       s.dataEngine != nil,
 			"inference_service": s.inferenceService != nil,
 			"websocket_service": s.websocketService != nil,

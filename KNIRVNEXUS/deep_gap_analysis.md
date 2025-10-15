@@ -94,6 +94,1038 @@ KNIRVNEXUS is a partially complete application with a solid architectural founda
 
 ---
 
+#### Detailed Implementation Plan: Validation Execution Logic
+
+**Current Architecture Analysis:**
+
+The validation service has a solid foundation with the following components:
+
+1. **validation_core.go** - Main orchestrator with:
+   - `ValidationCore` struct managing task lifecycle
+   - `TaskQueue` for pending task management
+   - `ValidationExecutor` for concurrent execution control
+   - Database persistence with BuntDB
+   - P2P integration for distributed validation
+   - Placeholder validation methods (`validateSkillNode`, `validateBaseLLM`, `validateCustom`)
+
+2. **validation_executor.go** - Execution management with:
+   - Concurrent execution tracking
+   - Priority-based preemption
+   - Resource limit enforcement
+   - Execution timeout monitoring
+
+3. **task_queue.go** - Queue management with:
+   - Priority-based task ordering
+   - Status filtering and statistics
+   - TEE-aware task routing
+
+4. **llm_validator.go** - Comprehensive deterministic validation framework with:
+   - `ValidationOrchestrator` for coordinating multiple validators
+   - 6 deterministic validators (keyword, forbidden content, length, structure, contradiction, JSON)
+   - Extensible `Validator` interface
+   - Detailed validation reporting with confidence scores
+
+5. **factuality_slice_integration.md** - Strategic framework for:
+   - Evidence-grounded responses with citations
+   - Confidence calibration and refusal mechanisms
+   - Integration with KNIRV D-TEN architecture
+   - NRN token economics for factuality rewards
+
+6. **Inference Service** (`backend/internal/inference/`) - Fully implemented multi-provider LLM system with:
+   - Primary and fallback LLM attempts (Cerebras, Gemini, DeepSeek)
+   - Context management for large inputs
+   - Mixture of Agents (MOA) support
+   - Delegator service for intelligent routing
+
+**Integration Strategy:**
+
+##### Phase 1: Integrate LLM Validator Framework (Week 1-2)
+
+**Step 1.1: Refactor llm_validator.go for Package Integration**
+
+Current `llm_validator.go` is a standalone file with `package main`. Refactor to integrate with validation service:
+
+```go
+// File: backend/internal/services/validation/validators.go
+package validation
+
+import (
+    "context"
+    "encoding/json"
+    "fmt"
+    "regexp"
+    "strings"
+    "time"
+)
+
+// LLMResponse encapsulates the input and output for validation
+type LLMResponse struct {
+    Prompt    string
+    Output    string
+    Context   map[string]interface{}
+    Timestamp time.Time
+}
+
+// ValidationResult holds the outcome of a validation check
+type ValidatorResult struct {
+    ValidatorName string
+    IsValid       bool
+    Confidence    float64
+    Message       string
+    Details       map[string]interface{}
+    Duration      time.Duration
+}
+
+// ValidationReport aggregates all validation results
+type ValidationReport struct {
+    Response       LLMResponse
+    Results        []ValidatorResult
+    OverallValid   bool
+    OverallScore   float64
+    ExecutionTime  time.Duration
+    FailureReasons []string
+}
+
+// Validator interface for all validation checks
+type Validator interface {
+    Name() string
+    Validate(ctx context.Context, response LLMResponse) ValidatorResult
+    Priority() int
+}
+
+// ValidationOrchestrator manages multiple validators
+type ValidationOrchestrator struct {
+    Validators      []Validator
+    StopOnFailure   bool
+    MinPassingScore float64
+}
+
+// ... (Include all deterministic validators from llm_validator.go)
+```
+
+**Step 1.2: Create LLM-Based Validators Using Inference Service**
+
+```go
+// File: backend/internal/services/validation/llm_validators.go
+package validation
+
+import (
+    "context"
+    "encoding/json"
+    "fmt"
+    "nexus-backend/internal/inference"
+)
+
+// LLMEvaluator wraps the inference service for validation
+type LLMEvaluator struct {
+    inferenceService *inference.InferenceService
+}
+
+// NewLLMEvaluator creates a new LLM evaluator
+func NewLLMEvaluator(inferenceService *inference.InferenceService) *LLMEvaluator {
+    return &LLMEvaluator{
+        inferenceService: inferenceService,
+    }
+}
+
+// ReasoningQualityValidator evaluates reasoning quality using LLM
+type ReasoningQualityValidator struct {
+    evaluator *LLMEvaluator
+    criteria  string
+}
+
+func (rqv *ReasoningQualityValidator) Name() string {
+    return "ReasoningQualityValidator"
+}
+
+func (rqv *ReasoningQualityValidator) Priority() int {
+    return 200
+}
+
+func (rqv *ReasoningQualityValidator) Validate(ctx context.Context, response LLMResponse) ValidatorResult {
+    start := time.Now()
+    
+    evaluationPrompt := fmt.Sprintf(`You are evaluating the reasoning quality of an LLM response.
+
+Original Prompt: %s
+
+LLM Response: %s
+
+Evaluation Criteria: %s
+
+Provide a score from 0.0 to 1.0 (0=poor, 1=excellent) and a brief explanation.
+
+Respond in JSON format:
+{"score": 0.85, "explanation": "..."}`, response.Prompt, response.Output, rqv.criteria)
+
+    // Use inference service to evaluate
+    result, err := rqv.evaluator.inferenceService.Generate(ctx, evaluationPrompt, nil)
+    if err != nil {
+        return ValidatorResult{
+            ValidatorName: rqv.Name(),
+            IsValid:       false,
+            Confidence:    0.0,
+            Message:       fmt.Sprintf("LLM evaluation failed: %v", err),
+            Duration:      time.Since(start),
+        }
+    }
+    
+    // Parse JSON response
+    var evalResult struct {
+        Score       float64 `json:"score"`
+        Explanation string  `json:"explanation"`
+    }
+    
+    if err := json.Unmarshal([]byte(result), &evalResult); err != nil {
+        return ValidatorResult{
+            ValidatorName: rqv.Name(),
+            IsValid:       false,
+            Confidence:    0.0,
+            Message:       fmt.Sprintf("Failed to parse evaluation: %v", err),
+            Duration:      time.Since(start),
+        }
+    }
+    
+    isValid := evalResult.Score >= 0.7 // Threshold for passing
+    
+    return ValidatorResult{
+        ValidatorName: rqv.Name(),
+        IsValid:       isValid,
+        Confidence:    evalResult.Score,
+        Message:       evalResult.Explanation,
+        Details: map[string]interface{}{
+            "score": evalResult.Score,
+        },
+        Duration: time.Since(start),
+    }
+}
+
+// FactualityValidator checks factual accuracy with evidence grounding
+type FactualityValidator struct {
+    evaluator        *LLMEvaluator
+    evidenceChunks   []string
+    requireCitations bool
+    minConfidence    float64
+}
+
+func (fv *FactualityValidator) Name() string {
+    return "FactualityValidator"
+}
+
+func (fv *FactualityValidator) Priority() int {
+    return 250 // Highest priority for factuality
+}
+
+func (fv *FactualityValidator) Validate(ctx context.Context, response LLMResponse) ValidatorResult {
+    start := time.Now()
+    
+    // Build evidence context
+    evidenceContext := ""
+    if len(fv.evidenceChunks) > 0 {
+        evidenceContext = "Evidence:\n" + strings.Join(fv.evidenceChunks, "\n\n")
+    }
+    
+    evaluationPrompt := fmt.Sprintf(`You are evaluating the factual accuracy of an LLM response.
+
+%s
+
+Question: %s
+
+LLM Response: %s
+
+Evaluate:
+1. Is the response factually accurate based on the evidence?
+2. Are claims properly grounded in evidence?
+3. What is the confidence level (0.0-1.0)?
+4. Should this response be refused due to insufficient evidence?
+
+Respond in JSON format:
+{
+    "is_accurate": true/false,
+    "confidence": 0.85,
+    "citations": [0, 2, 5],
+    "refused": false,
+    "explanation": "..."
+}`, evidenceContext, response.Prompt, response.Output)
+
+    result, err := fv.evaluator.inferenceService.Generate(ctx, evaluationPrompt, nil)
+    if err != nil {
+        return ValidatorResult{
+            ValidatorName: fv.Name(),
+            IsValid:       false,
+            Confidence:    0.0,
+            Message:       fmt.Sprintf("Factuality check failed: %v", err),
+            Duration:      time.Since(start),
+        }
+    }
+    
+    var evalResult struct {
+        IsAccurate  bool      `json:"is_accurate"`
+        Confidence  float64   `json:"confidence"`
+        Citations   []int     `json:"citations"`
+        Refused     bool      `json:"refused"`
+        Explanation string    `json:"explanation"`
+    }
+    
+    if err := json.Unmarshal([]byte(result), &evalResult); err != nil {
+        return ValidatorResult{
+            ValidatorName: fv.Name(),
+            IsValid:       false,
+            Confidence:    0.0,
+            Message:       fmt.Sprintf("Failed to parse factuality result: %v", err),
+            Duration:      time.Since(start),
+        }
+    }
+    
+    // Apply refusal gate (from factuality_slice_integration.md)
+    if evalResult.Refused || evalResult.Confidence < fv.minConfidence {
+        return ValidatorResult{
+            ValidatorName: fv.Name(),
+            IsValid:       false,
+            Confidence:    evalResult.Confidence,
+            Message:       "Insufficient evidence or low confidence - response should be refused",
+            Details: map[string]interface{}{
+                "refused":     true,
+                "confidence":  evalResult.Confidence,
+                "explanation": evalResult.Explanation,
+            },
+            Duration: time.Since(start),
+        }
+    }
+    
+    isValid := evalResult.IsAccurate && evalResult.Confidence >= fv.minConfidence
+    
+    return ValidatorResult{
+        ValidatorName: fv.Name(),
+        IsValid:       isValid,
+        Confidence:    evalResult.Confidence,
+        Message:       evalResult.Explanation,
+        Details: map[string]interface{}{
+            "is_accurate": evalResult.IsAccurate,
+            "confidence":  evalResult.Confidence,
+            "citations":   evalResult.Citations,
+            "refused":     evalResult.Refused,
+        },
+        Duration: time.Since(start),
+    }
+}
+```
+
+**Step 1.3: Update ValidationCore to Use Validators**
+
+```go
+// File: backend/internal/services/validation/validation_core.go
+// Add to ValidationCore struct:
+
+type ValidationCore struct {
+    db                    *buntdb.DB
+    p2pManager            *p2p.DVEP2PManager
+    config                *config.Config
+    taskQueue             *TaskQueue
+    executor              *ValidationExecutor
+    inferenceService      *inference.InferenceService  // ADD THIS
+    validationOrchestrator *ValidationOrchestrator     // ADD THIS
+    llmEvaluator          *LLMEvaluator                // ADD THIS
+    ctx                   context.Context
+    cancel                context.CancelFunc
+    mu                    sync.RWMutex
+}
+
+// Update NewValidationCore:
+func NewValidationCore(
+    db *buntdb.DB, 
+    p2pManager *p2p.DVEP2PManager, 
+    cfg *config.Config,
+    inferenceService *inference.InferenceService,  // ADD THIS
+) (*ValidationCore, error) {
+    ctx, cancel := context.WithCancel(context.Background())
+    
+    // Initialize LLM evaluator
+    llmEvaluator := NewLLMEvaluator(inferenceService)
+    
+    // Initialize validation orchestrator with all validators
+    orchestrator := &ValidationOrchestrator{
+        Validators:      []Validator{},
+        StopOnFailure:   false,
+        MinPassingScore: 0.7,
+    }
+    
+    // Add deterministic validators
+    orchestrator.Validators = append(orchestrator.Validators,
+        &OutputLengthValidator{MinWords: 10, MaxWords: 5000},
+        &ForbiddenContentValidator{
+            ForbiddenPatterns: []string{"hack", "exploit", "malicious"},
+            UseRegex:          false,
+        },
+        &JSONFormatValidator{RequireValidJSON: false}, // Only for JSON responses
+    )
+    
+    // Add LLM-based validators
+    orchestrator.Validators = append(orchestrator.Validators,
+        &ReasoningQualityValidator{
+            evaluator: llmEvaluator,
+            criteria:  "Logical coherence, step-by-step reasoning, clear conclusions",
+        },
+        &FactualityValidator{
+            evaluator:        llmEvaluator,
+            evidenceChunks:   []string{}, // Will be populated per task
+            requireCitations: true,
+            minConfidence:    0.7,
+        },
+    )
+    
+    core := &ValidationCore{
+        db:                     db,
+        p2pManager:             p2pManager,
+        config:                 cfg,
+        inferenceService:       inferenceService,
+        validationOrchestrator: orchestrator,
+        llmEvaluator:           llmEvaluator,
+        taskQueue: &TaskQueue{
+            tasks: make(map[string]*models.ValidationTask),
+        },
+        executor: &ValidationExecutor{
+            maxConcurrent: cfg.Validation.MaxConcurrent,
+            running:       make(map[string]*ValidationExecution),
+        },
+        ctx:    ctx,
+        cancel: cancel,
+    }
+    
+    // Register P2P handlers
+    p2pManager.RegisterMessageHandler(p2p.MessageTypeValidationRequest, core)
+    p2pManager.RegisterMessageHandler(p2p.MessageTypeTaskAssignment, core)
+    
+    return core, nil
+}
+```
+
+##### Phase 2: Implement Test Case Execution (Week 2-3)
+
+**Step 2.1: Create Test Case Executor**
+
+```go
+// File: backend/internal/services/validation/test_executor.go
+package validation
+
+import (
+    "context"
+    "fmt"
+    "time"
+    "nexus-backend/internal/models"
+    "nexus-backend/internal/inference"
+)
+
+// TestCaseExecutor executes individual test cases
+type TestCaseExecutor struct {
+    inferenceService *inference.InferenceService
+    orchestrator     *ValidationOrchestrator
+}
+
+// NewTestCaseExecutor creates a new test case executor
+func NewTestCaseExecutor(
+    inferenceService *inference.InferenceService,
+    orchestrator *ValidationOrchestrator,
+) *TestCaseExecutor {
+    return &TestCaseExecutor{
+        inferenceService: inferenceService,
+        orchestrator:     orchestrator,
+    }
+}
+
+// ExecuteTestCase runs a single test case against skill code
+func (tce *TestCaseExecutor) ExecuteTestCase(
+    ctx context.Context,
+    testCase models.TestCase,
+    skillCode string,
+) models.TestResult {
+    startTime := time.Now()
+    
+    // Step 1: Execute the skill code with test input
+    executionPrompt := fmt.Sprintf(`Execute the following skill code with the given input:
+
+Skill Code:
+%s
+
+Input:
+%s
+
+Provide the output.`, skillCode, testCase.Input)
+    
+    output, err := tce.inferenceService.Generate(ctx, executionPrompt, nil)
+    if err != nil {
+        return models.TestResult{
+            TestCaseID:    testCase.ID,
+            Status:        "error",
+            ActualOutput:  "",
+            ErrorMessage:  fmt.Sprintf("Execution failed: %v", err),
+            Score:         0.0,
+            ExecutionTime: time.Since(startTime),
+        }
+    }
+    
+    // Step 2: Run validation orchestrator on the output
+    llmResponse := LLMResponse{
+        Prompt:    testCase.Input,
+        Output:    output,
+        Context:   map[string]interface{}{"expected": testCase.Expected},
+        Timestamp: time.Now(),
+    }
+    
+    validationReport := tce.orchestrator.RunValidation(ctx, llmResponse)
+    
+    // Step 3: Compare output with expected result
+    score := tce.calculateScore(output, testCase.Expected, validationReport)
+    
+    status := "passed"
+    if score < 0.7 {
+        status = "failed"
+    }
+    
+    return models.TestResult{
+        TestCaseID:    testCase.ID,
+        Status:        status,
+        ActualOutput:  output,
+        Score:         score,
+        ExecutionTime: time.Since(startTime),
+        Details: map[string]interface{}{
+            "validation_report": validationReport,
+            "expected":          testCase.Expected,
+        },
+    }
+}
+
+// calculateScore computes the test case score
+func (tce *TestCaseExecutor) calculateScore(
+    actual string,
+    expected string,
+    validationReport ValidationReport,
+) float64 {
+    // Combine validation score with output matching
+    validationScore := validationReport.OverallScore
+    
+    // Simple string similarity (can be enhanced with semantic similarity)
+    matchScore := tce.calculateStringSimilarity(actual, expected)
+    
+    // Weighted combination: 60% validation, 40% output match
+    finalScore := (validationScore * 0.6) + (matchScore * 0.4)
+    
+    return finalScore
+}
+
+// calculateStringSimilarity computes string similarity (0.0 to 1.0)
+func (tce *TestCaseExecutor) calculateStringSimilarity(s1, s2 string) float64 {
+    // Simple implementation - can be enhanced with Levenshtein distance
+    if s1 == s2 {
+        return 1.0
+    }
+    
+    // Normalize and compare
+    s1Lower := strings.ToLower(strings.TrimSpace(s1))
+    s2Lower := strings.ToLower(strings.TrimSpace(s2))
+    
+    if s1Lower == s2Lower {
+        return 0.95
+    }
+    
+    // Check if one contains the other
+    if strings.Contains(s1Lower, s2Lower) || strings.Contains(s2Lower, s1Lower) {
+        return 0.8
+    }
+    
+    // Calculate word overlap
+    words1 := strings.Fields(s1Lower)
+    words2 := strings.Fields(s2Lower)
+    
+    commonWords := 0
+    for _, w1 := range words1 {
+        for _, w2 := range words2 {
+            if w1 == w2 {
+                commonWords++
+                break
+            }
+        }
+    }
+    
+    if len(words1) == 0 || len(words2) == 0 {
+        return 0.0
+    }
+    
+    overlap := float64(commonWords) / float64(max(len(words1), len(words2)))
+    return overlap * 0.7 // Scale down for partial matches
+}
+
+func max(a, b int) int {
+    if a > b {
+        return a
+    }
+    return b
+}
+```
+
+**Step 2.2: Update validateSkillNode Implementation**
+
+```go
+// File: backend/internal/services/validation/validation_core.go
+// Replace the placeholder validateSkillNode method:
+
+func (vc *ValidationCore) validateSkillNode(
+    ctx context.Context,
+    task *models.ValidationTask,
+    result *models.ValidationResult,
+) (*models.ValidationResult, error) {
+    startTime := time.Now()
+    
+    log.Printf("Validating SkillNode for task %s with %d test cases", task.ID, len(task.TestCases))
+    
+    // Create test case executor
+    testExecutor := NewTestCaseExecutor(vc.inferenceService, vc.validationOrchestrator)
+    
+    // Execute all test cases
+    testResults := make([]models.TestResult, len(task.TestCases))
+    totalScore := 0.0
+    
+    for i, testCase := range task.TestCases {
+        // Execute test case with timeout
+        testCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+        testResult := testExecutor.ExecuteTestCase(testCtx, testCase, task.SkillCode)
+        cancel()
+        
+        testResults[i] = testResult
+        totalScore += testResult.Score * testCase.Weight
+        
+        log.Printf("Test case %s: status=%s, score=%.2f", testCase.ID, testResult.Status, testResult.Score)
+    }
+    
+    // Calculate overall score
+    var totalWeight float64
+    for _, testCase := range task.TestCases {
+        totalWeight += testCase.Weight
+    }
+    
+    overallScore := totalScore / totalWeight
+    
+    // Determine status based on score
+    status := "success"
+    if overallScore < 0.5 {
+        status = "failed"
+    } else if overallScore < 0.7 {
+        status = "partial"
+    }
+    
+    result.Status = status
+    result.Score = overallScore
+    result.TestResults = testResults
+    result.Results = map[string]interface{}{
+        "skill_validation":  "completed",
+        "test_cases_passed": vc.countPassedTests(testResults),
+        "total_test_cases":  len(testResults),
+        "overall_score":     overallScore,
+    }
+    result.ExecutionTime = time.Since(startTime)
+    
+    // Generate cryptographic proof
+    result.Proof = vc.generateValidationProof(task, result)
+    
+    log.Printf("SkillNode validation completed: score=%.2f, status=%s", overallScore, status)
+    
+    return result, nil
+}
+```
+
+##### Phase 3: Implement Base LLM Validation with Factuality Slice (Week 3-4)
+
+**Step 3.1: Create Base LLM Validator**
+
+```go
+// File: backend/internal/services/validation/base_llm_validator.go
+package validation
+
+import (
+    "context"
+    "fmt"
+    "time"
+    "nexus-backend/internal/models"
+)
+
+// BaseLLMValidator validates base LLM models
+type BaseLLMValidator struct {
+    inferenceService *inference.InferenceService
+    orchestrator     *ValidationOrchestrator
+}
+
+// NewBaseLLMValidator creates a new base LLM validator
+func NewBaseLLMValidator(
+    inferenceService *inference.InferenceService,
+    orchestrator *ValidationOrchestrator,
+) *BaseLLMValidator {
+    return &BaseLLMValidator{
+        inferenceService: inferenceService,
+        orchestrator:     orchestrator,
+    }
+}
+
+// ValidateBaseLLM performs comprehensive base LLM validation
+func (blv *BaseLLMValidator) ValidateBaseLLM(
+    ctx context.Context,
+    task *models.ValidationTask,
+) (*models.ValidationResult, error) {
+    startTime := time.Now()
+    
+    result := &models.ValidationResult{
+        ID:              uuid.New().String(),
+        TaskID:          task.ID,
+        ValidatorNodeID: "local-node", // TODO: Get actual node ID
+        Status:          "running",
+        CreatedAt:       time.Now(),
+    }
+    
+    // Run multiple validation dimensions
+    scores := make(map[string]float64)
+    
+    // 1. Performance validation
+    perfScore, err := blv.validatePerformance(ctx, task)
+    if err != nil {
+        log.Printf("Performance validation failed: %v", err)
+        perfScore = 0.0
+    }
+    scores["performance"] = perfScore
+    
+    // 2. Safety validation
+    safetyScore, err := blv.validateSafety(ctx, task)
+    if err != nil {
+        log.Printf("Safety validation failed: %v", err)
+        safetyScore = 0.0
+    }
+    scores["safety"] = safetyScore
+    
+    // 3. Factuality validation (using Factuality Slice approach)
+    factualityScore, err := blv.validateFactuality(ctx, task)
+    if err != nil {
+        log.Printf("Factuality validation failed: %v", err)
+        factualityScore = 0.0
+    }
+    scores["factuality"] = factualityScore
+    
+    // 4. Reasoning quality validation
+    reasoningScore, err := blv.validateReasoning(ctx, task)
+    if err != nil {
+        log.Printf("Reasoning validation failed: %v", err)
+        reasoningScore = 0.0
+    }
+    scores["reasoning"] = reasoningScore
+    
+    // Calculate weighted overall score
+    overallScore := (perfScore * 0.25) + (safetyScore * 0.25) + 
+                    (factualityScore * 0.30) + (reasoningScore * 0.20)
+    
+    result.Status = "success"
+    result.Score = overallScore
+    result.Results = map[string]interface{}{
+        "llm_validation":    "completed",
+        "performance_score": perfScore,
+        "safety_score":      safetyScore,
+        "factuality_score":  factualityScore,
+        "reasoning_score":   reasoningScore,
+        "overall_score":     overallScore,
+    }
+    result.ExecutionTime = time.Since(startTime)
+    
+    return result, nil
+}
+
+// validateFactuality implements Factuality Slice methodology
+func (blv *BaseLLMValidator) validateFactuality(
+    ctx context.Context,
+    task *models.ValidationTask,
+) (float64, error) {
+    // Extract evidence chunks from task parameters
+    evidenceChunks := []string{}
+    if evidence, ok := task.Parameters["evidence"].([]interface{}); ok {
+        for _, e := range evidence {
+            if str, ok := e.(string); ok {
+                evidenceChunks = append(evidenceChunks, str)
+            }
+        }
+    }
+    
+    // Create factuality validator with evidence
+    factValidator := &FactualityValidator{
+        evaluator:        blv.llmEvaluator,
+        evidenceChunks:   evidenceChunks,
+        requireCitations: true,
+        minConfidence:    0.7,
+    }
+    
+    // Run validation on test prompts
+    totalScore := 0.0
+    testCount := 0
+    
+    for _, testCase := range task.TestCases {
+        // Generate response from model
+        response, err := blv.inferenceService.Generate(ctx, testCase.Input, nil)
+        if err != nil {
+            continue
+        }
+        
+        // Validate factuality
+        llmResponse := LLMResponse{
+            Prompt:    testCase.Input,
+            Output:    response,
+            Context:   map[string]interface{}{"evidence": evidenceChunks},
+            Timestamp: time.Now(),
+        }
+        
+        validationResult := factValidator.Validate(ctx, llmResponse)
+        totalScore += validationResult.Confidence
+        testCount++
+    }
+    
+    if testCount == 0 {
+        return 0.0, fmt.Errorf("no test cases executed")
+    }
+    
+    return totalScore / float64(testCount), nil
+}
+
+// Additional validation methods...
+```
+
+**Step 3.2: Update validateBaseLLM in validation_core.go**
+
+```go
+// Replace placeholder validateBaseLLM method:
+func (vc *ValidationCore) validateBaseLLM(
+    ctx context.Context,
+    task *models.ValidationTask,
+    result *models.ValidationResult,
+) (*models.ValidationResult, error) {
+    log.Printf("Validating Base LLM for task %s", task.ID)
+    
+    // Create base LLM validator
+    baseLLMValidator := NewBaseLLMValidator(vc.inferenceService, vc.validationOrchestrator)
+    
+    // Perform validation
+    validationResult, err := baseLLMValidator.ValidateBaseLLM(ctx, task)
+    if err != nil {
+        return nil, fmt.Errorf("base LLM validation failed: %w", err)
+    }
+    
+    // Copy results to result object
+    result.Status = validationResult.Status
+    result.Score = validationResult.Score
+    result.Results = validationResult.Results
+    result.ExecutionTime = validationResult.ExecutionTime
+    
+    // Generate proof
+    result.Proof = vc.generateValidationProof(task, result)
+    
+    return result, nil
+}
+```
+
+##### Phase 4: Cryptographic Proof Generation (Week 4)
+
+**Step 4.1: Implement Proof Generation**
+
+```go
+// File: backend/internal/services/validation/proof_generator.go
+package validation
+
+import (
+    "crypto/sha256"
+    "encoding/hex"
+    "encoding/json"
+    "fmt"
+    "time"
+    "nexus-backend/internal/models"
+)
+
+// ProofGenerator generates cryptographic proofs for validation results
+type ProofGenerator struct {
+    nodeID string
+}
+
+// NewProofGenerator creates a new proof generator
+func NewProofGenerator(nodeID string) *ProofGenerator {
+    return &ProofGenerator{nodeID: nodeID}
+}
+
+// GenerateProof creates a cryptographic proof for a validation result
+func (pg *ProofGenerator) GenerateProof(
+    task *models.ValidationTask,
+    result *models.ValidationResult,
+) string {
+    // Create proof data structure
+    proofData := map[string]interface{}{
+        "task_id":          task.ID,
+        "result_id":        result.ID,
+        "validator_node":   pg.nodeID,
+        "timestamp":        time.Now().Unix(),
+        "score":            result.Score,
+        "status":           result.Status,
+        "execution_time":   result.ExecutionTime.Milliseconds(),
+        "test_results":     result.TestResults,
+    }
+    
+    // Serialize to JSON
+    proofJSON, err := json.Marshal(proofData)
+    if err != nil {
+        return fmt.Sprintf("proof_error_%s", task.ID)
+    }
+    
+    // Generate SHA-256 hash
+    hash := sha256.Sum256(proofJSON)
+    proofHash := hex.EncodeToString(hash[:])
+    
+    // Format proof (in production, this would be a proper cryptographic signature)
+    proof := fmt.Sprintf("PROOF_V1:%s:%s", pg.nodeID, proofHash)
+    
+    return proof
+}
+
+// VerifyProof verifies a validation proof
+func (pg *ProofGenerator) VerifyProof(proof string, task *models.ValidationTask, result *models.ValidationResult) bool {
+    // In production, implement proper signature verification
+    // For now, just check format
+    return len(proof) > 10 && proof[:8] == "PROOF_V1"
+}
+```
+
+**Step 4.2: Update generateValidationProof in validation_core.go**
+
+```go
+// Replace placeholder generateValidationProof:
+func (vc *ValidationCore) generateValidationProof(
+    task *models.ValidationTask,
+    result *models.ValidationResult,
+) string {
+    proofGen := NewProofGenerator("local-node") // TODO: Use actual node ID
+    return proofGen.GenerateProof(task, result)
+}
+```
+
+##### Phase 5: Integration and Testing (Week 5)
+
+**Step 5.1: Update main.go to Wire Dependencies**
+
+```go
+// File: backend/main.go
+// Update service initialization:
+
+// Initialize inference service
+inferenceService, err := inference.NewInferenceService(dbManager)
+if err != nil {
+    log.Fatalf("Failed to create inference service: %v", err)
+}
+if err := inferenceService.Start(); err != nil {
+    log.Fatalf("Failed to start inference service: %v", err)
+}
+
+// Initialize validation core with inference service
+validationCore, err := validation.NewValidationCore(
+    db,
+    p2pManager,
+    cfg,
+    inferenceService,  // Pass inference service
+)
+if err != nil {
+    log.Fatalf("Failed to create validation core: %v", err)
+}
+```
+
+**Step 5.2: Add Configuration**
+
+```go
+// File: backend/internal/config/config.go
+// Add validation configuration:
+
+type ValidationConfig struct {
+    MaxConcurrent        int           `yaml:"max_concurrent"`
+    Timeout              time.Duration `yaml:"timeout"`
+    MinPassingScore      float64       `yaml:"min_passing_score"`
+    EnableFactuality     bool          `yaml:"enable_factuality"`
+    FactualityThreshold  float64       `yaml:"factuality_threshold"`
+    EnableLLMValidators  bool          `yaml:"enable_llm_validators"`
+}
+```
+
+**Step 5.3: Create Integration Tests**
+
+```go
+// File: backend/internal/services/validation/validation_integration_test.go
+package validation_test
+
+import (
+    "context"
+    "testing"
+    "time"
+    "nexus-backend/internal/services/validation"
+    "nexus-backend/internal/models"
+)
+
+func TestSkillNodeValidation(t *testing.T) {
+    // Setup test environment
+    // ...
+    
+    // Create test task
+    task := &models.ValidationTask{
+        ID:   "test-task-1",
+        Type: "skillnode",
+        TestCases: []models.TestCase{
+            {
+                ID:       "tc1",
+                Input:    "Calculate 2 + 2",
+                Expected: "4",
+                Weight:   1.0,
+            },
+        },
+        SkillCode: "def calculate(input): return eval(input)",
+    }
+    
+    // Execute validation
+    result, err := validationCore.ExecuteValidation(task)
+    
+    // Assert results
+    if err != nil {
+        t.Fatalf("Validation failed: %v", err)
+    }
+    
+    if result.Score < 0.7 {
+        t.Errorf("Expected score >= 0.7, got %.2f", result.Score)
+    }
+}
+```
+
+**Implementation Timeline:**
+- Week 1-2: Integrate LLM validator framework and refactor code
+- Week 2-3: Implement test case execution engine
+- Week 3-4: Implement base LLM validation with Factuality Slice
+- Week 4: Add cryptographic proof generation
+- Week 5: Integration testing and bug fixes
+
+**Success Metrics:**
+- All test cases execute successfully with proper scoring
+- Validation reports include detailed confidence scores
+- Factuality validation achieves <0.5% hallucination rate
+- Average validation time < 30 seconds per task
+- Proof generation and verification working correctly
+
+**Dependencies:**
+- Inference service must be fully operational
+- BuntDB for task persistence
+- P2P manager for distributed validation
+- Configuration system for validator settings
+
+**Risk Mitigation:**
+- Start with deterministic validators (no external dependencies)
+- Add LLM-based validators incrementally
+- Implement comprehensive error handling and timeouts
+- Add fallback mechanisms for LLM failures
+- Monitor validation costs (LLM API usage)
+
+---
+
 ### 3. TEE (Trusted Execution Environment) Security
 
 #### Feature Name: TEE Attestation and Secure Execution
@@ -131,43 +1163,43 @@ KNIRVNEXUS is a partially complete application with a solid architectural founda
 
 ---
 
-### 4. Agent Management System
+### 4. Model Management System
 
-#### Feature Name: WASM Agent Deployment and Runtime Management
-**Description:** Upload, deploy, manage, and monitor WASM-based AI agents with resource limits and health checks.
+#### Feature Name: WASM Model Deployment and Runtime Management
+**Description:** Upload, deploy, manage, and monitor WASM-based AI models with resource limits and health checks.
 
 **Gap Type:** Backend Partially Implemented, Missing Runtime Integration
 
 **Frontend State:**
-- ✅ Comprehensive agent management UI in `src/components/agents/agent-management.tsx`
-- ✅ Hook `use-agent-management.ts` with full CRUD operations
-- ✅ Agent upload, deployment, start/stop/restart actions
+- ✅ Comprehensive model management UI in `src/components/models/model-management.tsx`
+- ✅ Hook `use-model-management.ts` with full CRUD operations
+- ✅ Model upload, deployment, start/stop/restart actions
 - ✅ Resource usage monitoring display
-- ✅ Agent type badges (WASM, LoRA, CodeT5, SEAL, NRN)
+- ✅ Model type badges (WASM, LoRA, CodeT5, SEAL, NRN)
 - ✅ Filtering by status and type
 
 **Backend State:**
-- ✅ Agent models in `backend/internal/models/agent.go`
-- ✅ Agent server structure in `backend/internal/services/agent-server/`
-- ✅ Basic agent storage and retrieval
-- ⚠️ Agent deployment partially implemented
+- ✅ Model models in `backend/internal/models/model.go`
+- ✅ Model server structure in `backend/internal/services/model-server/`
+- ✅ Basic model storage and retrieval
+- ⚠️ Model deployment partially implemented
 - ❌ WASM runtime integration incomplete
 - ❌ Resource limit enforcement not implemented
 - ❌ Health check system missing
-- ❌ Agent action handlers (start/stop/restart) return "coming soon"
+- ❌ Model action handlers (start/stop/restart) return "coming soon"
 - ❌ Runtime metrics collection not implemented
-- ❌ Agent-to-agent communication not implemented
+- ❌ Model-to-model communication not implemented
 
 **Proposed Solution:**
 1. Complete WASM runtime integration (wasmtime or wasmer)
 2. Implement resource limit enforcement (CPU, memory, disk)
 3. Add health check system with configurable endpoints
-4. Complete agent lifecycle management (start/stop/restart/scale)
+4. Complete model lifecycle management (start/stop/restart/scale)
 5. Implement runtime metrics collection
-6. Add agent sandboxing and isolation
-7. Implement agent-to-agent communication protocol
+6. Add model sandboxing and isolation
+7. Implement model-to-model communication protocol
 
-**Priority:** HIGH - Key feature for AI agent deployment
+**Priority:** HIGH - Key feature for AI model deployment
 
 ---
 
@@ -604,7 +1636,7 @@ KNIRVNEXUS is a partially complete application with a solid architectural founda
 **Current State/Issue:**
 - Single-page dashboard with tabs for different sections
 - No persistent navigation menu or breadcrumbs
-- Modal-based workflows for major features (DNS, Agents, DVE Rental)
+- Modal-based workflows for major features (DNS, Models, DVE Rental)
 - No clear user journey or onboarding flow
 - Getting Started cards are helpful but not progressive
 
@@ -614,7 +1646,7 @@ KNIRVNEXUS is a partially complete application with a solid architectural founda
      - Dashboard (Overview)
      - DVE Nodes
      - Validation Tasks
-     - Agents
+     - Models
      - DNS Management
      - Rentals
      - Security (TEE)
@@ -629,7 +1661,7 @@ KNIRVNEXUS is a partially complete application with a solid architectural founda
 
 3. **Add Progressive Onboarding:**
    - Create a multi-step setup wizard for first-time users
-   - Guide through: Controller Connection → DNS Setup → Agent Deployment → DVE Rental
+   - Guide through: Controller Connection → DNS Setup → Model Deployment → DVE Rental
    - Use progress indicators (1 of 4, 2 of 4, etc.)
    - Allow skipping steps with "Set up later" option
 
@@ -652,7 +1684,7 @@ KNIRVNEXUS is a partially complete application with a solid architectural founda
 
 #### Area: Form Design and Input Validation
 **Current State/Issue:**
-- Forms exist in modals (DNS, Agents, DVE Rental) but lack comprehensive validation
+- Forms exist in modals (DNS, Models, DVE Rental) but lack comprehensive validation
 - No inline validation feedback
 - Error messages appear only after submission
 - No field-level help text or tooltips
@@ -804,7 +1836,7 @@ KNIRVNEXUS is a partially complete application with a solid architectural founda
 3. **Add Confirmation Dialogs:**
    - Require confirmation for all destructive actions:
      - Delete DVE node
-     - Delete agent
+     - Delete model
      - Delete DNS record
      - Cancel rental
    - Use clear, specific language: "Delete node 'node-123'?" not "Are you sure?"
@@ -1178,7 +2210,7 @@ KNIRVNEXUS is a partially complete application with a solid architectural founda
 **Recommendation:**
 1. **Add Search Functionality:**
    - Implement global search across all entities
-   - Add entity-specific search (search nodes, search agents)
+   - Add entity-specific search (search nodes, search models)
    - Support fuzzy search for typos
    - Highlight search terms in results
    - Show search suggestions/autocomplete
@@ -1307,7 +2339,7 @@ KNIRVNEXUS is a partially complete application with a solid architectural founda
 
 ### High Priority (Important for Launch)
 1. **DVE Node Management** - Complete metrics and monitoring
-2. **Agent Runtime Integration** - WASM execution
+2. **Model Runtime Integration** - WASM execution
 3. **CDE Service** - Container provisioning
 4. **DVE Rental Payment Verification** - Revenue generation
 5. **Form Validation and Error Handling** - User experience
@@ -1346,7 +2378,7 @@ KNIRVNEXUS is a partially complete application with a solid architectural founda
 2. Complete P2P networking with DHT and GossipSub
 3. Implement payment verification for DVE rentals
 4. Add CDE container provisioning
-5. Complete agent WASM runtime integration
+5. Complete model WASM runtime integration
 
 ### Phase 3: User Experience (Weeks 9-12)
 1. Implement mobile responsiveness

@@ -107,7 +107,7 @@ func NewNetworkManager(ctx context.Context, config *HostConfig) (*NetworkManager
 			CustomPorts: map[string]int{
 				"dve-manager":     8080,
 				"validation-core": 8081,
-				"agent-server":    8082,
+				"model-server":    8082,
 				"data-engine":     8083,
 				"inference":       8084,
 			},

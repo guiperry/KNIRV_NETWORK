@@ -31,10 +31,10 @@ const (
 	AuthCollection     = "auth:"
 	SessionsCollection = "sessions:"
 
-	// Agent Management Collections
-	AgentsCollection        = "agents:"
-	AgentBinariesCollection = "agent_binaries:"
-	AgentRuntimeCollection  = "agent_runtime:"
+	// Model Management Collections
+	ModelsCollection        = "models:"
+	ModelBinariesCollection = "model_binaries:"
+	ModelRuntimeCollection  = "model_runtime:"
 
 	// DVE Node Collections
 	DVENodesCollection          = "dve_nodes:"
@@ -135,7 +135,7 @@ type AuthEntry struct {
 	CreatedAt time.Time              `json:"created_at"`
 	LastUsed  *time.Time             `json:"last_used,omitempty"`
 	IPAddress string                 `json:"ip_address"`
-	UserAgent string                 `json:"user_agent"`
+	UserModel string                 `json:"user_model"`
 	Revoked   bool                   `json:"revoked"`
 	Metadata  map[string]interface{} `json:"metadata"`
 }
@@ -149,12 +149,12 @@ type SessionEntry struct {
 	ExpiresAt    time.Time              `json:"expires_at"`
 	LastActivity time.Time              `json:"last_activity"`
 	IPAddress    string                 `json:"ip_address"`
-	UserAgent    string                 `json:"user_agent"`
+	UserModel    string                 `json:"user_model"`
 	Data         map[string]interface{} `json:"data"`
 }
 
-// AgentEntry represents an agent in BuntDB
-type AgentEntry struct {
+// ModelEntry represents an model in BuntDB
+type ModelEntry struct {
 	ID        string                 `json:"id"`
 	Name      string                 `json:"name"`
 	Type      string                 `json:"type"`
@@ -270,9 +270,9 @@ func (m *BuntDBManager) createIndexes() error {
 		tx.CreateIndex("system_reports_time", SystemReportsCollection+"*", buntdb.IndexJSON("timestamp"))
 		tx.CreateIndex("system_reports_type", SystemReportsCollection+"*", buntdb.IndexJSON("type"))
 
-		// Agent indexes
-		tx.CreateIndex("agents_status", AgentsCollection+"*", buntdb.IndexJSON("status"))
-		tx.CreateIndex("agents_type", AgentsCollection+"*", buntdb.IndexJSON("type"))
+		// Model indexes
+		tx.CreateIndex("models_status", ModelsCollection+"*", buntdb.IndexJSON("status"))
+		tx.CreateIndex("models_type", ModelsCollection+"*", buntdb.IndexJSON("type"))
 
 		// DVE Node indexes
 		tx.CreateIndex("dve_nodes_status", DVENodesCollection+"*", buntdb.IndexJSON("status"))
@@ -762,7 +762,7 @@ func (m *BuntDBManager) GetStats() (map[string]interface{}, error) {
 		"metrics":   m.countKeysWithPrefix(MetricsCollection),
 		"alerts":    m.countKeysWithPrefix(AlertsCollection),
 		"users":     m.countKeysWithPrefix(UsersCollection),
-		"agents":    m.countKeysWithPrefix(AgentsCollection),
+		"models":    m.countKeysWithPrefix(ModelsCollection),
 		"dve_nodes": m.countKeysWithPrefix(DVENodesCollection),
 	}
 
@@ -796,7 +796,7 @@ func (m *BuntDBManager) GetDatabaseStats() (map[string]interface{}, error) {
 			"reports":          ReportsCollection,
 			"user_reports":     UserReportsCollection,
 			"system_reports":   SystemReportsCollection,
-			"agents":           AgentsCollection,
+			"models":           ModelsCollection,
 			"dve_nodes":        DVENodesCollection,
 			"validation_tasks": ValidationTasksCollection,
 		}

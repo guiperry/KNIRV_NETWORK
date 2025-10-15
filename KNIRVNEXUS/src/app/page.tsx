@@ -17,7 +17,7 @@ import { useTEESecurity } from "@/hooks/use-tee-security";
 import { useSystemHealth } from "@/hooks/use-system-health";
 import QRCodeDisplay from "@/components/controller/qr-code-display";
 import DNSManagement from "@/components/dns/dns-management";
-import AgentManagement from "@/components/agents/agent-management";
+import ModelManagement from "@/components/models/model-management";
 import DVERentalManagement from "@/components/dve-rental/dve-rental-management";
 import { useAuth } from "@/lib/auth-context";
 import { DashboardWrapper } from "@/components/dashboard/dashboard-wrapper";
@@ -97,7 +97,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [showQRCode, setShowQRCode] = useState(false);
   const [showDNSManagement, setShowDNSManagement] = useState(false);
-  const [showAgentManagement, setShowAgentManagement] = useState(false);
+  const [showModelManagement, setShowModelManagement] = useState(false);
   const [showDVERentalManagement, setShowDVERentalManagement] = useState(false);
 
   // Helper functions to check connection/setup status
@@ -111,8 +111,8 @@ export default function Dashboard() {
     return false;
   };
 
-  const hasAgentsAdded = () => {
-    // Check if agents are added (placeholder logic)
+  const hasModelsAdded = () => {
+    // Check if models are added (placeholder logic)
     return false;
   };
 
@@ -283,22 +283,22 @@ export default function Dashboard() {
 
         <Card 
           className="knirv-card-gradient cursor-pointer hover:bg-primary/5 transition-colors border-white/20 hover:border-primary/50"
-          onClick={() => setShowAgentManagement(true)}
+          onClick={() => setShowModelManagement(true)}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {hasAgentsAdded() ? "Manage Agents" : "Add Agents"}
+              {hasModelsAdded() ? "Manage Models" : "Add Models"}
             </CardTitle>
             <Bot className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {hasAgentsAdded() ? "Active" : "Setup Required"}
+              {hasModelsAdded() ? "Active" : "Setup Required"}
             </div>
             <p className="text-xs text-muted-foreground">
-              {hasAgentsAdded() 
-                ? "Click to manage your agents" 
-                : "Deploy AI agents to the network"}
+              {hasModelsAdded() 
+                ? "Click to manage your models" 
+                : "Deploy AI models to the network"}
             </p>
           </CardContent>
         </Card>
@@ -492,10 +492,10 @@ export default function Dashboard() {
         onClose={() => setShowDNSManagement(false)}
       />
 
-      {/* Agent Management Modal */}
-      <AgentManagement
-        isOpen={showAgentManagement}
-        onClose={() => setShowAgentManagement(false)}
+      {/* Model Management Modal */}
+      <ModelManagement
+        isOpen={showModelManagement}
+        onClose={() => setShowModelManagement(false)}
       />
 
       {/* DVE Rental Management Modal */}

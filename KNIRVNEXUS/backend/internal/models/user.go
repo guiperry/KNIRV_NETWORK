@@ -6,22 +6,22 @@ import (
 
 // UserProfile represents a user in the system
 type UserProfile struct {
-	ID          string         `json:"id"`
-	Email       string         `json:"email"`
-	Username    string         `json:"username"`
-	Role        string         `json:"role"` // "admin", "operator", "validator", "viewer"
+	ID          string          `json:"id"`
+	Email       string          `json:"email"`
+	Username    string          `json:"username"`
+	Role        string          `json:"role"` // "admin", "operator", "validator", "viewer"
 	Permissions UserPermissions `json:"permissions"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
-	LastLogin   time.Time      `json:"last_login"`
-	IsActive    bool           `json:"is_active"`
-	
+	CreatedAt   time.Time       `json:"created_at"`
+	UpdatedAt   time.Time       `json:"updated_at"`
+	LastLogin   time.Time       `json:"last_login"`
+	IsActive    bool            `json:"is_active"`
+
 	// Profile information
-	FirstName   string `json:"first_name,omitempty"`
-	LastName    string `json:"last_name,omitempty"`
-	Avatar      string `json:"avatar,omitempty"`
-	Timezone    string `json:"timezone,omitempty"`
-	Language    string `json:"language,omitempty"`
+	FirstName string `json:"first_name,omitempty"`
+	LastName  string `json:"last_name,omitempty"`
+	Avatar    string `json:"avatar,omitempty"`
+	Timezone  string `json:"timezone,omitempty"`
+	Language  string `json:"language,omitempty"`
 }
 
 // UserPermissions represents user permissions in the system
@@ -45,7 +45,7 @@ type UserSession struct {
 	ExpiresAt time.Time `json:"expires_at"`
 	CreatedAt time.Time `json:"created_at"`
 	IPAddress string    `json:"ip_address"`
-	UserAgent string    `json:"user_agent"`
+	UserModel string    `json:"user_model"`
 	IsActive  bool      `json:"is_active"`
 }
 
@@ -127,7 +127,7 @@ type AuditLog struct {
 	Resource  string                 `json:"resource"`
 	Details   map[string]interface{} `json:"details"`
 	IPAddress string                 `json:"ip_address"`
-	UserAgent string                 `json:"user_agent"`
+	UserModel string                 `json:"user_model"`
 	Success   bool                   `json:"success"`
 	Error     string                 `json:"error,omitempty"`
 	Timestamp time.Time              `json:"timestamp"`
@@ -135,39 +135,39 @@ type AuditLog struct {
 
 // OAuthProvider represents an OAuth provider configuration
 type OAuthProvider struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	ClientID     string `json:"client_id"`
-	ClientSecret string `json:"client_secret"`
-	AuthURL      string `json:"auth_url"`
-	TokenURL     string `json:"token_url"`
-	UserInfoURL  string `json:"user_info_url"`
+	ID           string   `json:"id"`
+	Name         string   `json:"name"`
+	ClientID     string   `json:"client_id"`
+	ClientSecret string   `json:"client_secret"`
+	AuthURL      string   `json:"auth_url"`
+	TokenURL     string   `json:"token_url"`
+	UserInfoURL  string   `json:"user_info_url"`
 	Scopes       []string `json:"scopes"`
-	IsEnabled    bool   `json:"is_enabled"`
+	IsEnabled    bool     `json:"is_enabled"`
 }
 
 // UserPreferences represents user preferences and settings
 type UserPreferences struct {
-	UserID              string `json:"user_id"`
-	Theme               string `json:"theme"` // "light", "dark", "auto"
-	NotificationsEmail  bool   `json:"notifications_email"`
-	NotificationsPush   bool   `json:"notifications_push"`
-	DashboardLayout     string `json:"dashboard_layout"`
-	DefaultReportFormat string `json:"default_report_format"`
-	AutoRefreshInterval int    `json:"auto_refresh_interval"` // seconds
+	UserID              string    `json:"user_id"`
+	Theme               string    `json:"theme"` // "light", "dark", "auto"
+	NotificationsEmail  bool      `json:"notifications_email"`
+	NotificationsPush   bool      `json:"notifications_push"`
+	DashboardLayout     string    `json:"dashboard_layout"`
+	DefaultReportFormat string    `json:"default_report_format"`
+	AutoRefreshInterval int       `json:"auto_refresh_interval"` // seconds
 	UpdatedAt           time.Time `json:"updated_at"`
 }
 
 // APIKey represents an API key for programmatic access
 type APIKey struct {
-	ID          string    `json:"id"`
-	UserID      string    `json:"user_id"`
-	Name        string    `json:"name"`
-	Key         string    `json:"key"`
-	Permissions []string  `json:"permissions"`
+	ID          string     `json:"id"`
+	UserID      string     `json:"user_id"`
+	Name        string     `json:"name"`
+	Key         string     `json:"key"`
+	Permissions []string   `json:"permissions"`
 	ExpiresAt   *time.Time `json:"expires_at,omitempty"`
 	LastUsed    *time.Time `json:"last_used,omitempty"`
-	IsActive    bool      `json:"is_active"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	IsActive    bool       `json:"is_active"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }

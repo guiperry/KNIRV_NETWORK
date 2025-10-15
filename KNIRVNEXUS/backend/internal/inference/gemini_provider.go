@@ -173,7 +173,7 @@ func (p *GeminiProvider) Headers() map[string]string {
 
 	headers := map[string]string{
 		"Content-Type": "application/json", // Key is now in the URL
-		"User-Agent":   "Wordpress-Inference-Engine/1.0",
+		"User-Model":   "Wordpress-Inference-Engine/1.0",
 	}
 	// --- REMOVED Authorization Header ---
 	// The API key is passed via the URL parameter, not this header.

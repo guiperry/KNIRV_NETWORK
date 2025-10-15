@@ -35,7 +35,7 @@ const mockQRCodes: QRCode[] = [
     desktop_id: 'desktop-1',
     user_id: 'user-1',
     device_type: 'mobile',
-    capabilities: ['wallet', 'agent-control'],
+    capabilities: ['wallet', 'model-control'],
     status: 'active',
     created_at: '2024-01-01T00:00:00Z',
     expires_at: '2024-01-01T01:00:00Z',
@@ -48,7 +48,7 @@ const mockQRCodes: QRCode[] = [
       desktop_id: 'desktop-1',
       user_id: 'user-1',
       device_type: 'mobile',
-      capabilities: ['wallet', 'agent-control'],
+      capabilities: ['wallet', 'model-control'],
       expires_at: 1704067200,
       timestamp: 1704063600,
       signature: 'signature-1'
@@ -93,7 +93,7 @@ const mockPairingRequests: PairingRequest[] = [
     status: 'pending',
     created_at: '2024-01-01T00:00:00Z',
     expires_at: '2024-01-01T01:00:00Z',
-    capabilities: ['wallet', 'agent-control']
+    capabilities: ['wallet', 'model-control']
   },
   {
     id: 'pairing-2',
@@ -117,7 +117,7 @@ const mockSessions: ControllerSession[] = [
     mobile_device_id: 'mobile-1',
     user_id: 'user-1',
     status: 'active',
-    capabilities: ['wallet', 'agent-control'],
+    capabilities: ['wallet', 'model-control'],
     created_at: '2024-01-01T00:00:00Z',
     last_activity: '2024-01-01T00:30:00Z',
     expires_at: '2024-01-01T02:00:00Z'
@@ -143,7 +143,7 @@ const mockDevices: ControllerDevice[] = [
     device_name: 'iPhone 15',
     os_version: 'iOS 17.0',
     app_version: '1.0.0',
-    capabilities: ['wallet', 'agent-control'],
+    capabilities: ['wallet', 'model-control'],
     status: 'online',
     last_seen: '2024-01-01T00:30:00Z',
     registered_at: '2024-01-01T00:00:00Z'
@@ -209,7 +209,7 @@ describe('useControllerIntegration Hook', () => {
       desktop_id: 'desktop-1',
       user_id: 'user-1',
       device_type: 'mobile',
-      capabilities: ['wallet', 'agent-control'],
+      capabilities: ['wallet', 'model-control'],
       expires_in: 3600,
       max_scans: 5
     };

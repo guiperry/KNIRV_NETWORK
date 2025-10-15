@@ -246,7 +246,7 @@ func (p *CerebrasProvider) Headers() map[string]string {
 
 	headers := map[string]string{
 		"Content-Type": "application/json",
-		"User-Agent":   "FIG-Inference/1.0 (via Gollm Provider)",
+		"User-Model":   "FIG-Inference/1.0 (via Gollm Provider)",
 	}
 	// apiKey is now set during construction
 	if p.apiKey != "" {
@@ -993,7 +993,7 @@ func (c *CerebrasClient) MakeChatCompletionRequest(ctx context.Context, apiKey, 
 	// Set the headers
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+apiKey)
-	req.Header.Set("User-Agent", "FIG-Inference/1.0 (via Gollm Provider)") // Identify source
+	req.Header.Set("User-Model", "FIG-Inference/1.0 (via Gollm Provider)") // Identify source
 
 	// Send the request using the client's http.Client
 	resp, err := c.client.Do(req)

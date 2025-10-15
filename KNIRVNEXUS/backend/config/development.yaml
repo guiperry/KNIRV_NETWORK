@@ -40,15 +40,15 @@ data_engine:
   backup_interval: "24h"
   backup_retention: 7
 
-# Agent Server Configuration
-agent_server:
-  max_agents: 100
-  agent_timeout: "5m"
+# Model Server Configuration
+model_server:
+  max_models: 100
+  model_timeout: "5m"
   enable_isolation: true
   resource_limits:
-    max_cpu_per_agent: 1.0
-    max_memory_per_agent: 512000000  # 512MB
-    max_disk_per_agent: 1073741824   # 1GB
+    max_cpu_per_model: 1.0
+    max_memory_per_model: 512000000  # 512MB
+    max_disk_per_model: 1073741824   # 1GB
   health_check_interval: "30s"
 
 # Inference Service Configuration

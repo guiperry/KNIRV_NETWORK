@@ -56,7 +56,7 @@ export interface DeviceInfo {
   device_type: string;
   platform: string;
   version: string;
-  user_agent?: string;
+  user_model?: string;
 }
 
 export interface ControllerSession {
@@ -80,7 +80,7 @@ export interface ControllerSession {
 
 export interface ConnectionInfo {
   ip_address: string;
-  user_agent: string;
+  user_model: string;
   connection_type: string;
   encrypted: boolean;
 }

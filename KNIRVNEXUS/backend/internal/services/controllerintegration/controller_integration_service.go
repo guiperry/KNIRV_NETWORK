@@ -293,7 +293,7 @@ func (cis *ControllerIntegrationService) ConfirmPairing(pairingRequestID string,
 		DeviceInfo:     pairingRequest.DeviceInfo,
 		ConnectionInfo: &models.ConnectionInfo{
 			IPAddress:      "",
-			UserAgent:      "",
+			UserModel:      "",
 			ConnectionType: "websocket",
 			Encrypted:      true,
 		},

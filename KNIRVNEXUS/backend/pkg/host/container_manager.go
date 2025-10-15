@@ -12,50 +12,50 @@ import (
 
 // ContainerManager manages container orchestration
 type ContainerManager struct {
-	ctx      context.Context
-	config   *HostConfig
-	mu       sync.RWMutex
-	
+	ctx    context.Context
+	config *HostConfig
+	mu     sync.RWMutex
+
 	runtime    string // docker or podman
 	containers map[string]*Container
 	networks   []ContainerNetwork
-	
+
 	lastUpdate time.Time
 	running    bool
 }
 
 // Container represents a container instance
 type Container struct {
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	Image       string            `json:"image"`
-	Status      string            `json:"status"`
-	State       string            `json:"state"`
-	CreatedAt   time.Time         `json:"created_at"`
-	StartedAt   time.Time         `json:"started_at"`
-	
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Image     string    `json:"image"`
+	Status    string    `json:"status"`
+	State     string    `json:"state"`
+	CreatedAt time.Time `json:"created_at"`
+	StartedAt time.Time `json:"started_at"`
+
 	// Resource usage
-	CPUPercent    float64 `json:"cpu_percent"`
-	MemoryUsage   uint64  `json:"memory_usage"`
-	MemoryLimit   uint64  `json:"memory_limit"`
-	NetworkRx     uint64  `json:"network_rx"`
-	NetworkTx     uint64  `json:"network_tx"`
-	
+	CPUPercent  float64 `json:"cpu_percent"`
+	MemoryUsage uint64  `json:"memory_usage"`
+	MemoryLimit uint64  `json:"memory_limit"`
+	NetworkRx   uint64  `json:"network_rx"`
+	NetworkTx   uint64  `json:"network_tx"`
+
 	// Configuration
-	Ports         []PortMapping     `json:"ports"`
-	Volumes       []VolumeMapping   `json:"volumes"`
-	Environment   map[string]string `json:"environment"`
-	Networks      []string          `json:"networks"`
-	
+	Ports       []PortMapping     `json:"ports"`
+	Volumes     []VolumeMapping   `json:"volumes"`
+	Environment map[string]string `json:"environment"`
+	Networks    []string          `json:"networks"`
+
 	// KNIRV-specific
 	IsKNIRVContainer bool   `json:"is_knirv_container"`
 	ServiceType      string `json:"service_type,omitempty"`
 	P2PEnabled       bool   `json:"p2p_enabled"`
-	
+
 	// Security
-	Privileged       bool     `json:"privileged"`
-	SecurityOpts     []string `json:"security_opts"`
-	ReadOnlyRootfs   bool     `json:"read_only_rootfs"`
+	Privileged     bool     `json:"privileged"`
+	SecurityOpts   []string `json:"security_opts"`
+	ReadOnlyRootfs bool     `json:"read_only_rootfs"`
 }
 
 // ContainerNetwork represents a container network
@@ -66,11 +66,11 @@ type ContainerNetwork struct {
 	Scope    string            `json:"scope"`
 	Internal bool              `json:"internal"`
 	Options  map[string]string `json:"options"`
-	
+
 	// KNIRV-specific
-	IsKNIRVNetwork bool   `json:"is_knirv_network"`
-	P2PEnabled     bool   `json:"p2p_enabled"`
-	Encrypted      bool   `json:"encrypted"`
+	IsKNIRVNetwork bool `json:"is_knirv_network"`
+	P2PEnabled     bool `json:"p2p_enabled"`
+	Encrypted      bool `json:"encrypted"`
 }
 
 // PortMapping represents a port mapping
@@ -97,12 +97,12 @@ func NewContainerManager(ctx context.Context, config *HostConfig) (*ContainerMan
 		runtime:    config.ContainerRuntime,
 		containers: make(map[string]*Container),
 	}
-	
+
 	// Verify container runtime is available
 	if err := cm.verifyRuntime(); err != nil {
 		return nil, fmt.Errorf("container runtime verification failed: %w", err)
 	}
-	
+
 	return cm, nil
 }
 
@@ -110,30 +110,30 @@ func NewContainerManager(ctx context.Context, config *HostConfig) (*ContainerMan
 func (cm *ContainerManager) Start() error {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
-	
+
 	if cm.running {
 		return fmt.Errorf("container manager is already running")
 	}
-	
+
 	cm.running = true
-	
+
 	// Initial container scan
 	if err := cm.scanContainers(); err != nil {
 		return fmt.Errorf("initial container scan failed: %w", err)
 	}
-	
+
 	if err := cm.scanNetworks(); err != nil {
 		return fmt.Errorf("initial network scan failed: %w", err)
 	}
-	
+
 	// Setup KNIRV networks if needed
 	if err := cm.setupKNIRVNetworks(); err != nil {
 		return fmt.Errorf("failed to setup KNIRV networks: %w", err)
 	}
-	
+
 	// Start monitoring loop
 	go cm.monitorLoop()
-	
+
 	return nil
 }
 
@@ -141,7 +141,7 @@ func (cm *ContainerManager) Start() error {
 func (cm *ContainerManager) Stop() error {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
-	
+
 	cm.running = false
 	return nil
 }
@@ -150,14 +150,14 @@ func (cm *ContainerManager) Stop() error {
 func (cm *ContainerManager) GetContainerList() ([]*Container, error) {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
-	
+
 	var containers []*Container
 	for _, container := range cm.containers {
 		// Return a copy to prevent modification
 		containerCopy := *container
 		containers = append(containers, &containerCopy)
 	}
-	
+
 	return containers, nil
 }
 
@@ -165,7 +165,7 @@ func (cm *ContainerManager) GetContainerList() ([]*Container, error) {
 func (cm *ContainerManager) GetKNIRVContainers() ([]*Container, error) {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
-	
+
 	var knirvContainers []*Container
 	for _, container := range cm.containers {
 		if container.IsKNIRVContainer {
@@ -173,7 +173,7 @@ func (cm *ContainerManager) GetKNIRVContainers() ([]*Container, error) {
 			knirvContainers = append(knirvContainers, &containerCopy)
 		}
 	}
-	
+
 	return knirvContainers, nil
 }
 
@@ -181,21 +181,21 @@ func (cm *ContainerManager) GetKNIRVContainers() ([]*Container, error) {
 func (cm *ContainerManager) HealthCheck() error {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
-	
+
 	if !cm.running {
 		return fmt.Errorf("container manager is not running")
 	}
-	
+
 	// Check if runtime is still available
 	if err := cm.verifyRuntime(); err != nil {
 		return fmt.Errorf("container runtime not available: %w", err)
 	}
-	
+
 	// Check if data is stale
 	if time.Since(cm.lastUpdate) > 60*time.Second {
 		return fmt.Errorf("container data is stale (last update: %v)", cm.lastUpdate)
 	}
-	
+
 	return nil
 }
 
@@ -212,7 +212,7 @@ func (cm *ContainerManager) verifyRuntime() error {
 func (cm *ContainerManager) monitorLoop() {
 	ticker := time.NewTicker(30 * time.Second) // Container monitoring every 30 seconds
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-cm.ctx.Done():
@@ -221,15 +221,15 @@ func (cm *ContainerManager) monitorLoop() {
 			cm.mu.RLock()
 			running := cm.running
 			cm.mu.RUnlock()
-			
+
 			if !running {
 				return
 			}
-			
+
 			if err := cm.scanContainers(); err != nil {
 				fmt.Printf("Error scanning containers: %v\n", err)
 			}
-			
+
 			if err := cm.scanNetworks(); err != nil {
 				fmt.Printf("Error scanning networks: %v\n", err)
 			}
@@ -245,35 +245,35 @@ func (cm *ContainerManager) scanContainers() error {
 	if err != nil {
 		return fmt.Errorf("failed to list containers: %w", err)
 	}
-	
+
 	// Parse container information
 	containers := make(map[string]*Container)
-	
+
 	// Split output by lines for JSON parsing
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
 	for _, line := range lines {
 		if line == "" {
 			continue
 		}
-		
+
 		container, err := cm.parseContainerJSON(line)
 		if err != nil {
 			continue // Skip invalid entries
 		}
-		
+
 		// Get detailed container information
 		if err := cm.enrichContainerInfo(container); err != nil {
 			fmt.Printf("Warning: failed to enrich container info for %s: %v\n", container.ID, err)
 		}
-		
+
 		containers[container.ID] = container
 	}
-	
+
 	cm.mu.Lock()
 	cm.containers = containers
 	cm.lastUpdate = time.Now()
 	cm.mu.Unlock()
-	
+
 	return nil
 }
 
@@ -283,7 +283,7 @@ func (cm *ContainerManager) parseContainerJSON(jsonLine string) (*Container, err
 	if err := json.Unmarshal([]byte(jsonLine), &rawContainer); err != nil {
 		return nil, fmt.Errorf("failed to parse container JSON: %w", err)
 	}
-	
+
 	container := &Container{
 		ID:     getString(rawContainer, "ID"),
 		Name:   getString(rawContainer, "Names"),
@@ -291,17 +291,17 @@ func (cm *ContainerManager) parseContainerJSON(jsonLine string) (*Container, err
 		Status: getString(rawContainer, "Status"),
 		State:  getString(rawContainer, "State"),
 	}
-	
+
 	// Parse creation time
 	if createdStr := getString(rawContainer, "CreatedAt"); createdStr != "" {
 		if created, err := time.Parse(time.RFC3339, createdStr); err == nil {
 			container.CreatedAt = created
 		}
 	}
-	
+
 	// Identify KNIRV containers
 	cm.identifyKNIRVContainer(container)
-	
+
 	return container, nil
 }
 
@@ -323,18 +323,18 @@ func (cm *ContainerManager) enrichContainerInfo(container *Container) error {
 	if err != nil {
 		return fmt.Errorf("failed to inspect container: %w", err)
 	}
-	
+
 	var inspectData []map[string]interface{}
 	if err := json.Unmarshal(output, &inspectData); err != nil {
 		return fmt.Errorf("failed to parse inspect data: %w", err)
 	}
-	
+
 	if len(inspectData) == 0 {
 		return fmt.Errorf("no inspect data returned")
 	}
-	
+
 	data := inspectData[0]
-	
+
 	// Extract additional information
 	if config, ok := data["Config"].(map[string]interface{}); ok {
 		// Environment variables
@@ -350,7 +350,7 @@ func (cm *ContainerManager) enrichContainerInfo(container *Container) error {
 			}
 		}
 	}
-	
+
 	// Network settings
 	if networkSettings, ok := data["NetworkSettings"].(map[string]interface{}); ok {
 		if networks, ok := networkSettings["Networks"].(map[string]interface{}); ok {
@@ -359,7 +359,7 @@ func (cm *ContainerManager) enrichContainerInfo(container *Container) error {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -367,23 +367,23 @@ func (cm *ContainerManager) enrichContainerInfo(container *Container) error {
 func (cm *ContainerManager) identifyKNIRVContainer(container *Container) {
 	knirvKeywords := []string{
 		"knirv", "nexus", "dve-manager", "validation-core",
-		"agent-server", "data-engine", "inference",
+		"model-server", "data-engine", "inference",
 	}
-	
+
 	nameLower := strings.ToLower(container.Name)
 	imageLower := strings.ToLower(container.Image)
-	
+
 	for _, keyword := range knirvKeywords {
 		if strings.Contains(nameLower, keyword) || strings.Contains(imageLower, keyword) {
 			container.IsKNIRVContainer = true
-			
+
 			// Determine service type
 			if strings.Contains(nameLower, "dve-manager") || strings.Contains(imageLower, "dve-manager") {
 				container.ServiceType = "dve-manager"
 			} else if strings.Contains(nameLower, "validation-core") || strings.Contains(imageLower, "validation-core") {
 				container.ServiceType = "validation-core"
-			} else if strings.Contains(nameLower, "agent-server") || strings.Contains(imageLower, "agent-server") {
-				container.ServiceType = "agent-server"
+			} else if strings.Contains(nameLower, "model-server") || strings.Contains(imageLower, "model-server") {
+				container.ServiceType = "model-server"
 			} else if strings.Contains(nameLower, "data-engine") || strings.Contains(imageLower, "data-engine") {
 				container.ServiceType = "data-engine"
 			} else if strings.Contains(nameLower, "inference") || strings.Contains(imageLower, "inference") {
@@ -391,12 +391,12 @@ func (cm *ContainerManager) identifyKNIRVContainer(container *Container) {
 			} else {
 				container.ServiceType = "knirv-other"
 			}
-			
+
 			// Check for P2P enablement
-			container.P2PEnabled = strings.Contains(nameLower, "p2p") || 
-								  strings.Contains(imageLower, "p2p") ||
-								  container.ServiceType == "dve-manager"
-			
+			container.P2PEnabled = strings.Contains(nameLower, "p2p") ||
+				strings.Contains(imageLower, "p2p") ||
+				container.ServiceType == "dve-manager"
+
 			break
 		}
 	}
@@ -409,28 +409,28 @@ func (cm *ContainerManager) scanNetworks() error {
 	if err != nil {
 		return fmt.Errorf("failed to list networks: %w", err)
 	}
-	
+
 	var networks []ContainerNetwork
-	
+
 	// Parse network information
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
 	for _, line := range lines {
 		if line == "" {
 			continue
 		}
-		
+
 		network, err := cm.parseNetworkJSON(line)
 		if err != nil {
 			continue // Skip invalid entries
 		}
-		
+
 		networks = append(networks, *network)
 	}
-	
+
 	cm.mu.Lock()
 	cm.networks = networks
 	cm.mu.Unlock()
-	
+
 	return nil
 }
 
@@ -440,26 +440,26 @@ func (cm *ContainerManager) parseNetworkJSON(jsonLine string) (*ContainerNetwork
 	if err := json.Unmarshal([]byte(jsonLine), &rawNetwork); err != nil {
 		return nil, fmt.Errorf("failed to parse network JSON: %w", err)
 	}
-	
+
 	network := &ContainerNetwork{
 		ID:     getString(rawNetwork, "ID"),
 		Name:   getString(rawNetwork, "Name"),
 		Driver: getString(rawNetwork, "Driver"),
 		Scope:  getString(rawNetwork, "Scope"),
 	}
-	
+
 	// Identify KNIRV networks
 	cm.identifyKNIRVNetwork(network)
-	
+
 	return network, nil
 }
 
 // identifyKNIRVNetwork identifies if a network is KNIRV-related
 func (cm *ContainerManager) identifyKNIRVNetwork(network *ContainerNetwork) {
 	knirvPatterns := []string{"knirv", "nexus", "p2p", "dve"}
-	
+
 	nameLower := strings.ToLower(network.Name)
-	
+
 	for _, pattern := range knirvPatterns {
 		if strings.Contains(nameLower, pattern) {
 			network.IsKNIRVNetwork = true
@@ -480,21 +480,21 @@ func (cm *ContainerManager) setupKNIRVNetworks() error {
 			break
 		}
 	}
-	
+
 	// Create KNIRV network if it doesn't exist
 	if !knirvNetworkExists {
-		cmd := exec.Command(cm.runtime, "network", "create", 
+		cmd := exec.Command(cm.runtime, "network", "create",
 			"--driver", "bridge",
 			"--subnet", "172.20.0.0/16",
 			"--opt", "encrypted=true",
 			"knirv-nexus")
-		
+
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("failed to create KNIRV network: %w", err)
 		}
-		
+
 		fmt.Println("Created KNIRV network: knirv-nexus")
 	}
-	
+
 	return nil
 }

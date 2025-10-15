@@ -257,7 +257,7 @@ func (s *InferenceService) GenerateTextWithMOA(promptText string, instructionTex
 	}
 	if s.moa == nil {
 		s.mutex.Unlock()
-		return "", errors.New("MOA (Mixture of Agents) is not configured or failed to initialize")
+		return "", errors.New("MOA (Mixture of Models) is not configured or failed to initialize")
 	}
 	moaInstance := s.moa // Capture instance under lock
 	s.mutex.Unlock()
@@ -270,7 +270,7 @@ func (s *InferenceService) GenerateTextWithMOA(promptText string, instructionTex
 		combinedPrompt = "Instructions:\n" + instructionText + "\n\n---\n\n" + promptText
 	}
 
-	// Note: MOA's Generate might have its own internal timeouts based on AgentTimeout
+	// Note: MOA's Generate might have its own internal timeouts based on ModelTimeout
 	response, err := moaInstance.Generate(ctx, combinedPrompt)
 	if err != nil {
 		log.Printf("InferenceService: Direct MOA generation failed: %v", err)
@@ -514,7 +514,7 @@ func (s *InferenceService) reconfigureMOAInternal() error {
 			},
 		},
 		MaxParallel:  2,                // Or make configurable
-		AgentTimeout: 60 * time.Second, // Or make configurable
+		ModelTimeout: 60 * time.Second, // Or make configurable
 	}
 	// Aggregator uses the options of the currently selected MOA fallback model
 	aggregatorOpts := s.moaFallbackOpts

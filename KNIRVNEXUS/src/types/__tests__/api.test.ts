@@ -1,8 +1,8 @@
 import type {
   APIResponse,
   DVENode,
-  Agent,
-  AgentResourceLimits,
+  Model,
+  ModelResourceLimits,
   DNSRecord,
   DVERentalPlan,
   ValidationTask,
@@ -94,17 +94,17 @@ describe('API Types', () => {
     });
   });
 
-  describe('Agent', () => {
+  describe('Model', () => {
     it('should have all required fields', () => {
-      const agent: Agent = {
-        id: 'agent-1',
-        name: 'Test Agent',
+      const model: Model = {
+        id: 'model-1',
+        name: 'Test Model',
         description: 'Test description',
         version: '1.0.0',
         author: 'Test Author',
         type: 'WASM',
         status: 'uploaded',
-        file_path: '/path/to/agent.wasm',
+        file_path: '/path/to/model.wasm',
         file_size: 1024,
         file_hash: 'sha256-hash',
         capabilities: ['inference'],
@@ -117,17 +117,17 @@ describe('API Types', () => {
         uploaded_by: 'user-1',
       };
 
-      expect(agent.id).toBe('agent-1');
-      expect(agent.type).toBe('WASM');
-      expect(agent.status).toBe('uploaded');
-      expect(Array.isArray(agent.capabilities)).toBe(true);
-      expect(typeof agent.configuration).toBe('object');
+      expect(model.id).toBe('model-1');
+      expect(model.type).toBe('WASM');
+      expect(model.status).toBe('uploaded');
+      expect(Array.isArray(model.capabilities)).toBe(true);
+      expect(typeof model.configuration).toBe('object');
     });
   });
 
-  describe('AgentResourceLimits', () => {
+  describe('ModelResourceLimits', () => {
     it('should have correct resource limit structure', () => {
-      const limits: AgentResourceLimits = {
+      const limits: ModelResourceLimits = {
         max_memory_mb: 512,
         max_cpu_percent: 50,
         max_execution_time_seconds: 300,
@@ -281,7 +281,7 @@ describe('API Types', () => {
         permissions: {
           can_manage_users: true,
           can_manage_nodes: true,
-          can_manage_agents: true,
+          can_manage_models: true,
           can_view_metrics: true,
           can_manage_dns: true,
           can_access_admin_panel: true,

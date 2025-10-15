@@ -264,12 +264,12 @@ type DeviceInfo struct {
 	DeviceType string `json:"device_type"`
 	Platform   string `json:"platform"`
 	Version    string `json:"version"`
-	UserAgent  string `json:"user_agent,omitempty"`
+	UserModel  string `json:"user_model,omitempty"`
 }
 
 type ConnectionInfo struct {
 	IPAddress      string `json:"ip_address"`
-	UserAgent      string `json:"user_agent"`
+	UserModel      string `json:"user_model"`
 	ConnectionType string `json:"connection_type"`
 	Encrypted      bool   `json:"encrypted"`
 }

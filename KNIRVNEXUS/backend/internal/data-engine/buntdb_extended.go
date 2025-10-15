@@ -8,96 +8,96 @@ import (
 	"github.com/tidwall/buntdb"
 )
 
-// Agent Management Methods
+// Model Management Methods
 
-// CreateAgent creates a new agent
-func (m *BuntDBManager) CreateAgent(agent *AgentEntry) error {
+// CreateModel creates a new model
+func (m *BuntDBManager) CreateModel(model *ModelEntry) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	agent.CreatedAt = time.Now()
-	agent.UpdatedAt = time.Now()
+	model.CreatedAt = time.Now()
+	model.UpdatedAt = time.Now()
 
-	data, err := json.Marshal(agent)
+	data, err := json.Marshal(model)
 	if err != nil {
 		return err
 	}
 
 	return m.db.Update(func(tx *buntdb.Tx) error {
-		key := AgentsCollection + agent.ID
+		key := ModelsCollection + model.ID
 		_, _, err := tx.Set(key, string(data), nil)
 		return err
 	})
 }
 
-// GetAgent retrieves an agent by ID
-func (m *BuntDBManager) GetAgent(agentID string) (*AgentEntry, error) {
+// GetModel retrieves an model by ID
+func (m *BuntDBManager) GetModel(modelID string) (*ModelEntry, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	var agent AgentEntry
+	var model ModelEntry
 	err := m.db.View(func(tx *buntdb.Tx) error {
-		key := AgentsCollection + agentID
+		key := ModelsCollection + modelID
 		value, err := tx.Get(key)
 		if err != nil {
 			return err
 		}
-		return json.Unmarshal([]byte(value), &agent)
+		return json.Unmarshal([]byte(value), &model)
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &agent, nil
+	return &model, nil
 }
 
-// UpdateAgent updates an existing agent
-func (m *BuntDBManager) UpdateAgent(agent *AgentEntry) error {
+// UpdateModel updates an existing model
+func (m *BuntDBManager) UpdateModel(model *ModelEntry) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	agent.UpdatedAt = time.Now()
+	model.UpdatedAt = time.Now()
 
-	data, err := json.Marshal(agent)
+	data, err := json.Marshal(model)
 	if err != nil {
 		return err
 	}
 
 	return m.db.Update(func(tx *buntdb.Tx) error {
-		key := AgentsCollection + agent.ID
+		key := ModelsCollection + model.ID
 		_, _, err := tx.Set(key, string(data), nil)
 		return err
 	})
 }
 
-// ListAgentsByOwner lists all agents for a specific owner
-func (m *BuntDBManager) ListAgentsByOwner(ownerID string) ([]*AgentEntry, error) {
+// ListModelsByOwner lists all models for a specific owner
+func (m *BuntDBManager) ListModelsByOwner(ownerID string) ([]*ModelEntry, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	var agents []*AgentEntry
+	var models []*ModelEntry
 
 	err := m.db.View(func(tx *buntdb.Tx) error {
 		return tx.Ascend("", func(key, value string) bool {
-			if !strings.HasPrefix(key, AgentsCollection) {
+			if !strings.HasPrefix(key, ModelsCollection) {
 				return true
 			}
 
-			var agent AgentEntry
-			if err := json.Unmarshal([]byte(value), &agent); err != nil {
+			var model ModelEntry
+			if err := json.Unmarshal([]byte(value), &model); err != nil {
 				return true
 			}
 
-			if agent.OwnerID == ownerID {
-				agents = append(agents, &agent)
+			if model.OwnerID == ownerID {
+				models = append(models, &model)
 			}
 
 			return true
 		})
 	})
 
-	return agents, err
+	return models, err
 }
 
 // DVE Node Management Methods

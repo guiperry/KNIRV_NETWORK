@@ -7,25 +7,15 @@ export const adminGatewayConfig = {
   version: "1.0.0",
   description: "Administrative interface for KNIRV-NEXUS unified deployment management",
   
-  // Service endpoints - updated for unified NEXUS deployment
+  // Service endpoints - Remote API configuration
   services: {
-    // Unified NEXUS service (replaces separate DVE Manager and Validation Core)
+    // Primary NEXUS API (remote production endpoint)
     nexus: {
-      name: "KNIRV-NEXUS Unified Service",
-      url: process.env.KNIRVNEXUS_URL || "http://localhost:8089",
-      apiUrl: process.env.KNIRVNEXUS_API_URL || "http://localhost:8089/api",
-      healthEndpoint: "/health",
-      description: "Unified NEXUS service with embedded frontend and backend"
-    },
-
-    // Fallback API for when portal is unavailable
-    fallback: {
-      name: "KNIRV-NEXUS Fallback API",
+      name: "KNIRV-NEXUS Remote API",
       url: "https://nexus-api.knirv.com",
       apiUrl: "https://nexus-api.knirv.com/api",
       healthEndpoint: "/health",
-      description: "Fallback API endpoint for KNIRV-NEXUS when portal is unavailable",
-      isFallback: true
+      description: "Remote NEXUS API endpoint for production portal"
     },
     
     // Other KNIRV services for reference

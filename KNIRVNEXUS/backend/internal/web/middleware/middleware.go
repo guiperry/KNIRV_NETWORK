@@ -17,13 +17,13 @@ import (
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		
+
 		// Create a response writer wrapper to capture status code
 		wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
-		
+
 		// Process request
 		next.ServeHTTP(wrapped, r)
-		
+
 		// Log request
 		duration := time.Since(start)
 		log.Printf(
@@ -33,7 +33,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 			wrapped.statusCode,
 			duration,
 			r.RemoteAddr,
-			r.UserAgent(),
+			r.UserModel(),
 		)
 	})
 }
@@ -42,13 +42,13 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 func RequestIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestID := uuid.New().String()
-		
+
 		// Add request ID to context
 		ctx := context.WithValue(r.Context(), "request_id", requestID)
-		
+
 		// Add request ID to response headers
 		w.Header().Set("X-Request-ID", requestID)
-		
+
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -59,11 +59,11 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 		defer func() {
 			if err := recover(); err != nil {
 				log.Printf("Panic recovered: %v\n%s", err, debug.Stack())
-				
+
 				writeError(w, http.StatusInternalServerError, "Internal server error")
 			}
 		}()
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -73,12 +73,12 @@ func RateLimitMiddleware(requestsPerMinute int) func(http.Handler) http.Handler 
 	// Simple in-memory rate limiter
 	// In production, you'd want to use Redis or similar
 	clients := make(map[string][]time.Time)
-	
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			clientIP := getClientIP(r)
 			now := time.Now()
-			
+
 			// Clean old entries
 			if requests, exists := clients[clientIP]; exists {
 				var validRequests []time.Time
@@ -89,16 +89,16 @@ func RateLimitMiddleware(requestsPerMinute int) func(http.Handler) http.Handler 
 				}
 				clients[clientIP] = validRequests
 			}
-			
+
 			// Check rate limit
 			if len(clients[clientIP]) >= requestsPerMinute {
 				writeError(w, http.StatusTooManyRequests, "Rate limit exceeded")
 				return
 			}
-			
+
 			// Add current request
 			clients[clientIP] = append(clients[clientIP], now)
-			
+
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -149,7 +149,7 @@ func TimeoutMiddleware(timeout time.Duration) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx, cancel := context.WithTimeout(r.Context(), timeout)
 			defer cancel()
-			
+
 			r = r.WithContext(ctx)
 			next.ServeHTTP(w, r)
 		})
@@ -164,7 +164,7 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("X-XSS-Protection", "1; mode=block")
 		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		w.Header().Set("Content-Security-Policy", "default-src 'self'")
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -179,7 +179,7 @@ func ValidateJSONMiddleware(next http.Handler) http.Handler {
 				return
 			}
 		}
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -203,12 +203,12 @@ func getClientIP(r *http.Request) string {
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 		return xff
 	}
-	
+
 	// Check X-Real-IP header
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
 		return xri
 	}
-	
+
 	// Fall back to RemoteAddr
 	return r.RemoteAddr
 }

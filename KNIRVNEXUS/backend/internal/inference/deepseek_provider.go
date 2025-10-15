@@ -131,7 +131,7 @@ func (p *DeepseekProvider) Headers() map[string]string {
 	headers := map[string]string{
 		"Content-Type": "application/json",
 		"Accept":       "application/json",
-		"User-Agent":   "Wordpress-Inference-Engine/1.0 (via Gollm Provider)",
+		"User-Model":   "Wordpress-Inference-Engine/1.0 (via Gollm Provider)",
 	}
 	if p.apiKey != "" {
 		headers["Authorization"] = "Bearer " + p.apiKey

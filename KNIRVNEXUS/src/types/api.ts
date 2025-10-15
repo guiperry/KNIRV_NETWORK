@@ -39,8 +39,8 @@ export interface DVENode {
   longitude?: number; // float64 from backend
 }
 
-// Agent types - Aligned with backend models/agent.go
-export interface Agent {
+// Model types - Aligned with backend models/model.go
+export interface Model {
   id: string;
   name: string;
   description: string;
@@ -53,7 +53,7 @@ export interface Agent {
   file_hash: string;
   capabilities: string[];
   dependencies: string[];
-  resource_limits?: AgentResourceLimits;
+  resource_limits?: ModelResourceLimits;
   configuration: Record<string, any>;
   metadata: Record<string, any>;
   tags: string[];
@@ -63,10 +63,10 @@ export interface Agent {
   last_activity?: string; // ISO 8601 timestamp
   uploaded_by: string;
   deployed_by?: string;
-  runtime_instance?: AgentRuntimeInstance;
+  runtime_instance?: ModelRuntimeInstance;
 }
 
-export interface AgentResourceLimits {
+export interface ModelResourceLimits {
   max_memory_mb: number;
   max_cpu_percent: number;
   max_execution_time_seconds: number;
@@ -76,12 +76,12 @@ export interface AgentResourceLimits {
   file_system_access: boolean;
 }
 
-export interface AgentRuntimeInstance {
+export interface ModelRuntimeInstance {
   instance_id: string;
   process_id?: number;
   started_at: string; // ISO 8601 timestamp
   status: "starting" | "running" | "stopping" | "stopped" | "crashed";
-  resource_usage?: AgentResourceUsage;
+  resource_usage?: ModelResourceUsage;
   configuration: Record<string, any>;
   environment: Record<string, string>;
   health_check_url?: string;
@@ -92,7 +92,7 @@ export interface AgentRuntimeInstance {
   uptime_seconds: number;
 }
 
-export interface AgentResourceUsage {
+export interface ModelResourceUsage {
   cpu_percent: number;
   memory_mb: number;
   disk_read_mb: number;
@@ -104,14 +104,14 @@ export interface AgentResourceUsage {
   timestamp: string; // ISO 8601 timestamp
 }
 
-export interface AgentDeployment {
+export interface ModelDeployment {
   id: string;
-  agent_id: string;
+  model_id: string;
   name: string;
   description: string;
   environment: string;
   replicas: number;
-  resource_limits: AgentResourceLimits;
+  resource_limits: ModelResourceLimits;
   environment_variables: Record<string, string>;
   auto_restart: boolean;
   restart_policy: "always" | "on-failure" | "never";
@@ -119,11 +119,11 @@ export interface AgentDeployment {
   updated_at: string; // ISO 8601 timestamp
   created_by: string;
   status: "pending" | "deploying" | "deployed" | "failed" | "stopped";
-  instances: AgentRuntimeInstance[];
+  instances: ModelRuntimeInstance[];
 }
 
-export interface AgentMetrics {
-  agent_id: string;
+export interface ModelMetrics {
+  model_id: string;
   timestamp: string; // ISO 8601 timestamp
   cpu_usage_percent: number;
   memory_usage_mb: number;
@@ -136,9 +136,9 @@ export interface AgentMetrics {
   response_time_ms: number;
 }
 
-export interface AgentLog {
+export interface ModelLog {
   id: string;
-  agent_id: string;
+  model_id: string;
   level: "debug" | "info" | "warn" | "error" | "fatal";
   message: string;
   timestamp: string; // ISO 8601 timestamp
@@ -146,36 +146,36 @@ export interface AgentLog {
   metadata: Record<string, any>;
 }
 
-export interface AgentEvent {
+export interface ModelEvent {
   id: string;
-  agent_id: string;
+  model_id: string;
   type: string;
   description: string;
   timestamp: string; // ISO 8601 timestamp
   metadata: Record<string, any>;
 }
 
-export interface AgentSummary {
-  total_agents: number;
-  running_agents: number;
-  stopped_agents: number;
-  error_agents: number;
-  deployed_agents: number;
-  uploaded_agents: number;
+export interface ModelSummary {
+  total_models: number;
+  running_models: number;
+  stopped_models: number;
+  error_models: number;
+  deployed_models: number;
+  uploaded_models: number;
 }
 
-export interface AgentTemplate {
+export interface ModelTemplate {
   id: string;
   name: string;
   description: string;
   type: string;
   default_configuration: Record<string, any>;
-  default_resource_limits: AgentResourceLimits;
+  default_resource_limits: ModelResourceLimits;
   created_at: string; // ISO 8601 timestamp
   created_by: string;
 }
 
-export interface AgentAction {
+export interface ModelAction {
   action: "deploy" | "start" | "stop" | "restart" | "scale";
   parameters?: Record<string, any>;
 }
@@ -323,7 +323,7 @@ export interface UserProfile {
 export interface UserPermissions {
   can_manage_users: boolean;
   can_manage_nodes: boolean;
-  can_manage_agents: boolean;
+  can_manage_models: boolean;
   can_view_metrics: boolean;
   can_manage_dns: boolean;
   can_access_admin_panel: boolean;

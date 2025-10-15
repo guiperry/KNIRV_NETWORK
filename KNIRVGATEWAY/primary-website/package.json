@@ -4,8 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/setup-build.js && node scripts/test-imports.js && npm run build:nexus-portal && next build",
-    "build:nexus-portal": "cd public/nexus-portal && npm install && npm run build",
+    "build": "node scripts/setup-build.js && node scripts/test-imports.js && next build",
     "start": "next start",
     "start:wrangler": "wrangler dev",
     "dev:wrangler": "wrangler dev",

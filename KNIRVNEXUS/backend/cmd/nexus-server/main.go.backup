@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/viper"
 
 	"nexus-backend/internal/api"
-	agentserver "nexus-backend/internal/services/agent-server"
+	modelserver "nexus-backend/internal/services/model-server"
 	"nexus-backend/internal/services/auth"
 	"nexus-backend/internal/services/cde"
 	dataengine "nexus-backend/internal/services/data-engine"
@@ -36,7 +36,7 @@ type ServerConfig struct {
 	API         api.APIConfig                 `mapstructure:"api"`
 	HostConfig  host.HostConfig               `mapstructure:"host_controller"`
 	DataEngine  dataengine.DataEngineConfig   `mapstructure:"data_engine"`
-	AgentServer agentserver.AgentServerConfig `mapstructure:"agent_server"`
+	ModelServer modelserver.ModelServerConfig `mapstructure:"model_server"`
 	Inference   inference.AdaptiveHostConfig  `mapstructure:"inference"`
 	CDE         cde.CDEConfig                 `mapstructure:"cde"`
 	Auth        auth.AuthConfig               `mapstructure:"auth"`
@@ -55,7 +55,7 @@ type NexusServer struct {
 	// Core services
 	hostController   *host.HostController
 	dataEngine       *dataengine.BuntDBDataEngine
-	agentServer      *agentserver.AgentServer
+	modelServer      *modelserver.ModelServer
 	inferenceService *inference.AdaptiveHostService
 	cdeService       *cde.CDEService
 	authService      *auth.AuthService
@@ -147,10 +147,10 @@ func (ns *NexusServer) initializeServices() error {
 		return fmt.Errorf("failed to create data engine: %w", err)
 	}
 
-	// 3. Initialize agent server
-	ns.agentServer, err = agentserver.NewAgentServer(ns.hostController, ns.dataEngine, ns.config.AgentServer)
+	// 3. Initialize model server
+	ns.modelServer, err = modelserver.NewModelServer(ns.hostController, ns.dataEngine, ns.config.ModelServer)
 	if err != nil {
-		return fmt.Errorf("failed to create agent server: %w", err)
+		return fmt.Errorf("failed to create model server: %w", err)
 	}
 
 	// 4. Initialize inference service
@@ -180,7 +180,7 @@ func (ns *NexusServer) initializeAPI() error {
 	ns.apiServer, err = api.NewAPIServer(
 		ns.hostController,
 		ns.dataEngine,
-		ns.agentServer,
+		ns.modelServer,
 		ns.inferenceService,
 		ns.cdeService,
 		ns.config.API,
@@ -238,8 +238,8 @@ func (ns *NexusServer) Start() error {
 		return fmt.Errorf("failed to start data engine: %w", err)
 	}
 
-	if err := ns.agentServer.Start(); err != nil {
-		return fmt.Errorf("failed to start agent server: %w", err)
+	if err := ns.modelServer.Start(); err != nil {
+		return fmt.Errorf("failed to start model server: %w", err)
 	}
 
 	if err := ns.inferenceService.Start(); err != nil {
@@ -295,8 +295,8 @@ func (ns *NexusServer) Stop() error {
 		ns.inferenceService.Stop()
 	}
 
-	if ns.agentServer != nil {
-		ns.agentServer.Stop()
+	if ns.modelServer != nil {
+		ns.modelServer.Stop()
 	}
 
 	if ns.dataEngine != nil {

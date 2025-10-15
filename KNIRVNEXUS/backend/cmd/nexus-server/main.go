@@ -15,10 +15,10 @@ import (
 	"nexus-backend/internal/config"
 	dataengine "nexus-backend/internal/data-engine"
 	"nexus-backend/internal/database"
-	agentserver "nexus-backend/internal/services/agent-server"
 	"nexus-backend/internal/services/cde"
 	"nexus-backend/internal/services/dns"
 	"nexus-backend/internal/services/dvemanager"
+	modelserver "nexus-backend/internal/services/model-server"
 	"nexus-backend/internal/services/validation"
 	"nexus-backend/internal/web"
 	"nexus-backend/internal/web/middleware"
@@ -48,7 +48,7 @@ type Server struct {
 	validationCore *validation.ValidationCore
 	cdeService     *cde.CDEService
 	dnsService     *dns.DynamicDNSService
-	agentServer    *agentserver.AgentServer
+	modelServer    *modelserver.ModelServer
 	dataEngine     *dataengine.BuntDBDataEngine
 
 	// State management
@@ -85,9 +85,9 @@ func NewServer(cfg *config.Config) (*Server, error) {
 
 	// For now, initialize CDE and DNS services with minimal configuration
 	// TODO: Add proper configuration support
-	agentServer, err := agentserver.NewAgentServer(cfg, dbManager)
+	modelServer, err := modelserver.NewModelServer(cfg, dbManager)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize agent server: %w", err)
+		return nil, fmt.Errorf("failed to initialize model server: %w", err)
 	}
 
 	// Initialize BuntDB data engine
@@ -118,7 +118,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		validationCore: validationCore,
 		cdeService:     nil, // TODO: Initialize when configuration is available
 		dnsService:     nil, // TODO: Initialize when configuration is available
-		agentServer:    agentServer,
+		modelServer:    modelServer,
 		dataEngine:     dataEngine,
 		running:        false,
 	}
@@ -167,8 +167,8 @@ func (s *Server) setupRoutes() {
 		s.validationCore.RegisterRoutes(api, authMiddleware)
 	}
 
-	if s.agentServer != nil {
-		s.agentServer.RegisterRoutes(api)
+	if s.modelServer != nil {
+		s.modelServer.RegisterRoutes(api)
 	}
 
 	if s.cdeService != nil && authMiddleware != nil {
@@ -212,7 +212,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"services": map[string]bool{
 			"dve_manager":     s.dveManager != nil,
 			"validation_core": s.validationCore != nil,
-			"agent_server":    s.agentServer != nil && s.agentServer.IsRunning(),
+			"model_server":    s.modelServer != nil && s.modelServer.IsRunning(),
 			"cde_service":     s.cdeService != nil,
 			"dns_service":     s.dnsService != nil,
 		},
@@ -252,11 +252,11 @@ func (s *Server) Start() error {
 		log.Println("Validation Core started")
 	}
 
-	if s.agentServer != nil {
-		if err := s.agentServer.Start(); err != nil {
-			return fmt.Errorf("failed to start agent server: %w", err)
+	if s.modelServer != nil {
+		if err := s.modelServer.Start(); err != nil {
+			return fmt.Errorf("failed to start model server: %w", err)
 		}
-		log.Println("Agent Server started")
+		log.Println("Model Server started")
 	}
 
 	if s.cdeService != nil {
@@ -314,9 +314,9 @@ func (s *Server) Stop() error {
 	}
 
 	// Stop all services in reverse order
-	if s.agentServer != nil {
-		if err := s.agentServer.Stop(); err != nil {
-			log.Printf("Error stopping agent server: %v", err)
+	if s.modelServer != nil {
+		if err := s.modelServer.Stop(); err != nil {
+			log.Printf("Error stopping model server: %v", err)
 		}
 	}
 

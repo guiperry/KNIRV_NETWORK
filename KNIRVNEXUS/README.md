@@ -18,7 +18,7 @@ KNIRV-NEXUS implements a **unified architecture** with embedded frontend and bac
 
 - **DVE Manager**: Orchestrates DVE nodes, manages task allocation, and monitors system health
 - **Validation Core**: Executes validation tasks with TEE support and cryptographic proofs
-- **Agent Server**: Manages WASM plugin agents and runtime execution
+- **Model Server**: Manages WASM plugin models and runtime execution
 - **Data Engine**: BuntDB-based data processing, metrics aggregation, and alerting
 - **CDE Service**: Cloud Development Environments for isolated execution
 - **DNS Service**: Dynamic DNS management for distributed nodes
@@ -163,7 +163,7 @@ docker run -p 8090:8090 knirv/nexus:latest
 #### Backend Services
 - **DVE Manager**: Node orchestration and task allocation service
 - **Validation Core**: Task queue and validation execution framework
-- **Agent Server**: WASM plugin agent management and runtime execution
+- **Model Server**: WASM plugin model management and runtime execution
 - **Data Engine**: BuntDB-based metrics, alerts, and event processing
 - **CDE Service**: Cloud Development Environment management
 - **DNS Service**: Dynamic DNS management for distributed nodes

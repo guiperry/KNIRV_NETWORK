@@ -52,7 +52,7 @@ type UserSession struct {
 	ExpiresAt    time.Time              `json:"expires_at"`
 	LastActivity time.Time              `json:"last_activity"`
 	IPAddress    string                 `json:"ip_address"`
-	UserAgent    string                 `json:"user_agent"`
+	UserModel    string                 `json:"user_model"`
 	Active       bool                   `json:"active"`
 	Metadata     map[string]interface{} `json:"metadata"`
 }

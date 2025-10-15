@@ -209,9 +209,9 @@ func TestPhase6DatabaseOperations(t *testing.T) {
 				{"id": "user1", "role": "admin", "active": true},
 				{"id": "user2", "role": "validator", "active": true},
 			},
-			"agents": []map[string]interface{}{
-				{"id": "agent1", "status": "active", "type": "dve"},
-				{"id": "agent2", "status": "pending", "type": "validator"},
+			"models": []map[string]interface{}{
+				{"id": "model1", "status": "active", "type": "dve"},
+				{"id": "model2", "status": "pending", "type": "validator"},
 			},
 			"reports": []map[string]interface{}{
 				{"id": "report1", "type": "system", "timestamp": time.Now().Unix()},
@@ -221,7 +221,7 @@ func TestPhase6DatabaseOperations(t *testing.T) {
 
 		// Test data structure
 		assert.Contains(t, testData, "users")
-		assert.Contains(t, testData, "agents")
+		assert.Contains(t, testData, "models")
 		assert.Contains(t, testData, "reports")
 
 		// Test user data
@@ -230,11 +230,11 @@ func TestPhase6DatabaseOperations(t *testing.T) {
 		assert.Equal(t, "admin", users[0]["role"])
 		assert.Equal(t, true, users[0]["active"])
 
-		// Test agent data
-		agents := testData["agents"].([]map[string]interface{})
-		assert.Len(t, agents, 2)
-		assert.Equal(t, "active", agents[0]["status"])
-		assert.Equal(t, "dve", agents[0]["type"])
+		// Test model data
+		models := testData["models"].([]map[string]interface{})
+		assert.Len(t, models, 2)
+		assert.Equal(t, "active", models[0]["status"])
+		assert.Equal(t, "dve", models[0]["type"])
 
 		// Test report data
 		reports := testData["reports"].([]map[string]interface{})

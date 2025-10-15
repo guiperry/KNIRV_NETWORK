@@ -241,7 +241,7 @@ func TestUserSession_StructFields(t *testing.T) {
 		ExpiresAt: now.Add(time.Hour),
 		CreatedAt: now,
 		IPAddress: "192.168.1.1",
-		UserAgent: "Mozilla/5.0",
+		UserModel: "Mozilla/5.0",
 		IsActive:  true,
 	}
 
@@ -254,8 +254,8 @@ func TestUserSession_StructFields(t *testing.T) {
 	if session.IPAddress != "192.168.1.1" {
 		t.Errorf("Expected IPAddress '192.168.1.1', got '%s'", session.IPAddress)
 	}
-	if session.UserAgent != "Mozilla/5.0" {
-		t.Errorf("Expected UserAgent 'Mozilla/5.0', got '%s'", session.UserAgent)
+	if session.UserModel != "Mozilla/5.0" {
+		t.Errorf("Expected UserModel 'Mozilla/5.0', got '%s'", session.UserModel)
 	}
 	if !session.IsActive {
 		t.Error("Expected IsActive to be true")
@@ -276,7 +276,7 @@ func TestAuditLog_StructFields(t *testing.T) {
 		Resource:  "dve_node",
 		Details:   details,
 		IPAddress: "192.168.1.1",
-		UserAgent: "Mozilla/5.0",
+		UserModel: "Mozilla/5.0",
 		Success:   true,
 		Error:     "",
 		Timestamp: now,
