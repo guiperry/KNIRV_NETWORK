@@ -71,8 +71,9 @@ func SetupTestSuite(t *testing.T) *TestSuite {
 	dveManager, err := dvemanager.NewDVEManager(db.GetDB(), p2pManager, cfg)
 	require.NoError(t, err)
 
-	// Initialize Validation Core
-	validationCore, err := validation.NewValidationCore(db.GetDB(), p2pManager, cfg)
+	// Initialize Validation Core with nil inference service for testing
+	// Note: Some validation features may be limited without inference service
+	validationCore, err := validation.NewValidationCore(db.GetDB(), p2pManager, cfg, nil)
 	require.NoError(t, err)
 
 	// Initialize SSE Manager

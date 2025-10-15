@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"nexus-backend/internal/config"
+	"nexus-backend/internal/inference"
 	"nexus-backend/internal/models"
 	"nexus-backend/pkg/p2p"
 
@@ -18,14 +19,17 @@ import (
 
 // ValidationCore manages validation tasks and execution
 type ValidationCore struct {
-	db         *buntdb.DB
-	p2pManager *p2p.DVEP2PManager
-	config     *config.Config
-	taskQueue  *TaskQueue
-	executor   *ValidationExecutor
-	ctx        context.Context
-	cancel     context.CancelFunc
-	mu         sync.RWMutex
+	db                    *buntdb.DB
+	p2pManager            *p2p.DVEP2PManager
+	config                *config.Config
+	inferenceService      *inference.InferenceService
+	validationOrchestrator *ValidationOrchestrator
+	llmEvaluator          *LLMEvaluator
+	taskQueue             *TaskQueue
+	executor              *ValidationExecutor
+	ctx                   context.Context
+	cancel                context.CancelFunc
+	mu                    sync.RWMutex
 }
 
 // TaskQueue manages pending validation tasks
@@ -49,13 +53,42 @@ type ValidationExecution struct {
 }
 
 // NewValidationCore creates a new Validation Core instance
-func NewValidationCore(db *buntdb.DB, p2pManager *p2p.DVEP2PManager, cfg *config.Config) (*ValidationCore, error) {
+func NewValidationCore(db *buntdb.DB, p2pManager *p2p.DVEP2PManager, cfg *config.Config, inferenceService *inference.InferenceService) (*ValidationCore, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
+	// Initialize LLM evaluator
+	llmEvaluator := NewLLMEvaluator(inferenceService)
+
+	// Initialize validation orchestrator with all validators
+	validationOrchestrator := NewValidationOrchestrator(false, 0.7)
+
+	// Add deterministic validators
+	validationOrchestrator.AddValidator(&OutputLengthValidator{MinWords: 10, MaxWords: 5000})
+	validationOrchestrator.AddValidator(&ForbiddenContentValidator{
+		ForbiddenPatterns: []string{"hack", "exploit", "malicious"},
+		UseRegex:          false,
+	})
+	validationOrchestrator.AddValidator(&JSONFormatValidator{RequireValidJSON: false})
+
+	// Add LLM-based validators
+	validationOrchestrator.AddValidator(&ReasoningQualityValidator{
+		evaluator: llmEvaluator,
+		criteria:  "Logical coherence, step-by-step reasoning, clear conclusions",
+	})
+	validationOrchestrator.AddValidator(&FactualityValidator{
+		evaluator:        llmEvaluator,
+		evidenceChunks:   []string{}, // Will be populated per task
+		requireCitations: true,
+		minConfidence:    0.7,
+	})
+
 	core := &ValidationCore{
-		db:         db,
-		p2pManager: p2pManager,
-		config:     cfg,
+		db:                    db,
+		p2pManager:            p2pManager,
+		config:                cfg,
+		inferenceService:      inferenceService,
+		validationOrchestrator: validationOrchestrator,
+		llmEvaluator:          llmEvaluator,
 		taskQueue: &TaskQueue{
 			tasks: make(map[string]*models.ValidationTask),
 		},
@@ -317,17 +350,25 @@ func (vc *ValidationCore) performValidation(ctx context.Context, task *models.Va
 func (vc *ValidationCore) validateSkillNode(ctx context.Context, task *models.ValidationTask, result *models.ValidationResult) (*models.ValidationResult, error) {
 	startTime := time.Now()
 
-	// Simulate SkillNode validation
-	log.Printf("Validating SkillNode for task %s", task.ID)
+	log.Printf("Validating SkillNode for task %s with %d test cases", task.ID, len(task.TestCases))
 
-	// Execute test cases
+	// Create test case executor
+	testExecutor := NewTestCaseExecutor(vc.inferenceService, vc.validationOrchestrator)
+
+	// Execute all test cases
 	testResults := make([]models.TestResult, len(task.TestCases))
 	totalScore := 0.0
 
 	for i, testCase := range task.TestCases {
-		testResult := vc.executeTestCase(ctx, testCase, task.SkillCode)
+		// Execute test case with timeout
+		testCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+		testResult := testExecutor.ExecuteTestCase(testCtx, testCase, task.SkillCode)
+		cancel()
+
 		testResults[i] = testResult
 		totalScore += testResult.Score * testCase.Weight
+
+		log.Printf("Test case %s: status=%s, score=%.2f", testCase.ID, testResult.Status, testResult.Score)
 	}
 
 	// Calculate overall score
@@ -338,38 +379,53 @@ func (vc *ValidationCore) validateSkillNode(ctx context.Context, task *models.Va
 
 	overallScore := totalScore / totalWeight
 
-	result.Status = "success"
+	// Determine status based on score
+	status := "success"
+	if overallScore < 0.5 {
+		status = "failed"
+	} else if overallScore < 0.7 {
+		status = "partial"
+	}
+
+	result.Status = status
 	result.Score = overallScore
 	result.TestResults = testResults
 	result.Results = map[string]interface{}{
 		"skill_validation":  "completed",
 		"test_cases_passed": vc.countPassedTests(testResults),
 		"total_test_cases":  len(testResults),
+		"overall_score":     overallScore,
 	}
 	result.ExecutionTime = time.Since(startTime)
 
-	// Generate proof (simplified)
+	// Generate cryptographic proof
 	result.Proof = vc.generateValidationProof(task, result)
+
+	log.Printf("SkillNode validation completed: score=%.2f, status=%s", overallScore, status)
 
 	return result, nil
 }
 
 // validateBaseLLM validates a Base LLM
 func (vc *ValidationCore) validateBaseLLM(ctx context.Context, task *models.ValidationTask, result *models.ValidationResult) (*models.ValidationResult, error) {
-	startTime := time.Now()
-
 	log.Printf("Validating Base LLM for task %s", task.ID)
 
-	// Simulate Base LLM validation
-	result.Status = "success"
-	result.Score = 0.85 // Simulated score
-	result.Results = map[string]interface{}{
-		"llm_validation":    "completed",
-		"performance_score": 0.85,
-		"safety_score":      0.92,
-		"accuracy_score":    0.88,
+	// Create base LLM validator
+	baseLLMValidator := NewBaseLLMValidator(vc.inferenceService, vc.validationOrchestrator, vc.llmEvaluator)
+
+	// Perform validation
+	validationResult, err := baseLLMValidator.ValidateBaseLLM(ctx, task)
+	if err != nil {
+		return nil, fmt.Errorf("base LLM validation failed: %w", err)
 	}
-	result.ExecutionTime = time.Since(startTime)
+
+	// Copy results to result object
+	result.Status = validationResult.Status
+	result.Score = validationResult.Score
+	result.Results = validationResult.Results
+	result.ExecutionTime = validationResult.ExecutionTime
+
+	// Generate cryptographic proof
 	result.Proof = vc.generateValidationProof(task, result)
 
 	return result, nil
@@ -683,8 +739,8 @@ func (vc *ValidationCore) removeOldTasks() {
 
 // generateValidationProof generates a cryptographic proof for validation
 func (vc *ValidationCore) generateValidationProof(task *models.ValidationTask, result *models.ValidationResult) string {
-	// Simplified proof generation
-	return fmt.Sprintf("proof_%s_%d", task.ID, time.Now().Unix())
+	proofGen := NewProofGenerator("local-node") // TODO: Use actual node ID
+	return proofGen.GenerateProof(task, result)
 }
 
 // countPassedTests counts the number of passed test cases

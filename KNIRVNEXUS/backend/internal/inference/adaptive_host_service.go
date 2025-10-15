@@ -8,7 +8,6 @@ import (
 	"time"
 
 	dataengine "nexus-backend/internal/data-engine"
-	validation "nexus-backend/internal/services/validation"
 	"nexus-backend/pkg/host"
 )
 
@@ -22,8 +21,6 @@ type AdaptiveHostService struct {
 	// Data engine integration
 	dataEngine *dataengine.BuntDBDataEngine
 
-	// Validation core integration
-	validationCore *validation.ValidationCore
 
 	// Fine-tuning components
 	fineTuner     *FineTuningManager
@@ -59,9 +56,6 @@ type AdaptiveHostConfig struct {
 	ModelCacheSize     int     `yaml:"model_cache_size"`
 	ModelSwapThreshold float64 `yaml:"model_swap_threshold"`
 
-	// Validation integration
-	EnableValidation  bool          `yaml:"enable_validation"`
-	ValidationTimeout time.Duration `yaml:"validation_timeout"`
 
 	// Data engine integration
 	EnableDataLogging bool          `yaml:"enable_data_logging"`
@@ -148,7 +142,7 @@ type InferenceResponse struct {
 }
 
 // NewAdaptiveHostService creates a new adaptive host service
-func NewAdaptiveHostService(config AdaptiveHostConfig, hostController *host.HostController, dataEngine *dataengine.BuntDBDataEngine, validationCore *validation.ValidationCore) (*AdaptiveHostService, error) {
+func NewAdaptiveHostService(config AdaptiveHostConfig, hostController *host.HostController, dataEngine *dataengine.BuntDBDataEngine) (*AdaptiveHostService, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Create base inference service
@@ -162,7 +156,6 @@ func NewAdaptiveHostService(config AdaptiveHostConfig, hostController *host.Host
 		InferenceService: baseService,
 		hostController:   hostController,
 		dataEngine:       dataEngine,
-		validationCore:   validationCore,
 		config:           config,
 		ctx:              ctx,
 		cancel:           cancel,

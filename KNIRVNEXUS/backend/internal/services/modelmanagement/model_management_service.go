@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+
 	"nexus-backend/internal/models"
 
 	"github.com/tidwall/buntdb"
@@ -136,10 +137,10 @@ func (ams *ModelManagementService) GetAllModels(filter *models.ModelFilter) ([]*
 	ams.mu.RLock()
 	defer ams.mu.RUnlock()
 
-	var models []*models.Model
+	var result []*models.Model
 	for _, model := range ams.models {
 		if ams.matchesFilter(model, filter) {
-			models = append(models, model)
+			result = append(result, model)
 		}
 	}
 
@@ -147,16 +148,16 @@ func (ams *ModelManagementService) GetAllModels(filter *models.ModelFilter) ([]*
 	if filter != nil && filter.Limit > 0 {
 		start := filter.Offset
 		end := start + filter.Limit
-		if start >= len(models) {
+		if start >= len(result) {
 			return []*models.Model{}, nil
 		}
-		if end > len(models) {
-			end = len(models)
+		if end > len(result) {
+			end = len(result)
 		}
-		models = models[start:end]
+		result = result[start:end]
 	}
 
-	return models, nil
+	return result, nil
 }
 
 // GetModel returns a specific model by ID

@@ -15,6 +15,7 @@ import (
 	"nexus-backend/internal/config"
 	dataengine "nexus-backend/internal/data-engine"
 	"nexus-backend/internal/database"
+	"nexus-backend/internal/inference"
 	"nexus-backend/internal/services/cde"
 	"nexus-backend/internal/services/dns"
 	"nexus-backend/internal/services/dvemanager"
@@ -44,12 +45,13 @@ type Server struct {
 	p2pManager *p2p.DVEP2PManager
 
 	// All services are held here
-	dveManager     *dvemanager.DVEManager
-	validationCore *validation.ValidationCore
-	cdeService     *cde.CDEService
-	dnsService     *dns.DynamicDNSService
-	modelServer    *modelserver.ModelServer
-	dataEngine     *dataengine.BuntDBDataEngine
+	dveManager         *dvemanager.DVEManager
+	validationCore     *validation.ValidationCore
+	cdeService         *cde.CDEService
+	dnsService         *dns.DynamicDNSService
+	modelServer        *modelserver.ModelServer
+	dataEngine         *dataengine.BuntDBDataEngine
+	inferenceService   *inference.InferenceService
 
 	// State management
 	running bool
@@ -78,7 +80,13 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize DVE manager: %w", err)
 	}
 
-	validationCore, err := validation.NewValidationCore(dbManager.GetDB(), p2pManager, cfg)
+	// Initialize inference service
+	inferenceService, err := inference.NewInferenceService(dbManager)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize inference service: %w", err)
+	}
+
+	validationCore, err := validation.NewValidationCore(dbManager.GetDB(), p2pManager, cfg, inferenceService)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize validation core: %w", err)
 	}
@@ -110,17 +118,18 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	}
 
 	server := &Server{
-		config:         cfg,
-		db:             dbManager,
-		router:         router,
-		p2pManager:     p2pManager,
-		dveManager:     dveManager,
-		validationCore: validationCore,
-		cdeService:     nil, // TODO: Initialize when configuration is available
-		dnsService:     nil, // TODO: Initialize when configuration is available
-		modelServer:    modelServer,
-		dataEngine:     dataEngine,
-		running:        false,
+		config:           cfg,
+		db:               dbManager,
+		router:           router,
+		p2pManager:       p2pManager,
+		dveManager:       dveManager,
+		validationCore:   validationCore,
+		cdeService:       nil, // TODO: Initialize when configuration is available
+		dnsService:       nil, // TODO: Initialize when configuration is available
+		modelServer:      modelServer,
+		dataEngine:       dataEngine,
+		inferenceService: inferenceService,
+		running:          false,
 	}
 
 	// Setup routes for all services
@@ -210,11 +219,12 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"git_commit": GitCommit,
 		"timestamp":  time.Now().UTC().Format(time.RFC3339),
 		"services": map[string]bool{
-			"dve_manager":     s.dveManager != nil,
-			"validation_core": s.validationCore != nil,
-			"model_server":    s.modelServer != nil && s.modelServer.IsRunning(),
-			"cde_service":     s.cdeService != nil,
-			"dns_service":     s.dnsService != nil,
+			"dve_manager":       s.dveManager != nil,
+			"validation_core":   s.validationCore != nil,
+			"model_server":      s.modelServer != nil && s.modelServer.IsRunning(),
+			"inference_service": s.inferenceService != nil,
+			"cde_service":       s.cdeService != nil,
+			"dns_service":       s.dnsService != nil,
 		},
 	}
 	json.NewEncoder(w).Encode(response)
@@ -257,6 +267,13 @@ func (s *Server) Start() error {
 			return fmt.Errorf("failed to start model server: %w", err)
 		}
 		log.Println("Model Server started")
+	}
+
+	if s.inferenceService != nil {
+		if err := s.inferenceService.Start(); err != nil {
+			return fmt.Errorf("failed to start inference service: %w", err)
+		}
+		log.Println("Inference Service started")
 	}
 
 	if s.cdeService != nil {
@@ -317,6 +334,12 @@ func (s *Server) Stop() error {
 	if s.modelServer != nil {
 		if err := s.modelServer.Stop(); err != nil {
 			log.Printf("Error stopping model server: %v", err)
+		}
+	}
+
+	if s.inferenceService != nil {
+		if err := s.inferenceService.Stop(); err != nil {
+			log.Printf("Error stopping inference service: %v", err)
 		}
 	}
 

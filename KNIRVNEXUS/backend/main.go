@@ -97,11 +97,6 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize DVE manager: %w", err)
 	}
 
-	validationCore, err := validation.NewValidationCore(dbManager.GetDB(), p2pManager, cfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize validation core: %w", err)
-	}
-
 	modelServer, err := modelserver.NewModelServer(cfg, dbManager)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize model server: %w", err)
@@ -132,6 +127,11 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	inferenceService, err := inference.NewInferenceService(dbManager)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize inference service: %w", err)
+	}
+
+	validationCore, err := validation.NewValidationCore(dbManager.GetDB(), p2pManager, cfg, inferenceService)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize validation core: %w", err)
 	}
 
 	// Initialize TEE Security service

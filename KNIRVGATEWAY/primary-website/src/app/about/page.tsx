@@ -55,7 +55,7 @@ export default function About() {
       name: 'Guillermo Perry',
       role: 'Chief Solutions Architect',
       image: '/images/team/JohnPerry.png',
-      linkedin: 'https://www.linkedin.com/in/guillermo-perry-a5a1a1a/',
+      linkedin: 'https://www.linkedin.com/in/guillermo-perry-7b29aa30/',
       description: 'Guillermo Perry is a seasoned technology leader with over 20 years of experience in software architecture and distributed systems. As Chief Solutions Architect, he leads the technical vision for KNIRV, focusing on scalable infrastructure and innovative AI deployment strategies.',
       skills: [
         { name: 'System Architecture', level: 95 },
@@ -81,7 +81,7 @@ export default function About() {
       name: 'Kareem Bullard',
       role: 'Project Manager',
       image: '/images/team/Kareem.jpg',
-      linkedin: 'https://www.linkedin.com/in/kareem-bullard/',
+      linkedin: 'https://www.linkedin.com/in/kareem-bullard-a644b9225',
       description: 'Orchestrating Success with Strategic Leadership. With a proven track record in delivering high-impact projects on time and within budget, I bring a unique blend of tactical foresight and operational expertise. Kareem ensures seamless coordination across all KNIRV D-TEN development initiatives, managing complex project timelines and stakeholder relationships to drive successful outcomes.',
       skills: [
         { name: 'Agile/Scrum', level: 93 },

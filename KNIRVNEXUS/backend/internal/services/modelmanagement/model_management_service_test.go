@@ -2,7 +2,7 @@ package modelmanagement
 
 import (
 	"fmt"
-	"nexus-backend/internal/models"
+	. "nexus-backend/internal/models"
 	"os"
 	"path/filepath"
 	"testing"
@@ -94,7 +94,7 @@ func TestModelManagementService_CreateModel(t *testing.T) {
 	require.NoError(t, err)
 	defer service.Stop()
 
-	model := &models.Model{
+	model := &Model{
 		ID:           "test-model-1",
 		Name:         "Test Model",
 		Description:  "A test model",
@@ -134,7 +134,7 @@ func TestModelManagementService_GetModel(t *testing.T) {
 	assert.Contains(t, err.Error(), "not found")
 
 	// Create and get model
-	createdModel := &models.Model{
+	createdModel := &Model{
 		ID:           "test-model-2",
 		Name:         "Test Model",
 		Description:  "A test model",
@@ -169,7 +169,7 @@ func TestModelManagementService_GetAllModels(t *testing.T) {
 
 	// Create multiple models
 	for i := 0; i < 3; i++ {
-		model := &models.Model{
+		model := &Model{
 			ID:           fmt.Sprintf("test-model-%d", i+1),
 			Name:         fmt.Sprintf("Test Model %d", i+1),
 			Description:  fmt.Sprintf("Test model %d", i+1),
@@ -196,7 +196,7 @@ func TestModelManagementService_UpdateModel(t *testing.T) {
 	defer service.Stop()
 
 	// Create model
-	model := &models.Model{
+	model := &Model{
 		ID:           "test-model-update",
 		Name:         "Test Model",
 		Description:  "A test model",
@@ -218,7 +218,7 @@ func TestModelManagementService_UpdateModel(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Test updating non-existent model
-	nonExistentModel := &models.Model{ID: "non-existent"}
+	nonExistentModel := &Model{ID: "non-existent"}
 	err = service.UpdateModel("non-existent", nonExistentModel)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
@@ -238,7 +238,7 @@ func TestModelManagementService_DeleteModel(t *testing.T) {
 	assert.Contains(t, err.Error(), "not found")
 
 	// Create and delete model
-	model := &models.Model{
+	model := &Model{
 		ID:           "test-model-delete",
 		Name:         "Test Model",
 		Type:         "WASM",
