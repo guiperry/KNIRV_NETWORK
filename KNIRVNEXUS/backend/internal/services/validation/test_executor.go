@@ -6,19 +6,18 @@ import (
 	"strings"
 	"time"
 
-	"nexus-backend/internal/inference"
 	"nexus-backend/internal/models"
 )
 
 // TestCaseExecutor executes individual test cases
 type TestCaseExecutor struct {
-	inferenceService *inference.InferenceService
+	inferenceService InferenceClient
 	orchestrator     *ValidationOrchestrator
 }
 
 // NewTestCaseExecutor creates a new test case executor
 func NewTestCaseExecutor(
-	inferenceService *inference.InferenceService,
+	inferenceService InferenceClient,
 	orchestrator *ValidationOrchestrator,
 ) *TestCaseExecutor {
 	return &TestCaseExecutor{

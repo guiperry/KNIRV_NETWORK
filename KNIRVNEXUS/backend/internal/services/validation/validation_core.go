@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"nexus-backend/internal/config"
-	"nexus-backend/internal/inference"
 	"nexus-backend/internal/models"
 	"nexus-backend/pkg/p2p"
 
@@ -22,7 +21,7 @@ type ValidationCore struct {
 	db                    *buntdb.DB
 	p2pManager            *p2p.DVEP2PManager
 	config                *config.Config
-	inferenceService      *inference.InferenceService
+	inferenceService      InferenceClient
 	validationOrchestrator *ValidationOrchestrator
 	llmEvaluator          *LLMEvaluator
 	taskQueue             *TaskQueue
@@ -53,7 +52,7 @@ type ValidationExecution struct {
 }
 
 // NewValidationCore creates a new Validation Core instance
-func NewValidationCore(db *buntdb.DB, p2pManager *p2p.DVEP2PManager, cfg *config.Config, inferenceService *inference.InferenceService) (*ValidationCore, error) {
+func NewValidationCore(db *buntdb.DB, p2pManager *p2p.DVEP2PManager, cfg *config.Config, inferenceService InferenceClient) (*ValidationCore, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Initialize LLM evaluator

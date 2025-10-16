@@ -1,0 +1,155 @@
+# packer-kata-guest/kata-guest-provisioner.yml
+---
+- name: Build Custom Kata Kernel and Rootfs
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    kata_kernel_version: "6.6.x" # Match your target LTS kernel
+    custom_kernel_name: "kali-clean-tee"
+
+  tasks:
+    - name: Update apt cache and install build prerequisites
+      ansible.builtin.apt:
+        name:
+          - build-essential
+          - libncurses5-dev
+          - fakeroot
+          - xz-utils
+          - git
+          - debootstrap # For building a minimal rootfs
+          - cpio # Needed for initramfs creation
+        state: present
+        update_cache: true
+
+    - name: Ensure /usr/src is available
+      ansible.builtin.file:
+        path: /usr/src
+        state: directory
+        mode: '0755'
+
+    - name: Get current running kernel version (to derive source package name)
+      ansible.builtin.command: "uname -r"
+      register: current_kernel_full_version
+      changed_when: false
+
+    - name: Install Kali kernel sources for target LTS version
+      ansible.builtin.apt:
+        name: "linux-source-{{ current_kernel_full_version.stdout | regex_replace('-kali[0-9]+-amd64$', '') | regex_replace('^([0-9]+\\.[0-9]+).*$', '\\1') }}" # e.g., linux-source-6.6
+        state: present
+        update_cache: true
+
+    - name: Extract kernel sources
+      ansible.builtin.unarchive:
+        src: "/usr/src/linux-source-{{ current_kernel_full_version.stdout | regex_replace('-kali[0-9]+-amd64$', '') | regex_replace('^([0-9]+\\.[0-9]+).*$', '\\1') }}.tar.xz"
+        dest: "/usr/src"
+        remote_src: true
+        creates: "/usr/src/linux-source-{{ current_kernel_full_version.stdout | regex_replace('-kali[0-9]+-amd64$', '') | regex_replace('^([0-9]+\\.[0-9]+).*$', '\\1') }}"
+
+    - name: Symlink kernel sources
+      ansible.builtin.file:
+        src: "/usr/src/linux-source-{{ current_kernel_full_version.stdout | regex_replace('-kali[0-9]+-amd64$', '') | regex_replace('^([0-9]+\\.[0-9]+).*$', '\\1') }}"
+        dest: "/usr/src/linux"
+        state: link
+        force: true
+
+    - name: Copy existing kernel config
+      ansible.builtin.copy:
+        src: "/boot/config-{{ current_kernel_full_version.stdout }}"
+        dest: "/usr/src/linux/.config"
+        remote_src: true
+
+    # Apply your hardening patches/config changes here.
+    # THIS IS WHERE YOU ENABLE SGX/SEV-SNP, LOCKDOWN LSM, etc.
+    - name: Enable TEE related kernel configs (example)
+      ansible.builtin.lineinfile:
+        path: "/usr/src/linux/.config"
+        regexp: '^(# )?CONFIG_SECURITY_LOCKDOWN_LSM=.*'
+        line: 'CONFIG_SECURITY_LOCKDOWN_LSM=y'
+        state: present
+        backup: true
+    - name: Enable Intel TXT (example)
+      ansible.builtin.lineinfile:
+        path: "/usr/src/linux/.config"
+        regexp: '^(# )?CONFIG_INTEL_TXT=.*'
+        line: 'CONFIG_INTEL_TXT=y'
+        state: present
+    - name: Enable AMD Memory Encryption (example)
+      ansible.builtin.lineinfile:
+        path: "/usr/src/linux/.config"
+        regexp: '^(# )?CONFIG_AMD_MEM_ENCRYPT=.*'
+        line: 'CONFIG_AMD_MEM_ENCRYPT=y'
+        state: present
+    # ... Add more specific TEE flags as needed for SGX/TDX/SEV-SNP ...
+
+    - name: Prepare kernel for build (non-interactive)
+      ansible.builtin.command: "make olddefconfig"
+      args:
+        chdir: "/usr/src/linux"
+
+    - name: Build custom Kata kernel
+      ansible.builtin.command: "make -j$(nproc) bzImage modules"
+      args:
+        chdir: "/usr/src/linux"
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+
+    # --- Build Minimal Kali Rootfs for Kata ---
+    - name: Create rootfs directory
+      ansible.builtin.file:
+        path: "/tmp/kata-rootfs"
+        state: directory
+        mode: '0755'
+
+    - name: Bootstrap minimal Kali rootfs
+      ansible.builtin.command: "debootstrap --variant=minbase kali-rolling /tmp/kata-rootfs http://http.kali.org/kali"
+      args:
+        creates: "/tmp/kata-rootfs/bin/bash"
+
+    - name: Configure rootfs (e.g., install basic tools, clean apt)
+      ansible.builtin.shell: |
+        chroot /tmp/kata-rootfs apt update
+        chroot /tmp/kata-rootfs apt install -y systemd-sysv curl gnupg
+        chroot /tmp/kata-rootfs apt clean
+        chroot /tmp/kata-rootfs rm -rf /var/lib/apt/lists/*
+        chroot /tmp/kata-rootfs sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT="quiet"$/GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0 quiet root=/dev/pmem0p1 rd.shell=0"/' /etc/default/grub # Example
+      # This is crucial for a minimal Kata guest, ensuring it boots correctly.
+      # You might also add the Kata agent here if you want it baked into the rootfs.
+
+    - name: Create initramfs from rootfs
+      ansible.builtin.command: "find . -print0 | cpio --null --format=newc -o > /tmp/kata-rootfs.img"
+      args:
+        chdir: "/tmp/kata-rootfs"
+
+    # Fetch artifacts to the local machine where Packer is running
+    # This ensures your custom kernel and rootfs are saved locally.
+    - name: Ensure local output directory exists
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/../output-kata-guest"
+        state: directory
+        mode: '0755'
+      delegate_to: localhost
+
+    - name: Copy built Kata kernel image to local machine
+      ansible.builtin.fetch:
+        src: "/usr/src/linux/arch/x86/boot/bzImage"
+        dest: "{{ playbook_dir }}/../output-kata-guest/vmlinuz-{{ custom_kernel_name }}"
+        flat: true
+        fail_on_missing: true # Ensure the file exists
+
+    - name: Copy built Kata rootfs image (initramfs) to local machine
+      ansible.builtin.fetch:
+        src: "/tmp/kata-rootfs.img"
+        dest: "{{ playbook_dir }}/../output-kata-guest/kata-rootfs-{{ custom_kernel_name }}.img"
+        flat: true
+        fail_on_missing: true # Ensure the file exists
+
+    - name: Clean up temporary files on the builder VM
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "/usr/src/linux"
+        - "/usr/src/linux-source-*"
+        - "/tmp/kata-rootfs"
+        - "/tmp/kata-rootfs.img"

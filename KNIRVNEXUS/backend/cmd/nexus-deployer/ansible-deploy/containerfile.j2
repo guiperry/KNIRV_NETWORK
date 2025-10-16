@@ -1,0 +1,10 @@
+# Containerfile.j2 for KNIRV-NEXUS Golang Application
+# Uses pre-built binary from KNIRVNEXUS/dist/knirv-nexus
+FROM scratch
+
+WORKDIR /app
+COPY knirv-nexus .
+
+EXPOSE 8080 8089
+
+CMD ["/app/knirv-nexus"]
