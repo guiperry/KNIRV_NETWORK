@@ -22,13 +22,19 @@ variable "use_local_iso" {
   description = "Set to true to use the local Kali ISO instead of downloading."
 }
 
+variable "output_directory" {
+  type    = string
+  default = "output-kali-base-box"
+  description = "Directory where Packer outputs the VM files. Set to artifacts/output-kali-base-box for persistent storage."
+}
+
 locals {
   remote_iso = {
     url      = var.kali_iso_url
     checksum = var.kali_iso_checksum
   }
   local_iso = {
-    url      = "./kali-linux-2025.3-installer-amd64.iso"
+    url      = "../kali-linux-2025.3-installer-amd64.iso"
     checksum = "sha256:fcf1999799f6642b7d6c6bd79bc1e516be7340b7203fe86c6be3ac21f693f42a"
   }
   iso = var.use_local_iso ? local.local_iso : local.remote_iso
@@ -38,9 +44,14 @@ source "virtualbox-iso" "kali_base" {
   headless          = false
   vm_name           = "KaliBaseBox"
   guest_os_type     = "Debian_64"
-  output_directory  = "output-kali-base-box"
+  output_directory  = var.output_directory
   iso_url           = local.iso.url
   iso_checksum      = local.iso.checksum
+
+  // Ensure VM is exported before cleanup (default: false, but being explicit)
+  skip_export       = false
+  // Keep the VM registered during post-processor stage
+  keep_registered   = true
 
   vboxmanage        = [
     
@@ -61,18 +72,20 @@ source "virtualbox-iso" "kali_base" {
 
   ssh_username      = "kaliadmin"
   ssh_password      = "kaliadmin"
-  ssh_timeout       = "45m"
+  ssh_timeout       = "25m"
   ssh_port          = 22
   ssh_skip_nat_mapping = false
-  ssh_read_write_timeout = "2m"
-  ssh_keep_alive_interval = "5s"
+  ssh_read_write_timeout = "5m"
+  ssh_keep_alive_interval = "10s"
   ssh_handshake_attempts = 300
+  ssh_pty            = true
+  ssh_wait_timeout   = "30m"
   
   
 // --- Boot and Automation Configuration ---
 
   boot_command      = [
-   "<esc><wait>",
+    "<esc><wait>",
     "install ",
     "auto=true ",
     "priority=critical ",
@@ -86,6 +99,7 @@ source "virtualbox-iso" "kali_base" {
     "passwd/username=kaliadmin ",
     "passwd/user-password=kaliadmin ",
     "passwd/user-password-again=kaliadmin ",
+    "netcfg/target_network_config=/etc/network/interfaces ",
     "-- quiet ",
     "<enter>"
   ]
@@ -97,7 +111,17 @@ shutdown_command  = "echo 'kaliadmin' | sudo -S shutdown -P now"
 build {
   sources = ["source.virtualbox-iso.kali_base"]
 
-  # FIRST: Fix sudo access (uses password authentication)
+  // FIRST: Wait for system to be fully ready and SSH responsive
+  provisioner "shell" {
+    inline = [
+      "echo 'System is up and SSH is responding'",
+      "sleep 5",
+      "echo 'Giving additional time for services to stabilize'",
+      "sleep 5"
+    ]
+  }
+
+  // SECOND: Fix sudo access (uses password authentication)
   provisioner "shell" {
     inline = [
       "echo 'kaliadmin' | sudo -S bash -c 'echo \"kaliadmin ALL=(ALL) NOPASSWD:ALL\" > /etc/sudoers.d/99-packer'",
@@ -106,7 +130,7 @@ build {
     ]
   }
 
-  # SECOND: Verify everything (now uses passwordless sudo)
+  // THIRD: Verify everything (now uses passwordless sudo)
   provisioner "shell" {
     inline = [
       "echo '=== SSH Connection Successful ==='",
@@ -133,7 +157,7 @@ build {
     ]
   }
 
-  # THIRD: Install basic tools needed for the next stage
+  // FOURTH: Install basic tools needed for the next stage
   provisioner "shell" {
     inline = [
       "sudo apt-get update",
@@ -142,8 +166,17 @@ build {
     ]
   }
 
-  // Export to an OVA file - this would be done manually or in a separate script
-  // post-processor "shell-local" {
-  //   inline = ["VBoxManage export '{{ .VMName }}' --output '{{ .OutputDir }}/kali-base-box.ova'"]
-  // }
+  // Export to an OVA file for use by packer-kata-guest
+  // OVA is just a tar archive of the OVF and VMDK files
+  post-processor "shell-local" {
+    inline = [
+      "echo 'Post-processor: Checking files in output directory: ${var.output_directory}'",
+      "ls -lah ${var.output_directory}/",
+      "echo 'Post-processor: Creating OVA file...'",
+      "cd ${var.output_directory} && tar -cf kali-base-box.ova KaliBaseBox.ovf KaliBaseBox*.vmdk",
+      "echo 'Post-processor: OVA creation complete'",
+      "ls -lah kali-base-box.ova",
+      "cd - > /dev/null"
+    ]
+  }
 }

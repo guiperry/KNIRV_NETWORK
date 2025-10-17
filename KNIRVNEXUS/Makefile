@@ -181,6 +181,12 @@ docker-run: docker ## Run Docker container
 	@echo "$(BLUE)Running Docker container...$(NC)"
 	docker run -p 8080:8080 $(DOCKER_IMAGE):$(DOCKER_TAG)
 
+# Packer Builds
+kali: ## Build Kali Linux base image with Packer
+	@echo "$(BLUE)Building Kali Linux base image with Packer...$(NC)"
+	cd $(BACKEND_DIR)/cmd/nexus-deployer/packer-base-kali && packer build .
+	@echo "$(GREEN)Kali Linux base image build completed.$(NC)"
+
 # Deployment
 deploy: deploy-infrastructure deploy-dns deploy-application ## Full deployment
 
