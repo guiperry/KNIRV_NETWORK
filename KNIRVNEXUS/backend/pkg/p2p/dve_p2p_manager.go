@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"nexus-backend/internal/models"
+	"backend-server/internal/models"
 
 	"github.com/ipfs/go-cid"
 	"github.com/libp2p/go-libp2p"

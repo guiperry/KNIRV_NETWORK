@@ -234,7 +234,7 @@ func BenchmarkArchitecture(b *testing.B) {
 	}
 
 	b.Run("BackendStartup", func(b *testing.B) {
-		backendPath := filepath.Join(binDir, "nexus-backend")
+		backendPath := filepath.Join(binDir, "backend-server")
 
 		for i := 0; i < b.N; i++ {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

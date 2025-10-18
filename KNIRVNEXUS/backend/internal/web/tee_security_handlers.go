@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"nexus-backend/internal/models"
-	"nexus-backend/internal/services/teesecurity"
-	"nexus-backend/internal/web/middleware"
+	"backend-server/internal/models"
+	"backend-server/internal/services/teesecurity"
+	"backend-server/internal/web/middleware"
 
 	"github.com/gorilla/mux"
 )
@@ -145,10 +145,10 @@ func (h *TEESecurityHandlers) GetTEESecurityMetrics(w http.ResponseWriter, r *ht
 
 	metrics := &models.TEESecurityMetrics{
 		AttestationStatus:   status.AttestationStatus,
-		SecurityScore:      status.SecurityScore,
-		ThreatsDetected:    status.ThreatsDetected,
-		LastAudit:          status.LastAudit,
-		ActiveAttestations: 1, // Simplified for now
+		SecurityScore:       status.SecurityScore,
+		ThreatsDetected:     status.ThreatsDetected,
+		LastAudit:           status.LastAudit,
+		ActiveAttestations:  1, // Simplified for now
 		ExpiredAttestations: 0,
 		FailedVerifications: 0,
 	}

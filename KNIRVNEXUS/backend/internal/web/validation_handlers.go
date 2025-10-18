@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"nexus-backend/internal/services/validation"
-	"nexus-backend/internal/web/middleware"
+	"backend-server/internal/services/validation"
+	"backend-server/internal/web/middleware"
 
 	"github.com/gorilla/mux"
 )

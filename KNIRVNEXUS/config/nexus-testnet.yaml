@@ -47,4 +47,4 @@ database:
 log:
   level: "info"
   format: "text"
-  output: "./logs/knirvnexus-backend.log"
+  output: "./logs/knirvbackend-server.log"

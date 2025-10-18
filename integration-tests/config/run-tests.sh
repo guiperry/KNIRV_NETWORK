@@ -530,7 +530,7 @@ run_test_suite() {
         "wallet")
             go test -v -run "TestKNIRVWalletIntegration" ./...
             ;;
-        "knirvnexus-backend")
+        "knirvbackend-server")
             go test -v -run "TestKNIRVNEXUSBackendIntegration" ./...
             ;;
         "knirvnexus-frontend")
@@ -831,13 +831,13 @@ while [[ $# -gt 0 ]]; do
             usage
             exit 0
             ;;
-        all|basic|cross-component|performance|e2e|economics|gateway|wallet|graphchain-explorer|portal|javascript|gateway-nexus|knirvnexus|knirvnexus-backend|knirvnexus-frontend)
+        all|basic|cross-component|performance|e2e|economics|gateway|wallet|graphchain-explorer|portal|javascript|gateway-nexus|knirvnexus|knirvbackend-server|knirvnexus-frontend)
             COMMAND="$1"
             shift
             ;;
         *)
             print_error "Unknown option: $1"
-            print_error "Available test suites: all, basic, cross-component, performance, e2e, economics, gateway, wallet, graphchain-explorer, portal, javascript, gateway-nexus, knirvnexus, knirvnexus-backend, knirvnexus-frontend"
+            print_error "Available test suites: all, basic, cross-component, performance, e2e, economics, gateway, wallet, graphchain-explorer, portal, javascript, gateway-nexus, knirvnexus, knirvbackend-server, knirvnexus-frontend"
             exit 1
             ;;
     esac
@@ -880,7 +880,7 @@ main() {
             run_integration_tests
             test_result=$?
             ;;
-        "basic"|"cross-component"|"performance"|"e2e"|"economics"|"gateway"|"wallet"|"graphchain-explorer"|"portal"|"javascript"|"gateway-nexus"|"knirvnexus"|"knirvnexus-backend"|"knirvnexus-frontend")
+        "basic"|"cross-component"|"performance"|"e2e"|"economics"|"gateway"|"wallet"|"graphchain-explorer"|"portal"|"javascript"|"gateway-nexus"|"knirvnexus"|"knirvbackend-server"|"knirvnexus-frontend")
             run_test_suite "$COMMAND"
             test_result=$?
             ;;

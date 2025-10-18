@@ -2,6 +2,10 @@ package config
 
 import (
 	"fmt"
+	"os"
+	"os/user"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -222,6 +226,11 @@ func LoadWithDefaults() (*Config, error) {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
+	// Expand all paths in configuration
+	if err := config.expandPaths(); err != nil {
+		return nil, fmt.Errorf("failed to expand paths: %w", err)
+	}
+
 	// Validate configuration
 	if err := validateConfig(&config); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
@@ -230,8 +239,117 @@ func LoadWithDefaults() (*Config, error) {
 	return &config, nil
 }
 
+// getAppDataDir returns the XDG Base Directory for app data
+// Following XDG Base Directory Specification: ~/.local/share/knirvnexus/backend-server
+func getAppDataDir() (string, error) {
+	usr, err := user.Current()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current user: %v", err)
+	}
+
+	appDataDir := filepath.Join(usr.HomeDir, ".local", "share", "knirvnexus", "backend-server")
+	if err := os.MkdirAll(appDataDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create app data directory %s: %v", appDataDir, err)
+	}
+
+	return appDataDir, nil
+}
+
+// expandPath expands paths with ~ to the user's home directory and creates them if needed
+func expandPath(path string) (string, error) {
+	if strings.HasPrefix(path, "~") {
+		usr, err := user.Current()
+		if err != nil {
+			return "", err
+		}
+		expanded := filepath.Join(usr.HomeDir, path[1:])
+		return expanded, nil
+	}
+	return path, nil
+}
+
+// expandPaths expands all paths in the configuration
+func (c *Config) expandPaths() error {
+	var err error
+
+	// Expand database path
+	if c.Database.Path != "" {
+		c.Database.Path, err = expandPath(c.Database.Path)
+		if err != nil {
+			return err
+		}
+		// Ensure directory exists
+		dbDir := filepath.Dir(c.Database.Path)
+		if err := os.MkdirAll(dbDir, 0755); err != nil {
+			return fmt.Errorf("failed to create database directory: %v", err)
+		}
+	}
+
+	// Expand CDE paths
+	if c.CDE.BaseImagePath != "" {
+		c.CDE.BaseImagePath, err = expandPath(c.CDE.BaseImagePath)
+		if err != nil {
+			return err
+		}
+		if err := os.MkdirAll(c.CDE.BaseImagePath, 0755); err != nil {
+			return fmt.Errorf("failed to create base image directory: %v", err)
+		}
+	}
+
+	if c.CDE.WorkspaceRoot != "" {
+		c.CDE.WorkspaceRoot, err = expandPath(c.CDE.WorkspaceRoot)
+		if err != nil {
+			return err
+		}
+		if err := os.MkdirAll(c.CDE.WorkspaceRoot, 0755); err != nil {
+			return fmt.Errorf("failed to create workspace root directory: %v", err)
+		}
+	}
+
+	if c.CDE.ProjectStoragePath != "" {
+		c.CDE.ProjectStoragePath, err = expandPath(c.CDE.ProjectStoragePath)
+		if err != nil {
+			return err
+		}
+		if err := os.MkdirAll(c.CDE.ProjectStoragePath, 0755); err != nil {
+			return fmt.Errorf("failed to create project storage directory: %v", err)
+		}
+	}
+
+	// Expand reports path
+	if c.Reports.StoragePath != "" {
+		c.Reports.StoragePath, err = expandPath(c.Reports.StoragePath)
+		if err != nil {
+			return err
+		}
+		if err := os.MkdirAll(c.Reports.StoragePath, 0755); err != nil {
+			return fmt.Errorf("failed to create reports directory: %v", err)
+		}
+	}
+
+	// Expand log output path
+	if c.Log.Output != "" {
+		c.Log.Output, err = expandPath(c.Log.Output)
+		if err != nil {
+			return err
+		}
+		logDir := filepath.Dir(c.Log.Output)
+		if err := os.MkdirAll(logDir, 0755); err != nil {
+			return fmt.Errorf("failed to create logs directory: %v", err)
+		}
+	}
+
+	return nil
+}
+
 // setDefaults sets default configuration values
 func setDefaults() {
+	appDataDir, err := getAppDataDir()
+	if err != nil {
+		// Fallback to relative paths if we can't get app data directory
+		appDataDir = "."
+	}
+
 	// Operational mode defaults
 	viper.SetDefault("mode", "headless")
 	viper.SetDefault("gui.enabled", false)
@@ -245,8 +363,8 @@ func setDefaults() {
 	viper.SetDefault("api.address", "0.0.0.0")
 
 	// Security defaults
-	viper.SetDefault("security.auth_required", true)
-	viper.SetDefault("security.tls_enabled", true)
+	viper.SetDefault("security.auth_required", false) // false for testnet
+	viper.SetDefault("security.tls_enabled", false)   // false for development
 	viper.SetDefault("security.audit_logging", true)
 
 	// User roles configuration
@@ -257,22 +375,22 @@ func setDefaults() {
 	viper.SetDefault("roles.observer.permissions", []string{"*:read"})
 	viper.SetDefault("roles.observer.scoped_access", false)
 
-	// Database defaults
-	viper.SetDefault("database.path", "./data/nexus.db")
+	// Database defaults - use XDG Base Directory
+	viper.SetDefault("database.path", filepath.Join(appDataDir, "data", "nexus.db"))
 
 	// Network configuration
 	viper.SetDefault("network.chain_id", "knirv-nexus-mainnet")
 	viper.SetDefault("network.p2p_port", 4001)
 	viper.SetDefault("network.discovery_enabled", true)
 
-	// Logging configuration
+	// Logging configuration - use XDG Base Directory
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("log.format", "json")
-	viper.SetDefault("log.output", "./logs/nexus.log")
+	viper.SetDefault("log.output", filepath.Join(appDataDir, "logs", "nexus.log"))
 
-	// CDE configuration defaults
-	viper.SetDefault("cde.base_image_path", "images")
-	viper.SetDefault("cde.workspace_root", "workspaces")
+	// CDE configuration defaults - use XDG Base Directory
+	viper.SetDefault("cde.base_image_path", filepath.Join(appDataDir, "images"))
+	viper.SetDefault("cde.workspace_root", filepath.Join(appDataDir, "workspaces"))
 	viper.SetDefault("cde.max_environments", 50)
 	viper.SetDefault("cde.default_timeout", "1h")
 	viper.SetDefault("cde.max_cpu_per_env", 2.0)
@@ -284,7 +402,14 @@ func setDefaults() {
 	viper.SetDefault("cde.session_timeout", "2h")
 	viper.SetDefault("cde.max_sessions_per_user", 5)
 	viper.SetDefault("cde.max_projects_per_user", 20)
-	viper.SetDefault("cde.project_storage_path", "projects")
+	viper.SetDefault("cde.project_storage_path", filepath.Join(appDataDir, "projects"))
+
+	// Reports configuration - use XDG Base Directory
+	viper.SetDefault("reports.storage_path", filepath.Join(appDataDir, "reports"))
+	viper.SetDefault("reports.max_file_size", int64(104857600)) // 100MB
+	viper.SetDefault("reports.retention_days", 30)
+	viper.SetDefault("reports.enable_sharing", true)
+	viper.SetDefault("reports.enable_scheduling", true)
 
 	// Legacy defaults for backward compatibility
 	viper.SetDefault("chain_id", "knirv-nexus-mainnet")

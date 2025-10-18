@@ -8,7 +8,7 @@ import (
 
 	"github.com/segmentio/kafka-go"
 
-	"nexus-backend/internal/messages"
+	"backend-server/internal/messages"
 )
 
 // EventType represents different types of events that can be produced

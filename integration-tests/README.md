@@ -20,7 +20,7 @@ This directory contains the complete integration testing suite for the KNIRV D-T
 ./config/run-tests.sh knirvnexus
 
 # Run KNIRVNEXUS backend tests only
-./config/run-tests.sh knirvnexus-backend
+./config/run-tests.sh knirvbackend-server
 
 # Run KNIRVNEXUS frontend tests only
 ./config/run-tests.sh knirvnexus-frontend

@@ -6,7 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"nexus-backend/internal/models"
+	"backend-server/internal/models"
 )
 
 // DVE Node Handlers

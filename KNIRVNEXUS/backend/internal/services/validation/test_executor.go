@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"nexus-backend/internal/models"
+	"backend-server/internal/models"
 )
 
 // TestCaseExecutor executes individual test cases

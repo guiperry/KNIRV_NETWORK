@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	dataengine "nexus-backend/internal/data-engine"
-	"nexus-backend/pkg/host"
+	dataengine "backend-server/internal/data-engine"
+	"backend-server/pkg/host"
 )
 
 // AdaptiveHostService extends the inference service with host integration
@@ -20,7 +20,6 @@ type AdaptiveHostService struct {
 
 	// Data engine integration
 	dataEngine *dataengine.BuntDBDataEngine
-
 
 	// Fine-tuning components
 	fineTuner     *FineTuningManager
@@ -55,7 +54,6 @@ type AdaptiveHostConfig struct {
 	EnableFineTuning   bool    `yaml:"enable_fine_tuning"`
 	ModelCacheSize     int     `yaml:"model_cache_size"`
 	ModelSwapThreshold float64 `yaml:"model_swap_threshold"`
-
 
 	// Data engine integration
 	EnableDataLogging bool          `yaml:"enable_data_logging"`

@@ -11,7 +11,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	dataengine "nexus-backend/internal/data-engine"
+	dataengine "backend-server/internal/data-engine"
 )
 
 // AuthService handles authentication and user management

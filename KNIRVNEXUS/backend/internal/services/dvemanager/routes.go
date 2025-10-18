@@ -5,7 +5,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"nexus-backend/internal/web/middleware"
+	"backend-server/internal/web/middleware"
 )
 
 // RegisterRoutes registers all DVE manager routes with the provided router

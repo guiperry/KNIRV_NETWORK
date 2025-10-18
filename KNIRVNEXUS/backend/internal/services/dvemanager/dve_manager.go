@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"nexus-backend/internal/config"
-	"nexus-backend/internal/models"
-	"nexus-backend/pkg/p2p"
+	"backend-server/internal/config"
+	"backend-server/internal/models"
+	"backend-server/pkg/p2p"
 
 	"github.com/google/uuid"
 	"github.com/tidwall/buntdb"

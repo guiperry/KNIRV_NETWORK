@@ -6,18 +6,18 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"nexus-backend/internal/web/middleware"
+	"backend-server/internal/web/middleware"
 )
 
 // DNS Record Management Handlers
 
 // CreateDNSRecordRequest represents a DNS record creation request
 type CreateDNSRecordRequest struct {
-	Name   string `json:"name"`
-	Type   string `json:"type"`
-	Value  string `json:"value"`
-	TTL    int    `json:"ttl"`
-	Zone   string `json:"zone"`
+	Name  string `json:"name"`
+	Type  string `json:"type"`
+	Value string `json:"value"`
+	TTL   int    `json:"ttl"`
+	Zone  string `json:"zone"`
 }
 
 // UpdateDNSRecordRequest represents a DNS record update request
@@ -214,11 +214,11 @@ func (ds *DynamicDNSService) HandleListDNSZones(w http.ResponseWriter, r *http.R
 func (ds *DynamicDNSService) HandleGetDNSStatus(w http.ResponseWriter, r *http.Request) {
 	// This can be public for monitoring
 	status := map[string]interface{}{
-		"service":    "dynamic-dns",
-		"status":     "running",
-		"zones":      2, // TODO: Get actual count
-		"records":    10, // TODO: Get actual count
-		"timestamp":  "2024-01-01T00:00:00Z", // TODO: Use actual timestamp
+		"service":   "dynamic-dns",
+		"status":    "running",
+		"zones":     2,                      // TODO: Get actual count
+		"records":   10,                     // TODO: Get actual count
+		"timestamp": "2024-01-01T00:00:00Z", // TODO: Use actual timestamp
 	}
 
 	writeJSON(w, http.StatusOK, status)

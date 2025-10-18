@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	// dataengine "nexus-backend/internal/data-engine" // TODO: Fix data-engine compilation issues
-	dataengine "nexus-backend/internal/data-engine"
-	"nexus-backend/pkg/host"
+	// dataengine "backend-server/internal/data-engine" // TODO: Fix data-engine compilation issues
+	dataengine "backend-server/internal/data-engine"
+	"backend-server/pkg/host"
 )
 
 // CDEService manages Cloud Development Environments

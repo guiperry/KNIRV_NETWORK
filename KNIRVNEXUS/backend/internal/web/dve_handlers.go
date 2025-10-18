@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"nexus-backend/internal/services/dvemanager"
-	"nexus-backend/internal/services/dverental"
-	"nexus-backend/internal/web/middleware"
+	"backend-server/internal/services/dvemanager"
+	"backend-server/internal/services/dverental"
+	"backend-server/internal/web/middleware"
 
 	"github.com/gorilla/mux"
 )

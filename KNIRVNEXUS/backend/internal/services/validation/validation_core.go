@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"nexus-backend/internal/config"
-	"nexus-backend/internal/models"
-	"nexus-backend/pkg/p2p"
+	"backend-server/internal/config"
+	"backend-server/internal/models"
+	"backend-server/pkg/p2p"
 
 	"github.com/google/uuid"
 	"github.com/tidwall/buntdb"
@@ -18,17 +18,17 @@ import (
 
 // ValidationCore manages validation tasks and execution
 type ValidationCore struct {
-	db                    *buntdb.DB
-	p2pManager            *p2p.DVEP2PManager
-	config                *config.Config
-	inferenceService      InferenceClient
+	db                     *buntdb.DB
+	p2pManager             *p2p.DVEP2PManager
+	config                 *config.Config
+	inferenceService       InferenceClient
 	validationOrchestrator *ValidationOrchestrator
-	llmEvaluator          *LLMEvaluator
-	taskQueue             *TaskQueue
-	executor              *ValidationExecutor
-	ctx                   context.Context
-	cancel                context.CancelFunc
-	mu                    sync.RWMutex
+	llmEvaluator           *LLMEvaluator
+	taskQueue              *TaskQueue
+	executor               *ValidationExecutor
+	ctx                    context.Context
+	cancel                 context.CancelFunc
+	mu                     sync.RWMutex
 }
 
 // TaskQueue manages pending validation tasks
@@ -82,12 +82,12 @@ func NewValidationCore(db *buntdb.DB, p2pManager *p2p.DVEP2PManager, cfg *config
 	})
 
 	core := &ValidationCore{
-		db:                    db,
-		p2pManager:            p2pManager,
-		config:                cfg,
-		inferenceService:      inferenceService,
+		db:                     db,
+		p2pManager:             p2pManager,
+		config:                 cfg,
+		inferenceService:       inferenceService,
 		validationOrchestrator: validationOrchestrator,
-		llmEvaluator:          llmEvaluator,
+		llmEvaluator:           llmEvaluator,
 		taskQueue: &TaskQueue{
 			tasks: make(map[string]*models.ValidationTask),
 		},

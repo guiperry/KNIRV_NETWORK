@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	// dataengine "nexus-backend/internal/services/data-engine" // TODO: Re-enable when data-engine is available
-	dataengine "nexus-backend/internal/data-engine"
-	"nexus-backend/pkg/cloudflare"
+	// dataengine "backend-server/internal/services/data-engine" // TODO: Re-enable when data-engine is available
+	dataengine "backend-server/internal/data-engine"
+	"backend-server/pkg/cloudflare"
 )
 
 // DynamicDNSService manages dynamic DNS updates

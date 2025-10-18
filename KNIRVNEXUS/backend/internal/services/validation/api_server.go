@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"nexus-backend/internal/config"
+	"backend-server/internal/config"
 )
 
 // APIServer provides HTTP API endpoints for Validation Core

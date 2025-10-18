@@ -5,7 +5,8 @@ import (
 	"log"
 	"time"
 
-	"nexus-backend/internal/models"
+	"backend-server/internal/models"
+
 	"github.com/tidwall/buntdb"
 )
 
@@ -26,7 +27,7 @@ func (drs *DVERentalService) loadFromDatabase() error {
 			}
 			return true
 		})
-		
+
 		// Load rental plans
 		tx.Ascend("", func(key, value string) bool {
 			if len(key) > 5 && key[:5] == "plan:" {
@@ -37,7 +38,7 @@ func (drs *DVERentalService) loadFromDatabase() error {
 			}
 			return true
 		})
-		
+
 		return nil
 	})
 }
@@ -51,14 +52,14 @@ func (drs *DVERentalService) saveToDatabase() error {
 				tx.Set("rental:"+rental.ID, string(data), nil)
 			}
 		}
-		
+
 		// Save rental plans
 		for _, plan := range drs.rentalPlans {
 			if data, err := json.Marshal(plan); err == nil {
 				tx.Set("plan:"+plan.ID, string(data), nil)
 			}
 		}
-		
+
 		return nil
 	})
 }
@@ -79,15 +80,15 @@ func (drs *DVERentalService) saveRentalToDatabase(rental *models.DVERental) erro
 func createDefaultRentalPlans() []*models.RentalPlan {
 	return []*models.RentalPlan{
 		{
-			ID:          "basic",
-			Name:        "Basic DVE",
-			Description: "Basic DVE rental with limited resources",
+			ID:           "basic",
+			Name:         "Basic DVE",
+			Description:  "Basic DVE rental with limited resources",
 			PricePerHour: 10, // 10 NRN per hour
 			ResourceLimits: models.ResourceLimits{
 				MaxCPU:       1.0,
-				MaxMemory:    1024 * 1024 * 1024, // 1GB
+				MaxMemory:    1024 * 1024 * 1024,     // 1GB
 				MaxDisk:      5 * 1024 * 1024 * 1024, // 5GB
-				MaxBandwidth: 100 * 1024 * 1024, // 100MB/s
+				MaxBandwidth: 100 * 1024 * 1024,      // 100MB/s
 			},
 			MaxDuration: 24 * 60 * 60, // 24 hours
 			MinDuration: 60 * 60,      // 1 hour
@@ -97,15 +98,15 @@ func createDefaultRentalPlans() []*models.RentalPlan {
 			UpdatedAt:   time.Now(),
 		},
 		{
-			ID:          "standard",
-			Name:        "Standard DVE",
-			Description: "Standard DVE rental with moderate resources",
+			ID:           "standard",
+			Name:         "Standard DVE",
+			Description:  "Standard DVE rental with moderate resources",
 			PricePerHour: 25, // 25 NRN per hour
 			ResourceLimits: models.ResourceLimits{
 				MaxCPU:       2.0,
-				MaxMemory:    4 * 1024 * 1024 * 1024, // 4GB
+				MaxMemory:    4 * 1024 * 1024 * 1024,  // 4GB
 				MaxDisk:      20 * 1024 * 1024 * 1024, // 20GB
-				MaxBandwidth: 500 * 1024 * 1024, // 500MB/s
+				MaxBandwidth: 500 * 1024 * 1024,       // 500MB/s
 			},
 			MaxDuration: 7 * 24 * 60 * 60, // 7 days
 			MinDuration: 60 * 60,          // 1 hour
@@ -115,15 +116,15 @@ func createDefaultRentalPlans() []*models.RentalPlan {
 			UpdatedAt:   time.Now(),
 		},
 		{
-			ID:          "premium",
-			Name:        "Premium DVE",
-			Description: "Premium DVE rental with high-performance resources",
+			ID:           "premium",
+			Name:         "Premium DVE",
+			Description:  "Premium DVE rental with high-performance resources",
 			PricePerHour: 50, // 50 NRN per hour
 			ResourceLimits: models.ResourceLimits{
 				MaxCPU:       8.0,
-				MaxMemory:    16 * 1024 * 1024 * 1024, // 16GB
+				MaxMemory:    16 * 1024 * 1024 * 1024,  // 16GB
 				MaxDisk:      100 * 1024 * 1024 * 1024, // 100GB
-				MaxBandwidth: 1024 * 1024 * 1024, // 1GB/s
+				MaxBandwidth: 1024 * 1024 * 1024,       // 1GB/s
 			},
 			MaxDuration: 30 * 24 * 60 * 60, // 30 days
 			MinDuration: 60 * 60,           // 1 hour
@@ -140,7 +141,7 @@ func (drs *DVERentalService) initializeDefaultPlans() {
 	for _, plan := range drs.defaultPlans {
 		drs.rentalPlans[plan.ID] = plan
 	}
-	
+
 	// Save to database
 	if err := drs.saveToDatabase(); err != nil {
 		log.Printf("Warning: Failed to save default rental plans to database: %v", err)
@@ -186,7 +187,7 @@ func (drs *DVERentalService) calculateRevenueForPeriod(period time.Duration) int
 func (drs *DVERentalService) cleanupRoutine() {
 	ticker := time.NewTicker(drs.cleanupInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -202,34 +203,34 @@ func (drs *DVERentalService) cleanupRoutine() {
 func (drs *DVERentalService) cleanupExpiredRentals() {
 	drs.mu.Lock()
 	defer drs.mu.Unlock()
-	
+
 	now := time.Now()
 	expiredRentals := make([]string, 0)
-	
+
 	for id, rental := range drs.activeRentals {
 		if rental.Status == "active" && rental.EndTime.Before(now) {
 			rental.Status = "expired"
 			rental.UpdatedAt = now
-			
+
 			// Clean up CDE environment
 			if err := drs.cleanupCDEEnvironment(rental.CDEEnvironmentID); err != nil {
 				log.Printf("Warning: Failed to cleanup CDE environment for expired rental %s: %v", id, err)
 			}
-			
+
 			expiredRentals = append(expiredRentals, id)
-			
+
 			// Save expired rental to database
 			if err := drs.saveRentalToDatabase(rental); err != nil {
 				log.Printf("Warning: Failed to save expired rental to database: %v", err)
 			}
 		}
 	}
-	
+
 	// Remove expired rentals from active list
 	for _, id := range expiredRentals {
 		delete(drs.activeRentals, id)
 	}
-	
+
 	if len(expiredRentals) > 0 {
 		log.Printf("Cleaned up %d expired rentals", len(expiredRentals))
 	}

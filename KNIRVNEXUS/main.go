@@ -28,7 +28,7 @@ var embeddedFiles embed.FS
 
 // Embed the unified backend binary
 //
-//go:embed bin/nexus-backend
+//go:embed bin/backend-server
 var backendBinary []byte
 
 // Version information (set by build flags)
@@ -192,7 +192,7 @@ func (app *NexusApp) extractBackend() error {
 	app.tempDir = tempDir
 
 	// Extract unified backend binary
-	app.backendPath = filepath.Join(tempDir, "nexus-backend")
+	app.backendPath = filepath.Join(tempDir, "backend-server")
 	file, err := os.Create(app.backendPath)
 	if err != nil {
 		return fmt.Errorf("failed to create backend file: %w", err)

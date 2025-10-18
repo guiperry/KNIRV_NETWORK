@@ -3,7 +3,7 @@ package validation
 import (
 	"sort"
 
-	"nexus-backend/internal/models"
+	"backend-server/internal/models"
 )
 
 // AddTask adds a task to the queue

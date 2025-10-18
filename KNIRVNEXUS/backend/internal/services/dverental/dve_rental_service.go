@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"nexus-backend/internal/models"
+	"backend-server/internal/models"
 
 	"github.com/google/uuid"
 	"github.com/tidwall/buntdb"

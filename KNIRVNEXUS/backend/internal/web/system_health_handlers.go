@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	"nexus-backend/internal/models"
-	"nexus-backend/internal/services/systemhealth"
-	"nexus-backend/internal/web/middleware"
+	"backend-server/internal/models"
+	"backend-server/internal/services/systemhealth"
+	"backend-server/internal/web/middleware"
 
 	"github.com/gorilla/mux"
 )
@@ -33,7 +33,7 @@ type SystemHealthResponse struct {
 func (h *SystemHealthHandlers) GetSystemHealth(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters
 	detailed := r.URL.Query().Get("detailed") == "true"
-	
+
 	health := h.systemHealthService.GetSystemHealth(detailed)
 
 	response := SystemHealthResponse{
@@ -55,9 +55,9 @@ func (h *SystemHealthHandlers) GetSystemAlerts(w http.ResponseWriter, r *http.Re
 			resolved = &resolvedBool
 		}
 	}
-	
+
 	severity := r.URL.Query().Get("severity")
-	
+
 	alerts := h.systemHealthService.GetAlerts(resolved, severity)
 
 	response := SystemHealthResponse{

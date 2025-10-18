@@ -14,13 +14,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"nexus-backend/internal/config"
-	"nexus-backend/internal/database"
-	"nexus-backend/internal/models"
-	"nexus-backend/internal/services/dvemanager"
-	"nexus-backend/internal/services/validation"
-	"nexus-backend/pkg/p2p"
-	"nexus-backend/pkg/sse"
+	"backend-server/internal/config"
+	"backend-server/internal/database"
+	"backend-server/internal/models"
+	"backend-server/internal/services/dvemanager"
+	"backend-server/internal/services/validation"
+	"backend-server/pkg/p2p"
+	"backend-server/pkg/sse"
 )
 
 // TestSuite represents the integration test suite

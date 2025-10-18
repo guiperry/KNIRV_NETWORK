@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"nexus-backend/internal/config"
-	"nexus-backend/internal/database"
+	"backend-server/internal/config"
+	"backend-server/internal/database"
 )
 
 // ModelServer represents the model server service

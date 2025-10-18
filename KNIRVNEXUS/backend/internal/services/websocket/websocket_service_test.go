@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"nexus-backend/internal/models"
+	"backend-server/internal/models"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"

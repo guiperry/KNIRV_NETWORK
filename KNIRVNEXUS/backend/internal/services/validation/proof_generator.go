@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"nexus-backend/internal/models"
+	"backend-server/internal/models"
 )
 
 // ProofGenerator generates cryptographic proofs for validation results
@@ -27,15 +27,15 @@ func (pg *ProofGenerator) GenerateProof(
 ) string {
 	// Create proof data structure
 	proofData := map[string]interface{}{
-		"task_id":          task.ID,
-		"result_id":        result.ID,
-		"validator_node":   pg.nodeID,
-		"timestamp":        time.Now().Unix(),
-		"score":            result.Score,
-		"status":           result.Status,
-		"execution_time":   result.ExecutionTime.Milliseconds(),
-		"test_results":     result.TestResults,
-		"results":          result.Results,
+		"task_id":        task.ID,
+		"result_id":      result.ID,
+		"validator_node": pg.nodeID,
+		"timestamp":      time.Now().Unix(),
+		"score":          result.Score,
+		"status":         result.Status,
+		"execution_time": result.ExecutionTime.Milliseconds(),
+		"test_results":   result.TestResults,
+		"results":        result.Results,
 	}
 
 	// Serialize to JSON
@@ -81,15 +81,15 @@ func (pg *ProofGenerator) VerifyProof(proof string, task *models.ValidationTask,
 
 	// Recreate proof data for verification
 	proofData := map[string]interface{}{
-		"task_id":          task.ID,
-		"result_id":        result.ID,
-		"validator_node":   pg.nodeID,
-		"timestamp":        time.Now().Unix(), // Note: timestamp mismatch in real verification
-		"score":            result.Score,
-		"status":           result.Status,
-		"execution_time":   result.ExecutionTime.Milliseconds(),
-		"test_results":     result.TestResults,
-		"results":          result.Results,
+		"task_id":        task.ID,
+		"result_id":      result.ID,
+		"validator_node": pg.nodeID,
+		"timestamp":      time.Now().Unix(), // Note: timestamp mismatch in real verification
+		"score":          result.Score,
+		"status":         result.Status,
+		"execution_time": result.ExecutionTime.Milliseconds(),
+		"test_results":   result.TestResults,
+		"results":        result.Results,
 	}
 
 	proofJSON, err := json.Marshal(proofData)

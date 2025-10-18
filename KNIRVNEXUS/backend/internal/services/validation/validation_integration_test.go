@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"nexus-backend/internal/config"
-	"nexus-backend/internal/database"
-	"nexus-backend/internal/models"
-	"nexus-backend/internal/services/validation"
-	"nexus-backend/pkg/p2p"
+	"backend-server/internal/config"
+	"backend-server/internal/database"
+	"backend-server/internal/models"
+	"backend-server/internal/services/validation"
+	"backend-server/pkg/p2p"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

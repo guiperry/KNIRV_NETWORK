@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	dataengine "nexus-backend/internal/data-engine"
-	validation "nexus-backend/internal/services/validation"
-	"nexus-backend/pkg/host"
+	dataengine "backend-server/internal/data-engine"
+	validation "backend-server/internal/services/validation"
+	"backend-server/pkg/host"
 )
 
 // AdaptiveHostService extends the inference service with host integration

@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"nexus-backend/internal/models"
-	"nexus-backend/internal/services/controllerintegration"
-	"nexus-backend/internal/web/middleware"
+	"backend-server/internal/models"
+	"backend-server/internal/services/controllerintegration"
+	"backend-server/internal/web/middleware"
 
 	"github.com/gorilla/mux"
 )
@@ -368,7 +368,7 @@ func (h *ControllerIntegrationHandlers) DeleteSession(w http.ResponseWriter, r *
 
 	// Try to decode reason, but it's optional
 	json.NewDecoder(r.Body).Decode(&request)
-	
+
 	reason := request.Reason
 	if reason == "" {
 		reason = "user_requested"
@@ -408,18 +408,18 @@ func (h *ControllerIntegrationHandlers) RegisterRoutes(r *mux.Router, authMiddle
 	if authMiddleware != nil {
 		protectedControllerRouter := controllerRouter.PathPrefix("").Subrouter()
 		protectedControllerRouter.Use(authMiddleware.RequireAuth)
-		
+
 		// QR code generation (desktop)
 		protectedControllerRouter.HandleFunc("/qr-code", h.PostGenerateQRCode).Methods("POST")
-		
+
 		// Pairing management
 		protectedControllerRouter.HandleFunc("/pairing/{id}/confirm", h.PostConfirmPairing).Methods("POST")
-		
+
 		// Session management
 		protectedControllerRouter.HandleFunc("/sessions/{id}", h.GetSession).Methods("GET")
 		protectedControllerRouter.HandleFunc("/sessions/{id}", h.DeleteSession).Methods("DELETE")
 		protectedControllerRouter.HandleFunc("/sessions/{id}/messages", h.PostSendMessage).Methods("POST")
-		
+
 		// User sessions
 		protectedControllerRouter.HandleFunc("/users/{id}/sessions", h.GetUserSessions).Methods("GET")
 	} else {

@@ -1,8 +1,8 @@
 package modelmanagement
 
 import (
+	. "backend-server/internal/models"
 	"fmt"
-	. "nexus-backend/internal/models"
 	"os"
 	"path/filepath"
 	"testing"

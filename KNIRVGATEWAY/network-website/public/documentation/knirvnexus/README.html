@@ -38,7 +38,7 @@
             <article class="doc-content">
                 <p><h1>KNIRV-NEXUS: Decentralized Validation Environment</h1></p><p>KNIRV-NEXUS is a unified implementation of the Decentralized Validation Environment (DVE) for the KNIRV Network. It provides a secure, scalable platform for validating SkillNodes and Base LLMs using a modern architecture that combines Next.js frontend with Go backend services in a single deployable binary.</p><p><h2>🏗️ Architecture Overview</h2></p><p>KNIRV-NEXUS implements a <strong>unified architecture</strong> with embedded frontend and backend services:</p><p><h3>Unified Binary Architecture</h3></p><p>- <strong>Main Wrapper</strong> (<code>main.go</code>): Embeds both frontend and backend into a single executable
 - <strong>Frontend Embedding</strong>: Next.js build output embedded via <code>//go:embed all:out</code>
-- <strong>Backend Embedding</strong>: Unified backend binary embedded via <code>//go:embed bin/nexus-backend</code>
+- <strong>Backend Embedding</strong>: Unified backend binary embedded via <code>//go:embed bin/backend-server</code>
 - <strong>API Proxy</strong>: Gin-based proxy routing <code>/api/*</code> requests to embedded backend
 - <strong>Static Serving</strong>: Embedded filesystem serving Next.js static assets</p><p><h3>Core Backend Services</h3></p><p>- <strong>DVE Manager</strong>: Orchestrates DVE nodes, manages task allocation, and monitors system health
 - <strong>Validation Core</strong>: Executes validation tasks with TEE support and cryptographic proofs
@@ -85,18 +85,18 @@ make test-nexus-e2e          # End-to-end tests only
 make test-nexus-performance  # Performance tests only
 make test-nexus-security     # Security tests only
 <code></code>`</p><p><h2>🛠️ Build System</h2></p><p>KNIRV-NEXUS uses a unified build process that creates a single deployable binary containing both frontend and backend:</p><p><h3>Build Process Overview</h3></p><p>1. <strong>Frontend Build</strong>: Next.js builds static output to <code>out/</code> directory
-2. <strong>Backend Build</strong>: Go builds unified backend binary to <code>bin/nexus-backend</code>
+2. <strong>Backend Build</strong>: Go builds unified backend binary to <code>bin/backend-server</code>
 3. <strong>Embedding</strong>: Main wrapper embeds both frontend and backend using <code>go:embed</code>
 4. <strong>Final Binary</strong>: Single executable containing complete application</p><p><h3>Core Build Commands</h3></p><p><code></code>`bash
 <h1>Quick Development Setup</h1>
 npm install              # Install frontend dependencies
 npm run build           # Build Next.js frontend
-cd backend && go build -o ../bin/nexus-backend ./main.go  # Build backend
+cd backend && go build -o ../bin/backend-server ./main.go  # Build backend
 go build -o knirv-nexus main.go  # Build unified binary</p><p><h1>Development Mode</h1>
 npm run dev             # Start Next.js dev server (port 3000)
 cd backend && go run main.go --config config/development.yaml  # Backend only</p><p><h1>Production Build</h1>
 npm run build           # Build optimized frontend
-cd backend && CGO_ENABLED=1 go build -ldflags="-s -w" -o ../bin/nexus-backend ./main.go
+cd backend && CGO_ENABLED=1 go build -ldflags="-s -w" -o ../bin/backend-server ./main.go
 go build -ldflags="-s -w -X main.Version=v1.0.0" -o knirv-nexus main.go</p><p><h1>Testing</h1>
 npm test                # Frontend tests
 cd backend && go test ./...  # Backend tests
@@ -159,7 +159,7 @@ npm install</p><p><h1>3. Build frontend</h1>
 npm run build</p><p><h1>4. Build backend</h1>
 cd backend
 go mod tidy
-go build -o ../bin/nexus-backend ./main.go
+go build -o ../bin/backend-server ./main.go
 cd ..</p><p><h1>5. Build unified binary</h1>
 go build -o knirv-nexus main.go</p><p><h1>6. Run application</h1>
 ./knirv-nexus</p><p><h1>7. Access application at http://localhost:8090</h1>

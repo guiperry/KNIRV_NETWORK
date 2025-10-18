@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"nexus-backend/internal/inference"
-	"nexus-backend/internal/web/middleware"
+	"backend-server/internal/inference"
+	"backend-server/internal/web/middleware"
 
 	"github.com/gorilla/mux"
 )

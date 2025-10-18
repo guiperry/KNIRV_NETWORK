@@ -1,4 +1,4 @@
-module nexus-backend
+module backend-server
 
 go 1.23.0
 

@@ -83,23 +83,14 @@ frontend-dev: deps-node ## Start frontend development server
 	@echo "$(BLUE)Starting frontend development server...$(NC)"
 	$(NPM_CMD) run dev
 
-# Backend Build (Complete package binary)
+# Backend Build (cmd/backend-server only)
 backend: deps-go ## Build complete Go backend service package
 	@echo "$(BLUE)Building complete backend package binary...$(NC)"
-	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o bin/nexus-backend .
+	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o bin/backend-server ./cmd/backend-server
 	@echo "$(BLUE)Copying backend binary to root...$(NC)"
 	@mkdir -p bin
-	cp $(BACKEND_DIR)/bin/nexus-backend bin/
+	cp $(BACKEND_DIR)/bin/backend-server bin/
 	@echo "$(GREEN)Backend build completed$(NC)"
-
-# Legacy Backend Build (cmd/nexus-server only)
-backend-legacy: deps-go ## Build legacy cmd/nexus-server binary
-	@echo "$(BLUE)Building legacy backend binary...$(NC)"
-	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o bin/nexus-server ./cmd/nexus-server
-	@echo "$(BLUE)Copying legacy backend binary to root...$(NC)"
-	@mkdir -p bin
-	cp $(BACKEND_DIR)/bin/nexus-server bin/
-	@echo "$(GREEN)Legacy backend build completed$(NC)"
 
 # Unified Binary (Frontend + Unified Backend)
 binary: frontend backend ## Build unified binary with embedded frontend and backend
@@ -107,10 +98,10 @@ binary: frontend backend ## Build unified binary with embedded frontend and back
 	@mkdir -p $(DIST_DIR)
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-nexus .
 	@echo "$(GREEN)Unified binary created: $(DIST_DIR)/knirv-nexus$(NC)"
-	@echo "$(BLUE)Copying binary to nexus-deployer golang-app-source...$(NC)"
-	@mkdir -p $(ROOT_DIR)/backend/cmd/nexus-deployer/golang-app-source
-	cp $(DIST_DIR)/knirv-nexus $(ROOT_DIR)/backend/cmd/nexus-deployer/golang-app-source/
-	@echo "$(GREEN)Binary copied to nexus-deployer golang-app-source$(NC)"
+	@echo "$(BLUE)Copying binary to continer-deployer golang-app-source...$(NC)"
+	@mkdir -p $(ROOT_DIR)/backend/cmd/continer-deployer/golang-app-source
+	cp $(DIST_DIR)/knirv-nexus $(ROOT_DIR)/backend/cmd/continer-deployer/golang-app-source/
+	@echo "$(GREEN)Binary copied to continer-deployer golang-app-source$(NC)"
 
 # Testing
 test: test-go test-frontend test-architecture ## Run all tests

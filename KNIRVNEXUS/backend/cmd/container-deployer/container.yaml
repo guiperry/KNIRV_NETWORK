@@ -1,0 +1,15 @@
+{
+  "metadata": {
+    "name": "test-kata-container"
+  },
+  "image": {
+    "image": "docker.io/library/busybox"
+  },
+  "command": [
+    "sh",
+    "-c",
+    "uname -a"
+  ],
+  "log_path": "kata-test.log",
+  "linux": {}
+}

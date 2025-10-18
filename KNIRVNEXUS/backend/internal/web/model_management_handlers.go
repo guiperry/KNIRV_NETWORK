@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	"nexus-backend/internal/models"
-	"nexus-backend/internal/services/modelmanagement"
-	"nexus-backend/internal/web/middleware"
+	"backend-server/internal/models"
+	"backend-server/internal/services/modelmanagement"
+	"backend-server/internal/web/middleware"
 
 	"github.com/gorilla/mux"
 )

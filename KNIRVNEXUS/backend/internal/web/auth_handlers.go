@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"nexus-backend/internal/web/middleware"
-	"nexus-backend/internal/database"
+	"backend-server/internal/database"
+	"backend-server/internal/web/middleware"
 )
 
 type AuthHandlers struct {
@@ -24,8 +24,8 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	Token string    `json:"token"`
-	Role  string    `json:"role"`
+	Token     string    `json:"token"`
+	Role      string    `json:"role"`
 	ExpiresAt time.Time `json:"expires_at"`
 }
 

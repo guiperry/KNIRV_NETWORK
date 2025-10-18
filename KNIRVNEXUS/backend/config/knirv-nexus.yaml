@@ -1,25 +1,108 @@
-# KNIRV-NEXUS Server Configuration
+# KNIRV-NEXUS Unified Configuration
+# This is the primary configuration file for KNIRV-NEXUS
+# All data directories default to ~/.local/share/knirvnexus/backend-server (XDG Base Directory)
 
-# Server settings (wrapper frontend)
-host: "0.0.0.0"
-port: 8081
-database_path: "data/nexus.db"
-serve_frontend: true
-log_level: "info"
-log_file: "logs/nexus.log"
+# Operational Mode
+mode: headless  # headless | gui
+environment: production  # production | development | staging
+chain_id: knirv-nexus-mainnet
+node_role: dve-manager
+testnet: false
+
+# Service Configuration (wrapper frontend)
+service:
+  host: "0.0.0.0"
+  port: 8081
+  bind_address: "0.0.0.0"
+  name: "dve-manager"
 
 # API Configuration
 api:
-  port: 8082
   host: "0.0.0.0"
+  port: 8082
+  address: "0.0.0.0"
+  bind_address: "0.0.0.0"
   enable_cors: true
   cors_origins:
     - "http://localhost:3000"
     - "http://localhost:8080"
+    - "http://localhost:8081"
+    - "http://localhost:8082"
     - "https://nexus.knirv.com"
-  jwt_secret: "your-jwt-secret-key-change-this-in-production"
+  jwt_secret: "${KNIRV_JWT_SECRET:your-jwt-secret-key-change-this-in-production}"
   rate_limit_rps: 100
   request_timeout: "30s"
+  serve_frontend: true
+
+# GUI Mode Configuration
+gui:
+  enabled: false
+  port: 9080
+  frontend_path: "./dist"  # Path to built Next.js frontend
+  bind_address: "127.0.0.1"
+
+# Database Configuration
+database:
+  path: ~/.local/share/knirvnexus/backend-server/data/nexus.db
+
+# Security Configuration
+security:
+  auth_required: false  # false for testnet, true for production
+  tls_enabled: false    # false for development, true for production
+  tls_cert_file: ""
+  tls_key_file: ""
+  audit_logging: true
+  jwt_secret: "${KNIRV_JWT_SECRET:testnet-jwt-secret-change-this-in-production}"
+  enable_rate_limiting: true
+  rate_limit_requests_per_minute: 60
+  enable_request_logging: true
+  enable_security_headers: true
+
+# Authentication Configuration
+auth:
+  jwt_secret: "${KNIRV_JWT_SECRET}"
+  token_expiry: "24h"
+  refresh_token_expiry: "168h"  # 7 days
+  enable_oauth: false
+  oauth_providers: []
+  password_min_length: 8
+  password_require_upper: true
+  password_require_lower: true
+  password_require_digit: true
+  password_require_special: false
+  max_login_attempts: 5
+  lockout_duration: "15m"
+  session_timeout: "30m"
+  enable_two_factor: false
+
+# User Roles and Permissions
+roles:
+  validator:
+    permissions:
+      - "node:read"
+      - "node:update"
+      - "tasks:read"
+      - "results:read"
+    scoped_access: true  # Only assigned nodes
+  admin:
+    permissions:
+      - "*:*"  # Full access
+    scoped_access: false
+  observer:
+    permissions:
+      - "*:read"
+    scoped_access: false
+
+# Network Configuration
+network:
+  chain_id: "knirv-nexus-mainnet"
+  p2p_port: 4001
+  discovery_enabled: true
+
+# P2P Configuration
+p2p:
+  port: 4001
+  bootstraps: []
 
 # Host Controller Configuration
 host_controller:
@@ -31,6 +114,29 @@ host_controller:
   tee_type: "none"
   container_runtime: "podman"
   enable_security_monitoring: true
+
+# Validation Configuration
+validation:
+  timeout: "30s"
+  max_concurrent: 10
+  enable_tee: false
+
+# TEE (Trusted Execution Environment) Configuration
+tee:
+  type: "software"  # sgx | sev-snp | tdx | software
+  sgx:
+    enclave_file: ""
+    spid_file: ""
+    ias_url: ""
+  sev:
+    policy_file: ""
+    cert_chain: ""
+  tdx:
+    td_report_file: ""
+    quote_file: ""
+  software:
+    enable_attestation: false
+    key_file: ""
 
 # Data Engine Configuration
 data_engine:
@@ -63,10 +169,10 @@ inference:
     learning_rate: 0.0001
     batch_size: 8
 
-# CDE (Cloud Development Environment) Configuration
+# Cloud Development Environment (CDE) Configuration
 cde:
-  base_image_path: "images"
-  workspace_root: "workspaces"
+  base_image_path: "~/.local/share/knirvnexus/backend-server/images"
+  workspace_root: "~/.local/share/knirvnexus/backend-server/workspaces"
   max_environments: 50
   default_timeout: "1h"
   max_cpu_per_env: 2.0
@@ -81,43 +187,31 @@ cde:
   session_timeout: "2h"
   max_sessions_per_user: 5
   max_projects_per_user: 20
-  project_storage_path: "projects"
+  project_storage_path: "~/.local/share/knirvnexus/backend-server/projects"
 
-# Authentication Configuration
-auth:
-  password_min_length: 8
-  password_require_upper: true
-  password_require_lower: true
-  password_require_digit: true
-  password_require_special: false
-  token_expiration: "24h"
-  refresh_token_expiration: "168h"  # 7 days
-  max_login_attempts: 5
-  lockout_duration: "15m"
-  session_timeout: "30m"
-  enable_two_factor: false
+# Reports Configuration
+reports:
+  storage_path: "~/.local/share/knirvnexus/backend-server/reports"
+  max_file_size: 104857600  # 100MB
+  retention_days: 30
+  enable_sharing: true
+  enable_scheduling: true
 
 # Logging Configuration
 logging:
-  level: "info"
+  level: "info"  # debug | info | warn | error
   format: "json"
-  output: "stdout"
-  file: "logs/nexus.log"
+  output: "~/.local/share/knirvnexus/backend-server/logs/nexus.log"
+  file: "~/.local/share/knirvnexus/backend-server/logs/nexus.log"
   max_size: 100    # MB
   max_backups: 5
   max_age: 30      # days
   compress: true
 
-# Security Configuration
-security:
-  enable_tls: false
-  tls_cert_file: ""
-  tls_key_file: ""
-  jwt_secret: "your-jwt-secret-key-change-this-in-production"
-  enable_rate_limiting: true
-  rate_limit_requests_per_minute: 60
-  enable_request_logging: true
-  enable_security_headers: true
+log:
+  level: "info"
+  format: "json"
+  output: "~/.local/share/knirvnexus/backend-server/logs/nexus.log"
 
 # Monitoring Configuration
 monitoring:

@@ -6,7 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"nexus-backend/internal/web/middleware"
+	"backend-server/internal/web/middleware"
 )
 
 // Validation Task Handlers

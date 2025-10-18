@@ -7,7 +7,7 @@ import (
 	"sort"
 	"time"
 
-	"nexus-backend/internal/models"
+	"backend-server/internal/models"
 )
 
 // SelectNode selects the optimal node for a given task

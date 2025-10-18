@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"nexus-backend/internal/models"
+	"backend-server/internal/models"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
