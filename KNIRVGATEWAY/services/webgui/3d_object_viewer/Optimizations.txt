@@ -1,0 +1,212 @@
+Based on the code in index.tsx, the primary reason for a potentially slow initial load after the Next.js server itself has started is the way data is fetched in the main useEffect hook.
+
+1. Sequential Data Fetching:
+
+Problem: You are using await for each fetch call (/api/objects, /api/transactions, /api/blocks) one after the other. This means the request for transactions only starts after the objects request finishes, and the request for blocks only starts after the transactions request finishes. If each API call takes, say, 500ms, the total time to get all initial data is 1500ms (plus network latency).
+Optimization: Fetch the data in parallel using Promise.all. This sends all requests concurrently, and the total time will be closer to the time taken by the slowest individual request, rather than the sum of all requests.
+Example using Promise.all:
+
+typescriptreact
+  // Fetch data from the server
+  useEffect(() => {
+    async function fetchData() {
+      setIsLoading(true);
+      logToConsole('Initializing connection to KNIRVCHAIN...');
+
+      try {
+        // Fetch all data concurrently
+        const [objectsResponse, transactionsResponse, blocksResponse] = await Promise.all([
+          fetch('/api/objects'),
+          fetch('/api/transactions'),
+          fetch('/api/blocks')
+        ]);
+
+        // Process objects
+        if (objectsResponse.ok) {
+          const objectsData = await objectsResponse.json();
+          setObjects(objectsData);
+          logToConsole(`Loaded ${objectsData.length} objects from the chain`);
+        } else {
+          logToConsole(`Error fetching objects: ${objectsResponse.statusText}`);
+          // Optionally throw an error or handle it more gracefully
+        }
+
+        // Process transactions
+        if (transactionsResponse.ok) {
+          const transactionsData = await transactionsResponse.json();
+          setTransactions(transactionsData);
+          logToConsole(`Loaded ${transactionsData.length} transactions from the chain`);
+        } else {
+          logToConsole(`Error fetching transactions: ${transactionsResponse.statusText}`);
+        }
+
+        // Process blocks
+        if (blocksResponse.ok) {
+          const blocksData = await blocksResponse.json();
+          setBlocks(blocksData);
+          logToConsole(`Loaded ${blocksData.length} blocks from the chain`);
+        } else {
+          logToConsole(`Error fetching blocks: ${blocksResponse.statusText}`);
+        }
+
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+        logToConsole(`Error: Failed to connect to the chain - ${error instanceof Error ? error.message : String(error)}`);
+      } finally {
+        setIsLoading(false);
+        logToConsole('KNIRVCHAIN connection established');
+      }
+    }
+
+    fetchData();
+
+    // Set up polling for updates every 10 seconds
+    // Consider if polling all data this frequently is necessary
+    const intervalId = setInterval(() => {
+      // You might want to make this polling fetch parallel too,
+      // or even fetch different resources at different intervals.
+      fetchData();
+    }, 10000);
+
+    return () => clearInterval(intervalId);
+  }, [logToConsole]); // logToConsole is stable due to useCallback
+2. Client-Side Data Fetching:
+
+Problem: The page renders initially, shows loading states, and then fetches data on the client side. This means the user sees spinners or empty lists until all the data arrives.
+
+Optimization (Option A - SSR): Use Next.js's Server-Side Rendering (getServerSideProps). This function runs on the server before the page is sent to the browser. You can fetch the initial data there, pass it as props to your component, and the page will render with the data already present, improving the perceived load time significantly. Subsequent updates can still happen client-side (like your polling).
+
+typescriptreact
+// pages/index.tsx
+import React, { /* ... other imports ... */ } from 'react';
+import type { GetServerSideProps } from 'next';
+
+// ... (Keep your interfaces: ObjectType, Transaction, Block) ...
+
+interface MainPageProps {
+  initialObjects: ObjectType[];
+  initialTransactions: Transaction[];
+  initialBlocks: Block[];
+  error?: string; // Optional error prop
+}
+
+// ... (Keep your Main component, but modify the useEffect and useState) ...
+
+export default function Main({ initialObjects, initialTransactions, initialBlocks, error }: MainPageProps) {
+  // Initialize state with server-fetched data
+  const [objects, setObjects] = useState<ObjectType[]>(initialObjects || []);
+  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions || []);
+  const [blocks, setBlocks] = useState<Block[]>(initialBlocks || []);
+  // ... other state ...
+  const [consoleLog, setConsoleLog] = useState<string[]>(error ? [`Error during initial load: ${error}`] : []);
+
+  // ... (Keep logToConsole, other handlers) ...
+
+  // Modify the useEffect:
+  // - Remove the initial fetchData call (it's done by getServerSideProps)
+  // - Keep the polling logic if needed for updates
+  useEffect(() => {
+    logToConsole('KNIRVCHAIN UI Initialized.');
+    // Optional: Log initial counts if data was loaded successfully
+    if (!error) {
+       logToConsole(`Loaded ${objects.length} objects initially.`);
+       logToConsole(`Loaded ${transactions.length} transactions initially.`);
+       logToConsole(`Loaded ${blocks.length} blocks initially.`);
+    }
+
+    // Function for polling updates (can reuse parts of your original fetchData)
+    async function pollUpdates() {
+      logToConsole('Polling for updates...');
+      try {
+        // Fetch updates (consider parallel fetching here too)
+        const [objRes, txRes, blockRes] = await Promise.all([
+          fetch('/api/objects'),
+          fetch('/api/transactions'),
+          fetch('/api/blocks')
+        ]);
+
+        if (objRes.ok) setObjects(await objRes.json());
+        if (txRes.ok) setTransactions(await txRes.json());
+        if (blockRes.ok) setBlocks(await blockRes.json());
+
+        logToConsole('Polling complete.');
+
+      } catch (pollError) {
+         console.error('Polling error:', pollError);
+         logToConsole(`Polling error: ${pollError instanceof Error ? pollError.message : String(pollError)}`);
+      }
+    }
+
+    const intervalId = setInterval(pollUpdates, 10000); // Poll every 10 seconds
+
+    return () => clearInterval(intervalId); // Cleanup interval on unmount
+  }, [logToConsole, error, objects.length, transactions.length, blocks.length]); // Add dependencies if needed
+
+
+  // ... (Rest of your component JSX remains largely the same, remove isLoading checks for initial load) ...
+
+  return (
+    <div className="container">
+      {/* ... Your JSX ... */}
+      {/* You might want to display the 'error' prop if it exists */}
+      {/* Remove the top-level isLoading checks as data is pre-loaded */}
+    </div>
+  );
+}
+
+// Fetch data on the server before rendering
+export const getServerSideProps: GetServerSideProps<MainPageProps> = async (context) => {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'; // Or determine dynamically
+
+  try {
+    // Fetch data in parallel on the server
+    const [objectsResponse, transactionsResponse, blocksResponse] = await Promise.all([
+      fetch(`${baseUrl}/api/objects`),
+      fetch(`${baseUrl}/api/transactions`),
+      fetch(`${baseUrl}/api/blocks`)
+    ]);
+
+    // Check responses and parse JSON
+    const initialObjects = objectsResponse.ok ? await objectsResponse.json() : [];
+    const initialTransactions = transactionsResponse.ok ? await transactionsResponse.json() : [];
+    const initialBlocks = blocksResponse.ok ? await blocksResponse.json() : [];
+
+    // Handle potential errors during fetch if needed (e.g., log them server-side)
+    if (!objectsResponse.ok || !transactionsResponse.ok || !blocksResponse.ok) {
+       console.error("SSR Fetch Error: ", {
+          objects: objectsResponse.statusText,
+          transactions: transactionsResponse.statusText,
+          blocks: blocksResponse.statusText
+       });
+       // You could return an error prop to the component
+    }
+
+    return {
+      props: {
+        initialObjects,
+        initialTransactions,
+        initialBlocks,
+      },
+    };
+  } catch (error) {
+    console.error('SSR Error:', error);
+    return {
+      props: {
+        initialObjects: [],
+        initialTransactions: [],
+        initialBlocks: [],
+        error: error instanceof Error ? error.message : 'Failed to load initial data.',
+      },
+    };
+  }
+};
+Optimization (Option B - Smarter Polling/Real-time): Instead of polling all data every 10 seconds, consider:
+
+Polling less frequently.
+Only polling data that changes often (maybe just transactions/blocks).
+Using WebSockets or Server-Sent Events (SSE) to have the server push updates to the client when they happen. This is generally more efficient than constant polling.
+3. Backend API Performance:
+
+Problem: The slowness might not be in your frontend code but in the API endpoints themselves (/api/objects, /api/transactions, /api/blocks). If the server takes a long time to process these requests (e.g., slow database queries, complex blockchain interactions), the frontend will have to wait.
+Optimization: Investigate the performance of your backend API routes. Ensure they are efficient, using caching where appropriate, and optimizing any database or blockchain lookups.
+By implementing parallel fetching and potentially moving to SSR for the initial load, you should see a noticeable improvement in the startup time of your index.tsx page. Optimizing the polling strategy or backend APIs can further enhance performance.

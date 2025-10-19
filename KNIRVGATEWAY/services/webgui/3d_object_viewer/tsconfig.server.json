@@ -1,0 +1,28 @@
+// tsconfig.server.json
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+      "module": "CommonJS", // <-- Ensure this is CommonJS
+      "moduleResolution": "node",
+      "outDir": "dist",
+      "noEmit": false,
+      "isolatedModules": false,
+      "types": ["node"],
+      // Make sure baseUrl and paths are correct if you use them
+      "baseUrl": ".", // Or adjust as needed
+      "paths": {
+        // Define paths if used within server code
+      }
+    },
+    "include": ["server/**/*.ts"],
+    "exclude": [
+      "node_modules",
+      "next-env.d.ts",
+      "pages",
+      "components",
+      "public",
+      "styles",
+      "dist" // Exclude the output directory
+     ]
+  }
+  

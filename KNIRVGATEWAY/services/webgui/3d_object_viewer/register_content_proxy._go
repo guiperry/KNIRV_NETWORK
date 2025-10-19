@@ -1,0 +1,225 @@
+package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"math/rand" //For a temporary fallback mechanism
+	"net/http"
+	"net/url"
+	"os"
+	"sort"
+	"sync"
+	"time"
+
+	"github.com/gorilla/mux" // Or your preferred routing library
+	"github.com/joho/godotenv"
+)
+
+// Configuration
+type Config struct {
+	Port        string
+	VerifierNodes []string // List of verifier chain:// URIs
+	HealthCheckInterval time.Duration
+}
+
+var config Config
+var verifierStatus map[string]VerifierHealth
+var verifierStatusMutex sync.RWMutex
+
+// registerContentRequest defines the structure for the /register-content endpoint.
+type registerContentRequest struct {
+	URI         string `json:"uri"` //The new URI that is being minted
+	Metadata     string `json:"metadata"` //The metadata will be hashed and recorded.
+	SignerAddress string `json:"signer_address"` // Address associated with the key used to register the URI.
+}
+
+// VerifierHealth stores the health status of a verifier node.
+type VerifierHealth struct {
+	URI      string
+	Healthy  bool
+	Latency  time.Duration
+	LastCheck time.Time
+}
+
+// loadConfig loads the configuration from environment variables and sets defaults
+func loadConfig() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Error loading .env file: ", err)
+	}
+
+	config.Port = os.Getenv("PORT")
+	if config.Port == "" {
+		config.Port = "3001"
+	}
+
+	//Load and split verifier notes
+	verifierNodesStr := os.Getenv("VERIFIER_NODES")
+	if verifierNodesStr == "" {
+		log.Fatal("VERIFIER_NODES environment variable is required.")
+	}
+	config.VerifierNodes = strings.Split(verifierNodesStr, ",")
+
+	//Parse and configure Health Check Interval
+	healthCheckIntervalStr := os.Getenv("HEALTH_CHECK_INTERVAL")
+	if healthCheckIntervalStr == "" {
+		config.HealthCheckInterval = 30 * time.Second //Default check to 30 seconds.
+	}
+	healthCheckIntervalDuration, err := time.ParseDuration(healthCheckIntervalStr)
+
+	if err != nil{
+		log.Fatal("HEALTH_CHECK_INTERVAL environment variable is in improper format")
+	}
+
+	config.HealthCheckInterval = healthCheckIntervalDuration
+
+	//Initialize status
+	verifierStatus = make(map[string]VerifierHealth)
+}
+
+// makeRPCRequest makes a POST request to the Go blockchain's RPC endpoint.
+func makeRPCRequest(endpoint string, requestBody interface{}) ([]byte, error) {
+	jsonValue, _ := json.Marshal(requestBody)
+	resp, err := http.Post(endpoint, "application/json", bytes.NewBuffer(jsonValue))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("RPC request failed with status code: %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	return body, nil
+}
+
+// checkVerifierHealth checks the health and latency of a verifier node.
+func checkVerifierHealth(uri string) {
+	startTime := time.Now()
+
+	//Attempt to connect to check the url.
+	parsedURI, err := url.Parse(uri)
+
+	if err != nil{
+		fmt.Printf("an error occured while checking the health of url %s : %s", uri, err)
+		return
+	}
+
+	resp, err := http.Get(parsedURI.String() + "/health") // Assuming a /health endpoint
+	latency := time.Since(startTime)
+
+	healthy := err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 //Verify status codes
+
+	//Update verifiers status in memory.
+	verifierStatusMutex.Lock()
+	defer verifierStatusMutex.Unlock()
+	verifierStatus[uri] = VerifierHealth{
+		URI:      uri,
+		Healthy:  healthy,
+		Latency:  latency,
+		LastCheck: time.Now(),
+	}
+}
+
+// updateVerifierHealthPeriodically starts a goroutine that periodically checks verifier health.
+func updateVerifierHealthPeriodically() {
+	for _, uri := range config.VerifierNodes {
+		//Kick off goroutines for each verifier node.
+		go func(uri string) {
+			for {
+				checkVerifierHealth(uri)
+				time.Sleep(config.HealthCheckInterval)
+			}
+		}(uri)
+	}
+}
+
+// getBestVerifier returns the URI of the healthiest verifier, based on latency and availability.
+func getBestVerifier() string {
+	verifierStatusMutex.RLock()
+	defer verifierStatusMutex.RUnlock()
+
+	var healthyVerifiers []VerifierHealth
+	for _, status := range verifierStatus {
+		if status.Healthy {
+			healthyVerifiers = append(healthyVerifiers, status)
+		}
+	}
+
+	// Sort by latency
+	sort.Slice(healthyVerifiers, func(i, j int) bool {
+		return healthyVerifiers[i].Latency < healthyVerifiers[j].Latency
+	})
+
+	if len(healthyVerifiers) > 0 {
+		return healthyVerifiers[0].URI //Returns the URI of the first entry.
+	}
+
+	//If no healthy verifier can be determined, select the first one, as a fallback.
+	if len(config.VerifierNodes) > 0{
+		//Selects a random URI in case there is a complete failure, but only as fallback.
+		randomIndex := rand.Intn(len(config.VerifierNodes))
+		return config.VerifierNodes[randomIndex]
+	}
+
+	return ""
+}
+
+// registerURIHandler handles the /register-uri endpoint and proxies it to the best verifier.
+func registerURIHandler(w http.ResponseWriter, r *http.Request) {
+	// 1. Select the best verifier
+	bestVerifier := getBestVerifier()
+	if bestVerifier == "" {
+		http.Error(w, "No available verifiers", http.StatusServiceUnavailable)
+		return
+	}
+
+	// 2. Parse and proxy the request
+	var req registerContentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// 3. Construct the request body for your Go blockchain's register-content endpoint
+
+	proxyEndpoint := bestVerifier + "/register-content" // Assuming your endpoint is /register-uri
+	responseBody, err := makeRPCRequest(proxyEndpoint, req) //Forwards all the parameters to the requester.
+	if err != nil {
+		log.Printf("Error making RPC request: %v", err)
+		http.Error(w, "Failed to proxy request to verifier", http.StatusInternalServerError)
+		return
+	}
+
+	// 4. Return the response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(responseBody)
+}
+
+func registerContent() {
+	//Seed random generator
+	rand.Seed(time.Now().UnixNano())
+	// 1. Load configuration
+	loadConfig()
+
+	// 2. Start periodic health checks
+	updateVerifierHealthPeriodically()
+
+	// 3. Initialize router
+	router := mux.NewRouter()
+	router.HandleFunc("/register-content", registerURIHandler).Methods("POST")
+
+	// 4. Start the server
+	port := config.Port
+	fmt.Printf("Serving on port %s\n", port)
+	log.Fatal(http.ListenAndServe(":"+port, router))
+}
