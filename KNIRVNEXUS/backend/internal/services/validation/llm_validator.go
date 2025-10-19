@@ -179,7 +179,7 @@ func extractClaims(output string) []string {
 // MAIN EXAMPLE
 // ============================================================================
 
-func main() {
+func MainValidator() {
 	ctx := context.Background()
 
 	// Create orchestrator

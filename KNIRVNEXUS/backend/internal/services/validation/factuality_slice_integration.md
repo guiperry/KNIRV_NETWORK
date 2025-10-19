@@ -156,7 +156,7 @@ type EnhancedSkillNode struct {
     RefusalThreshold  float64          `json:"refusal_threshold"`
 }
 ```
-**Value Proposition**: Improved trustworthiness and credibility for KNIRVCHAIN skills, enabling more secure and transparent interactions between users and AI models.
+**Value Proposition**: Improved trustworthiness and credibility for KNIRVCHAIN skills, enabling more secure and transparent interactions between users and AI objects.
 
 ### 3. KNIRV-NEXUS DVE Validation Enhancement
 
@@ -197,7 +197,7 @@ type EnhancedSkillNode struct {
 - Create gameplay mechanics around evidence evaluation accuracy
 - Reward players for identifying hallucinations and mis-citations
 - Implement competitive factuality scoring systems
-- Use game data to improve evidence-grounding models
+- Use game data to improve evidence-grounding objects
 
 **Game Mechanics**:
 - "Evidence Detective" mode where players verify AI responses
@@ -273,7 +273,7 @@ knirv shell
 
 - **Factuality Staking**: Users stake NRN for high-confidence, evidence-grounded responses
 - **Hallucination Insurance**: Penalty mechanisms for responses that fail factuality checks
-- **Citation Rewards**: Bonus NRN for models providing accurate citations
+- **Citation Rewards**: Bonus NRN for objects providing accurate citations
 - **Evidence Quality Mining**: Reward high-quality evidence contribution to knowledge graph
 
 ### Reward Model Economics
@@ -310,7 +310,7 @@ Roadmap & Milestones
 ### Phase 1: Foundation (Q1 2026)
 - Deploy Factuality Slice framework in KNIRV-TESTNET
 - Integrate basic JSON schema across KNIRVCHAIN and KNIRVGRAPH
-- Train initial reward models on KNIRV-specific data
+- Train initial reward objects on KNIRV-specific data
 
 ### Phase 2: Integration (Q2 2026)
 - Roll out enhanced ErrorNode/SkillNode structures
@@ -358,11 +358,11 @@ Roadmap & Milestones
 
 ## Success Metrics
 
-- Hallucination rate reduction (target: <0.5% across all models)
+- Hallucination rate reduction (target: <0.5% across all objects)
 - Citation accuracy improvement (target: >85% network-wide)
 - User confidence scores (target: calibrated within 5% of actual accuracy)
 - Economic adoption (target: 30% of NRN transactions involve factuality features)
-- Developer adoption (target: 50% of custom models use factuality framework)
+- Developer adoption (target: 50% of custom objects use factuality framework)
 
 ## Conclusion
 

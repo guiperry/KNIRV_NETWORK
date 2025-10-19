@@ -48,7 +48,5 @@ prompt
 
 server.log
 
-kali-linux-2025.3-installer-amd64.iso
-kali-linux-2025.3-installer-i386.iso
-KaliBaseBox-disk001.vmdk
-KaliBaseBox.ovf
+
+docs/*

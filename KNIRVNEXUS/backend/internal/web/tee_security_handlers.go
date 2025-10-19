@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"backend-server/internal/models"
+	"backend-server/internal/objects"
 	"backend-server/internal/services/teesecurity"
 	"backend-server/internal/web/middleware"
 
@@ -44,7 +44,7 @@ func (h *TEESecurityHandlers) GetTEESecurityStatus(w http.ResponseWriter, r *htt
 
 // PostTEESecurityAction handles POST /api/tee-security/actions
 func (h *TEESecurityHandlers) PostTEESecurityAction(w http.ResponseWriter, r *http.Request) {
-	var action models.TEESecurityAction
+	var action objects.TEESecurityAction
 	if err := json.NewDecoder(r.Body).Decode(&action); err != nil {
 		response := TEESecurityResponse{
 			Success:   false,
@@ -143,7 +143,7 @@ func (h *TEESecurityHandlers) PostTEESecurityAction(w http.ResponseWriter, r *ht
 func (h *TEESecurityHandlers) GetTEESecurityMetrics(w http.ResponseWriter, r *http.Request) {
 	status := h.teeSecurityService.GetSecurityStatus()
 
-	metrics := &models.TEESecurityMetrics{
+	metrics := &objects.TEESecurityMetrics{
 		AttestationStatus:   status.AttestationStatus,
 		SecurityScore:       status.SecurityScore,
 		ThreatsDetected:     status.ThreatsDetected,

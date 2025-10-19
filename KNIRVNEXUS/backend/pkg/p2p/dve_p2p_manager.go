@@ -1,14 +1,13 @@
 package p2p
 
 import (
+	"backend-server/internal/objects"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
 	"time"
-
-	"backend-server/internal/models"
 
 	"github.com/ipfs/go-cid"
 	"github.com/libp2p/go-libp2p"
@@ -71,7 +70,7 @@ type DVEP2PManager struct {
 
 // MessageHandler defines the interface for handling P2P messages
 type MessageHandler interface {
-	HandleMessage(ctx context.Context, msg *models.P2PMessage) error
+	HandleMessage(ctx context.Context, msg *objects.P2PMessage) error
 }
 
 // NetworkControlMessage represents network control messages
@@ -318,8 +317,8 @@ func (dpm *DVEP2PManager) RegisterMessageHandler(messageType string, handler Mes
 }
 
 // BroadcastValidationRequest broadcasts a validation request to the network
-func (dpm *DVEP2PManager) BroadcastValidationRequest(req *models.ValidationTask) error {
-	message := &models.P2PMessage{
+func (dpm *DVEP2PManager) BroadcastValidationRequest(req *objects.ValidationTask) error {
+	message := &objects.P2PMessage{
 		ID:        req.ID,
 		Type:      MessageTypeValidationRequest,
 		From:      dpm.host.ID().String(),
@@ -343,8 +342,8 @@ func (dpm *DVEP2PManager) BroadcastValidationRequest(req *models.ValidationTask)
 }
 
 // BroadcastValidationResult broadcasts a validation result to the network
-func (dpm *DVEP2PManager) BroadcastValidationResult(result *models.ValidationResult) error {
-	message := &models.P2PMessage{
+func (dpm *DVEP2PManager) BroadcastValidationResult(result *objects.ValidationResult) error {
+	message := &objects.P2PMessage{
 		ID:        result.ID,
 		Type:      MessageTypeValidationResult,
 		From:      dpm.host.ID().String(),
@@ -368,7 +367,7 @@ func (dpm *DVEP2PManager) BroadcastValidationResult(result *models.ValidationRes
 }
 
 // AnnounceNode announces this node to the network
-func (dpm *DVEP2PManager) AnnounceNode(node *models.DVENode) error {
+func (dpm *DVEP2PManager) AnnounceNode(node *objects.DVENode) error {
 	announcement := map[string]interface{}{
 		"node_id":          node.ID,
 		"role":             dpm.nodeRole,
@@ -380,7 +379,7 @@ func (dpm *DVEP2PManager) AnnounceNode(node *models.DVENode) error {
 		"timestamp":        time.Now(),
 	}
 
-	message := &models.P2PMessage{
+	message := &objects.P2PMessage{
 		ID:        node.ID,
 		Type:      MessageTypeNodeAnnouncement,
 		From:      dpm.host.ID().String(),
@@ -424,7 +423,7 @@ func (dpm *DVEP2PManager) handleValidationRequests() {
 				continue
 			}
 
-			var p2pMsg models.P2PMessage
+			var p2pMsg objects.P2PMessage
 			if err := json.Unmarshal(msg.Data, &p2pMsg); err != nil {
 				log.Printf("[DVE][%s] Error unmarshaling validation message: %v", dpm.nodeRole, err)
 				continue
@@ -457,7 +456,7 @@ func (dpm *DVEP2PManager) handleValidationResults() {
 				continue
 			}
 
-			var p2pMsg models.P2PMessage
+			var p2pMsg objects.P2PMessage
 			if err := json.Unmarshal(msg.Data, &p2pMsg); err != nil {
 				log.Printf("[DVE][%s] Error unmarshaling result message: %v", dpm.nodeRole, err)
 				continue
@@ -490,7 +489,7 @@ func (dpm *DVEP2PManager) handleNodeAnnouncements() {
 				continue
 			}
 
-			var p2pMsg models.P2PMessage
+			var p2pMsg objects.P2PMessage
 			if err := json.Unmarshal(msg.Data, &p2pMsg); err != nil {
 				log.Printf("[DVE][%s] Error unmarshaling node message: %v", dpm.nodeRole, err)
 				continue
@@ -503,7 +502,7 @@ func (dpm *DVEP2PManager) handleNodeAnnouncements() {
 }
 
 // handleMessage routes messages to appropriate handlers
-func (dpm *DVEP2PManager) handleMessage(msg *models.P2PMessage) {
+func (dpm *DVEP2PManager) handleMessage(msg *objects.P2PMessage) {
 	dpm.mu.RLock()
 	handler, exists := dpm.messageHandlers[msg.Type]
 	dpm.mu.RUnlock()
@@ -652,7 +651,7 @@ func (dpm *DVEP2PManager) broadcastHeartbeat() {
 		"status":    "online",
 	}
 
-	message := &models.P2PMessage{
+	message := &objects.P2PMessage{
 		ID:        fmt.Sprintf("heartbeat-%d", time.Now().Unix()),
 		Type:      MessageTypeNodeHeartbeat,
 		From:      dpm.host.ID().String(),
@@ -673,14 +672,14 @@ func (dpm *DVEP2PManager) broadcastHeartbeat() {
 }
 
 // GetConnectedPeers returns information about connected peers
-func (dpm *DVEP2PManager) GetConnectedPeers() []models.PeerInfo {
+func (dpm *DVEP2PManager) GetConnectedPeers() []objects.PeerInfo {
 	peers := dpm.host.Network().Peers()
-	peerInfos := make([]models.PeerInfo, 0, len(peers))
+	peerInfos := make([]objects.PeerInfo, 0, len(peers))
 
 	for _, peerID := range peers {
 		conns := dpm.host.Network().ConnsToPeer(peerID)
 		if len(conns) > 0 {
-			peerInfo := models.PeerInfo{
+			peerInfo := objects.PeerInfo{
 				ID:       peerID.String(),
 				Address:  conns[0].RemoteMultiaddr().String(),
 				Status:   "connected",
@@ -694,15 +693,15 @@ func (dpm *DVEP2PManager) GetConnectedPeers() []models.PeerInfo {
 }
 
 // GetNetworkTopology returns the current network topology
-func (dpm *DVEP2PManager) GetNetworkTopology() *models.NetworkTopology {
+func (dpm *DVEP2PManager) GetNetworkTopology() *objects.NetworkTopology {
 	peers := dpm.GetConnectedPeers()
 
-	topology := &models.NetworkTopology{
+	topology := &objects.NetworkTopology{
 		ID:             fmt.Sprintf("topology-%d", time.Now().Unix()),
 		TotalPeers:     len(peers),
 		ConnectedPeers: len(peers),
 		Peers:          peers,
-		Connections:    []models.ConnectionInfo{}, // TODO: Implement connection details
+		Connections:    []objects.ConnectionInfo{}, // TODO: Implement connection details
 		Timestamp:      time.Now(),
 	}
 

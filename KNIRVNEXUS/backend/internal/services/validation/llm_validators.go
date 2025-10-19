@@ -11,6 +11,7 @@ import (
 // InferenceClient defines the interface for inference operations
 type InferenceClient interface {
 	GenerateText(modelName string, promptText string, instructionText string) (string, error)
+	Generate(ctx context.Context, prompt string, options interface{}) (string, error)
 }
 
 // LLMEvaluator wraps the inference service for validation

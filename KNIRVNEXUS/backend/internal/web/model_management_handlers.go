@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"backend-server/internal/models"
+	"backend-server/internal/objects"
 	"backend-server/internal/services/modelmanagement"
 	"backend-server/internal/web/middleware"
 
@@ -29,10 +29,10 @@ type ModelManagementResponse struct {
 	Timestamp string      `json:"timestamp"`
 }
 
-// GetModels handles GET /api/model-management/models
+// GetModels handles GET /api/model-management/objects
 func (h *ModelManagementHandlers) GetModels(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters for filtering
-	filter := &models.ModelFilter{}
+	filter := &objects.ModelFilter{}
 
 	if status := r.URL.Query().Get("status"); status != "" {
 		filter.Status = []string{status}
@@ -57,11 +57,11 @@ func (h *ModelManagementHandlers) GetModels(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	models, err := h.modelManagementService.GetAllModels(filter)
+	objects, err := h.modelManagementService.GetAllModels(filter)
 	if err != nil {
 		response := ModelManagementResponse{
 			Success:   false,
-			Error:     "Failed to retrieve models: " + err.Error(),
+			Error:     "Failed to retrieve objects: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -72,7 +72,7 @@ func (h *ModelManagementHandlers) GetModels(w http.ResponseWriter, r *http.Reque
 
 	response := ModelManagementResponse{
 		Success:   true,
-		Data:      models,
+		Data:      objects,
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
 
@@ -80,7 +80,7 @@ func (h *ModelManagementHandlers) GetModels(w http.ResponseWriter, r *http.Reque
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetModel handles GET /api/model-management/models/{id}
+// GetModel handles GET /api/model-management/objects/{id}
 func (h *ModelManagementHandlers) GetModel(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	modelID := vars["id"]
@@ -120,9 +120,9 @@ func (h *ModelManagementHandlers) GetModel(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(response)
 }
 
-// PostModel handles POST /api/model-management/models
+// PostModel handles POST /api/model-management/objects
 func (h *ModelManagementHandlers) PostModel(w http.ResponseWriter, r *http.Request) {
-	var model models.Model
+	var model objects.Model
 	if err := json.NewDecoder(r.Body).Decode(&model); err != nil {
 		response := ModelManagementResponse{
 			Success:   false,
@@ -159,7 +159,7 @@ func (h *ModelManagementHandlers) PostModel(w http.ResponseWriter, r *http.Reque
 	json.NewEncoder(w).Encode(response)
 }
 
-// PutModel handles PUT /api/model-management/models/{id}
+// PutModel handles PUT /api/model-management/objects/{id}
 func (h *ModelManagementHandlers) PutModel(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	modelID := vars["id"]
@@ -176,7 +176,7 @@ func (h *ModelManagementHandlers) PutModel(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	var updates models.Model
+	var updates objects.Model
 	if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
 		response := ModelManagementResponse{
 			Success:   false,
@@ -211,7 +211,7 @@ func (h *ModelManagementHandlers) PutModel(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(response)
 }
 
-// DeleteModel handles DELETE /api/model-management/models/{id}
+// DeleteModel handles DELETE /api/model-management/objects/{id}
 func (h *ModelManagementHandlers) DeleteModel(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	modelID := vars["id"]
@@ -250,7 +250,7 @@ func (h *ModelManagementHandlers) DeleteModel(w http.ResponseWriter, r *http.Req
 	json.NewEncoder(w).Encode(response)
 }
 
-// PostModelAction handles POST /api/model-management/models/{id}/actions
+// PostModelAction handles POST /api/model-management/objects/{id}/actions
 func (h *ModelManagementHandlers) PostModelAction(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	modelID := vars["id"]
@@ -267,7 +267,7 @@ func (h *ModelManagementHandlers) PostModelAction(w http.ResponseWriter, r *http
 		return
 	}
 
-	var action models.ModelAction
+	var action objects.ModelAction
 	if err := json.NewDecoder(r.Body).Decode(&action); err != nil {
 		response := ModelManagementResponse{
 			Success:   false,
@@ -316,7 +316,7 @@ func (h *ModelManagementHandlers) GetModelSummary(w http.ResponseWriter, r *http
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetModelMetrics handles GET /api/model-management/models/{id}/metrics
+// GetModelMetrics handles GET /api/model-management/objects/{id}/metrics
 func (h *ModelManagementHandlers) GetModelMetrics(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	modelID := vars["id"]
@@ -363,7 +363,7 @@ func (h *ModelManagementHandlers) GetModelMetrics(w http.ResponseWriter, r *http
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetModelLogs handles GET /api/model-management/models/{id}/logs
+// GetModelLogs handles GET /api/model-management/objects/{id}/logs
 func (h *ModelManagementHandlers) GetModelLogs(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	modelID := vars["id"]
@@ -410,7 +410,7 @@ func (h *ModelManagementHandlers) GetModelLogs(w http.ResponseWriter, r *http.Re
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetModelEvents handles GET /api/model-management/models/{id}/events
+// GetModelEvents handles GET /api/model-management/objects/{id}/events
 func (h *ModelManagementHandlers) GetModelEvents(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	modelID := vars["id"]
@@ -472,7 +472,7 @@ func (h *ModelManagementHandlers) GetModelTemplates(w http.ResponseWriter, r *ht
 
 // PostModelTemplate handles POST /api/model-management/templates
 func (h *ModelManagementHandlers) PostModelTemplate(w http.ResponseWriter, r *http.Request) {
-	var template models.ModelTemplate
+	var template objects.ModelTemplate
 	if err := json.NewDecoder(r.Body).Decode(&template); err != nil {
 		response := ModelManagementResponse{
 			Success:   false,
@@ -521,19 +521,19 @@ func (h *ModelManagementHandlers) RegisterRoutes(r *mux.Router, authMiddleware *
 	//	protectedModelRouter.Use(authMiddleware.RequireAuth)
 
 	// Model CRUD operations (public for development)
-	modelRouter.HandleFunc("/models", h.GetModels).Methods("GET")
-	modelRouter.HandleFunc("/models", h.PostModel).Methods("POST")
-	modelRouter.HandleFunc("/models/{id}", h.GetModel).Methods("GET")
-	modelRouter.HandleFunc("/models/{id}", h.PutModel).Methods("PUT")
-	modelRouter.HandleFunc("/models/{id}", h.DeleteModel).Methods("DELETE")
+	modelRouter.HandleFunc("/objects", h.GetModels).Methods("GET")
+	modelRouter.HandleFunc("/objects", h.PostModel).Methods("POST")
+	modelRouter.HandleFunc("/objects/{id}", h.GetModel).Methods("GET")
+	modelRouter.HandleFunc("/objects/{id}", h.PutModel).Methods("PUT")
+	modelRouter.HandleFunc("/objects/{id}", h.DeleteModel).Methods("DELETE")
 
 	// Model actions
-	modelRouter.HandleFunc("/models/{id}/actions", h.PostModelAction).Methods("POST")
+	modelRouter.HandleFunc("/objects/{id}/actions", h.PostModelAction).Methods("POST")
 
 	// Model monitoring (public for development)
-	modelRouter.HandleFunc("/models/{id}/metrics", h.GetModelMetrics).Methods("GET")
-	modelRouter.HandleFunc("/models/{id}/logs", h.GetModelLogs).Methods("GET")
-	modelRouter.HandleFunc("/models/{id}/events", h.GetModelEvents).Methods("GET")
+	modelRouter.HandleFunc("/objects/{id}/metrics", h.GetModelMetrics).Methods("GET")
+	modelRouter.HandleFunc("/objects/{id}/logs", h.GetModelLogs).Methods("GET")
+	modelRouter.HandleFunc("/objects/{id}/events", h.GetModelEvents).Methods("GET")
 
 	// Templates (public for development)
 	modelRouter.HandleFunc("/templates", h.GetModelTemplates).Methods("GET")

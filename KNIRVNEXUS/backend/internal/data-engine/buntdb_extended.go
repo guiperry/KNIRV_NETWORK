@@ -71,12 +71,12 @@ func (m *BuntDBManager) UpdateModel(model *ModelEntry) error {
 	})
 }
 
-// ListModelsByOwner lists all models for a specific owner
+// ListModelsByOwner lists all objects for a specific owner
 func (m *BuntDBManager) ListModelsByOwner(ownerID string) ([]*ModelEntry, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	var models []*ModelEntry
+	var objects []*ModelEntry
 
 	err := m.db.View(func(tx *buntdb.Tx) error {
 		return tx.Ascend("", func(key, value string) bool {
@@ -90,14 +90,14 @@ func (m *BuntDBManager) ListModelsByOwner(ownerID string) ([]*ModelEntry, error)
 			}
 
 			if model.OwnerID == ownerID {
-				models = append(models, &model)
+				objects = append(objects, &model)
 			}
 
 			return true
 		})
 	})
 
-	return models, err
+	return objects, err
 }
 
 // DVE Node Management Methods

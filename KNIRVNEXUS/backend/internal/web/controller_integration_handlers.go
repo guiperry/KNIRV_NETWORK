@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"backend-server/internal/models"
+	"backend-server/internal/objects"
 	"backend-server/internal/services/controllerintegration"
 	"backend-server/internal/web/middleware"
 
@@ -303,7 +303,7 @@ func (h *ControllerIntegrationHandlers) PostSendMessage(w http.ResponseWriter, r
 		return
 	}
 
-	var message models.ControllerMessage
+	var message objects.ControllerMessage
 	if err := json.NewDecoder(r.Body).Decode(&message); err != nil {
 		response := ControllerIntegrationResponse{
 			Success:   false,

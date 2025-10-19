@@ -1,12 +1,11 @@
 package dverental
 
 import (
+	"backend-server/internal/objects"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
-
-	"backend-server/internal/models"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -98,7 +97,7 @@ func TestDVERentalService_CreateRental(t *testing.T) {
 	require.NotEmpty(t, plans)
 	plan := plans[0]
 
-	request := &models.RentalRequest{
+	request := &objects.RentalRequest{
 		PlanID:        plan.ID,
 		Duration:      24 * 3600, // 24 hours in seconds
 		PaymentTxHash: "0xtest123456789",
@@ -121,7 +120,7 @@ func TestDVERentalService_CreateRentalInvalidPlan(t *testing.T) {
 	require.NoError(t, err)
 	defer service.Stop()
 
-	request := &models.RentalRequest{
+	request := &objects.RentalRequest{
 		PlanID:        "invalid-plan-id",
 		Duration:      24 * 3600,
 		PaymentTxHash: "0xtest123456789",

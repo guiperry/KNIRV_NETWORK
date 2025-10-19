@@ -1,4 +1,4 @@
-package modelserver
+package objectserver
 
 import (
 	"net/http"
@@ -9,7 +9,7 @@ import (
 // RegisterRoutes registers all model server routes with the provided router
 func (as *ModelServer) RegisterRoutes(r *mux.Router) {
 	// Create a subrouter for model server endpoints
-	modelRouter := r.PathPrefix("/models").Subrouter()
+	modelRouter := r.PathPrefix("/objects").Subrouter()
 
 	// Apply CORS middleware if enabled
 	if as.enableCORS {
@@ -31,7 +31,7 @@ func (as *ModelServer) RegisterRoutes(r *mux.Router) {
 
 		runtimeRouter.HandleFunc("/start", as.HandleStartModel).Methods("POST")
 		runtimeRouter.HandleFunc("/stop/{id}", as.HandleStopModel).Methods("POST")
-		runtimeRouter.HandleFunc("/models", as.HandleListRunningModels).Methods("GET")
+		runtimeRouter.HandleFunc("/objects", as.HandleListRunningModels).Methods("GET")
 		runtimeRouter.HandleFunc("/model/{id}", as.HandleGetModel).Methods("GET")
 		runtimeRouter.HandleFunc("/status", as.HandleRuntimeStatus).Methods("GET")
 	}

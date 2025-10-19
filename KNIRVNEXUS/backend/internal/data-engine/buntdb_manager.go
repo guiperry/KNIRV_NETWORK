@@ -32,7 +32,7 @@ const (
 	SessionsCollection = "sessions:"
 
 	// Model Management Collections
-	ModelsCollection        = "models:"
+	ModelsCollection        = "objects:"
 	ModelBinariesCollection = "model_binaries:"
 	ModelRuntimeCollection  = "model_runtime:"
 
@@ -271,8 +271,8 @@ func (m *BuntDBManager) createIndexes() error {
 		tx.CreateIndex("system_reports_type", SystemReportsCollection+"*", buntdb.IndexJSON("type"))
 
 		// Model indexes
-		tx.CreateIndex("models_status", ModelsCollection+"*", buntdb.IndexJSON("status"))
-		tx.CreateIndex("models_type", ModelsCollection+"*", buntdb.IndexJSON("type"))
+		tx.CreateIndex("objects_status", ModelsCollection+"*", buntdb.IndexJSON("status"))
+		tx.CreateIndex("objects_type", ModelsCollection+"*", buntdb.IndexJSON("type"))
 
 		// DVE Node indexes
 		tx.CreateIndex("dve_nodes_status", DVENodesCollection+"*", buntdb.IndexJSON("status"))
@@ -762,7 +762,7 @@ func (m *BuntDBManager) GetStats() (map[string]interface{}, error) {
 		"metrics":   m.countKeysWithPrefix(MetricsCollection),
 		"alerts":    m.countKeysWithPrefix(AlertsCollection),
 		"users":     m.countKeysWithPrefix(UsersCollection),
-		"models":    m.countKeysWithPrefix(ModelsCollection),
+		"objects":   m.countKeysWithPrefix(ModelsCollection),
 		"dve_nodes": m.countKeysWithPrefix(DVENodesCollection),
 	}
 
@@ -796,7 +796,7 @@ func (m *BuntDBManager) GetDatabaseStats() (map[string]interface{}, error) {
 			"reports":          ReportsCollection,
 			"user_reports":     UserReportsCollection,
 			"system_reports":   SystemReportsCollection,
-			"models":           ModelsCollection,
+			"objects":          ModelsCollection,
 			"dve_nodes":        DVENodesCollection,
 			"validation_tasks": ValidationTasksCollection,
 		}

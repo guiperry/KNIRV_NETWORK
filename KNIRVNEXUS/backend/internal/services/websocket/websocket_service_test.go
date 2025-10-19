@@ -1,13 +1,12 @@
 package websocket
 
 import (
+	"backend-server/internal/objects"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
-
-	"backend-server/internal/models"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -22,16 +21,16 @@ func (m *mockTEESecurityService) IsRunning() bool {
 	return m.running
 }
 
-func (m *mockTEESecurityService) GetSecurityStatus() *models.TEESecurityStatus {
-	return &models.TEESecurityStatus{
+func (m *mockTEESecurityService) GetSecurityStatus() *objects.TEESecurityStatus {
+	return &objects.TEESecurityStatus{
 		AttestationStatus:  "verified",
 		EnclaveCount:       3,
 		SecurityScore:      95.5,
 		LastAudit:          time.Now().Format(time.RFC3339),
 		ThreatsDetected:    0,
-		ActiveThreats:      []*models.ThreatAlert{},
-		AuditHistory:       []*models.SecurityAudit{},
-		PerformanceMetrics: &models.TEEPerformanceMetrics{},
+		ActiveThreats:      []*objects.ThreatAlert{},
+		AuditHistory:       []*objects.SecurityAudit{},
+		PerformanceMetrics: &objects.TEEPerformanceMetrics{},
 		TEEType:            "Intel SGX",
 		LastAttestation:    time.Now().Format(time.RFC3339),
 		MonitoringEnabled:  true,

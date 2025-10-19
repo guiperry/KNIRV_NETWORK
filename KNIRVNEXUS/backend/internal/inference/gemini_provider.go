@@ -163,7 +163,7 @@ func (p *GeminiProvider) Endpoint() string {
 	if apiKey == "" {
 		p.logger.Error("Gemini API key is missing when constructing endpoint URL") // Log error if key missing
 	}
-	return fmt.Sprintf("%smodels/%s:generateContent?key=%s", base, model, apiKey)
+	return fmt.Sprintf("%sobjects/%s:generateContent?key=%s", base, model, apiKey)
 }
 
 // Headers returns the necessary HTTP headers.
@@ -324,7 +324,7 @@ func (p *GeminiProvider) SetDefaultOptions(cfg *config.Config) {
 
 	// Get provider-specific model if available (assuming gollm config supports this structure)
 	// Note: gollm's base config might only have a single cfg.Model.
-	// If provider-specific models aren't directly in cfg, we might need to adjust.
+	// If provider-specific objects aren't directly in cfg, we might need to adjust.
 	// For now, let's prioritize the provider key and then the global model.
 	providerModel := ""
 	// if cfg.ProviderModels != nil { // Assuming a hypothetical structure
@@ -480,7 +480,7 @@ func (p *GeminiProvider) GenerateContent(ctx context.Context, prompt string) (st
 	if !strings.HasSuffix(baseEndpoint, "/") {
 		baseEndpoint += "/"
 	}
-	_ = fmt.Sprintf("%smodels/%s:generateContent?key=%s", baseEndpoint, model, apiKey)
+	_ = fmt.Sprintf("%sobjects/%s:generateContent?key=%s", baseEndpoint, model, apiKey)
 	// --- REMOVED: Manual HTTP Request Logic ---
 	// The gollm library should handle the actual HTTP call using Endpoint(), Headers(), PrepareRequest(), ParseResponse().
 	// If this method IS called, it means something is using it directly.
@@ -556,7 +556,7 @@ func (p *GeminiProvider) GenerateContentFromMessages(ctx context.Context, messag
 	if !strings.HasSuffix(baseEndpoint, "/") {
 		baseEndpoint += "/"
 	}
-	fullURL := fmt.Sprintf("%smodels/%s:generateContent?key=%s", baseEndpoint, model, apiKey)
+	fullURL := fmt.Sprintf("%sobjects/%s:generateContent?key=%s", baseEndpoint, model, apiKey)
 	log.Printf("GeminiProvider (GenerateContentFromMessages): Constructed URL: %s", fullURL)
 
 	// --- REMOVED: Manual HTTP Request Logic ---

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"backend-server/internal/models"
+	"backend-server/internal/objects"
 	"backend-server/internal/services/systemhealth"
 	"backend-server/internal/web/middleware"
 
@@ -72,7 +72,7 @@ func (h *SystemHealthHandlers) GetSystemAlerts(w http.ResponseWriter, r *http.Re
 
 // PostSystemHealthAction handles POST /api/system-health/actions
 func (h *SystemHealthHandlers) PostSystemHealthAction(w http.ResponseWriter, r *http.Request) {
-	var action models.SystemHealthAction
+	var action objects.SystemHealthAction
 	if err := json.NewDecoder(r.Body).Decode(&action); err != nil {
 		response := SystemHealthResponse{
 			Success:   false,

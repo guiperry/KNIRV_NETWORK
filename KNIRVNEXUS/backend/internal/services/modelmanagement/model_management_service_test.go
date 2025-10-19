@@ -1,7 +1,7 @@
 package modelmanagement
 
 import (
-	. "backend-server/internal/models"
+	. "backend-server/internal/objects"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -37,7 +37,7 @@ func TestNewModelManagementService(t *testing.T) {
 	assert.NotNil(t, service)
 	assert.Equal(t, db, service.db)
 	assert.False(t, service.running)
-	assert.NotNil(t, service.models)
+	assert.NotNil(t, service.objects)
 	assert.NotNil(t, service.deployments)
 	assert.NotNil(t, service.templates)
 	assert.NotNil(t, service.runtimeInstances)
@@ -113,7 +113,7 @@ func TestModelManagementService_CreateModel(t *testing.T) {
 
 	// Verify model is stored in memory
 	service.mu.RLock()
-	storedModel, exists := service.models[model.ID]
+	storedModel, exists := service.objects[model.ID]
 	service.mu.RUnlock()
 	assert.True(t, exists)
 	assert.Equal(t, model, storedModel)
@@ -163,11 +163,11 @@ func TestModelManagementService_GetAllModels(t *testing.T) {
 	defer service.Stop()
 
 	// Test empty list
-	models, err := service.GetAllModels(nil)
+	objects, err := service.GetAllModels(nil)
 	assert.NoError(t, err)
-	assert.Empty(t, models)
+	assert.Empty(t, objects)
 
-	// Create multiple models
+	// Create multiple objects
 	for i := 0; i < 3; i++ {
 		model := &Model{
 			ID:           fmt.Sprintf("test-model-%d", i+1),
@@ -182,9 +182,9 @@ func TestModelManagementService_GetAllModels(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	models, err = service.GetAllModels(nil)
+	objects, err = service.GetAllModels(nil)
 	assert.NoError(t, err)
-	assert.Len(t, models, 3)
+	assert.Len(t, objects, 3)
 }
 
 func TestModelManagementService_UpdateModel(t *testing.T) {
@@ -255,7 +255,7 @@ func TestModelManagementService_DeleteModel(t *testing.T) {
 
 	// Verify model is removed
 	service.mu.RLock()
-	_, exists := service.models[model.ID]
+	_, exists := service.objects[model.ID]
 	service.mu.RUnlock()
 	assert.False(t, exists)
 

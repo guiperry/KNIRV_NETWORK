@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"backend-server/internal/config"
-	"backend-server/internal/models"
+	"backend-server/internal/objects"
 	"backend-server/pkg/p2p"
 
 	"github.com/google/uuid"
@@ -31,7 +31,7 @@ type DVEManager struct {
 
 // NodeTracker tracks the status and health of DVE nodes
 type NodeTracker struct {
-	nodes map[string]*models.DVENode
+	nodes map[string]*objects.DVENode
 	mu    sync.RWMutex
 }
 
@@ -50,7 +50,7 @@ func NewDVEManager(db *buntdb.DB, p2pManager *p2p.DVEP2PManager, cfg *config.Con
 		p2pManager: p2pManager,
 		config:     cfg,
 		nodeTracker: &NodeTracker{
-			nodes: make(map[string]*models.DVENode),
+			nodes: make(map[string]*objects.DVENode),
 		},
 		loadBalancer: &LoadBalancer{
 			algorithm: "reputation_based",
@@ -100,7 +100,7 @@ func (dm *DVEManager) Stop(ctx context.Context) error {
 }
 
 // HandleMessage implements the P2P MessageHandler interface
-func (dm *DVEManager) HandleMessage(ctx context.Context, msg *models.P2PMessage) error {
+func (dm *DVEManager) HandleMessage(ctx context.Context, msg *objects.P2PMessage) error {
 	switch msg.Type {
 	case p2p.MessageTypeNodeAnnouncement:
 		return dm.handleNodeAnnouncement(msg)
@@ -112,11 +112,11 @@ func (dm *DVEManager) HandleMessage(ctx context.Context, msg *models.P2PMessage)
 }
 
 // RegisterNode registers a new DVE node
-func (dm *DVEManager) RegisterNode(req *RegisterNodeRequest) (*models.DVENode, error) {
+func (dm *DVEManager) RegisterNode(req *RegisterNodeRequest) (*objects.DVENode, error) {
 	dm.mu.Lock()
 	defer dm.mu.Unlock()
 
-	node := &models.DVENode{
+	node := &objects.DVENode{
 		ID:              uuid.New().String(),
 		Name:            req.Name,
 		Status:          "online",
@@ -152,15 +152,15 @@ func (dm *DVEManager) RegisterNode(req *RegisterNodeRequest) (*models.DVENode, e
 }
 
 // GetNodes returns a list of DVE nodes with optional filtering
-func (dm *DVEManager) GetNodes(filter *NodeFilter) ([]*models.DVENode, error) {
+func (dm *DVEManager) GetNodes(filter *NodeFilter) ([]*objects.DVENode, error) {
 	dm.mu.RLock()
 	defer dm.mu.RUnlock()
 
-	var nodes []*models.DVENode
+	var nodes []*objects.DVENode
 
 	err := dm.db.View(func(tx *buntdb.Tx) error {
 		return tx.Ascend("dve:nodes:*", func(key, value string) bool {
-			var node models.DVENode
+			var node objects.DVENode
 			if err := json.Unmarshal([]byte(value), &node); err != nil {
 				log.Printf("Error unmarshaling node: %v", err)
 				return true
@@ -180,7 +180,7 @@ func (dm *DVEManager) GetNodes(filter *NodeFilter) ([]*models.DVENode, error) {
 }
 
 // AllocateTask allocates a validation task to an optimal DVE node
-func (dm *DVEManager) AllocateTask(task *models.ValidationTask) (*models.DVENode, error) {
+func (dm *DVEManager) AllocateTask(task *objects.ValidationTask) (*objects.DVENode, error) {
 	dm.mu.RLock()
 	defer dm.mu.RUnlock()
 
@@ -227,7 +227,7 @@ func (dm *DVEManager) UpdateNodeStatus(nodeID, status string) error {
 }
 
 // GetSystemHealth returns overall system health metrics
-func (dm *DVEManager) GetSystemHealth() (*models.SystemHealth, error) {
+func (dm *DVEManager) GetSystemHealth() (*objects.SystemHealth, error) {
 	dm.mu.RLock()
 	defer dm.mu.RUnlock()
 
@@ -240,7 +240,7 @@ func (dm *DVEManager) GetSystemHealth() (*models.SystemHealth, error) {
 		return nil, err
 	}
 
-	health := &models.SystemHealth{
+	health := &objects.SystemHealth{
 		ID:                  uuid.New().String(),
 		OverallStatus:       dm.calculateOverallStatus(len(activeNodes), totalNodes),
 		ActiveNodes:         len(activeNodes),
@@ -282,7 +282,7 @@ type NodeFilter struct {
 }
 
 // Matches checks if a node matches the filter criteria
-func (nf *NodeFilter) Matches(node *models.DVENode) bool {
+func (nf *NodeFilter) Matches(node *objects.DVENode) bool {
 	if nf.Status != "" && node.Status != nf.Status {
 		return false
 	}
@@ -316,7 +316,7 @@ func (nf *NodeFilter) Matches(node *models.DVENode) bool {
 // Helper methods for DVE Manager
 
 // storeNode stores a node in the database
-func (dm *DVEManager) storeNode(node *models.DVENode) error {
+func (dm *DVEManager) storeNode(node *objects.DVENode) error {
 	return dm.db.Update(func(tx *buntdb.Tx) error {
 		nodeJSON, err := json.Marshal(node)
 		if err != nil {
@@ -328,8 +328,8 @@ func (dm *DVEManager) storeNode(node *models.DVENode) error {
 }
 
 // getNodeFromDB retrieves a node from the database
-func (dm *DVEManager) getNodeFromDB(nodeID string) (*models.DVENode, error) {
-	var node models.DVENode
+func (dm *DVEManager) getNodeFromDB(nodeID string) (*objects.DVENode, error) {
+	var node objects.DVENode
 	err := dm.db.View(func(tx *buntdb.Tx) error {
 		value, err := tx.Get(fmt.Sprintf("dve:nodes:%s", nodeID))
 		if err != nil {
@@ -341,7 +341,7 @@ func (dm *DVEManager) getNodeFromDB(nodeID string) (*models.DVENode, error) {
 }
 
 // storeTask stores a task in the database
-func (dm *DVEManager) storeTask(task *models.ValidationTask) error {
+func (dm *DVEManager) storeTask(task *objects.ValidationTask) error {
 	return dm.db.Update(func(tx *buntdb.Tx) error {
 		taskJSON, err := json.Marshal(task)
 		if err != nil {
@@ -356,7 +356,7 @@ func (dm *DVEManager) storeTask(task *models.ValidationTask) error {
 func (dm *DVEManager) loadNodesFromDB() error {
 	return dm.db.View(func(tx *buntdb.Tx) error {
 		return tx.Ascend("dve:nodes:*", func(key, value string) bool {
-			var node models.DVENode
+			var node objects.DVENode
 			if err := json.Unmarshal([]byte(value), &node); err != nil {
 				log.Printf("Error loading node from DB: %v", err)
 				return true
@@ -368,7 +368,7 @@ func (dm *DVEManager) loadNodesFromDB() error {
 }
 
 // handleNodeAnnouncement handles node announcement messages
-func (dm *DVEManager) handleNodeAnnouncement(msg *models.P2PMessage) error {
+func (dm *DVEManager) handleNodeAnnouncement(msg *objects.P2PMessage) error {
 	// Extract node information from message payload
 	nodeData, ok := msg.Payload["node"]
 	if !ok {
@@ -381,7 +381,7 @@ func (dm *DVEManager) handleNodeAnnouncement(msg *models.P2PMessage) error {
 		return err
 	}
 
-	var node models.DVENode
+	var node objects.DVENode
 	if err := json.Unmarshal(nodeJSON, &node); err != nil {
 		return err
 	}
@@ -399,7 +399,7 @@ func (dm *DVEManager) handleNodeAnnouncement(msg *models.P2PMessage) error {
 }
 
 // handleNodeHeartbeat handles node heartbeat messages
-func (dm *DVEManager) handleNodeHeartbeat(msg *models.P2PMessage) error {
+func (dm *DVEManager) handleNodeHeartbeat(msg *objects.P2PMessage) error {
 	nodeID, ok := msg.Payload["node_id"].(string)
 	if !ok {
 		return fmt.Errorf("missing node_id in heartbeat")
@@ -506,7 +506,7 @@ func (dm *DVEManager) collectAndStoreMetrics() {
 	}
 
 	// Store metrics snapshot
-	snapshot := &models.MetricsSnapshot{
+	snapshot := &objects.MetricsSnapshot{
 		ID:        uuid.New().String(),
 		Timestamp: time.Now(),
 		Type:      "system_health",
@@ -528,7 +528,7 @@ func (dm *DVEManager) collectAndStoreMetrics() {
 }
 
 // storeMetricsSnapshot stores a metrics snapshot
-func (dm *DVEManager) storeMetricsSnapshot(snapshot *models.MetricsSnapshot) error {
+func (dm *DVEManager) storeMetricsSnapshot(snapshot *objects.MetricsSnapshot) error {
 	return dm.db.Update(func(tx *buntdb.Tx) error {
 		snapshotJSON, err := json.Marshal(snapshot)
 		if err != nil {
@@ -551,7 +551,7 @@ func (dm *DVEManager) getTaskStats() (pending, completed, failed int, err error)
 				return true // Continue iteration
 			}
 
-			var task models.ValidationTask
+			var task objects.ValidationTask
 			if err := json.Unmarshal([]byte(value), &task); err != nil {
 				return true // Continue iteration if unmarshal fails
 			}
@@ -606,18 +606,18 @@ func (dm *DVEManager) calculateTEEHealthScore() float64 {
 }
 
 // GetAllNodes returns all nodes managed by the DVE Manager
-func (dm *DVEManager) GetAllNodes() []*models.DVENode {
+func (dm *DVEManager) GetAllNodes() []*objects.DVENode {
 	dm.mu.RLock()
 	defer dm.mu.RUnlock()
 
 	if dm.nodeTracker == nil {
-		return []*models.DVENode{}
+		return []*objects.DVENode{}
 	}
 
 	dm.nodeTracker.mu.RLock()
 	defer dm.nodeTracker.mu.RUnlock()
 
-	nodes := make([]*models.DVENode, 0, len(dm.nodeTracker.nodes))
+	nodes := make([]*objects.DVENode, 0, len(dm.nodeTracker.nodes))
 	for _, node := range dm.nodeTracker.nodes {
 		nodes = append(nodes, node)
 	}
@@ -625,7 +625,7 @@ func (dm *DVEManager) GetAllNodes() []*models.DVENode {
 }
 
 // GetNode returns a specific node by ID
-func (dm *DVEManager) GetNode(nodeID string) (*models.DVENode, error) {
+func (dm *DVEManager) GetNode(nodeID string) (*objects.DVENode, error) {
 	dm.mu.RLock()
 	defer dm.mu.RUnlock()
 
@@ -642,7 +642,7 @@ func (dm *DVEManager) GetNode(nodeID string) (*models.DVENode, error) {
 }
 
 // UpdateNode updates a DVE node with new information
-func (dm *DVEManager) UpdateNode(nodeID string, updates map[string]interface{}) (*models.DVENode, error) {
+func (dm *DVEManager) UpdateNode(nodeID string, updates map[string]interface{}) (*objects.DVENode, error) {
 	dm.mu.Lock()
 	defer dm.mu.Unlock()
 

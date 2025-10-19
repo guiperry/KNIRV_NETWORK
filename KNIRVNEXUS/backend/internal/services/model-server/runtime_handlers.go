@@ -1,4 +1,4 @@
-package modelserver
+package objectserver
 
 import (
 	"encoding/json"
@@ -78,24 +78,24 @@ func (as *ModelServer) HandleStopModel(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Stopped model %s from %s", modelID, r.RemoteAddr)
 }
 
-// HandleListRunningModels handles the /runtime/models endpoint
+// HandleListRunningModels handles the /runtime/objects endpoint
 func (as *ModelServer) HandleListRunningModels(w http.ResponseWriter, r *http.Request) {
 	if as.runtimeManager == nil {
 		http.Error(w, "Runtime management not enabled", http.StatusServiceUnavailable)
 		return
 	}
 
-	models := as.runtimeManager.GetModelList()
+	objects := as.runtimeManager.GetModelList()
 
 	response := struct {
-		Models []interface{} `json:"models"`
+		Models []interface{} `json:"objects"`
 		Count  int           `json:"count"`
 	}{
-		Models: make([]interface{}, len(models)),
-		Count:  len(models),
+		Models: make([]interface{}, len(objects)),
+		Count:  len(objects),
 	}
 
-	for i, model := range models {
+	for i, model := range objects {
 		response.Models[i] = model
 	}
 
@@ -133,12 +133,12 @@ func (as *ModelServer) HandleRuntimeStatus(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	models := as.runtimeManager.GetModelList()
+	objects := as.runtimeManager.GetModelList()
 
 	status := map[string]interface{}{
 		"running":     true,
-		"model_count": len(models),
-		"max_models":  as.maxModels,
+		"model_count": len(objects),
+		"max_objects": as.maxModels,
 		"uptime":      time.Since(as.startTime).String(),
 	}
 

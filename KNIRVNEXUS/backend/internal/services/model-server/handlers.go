@@ -1,4 +1,4 @@
-package modelserver
+package objectserver
 
 import (
 	"encoding/json"
@@ -27,7 +27,7 @@ func (as *ModelServer) HandleListModels(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Build the response
-	var models []ModelInfo
+	var objects []ModelInfo
 	for _, file := range files {
 		if !file.IsDir() && (strings.HasSuffix(file.Name(), ".so") || strings.HasSuffix(file.Name(), ".wasm")) {
 			info, err := file.Info()
@@ -36,7 +36,7 @@ func (as *ModelServer) HandleListModels(w http.ResponseWriter, r *http.Request) 
 				continue
 			}
 
-			models = append(models, ModelInfo{
+			objects = append(objects, ModelInfo{
 				Name:         file.Name(),
 				Size:         info.Size(),
 				LastModified: info.ModTime(),
@@ -44,20 +44,20 @@ func (as *ModelServer) HandleListModels(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	// Return the list of models
+	// Return the list of objects
 	response := ListResponse{
-		Models: models,
-		Count:  len(models),
+		Models: objects,
+		Count:  len(objects),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
 
-// HandleDownloadModel handles the /models/{name} endpoint
+// HandleDownloadModel handles the /objects/{name} endpoint
 func (as *ModelServer) HandleDownloadModel(w http.ResponseWriter, r *http.Request) {
 	// Extract the model name from the URL
-	modelName := strings.TrimPrefix(r.URL.Path, "/models/")
+	modelName := strings.TrimPrefix(r.URL.Path, "/objects/")
 	if modelName == "" {
 		http.Error(w, "Model name is required", http.StatusBadRequest)
 		return

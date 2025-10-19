@@ -1,20 +1,19 @@
 package dvemanager
 
 import (
+	"backend-server/internal/objects"
 	"time"
-
-	"backend-server/internal/models"
 )
 
 // AddNode adds a node to the tracker
-func (nt *NodeTracker) AddNode(node *models.DVENode) {
+func (nt *NodeTracker) AddNode(node *objects.DVENode) {
 	nt.mu.Lock()
 	defer nt.mu.Unlock()
 	nt.nodes[node.ID] = node
 }
 
 // UpdateNode updates a node in the tracker
-func (nt *NodeTracker) UpdateNode(node *models.DVENode) {
+func (nt *NodeTracker) UpdateNode(node *objects.DVENode) {
 	nt.mu.Lock()
 	defer nt.mu.Unlock()
 	nt.nodes[node.ID] = node
@@ -28,7 +27,7 @@ func (nt *NodeTracker) RemoveNode(nodeID string) {
 }
 
 // GetNode retrieves a specific node
-func (nt *NodeTracker) GetNode(nodeID string) (*models.DVENode, bool) {
+func (nt *NodeTracker) GetNode(nodeID string) (*objects.DVENode, bool) {
 	nt.mu.RLock()
 	defer nt.mu.RUnlock()
 	node, exists := nt.nodes[nodeID]
@@ -36,11 +35,11 @@ func (nt *NodeTracker) GetNode(nodeID string) (*models.DVENode, bool) {
 }
 
 // GetAllNodes returns all nodes
-func (nt *NodeTracker) GetAllNodes() []*models.DVENode {
+func (nt *NodeTracker) GetAllNodes() []*objects.DVENode {
 	nt.mu.RLock()
 	defer nt.mu.RUnlock()
 
-	nodes := make([]*models.DVENode, 0, len(nt.nodes))
+	nodes := make([]*objects.DVENode, 0, len(nt.nodes))
 	for _, node := range nt.nodes {
 		nodes = append(nodes, node)
 	}
@@ -48,11 +47,11 @@ func (nt *NodeTracker) GetAllNodes() []*models.DVENode {
 }
 
 // GetActiveNodes returns only active (online) nodes
-func (nt *NodeTracker) GetActiveNodes() []*models.DVENode {
+func (nt *NodeTracker) GetActiveNodes() []*objects.DVENode {
 	nt.mu.RLock()
 	defer nt.mu.RUnlock()
 
-	var activeNodes []*models.DVENode
+	var activeNodes []*objects.DVENode
 	for _, node := range nt.nodes {
 		if node.Status == "online" {
 			activeNodes = append(activeNodes, node)
@@ -81,11 +80,11 @@ func (nt *NodeTracker) UpdateHeartbeat(nodeID string) {
 }
 
 // GetNodesByTEEType returns nodes filtered by TEE type
-func (nt *NodeTracker) GetNodesByTEEType(teeType string) []*models.DVENode {
+func (nt *NodeTracker) GetNodesByTEEType(teeType string) []*objects.DVENode {
 	nt.mu.RLock()
 	defer nt.mu.RUnlock()
 
-	var filteredNodes []*models.DVENode
+	var filteredNodes []*objects.DVENode
 	for _, node := range nt.nodes {
 		if node.TEEType == teeType && node.Status == "online" {
 			filteredNodes = append(filteredNodes, node)
@@ -95,11 +94,11 @@ func (nt *NodeTracker) GetNodesByTEEType(teeType string) []*models.DVENode {
 }
 
 // GetNodesByLocation returns nodes filtered by location
-func (nt *NodeTracker) GetNodesByLocation(location string) []*models.DVENode {
+func (nt *NodeTracker) GetNodesByLocation(location string) []*objects.DVENode {
 	nt.mu.RLock()
 	defer nt.mu.RUnlock()
 
-	var filteredNodes []*models.DVENode
+	var filteredNodes []*objects.DVENode
 	for _, node := range nt.nodes {
 		if node.Location == location && node.Status == "online" {
 			filteredNodes = append(filteredNodes, node)
@@ -109,11 +108,11 @@ func (nt *NodeTracker) GetNodesByLocation(location string) []*models.DVENode {
 }
 
 // GetTopReputationNodes returns nodes sorted by reputation score
-func (nt *NodeTracker) GetTopReputationNodes(limit int) []*models.DVENode {
+func (nt *NodeTracker) GetTopReputationNodes(limit int) []*objects.DVENode {
 	nt.mu.RLock()
 	defer nt.mu.RUnlock()
 
-	activeNodes := make([]*models.DVENode, 0)
+	activeNodes := make([]*objects.DVENode, 0)
 	for _, node := range nt.nodes {
 		if node.Status == "online" {
 			activeNodes = append(activeNodes, node)
@@ -238,11 +237,11 @@ func (nt *NodeTracker) IsNodeHealthy(nodeID string) bool {
 }
 
 // GetUnhealthyNodes returns nodes that are considered unhealthy
-func (nt *NodeTracker) GetUnhealthyNodes() []*models.DVENode {
+func (nt *NodeTracker) GetUnhealthyNodes() []*objects.DVENode {
 	nt.mu.RLock()
 	defer nt.mu.RUnlock()
 
-	var unhealthyNodes []*models.DVENode
+	var unhealthyNodes []*objects.DVENode
 	for _, node := range nt.nodes {
 		if !nt.isNodeHealthyInternal(node) {
 			unhealthyNodes = append(unhealthyNodes, node)
@@ -253,6 +252,6 @@ func (nt *NodeTracker) GetUnhealthyNodes() []*models.DVENode {
 }
 
 // isNodeHealthyInternal is an internal helper that doesn't acquire locks
-func (nt *NodeTracker) isNodeHealthyInternal(node *models.DVENode) bool {
+func (nt *NodeTracker) isNodeHealthyInternal(node *objects.DVENode) bool {
 	return node.Status == "online" && time.Since(node.LastHeartbeat) < 2*time.Minute
 }

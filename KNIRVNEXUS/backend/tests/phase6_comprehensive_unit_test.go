@@ -106,7 +106,7 @@ func TestAPIEndpoints(t *testing.T) {
 		api.GET("/cognitive-engine", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
 				"status":       "operational",
-				"models":       []string{"hrm", "phi3", "tinyllama"},
+				"objects":      []string{"hrm", "phi3", "tinyllama"},
 				"active_model": "hrm",
 			})
 		})
@@ -160,7 +160,7 @@ func TestAPIEndpoints(t *testing.T) {
 			name:           "Cognitive Engine Endpoint",
 			endpoint:       "/api/cognitive-engine",
 			expectedStatus: http.StatusOK,
-			expectedFields: []string{"status", "models", "active_model"},
+			expectedFields: []string{"status", "objects", "active_model"},
 		},
 		{
 			name:           "TEE Security Endpoint",
@@ -209,7 +209,7 @@ func TestPhase6DatabaseOperations(t *testing.T) {
 				{"id": "user1", "role": "admin", "active": true},
 				{"id": "user2", "role": "validator", "active": true},
 			},
-			"models": []map[string]interface{}{
+			"objects": []map[string]interface{}{
 				{"id": "model1", "status": "active", "type": "dve"},
 				{"id": "model2", "status": "pending", "type": "validator"},
 			},
@@ -221,7 +221,7 @@ func TestPhase6DatabaseOperations(t *testing.T) {
 
 		// Test data structure
 		assert.Contains(t, testData, "users")
-		assert.Contains(t, testData, "models")
+		assert.Contains(t, testData, "objects")
 		assert.Contains(t, testData, "reports")
 
 		// Test user data
@@ -231,10 +231,10 @@ func TestPhase6DatabaseOperations(t *testing.T) {
 		assert.Equal(t, true, users[0]["active"])
 
 		// Test model data
-		models := testData["models"].([]map[string]interface{})
-		assert.Len(t, models, 2)
-		assert.Equal(t, "active", models[0]["status"])
-		assert.Equal(t, "dve", models[0]["type"])
+		objects := testData["objects"].([]map[string]interface{})
+		assert.Len(t, objects, 2)
+		assert.Equal(t, "active", objects[0]["status"])
+		assert.Equal(t, "dve", objects[0]["type"])
 
 		// Test report data
 		reports := testData["reports"].([]map[string]interface{})

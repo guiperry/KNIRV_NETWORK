@@ -88,7 +88,7 @@ func estimateTokens(content string, model string) int {
 		return len(tokens)
 	}
 
-	// Fallback for unknown models: rough estimate (1 token ~ 4 chars)
+	// Fallback for unknown objects: rough estimate (1 token ~ 4 chars)
 	log.Printf("Warning: Using character-based fallback for token estimation (model: %s)", model)
 	return (len(content) / 4) + 5
 }
@@ -104,7 +104,7 @@ func estimateTotalTokens(messages []gollm_types.MemoryMessage, model string) int
 }
 
 // formatMessagesToPrompt converts a slice of messages into a single string prompt.
-// This is a basic implementation; specific models might prefer different formats.
+// This is a basic implementation; specific objects might prefer different formats.
 func formatMessagesToPrompt(messages []gollm_types.MemoryMessage) string {
 	var builder strings.Builder
 	for _, msg := range messages {
@@ -191,7 +191,7 @@ func (d *DelegatorService) executeGenerationWithRetry(ctx context.Context, model
 	// --- END Proactive Chunking Check ---
 
 	var attemptsToTry []LLMAttempt
-	specificModelRequested := modelName != "" && modelName != "No models available" && modelName != "Service unavailable"
+	specificModelRequested := modelName != "" && modelName != "No objects available" && modelName != "Service unavailable"
 
 	if specificModelRequested {
 		log.Printf("DelegatorService (%s): Specific model '%s' requested. Attempting to find and use it.", operationName, modelName)

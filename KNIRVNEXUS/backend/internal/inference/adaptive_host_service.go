@@ -84,9 +84,9 @@ type ResourceMonitor struct {
 	mu sync.RWMutex
 }
 
-// InferenceLoadBalancer manages load balancing across inference models
+// InferenceLoadBalancer manages load balancing across inference objects
 type InferenceLoadBalancer struct {
-	models        map[string]*ModelInstance
+	objects       map[string]*ModelInstance
 	requestQueue  chan *InferenceRequest
 	responseQueue chan *InferenceResponse
 
@@ -183,7 +183,7 @@ func (s *AdaptiveHostService) initializeComponents() error {
 	// Initialize load balancer
 	if s.config.EnableLoadBalancing {
 		s.loadBalancer = &InferenceLoadBalancer{
-			models:        make(map[string]*ModelInstance),
+			objects:       make(map[string]*ModelInstance),
 			requestQueue:  make(chan *InferenceRequest, s.config.MaxConcurrentRequests),
 			responseQueue: make(chan *InferenceResponse, s.config.MaxConcurrentRequests),
 			maxConcurrent: s.config.MaxConcurrentRequests,
@@ -633,9 +633,9 @@ func (s *AdaptiveHostService) collectAndReportMetrics() {
 	}
 
 	// Collect model registry metrics
-	models := s.modelRegistry.ListModels()
+	objects := s.modelRegistry.ListModels()
 
-	for _, model := range models {
+	for _, model := range objects {
 		// Report model metrics
 		s.dataEngine.ProcessMetricEvent(
 			"model-registry",

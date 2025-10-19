@@ -222,6 +222,26 @@ func (s *InferenceService) GenerateText(modelName string, promptText string, ins
 	return response, nil
 }
 
+// Generate implements the InferenceClient interface
+func (s *InferenceService) Generate(ctx context.Context, prompt string, options interface{}) (string, error) {
+	s.mutex.Lock() // Lock at the beginning
+	if !s.isRunning || s.delegator == nil {
+		s.mutex.Unlock()
+		return "", errors.New("inference service is not running or delegator not configured")
+	}
+	delegatorInstance := s.delegator // Capture instance under lock
+	s.mutex.Unlock()
+
+	log.Printf("InferenceService: Delegating generation request to DelegatorService. Prompt: '%s'", prompt[:min(50, len(prompt))]+"...")
+	// Use GenerateSimple with empty model name and instruction
+	response, err := delegatorInstance.GenerateSimple(ctx, "", prompt, "")
+	if err != nil {
+		return "", err
+	}
+	log.Println("InferenceService: Generation successful via DelegatorService.")
+	return response, nil
+}
+
 // --- ADDED: GenerateTextWithProvider ---
 // GenerateTextWithProvider sends a prompt directly to the first configured instance of a specific provider.
 func (s *InferenceService) GenerateTextWithProvider(providerName string, promptText string) (string, error) {
@@ -421,26 +441,26 @@ func (s *InferenceService) SetMOAFallbackModel(modelName string) error {
 	return nil
 }
 
-// GetPrimaryModels returns the names of the configured primary models.
+// GetPrimaryModels returns the names of the configured primary objects.
 func (s *InferenceService) GetPrimaryModels() []string {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	models := make([]string, 0, len(s.primaryAttempts))
+	objects := make([]string, 0, len(s.primaryAttempts))
 	for _, attempt := range s.primaryAttempts {
-		models = append(models, attempt.Config.ModelName)
+		objects = append(objects, attempt.Config.ModelName)
 	}
-	return models
+	return objects
 }
 
-// GetFallbackModels returns the names of the configured fallback models.
+// GetFallbackModels returns the names of the configured fallback objects.
 func (s *InferenceService) GetFallbackModels() []string {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	models := make([]string, 0, len(s.fallbackAttempts))
+	objects := make([]string, 0, len(s.fallbackAttempts))
 	for _, attempt := range s.fallbackAttempts {
-		models = append(models, attempt.Config.ModelName)
+		objects = append(objects, attempt.Config.ModelName)
 	}
-	return models
+	return objects
 }
 
 // GetProxyModel returns the name of the proxy model.
@@ -536,7 +556,7 @@ func (s *InferenceService) reconfigureMOAInternal() error {
 }
 
 // findLLMInstance searches primary and fallback attempts for a provider name.
-// NOTE: This is a simplified lookup, might need refinement if multiple models
+// NOTE: This is a simplified lookup, might need refinement if multiple objects
 // from the same provider exist. Returns the first match.
 func (s *InferenceService) findLLMInstance(providerName string) llm.LLM {
 	for _, attempt := range s.primaryAttempts {

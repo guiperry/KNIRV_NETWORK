@@ -16,7 +16,7 @@ import (
 
 	"backend-server/internal/config"
 	"backend-server/internal/database"
-	"backend-server/internal/models"
+	"backend-server/internal/objects"
 	"backend-server/internal/services/dvemanager"
 	"backend-server/internal/services/validation"
 	"backend-server/pkg/p2p"
@@ -198,18 +198,14 @@ func TestValidationTaskCreation(t *testing.T) {
 	defer ts.validationCore.Stop(ctx)
 
 	// Create test cases
-	testCases := []models.TestCase{
+	testCases := []objects.TestCase{
 		{
 			ID:          "test-case-1",
 			Name:        "Basic functionality test",
 			Description: "Tests basic SkillNode functionality",
-			Input: map[string]interface{}{
-				"prompt": "Hello, world!",
-			},
-			Expected: map[string]interface{}{
-				"response": "Hello! How can I help you?",
-			},
-			Weight: 1.0,
+			Input:       `{"prompt": "Hello, world!"}`,
+			Expected:    `{"response": "Hello! How can I help you?"}`,
+			Weight:      1.0,
 		},
 	}
 
@@ -439,13 +435,13 @@ func BenchmarkValidationThroughput(b *testing.B) {
 	go ts.validationCore.Start(ctx)
 	defer ts.validationCore.Stop(ctx)
 
-	testCases := []models.TestCase{
+	testCases := []objects.TestCase{
 		{
 			ID:          "bench-test-case",
 			Name:        "Benchmark test",
 			Description: "Performance test case",
-			Input:       map[string]interface{}{"input": "test"},
-			Expected:    map[string]interface{}{"output": "test"},
+			Input:       `{"input": "test"}`,
+			Expected:    `{"output": "test"}`,
 			Weight:      1.0,
 		},
 	}

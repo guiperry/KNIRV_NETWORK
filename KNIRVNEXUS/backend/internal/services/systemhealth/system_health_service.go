@@ -1,6 +1,7 @@
 package systemhealth
 
 import (
+	"backend-server/internal/objects"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -8,8 +9,6 @@ import (
 	"runtime"
 	"sync"
 	"time"
-
-	"backend-server/internal/models"
 
 	"github.com/tidwall/buntdb"
 )
@@ -32,9 +31,9 @@ type SystemHealthService struct {
 	teeSecurityService interface{}
 
 	// Health data
-	systemHealth *models.SystemHealth
-	alerts       []*models.SystemAlert
-	metrics      *models.SystemMetrics
+	systemHealth *objects.SystemHealth
+	alerts       []*objects.SystemAlert
+	metrics      *objects.SystemMetrics
 
 	// Configuration
 	alertThresholds    map[string]float64
@@ -53,7 +52,7 @@ func NewSystemHealthService(db *buntdb.DB) *SystemHealthService {
 		startTime:          time.Now(),
 		ctx:                ctx,
 		cancel:             cancel,
-		alerts:             make([]*models.SystemAlert, 0),
+		alerts:             make([]*objects.SystemAlert, 0),
 		alertThresholds: map[string]float64{
 			"cpu_usage":       80.0,
 			"memory_usage":    85.0,
@@ -62,13 +61,13 @@ func NewSystemHealthService(db *buntdb.DB) *SystemHealthService {
 			"response_time":   1000.0, // milliseconds
 			"goroutine_count": 1000.0,
 		},
-		systemHealth: &models.SystemHealth{
+		systemHealth: &objects.SystemHealth{
 			OverallStatus: "healthy",
 			Timestamp:     time.Now(),
 			Uptime:        0,
-			Components:    make(map[string]*models.ComponentHealth),
-			Alerts:        make([]*models.SystemAlert, 0),
-			Metrics:       &models.SystemMetrics{},
+			Components:    make(map[string]*objects.ComponentHealth),
+			Alerts:        make([]*objects.SystemAlert, 0),
+			Metrics:       &objects.SystemMetrics{},
 		},
 	}
 
@@ -146,7 +145,7 @@ func (shs *SystemHealthService) IsRunning() bool {
 }
 
 // GetSystemHealth returns the current system health status
-func (shs *SystemHealthService) GetSystemHealth(detailed bool) *models.SystemHealth {
+func (shs *SystemHealthService) GetSystemHealth(detailed bool) *objects.SystemHealth {
 	shs.mu.RLock()
 	defer shs.mu.RUnlock()
 
@@ -158,11 +157,11 @@ func (shs *SystemHealthService) GetSystemHealth(detailed bool) *models.SystemHea
 	}
 
 	// Return simplified health status
-	return &models.SystemHealth{
+	return &objects.SystemHealth{
 		OverallStatus: shs.systemHealth.OverallStatus,
 		Timestamp:     shs.systemHealth.Timestamp,
 		Uptime:        shs.systemHealth.Uptime,
-		ComponentSummary: &models.ComponentSummary{
+		ComponentSummary: &objects.ComponentSummary{
 			TotalComponents:    len(shs.systemHealth.Components),
 			HealthyComponents:  shs.countComponentsByStatus("healthy"),
 			WarningComponents:  shs.countComponentsByStatus("warning"),
@@ -174,11 +173,11 @@ func (shs *SystemHealthService) GetSystemHealth(detailed bool) *models.SystemHea
 }
 
 // GetAlerts returns system alerts with optional filtering
-func (shs *SystemHealthService) GetAlerts(resolved *bool, severity string) []*models.SystemAlert {
+func (shs *SystemHealthService) GetAlerts(resolved *bool, severity string) []*objects.SystemAlert {
 	shs.mu.RLock()
 	defer shs.mu.RUnlock()
 
-	var filteredAlerts []*models.SystemAlert
+	var filteredAlerts []*objects.SystemAlert
 	for _, alert := range shs.alerts {
 		// Filter by resolved status
 		if resolved != nil && alert.Resolved != *resolved {
@@ -197,11 +196,11 @@ func (shs *SystemHealthService) GetAlerts(resolved *bool, severity string) []*mo
 }
 
 // AddAlert adds a new system alert
-func (shs *SystemHealthService) AddAlert(severity, component, message string, metadata map[string]interface{}) *models.SystemAlert {
+func (shs *SystemHealthService) AddAlert(severity, component, message string, metadata map[string]interface{}) *objects.SystemAlert {
 	shs.mu.Lock()
 	defer shs.mu.Unlock()
 
-	alert := &models.SystemAlert{
+	alert := &objects.SystemAlert{
 		ID:        fmt.Sprintf("alert_%d", time.Now().UnixNano()),
 		Severity:  severity,
 		Component: component,
@@ -247,17 +246,17 @@ func (shs *SystemHealthService) ResolveAlert(alertID string) error {
 }
 
 // RunDiagnostics performs comprehensive system diagnostics
-func (shs *SystemHealthService) RunDiagnostics() *models.DiagnosticsResult {
+func (shs *SystemHealthService) RunDiagnostics() *objects.DiagnosticsResult {
 	shs.mu.Lock()
 	defer shs.mu.Unlock()
 
 	log.Println("Running system diagnostics...")
 
-	result := &models.DiagnosticsResult{
+	result := &objects.DiagnosticsResult{
 		ID:        fmt.Sprintf("diag_%d", time.Now().UnixNano()),
 		Timestamp: time.Now().Format(time.RFC3339),
 		Status:    "completed",
-		Tests:     make([]*models.DiagnosticTest, 0),
+		Tests:     make([]*objects.DiagnosticTest, 0),
 	}
 
 	// Test database connectivity
@@ -305,7 +304,7 @@ func (shs *SystemHealthService) loadHealthData() {
 	// Load alerts from database
 	shs.db.View(func(tx *buntdb.Tx) error {
 		if value, err := tx.Get("health:alerts"); err == nil {
-			var alerts []*models.SystemAlert
+			var alerts []*objects.SystemAlert
 			if json.Unmarshal([]byte(value), &alerts) == nil {
 				shs.alerts = alerts
 			}
@@ -385,7 +384,7 @@ func (shs *SystemHealthService) updateSystemHealth() {
 
 func (shs *SystemHealthService) updateComponentHealth() {
 	if shs.systemHealth.Components == nil {
-		shs.systemHealth.Components = make(map[string]*models.ComponentHealth)
+		shs.systemHealth.Components = make(map[string]*objects.ComponentHealth)
 	}
 
 	// DVE Nodes component
@@ -415,15 +414,15 @@ func (shs *SystemHealthService) updateComponentHealth() {
 	shs.systemHealth.Components["nrn_staking"] = shs.getNRNStakingHealth()
 }
 
-func (shs *SystemHealthService) getDVENodesHealth() *models.ComponentHealth {
+func (shs *SystemHealthService) getDVENodesHealth() *objects.ComponentHealth {
 	// Use type assertion to check if service has required methods
 	type DVEManagerInterface interface {
-		GetAllNodes() []*models.DVENode
+		GetAllNodes() []*objects.DVENode
 	}
 
 	dveManager, ok := shs.dveManager.(DVEManagerInterface)
 	if !ok {
-		return &models.ComponentHealth{
+		return &objects.ComponentHealth{
 			Status:  "critical",
 			Message: "DVE Manager service interface not available",
 		}
@@ -470,7 +469,7 @@ func (shs *SystemHealthService) getDVENodesHealth() *models.ComponentHealth {
 		message = "More than 50% of nodes are offline"
 	}
 
-	return &models.ComponentHealth{
+	return &objects.ComponentHealth{
 		Status:  status,
 		Message: message,
 		Metrics: map[string]interface{}{
@@ -484,15 +483,15 @@ func (shs *SystemHealthService) getDVENodesHealth() *models.ComponentHealth {
 	}
 }
 
-func (shs *SystemHealthService) getValidationTasksHealth() *models.ComponentHealth {
+func (shs *SystemHealthService) getValidationTasksHealth() *objects.ComponentHealth {
 	// Use type assertion to check if service has required methods
 	type ValidationCoreInterface interface {
-		GetValidationTasks(filter interface{}) ([]*models.ValidationTask, error)
+		GetValidationTasks(filter interface{}) ([]*objects.ValidationTask, error)
 	}
 
 	validationCore, ok := shs.validationCore.(ValidationCoreInterface)
 	if !ok {
-		return &models.ComponentHealth{
+		return &objects.ComponentHealth{
 			Status:  "critical",
 			Message: "Validation service interface not available",
 		}
@@ -500,7 +499,7 @@ func (shs *SystemHealthService) getValidationTasksHealth() *models.ComponentHeal
 
 	tasks, err := validationCore.GetValidationTasks(nil)
 	if err != nil {
-		return &models.ComponentHealth{
+		return &objects.ComponentHealth{
 			Status:  "warning",
 			Message: "Failed to retrieve validation tasks",
 		}
@@ -538,7 +537,7 @@ func (shs *SystemHealthService) getValidationTasksHealth() *models.ComponentHeal
 		message = "High task failure rate"
 	}
 
-	return &models.ComponentHealth{
+	return &objects.ComponentHealth{
 		Status:  status,
 		Message: message,
 		Metrics: map[string]interface{}{
@@ -551,10 +550,10 @@ func (shs *SystemHealthService) getValidationTasksHealth() *models.ComponentHeal
 	}
 }
 
-func (shs *SystemHealthService) getCognitiveEngineHealth() *models.ComponentHealth {
+func (shs *SystemHealthService) getCognitiveEngineHealth() *objects.ComponentHealth {
 	// Check if inference service is nil first
 	if shs.inferenceService == nil {
-		return &models.ComponentHealth{
+		return &objects.ComponentHealth{
 			Status:  "warning",
 			Message: "Cognitive Engine service not initialized",
 		}
@@ -567,14 +566,14 @@ func (shs *SystemHealthService) getCognitiveEngineHealth() *models.ComponentHeal
 
 	inferenceService, ok := shs.inferenceService.(InferenceServiceInterface)
 	if !ok {
-		return &models.ComponentHealth{
+		return &objects.ComponentHealth{
 			Status:  "critical",
 			Message: "Cognitive Engine service interface not available",
 		}
 	}
 
 	if !inferenceService.IsRunning() {
-		return &models.ComponentHealth{
+		return &objects.ComponentHealth{
 			Status:  "critical",
 			Message: "Cognitive Engine service is not running",
 		}
@@ -583,7 +582,7 @@ func (shs *SystemHealthService) getCognitiveEngineHealth() *models.ComponentHeal
 	status := "healthy"
 	message := "Cognitive Engine is operating normally"
 
-	return &models.ComponentHealth{
+	return &objects.ComponentHealth{
 		Status:  status,
 		Message: message,
 		Metrics: map[string]interface{}{
@@ -596,23 +595,23 @@ func (shs *SystemHealthService) getCognitiveEngineHealth() *models.ComponentHeal
 	}
 }
 
-func (shs *SystemHealthService) getTEESecurityHealth() *models.ComponentHealth {
+func (shs *SystemHealthService) getTEESecurityHealth() *objects.ComponentHealth {
 	// Use type assertion to check if service has required methods
 	type TEESecurityServiceInterface interface {
 		IsRunning() bool
-		GetSecurityStatus() *models.TEESecurityStatus
+		GetSecurityStatus() *objects.TEESecurityStatus
 	}
 
 	teeSecurityService, ok := shs.teeSecurityService.(TEESecurityServiceInterface)
 	if !ok {
-		return &models.ComponentHealth{
+		return &objects.ComponentHealth{
 			Status:  "critical",
 			Message: "TEE Security service interface not available",
 		}
 	}
 
 	if !teeSecurityService.IsRunning() {
-		return &models.ComponentHealth{
+		return &objects.ComponentHealth{
 			Status:  "critical",
 			Message: "TEE Security service is not running",
 		}
@@ -633,7 +632,7 @@ func (shs *SystemHealthService) getTEESecurityHealth() *models.ComponentHealth {
 		message = fmt.Sprintf("%d active security threats detected", len(securityStatus.ActiveThreats))
 	}
 
-	return &models.ComponentHealth{
+	return &objects.ComponentHealth{
 		Status:  status,
 		Message: message,
 		Metrics: map[string]interface{}{
@@ -646,7 +645,7 @@ func (shs *SystemHealthService) getTEESecurityHealth() *models.ComponentHealth {
 	}
 }
 
-func (shs *SystemHealthService) getNetworkHealth() *models.ComponentHealth {
+func (shs *SystemHealthService) getNetworkHealth() *objects.ComponentHealth {
 	// Simulate network health metrics
 	latency := 12.5 + float64(time.Now().Unix()%10)
 	packetLoss := 0.01 + float64(time.Now().Unix()%5)/1000.0
@@ -665,7 +664,7 @@ func (shs *SystemHealthService) getNetworkHealth() *models.ComponentHealth {
 		message = "High packet loss detected"
 	}
 
-	return &models.ComponentHealth{
+	return &objects.ComponentHealth{
 		Status:  status,
 		Message: message,
 		Metrics: map[string]interface{}{
@@ -676,7 +675,7 @@ func (shs *SystemHealthService) getNetworkHealth() *models.ComponentHealth {
 	}
 }
 
-func (shs *SystemHealthService) getNRNStakingHealth() *models.ComponentHealth {
+func (shs *SystemHealthService) getNRNStakingHealth() *objects.ComponentHealth {
 	// Simulate NRN staking metrics
 	totalStaked := 2500000.0
 	apy := 12.5
@@ -686,7 +685,7 @@ func (shs *SystemHealthService) getNRNStakingHealth() *models.ComponentHealth {
 	status := "healthy"
 	message := "NRN Staking is operating normally"
 
-	return &models.ComponentHealth{
+	return &objects.ComponentHealth{
 		Status:  status,
 		Message: message,
 		Metrics: map[string]interface{}{
@@ -732,8 +731,8 @@ func (shs *SystemHealthService) countActiveAlerts() int {
 	return count
 }
 
-func (shs *SystemHealthService) getActiveAlerts() []*models.SystemAlert {
-	var activeAlerts []*models.SystemAlert
+func (shs *SystemHealthService) getActiveAlerts() []*objects.SystemAlert {
+	var activeAlerts []*objects.SystemAlert
 	for _, alert := range shs.alerts {
 		if !alert.Resolved {
 			activeAlerts = append(activeAlerts, alert)
@@ -778,10 +777,10 @@ func (shs *SystemHealthService) collectSystemMetrics() {
 	shs.systemHealth.Metrics.ActiveConnections = 150 + int(time.Now().Unix()%50)       // Simulated
 }
 
-func (shs *SystemHealthService) testDatabaseConnectivity() *models.DiagnosticTest {
+func (shs *SystemHealthService) testDatabaseConnectivity() *objects.DiagnosticTest {
 	startTime := time.Now()
 
-	test := &models.DiagnosticTest{
+	test := &objects.DiagnosticTest{
 		Name: "Database Connectivity",
 	}
 
@@ -805,12 +804,12 @@ func (shs *SystemHealthService) testDatabaseConnectivity() *models.DiagnosticTes
 	return test
 }
 
-func (shs *SystemHealthService) testServiceHealth() []*models.DiagnosticTest {
-	var tests []*models.DiagnosticTest
+func (shs *SystemHealthService) testServiceHealth() []*objects.DiagnosticTest {
+	var tests []*objects.DiagnosticTest
 
 	// Test DVE Manager
 	if shs.dveManager != nil {
-		test := &models.DiagnosticTest{
+		test := &objects.DiagnosticTest{
 			Name: "DVE Manager Service",
 		}
 		startTime := time.Now()
@@ -834,7 +833,7 @@ func (shs *SystemHealthService) testServiceHealth() []*models.DiagnosticTest {
 
 	// Test Validation Core
 	if shs.validationCore != nil {
-		test := &models.DiagnosticTest{
+		test := &objects.DiagnosticTest{
 			Name: "Validation Core Service",
 		}
 		startTime := time.Now()
@@ -858,7 +857,7 @@ func (shs *SystemHealthService) testServiceHealth() []*models.DiagnosticTest {
 
 	// Test Inference Service
 	if shs.inferenceService != nil {
-		test := &models.DiagnosticTest{
+		test := &objects.DiagnosticTest{
 			Name: "Cognitive Engine Service",
 		}
 		startTime := time.Now()
@@ -882,7 +881,7 @@ func (shs *SystemHealthService) testServiceHealth() []*models.DiagnosticTest {
 
 	// Test TEE Security Service
 	if shs.teeSecurityService != nil {
-		test := &models.DiagnosticTest{
+		test := &objects.DiagnosticTest{
 			Name: "TEE Security Service",
 		}
 		startTime := time.Now()
@@ -907,11 +906,11 @@ func (shs *SystemHealthService) testServiceHealth() []*models.DiagnosticTest {
 	return tests
 }
 
-func (shs *SystemHealthService) testSystemResources() []*models.DiagnosticTest {
-	var tests []*models.DiagnosticTest
+func (shs *SystemHealthService) testSystemResources() []*objects.DiagnosticTest {
+	var tests []*objects.DiagnosticTest
 
 	// Test memory usage
-	memTest := &models.DiagnosticTest{
+	memTest := &objects.DiagnosticTest{
 		Name: "Memory Usage",
 	}
 	startTime := time.Now()
@@ -937,7 +936,7 @@ func (shs *SystemHealthService) testSystemResources() []*models.DiagnosticTest {
 	tests = append(tests, memTest)
 
 	// Test goroutine count
-	goroutineTest := &models.DiagnosticTest{
+	goroutineTest := &objects.DiagnosticTest{
 		Name: "Goroutine Count",
 	}
 	startTime = time.Now()

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"backend-server/internal/inference"
-	"backend-server/internal/models"
+	"backend-server/internal/objects"
 	"backend-server/internal/services/dvemanager"
 	"backend-server/internal/services/validation"
 
@@ -33,7 +33,7 @@ type WebSocketService struct {
 	validationCore     *validation.ValidationCore
 	teeSecurityService interface {
 		IsRunning() bool
-		GetSecurityStatus() *models.TEESecurityStatus
+		GetSecurityStatus() *objects.TEESecurityStatus
 	}
 }
 
@@ -87,7 +87,7 @@ type TEESecurityUpdate struct {
 // NewWebSocketService creates a new WebSocket service
 func NewWebSocketService(inferenceService *inference.InferenceService, dveManager *dvemanager.DVEManager, validationCore *validation.ValidationCore, teeSecurityService interface {
 	IsRunning() bool
-	GetSecurityStatus() *models.TEESecurityStatus
+	GetSecurityStatus() *objects.TEESecurityStatus
 }) *WebSocketService {
 	ctx, cancel := context.WithCancel(context.Background())
 

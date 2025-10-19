@@ -1,4 +1,4 @@
-package modelserver
+package objectserver
 
 import (
 	"fmt"
@@ -69,7 +69,7 @@ func (npm *NativeProcessManager) RegisterProcess(processInfo *ProcessInfo) error
 
 	// Setup cgroup if available
 	if npm.cgroupManager.enabled {
-		cgroupPath := fmt.Sprintf("knirv-models/%s", processInfo.ModelID)
+		cgroupPath := fmt.Sprintf("knirv-objects/%s", processInfo.ModelID)
 		if err := npm.cgroupManager.CreateCgroup(cgroupPath); err != nil {
 			fmt.Printf("Warning: failed to create cgroup for process %d: %v\n", processInfo.PID, err)
 		} else {
@@ -246,8 +246,8 @@ func (cgm *CgroupManager) Initialize() error {
 		return fmt.Errorf("cgroup manager not enabled")
 	}
 
-	// Create base directory for KNIRV models
-	baseDir := fmt.Sprintf("%s/knirv-models", cgm.cgroupRoot)
+	// Create base directory for KNIRV objects
+	baseDir := fmt.Sprintf("%s/knirv-objects", cgm.cgroupRoot)
 	if err := os.MkdirAll(baseDir, 0755); err != nil {
 		return fmt.Errorf("failed to create base cgroup directory: %w", err)
 	}

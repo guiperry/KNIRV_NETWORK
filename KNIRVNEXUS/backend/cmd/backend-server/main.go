@@ -134,8 +134,11 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize validation core: %w", err)
 	}
 
-	// Initialize TEE Security service
-	teeSecurityService := teesecurity.NewTEESecurityService(dbManager.GetDB())
+	// Initialize TEE Security service with Kali environment detection
+	teeSecurityService, err := teesecurity.NewTEESecurityService(dbManager.GetDB())
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize TEE security service: %w", err)
+	}
 
 	// Initialize System Health service
 	systemHealthService := systemhealth.NewSystemHealthService(dbManager.GetDB())

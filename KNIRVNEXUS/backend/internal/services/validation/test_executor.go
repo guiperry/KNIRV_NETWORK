@@ -1,12 +1,11 @@
 package validation
 
 import (
+	"backend-server/internal/objects"
 	"context"
 	"fmt"
 	"strings"
 	"time"
-
-	"backend-server/internal/models"
 )
 
 // TestCaseExecutor executes individual test cases
@@ -29,9 +28,9 @@ func NewTestCaseExecutor(
 // ExecuteTestCase runs a single test case against skill code
 func (tce *TestCaseExecutor) ExecuteTestCase(
 	ctx context.Context,
-	testCase models.TestCase,
+	testCase objects.TestCase,
 	skillCode string,
-) models.TestResult {
+) objects.TestResult {
 	startTime := time.Now()
 
 	// Step 1: Execute the skill code with test input
@@ -47,10 +46,10 @@ Provide the output.`, skillCode, testCase.Input)
 
 	output, err := tce.inferenceService.GenerateText("deepseek-chat", executionPrompt, "")
 	if err != nil {
-		return models.TestResult{
+		return objects.TestResult{
 			TestCaseID:    testCase.ID,
 			Status:        "error",
-			ActualOutput:  map[string]interface{}{"error": "Execution failed"},
+			ActualOutput:  "Execution failed",
 			ErrorMessage:  fmt.Sprintf("Execution failed: %v", err),
 			Score:         0.0,
 			ExecutionTime: time.Since(startTime),
@@ -75,10 +74,10 @@ Provide the output.`, skillCode, testCase.Input)
 		status = "failed"
 	}
 
-	return models.TestResult{
+	return objects.TestResult{
 		TestCaseID:    testCase.ID,
 		Status:        status,
-		ActualOutput:  map[string]interface{}{"output": output},
+		ActualOutput:  output,
 		Score:         score,
 		ExecutionTime: time.Since(startTime),
 	}
@@ -87,15 +86,14 @@ Provide the output.`, skillCode, testCase.Input)
 // calculateScore computes the test case score
 func (tce *TestCaseExecutor) calculateScore(
 	actual string,
-	expected map[string]interface{},
+	expected string,
 	validationReport ValidationReport,
 ) float64 {
 	// Combine validation score with output matching
 	validationScore := validationReport.OverallScore
 
 	// Simple string similarity (can be enhanced with semantic similarity)
-	expectedStr := fmt.Sprintf("%v", expected)
-	matchScore := tce.calculateStringSimilarity(actual, expectedStr)
+	matchScore := tce.calculateStringSimilarity(actual, expected)
 
 	// Weighted combination: 60% validation, 40% output match
 	finalScore := (validationScore * 0.6) + (matchScore * 0.4)
@@ -143,11 +141,4 @@ func (tce *TestCaseExecutor) calculateStringSimilarity(s1, s2 string) float64 {
 
 	overlap := float64(commonWords) / float64(max(len(words1), len(words2)))
 	return overlap * 0.7 // Scale down for partial matches
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }

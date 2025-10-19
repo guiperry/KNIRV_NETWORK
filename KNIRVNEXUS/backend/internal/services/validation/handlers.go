@@ -2,6 +2,7 @@ package validation
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -55,13 +56,17 @@ func (vc *ValidationCore) HandleListTasks(w http.ResponseWriter, r *http.Request
 
 	// Parse priority if provided
 	if priorityStr := r.URL.Query().Get("priority"); priorityStr != "" {
-		// Simple priority parsing - in production you'd want better validation
-		if priorityStr == "high" {
+		// Use tagged switch for priority parsing
+		switch priorityStr {
+		case "high":
 			filter.Priority = 3
-		} else if priorityStr == "medium" {
+		case "medium":
 			filter.Priority = 2
-		} else if priorityStr == "low" {
+		case "low":
 			filter.Priority = 1
+		default:
+			// Handle unknown priority values
+			log.Printf("Unknown priority value: %s", priorityStr)
 		}
 	}
 

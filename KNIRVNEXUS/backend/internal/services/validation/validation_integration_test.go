@@ -7,7 +7,7 @@ import (
 
 	"backend-server/internal/config"
 	"backend-server/internal/database"
-	"backend-server/internal/models"
+	"backend-server/internal/objects"
 	"backend-server/internal/services/validation"
 	"backend-server/pkg/p2p"
 
@@ -47,19 +47,19 @@ func TestSkillNodeValidationEndToEnd(t *testing.T) {
 	defer validationCore.Stop(ctx)
 
 	// Create test task
-	testCases := []models.TestCase{
+	testCases := []objects.TestCase{
 		{
 			ID:       "test-case-1",
 			Name:     "Basic arithmetic test",
-			Input:    map[string]interface{}{"expression": "Calculate 2 + 2"},
-			Expected: map[string]interface{}{"result": "4"},
+			Input:    "Calculate 2 + 2",
+			Expected: "4",
 			Weight:   1.0,
 		},
 		{
 			ID:       "test-case-2",
 			Name:     "String manipulation test",
-			Input:    map[string]interface{}{"expression": "Reverse 'hello'"},
-			Expected: map[string]interface{}{"result": "olleh"},
+			Input:    "Reverse 'hello'",
+			Expected: "olleh",
 			Weight:   1.0,
 		},
 	}
@@ -83,7 +83,7 @@ func TestSkillNodeValidationEndToEnd(t *testing.T) {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
-	var completedTask *models.ValidationTask
+	var completedTask *objects.ValidationTask
 	for {
 		select {
 		case <-timeout:
@@ -144,12 +144,12 @@ func TestBaseLLMValidationEndToEnd(t *testing.T) {
 	defer validationCore.Stop(ctx)
 
 	// Create base LLM validation task
-	testCases := []models.TestCase{
+	testCases := []objects.TestCase{
 		{
 			ID:       "llm-test-1",
 			Name:     "Factuality test",
-			Input:    map[string]interface{}{"question": "What is the capital of France?"},
-			Expected: map[string]interface{}{"answer": "Paris"},
+			Input:    "What is the capital of France?",
+			Expected: "Paris",
 			Weight:   1.0,
 		},
 	}
@@ -177,7 +177,7 @@ func TestBaseLLMValidationEndToEnd(t *testing.T) {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
-	var completedTask *models.ValidationTask
+	var completedTask *objects.ValidationTask
 	for {
 		select {
 		case <-timeout:
@@ -226,11 +226,11 @@ func TestConcurrentTaskExecution(t *testing.T) {
 	defer validationCore.Stop(ctx)
 
 	// Create multiple tasks
-	testCases := []models.TestCase{
+	testCases := []objects.TestCase{
 		{
 			ID:       "concurrent-test",
-			Input:    map[string]interface{}{"input": "test"},
-			Expected: map[string]interface{}{"output": "test"},
+			Input:    "test",
+			Expected: "test",
 			Weight:   1.0,
 		},
 	}
@@ -297,11 +297,11 @@ func TestTimeoutHandling(t *testing.T) {
 	defer validationCore.Stop(ctx)
 
 	// Create task that will timeout
-	testCases := []models.TestCase{
+	testCases := []objects.TestCase{
 		{
 			ID:       "timeout-test",
-			Input:    map[string]interface{}{"input": "test"},
-			Expected: map[string]interface{}{"output": "test"},
+			Input:    "test",
+			Expected: "test",
 			Weight:   1.0,
 		},
 	}
@@ -323,7 +323,7 @@ func TestTimeoutHandling(t *testing.T) {
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
-	var failedTask *models.ValidationTask
+	var failedTask *objects.ValidationTask
 	for {
 		select {
 		case <-timeout:
@@ -369,6 +369,17 @@ func (m *mockInferenceService) GenerateText(modelName string, promptText string,
 	return "mock response", nil
 }
 
+func (m *mockInferenceService) Generate(ctx context.Context, prompt string, options interface{}) (string, error) {
+	// Simple mock responses based on input
+	if prompt == "Calculate 2 + 2" {
+		return "4", nil
+	}
+	if prompt == "Reverse 'hello'" {
+		return "olleh", nil
+	}
+	return "mock response", nil
+}
+
 func (m *mockInferenceService) Start() error {
 	return nil
 }
@@ -383,6 +394,11 @@ type slowInferenceService struct {
 }
 
 func (s *slowInferenceService) GenerateText(modelName string, promptText string, instructionText string) (string, error) {
+	time.Sleep(s.delay)
+	return "slow response", nil
+}
+
+func (s *slowInferenceService) Generate(ctx context.Context, prompt string, options interface{}) (string, error) {
 	time.Sleep(s.delay)
 	return "slow response", nil
 }

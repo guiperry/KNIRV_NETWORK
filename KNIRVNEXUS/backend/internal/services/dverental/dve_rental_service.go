@@ -1,13 +1,12 @@
 package dverental
 
 import (
+	"backend-server/internal/objects"
 	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
 	"time"
-
-	"backend-server/internal/models"
 
 	"github.com/google/uuid"
 	"github.com/tidwall/buntdb"
@@ -24,20 +23,20 @@ type DVERentalService struct {
 	cdeService interface{} // CDE service for environment provisioning
 
 	// Rental data
-	activeRentals map[string]*models.DVERental
-	rentalPlans   map[string]*models.RentalPlan
+	activeRentals map[string]*objects.DVERental
+	rentalPlans   map[string]*objects.RentalPlan
 
 	// Configuration
 	cleanupInterval time.Duration
-	defaultPlans    []*models.RentalPlan
+	defaultPlans    []*objects.RentalPlan
 }
 
 // NewDVERentalService creates a new DVE rental service
 func NewDVERentalService(db *buntdb.DB) (*DVERentalService, error) {
 	service := &DVERentalService{
 		db:              db,
-		activeRentals:   make(map[string]*models.DVERental),
-		rentalPlans:     make(map[string]*models.RentalPlan),
+		activeRentals:   make(map[string]*objects.DVERental),
+		rentalPlans:     make(map[string]*objects.RentalPlan),
 		cleanupInterval: 5 * time.Minute,
 		defaultPlans:    createDefaultRentalPlans(),
 	}
@@ -110,14 +109,14 @@ func (drs *DVERentalService) IsRunning() bool {
 }
 
 // CreateRental creates a new DVE rental
-func (drs *DVERentalService) CreateRental(req *models.RentalRequest) (*models.RentalResponse, error) {
+func (drs *DVERentalService) CreateRental(req *objects.RentalRequest) (*objects.RentalResponse, error) {
 	drs.mu.Lock()
 	defer drs.mu.Unlock()
 
 	// Validate rental plan
 	plan, exists := drs.rentalPlans[req.PlanID]
 	if !exists {
-		return &models.RentalResponse{
+		return &objects.RentalResponse{
 			Success: false,
 			Error:   "Invalid rental plan ID",
 		}, nil
@@ -125,7 +124,7 @@ func (drs *DVERentalService) CreateRental(req *models.RentalRequest) (*models.Re
 
 	// Validate duration
 	if req.Duration < plan.MinDuration || req.Duration > plan.MaxDuration {
-		return &models.RentalResponse{
+		return &objects.RentalResponse{
 			Success: false,
 			Error:   fmt.Sprintf("Duration must be between %d and %d seconds", plan.MinDuration, plan.MaxDuration),
 		}, nil
@@ -141,14 +140,14 @@ func (drs *DVERentalService) CreateRental(req *models.RentalRequest) (*models.Re
 	// Find available DVE node
 	dveNodeID := drs.findAvailableDVENode(req.PreferredDVE)
 	if dveNodeID == "" {
-		return &models.RentalResponse{
+		return &objects.RentalResponse{
 			Success: false,
 			Error:   "No available DVE nodes",
 		}, nil
 	}
 
 	// Create rental record
-	rental := &models.DVERental{
+	rental := &objects.DVERental{
 		ID:             uuid.New().String(),
 		UserID:         req.UserID,
 		DVENodeID:      dveNodeID,
@@ -159,7 +158,7 @@ func (drs *DVERentalService) CreateRental(req *models.RentalRequest) (*models.Re
 		Status:         "active",
 		PaymentTxHash:  req.PaymentTxHash,
 		ResourceLimits: plan.ResourceLimits,
-		UsageMetrics:   models.UsageMetrics{LastUpdated: time.Now()},
+		UsageMetrics:   objects.UsageMetrics{LastUpdated: time.Now()},
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 	}
@@ -167,7 +166,7 @@ func (drs *DVERentalService) CreateRental(req *models.RentalRequest) (*models.Re
 	// Provision CDE environment
 	cdeEnvID, cdeURL, credentials, err := drs.provisionCDEEnvironment(rental)
 	if err != nil {
-		return &models.RentalResponse{
+		return &objects.RentalResponse{
 			Success: false,
 			Error:   fmt.Sprintf("Failed to provision CDE environment: %v", err),
 		}, nil
@@ -183,7 +182,7 @@ func (drs *DVERentalService) CreateRental(req *models.RentalRequest) (*models.Re
 		log.Printf("Warning: Failed to save rental to database: %v", err)
 	}
 
-	return &models.RentalResponse{
+	return &objects.RentalResponse{
 		Success:        true,
 		RentalID:       rental.ID,
 		DVENodeID:      dveNodeID,
@@ -195,11 +194,11 @@ func (drs *DVERentalService) CreateRental(req *models.RentalRequest) (*models.Re
 }
 
 // GetActiveRentals returns all active rentals for a user
-func (drs *DVERentalService) GetActiveRentals(userID string) ([]*models.DVERental, error) {
+func (drs *DVERentalService) GetActiveRentals(userID string) ([]*objects.DVERental, error) {
 	drs.mu.RLock()
 	defer drs.mu.RUnlock()
 
-	var userRentals []*models.DVERental
+	var userRentals []*objects.DVERental
 	for _, rental := range drs.activeRentals {
 		if rental.UserID == userID && rental.Status == "active" {
 			userRentals = append(userRentals, rental)
@@ -210,17 +209,17 @@ func (drs *DVERentalService) GetActiveRentals(userID string) ([]*models.DVERenta
 }
 
 // GetAllUserRentals returns all rentals (active, expired, cancelled) for a user from database
-func (drs *DVERentalService) GetAllUserRentals(userID string) ([]*models.DVERental, error) {
+func (drs *DVERentalService) GetAllUserRentals(userID string) ([]*objects.DVERental, error) {
 	drs.mu.RLock()
 	defer drs.mu.RUnlock()
 
-	var userRentals []*models.DVERental
+	var userRentals []*objects.DVERental
 
 	// Query database for all rentals belonging to this user
 	err := drs.db.View(func(tx *buntdb.Tx) error {
 		return tx.Ascend("", func(key, value string) bool {
 			if len(key) > 8 && key[:8] == "rental:" {
-				var rental models.DVERental
+				var rental objects.DVERental
 				if err := json.Unmarshal([]byte(value), &rental); err == nil {
 					if rental.UserID == userID {
 						userRentals = append(userRentals, &rental)
@@ -259,11 +258,11 @@ func (drs *DVERentalService) GetUserRentedNodeIDs(userID string) ([]string, erro
 }
 
 // GetRentalPlans returns all available rental plans
-func (drs *DVERentalService) GetRentalPlans() ([]*models.RentalPlan, error) {
+func (drs *DVERentalService) GetRentalPlans() ([]*objects.RentalPlan, error) {
 	drs.mu.RLock()
 	defer drs.mu.RUnlock()
 
-	var plans []*models.RentalPlan
+	var plans []*objects.RentalPlan
 	for _, plan := range drs.rentalPlans {
 		if plan.IsActive {
 			plans = append(plans, plan)
@@ -274,11 +273,11 @@ func (drs *DVERentalService) GetRentalPlans() ([]*models.RentalPlan, error) {
 }
 
 // GetRentalStats returns rental system statistics
-func (drs *DVERentalService) GetRentalStats() (*models.DVERentalStats, error) {
+func (drs *DVERentalService) GetRentalStats() (*objects.DVERentalStats, error) {
 	drs.mu.RLock()
 	defer drs.mu.RUnlock()
 
-	stats := &models.DVERentalStats{
+	stats := &objects.DVERentalStats{
 		TotalRentals:  int64(len(drs.activeRentals)),
 		ActiveRentals: drs.countActiveRentals(),
 		Timestamp:     time.Now(),
@@ -373,13 +372,13 @@ func (drs *DVERentalService) findAvailableDVENode(preferredDVE string) string {
 }
 
 // provisionCDEEnvironment provisions a CDE environment for the rental
-func (drs *DVERentalService) provisionCDEEnvironment(rental *models.DVERental) (string, string, models.CDECredentials, error) {
+func (drs *DVERentalService) provisionCDEEnvironment(rental *objects.DVERental) (string, string, objects.CDECredentials, error) {
 	// Check if CDE service is available
 	if drs.cdeService == nil {
 		// Fallback to mock data if CDE service is not available
 		envID := "cde-env-" + uuid.New().String()[:8]
 		accessURL := fmt.Sprintf("https://cde.knirv.com/env/%s", envID)
-		credentials := models.CDECredentials{
+		credentials := objects.CDECredentials{
 			Username:    "user-" + rental.UserID[:8],
 			Password:    "temp-" + uuid.New().String()[:12],
 			AccessToken: "token-" + uuid.New().String(),
@@ -398,7 +397,7 @@ func (drs *DVERentalService) provisionCDEEnvironment(rental *models.DVERental) (
 		// Fallback to mock if interface doesn't match
 		envID := "cde-env-" + uuid.New().String()[:8]
 		accessURL := fmt.Sprintf("https://cde.knirv.com/env/%s", envID)
-		credentials := models.CDECredentials{
+		credentials := objects.CDECredentials{
 			Username:    "user-" + rental.UserID[:8],
 			Password:    "temp-" + uuid.New().String()[:12],
 			AccessToken: "token-" + uuid.New().String(),
@@ -415,7 +414,7 @@ func (drs *DVERentalService) provisionCDEEnvironment(rental *models.DVERental) (
 
 	env, err := cdeService.CreateEnvironment(rental.UserID, envName, "development", envConfig)
 	if err != nil {
-		return "", "", models.CDECredentials{}, fmt.Errorf("failed to create CDE environment: %w", err)
+		return "", "", objects.CDECredentials{}, fmt.Errorf("failed to create CDE environment: %w", err)
 	}
 
 	// Extract environment ID from the created environment
@@ -433,7 +432,7 @@ func (drs *DVERentalService) provisionCDEEnvironment(rental *models.DVERental) (
 
 	// Generate access URL and credentials
 	accessURL := fmt.Sprintf("https://cde.knirv.com/env/%s", envID)
-	credentials := models.CDECredentials{
+	credentials := objects.CDECredentials{
 		Username:    "user-" + rental.UserID[:8],
 		Password:    "temp-" + uuid.New().String()[:12],
 		AccessToken: "token-" + uuid.New().String(),

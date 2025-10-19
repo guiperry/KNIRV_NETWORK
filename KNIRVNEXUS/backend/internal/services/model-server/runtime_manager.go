@@ -1,4 +1,4 @@
-package modelserver
+package objectserver
 
 import (
 	"context"
@@ -9,6 +9,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"backend-server/internal/models"
 )
 
 // RuntimeManager manages live model runtime hosting
@@ -21,6 +23,7 @@ type RuntimeManager struct {
 	resourcePool *ResourcePool
 	scheduler    *ModelScheduler
 	processMgr   *NativeProcessManager
+	wasmRuntime  *WASMRuntime
 
 	// Configuration
 	modelDir       string
@@ -255,6 +258,33 @@ func NewRuntimeManager(ctx context.Context, modelDir string, maxModels int) (*Ru
 		return nil, fmt.Errorf("failed to create process manager: %w", err)
 	}
 
+	// Initialize WASM runtime
+	wasmConfig := &WASMConfig{
+		MaxMemoryPages:    1024, // 64MB
+		MaxExecutionTime:  30 * time.Second,
+		MaxInstances:      10,
+		EnableProfiling:   true,
+		EnableDebugging:   false,
+		ResourceLimits:    nil, // Will be set per model
+	}
+	rm.wasmRuntime, err = NewWASMRuntime(wasmConfig)
+	if err != nil {
+		cancel()
+		return nil, fmt.Errorf("failed to create WASM runtime: %w", err)
+	}
+
+	// Set default resource limits for the WASM runtime
+	defaultLimits := &models.ModelResourceLimits{
+		MaxCPUPercent:    50.0,  // 50% CPU limit
+		MaxMemoryMB:      256,   // 256MB memory limit
+		MaxExecutionTime: 30,    // 30 seconds execution time
+	}
+	
+	if err := rm.wasmRuntime.setupResourceLimits(defaultLimits); err != nil {
+		cancel()
+		return nil, fmt.Errorf("failed to set default resource limits: %w", err)
+	}
+
 	return rm, nil
 }
 
@@ -299,7 +329,7 @@ func (rm *RuntimeManager) Stop() error {
 
 	rm.running = false
 
-	// Stop all models
+	// Stop all objects
 	for _, model := range rm.activeModels {
 		if err := rm.stopModelInternal(model); err != nil {
 			fmt.Printf("Error stopping model %s: %v\n", model.ID, err)
@@ -334,7 +364,7 @@ func (rm *RuntimeManager) StartModel(name, binary string, config map[string]inte
 
 	// Check model limit
 	if len(rm.activeModels) >= rm.maxModels {
-		return nil, fmt.Errorf("maximum number of models (%d) reached", rm.maxModels)
+		return nil, fmt.Errorf("maximum number of objects (%d) reached", rm.maxModels)
 	}
 
 	// Verify binary exists
@@ -385,7 +415,7 @@ func (rm *RuntimeManager) StartModel(name, binary string, config map[string]inte
 		return nil, fmt.Errorf("failed to start model process: %w", err)
 	}
 
-	// Add to active models
+	// Add to active objects
 	rm.activeModels[model.ID] = model
 
 	return model, nil
@@ -404,19 +434,19 @@ func (rm *RuntimeManager) StopModel(modelID string) error {
 	return rm.stopModelInternal(model)
 }
 
-// GetModelList returns list of active models
+// GetModelList returns list of active objects
 func (rm *RuntimeManager) GetModelList() []*ModelInstance {
 	rm.mu.RLock()
 	defer rm.mu.RUnlock()
 
-	var models []*ModelInstance
+	var objects []*ModelInstance
 	for _, model := range rm.activeModels {
 		// Return a copy to prevent modification
 		modelCopy := *model
-		models = append(models, &modelCopy)
+		objects = append(objects, &modelCopy)
 	}
 
-	return models
+	return objects
 }
 
 // GetModel returns a specific model instance
@@ -532,7 +562,7 @@ func (rm *RuntimeManager) stopModelInternal(model *ModelInstance) error {
 		rm.processMgr.mu.Unlock()
 	}
 
-	// Remove from active models
+	// Remove from active objects
 	delete(rm.activeModels, model.ID)
 
 	model.Status = ModelStatusStopped
@@ -543,7 +573,7 @@ func (rm *RuntimeManager) stopModelInternal(model *ModelInstance) error {
 // setupResourceIsolation sets up cgroup-based resource isolation
 func (rm *RuntimeManager) setupResourceIsolation(model *ModelInstance) error {
 	// Create cgroup for the model
-	cgroupPath := fmt.Sprintf("/sys/fs/cgroup/knirv-models/%s", model.ID)
+	cgroupPath := fmt.Sprintf("/sys/fs/cgroup/knirv-objects/%s", model.ID)
 	model.Resources.CgroupPath = cgroupPath
 
 	// This would implement actual cgroup setup
@@ -640,7 +670,7 @@ func (rm *RuntimeManager) monitorLoop() {
 	}
 }
 
-// healthCheckLoop runs health checks on models
+// healthCheckLoop runs health checks on objects
 func (rm *RuntimeManager) healthCheckLoop() {
 	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
@@ -651,14 +681,14 @@ func (rm *RuntimeManager) healthCheckLoop() {
 			return
 		case <-ticker.C:
 			rm.mu.RLock()
-			models := make([]*ModelInstance, 0, len(rm.activeModels))
+			objects := make([]*ModelInstance, 0, len(rm.activeModels))
 			for _, model := range rm.activeModels {
-				models = append(models, model)
+				objects = append(objects, model)
 			}
 			rm.mu.RUnlock()
 
 			// Perform health checks
-			for _, model := range models {
+			for _, model := range objects {
 				rm.performHealthCheck(model)
 			}
 		}

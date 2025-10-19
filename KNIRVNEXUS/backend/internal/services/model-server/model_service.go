@@ -1,4 +1,4 @@
-package modelserver
+package objectserver
 
 import (
 	"context"
@@ -58,14 +58,14 @@ type UploadResponse struct {
 
 // ListResponse represents the response from a list operation
 type ListResponse struct {
-	Models []ModelInfo `json:"models"`
+	Models []ModelInfo `json:"objects"`
 	Count  int         `json:"count"`
 }
 
 // NewModelServer creates a new model server instance
 func NewModelServer(config *config.Config, db *database.BuntDBManager) (*ModelServer, error) {
 	// Set default values
-	modelDir := "./models"
+	modelDir := "./objects"
 	maxModels := 10
 	enableRuntime := true
 	enableCORS := true
@@ -115,7 +115,7 @@ func (as *ModelServer) Start() error {
 			return fmt.Errorf("failed to start runtime manager: %w", err)
 		}
 
-		log.Printf("Runtime manager started with max %d models", as.maxModels)
+		log.Printf("Runtime manager started with max %d objects", as.maxModels)
 	}
 
 	as.running = true

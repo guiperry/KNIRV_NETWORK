@@ -1,6 +1,7 @@
 package controllerintegration
 
 import (
+	"backend-server/internal/objects"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
@@ -8,8 +9,6 @@ import (
 	"log"
 	"sync"
 	"time"
-
-	"backend-server/internal/models"
 
 	"github.com/tidwall/buntdb"
 )
@@ -21,13 +20,13 @@ type ControllerIntegrationService struct {
 	running bool
 
 	// Session management
-	activeSessions  map[string]*models.ControllerSession
-	qrCodes         map[string]*models.QRCode
-	pairingRequests map[string]*models.PairingRequest
+	activeSessions  map[string]*objects.ControllerSession
+	qrCodes         map[string]*objects.QRCode
+	pairingRequests map[string]*objects.PairingRequest
 
 	// Real-time communication
-	websocketConnections map[string]*models.WebSocketConnection
-	messageQueue         map[string][]*models.ControllerMessage
+	websocketConnections map[string]*objects.WebSocketConnection
+	messageQueue         map[string][]*objects.ControllerMessage
 
 	// Configuration
 	sessionTimeout     time.Duration
@@ -44,11 +43,11 @@ type ControllerIntegrationService struct {
 func NewControllerIntegrationService(db *buntdb.DB) *ControllerIntegrationService {
 	service := &ControllerIntegrationService{
 		db:                   db,
-		activeSessions:       make(map[string]*models.ControllerSession),
-		qrCodes:              make(map[string]*models.QRCode),
-		pairingRequests:      make(map[string]*models.PairingRequest),
-		websocketConnections: make(map[string]*models.WebSocketConnection),
-		messageQueue:         make(map[string][]*models.ControllerMessage),
+		activeSessions:       make(map[string]*objects.ControllerSession),
+		qrCodes:              make(map[string]*objects.QRCode),
+		pairingRequests:      make(map[string]*objects.PairingRequest),
+		websocketConnections: make(map[string]*objects.WebSocketConnection),
+		messageQueue:         make(map[string][]*objects.ControllerMessage),
 		sessionTimeout:       30 * time.Minute,
 		qrCodeTimeout:        5 * time.Minute,
 		maxSessionsPerUser:   10,
@@ -112,7 +111,7 @@ func (cis *ControllerIntegrationService) IsRunning() bool {
 }
 
 // GenerateQRCode creates a new QR code for controller pairing
-func (cis *ControllerIntegrationService) GenerateQRCode(userID, deviceType string, capabilities []string) (*models.QRCode, error) {
+func (cis *ControllerIntegrationService) GenerateQRCode(userID, deviceType string, capabilities []string) (*objects.QRCode, error) {
 	cis.mu.Lock()
 	defer cis.mu.Unlock()
 
@@ -135,7 +134,7 @@ func (cis *ControllerIntegrationService) GenerateQRCode(userID, deviceType strin
 	}
 
 	// Create QR code data
-	qrCode := &models.QRCode{
+	qrCode := &objects.QRCode{
 		ID:           fmt.Sprintf("qr_%d", time.Now().UnixNano()),
 		SessionID:    sessionID,
 		DesktopID:    desktopID,
@@ -147,7 +146,7 @@ func (cis *ControllerIntegrationService) GenerateQRCode(userID, deviceType strin
 		ExpiresAt:    time.Now().Add(cis.qrCodeTimeout),
 		ScanCount:    0,
 		MaxScans:     1,
-		Data: &models.QRCodeData{
+		Data: &objects.QRCodeData{
 			Version:      "2.0",
 			Type:         "controller_pairing",
 			SessionID:    sessionID,
@@ -177,12 +176,12 @@ func (cis *ControllerIntegrationService) GenerateQRCode(userID, deviceType strin
 }
 
 // ScanQRCode processes a QR code scan and initiates pairing
-func (cis *ControllerIntegrationService) ScanQRCode(qrData string, mobileDeviceID string) (*models.PairingRequest, error) {
+func (cis *ControllerIntegrationService) ScanQRCode(qrData string, mobileDeviceID string) (*objects.PairingRequest, error) {
 	cis.mu.Lock()
 	defer cis.mu.Unlock()
 
 	// Parse QR code data
-	var qrCodeData models.QRCodeData
+	var qrCodeData objects.QRCodeData
 	if err := json.Unmarshal([]byte(qrData), &qrCodeData); err != nil {
 		return nil, fmt.Errorf("invalid QR code format: %w", err)
 	}
@@ -198,7 +197,7 @@ func (cis *ControllerIntegrationService) ScanQRCode(qrData string, mobileDeviceI
 	}
 
 	// Find the QR code in our store
-	var qrCode *models.QRCode
+	var qrCode *objects.QRCode
 	for _, qr := range cis.qrCodes {
 		if qr.SessionID == qrCodeData.SessionID && qr.DesktopID == qrCodeData.DesktopID {
 			qrCode = qr
@@ -221,7 +220,7 @@ func (cis *ControllerIntegrationService) ScanQRCode(qrData string, mobileDeviceI
 	*qrCode.LastScannedAt = time.Now()
 
 	// Create pairing request
-	pairingRequest := &models.PairingRequest{
+	pairingRequest := &objects.PairingRequest{
 		ID:             fmt.Sprintf("pair_%d", time.Now().UnixNano()),
 		QRCodeID:       qrCode.ID,
 		SessionID:      qrCode.SessionID,
@@ -232,7 +231,7 @@ func (cis *ControllerIntegrationService) ScanQRCode(qrData string, mobileDeviceI
 		CreatedAt:      time.Now(),
 		ExpiresAt:      time.Now().Add(2 * time.Minute),
 		Capabilities:   qrCode.Capabilities,
-		DeviceInfo: &models.DeviceInfo{
+		DeviceInfo: &objects.DeviceInfo{
 			DeviceID:   mobileDeviceID,
 			DeviceType: "mobile",
 			Platform:   "unknown",
@@ -249,7 +248,7 @@ func (cis *ControllerIntegrationService) ScanQRCode(qrData string, mobileDeviceI
 }
 
 // ConfirmPairing confirms a pairing request and creates a session
-func (cis *ControllerIntegrationService) ConfirmPairing(pairingRequestID string, confirmed bool) (*models.ControllerSession, error) {
+func (cis *ControllerIntegrationService) ConfirmPairing(pairingRequestID string, confirmed bool) (*objects.ControllerSession, error) {
 	cis.mu.Lock()
 	defer cis.mu.Unlock()
 
@@ -279,7 +278,7 @@ func (cis *ControllerIntegrationService) ConfirmPairing(pairingRequestID string,
 	}
 
 	// Create controller session
-	session := &models.ControllerSession{
+	session := &objects.ControllerSession{
 		ID:             fmt.Sprintf("sess_%d", time.Now().UnixNano()),
 		SessionID:      pairingRequest.SessionID,
 		DesktopID:      pairingRequest.DesktopID,
@@ -291,7 +290,7 @@ func (cis *ControllerIntegrationService) ConfirmPairing(pairingRequestID string,
 		ExpiresAt:      time.Now().Add(cis.sessionTimeout),
 		Capabilities:   pairingRequest.Capabilities,
 		DeviceInfo:     pairingRequest.DeviceInfo,
-		ConnectionInfo: &models.ConnectionInfo{
+		ConnectionInfo: &objects.ConnectionInfo{
 			IPAddress:      "",
 			UserModel:      "",
 			ConnectionType: "websocket",
@@ -325,7 +324,7 @@ func (cis *ControllerIntegrationService) ConfirmPairing(pairingRequestID string,
 }
 
 // GetActiveSession returns an active session by ID
-func (cis *ControllerIntegrationService) GetActiveSession(sessionID string) (*models.ControllerSession, error) {
+func (cis *ControllerIntegrationService) GetActiveSession(sessionID string) (*objects.ControllerSession, error) {
 	cis.mu.RLock()
 	defer cis.mu.RUnlock()
 
@@ -343,11 +342,11 @@ func (cis *ControllerIntegrationService) GetActiveSession(sessionID string) (*mo
 }
 
 // GetUserSessions returns all active sessions for a user
-func (cis *ControllerIntegrationService) GetUserSessions(userID string) ([]*models.ControllerSession, error) {
+func (cis *ControllerIntegrationService) GetUserSessions(userID string) ([]*objects.ControllerSession, error) {
 	cis.mu.RLock()
 	defer cis.mu.RUnlock()
 
-	var sessions []*models.ControllerSession
+	var sessions []*objects.ControllerSession
 	for _, session := range cis.activeSessions {
 		if session.UserID == userID && session.Status == "active" {
 			sessions = append(sessions, session)
@@ -358,7 +357,7 @@ func (cis *ControllerIntegrationService) GetUserSessions(userID string) ([]*mode
 }
 
 // SendMessage sends a message through a controller session
-func (cis *ControllerIntegrationService) SendMessage(sessionID string, message *models.ControllerMessage) error {
+func (cis *ControllerIntegrationService) SendMessage(sessionID string, message *objects.ControllerMessage) error {
 	cis.mu.Lock()
 	defer cis.mu.Unlock()
 
@@ -378,7 +377,7 @@ func (cis *ControllerIntegrationService) SendMessage(sessionID string, message *
 
 	// Add message to queue
 	if cis.messageQueue[sessionID] == nil {
-		cis.messageQueue[sessionID] = make([]*models.ControllerMessage, 0)
+		cis.messageQueue[sessionID] = make([]*objects.ControllerMessage, 0)
 	}
 	cis.messageQueue[sessionID] = append(cis.messageQueue[sessionID], message)
 
@@ -439,14 +438,14 @@ func (cis *ControllerIntegrationService) generateSecureID() (string, error) {
 	return base64.URLEncoding.EncodeToString(bytes), nil
 }
 
-func (cis *ControllerIntegrationService) signQRCodeData(data *models.QRCodeData) (string, error) {
+func (cis *ControllerIntegrationService) signQRCodeData(data *objects.QRCodeData) (string, error) {
 	// Simple signature implementation (in production, use proper HMAC or digital signatures)
 	payload := fmt.Sprintf("%s:%s:%s:%d", data.SessionID, data.DesktopID, data.UserID, data.Timestamp)
 	signature := base64.StdEncoding.EncodeToString([]byte(payload + string(cis.signingKey)))
 	return signature, nil
 }
 
-func (cis *ControllerIntegrationService) verifyQRCodeSignature(data *models.QRCodeData) bool {
+func (cis *ControllerIntegrationService) verifyQRCodeSignature(data *objects.QRCodeData) bool {
 	expectedSignature, err := cis.signQRCodeData(data)
 	if err != nil {
 		return false
@@ -487,7 +486,7 @@ func (cis *ControllerIntegrationService) loadControllerData() {
 	// Load sessions from database
 	cis.db.View(func(tx *buntdb.Tx) error {
 		tx.Ascend("controller:sessions", func(key, value string) bool {
-			var session models.ControllerSession
+			var session objects.ControllerSession
 			if json.Unmarshal([]byte(value), &session) == nil {
 				cis.activeSessions[session.ID] = &session
 			}
@@ -499,7 +498,7 @@ func (cis *ControllerIntegrationService) loadControllerData() {
 	// Load QR codes from database
 	cis.db.View(func(tx *buntdb.Tx) error {
 		tx.Ascend("controller:qrcodes", func(key, value string) bool {
-			var qrCode models.QRCode
+			var qrCode objects.QRCode
 			if json.Unmarshal([]byte(value), &qrCode) == nil {
 				cis.qrCodes[qrCode.ID] = &qrCode
 			}
@@ -511,7 +510,7 @@ func (cis *ControllerIntegrationService) loadControllerData() {
 	// Load pairing requests from database
 	cis.db.View(func(tx *buntdb.Tx) error {
 		tx.Ascend("controller:pairings", func(key, value string) bool {
-			var pairingRequest models.PairingRequest
+			var pairingRequest objects.PairingRequest
 			if json.Unmarshal([]byte(value), &pairingRequest) == nil {
 				cis.pairingRequests[pairingRequest.ID] = &pairingRequest
 			}
@@ -521,7 +520,7 @@ func (cis *ControllerIntegrationService) loadControllerData() {
 	})
 }
 
-func (cis *ControllerIntegrationService) storeSession(session *models.ControllerSession) {
+func (cis *ControllerIntegrationService) storeSession(session *objects.ControllerSession) {
 	if data, err := json.Marshal(session); err == nil {
 		cis.db.Update(func(tx *buntdb.Tx) error {
 			tx.Set("controller:session:"+session.ID, string(data), nil)
@@ -530,7 +529,7 @@ func (cis *ControllerIntegrationService) storeSession(session *models.Controller
 	}
 }
 
-func (cis *ControllerIntegrationService) storeQRCode(qrCode *models.QRCode) {
+func (cis *ControllerIntegrationService) storeQRCode(qrCode *objects.QRCode) {
 	if data, err := json.Marshal(qrCode); err == nil {
 		cis.db.Update(func(tx *buntdb.Tx) error {
 			tx.Set("controller:qrcode:"+qrCode.ID, string(data), nil)
@@ -539,7 +538,7 @@ func (cis *ControllerIntegrationService) storeQRCode(qrCode *models.QRCode) {
 	}
 }
 
-func (cis *ControllerIntegrationService) storePairingRequest(pairingRequest *models.PairingRequest) {
+func (cis *ControllerIntegrationService) storePairingRequest(pairingRequest *objects.PairingRequest) {
 	if data, err := json.Marshal(pairingRequest); err == nil {
 		cis.db.Update(func(tx *buntdb.Tx) error {
 			tx.Set("controller:pairing:"+pairingRequest.ID, string(data), nil)

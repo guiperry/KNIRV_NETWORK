@@ -169,7 +169,7 @@ func NewFineTuningManager(dataEngine *dataengine.BuntDBDataEngine) (*FineTuningM
 			DefaultLearningRate: 0.0001,
 			DefaultBatchSize:    8,
 			MaxTrainingTime:     24 * time.Hour,
-			ModelStoragePath:    "./models",
+			ModelStoragePath:    "./objects",
 			EnableAutoTuning:    true,
 			ValidationSplit:     0.2,
 		},
@@ -552,7 +552,7 @@ func (fm *FineTuningManager) performAutoTuning() {
 
 	// In a real implementation, this would:
 	// 1. Analyze inference performance metrics
-	// 2. Identify underperforming models
+	// 2. Identify underperforming objects
 	// 3. Suggest fine-tuning parameters
 	// 4. Automatically create fine-tuning jobs if configured
 	// 5. Monitor model drift

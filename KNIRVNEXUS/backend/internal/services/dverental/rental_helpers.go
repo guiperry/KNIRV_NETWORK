@@ -1,11 +1,10 @@
 package dverental
 
 import (
+	"backend-server/internal/objects"
 	"encoding/json"
 	"log"
 	"time"
-
-	"backend-server/internal/models"
 
 	"github.com/tidwall/buntdb"
 )
@@ -18,7 +17,7 @@ func (drs *DVERentalService) loadFromDatabase() error {
 		// Load active rentals
 		tx.Ascend("", func(key, value string) bool {
 			if len(key) > 8 && key[:8] == "rental:" {
-				var rental models.DVERental
+				var rental objects.DVERental
 				if err := json.Unmarshal([]byte(value), &rental); err == nil {
 					if rental.Status == "active" {
 						drs.activeRentals[rental.ID] = &rental
@@ -31,7 +30,7 @@ func (drs *DVERentalService) loadFromDatabase() error {
 		// Load rental plans
 		tx.Ascend("", func(key, value string) bool {
 			if len(key) > 5 && key[:5] == "plan:" {
-				var plan models.RentalPlan
+				var plan objects.RentalPlan
 				if err := json.Unmarshal([]byte(value), &plan); err == nil {
 					drs.rentalPlans[plan.ID] = &plan
 				}
@@ -65,7 +64,7 @@ func (drs *DVERentalService) saveToDatabase() error {
 }
 
 // saveRentalToDatabase saves a single rental to the database
-func (drs *DVERentalService) saveRentalToDatabase(rental *models.DVERental) error {
+func (drs *DVERentalService) saveRentalToDatabase(rental *objects.DVERental) error {
 	return drs.db.Update(func(tx *buntdb.Tx) error {
 		if data, err := json.Marshal(rental); err == nil {
 			tx.Set("rental:"+rental.ID, string(data), nil)
@@ -77,14 +76,14 @@ func (drs *DVERentalService) saveRentalToDatabase(rental *models.DVERental) erro
 // Rental plan management
 
 // createDefaultRentalPlans creates the default rental plans
-func createDefaultRentalPlans() []*models.RentalPlan {
-	return []*models.RentalPlan{
+func createDefaultRentalPlans() []*objects.RentalPlan {
+	return []*objects.RentalPlan{
 		{
 			ID:           "basic",
 			Name:         "Basic DVE",
 			Description:  "Basic DVE rental with limited resources",
 			PricePerHour: 10, // 10 NRN per hour
-			ResourceLimits: models.ResourceLimits{
+			ResourceLimits: objects.ResourceLimits{
 				MaxCPU:       1.0,
 				MaxMemory:    1024 * 1024 * 1024,     // 1GB
 				MaxDisk:      5 * 1024 * 1024 * 1024, // 5GB
@@ -102,7 +101,7 @@ func createDefaultRentalPlans() []*models.RentalPlan {
 			Name:         "Standard DVE",
 			Description:  "Standard DVE rental with moderate resources",
 			PricePerHour: 25, // 25 NRN per hour
-			ResourceLimits: models.ResourceLimits{
+			ResourceLimits: objects.ResourceLimits{
 				MaxCPU:       2.0,
 				MaxMemory:    4 * 1024 * 1024 * 1024,  // 4GB
 				MaxDisk:      20 * 1024 * 1024 * 1024, // 20GB
@@ -120,7 +119,7 @@ func createDefaultRentalPlans() []*models.RentalPlan {
 			Name:         "Premium DVE",
 			Description:  "Premium DVE rental with high-performance resources",
 			PricePerHour: 50, // 50 NRN per hour
-			ResourceLimits: models.ResourceLimits{
+			ResourceLimits: objects.ResourceLimits{
 				MaxCPU:       8.0,
 				MaxMemory:    16 * 1024 * 1024 * 1024,  // 16GB
 				MaxDisk:      100 * 1024 * 1024 * 1024, // 100GB

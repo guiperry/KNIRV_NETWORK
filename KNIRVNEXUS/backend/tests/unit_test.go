@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"backend-server/internal/models"
+	"backend-server/internal/objects"
 	"backend-server/internal/services/dvemanager"
 	"backend-server/internal/services/validation"
 )
@@ -23,12 +23,12 @@ func TestNodeFilter(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		node     *models.DVENode
+		node     *objects.DVENode
 		expected bool
 	}{
 		{
 			name: "Matching node",
-			node: &models.DVENode{
+			node: &objects.DVENode{
 				Status:          "online",
 				TEEType:         "sgx",
 				StakeAmount:     2000000,
@@ -39,7 +39,7 @@ func TestNodeFilter(t *testing.T) {
 		},
 		{
 			name: "Wrong status",
-			node: &models.DVENode{
+			node: &objects.DVENode{
 				Status:          "offline",
 				TEEType:         "sgx",
 				StakeAmount:     2000000,
@@ -50,7 +50,7 @@ func TestNodeFilter(t *testing.T) {
 		},
 		{
 			name: "Insufficient stake",
-			node: &models.DVENode{
+			node: &objects.DVENode{
 				Status:          "online",
 				TEEType:         "sgx",
 				StakeAmount:     500000,
@@ -61,7 +61,7 @@ func TestNodeFilter(t *testing.T) {
 		},
 		{
 			name: "Missing capability",
-			node: &models.DVENode{
+			node: &objects.DVENode{
 				Status:          "online",
 				TEEType:         "sgx",
 				StakeAmount:     2000000,
@@ -97,12 +97,12 @@ func TestTaskFilter(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		task     *models.ValidationTask
+		task     *objects.ValidationTask
 		expected bool
 	}{
 		{
 			name: "Matching task",
-			task: &models.ValidationTask{
+			task: &objects.ValidationTask{
 				Status:      "pending",
 				Type:        "skillnode",
 				Priority:    5,
@@ -113,7 +113,7 @@ func TestTaskFilter(t *testing.T) {
 		},
 		{
 			name: "Wrong status",
-			task: &models.ValidationTask{
+			task: &objects.ValidationTask{
 				Status:      "completed",
 				Type:        "skillnode",
 				Priority:    5,
@@ -124,7 +124,7 @@ func TestTaskFilter(t *testing.T) {
 		},
 		{
 			name: "Wrong priority",
-			task: &models.ValidationTask{
+			task: &objects.ValidationTask{
 				Status:      "pending",
 				Type:        "skillnode",
 				Priority:    3,
@@ -135,7 +135,7 @@ func TestTaskFilter(t *testing.T) {
 		},
 		{
 			name: "Created too early",
-			task: &models.ValidationTask{
+			task: &objects.ValidationTask{
 				Status:      "pending",
 				Type:        "skillnode",
 				Priority:    5,
@@ -157,12 +157,12 @@ func TestTaskFilter(t *testing.T) {
 // TestUserPermissions tests user permission functionality
 func TestUserPermissions(t *testing.T) {
 	tests := []struct {
-		role        models.UserRole
-		permissions models.UserPermissions
+		role        objects.UserRole
+		permissions objects.UserPermissions
 	}{
 		{
-			role: models.RoleAdmin,
-			permissions: models.UserPermissions{
+			role: objects.RoleAdmin,
+			permissions: objects.UserPermissions{
 				CanManageNodes:      true,
 				CanCreateTasks:      true,
 				CanViewSystemHealth: true,
@@ -176,8 +176,8 @@ func TestUserPermissions(t *testing.T) {
 			},
 		},
 		{
-			role: models.RoleViewer,
-			permissions: models.UserPermissions{
+			role: objects.RoleViewer,
+			permissions: objects.UserPermissions{
 				CanManageNodes:      false,
 				CanCreateTasks:      false,
 				CanViewSystemHealth: true,
@@ -194,7 +194,7 @@ func TestUserPermissions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(string(tt.role), func(t *testing.T) {
-			permissions := models.GetPermissionsForRole(tt.role)
+			permissions := objects.GetPermissionsForRole(tt.role)
 			assert.Equal(t, tt.permissions, permissions)
 		})
 	}
@@ -202,7 +202,7 @@ func TestUserPermissions(t *testing.T) {
 
 // TestValidationResult tests validation result creation
 func TestValidationResult(t *testing.T) {
-	testResults := []models.TestResult{
+	testResults := []objects.TestResult{
 		{
 			TestCaseID:    "test-1",
 			Status:        "passed",
@@ -217,7 +217,7 @@ func TestValidationResult(t *testing.T) {
 		},
 	}
 
-	result := &models.ValidationResult{
+	result := &objects.ValidationResult{
 		ID:              "result-123",
 		TaskID:          "task-456",
 		ValidatorNodeID: "node-789",
@@ -238,7 +238,7 @@ func TestValidationResult(t *testing.T) {
 
 // TestSystemHealth tests system health calculation
 func TestSystemHealth(t *testing.T) {
-	health := &models.SystemHealth{
+	health := &objects.SystemHealth{
 		ID:                  "health-123",
 		OverallStatus:       "healthy",
 		ActiveNodes:         8,
@@ -264,7 +264,7 @@ func TestSystemHealth(t *testing.T) {
 
 // TestTEEAttestation tests TEE attestation functionality
 func TestTEEAttestation(t *testing.T) {
-	attestation := &models.TEEAttestation{
+	attestation := &objects.TEEAttestation{
 		ID:           "attestation-123",
 		NodeID:       "node-456",
 		TEEType:      "sgx",
@@ -286,7 +286,7 @@ func TestTEEAttestation(t *testing.T) {
 
 // TestP2PMessage tests P2P message structure
 func TestP2PMessage(t *testing.T) {
-	message := &models.P2PMessage{
+	message := &objects.P2PMessage{
 		ID:    "msg-123",
 		Type:  "validation_request",
 		From:  "peer-456",
@@ -308,7 +308,7 @@ func TestP2PMessage(t *testing.T) {
 
 // TestReportGeneration tests report generation functionality
 func TestReportGeneration(t *testing.T) {
-	report := &models.ReportRecord{
+	report := &objects.ReportRecord{
 		ID:          "report-123",
 		Title:       "System Health Report",
 		Type:        "system_health",
@@ -331,7 +331,7 @@ func TestReportGeneration(t *testing.T) {
 
 // TestNetworkTopology tests network topology functionality
 func TestNetworkTopology(t *testing.T) {
-	peers := []models.PeerInfo{
+	peers := []objects.PeerInfo{
 		{
 			ID:       "peer-1",
 			Address:  "/ip4/192.168.1.100/tcp/4001",
@@ -350,12 +350,12 @@ func TestNetworkTopology(t *testing.T) {
 		},
 	}
 
-	topology := &models.NetworkTopology{
+	topology := &objects.NetworkTopology{
 		ID:             "topology-123",
 		TotalPeers:     2,
 		ConnectedPeers: 2,
 		Peers:          peers,
-		Connections:    []models.ConnectionInfo{},
+		Connections:    []objects.ConnectionInfo{},
 		Timestamp:      time.Now(),
 	}
 
@@ -368,7 +368,7 @@ func TestNetworkTopology(t *testing.T) {
 
 // TestAlert tests alert functionality
 func TestAlert(t *testing.T) {
-	alert := &models.Alert{
+	alert := &objects.Alert{
 		ID:       "alert-123",
 		Type:     "error",
 		Severity: "critical",

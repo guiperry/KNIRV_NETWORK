@@ -1,13 +1,12 @@
 package modelmanagement
 
 import (
+	"backend-server/internal/objects"
 	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
 	"time"
-
-	"backend-server/internal/models"
 
 	"github.com/tidwall/buntdb"
 )
@@ -19,20 +18,20 @@ type ModelManagementService struct {
 	running bool
 
 	// Model storage and tracking
-	models      map[string]*models.Model
-	deployments map[string]*models.ModelDeployment
-	templates   map[string]*models.ModelTemplate
+	objects     map[string]*objects.Model
+	deployments map[string]*objects.ModelDeployment
+	templates   map[string]*objects.ModelTemplate
 
 	// Runtime monitoring
-	runtimeInstances map[string]*models.ModelRuntimeInstance
-	metrics          map[string][]*models.ModelMetrics
-	logs             map[string][]*models.ModelLog
-	events           []*models.ModelEvent
+	runtimeInstances map[string]*objects.ModelRuntimeInstance
+	metrics          map[string][]*objects.ModelMetrics
+	logs             map[string][]*objects.ModelLog
+	events           []*objects.ModelEvent
 
 	// Configuration
 	maxModels             int
 	maxInstancesPerModel  int
-	defaultResourceLimits *models.ModelResourceLimits
+	defaultResourceLimits *objects.ModelResourceLimits
 	monitoringInterval    time.Duration
 
 	// Lifecycle management
@@ -50,17 +49,17 @@ type ModelInfo struct {
 func NewModelManagementService(db *buntdb.DB) *ModelManagementService {
 	service := &ModelManagementService{
 		db:                   db,
-		models:               make(map[string]*models.Model),
-		deployments:          make(map[string]*models.ModelDeployment),
-		templates:            make(map[string]*models.ModelTemplate),
-		runtimeInstances:     make(map[string]*models.ModelRuntimeInstance),
-		metrics:              make(map[string][]*models.ModelMetrics),
-		logs:                 make(map[string][]*models.ModelLog),
-		events:               make([]*models.ModelEvent, 0),
+		objects:              make(map[string]*objects.Model),
+		deployments:          make(map[string]*objects.ModelDeployment),
+		templates:            make(map[string]*objects.ModelTemplate),
+		runtimeInstances:     make(map[string]*objects.ModelRuntimeInstance),
+		metrics:              make(map[string][]*objects.ModelMetrics),
+		logs:                 make(map[string][]*objects.ModelLog),
+		events:               make([]*objects.ModelEvent, 0),
 		maxModels:            100,
 		maxInstancesPerModel: 10,
 		monitoringInterval:   30 * time.Second,
-		defaultResourceLimits: &models.ModelResourceLimits{
+		defaultResourceLimits: &objects.ModelResourceLimits{
 			MaxMemoryMB:      512,
 			MaxCPUPercent:    80.0,
 			MaxExecutionTime: 300,
@@ -131,13 +130,13 @@ func (ams *ModelManagementService) IsRunning() bool {
 	return ams.running
 }
 
-// GetAllModels returns all models with optional filtering
-func (ams *ModelManagementService) GetAllModels(filter *models.ModelFilter) ([]*models.Model, error) {
+// GetAllModels returns all objects with optional filtering
+func (ams *ModelManagementService) GetAllModels(filter *objects.ModelFilter) ([]*objects.Model, error) {
 	ams.mu.RLock()
 	defer ams.mu.RUnlock()
 
-	var result []*models.Model
-	for _, model := range ams.models {
+	var result []*objects.Model
+	for _, model := range ams.objects {
 		if ams.matchesFilter(model, filter) {
 			result = append(result, model)
 		}
@@ -148,7 +147,7 @@ func (ams *ModelManagementService) GetAllModels(filter *models.ModelFilter) ([]*
 		start := filter.Offset
 		end := start + filter.Limit
 		if start >= len(result) {
-			return []*models.Model{}, nil
+			return []*objects.Model{}, nil
 		}
 		if end > len(result) {
 			end = len(result)
@@ -160,11 +159,11 @@ func (ams *ModelManagementService) GetAllModels(filter *models.ModelFilter) ([]*
 }
 
 // GetModel returns a specific model by ID
-func (ams *ModelManagementService) GetModel(modelID string) (*models.Model, error) {
+func (ams *ModelManagementService) GetModel(modelID string) (*objects.Model, error) {
 	ams.mu.RLock()
 	defer ams.mu.RUnlock()
 
-	model, exists := ams.models[modelID]
+	model, exists := ams.objects[modelID]
 	if !exists {
 		return nil, fmt.Errorf("model not found: %s", modelID)
 	}
@@ -173,7 +172,7 @@ func (ams *ModelManagementService) GetModel(modelID string) (*models.Model, erro
 }
 
 // CreateModel creates a new model
-func (ams *ModelManagementService) CreateModel(model *models.Model) error {
+func (ams *ModelManagementService) CreateModel(model *objects.Model) error {
 	ams.mu.Lock()
 	defer ams.mu.Unlock()
 
@@ -181,12 +180,12 @@ func (ams *ModelManagementService) CreateModel(model *models.Model) error {
 		return fmt.Errorf("invalid model data")
 	}
 
-	if _, exists := ams.models[model.ID]; exists {
+	if _, exists := ams.objects[model.ID]; exists {
 		return fmt.Errorf("model already exists: %s", model.ID)
 	}
 
-	if len(ams.models) >= ams.maxModels {
-		return fmt.Errorf("maximum number of models reached: %d", ams.maxModels)
+	if len(ams.objects) >= ams.maxModels {
+		return fmt.Errorf("maximum number of objects reached: %d", ams.maxModels)
 	}
 
 	// Set default values
@@ -198,13 +197,13 @@ func (ams *ModelManagementService) CreateModel(model *models.Model) error {
 		model.ResourceLimits = ams.defaultResourceLimits
 	}
 
-	ams.models[model.ID] = model
+	ams.objects[model.ID] = model
 
 	// Store in database
 	ams.storeModel(model)
 
 	// Record event
-	ams.recordEvent(&models.ModelEvent{
+	ams.recordEvent(&objects.ModelEvent{
 		ID:          fmt.Sprintf("event_%d", time.Now().UnixNano()),
 		ModelID:     model.ID,
 		Type:        "uploaded",
@@ -218,11 +217,11 @@ func (ams *ModelManagementService) CreateModel(model *models.Model) error {
 }
 
 // UpdateModel updates an existing model
-func (ams *ModelManagementService) UpdateModel(modelID string, updates *models.Model) error {
+func (ams *ModelManagementService) UpdateModel(modelID string, updates *objects.Model) error {
 	ams.mu.Lock()
 	defer ams.mu.Unlock()
 
-	model, exists := ams.models[modelID]
+	model, exists := ams.objects[modelID]
 	if !exists {
 		return fmt.Errorf("model not found: %s", modelID)
 	}
@@ -253,7 +252,7 @@ func (ams *ModelManagementService) UpdateModel(modelID string, updates *models.M
 	ams.storeModel(model)
 
 	// Record event
-	ams.recordEvent(&models.ModelEvent{
+	ams.recordEvent(&objects.ModelEvent{
 		ID:          fmt.Sprintf("event_%d", time.Now().UnixNano()),
 		ModelID:     model.ID,
 		Type:        "updated",
@@ -270,7 +269,7 @@ func (ams *ModelManagementService) DeleteModel(modelID string) error {
 	ams.mu.Lock()
 	defer ams.mu.Unlock()
 
-	model, exists := ams.models[modelID]
+	model, exists := ams.objects[modelID]
 	if !exists {
 		return fmt.Errorf("model not found: %s", modelID)
 	}
@@ -283,7 +282,7 @@ func (ams *ModelManagementService) DeleteModel(modelID string) error {
 	}
 
 	// Remove from memory
-	delete(ams.models, modelID)
+	delete(ams.objects, modelID)
 	delete(ams.runtimeInstances, modelID)
 	delete(ams.metrics, modelID)
 	delete(ams.logs, modelID)
@@ -295,7 +294,7 @@ func (ams *ModelManagementService) DeleteModel(modelID string) error {
 	})
 
 	// Record event
-	ams.recordEvent(&models.ModelEvent{
+	ams.recordEvent(&objects.ModelEvent{
 		ID:          fmt.Sprintf("event_%d", time.Now().UnixNano()),
 		ModelID:     model.ID,
 		Type:        "deleted",
@@ -307,12 +306,12 @@ func (ams *ModelManagementService) DeleteModel(modelID string) error {
 	return nil
 }
 
-// ExecuteModelAction executes an action on an model
-func (ams *ModelManagementService) ExecuteModelAction(modelID string, action *models.ModelAction) error {
+// ExecuteModelAction executes an action on a model
+func (ams *ModelManagementService) ExecuteModelAction(modelID string, action *objects.ModelAction) error {
 	ams.mu.Lock()
 	defer ams.mu.Unlock()
 
-	_, exists := ams.models[modelID]
+	_, exists := ams.objects[modelID]
 	if !exists {
 		return fmt.Errorf("model not found: %s", modelID)
 	}
@@ -326,7 +325,7 @@ func (ams *ModelManagementService) ExecuteModelAction(modelID string, action *mo
 		return ams.stopModelInternal(modelID)
 	case "restart":
 		if err := ams.stopModelInternal(modelID); err != nil {
-			return err
+			return fmt.Errorf("failed to stop model for restart: %w", err)
 		}
 		return ams.startModelInternal(modelID, action.Parameters)
 	case "scale":
@@ -336,16 +335,16 @@ func (ams *ModelManagementService) ExecuteModelAction(modelID string, action *mo
 	}
 }
 
-// GetModelSummary returns a summary of all models
-func (ams *ModelManagementService) GetModelSummary() *models.ModelSummary {
+// GetModelSummary returns a summary of all objects
+func (ams *ModelManagementService) GetModelSummary() *objects.ModelSummary {
 	ams.mu.RLock()
 	defer ams.mu.RUnlock()
 
-	summary := &models.ModelSummary{
-		TotalModels: len(ams.models),
+	summary := &objects.ModelSummary{
+		TotalModels: len(ams.objects),
 	}
 
-	for _, model := range ams.models {
+	for _, model := range ams.objects {
 		switch model.Status {
 		case "running":
 			summary.RunningModels++
@@ -366,7 +365,7 @@ func (ams *ModelManagementService) GetModelSummary() *models.ModelSummary {
 // Private methods for internal operations
 func (ams *ModelManagementService) initializeDatabase() {
 	ams.db.Update(func(tx *buntdb.Tx) error {
-		tx.CreateIndex("models", "model:*", buntdb.IndexString)
+		tx.CreateIndex("objects", "model:*", buntdb.IndexString)
 		tx.CreateIndex("deployments", "deployment:*", buntdb.IndexString)
 		tx.CreateIndex("templates", "template:*", buntdb.IndexString)
 		tx.CreateIndex("events", "event:*", buntdb.IndexString)
@@ -375,12 +374,12 @@ func (ams *ModelManagementService) initializeDatabase() {
 }
 
 func (ams *ModelManagementService) loadModelData() {
-	// Load models from database
+	// Load objects from database
 	ams.db.View(func(tx *buntdb.Tx) error {
-		tx.Ascend("models", func(key, value string) bool {
-			var model models.Model
+		tx.Ascend("objects", func(key, value string) bool {
+			var model objects.Model
 			if json.Unmarshal([]byte(value), &model) == nil {
-				ams.models[model.ID] = &model
+				ams.objects[model.ID] = &model
 			}
 			return true
 		})
@@ -390,7 +389,7 @@ func (ams *ModelManagementService) loadModelData() {
 	// Load deployments from database
 	ams.db.View(func(tx *buntdb.Tx) error {
 		tx.Ascend("deployments", func(key, value string) bool {
-			var deployment models.ModelDeployment
+			var deployment objects.ModelDeployment
 			if json.Unmarshal([]byte(value), &deployment) == nil {
 				ams.deployments[deployment.ID] = &deployment
 			}
@@ -402,7 +401,7 @@ func (ams *ModelManagementService) loadModelData() {
 	// Load templates from database
 	ams.db.View(func(tx *buntdb.Tx) error {
 		tx.Ascend("templates", func(key, value string) bool {
-			var template models.ModelTemplate
+			var template objects.ModelTemplate
 			if json.Unmarshal([]byte(value), &template) == nil {
 				ams.templates[template.ID] = &template
 			}
@@ -412,7 +411,7 @@ func (ams *ModelManagementService) loadModelData() {
 	})
 }
 
-func (ams *ModelManagementService) storeModel(model *models.Model) {
+func (ams *ModelManagementService) storeModel(model *objects.Model) {
 	if data, err := json.Marshal(model); err == nil {
 		ams.db.Update(func(tx *buntdb.Tx) error {
 			tx.Set("model:"+model.ID, string(data), nil)
@@ -421,7 +420,7 @@ func (ams *ModelManagementService) storeModel(model *models.Model) {
 	}
 }
 
-func (ams *ModelManagementService) recordEvent(event *models.ModelEvent) {
+func (ams *ModelManagementService) recordEvent(event *objects.ModelEvent) {
 	ams.events = append(ams.events, event)
 
 	// Keep only last 1000 events
@@ -438,7 +437,7 @@ func (ams *ModelManagementService) recordEvent(event *models.ModelEvent) {
 	}
 }
 
-func (ams *ModelManagementService) matchesFilter(model *models.Model, filter *models.ModelFilter) bool {
+func (ams *ModelManagementService) matchesFilter(model *objects.Model, filter *objects.ModelFilter) bool {
 	if filter == nil {
 		return true
 	}
@@ -489,36 +488,68 @@ func (ams *ModelManagementService) matchesFilter(model *models.Model, filter *mo
 }
 
 func (ams *ModelManagementService) deployModelInternal(modelID string, parameters map[string]interface{}) error {
-	model := ams.models[modelID]
+	model := ams.objects[modelID]
 	if !model.CanDeploy() {
 		return fmt.Errorf("model cannot be deployed in current state: %s", model.Status)
 	}
 
+	// Extract and apply deployment parameters
+	replicas, _ := parameters["replicas"].(float64)
+	if replicas == 0 {
+		replicas = 1 // Default to 1 replica
+	}
+
+	resourceLimits := &objects.ModelResourceLimits{}
+	if cpuLimit, ok := parameters["cpu_limit"].(float64); ok {
+		resourceLimits.MaxCPUPercent = cpuLimit
+	}
+	if memoryLimit, ok := parameters["memory_limit"].(float64); ok {
+		resourceLimits.MaxMemoryMB = int(memoryLimit)
+	}
+	if executionTime, ok := parameters["execution_time"].(float64); ok {
+		resourceLimits.MaxExecutionTime = int(executionTime)
+	}
+
+	// Update model status with deployment configuration
 	model.Status = "deployed"
 	model.DeployedAt = &time.Time{}
 	*model.DeployedAt = time.Now()
 
+	// Create deployment with parameters
+	deployment := &objects.ModelDeployment{
+		ModelID:        modelID,
+		Replicas:       int(replicas),
+		ResourceLimits: resourceLimits,
+		CreatedAt:      time.Now(),
+	}
+
+	// Store deployment
+	ams.deployments[modelID] = deployment
 	ams.storeModel(model)
 
-	ams.recordEvent(&models.ModelEvent{
+	// Record deployment event with parameters
+	ams.recordEvent(&objects.ModelEvent{
 		ID:          fmt.Sprintf("event_%d", time.Now().UnixNano()),
 		ModelID:     model.ID,
 		Type:        "deployed",
-		Description: fmt.Sprintf("Model %s deployed", model.Name),
+		Description: fmt.Sprintf("Model %s deployed with %d replicas (CPU: %.1f%%, Memory: %dMB)",
+			model.Name, int(replicas), resourceLimits.MaxCPUPercent, resourceLimits.MaxMemoryMB),
 		Timestamp:   time.Now(),
+		Metadata:    parameters,
 	})
 
+	log.Printf("Model %s deployed successfully with parameters: %v", modelID, parameters)
 	return nil
 }
 
 func (ams *ModelManagementService) startModelInternal(modelID string, parameters map[string]interface{}) error {
-	model := ams.models[modelID]
+	model := ams.objects[modelID]
 	if !model.CanStart() {
 		return fmt.Errorf("model cannot be started in current state: %s", model.Status)
 	}
 
 	// Create runtime instance
-	instance := &models.ModelRuntimeInstance{
+	instance := &objects.ModelRuntimeInstance{
 		InstanceID:    fmt.Sprintf("instance_%s_%d", modelID, time.Now().UnixNano()),
 		StartedAt:     time.Now(),
 		Status:        "running",
@@ -526,7 +557,7 @@ func (ams *ModelManagementService) startModelInternal(modelID string, parameters
 		Environment:   make(map[string]string),
 		HealthStatus:  "healthy",
 		RestartCount:  0,
-		ResourceUsage: &models.ModelResourceUsage{
+		ResourceUsage: &objects.ModelResourceUsage{
 			LastUpdated: time.Now(),
 		},
 	}
@@ -539,7 +570,7 @@ func (ams *ModelManagementService) startModelInternal(modelID string, parameters
 	ams.runtimeInstances[modelID] = instance
 	ams.storeModel(model)
 
-	ams.recordEvent(&models.ModelEvent{
+	ams.recordEvent(&objects.ModelEvent{
 		ID:          fmt.Sprintf("event_%d", time.Now().UnixNano()),
 		ModelID:     model.ID,
 		InstanceID:  instance.InstanceID,
@@ -552,7 +583,7 @@ func (ams *ModelManagementService) startModelInternal(modelID string, parameters
 }
 
 func (ams *ModelManagementService) stopModelInternal(modelID string) error {
-	model := ams.models[modelID]
+	model := ams.objects[modelID]
 	if !model.CanStop() {
 		return fmt.Errorf("model cannot be stopped in current state: %s", model.Status)
 	}
@@ -567,7 +598,7 @@ func (ams *ModelManagementService) stopModelInternal(modelID string) error {
 
 	ams.storeModel(model)
 
-	ams.recordEvent(&models.ModelEvent{
+	ams.recordEvent(&objects.ModelEvent{
 		ID:          fmt.Sprintf("event_%d", time.Now().UnixNano()),
 		ModelID:     model.ID,
 		Type:        "stopped",
@@ -579,23 +610,55 @@ func (ams *ModelManagementService) stopModelInternal(modelID string) error {
 }
 
 func (ams *ModelManagementService) scaleModelInternal(modelID string, parameters map[string]interface{}) error {
-	// Placeholder for scaling logic
-	return fmt.Errorf("scaling not yet implemented")
+	// Extract scaling parameters
+	replicas, ok := parameters["replicas"].(float64)
+	if !ok {
+		return fmt.Errorf("invalid replicas parameter for model %s", modelID)
+	}
+
+	cpuLimit, _ := parameters["cpu_limit"].(float64)
+	memoryLimit, _ := parameters["memory_limit"].(float64)
+
+	// Implement actual scaling logic
+	log.Printf("Scaling model %s to %d replicas (CPU: %.1f%%, Memory: %dMB)",
+		modelID, int(replicas), cpuLimit, int(memoryLimit))
+
+	// Update deployment with scaling information
+	ams.mu.Lock()
+	defer ams.mu.Unlock()
+	
+	if deployment, exists := ams.deployments[modelID]; exists {
+		deployment.Replicas = int(replicas)
+		if deployment.ResourceLimits == nil {
+			deployment.ResourceLimits = &objects.ModelResourceLimits{}
+		}
+		deployment.ResourceLimits.MaxCPUPercent = cpuLimit
+		deployment.ResourceLimits.MaxMemoryMB = int(memoryLimit)
+	} else {
+		// Create new deployment if it doesn't exist
+		ams.deployments[modelID] = &objects.ModelDeployment{
+			ModelID: modelID,
+			Replicas: int(replicas),
+			ResourceLimits: &objects.ModelResourceLimits{
+				MaxCPUPercent: cpuLimit,
+				MaxMemoryMB: int(memoryLimit),
+			},
+		}
+	}
+
+	return nil
 }
 
 func (ams *ModelManagementService) monitoringLoop() {
 	ticker := time.NewTicker(ams.monitoringInterval)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			if !ams.running {
-				return
-			}
-
-			ams.updateModelStatuses()
+	for range ticker.C {
+		if !ams.running {
+			return
 		}
+
+		ams.updateModelStatuses()
 	}
 }
 
@@ -603,15 +666,12 @@ func (ams *ModelManagementService) metricsCollectionLoop() {
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			if !ams.running {
-				return
-			}
-
-			ams.collectModelMetrics()
+	for range ticker.C {
+		if !ams.running {
+			return
 		}
+
+		ams.collectModelMetrics()
 	}
 }
 
@@ -619,15 +679,12 @@ func (ams *ModelManagementService) healthCheckLoop() {
 	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			if !ams.running {
-				return
-			}
-
-			ams.performHealthChecks()
+	for range ticker.C {
+		if !ams.running {
+			return
 		}
+
+		ams.performHealthChecks()
 	}
 }
 
@@ -635,7 +692,7 @@ func (ams *ModelManagementService) updateModelStatuses() {
 	ams.mu.Lock()
 	defer ams.mu.Unlock()
 
-	for modelID, model := range ams.models {
+	for modelID, model := range ams.objects {
 		if instance, exists := ams.runtimeInstances[modelID]; exists {
 			// Update instance health status
 			instance.LastHealthCheck = &time.Time{}
@@ -661,7 +718,7 @@ func (ams *ModelManagementService) collectModelMetrics() {
 
 	for modelID, instance := range ams.runtimeInstances {
 		// Simulate metrics collection
-		metrics := &models.ModelMetrics{
+		metrics := &objects.ModelMetrics{
 			ModelID:           modelID,
 			InstanceID:        instance.InstanceID,
 			Timestamp:         time.Now(),
@@ -669,7 +726,7 @@ func (ams *ModelManagementService) collectModelMetrics() {
 			AverageLatency:    50.0 + float64(time.Now().Unix()%100),
 			ErrorRate:         0.1 + float64(time.Now().Unix()%5)/100.0,
 			Throughput:        1.5 + float64(time.Now().Unix()%10)/10.0,
-			ResourceUsage: &models.ModelResourceUsage{
+			ResourceUsage: &objects.ModelResourceUsage{
 				MemoryUsageMB:   100.0 + float64(time.Now().Unix()%200),
 				CPUUsagePercent: 20.0 + float64(time.Now().Unix()%60),
 				DiskUsageMB:     50.0 + float64(time.Now().Unix()%100),
@@ -682,7 +739,7 @@ func (ams *ModelManagementService) collectModelMetrics() {
 
 		// Store metrics
 		if ams.metrics[modelID] == nil {
-			ams.metrics[modelID] = make([]*models.ModelMetrics, 0)
+			ams.metrics[modelID] = make([]*objects.ModelMetrics, 0)
 		}
 		ams.metrics[modelID] = append(ams.metrics[modelID], metrics)
 
@@ -714,13 +771,13 @@ func (ams *ModelManagementService) performHealthChecks() {
 }
 
 // GetModelMetrics returns metrics for a specific model
-func (ams *ModelManagementService) GetModelMetrics(modelID string, limit int) ([]*models.ModelMetrics, error) {
+func (ams *ModelManagementService) GetModelMetrics(modelID string, limit int) ([]*objects.ModelMetrics, error) {
 	ams.mu.RLock()
 	defer ams.mu.RUnlock()
 
 	metrics, exists := ams.metrics[modelID]
 	if !exists {
-		return []*models.ModelMetrics{}, nil
+		return []*objects.ModelMetrics{}, nil
 	}
 
 	if limit > 0 && len(metrics) > limit {
@@ -731,13 +788,13 @@ func (ams *ModelManagementService) GetModelMetrics(modelID string, limit int) ([
 }
 
 // GetModelLogs returns logs for a specific model
-func (ams *ModelManagementService) GetModelLogs(modelID string, limit int) ([]*models.ModelLog, error) {
+func (ams *ModelManagementService) GetModelLogs(modelID string, limit int) ([]*objects.ModelLog, error) {
 	ams.mu.RLock()
 	defer ams.mu.RUnlock()
 
 	logs, exists := ams.logs[modelID]
 	if !exists {
-		return []*models.ModelLog{}, nil
+		return []*objects.ModelLog{}, nil
 	}
 
 	if limit > 0 && len(logs) > limit {
@@ -748,11 +805,11 @@ func (ams *ModelManagementService) GetModelLogs(modelID string, limit int) ([]*m
 }
 
 // GetModelEvents returns events for a specific model or all events
-func (ams *ModelManagementService) GetModelEvents(modelID string, limit int) ([]*models.ModelEvent, error) {
+func (ams *ModelManagementService) GetModelEvents(modelID string, limit int) ([]*objects.ModelEvent, error) {
 	ams.mu.RLock()
 	defer ams.mu.RUnlock()
 
-	var filteredEvents []*models.ModelEvent
+	var filteredEvents []*objects.ModelEvent
 	for _, event := range ams.events {
 		if modelID == "" || event.ModelID == modelID {
 			filteredEvents = append(filteredEvents, event)
@@ -767,11 +824,11 @@ func (ams *ModelManagementService) GetModelEvents(modelID string, limit int) ([]
 }
 
 // GetModelTemplates returns all model templates
-func (ams *ModelManagementService) GetModelTemplates() ([]*models.ModelTemplate, error) {
+func (ams *ModelManagementService) GetModelTemplates() ([]*objects.ModelTemplate, error) {
 	ams.mu.RLock()
 	defer ams.mu.RUnlock()
 
-	var templates []*models.ModelTemplate
+	var templates []*objects.ModelTemplate
 	for _, template := range ams.templates {
 		templates = append(templates, template)
 	}
@@ -780,7 +837,7 @@ func (ams *ModelManagementService) GetModelTemplates() ([]*models.ModelTemplate,
 }
 
 // CreateModelTemplate creates a new model template
-func (ams *ModelManagementService) CreateModelTemplate(template *models.ModelTemplate) error {
+func (ams *ModelManagementService) CreateModelTemplate(template *objects.ModelTemplate) error {
 	ams.mu.Lock()
 	defer ams.mu.Unlock()
 
@@ -811,11 +868,11 @@ func (ams *ModelManagementService) CreateModelTemplate(template *models.ModelTem
 }
 
 // GetModelDeployments returns all deployments for an model
-func (ams *ModelManagementService) GetModelDeployments(modelID string) ([]*models.ModelDeployment, error) {
+func (ams *ModelManagementService) GetModelDeployments(modelID string) ([]*objects.ModelDeployment, error) {
 	ams.mu.RLock()
 	defer ams.mu.RUnlock()
 
-	var deployments []*models.ModelDeployment
+	var deployments []*objects.ModelDeployment
 	for _, deployment := range ams.deployments {
 		if modelID == "" || deployment.ModelID == modelID {
 			deployments = append(deployments, deployment)
@@ -826,7 +883,7 @@ func (ams *ModelManagementService) GetModelDeployments(modelID string) ([]*model
 }
 
 // CreateModelDeployment creates a new deployment for an model
-func (ams *ModelManagementService) CreateModelDeployment(deployment *models.ModelDeployment) error {
+func (ams *ModelManagementService) CreateModelDeployment(deployment *objects.ModelDeployment) error {
 	ams.mu.Lock()
 	defer ams.mu.Unlock()
 
@@ -839,14 +896,14 @@ func (ams *ModelManagementService) CreateModelDeployment(deployment *models.Mode
 	}
 
 	// Verify model exists
-	if _, exists := ams.models[deployment.ModelID]; !exists {
+	if _, exists := ams.objects[deployment.ModelID]; !exists {
 		return fmt.Errorf("model not found: %s", deployment.ModelID)
 	}
 
 	deployment.CreatedAt = time.Now()
 	deployment.UpdatedAt = time.Now()
 	deployment.Status = "pending"
-	deployment.Instances = make([]*models.ModelRuntimeInstance, 0)
+	deployment.Instances = make([]*objects.ModelRuntimeInstance, 0)
 
 	ams.deployments[deployment.ID] = deployment
 

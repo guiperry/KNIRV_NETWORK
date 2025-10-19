@@ -1,15 +1,15 @@
 package validation
 
 import (
+	"backend-server/internal/objects"
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"time"
-
-	"backend-server/internal/models"
 )
 
-// BaseLLMValidator validates base LLM models
+// BaseLLMValidator validates base LLM objects
 type BaseLLMValidator struct {
 	inferenceClient InferenceClient
 	orchestrator    *ValidationOrchestrator
@@ -32,11 +32,11 @@ func NewBaseLLMValidator(
 // ValidateBaseLLM performs comprehensive base LLM validation
 func (blv *BaseLLMValidator) ValidateBaseLLM(
 	ctx context.Context,
-	task *models.ValidationTask,
-) (*models.ValidationResult, error) {
+	task *objects.ValidationTask,
+) (*objects.ValidationResult, error) {
 	startTime := time.Now()
 
-	result := &models.ValidationResult{
+	result := &objects.ValidationResult{
 		ID:              fmt.Sprintf("result_%s", task.ID),
 		TaskID:          task.ID,
 		ValidatorNodeID: "local-node", // TODO: Get actual node ID
@@ -99,15 +99,32 @@ func (blv *BaseLLMValidator) ValidateBaseLLM(
 }
 
 // validatePerformance evaluates LLM performance metrics
-func (blv *BaseLLMValidator) validatePerformance(ctx context.Context, task *models.ValidationTask) (float64, error) {
+func (blv *BaseLLMValidator) validatePerformance(ctx context.Context, task *objects.ValidationTask) (float64, error) {
+	// Check if context is cancelled
+	select {
+	case <-ctx.Done():
+		return 0.0, ctx.Err()
+	default:
+		// Continue with performance validation
+	}
+
 	totalScore := 0.0
 	testCount := 0
 
 	for _, testCase := range task.TestCases {
+		// Check context cancellation before each test case
+		select {
+		case <-ctx.Done():
+			return 0.0, ctx.Err()
+		default:
+			// Continue with test case
+		}
+
 		// Generate response from model
 		inputStr := fmt.Sprintf("%v", testCase.Input)
 		response, err := blv.inferenceClient.GenerateText("deepseek-chat", inputStr, "")
 		if err != nil {
+			log.Printf("Performance validation failed for test case %s: %v", testCase.ID, err)
 			continue
 		}
 
@@ -143,7 +160,7 @@ Return only a number between 0.0 and 1.0.`, inputStr, response)
 }
 
 // validateSafety checks for safety violations
-func (blv *BaseLLMValidator) validateSafety(ctx context.Context, task *models.ValidationTask) (float64, error) {
+func (blv *BaseLLMValidator) validateSafety(ctx context.Context, task *objects.ValidationTask) (float64, error) {
 	totalScore := 0.0
 	testCount := 0
 
@@ -187,7 +204,7 @@ func (blv *BaseLLMValidator) validateSafety(ctx context.Context, task *models.Va
 }
 
 // validateFactuality implements Factuality Slice methodology
-func (blv *BaseLLMValidator) validateFactuality(ctx context.Context, task *models.ValidationTask) (float64, error) {
+func (blv *BaseLLMValidator) validateFactuality(ctx context.Context, task *objects.ValidationTask) (float64, error) {
 	// Extract evidence chunks from task parameters
 	evidenceChunks := []string{}
 	if evidence, ok := task.Parameters["evidence"].([]interface{}); ok {
@@ -240,7 +257,7 @@ func (blv *BaseLLMValidator) validateFactuality(ctx context.Context, task *model
 }
 
 // validateReasoning evaluates reasoning quality
-func (blv *BaseLLMValidator) validateReasoning(ctx context.Context, task *models.ValidationTask) (float64, error) {
+func (blv *BaseLLMValidator) validateReasoning(ctx context.Context, task *objects.ValidationTask) (float64, error) {
 	totalScore := 0.0
 	testCount := 0
 

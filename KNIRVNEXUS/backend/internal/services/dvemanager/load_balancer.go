@@ -1,17 +1,16 @@
 package dvemanager
 
 import (
+	"backend-server/internal/objects"
 	"fmt"
 	"math"
 	"math/rand"
 	"sort"
 	"time"
-
-	"backend-server/internal/models"
 )
 
 // SelectNode selects the optimal node for a given task
-func (lb *LoadBalancer) SelectNode(task *models.ValidationTask, availableNodes []*models.DVENode) (*models.DVENode, error) {
+func (lb *LoadBalancer) SelectNode(task *objects.ValidationTask, availableNodes []*objects.DVENode) (*objects.DVENode, error) {
 	lb.mu.RLock()
 	defer lb.mu.RUnlock()
 
@@ -43,8 +42,8 @@ func (lb *LoadBalancer) SelectNode(task *models.ValidationTask, availableNodes [
 }
 
 // filterEligibleNodes filters nodes based on task requirements
-func (lb *LoadBalancer) filterEligibleNodes(task *models.ValidationTask, nodes []*models.DVENode) []*models.DVENode {
-	var eligible []*models.DVENode
+func (lb *LoadBalancer) filterEligibleNodes(task *objects.ValidationTask, nodes []*objects.DVENode) []*objects.DVENode {
+	var eligible []*objects.DVENode
 
 	for _, node := range nodes {
 		if lb.isNodeEligible(task, node) {
@@ -56,7 +55,7 @@ func (lb *LoadBalancer) filterEligibleNodes(task *models.ValidationTask, nodes [
 }
 
 // isNodeEligible checks if a node meets task requirements
-func (lb *LoadBalancer) isNodeEligible(task *models.ValidationTask, node *models.DVENode) bool {
+func (lb *LoadBalancer) isNodeEligible(task *objects.ValidationTask, node *objects.DVENode) bool {
 	// Check node status
 	if node.Status != "online" {
 		return false
@@ -96,14 +95,14 @@ func (lb *LoadBalancer) isNodeEligible(task *models.ValidationTask, node *models
 }
 
 // selectRoundRobin selects nodes in round-robin fashion
-func (lb *LoadBalancer) selectRoundRobin(nodes []*models.DVENode) *models.DVENode {
+func (lb *LoadBalancer) selectRoundRobin(nodes []*objects.DVENode) *objects.DVENode {
 	// Simple round-robin based on current time
 	index := int(time.Now().Unix()) % len(nodes)
 	return nodes[index]
 }
 
 // selectByReputation selects the node with highest reputation
-func (lb *LoadBalancer) selectByReputation(nodes []*models.DVENode) *models.DVENode {
+func (lb *LoadBalancer) selectByReputation(nodes []*objects.DVENode) *objects.DVENode {
 	if len(nodes) == 0 {
 		return nil
 	}
@@ -121,14 +120,14 @@ func (lb *LoadBalancer) selectByReputation(nodes []*models.DVENode) *models.DVEN
 }
 
 // selectByResources selects the node with best resource availability
-func (lb *LoadBalancer) selectByResources(nodes []*models.DVENode) *models.DVENode {
+func (lb *LoadBalancer) selectByResources(nodes []*objects.DVENode) *objects.DVENode {
 	if len(nodes) == 0 {
 		return nil
 	}
 
 	// Calculate resource score for each node
 	type nodeScore struct {
-		node  *models.DVENode
+		node  *objects.DVENode
 		score float64
 	}
 
@@ -156,7 +155,7 @@ func (lb *LoadBalancer) selectByResources(nodes []*models.DVENode) *models.DVENo
 }
 
 // selectByGeography selects the node closest to the task origin
-func (lb *LoadBalancer) selectByGeography(task *models.ValidationTask, nodes []*models.DVENode) *models.DVENode {
+func (lb *LoadBalancer) selectByGeography(task *objects.ValidationTask, nodes []*objects.DVENode) *objects.DVENode {
 	if len(nodes) == 0 {
 		return nil
 	}
@@ -182,8 +181,8 @@ func (lb *LoadBalancer) selectByGeography(task *models.ValidationTask, nodes []*
 }
 
 // findClosestNode finds the geographically closest node
-func (lb *LoadBalancer) findClosestNode(taskLat, taskLon float64, nodes []*models.DVENode) *models.DVENode {
-	var closestNode *models.DVENode
+func (lb *LoadBalancer) findClosestNode(taskLat, taskLon float64, nodes []*objects.DVENode) *objects.DVENode {
+	var closestNode *objects.DVENode
 	minDistance := math.MaxFloat64
 
 	for _, node := range nodes {
@@ -223,13 +222,13 @@ func (lb *LoadBalancer) calculateDistance(lat1, lon1, lat2, lon2 float64) float6
 }
 
 // selectHybrid uses a combination of factors to select the best node
-func (lb *LoadBalancer) selectHybrid(task *models.ValidationTask, nodes []*models.DVENode) *models.DVENode {
+func (lb *LoadBalancer) selectHybrid(task *objects.ValidationTask, nodes []*objects.DVENode) *objects.DVENode {
 	if len(nodes) == 0 {
 		return nil
 	}
 
 	type nodeScore struct {
-		node  *models.DVENode
+		node  *objects.DVENode
 		score float64
 	}
 
@@ -251,7 +250,7 @@ func (lb *LoadBalancer) selectHybrid(task *models.ValidationTask, nodes []*model
 }
 
 // calculateHybridScore calculates a hybrid score considering multiple factors
-func (lb *LoadBalancer) calculateHybridScore(task *models.ValidationTask, node *models.DVENode) float64 {
+func (lb *LoadBalancer) calculateHybridScore(task *objects.ValidationTask, node *objects.DVENode) float64 {
 	// Reputation score (0-1)
 	reputationScore := float64(node.ReputationScore) / 100.0
 
@@ -302,7 +301,7 @@ func (lb *LoadBalancer) GetAlgorithm() string {
 }
 
 // GetLoadBalancingStats returns statistics about load balancing
-func (lb *LoadBalancer) GetLoadBalancingStats(nodes []*models.DVENode) map[string]interface{} {
+func (lb *LoadBalancer) GetLoadBalancingStats(nodes []*objects.DVENode) map[string]interface{} {
 	lb.mu.RLock()
 	defer lb.mu.RUnlock()
 

@@ -1,4 +1,4 @@
-package modelserver
+package objectserver
 
 import (
 	"fmt"

@@ -1,12 +1,11 @@
 package dvemanager
 
 import (
+	"backend-server/internal/objects"
 	"encoding/json"
 	"net/http"
 
 	"github.com/gorilla/mux"
-
-	"backend-server/internal/models"
 )
 
 // DVE Node Handlers
@@ -101,7 +100,7 @@ func (dm *DVEManager) HandleUpdateNodeStatus(w http.ResponseWriter, r *http.Requ
 
 // HandleAllocateTask handles task allocation requests
 func (dm *DVEManager) HandleAllocateTask(w http.ResponseWriter, r *http.Request) {
-	var task models.ValidationTask
+	var task objects.ValidationTask
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
 		writeError(w, http.StatusBadRequest, "Invalid request body")
 		return

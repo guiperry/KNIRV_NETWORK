@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"backend-server/internal/models"
+	"backend-server/internal/objects"
 	"backend-server/internal/services/dverental"
 	"backend-server/internal/web/middleware"
 
@@ -59,7 +59,7 @@ func (h *DVERentalHandlers) GetRentalPlans(w http.ResponseWriter, r *http.Reques
 
 // CreateRental handles POST /api/dve-rental/rentals
 func (h *DVERentalHandlers) CreateRental(w http.ResponseWriter, r *http.Request) {
-	var req models.RentalRequest
+	var req objects.RentalRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response := DVERentalResponse{
 			Success:   false,

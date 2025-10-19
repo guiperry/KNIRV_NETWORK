@@ -9,64 +9,64 @@ import (
 
 // ModelRegistry manages model instances and their lifecycle
 type ModelRegistry struct {
-	models     map[string]*RegisteredModel
-	cache      *ModelCache
-	maxModels  int
-	
+	objects   map[string]*RegisteredModel
+	cache     *ModelCache
+	maxModels int
+
 	mu sync.RWMutex
 }
 
 // RegisteredModel represents a registered model in the registry
 type RegisteredModel struct {
-	Name            string                 `json:"name"`
-	Provider        string                 `json:"provider"`
-	Version         string                 `json:"version"`
-	Status          ModelStatus            `json:"status"`
-	RegisteredAt    time.Time              `json:"registered_at"`
-	LastUsed        time.Time              `json:"last_used"`
-	UsageCount      int64                  `json:"usage_count"`
-	
+	Name         string      `json:"name"`
+	Provider     string      `json:"provider"`
+	Version      string      `json:"version"`
+	Status       ModelStatus `json:"status"`
+	RegisteredAt time.Time   `json:"registered_at"`
+	LastUsed     time.Time   `json:"last_used"`
+	UsageCount   int64       `json:"usage_count"`
+
 	// Performance metrics
-	AvgLatency      time.Duration          `json:"avg_latency"`
-	ErrorRate       float64                `json:"error_rate"`
-	ThroughputRPS   float64                `json:"throughput_rps"`
-	
+	AvgLatency    time.Duration `json:"avg_latency"`
+	ErrorRate     float64       `json:"error_rate"`
+	ThroughputRPS float64       `json:"throughput_rps"`
+
 	// Resource usage
-	MemoryUsage     uint64                 `json:"memory_usage"`
-	CPUUsage        float64                `json:"cpu_usage"`
-	
+	MemoryUsage uint64  `json:"memory_usage"`
+	CPUUsage    float64 `json:"cpu_usage"`
+
 	// Configuration
-	Config          map[string]interface{} `json:"config"`
-	Capabilities    []string               `json:"capabilities"`
-	
+	Config       map[string]interface{} `json:"config"`
+	Capabilities []string               `json:"capabilities"`
+
 	// Health status
-	HealthScore     float64                `json:"health_score"`
-	LastHealthCheck time.Time              `json:"last_health_check"`
+	HealthScore     float64   `json:"health_score"`
+	LastHealthCheck time.Time `json:"last_health_check"`
 }
 
 // ModelStatus represents the status of a model
 type ModelStatus string
 
 const (
-	ModelStatusRegistered  ModelStatus = "registered"
-	ModelStatusLoading     ModelStatus = "loading"
-	ModelStatusReady       ModelStatus = "ready"
-	ModelStatusBusy        ModelStatus = "busy"
-	ModelStatusError       ModelStatus = "error"
-	ModelStatusUnloading   ModelStatus = "unloading"
-	ModelStatusUnloaded    ModelStatus = "unloaded"
+	ModelStatusRegistered ModelStatus = "registered"
+	ModelStatusLoading    ModelStatus = "loading"
+	ModelStatusReady      ModelStatus = "ready"
+	ModelStatusBusy       ModelStatus = "busy"
+	ModelStatusError      ModelStatus = "error"
+	ModelStatusUnloading  ModelStatus = "unloading"
+	ModelStatusUnloaded   ModelStatus = "unloaded"
 )
 
 // ModelCache manages model caching and eviction
 type ModelCache struct {
-	entries    map[string]*CacheEntry
-	maxSize    int
+	entries     map[string]*CacheEntry
+	maxSize     int
 	currentSize int
-	
+
 	// LRU tracking
 	head *CacheEntry
 	tail *CacheEntry
-	
+
 	mu sync.RWMutex
 }
 
@@ -77,7 +77,7 @@ type CacheEntry struct {
 	LastAccess  time.Time
 	AccessCount int64
 	Size        int // Memory size in MB
-	
+
 	// LRU pointers
 	prev *CacheEntry
 	next *CacheEntry
@@ -86,7 +86,7 @@ type CacheEntry struct {
 // NewModelRegistry creates a new model registry
 func NewModelRegistry(maxModels int) *ModelRegistry {
 	return &ModelRegistry{
-		models:    make(map[string]*RegisteredModel),
+		objects:   make(map[string]*RegisteredModel),
 		cache:     NewModelCache(maxModels),
 		maxModels: maxModels,
 	}
@@ -98,13 +98,13 @@ func NewModelCache(maxSize int) *ModelCache {
 		entries: make(map[string]*CacheEntry),
 		maxSize: maxSize,
 	}
-	
+
 	// Initialize LRU list
 	cache.head = &CacheEntry{}
 	cache.tail = &CacheEntry{}
 	cache.head.next = cache.tail
 	cache.tail.prev = cache.head
-	
+
 	return cache
 }
 
@@ -112,20 +112,20 @@ func NewModelCache(maxSize int) *ModelCache {
 func (mr *ModelRegistry) RegisterModel(name, provider, version string, config map[string]interface{}) error {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
-	
+
 	// Check if model already exists
-	if _, exists := mr.models[name]; exists {
+	if _, exists := mr.objects[name]; exists {
 		return fmt.Errorf("model %s is already registered", name)
 	}
-	
+
 	// Check model limit
-	if len(mr.models) >= mr.maxModels {
+	if len(mr.objects) >= mr.maxModels {
 		// Try to evict least used model
 		if err := mr.evictLeastUsedModel(); err != nil {
 			return fmt.Errorf("cannot register model: registry is full and eviction failed: %w", err)
 		}
 	}
-	
+
 	// Create registered model
 	model := &RegisteredModel{
 		Name:            name,
@@ -139,14 +139,14 @@ func (mr *ModelRegistry) RegisterModel(name, provider, version string, config ma
 		HealthScore:     1.0,
 		LastHealthCheck: time.Now(),
 	}
-	
+
 	// Determine capabilities based on provider
 	model.Capabilities = mr.determineCapabilities(provider)
-	
-	mr.models[name] = model
-	
+
+	mr.objects[name] = model
+
 	log.Printf("ModelRegistry: Registered model %s (provider: %s, version: %s)", name, provider, version)
-	
+
 	return nil
 }
 
@@ -154,23 +154,23 @@ func (mr *ModelRegistry) RegisterModel(name, provider, version string, config ma
 func (mr *ModelRegistry) UnregisterModel(name string) error {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
-	
-	model, exists := mr.models[name]
+
+	model, exists := mr.objects[name]
 	if !exists {
 		return fmt.Errorf("model %s not found", name)
 	}
-	
+
 	// Update status
 	model.Status = ModelStatusUnloading
-	
+
 	// Remove from cache
 	mr.cache.Remove(name)
-	
+
 	// Remove from registry
-	delete(mr.models, name)
-	
+	delete(mr.objects, name)
+
 	log.Printf("ModelRegistry: Unregistered model %s", name)
-	
+
 	return nil
 }
 
@@ -178,50 +178,50 @@ func (mr *ModelRegistry) UnregisterModel(name string) error {
 func (mr *ModelRegistry) GetModel(name string) (*RegisteredModel, error) {
 	mr.mu.RLock()
 	defer mr.mu.RUnlock()
-	
-	model, exists := mr.models[name]
+
+	model, exists := mr.objects[name]
 	if !exists {
 		return nil, fmt.Errorf("model %s not found", name)
 	}
-	
+
 	// Update last used time
 	model.LastUsed = time.Now()
 	model.UsageCount++
-	
+
 	// Update cache access
 	mr.cache.Access(name)
-	
+
 	// Return a copy
 	modelCopy := *model
 	return &modelCopy, nil
 }
 
-// ListModels returns all registered models
+// ListModels returns all registered objects
 func (mr *ModelRegistry) ListModels() []*RegisteredModel {
 	mr.mu.RLock()
 	defer mr.mu.RUnlock()
-	
-	models := make([]*RegisteredModel, 0, len(mr.models))
-	for _, model := range mr.models {
+
+	objects := make([]*RegisteredModel, 0, len(mr.objects))
+	for _, model := range mr.objects {
 		modelCopy := *model
-		models = append(models, &modelCopy)
+		objects = append(objects, &modelCopy)
 	}
-	
-	return models
+
+	return objects
 }
 
 // UpdateModelStatus updates the status of a model
 func (mr *ModelRegistry) UpdateModelStatus(name string, status ModelStatus) error {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
-	
-	model, exists := mr.models[name]
+
+	model, exists := mr.objects[name]
 	if !exists {
 		return fmt.Errorf("model %s not found", name)
 	}
-	
+
 	model.Status = status
-	
+
 	return nil
 }
 
@@ -229,29 +229,29 @@ func (mr *ModelRegistry) UpdateModelStatus(name string, status ModelStatus) erro
 func (mr *ModelRegistry) UpdateModelMetrics(name string, latency time.Duration, errorOccurred bool) error {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
-	
-	model, exists := mr.models[name]
+
+	model, exists := mr.objects[name]
 	if !exists {
 		return fmt.Errorf("model %s not found", name)
 	}
-	
+
 	// Update average latency (simple moving average)
 	if model.AvgLatency == 0 {
 		model.AvgLatency = latency
 	} else {
 		model.AvgLatency = (model.AvgLatency + latency) / 2
 	}
-	
+
 	// Update error rate
 	if errorOccurred {
 		model.ErrorRate = (model.ErrorRate*float64(model.UsageCount-1) + 1.0) / float64(model.UsageCount)
 	} else {
 		model.ErrorRate = (model.ErrorRate * float64(model.UsageCount-1)) / float64(model.UsageCount)
 	}
-	
+
 	// Update health score based on performance
 	mr.updateHealthScore(model)
-	
+
 	return nil
 }
 
@@ -259,15 +259,15 @@ func (mr *ModelRegistry) UpdateModelMetrics(name string, latency time.Duration, 
 func (mr *ModelRegistry) GetBestModel(capability string) (*RegisteredModel, error) {
 	mr.mu.RLock()
 	defer mr.mu.RUnlock()
-	
+
 	var bestModel *RegisteredModel
 	var bestScore float64
-	
-	for _, model := range mr.models {
+
+	for _, model := range mr.objects {
 		if model.Status != ModelStatusReady {
 			continue
 		}
-		
+
 		// Check if model has the required capability
 		hasCapability := false
 		for _, cap := range model.Capabilities {
@@ -276,24 +276,24 @@ func (mr *ModelRegistry) GetBestModel(capability string) (*RegisteredModel, erro
 				break
 			}
 		}
-		
+
 		if !hasCapability {
 			continue
 		}
-		
+
 		// Calculate performance score
 		score := mr.calculatePerformanceScore(model)
-		
+
 		if bestModel == nil || score > bestScore {
 			bestModel = model
 			bestScore = score
 		}
 	}
-	
+
 	if bestModel == nil {
 		return nil, fmt.Errorf("no suitable model found for capability %s", capability)
 	}
-	
+
 	// Return a copy
 	modelCopy := *bestModel
 	return &modelCopy, nil
@@ -303,8 +303,8 @@ func (mr *ModelRegistry) GetBestModel(capability string) (*RegisteredModel, erro
 func (mr *ModelRegistry) evictLeastUsedModel() error {
 	var lruModel *RegisteredModel
 	var lruTime time.Time
-	
-	for _, model := range mr.models {
+
+	for _, model := range mr.objects {
 		if model.Status == ModelStatusReady || model.Status == ModelStatusRegistered {
 			if lruModel == nil || model.LastUsed.Before(lruTime) {
 				lruModel = model
@@ -312,11 +312,11 @@ func (mr *ModelRegistry) evictLeastUsedModel() error {
 			}
 		}
 	}
-	
+
 	if lruModel == nil {
-		return fmt.Errorf("no models available for eviction")
+		return fmt.Errorf("no objects available for eviction")
 	}
-	
+
 	return mr.UnregisterModel(lruModel.Name)
 }
 
@@ -339,19 +339,19 @@ func (mr *ModelRegistry) updateHealthScore(model *RegisteredModel) {
 	// Calculate health score based on error rate and latency
 	errorPenalty := model.ErrorRate * 0.5
 	latencyPenalty := 0.0
-	
+
 	// Penalize high latency (>5 seconds)
 	if model.AvgLatency > 5*time.Second {
 		latencyPenalty = 0.3
 	} else if model.AvgLatency > 2*time.Second {
 		latencyPenalty = 0.1
 	}
-	
+
 	model.HealthScore = 1.0 - errorPenalty - latencyPenalty
 	if model.HealthScore < 0 {
 		model.HealthScore = 0
 	}
-	
+
 	model.LastHealthCheck = time.Now()
 }
 
@@ -359,21 +359,21 @@ func (mr *ModelRegistry) updateHealthScore(model *RegisteredModel) {
 func (mr *ModelRegistry) calculatePerformanceScore(model *RegisteredModel) float64 {
 	// Base score from health
 	score := model.HealthScore
-	
+
 	// Bonus for recent usage
 	timeSinceLastUse := time.Since(model.LastUsed)
 	if timeSinceLastUse < time.Hour {
 		score += 0.2
 	}
-	
+
 	// Bonus for low latency
 	if model.AvgLatency < time.Second {
 		score += 0.1
 	}
-	
+
 	// Penalty for high error rate
 	score -= model.ErrorRate * 0.3
-	
+
 	return score
 }
 
@@ -383,7 +383,7 @@ func (mr *ModelRegistry) calculatePerformanceScore(model *RegisteredModel) float
 func (mc *ModelCache) Add(modelName string, size int) {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
-	
+
 	// Check if already exists
 	if entry, exists := mc.entries[modelName]; exists {
 		mc.moveToHead(entry)
@@ -391,12 +391,12 @@ func (mc *ModelCache) Add(modelName string, size int) {
 		entry.AccessCount++
 		return
 	}
-	
+
 	// Evict if necessary
 	for mc.currentSize+size > mc.maxSize && len(mc.entries) > 0 {
 		mc.evictLRU()
 	}
-	
+
 	// Create new entry
 	entry := &CacheEntry{
 		ModelName:   modelName,
@@ -405,7 +405,7 @@ func (mc *ModelCache) Add(modelName string, size int) {
 		AccessCount: 1,
 		Size:        size,
 	}
-	
+
 	mc.entries[modelName] = entry
 	mc.addToHead(entry)
 	mc.currentSize += size
@@ -415,7 +415,7 @@ func (mc *ModelCache) Add(modelName string, size int) {
 func (mc *ModelCache) Access(modelName string) {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
-	
+
 	if entry, exists := mc.entries[modelName]; exists {
 		mc.moveToHead(entry)
 		entry.LastAccess = time.Now()
@@ -427,7 +427,7 @@ func (mc *ModelCache) Access(modelName string) {
 func (mc *ModelCache) Remove(modelName string) {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
-	
+
 	if entry, exists := mc.entries[modelName]; exists {
 		mc.removeEntry(entry)
 		delete(mc.entries, modelName)
