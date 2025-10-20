@@ -6,7 +6,7 @@ import { apiRequest } from '@/lib/api';
 // Mock the API module
 jest.mock('@/lib/api', () => ({
   apiRequest: jest.fn(),
-  API_BASE_URL: 'http://localhost:8080',
+  API_BASE_URL: 'http://localhost:8082',
 }));
 
 const mockApiRequest = apiRequest as jest.MockedFunction<typeof apiRequest>;
@@ -225,7 +225,7 @@ describe('useModelManagement Hook', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/model-management/models', { method: 'GET' });
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/objects', { method: 'GET' });
     expect(result.current.models).toEqual(mockModels);
     expect(result.current.error).toBeNull();
   });
@@ -256,7 +256,7 @@ describe('useModelManagement Hook', () => {
       await result.current.fetchModel('model-1');
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/model-management/models/model-1', { method: 'GET' });
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/objects/model-1', { method: 'GET' });
     expect(result.current.selectedModel).toEqual(mockModels[0]);
   });
 
@@ -287,7 +287,7 @@ describe('useModelManagement Hook', () => {
       createdModel = await result.current.createModel(modelData);
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/model-management/models', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/objects', {
       method: 'POST',
       body: JSON.stringify(modelData)
     });
@@ -329,7 +329,7 @@ describe('useModelManagement Hook', () => {
       deleted = await result.current.deleteModel('model-1');
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/model-management/models/model-1', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/objects/model-1', {
       method: 'DELETE'
     });
     expect(deleted).toBe(true);
@@ -353,7 +353,7 @@ describe('useModelManagement Hook', () => {
       executed = await result.current.executeModelAction('model-1', actionData);
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/model-management/models/model-1/actions', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/objects/model-1/actions', {
       method: 'POST',
       body: JSON.stringify(actionData)
     });
@@ -378,7 +378,7 @@ describe('useModelManagement Hook', () => {
       deployed = await result.current.deployModel('model-1', deploymentConfig);
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/model-management/models/model-1/actions', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/objects/model-1/actions', {
       method: 'POST',
       body: JSON.stringify({ action: 'deploy', parameters: deploymentConfig })
     });
@@ -397,7 +397,7 @@ describe('useModelManagement Hook', () => {
       started = await result.current.startModel('model-1');
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/model-management/models/model-1/actions', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/objects/model-1/actions', {
       method: 'POST',
       body: JSON.stringify({ action: 'start' })
     });
@@ -416,7 +416,7 @@ describe('useModelManagement Hook', () => {
       stopped = await result.current.stopModel('model-1');
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/model-management/models/model-1/actions', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/objects/model-1/actions', {
       method: 'POST',
       body: JSON.stringify({ action: 'stop' })
     });
@@ -435,7 +435,7 @@ describe('useModelManagement Hook', () => {
       restarted = await result.current.restartModel('model-1');
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/model-management/models/model-1/actions', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/objects/model-1/actions', {
       method: 'POST',
       body: JSON.stringify({ action: 'restart' })
     });
@@ -454,7 +454,7 @@ describe('useModelManagement Hook', () => {
       await result.current.fetchModelMetrics('model-1');
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/model-management/models/model-1/metrics?limit=100', { method: 'GET' });
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/objects/model-1/metrics?limit=100', { method: 'GET' });
     expect(result.current.modelMetrics).toEqual(mockMetrics);
   });
 
@@ -470,7 +470,7 @@ describe('useModelManagement Hook', () => {
       await result.current.fetchModelLogs('model-1');
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/model-management/models/model-1/logs?limit=100', { method: 'GET' });
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/objects/model-1/logs?limit=100', { method: 'GET' });
     expect(result.current.modelLogs).toEqual(mockLogs);
   });
 
@@ -486,7 +486,7 @@ describe('useModelManagement Hook', () => {
       await result.current.fetchModelEvents('model-1');
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/model-management/models/model-1/events?limit=100', { method: 'GET' });
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/objects/model-1/events?limit=100', { method: 'GET' });
     expect(result.current.modelEvents).toEqual(mockEvents);
   });
 
@@ -502,7 +502,7 @@ describe('useModelManagement Hook', () => {
       await result.current.fetchTemplates();
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/model-management/templates', { method: 'GET' });
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/templates', { method: 'GET' });
     expect(result.current.templates).toEqual(mockTemplates);
   });
 
@@ -527,7 +527,7 @@ describe('useModelManagement Hook', () => {
       created = await result.current.createTemplate(templateData);
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/model-management/templates', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/templates', {
       method: 'POST',
       body: JSON.stringify(templateData)
     });
@@ -546,7 +546,7 @@ describe('useModelManagement Hook', () => {
       await result.current.fetchSummary();
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/model-management/summary', { method: 'GET' });
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/summary', { method: 'GET' });
     expect(result.current.summary).toEqual(mockSummary);
   });
 
@@ -561,8 +561,8 @@ describe('useModelManagement Hook', () => {
       await result.current.refreshAll();
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/model-management/models', { method: 'GET' });
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/model-management/summary', { method: 'GET' });
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/objects', { method: 'GET' });
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/summary', { method: 'GET' });
     expect(result.current.models).toEqual(mockModels);
     expect(result.current.summary).toEqual(mockSummary);
   });

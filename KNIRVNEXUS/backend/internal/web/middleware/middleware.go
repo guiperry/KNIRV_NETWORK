@@ -111,27 +111,35 @@ func CORSMiddleware(next http.Handler) http.Handler {
 		origin := r.Header.Get("Origin")
 		allowedOrigins := []string{
 			"http://localhost:3000",
-			"http://localhost:8090",
+			"http://localhost:8090", // Frontend port
 			"http://localhost:8080",
+			"http://localhost:8082", // Backend API port
+			"http://127.0.0.1:3000",
+			"http://127.0.0.1:8090",
+			"http://127.0.0.1:8080",
+			"http://127.0.0.1:8082",
 			"https://nexus.knirv.com",
 		}
 
 		// Check if origin is allowed
+		isAllowed := false
 		for _, allowedOrigin := range allowedOrigins {
 			if origin == allowedOrigin {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
+				isAllowed = true
 				break
 			}
 		}
 
 		// If no specific origin matched, allow all for development
-		if w.Header().Get("Access-Control-Allow-Origin") == "" {
+		if !isAllowed {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 		}
 
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Requested-With, X-Auth-Token")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID, Content-Length")
 		w.Header().Set("Access-Control-Max-Age", "86400") // 24 hours
 
 		if r.Method == "OPTIONS" {

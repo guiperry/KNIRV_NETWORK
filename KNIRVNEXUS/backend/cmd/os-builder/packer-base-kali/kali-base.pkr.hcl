@@ -67,8 +67,8 @@ source "virtualbox-iso" "kali_base" {
   cpus              = 2
 
   http_directory    = "http"
-  http_port_min     = 8080
-  http_port_max     = 8080
+  http_port_min     = 8082
+  http_port_max     = 8082
 
   ssh_username      = "kaliadmin"
   ssh_password      = "kaliadmin"

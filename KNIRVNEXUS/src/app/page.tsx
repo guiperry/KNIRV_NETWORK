@@ -22,7 +22,9 @@ import DVERentalManagement from "@/components/dve-rental/dve-rental-management";
 import { useAuth } from "@/lib/auth-context";
 import { DashboardWrapper } from "@/components/dashboard/dashboard-wrapper";
 import { DemoModeToggle } from "@/components/admin/demo-mode-toggle";
+import { DHTToggle } from "@/components/admin/dht-toggle";
 import { useDemoMode } from "@/contexts/demo-mode-context";
+import { useDHT } from "@/contexts/dht-context";
 import {
   Activity,
   Shield,
@@ -442,6 +444,8 @@ export default function Dashboard() {
           <div className="grid gap-4">
             <DemoModeToggle />
 
+            <DHTToggle />
+
             <Card className="knirv-card-gradient">
               <CardHeader>
                 <CardTitle>System Information</CardTitle>
@@ -459,7 +463,7 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <span className="font-medium">Backend URL:</span>
-                    <span className="ml-2 text-muted-foreground">http://localhost:8080</span>
+                    <span className="ml-2 text-muted-foreground">http://localhost:8082</span>
                   </div>
                   <div>
                     <span className="font-medium">DVE Nodes:</span>

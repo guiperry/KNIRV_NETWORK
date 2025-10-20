@@ -30,7 +30,7 @@ func TestSkillNodeValidationEndToEnd(t *testing.T) {
 		},
 	}
 
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB())
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true)
 	require.NoError(t, err)
 
 	// Create mock inference service
@@ -127,7 +127,7 @@ func TestBaseLLMValidationEndToEnd(t *testing.T) {
 		},
 	}
 
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB())
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true)
 	require.NoError(t, err)
 
 	// Create mock inference service
@@ -213,7 +213,7 @@ func TestConcurrentTaskExecution(t *testing.T) {
 		},
 	}
 
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB())
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true)
 	require.NoError(t, err)
 
 	inferenceService := &mockInferenceService{}
@@ -282,7 +282,7 @@ func TestTimeoutHandling(t *testing.T) {
 		},
 	}
 
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB())
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true)
 	require.NoError(t, err)
 
 	// Create slow inference service

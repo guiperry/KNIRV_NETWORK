@@ -15,8 +15,8 @@ import (
 
 	"backend_server/internal/config"
 	dataengine "backend_server/internal/data-engine"
-	inference "backend_server/internal/inference_engine"
 	"backend_server/internal/database"
+	inference "backend_server/internal/inference_engine"
 	"backend_server/internal/services/blockchain"
 	"backend_server/internal/services/cde"
 	"backend_server/internal/services/cognitiveengine"
@@ -87,7 +87,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	}
 
 	// Initialize P2P manager
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, cfg.NodeRole, dbManager.GetDB())
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, cfg.NodeRole, dbManager.GetDB(), cfg.P2P.DHTEnabled)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize P2P manager: %w", err)
 	}
@@ -111,7 +111,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		DatabasePath:     cfg.Database.Path,
 		EnableWebSocket:  true,
 		EnableRESTAPI:    true,
-		WebSocketPort:    8080,
+		WebSocketPort:    8082,
 		RESTAPIPort:      7080,
 		WindowSize:       time.Minute * 5,
 		MetricsInterval:  time.Second * 30,
@@ -217,7 +217,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	dveRentalService.SetServiceReferences(dveManager, cdeService)
 
 	// Initialize NRN blockchain client for payment verification
-	nrnClient := blockchain.NewNRNClient("http://localhost:8080") // TODO: Make configurable
+	nrnClient := blockchain.NewNRNClient("http://localhost:8082") // TODO: Make configurable
 	dveRentalService.SetBlockchainClient(nrnClient)
 
 	// Initialize Cognitive Engine
@@ -289,18 +289,18 @@ func (s *Server) setupRoutes() {
 	if authMiddleware != nil {
 		authHandlers := web.NewAuthHandlers(s.db, authMiddleware)
 		// Public auth routes
-		s.router.HandleFunc("/api/auth/register", authHandlers.Register).Methods("POST")
-		s.router.HandleFunc("/api/auth/login", authHandlers.Login).Methods("POST")
-		s.router.HandleFunc("/api/auth/refresh", authHandlers.Refresh).Methods("POST")
-		s.router.HandleFunc("/api/auth/revoke", authHandlers.Revoke).Methods("POST")
-		s.router.HandleFunc("/api/auth/verify-email", authHandlers.VerifyEmail).Methods("POST")
-		s.router.HandleFunc("/api/auth/request-password-reset", authHandlers.RequestPasswordReset).Methods("POST")
-		s.router.HandleFunc("/api/auth/reset-password", authHandlers.ResetPassword).Methods("POST")
+		s.router.HandleFunc("/api/auth/register", authHandlers.Register).Methods("POST", "OPTIONS")
+		s.router.HandleFunc("/api/auth/login", authHandlers.Login).Methods("POST", "OPTIONS")
+		s.router.HandleFunc("/api/auth/refresh", authHandlers.Refresh).Methods("POST", "OPTIONS")
+		s.router.HandleFunc("/api/auth/revoke", authHandlers.Revoke).Methods("POST", "OPTIONS")
+		s.router.HandleFunc("/api/auth/verify-email", authHandlers.VerifyEmail).Methods("POST", "OPTIONS")
+		s.router.HandleFunc("/api/auth/request-password-reset", authHandlers.RequestPasswordReset).Methods("POST", "OPTIONS")
+		s.router.HandleFunc("/api/auth/reset-password", authHandlers.ResetPassword).Methods("POST", "OPTIONS")
 
 		// Protected auth routes
-		s.router.HandleFunc("/api/auth/me", authHandlers.Me).Methods("GET")
-		s.router.HandleFunc("/api/auth/change-password", authHandlers.ChangePassword).Methods("POST")
-		s.router.HandleFunc("/api/auth/update-profile", authHandlers.UpdateProfile).Methods("PUT")
+		s.router.HandleFunc("/api/auth/me", authHandlers.Me).Methods("GET", "OPTIONS")
+		s.router.HandleFunc("/api/auth/change-password", authHandlers.ChangePassword).Methods("POST", "OPTIONS")
+		s.router.HandleFunc("/api/auth/update-profile", authHandlers.UpdateProfile).Methods("PUT", "OPTIONS")
 		log.Println("Auth routes configured")
 	}
 

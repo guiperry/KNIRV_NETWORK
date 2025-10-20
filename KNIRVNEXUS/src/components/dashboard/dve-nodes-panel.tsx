@@ -14,9 +14,10 @@ import type { DVENode } from '@/types/api';
 interface DVENodesPanelProps {
   className?: string;
   onRentClick?: () => void;
+  onNodeConnect?: (nodeId: string, nodeName: string) => void;
 }
 
-export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentClick }) => {
+export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentClick, onNodeConnect }) => {
   const { user } = useAuth();
   const {
     nodes,
@@ -323,6 +324,17 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
 
                     {/* Actions */}
                     <div className="flex space-x-2 pt-2">
+                      {onNodeConnect && (
+                        <Button 
+                          variant="default" 
+                          size="sm" 
+                          className="flex-1 text-xs bg-primary hover:bg-primary/90"
+                          onClick={() => onNodeConnect(node.id, node.name)}
+                        >
+                          <Wifi className="w-3 h-3 mr-1" />
+                          Connect
+                        </Button>
+                      )}
                       <Button variant="outline" size="sm" className="flex-1 text-xs">
                         Details
                       </Button>

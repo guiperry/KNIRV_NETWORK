@@ -6,7 +6,7 @@ import { apiRequest } from '@/lib/api';
 // Mock the API module
 jest.mock('@/lib/api', () => ({
   apiRequest: jest.fn(),
-  API_BASE_URL: 'http://localhost:8080',
+  API_BASE_URL: 'http://localhost:8082',
 }));
 
 const mockApiRequest = apiRequest as jest.MockedFunction<typeof apiRequest>;
@@ -152,7 +152,7 @@ describe('useDNSManagement Hook', () => {
       await result.current.fetchRecords('example.com');
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/dns/records?zone=example.com', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/dns/records?zone=example.com', {
       method: 'GET'
     });
     expect(result.current.records).toEqual(filteredRecords);
@@ -171,7 +171,7 @@ describe('useDNSManagement Hook', () => {
       await result.current.fetchRecords(undefined, 'A');
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/dns/records?type=A', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/dns/records?type=A', {
       method: 'GET'
     });
     expect(result.current.records).toEqual(filteredRecords);
@@ -190,7 +190,7 @@ describe('useDNSManagement Hook', () => {
       await result.current.fetchRecords('example.com', 'A');
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/dns/records?zone=example.com&type=A', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/dns/records?zone=example.com&type=A', {
       method: 'GET'
     });
     expect(result.current.records).toEqual(filteredRecords);
@@ -222,7 +222,7 @@ describe('useDNSManagement Hook', () => {
       await result.current.fetchZones();
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/dns/zones', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/dns/zones', {
       method: 'GET'
     });
     expect(result.current.zones).toEqual(mockDNSZones);
@@ -240,7 +240,7 @@ describe('useDNSManagement Hook', () => {
       await result.current.fetchStatus();
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/dns/status', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/dns/status', {
       method: 'GET'
     });
     expect(result.current.status).toEqual(mockDNSStatus);
@@ -271,7 +271,7 @@ describe('useDNSManagement Hook', () => {
       createdRecord = await result.current.createRecord(createRequest);
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/dns/records', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/dns/records', {
       method: 'POST',
       body: JSON.stringify(createRequest)
     });
@@ -297,7 +297,7 @@ describe('useDNSManagement Hook', () => {
       updated = await result.current.updateRecord('record-1', updateRequest);
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/dns/records/record-1', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/dns/records/record-1', {
       method: 'PUT',
       body: JSON.stringify(updateRequest)
     });
@@ -316,7 +316,7 @@ describe('useDNSManagement Hook', () => {
       deleted = await result.current.deleteRecord('record-1');
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/dns/records/record-1', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/dns/records/record-1', {
       method: 'DELETE'
     });
     expect(deleted).toBe(true);
@@ -334,9 +334,9 @@ describe('useDNSManagement Hook', () => {
       await result.current.refreshAll();
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/dns/records', { method: 'GET' });
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/dns/zones', { method: 'GET' });
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/dns/status', { method: 'GET' });
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/dns/records', { method: 'GET' });
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/dns/zones', { method: 'GET' });
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/dns/status', { method: 'GET' });
     
     expect(result.current.records).toEqual(mockDNSRecords);
     expect(result.current.zones).toEqual(mockDNSZones);

@@ -422,7 +422,7 @@ func loadConfig() (*Config, error) {
 	// Set default values
 	viper.SetDefault("host", "0.0.0.0")
 	viper.SetDefault("port", 8090)
-	viper.SetDefault("backend_port", 8080)
+	viper.SetDefault("backend_port", 8082)
 	viper.SetDefault("log_level", "info")
 	viper.SetDefault("testnet", false)
 

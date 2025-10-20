@@ -175,28 +175,28 @@ export const CognitiveEnginePanel: React.FC<CognitiveEnginePanelProps> = ({ clas
               <div className="flex justify-between items-center">
                 <span className="text-sm">Inference Latency:</span>
                 <span className="text-sm font-medium">
-                  {cognitiveEngine?.performance_metrics.inference_latency.toFixed(1) || '--'}ms
+                  {cognitiveEngine?.performance_metrics?.inference_latency?.toFixed(1) || '--'}ms
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm">Throughput:</span>
                 <span className="text-sm font-medium">
-                  {cognitiveEngine?.performance_metrics.throughput.toLocaleString() || '--'} req/s
+                  {cognitiveEngine?.performance_metrics?.throughput?.toLocaleString() || '--'} req/s
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm">Error Rate:</span>
                 <span className="text-sm font-medium">
-                  {cognitiveEngine ? (cognitiveEngine.performance_metrics.error_rate * 100).toFixed(2) : '--'}%
+                  {cognitiveEngine?.performance_metrics ? (cognitiveEngine.performance_metrics.error_rate * 100).toFixed(2) : '--'}%
                 </span>
               </div>
               <div className="mt-4">
                 <div className="flex justify-between text-xs mb-1">
                   <span>Error Rate</span>
-                  <span>{cognitiveEngine ? (cognitiveEngine.performance_metrics.error_rate * 100).toFixed(1) : 0}%</span>
+                  <span>{cognitiveEngine?.performance_metrics ? (cognitiveEngine.performance_metrics.error_rate * 100).toFixed(1) : 0}%</span>
                 </div>
                 <Progress 
-                  value={cognitiveEngine ? cognitiveEngine.performance_metrics.error_rate * 100 : 0} 
+                  value={cognitiveEngine?.performance_metrics ? cognitiveEngine.performance_metrics.error_rate * 100 : 0} 
                   className="h-2"
                 />
               </div>
@@ -216,28 +216,28 @@ export const CognitiveEnginePanel: React.FC<CognitiveEnginePanelProps> = ({ clas
               <div className="flex justify-between items-center">
                 <span className="text-sm">Training Accuracy:</span>
                 <span className="text-sm font-medium">
-                  {cognitiveEngine?.learning_metrics.training_accuracy.toFixed(1) || '--'}%
+                  {cognitiveEngine?.learning_metrics?.training_accuracy?.toFixed(1) || '--'}%
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm">Validation Accuracy:</span>
                 <span className="text-sm font-medium">
-                  {cognitiveEngine?.learning_metrics.validation_accuracy.toFixed(1) || '--'}%
+                  {cognitiveEngine?.learning_metrics?.validation_accuracy?.toFixed(1) || '--'}%
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm">Loss:</span>
                 <span className="text-sm font-medium">
-                  {cognitiveEngine?.learning_metrics.loss.toFixed(3) || '--'}
+                  {cognitiveEngine?.learning_metrics?.loss?.toFixed(3) || '--'}
                 </span>
               </div>
               <div className="mt-4">
                 <div className="flex justify-between text-xs mb-1">
                   <span>Training Progress</span>
-                  <span>{cognitiveEngine?.learning_metrics.training_accuracy.toFixed(1) || 0}%</span>
+                  <span>{cognitiveEngine?.learning_metrics?.training_accuracy?.toFixed(1) || 0}%</span>
                 </div>
                 <Progress 
-                  value={cognitiveEngine?.learning_metrics.training_accuracy || 0} 
+                  value={cognitiveEngine?.learning_metrics?.training_accuracy || 0} 
                   className="h-2"
                 />
               </div>

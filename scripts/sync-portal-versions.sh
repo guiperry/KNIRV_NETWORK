@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # KNIRV Portal Version Synchronization Script
-# Synchronizes static site contents from KNIRVNEXUS/out to GATEWAY nexus-portal
+# Synchronizes static site contents from KNIRVNEXUS/out to the corporate nexus-portal
 # Clones all static files without preserving styling differences
 
 set -euo pipefail
@@ -278,7 +278,7 @@ main() {
     
     if [[ "$success" == "true" ]]; then
         log "SUCCESS" "Static site synchronization completed successfully"
-        log "INFO" "All static files copied from KNIRVNEXUS/out to GATEWAY nexus-portal"
+        log "INFO" "All static files copied from KNIRVNEXUS/out to the corporate nexus-portal"
         log "INFO" "Backend config and redirect logic preserved in target directory"
         exit 0
     else

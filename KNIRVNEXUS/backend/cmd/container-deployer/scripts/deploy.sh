@@ -318,7 +318,7 @@ run_health_checks() {
         source "$infra_file"
         
         # Check main server health
-        local health_url="http://${MAIN_INSTANCE_PUBLIC_IP}:8080/api/v1/health"
+        local health_url="http://${MAIN_INSTANCE_PUBLIC_IP}:8082/api/v1/health"
         log_info "Checking health endpoint: $health_url"
         
         if [[ "$DRY_RUN" != "true" ]]; then

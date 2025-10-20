@@ -98,6 +98,7 @@ type NetworkConfig struct {
 type P2PConfig struct {
 	Port       int      `mapstructure:"port"`
 	Bootstraps []string `mapstructure:"bootstraps"`
+	DHTEnabled bool     `mapstructure:"dht_enabled"`
 }
 
 // AuthConfig represents authentication configuration
@@ -398,7 +399,7 @@ func setDefaults() {
 	viper.SetDefault("cde.max_disk_per_env", 10737418240)  // 10GB
 	viper.SetDefault("cde.enable_sandboxing", true)
 	viper.SetDefault("cde.enable_network_isolation", false)
-	viper.SetDefault("cde.allowed_ports", []int{8080, 3000, 5000})
+	viper.SetDefault("cde.allowed_ports", []int{8082, 3000, 5000})
 	viper.SetDefault("cde.session_timeout", "2h")
 	viper.SetDefault("cde.max_sessions_per_user", 5)
 	viper.SetDefault("cde.max_projects_per_user", 20)
@@ -415,6 +416,7 @@ func setDefaults() {
 	viper.SetDefault("chain_id", "knirv-nexus-mainnet")
 	viper.SetDefault("node_role", "dve-manager")
 	viper.SetDefault("p2p.port", 4001)
+	viper.SetDefault("p2p.dht_enabled", false) // DHT disabled by default to reduce noise
 	viper.SetDefault("auth.jwt_secret", "")
 }
 

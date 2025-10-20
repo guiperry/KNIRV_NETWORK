@@ -18,10 +18,10 @@
     container_image_name: "" # Set by Go orchestrator via -e
     container_name: "knirvnexus-go-kata"
     container_ports:
-      - 8080
+      - 8082
       - 8089
     host_ports:
-      - 8080
+      - 8082
       - 8089
 
     tee_devices:

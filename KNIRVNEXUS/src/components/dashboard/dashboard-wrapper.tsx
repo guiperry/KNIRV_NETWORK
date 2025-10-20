@@ -218,7 +218,7 @@ export function DashboardWrapper({ children, onRentDVE }: DashboardWrapperProps)
                       </TabsList>
 
                       <TabsContent value="nodes" className="space-y-4">
-                        <DVENodesPanel onRentClick={onRentDVE} />
+                        <DVENodesPanel onRentClick={onRentDVE} onNodeConnect={handleNodeAccess} />
                       </TabsContent>
 
                       <TabsContent value="validation" className="space-y-4">

@@ -10,8 +10,8 @@ export const getApiBaseUrl = (): string => {
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
     return '';
   }
-  // In development, use the backend API port (8080 as configured)
-  return 'http://localhost:8080';
+  // In development, use the backend API port (8082 as configured in backend config)
+  return 'http://localhost:8082';
 };
 
 export const API_BASE_URL = getApiBaseUrl();

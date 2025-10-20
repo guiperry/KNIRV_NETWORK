@@ -6,7 +6,7 @@ import { apiRequest } from '@/lib/api';
 // Mock the API module
 jest.mock('@/lib/api', () => ({
   apiRequest: jest.fn(),
-  API_BASE_URL: 'http://localhost:8080',
+  API_BASE_URL: 'http://localhost:8082',
 }));
 
 const mockApiRequest = apiRequest as jest.MockedFunction<typeof apiRequest>;
@@ -219,7 +219,7 @@ describe('useControllerIntegration Hook', () => {
       generatedQRCode = await result.current.generateQRCode(qrRequest);
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/controller-integration/qr-code', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/controller-integration/qr-code', {
       method: 'POST',
       body: JSON.stringify(qrRequest)
     });
@@ -274,7 +274,7 @@ describe('useControllerIntegration Hook', () => {
       pairingRequest = await result.current.scanQRCode(scanRequest);
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/controller-integration/qr-code/scan', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/controller-integration/qr-code/scan', {
       method: 'POST',
       body: JSON.stringify(scanRequest)
     });
@@ -296,7 +296,7 @@ describe('useControllerIntegration Hook', () => {
       session = await result.current.confirmPairing('pairing-1', true);
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/controller-integration/pairing/pairing-1/confirm', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/controller-integration/pairing/pairing-1/confirm', {
       method: 'POST',
       body: JSON.stringify({ confirmed: true })
     });
@@ -318,7 +318,7 @@ describe('useControllerIntegration Hook', () => {
       session = await result.current.confirmPairing('pairing-1', false);
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/controller-integration/pairing/pairing-1/confirm', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/controller-integration/pairing/pairing-1/confirm', {
       method: 'POST',
       body: JSON.stringify({ confirmed: false })
     });
@@ -338,7 +338,7 @@ describe('useControllerIntegration Hook', () => {
       await result.current.getUserSessions('user-1');
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/controller-integration/users/user-1/sessions', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/controller-integration/users/user-1/sessions', {
       method: 'GET'
     });
     expect(result.current.activeSessions).toEqual(mockSessions);
@@ -356,7 +356,7 @@ describe('useControllerIntegration Hook', () => {
       terminated = await result.current.terminateSession('session-1');
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/controller-integration/sessions/session-1', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/controller-integration/sessions/session-1', {
       method: 'DELETE'
     });
     expect(terminated).toBe(true);
@@ -389,7 +389,7 @@ describe('useControllerIntegration Hook', () => {
       sent = await result.current.sendMessage('session-1', messageData);
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/controller-integration/sessions/session-1/messages', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/controller-integration/sessions/session-1/messages', {
       method: 'POST',
       body: JSON.stringify(messageData)
     });
@@ -420,7 +420,7 @@ describe('useControllerIntegration Hook', () => {
       sent = await result.current.sendCommand('session-1', 'wallet.getBalance', { address: '0x123' });
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/controller-integration/sessions/session-1/messages', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/controller-integration/sessions/session-1/messages', {
       method: 'POST',
       body: JSON.stringify({
         type: 'command',
@@ -446,7 +446,7 @@ describe('useControllerIntegration Hook', () => {
       await result.current.refreshAll('user-1');
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8080/api/controller-integration/users/user-1/sessions', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/controller-integration/users/user-1/sessions', {
       method: 'GET'
     });
     expect(result.current.activeSessions).toEqual(mockSessions);

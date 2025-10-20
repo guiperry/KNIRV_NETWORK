@@ -16,7 +16,7 @@
     
     # Service Configuration
     service_name: "{{ app_name }}"
-    service_port: 8080
+    service_port: 8082
     
     # Environment Configuration
     environment: "{{ env | default('production') }}"

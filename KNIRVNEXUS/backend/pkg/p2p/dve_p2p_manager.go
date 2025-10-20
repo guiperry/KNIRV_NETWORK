@@ -182,7 +182,7 @@ const (
 )
 
 // NewDVEP2PManager creates a new DVE P2P manager
-func NewDVEP2PManager(chainID, nodeRole string, db *buntdb.DB) (*DVEP2PManager, error) {
+func NewDVEP2PManager(chainID, nodeRole string, db *buntdb.DB, dhtEnabled bool) (*DVEP2PManager, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Create libp2p host (aligned with KNIRV-ORACLE configuration)
@@ -196,11 +196,14 @@ func NewDVEP2PManager(chainID, nodeRole string, db *buntdb.DB) (*DVEP2PManager, 
 		return nil, fmt.Errorf("failed to create libp2p host: %w", err)
 	}
 
-	// Create DHT for node discovery
-	dhtInstance, err := dht.New(ctx, host)
-	if err != nil {
-		cancel()
-		return nil, fmt.Errorf("failed to create DHT: %w", err)
+	// Create DHT for node discovery (conditionally based on dhtEnabled)
+	var dhtInstance *dht.IpfsDHT
+	if dhtEnabled {
+		dhtInstance, err = dht.New(ctx, host)
+		if err != nil {
+			cancel()
+			return nil, fmt.Errorf("failed to create DHT: %w", err)
+		}
 	}
 
 	// Create GossipSub for message distribution
@@ -583,6 +586,12 @@ func (dpm *DVEP2PManager) discoverNodes() {
 
 // findDVENodes finds other DVE nodes using DHT
 func (dpm *DVEP2PManager) findDVENodes() {
+	// Skip DHT discovery if DHT is disabled
+	if dpm.dht == nil {
+		log.Printf("[DVE][%s] DHT disabled, skipping node discovery", dpm.nodeRole)
+		return
+	}
+
 	log.Printf("[DVE][%s] Discovering DVE nodes...", dpm.nodeRole)
 
 	// Create a CID for DVE node resources
@@ -638,6 +647,12 @@ func (dpm *DVEP2PManager) createCIDFromServiceID(serviceID string) (cid.Cid, err
 
 // announceServiceToDHT announces this DVE service to the DHT
 func (dpm *DVEP2PManager) announceServiceToDHT() {
+	// Skip DHT announcement if DHT is disabled
+	if dpm.dht == nil {
+		log.Printf("[DVE][%s] DHT disabled, skipping service announcement", dpm.nodeRole)
+		return
+	}
+
 	// Create a CID from the service ID
 	cid, err := dpm.createCIDFromServiceID("knirvnexus-dve")
 	if err != nil {
@@ -1277,12 +1292,15 @@ func (dpm *DVEP2PManager) bootstrapToNetwork() error {
 		log.Printf("[DVE][%s] Successfully connected to %d/%d bootstrap peers", dpm.nodeRole, connectedCount, len(bootstrapPeers))
 	}
 
-	// Bootstrap the DHT
-	if err := dpm.dht.Bootstrap(dpm.ctx); err != nil {
-		return fmt.Errorf("failed to bootstrap DHT: %w", err)
+	// Bootstrap the DHT if enabled
+	if dpm.dht != nil {
+		if err := dpm.dht.Bootstrap(dpm.ctx); err != nil {
+			return fmt.Errorf("failed to bootstrap DHT: %w", err)
+		}
+		log.Printf("[DVE][%s] DHT bootstrapped successfully", dpm.nodeRole)
+	} else {
+		log.Printf("[DVE][%s] DHT disabled, skipping bootstrap", dpm.nodeRole)
 	}
-
-	log.Printf("[DVE][%s] DHT bootstrapped successfully", dpm.nodeRole)
 	return nil
 }
 

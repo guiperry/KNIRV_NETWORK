@@ -48,7 +48,7 @@ func SetupTestSuite(t *testing.T) *TestSuite {
 			Path: ":memory:",
 		},
 		API: config.APIConfig{
-			Address: ":8080",
+			Address: ":8082",
 		},
 		P2P: config.P2PConfig{
 			Port: 4001,
@@ -64,7 +64,7 @@ func SetupTestSuite(t *testing.T) *TestSuite {
 	}
 
 	// Initialize P2P manager
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB())
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true)
 	require.NoError(t, err)
 
 	// Initialize DVE Manager

@@ -2,19 +2,19 @@
 
 # Server settings
 host: "127.0.0.1"
-port: 8080
+port: 8082
 database_path: ":memory:"
 serve_frontend: false
 log_level: "debug"
 
 # API Configuration
 api:
-  port: 8080
+  port: 8082
   host: "127.0.0.1"
   enable_cors: true
   cors_origins:
     - "http://localhost:3000"
-    - "http://localhost:8080"
+    - "http://localhost:8082"
   jwt_secret: "test-jwt-secret-key-for-testing-only"
   rate_limit_rps: 1000
   request_timeout: "10s"
@@ -73,7 +73,7 @@ cde:
   enable_sandboxing: false
   enable_network_isolation: false
   allowed_ports:
-    - 8080
+    - 8082
     - 3000
   session_timeout: "10m"
   max_sessions_per_user: 2

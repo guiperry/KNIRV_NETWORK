@@ -30,7 +30,7 @@ make build-all
 ### Running
 
 ```bash
-# Run with default settings (port 8080, ./objects directory)
+# Run with default settings (port 8082, ./objects directory)
 ./plugin-server
 
 # Run with custom settings
@@ -38,7 +38,7 @@ make build-all
 
 # Run with all options
 ./plugin-server \
-  --port 8080 \
+  --port 8082 \
   --objects ./objects \
   --name "Production Server" \
   --register \
@@ -63,7 +63,7 @@ make clean
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--port` | `8080` | Port to listen on |
+| `--port` | `8082` | Port to listen on |
 | `--objects` | `./objects` | Directory containing Plugin Models |
 | `--name` | `"KNIRVORACLE Plugin Model Server"` | Name of this server instance |
 | `--register` | `false` | Register this server with the KNIRVORACLE system |
@@ -79,7 +79,7 @@ Get server information and status.
 ```json
 {
   "name": "KNIRVORACLE Plugin Model Server",
-  "port": 8080,
+  "port": 8082,
   "model_dir": "./objects",
   "start_time": "2024-01-01T12:00:00Z",
   "version": "1.0.0"
@@ -147,25 +147,25 @@ Delete a plugin model file.
 ```bash
 curl -X POST \
   -F "plugin-model=@my-model.wasm" \
-  http://localhost:8080/upload
+  http://localhost:8082/upload
 ```
 
 ### Download a Plugin Model
 
 ```bash
-curl -O http://localhost:8080/objects/my-model.wasm
+curl -O http://localhost:8082/objects/my-model.wasm
 ```
 
 ### List Available Models
 
 ```bash
-curl http://localhost:8080/list
+curl http://localhost:8082/list
 ```
 
 ### Delete an Model
 
 ```bash
-curl -X DELETE http://localhost:8080/delete/my-model.wasm
+curl -X DELETE http://localhost:8082/delete/my-model.wasm
 ```
 
 ## Security Considerations

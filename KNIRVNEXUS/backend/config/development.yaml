@@ -15,7 +15,7 @@ api:
   enable_cors: true
   cors_origins:
     - "http://localhost:3000"
-    - "http://localhost:8080"
+    - "http://localhost:8082"
     - "https://nexus.knirv.com"
   jwt_secret: "dev-jwt-secret-key-for-development-only"
   rate_limit_rps: 1000
@@ -75,7 +75,7 @@ cde:
   enable_sandboxing: true
   enable_network_isolation: false
   allowed_ports:
-    - 8080
+    - 8082
     - 3000
     - 5000
   session_timeout: "2h"

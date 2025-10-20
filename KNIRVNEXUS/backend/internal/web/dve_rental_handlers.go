@@ -276,4 +276,13 @@ func (h *DVERentalHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middle
 		rentalRouter.HandleFunc("/rentals/{id}/extend", h.ExtendRental).Methods("POST")
 		rentalRouter.HandleFunc("/rentals/{id}", h.CancelRental).Methods("DELETE")
 	}
+
+	// Handle OPTIONS requests for CORS (ensure CORS headers are set)
+	rentalRouter.Methods("OPTIONS").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Requested-With, X-Auth-Token")
+		w.Header().Set("Access-Control-Max-Age", "86400")
+		w.WriteHeader(http.StatusOK)
+	})
 }

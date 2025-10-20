@@ -386,7 +386,7 @@ run_health_checks() {
         
         local base_url="https://${DOMAIN_NAME}"
         if [[ "$ENABLE_SSL" != "true" ]]; then
-            base_url="http://${MAIN_INSTANCE_PUBLIC_IP}:8080"
+            base_url="http://${MAIN_INSTANCE_PUBLIC_IP}:8082"
         fi
         
         # Health check endpoints

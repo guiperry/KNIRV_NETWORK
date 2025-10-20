@@ -20,7 +20,7 @@
       - 22    # SSH
       - 80    # HTTP
       - 443   # HTTPS
-      - 8080  # Application
+      - 8082  # Application
     
     # Application Configuration
     app_name: "knirv-nexus"

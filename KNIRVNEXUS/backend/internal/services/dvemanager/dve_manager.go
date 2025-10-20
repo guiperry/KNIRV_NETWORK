@@ -84,6 +84,11 @@ func (dm *DVEManager) Start(ctx context.Context) error {
 		log.Printf("Warning: Failed to load nodes from database: %v", err)
 	}
 
+	// Seed demo nodes if database is empty
+	if err := dm.seedDemoDVENodesIfEmpty(); err != nil {
+		log.Printf("Warning: Failed to seed demo DVE nodes: %v", err)
+	}
+
 	log.Println("DVE Manager service started successfully")
 	return nil
 }
@@ -159,7 +164,12 @@ func (dm *DVEManager) GetNodes(filter *NodeFilter) ([]*objects.DVENode, error) {
 	var nodes []*objects.DVENode
 
 	err := dm.db.View(func(tx *buntdb.Tx) error {
-		return tx.Ascend("dve:nodes:*", func(key, value string) bool {
+		return tx.Ascend("", func(key, value string) bool {
+			// Only process DVE node keys
+			if !strings.HasPrefix(key, "dve:nodes:") {
+				return true
+			}
+
 			var node objects.DVENode
 			if err := json.Unmarshal([]byte(value), &node); err != nil {
 				log.Printf("Error unmarshaling node: %v", err)
@@ -355,7 +365,12 @@ func (dm *DVEManager) storeTask(task *objects.ValidationTask) error {
 // loadNodesFromDB loads existing nodes from database
 func (dm *DVEManager) loadNodesFromDB() error {
 	return dm.db.View(func(tx *buntdb.Tx) error {
-		return tx.Ascend("dve:nodes:*", func(key, value string) bool {
+		return tx.Ascend("", func(key, value string) bool {
+			// Only process DVE node keys
+			if !strings.HasPrefix(key, "dve:nodes:") {
+				return true
+			}
+
 			var node objects.DVENode
 			if err := json.Unmarshal([]byte(value), &node); err != nil {
 				log.Printf("Error loading node from DB: %v", err)
@@ -365,6 +380,87 @@ func (dm *DVEManager) loadNodesFromDB() error {
 			return true
 		})
 	})
+}
+
+// seedDemoDVENodesIfEmpty seeds demo DVE nodes if the database is empty
+func (dm *DVEManager) seedDemoDVENodesIfEmpty() error {
+	// Check if any nodes exist
+	totalNodes := dm.nodeTracker.GetTotalNodes()
+	if totalNodes > 0 {
+		log.Printf("DVE nodes already exist (%d nodes), skipping demo seed", totalNodes)
+		return nil
+	}
+
+	// Create demo DVE nodes
+	demoDVENodes := []*RegisterNodeRequest{
+		{
+			Name:         "Demo DVE Node 1 (SGX - US-East)",
+			TEEType:      "sgx",
+			StakeAmount:  50000,
+			Location:     "us-east-1",
+			IPAddress:    "192.168.1.101",
+			PublicKey:    "pub_key_demo_1",
+			Capabilities: []string{"validation", "attestation", "sgx-compute"},
+			Latitude:     40.7128,
+			Longitude:    -74.0060,
+		},
+		{
+			Name:         "Demo DVE Node 2 (SEV-SNP - US-West)",
+			TEEType:      "sev-snp",
+			StakeAmount:  75000,
+			Location:     "us-west-2",
+			IPAddress:    "192.168.1.102",
+			PublicKey:    "pub_key_demo_2",
+			Capabilities: []string{"validation", "attestation", "sev-snp-compute"},
+			Latitude:     34.0522,
+			Longitude:    -118.2437,
+		},
+		{
+			Name:         "Demo DVE Node 3 (TDX - EU-Central)",
+			TEEType:      "tdx",
+			StakeAmount:  100000,
+			Location:     "eu-central-1",
+			IPAddress:    "192.168.1.103",
+			PublicKey:    "pub_key_demo_3",
+			Capabilities: []string{"validation", "attestation", "tdx-compute", "ml-inference"},
+			Latitude:     52.5200,
+			Longitude:    13.4050,
+		},
+		{
+			Name:         "Demo DVE Node 4 (Software TEE - Asia-Pacific)",
+			TEEType:      "software",
+			StakeAmount:  25000,
+			Location:     "ap-southeast-1",
+			IPAddress:    "192.168.1.104",
+			PublicKey:    "pub_key_demo_4",
+			Capabilities: []string{"validation", "software-tee"},
+			Latitude:     1.3521,
+			Longitude:    103.8198,
+		},
+		{
+			Name:         "Demo DVE Node 5 (SGX - EU-West)",
+			TEEType:      "sgx",
+			StakeAmount:  60000,
+			Location:     "eu-west-1",
+			IPAddress:    "192.168.1.105",
+			PublicKey:    "pub_key_demo_5",
+			Capabilities: []string{"validation", "attestation", "sgx-compute", "ml-inference"},
+			Latitude:     53.3498,
+			Longitude:    -6.2603,
+		},
+	}
+
+	// Register each demo node
+	for _, req := range demoDVENodes {
+		node, err := dm.RegisterNode(req)
+		if err != nil {
+			log.Printf("Error registering demo node %s: %v", req.Name, err)
+			continue
+		}
+		log.Printf("Successfully registered demo DVE node: %s (ID: %s)", node.Name, node.ID)
+	}
+
+	return nil
 }
 
 // handleNodeAnnouncement handles node announcement messages
