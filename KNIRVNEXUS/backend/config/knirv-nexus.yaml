@@ -238,3 +238,19 @@ production:
   enable_auto_scaling: false
   min_replicas: 1
   max_replicas: 10
+
+# DVE (Decentralized Validation Environment) Configuration
+dve:
+  discovery:
+    enabled: true
+    # Bootstrap nodes for remote DVE instance discovery
+    bootstrap_nodes:
+      # - "http://dve1.example.com:8082"
+      # - "http://dve2.example.com:8082"
+    discovery_interval: "30s"
+    connection_timeout: "5s"
+    health_check_interval: "60s"
+    heartbeat_timeout: "2m"
+    max_retries: 3
+    retry_backoff_duration: "2s"
+    connection_pool_size: 10

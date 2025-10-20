@@ -19,14 +19,15 @@ import (
 
 // DVEManager manages DVE nodes and their operations
 type DVEManager struct {
-	db           *buntdb.DB
-	p2pManager   *p2p.DVEP2PManager
-	config       *config.Config
-	nodeTracker  *NodeTracker
-	loadBalancer *LoadBalancer
-	ctx          context.Context
-	cancel       context.CancelFunc
-	mu           sync.RWMutex
+	db               *buntdb.DB
+	p2pManager       *p2p.DVEP2PManager
+	config           *config.Config
+	nodeTracker      *NodeTracker
+	loadBalancer     *LoadBalancer
+	instanceRegistry *InstanceRegistry
+	ctx              context.Context
+	cancel           context.CancelFunc
+	mu               sync.RWMutex
 }
 
 // NodeTracker tracks the status and health of DVE nodes
@@ -45,6 +46,13 @@ type LoadBalancer struct {
 func NewDVEManager(db *buntdb.DB, p2pManager *p2p.DVEP2PManager, cfg *config.Config) (*DVEManager, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
+	// Initialize instance registry for remote DVE discovery
+	instanceRegistry, err := NewInstanceRegistry(db, &cfg.DVE.Discovery)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize instance registry: %v", err)
+		// Continue without remote discovery - instance registry will be nil
+	}
+
 	manager := &DVEManager{
 		db:         db,
 		p2pManager: p2pManager,
@@ -55,8 +63,9 @@ func NewDVEManager(db *buntdb.DB, p2pManager *p2p.DVEP2PManager, cfg *config.Con
 		loadBalancer: &LoadBalancer{
 			algorithm: "reputation_based",
 		},
-		ctx:    ctx,
-		cancel: cancel,
+		instanceRegistry: instanceRegistry,
+		ctx:              ctx,
+		cancel:           cancel,
 	}
 
 	// Note: API routes are registered with the unified server
@@ -73,6 +82,13 @@ func (dm *DVEManager) Start(ctx context.Context) error {
 	log.Println("Starting DVE Manager service...")
 
 	// Note: API routes are registered with the unified server, no separate server needed
+
+	// Start instance registry for remote DVE discovery
+	if dm.instanceRegistry != nil {
+		if err := dm.instanceRegistry.Start(); err != nil {
+			log.Printf("Warning: Failed to start instance registry: %v", err)
+		}
+	}
 
 	// Start periodic tasks
 	go dm.monitorNodes()
@@ -96,6 +112,11 @@ func (dm *DVEManager) Start(ctx context.Context) error {
 // Stop stops the DVE Manager service
 func (dm *DVEManager) Stop(ctx context.Context) error {
 	log.Println("Stopping DVE Manager service...")
+
+	// Stop instance registry for remote DVE discovery
+	if dm.instanceRegistry != nil {
+		dm.instanceRegistry.Stop()
+	}
 
 	// Note: API routes are handled by the unified server
 
@@ -812,4 +833,56 @@ func (dm *DVEManager) RemoveNode(nodeID string) error {
 
 	log.Printf("DVE node %s removed successfully", nodeID)
 	return nil
+}
+
+// GetRemoteInstances returns all managed remote DVE instances
+func (dm *DVEManager) GetRemoteInstances() map[string]map[string]interface{} {
+	if dm.instanceRegistry == nil {
+		return make(map[string]map[string]interface{})
+	}
+	return dm.instanceRegistry.GetAllInstancesStats()
+}
+
+// GetRemoteInstanceNodes returns all nodes from a specific remote instance
+func (dm *DVEManager) GetRemoteInstanceNodes(instanceURL string) ([]*objects.DVENode, error) {
+	if dm.instanceRegistry == nil {
+		return nil, fmt.Errorf("instance registry not initialized")
+	}
+	return dm.instanceRegistry.GetInstanceNodes(instanceURL)
+}
+
+// AddRemoteInstance registers a new remote DVE instance for discovery
+func (dm *DVEManager) AddRemoteInstance(instanceURL string) error {
+	if dm.instanceRegistry == nil {
+		return fmt.Errorf("instance registry not initialized")
+	}
+	dm.instanceRegistry.AddInstance(instanceURL)
+	return nil
+}
+
+// RemoveRemoteInstance unregisters a remote DVE instance
+func (dm *DVEManager) RemoveRemoteInstance(instanceURL string) error {
+	if dm.instanceRegistry == nil {
+		return fmt.Errorf("instance registry not initialized")
+	}
+	dm.instanceRegistry.RemoveInstance(instanceURL)
+	return nil
+}
+
+// GetHealthyRemoteInstances returns only healthy remote instances
+func (dm *DVEManager) GetHealthyRemoteInstances() map[string]map[string]interface{} {
+	if dm.instanceRegistry == nil {
+		return make(map[string]map[string]interface{})
+	}
+
+	stats := dm.instanceRegistry.GetAllInstancesStats()
+	healthyStats := make(map[string]map[string]interface{})
+
+	for url, stat := range stats {
+		if isHealthy, ok := stat["is_healthy"].(bool); ok && isHealthy {
+			healthyStats[url] = stat
+		}
+	}
+
+	return healthyStats
 }

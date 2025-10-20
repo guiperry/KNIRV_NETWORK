@@ -6,7 +6,6 @@ import (
 )
 
 func TestDVENode_StructFields(t *testing.T) {
-	now := time.Now()
 	node := DVENode{
 		ID:              "node-123",
 		Name:            "Test Node",
@@ -14,18 +13,9 @@ func TestDVENode_StructFields(t *testing.T) {
 		TEEType:         "sgx",
 		StakeAmount:     1000000,
 		ReputationScore: 95,
-		Location:        "US-East",
-		IPAddress:       "192.168.1.100",
-		PublicKey:       "pubkey123",
 		Capabilities:    []string{"validation", "inference"},
-		LastHeartbeat:   now,
-		CreatedAt:       now,
-		UpdatedAt:       now,
 		CPUUsage:        75.5,
-		MemoryUsage:     60.2,
-		NetworkLatency:  50,
 		Latitude:        40.7128,
-		Longitude:       -74.0060,
 	}
 
 	if node.ID != "node-123" {
@@ -55,9 +45,8 @@ func TestDVENode_StructFields(t *testing.T) {
 }
 
 func TestValidationTask_StructFields(t *testing.T) {
-	now := time.Now()
-	startedAt := now.Add(time.Minute)
-	completedAt := now.Add(time.Hour)
+	startedAt := time.Now().Add(time.Minute)
+	completedAt := time.Now().Add(time.Hour)
 
 	parameters := map[string]interface{}{
 		"model":      "test-model",
@@ -80,18 +69,11 @@ func TestValidationTask_StructFields(t *testing.T) {
 		Type:            "skillnode",
 		Status:          "completed",
 		Priority:        5,
-		SkillCode:       "def test(): return True",
-		FailureContext:  "",
 		TestCases:       testCases,
 		RequiredTEEType: "sgx",
-		AssignedNodeID:  "node-123",
-		RequestedBy:     "user-123",
 		Parameters:      parameters,
-		CreatedAt:       now,
-		UpdatedAt:       now,
 		StartedAt:       &startedAt,
 		CompletedAt:     &completedAt,
-		TimeoutAt:       now.Add(time.Hour * 2),
 	}
 
 	if task.ID != "task-123" {
@@ -154,7 +136,6 @@ func TestTestCase_StructFields(t *testing.T) {
 }
 
 func TestValidationResult_StructFields(t *testing.T) {
-	now := time.Now()
 	results := map[string]interface{}{
 		"accuracy": 0.95,
 		"latency":  150,
@@ -172,19 +153,13 @@ func TestValidationResult_StructFields(t *testing.T) {
 	}
 
 	result := ValidationResult{
-		ID:              "result-123",
-		TaskID:          "task-123",
-		ValidatorNodeID: "node-123",
-		Status:          "success",
-		Score:           0.95,
-		Results:         results,
-		TestResults:     testResults,
-		Proof:           "proof-hash",
-		TEEAttestation:  "attestation-data",
-		ExecutionTime:   time.Second * 5,
-		ErrorMessage:    "",
-		CreatedAt:       now,
-		Signature:       "signature-hash",
+		ID:            "result-123",
+		TaskID:        "task-123",
+		Status:        "success",
+		Score:         0.95,
+		Results:       results,
+		TestResults:   testResults,
+		ExecutionTime: time.Second * 5,
 	}
 
 	if result.ID != "result-123" {
@@ -237,20 +212,14 @@ func TestTestResult_StructFields(t *testing.T) {
 }
 
 func TestTEEAttestation_StructFields(t *testing.T) {
-	now := time.Now()
-	verifiedAt := now.Add(time.Minute)
+	verifiedAt := time.Now().Add(time.Minute)
 
 	attestation := TEEAttestation{
 		ID:           "attestation-123",
 		NodeID:       "node-123",
 		TEEType:      "sgx",
 		Status:       "valid",
-		Quote:        "quote-data",
-		Signature:    "signature-data",
-		CertChain:    "cert-chain-data",
 		Measurements: []string{"measurement1", "measurement2"},
-		CreatedAt:    now,
-		ExpiresAt:    now.Add(time.Hour * 24),
 		VerifiedAt:   &verifiedAt,
 	}
 
@@ -272,18 +241,13 @@ func TestTEEAttestation_StructFields(t *testing.T) {
 }
 
 func TestCognitiveEngineMetrics_StructFields(t *testing.T) {
-	now := time.Now()
 
 	metrics := CognitiveEngineMetrics{
-		ID:                    "metrics-123",
-		NodeID:                "node-123",
-		TasksProcessed:        1000,
-		AverageProcessingTime: 2.5,
-		SuccessRate:           0.95,
-		AdaptationScore:       0.87,
-		LearningProgress:      0.75,
-		ResourceUtilization:   0.68,
-		Timestamp:             now,
+		ID:                "metrics-123",
+		NodeID:            "node-123",
+		TasksProcessed:    1000,
+		SuccessRate:       0.95,
+		AdaptationScore:   0.87,
 	}
 
 	if metrics.ID != "metrics-123" {
@@ -323,21 +287,12 @@ func TestSystemHealth_StructFields(t *testing.T) {
 	}
 
 	health := SystemHealth{
-		ID:                  "health-123",
-		OverallStatus:       "healthy",
-		ActiveNodes:         5,
-		TotalNodes:          6,
-		PendingTasks:        10,
-		CompletedTasks:      1000,
-		FailedTasks:         5,
-		AverageResponseTime: 150.5,
-		NetworkLatency:      25.0,
-		TEEHealthScore:      0.95,
-		Timestamp:           now,
-		Uptime:              86400,
-		Components:          components,
-		ActiveAlerts:        1,
-		Alerts:              alerts,
+		ID:            "health-123",
+		OverallStatus: "healthy",
+		ActiveNodes:   5,
+		TotalNodes:    6,
+		Components:    components,
+		Alerts:        alerts,
 	}
 
 	if health.ID != "health-123" {
@@ -382,8 +337,6 @@ func TestAlert_StructFields(t *testing.T) {
 		NodeID:     "node-123",
 		Metadata:   metadata,
 		Status:     "resolved",
-		CreatedAt:  now,
-		UpdatedAt:  now,
 		ResolvedAt: &resolvedAt,
 	}
 

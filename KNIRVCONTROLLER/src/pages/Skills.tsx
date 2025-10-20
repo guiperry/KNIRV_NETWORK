@@ -572,7 +572,7 @@ export default function Skills() {
         id="agent-management"
         isOpen={activePanels.includes('agent-management')}
         onClose={() => closePanel('agent-management')}
-        title="Agent Management"
+        title="Manage Agent"
         side="left"
       >
         <AgentManager

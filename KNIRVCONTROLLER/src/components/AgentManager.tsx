@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
-import { Bot, Shield, Users, Coins, Activity, Upload, Zap } from 'lucide-react';
+import { Bot, Coins, Activity, Upload, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { NRV } from '../App';
 import { agentManagementService, Agent, AgentUploadRequest, AgentDeploymentRequest } from '../services/AgentManagementService';
@@ -25,89 +25,84 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
   cognitiveEngine: _cognitiveEngine
 }) => {
   const navigate = useNavigate();
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [deployedAgents, setDeployedAgents] = useState<Agent[]>([]);
+  const [cortexModels, setCortexModels] = useState<Agent[]>([]);
+  const [keyAgent, setKeyAgent] = useState<Agent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [uploadingAgent, setUploadingAgent] = useState(false);
+  const [uploadingModel, setUploadingModel] = useState(false);
   const [, setSelectedFile] = useState<File | null>(null);
 
-  // Load agents from AgentManagementService
+  // Load cortex models and key agent from AgentManagementService
   useEffect(() => {
-    const loadAgents = async () => {
+    const loadModelsAndAgent = async () => {
       try {
         setIsLoading(true);
 
-        // Load available agents
-        const availableAgents = await agentManagementService.getAgents();
-        setAgents(availableAgents);
+        // Load available cortex.wasm models
+        const availableModels = await agentManagementService.getAgents();
+        const cortexModelsOnly = availableModels.filter(agent => agent.type === 'wasm');
+        setCortexModels(cortexModelsOnly);
 
-        // Load deployed agents
-        const deployedAgentsList = await agentManagementService.getDeployedAgents();
-        setDeployedAgents(deployedAgentsList);
+        // Load key agent (first available agent or create default)
+        const allAgents = await agentManagementService.getAgents();
+        const keyAgentData = allAgents.find(agent => agent.type !== 'wasm') || allAgents[0];
+        if (keyAgentData) {
+          setKeyAgent(keyAgentData);
+        }
 
-        console.log('Agents loaded:', availableAgents.length, 'available,', deployedAgentsList.length, 'deployed');
+        console.log('Cortex models loaded:', cortexModelsOnly.length, 'models, key agent:', keyAgentData?.name);
       } catch (error) {
-        console.error('Failed to load agents:', error);
+        console.error('Failed to load models and agent:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadAgents();
+    loadModelsAndAgent();
 
-    // Refresh agents every 30 seconds
-    const interval = setInterval(loadAgents, 30000);
+    // Refresh every 30 seconds
+    const interval = setInterval(loadModelsAndAgent, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  // Handle agent file upload
-  const handleAgentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle cortex model file upload
+  const handleModelUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setSelectedFile(file);
-    setUploadingAgent(true);
+    setUploadingModel(true);
 
     try {
-      // Determine agent type based on file extension
-      let agentType: 'wasm' | 'lora' | 'hybrid' = 'wasm';
-      if (file.name.endsWith('.wasm')) {
-        agentType = 'wasm';
-      } else if (file.name.endsWith('.json') || file.name.endsWith('.lora')) {
-        agentType = 'lora';
-      } else {
-        agentType = 'hybrid';
-      }
-
       const uploadRequest: AgentUploadRequest = {
         file,
         metadata: {
           name: file.name.replace(/\.[^/.]+$/, ''), // Remove file extension
-          description: `Uploaded agent from ${file.name}`,
+          description: `Uploaded cortex.wasm model from ${file.name}`,
           author: 'User'
         },
-        type: agentType
+        type: 'wasm'
       };
 
-      const newAgent = await agentManagementService.uploadAgent(uploadRequest);
+      const newModel = await agentManagementService.uploadAgent(uploadRequest);
 
-      // Refresh agents list
-      const updatedAgents = await agentManagementService.getAgents();
-      setAgents(updatedAgents);
+      // Refresh cortex models list
+      const updatedModels = await agentManagementService.getAgents();
+      const cortexModelsOnly = updatedModels.filter(agent => agent.type === 'wasm');
+      setCortexModels(cortexModelsOnly);
 
-      console.log('Agent uploaded successfully:', newAgent);
+      console.log('Cortex model uploaded successfully:', newModel);
     } catch (error) {
-      console.error('Agent upload failed:', error);
-      alert(`Agent upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Model upload failed:', error);
+      alert(`Model upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
-      setUploadingAgent(false);
+      setUploadingModel(false);
       setSelectedFile(null);
       // Reset file input
       event.target.value = '';
     }
   };
 
-  // Handle agent deployment
+  // Handle agent/model deployment
   const handleAgentDeployment = async (agent: Agent, targetNRV?: NRV) => {
     try {
       // Check wallet balance
@@ -135,10 +130,6 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
 
       const deploymentId = await agentManagementService.deployAgent(deploymentRequest);
 
-      // Refresh deployed agents list
-      const updatedDeployedAgents = await agentManagementService.getDeployedAgents();
-      setDeployedAgents(updatedDeployedAgents);
-
       console.log('Agent deployed successfully:', deploymentId);
 
       // Call the parent callback for UI updates
@@ -158,15 +149,6 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
 
 
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'wasm': return <Bot className="w-4 h-4" />;
-      case 'lora': return <Users className="w-4 h-4" />;
-      case 'hybrid': return <Shield className="w-4 h-4" />;
-      default: return <Bot className="w-4 h-4" />;
-    }
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Available': return 'text-green-400';
@@ -177,12 +159,13 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
     }
   };
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'wasm': return 'bg-blue-500/20 text-blue-400';
-      case 'lora': return 'bg-purple-500/20 text-purple-400';
-      case 'hybrid': return 'bg-orange-500/20 text-orange-400';
-      default: return 'bg-gray-500/20 text-gray-400';
+  const getAgentAvatar = (status: string) => {
+    switch (status) {
+      case 'Available': return '/assets/avatar/bot_green.png';
+      case 'Deployed': return '/assets/avatar/bot_blue.png';
+      case 'Compiling': return '/assets/avatar/bot_orange.png';
+      case 'Error': return '/assets/avatar/bot_red.png';
+      default: return '/assets/avatar/bot_default.png';
     }
   };
 
@@ -210,34 +193,83 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
         <span className="text-lg font-bold text-yellow-400">{nrnBalance.toLocaleString()}</span>
       </div>
 
-      {/* Agent Upload */}
+      {/* Key Agent Section */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium text-gray-400">Key Agent</h3>
+        {keyAgent ? (
+          <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700/50 space-y-3">
+            <div className="flex items-center space-x-4">
+              <img
+                src={getAgentAvatar(keyAgent.status)}
+                alt="Agent Avatar"
+                className="w-12 h-12 rounded-full border-2 border-gray-600"
+              />
+              <div className="flex-1">
+                <h4 className="text-white font-medium">{keyAgent.name}</h4>
+                <p className="text-xs text-gray-400">{keyAgent.metadata.description}</p>
+                <div className="flex items-center space-x-2 mt-1">
+                  <span className={`text-sm font-medium ${getStatusColor(keyAgent.status)}`}>
+                    {keyAgent.status}
+                  </span>
+                  {keyAgent.status === 'Available' && (
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <div className="flex items-center space-x-3">
+                <span>Version: {keyAgent.metadata.version}</span>
+                <span>Memory: {keyAgent.metadata.requirements.memory}MB</span>
+                <span>CPU: {keyAgent.metadata.requirements.cpu}</span>
+              </div>
+              {keyAgent.lastActivity && (
+                <span>Last: {new Date(keyAgent.lastActivity).toLocaleTimeString()}</span>
+              )}
+            </div>
+            <div className="flex items-center space-x-2">
+              <Zap className="w-3 h-3 text-yellow-400" />
+              <span className="text-xs text-gray-400">
+                {keyAgent.capabilities.join(', ')}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 text-center text-gray-500 bg-gray-800/30 rounded-lg border border-gray-700/30">
+            <Bot className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">No key agent configured</p>
+          </div>
+        )}
+      </div>
+
+      {/* Cortex Models Upload */}
       <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-white font-medium">Upload Custom Agent</span>
+          <span className="text-white font-medium">Upload Cortex Model</span>
           <Activity className="w-4 h-4 text-blue-400" />
         </div>
         <div className="flex items-center space-x-2">
           <input
             type="file"
             accept=".wasm"
-            onChange={handleAgentUpload}
-            disabled={uploadingAgent}
+            onChange={handleModelUpload}
+            disabled={uploadingModel}
             className="hidden"
-            id="agent-upload"
+            id="model-upload"
           />
           <label
-            htmlFor="agent-upload"
+            htmlFor="model-upload"
             className={`flex items-center space-x-2 px-3 py-2 rounded text-sm font-medium transition-colors cursor-pointer ${
-              uploadingAgent
+              uploadingModel
                 ? 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
                 : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
             }`}
           >
             <Upload className="w-4 h-4" />
-            <span>{uploadingAgent ? 'Uploading...' : 'Upload WASM Agent'}</span>
+            <span>{uploadingModel ? 'Uploading...' : 'Upload WASM Model'}</span>
           </label>
           <span className="text-xs text-gray-400">
-            Upload .wasm files compiled with agent-core interface
+            Upload .wasm files for neural intelligence models
           </span>
         </div>
       </div>
@@ -270,37 +302,37 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
         </div>
       )}
 
-      {/* Available Agents List */}
+      {/* Cortex Models List */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-gray-400">Available Agents</h3>
-          <span className="text-xs text-gray-500">{agents.length} agents</span>
+          <h3 className="text-sm font-medium text-gray-400">Cortex Models</h3>
+          <span className="text-xs text-gray-500">{cortexModels.length} models</span>
         </div>
-        {agents.map((agent) => (
+        {cortexModels.map((model) => (
           <div
-            key={agent.agentId}
+            key={model.agentId}
             className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50 space-y-2"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div className={`p-1 rounded ${getTypeColor(agent.type)}`}>
-                  {getTypeIcon(agent.type)}
+                <div className="p-1 rounded bg-blue-500/20 text-blue-400">
+                  <Bot className="w-4 h-4" />
                 </div>
                 <button
-                  onClick={() => handleAgentClick(agent)}
+                  onClick={() => handleAgentClick(model)}
                   className="text-white font-medium hover:text-blue-400 transition-colors cursor-pointer"
                 >
-                  {agent.name}
+                  {model.name}
                 </button>
-                <div className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded">
-                  {agent.type.toUpperCase()}
+                <div className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded">
+                  CORTEX
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                <span className={`text-sm font-medium ${getStatusColor(agent.status)}`}>
-                  {agent.status}
+                <span className={`text-sm font-medium ${getStatusColor(model.status)}`}>
+                  {model.status}
                 </span>
-                {agent.status === 'Available' && (
+                {model.status === 'Available' && (
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                 )}
               </div>
@@ -310,91 +342,57 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
               <div className="flex items-center space-x-2">
                 <Zap className="w-3 h-3 text-yellow-400" />
                 <span className="text-xs text-gray-400">
-                  {agent.capabilities.join(', ')}
+                  {model.capabilities.join(', ')}
                 </span>
               </div>
               <span className="text-sm font-medium text-yellow-400">
-                {agent.nrnCost} NRN
+                {model.nrnCost} NRN
               </span>
             </div>
 
-            {/* Agent metadata */}
+            {/* Model metadata */}
             <div className="flex items-center justify-between text-xs text-gray-500">
               <div className="flex items-center space-x-3">
-                <span>Version: {agent.metadata.version}</span>
-                <span>Memory: {agent.metadata.requirements.memory}MB</span>
-                <span>CPU: {agent.metadata.requirements.cpu}</span>
+                <span>Version: {model.metadata.version}</span>
+                <span>Memory: {model.metadata.requirements.memory}MB</span>
+                <span>CPU: {model.metadata.requirements.cpu}</span>
               </div>
-              {agent.lastActivity && (
-                <span>Last: {new Date(agent.lastActivity).toLocaleTimeString()}</span>
+              {model.lastActivity && (
+                <span>Last: {new Date(model.lastActivity).toLocaleTimeString()}</span>
               )}
             </div>
 
-            {/* Agent description */}
-            {agent.metadata.description && (
+            {/* Model description */}
+            {model.metadata.description && (
               <div className="text-xs text-gray-400">
-                {String(agent.metadata.description)}
+                {String(model.metadata.description)}
               </div>
             )}
 
-            {selectedNRV && agent.status === 'Available' && (
+            {selectedNRV && model.status === 'Available' && (
               <button
-                onClick={() => handleAgentDeployment(agent, selectedNRV)}
-                disabled={nrnBalance < agent.nrnCost}
+                onClick={() => handleAgentDeployment(model, selectedNRV)}
+                disabled={nrnBalance < model.nrnCost}
                 className={`w-full py-2 px-3 rounded text-sm font-medium transition-colors ${
-                  nrnBalance >= agent.nrnCost
+                  nrnBalance >= model.nrnCost
                     ? 'bg-teal-500/20 text-teal-400 hover:bg-teal-500/30'
                     : 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
                 }`}
               >
-                {nrnBalance >= agent.nrnCost ? 'Deploy Agent' : 'Insufficient NRN'}
+                {nrnBalance >= model.nrnCost ? 'Deploy Model' : 'Insufficient NRN'}
               </button>
             )}
           </div>
         ))}
 
-        {agents.length === 0 && (
+        {cortexModels.length === 0 && (
           <div className="p-4 text-center text-gray-500">
             <Bot className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No agents available</p>
-            <p className="text-xs">Upload a WASM agent to get started</p>
+            <p className="text-sm">No cortex models available</p>
+            <p className="text-xs">Upload a WASM model to get started</p>
           </div>
         )}
       </div>
-
-      {/* Deployed Agents Section */}
-      {deployedAgents.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-400">Deployed Agents</h3>
-            <span className="text-xs text-gray-500">{deployedAgents.length} deployed</span>
-          </div>
-          {deployedAgents.map((agent) => (
-            <div
-              key={`deployed-${agent.agentId}`}
-              className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20 space-y-2"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className={`p-1 rounded ${getTypeColor(agent.type)}`}>
-                    {getTypeIcon(agent.type)}
-                  </div>
-                  <span className="text-white font-medium">{agent.name}</span>
-                  <div className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded">
-                    DEPLOYED
-                  </div>
-                </div>
-                <span className="text-sm font-medium text-blue-400">
-                  {agent.status}
-                </span>
-              </div>
-              <div className="text-xs text-gray-400">
-                {agent.capabilities.join(', ')}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 };

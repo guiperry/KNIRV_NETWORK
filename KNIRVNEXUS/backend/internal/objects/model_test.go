@@ -6,9 +6,8 @@ import (
 )
 
 func TestModel_StructFields(t *testing.T) {
-	now := time.Now()
-	deployedAt := now.Add(time.Hour)
-	lastActivity := now.Add(time.Minute * 30)
+	deployedAt := time.Now().Add(time.Hour)
+	lastActivity := time.Now().Add(time.Minute * 30)
 
 	resourceLimits := &ModelResourceLimits{
 		MaxMemoryMB:      512,
@@ -29,20 +28,17 @@ func TestModel_StructFields(t *testing.T) {
 		ExecutionTime:   150,
 		RequestCount:    1000,
 		ErrorCount:      5,
-		LastUpdated:     now,
 	}
 
 	runtimeInstance := &ModelRuntimeInstance{
 		InstanceID:      "instance-123",
 		ProcessID:       12345,
-		StartedAt:       now,
 		Status:          "running",
 		ResourceUsage:   resourceUsage,
 		Configuration:   map[string]interface{}{"debug": true},
 		Environment:     map[string]string{"ENV": "production"},
 		Port:            8080,
 		HealthCheckURL:  "/health",
-		LastHealthCheck: &now,
 		HealthStatus:    "healthy",
 		RestartCount:    0,
 		ErrorMessage:    "",
@@ -50,10 +46,7 @@ func TestModel_StructFields(t *testing.T) {
 
 	model := Model{
 		ID:              "model-123",
-		Name:            "Test Model",
-		Description:     "A test WASM model",
-		Version:         "1.0.0",
-		Author:          "test-author",
+		Name:        "Test Model",
 		Type:            "WASM",
 		Status:          "running",
 		FilePath:        "/objects/test-model.wasm",
@@ -65,9 +58,7 @@ func TestModel_StructFields(t *testing.T) {
 		Configuration:   map[string]interface{}{"timeout": 30},
 		Metadata:        map[string]interface{}{"category": "ml"},
 		Tags:            []string{"ml", "inference"},
-		UploadedAt:      now,
 		DeployedAt:      &deployedAt,
-		LastModified:    now,
 		LastActivity:    &lastActivity,
 		UploadedBy:      "user-123",
 		DeployedBy:      "user-456",
@@ -102,8 +93,6 @@ func TestModelResourceLimits_StructFields(t *testing.T) {
 		MaxMemoryMB:      1024,
 		MaxCPUPercent:    90.5,
 		MaxExecutionTime: 600,
-		MaxConcurrency:   20,
-		MaxDiskMB:        2048,
 		NetworkAccess:    true,
 		FileSystemAccess: true,
 	}
@@ -126,7 +115,6 @@ func TestModelResourceLimits_StructFields(t *testing.T) {
 }
 
 func TestModelResourceUsage_StructFields(t *testing.T) {
-	now := time.Now()
 	usage := ModelResourceUsage{
 		MemoryUsageMB:   512.75,
 		CPUUsagePercent: 65.3,
@@ -136,7 +124,6 @@ func TestModelResourceUsage_StructFields(t *testing.T) {
 		ExecutionTime:   450,
 		RequestCount:    5000,
 		ErrorCount:      25,
-		LastUpdated:     now,
 	}
 
 	if usage.MemoryUsageMB != 512.75 {
@@ -157,7 +144,6 @@ func TestModelResourceUsage_StructFields(t *testing.T) {
 }
 
 func TestModelDeployment_StructFields(t *testing.T) {
-	now := time.Now()
 
 	healthCheck := &ModelHealthCheck{
 		Enabled:          true,
@@ -171,21 +157,13 @@ func TestModelDeployment_StructFields(t *testing.T) {
 	deployment := ModelDeployment{
 		ID:             "deployment-123",
 		ModelID:        "model-123",
-		Name:           "Production Deployment",
-		Description:    "Production deployment of test model",
+		Name: "Production Deployment",
 		Environment:    "production",
 		Replicas:       3,
 		Strategy:       "rolling",
-		Configuration:  map[string]interface{}{"replicas": 3},
-		ResourceLimits: &ModelResourceLimits{MaxMemoryMB: 512, MaxCPUPercent: 80.0, MaxExecutionTime: 300},
-		HealthCheck:    healthCheck,
-		AutoRestart:    true,
-		RestartPolicy:  "always",
-		CreatedAt:      now,
-		UpdatedAt:      now,
-		CreatedBy:      "user-123",
-		Status:         "deployed",
-		Instances:      []*ModelRuntimeInstance{},
+		HealthCheck: healthCheck,
+		AutoRestart: true,
+		Status:      "deployed",
 	}
 
 	if deployment.ID != "deployment-123" {
@@ -233,14 +211,13 @@ func TestModelHealthCheck_StructFields(t *testing.T) {
 }
 
 func TestModelLog_StructFields(t *testing.T) {
-	now := time.Now()
 	log := ModelLog{
 		ID:         "log-123",
 		ModelID:    "model-123",
 		InstanceID: "instance-123",
 		Level:      "error",
 		Message:    "Connection timeout",
-		Timestamp:  now,
+		Timestamp: time.Now(),
 		Source:     "network-module",
 		Metadata:   map[string]interface{}{"retry_count": 3},
 	}
@@ -263,18 +240,16 @@ func TestModelLog_StructFields(t *testing.T) {
 }
 
 func TestModelMetrics_StructFields(t *testing.T) {
-	now := time.Now()
 	resourceUsage := &ModelResourceUsage{
 		MemoryUsageMB:   256.0,
 		CPUUsagePercent: 45.0,
 		DiskUsageMB:     512.0,
-		LastUpdated:     now,
 	}
 
 	metrics := ModelMetrics{
 		ModelID:           "model-123",
 		InstanceID:        "instance-123",
-		Timestamp:         now,
+		Timestamp: time.Now(),
 		RequestsPerSecond: 150.5,
 		AverageLatency:    25.3,
 		ErrorRate:         2.1,
@@ -300,14 +275,13 @@ func TestModelMetrics_StructFields(t *testing.T) {
 }
 
 func TestModelEvent_StructFields(t *testing.T) {
-	now := time.Now()
 	event := ModelEvent{
 		ID:          "event-123",
 		ModelID:     "model-123",
 		InstanceID:  "instance-123",
 		Type:        "deployed",
 		Description: "Model successfully deployed to production",
-		Timestamp:   now,
+		Timestamp: time.Now(),
 		UserID:      "user-123",
 		Metadata:    map[string]interface{}{"deployment_id": "deploy-456"},
 	}
@@ -330,22 +304,10 @@ func TestModelEvent_StructFields(t *testing.T) {
 }
 
 func TestModelTemplate_StructFields(t *testing.T) {
-	now := time.Now()
 	template := ModelTemplate{
 		ID:                   "template-123",
 		Name:                 "ML Inference Template",
-		Description:          "Template for ML inference objects",
-		Version:              "2.0.0",
 		Type:                 "WASM",
-		SourceCode:           "fn main() { ... }",
-		BuildScript:          "cargo build --release",
-		DefaultConfig:        map[string]interface{}{"model_path": "/objects/default"},
-		ResourceLimits:       &ModelResourceLimits{MaxMemoryMB: 1024, MaxCPUPercent: 70.0, MaxExecutionTime: 600},
-		RequiredCapabilities: []string{"inference", "model-loading"},
-		Tags:                 []string{"ml", "template"},
-		CreatedAt:            now,
-		UpdatedAt:            now,
-		CreatedBy:            "user-123",
 		IsPublic:             true,
 		UsageCount:           42,
 	}
@@ -364,9 +326,6 @@ func TestModelTemplate_StructFields(t *testing.T) {
 	}
 	if template.UsageCount != 42 {
 		t.Errorf("Expected UsageCount 42, got %d", template.UsageCount)
-	}
-	if len(template.RequiredCapabilities) != 2 {
-		t.Errorf("Expected 2 required capabilities, got %d", len(template.RequiredCapabilities))
 	}
 }
 

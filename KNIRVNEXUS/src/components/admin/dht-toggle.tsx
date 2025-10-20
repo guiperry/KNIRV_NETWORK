@@ -1,14 +1,55 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDHT } from '@/contexts/dht-context';
-import { AlertTriangle, Network, WifiOff } from 'lucide-react';
+import { AlertTriangle, Network, WifiOff, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export const DHTToggle: React.FC = () => {
-  const { isDHTEnabled, toggleDHT } = useDHT();
+  const { isDHTEnabled, toggleDHT, setDHTEnabled } = useDHT();
+  const { toast } = useToast();
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleToggle = async (checked: boolean) => {
+    setIsUpdating(true);
+
+    try {
+      // Call backend API to update DHT settings
+      const response = await fetch('/api/system/dht', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ enabled: checked }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update DHT settings');
+      }
+
+      const data = await response.json();
+
+      // Update local state
+      setDHTEnabled(checked);
+
+      toast({
+        title: "DHT Settings Updated",
+        description: `DHT has been ${checked ? 'enabled' : 'disabled'} successfully.`,
+      });
+    } catch (error) {
+      console.error('Failed to update DHT settings:', error);
+      toast({
+        title: "Update Failed",
+        description: "Failed to update DHT settings. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   return (
     <Card className="w-full">
@@ -38,11 +79,22 @@ export const DHTToggle: React.FC = () => {
               }
             </div>
           </div>
-          <Switch
-            id="dht-toggle"
-            checked={isDHTEnabled}
-            onCheckedChange={toggleDHT}
-          />
+          <div className="flex items-center gap-2">
+            <div className={`relative ${!isDHTEnabled ? "ring-2 ring-red-500 rounded-full" : ""}`}>
+              <Switch
+                id="dht-toggle"
+                checked={isDHTEnabled}
+                onCheckedChange={handleToggle}
+                disabled={isUpdating}
+              />
+              {!isDHTEnabled && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+              )}
+            </div>
+            {isUpdating && (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            )}
+          </div>
         </div>
 
         <div className="rounded-lg border p-4 space-y-3">

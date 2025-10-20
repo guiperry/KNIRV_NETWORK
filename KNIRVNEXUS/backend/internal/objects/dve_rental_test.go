@@ -7,8 +7,6 @@ import (
 
 func TestDVERental_StructFields(t *testing.T) {
 	now := time.Now()
-	startTime := now
-	endTime := now.Add(time.Hour * 24)
 
 	resourceLimits := ResourceLimits{
 		MaxCPU:       4.0,
@@ -26,20 +24,14 @@ func TestDVERental_StructFields(t *testing.T) {
 	}
 
 	rental := DVERental{
-		ID:               "rental-123",
-		UserID:           "user-456",
-		DVENodeID:        "dve-node-789",
-		NRNAmount:        1000,
-		RentalDuration:   86400, // 24 hours in seconds
-		StartTime:        startTime,
-		EndTime:          endTime,
-		Status:           "active",
-		PaymentTxHash:    "0xabcd1234567890",
-		CDEEnvironmentID: "cde-env-123",
-		ResourceLimits:   resourceLimits,
-		UsageMetrics:     usageMetrics,
-		CreatedAt:        now,
-		UpdatedAt:        now,
+		ID:             "rental-123",
+		UserID:         "user-456",
+		NRNAmount:      1000,
+		RentalDuration: 86400, // 24 hours in seconds
+		Status:         "active",
+		PaymentTxHash:  "0xabcd1234567890",
+		ResourceLimits: resourceLimits,
+		UsageMetrics:   usageMetrics,
 	}
 
 	if rental.ID != "rental-123" {
@@ -123,16 +115,14 @@ func TestNRNPayment_StructFields(t *testing.T) {
 	confirmedAt := now.Add(time.Minute * 10)
 
 	payment := NRNPayment{
-		ID:            "payment-123",
-		RentalID:      "rental-456",
-		UserID:        "user-789",
-		Amount:        2500,
-		TxHash:        "0x1234567890abcdef",
-		Status:        "confirmed",
-		BlockHeight:   1000000,
+		ID:          "payment-123",
+		RentalID:    "rental-456",
+		Amount:      2500,
+		TxHash:      "0x1234567890abcdef",
+		Status:      "confirmed",
+		BlockHeight: 1000000,
 		Confirmations: 12,
-		CreatedAt:     now,
-		ConfirmedAt:   &confirmedAt,
+		ConfirmedAt: &confirmedAt,
 	}
 
 	if payment.ID != "payment-123" {
@@ -162,8 +152,6 @@ func TestNRNPayment_StructFields(t *testing.T) {
 }
 
 func TestRentalPlan_StructFields(t *testing.T) {
-	now := time.Now()
-	updated := now.Add(time.Hour)
 
 	resourceLimits := ResourceLimits{
 		MaxCPU:       2.0,
@@ -175,15 +163,12 @@ func TestRentalPlan_StructFields(t *testing.T) {
 	plan := RentalPlan{
 		ID:             "plan-basic",
 		Name:           "Basic Plan",
-		Description:    "Basic DVE rental plan with 2 CPU cores and 4GB RAM",
 		PricePerHour:   100,
 		ResourceLimits: resourceLimits,
 		MaxDuration:    604800, // 7 days in seconds
 		MinDuration:    3600,   // 1 hour in seconds
 		Features:       []string{"SSH Access", "Web Terminal", "File Transfer"},
 		IsActive:       true,
-		CreatedAt:      now,
-		UpdatedAt:      updated,
 	}
 
 	if plan.ID != "plan-basic" {
@@ -213,7 +198,6 @@ func TestRentalPlan_StructFields(t *testing.T) {
 }
 
 func TestDVERentalStats_StructFields(t *testing.T) {
-	now := time.Now()
 
 	planUsage1 := PlanUsage{
 		PlanID:     "plan-basic",
@@ -235,10 +219,7 @@ func TestDVERentalStats_StructFields(t *testing.T) {
 		TotalNRNCollected: 50000,
 		AverageRentalTime: 43200, // 12 hours in seconds
 		PopularPlans:      []PlanUsage{planUsage1, planUsage2},
-		RevenueToday:      1000,
-		Revenue7Days:      7500,
 		Revenue30Days:     30000,
-		Timestamp:         now,
 	}
 
 	if stats.TotalRentals != 500 {
@@ -330,7 +311,6 @@ func TestRentalResponse_StructFields(t *testing.T) {
 		CDEAccessURL:   "https://cde.knirv.com/env-123",
 		CDECredentials: credentials,
 		ExpiresAt:      expiresAt,
-		Error:          "",
 		Message:        "DVE rental successful",
 	}
 

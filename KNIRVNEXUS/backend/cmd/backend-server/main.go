@@ -298,9 +298,11 @@ func (s *Server) setupRoutes() {
 		s.router.HandleFunc("/api/auth/reset-password", authHandlers.ResetPassword).Methods("POST", "OPTIONS")
 
 		// Protected auth routes
-		s.router.HandleFunc("/api/auth/me", authHandlers.Me).Methods("GET", "OPTIONS")
-		s.router.HandleFunc("/api/auth/change-password", authHandlers.ChangePassword).Methods("POST", "OPTIONS")
-		s.router.HandleFunc("/api/auth/update-profile", authHandlers.UpdateProfile).Methods("PUT", "OPTIONS")
+		protectedAuthRouter := s.router.PathPrefix("/api/auth").Subrouter()
+		protectedAuthRouter.Use(authMiddleware.RequireAuth)
+		protectedAuthRouter.HandleFunc("/me", authHandlers.Me).Methods("GET", "OPTIONS")
+		protectedAuthRouter.HandleFunc("/change-password", authHandlers.ChangePassword).Methods("POST", "OPTIONS")
+		protectedAuthRouter.HandleFunc("/update-profile", authHandlers.UpdateProfile).Methods("PUT", "OPTIONS")
 		log.Println("Auth routes configured")
 	}
 
@@ -402,6 +404,11 @@ func (s *Server) setupRoutes() {
 		cognitiveEngineHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("Cognitive engine routes configured")
 	}
+
+	// Register system settings routes
+	systemSettingsHandlers := web.NewSystemSettingsHandlers(s.config)
+	systemSettingsHandlers.RegisterRoutes(s.router, authMiddleware)
+	log.Println("System settings routes configured")
 
 	log.Println("All routes configured successfully")
 }

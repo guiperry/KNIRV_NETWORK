@@ -28,6 +28,13 @@ type DVENode struct {
 	// Geographic coordinates for spatial indexing
 	Latitude  float64 `json:"latitude,omitempty"`
 	Longitude float64 `json:"longitude,omitempty"`
+
+	// Remote instance connection tracking
+	RemoteInstanceURL string    `json:"remote_instance_url,omitempty"`
+	Connected         bool      `json:"connected"`
+	LastConnectCheck  time.Time `json:"last_connect_check"`
+	ConnectionError   string    `json:"connection_error,omitempty"`
+	IsRemote          bool      `json:"is_remote"`
 }
 
 // ValidationTask represents a validation task in the DVE network

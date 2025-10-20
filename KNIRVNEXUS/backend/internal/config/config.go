@@ -32,6 +32,7 @@ type Config struct {
 	CDE         CDEConfig        `mapstructure:"cde"`
 	Reports     ReportsConfig    `mapstructure:"reports"`
 	Log         LogConfig        `mapstructure:"log"`
+	DVE         DVEConfig        `mapstructure:"dve"`
 }
 
 // DatabaseConfig represents database configuration
@@ -182,6 +183,24 @@ type LogConfig struct {
 	Level  string `mapstructure:"level"`
 	Format string `mapstructure:"format"`
 	Output string `mapstructure:"output"`
+}
+
+// DVEConfig represents DVE (Decentralized Validation Environment) configuration
+type DVEConfig struct {
+	Discovery DVEDiscoveryConfig `mapstructure:"discovery"`
+}
+
+// DVEDiscoveryConfig represents DVE discovery configuration
+type DVEDiscoveryConfig struct {
+	Enabled              bool          `mapstructure:"enabled"`
+	BootstrapNodes       []string      `mapstructure:"bootstrap_nodes"`
+	DiscoveryInterval    time.Duration `mapstructure:"discovery_interval"`
+	ConnectionTimeout    time.Duration `mapstructure:"connection_timeout"`
+	HealthCheckInterval  time.Duration `mapstructure:"health_check_interval"`
+	HeartbeatTimeout     time.Duration `mapstructure:"heartbeat_timeout"`
+	MaxRetries           int           `mapstructure:"max_retries"`
+	RetryBackoffDuration time.Duration `mapstructure:"retry_backoff_duration"`
+	ConnectionPoolSize   int           `mapstructure:"connection_pool_size"`
 }
 
 // Load loads configuration from environment variables and config files
@@ -411,6 +430,17 @@ func setDefaults() {
 	viper.SetDefault("reports.retention_days", 30)
 	viper.SetDefault("reports.enable_sharing", true)
 	viper.SetDefault("reports.enable_scheduling", true)
+
+	// DVE Discovery configuration defaults
+	viper.SetDefault("dve.discovery.enabled", true)
+	viper.SetDefault("dve.discovery.bootstrap_nodes", []string{})
+	viper.SetDefault("dve.discovery.discovery_interval", "30s")
+	viper.SetDefault("dve.discovery.connection_timeout", "5s")
+	viper.SetDefault("dve.discovery.health_check_interval", "60s")
+	viper.SetDefault("dve.discovery.heartbeat_timeout", "2m")
+	viper.SetDefault("dve.discovery.max_retries", 3)
+	viper.SetDefault("dve.discovery.retry_backoff_duration", "2s")
+	viper.SetDefault("dve.discovery.connection_pool_size", 10)
 
 	// Legacy defaults for backward compatibility
 	viper.SetDefault("chain_id", "knirv-nexus-mainnet")

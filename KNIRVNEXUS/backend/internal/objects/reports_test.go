@@ -6,29 +6,15 @@ import (
 )
 
 func TestReportRecord_StructFields(t *testing.T) {
-	now := time.Now()
-	completedAt := now.Add(time.Hour)
-	expiresAt := now.Add(24 * time.Hour)
-	lastAccessed := now.Add(time.Minute * 30)
-
 	report := ReportRecord{
 		ID:            "report-123",
-		Title:         "System Health Report",
 		Type:          "system_health",
 		Format:        "pdf",
-		Parameters:    map[string]interface{}{"period": "24h", "nodes": []string{"node1", "node2"}},
-		GeneratedBy:   "user-123",
-		FilePath:      "/reports/system_health_20240916.pdf",
 		FileSize:      1024000,
 		SharedWith:    []string{"user-456", "public"},
 		Scheduled:     true,
 		ScheduleCron:  "0 0 * * *",
-		Status:        "completed",
-		CreatedAt:     now,
-		CompletedAt:   &completedAt,
-		ExpiresAt:     &expiresAt,
 		DownloadCount: 5,
-		LastAccessed:  &lastAccessed,
 	}
 
 	if report.ID != "report-123" {

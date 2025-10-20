@@ -134,18 +134,30 @@ export default function DVERentalManagement({ isOpen, onClose }: DVERentalManage
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return `${amount.toLocaleString()} NRN`;
+  const formatCurrency = (amount: number | undefined | null) => {
+    if (amount == null) return '0 NRN';
+    return `${Math.round(amount).toLocaleString()} NRN`;
   };
 
-  const formatDuration = (hours: number) => {
+  const formatDuration = (hours: number | undefined | null) => {
+    if (hours == null || hours <= 0) return '--';
     if (hours < 24) return `${hours}h`;
     const days = Math.floor(hours / 24);
     const remainingHours = hours % 24;
     return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
   };
 
-  const calculateTotalCost = (plan: DVERentalPlan, duration: number) => {
+  const formatDate = (dateString: string | undefined | null) => {
+    if (!dateString) return '--';
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch {
+      return '--';
+    }
+  };
+
+  const calculateTotalCost = (plan: DVERentalPlan | null | undefined, duration: number) => {
+    if (!plan || plan.price_per_hour == null) return 0;
     return plan.price_per_hour * duration;
   };
 
@@ -352,7 +364,7 @@ export default function DVERentalManagement({ isOpen, onClose }: DVERentalManage
                             <div>
                               <p className="font-medium">{formatCurrency(rental.total_cost)}</p>
                               <p className="text-sm text-muted-foreground">
-                                {new Date(rental.start_time).toLocaleDateString()}
+                                {formatDate(rental.start_time)}
                               </p>
                             </div>
                             <div className="flex items-center space-x-2">
