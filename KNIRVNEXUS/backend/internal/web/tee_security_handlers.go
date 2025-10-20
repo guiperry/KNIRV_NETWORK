@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"backend-server/internal/objects"
-	"backend-server/internal/services/teesecurity"
-	"backend-server/internal/web/middleware"
+	"backend_server/internal/objects"
+	"backend_server/internal/services/teesecurity"
+	"backend_server/internal/web/middleware"
 
 	"github.com/gorilla/mux"
 )

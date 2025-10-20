@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"backend-server/internal/config"
-	"backend-server/internal/objects"
-	"backend-server/pkg/p2p"
+	"backend_server/internal/config"
+	"backend_server/internal/objects"
+	"backend_server/pkg/p2p"
 
 	"github.com/google/uuid"
 	"github.com/tidwall/buntdb"
@@ -260,6 +260,35 @@ func (vc *ValidationCore) GetValidationTask(taskID string) (*objects.ValidationT
 	return &task, nil
 }
 
+// GetValidationResults returns validation results with optional limit
+func (vc *ValidationCore) GetValidationResults(limit int) ([]*objects.ValidationResult, error) {
+	vc.mu.RLock()
+	defer vc.mu.RUnlock()
+
+	var results []*objects.ValidationResult
+
+	err := vc.db.View(func(tx *buntdb.Tx) error {
+		count := 0
+		return tx.Descend("validation:results:*", func(key, value string) bool {
+			if limit > 0 && count >= limit {
+				return false
+			}
+
+			var result objects.ValidationResult
+			if err := json.Unmarshal([]byte(value), &result); err != nil {
+				log.Printf("Error unmarshaling result: %v", err)
+				return true
+			}
+
+			results = append(results, &result)
+			count++
+			return true
+		})
+	})
+
+	return results, err
+}
+
 // ExecuteValidation executes a validation task
 func (vc *ValidationCore) ExecuteValidation(task *objects.ValidationTask) (*objects.ValidationResult, error) {
 	vc.mu.Lock()
@@ -383,11 +412,11 @@ func (vc *ValidationCore) validateSkillNode(ctx context.Context, task *objects.V
 	// Set test results and status
 	result.TestResults = testResults
 	result.Status = "completed"
-	
+
 	// Use countPassedTests method to determine status
 	passedCount := vc.countPassedTests(testResults)
 	totalCount := len(testResults)
-	
+
 	if totalCount > 0 {
 		passRate := float64(passedCount) / float64(totalCount)
 		if passRate >= 0.8 {
@@ -478,7 +507,7 @@ func (vc *ValidationCore) validateCustom(ctx context.Context, task *objects.Vali
 	// Extract and use custom validation parameters
 	validationType, _ := task.Parameters["validation_type"].(string)
 	threshold, _ := task.Parameters["threshold"].(float64)
-	
+
 	if threshold == 0 {
 		threshold = 0.8 // Default threshold
 	}
@@ -520,20 +549,20 @@ func (vc *ValidationCore) performSyntaxValidation(task *objects.ValidationTask) 
 	var syntaxErrors int
 	var warnings int
 	var passed bool = true
-	
+
 	// Analyze task structure and content
 	if task.ID == "" {
 		syntaxErrors++
 	} else if len(task.ID) > 100 {
 		warnings++
 	}
-	
+
 	if task.Type == "" {
 		syntaxErrors++
 	} else if task.Type != "skill" && task.Type != "llm_model" {
 		warnings++
 	}
-	
+
 	if len(task.TestCases) == 0 {
 		syntaxErrors++
 	} else {
@@ -546,7 +575,7 @@ func (vc *ValidationCore) performSyntaxValidation(task *objects.ValidationTask) 
 			}
 		}
 	}
-	
+
 	// Calculate score based on errors and warnings
 	score := 1.0
 	if syntaxErrors > 0 {
@@ -557,7 +586,7 @@ func (vc *ValidationCore) performSyntaxValidation(task *objects.ValidationTask) 
 	} else {
 		score = 1.0
 	}
-	
+
 	results := map[string]interface{}{
 		"validation_type": "syntax_check",
 		"syntax_errors":   syntaxErrors,
@@ -575,13 +604,13 @@ func (vc *ValidationCore) performPerformanceBenchmark(task *objects.ValidationTa
 	var latencyMs int
 	var throughputRps int
 	var memoryUsageMb int
-	
+
 	// Calculate performance metrics based on task complexity
 	complexity := len(task.TestCases)
 	if task.Type == "llm_model" {
 		complexity *= 2
 	}
-	
+
 	// Simulate performance metrics based on task complexity
 	latencyMs = 50 + (complexity * 10)
 	throughputRps = 1000 - (complexity * 50)
@@ -589,7 +618,7 @@ func (vc *ValidationCore) performPerformanceBenchmark(task *objects.ValidationTa
 		throughputRps = 100
 	}
 	memoryUsageMb = 128 + (complexity * 5)
-	
+
 	// Calculate score based on performance metrics
 	score := 1.0
 	if latencyMs > 500 {
@@ -597,17 +626,17 @@ func (vc *ValidationCore) performPerformanceBenchmark(task *objects.ValidationTa
 	} else if latencyMs > 200 {
 		score -= 0.1
 	}
-	
+
 	if throughputRps < 200 {
 		score -= 0.2
 	} else if throughputRps < 500 {
 		score -= 0.1
 	}
-	
+
 	if memoryUsageMb > 512 {
 		score -= 0.2
 	}
-	
+
 	results := map[string]interface{}{
 		"validation_type": "performance_benchmark",
 		"latency_ms":      latencyMs,
@@ -625,7 +654,7 @@ func (vc *ValidationCore) performSecurityScan(task *objects.ValidationTask) (flo
 	var vulnerabilities int
 	var securityScore int
 	recommendations := []string{}
-	
+
 	// Analyze task for security issues
 	if task.SkillCode != "" {
 		// Check for potential security issues in skill code
@@ -638,7 +667,7 @@ func (vc *ValidationCore) performSecurityScan(task *objects.ValidationTask) (flo
 			recommendations = append(recommendations, "Avoid system/shell commands in skill code")
 		}
 	}
-	
+
 	// Check for input validation issues in test cases
 	for _, tc := range task.TestCases {
 		if len(tc.Input) > 10000 {
@@ -646,15 +675,15 @@ func (vc *ValidationCore) performSecurityScan(task *objects.ValidationTask) (flo
 			recommendations = append(recommendations, "Implement input size limits")
 		}
 	}
-	
+
 	// Calculate security score
 	securityScore = 100 - (vulnerabilities * 10)
 	if securityScore < 0 {
 		securityScore = 0
 	}
-	
+
 	score := float64(securityScore) / 100.0
-	
+
 	results := map[string]interface{}{
 		"validation_type": "security_scan",
 		"vulnerabilities": vulnerabilities,
@@ -746,7 +775,7 @@ func (vc *ValidationCore) executeSkillTest(ctx context.Context, testCase objects
 	// Simulate skill execution - in real implementation, this would execute the skill code
 	// For now, return a simulated output based on the skill code and input
 	log.Printf("Executing skill test: skillCode=%s, input=%v", skillCode, testCase.Input)
-	
+
 	// Simulate execution time with context-aware sleep
 	select {
 	case <-time.After(100 * time.Millisecond):
@@ -754,7 +783,7 @@ func (vc *ValidationCore) executeSkillTest(ctx context.Context, testCase objects
 	case <-ctx.Done():
 		return "", ctx.Err()
 	}
-	
+
 	// Return simulated output
 	return fmt.Sprintf("Skill output for input: %v", testCase.Input), nil
 }
@@ -771,7 +800,7 @@ func (vc *ValidationCore) executeModelTest(ctx context.Context, testCase objects
 
 	// Simulate model execution - in real implementation, this would call the model
 	log.Printf("Executing model test: input=%v", testCase.Input)
-	
+
 	// Simulate execution time with context-aware sleep
 	select {
 	case <-time.After(50 * time.Millisecond):
@@ -779,7 +808,7 @@ func (vc *ValidationCore) executeModelTest(ctx context.Context, testCase objects
 	case <-ctx.Done():
 		return "", ctx.Err()
 	}
-	
+
 	// Return simulated output
 	return fmt.Sprintf("Model output for input: %v", testCase.Input), nil
 }
@@ -796,16 +825,16 @@ func (vc *ValidationCore) calculateScore(passed bool, actual, expected interface
 	if passed {
 		return 1.0
 	}
-	
+
 	// Calculate partial score based on similarity
 	actualStr := fmt.Sprintf("%v", actual)
 	expectedStr := fmt.Sprintf("%v", expected)
-	
+
 	// Simple similarity calculation (could be improved with more sophisticated algorithms)
 	if len(expectedStr) == 0 {
 		return 0.0
 	}
-	
+
 	// Calculate character-level similarity
 	similarity := 0.0
 	minLen := min(len(actualStr), len(expectedStr))
@@ -818,7 +847,7 @@ func (vc *ValidationCore) calculateScore(passed bool, actual, expected interface
 		}
 		similarity = float64(matchingChars) / float64(len(expectedStr))
 	}
-	
+
 	return similarity
 }
 
@@ -1175,7 +1204,7 @@ func (vc *ValidationCore) CompleteValidationWorkflow(
 	// Phase 2: Model Tester - Execute test cases and calculate metrics
 	if task.Type == "skill" || task.Type == "llm_model" {
 		log.Println("\n=== Phase 2: Model Tester - Test Execution ===")
-		
+
 		// Use executeTask method to handle the validation
 		testResult, err := vc.executeTask(ctx, task)
 		if err != nil {

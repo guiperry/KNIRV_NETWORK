@@ -240,14 +240,14 @@ func LoadWithDefaults() (*Config, error) {
 }
 
 // getAppDataDir returns the XDG Base Directory for app data
-// Following XDG Base Directory Specification: ~/.local/share/knirvnexus/backend-server
+// Following XDG Base Directory Specification: ~/.local/share/knirvnexus/backend_server
 func getAppDataDir() (string, error) {
 	usr, err := user.Current()
 	if err != nil {
 		return "", fmt.Errorf("failed to get current user: %v", err)
 	}
 
-	appDataDir := filepath.Join(usr.HomeDir, ".local", "share", "knirvnexus", "backend-server")
+	appDataDir := filepath.Join(usr.HomeDir, ".local", "share", "knirvnexus", "backend_server")
 	if err := os.MkdirAll(appDataDir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create app data directory %s: %v", appDataDir, err)
 	}

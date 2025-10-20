@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"backend-server/internal/messages"
+	"backend_server/internal/messages"
 )
 
 // DataEngine is the main manager for all data engineering components

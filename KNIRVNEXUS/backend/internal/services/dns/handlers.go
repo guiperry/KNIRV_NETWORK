@@ -7,8 +7,8 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"backend-server/internal/web/middleware"
-	"backend-server/pkg/cloudflare"
+	"backend_server/internal/web/middleware"
+	"backend_server/pkg/cloudflare"
 )
 
 // DNS Record Management Handlers

@@ -6,9 +6,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"backend-server/internal/objects"
-	"backend-server/internal/services/dvemanager"
-	"backend-server/internal/services/validation"
+	"backend_server/internal/objects"
+	"backend_server/internal/services/dvemanager"
+	"backend_server/internal/services/validation"
 )
 
 // TestNodeFilter tests the NodeFilter functionality

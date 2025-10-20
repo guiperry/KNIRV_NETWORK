@@ -1,7 +1,10 @@
 package controllerintegration
 
 import (
-	"backend-server/internal/objects"
+	"backend_server/internal/objects"
+	"backend_server/internal/services/websocket"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
@@ -12,16 +15,6 @@ import (
 
 	"github.com/tidwall/buntdb"
 )
-
-// RoomMessage represents a room-based WebSocket message
-type RoomMessage struct {
-	Room      string      `json:"room"`
-	Type      string      `json:"type"`
-	Event     string      `json:"event"`
-	Payload   interface{} `json:"payload"`
-	SenderID  string      `json:"sender_id,omitempty"`
-	Timestamp string      `json:"timestamp"`
-}
 
 // ControllerIntegrationService manages advanced controller integration
 type ControllerIntegrationService struct {
@@ -35,8 +28,8 @@ type ControllerIntegrationService struct {
 	pairingRequests map[string]*objects.PairingRequest
 
 	// Real-time communication
-	websocketService    interface {
-		BroadcastToRoom(roomName string, message *RoomMessage) error
+	websocketService interface {
+		BroadcastToRoom(roomName string, message *websocket.RoomMessage)
 	}
 	websocketConnections map[string]*objects.WebSocketConnection
 	messageQueue         map[string][]*objects.ControllerMessage
@@ -125,7 +118,7 @@ func (cis *ControllerIntegrationService) IsRunning() bool {
 
 // SetWebSocketService sets the WebSocket service for real-time communication
 func (cis *ControllerIntegrationService) SetWebSocketService(ws interface {
-	BroadcastToRoom(roomName string, message *RoomMessage) error
+	BroadcastToRoom(roomName string, message *websocket.RoomMessage)
 }) {
 	cis.mu.Lock()
 	defer cis.mu.Unlock()
@@ -644,17 +637,315 @@ func (cis *ControllerIntegrationService) cleanupExpiredQRCodes() {
 	}
 }
 
+// encryptMessagePayload encrypts a message payload using AES-GCM
+func (cis *ControllerIntegrationService) encryptMessagePayload(payload interface{}) (map[string]interface{}, error) {
+	if cis.encryptionKey == nil {
+		return nil, fmt.Errorf("encryption key not available")
+	}
+
+	plaintext, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal payload: %w", err)
+	}
+
+	block, err := aes.NewCipher(cis.encryptionKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create cipher: %w", err)
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create GCM: %w", err)
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := rand.Read(nonce); err != nil {
+		return nil, fmt.Errorf("failed to generate nonce: %w", err)
+	}
+
+	ciphertext := gcm.Seal(nonce, nonce, plaintext, nil)
+
+	return map[string]interface{}{
+		"encrypted":  true,
+		"data":       base64.StdEncoding.EncodeToString(ciphertext),
+		"nonce_size": gcm.NonceSize(),
+	}, nil
+}
+
+
+// processQueuedMessages processes messages in queue using WebSocket delivery
 func (cis *ControllerIntegrationService) processQueuedMessages() {
 	cis.mu.Lock()
 	defer cis.mu.Unlock()
 
-	// Process messages in queue (placeholder for real-time WebSocket delivery)
-	for _, messages := range cis.messageQueue {
-		if len(messages) > 0 {
-			// Mark messages as processed
-			for _, message := range messages {
-				message.Processed = true
+	// Process messages in queue using WebSocket delivery
+	for sessionID, messages := range cis.messageQueue {
+		if len(messages) == 0 {
+			continue
+		}
+
+		// Check if session is active
+		session, exists := cis.activeSessions[sessionID]
+		if !exists || session.Status != "active" {
+			// Store messages for offline delivery if session exists but inactive
+			if exists && session.Status == "inactive" {
+				cis.storeOfflineMessages(sessionID, messages)
+			}
+			// Clear processed messages
+			delete(cis.messageQueue, sessionID)
+			continue
+		}
+
+		// Deliver messages via WebSocket
+		roomName := fmt.Sprintf("controller:%s", sessionID)
+		deliveredCount := 0
+
+		for _, message := range messages {
+			// Encrypt message if encryption is enabled
+			var payload interface{} = message.Payload
+			if cis.encryptionKey != nil {
+				encrypted, err := cis.encryptMessagePayload(message.Payload)
+				if err != nil {
+					log.Printf("Failed to encrypt message %s: %v", message.ID, err)
+					continue
+				}
+				payload = encrypted
+			}
+
+			roomMessage := &websocket.RoomMessage{
+				Room:      roomName,
+				Type:      "controller",
+				Event:     message.Type,
+				Payload:   payload,
+				SenderID:  "system",
+				Timestamp: message.Timestamp.Format(time.RFC3339),
+			}
+
+			// Send via WebSocket
+			if cis.websocketService != nil {
+				cis.websocketService.BroadcastToRoom(roomName, roomMessage)
+			}
+
+			message.Processed = true
+			deliveredCount++
+		}
+
+		if deliveredCount > 0 {
+			log.Printf("Delivered %d messages to session %s", deliveredCount, sessionID)
+		}
+
+		// Keep only undelivered messages in queue
+		var remainingMessages []*objects.ControllerMessage
+		for _, message := range messages {
+			if !message.Processed {
+				remainingMessages = append(remainingMessages, message)
+			}
+		}
+
+		if len(remainingMessages) > 0 {
+			cis.messageQueue[sessionID] = remainingMessages
+		} else {
+			delete(cis.messageQueue, sessionID)
+		}
+	}
+}
+
+// storeOfflineMessages stores messages for offline delivery
+func (cis *ControllerIntegrationService) storeOfflineMessages(sessionID string, messages []*objects.ControllerMessage) {
+	// Store in database for later delivery when session becomes active
+	for _, message := range messages {
+		offlineKey := fmt.Sprintf("controller:offline:%s:%s", sessionID, message.ID)
+		if data, err := json.Marshal(message); err == nil {
+			cis.db.Update(func(tx *buntdb.Tx) error {
+				tx.Set(offlineKey, string(data), nil)
+				return nil
+			})
+		}
+	}
+	log.Printf("Stored %d messages for offline delivery to session %s", len(messages), sessionID)
+}
+
+
+// HandleControllerCommand processes incoming controller commands
+func (cis *ControllerIntegrationService) HandleControllerCommand(sessionID string, command *objects.ControllerMessage) (*objects.ControllerMessage, error) {
+	cis.mu.Lock()
+	defer cis.mu.Unlock()
+
+	session, exists := cis.activeSessions[sessionID]
+	if !exists {
+		return nil, fmt.Errorf("session not found: %s", sessionID)
+	}
+
+	if session.Status != "active" {
+		return nil, fmt.Errorf("session not active: %s", session.Status)
+	}
+
+	// Update session activity
+	session.LastActivity = time.Now()
+
+	// Process command based on type
+	response := &objects.ControllerMessage{
+		ID:        fmt.Sprintf("resp_%d", time.Now().UnixNano()),
+		SessionID: sessionID,
+		Type:      "response",
+		Direction: "outbound",
+		Timestamp: time.Now(),
+		Processed: false,
+	}
+
+	switch command.Type {
+	case "ping":
+		response.Payload = map[string]interface{}{
+			"type":    "pong",
+			"session": sessionID,
+			"time":    time.Now().Unix(),
+		}
+
+	case "status":
+		response.Payload = map[string]interface{}{
+			"type":           "status_response",
+			"session_status": session.Status,
+			"capabilities":   session.Capabilities,
+			"last_activity":  session.LastActivity.Unix(),
+			"message_count":  session.MessageCount,
+		}
+
+	case "get_sessions":
+		userSessions, err := cis.getUserSessionsInternal(session.UserID)
+		if err != nil {
+			response.Payload = map[string]interface{}{
+				"type":  "error",
+				"error": err.Error(),
+			}
+		} else {
+			response.Payload = map[string]interface{}{
+				"type":     "sessions_list",
+				"sessions": userSessions,
+			}
+		}
+
+	case "terminate_session":
+		targetSessionID, ok := command.Payload["session_id"].(string)
+		if !ok {
+			response.Payload = map[string]interface{}{
+				"type":  "error",
+				"error": "missing session_id in payload",
+			}
+		} else {
+			err := cis.TerminateSession(targetSessionID, "terminated by controller")
+			if err != nil {
+				response.Payload = map[string]interface{}{
+					"type":  "error",
+					"error": err.Error(),
+				}
+			} else {
+				response.Payload = map[string]interface{}{
+					"type":          "session_terminated",
+					"session_id":    targetSessionID,
+					"terminated_by": sessionID,
+				}
+			}
+		}
+
+	case "send_notification":
+		// Send push notification (placeholder - would integrate with push service)
+		log.Printf("Push notification requested: %v", command.Payload)
+		response.Payload = map[string]interface{}{
+			"type": "notification_sent",
+			"id":   fmt.Sprintf("notif_%d", time.Now().UnixNano()),
+		}
+
+	default:
+		response.Payload = map[string]interface{}{
+			"type":  "error",
+			"error": fmt.Sprintf("unknown command type: %s", command.Type),
+		}
+	}
+
+	return response, nil
+}
+
+// getUserSessionsInternal returns user sessions (internal version without locking)
+func (cis *ControllerIntegrationService) getUserSessionsInternal(userID string) ([]map[string]interface{}, error) {
+	var sessions []map[string]interface{}
+	for _, session := range cis.activeSessions {
+		if session.UserID == userID {
+			sessionData := map[string]interface{}{
+				"id":            session.ID,
+				"status":        session.Status,
+				"created_at":    session.CreatedAt.Unix(),
+				"last_activity": session.LastActivity.Unix(),
+				"capabilities":  session.Capabilities,
+				"device_type":   session.DeviceInfo.DeviceType,
+				"message_count": session.MessageCount,
+			}
+			sessions = append(sessions, sessionData)
+		}
+	}
+	return sessions, nil
+}
+
+// NegotiateCapabilities performs capability negotiation for a session
+func (cis *ControllerIntegrationService) NegotiateCapabilities(sessionID string, requestedCapabilities []string) ([]string, error) {
+	cis.mu.Lock()
+	defer cis.mu.Unlock()
+
+	session, exists := cis.activeSessions[sessionID]
+	if !exists {
+		return nil, fmt.Errorf("session not found: %s", sessionID)
+	}
+
+	// Check which requested capabilities are supported
+	var negotiatedCapabilities []string
+	supportedCaps := session.Capabilities
+
+	for _, requested := range requestedCapabilities {
+		for _, supported := range supportedCaps {
+			if requested == supported {
+				negotiatedCapabilities = append(negotiatedCapabilities, requested)
+				break
 			}
 		}
 	}
+
+	// Update session with negotiated capabilities
+	session.Capabilities = negotiatedCapabilities
+	cis.storeSession(session)
+
+	log.Printf("Negotiated capabilities for session %s: %v", sessionID, negotiatedCapabilities)
+	return negotiatedCapabilities, nil
+}
+
+// SendPushNotification sends a push notification to the controller
+func (cis *ControllerIntegrationService) SendPushNotification(sessionID string, title, message string, data map[string]interface{}) error {
+	cis.mu.RLock()
+	session, exists := cis.activeSessions[sessionID]
+	cis.mu.RUnlock()
+
+	if !exists {
+		return fmt.Errorf("session not found: %s", sessionID)
+	}
+
+	if session.Status != "active" {
+		return fmt.Errorf("session not active: %s", session.Status)
+	}
+
+	// Create notification message
+	notification := &objects.ControllerMessage{
+		ID:        fmt.Sprintf("notif_%d", time.Now().UnixNano()),
+		SessionID: sessionID,
+		Type:      "notification",
+		Direction: "outbound",
+		Payload: map[string]interface{}{
+			"title":   title,
+			"message": message,
+			"data":    data,
+			"time":    time.Now().Unix(),
+		},
+		Timestamp: time.Now(),
+		Processed: false,
+	}
+
+	// Send via WebSocket
+	return cis.SendMessage(sessionID, notification)
 }

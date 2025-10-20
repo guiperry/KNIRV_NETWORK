@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"backend-server/internal/objects"
+	"backend_server/internal/objects"
 )
 
 // NRNClient handles communication with the KNIRVORACLE blockchain for NRN token operations
@@ -148,11 +148,11 @@ func (nc *NRNClient) GetAccountBalance(address string) (int64, error) {
 
 // Block represents a blockchain block (simplified)
 type Block struct {
-	BlockNumber   int            `json:"block_number"`
-	Transactions  []*Transaction `json:"transactions"`
-	Timestamp     int64          `json:"timestamp"`
-	Hash          string         `json:"hash"`
-	PrevHash      string         `json:"prev_hash"`
+	BlockNumber  int            `json:"block_number"`
+	Transactions []*Transaction `json:"transactions"`
+	Timestamp    int64          `json:"timestamp"`
+	Hash         string         `json:"hash"`
+	PrevHash     string         `json:"prev_hash"`
 }
 
 // Transaction represents a blockchain transaction (simplified)

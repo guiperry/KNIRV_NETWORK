@@ -1,12 +1,13 @@
 package validation
 
 import (
+	"backend_server/internal/objects"
 	"context"
 	"fmt"
 	"log"
 	"time"
+
 	"github.com/google/uuid"
-	"backend-server/internal/objects"
 )
 
 // ModelValidator validates LLM models across multiple dimensions (performance, safety, factuality, reasoning)
@@ -253,7 +254,7 @@ func (mv *ModelValidator) Validate(
 
 	// Calculate weighted overall score
 	overallScore := (perfScore * 0.25) + (safetyScore * 0.25) +
-					(factualityScore * 0.30) + (reasoningScore * 0.20)
+		(factualityScore * 0.30) + (reasoningScore * 0.20)
 
 	result.Status = "success"
 	result.Score = overallScore

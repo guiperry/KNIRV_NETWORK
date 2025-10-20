@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	// dataengine "backend-server/internal/services/data-engine" // TODO: Re-enable when data-engine is available
-	dataengine "backend-server/internal/data-engine"
-	"backend-server/pkg/cloudflare"
+	// dataengine "backend_server/internal/services/data-engine" // TODO: Re-enable when data-engine is available
+	dataengine "backend_server/internal/data-engine"
+	"backend_server/pkg/cloudflare"
 )
 
 // DynamicDNSService manages dynamic DNS updates
@@ -312,8 +312,8 @@ func (dds *DynamicDNSService) performHealthCheck() {
 					1.0,
 					"count",
 					map[string]string{
-						"url":    dds.config.HealthCheckURL,
-						"error":  err.Error(),
+						"url":   dds.config.HealthCheckURL,
+						"error": err.Error(),
 					},
 				)
 			}

@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
-	"backend-server/internal/database"
-	"backend-server/internal/inference"
-	"backend-server/internal/objects"
-	"backend-server/internal/services/dvemanager"
-	"backend-server/internal/services/validation"
-	"backend-server/internal/web/middleware"
+	"backend_server/internal/database"
+	inference "backend_server/internal/inference_engine"
+	"backend_server/internal/objects"
+	"backend_server/internal/services/dvemanager"
+	"backend_server/internal/services/validation"
+	"backend_server/internal/web/middleware"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -35,18 +35,18 @@ type WebSocketService struct {
 
 	// Authentication and database
 	authMiddleware *middleware.AuthMiddleware
-	db            *database.BuntDBManager
+	db             *database.BuntDBManager
 
 	// Message persistence and acknowledgment
-	messageStore   *MessageStore
-	ackTimeout     time.Duration
+	messageStore *MessageStore
+	ackTimeout   time.Duration
 
 	// Health monitoring
-	healthStats    *WebSocketHealthStats
-	healthMutex    sync.RWMutex
+	healthStats *WebSocketHealthStats
+	healthMutex sync.RWMutex
 
 	// Backpressure handling
-	maxMessageQueue int
+	maxMessageQueue  int
 	messageRateLimit int // messages per second per client
 
 	// Service references for real-time updates
@@ -108,7 +108,7 @@ type TEESecurityUpdate struct {
 
 // MessageStore handles message persistence for offline clients
 type MessageStore struct {
-	db         *buntdb.DB
+	db          *buntdb.DB
 	maxMessages int
 	retention   time.Duration
 }
@@ -126,23 +126,23 @@ type StoredMessage struct {
 
 // WebSocketHealthStats tracks WebSocket service health metrics
 type WebSocketHealthStats struct {
-	ConnectedClients    int           `json:"connected_clients"`
-	TotalMessagesSent   int64         `json:"total_messages_sent"`
-	TotalMessagesRecv   int64         `json:"total_messages_recv"`
-	Uptime              time.Duration `json:"uptime"`
-	LastHealthCheck     time.Time     `json:"last_health_check"`
-	AverageLatency      time.Duration `json:"average_latency"`
-	ErrorCount          int64         `json:"error_count"`
-	RoomsActive         int           `json:"rooms_active"`
-	PendingAcknowledgments int        `json:"pending_acknowledgments"`
+	ConnectedClients       int           `json:"connected_clients"`
+	TotalMessagesSent      int64         `json:"total_messages_sent"`
+	TotalMessagesRecv      int64         `json:"total_messages_recv"`
+	Uptime                 time.Duration `json:"uptime"`
+	LastHealthCheck        time.Time     `json:"last_health_check"`
+	AverageLatency         time.Duration `json:"average_latency"`
+	ErrorCount             int64         `json:"error_count"`
+	RoomsActive            int           `json:"rooms_active"`
+	PendingAcknowledgments int           `json:"pending_acknowledgments"`
 }
 
 // AcknowledgmentMessage represents an acknowledgment response
 type AcknowledgmentMessage struct {
-	MessageID   string `json:"message_id"`
-	Status      string `json:"status"` // "ack", "nack", "timeout"
-	Timestamp   string `json:"timestamp"`
-	ClientID    string `json:"client_id"`
+	MessageID string `json:"message_id"`
+	Status    string `json:"status"` // "ack", "nack", "timeout"
+	Timestamp string `json:"timestamp"`
+	ClientID  string `json:"client_id"`
 }
 
 // RoomMessage represents a room-based message
@@ -174,9 +174,9 @@ func NewWebSocketService(inferenceService *inference.InferenceService, dveManage
 	}
 
 	return &WebSocketService{
-		clients:         make(map[*websocket.Conn]*Client),
-		rooms:           make(map[string]map[*websocket.Conn]*Client),
-		broadcast:       make(chan Message, 256),
+		clients:   make(map[*websocket.Conn]*Client),
+		rooms:     make(map[string]map[*websocket.Conn]*Client),
+		broadcast: make(chan Message, 256),
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
@@ -357,8 +357,6 @@ func (ws *WebSocketService) handleClientWrite(client *Client) {
 	}
 }
 
-
-
 // Broadcast sends a message to all connected clients
 func (ws *WebSocketService) Broadcast(event string, payload interface{}) {
 	if !ws.isRunning {
@@ -466,7 +464,8 @@ func (ws *WebSocketService) sendPeriodicUpdates() {
 			for _, task := range tasks {
 				// Simulate progress updates for running tasks
 				progress := 0
-				if task.Status == "running" {
+				switch task.Status {
+				case "running":
 					// Simulate progress based on time elapsed
 					if task.StartedAt != nil {
 						elapsed := time.Since(*task.StartedAt)
@@ -476,7 +475,7 @@ func (ws *WebSocketService) sendPeriodicUpdates() {
 							progress = 95 // Don't show 100% until actually completed
 						}
 					}
-				} else if task.Status == "completed" {
+				case "completed":
 					progress = 100
 				}
 

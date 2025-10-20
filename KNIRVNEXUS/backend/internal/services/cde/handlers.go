@@ -6,7 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"backend-server/internal/web/middleware"
+	"backend_server/internal/web/middleware"
 )
 
 // CDE Environment Handlers

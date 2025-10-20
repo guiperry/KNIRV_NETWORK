@@ -1,7 +1,7 @@
 package dvemanager
 
 import (
-	"backend-server/internal/objects"
+	"backend_server/internal/objects"
 	"encoding/json"
 	"net/http"
 

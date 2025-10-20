@@ -1,7 +1,7 @@
 package modelmanagement
 
 import (
-	. "backend-server/internal/objects"
+	. "backend_server/internal/objects"
 	"fmt"
 	"os"
 	"path/filepath"

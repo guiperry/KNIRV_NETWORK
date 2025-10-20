@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"backend-server/internal/inference"
-	"backend-server/internal/web/middleware"
+	"backend_server/internal/web/middleware"
 
 	"github.com/gorilla/mux"
+	inference "backend_server/internal/inference_engine"
 )
 
 type InferenceHandlers struct {

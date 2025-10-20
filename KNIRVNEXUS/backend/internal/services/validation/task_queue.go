@@ -1,7 +1,7 @@
 package validation
 
 import (
-	"backend-server/internal/objects"
+	"backend_server/internal/objects"
 	"sort"
 )
 

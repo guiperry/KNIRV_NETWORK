@@ -8,14 +8,14 @@ import (
 	"sync"
 	"time"
 
-	"backend-server/internal/models"
+	"backend_server/internal/models"
 )
 
 // WASMRuntime provides WASM execution capabilities with sandboxing
 type WASMRuntime struct {
-	mu         sync.RWMutex
-	instances  map[string]*WASMInstance
-	config     *WASMConfig
+	mu        sync.RWMutex
+	instances map[string]*WASMInstance
+	config    *WASMConfig
 }
 
 // WASMInstance represents a running WASM model instance
@@ -31,19 +31,19 @@ type WASMInstance struct {
 
 // WASMConfig configures the WASM runtime
 type WASMConfig struct {
-	MaxMemoryPages    uint32 // Maximum memory pages (64KB each)
-	MaxExecutionTime  time.Duration
-	MaxInstances      int
-	EnableProfiling   bool
-	EnableDebugging   bool
-	ResourceLimits    *models.ModelResourceLimits
+	MaxMemoryPages   uint32 // Maximum memory pages (64KB each)
+	MaxExecutionTime time.Duration
+	MaxInstances     int
+	EnableProfiling  bool
+	EnableDebugging  bool
+	ResourceLimits   *models.ModelResourceLimits
 }
 
 // WASMExecutionResult contains the result of WASM execution
 type WASMExecutionResult struct {
-	Success     bool
-	Output      []byte
-	Error       string
+	Success       bool
+	Output        []byte
+	Error         string
 	ExecutionTime time.Duration
 	ResourceUsage *models.ModelResourceUsage
 }
@@ -261,15 +261,15 @@ func (wr *WASMRuntime) setupResourceLimits(limits *models.ModelResourceLimits) e
 	if limits != nil {
 		log.Printf("Setting resource limits: CPU=%.1f%%, Memory=%dMB, Time=%ds",
 			limits.MaxCPUPercent, limits.MaxMemoryMB, limits.MaxExecutionTime)
-		
+
 		// Apply actual resource limits to WASM instances
 		wr.mu.Lock()
 		defer wr.mu.Unlock()
-		
+
 		if wr.instances == nil {
 			wr.instances = make(map[string]*WASMInstance)
 		}
-		
+
 		// Update resource limits for all active instances
 		for instanceID, instance := range wr.instances {
 			if instance != nil && instance.Config != nil {
@@ -281,7 +281,7 @@ func (wr *WASMRuntime) setupResourceLimits(limits *models.ModelResourceLimits) e
 					instance.Config.ResourceLimits.MaxCPUPercent = limits.MaxCPUPercent
 					log.Printf("Applied CPU limit %.1f%% to instance %s", limits.MaxCPUPercent, instanceID)
 				}
-				
+
 				// Apply memory limiting by updating the instance config
 				if limits.MaxMemoryMB > 0 {
 					if instance.Config.ResourceLimits == nil {
@@ -290,7 +290,7 @@ func (wr *WASMRuntime) setupResourceLimits(limits *models.ModelResourceLimits) e
 					instance.Config.ResourceLimits.MaxMemoryMB = limits.MaxMemoryMB
 					log.Printf("Applied memory limit %dMB to instance %s", limits.MaxMemoryMB, instanceID)
 				}
-				
+
 				// Apply execution time limiting by updating the instance config
 				if limits.MaxExecutionTime > 0 {
 					if instance.Config.ResourceLimits == nil {
@@ -301,7 +301,7 @@ func (wr *WASMRuntime) setupResourceLimits(limits *models.ModelResourceLimits) e
 				}
 			}
 		}
-		
+
 		// Store the limits in the runtime config for future instances
 		if wr.config == nil {
 			wr.config = &WASMConfig{}

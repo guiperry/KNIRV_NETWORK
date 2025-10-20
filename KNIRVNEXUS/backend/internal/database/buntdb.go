@@ -249,6 +249,28 @@ func (bm *BuntDBManager) ViewTransaction(fn func(*buntdb.Tx) error) error {
 	return bm.db.View(fn)
 }
 
+// GetValue retrieves a value from the database by key
+func (bm *BuntDBManager) GetValue(key string) (string, error) {
+	var value string
+	err := bm.db.View(func(tx *buntdb.Tx) error {
+		val, err := tx.Get(key)
+		if err != nil {
+			return err
+		}
+		value = val
+		return nil
+	})
+	return value, err
+}
+
+// SetValue stores a value in the database with a given key
+func (bm *BuntDBManager) SetValue(key, value string) error {
+	return bm.db.Update(func(tx *buntdb.Tx) error {
+		_, _, err := tx.Set(key, value, nil)
+		return err
+	})
+}
+
 // backgroundMaintenance runs periodic health checks and backups
 func (bm *BuntDBManager) backgroundMaintenance() {
 	healthTicker := time.NewTicker(5 * time.Minute)

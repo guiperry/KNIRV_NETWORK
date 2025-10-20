@@ -7,7 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"backend-server/internal/web/middleware"
+	"backend_server/internal/web/middleware"
 )
 
 // Validation Task Handlers

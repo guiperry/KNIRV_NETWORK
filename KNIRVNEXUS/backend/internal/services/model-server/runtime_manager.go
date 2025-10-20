@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"backend-server/internal/models"
+	"backend_server/internal/models"
 )
 
 // RuntimeManager manages live model runtime hosting
@@ -260,12 +260,12 @@ func NewRuntimeManager(ctx context.Context, modelDir string, maxModels int) (*Ru
 
 	// Initialize WASM runtime
 	wasmConfig := &WASMConfig{
-		MaxMemoryPages:    1024, // 64MB
-		MaxExecutionTime:  30 * time.Second,
-		MaxInstances:      10,
-		EnableProfiling:   true,
-		EnableDebugging:   false,
-		ResourceLimits:    nil, // Will be set per model
+		MaxMemoryPages:   1024, // 64MB
+		MaxExecutionTime: 30 * time.Second,
+		MaxInstances:     10,
+		EnableProfiling:  true,
+		EnableDebugging:  false,
+		ResourceLimits:   nil, // Will be set per model
 	}
 	rm.wasmRuntime, err = NewWASMRuntime(wasmConfig)
 	if err != nil {
@@ -275,11 +275,11 @@ func NewRuntimeManager(ctx context.Context, modelDir string, maxModels int) (*Ru
 
 	// Set default resource limits for the WASM runtime
 	defaultLimits := &models.ModelResourceLimits{
-		MaxCPUPercent:    50.0,  // 50% CPU limit
-		MaxMemoryMB:      256,   // 256MB memory limit
-		MaxExecutionTime: 30,    // 30 seconds execution time
+		MaxCPUPercent:    50.0, // 50% CPU limit
+		MaxMemoryMB:      256,  // 256MB memory limit
+		MaxExecutionTime: 30,   // 30 seconds execution time
 	}
-	
+
 	if err := rm.wasmRuntime.setupResourceLimits(defaultLimits); err != nil {
 		cancel()
 		return nil, fmt.Errorf("failed to set default resource limits: %w", err)

@@ -1,7 +1,7 @@
 package dverental
 
 import (
-	"backend-server/internal/objects"
+	"backend_server/internal/objects"
 	"encoding/json"
 	"log"
 	"time"
@@ -300,7 +300,7 @@ func (drs *DVERentalService) updateRentalUsageMetrics(rental *objects.DVERental,
 
 	// Simulate resource usage accumulation (in real implementation, query actual usage)
 	// CPU usage: simulate 20-80% utilization
-	rental.UsageMetrics.CPUUsage += float64(20 + (timestamp.Unix()%60)) / 100.0
+	rental.UsageMetrics.CPUUsage += float64(20+(timestamp.Unix()%60)) / 100.0
 	if rental.UsageMetrics.CPUUsage > 1.0 {
 		rental.UsageMetrics.CPUUsage = 1.0
 	}
@@ -359,7 +359,7 @@ func (drs *DVERentalService) attemptAutomaticRenewal(rental *objects.DVERental) 
 
 	// Verify the renewal payment transaction
 	systemWalletAddress := "knirv1system" // This should be configurable
-	expectedAmount := rental.NRNAmount     // Same amount as original rental
+	expectedAmount := rental.NRNAmount    // Same amount as original rental
 
 	payment, err := drs.blockchainClient.VerifyPaymentTransaction(rental.RenewalPaymentTxHash, expectedAmount, systemWalletAddress)
 	if err != nil {

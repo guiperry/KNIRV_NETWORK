@@ -1,7 +1,7 @@
 package dverental
 
 import (
-	"backend-server/internal/objects"
+	"backend_server/internal/objects"
 	"os"
 	"path/filepath"
 	"testing"

@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"backend-server/internal/config"
-	"backend-server/internal/database"
+	"backend_server/internal/config"
+	"backend_server/internal/database"
 )
 
 // ModelServer represents the model server service

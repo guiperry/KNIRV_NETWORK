@@ -1,9 +1,9 @@
 package dverental
 
 import (
-	"backend-server/internal/objects"
-	"backend-server/internal/services/blockchain"
-	"backend-server/internal/services/cde"
+	"backend_server/internal/objects"
+	"backend_server/internal/services/blockchain"
+	"backend_server/internal/services/cde"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
@@ -18,9 +18,9 @@ import (
 
 // DVERentalService manages DVE rental operations
 type DVERentalService struct {
-	db            *buntdb.DB
-	mu            sync.RWMutex
-	running       bool
+	db               *buntdb.DB
+	mu               sync.RWMutex
+	running          bool
 	blockchainClient *blockchain.NRNClient
 
 	// Service references

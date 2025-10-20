@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"backend-server/internal/database"
-	"backend-server/internal/models"
-	"backend-server/internal/services/auth"
-	"backend-server/internal/web/middleware"
+	"backend_server/internal/database"
+	"backend_server/internal/models"
+	"backend_server/internal/services/auth"
+	"backend_server/internal/web/middleware"
 )
 
 type AuthHandlers struct {
@@ -52,9 +52,9 @@ type MeResponse struct {
 }
 
 type RegisterRequest struct {
-	Username string `json:"username" validate:"required,min=3,max=50"`
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=8"`
+	Username  string `json:"username" validate:"required,min=3,max=50"`
+	Email     string `json:"email" validate:"required,email"`
+	Password  string `json:"password" validate:"required,min=8"`
 	FirstName string `json:"first_name" validate:"required,min=1,max=50"`
 	LastName  string `json:"last_name" validate:"required,min=1,max=50"`
 	Company   string `json:"company,omitempty"`
@@ -62,11 +62,11 @@ type RegisterRequest struct {
 }
 
 type RegisterResponse struct {
-	UserID    string `json:"user_id"`
-	Username  string `json:"username"`
-	Email     string `json:"email"`
-	Status    string `json:"status"`
-	Message   string `json:"message"`
+	UserID   string `json:"user_id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Status   string `json:"status"`
+	Message  string `json:"message"`
 }
 
 type VerifyEmailRequest struct {

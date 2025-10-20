@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"backend-server/internal/config"
-	"backend-server/internal/database"
-	"backend-server/internal/objects"
-	"backend-server/internal/services/validation"
-	"backend-server/pkg/p2p"
+	"backend_server/internal/config"
+	"backend_server/internal/database"
+	"backend_server/internal/objects"
+	"backend_server/internal/services/validation"
+	"backend_server/pkg/p2p"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

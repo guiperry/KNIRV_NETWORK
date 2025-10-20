@@ -1,7 +1,7 @@
 package p2p
 
 import (
-	"backend-server/internal/objects"
+	"backend_server/internal/objects"
 	"context"
 	"encoding/json"
 	"fmt"

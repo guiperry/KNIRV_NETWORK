@@ -8,9 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"backend_server/internal/database"
+	"backend_server/internal/models"
+
 	"github.com/tidwall/buntdb"
-	"backend-server/internal/database"
-	"backend-server/internal/models"
 )
 
 // UserService handles user-related database operations

@@ -8,15 +8,16 @@ import (
 	"strings"
 	"time"
 
-	"backend-server/internal/objects"
+	"backend_server/internal/objects"
+
 	"github.com/tidwall/buntdb"
 )
 
 // TEESecurityService manages TEE operations with Kali Linux-optimized security
 type TEESecurityService struct {
-	kaliProfile         *KaliLinuxProfile
-	runtimeManager      *ContainerRuntimeManager
-	db                  *buntdb.DB
+	kaliProfile    *KaliLinuxProfile
+	runtimeManager *ContainerRuntimeManager
+	db             *buntdb.DB
 }
 
 // NewTEESecurityService initializes the TEE security service with Kali environment detection
@@ -57,40 +58,40 @@ func NewTEESecurityService(db *buntdb.DB) (*TEESecurityService, error) {
 func (ts *TEESecurityService) storeKaliProfile() error {
 	return ts.db.Update(func(tx *buntdb.Tx) error {
 		profile := map[string]interface{}{
-			"os":                     ts.kaliProfile.OS,
-			"is_kali":               ts.kaliProfile.IsKaliLinux,
-			"kernel_version":        ts.kaliProfile.KernelVersion,
-			"tee_capabilities":      strings.Join(ts.kaliProfile.ArchitectureSupport, ","),
-			"active_runtime":        ts.runtimeManager.GetActiveRuntime(),
-			"timestamp":             time.Now().Unix(),
+			"os":               ts.kaliProfile.OS,
+			"is_kali":          ts.kaliProfile.IsKaliLinux,
+			"kernel_version":   ts.kaliProfile.KernelVersion,
+			"tee_capabilities": strings.Join(ts.kaliProfile.ArchitectureSupport, ","),
+			"active_runtime":   ts.runtimeManager.GetActiveRuntime(),
+			"timestamp":        time.Now().Unix(),
 
 			// Static Analysis Tools
-			"tool_ghidra":           ts.kaliProfile.StaticAnalysisTools.Ghidra,
-			"tool_radare2":          ts.kaliProfile.StaticAnalysisTools.Radare2,
-			"tool_semgrep":          ts.kaliProfile.StaticAnalysisTools.Semgrep,
-			"tool_bandit":           ts.kaliProfile.StaticAnalysisTools.Bandit,
+			"tool_ghidra":  ts.kaliProfile.StaticAnalysisTools.Ghidra,
+			"tool_radare2": ts.kaliProfile.StaticAnalysisTools.Radare2,
+			"tool_semgrep": ts.kaliProfile.StaticAnalysisTools.Semgrep,
+			"tool_bandit":  ts.kaliProfile.StaticAnalysisTools.Bandit,
 
 			// Dynamic Analysis Tools
-			"tool_strace":           ts.kaliProfile.DynamicAnalysisTools.Strace,
-			"tool_ltrace":           ts.kaliProfile.DynamicAnalysisTools.Ltrace,
-			"tool_perf":             ts.kaliProfile.DynamicAnalysisTools.Perf,
-			"tool_gdb":              ts.kaliProfile.DynamicAnalysisTools.GDB,
+			"tool_strace": ts.kaliProfile.DynamicAnalysisTools.Strace,
+			"tool_ltrace": ts.kaliProfile.DynamicAnalysisTools.Ltrace,
+			"tool_perf":   ts.kaliProfile.DynamicAnalysisTools.Perf,
+			"tool_gdb":    ts.kaliProfile.DynamicAnalysisTools.GDB,
 
 			// Network Analysis Tools
-			"tool_tcpdump":          ts.kaliProfile.NetworkAnalysisTools.Tcpdump,
-			"tool_tshark":           ts.kaliProfile.NetworkAnalysisTools.Tshark,
-			"tool_mitmproxy":        ts.kaliProfile.NetworkAnalysisTools.Mitmproxy,
-			"tool_iptables":         ts.kaliProfile.NetworkAnalysisTools.Iptables,
+			"tool_tcpdump":   ts.kaliProfile.NetworkAnalysisTools.Tcpdump,
+			"tool_tshark":    ts.kaliProfile.NetworkAnalysisTools.Tshark,
+			"tool_mitmproxy": ts.kaliProfile.NetworkAnalysisTools.Mitmproxy,
+			"tool_iptables":  ts.kaliProfile.NetworkAnalysisTools.Iptables,
 
 			// Forensics Tools
-			"tool_volatility":       ts.kaliProfile.ForensicsTools.Volatility,
-			"tool_sleuthkit":        ts.kaliProfile.ForensicsTools.SleuthKit,
-			"tool_autopsy":          ts.kaliProfile.ForensicsTools.Autopsy,
+			"tool_volatility": ts.kaliProfile.ForensicsTools.Volatility,
+			"tool_sleuthkit":  ts.kaliProfile.ForensicsTools.SleuthKit,
+			"tool_autopsy":    ts.kaliProfile.ForensicsTools.Autopsy,
 
 			// Security Frameworks
-			"framework_apparmor":    ts.kaliProfile.SecurityFrameworks.AppArmor,
-			"framework_selinux":     ts.kaliProfile.SecurityFrameworks.SELinux,
-			"framework_seccomp":     ts.kaliProfile.SecurityFrameworks.Seccomp,
+			"framework_apparmor": ts.kaliProfile.SecurityFrameworks.AppArmor,
+			"framework_selinux":  ts.kaliProfile.SecurityFrameworks.SELinux,
+			"framework_seccomp":  ts.kaliProfile.SecurityFrameworks.Seccomp,
 		}
 
 		jsonData, _ := json.Marshal(profile)
@@ -135,13 +136,13 @@ func (ts *TEESecurityService) Stop() error {
 // GetSecurityStatus returns the current security status (compatibility method)
 func (ts *TEESecurityService) GetSecurityStatus() *objects.TEESecurityStatus {
 	return &objects.TEESecurityStatus{
-		AttestationStatus:  "verified", // Kali environment provides strong security guarantees
-		EnclaveCount:       1,          // Single container runtime enclave
-		SecurityScore:      95.0,       // High security score for Kali environment
-		LastAudit:          time.Now().Format(time.RFC3339),
-		ThreatsDetected:    0, // No threats detected in initial setup
-		ActiveThreats:      []*objects.ThreatAlert{},
-		AuditHistory:       []*objects.SecurityAudit{},
+		AttestationStatus: "verified", // Kali environment provides strong security guarantees
+		EnclaveCount:      1,          // Single container runtime enclave
+		SecurityScore:     95.0,       // High security score for Kali environment
+		LastAudit:         time.Now().Format(time.RFC3339),
+		ThreatsDetected:   0, // No threats detected in initial setup
+		ActiveThreats:     []*objects.ThreatAlert{},
+		AuditHistory:      []*objects.SecurityAudit{},
 		PerformanceMetrics: &objects.TEEPerformanceMetrics{
 			AttestationLatency:      25.0,
 			VerificationSuccessRate: 99.9,

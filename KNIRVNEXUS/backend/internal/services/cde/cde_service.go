@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	// dataengine "backend-server/internal/data-engine" // TODO: Fix data-engine compilation issues
-	dataengine "backend-server/internal/data-engine"
-	"backend-server/pkg/host"
+	// dataengine "backend_server/internal/data-engine" // TODO: Fix data-engine compilation issues
+	dataengine "backend_server/internal/data-engine"
+	"backend_server/pkg/host"
 )
 
 // CDEService manages Cloud Development Environments

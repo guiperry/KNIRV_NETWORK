@@ -1,7 +1,7 @@
 package modelmanagement
 
 import (
-	"backend-server/internal/objects"
+	"backend_server/internal/objects"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -529,13 +529,13 @@ func (ams *ModelManagementService) deployModelInternal(modelID string, parameter
 
 	// Record deployment event with parameters
 	ams.recordEvent(&objects.ModelEvent{
-		ID:          fmt.Sprintf("event_%d", time.Now().UnixNano()),
-		ModelID:     model.ID,
-		Type:        "deployed",
+		ID:      fmt.Sprintf("event_%d", time.Now().UnixNano()),
+		ModelID: model.ID,
+		Type:    "deployed",
 		Description: fmt.Sprintf("Model %s deployed with %d replicas (CPU: %.1f%%, Memory: %dMB)",
 			model.Name, int(replicas), resourceLimits.MaxCPUPercent, resourceLimits.MaxMemoryMB),
-		Timestamp:   time.Now(),
-		Metadata:    parameters,
+		Timestamp: time.Now(),
+		Metadata:  parameters,
 	})
 
 	log.Printf("Model %s deployed successfully with parameters: %v", modelID, parameters)
@@ -626,7 +626,7 @@ func (ams *ModelManagementService) scaleModelInternal(modelID string, parameters
 	// Update deployment with scaling information
 	ams.mu.Lock()
 	defer ams.mu.Unlock()
-	
+
 	if deployment, exists := ams.deployments[modelID]; exists {
 		deployment.Replicas = int(replicas)
 		if deployment.ResourceLimits == nil {
@@ -637,11 +637,11 @@ func (ams *ModelManagementService) scaleModelInternal(modelID string, parameters
 	} else {
 		// Create new deployment if it doesn't exist
 		ams.deployments[modelID] = &objects.ModelDeployment{
-			ModelID: modelID,
+			ModelID:  modelID,
 			Replicas: int(replicas),
 			ResourceLimits: &objects.ModelResourceLimits{
 				MaxCPUPercent: cpuLimit,
-				MaxMemoryMB: int(memoryLimit),
+				MaxMemoryMB:   int(memoryLimit),
 			},
 		}
 	}

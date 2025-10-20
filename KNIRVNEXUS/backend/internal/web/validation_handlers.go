@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"backend-server/internal/services/validation"
-	"backend-server/internal/web/middleware"
+	"backend_server/internal/services/validation"
+	"backend_server/internal/web/middleware"
 
 	"github.com/gorilla/mux"
 )

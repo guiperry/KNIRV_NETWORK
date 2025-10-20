@@ -13,25 +13,26 @@ import (
 	"syscall"
 	"time"
 
-	"backend-server/internal/config"
-	dataengine "backend-server/internal/data-engine"
-	"backend-server/internal/database"
-	"backend-server/internal/inference"
-	"backend-server/internal/services/blockchain"
-	"backend-server/internal/services/cde"
-	"backend-server/internal/services/controllerintegration"
-	"backend-server/internal/services/dns"
-	"backend-server/internal/services/dvemanager"
-	"backend-server/internal/services/dverental"
-	modelserver "backend-server/internal/services/model-server"
-	"backend-server/internal/services/modelmanagement"
-	"backend-server/internal/services/systemhealth"
-	"backend-server/internal/services/teesecurity"
-	"backend-server/internal/services/validation"
-	"backend-server/internal/services/websocket"
-	"backend-server/internal/web"
-	"backend-server/internal/web/middleware"
-	"backend-server/pkg/p2p"
+	"backend_server/internal/config"
+	dataengine "backend_server/internal/data-engine"
+	inference "backend_server/internal/inference_engine"
+	"backend_server/internal/database"
+	"backend_server/internal/services/blockchain"
+	"backend_server/internal/services/cde"
+	"backend_server/internal/services/cognitiveengine"
+	"backend_server/internal/services/controllerintegration"
+	"backend_server/internal/services/dns"
+	"backend_server/internal/services/dvemanager"
+	"backend_server/internal/services/dverental"
+	modelserver "backend_server/internal/services/model-server"
+	"backend_server/internal/services/modelmanagement"
+	"backend_server/internal/services/systemhealth"
+	"backend_server/internal/services/teesecurity"
+	"backend_server/internal/services/validation"
+	"backend_server/internal/services/websocket"
+	"backend_server/internal/web"
+	"backend_server/internal/web/middleware"
+	"backend_server/pkg/p2p"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
@@ -67,6 +68,7 @@ type Server struct {
 	modelManagementService       *modelmanagement.ModelManagementService
 	controllerIntegrationService *controllerintegration.ControllerIntegrationService
 	dveRentalService             *dverental.DVERentalService
+	cognitiveEngine              *cognitiveengine.CognitiveEngine
 
 	// Context for managing service lifecycle
 	ctx    context.Context
@@ -218,6 +220,9 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	nrnClient := blockchain.NewNRNClient("http://localhost:8080") // TODO: Make configurable
 	dveRentalService.SetBlockchainClient(nrnClient)
 
+	// Initialize Cognitive Engine
+	cognitiveEngine := cognitiveengine.NewCognitiveEngine(dbManager.GetDB(), validationCore, inferenceService, modelManagementService)
+
 	// Create context for service lifecycle management
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -239,6 +244,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		modelManagementService:       modelManagementService,
 		controllerIntegrationService: controllerIntegrationService,
 		dveRentalService:             dveRentalService,
+		cognitiveEngine:              cognitiveEngine,
 		ctx:                          ctx,
 		cancel:                       cancel,
 		running:                      false,
@@ -273,6 +279,11 @@ func (s *Server) setupRoutes() {
 	}
 	wsService.SetDatabase(s.db)
 	s.websocketService = wsService
+
+	// Wire Controller Integration service with WebSocket service
+	if s.controllerIntegrationService != nil {
+		s.controllerIntegrationService.SetWebSocketService(wsService)
+	}
 
 	// Auth routes (before other protected routes)
 	if authMiddleware != nil {
@@ -383,6 +394,13 @@ func (s *Server) setupRoutes() {
 		dveRentalHandlers := web.NewDVERentalHandlers(s.dveRentalService)
 		dveRentalHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("DVE rental service routes configured")
+	}
+
+	// Register cognitive engine routes
+	if s.cognitiveEngine != nil {
+		cognitiveEngineHandlers := web.NewCognitiveEngineHandlers(s.cognitiveEngine)
+		cognitiveEngineHandlers.RegisterRoutes(s.router, authMiddleware)
+		log.Println("Cognitive engine routes configured")
 	}
 
 	log.Println("All routes configured successfully")
@@ -527,6 +545,14 @@ func (s *Server) Start() error {
 		log.Println("WebSocket Service started")
 	}
 
+	// Start Cognitive Engine
+	if s.cognitiveEngine != nil {
+		if err := s.cognitiveEngine.Start(); err != nil {
+			return fmt.Errorf("failed to start Cognitive Engine: %w", err)
+		}
+		log.Println("Cognitive Engine started")
+	}
+
 	// Create HTTP server
 	s.httpServer = &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", s.config.API.BindAddress, s.config.API.Port),
@@ -572,6 +598,12 @@ func (s *Server) Stop() error {
 	}
 
 	// Stop services in reverse order
+	if s.cognitiveEngine != nil {
+		if err := s.cognitiveEngine.Stop(); err != nil {
+			log.Printf("Error stopping Cognitive Engine: %v", err)
+		}
+	}
+
 	if s.websocketService != nil {
 		if err := s.websocketService.Stop(); err != nil {
 			log.Printf("Error stopping WebSocket service: %v", err)

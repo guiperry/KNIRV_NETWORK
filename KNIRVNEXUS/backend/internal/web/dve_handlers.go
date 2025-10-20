@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"backend-server/internal/services/dvemanager"
-	"backend-server/internal/services/dverental"
-	"backend-server/internal/web/middleware"
+	"backend_server/internal/services/dvemanager"
+	"backend_server/internal/services/dverental"
+	"backend_server/internal/web/middleware"
 
 	"github.com/gorilla/mux"
 )

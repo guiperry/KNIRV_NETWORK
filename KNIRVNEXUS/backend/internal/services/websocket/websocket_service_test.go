@@ -1,7 +1,7 @@
 package websocket
 
 import (
-	"backend-server/internal/objects"
+	"backend_server/internal/objects"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -235,7 +235,6 @@ func TestMessage_Struct(t *testing.T) {
 func TestClient_Struct(t *testing.T) {
 	// Create a mock connection (we can't easily test the real websocket.Conn)
 	client := &Client{
-		conn:          nil, // Would be a real websocket.Conn in practice
 		send:          make(chan Message, 256),
 		subscriptions: make(map[string]bool),
 		id:            "test-client-1",

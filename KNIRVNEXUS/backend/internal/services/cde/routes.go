@@ -5,7 +5,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"backend-server/internal/web/middleware"
+	"backend_server/internal/web/middleware"
 )
 
 // RegisterRoutes registers all CDE service routes with the provided router

@@ -14,13 +14,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"backend-server/internal/config"
-	"backend-server/internal/database"
-	"backend-server/internal/objects"
-	"backend-server/internal/services/dvemanager"
-	"backend-server/internal/services/validation"
-	"backend-server/pkg/p2p"
-	"backend-server/pkg/sse"
+	"backend_server/internal/config"
+	"backend_server/internal/database"
+	"backend_server/internal/objects"
+	"backend_server/internal/services/dvemanager"
+	"backend_server/internal/services/validation"
+	"backend_server/pkg/p2p"
+	"backend_server/pkg/sse"
 )
 
 // TestSuite represents the integration test suite

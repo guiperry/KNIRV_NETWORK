@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"backend-server/internal/config"
-	"backend-server/internal/objects"
-	"backend-server/pkg/p2p"
+	"backend_server/internal/config"
+	"backend_server/internal/objects"
+	"backend_server/pkg/p2p"
 
 	"github.com/google/uuid"
 	"github.com/tidwall/buntdb"

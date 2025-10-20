@@ -1,7 +1,7 @@
 package validation
 
 import (
-	"backend-server/internal/objects"
+	"backend_server/internal/objects"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -82,15 +82,15 @@ func (pg *ProofGenerator) VerifyProof(proof string, task *objects.ValidationTask
 
 	// Recreate the exact proof data that was used during generation
 	proofData := map[string]interface{}{
-		"task_id":          task.ID,
-		"result_id":        result.ID,
-		"validator_node":   pg.nodeID,
-		"timestamp":        time.Now().Unix(), // Use current time for verification (timestamps should match within reasonable window)
-		"score":            result.Score,
-		"status":           result.Status,
-		"execution_time":   result.ExecutionTime.Milliseconds(),
-		"test_results":     result.TestResults,
-		"results":          result.Results,
+		"task_id":        task.ID,
+		"result_id":      result.ID,
+		"validator_node": pg.nodeID,
+		"timestamp":      time.Now().Unix(), // Use current time for verification (timestamps should match within reasonable window)
+		"score":          result.Score,
+		"status":         result.Status,
+		"execution_time": result.ExecutionTime.Milliseconds(),
+		"test_results":   result.TestResults,
+		"results":        result.Results,
 	}
 
 	proofJSON, err := json.Marshal(proofData)

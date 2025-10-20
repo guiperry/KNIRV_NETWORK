@@ -13,7 +13,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/tidwall/buntdb"
 
-	"backend-server/internal/database"
+	"backend_server/internal/database"
 )
 
 // AuthMiddleware handles authentication and authorization

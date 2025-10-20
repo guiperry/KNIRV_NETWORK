@@ -4,7 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"backend-server/internal/objects"
+	"backend_server/internal/objects"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,8 +16,8 @@ func TestCompleteValidationWorkflow(t *testing.T) {
 	// Test Case 1: Complete Skill Validation Workflow
 	t.Run("SkillValidation", func(t *testing.T) {
 		task := &objects.ValidationTask{
-			ID:        "skill-integration-1",
-			Type:      "skill",
+			ID:   "skill-integration-1",
+			Type: "skill",
 			SkillCode: `package main
 import "fmt"
 func main() { fmt.Println("Hello, World!") }`,
@@ -141,13 +142,13 @@ func BenchmarkCompleteValidationWorkflow(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		// Create context for each iteration to ensure it's used
 		ctx := context.Background()
-		
+
 		// Simulate validation workflow by actually using the task fields
 		// This ensures the fields are not considered unused writes
 		if task.ID == "" || task.Type == "" || task.SkillCode == "" || len(task.TestCases) == 0 {
 			b.Fatal("Task fields should not be empty")
 		}
-		
+
 		// Use context to check for cancellation (simulating real usage)
 		select {
 		case <-ctx.Done():

@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"backend-server/internal/objects"
-	"backend-server/internal/services/controllerintegration"
-	"backend-server/internal/web/middleware"
+	"backend_server/internal/objects"
+	"backend_server/internal/services/controllerintegration"
+	"backend_server/internal/web/middleware"
 
 	"github.com/gorilla/mux"
 )
@@ -396,6 +396,196 @@ func (h *ControllerIntegrationHandlers) DeleteSession(w http.ResponseWriter, r *
 	json.NewEncoder(w).Encode(response)
 }
 
+// PostHandleCommand handles POST /api/controller-integration/sessions/{id}/commands
+func (h *ControllerIntegrationHandlers) PostHandleCommand(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	sessionID := vars["id"]
+
+	if sessionID == "" {
+		response := ControllerIntegrationResponse{
+			Success:   false,
+			Error:     "Session ID is required",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	var command objects.ControllerMessage
+	if err := json.NewDecoder(r.Body).Decode(&command); err != nil {
+		response := ControllerIntegrationResponse{
+			Success:   false,
+			Error:     "Invalid request body",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Set command metadata
+	command.ID = "cmd_" + time.Now().Format("20060102150405")
+	command.SessionID = sessionID
+	command.Direction = "inbound"
+	command.Timestamp = time.Now()
+	command.Processed = false
+
+	response, err := h.controllerIntegrationService.HandleControllerCommand(sessionID, &command)
+	if err != nil {
+		response := ControllerIntegrationResponse{
+			Success:   false,
+			Error:     "Failed to handle command: " + err.Error(),
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	apiResponse := ControllerIntegrationResponse{
+		Success:   true,
+		Data:      response,
+		Message:   "Command handled successfully",
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(apiResponse)
+}
+
+// PostNegotiateCapabilities handles POST /api/controller-integration/sessions/{id}/capabilities
+func (h *ControllerIntegrationHandlers) PostNegotiateCapabilities(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	sessionID := vars["id"]
+
+	if sessionID == "" {
+		response := ControllerIntegrationResponse{
+			Success:   false,
+			Error:     "Session ID is required",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	var request struct {
+		RequestedCapabilities []string `json:"requested_capabilities"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		response := ControllerIntegrationResponse{
+			Success:   false,
+			Error:     "Invalid request body",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	negotiatedCapabilities, err := h.controllerIntegrationService.NegotiateCapabilities(sessionID, request.RequestedCapabilities)
+	if err != nil {
+		response := ControllerIntegrationResponse{
+			Success:   false,
+			Error:     "Failed to negotiate capabilities: " + err.Error(),
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	response := ControllerIntegrationResponse{
+		Success: true,
+		Data: map[string]interface{}{
+			"negotiated_capabilities": negotiatedCapabilities,
+		},
+		Message:   "Capabilities negotiated successfully",
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// PostSendPushNotification handles POST /api/controller-integration/sessions/{id}/notifications
+func (h *ControllerIntegrationHandlers) PostSendPushNotification(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	sessionID := vars["id"]
+
+	if sessionID == "" {
+		response := ControllerIntegrationResponse{
+			Success:   false,
+			Error:     "Session ID is required",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	var request struct {
+		Title   string                 `json:"title"`
+		Message string                 `json:"message"`
+		Data    map[string]interface{} `json:"data,omitempty"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		response := ControllerIntegrationResponse{
+			Success:   false,
+			Error:     "Invalid request body",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	if request.Title == "" || request.Message == "" {
+		response := ControllerIntegrationResponse{
+			Success:   false,
+			Error:     "Title and message are required",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	err := h.controllerIntegrationService.SendPushNotification(sessionID, request.Title, request.Message, request.Data)
+	if err != nil {
+		response := ControllerIntegrationResponse{
+			Success:   false,
+			Error:     "Failed to send push notification: " + err.Error(),
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	response := ControllerIntegrationResponse{
+		Success:   true,
+		Message:   "Push notification sent successfully",
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
 // RegisterRoutes registers the controller integration routes with the router
 func (h *ControllerIntegrationHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.AuthMiddleware) {
 	// Create a subrouter for controller integration endpoints
@@ -419,6 +609,9 @@ func (h *ControllerIntegrationHandlers) RegisterRoutes(r *mux.Router, authMiddle
 		protectedControllerRouter.HandleFunc("/sessions/{id}", h.GetSession).Methods("GET")
 		protectedControllerRouter.HandleFunc("/sessions/{id}", h.DeleteSession).Methods("DELETE")
 		protectedControllerRouter.HandleFunc("/sessions/{id}/messages", h.PostSendMessage).Methods("POST")
+		protectedControllerRouter.HandleFunc("/sessions/{id}/commands", h.PostHandleCommand).Methods("POST")
+		protectedControllerRouter.HandleFunc("/sessions/{id}/capabilities", h.PostNegotiateCapabilities).Methods("POST")
+		protectedControllerRouter.HandleFunc("/sessions/{id}/notifications", h.PostSendPushNotification).Methods("POST")
 
 		// User sessions
 		protectedControllerRouter.HandleFunc("/users/{id}/sessions", h.GetUserSessions).Methods("GET")
@@ -429,6 +622,9 @@ func (h *ControllerIntegrationHandlers) RegisterRoutes(r *mux.Router, authMiddle
 		controllerRouter.HandleFunc("/sessions/{id}", h.GetSession).Methods("GET")
 		controllerRouter.HandleFunc("/sessions/{id}", h.DeleteSession).Methods("DELETE")
 		controllerRouter.HandleFunc("/sessions/{id}/messages", h.PostSendMessage).Methods("POST")
+		controllerRouter.HandleFunc("/sessions/{id}/commands", h.PostHandleCommand).Methods("POST")
+		controllerRouter.HandleFunc("/sessions/{id}/capabilities", h.PostNegotiateCapabilities).Methods("POST")
+		controllerRouter.HandleFunc("/sessions/{id}/notifications", h.PostSendPushNotification).Methods("POST")
 		controllerRouter.HandleFunc("/users/{id}/sessions", h.GetUserSessions).Methods("GET")
 	}
 

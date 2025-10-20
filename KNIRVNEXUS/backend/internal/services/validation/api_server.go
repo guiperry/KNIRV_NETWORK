@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"backend-server/internal/config"
+	"backend_server/internal/config"
 )
 
 // APIServer provides HTTP API endpoints for Validation Core
