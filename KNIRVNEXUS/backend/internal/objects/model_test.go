@@ -68,11 +68,44 @@ func TestModel_StructFields(t *testing.T) {
 	if model.ID != "model-123" {
 		t.Errorf("Expected ID 'model-123', got '%s'", model.ID)
 	}
+	if model.Name != "Test Model" {
+		t.Errorf("Expected Name 'Test Model', got '%s'", model.Name)
+	}
 	if model.Type != "WASM" {
 		t.Errorf("Expected Type 'WASM', got '%s'", model.Type)
 	}
 	if model.Status != "running" {
 		t.Errorf("Expected Status 'running', got '%s'", model.Status)
+	}
+	if model.FilePath != "/objects/test-model.wasm" {
+		t.Errorf("Expected FilePath '/objects/test-model.wasm', got '%s'", model.FilePath)
+	}
+	if model.FileHash != "sha256:abcd1234" {
+		t.Errorf("Expected FileHash 'sha256:abcd1234', got '%s'", model.FileHash)
+	}
+	if len(model.Dependencies) != 2 {
+		t.Errorf("Expected 2 dependencies, got %d", len(model.Dependencies))
+	}
+	if model.Configuration["timeout"] != 30 {
+		t.Errorf("Expected timeout 30, got '%v'", model.Configuration["timeout"])
+	}
+	if model.Metadata["category"] != "ml" {
+		t.Errorf("Expected category 'ml', got '%v'", model.Metadata["category"])
+	}
+	if len(model.Tags) != 2 {
+		t.Errorf("Expected 2 tags, got %d", len(model.Tags))
+	}
+	if model.DeployedAt == nil {
+		t.Error("Expected DeployedAt to be set")
+	}
+	if model.LastActivity == nil {
+		t.Error("Expected LastActivity to be set")
+	}
+	if model.UploadedBy != "user-123" {
+		t.Errorf("Expected UploadedBy 'user-123', got '%s'", model.UploadedBy)
+	}
+	if model.DeployedBy != "user-456" {
+		t.Errorf("Expected DeployedBy 'user-456', got '%s'", model.DeployedBy)
 	}
 	if model.FileSize != 1024000 {
 		t.Errorf("Expected FileSize 1024000, got %d", model.FileSize)
@@ -132,8 +165,17 @@ func TestModelResourceUsage_StructFields(t *testing.T) {
 	if usage.CPUUsagePercent != 65.3 {
 		t.Errorf("Expected CPUUsagePercent 65.3, got %f", usage.CPUUsagePercent)
 	}
+	if usage.DiskUsageMB != 1024.5 {
+		t.Errorf("Expected DiskUsageMB 1024.5, got %f", usage.DiskUsageMB)
+	}
 	if usage.NetworkBytesIn != 5000000 {
 		t.Errorf("Expected NetworkBytesIn 5000000, got %d", usage.NetworkBytesIn)
+	}
+	if usage.NetworkBytesOut != 3000000 {
+		t.Errorf("Expected NetworkBytesOut 3000000, got %d", usage.NetworkBytesOut)
+	}
+	if usage.ExecutionTime != 450 {
+		t.Errorf("Expected ExecutionTime 450, got %d", usage.ExecutionTime)
 	}
 	if usage.RequestCount != 5000 {
 		t.Errorf("Expected RequestCount 5000, got %d", usage.RequestCount)
@@ -184,6 +226,15 @@ func TestModelDeployment_StructFields(t *testing.T) {
 	if deployment.HealthCheck.IntervalSeconds != 30 {
 		t.Errorf("Expected HealthCheck IntervalSeconds 30, got %d", deployment.HealthCheck.IntervalSeconds)
 	}
+	if deployment.ModelID != "model-123" {
+		t.Errorf("Expected ModelID 'model-123', got '%s'", deployment.ModelID)
+	}
+	if deployment.Name != "Production Deployment" {
+		t.Errorf("Expected Name 'Production Deployment', got '%s'", deployment.Name)
+	}
+	if deployment.Status != "deployed" {
+		t.Errorf("Expected Status 'deployed', got '%s'", deployment.Status)
+	}
 }
 
 func TestModelHealthCheck_StructFields(t *testing.T) {
@@ -207,6 +258,12 @@ func TestModelHealthCheck_StructFields(t *testing.T) {
 	}
 	if healthCheck.FailureThreshold != 5 {
 		t.Errorf("Expected FailureThreshold 5, got %d", healthCheck.FailureThreshold)
+	}
+	if healthCheck.TimeoutSeconds != 10 {
+		t.Errorf("Expected TimeoutSeconds 10, got %d", healthCheck.TimeoutSeconds)
+	}
+	if healthCheck.SuccessThreshold != 2 {
+		t.Errorf("Expected SuccessThreshold 2, got %d", healthCheck.SuccessThreshold)
 	}
 }
 
@@ -237,6 +294,15 @@ func TestModelLog_StructFields(t *testing.T) {
 	if log.Metadata["retry_count"] != 3 {
 		t.Errorf("Expected retry_count 3, got '%v'", log.Metadata["retry_count"])
 	}
+	if log.ModelID != "model-123" {
+		t.Errorf("Expected ModelID 'model-123', got '%s'", log.ModelID)
+	}
+	if log.InstanceID != "instance-123" {
+		t.Errorf("Expected InstanceID 'instance-123', got '%s'", log.InstanceID)
+	}
+	if log.Timestamp.IsZero() {
+		t.Error("Expected Timestamp to be set")
+	}
 }
 
 func TestModelMetrics_StructFields(t *testing.T) {
@@ -260,6 +326,9 @@ func TestModelMetrics_StructFields(t *testing.T) {
 	if metrics.ModelID != "model-123" {
 		t.Errorf("Expected ModelID 'model-123', got '%s'", metrics.ModelID)
 	}
+	if metrics.InstanceID != "instance-123" {
+		t.Errorf("Expected InstanceID 'instance-123', got '%s'", metrics.InstanceID)
+	}
 	if metrics.RequestsPerSecond != 150.5 {
 		t.Errorf("Expected RequestsPerSecond 150.5, got %f", metrics.RequestsPerSecond)
 	}
@@ -269,8 +338,14 @@ func TestModelMetrics_StructFields(t *testing.T) {
 	if metrics.ErrorRate != 2.1 {
 		t.Errorf("Expected ErrorRate 2.1, got %f", metrics.ErrorRate)
 	}
+	if metrics.Throughput != 10.5 {
+		t.Errorf("Expected Throughput 10.5, got %f", metrics.Throughput)
+	}
 	if metrics.ResourceUsage.MemoryUsageMB != 256.0 {
 		t.Errorf("Expected ResourceUsage MemoryUsageMB 256.0, got %f", metrics.ResourceUsage.MemoryUsageMB)
+	}
+	if metrics.Timestamp.IsZero() {
+		t.Error("Expected Timestamp to be set")
 	}
 }
 
@@ -300,6 +375,15 @@ func TestModelEvent_StructFields(t *testing.T) {
 	}
 	if event.Metadata["deployment_id"] != "deploy-456" {
 		t.Errorf("Expected deployment_id 'deploy-456', got '%v'", event.Metadata["deployment_id"])
+	}
+	if event.ModelID != "model-123" {
+		t.Errorf("Expected ModelID 'model-123', got '%s'", event.ModelID)
+	}
+	if event.InstanceID != "instance-123" {
+		t.Errorf("Expected InstanceID 'instance-123', got '%s'", event.InstanceID)
+	}
+	if event.Timestamp.IsZero() {
+		t.Error("Expected Timestamp to be set")
 	}
 }
 

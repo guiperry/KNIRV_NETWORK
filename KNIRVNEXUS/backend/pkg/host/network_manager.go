@@ -105,7 +105,7 @@ func NewNetworkManager(ctx context.Context, config *HostConfig) (*NetworkManager
 			EnableRelay:        true,
 			EnableEncryption:   true,
 			CustomPorts: map[string]int{
-				"dve-manager":     8080,
+				"dve-manager":     8082,
 				"validation-core": 8081,
 				"model-server":    8082,
 				"data-engine":     8083,
@@ -446,7 +446,7 @@ func (nm *NetworkManager) parseFirewallRule(line, chain string) *FirewallRule {
 
 // identifyKNIRVFirewallRule identifies if a firewall rule is KNIRV-related
 func (nm *NetworkManager) identifyKNIRVFirewallRule(rule *FirewallRule, line string) {
-	knirvPorts := []string{"8080", "8081", "8082", "8083", "8084", "4001"}
+	knirvPorts := []string{"8082", "8081", "8082", "8083", "8084", "4001"}
 	knirvKeywords := []string{"knirv", "nexus", "dve", "p2p"}
 
 	lineLower := strings.ToLower(line)

@@ -35,7 +35,7 @@ type WebSocketConfig struct {
 // NewWebSocketServer creates a new WebSocket server
 func NewWebSocketServer(config WebSocketConfig, dataEngine *DataEngine) *WebSocketServer {
 	if config.Port == 0 {
-		config.Port = 8080
+		config.Port = 8082
 	}
 
 	if config.ReadBufferSize == 0 {
@@ -79,7 +79,7 @@ func (s *WebSocketServer) Start() error {
 	mux.HandleFunc("/health", s.handleHealth)
 
 	s.server = &http.Server{
-		Addr:    fmt.Sprintf(":%d", 8080),
+		Addr:    fmt.Sprintf(":%d", 8082),
 		Handler: mux,
 	}
 

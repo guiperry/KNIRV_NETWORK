@@ -1,6 +1,7 @@
-import { Search, Zap, Shield, Wallet, Download, Activity } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import * as React from 'react';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Zap, Shield, Wallet, Download, Activity } from 'lucide-react';
 import SkillCard from '../components/SkillCard';
 import { SlidingPanel } from '../components/SlidingPanel';
 import { NetworkStatus } from '../components/NetworkStatus';

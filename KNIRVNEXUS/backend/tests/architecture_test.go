@@ -61,7 +61,7 @@ func TestArchitecture(t *testing.T) {
 
 		// Test unified backend health
 		t.Run("UnifiedBackendHealth", func(t *testing.T) {
-			resp, err := http.Get("http://localhost:8080/health")
+			resp, err := http.Get("http://localhost:8082/health")
 			if err != nil {
 				t.Logf("Unified backend not accessible: %v", err)
 				return
@@ -117,7 +117,7 @@ func TestDomainServices(t *testing.T) {
 		time.Sleep(3 * time.Second)
 
 		// Test DVE endpoints through unified backend
-		resp, err := http.Get("http://localhost:8080/api/dve/health")
+		resp, err := http.Get("http://localhost:8082/api/dve/health")
 		if err != nil {
 			t.Logf("DVE endpoints not accessible: %v", err)
 			return
@@ -153,7 +153,7 @@ func TestDomainServices(t *testing.T) {
 		time.Sleep(3 * time.Second)
 
 		// Test validation endpoints through unified backend
-		resp, err := http.Get("http://localhost:8080/api/validation/health")
+		resp, err := http.Get("http://localhost:8082/api/validation/health")
 		if err != nil {
 			t.Logf("Validation endpoints not accessible: %v", err)
 			return

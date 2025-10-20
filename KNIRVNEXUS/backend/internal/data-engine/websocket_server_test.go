@@ -112,14 +112,14 @@ func TestWebSocketServerWithDataEngine(t *testing.T) {
 		EnableChromaDB:   false,
 		EnableWebSocket:  true,
 		EnableRESTAPI:    false,
-		WebSocketPort:    8080,
+		WebSocketPort:    8082,
 		WindowSize:       5 * time.Minute,
 		MetricsInterval:  1 * time.Second,
 	})
 
 	// Create a WebSocket server
 	wsServer := NewWebSocketServer(WebSocketConfig{
-		Port:            8080,
+		Port:            8082,
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 		CheckOrigin:     true,

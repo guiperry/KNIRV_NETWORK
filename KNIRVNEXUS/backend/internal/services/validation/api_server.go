@@ -47,9 +47,9 @@ func (s *APIServer) Start(ctx context.Context) error {
 	// CORS middleware for development
 	handler := s.corsMiddleware(mux)
 
-	// Use port 8081 for validation core (different from DVE Manager's 8080)
+	// Use port 8081 for validation core (different from DVE Manager's 8082)
 	port := 8081
-	if s.config.API.Port != 8080 {
+	if s.config.API.Port != 8082 {
 		port = s.config.API.Port
 	}
 

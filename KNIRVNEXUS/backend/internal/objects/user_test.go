@@ -210,6 +210,24 @@ func TestUserProfile_StructFields(t *testing.T) {
 	if profile.ID != "user-123" {
 		t.Errorf("Expected ID 'user-123', got '%s'", profile.ID)
 	}
+	if profile.CreatedAt != now {
+		t.Errorf("Expected CreatedAt %v, got %v", now, profile.CreatedAt)
+	}
+	if profile.UpdatedAt != now {
+		t.Errorf("Expected UpdatedAt %v, got %v", now, profile.UpdatedAt)
+	}
+	if profile.LastLogin != now {
+		t.Errorf("Expected LastLogin %v, got %v", now, profile.LastLogin)
+	}
+	if profile.Avatar != "avatar.jpg" {
+		t.Errorf("Expected Avatar 'avatar.jpg', got '%s'", profile.Avatar)
+	}
+	if profile.Timezone != "UTC" {
+		t.Errorf("Expected Timezone 'UTC', got '%s'", profile.Timezone)
+	}
+	if profile.Language != "en" {
+		t.Errorf("Expected Language 'en', got '%s'", profile.Language)
+	}
 	if profile.Email != "test@example.com" {
 		t.Errorf("Expected email 'test@example.com', got '%s'", profile.Email)
 	}
@@ -248,6 +266,12 @@ func TestUserSession_StructFields(t *testing.T) {
 	if session.Token != "token-123" {
 		t.Errorf("Expected token 'token-123', got '%s'", session.Token)
 	}
+	if session.ExpiresAt != now.Add(time.Hour) {
+		t.Errorf("Expected ExpiresAt %v, got %v", now.Add(time.Hour), session.ExpiresAt)
+	}
+	if session.CreatedAt != now {
+		t.Errorf("Expected CreatedAt %v, got %v", now, session.CreatedAt)
+	}
 	if session.UserID != "user-123" {
 		t.Errorf("Expected UserID 'user-123', got '%s'", session.UserID)
 	}
@@ -285,6 +309,21 @@ func TestAuditLog_StructFields(t *testing.T) {
 	if auditLog.ID != "audit-123" {
 		t.Errorf("Expected ID 'audit-123', got '%s'", auditLog.ID)
 	}
+	if auditLog.UserID != "user-123" {
+		t.Errorf("Expected UserID 'user-123', got '%s'", auditLog.UserID)
+	}
+	if auditLog.IPAddress != "192.168.1.1" {
+		t.Errorf("Expected IPAddress '192.168.1.1', got '%s'", auditLog.IPAddress)
+	}
+	if auditLog.UserModel != "Mozilla/5.0" {
+		t.Errorf("Expected UserModel 'Mozilla/5.0', got '%s'", auditLog.UserModel)
+	}
+	if auditLog.Error != "" {
+		t.Errorf("Expected Error '', got '%s'", auditLog.Error)
+	}
+	if auditLog.Timestamp != now {
+		t.Errorf("Expected Timestamp %v, got %v", now, auditLog.Timestamp)
+	}
 	if auditLog.Action != "CREATE_NODE" {
 		t.Errorf("Expected Action 'CREATE_NODE', got '%s'", auditLog.Action)
 	}
@@ -315,6 +354,21 @@ func TestOAuthProvider_StructFields(t *testing.T) {
 	if provider.ID != "google" {
 		t.Errorf("Expected ID 'google', got '%s'", provider.ID)
 	}
+	if provider.ClientID != "client-123" {
+		t.Errorf("Expected ClientID 'client-123', got '%s'", provider.ClientID)
+	}
+	if provider.ClientSecret != "secret-123" {
+		t.Errorf("Expected ClientSecret 'secret-123', got '%s'", provider.ClientSecret)
+	}
+	if provider.AuthURL != "https://accounts.google.com/oauth/authorize" {
+		t.Errorf("Expected AuthURL 'https://accounts.google.com/oauth/authorize', got '%s'", provider.AuthURL)
+	}
+	if provider.TokenURL != "https://oauth2.googleapis.com/token" {
+		t.Errorf("Expected TokenURL 'https://oauth2.googleapis.com/token', got '%s'", provider.TokenURL)
+	}
+	if provider.UserInfoURL != "https://www.googleapis.com/oauth2/v2/userinfo" {
+		t.Errorf("Expected UserInfoURL 'https://www.googleapis.com/oauth2/v2/userinfo', got '%s'", provider.UserInfoURL)
+	}
 	if provider.Name != "Google" {
 		t.Errorf("Expected Name 'Google', got '%s'", provider.Name)
 	}
@@ -341,6 +395,15 @@ func TestUserPreferences_StructFields(t *testing.T) {
 
 	if prefs.UserID != "user-123" {
 		t.Errorf("Expected UserID 'user-123', got '%s'", prefs.UserID)
+	}
+	if prefs.DashboardLayout != "grid" {
+		t.Errorf("Expected DashboardLayout 'grid', got '%s'", prefs.DashboardLayout)
+	}
+	if prefs.DefaultReportFormat != "pdf" {
+		t.Errorf("Expected DefaultReportFormat 'pdf', got '%s'", prefs.DefaultReportFormat)
+	}
+	if prefs.UpdatedAt != now {
+		t.Errorf("Expected UpdatedAt %v, got %v", now, prefs.UpdatedAt)
 	}
 	if prefs.Theme != "dark" {
 		t.Errorf("Expected Theme 'dark', got '%s'", prefs.Theme)
@@ -376,6 +439,18 @@ func TestAPIKey_StructFields(t *testing.T) {
 
 	if apiKey.ID != "key-123" {
 		t.Errorf("Expected ID 'key-123', got '%s'", apiKey.ID)
+	}
+	if apiKey.UserID != "user-123" {
+		t.Errorf("Expected UserID 'user-123', got '%s'", apiKey.UserID)
+	}
+	if apiKey.Key != "ak_123456789" {
+		t.Errorf("Expected Key 'ak_123456789', got '%s'", apiKey.Key)
+	}
+	if apiKey.CreatedAt != now {
+		t.Errorf("Expected CreatedAt %v, got %v", now, apiKey.CreatedAt)
+	}
+	if apiKey.UpdatedAt != now {
+		t.Errorf("Expected UpdatedAt %v, got %v", now, apiKey.UpdatedAt)
 	}
 	if apiKey.Name != "Production API Key" {
 		t.Errorf("Expected Name 'Production API Key', got '%s'", apiKey.Name)

@@ -423,7 +423,7 @@ func (cde *CDEService) createEnvironmentAsync(env *CDEEnvironment) {
 	env.Status = EnvStatusRunning
 	env.IPAddress = "172.20.0.10" // Simulated IP (in real implementation, this would come from container)
 	env.Ports["ssh"] = 22
-	env.Ports["http"] = 8080
+	env.Ports["http"] = 8082
 	cde.mu.Unlock()
 
 	// Log metrics
@@ -533,7 +533,7 @@ func (cde *CDEService) CreateSession(userID, envID string, connectionType string
 		session.ConnectionInfo["port"] = fmt.Sprintf("%d", env.Ports["ssh"])
 		session.ConnectionInfo["username"] = "developer"
 	case "websocket":
-		session.ConnectionInfo["url"] = fmt.Sprintf("ws://%s:8080/terminal", env.IPAddress)
+		session.ConnectionInfo["url"] = fmt.Sprintf("ws://%s:8082/terminal", env.IPAddress)
 	case "vnc":
 		session.ConnectionInfo["host"] = env.IPAddress
 		session.ConnectionInfo["port"] = "5900"

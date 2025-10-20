@@ -18,6 +18,10 @@ func TestDVENode_StructFields(t *testing.T) {
 		Latitude:        40.7128,
 	}
 
+	if node.Name != "Test Node" {
+		t.Errorf("Expected Name 'Test Node', got '%s'", node.Name)
+	}
+
 	if node.ID != "node-123" {
 		t.Errorf("Expected ID 'node-123', got '%s'", node.ID)
 	}
@@ -62,6 +66,13 @@ func TestValidationTask_StructFields(t *testing.T) {
 			Expected:    "expected output",
 			Weight:      1.0,
 		},
+	}
+
+	if testCases[0].Description != "Test basic functionality" {
+		t.Errorf("Expected Description 'Test basic functionality', got '%s'", testCases[0].Description)
+	}
+	if testCases[0].Name != "Basic Test" {
+		t.Errorf("Expected Name 'Basic Test', got '%s'", testCases[0].Name)
 	}
 
 	task := ValidationTask{
@@ -133,6 +144,9 @@ func TestTestCase_StructFields(t *testing.T) {
 	if testCase.Expected != "expected response with confidence 0.95" {
 		t.Errorf("Expected response 'expected response with confidence 0.95', got '%s'", testCase.Expected)
 	}
+	if testCase.Description != "Test with specific temperature" {
+		t.Errorf("Expected Description 'Test with specific temperature', got '%s'", testCase.Description)
+	}
 }
 
 func TestValidationResult_StructFields(t *testing.T) {
@@ -152,6 +166,10 @@ func TestValidationResult_StructFields(t *testing.T) {
 		},
 	}
 
+	if testResults[0].ErrorMessage != "" {
+		t.Errorf("Expected ErrorMessage '', got '%s'", testResults[0].ErrorMessage)
+	}
+
 	result := ValidationResult{
 		ID:            "result-123",
 		TaskID:        "task-123",
@@ -164,6 +182,9 @@ func TestValidationResult_StructFields(t *testing.T) {
 
 	if result.ID != "result-123" {
 		t.Errorf("Expected ID 'result-123', got '%s'", result.ID)
+	}
+	if result.TaskID != "task-123" {
+		t.Errorf("Expected TaskID 'task-123', got '%s'", result.TaskID)
 	}
 	if result.Status != "success" {
 		t.Errorf("Expected Status 'success', got '%s'", result.Status)
@@ -209,6 +230,9 @@ func TestTestResult_StructFields(t *testing.T) {
 	if testResult.ActualOutput != "positive prediction with confidence 0.87" {
 		t.Errorf("Expected output 'positive prediction with confidence 0.87', got '%s'", testResult.ActualOutput)
 	}
+	if testResult.ErrorMessage != "" {
+		t.Errorf("Expected ErrorMessage '', got '%s'", testResult.ErrorMessage)
+	}
 }
 
 func TestTEEAttestation_StructFields(t *testing.T) {
@@ -225,6 +249,9 @@ func TestTEEAttestation_StructFields(t *testing.T) {
 
 	if attestation.ID != "attestation-123" {
 		t.Errorf("Expected ID 'attestation-123', got '%s'", attestation.ID)
+	}
+	if attestation.NodeID != "node-123" {
+		t.Errorf("Expected NodeID 'node-123', got '%s'", attestation.NodeID)
 	}
 	if attestation.TEEType != "sgx" {
 		t.Errorf("Expected TEEType 'sgx', got '%s'", attestation.TEEType)
@@ -252,6 +279,9 @@ func TestCognitiveEngineMetrics_StructFields(t *testing.T) {
 
 	if metrics.ID != "metrics-123" {
 		t.Errorf("Expected ID 'metrics-123', got '%s'", metrics.ID)
+	}
+	if metrics.NodeID != "node-123" {
+		t.Errorf("Expected NodeID 'node-123', got '%s'", metrics.NodeID)
 	}
 	if metrics.TasksProcessed != 1000 {
 		t.Errorf("Expected TasksProcessed 1000, got %d", metrics.TasksProcessed)
@@ -342,6 +372,18 @@ func TestAlert_StructFields(t *testing.T) {
 
 	if alert.ID != "alert-123" {
 		t.Errorf("Expected ID 'alert-123', got '%s'", alert.ID)
+	}
+	if alert.Title != "High CPU Usage" {
+		t.Errorf("Expected Title 'High CPU Usage', got '%s'", alert.Title)
+	}
+	if alert.Message != "CPU usage exceeded threshold" {
+		t.Errorf("Expected Message 'CPU usage exceeded threshold', got '%s'", alert.Message)
+	}
+	if alert.Source != "system-monitor" {
+		t.Errorf("Expected Source 'system-monitor', got '%s'", alert.Source)
+	}
+	if alert.NodeID != "node-123" {
+		t.Errorf("Expected NodeID 'node-123', got '%s'", alert.NodeID)
 	}
 	if alert.Type != "warning" {
 		t.Errorf("Expected Type 'warning', got '%s'", alert.Type)

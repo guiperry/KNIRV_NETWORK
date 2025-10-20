@@ -67,6 +67,30 @@ func TestReportTemplateRecord_StructFields(t *testing.T) {
 	if template.ID != "template-123" {
 		t.Errorf("Expected ID 'template-123', got '%s'", template.ID)
 	}
+	if template.Name != "System Health Template" {
+		t.Errorf("Expected Name 'System Health Template', got '%s'", template.Name)
+	}
+	if template.Description != "Template for generating system health reports" {
+		t.Errorf("Expected Description 'Template for generating system health reports', got '%s'", template.Description)
+	}
+	if template.Type != "system_health" {
+		t.Errorf("Expected Type 'system_health', got '%s'", template.Type)
+	}
+	if template.TemplateConfig["layout"] != "standard" {
+		t.Errorf("Expected layout 'standard', got %v", template.TemplateConfig["layout"])
+	}
+	if template.DefaultParams["period"] != "24h" {
+		t.Errorf("Expected period '24h', got %v", template.DefaultParams["period"])
+	}
+	if template.CreatedBy != "admin" {
+		t.Errorf("Expected CreatedBy 'admin', got '%s'", template.CreatedBy)
+	}
+	if template.CreatedAt != now {
+		t.Errorf("Expected CreatedAt %v, got %v", now, template.CreatedAt)
+	}
+	if template.UpdatedAt != updated {
+		t.Errorf("Expected UpdatedAt %v, got %v", updated, template.UpdatedAt)
+	}
 	if template.Category != "system" {
 		t.Errorf("Expected Category 'system', got '%s'", template.Category)
 	}
@@ -102,6 +126,18 @@ func TestReportShareRecord_StructFields(t *testing.T) {
 
 	if share.ReportID != "report-123" {
 		t.Errorf("Expected ReportID 'report-123', got '%s'", share.ReportID)
+	}
+	if share.UserID != "user-456" {
+		t.Errorf("Expected UserID 'user-456', got '%s'", share.UserID)
+	}
+	if share.ExpiresAt != expiresAt {
+		t.Errorf("Expected ExpiresAt %v, got %v", expiresAt, share.ExpiresAt)
+	}
+	if share.CreatedAt != now {
+		t.Errorf("Expected CreatedAt %v, got %v", now, share.CreatedAt)
+	}
+	if share.LastAccessed == nil {
+		t.Error("Expected LastAccessed to be set")
 	}
 	if share.ShareToken != "token-abc123" {
 		t.Errorf("Expected ShareToken 'token-abc123', got '%s'", share.ShareToken)
@@ -141,6 +177,36 @@ func TestReportSchedule_StructFields(t *testing.T) {
 	if schedule.ID != "schedule-123" {
 		t.Errorf("Expected ID 'schedule-123', got '%s'", schedule.ID)
 	}
+	if schedule.Name != "Daily Health Report" {
+		t.Errorf("Expected Name 'Daily Health Report', got '%s'", schedule.Name)
+	}
+	if schedule.Description != "Daily system health report generation" {
+		t.Errorf("Expected Description 'Daily system health report generation', got '%s'", schedule.Description)
+	}
+	if schedule.TemplateID != "template-123" {
+		t.Errorf("Expected TemplateID 'template-123', got '%s'", schedule.TemplateID)
+	}
+	if schedule.UserID != "user-123" {
+		t.Errorf("Expected UserID 'user-123', got '%s'", schedule.UserID)
+	}
+	if schedule.Parameters["period"] != "24h" {
+		t.Errorf("Expected period '24h', got %v", schedule.Parameters["period"])
+	}
+	if schedule.Format != "pdf" {
+		t.Errorf("Expected Format 'pdf', got '%s'", schedule.Format)
+	}
+	if schedule.LastRun == nil {
+		t.Error("Expected LastRun to be set")
+	}
+	if schedule.NextRun == nil {
+		t.Error("Expected NextRun to be set")
+	}
+	if schedule.CreatedAt != now {
+		t.Errorf("Expected CreatedAt %v, got %v", now, schedule.CreatedAt)
+	}
+	if schedule.UpdatedAt != updated {
+		t.Errorf("Expected UpdatedAt %v, got %v", updated, schedule.UpdatedAt)
+	}
 	if schedule.CronSchedule != "0 0 * * *" {
 		t.Errorf("Expected CronSchedule '0 0 * * *', got '%s'", schedule.CronSchedule)
 	}
@@ -170,6 +236,9 @@ func TestMetricsSnapshot_StructFields(t *testing.T) {
 	if snapshot.ID != "snapshot-123" {
 		t.Errorf("Expected ID 'snapshot-123', got '%s'", snapshot.ID)
 	}
+	if snapshot.Timestamp != now {
+		t.Errorf("Expected Timestamp %v, got %v", now, snapshot.Timestamp)
+	}
 	if snapshot.Type != "node_metrics" {
 		t.Errorf("Expected Type 'node_metrics', got '%s'", snapshot.Type)
 	}
@@ -181,6 +250,9 @@ func TestMetricsSnapshot_StructFields(t *testing.T) {
 	}
 	if snapshot.Data["cpu_usage"] != 45.2 {
 		t.Errorf("Expected cpu_usage 45.2, got %v", snapshot.Data["cpu_usage"])
+	}
+	if snapshot.Data["memory_usage"] != 67.8 {
+		t.Errorf("Expected memory_usage 67.8, got %v", snapshot.Data["memory_usage"])
 	}
 }
 
@@ -200,6 +272,17 @@ func TestReportData_StructFields(t *testing.T) {
 		Description: "Overview of system metrics",
 	}
 
+	if section.Title != "System Overview" {
+		t.Errorf("Expected Title 'System Overview', got '%s'", section.Title)
+	}
+	if sectionData, ok := section.Data.(map[string]interface{}); ok {
+		if sectionData["total_nodes"] != 10 {
+			t.Errorf("Expected total_nodes 10, got %v", sectionData["total_nodes"])
+		}
+	} else {
+		t.Error("Expected section.Data to be map[string]interface{}")
+	}
+
 	reportData := ReportData{
 		Title:       "Daily System Report",
 		Description: "Daily system health and performance report",
@@ -214,6 +297,18 @@ func TestReportData_StructFields(t *testing.T) {
 	if reportData.Title != "Daily System Report" {
 		t.Errorf("Expected Title 'Daily System Report', got '%s'", reportData.Title)
 	}
+	if reportData.Description != "Daily system health and performance report" {
+		t.Errorf("Expected Description 'Daily system health and performance report', got '%s'", reportData.Description)
+	}
+	if reportData.GeneratedAt != now {
+		t.Errorf("Expected GeneratedAt %v, got %v", now, reportData.GeneratedAt)
+	}
+	if reportData.GeneratedBy != "user-123" {
+		t.Errorf("Expected GeneratedBy 'user-123', got '%s'", reportData.GeneratedBy)
+	}
+	if reportData.Metadata["version"] != "1.0" {
+		t.Errorf("Expected version '1.0', got %v", reportData.Metadata["version"])
+	}
 	if reportData.Period.Duration != "24h" {
 		t.Errorf("Expected Period Duration '24h', got '%s'", reportData.Period.Duration)
 	}
@@ -222,6 +317,9 @@ func TestReportData_StructFields(t *testing.T) {
 	}
 	if reportData.Summary["status"] != "healthy" {
 		t.Errorf("Expected status 'healthy', got %v", reportData.Summary["status"])
+	}
+	if reportData.Summary["alerts"] != 0 {
+		t.Errorf("Expected alerts 0, got %v", reportData.Summary["alerts"])
 	}
 }
 
@@ -266,6 +364,22 @@ func TestReportSection_StructFields(t *testing.T) {
 	if section.ID != "section-1" {
 		t.Errorf("Expected ID 'section-1', got '%s'", section.ID)
 	}
+	if section.Title != "Performance Metrics" {
+		t.Errorf("Expected Title 'Performance Metrics', got '%s'", section.Title)
+	}
+	if section.Type != "metrics" {
+		t.Errorf("Expected Type 'metrics', got '%s'", section.Type)
+	}
+	if sectionData, ok := section.Data.(map[string]interface{}); ok {
+		if sectionData["summary"] != "good" {
+			t.Errorf("Expected summary 'good', got %v", sectionData["summary"])
+		}
+	} else {
+		t.Error("Expected section.Data to be map[string]interface{}")
+	}
+	if section.Description != "System performance overview" {
+		t.Errorf("Expected Description 'System performance overview', got '%s'", section.Description)
+	}
 	if len(section.Charts) != 1 {
 		t.Errorf("Expected 1 chart, got %d", len(section.Charts))
 	}
@@ -294,6 +408,9 @@ func TestChartData_StructFields(t *testing.T) {
 
 	if chart.ID != "chart-123" {
 		t.Errorf("Expected ID 'chart-123', got '%s'", chart.ID)
+	}
+	if chart.Title != "Memory Usage Over Time" {
+		t.Errorf("Expected Title 'Memory Usage Over Time', got '%s'", chart.Title)
 	}
 	if chart.Type != "area" {
 		t.Errorf("Expected Type 'area', got '%s'", chart.Type)
@@ -379,6 +496,15 @@ func TestReportGenerationRequest_StructFields(t *testing.T) {
 	}
 	if request.Format != "xlsx" {
 		t.Errorf("Expected Format 'xlsx', got '%s'", request.Format)
+	}
+	if request.Template != "template-123" {
+		t.Errorf("Expected Template 'template-123', got '%s'", request.Template)
+	}
+	if request.Parameters["period"] != "7d" {
+		t.Errorf("Expected period '7d', got %v", request.Parameters["period"])
+	}
+	if request.UserID != "user-123" {
+		t.Errorf("Expected UserID 'user-123', got '%s'", request.UserID)
 	}
 	if len(request.ShareWith) != 2 {
 		t.Errorf("Expected 2 share recipients, got %d", len(request.ShareWith))

@@ -49,6 +49,18 @@ func TestTEESecurityStatus_StructFields(t *testing.T) {
 	if status.AttestationStatus != "verified" {
 		t.Errorf("Expected AttestationStatus 'verified', got '%s'", status.AttestationStatus)
 	}
+	if status.LastAudit != "2024-09-16T09:00:00Z" {
+		t.Errorf("Expected LastAudit '2024-09-16T09:00:00Z', got '%s'", status.LastAudit)
+	}
+	if len(status.AuditHistory) != 1 {
+		t.Errorf("Expected 1 audit history entry, got %d", len(status.AuditHistory))
+	}
+	if status.PerformanceMetrics.AttestationLatency != 45.5 {
+		t.Errorf("Expected AttestationLatency 45.5, got %f", status.PerformanceMetrics.AttestationLatency)
+	}
+	if status.LastAttestation != "2024-09-16T10:30:00Z" {
+		t.Errorf("Expected LastAttestation '2024-09-16T10:30:00Z', got '%s'", status.LastAttestation)
+	}
 	if status.EnclaveCount != 5 {
 		t.Errorf("Expected EnclaveCount 5, got %d", status.EnclaveCount)
 	}
@@ -82,6 +94,12 @@ func TestThreatAlert_StructFields(t *testing.T) {
 	if threat.ID != "threat-456" {
 		t.Errorf("Expected ID 'threat-456', got '%s'", threat.ID)
 	}
+	if threat.Description != "Potential side-channel attack detected on enclave" {
+		t.Errorf("Expected Description 'Potential side-channel attack detected on enclave', got '%s'", threat.Description)
+	}
+	if threat.DetectedAt != "2024-09-16T11:15:00Z" {
+		t.Errorf("Expected DetectedAt '2024-09-16T11:15:00Z', got '%s'", threat.DetectedAt)
+	}
 	if threat.Type != "side_channel_attack" {
 		t.Errorf("Expected Type 'side_channel_attack', got '%s'", threat.Type)
 	}
@@ -104,6 +122,12 @@ func TestSecurityAudit_StructFields(t *testing.T) {
 
 	if audit.ID != "audit-456" {
 		t.Errorf("Expected ID 'audit-456', got '%s'", audit.ID)
+	}
+	if audit.Timestamp != "2024-09-16T12:00:00Z" {
+		t.Errorf("Expected Timestamp '2024-09-16T12:00:00Z', got '%s'", audit.Timestamp)
+	}
+	if audit.Details != "Enclave measurement mismatch detected" {
+		t.Errorf("Expected Details 'Enclave measurement mismatch detected', got '%s'", audit.Details)
 	}
 	if audit.Type != "enclave_integrity_check" {
 		t.Errorf("Expected Type 'enclave_integrity_check', got '%s'", audit.Type)
@@ -129,8 +153,17 @@ func TestTEEPerformanceMetrics_StructFields(t *testing.T) {
 	if metrics.VerificationSuccessRate != 97.8 {
 		t.Errorf("Expected VerificationSuccessRate 97.8, got %f", metrics.VerificationSuccessRate)
 	}
+	if metrics.EnclaveUptime != 99.5 {
+		t.Errorf("Expected EnclaveUptime 99.5, got %f", metrics.EnclaveUptime)
+	}
 	if metrics.ThroughputOpsPerSecond != 2500.0 {
 		t.Errorf("Expected ThroughputOpsPerSecond 2500.0, got %f", metrics.ThroughputOpsPerSecond)
+	}
+	if metrics.MemoryUtilization != 72.1 {
+		t.Errorf("Expected MemoryUtilization 72.1, got %f", metrics.MemoryUtilization)
+	}
+	if metrics.CPUUtilization != 55.8 {
+		t.Errorf("Expected CPUUtilization 55.8, got %f", metrics.CPUUtilization)
 	}
 }
 
@@ -151,8 +184,17 @@ func TestTEESecurityMetrics_StructFields(t *testing.T) {
 	if metrics.SecurityScore != 92.3 {
 		t.Errorf("Expected SecurityScore 92.3, got %f", metrics.SecurityScore)
 	}
+	if metrics.ThreatsDetected != 3 {
+		t.Errorf("Expected ThreatsDetected 3, got %d", metrics.ThreatsDetected)
+	}
+	if metrics.LastAudit != "2024-09-16T08:00:00Z" {
+		t.Errorf("Expected LastAudit '2024-09-16T08:00:00Z', got '%s'", metrics.LastAudit)
+	}
 	if metrics.ActiveAttestations != 10 {
 		t.Errorf("Expected ActiveAttestations 10, got %d", metrics.ActiveAttestations)
+	}
+	if metrics.ExpiredAttestations != 2 {
+		t.Errorf("Expected ExpiredAttestations 2, got %d", metrics.ExpiredAttestations)
 	}
 	if metrics.FailedVerifications != 1 {
 		t.Errorf("Expected FailedVerifications 1, got %d", metrics.FailedVerifications)
@@ -175,6 +217,9 @@ func TestTEESecurityUpdate_StructFields(t *testing.T) {
 	}
 	if update.ThreatsDetected != 2 {
 		t.Errorf("Expected ThreatsDetected 2, got %d", update.ThreatsDetected)
+	}
+	if update.LastAudit != "2024-09-16T07:30:00Z" {
+		t.Errorf("Expected LastAudit '2024-09-16T07:30:00Z', got '%s'", update.LastAudit)
 	}
 }
 
@@ -213,6 +258,15 @@ func TestTEEEnclave_StructFields(t *testing.T) {
 
 	if enclave.ID != "enclave-789" {
 		t.Errorf("Expected ID 'enclave-789', got '%s'", enclave.ID)
+	}
+	if enclave.TEEType != "SGX" {
+		t.Errorf("Expected TEEType 'SGX', got '%s'", enclave.TEEType)
+	}
+	if enclave.CreatedAt != now {
+		t.Errorf("Expected CreatedAt %v, got %v", now, enclave.CreatedAt)
+	}
+	if enclave.LastActivity != lastActivity {
+		t.Errorf("Expected LastActivity %v, got %v", lastActivity, enclave.LastActivity)
 	}
 	if enclave.Name != "ML Inference Enclave" {
 		t.Errorf("Expected Name 'ML Inference Enclave', got '%s'", enclave.Name)
@@ -278,6 +332,12 @@ func TestTEESecurityEvent_StructFields(t *testing.T) {
 	if event.ID != "event-123" {
 		t.Errorf("Expected ID 'event-123', got '%s'", event.ID)
 	}
+	if event.Message != "Attestation verification failed for enclave" {
+		t.Errorf("Expected Message 'Attestation verification failed for enclave', got '%s'", event.Message)
+	}
+	if event.Timestamp != now {
+		t.Errorf("Expected Timestamp %v, got %v", now, event.Timestamp)
+	}
 	if event.Type != "attestation_failure" {
 		t.Errorf("Expected Type 'attestation_failure', got '%s'", event.Type)
 	}
@@ -336,6 +396,15 @@ func TestTEESecurityReport_StructFields(t *testing.T) {
 	if report.ID != "report-123" {
 		t.Errorf("Expected ID 'report-123', got '%s'", report.ID)
 	}
+	if report.GeneratedAt != now {
+		t.Errorf("Expected GeneratedAt %v, got %v", now, report.GeneratedAt)
+	}
+	if report.AttestationStatus != "verified" {
+		t.Errorf("Expected AttestationStatus 'verified', got '%s'", report.AttestationStatus)
+	}
+	if report.PerformanceMetrics.AttestationLatency != 50.0 {
+		t.Errorf("Expected AttestationLatency 50.0, got %f", report.PerformanceMetrics.AttestationLatency)
+	}
 	if report.ReportPeriod != "24h" {
 		t.Errorf("Expected ReportPeriod '24h', got '%s'", report.ReportPeriod)
 	}
@@ -374,6 +443,12 @@ func TestTEESecurityFilter_StructFields(t *testing.T) {
 
 	if filter.Status != "active" {
 		t.Errorf("Expected Status 'active', got '%s'", filter.Status)
+	}
+	if filter.DateFrom == nil {
+		t.Error("Expected DateFrom to be set")
+	}
+	if filter.DateTo == nil {
+		t.Error("Expected DateTo to be set")
 	}
 	if filter.TEEType != "SGX" {
 		t.Errorf("Expected TEEType 'SGX', got '%s'", filter.TEEType)
