@@ -3,9 +3,11 @@ package p2p
 import (
 	"backend_server/internal/objects"
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"sync"
 	"time"
 
@@ -15,6 +17,7 @@ import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multihash"
 	"github.com/tidwall/buntdb"
 )
@@ -27,7 +30,41 @@ const (
 
 	// Network pause timeout
 	NetworkPauseTimeout = 30 * time.Minute
+
+	// Peer reputation constants
+	MaxReputationScore     = 100.0
+	MinReputationScore     = 0.0
+	DefaultReputationScore = 50.0
+	ReputationDecayRate    = 0.95 // Daily decay factor
+	BadBehaviorPenalty     = 10.0
+	GoodBehaviorReward     = 1.0
+
+	// Message encryption
+	MessageEncryptionProtocol = "/knirv/p2p-encryption/1.0.0"
 )
+
+// Bootstrap nodes for KNIRV network
+var DefaultBootstrapPeers = []string{
+	"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
+	"/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
+	"/dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb",
+	"/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
+	"/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
+}
+
+// STUN servers for NAT traversal
+var DefaultSTUNServers = []string{
+	"stun.l.google.com:19302",
+	"stun1.l.google.com:19302",
+	"stun2.l.google.com:19302",
+	"stun3.l.google.com:19302",
+	"stun4.l.google.com:19302",
+}
+
+// TURN servers for NAT traversal (fallback)
+var DefaultTURNServers = []string{
+	"turn:turn.example.com:3478", // Placeholder - should be configured
+}
 
 // DVEP2PManager implements P2P networking for DVE nodes aligned with KNIRV-ORACLE
 type DVEP2PManager struct {
@@ -274,6 +311,15 @@ func (dpm *DVEP2PManager) setupTopics() error {
 func (dpm *DVEP2PManager) Start() {
 	log.Printf("[DVE][%s] Starting P2P manager...", dpm.nodeRole)
 
+	// Bootstrap to the network
+	if err := dpm.bootstrapToNetwork(); err != nil {
+		log.Printf("[DVE][%s] Bootstrap failed: %v", dpm.nodeRole, err)
+		// Continue anyway - we might still connect via other means
+	}
+
+	// Configure NAT traversal
+	go dpm.setupNATTraversal()
+
 	// Start message handlers
 	go dpm.handleValidationRequests()
 	go dpm.handleValidationResults()
@@ -292,6 +338,9 @@ func (dpm *DVEP2PManager) Start() {
 
 	// Start periodic heartbeat
 	go dpm.sendHeartbeat()
+
+	// Start reputation management
+	go dpm.managePeerReputation()
 
 	log.Printf("[DVE][%s] P2P manager started successfully", dpm.nodeRole)
 }
@@ -623,8 +672,38 @@ func (dpm *DVEP2PManager) announceNode() {
 
 // announceCurrentNode announces the current node status
 func (dpm *DVEP2PManager) announceCurrentNode() {
-	// TODO: Get current node info from database and announce
-	log.Printf("[DVE][%s] Announcing node to network...", dpm.nodeRole)
+	// Get current node status and announce to network
+	nodeStatus := map[string]interface{}{
+		"node_id":       dpm.host.ID().String(),
+		"role":          dpm.nodeRole,
+		"chain_id":      dpm.chainID,
+		"service_id":    dpm.serviceID,
+		"status":        "active",
+		"capabilities":  []string{"validation", "computation", "storage"},
+		"timestamp":     time.Now().Unix(),
+		"version":       "1.0.0",
+	}
+
+	message := &objects.P2PMessage{
+		ID:        fmt.Sprintf("status-%d", time.Now().Unix()),
+		Type:      MessageTypeNodeAnnouncement,
+		From:      dpm.host.ID().String(),
+		Topic:     DVENodeTopic,
+		Payload:   nodeStatus,
+		Timestamp: time.Now(),
+	}
+
+	data, err := json.Marshal(message)
+	if err != nil {
+		log.Printf("[DVE][%s] Error marshaling node status: %v", dpm.nodeRole, err)
+		return
+	}
+
+	if err := dpm.nodeTopic.Publish(dpm.ctx, data); err != nil {
+		log.Printf("[DVE][%s] Error publishing node status: %v", dpm.nodeRole, err)
+	} else {
+		log.Printf("[DVE][%s] Node status announced to network", dpm.nodeRole)
+	}
 }
 
 // sendHeartbeat sends periodic heartbeat messages
@@ -752,6 +831,9 @@ func (dpm *DVEP2PManager) handleNetworkControl() {
 
 // handleNetworkPause processes network pause messages
 func (dpm *DVEP2PManager) handleNetworkPause(payload interface{}, senderPeerID string) {
+	// Log the pause request from sender
+	log.Printf("[DVE][%s] Received network pause request from peer: %s", dpm.nodeRole, senderPeerID)
+	
 	// Parse the pause payload
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
@@ -785,6 +867,14 @@ func (dpm *DVEP2PManager) handleNetworkPause(payload interface{}, senderPeerID s
 
 // handleNetworkResume processes network resume messages
 func (dpm *DVEP2PManager) handleNetworkResume(payload interface{}, senderPeerID string) {
+	// Log the resume request from sender with payload details
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		log.Printf("[DVE][%s] Error marshaling resume payload: %v", dpm.nodeRole, err)
+	} else {
+		log.Printf("[DVE][%s] Received network resume request from peer: %s, payload: %s", dpm.nodeRole, senderPeerID, string(payloadBytes))
+	}
+	
 	dpm.pauseMutex.Lock()
 	dpm.networkPaused = false
 	dpm.pauseMutex.Unlock()
@@ -858,19 +948,184 @@ func (dpm *DVEP2PManager) handleDVEAnnouncements() {
 // processValidationRequestAnnouncement processes validation request announcements
 func (dpm *DVEP2PManager) processValidationRequestAnnouncement(msg DVEAnnouncementMessage) {
 	log.Printf("[DVE][%s] Processing validation request %s from %s", dpm.nodeRole, msg.Action, msg.ServiceID)
-	// TODO: Integrate with KNIRVNEXUS validation request processing logic
+
+	// Extract validation request data
+	var requestData ValidationRequestData
+	if data, ok := msg.Data.(map[string]interface{}); ok {
+		if reqID, ok := data["request_id"].(string); ok {
+			requestData.RequestID = reqID
+		}
+		if reqType, ok := data["type"].(string); ok {
+			requestData.Type = reqType
+		}
+		if priority, ok := data["priority"].(float64); ok {
+			requestData.Priority = int(priority)
+		}
+		// Extract requirements and metadata maps
+		if reqs, ok := data["requirements"].(map[string]interface{}); ok {
+			requestData.Requirements = make(map[string]string)
+			for k, v := range reqs {
+				if str, ok := v.(string); ok {
+					requestData.Requirements[k] = str
+				}
+			}
+		}
+		if meta, ok := data["metadata"].(map[string]interface{}); ok {
+			requestData.Metadata = make(map[string]string)
+			for k, v := range meta {
+				if str, ok := v.(string); ok {
+					requestData.Metadata[k] = str
+				}
+			}
+		}
+	}
+
+	// Route to appropriate message handler for processing
+	dpm.mu.RLock()
+	handler, exists := dpm.messageHandlers[MessageTypeValidationRequest]
+	dpm.mu.RUnlock()
+
+	if exists {
+		p2pMsg := &objects.P2PMessage{
+			ID:        requestData.RequestID,
+			Type:      MessageTypeValidationRequest,
+			From:      msg.ServiceID,
+			Topic:     DVEValidationTopic,
+			Payload:   map[string]interface{}{"request_data": requestData},
+			Timestamp: time.Unix(msg.Timestamp, 0),
+		}
+
+		if err := handler.HandleMessage(dpm.ctx, p2pMsg); err != nil {
+			log.Printf("[DVE][%s] Error handling validation request announcement: %v", dpm.nodeRole, err)
+		}
+	} else {
+		log.Printf("[DVE][%s] No handler for validation request announcements", dpm.nodeRole)
+	}
 }
 
 // processValidationResultAnnouncement processes validation result announcements
 func (dpm *DVEP2PManager) processValidationResultAnnouncement(msg DVEAnnouncementMessage) {
 	log.Printf("[DVE][%s] Processing validation result %s from %s", dpm.nodeRole, msg.Action, msg.ServiceID)
-	// TODO: Integrate with KNIRVNEXUS validation result processing logic
+
+	// Extract validation result data
+	var resultData ValidationResultData
+	if data, ok := msg.Data.(map[string]interface{}); ok {
+		if reqID, ok := data["request_id"].(string); ok {
+			resultData.RequestID = reqID
+		}
+		if result, ok := data["result"].(string); ok {
+			resultData.Result = result
+		}
+		if score, ok := data["score"].(float64); ok {
+			resultData.Score = score
+		}
+		// Extract evidence and metadata maps
+		if evidence, ok := data["evidence"].(map[string]interface{}); ok {
+			resultData.Evidence = make(map[string]string)
+			for k, v := range evidence {
+				if str, ok := v.(string); ok {
+					resultData.Evidence[k] = str
+				}
+			}
+		}
+		if meta, ok := data["metadata"].(map[string]interface{}); ok {
+			resultData.Metadata = make(map[string]string)
+			for k, v := range meta {
+				if str, ok := v.(string); ok {
+					resultData.Metadata[k] = str
+				}
+			}
+		}
+	}
+
+	// Route to appropriate message handler for processing
+	dpm.mu.RLock()
+	handler, exists := dpm.messageHandlers[MessageTypeValidationResult]
+	dpm.mu.RUnlock()
+
+	if exists {
+		p2pMsg := &objects.P2PMessage{
+			ID:        resultData.RequestID,
+			Type:      MessageTypeValidationResult,
+			From:      msg.ServiceID,
+			Topic:     DVEResultTopic,
+			Payload:   map[string]interface{}{"result_data": resultData},
+			Timestamp: time.Unix(msg.Timestamp, 0),
+		}
+
+		if err := handler.HandleMessage(dpm.ctx, p2pMsg); err != nil {
+			log.Printf("[DVE][%s] Error handling validation result announcement: %v", dpm.nodeRole, err)
+		}
+	} else {
+		log.Printf("[DVE][%s] No handler for validation result announcements", dpm.nodeRole)
+	}
 }
 
 // processNodeStatusAnnouncement processes node status announcements
 func (dpm *DVEP2PManager) processNodeStatusAnnouncement(msg DVEAnnouncementMessage) {
 	log.Printf("[DVE][%s] Processing node status %s from %s", dpm.nodeRole, msg.Action, msg.ServiceID)
-	// TODO: Integrate with KNIRVNEXUS node status processing logic
+
+	// Extract node status data
+	var statusData NodeStatusData
+	if data, ok := msg.Data.(map[string]interface{}); ok {
+		if nodeID, ok := data["node_id"].(string); ok {
+			statusData.NodeID = nodeID
+		}
+		if status, ok := data["status"].(string); ok {
+			statusData.Status = status
+		}
+		if load, ok := data["load"].(float64); ok {
+			statusData.Load = load
+		}
+		// Extract capabilities slice
+		if caps, ok := data["capabilities"].([]interface{}); ok {
+			statusData.Capabilities = make([]string, len(caps))
+			for i, cap := range caps {
+				if str, ok := cap.(string); ok {
+					statusData.Capabilities[i] = str
+				}
+			}
+		}
+		// Extract metadata map
+		if meta, ok := data["metadata"].(map[string]interface{}); ok {
+			statusData.Metadata = make(map[string]string)
+			for k, v := range meta {
+				if str, ok := v.(string); ok {
+					statusData.Metadata[k] = str
+				}
+			}
+		}
+	}
+
+	// Update peer reputation based on status
+	switch statusData.Status {
+	case "active":
+		dpm.UpdatePeerReputation(msg.ServiceID, "node_active", true)
+	case "inactive":
+		dpm.UpdatePeerReputation(msg.ServiceID, "node_inactive", false)
+	}
+
+	// Route to appropriate message handler for processing
+	dpm.mu.RLock()
+	handler, exists := dpm.messageHandlers[MessageTypeNodeAnnouncement]
+	dpm.mu.RUnlock()
+
+	if exists {
+		p2pMsg := &objects.P2PMessage{
+			ID:        statusData.NodeID,
+			Type:      MessageTypeNodeAnnouncement,
+			From:      msg.ServiceID,
+			Topic:     DVENodeTopic,
+			Payload:   map[string]interface{}{"status_data": statusData},
+			Timestamp: time.Unix(msg.Timestamp, 0),
+		}
+
+		if err := handler.HandleMessage(dpm.ctx, p2pMsg); err != nil {
+			log.Printf("[DVE][%s] Error handling node status announcement: %v", dpm.nodeRole, err)
+		}
+	} else {
+		log.Printf("[DVE][%s] No handler for node status announcements", dpm.nodeRole)
+	}
 }
 
 // AnnounceValidationRequest announces a new validation request available for processing
@@ -968,4 +1223,288 @@ func (dpm *DVEP2PManager) publishDVEAnnouncement(announcement DVEAnnouncementMes
 	log.Printf("[DVE][%s] Published %s %s announcement",
 		dpm.nodeRole, announcement.Action, announcement.Type)
 	return nil
+}
+
+// bootstrapToNetwork connects to bootstrap nodes and initializes DHT
+func (dpm *DVEP2PManager) bootstrapToNetwork() error {
+	log.Printf("[DVE][%s] Bootstrapping to KNIRV network...", dpm.nodeRole)
+
+	// Parse bootstrap peer addresses
+	var bootstrapPeers []peer.AddrInfo
+	for _, addrStr := range DefaultBootstrapPeers {
+		addr, err := multiaddr.NewMultiaddr(addrStr)
+		if err != nil {
+			log.Printf("[DVE][%s] Invalid bootstrap address %s: %v", dpm.nodeRole, addrStr, err)
+			continue
+		}
+
+		peerInfo, err := peer.AddrInfoFromP2pAddr(addr)
+		if err != nil {
+			log.Printf("[DVE][%s] Failed to parse bootstrap peer %s: %v", dpm.nodeRole, addrStr, err)
+			continue
+		}
+
+		bootstrapPeers = append(bootstrapPeers, *peerInfo)
+	}
+
+	if len(bootstrapPeers) == 0 {
+		return fmt.Errorf("no valid bootstrap peers available")
+	}
+
+	log.Printf("[DVE][%s] Connecting to %d bootstrap peers...", dpm.nodeRole, len(bootstrapPeers))
+
+	// Connect to bootstrap peers with timeout
+	connectCtx, cancel := context.WithTimeout(dpm.ctx, 30*time.Second)
+	defer cancel()
+
+	connectedCount := 0
+	for _, peerInfo := range bootstrapPeers {
+		if peerInfo.ID == dpm.host.ID() {
+			continue // Skip ourselves
+		}
+
+		if err := dpm.host.Connect(connectCtx, peerInfo); err != nil {
+			log.Printf("[DVE][%s] Failed to connect to bootstrap peer %s: %v", dpm.nodeRole, peerInfo.ID, err)
+		} else {
+			log.Printf("[DVE][%s] Connected to bootstrap peer: %s", dpm.nodeRole, peerInfo.ID)
+			connectedCount++
+		}
+	}
+
+	if connectedCount == 0 {
+		log.Printf("[DVE][%s] Warning: Failed to connect to any bootstrap peers", dpm.nodeRole)
+	} else {
+		log.Printf("[DVE][%s] Successfully connected to %d/%d bootstrap peers", dpm.nodeRole, connectedCount, len(bootstrapPeers))
+	}
+
+	// Bootstrap the DHT
+	if err := dpm.dht.Bootstrap(dpm.ctx); err != nil {
+		return fmt.Errorf("failed to bootstrap DHT: %w", err)
+	}
+
+	log.Printf("[DVE][%s] DHT bootstrapped successfully", dpm.nodeRole)
+	return nil
+}
+
+// setupNATTraversal configures NAT traversal using STUN/TURN servers
+func (dpm *DVEP2PManager) setupNATTraversal() {
+	log.Printf("[DVE][%s] Setting up NAT traversal...", dpm.nodeRole)
+
+	// For now, log the STUN/TURN server configuration
+	// In a full implementation, this would integrate with libp2p's NAT traversal
+	log.Printf("[DVE][%s] STUN servers configured: %v", dpm.nodeRole, DefaultSTUNServers)
+	log.Printf("[DVE][%s] TURN servers configured: %v", dpm.nodeRole, DefaultTURNServers)
+
+	// TODO: Implement actual STUN/TURN client integration
+	// This would involve:
+	// 1. STUN client to discover public IP and NAT type
+	// 2. TURN client for relay when direct connection fails
+	// 3. UPnP integration for port forwarding
+	// 4. Circuit relay configuration for full NAT traversal
+
+	log.Printf("[DVE][%s] NAT traversal setup completed (basic configuration)", dpm.nodeRole)
+}
+
+// managePeerReputation manages peer reputation scores and blacklisting
+func (dpm *DVEP2PManager) managePeerReputation() {
+	ticker := time.NewTicker(1 * time.Hour) // Daily reputation updates
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-dpm.ctx.Done():
+			return
+		case <-ticker.C:
+			dpm.updatePeerReputations()
+			dpm.enforceReputationBlacklist()
+		}
+	}
+}
+
+// updatePeerReputations updates reputation scores for all known peers
+func (dpm *DVEP2PManager) updatePeerReputations() {
+	log.Printf("[DVE][%s] Updating peer reputations...", dpm.nodeRole)
+
+	// Get all connected peers
+	peers := dpm.host.Network().Peers()
+
+	for _, peerID := range peers {
+		reputation := dpm.getPeerReputation(peerID.String())
+
+		// Apply reputation decay
+		reputation *= ReputationDecayRate
+
+		// Ensure reputation stays within bounds
+		if reputation < MinReputationScore {
+			reputation = MinReputationScore
+		}
+		if reputation > MaxReputationScore {
+			reputation = MaxReputationScore
+		}
+
+		// Store updated reputation
+		dpm.setPeerReputation(peerID.String(), reputation)
+	}
+
+	log.Printf("[DVE][%s] Updated reputations for %d peers", dpm.nodeRole, len(peers))
+}
+
+// enforceReputationBlacklist disconnects from peers with very low reputation
+func (dpm *DVEP2PManager) enforceReputationBlacklist() {
+	log.Printf("[DVE][%s] Enforcing reputation blacklist...", dpm.nodeRole)
+
+	peers := dpm.host.Network().Peers()
+	disconnectedCount := 0
+
+	for _, peerID := range peers {
+		reputation := dpm.getPeerReputation(peerID.String())
+
+		// Disconnect from peers with reputation below threshold
+		if reputation < MinReputationScore+10.0 {
+			log.Printf("[DVE][%s] Disconnecting from low-reputation peer %s (score: %.2f)",
+				dpm.nodeRole, peerID, reputation)
+
+			if err := dpm.host.Network().ClosePeer(peerID); err != nil {
+				log.Printf("[DVE][%s] Error disconnecting from peer %s: %v", dpm.nodeRole, peerID, err)
+			} else {
+				disconnectedCount++
+			}
+		}
+	}
+
+	if disconnectedCount > 0 {
+		log.Printf("[DVE][%s] Disconnected from %d low-reputation peers", dpm.nodeRole, disconnectedCount)
+	}
+}
+
+// getPeerReputation retrieves the reputation score for a peer
+func (dpm *DVEP2PManager) getPeerReputation(peerID string) float64 {
+	// In a real implementation, this would query the database
+	// For now, return default reputation
+	log.Printf("[DVE][%s] Getting reputation for peer: %s", dpm.nodeRole, peerID)
+	return DefaultReputationScore
+}
+
+// setPeerReputation stores the reputation score for a peer
+func (dpm *DVEP2PManager) setPeerReputation(peerID string, reputation float64) {
+	// In a real implementation, this would store in the database
+	log.Printf("[DVE][%s] Updated reputation for peer %s: %.2f", dpm.nodeRole, peerID, reputation)
+}
+
+// UpdatePeerReputation updates a peer's reputation based on behavior
+func (dpm *DVEP2PManager) UpdatePeerReputation(peerID string, behavior string, positive bool) {
+	currentRep := dpm.getPeerReputation(peerID)
+
+	var delta float64
+	if positive {
+		delta = GoodBehaviorReward
+	} else {
+		delta = -BadBehaviorPenalty
+	}
+
+	newRep := currentRep + delta
+
+	// Clamp to valid range
+	if newRep < MinReputationScore {
+		newRep = MinReputationScore
+	}
+	if newRep > MaxReputationScore {
+		newRep = MaxReputationScore
+	}
+
+	dpm.setPeerReputation(peerID, newRep)
+
+	log.Printf("[DVE][%s] Updated reputation for peer %s (%s): %.2f -> %.2f",
+		dpm.nodeRole, peerID, behavior, currentRep, newRep)
+}
+
+// EncryptMessage encrypts a message for secure P2P communication
+func (dpm *DVEP2PManager) EncryptMessage(message []byte, recipientPeerID string) ([]byte, error) {
+	// Generate a random symmetric key for this message
+	key := make([]byte, 32)
+	if _, err := rand.Read(key); err != nil {
+		return nil, fmt.Errorf("failed to generate encryption key: %w", err)
+	}
+
+	// In a real implementation, this would:
+	// 1. Use recipient's public key to encrypt the symmetric key
+	// 2. Encrypt the message with the symmetric key
+	// 3. Return encrypted key + encrypted message
+
+	// For now, return the message as-is (placeholder)
+	log.Printf("[DVE][%s] Message encryption placeholder - would encrypt for peer %s", dpm.nodeRole, recipientPeerID)
+	return message, nil
+}
+
+// DecryptMessage decrypts a received encrypted message
+func (dpm *DVEP2PManager) DecryptMessage(encryptedMessage []byte) ([]byte, error) {
+	// In a real implementation, this would:
+	// 1. Extract encrypted symmetric key
+	// 2. Decrypt symmetric key with our private key
+	// 3. Decrypt message with symmetric key
+
+	// For now, return the message as-is (placeholder)
+	log.Printf("[DVE][%s] Message decryption placeholder", dpm.nodeRole)
+	return encryptedMessage, nil
+}
+
+// OptimizeNetworkTopology optimizes the network topology by selecting better peers
+func (dpm *DVEP2PManager) OptimizeNetworkTopology() {
+	log.Printf("[DVE][%s] Optimizing network topology...", dpm.nodeRole)
+
+	peers := dpm.host.Network().Peers()
+	if len(peers) < 3 {
+		log.Printf("[DVE][%s] Not enough peers for topology optimization (%d)", dpm.nodeRole, len(peers))
+		return
+	}
+
+	// Calculate peer scores based on reputation, latency, and capabilities
+	peerScores := make(map[string]float64)
+
+	for _, peerID := range peers {
+		score := dpm.calculatePeerScore(peerID)
+		peerScores[peerID.String()] = score
+	}
+
+	// Sort peers by score and keep only the top N
+	// In a real implementation, this would disconnect from low-scoring peers
+	// and attempt to connect to higher-scoring discovered peers
+
+	log.Printf("[DVE][%s] Topology optimization completed for %d peers", dpm.nodeRole, len(peers))
+}
+
+// calculatePeerScore calculates a score for peer selection
+func (dpm *DVEP2PManager) calculatePeerScore(peerID peer.ID) float64 {
+	reputation := dpm.getPeerReputation(peerID.String())
+
+	// Get connection quality metrics
+	conns := dpm.host.Network().ConnsToPeer(peerID)
+	connectionScore := 0.0
+
+	if len(conns) > 0 {
+		// Higher score for longer-lived connections
+		connectionAge := time.Since(conns[0].Stat().Opened)
+		connectionScore = math.Min(connectionAge.Hours()/24.0, 1.0) * 20.0
+	}
+
+	// Combine scores (reputation has highest weight)
+	totalScore := (reputation * 0.7) + (connectionScore * 0.3)
+
+	return totalScore
+}
+
+// GetPeerStats returns statistics about peer connections and reputation
+func (dpm *DVEP2PManager) GetPeerStats() map[string]interface{} {
+	peers := dpm.host.Network().Peers()
+
+	stats := map[string]interface{}{
+		"total_peers":       len(peers),
+		"connected_peers":   len(peers),
+		"bootstrap_peers":   len(DefaultBootstrapPeers),
+		"reputation_range":  fmt.Sprintf("%.1f-%.1f", MinReputationScore, MaxReputationScore),
+		"average_reputation": DefaultReputationScore,
+		"blacklisted_peers":  0, // Would be calculated from database
+	}
+
+	return stats
 }

@@ -161,8 +161,8 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	// Initialize Controller Integration service
 	controllerIntegrationService := controllerintegration.NewControllerIntegrationService(dbManager.GetDB())
 
-	// Initialize CDE service
-	cdeService, err := cde.NewCDEService(nil, dataEngine, cde.CDEConfig{
+	// Initialize CDE service with TEE security integration
+	cdeService, err := cde.NewCDEService(teeSecurityService, dataEngine, cde.CDEConfig{
 		BaseImagePath:          cfg.CDE.BaseImagePath,
 		WorkspaceRoot:          cfg.CDE.WorkspaceRoot,
 		MaxEnvironments:        cfg.CDE.MaxEnvironments,

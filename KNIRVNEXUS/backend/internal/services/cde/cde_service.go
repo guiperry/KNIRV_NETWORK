@@ -6,19 +6,20 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
 	// dataengine "backend_server/internal/data-engine" // TODO: Fix data-engine compilation issues
 	dataengine "backend_server/internal/data-engine"
-	"backend_server/pkg/host"
+	"backend_server/internal/services/teesecurity"
 )
 
 // CDEService manages Cloud Development Environments
 type CDEService struct {
 	// Core components
-	hostController *host.HostController
-	dataEngine     *dataengine.BuntDBDataEngine
+	teeSecurityService *teesecurity.TEESecurityService
+	dataEngine         *dataengine.BuntDBDataEngine
 
 	// Environment management
 	environments map[string]*CDEEnvironment
@@ -234,18 +235,18 @@ type CDEResourcePool struct {
 }
 
 // NewCDEService creates a new CDE service
-func NewCDEService(hostController *host.HostController, dataEngine *dataengine.BuntDBDataEngine, config CDEConfig) (*CDEService, error) {
+func NewCDEService(teeSecurityService *teesecurity.TEESecurityService, dataEngine *dataengine.BuntDBDataEngine, config CDEConfig) (*CDEService, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	service := &CDEService{
-		hostController: hostController,
-		dataEngine:     dataEngine,
-		environments:   make(map[string]*CDEEnvironment),
-		sessions:       make(map[string]*CDESession),
-		projects:       make(map[string]*CDEProject),
-		config:         config,
-		ctx:            ctx,
-		cancel:         cancel,
+		teeSecurityService: teeSecurityService,
+		dataEngine:         dataEngine,
+		environments:       make(map[string]*CDEEnvironment),
+		sessions:           make(map[string]*CDESession),
+		projects:           make(map[string]*CDEProject),
+		config:             config,
+		ctx:                ctx,
+		cancel:             cancel,
 	}
 
 	// Initialize resource pool
@@ -378,7 +379,7 @@ func (cde *CDEService) CreateEnvironment(userID, name string, envType Environmen
 	return env, nil
 }
 
-// createEnvironmentAsync creates an environment asynchronously
+// createEnvironmentAsync creates an environment asynchronously using TEE security service
 func (cde *CDEService) createEnvironmentAsync(env *CDEEnvironment) {
 	// Create workspace directory
 	if err := os.MkdirAll(env.WorkspacePath, 0755); err != nil {
@@ -387,12 +388,40 @@ func (cde *CDEService) createEnvironmentAsync(env *CDEEnvironment) {
 		return
 	}
 
-	// Simulate environment creation (in real implementation, this would create containers)
-	time.Sleep(5 * time.Second)
+	// Use TEE security service to create sandboxed environment
+	if cde.teeSecurityService != nil {
+		// Create a skill script that sets up the development environment
+		setupScript := cde.generateEnvironmentSetupScript(env)
+
+		// Execute in sandbox using TEE security service
+		result, err := cde.teeSecurityService.ExecuteSkillInSandbox(
+			context.Background(),
+			setupScript,
+			[]string{}, // No test cases for environment setup
+		)
+
+		if err != nil {
+			env.Status = EnvStatusError
+			log.Printf("CDEService: Failed to create environment %s via TEE security: %v", env.ID, err)
+			return
+		}
+
+		log.Printf("CDEService: Environment setup completed for %s, exit code: %d", env.ID, result.ExitCode)
+
+		if result.ExitCode != 0 {
+			env.Status = EnvStatusError
+			log.Printf("CDEService: Environment setup failed for %s: %s", env.ID, result.Stderr)
+			return
+		}
+	} else {
+		// Fallback: simulate environment creation
+		log.Printf("CDEService: TEE security service not available, simulating environment creation for %s", env.ID)
+		time.Sleep(5 * time.Second)
+	}
 
 	cde.mu.Lock()
 	env.Status = EnvStatusRunning
-	env.IPAddress = "172.20.0.10" // Simulated IP
+	env.IPAddress = "172.20.0.10" // Simulated IP (in real implementation, this would come from container)
 	env.Ports["ssh"] = 22
 	env.Ports["http"] = 8080
 	cde.mu.Unlock()
@@ -699,6 +728,79 @@ func (cde *CDEService) getRequiredEnvType(language string) EnvironmentType {
 	default:
 		return EnvTypeGeneral
 	}
+}
+
+// generateEnvironmentSetupScript generates a shell script to set up the development environment
+func (cde *CDEService) generateEnvironmentSetupScript(env *CDEEnvironment) string {
+	var script strings.Builder
+
+	// Common setup
+	script.WriteString("#!/bin/bash\n")
+	script.WriteString("set -e\n\n")
+	script.WriteString("echo 'Setting up CDE environment...'\n\n")
+
+	// Create workspace directory
+	script.WriteString("mkdir -p /workspace\n")
+	script.WriteString("cd /workspace\n\n")
+
+	// Environment-specific setup
+	switch env.EnvironmentType {
+	case EnvTypePython:
+		script.WriteString("# Python environment setup\n")
+		script.WriteString("echo 'Setting up Python development environment...'\n")
+		script.WriteString("pip install --upgrade pip\n")
+		script.WriteString("pip install virtualenv\n")
+		script.WriteString("python -m venv .venv\n")
+		script.WriteString("source .venv/bin/activate\n")
+		script.WriteString("pip install jupyter notebook\n")
+		script.WriteString("echo 'Python environment ready'\n")
+
+	case EnvTypeNodeJS:
+		script.WriteString("# Node.js environment setup\n")
+		script.WriteString("echo 'Setting up Node.js development environment...'\n")
+		script.WriteString("npm init -y\n")
+		script.WriteString("npm install --save-dev nodemon\n")
+		script.WriteString("echo 'Node.js environment ready'\n")
+
+	case EnvTypeGo:
+		script.WriteString("# Go environment setup\n")
+		script.WriteString("echo 'Setting up Go development environment...'\n")
+		script.WriteString("go mod init cde-project\n")
+		script.WriteString("go get github.com/gin-gonic/gin\n")
+		script.WriteString("echo 'Go environment ready'\n")
+
+	case EnvTypeRust:
+		script.WriteString("# Rust environment setup\n")
+		script.WriteString("echo 'Setting up Rust development environment...'\n")
+		script.WriteString("cargo init\n")
+		script.WriteString("echo 'Rust environment ready'\n")
+
+	case EnvTypeJava:
+		script.WriteString("# Java environment setup\n")
+		script.WriteString("echo 'Setting up Java development environment...'\n")
+		script.WriteString("mkdir -p src/main/java\n")
+		script.WriteString("echo 'public class Main { public static void main(String[] args) { System.out.println(\"Hello CDE!\"); } }' > src/main/java/Main.java\n")
+		script.WriteString("echo 'Java environment ready'\n")
+
+	case EnvTypeDocker:
+		script.WriteString("# Docker environment setup\n")
+		script.WriteString("echo 'Setting up Docker development environment...'\n")
+		script.WriteString("echo 'FROM ubuntu:22.04' > Dockerfile\n")
+		script.WriteString("echo 'Docker environment ready'\n")
+
+	default: // EnvTypeGeneral
+		script.WriteString("# General development environment setup\n")
+		script.WriteString("echo 'Setting up general development environment...'\n")
+		script.WriteString("apt-get update && apt-get install -y git curl wget\n")
+		script.WriteString("echo 'General environment ready'\n")
+	}
+
+	// Common finalization
+	script.WriteString("\n# Environment setup complete\n")
+	script.WriteString("echo 'CDE environment setup completed successfully'\n")
+	script.WriteString("echo 'Workspace: /workspace'\n")
+
+	return script.String()
 }
 
 // initializeWorkspaceDirectories creates necessary workspace directories

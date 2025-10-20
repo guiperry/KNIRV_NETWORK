@@ -91,7 +91,6 @@ type AdaptationResult struct {
 type AdaptationEngine struct {
 	currentParams   map[string]interface{}
 	adaptationRules []AdaptationRule
-	mu              sync.RWMutex
 }
 
 // AdaptationRule defines when and how to adapt system parameters
@@ -504,6 +503,9 @@ func (ce *CognitiveEngine) updateNodeMetrics(result *objects.ValidationResult) {
 
 // updateOverallMetrics updates overall learning state metrics
 func (ce *CognitiveEngine) updateOverallMetrics() {
+	ce.mu.Lock()
+	defer ce.mu.Unlock()
+	
 	ce.learningState.TotalTasksProcessed++
 
 	// Calculate overall success rate
@@ -571,6 +573,9 @@ func (ce *CognitiveEngine) performPeriodicAdaptations() {
 
 // updateLearningProgress calculates and updates learning progress
 func (ce *CognitiveEngine) updateLearningProgress() {
+	ce.mu.Lock()
+	defer ce.mu.Unlock()
+	
 	// Learning progress based on:
 	// 1. Improvement in success rates over time
 	// 2. Reduction in processing times
@@ -626,6 +631,9 @@ func (ce *CognitiveEngine) shouldSaveState() bool {
 
 // initializeAdaptationRules sets up the initial adaptation rules
 func (ce *CognitiveEngine) initializeAdaptationRules() {
+	ce.mu.Lock()
+	defer ce.mu.Unlock()
+	
 	rules := []AdaptationRule{
 		{
 			ID:        "high_failure_rate",
@@ -658,6 +666,9 @@ func (ce *CognitiveEngine) initializeAdaptationRules() {
 
 // loadLearningState loads the learning state from database
 func (ce *CognitiveEngine) loadLearningState() {
+	ce.mu.Lock()
+	defer ce.mu.Unlock()
+	
 	err := ce.db.View(func(tx *buntdb.Tx) error {
 		val, err := tx.Get("cognitive:learning_state")
 		if err != nil {
@@ -674,6 +685,9 @@ func (ce *CognitiveEngine) loadLearningState() {
 
 // saveLearningState saves the learning state to database
 func (ce *CognitiveEngine) saveLearningState() {
+	ce.mu.RLock()
+	defer ce.mu.RUnlock()
+	
 	ce.db.Update(func(tx *buntdb.Tx) error {
 		data, err := json.Marshal(ce.learningState)
 		if err != nil {
@@ -796,6 +810,9 @@ func (ce *CognitiveEngine) extractFailurePattern(result *objects.ValidationResul
 }
 
 func (ce *CognitiveEngine) shouldApplyRule(rule AdaptationRule) bool {
+	ce.mu.RLock()
+	defer ce.mu.RUnlock()
+	
 	// Check if rule conditions are met
 	switch rule.Condition {
 	case "task_type_success_rate < 0.6":
@@ -813,6 +830,9 @@ func (ce *CognitiveEngine) shouldApplyRule(rule AdaptationRule) bool {
 }
 
 func (ce *CognitiveEngine) applyAdaptationRule(rule AdaptationRule) {
+	ce.mu.Lock()
+	defer ce.mu.Unlock()
+	
 	log.Printf("Applying adaptation rule: %s", rule.ID)
 
 	event := AdaptationEvent{
@@ -834,7 +854,14 @@ func (ce *CognitiveEngine) applyAdaptationRule(rule AdaptationRule) {
 		ce.adaptLoadDistribution()
 	}
 
-	rule.LastApplied = time.Now()
+	// Update the rule's LastApplied time in the adaptation engine
+	for i, r := range ce.adaptationEngine.adaptationRules {
+		if r.ID == rule.ID {
+			ce.adaptationEngine.adaptationRules[i].LastApplied = time.Now()
+			break
+		}
+	}
+	
 	ce.learningState.AdaptationHistory = append(ce.learningState.AdaptationHistory, event)
 
 	// Keep only recent history
@@ -870,6 +897,9 @@ func (ce *CognitiveEngine) adaptLoadDistribution() {
 }
 
 func (ce *CognitiveEngine) performLoadBalancingAdaptation() {
+	ce.mu.RLock()
+	defer ce.mu.RUnlock()
+	
 	// Analyze node performance and redistribute load
 	nodePerformances := make([]NodeMetrics, 0, len(ce.learningState.NodePerformance))
 	for _, metrics := range ce.learningState.NodePerformance {
@@ -892,6 +922,9 @@ func (ce *CognitiveEngine) performResourceOptimizationAdaptation() {
 }
 
 func (ce *CognitiveEngine) getLastAdaptationTime() time.Time {
+	ce.mu.RLock()
+	defer ce.mu.RUnlock()
+	
 	if len(ce.learningState.AdaptationHistory) == 0 {
 		return time.Now().Add(-25 * time.Hour) // Force adaptation if none recent
 	}
@@ -901,6 +934,9 @@ func (ce *CognitiveEngine) getLastAdaptationTime() time.Time {
 }
 
 func (ce *CognitiveEngine) calculateAdaptationSuccessRate() float64 {
+	ce.mu.RLock()
+	defer ce.mu.RUnlock()
+	
 	if len(ce.learningState.AdaptationHistory) == 0 {
 		return 0.5
 	}

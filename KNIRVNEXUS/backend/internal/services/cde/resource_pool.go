@@ -145,12 +145,7 @@ func (rp *CDEResourcePool) ReleaseResources(allocation *CDEResourceAllocation) {
 	if rp.AllocatedCPU < 0 {
 		rp.AllocatedCPU = 0
 	}
-	if rp.AllocatedMemory < 0 {
-		rp.AllocatedMemory = 0
-	}
-	if rp.AllocatedDisk < 0 {
-		rp.AllocatedDisk = 0
-	}
+	// uint64 fields (AllocatedMemory, AllocatedDisk) cannot be negative
 	
 	// Ensure available doesn't exceed total
 	if rp.AvailableCPU > rp.TotalCPU {
@@ -174,8 +169,9 @@ func (rp *CDEResourcePool) UpdateAvailableResources() {
 	if err == nil {
 		// Update available memory based on actual system usage
 		usedMemory := rp.TotalMemory - currentMemInfo
-		rp.AvailableMemory = rp.TotalMemory - rp.AllocatedMemory - usedMemory
-		if rp.AvailableMemory < 0 {
+		if rp.TotalMemory > rp.AllocatedMemory+usedMemory {
+			rp.AvailableMemory = rp.TotalMemory - rp.AllocatedMemory - usedMemory
+		} else {
 			rp.AvailableMemory = 0
 		}
 	}
