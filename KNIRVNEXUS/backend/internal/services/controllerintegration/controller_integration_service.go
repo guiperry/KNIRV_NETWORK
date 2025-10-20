@@ -13,6 +13,16 @@ import (
 	"github.com/tidwall/buntdb"
 )
 
+// RoomMessage represents a room-based WebSocket message
+type RoomMessage struct {
+	Room      string      `json:"room"`
+	Type      string      `json:"type"`
+	Event     string      `json:"event"`
+	Payload   interface{} `json:"payload"`
+	SenderID  string      `json:"sender_id,omitempty"`
+	Timestamp string      `json:"timestamp"`
+}
+
 // ControllerIntegrationService manages advanced controller integration
 type ControllerIntegrationService struct {
 	db      *buntdb.DB
@@ -25,6 +35,9 @@ type ControllerIntegrationService struct {
 	pairingRequests map[string]*objects.PairingRequest
 
 	// Real-time communication
+	websocketService    interface {
+		BroadcastToRoom(roomName string, message *RoomMessage) error
+	}
 	websocketConnections map[string]*objects.WebSocketConnection
 	messageQueue         map[string][]*objects.ControllerMessage
 
@@ -108,6 +121,16 @@ func (cis *ControllerIntegrationService) IsRunning() bool {
 	cis.mu.RLock()
 	defer cis.mu.RUnlock()
 	return cis.running
+}
+
+// SetWebSocketService sets the WebSocket service for real-time communication
+func (cis *ControllerIntegrationService) SetWebSocketService(ws interface {
+	BroadcastToRoom(roomName string, message *RoomMessage) error
+}) {
+	cis.mu.Lock()
+	defer cis.mu.Unlock()
+	cis.websocketService = ws
+	log.Println("WebSocket service set for controller integration")
 }
 
 // GenerateQRCode creates a new QR code for controller pairing
@@ -551,15 +574,12 @@ func (cis *ControllerIntegrationService) sessionCleanupLoop() {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			if !cis.running {
-				return
-			}
-
-			cis.cleanupExpiredSessions()
+	for range ticker.C {
+		if !cis.running {
+			return
 		}
+
+		cis.cleanupExpiredSessions()
 	}
 }
 
@@ -567,15 +587,12 @@ func (cis *ControllerIntegrationService) qrCodeCleanupLoop() {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			if !cis.running {
-				return
-			}
-
-			cis.cleanupExpiredQRCodes()
+	for range ticker.C {
+		if !cis.running {
+			return
 		}
+
+		cis.cleanupExpiredQRCodes()
 	}
 }
 
@@ -583,15 +600,12 @@ func (cis *ControllerIntegrationService) messageProcessingLoop() {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			if !cis.running {
-				return
-			}
-
-			cis.processQueuedMessages()
+	for range ticker.C {
+		if !cis.running {
+			return
 		}
+
+		cis.processQueuedMessages()
 	}
 }
 

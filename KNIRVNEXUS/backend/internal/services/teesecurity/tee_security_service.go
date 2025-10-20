@@ -74,7 +74,7 @@ func (ts *TEESecurityService) storeKaliProfile() error {
 			"tool_strace":           ts.kaliProfile.DynamicAnalysisTools.Strace,
 			"tool_ltrace":           ts.kaliProfile.DynamicAnalysisTools.Ltrace,
 			"tool_perf":             ts.kaliProfile.DynamicAnalysisTools.Perf,
-			"tool_gdb":              ts.kaliProfile.DynamicAnalysisTools.Gdb,
+			"tool_gdb":              ts.kaliProfile.DynamicAnalysisTools.GDB,
 
 			// Network Analysis Tools
 			"tool_tcpdump":          ts.kaliProfile.NetworkAnalysisTools.Tcpdump,

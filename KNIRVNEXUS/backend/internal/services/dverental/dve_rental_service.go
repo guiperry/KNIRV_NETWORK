@@ -2,6 +2,10 @@ package dverental
 
 import (
 	"backend-server/internal/objects"
+	"backend-server/internal/services/blockchain"
+	"backend-server/internal/services/cde"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -14,9 +18,10 @@ import (
 
 // DVERentalService manages DVE rental operations
 type DVERentalService struct {
-	db      *buntdb.DB
-	mu      sync.RWMutex
-	running bool
+	db            *buntdb.DB
+	mu            sync.RWMutex
+	running       bool
+	blockchainClient *blockchain.NRNClient
 
 	// Service references
 	dveManager interface{} // DVE manager for node allocation
@@ -61,6 +66,14 @@ func (drs *DVERentalService) SetServiceReferences(dveManager, cdeService interfa
 	drs.cdeService = cdeService
 }
 
+// SetBlockchainClient sets the blockchain client for payment verification
+func (drs *DVERentalService) SetBlockchainClient(client *blockchain.NRNClient) {
+	drs.mu.Lock()
+	defer drs.mu.Unlock()
+
+	drs.blockchainClient = client
+}
+
 // Start starts the DVE rental service
 func (drs *DVERentalService) Start() error {
 	drs.mu.Lock()
@@ -74,6 +87,9 @@ func (drs *DVERentalService) Start() error {
 
 	// Start cleanup routine
 	go drs.cleanupRoutine()
+
+	// Start usage tracking routine
+	go drs.usageTrackingRoutine()
 
 	drs.running = true
 	log.Println("DVE rental service started successfully")
@@ -134,8 +150,33 @@ func (drs *DVERentalService) CreateRental(req *objects.RentalRequest) (*objects.
 	hours := float64(req.Duration) / 3600.0
 	totalCost := int64(hours * float64(plan.PricePerHour))
 
-	// TODO: Verify NRN payment transaction
-	// For now, we'll assume the payment is valid
+	// Verify NRN payment transaction on blockchain
+	if drs.blockchainClient == nil {
+		return &objects.RentalResponse{
+			Success: false,
+			Error:   "Blockchain client not configured",
+		}, nil
+	}
+
+	// For rental payments, the recipient should be the system wallet
+	systemWalletAddress := "knirv1system" // This should be configurable
+	payment, err := drs.blockchainClient.VerifyPaymentTransaction(req.PaymentTxHash, totalCost, systemWalletAddress)
+	if err != nil {
+		log.Printf("Payment verification failed for tx %s: %v", req.PaymentTxHash, err)
+		return &objects.RentalResponse{
+			Success: false,
+			Error:   "Payment verification failed: " + err.Error(),
+		}, nil
+	}
+
+	if payment.Status != "confirmed" {
+		return &objects.RentalResponse{
+			Success: false,
+			Error:   "Payment not confirmed on blockchain",
+		}, nil
+	}
+
+	log.Printf("Payment verified: %d NRN received for rental", payment.Amount)
 
 	// Find available DVE node
 	dveNodeID := drs.findAvailableDVENode(req.PreferredDVE)
@@ -148,19 +189,20 @@ func (drs *DVERentalService) CreateRental(req *objects.RentalRequest) (*objects.
 
 	// Create rental record
 	rental := &objects.DVERental{
-		ID:             uuid.New().String(),
-		UserID:         req.UserID,
-		DVENodeID:      dveNodeID,
-		NRNAmount:      totalCost,
-		RentalDuration: req.Duration,
-		StartTime:      time.Now(),
-		EndTime:        time.Now().Add(time.Duration(req.Duration) * time.Second),
-		Status:         "active",
-		PaymentTxHash:  req.PaymentTxHash,
-		ResourceLimits: plan.ResourceLimits,
-		UsageMetrics:   objects.UsageMetrics{LastUpdated: time.Now()},
-		CreatedAt:      time.Now(),
-		UpdatedAt:      time.Now(),
+		ID:                 uuid.New().String(),
+		UserID:             req.UserID,
+		DVENodeID:          dveNodeID,
+		NRNAmount:          totalCost,
+		RentalDuration:     req.Duration,
+		StartTime:          time.Now(),
+		EndTime:            time.Now().Add(time.Duration(req.Duration) * time.Second),
+		Status:             "active",
+		PaymentTxHash:      req.PaymentTxHash,
+		ResourceLimits:     plan.ResourceLimits,
+		UsageMetrics:       objects.UsageMetrics{LastUpdated: time.Now()},
+		AutoRenewalEnabled: req.AutoRenewalEnabled,
+		CreatedAt:          time.Now(),
+		UpdatedAt:          time.Now(),
 	}
 
 	// Provision CDE environment
@@ -363,12 +405,61 @@ func (drs *DVERentalService) CancelRental(rentalID string, userID string) error 
 
 // findAvailableDVENode finds an available DVE node for rental
 func (drs *DVERentalService) findAvailableDVENode(preferredDVE string) string {
-	// TODO: Implement DVE node availability checking
-	// For now, return a mock DVE node ID
-	if preferredDVE != "" {
-		return preferredDVE
+	// Check if DVE manager is available
+	if drs.dveManager == nil {
+		log.Printf("DVE manager not available, using fallback node selection")
+		if preferredDVE != "" {
+			return preferredDVE
+		}
+		return "dve-node-" + uuid.New().String()[:8]
 	}
-	return "dve-node-" + uuid.New().String()[:8]
+
+	// Use DVE manager interface to find available nodes
+	type DVEManagerInterface interface {
+		GetAllNodes() []*objects.DVENode
+		GetNode(nodeID string) (*objects.DVENode, error)
+	}
+
+	dveManager, ok := drs.dveManager.(DVEManagerInterface)
+	if !ok {
+		log.Printf("DVE manager interface mismatch, using fallback")
+		if preferredDVE != "" {
+			return preferredDVE
+		}
+		return "dve-node-" + uuid.New().String()[:8]
+	}
+
+	// If preferred node is specified, check if it's available
+	if preferredDVE != "" {
+		node, err := dveManager.GetNode(preferredDVE)
+		if err == nil && node.Status == "online" {
+			log.Printf("Using preferred DVE node: %s", preferredDVE)
+			return preferredDVE
+		}
+		log.Printf("Preferred DVE node %s not available, selecting alternative", preferredDVE)
+	}
+
+	// Get all available nodes and select one
+	allNodes := dveManager.GetAllNodes()
+	var availableNodes []*objects.DVENode
+
+	for _, node := range allNodes {
+		if node.Status == "online" && node.ReputationScore >= 50 {
+			availableNodes = append(availableNodes, node)
+		}
+	}
+
+	if len(availableNodes) == 0 {
+		log.Printf("No available DVE nodes found")
+		return ""
+	}
+
+	// Simple selection: pick the first available node
+	// In a real implementation, this could use load balancing
+	selectedNode := availableNodes[0]
+	log.Printf("Selected DVE node %s for rental", selectedNode.ID)
+
+	return selectedNode.ID
 }
 
 // provisionCDEEnvironment provisions a CDE environment for the rental
@@ -388,8 +479,8 @@ func (drs *DVERentalService) provisionCDEEnvironment(rental *objects.DVERental) 
 
 	// Use actual CDE service
 	type CDEServiceInterface interface {
-		CreateEnvironment(userID, name string, envType interface{}, config map[string]interface{}) (interface{}, error)
-		CreateSession(userID, envID string, connectionType string) (interface{}, error)
+		CreateEnvironment(userID, name string, envType interface{}, config map[string]interface{}) (*cde.CDEEnvironment, error)
+		CreateSession(userID, envID string, connectionType string) (*cde.CDESession, error)
 	}
 
 	cdeService, ok := drs.cdeService.(CDEServiceInterface)
@@ -418,10 +509,7 @@ func (drs *DVERentalService) provisionCDEEnvironment(rental *objects.DVERental) 
 	}
 
 	// Extract environment ID from the created environment
-	envID := fmt.Sprintf("cde-env-%s", rental.ID[:8])
-	if envInterface, ok := env.(interface{ GetID() string }); ok {
-		envID = envInterface.GetID()
-	}
+	envID := env.ID
 
 	// Create a session for the environment
 	session, err := cdeService.CreateSession(rental.UserID, envID, "websocket")
@@ -430,19 +518,16 @@ func (drs *DVERentalService) provisionCDEEnvironment(rental *objects.DVERental) 
 		// Continue without session - user can create one later
 	}
 
-	// Generate access URL and credentials
+	// Generate access URL and secure credentials
 	accessURL := fmt.Sprintf("https://cde.knirv.com/env/%s", envID)
-	credentials := objects.CDECredentials{
-		Username:    "user-" + rental.UserID[:8],
-		Password:    "temp-" + uuid.New().String()[:12],
-		AccessToken: "token-" + uuid.New().String(),
+	credentials, err := drs.generateSecureCredentials(rental.UserID, envID)
+	if err != nil {
+		return "", "", objects.CDECredentials{}, fmt.Errorf("failed to generate secure credentials: %w", err)
 	}
 
-	// If session was created successfully, add session info
+	// If session was created successfully, use session ID as access token
 	if session != nil {
-		if sessionInterface, ok := session.(interface{ GetID() string }); ok {
-			credentials.AccessToken = sessionInterface.GetID()
-		}
+		credentials.AccessToken = session.ID
 	}
 
 	return envID, accessURL, credentials, nil
@@ -475,4 +560,33 @@ func (drs *DVERentalService) cleanupCDEEnvironment(envID string) error {
 
 	log.Printf("Successfully cleaned up CDE environment: %s", envID)
 	return nil
+}
+
+// generateSecureCredentials generates cryptographically secure credentials for CDE access
+func (drs *DVERentalService) generateSecureCredentials(userID, envID string) (objects.CDECredentials, error) {
+	// Generate secure password (32 bytes = 256 bits of entropy)
+	passwordBytes := make([]byte, 32)
+	if _, err := rand.Read(passwordBytes); err != nil {
+		return objects.CDECredentials{}, fmt.Errorf("failed to generate secure password: %w", err)
+	}
+	password := base64.URLEncoding.EncodeToString(passwordBytes)
+
+	// Generate secure access token (32 bytes)
+	tokenBytes := make([]byte, 32)
+	if _, err := rand.Read(tokenBytes); err != nil {
+		return objects.CDECredentials{}, fmt.Errorf("failed to generate secure token: %w", err)
+	}
+	accessToken := base64.URLEncoding.EncodeToString(tokenBytes)
+
+	// Create username based on user ID and environment
+	username := fmt.Sprintf("user-%s-%s", userID[:8], envID[:8])
+
+	credentials := objects.CDECredentials{
+		Username:    username,
+		Password:    password,
+		AccessToken: accessToken,
+	}
+
+	log.Printf("Generated secure credentials for user %s in environment %s", userID, envID)
+	return credentials, nil
 }

@@ -6,7 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"os/exec"
 	"runtime"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -770,11 +774,158 @@ func (shs *SystemHealthService) collectSystemMetrics() {
 
 	shs.systemHealth.Metrics.MemoryUsage = float64(m.Alloc) / float64(m.Sys) * 100
 	shs.systemHealth.Metrics.GoroutineCount = runtime.NumGoroutine()
-	shs.systemHealth.Metrics.CPUUsage = 25.0 + float64(time.Now().Unix()%30)           // Simulated
-	shs.systemHealth.Metrics.SystemLoad = 0.5 + float64(time.Now().Unix()%10)/10.0     // Simulated
-	shs.systemHealth.Metrics.DiskUsage = 45.0 + float64(time.Now().Unix()%20)          // Simulated
-	shs.systemHealth.Metrics.NetworkThroughput = 125.5 + float64(time.Now().Unix()%50) // Simulated
-	shs.systemHealth.Metrics.ActiveConnections = 150 + int(time.Now().Unix()%50)       // Simulated
+
+	// Get real CPU usage
+	shs.systemHealth.Metrics.CPUUsage = shs.getCPUUsage()
+
+	// Get real system load
+	shs.systemHealth.Metrics.SystemLoad = shs.getSystemLoad()
+
+	// Get real disk usage
+	shs.systemHealth.Metrics.DiskUsage = shs.getDiskUsage()
+
+	// Get real network throughput (simplified)
+	shs.systemHealth.Metrics.NetworkThroughput = shs.getNetworkThroughput()
+
+	// Get active connections (WebSocket connections)
+	shs.systemHealth.Metrics.ActiveConnections = shs.getActiveConnections()
+}
+
+// getCPUUsage gets real CPU usage percentage
+func (shs *SystemHealthService) getCPUUsage() float64 {
+	// Try to get CPU usage from /proc/stat (Linux)
+	if data, err := os.ReadFile("/proc/stat"); err == nil {
+		lines := strings.Split(string(data), "\n")
+		if len(lines) > 0 && strings.HasPrefix(lines[0], "cpu ") {
+			fields := strings.Fields(lines[0])
+			if len(fields) >= 8 {
+				var total, idle uint64
+				for i := 1; i < len(fields); i++ {
+					if val, err := strconv.ParseUint(fields[i], 10, 64); err == nil {
+						total += val
+						if i == 4 { // idle is the 5th field (index 4)
+							idle = val
+						}
+					}
+				}
+				if total > 0 {
+					usage := 100.0 * (1.0 - float64(idle)/float64(total))
+					if usage >= 0 && usage <= 100 {
+						return usage
+					}
+				}
+			}
+		}
+	}
+
+	// Fallback: try using top command
+	if cmd := exec.Command("top", "-bn1"); cmd != nil {
+		if output, err := cmd.Output(); err == nil {
+			// Parse top output for CPU usage
+			lines := strings.Split(string(output), "\n")
+			for _, line := range lines {
+				if strings.Contains(line, "%Cpu(s):") {
+					// Extract CPU usage from top output
+					fields := strings.Fields(line)
+					for i, field := range fields {
+						if strings.Contains(field, "%Cpu(s):") && i+1 < len(fields) {
+							if usage, err := strconv.ParseFloat(fields[i+1], 64); err == nil {
+								return usage
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Final fallback: return 0 (will be handled as unknown)
+	return 0.0
+}
+
+// getSystemLoad gets system load average
+func (shs *SystemHealthService) getSystemLoad() float64 {
+	if data, err := os.ReadFile("/proc/loadavg"); err == nil {
+		fields := strings.Fields(string(data))
+		if len(fields) >= 1 {
+			if load, err := strconv.ParseFloat(fields[0], 64); err == nil {
+				return load
+			}
+		}
+	}
+
+	// Fallback: try uptime command
+	if cmd := exec.Command("uptime"); cmd != nil {
+		if output, err := cmd.Output(); err == nil {
+			// Parse uptime output for load average
+			outputStr := string(output)
+			if idx := strings.Index(outputStr, "load average:"); idx != -1 {
+				loadStr := outputStr[idx+14:]
+				if fields := strings.Fields(loadStr); len(fields) >= 1 {
+					if load, err := strconv.ParseFloat(strings.TrimSuffix(fields[0], ","), 64); err == nil {
+						return load
+					}
+				}
+			}
+		}
+	}
+
+	return 0.0
+}
+
+// getDiskUsage gets disk usage percentage for root filesystem
+func (shs *SystemHealthService) getDiskUsage() float64 {
+	if cmd := exec.Command("df", "/"); cmd != nil {
+		if output, err := cmd.Output(); err == nil {
+			lines := strings.Split(string(output), "\n")
+			if len(lines) >= 2 {
+				fields := strings.Fields(lines[1])
+				if len(fields) >= 5 {
+					if usage, err := strconv.ParseFloat(strings.TrimSuffix(fields[4], "%"), 64); err == nil {
+						return usage
+					}
+				}
+			}
+		}
+	}
+
+	return 0.0
+}
+
+// getNetworkThroughput gets network throughput (simplified - returns bytes/sec)
+func (shs *SystemHealthService) getNetworkThroughput() float64 {
+	// Read network statistics from /proc/net/dev
+	if data, err := os.ReadFile("/proc/net/dev"); err == nil {
+		lines := strings.Split(string(data), "\n")
+		var totalBytes uint64
+
+		for _, line := range lines {
+			if strings.Contains(line, ":") {
+				fields := strings.Fields(line)
+				if len(fields) >= 10 {
+					// Add received and transmitted bytes
+					if rx, err := strconv.ParseUint(fields[1], 10, 64); err == nil {
+						totalBytes += rx
+					}
+					if tx, err := strconv.ParseUint(fields[9], 10, 64); err == nil {
+						totalBytes += tx
+					}
+				}
+			}
+		}
+
+		// Return as MB/s (simplified calculation)
+		return float64(totalBytes) / (1024 * 1024)
+	}
+
+	return 0.0
+}
+
+// getActiveConnections gets the number of active connections
+func (shs *SystemHealthService) getActiveConnections() int {
+	// This would need to be passed from the WebSocket service
+	// For now, return a placeholder that will be updated by the WebSocket service
+	return 0
 }
 
 func (shs *SystemHealthService) testDatabaseConnectivity() *objects.DiagnosticTest {

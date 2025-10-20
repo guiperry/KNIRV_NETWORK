@@ -2,11 +2,13 @@ package dns
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
 
 	"backend-server/internal/web/middleware"
+	"backend-server/pkg/cloudflare"
 )
 
 // DNS Record Management Handlers
@@ -36,30 +38,86 @@ func (ds *DynamicDNSService) HandleListDNSRecords(w http.ResponseWriter, r *http
 	// }
 
 	// Parse query parameters for filtering
-	zone := r.URL.Query().Get("zone")
+	zoneName := r.URL.Query().Get("zone")
 	recordType := r.URL.Query().Get("type")
 
-	// This would retrieve DNS records from the service
-	// For now, return a placeholder response
-	records := []map[string]interface{}{
-		{
-			"id":    "record-1",
-			"name":  "example.knirv.com",
-			"type":  "A",
-			"value": "192.168.1.1",
-			"ttl":   300,
-			"zone":  "knirv.com",
-		},
+	// Get zone information
+	var zoneID string
+	if zoneName != "" {
+		zone, err := ds.dnsManager.GetZoneByName(zoneName)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("Failed to get zone: %v", err))
+			return
+		}
+		zoneID = zone.ID
+	} else {
+		// If no zone specified, get all zones and their records
+		zones, err := ds.dnsManager.GetZones()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to get zones: %v", err))
+			return
+		}
+
+		var allRecords []map[string]interface{}
+		for _, zone := range zones {
+			records, err := ds.dnsManager.GetDNSRecords(zone.ID)
+			if err != nil {
+				continue // Skip zones with errors
+			}
+
+			for _, record := range records {
+				if recordType != "" && record.Type != recordType {
+					continue
+				}
+
+				recordMap := map[string]interface{}{
+					"id":       record.ID,
+					"name":     record.Name,
+					"type":     record.Type,
+					"value":    record.Content,
+					"ttl":      record.TTL,
+					"zone":     zone.Name,
+					"zone_id":  zone.ID,
+					"proxied":  record.Proxied,
+					"priority": record.Priority,
+				}
+				allRecords = append(allRecords, recordMap)
+			}
+		}
+
+		writeJSON(w, http.StatusOK, allRecords)
+		return
 	}
 
-	// Apply filters if provided
-	if zone != "" || recordType != "" {
-		// Filter logic would go here
-		_ = zone
-		_ = recordType
+	// Get DNS records for the specified zone
+	records, err := ds.dnsManager.GetDNSRecords(zoneID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to get DNS records: %v", err))
+		return
 	}
 
-	writeJSON(w, http.StatusOK, records)
+	// Convert to response format and apply filters
+	var responseRecords []map[string]interface{}
+	for _, record := range records {
+		if recordType != "" && record.Type != recordType {
+			continue
+		}
+
+		recordMap := map[string]interface{}{
+			"id":       record.ID,
+			"name":     record.Name,
+			"type":     record.Type,
+			"value":    record.Content,
+			"ttl":      record.TTL,
+			"zone":     zoneName,
+			"zone_id":  zoneID,
+			"proxied":  record.Proxied,
+			"priority": record.Priority,
+		}
+		responseRecords = append(responseRecords, recordMap)
+	}
+
+	writeJSON(w, http.StatusOK, responseRecords)
 }
 
 // HandleCreateDNSRecord handles DNS record creation requests
@@ -76,8 +134,8 @@ func (ds *DynamicDNSService) HandleCreateDNSRecord(w http.ResponseWriter, r *htt
 		return
 	}
 
-	if req.Name == "" || req.Type == "" || req.Value == "" {
-		writeError(w, http.StatusBadRequest, "Name, type, and value are required")
+	if req.Name == "" || req.Type == "" || req.Value == "" || req.Zone == "" {
+		writeError(w, http.StatusBadRequest, "Name, type, value, and zone are required")
 		return
 	}
 
@@ -86,15 +144,39 @@ func (ds *DynamicDNSService) HandleCreateDNSRecord(w http.ResponseWriter, r *htt
 		req.TTL = 300
 	}
 
-	// This would create the DNS record in the service
-	// For now, return a placeholder response
+	// Get zone information
+	zone, err := ds.dnsManager.GetZoneByName(req.Zone)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("Failed to get zone: %v", err))
+		return
+	}
+
+	// Create DNS record
+	cfRecord := cloudflare.DNSRecord{
+		Type:    req.Type,
+		Name:    req.Name,
+		Content: req.Value,
+		TTL:     req.TTL,
+		Proxied: false, // Default to not proxied
+	}
+
+	createdRecord, err := ds.dnsManager.CreateDNSRecord(zone.ID, cfRecord)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to create DNS record: %v", err))
+		return
+	}
+
+	// Return created record in response format
 	record := map[string]interface{}{
-		"id":    "record-new",
-		"name":  req.Name,
-		"type":  req.Type,
-		"value": req.Value,
-		"ttl":   req.TTL,
-		"zone":  req.Zone,
+		"id":       createdRecord.ID,
+		"name":     createdRecord.Name,
+		"type":     createdRecord.Type,
+		"value":    createdRecord.Content,
+		"ttl":      createdRecord.TTL,
+		"zone":     req.Zone,
+		"zone_id":  zone.ID,
+		"proxied":  createdRecord.Proxied,
+		"priority": createdRecord.Priority,
 	}
 
 	writeJSON(w, http.StatusCreated, record)
@@ -110,16 +192,57 @@ func (ds *DynamicDNSService) HandleGetDNSRecord(w http.ResponseWriter, r *http.R
 
 	vars := mux.Vars(r)
 	recordID := vars["id"]
+	zoneName := r.URL.Query().Get("zone")
 
-	// This would retrieve the specific DNS record
-	// For now, return a placeholder response
+	if recordID == "" {
+		writeError(w, http.StatusBadRequest, "Record ID is required")
+		return
+	}
+
+	if zoneName == "" {
+		writeError(w, http.StatusBadRequest, "Zone parameter is required")
+		return
+	}
+
+	// Get zone information
+	zone, err := ds.dnsManager.GetZoneByName(zoneName)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("Failed to get zone: %v", err))
+		return
+	}
+
+	// Get all records for the zone and find the specific record
+	records, err := ds.dnsManager.GetDNSRecords(zone.ID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to get DNS records: %v", err))
+		return
+	}
+
+	// Find the record by ID
+	var foundRecord *cloudflare.DNSRecord
+	for _, record := range records {
+		if record.ID == recordID {
+			foundRecord = &record
+			break
+		}
+	}
+
+	if foundRecord == nil {
+		writeError(w, http.StatusNotFound, "DNS record not found")
+		return
+	}
+
+	// Return record in response format
 	record := map[string]interface{}{
-		"id":    recordID,
-		"name":  "example.knirv.com",
-		"type":  "A",
-		"value": "192.168.1.1",
-		"ttl":   300,
-		"zone":  "knirv.com",
+		"id":       foundRecord.ID,
+		"name":     foundRecord.Name,
+		"type":     foundRecord.Type,
+		"value":    foundRecord.Content,
+		"ttl":      foundRecord.TTL,
+		"zone":     zoneName,
+		"zone_id":  zone.ID,
+		"proxied":  foundRecord.Proxied,
+		"priority": foundRecord.Priority,
 	}
 
 	writeJSON(w, http.StatusOK, record)
@@ -135,6 +258,17 @@ func (ds *DynamicDNSService) HandleUpdateDNSRecord(w http.ResponseWriter, r *htt
 
 	vars := mux.Vars(r)
 	recordID := vars["id"]
+	zoneName := r.URL.Query().Get("zone")
+
+	if recordID == "" {
+		writeError(w, http.StatusBadRequest, "Record ID is required")
+		return
+	}
+
+	if zoneName == "" {
+		writeError(w, http.StatusBadRequest, "Zone parameter is required")
+		return
+	}
 
 	var req UpdateDNSRecordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -147,15 +281,57 @@ func (ds *DynamicDNSService) HandleUpdateDNSRecord(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// This would update the DNS record in the service
-	// For now, return a placeholder response
+	// Get zone information
+	zone, err := ds.dnsManager.GetZoneByName(zoneName)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("Failed to get zone: %v", err))
+		return
+	}
+
+	// Get current record to preserve other fields
+	records, err := ds.dnsManager.GetDNSRecords(zone.ID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to get DNS records: %v", err))
+		return
+	}
+
+	var currentRecord *cloudflare.DNSRecord
+	for _, record := range records {
+		if record.ID == recordID {
+			currentRecord = &record
+			break
+		}
+	}
+
+	if currentRecord == nil {
+		writeError(w, http.StatusNotFound, "DNS record not found")
+		return
+	}
+
+	// Update the record
+	updatedRecord := *currentRecord
+	updatedRecord.Content = req.Value
+	if req.TTL > 0 {
+		updatedRecord.TTL = req.TTL
+	}
+
+	result, err := ds.dnsManager.UpdateDNSRecord(zone.ID, recordID, updatedRecord)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update DNS record: %v", err))
+		return
+	}
+
+	// Return updated record in response format
 	record := map[string]interface{}{
-		"id":    recordID,
-		"name":  "example.knirv.com",
-		"type":  "A",
-		"value": req.Value,
-		"ttl":   req.TTL,
-		"zone":  "knirv.com",
+		"id":       result.ID,
+		"name":     result.Name,
+		"type":     result.Type,
+		"value":    result.Content,
+		"ttl":      result.TTL,
+		"zone":     zoneName,
+		"zone_id":  zone.ID,
+		"proxied":  result.Proxied,
+		"priority": result.Priority,
 	}
 
 	writeJSON(w, http.StatusOK, record)
@@ -171,10 +347,31 @@ func (ds *DynamicDNSService) HandleDeleteDNSRecord(w http.ResponseWriter, r *htt
 
 	vars := mux.Vars(r)
 	recordID := vars["id"]
+	zoneName := r.URL.Query().Get("zone")
 
-	// This would delete the DNS record from the service
-	// For now, just return success
-	_ = recordID
+	if recordID == "" {
+		writeError(w, http.StatusBadRequest, "Record ID is required")
+		return
+	}
+
+	if zoneName == "" {
+		writeError(w, http.StatusBadRequest, "Zone parameter is required")
+		return
+	}
+
+	// Get zone information
+	zone, err := ds.dnsManager.GetZoneByName(zoneName)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("Failed to get zone: %v", err))
+		return
+	}
+
+	// Delete the DNS record
+	err = ds.dnsManager.DeleteDNSRecord(zone.ID, recordID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to delete DNS record: %v", err))
+		return
+	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"message": "DNS record deleted successfully"})
 }
@@ -190,19 +387,23 @@ func (ds *DynamicDNSService) HandleListDNSZones(w http.ResponseWriter, r *http.R
 	//	return
 	// }
 
-	// This would retrieve DNS zones from the service
-	// For now, return a placeholder response
-	zones := []map[string]interface{}{
-		{
-			"id":   "zone-1",
-			"name": "knirv.com",
-			"type": "primary",
-		},
-		{
-			"id":   "zone-2",
-			"name": "test.knirv.com",
-			"type": "secondary",
-		},
+	// Get zones from Cloudflare
+	cfZones, err := ds.dnsManager.GetZones()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to get zones: %v", err))
+		return
+	}
+
+	// Convert to response format
+	var zones []map[string]interface{}
+	for _, zone := range cfZones {
+		zoneMap := map[string]interface{}{
+			"id":     zone.ID,
+			"name":   zone.Name,
+			"status": zone.Status,
+			"type":   "primary", // Cloudflare zones are typically primary
+		}
+		zones = append(zones, zoneMap)
 	}
 
 	writeJSON(w, http.StatusOK, zones)
@@ -213,12 +414,36 @@ func (ds *DynamicDNSService) HandleListDNSZones(w http.ResponseWriter, r *http.R
 // HandleGetDNSStatus handles DNS service status requests
 func (ds *DynamicDNSService) HandleGetDNSStatus(w http.ResponseWriter, r *http.Request) {
 	// This can be public for monitoring
+
+	// Get actual zone count
+	zones, err := ds.dnsManager.GetZones()
+	zoneCount := 0
+	recordCount := 0
+	if err == nil {
+		zoneCount = len(zones)
+
+		// Get record count across all zones
+		for _, zone := range zones {
+			records, err := ds.dnsManager.GetDNSRecords(zone.ID)
+			if err == nil {
+				recordCount += len(records)
+			}
+		}
+	}
+
+	// Get service status
+	serviceStatus := ds.GetStatus()
+
 	status := map[string]interface{}{
-		"service":   "dynamic-dns",
-		"status":    "running",
-		"zones":     2,                      // TODO: Get actual count
-		"records":   10,                     // TODO: Get actual count
-		"timestamp": "2024-01-01T00:00:00Z", // TODO: Use actual timestamp
+		"service":      "dynamic-dns",
+		"status":       "running",
+		"zones":        zoneCount,
+		"records":      recordCount,
+		"current_ip":   serviceStatus["current_ip"],
+		"last_update":  serviceStatus["last_update"],
+		"update_count": serviceStatus["update_count"],
+		"error_count":  serviceStatus["error_count"],
+		"timestamp":    serviceStatus["last_update"], // Use last update as timestamp
 	}
 
 	writeJSON(w, http.StatusOK, status)

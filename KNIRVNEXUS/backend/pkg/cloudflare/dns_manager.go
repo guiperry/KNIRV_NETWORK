@@ -233,7 +233,7 @@ func (dm *DNSManager) UpdateOrCreateDNSRecord(zoneID string, record DNSRecord) (
 // UpdateDynamicIP updates a DNS record with the current public IP
 func (dm *DNSManager) UpdateDynamicIP(zoneName, recordName string) error {
 	// Get current public IP
-	publicIP, err := dm.getCurrentPublicIP()
+	publicIP, err := dm.GetCurrentPublicIP()
 	if err != nil {
 		return fmt.Errorf("failed to get public IP: %w", err)
 	}
@@ -261,8 +261,8 @@ func (dm *DNSManager) UpdateDynamicIP(zoneName, recordName string) error {
 	return nil
 }
 
-// getCurrentPublicIP gets the current public IP address
-func (dm *DNSManager) getCurrentPublicIP() (string, error) {
+// GetCurrentPublicIP gets the current public IP address
+func (dm *DNSManager) GetCurrentPublicIP() (string, error) {
 	resp, err := http.Get("https://api.ipify.org")
 	if err != nil {
 		return "", err

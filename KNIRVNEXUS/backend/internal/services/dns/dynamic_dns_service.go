@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"sync"
 	"time"
 
@@ -105,11 +106,8 @@ func NewDynamicDNSService(dataEngine *dataengine.BuntDBDataEngine, config DNSCon
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// Initialize DNS manager only if not in development mode
-	var dnsManager *cloudflare.DNSManager
-	if config.CloudFlareAPIToken != "dev-token" {
-		dnsManager = cloudflare.NewDNSManager(config.CloudFlareAPIToken)
-	}
+	// Initialize DNS manager with the provided API token
+	dnsManager := cloudflare.NewDNSManager(config.CloudFlareAPIToken)
 
 	service := &DynamicDNSService{
 		dnsManager: dnsManager,
@@ -300,15 +298,42 @@ func (dds *DynamicDNSService) healthCheckLoop() {
 
 // performHealthCheck performs a health check
 func (dds *DynamicDNSService) performHealthCheck() {
-	// This would implement actual health checking logic
-	// For now, just log that it's running
-	log.Printf("DynamicDNSService: Health check performed")
+	// Perform HTTP health check if URL is configured
+	if dds.config.HealthCheckURL != "" {
+		if err := dds.performHTTPHealthCheck(); err != nil {
+			log.Printf("DynamicDNSService: Health check failed: %v", err)
+			dds.errorCount++
 
-	// Log metrics
+			// Log failed health check
+			if dds.dataEngine != nil {
+				dds.dataEngine.ProcessMetricEvent(
+					"dns-service",
+					"health_check_failed",
+					1.0,
+					"count",
+					map[string]string{
+						"url":    dds.config.HealthCheckURL,
+						"error":  err.Error(),
+					},
+				)
+			}
+			return
+		}
+	}
+
+	// Perform DNS propagation check
+	if err := dds.performDNSPropagationCheck(); err != nil {
+		log.Printf("DynamicDNSService: DNS propagation check failed: %v", err)
+		// Don't increment error count for propagation issues as they may be temporary
+	}
+
+	log.Printf("DynamicDNSService: Health check completed successfully")
+
+	// Log successful health check
 	if dds.dataEngine != nil {
 		dds.dataEngine.ProcessMetricEvent(
 			"dns-service",
-			"health_check",
+			"health_check_success",
 			1.0,
 			"count",
 			map[string]string{
@@ -356,9 +381,8 @@ func (dds *DynamicDNSService) forceUpdate() {
 
 // getCurrentPublicIP gets the current public IP address
 func (dds *DynamicDNSService) getCurrentPublicIP() (string, error) {
-	// This would use the CloudFlare DNS manager's method
-	// or implement a similar IP detection mechanism
-	return "1.2.3.4", nil // Placeholder
+	// Use the CloudFlare DNS manager's method for IP detection
+	return dds.dnsManager.GetCurrentPublicIP()
 }
 
 // GetStatus returns the current status of the DNS service
@@ -375,6 +399,55 @@ func (dds *DynamicDNSService) GetStatus() map[string]interface{} {
 		"zone_name":    dds.config.ZoneName,
 		"record_count": len(dds.config.Records),
 	}
+}
+
+// performHTTPHealthCheck performs an HTTP health check
+func (dds *DynamicDNSService) performHTTPHealthCheck() error {
+	// Use a standard HTTP client to check the health URL
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(dds.config.HealthCheckURL)
+	if err != nil {
+		return fmt.Errorf("HTTP health check failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("HTTP health check returned status %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+// performDNSPropagationCheck verifies DNS record propagation
+func (dds *DynamicDNSService) performDNSPropagationCheck() error {
+	// Get current IP
+	currentIP, err := dds.getCurrentPublicIP()
+	if err != nil {
+		return fmt.Errorf("failed to get current IP for propagation check: %w", err)
+	}
+
+	// Check if our DNS records match the current IP
+	zone, err := dds.dnsManager.GetZoneByName(dds.config.ZoneName)
+	if err != nil {
+		return fmt.Errorf("failed to get zone for propagation check: %w", err)
+	}
+
+	for _, recordConfig := range dds.config.Records {
+		if !recordConfig.UpdateWithIP {
+			continue // Only check records that should have the current IP
+		}
+
+		record, err := dds.dnsManager.GetDNSRecord(zone.ID, recordConfig.Name, recordConfig.Type)
+		if err != nil {
+			return fmt.Errorf("failed to get DNS record %s for propagation check: %w", recordConfig.Name, err)
+		}
+
+		if record.Content != currentIP {
+			return fmt.Errorf("DNS record %s has content %s, expected %s", recordConfig.Name, record.Content, currentIP)
+		}
+	}
+
+	return nil
 }
 
 // IsRunning returns whether the DNS service is running

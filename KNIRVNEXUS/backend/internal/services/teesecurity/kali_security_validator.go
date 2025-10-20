@@ -10,57 +10,7 @@ import (
 	"time"
 )
 
-// KaliLinuxProfile represents the Kali Linux environment profile
-type KaliLinuxProfile struct {
-	OS                    string                      `json:"os"`
-	IsKaliLinux          bool                        `json:"is_kali_linux"`
-	KernelVersion        string                      `json:"kernel_version"`
-	ArchitectureSupport  []string                    `json:"architecture_support"`
-	StaticAnalysisTools  KaliStaticAnalysisTools     `json:"static_analysis_tools"`
-	DynamicAnalysisTools KaliDynamicAnalysisTools    `json:"dynamic_analysis_tools"`
-	NetworkAnalysisTools KaliNetworkAnalysisTools    `json:"network_analysis_tools"`
-	ForensicsTools       KaliForensicsTools          `json:"forensics_tools"`
-	SecurityFrameworks   KaliSecurityFrameworks      `json:"security_frameworks"`
-	PreferredRuntime     string                      `json:"preferred_runtime"`
-}
 
-// KaliStaticAnalysisTools represents available static analysis tools
-type KaliStaticAnalysisTools struct {
-	Ghidra  bool `json:"ghidra"`
-	Radare2 bool `json:"radare2"`
-	Semgrep bool `json:"semgrep"`
-	Bandit  bool `json:"bandit"`
-}
-
-// KaliDynamicAnalysisTools represents available dynamic analysis tools
-type KaliDynamicAnalysisTools struct {
-	Strace bool `json:"strace"`
-	Ltrace bool `json:"ltrace"`
-	Perf   bool `json:"perf"`
-	Gdb    bool `json:"gdb"`
-}
-
-// KaliNetworkAnalysisTools represents available network analysis tools
-type KaliNetworkAnalysisTools struct {
-	Tcpdump   bool `json:"tcpdump"`
-	Tshark    bool `json:"tshark"`
-	Mitmproxy bool `json:"mitmproxy"`
-	Iptables  bool `json:"iptables"`
-}
-
-// KaliForensicsTools represents available forensics tools
-type KaliForensicsTools struct {
-	Volatility  bool `json:"volatility"`
-	SleuthKit   bool `json:"sleuthkit"`
-	Autopsy     bool `json:"autopsy"`
-}
-
-// KaliSecurityFrameworks represents available security frameworks
-type KaliSecurityFrameworks struct {
-	AppArmor bool `json:"apparmor"`
-	SELinux  bool `json:"selinux"`
-	Seccomp  bool `json:"seccomp"`
-}
 
 // KaliSecurityValidationReport represents the comprehensive security validation report
 type KaliSecurityValidationReport struct {

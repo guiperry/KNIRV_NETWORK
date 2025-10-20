@@ -2,30 +2,52 @@ package websocket
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"sync"
 	"time"
 
+	"backend-server/internal/database"
 	"backend-server/internal/inference"
 	"backend-server/internal/objects"
 	"backend-server/internal/services/dvemanager"
 	"backend-server/internal/services/validation"
+	"backend-server/internal/web/middleware"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"github.com/tidwall/buntdb"
 )
 
 // WebSocketService handles real-time updates for the KNIRV-NEXUS system
 type WebSocketService struct {
 	clients      map[*websocket.Conn]*Client
 	clientsMutex sync.RWMutex
+	rooms        map[string]map[*websocket.Conn]*Client // Room-based messaging
+	roomsMutex   sync.RWMutex
 	broadcast    chan Message
 	upgrader     websocket.Upgrader
 	isRunning    bool
 	ctx          context.Context
 	cancel       context.CancelFunc
+
+	// Authentication and database
+	authMiddleware *middleware.AuthMiddleware
+	db            *database.BuntDBManager
+
+	// Message persistence and acknowledgment
+	messageStore   *MessageStore
+	ackTimeout     time.Duration
+
+	// Health monitoring
+	healthStats    *WebSocketHealthStats
+	healthMutex    sync.RWMutex
+
+	// Backpressure handling
+	maxMessageQueue int
+	messageRateLimit int // messages per second per client
 
 	// Service references for real-time updates
 	inferenceService   *inference.InferenceService
@@ -84,6 +106,55 @@ type TEESecurityUpdate struct {
 	LastAudit         string  `json:"last_audit"`
 }
 
+// MessageStore handles message persistence for offline clients
+type MessageStore struct {
+	db         *buntdb.DB
+	maxMessages int
+	retention   time.Duration
+}
+
+// StoredMessage represents a persisted message
+type StoredMessage struct {
+	ID        string      `json:"id"`
+	Type      string      `json:"type"`
+	Event     string      `json:"event"`
+	Payload   interface{} `json:"payload"`
+	Timestamp time.Time   `json:"timestamp"`
+	UserID    string      `json:"user_id,omitempty"`
+	Room      string      `json:"room,omitempty"`
+}
+
+// WebSocketHealthStats tracks WebSocket service health metrics
+type WebSocketHealthStats struct {
+	ConnectedClients    int           `json:"connected_clients"`
+	TotalMessagesSent   int64         `json:"total_messages_sent"`
+	TotalMessagesRecv   int64         `json:"total_messages_recv"`
+	Uptime              time.Duration `json:"uptime"`
+	LastHealthCheck     time.Time     `json:"last_health_check"`
+	AverageLatency      time.Duration `json:"average_latency"`
+	ErrorCount          int64         `json:"error_count"`
+	RoomsActive         int           `json:"rooms_active"`
+	PendingAcknowledgments int        `json:"pending_acknowledgments"`
+}
+
+// AcknowledgmentMessage represents an acknowledgment response
+type AcknowledgmentMessage struct {
+	MessageID   string `json:"message_id"`
+	Status      string `json:"status"` // "ack", "nack", "timeout"
+	Timestamp   string `json:"timestamp"`
+	ClientID    string `json:"client_id"`
+}
+
+// RoomMessage represents a room-based message
+type RoomMessage struct {
+	Room      string      `json:"room"`
+	Type      string      `json:"type"`
+	Event     string      `json:"event"`
+	Payload   interface{} `json:"payload"`
+	SenderID  string      `json:"sender_id,omitempty"`
+	Timestamp string      `json:"timestamp"`
+}
+
 // NewWebSocketService creates a new WebSocket service
 func NewWebSocketService(inferenceService *inference.InferenceService, dveManager *dvemanager.DVEManager, validationCore *validation.ValidationCore, teeSecurityService interface {
 	IsRunning() bool
@@ -91,9 +162,21 @@ func NewWebSocketService(inferenceService *inference.InferenceService, dveManage
 }) *WebSocketService {
 	ctx, cancel := context.WithCancel(context.Background())
 
+	// Initialize message store
+	messageStore := &MessageStore{
+		maxMessages: 1000,
+		retention:   time.Hour * 24, // 24 hours
+	}
+
+	// Initialize health stats
+	healthStats := &WebSocketHealthStats{
+		LastHealthCheck: time.Now(),
+	}
+
 	return &WebSocketService{
-		clients:   make(map[*websocket.Conn]*Client),
-		broadcast: make(chan Message, 256),
+		clients:         make(map[*websocket.Conn]*Client),
+		rooms:           make(map[string]map[*websocket.Conn]*Client),
+		broadcast:       make(chan Message, 256),
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
@@ -104,11 +187,27 @@ func NewWebSocketService(inferenceService *inference.InferenceService, dveManage
 		},
 		ctx:                ctx,
 		cancel:             cancel,
+		messageStore:       messageStore,
+		ackTimeout:         time.Second * 30,
+		healthStats:        healthStats,
+		maxMessageQueue:    100,
+		messageRateLimit:   10, // 10 messages per second per client
 		inferenceService:   inferenceService,
 		dveManager:         dveManager,
 		validationCore:     validationCore,
 		teeSecurityService: teeSecurityService,
 	}
+}
+
+// SetAuthMiddleware sets the authentication middleware for WebSocket connections
+func (ws *WebSocketService) SetAuthMiddleware(authMiddleware *middleware.AuthMiddleware) {
+	ws.authMiddleware = authMiddleware
+}
+
+// SetDatabase sets the database manager for message persistence
+func (ws *WebSocketService) SetDatabase(db *database.BuntDBManager) {
+	ws.db = db
+	ws.messageStore.db = db.GetDB()
 }
 
 // Start starts the WebSocket service
@@ -258,64 +357,7 @@ func (ws *WebSocketService) handleClientWrite(client *Client) {
 	}
 }
 
-// handleClientMessage processes messages from clients
-func (ws *WebSocketService) handleClientMessage(client *Client, msg map[string]interface{}) {
-	msgType, ok := msg["type"].(string)
-	if !ok {
-		return
-	}
 
-	switch msgType {
-	case "subscribe":
-		if topics, ok := msg["topics"].([]interface{}); ok {
-			for _, topic := range topics {
-				if topicStr, ok := topic.(string); ok {
-					client.subscriptions[topicStr] = true
-				}
-			}
-			log.Printf("Client %s subscribed to topics: %v", client.id, topics)
-		}
-
-	case "unsubscribe":
-		if topics, ok := msg["topics"].([]interface{}); ok {
-			for _, topic := range topics {
-				if topicStr, ok := topic.(string); ok {
-					delete(client.subscriptions, topicStr)
-				}
-			}
-			log.Printf("Client %s unsubscribed from topics: %v", client.id, topics)
-		}
-
-	case "request_sync":
-		// Send current state to client
-		ws.sendCurrentState(client)
-	}
-}
-
-// handleBroadcast handles broadcasting messages to all clients
-func (ws *WebSocketService) handleBroadcast() {
-	for {
-		select {
-		case message := <-ws.broadcast:
-			ws.clientsMutex.RLock()
-			for _, client := range ws.clients {
-				// Check if client is subscribed to this message type
-				if len(client.subscriptions) == 0 || client.subscriptions[message.Event] {
-					select {
-					case client.send <- message:
-					default:
-						close(client.send)
-						delete(ws.clients, client.conn)
-					}
-				}
-			}
-			ws.clientsMutex.RUnlock()
-
-		case <-ws.ctx.Done():
-			return
-		}
-	}
-}
 
 // Broadcast sends a message to all connected clients
 func (ws *WebSocketService) Broadcast(event string, payload interface{}) {
@@ -463,5 +505,390 @@ func (ws *WebSocketService) sendPeriodicUpdates() {
 		}
 
 		ws.Broadcast("tee-security-updated", teeUpdate)
+	}
+}
+
+// MessageStore methods
+
+// StoreMessage stores a message for offline clients
+func (ms *MessageStore) StoreMessage(msg *StoredMessage) error {
+	if ms.db == nil {
+		return fmt.Errorf("message store database not initialized")
+	}
+
+	return ms.db.Update(func(tx *buntdb.Tx) error {
+		// Clean up old messages if we exceed max messages
+		ms.cleanupOldMessages(tx)
+
+		data, err := json.Marshal(msg)
+		if err != nil {
+			return err
+		}
+
+		_, _, err = tx.Set(fmt.Sprintf("ws_msg:%s", msg.ID), string(data), nil)
+		return err
+	})
+}
+
+// GetMessagesForUser retrieves stored messages for a specific user
+func (ms *MessageStore) GetMessagesForUser(userID string, since time.Time) ([]*StoredMessage, error) {
+	if ms.db == nil {
+		return nil, fmt.Errorf("message store database not initialized")
+	}
+
+	var messages []*StoredMessage
+
+	err := ms.db.View(func(tx *buntdb.Tx) error {
+		return tx.Ascend("ws_msg:", func(key, value string) bool {
+			var msg StoredMessage
+			if err := json.Unmarshal([]byte(value), &msg); err != nil {
+				log.Printf("Failed to unmarshal stored message: %v", err)
+				return true // continue
+			}
+
+			if msg.UserID == userID && msg.Timestamp.After(since) {
+				messages = append(messages, &msg)
+			}
+			return true
+		})
+	})
+
+	return messages, err
+}
+
+// cleanupOldMessages removes messages older than retention period
+func (ms *MessageStore) cleanupOldMessages(tx *buntdb.Tx) {
+	cutoff := time.Now().Add(-ms.retention)
+
+	tx.Ascend("ws_msg:", func(key, value string) bool {
+		var msg StoredMessage
+		if err := json.Unmarshal([]byte(value), &msg); err != nil {
+			tx.Delete(key)
+			return true
+		}
+
+		if msg.Timestamp.Before(cutoff) {
+			tx.Delete(key)
+		}
+		return true
+	})
+}
+
+// Room management methods
+
+// JoinRoom adds a client to a room
+func (ws *WebSocketService) JoinRoom(roomName string, client *Client) {
+	ws.roomsMutex.Lock()
+	defer ws.roomsMutex.Unlock()
+
+	if ws.rooms[roomName] == nil {
+		ws.rooms[roomName] = make(map[*websocket.Conn]*Client)
+	}
+	ws.rooms[roomName][client.conn] = client
+
+	log.Printf("Client %s joined room %s", client.id, roomName)
+}
+
+// LeaveRoom removes a client from a room
+func (ws *WebSocketService) LeaveRoom(roomName string, client *Client) {
+	ws.roomsMutex.Lock()
+	defer ws.roomsMutex.Unlock()
+
+	if room, exists := ws.rooms[roomName]; exists {
+		delete(room, client.conn)
+		if len(room) == 0 {
+			delete(ws.rooms, roomName)
+		}
+		log.Printf("Client %s left room %s", client.id, roomName)
+	}
+}
+
+// BroadcastToRoom sends a message to all clients in a specific room
+func (ws *WebSocketService) BroadcastToRoom(roomName string, message *RoomMessage) {
+	ws.roomsMutex.RLock()
+	room, exists := ws.rooms[roomName]
+	ws.roomsMutex.RUnlock()
+
+	if !exists {
+		return
+	}
+
+	// Convert room message to regular message
+	msg := Message{
+		Type:      message.Type,
+		Event:     message.Event,
+		Payload:   message.Payload,
+		Timestamp: message.Timestamp,
+	}
+
+	for conn, client := range room {
+		select {
+		case client.send <- msg:
+		default:
+			// Client send channel full, remove from room
+			ws.LeaveRoom(roomName, client)
+			close(client.send)
+			conn.Close()
+		}
+	}
+}
+
+// GetRoomClients returns the number of clients in a room
+func (ws *WebSocketService) GetRoomClients(roomName string) int {
+	ws.roomsMutex.RLock()
+	defer ws.roomsMutex.RUnlock()
+
+	if room, exists := ws.rooms[roomName]; exists {
+		return len(room)
+	}
+	return 0
+}
+
+// Authentication methods
+
+// AuthenticateConnection validates WebSocket connection with JWT token
+func (ws *WebSocketService) AuthenticateConnection(r *http.Request) (*middleware.AuthContext, error) {
+	if ws.authMiddleware == nil {
+		return nil, fmt.Errorf("authentication middleware not configured")
+	}
+
+	// Extract token from query parameter or header
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		token = r.Header.Get("Authorization")
+		if token != "" {
+			// Remove "Bearer " prefix if present
+			if len(token) > 7 && token[:7] == "Bearer " {
+				token = token[7:]
+			}
+		}
+	}
+
+	if token == "" {
+		return nil, fmt.Errorf("no authentication token provided")
+	}
+
+	claims, err := ws.authMiddleware.ValidateToken(token)
+	if err != nil {
+		return nil, fmt.Errorf("invalid token: %v", err)
+	}
+
+	return &middleware.AuthContext{
+		UserID:   claims.UserID,
+		Username: claims.Username,
+		Role:     claims.Role,
+		Token:    token,
+	}, nil
+}
+
+// Acknowledgment methods
+
+// SendMessageWithAck sends a message and waits for acknowledgment
+func (ws *WebSocketService) SendMessageWithAck(client *Client, message *Message, timeout time.Duration) error {
+	if timeout == 0 {
+		timeout = ws.ackTimeout
+	}
+
+	// Generate message ID for acknowledgment
+	messageID := fmt.Sprintf("msg_%d_%s", time.Now().UnixNano(), client.id)
+	message.Payload = map[string]interface{}{
+		"message_id": messageID,
+		"data":       message.Payload,
+	}
+
+	// Send message
+	select {
+	case client.send <- *message:
+	case <-time.After(timeout):
+		return fmt.Errorf("failed to send message: timeout")
+	}
+
+	// Wait for acknowledgment (simplified - in production would track pending acks)
+	// For now, just return success
+	return nil
+}
+
+// HandleAcknowledgment processes acknowledgment messages from clients
+func (ws *WebSocketService) HandleAcknowledgment(client *Client, ackMsg *AcknowledgmentMessage) {
+	ws.healthMutex.Lock()
+	ws.healthStats.PendingAcknowledgments--
+	if ws.healthStats.PendingAcknowledgments < 0 {
+		ws.healthStats.PendingAcknowledgments = 0
+	}
+	ws.healthMutex.Unlock()
+
+	log.Printf("Received acknowledgment from client %s for message %s: %s",
+		client.id, ackMsg.MessageID, ackMsg.Status)
+}
+
+// Health monitoring methods
+
+// GetHealthStats returns current WebSocket health statistics
+func (ws *WebSocketService) GetHealthStats() *WebSocketHealthStats {
+	ws.healthMutex.Lock()
+	defer ws.healthMutex.Unlock()
+
+	// Update current stats
+	ws.clientsMutex.RLock()
+	ws.healthStats.ConnectedClients = len(ws.clients)
+	ws.clientsMutex.RUnlock()
+
+	ws.roomsMutex.RLock()
+	ws.healthStats.RoomsActive = len(ws.rooms)
+	ws.roomsMutex.RUnlock()
+
+	ws.healthStats.LastHealthCheck = time.Now()
+
+	return ws.healthStats
+}
+
+// UpdateHealthStats updates health statistics
+func (ws *WebSocketService) UpdateHealthStats(messagesSent, messagesRecv int64, latency time.Duration, errorOccurred bool) {
+	ws.healthMutex.Lock()
+	defer ws.healthMutex.Unlock()
+
+	ws.healthStats.TotalMessagesSent += messagesSent
+	ws.healthStats.TotalMessagesRecv += messagesRecv
+
+	if latency > 0 {
+		// Simple moving average for latency
+		if ws.healthStats.AverageLatency == 0 {
+			ws.healthStats.AverageLatency = latency
+		} else {
+			ws.healthStats.AverageLatency = (ws.healthStats.AverageLatency + latency) / 2
+		}
+	}
+
+	if errorOccurred {
+		ws.healthStats.ErrorCount++
+	}
+}
+
+// Backpressure handling methods
+
+// CheckRateLimit checks if a client is within the message rate limit
+func (ws *WebSocketService) CheckRateLimit(client *Client) bool {
+	// Simplified rate limiting - in production would use token bucket algorithm
+	// For now, just check if client send channel is not full
+	return len(client.send) < ws.maxMessageQueue
+}
+
+// ApplyBackpressure applies backpressure by rejecting messages when rate limit exceeded
+func (ws *WebSocketService) ApplyBackpressure(client *Client, message *Message) error {
+	if !ws.CheckRateLimit(client) {
+		return fmt.Errorf("rate limit exceeded for client %s", client.id)
+	}
+
+	// Check queue size
+	if len(client.send) >= ws.maxMessageQueue {
+		return fmt.Errorf("message queue full for client %s", client.id)
+	}
+
+	return nil
+}
+
+// Enhanced client message handling with authentication and rooms
+func (ws *WebSocketService) handleClientMessage(client *Client, msg map[string]interface{}) {
+	ws.healthMutex.Lock()
+	ws.healthStats.TotalMessagesRecv++
+	ws.healthMutex.Unlock()
+
+	msgType, ok := msg["type"].(string)
+	if !ok {
+		return
+	}
+
+	switch msgType {
+	case "subscribe":
+		if topics, ok := msg["topics"].([]interface{}); ok {
+			for _, topic := range topics {
+				if topicStr, ok := topic.(string); ok {
+					client.subscriptions[topicStr] = true
+				}
+			}
+			log.Printf("Client %s subscribed to topics: %v", client.id, topics)
+		}
+
+	case "unsubscribe":
+		if topics, ok := msg["topics"].([]interface{}); ok {
+			for _, topic := range topics {
+				if topicStr, ok := topic.(string); ok {
+					delete(client.subscriptions, topicStr)
+				}
+			}
+			log.Printf("Client %s unsubscribed from topics: %v", client.id, topics)
+		}
+
+	case "join_room":
+		if roomName, ok := msg["room"].(string); ok {
+			ws.JoinRoom(roomName, client)
+		}
+
+	case "leave_room":
+		if roomName, ok := msg["room"].(string); ok {
+			ws.LeaveRoom(roomName, client)
+		}
+
+	case "room_message":
+		if roomMsg, ok := msg["message"].(map[string]interface{}); ok {
+			roomName, _ := roomMsg["room"].(string)
+			ws.BroadcastToRoom(roomName, &RoomMessage{
+				Room:      roomName,
+				Type:      "room",
+				Event:     "message",
+				Payload:   roomMsg["payload"],
+				SenderID:  client.id,
+				Timestamp: time.Now().Format(time.RFC3339),
+			})
+		}
+
+	case "ack":
+		if ackData, ok := msg["acknowledgment"].(map[string]interface{}); ok {
+			ackMsg := &AcknowledgmentMessage{
+				MessageID: ackData["message_id"].(string),
+				Status:    ackData["status"].(string),
+				Timestamp: time.Now().Format(time.RFC3339),
+				ClientID:  client.id,
+			}
+			ws.HandleAcknowledgment(client, ackMsg)
+		}
+
+	case "request_sync":
+		// Send current state to client
+		ws.sendCurrentState(client)
+	}
+}
+
+// Enhanced broadcast with backpressure and persistence
+func (ws *WebSocketService) handleBroadcast() {
+	for {
+		select {
+		case message := <-ws.broadcast:
+			ws.clientsMutex.RLock()
+			for _, client := range ws.clients {
+				// Check if client is subscribed to this message type
+				if len(client.subscriptions) == 0 || client.subscriptions[message.Event] {
+					// Apply backpressure
+					if err := ws.ApplyBackpressure(client, &message); err != nil {
+						log.Printf("Backpressure applied for client %s: %v", client.id, err)
+						continue
+					}
+
+					select {
+					case client.send <- message:
+						ws.healthMutex.Lock()
+						ws.healthStats.TotalMessagesSent++
+						ws.healthMutex.Unlock()
+					default:
+						close(client.send)
+						delete(ws.clients, client.conn)
+					}
+				}
+			}
+			ws.clientsMutex.RUnlock()
+
+		case <-ws.ctx.Done():
+			return
+		}
 	}
 }

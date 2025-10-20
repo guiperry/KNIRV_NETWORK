@@ -17,6 +17,7 @@ import (
 	dataengine "backend-server/internal/data-engine"
 	"backend-server/internal/database"
 	"backend-server/internal/inference"
+	"backend-server/internal/services/blockchain"
 	"backend-server/internal/services/cde"
 	"backend-server/internal/services/controllerintegration"
 	"backend-server/internal/services/dns"
@@ -34,6 +35,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
+	"github.com/tidwall/buntdb"
 )
 
 // Version information (set by build flags)
@@ -140,6 +142,12 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize TEE security service: %w", err)
 	}
 
+	// Initialize TEE environment with Kali-focused detection
+	if err := initializeTEEEnvironment(context.Background(), dbManager.GetDB()); err != nil {
+		log.Printf("Warning: TEE environment initialization failed: %v", err)
+		// Continue - TEE initialization is not critical for basic operation
+	}
+
 	// Initialize System Health service
 	systemHealthService := systemhealth.NewSystemHealthService(dbManager.GetDB())
 	systemHealthService.SetServiceReferences(dveManager, validationCore, inferenceService, teeSecurityService)
@@ -150,9 +158,6 @@ func NewServer(cfg *config.Config) (*Server, error) {
 
 	// Initialize Controller Integration service
 	controllerIntegrationService := controllerintegration.NewControllerIntegrationService(dbManager.GetDB())
-
-	// Initialize WebSocket service
-	websocketService := websocket.NewWebSocketService(inferenceService, dveManager, validationCore, teeSecurityService)
 
 	// Initialize CDE service
 	cdeService, err := cde.NewCDEService(nil, dataEngine, cde.CDEConfig{
@@ -209,6 +214,10 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	}
 	dveRentalService.SetServiceReferences(dveManager, cdeService)
 
+	// Initialize NRN blockchain client for payment verification
+	nrnClient := blockchain.NewNRNClient("http://localhost:8080") // TODO: Make configurable
+	dveRentalService.SetBlockchainClient(nrnClient)
+
 	// Create context for service lifecycle management
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -224,7 +233,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		modelServer:                  modelServer,
 		dataEngine:                   dataEngine,
 		inferenceService:             inferenceService,
-		websocketService:             websocketService,
+		websocketService:             nil, // Will be set in setupRoutes
 		teeSecurityService:           teeSecurityService,
 		systemHealthService:          systemHealthService,
 		modelManagementService:       modelManagementService,
@@ -257,13 +266,30 @@ func (s *Server) setupRoutes() {
 		authMiddleware = nil
 	}
 
+	// Initialize WebSocket service after auth middleware is created
+	wsService := websocket.NewWebSocketService(s.inferenceService, s.dveManager, s.validationCore, s.teeSecurityService)
+	if authMiddleware != nil {
+		wsService.SetAuthMiddleware(authMiddleware)
+	}
+	wsService.SetDatabase(s.db)
+	s.websocketService = wsService
+
 	// Auth routes (before other protected routes)
 	if authMiddleware != nil {
 		authHandlers := web.NewAuthHandlers(s.db, authMiddleware)
+		// Public auth routes
+		s.router.HandleFunc("/api/auth/register", authHandlers.Register).Methods("POST")
 		s.router.HandleFunc("/api/auth/login", authHandlers.Login).Methods("POST")
 		s.router.HandleFunc("/api/auth/refresh", authHandlers.Refresh).Methods("POST")
 		s.router.HandleFunc("/api/auth/revoke", authHandlers.Revoke).Methods("POST")
+		s.router.HandleFunc("/api/auth/verify-email", authHandlers.VerifyEmail).Methods("POST")
+		s.router.HandleFunc("/api/auth/request-password-reset", authHandlers.RequestPasswordReset).Methods("POST")
+		s.router.HandleFunc("/api/auth/reset-password", authHandlers.ResetPassword).Methods("POST")
+
+		// Protected auth routes
 		s.router.HandleFunc("/api/auth/me", authHandlers.Me).Methods("GET")
+		s.router.HandleFunc("/api/auth/change-password", authHandlers.ChangePassword).Methods("POST")
+		s.router.HandleFunc("/api/auth/update-profile", authHandlers.UpdateProfile).Methods("PUT")
 		log.Println("Auth routes configured")
 	}
 
@@ -636,6 +662,70 @@ func (s *Server) Stop() error {
 	s.running = false
 	log.Println("KNIRV-NEXUS backend server stopped")
 	return nil
+}
+
+// initializeTEEEnvironment sets up the TEE environment with Kali-focused detection
+func initializeTEEEnvironment(ctx context.Context, db *buntdb.DB) error {
+	// Initialize TEE Security Service (detects Kali and available tools)
+	teeService, err := teesecurity.NewTEESecurityService(db)
+	if err != nil {
+		return fmt.Errorf("TEE service initialization failed: %v", err)
+	}
+
+	kaliProfile := teeService.GetKaliProfile()
+	log.Printf("Detected OS: %s (Kali: %v)", kaliProfile.OS, kaliProfile.IsKaliLinux)
+	log.Printf("Active Runtime: %s", teeService.GetRuntimeManager().GetActiveRuntime())
+
+	// Create security tools validator
+	validator := teesecurity.NewKaliSecurityValidator(kaliProfile)
+
+	// Validate all Kali security tools and frameworks
+	validationReport, err := validator.ValidateSecurityCapabilities(ctx)
+	if err != nil {
+		return fmt.Errorf("security validation failed: %v", err)
+	}
+
+	// Log validation results
+	logSecurityValidationReport(validationReport)
+
+	// Log recommendations
+	if len(validationReport.Recommendations) > 0 {
+		log.Println("\nSecurity Tools Recommendations:")
+		for i, rec := range validationReport.Recommendations {
+			log.Printf("  %d. %s", i+1, rec)
+		}
+	}
+
+	return nil
+}
+
+// logSecurityValidationReport logs the Kali security validation report
+func logSecurityValidationReport(report *teesecurity.KaliSecurityValidationReport) {
+	log.Println("\n=== Kali Linux Security Tools Validation Report ===")
+	log.Printf("OS: %s (Kali: %v)", report.OS, report.IsKaliLinux)
+	log.Printf("Timestamp: %s", report.Timestamp.String())
+
+	log.Println("\nTools Availability:")
+	for tool, available := range report.ToolsAvailable {
+		status := "✓ Available"
+		if !available {
+			status = "✗ Missing"
+		}
+		log.Printf("  %s - %s", tool, status)
+	}
+
+	log.Println("\nSecurity Frameworks:")
+	for framework, loaded := range report.FrameworksLoaded {
+		status := "✓ Loaded"
+		if !loaded {
+			status = "✗ Not Loaded"
+		}
+		log.Printf("  %s - %s", framework, status)
+	}
+
+	log.Println("\nSystem Resources:")
+	log.Printf("  Memory: %s KB", report.SystemMemoryKB)
+	log.Printf("  Disk Space: %s KB", report.DiskSpaceKB)
 }
 
 func main() {

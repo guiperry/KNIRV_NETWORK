@@ -6,20 +6,22 @@ import (
 
 // DVERental represents a DVE rental transaction
 type DVERental struct {
-	ID               string         `json:"id"`
-	UserID           string         `json:"user_id"`
-	DVENodeID        string         `json:"dve_node_id"`
-	NRNAmount        int64          `json:"nrn_amount"`      // Amount of NRN tokens paid
-	RentalDuration   int64          `json:"rental_duration"` // Duration in seconds
-	StartTime        time.Time      `json:"start_time"`
-	EndTime          time.Time      `json:"end_time"`
-	Status           string         `json:"status"`             // "active", "expired", "cancelled"
-	PaymentTxHash    string         `json:"payment_tx_hash"`    // Transaction hash for NRN payment
-	CDEEnvironmentID string         `json:"cde_environment_id"` // Associated CDE environment
-	ResourceLimits   ResourceLimits `json:"resource_limits"`
-	UsageMetrics     UsageMetrics   `json:"usage_metrics"`
-	CreatedAt        time.Time      `json:"created_at"`
-	UpdatedAt        time.Time      `json:"updated_at"`
+	ID                  string         `json:"id"`
+	UserID              string         `json:"user_id"`
+	DVENodeID           string         `json:"dve_node_id"`
+	NRNAmount           int64          `json:"nrn_amount"`         // Amount of NRN tokens paid
+	RentalDuration      int64          `json:"rental_duration"`    // Duration in seconds
+	StartTime           time.Time      `json:"start_time"`
+	EndTime             time.Time      `json:"end_time"`
+	Status              string         `json:"status"`             // "active", "expired", "cancelled"
+	PaymentTxHash       string         `json:"payment_tx_hash"`    // Transaction hash for NRN payment
+	CDEEnvironmentID    string         `json:"cde_environment_id"` // Associated CDE environment
+	ResourceLimits      ResourceLimits `json:"resource_limits"`
+	UsageMetrics        UsageMetrics   `json:"usage_metrics"`
+	AutoRenewalEnabled  bool           `json:"auto_renewal_enabled"`  // Whether automatic renewal is enabled
+	RenewalPaymentTxHash string        `json:"renewal_payment_tx_hash,omitempty"` // Transaction hash for renewal payment
+	CreatedAt           time.Time      `json:"created_at"`
+	UpdatedAt           time.Time      `json:"updated_at"`
 }
 
 // ResourceLimits defines the resource limits for a rented DVE
@@ -91,11 +93,12 @@ type PlanUsage struct {
 
 // RentalRequest represents a request to rent a DVE
 type RentalRequest struct {
-	UserID        string `json:"user_id"`
-	PlanID        string `json:"plan_id"`
-	Duration      int64  `json:"duration"`                // Duration in seconds
-	PaymentTxHash string `json:"payment_tx_hash"`         // NRN payment transaction hash
-	PreferredDVE  string `json:"preferred_dve,omitempty"` // Optional preferred DVE node
+	UserID             string `json:"user_id"`
+	PlanID             string `json:"plan_id"`
+	Duration           int64  `json:"duration"`                // Duration in seconds
+	PaymentTxHash      string `json:"payment_tx_hash"`         // NRN payment transaction hash
+	PreferredDVE       string `json:"preferred_dve,omitempty"` // Optional preferred DVE node
+	AutoRenewalEnabled bool   `json:"auto_renewal_enabled"`    // Whether to enable automatic renewal
 }
 
 // RentalResponse represents the response to a rental request

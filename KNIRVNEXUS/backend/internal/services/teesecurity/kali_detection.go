@@ -10,6 +10,70 @@ import (
 	"os/exec"
 )
 
+// KaliLinuxProfile represents detected Kali Linux security tools and capabilities
+type KaliLinuxProfile struct {
+	OS                    string                      // "kali", "ubuntu", "unknown"
+	IsKaliLinux          bool
+	KernelVersion        string
+	ArchitectureSupport  []string                    // ["sgx", "sev-snp", "tdx"]
+
+	// Kali Security Tools - Static Analysis
+	StaticAnalysisTools  KaliStaticAnalysisTools
+
+	// Kali Security Tools - Dynamic Analysis
+	DynamicAnalysisTools KaliDynamicAnalysisTools
+
+	// Kali Security Tools - Network Inspection
+	NetworkAnalysisTools KaliNetworkAnalysisTools
+
+	// Kali Security Tools - Forensics
+	ForensicsTools       KaliForensicsTools
+
+	// Security Framework Support
+	SecurityFrameworks   KaliSecurityFrameworks
+
+	// Container Runtime
+	PreferredRuntime     string                      // "native-go", "podman"
+}
+
+// KaliStaticAnalysisTools tracks available static analysis capabilities
+type KaliStaticAnalysisTools struct {
+	Ghidra       bool // Binary disassembly and reverse engineering
+	Radare2      bool // Reverse engineering framework
+	Semgrep      bool // Static analysis and pattern matching
+	Bandit       bool // Python security linter
+}
+
+// KaliDynamicAnalysisTools tracks available dynamic analysis capabilities
+type KaliDynamicAnalysisTools struct {
+	Strace       bool // System call tracing
+	Ltrace       bool // Library call tracing
+	Perf         bool // Performance analysis and profiling
+	GDB          bool // Debugger for runtime analysis
+}
+
+// KaliNetworkAnalysisTools tracks available network inspection capabilities
+type KaliNetworkAnalysisTools struct {
+	Tcpdump      bool // Packet capture and analysis
+	Tshark       bool // Wireshark CLI for packet inspection
+	Mitmproxy    bool // MITM proxy for TLS inspection
+	Iptables     bool // Network packet filtering
+}
+
+// KaliForensicsTools tracks available forensic analysis capabilities
+type KaliForensicsTools struct {
+	Volatility   bool // Memory forensics framework
+	SleuthKit    bool // Filesystem forensics
+	Autopsy      bool // Forensic analysis framework
+}
+
+// KaliSecurityFrameworks tracks available security frameworks
+type KaliSecurityFrameworks struct {
+	AppArmor     bool // Mandatory access control framework
+	SELinux      bool // Security-Enhanced Linux
+	Seccomp      bool // Secure computing mode
+}
+
 // DetectKaliEnvironment identifies the running OS and available Kali security tools
 func DetectKaliEnvironment() (*KaliLinuxProfile, error) {
 	profile := &KaliLinuxProfile{
@@ -111,7 +175,7 @@ func detectKaliSecurityTools(profile *KaliLinuxProfile) {
 	profile.DynamicAnalysisTools.Strace = commandExists("strace")
 	profile.DynamicAnalysisTools.Ltrace = commandExists("ltrace")
 	profile.DynamicAnalysisTools.Perf = commandExists("perf")
-	profile.DynamicAnalysisTools.Gdb = commandExists("gdb")
+	profile.DynamicAnalysisTools.GDB = commandExists("gdb")
 
 	// Network Analysis Tools
 	profile.NetworkAnalysisTools.Tcpdump = commandExists("tcpdump")
@@ -168,7 +232,7 @@ func logKaliToolsDetected(profile *KaliLinuxProfile) {
 	log.Printf("  strace: %v", profile.DynamicAnalysisTools.Strace)
 	log.Printf("  ltrace: %v", profile.DynamicAnalysisTools.Ltrace)
 	log.Printf("  perf: %v", profile.DynamicAnalysisTools.Perf)
-	log.Printf("  gdb: %v", profile.DynamicAnalysisTools.Gdb)
+	log.Printf("  gdb: %v", profile.DynamicAnalysisTools.GDB)
 
 	log.Println("Network Analysis:")
 	log.Printf("  tcpdump: %v", profile.NetworkAnalysisTools.Tcpdump)
