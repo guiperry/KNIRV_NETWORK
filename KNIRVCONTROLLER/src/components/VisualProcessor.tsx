@@ -1,3 +1,4 @@
+import React from 'react';
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { Eye, EyeOff, Zap } from 'lucide-react';
 import { VisualFrame, DetectedObject as SensoryDetectedObject, ProcessingMetrics } from '../types/sensory';

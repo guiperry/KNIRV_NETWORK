@@ -1,4 +1,5 @@
-import * as React from 'react';
+import React from 'react';
+
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Cpu, Shield, Wallet, Mic, Brain } from 'lucide-react';

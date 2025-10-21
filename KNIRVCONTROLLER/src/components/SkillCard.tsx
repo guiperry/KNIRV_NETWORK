@@ -1,3 +1,4 @@
+import React from 'react';
 import {Star, ArrowRight, Zap } from 'lucide-react';
 
 interface SkillCardProps {

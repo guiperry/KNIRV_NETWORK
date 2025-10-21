@@ -1,4 +1,5 @@
-import * as React from 'react';
+import React from 'react';
+
 import { useState, useEffect } from 'react';
 import { Bot, Shield, Activity, TrendingUp, QrCode, Mic, Eye, Calendar } from 'lucide-react';
 import ManagerLayout from '../components/ManagerLayout';

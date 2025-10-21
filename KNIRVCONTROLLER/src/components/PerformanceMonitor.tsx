@@ -1,9 +1,10 @@
+import React from 'react';
 /**
  * Performance Monitor Component
  * Comprehensive performance monitoring dashboard with real-time metrics
  */
 
-import * as React from 'react';
+
 import { useState, useEffect, useCallback } from 'react';
 import { performanceOptimizer } from '../utils/PerformanceOptimizer';
 import { errorHandler } from '../utils/ErrorHandler';

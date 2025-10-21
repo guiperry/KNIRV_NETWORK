@@ -248,12 +248,17 @@ func TestMetricsSnapshot_StructFields(t *testing.T) {
 	if snapshot.Source != "system-monitor" {
 		t.Errorf("Expected Source 'system-monitor', got '%s'", snapshot.Source)
 	}
-	if snapshot.Data["cpu_usage"] != 45.2 {
+	if cpuUsage, ok := snapshot.Data["cpu_usage"].(float64); !ok || cpuUsage != 45.2 {
 		t.Errorf("Expected cpu_usage 45.2, got %v", snapshot.Data["cpu_usage"])
 	}
-	if snapshot.Data["memory_usage"] != 67.8 {
+	if memoryUsage, ok := snapshot.Data["memory_usage"].(float64); !ok || memoryUsage != 67.8 {
 		t.Errorf("Expected memory_usage 67.8, got %v", snapshot.Data["memory_usage"])
 	}
+	if len(snapshot.Data) != 2 {
+		t.Errorf("Expected 2 data points, got %d", len(snapshot.Data))
+	}
+	// Mark Data field as used to satisfy linter
+	_ = snapshot.Data
 }
 
 func TestReportData_StructFields(t *testing.T) {
@@ -272,6 +277,9 @@ func TestReportData_StructFields(t *testing.T) {
 		Description: "Overview of system metrics",
 	}
 
+	if section.ID != "section-1" {
+		t.Errorf("Expected ID 'section-1', got '%s'", section.ID)
+	}
 	if section.Title != "System Overview" {
 		t.Errorf("Expected Title 'System Overview', got '%s'", section.Title)
 	}
@@ -281,6 +289,14 @@ func TestReportData_StructFields(t *testing.T) {
 		}
 	} else {
 		t.Error("Expected section.Data to be map[string]interface{}")
+	}
+
+	if section.Type != "metrics" {
+		t.Errorf("Expected section Type 'metrics', got '%s'", section.Type)
+	}
+
+	if section.Description != "Overview of system metrics" {
+		t.Errorf("Expected section Description 'Overview of system metrics', got '%s'", section.Description)
 	}
 
 	reportData := ReportData{
@@ -370,15 +386,15 @@ func TestReportSection_StructFields(t *testing.T) {
 	if section.Type != "metrics" {
 		t.Errorf("Expected Type 'metrics', got '%s'", section.Type)
 	}
+	if section.Description != "System performance overview" {
+		t.Errorf("Expected Description 'System performance overview', got '%s'", section.Description)
+	}
 	if sectionData, ok := section.Data.(map[string]interface{}); ok {
 		if sectionData["summary"] != "good" {
 			t.Errorf("Expected summary 'good', got %v", sectionData["summary"])
 		}
 	} else {
 		t.Error("Expected section.Data to be map[string]interface{}")
-	}
-	if section.Description != "System performance overview" {
-		t.Errorf("Expected Description 'System performance overview', got '%s'", section.Description)
 	}
 	if len(section.Charts) != 1 {
 		t.Errorf("Expected 1 chart, got %d", len(section.Charts))
@@ -394,6 +410,12 @@ func TestReportSection_StructFields(t *testing.T) {
 	}
 	if section.Metrics[0].Trend != "up" {
 		t.Errorf("Expected metric trend 'up', got '%s'", section.Metrics[0].Trend)
+	}
+	if section.Metrics[0].Name != "Total Nodes" {
+		t.Errorf("Expected metric name 'Total Nodes', got '%s'", section.Metrics[0].Name)
+	}
+	if section.Metrics[0].Description != "Total number of active nodes" {
+		t.Errorf("Expected metric description 'Total number of active nodes', got '%s'", section.Metrics[0].Description)
 	}
 }
 
@@ -541,6 +563,9 @@ func TestReportFilter_StructFields(t *testing.T) {
 	if filter.Type != "system_health" {
 		t.Errorf("Expected Type 'system_health', got '%s'", filter.Type)
 	}
+	if filter.Format != "pdf" {
+		t.Errorf("Expected Format 'pdf', got '%s'", filter.Format)
+	}
 	if filter.Status != "completed" {
 		t.Errorf("Expected Status 'completed', got '%s'", filter.Status)
 	}
@@ -552,6 +577,24 @@ func TestReportFilter_StructFields(t *testing.T) {
 	}
 	if filter.SortOrder != "desc" {
 		t.Errorf("Expected SortOrder 'desc', got '%s'", filter.SortOrder)
+	}
+	if filter.CreatedBy != "admin" {
+		t.Errorf("Expected CreatedBy 'admin', got '%s'", filter.CreatedBy)
+	}
+	if filter.StartDate == nil {
+		t.Error("Expected StartDate to be set")
+	}
+	if filter.EndDate == nil {
+		t.Error("Expected EndDate to be set")
+	}
+	if filter.SharedWith != "user-456" {
+		t.Errorf("Expected SharedWith 'user-456', got '%s'", filter.SharedWith)
+	}
+	if filter.Offset != 0 {
+		t.Errorf("Expected Offset 0, got %d", filter.Offset)
+	}
+	if filter.SortBy != "created_at" {
+		t.Errorf("Expected SortBy 'created_at', got '%s'", filter.SortBy)
 	}
 }
 
@@ -601,8 +644,32 @@ func TestReportStats_StructFields(t *testing.T) {
 	if len(stats.TopUsers) != 1 {
 		t.Errorf("Expected 1 top user, got %d", len(stats.TopUsers))
 	}
+	if stats.TopUsers[0].Username != "admin" {
+		t.Errorf("Expected top user Username 'admin', got '%s'", stats.TopUsers[0].Username)
+	}
 	if stats.TopUsers[0].ReportCount != 25 {
 		t.Errorf("Expected user report count 25, got %d", stats.TopUsers[0].ReportCount)
+	}
+	if stats.ReportsByFormat["pdf"] != 60 {
+		t.Errorf("Expected pdf reports 60, got %d", stats.ReportsByFormat["pdf"])
+	}
+	if stats.ReportsByStatus["completed"] != 85 {
+		t.Errorf("Expected completed reports 85, got %d", stats.ReportsByStatus["completed"])
+	}
+	if stats.TotalShares != 75 {
+		t.Errorf("Expected TotalShares 75, got %d", stats.TotalShares)
+	}
+	if stats.StorageUsed != 204800000 {
+		t.Errorf("Expected StorageUsed 204800000, got %d", stats.StorageUsed)
+	}
+	if stats.MostUsedTemplate != "template-123" {
+		t.Errorf("Expected MostUsedTemplate 'template-123', got '%s'", stats.MostUsedTemplate)
+	}
+	if len(stats.RecentActivity) != 1 {
+		t.Errorf("Expected 1 recent activity, got %d", len(stats.RecentActivity))
+	}
+	if stats.RecentActivity[0].Username != "admin" {
+		t.Errorf("Expected recent activity Username 'admin', got '%s'", stats.RecentActivity[0].Username)
 	}
 }
 

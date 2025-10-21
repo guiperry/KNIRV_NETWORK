@@ -159,7 +159,7 @@ export default function AgentsScreen() {
                   styles.tab,
                   activeTab === tab.key && styles.activeTab,
                 ]}
-                onPress={() => setActiveTab(tab.key as any)}
+                onPress={() => setActiveTab(tab.key as 'active' | 'marketplace' | 'installed')}
               >
                 <Text
                   style={[

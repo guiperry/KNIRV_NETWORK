@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Send, Download, ArrowUpDown, Filter, Search, Zap } from 'lucide-react-native';
+import { Send, Download, ArrowUpDown, Filter, Search } from 'lucide-react-native';
 import GlassCard from '@/components/GlassCard';
 import CryptoCard from '@/components/CryptoCard';
 import { MetaAccountDashboard } from '../../src/components/MetaAccountDashboard';
@@ -145,7 +145,7 @@ export default function WalletScreen() {
                   styles.tab,
                   activeTab === tab.key && styles.activeTab,
                 ]}
-                onPress={() => setActiveTab(tab.key as any)}
+                onPress={() => setActiveTab(tab.key as 'all' | 'crypto' | 'nft' | 'defi' | 'xion')}
               >
                 <Text
                   style={[

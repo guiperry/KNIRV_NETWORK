@@ -131,7 +131,7 @@ pub struct SkillRegistrationData {
     pub code_hash: String,
     pub execution_metadata: ExecutionMetadata,
     pub security_requirements: SecurityRequirements,
-    pub tee_requirements: TEERequirements,
+    pub lora_requirements: LoRARequirements,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -156,15 +156,15 @@ pub enum IsolationLevel {
     None,
     Process,
     Container,
-    TEE,
+    LoRA,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TEERequirements {
+pub struct LoRARequirements {
     pub required: bool,
     pub attestation_required: bool,
     pub secure_storage: bool,
-    pub compatible_tees: Vec<String>,
+    pub compatible_loras: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -306,7 +306,7 @@ impl IBCHandler {
             token_id: nrn_token_id.to_string(),
             amount: amount.clone(),
             skill_id: skill_id.to_string(),
-            execution_location: "local_tee".to_string(),
+            execution_location: "local_lora".to_string(),
             user_address: user_address.to_string(),
             model_type,
         };

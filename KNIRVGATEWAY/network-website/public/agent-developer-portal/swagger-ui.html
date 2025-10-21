@@ -10,6 +10,9 @@
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- Bootstrap CSS for alerts -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
     <!-- Swagger UI CSS -->
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css" />
 
@@ -237,15 +240,24 @@
                 </div>
             </div>
 
-            <!-- API Selector -->
+            <!-- API Documentation Info -->
             <div class="container">
+                <div class="alert alert-info" style="margin-bottom: 20px;">
+                    <h5><i class="fas fa-info-circle"></i> API Documentation Guide</h5>
+                    <p><strong>🌐 Public API:</strong> Complete unified API for external developers (recommended)</p>
+                    <p><strong>⚙️ Admin API:</strong> Internal gateway management (administrators only)</p>
+                    <p><strong>⛓️ Individual Service APIs:</strong> Specific service documentation for advanced users</p>
+                </div>
+
                 <div class="api-selector">
-                    <h3><i class="fas fa-server" style="margin-right: 10px;"></i>Select API Service</h3>
+                    <h3><i class="fas fa-server" style="margin-right: 10px;"></i>Select API Documentation</h3>
                     <select id="apiSelector" onchange="loadAPI()">
-                        <option value="knirvsdk">KNIRV Unified API (Blockchain + Agents)</option>
-                        <option value="knirvengine">KNIRV-ENGINE API</option>
-                        <option value="knirvinference">KNIRV-INFERENCE API (Agentify)</option>
-                        <option value="unified">Gateway API (Demo)</option>
+                        <option value="public">🌐 KNIRV Public API (External Users)</option>
+                        <option value="admin">⚙️ KNIRVGATEWAY Admin API (Internal)</option>
+                        <option value="oracle">⛓️ KNIRVORACLE MCP API (Blockchain + MCP)</option>
+                        <option value="chain">🏗️ KNIRVCHAIN API (Advanced Blockchain)</option>
+                        <option value="nexus">🚀 KNIRVNEXUS API (Platform Layer)</option>
+                        <option value="gateway">🔗 KNIRVGATEWAY Root API (Gateway Management)</option>
                     </select>
                 </div>
 
@@ -264,289 +276,19 @@
     <!-- Custom JavaScript -->
     <script src="js/portal.js"></script>
     <script>
-        // API specifications
-        const apiSpecs = {
-            unified: {
-                openapi: "3.0.0",
-                info: {
-                    title: "KNIRV Unified Gateway API",
-                    description: "Unified API Gateway for the KNIRV D-TEN network providing single entry point for all services",
-                    version: "1.0.0"
-                },
-                servers: [
-                    {
-                        url: "http://localhost:8000",
-                        description: "Development server"
-                    },
-                    {
-                        url: "https://api.knirv.network",
-                        description: "Production server"
-                    }
-                ],
-                paths: {
-                    "/gateway/health": {
-                        get: {
-                            summary: "System Health Check",
-                            description: "Returns overall system health status for all KNIRV services",
-                            tags: ["Health"],
-                            responses: {
-                                "200": {
-                                    description: "System health status",
-                                    content: {
-                                        "application/json": {
-                                            schema: {
-                                                type: "object",
-                                                properties: {
-                                                    status: { type: "string", example: "healthy" },
-                                                    timestamp: { type: "string", format: "date-time" },
-                                                    services: {
-                                                        type: "object",
-                                                        properties: {
-                                                            knirvchain: { type: "string", example: "healthy" },
-                                                            knirvgraph: { type: "string", example: "healthy" },
-                                                            knirvnexus: { type: "string", example: "healthy" },
-                                                            knirvoracle: { type: "string", example: "healthy" },
-                                                            knirvrouter: { type: "string", example: "healthy" }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "/gateway/metrics": {
-                        get: {
-                            summary: "System Metrics",
-                            description: "Returns performance metrics for all KNIRV services",
-                            tags: ["Monitoring"],
-                            responses: {
-                                "200": {
-                                    description: "Performance metrics",
-                                    content: {
-                                        "application/json": {
-                                            schema: {
-                                                type: "object",
-                                                properties: {
-                                                    timestamp: { type: "string", format: "date-time" },
-                                                    metrics: {
-                                                        type: "object",
-                                                        properties: {
-                                                            cpu_usage: { type: "number", example: 45.2 },
-                                                            memory_usage: { type: "number", example: 67.8 },
-                                                            active_connections: { type: "integer", example: 142 },
-                                                            requests_per_second: { type: "number", example: 23.5 }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "/gateway/services": {
-                        get: {
-                            summary: "Service Discovery",
-                            description: "Returns available services and their endpoints",
-                            tags: ["Discovery"],
-                            responses: {
-                                "200": {
-                                    description: "Available services",
-                                    content: {
-                                        "application/json": {
-                                            schema: {
-                                                type: "object",
-                                                properties: {
-                                                    services: {
-                                                        type: "array",
-                                                        items: {
-                                                            type: "object",
-                                                            properties: {
-                                                                name: { type: "string", example: "knirv-oracle" },
-                                                                endpoint: { type: "string", example: "http://localhost:8083" },
-                                                                status: { type: "string", example: "healthy" },
-                                                                version: { type: "string", example: "1.0.0" }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "/auth/login": {
-                        post: {
-                            summary: "User Authentication",
-                            description: "Authenticate user and receive JWT token",
-                            tags: ["Authentication"],
-                            requestBody: {
-                                required: true,
-                                content: {
-                                    "application/json": {
-                                        schema: {
-                                            type: "object",
-                                            required: ["username", "password"],
-                                            properties: {
-                                                username: { type: "string", example: "user@example.com" },
-                                                password: { type: "string", example: "password123" }
-                                            }
-                                        }
-                                    }
-                                }
-                            },
-                            responses: {
-                                "200": {
-                                    description: "Authentication successful",
-                                    content: {
-                                        "application/json": {
-                                            schema: {
-                                                type: "object",
-                                                properties: {
-                                                    token: { type: "string", example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
-                                                    expires_in: { type: "integer", example: 3600 },
-                                                    user: {
-                                                        type: "object",
-                                                        properties: {
-                                                            id: { type: "string", example: "user_123" },
-                                                            username: { type: "string", example: "user@example.com" },
-                                                            roles: { type: "array", items: { type: "string" }, example: ["developer", "user"] }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                },
-                                "401": {
-                                    description: "Authentication failed",
-                                    content: {
-                                        "application/json": {
-                                            schema: {
-                                                type: "object",
-                                                properties: {
-                                                    error: { type: "string", example: "Invalid credentials" }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            oracle: {
-                openapi: "3.0.0",
-                info: {
-                    title: "KNIRV-ORACLE API",
-                    description: "KNIRV-ORACLE blockchain API for agent management and NRN token operations",
-                    version: "1.0.0"
-                },
-                servers: [
-                    {
-                        url: "http://localhost:8083",
-                        description: "Development server"
-                    }
-                ],
-                components: {
-                    securitySchemes: {
-                        bearerAuth: {
-                            type: "http",
-                            scheme: "bearer",
-                            bearerFormat: "JWT"
-                        }
-                    }
-                },
-                security: [
-                    {
-                        bearerAuth: []
-                    }
-                ],
-                paths: {
-                    "/api/agents/register": {
-                        post: {
-                            summary: "Register New Agent",
-                            description: "Register a new agent on the KNIRV-ORACLE blockchain",
-                            tags: ["Agent Management"],
-                            security: [{ bearerAuth: [] }],
-                            requestBody: {
-                                required: true,
-                                content: {
-                                    "application/json": {
-                                        schema: {
-                                            type: "object",
-                                            required: ["name", "description", "capabilities", "owner"],
-                                            properties: {
-                                                name: { type: "string", example: "My Agent" },
-                                                description: { type: "string", example: "Agent description" },
-                                                capabilities: { type: "array", items: { type: "string" }, example: ["skill1", "skill2"] },
-                                                owner: { type: "string", example: "user_id" }
-                                            }
-                                        }
-                                    }
-                                }
-                            },
-                            responses: {
-                                "201": {
-                                    description: "Agent registered successfully",
-                                    content: {
-                                        "application/json": {
-                                            schema: {
-                                                type: "object",
-                                                properties: {
-                                                    agent_id: { type: "string", example: "agent_123" },
-                                                    status: { type: "string", example: "registered" },
-                                                    transaction_hash: { type: "string", example: "0x1234567890abcdef" }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "/api/economics/balance/{address}": {
-                        get: {
-                            summary: "Get NRN Balance",
-                            description: "Get NRN token balance for a specific address",
-                            tags: ["Economics"],
-                            parameters: [
-                                {
-                                    name: "address",
-                                    in: "path",
-                                    required: true,
-                                    schema: { type: "string" },
-                                    example: "knirv1abc123def456"
-                                }
-                            ],
-                            responses: {
-                                "200": {
-                                    description: "Balance retrieved successfully",
-                                    content: {
-                                        "application/json": {
-                                            schema: {
-                                                type: "object",
-                                                properties: {
-                                                    address: { type: "string", example: "knirv1abc123def456" },
-                                                    balance: { type: "number", example: 1000.50 },
-                                                    currency: { type: "string", example: "NRN" }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        // API documentation files
+        const apiFiles = {
+            // Public API (external users)
+            public: '../public-api.yaml',
+
+            // Admin API (internal gateway management)
+            admin: '../api.yaml',
+
+            // Individual service APIs
+            oracle: '../../KNIRVSDK/openapi.yaml',
+            chain: '../../KNIRVCHAIN/api.yaml',
+            nexus: '../../KNIRVNEXUS/api.yaml',
+            gateway: '../api.yaml'  // Same as admin
         };
 
         // Initialize Swagger UI
@@ -574,54 +316,48 @@
             const selectedAPI = selector.value;
 
             try {
-                // For unified API, use hardcoded spec
-                if (selectedAPI === 'unified' && apiSpecs[selectedAPI]) {
-                    initSwaggerUI(apiSpecs[selectedAPI]);
-                    return;
+                const apiFile = apiFiles[selectedAPI];
+                if (!apiFile) {
+                    throw new Error(`No API file configured for ${selectedAPI}`);
                 }
 
-                // For external OpenAPI files, try to fetch and parse them
-                let apiUrl = '';
-                switch(selectedAPI) {
-                    case 'knirvsdk':
-                        apiUrl = 'openapi/knirvsdk.yaml';
-                        break;
-                    case 'knirvengine':
-                        apiUrl = 'openapi/knirvengine.yaml';
-                        break;
-                    case 'knirvinference':
-                        apiUrl = 'openapi/knirvinference.yaml';
-                        break;
-                }
+                console.log(`Loading API specification: ${apiFile}`);
 
-                if (apiUrl) {
-                    try {
-                        // Try to fetch and parse the YAML file
-                        const response = await fetch(apiUrl);
-                        if (response.ok) {
-                            const yamlText = await response.text();
-                            const apiSpec = jsyaml.load(yamlText);
-                            initSwaggerUI(apiSpec);
-                        } else {
-                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                try {
+                    // Try to fetch and parse the file
+                    const response = await fetch(apiFile);
+                    if (response.ok) {
+                        const fileContent = await response.text();
+                        let apiSpec;
+
+                        // Try to parse as YAML first, then as JSON
+                        try {
+                            apiSpec = jsyaml.load(fileContent);
+                        } catch (yamlError) {
+                            console.warn('Failed to parse as YAML, trying JSON:', yamlError);
+                            apiSpec = JSON.parse(fileContent);
                         }
-                    } catch (fetchError) {
-                        console.warn(`Failed to fetch ${apiUrl}, falling back to URL method:`, fetchError);
-                        // Fallback to URL-based loading
-                        SwaggerUIBundle({
-                            url: apiUrl,
-                            dom_id: '#swagger-ui',
-                            deepLinking: true,
-                            presets: [
-                                SwaggerUIBundle.presets.apis,
-                                SwaggerUIStandalonePreset
-                            ],
-                            plugins: [
-                                SwaggerUIBundle.plugins.DownloadUrl
-                            ],
-                            layout: "StandaloneLayout"
-                        });
+
+                        initSwaggerUI(apiSpec);
+                    } else {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
+                } catch (fetchError) {
+                    console.warn(`Failed to fetch ${apiFile}, falling back to URL method:`, fetchError);
+                    // Fallback to URL-based loading
+                    SwaggerUIBundle({
+                        url: apiFile,
+                        dom_id: '#swagger-ui',
+                        deepLinking: true,
+                        presets: [
+                            SwaggerUIBundle.presets.apis,
+                            SwaggerUIStandalonePreset
+                        ],
+                        plugins: [
+                            SwaggerUIBundle.plugins.DownloadUrl
+                        ],
+                        layout: "StandaloneLayout"
+                    });
                 }
             } catch (error) {
                 console.error('Failed to load API specification:', error);
@@ -630,6 +366,8 @@
                     <div style="padding: 20px; text-align: center; color: #ff6b6b;">
                         <h3>Failed to load API specification</h3>
                         <p>Error: ${error.message}</p>
+                        <p>Selected API: ${selectedAPI}</p>
+                        <p>File: ${apiFiles[selectedAPI] || 'Not found'}</p>
                         <p>Please check the console for more details.</p>
                     </div>
                 `;
@@ -638,8 +376,8 @@
 
         // Initialize with default API
         document.addEventListener('DOMContentLoaded', function() {
-            // Set default to KNIRV SDK API
-            document.getElementById('apiSelector').value = 'knirvsdk';
+            // Set default to Public API (recommended for external users)
+            document.getElementById('apiSelector').value = 'public';
             loadAPI();
         });
     </script>

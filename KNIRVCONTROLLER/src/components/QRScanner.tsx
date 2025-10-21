@@ -1,3 +1,4 @@
+import React from 'react';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import QrScanner from 'qr-scanner';
 import { Camera, Flashlight, FlashlightOff, Wallet, Send, Loader, X, CheckCircle, AlertCircle } from 'lucide-react';

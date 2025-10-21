@@ -1,4 +1,5 @@
-import * as React from 'react';
+import React from 'react';
+
 import { useState, useEffect } from 'react';
 import { Key, Plus, Trash2, Eye, EyeOff, Copy, Calendar, Shield, Activity } from 'lucide-react';
 import { apiKeyService, ApiKey, CreateApiKeyRequest } from '../services/ApiKeyService';

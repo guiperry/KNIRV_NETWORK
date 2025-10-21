@@ -1,3 +1,4 @@
+import React from 'react';
 import { Wallet, ArrowUpRight, ArrowDownLeft, Zap, TrendingUp, Copy, Shield, QrCode, X, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';

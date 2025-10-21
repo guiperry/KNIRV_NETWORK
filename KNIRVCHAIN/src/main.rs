@@ -36,8 +36,8 @@ mod multi_model_engine;
 mod ibc_handler;
 mod tendermint_consensus;
 
-// TEE and skill distribution
-mod tee_skill_distributor;
+// LoRA and skill distribution
+mod lora_skill_distributor;
 
 // Cloud model integration
 mod cloud_models;
@@ -114,8 +114,8 @@ struct SharedState {
     tendermint_consensus: Arc<Mutex<tendermint_consensus::TendermintConsensus>>,
     ibc_handler: Arc<ibc_handler::IBCHandler>,
 
-    // TEE and skill distribution
-    tee_skill_distributor: Arc<tee_skill_distributor::TEESkillDistributor>,
+    // LoRA and skill distribution
+    lora_skill_distributor: Arc<lora_skill_distributor::LoRASkillDistributor>,
 
     // Cloud model testing (optional)
     cloud_testing_framework: Arc<Mutex<Option<cloud_models::CloudModelTestingFramework>>>,
@@ -754,8 +754,8 @@ async fn ibc_connections(state: web::Data<Arc<SharedState>>) -> Result<impl Resp
     })))
 }
 
-// Prepare skill for TEE execution
-async fn prepare_tee_skill(
+// Prepare skill for LoRA execution
+async fn prepare_lora_skill(
     state: web::Data<Arc<SharedState>>,
     request: web::Json<HashMap<String, serde_json::Value>>,
 ) -> Result<impl Responder, Error> {
@@ -764,9 +764,9 @@ async fn prepare_tee_skill(
         .and_then(|v| v.as_str())
         .ok_or_else(|| Error::from(actix_web::error::ErrorBadRequest("skill_id required")))?;
 
-    // TODO: Parse TEE info from request
-    let tee_info = tee_skill_distributor::TEEInfo {
-        tee_type: tee_skill_distributor::TEEType::Software,
+    // TODO: Parse LoRA info from request
+    let lora_info = lora_skill_distributor::LoRAInfo {
+        lora_type: lora_skill_distributor::LoRAType::Software,
         version: "1.0".to_string(),
         capabilities: vec!["wasm".to_string()],
         attestation_support: false,
@@ -779,14 +779,14 @@ async fn prepare_tee_skill(
     };
 
     match state
-        .tee_skill_distributor
-        .prepare_skill_for_tee_execution(skill_id, &tee_info)
+        .lora_skill_distributor
+        .prepare_skill_for_lora_execution(skill_id, &lora_info)
         .await
     {
         Ok(package) => Ok(HttpResponse::Ok().json(serde_json::json!({
             "success": true,
             "package_hash": package.package_hash,
-            "message": "Skill prepared for TEE execution"
+            "message": "Skill prepared for LoRA execution"
         }))),
         Err(e) => Ok(HttpResponse::BadRequest().json(serde_json::json!({
             "success": false,
@@ -894,9 +894,9 @@ async fn main() -> std::io::Result<()> {
 
     let ibc_handler = Arc::new(ibc_handler::IBCHandler::new());
 
-    // Initialize TEE skill distributor
+    // Initialize LoRA skill distributor
     let skill_registry_arc = Arc::new(Mutex::new(SkillRegistry::new()));
-    let tee_skill_distributor = Arc::new(tee_skill_distributor::TEESkillDistributor::new(
+    let lora_skill_distributor = Arc::new(lora_skill_distributor::LoRASkillDistributor::new(
         skill_registry_arc,
         ipfs_client.clone(),
     ));
@@ -926,8 +926,8 @@ async fn main() -> std::io::Result<()> {
         tendermint_consensus,
         ibc_handler,
 
-        // TEE and skill distribution
-        tee_skill_distributor,
+        // LoRA and skill distribution
+        lora_skill_distributor,
 
         // Cloud model testing
         cloud_testing_framework,
@@ -1029,7 +1029,7 @@ async fn main() -> std::io::Result<()> {
             .route("/v3/governance/vote", web::post().to(cast_vote))
             .route("/v3/consensus/status", web::get().to(consensus_status))
             .route("/v3/ibc/connections", web::get().to(ibc_connections))
-            .route("/v3/tee/prepare", web::post().to(prepare_tee_skill))
+            .route("/v3/lora/prepare", web::post().to(prepare_lora_skill))
             .route("/v3/ipfs/status", web::get().to(ipfs_status))
     })
     .bind(rpc_endpoint)?

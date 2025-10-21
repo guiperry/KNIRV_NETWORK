@@ -1,5 +1,6 @@
+import React from 'react';
 
-import * as React from 'react';
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Brain, Activity, Zap, Settings } from 'lucide-react';
 import { cognitiveEngineService, CognitiveProcessingRequest } from '../services/CognitiveEngineService';

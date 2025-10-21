@@ -31,23 +31,23 @@ async function instantiate(module, imports = {}) {
       // assembly/index/initializeAgent() => bool
       return exports.initializeAgent() != 0;
     },
-    executeAgent(input, _context) {
+    executeAgent(input, context) {
       // assembly/index/executeAgent(~lib/string/String, ~lib/string/String) => ~lib/string/String
       input = __retain(__lowerString(input) || __notnull());
-      _context = __lowerString(_context) || __notnull();
+      context = __lowerString(context) || __notnull();
       try {
-        return __liftString(exports.executeAgent(input, _context) >>> 0);
+        return __liftString(exports.executeAgent(input, context) >>> 0);
       } finally {
         __release(input);
       }
     },
-    executeAgentTool(toolName, parameters, _context) {
+    executeAgentTool(toolName, parameters, context) {
       // assembly/index/executeAgentTool(~lib/string/String, ~lib/string/String, ~lib/string/String) => ~lib/string/String
       toolName = __retain(__lowerString(toolName) || __notnull());
       parameters = __retain(__lowerString(parameters) || __notnull());
-      _context = __lowerString(_context) || __notnull();
+      context = __lowerString(context) || __notnull();
       try {
-        return __liftString(exports.executeAgentTool(toolName, parameters, _context) >>> 0);
+        return __liftString(exports.executeAgentTool(toolName, parameters, context) >>> 0);
       } finally {
         __release(toolName);
         __release(parameters);
@@ -67,16 +67,16 @@ async function instantiate(module, imports = {}) {
       type = __lowerString(type) || __notnull();
       return exports.createModel(type) != 0;
     },
-    loadModelWeights(_weightsPtr, weightsLen) {
-      // assembly/index/loadModelWeights(usize, i32) => bool
-      return exports.loadModelWeights(_weightsPtr, weightsLen) != 0;
+    loadModelWeights(weightsPtr, weightsLen) {
+      // assembly/index/loadModelWeights(f64, f64) => bool
+      return exports.loadModelWeights(weightsPtr, weightsLen) != 0;
     },
-    runModelInference(input, _context) {
+    runModelInference(input, context) {
       // assembly/index/runModelInference(~lib/string/String, ~lib/string/String) => ~lib/string/String
       input = __retain(__lowerString(input) || __notnull());
-      _context = __lowerString(_context) || __notnull();
+      context = __lowerString(context) || __notnull();
       try {
-        return __liftString(exports.runModelInference(input, _context) >>> 0);
+        return __liftString(exports.runModelInference(input, context) >>> 0);
       } finally {
         __release(input);
       }
@@ -109,7 +109,7 @@ async function instantiate(module, imports = {}) {
       return __liftString(exports.getConfiguredProviders() >>> 0);
     },
     performExternalInference(prompt, systemPrompt, maxTokens, temperature) {
-      // assembly/index/performExternalInference(~lib/string/String, ~lib/string/String?, i32?, f32?) => ~lib/string/String
+      // assembly/index/performExternalInference(~lib/string/String, ~lib/string/String?, f64?, f64?) => ~lib/string/String
       prompt = __retain(__lowerString(prompt) || __notnull());
       systemPrompt = __lowerString(systemPrompt) || __notnull();
       try {
@@ -148,9 +148,9 @@ async function instantiate(module, imports = {}) {
       return exports.initializeExternalInferenceFromEnv(envConfigJson) != 0;
     },
     allocateString(str) {
-      // assembly/index/allocateString(~lib/string/String) => usize
+      // assembly/index/allocateString(~lib/string/String) => f64
       str = __lowerString(str) || __notnull();
-      return exports.allocateString(str) >>> 0;
+      return exports.allocateString(str);
     },
   }, exports);
   function __liftString(pointer) {

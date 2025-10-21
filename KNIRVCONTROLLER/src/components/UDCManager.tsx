@@ -1,4 +1,5 @@
-import * as React from 'react';
+import React from 'react';
+
 import { useState, useEffect, useCallback } from 'react';
 import {
   Shield,

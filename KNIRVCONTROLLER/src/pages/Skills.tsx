@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Zap, Shield, Wallet, Download, Activity } from 'lucide-react';

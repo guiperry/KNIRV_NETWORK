@@ -1,3 +1,4 @@
+import React from 'react';
 /**
  * Mobile Touch Interaction Tests
  * Tests touch gestures and mobile-specific interactions for KNIRVCONTROLLER

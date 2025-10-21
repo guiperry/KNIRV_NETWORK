@@ -1,0 +1,248 @@
+openapi: 3.1.0
+info:
+  title: KNIRVNEXUS API
+  description: |
+    KNIRVNEXUS - Comprehensive platform layer for the KNIRV Network ecosystem.
+
+    This API provides:
+    - Authentication and user management
+    - DVE (Distributed Virtual Environment) management
+    - AI model validation and testing
+    - Cloud Development Environment (CDE) services
+    - TEE (Trusted Execution Environment) security
+    - System health monitoring and analytics
+    - Model management and deployment
+    - Cognitive engine for advanced AI features
+    - Controller integration services
+    - DVE rental marketplace
+  version: "1.0.0"
+  contact:
+    name: KNIRV Network Support
+    email: support@knirv.com
+
+servers:
+  - url: http://localhost:8090
+    description: Local development server
+
+tags:
+  - name: auth
+    description: Authentication and user management
+  - name: dve
+    description: Distributed Virtual Environment management
+  - name: validation
+    description: AI model validation and testing
+  - name: models
+    description: Model management and deployment
+  - name: tee
+    description: Trusted Execution Environment
+  - name: health
+    description: System health and monitoring
+  - name: cde
+    description: Cloud Development Environment
+  - name: cognitive
+    description: Advanced AI and cognitive services
+
+paths:
+  # Authentication
+  /api/auth/login:
+    post:
+      tags:
+        - auth
+      summary: User login
+      description: Authenticate user and receive JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Authentication successful
+
+  /api/auth/register:
+    post:
+      tags:
+        - auth
+      summary: User registration
+      description: Register a new user account
+      responses:
+        '201':
+          description: User registered successfully
+
+  # DVE Management
+  /api/dve/create:
+    post:
+      tags:
+        - dve
+      summary: Create DVE
+      description: Create a new Distributed Virtual Environment
+      responses:
+        '201':
+          description: DVE created successfully
+
+  /api/dve/list:
+    get:
+      tags:
+        - dve
+      summary: List DVEs
+      description: Get list of all DVEs
+      responses:
+        '200':
+          description: List of DVEs
+
+  # Validation Services
+  /api/validation/validate:
+    post:
+      tags:
+        - validation
+      summary: Validate model
+      description: Validate an AI model for deployment
+      responses:
+        '200':
+          description: Validation completed
+
+  # Model Management
+  /api/models/deploy:
+    post:
+      tags:
+        - models
+      summary: Deploy model
+      description: Deploy an AI model to the network
+      responses:
+        '201':
+          description: Model deployed successfully
+
+  /api/models/list:
+    get:
+      tags:
+        - models
+      summary: List models
+      description: Get list of deployed models
+      responses:
+        '200':
+          description: List of models
+
+  # TEE Security
+  /api/tee/status:
+    get:
+      tags:
+        - tee
+      summary: TEE status
+      description: Get Trusted Execution Environment status
+      responses:
+        '200':
+          description: TEE status information
+
+  # System Health
+  /api/health:
+    get:
+      tags:
+        - health
+      summary: System health
+      description: Get overall system health status
+      responses:
+        '200':
+          description: Health status
+
+  /api/metrics:
+    get:
+      tags:
+        - health
+      summary: System metrics
+      description: Get system performance metrics
+      responses:
+        '200':
+          description: Performance metrics
+
+  # CDE Services
+  /api/cde/environments:
+    get:
+      tags:
+        - cde
+      summary: List CDE environments
+      description: Get available Cloud Development Environments
+      responses:
+        '200':
+          description: List of environments
+
+  /api/cde/create:
+    post:
+      tags:
+        - cde
+      summary: Create CDE environment
+      description: Create a new Cloud Development Environment
+      responses:
+        '201':
+          description: Environment created
+
+  # Cognitive Engine
+  /api/cognitive/analyze:
+    post:
+      tags:
+        - cognitive
+      summary: Cognitive analysis
+      description: Perform advanced cognitive analysis
+      responses:
+        '200':
+          description: Analysis completed
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+
+    DVE:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+        resources:
+          type: object
+
+    Model:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        version:
+          type: string
+        status:
+          type: string
+
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        services:
+          type: object
+        timestamp:
+          type: string
+          format: date-time

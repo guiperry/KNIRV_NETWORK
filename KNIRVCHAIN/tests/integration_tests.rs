@@ -49,11 +49,11 @@ mod integration_tests {
     }
 
     #[tokio::test]
-    async fn test_tee_skill_distribution_basic() {
+    async fn test_lora_skill_distribution_basic() {
         let ipfs_client = Arc::new(ipfs_client::IpfsClient::new_mock());
         let skill_registry = Arc::new(tokio::sync::Mutex::new(nrn_token::SkillRegistry::new()));
 
-        let _distributor = tee_skill_distributor::TEESkillDistributor::new(
+        let _distributor = lora_skill_distributor::LoRASkillDistributor::new(
             skill_registry.clone(),
             ipfs_client.clone(),
         );

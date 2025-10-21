@@ -7,7 +7,6 @@ import GlassCard from '@/components/GlassCard';
 import PortfolioChart from '@/components/PortfolioChart';
 import CryptoCard from '@/components/CryptoCard';
 
-const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const portfolioData = [42000, 43500, 41800, 44200, 45600, 44900, 47800, 46500, 48200];

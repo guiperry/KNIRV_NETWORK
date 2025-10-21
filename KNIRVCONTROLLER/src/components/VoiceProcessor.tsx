@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 

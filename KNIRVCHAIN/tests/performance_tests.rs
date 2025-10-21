@@ -140,17 +140,17 @@ mod performance_tests {
     }
 
     #[tokio::test]
-    async fn test_tee_skill_distribution_performance() {
+    async fn test_lora_skill_distribution_performance() {
         let ipfs_client = Arc::new(ipfs_client::IpfsClient::new_mock());
         let skill_registry = Arc::new(Mutex::new(nrn_token::SkillRegistry::new()));
-        let _distributor = tee_skill_distributor::TEESkillDistributor::new(skill_registry, ipfs_client);
+        let _distributor = lora_skill_distributor::LoRASkillDistributor::new(skill_registry, ipfs_client);
 
         // Test basic performance - just verify creation and timing
         let start = Instant::now();
         tokio::time::sleep(Duration::from_millis(10)).await;
         let duration = start.elapsed();
 
-        println!("TEE skill distribution performance test: {:?}", duration);
+        println!("LoRA skill distribution performance test: {:?}", duration);
         assert!(duration < Duration::from_secs(1));
     }
 
@@ -183,7 +183,7 @@ mod performance_tests {
         let ipfs_client = Arc::new(ipfs_client::IpfsClient::new_mock());
         let skill_registry = Arc::new(Mutex::new(nrn_token::SkillRegistry::new()));
 
-        let _distributor = tee_skill_distributor::TEESkillDistributor::new(
+        let _distributor = lora_skill_distributor::LoRASkillDistributor::new(
             skill_registry.clone(),
             ipfs_client.clone(),
         );
@@ -220,8 +220,8 @@ mod performance_tests {
             }
         }
 
-        let _tee_info = tee_skill_distributor::TEEInfo {
-            tee_type: tee_skill_distributor::TEEType::IntelSGX,
+        let _lora_info = lora_skill_distributor::LoRAInfo {
+            lora_type: lora_skill_distributor::LoRAType::IntelSGX,
             version: "2.0".to_string(),
             capabilities: vec!["attestation".to_string()],
             attestation_support: true,
@@ -239,7 +239,7 @@ mod performance_tests {
         let duration = start.elapsed();
 
         println!(
-            "TEE skill preparation: {} skills in {:?}",
+            "LoRA skill preparation: {} skills in {:?}",
             num_skills, duration
         );
 

@@ -1,4 +1,5 @@
-import * as React from 'react';
+import React from 'react';
+
 import { useState, useEffect } from 'react';
 import { Cpu, Zap, AlertTriangle, FileText, Lightbulb, Plus, X, Camera } from 'lucide-react';
 

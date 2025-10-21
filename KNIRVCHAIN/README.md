@@ -39,8 +39,8 @@ A comprehensive blockchain implementation for the KNIRV network with advanced mu
    - Governance-controlled model transitions
    - Compatibility assessment and deprecation management
 
-4. **TEE Skill Distribution** (`tee_skill_distributor.rs`)
-   - Multi-TEE platform support (SGX, AMD, ARM, RISC-V)
+4. **LoRA Skill Distribution** (`lora_skill_distributor.rs`)
+   - Multi-LoRA platform support (SGX, AMD, ARM, RISC-V)
    - Secure skill packaging and distribution
    - Attestation verification and session management
 
@@ -89,8 +89,8 @@ A comprehensive blockchain implementation for the KNIRV network with advanced mu
 - `GET /v3/consensus/status` - Get consensus status
 - `GET /v3/ibc/connections` - Get IBC connection status
 
-### TEE Operations
-- `POST /v3/tee/prepare` - Prepare skill for TEE execution
+### LoRA Operations
+- `POST /v3/lora/prepare` - Prepare skill for LoRA execution
 
 ### Storage
 - `GET /v3/ipfs/status` - Get IPFS node status

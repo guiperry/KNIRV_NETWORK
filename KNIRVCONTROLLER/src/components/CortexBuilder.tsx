@@ -1,4 +1,5 @@
-import * as React from 'react';
+import React from 'react';
+
 import { useState, useEffect } from 'react';
 import { Brain, Settings, Download, Play, Save, Trash2, BarChart3, Layers, Cpu } from 'lucide-react';
 import { personalKNIRVGRAPHService, GraphNode } from '../services/PersonalKNIRVGRAPHService';

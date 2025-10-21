@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Terminal, Play, Code, Database, Settings, Cpu, Zap, FileText, Download, Share2 } from 'lucide-react';
+import { X, Terminal, Play, Code, Database, Settings, Cpu, Zap, FileText, Download, Share2, Radio, Shield, BarChart3, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +23,17 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
     '$ '
   ]);
   const [currentCommand, setCurrentCommand] = useState('');
+  const [showConsole, setShowConsole] = useState(false);
+  const [showPolicy, setShowPolicy] = useState(false);
+  const [showMonitor, setShowMonitor] = useState(false);
+  const [showConnections, setShowConnections] = useState(false);
+  const [showDVESolver, setShowDVESolver] = useState(false);
+  
+  // DVE Solver State
+  const [selectedProblem, setSelectedProblem] = useState<string | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationResults, setValidationResults] = useState<any>(null);
+  const [showValidationReport, setShowValidationReport] = useState(false);
 
   const workflowTemplates = [
     {
@@ -123,18 +134,66 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
     setTerminalOutput(newOutput);
   };
 
+  const runValidation = () => {
+    if (!selectedProblem) return;
+    
+    setIsValidating(true);
+    setShowValidationReport(false);
+    
+    // Simulate validation process
+    setTimeout(() => {
+      const problem = problems.find(p => p.id === selectedProblem);
+      setValidationResults({
+        problemId: selectedProblem,
+        problemTitle: problem?.title,
+        status: 'completed',
+        timestamp: new Date().toLocaleTimeString(),
+        testsPassed: Math.floor(Math.random() * 15) + 10,
+        testsFailed: Math.floor(Math.random() * 3),
+        coverage: Math.floor(Math.random() * 30) + 70,
+        logs: [
+          '✓ Test Suite 1: Initialization checks passed',
+          '✓ Test Suite 2: TEE attestation verification passed',
+          '✓ Test Suite 3: Memory bounds checking passed',
+          Math.random() > 0.5 ? '✓ Test Suite 4: Network resilience passed' : '✗ Test Suite 4: Network timeout detected',
+          '✓ Test Suite 5: Failure recovery passed',
+          '✓ All critical paths validated successfully'
+        ]
+      });
+      setIsValidating(false);
+      setShowValidationReport(true);
+    }, 2500);
+  };
+
+  const submitToConsensus = () => {
+    if (!validationResults) return;
+    alert(`Validation results submitted to consensus for problem: ${validationResults.problemTitle}`);
+    setShowDVESolver(false);
+    setSelectedProblem(null);
+    setValidationResults(null);
+    setShowValidationReport(false);
+  };
+
+  const problems = [
+    { id: 'prob-001', title: 'Model Inference Failure', severity: 'critical', description: 'AI model fails during inference execution' },
+    { id: 'prob-002', title: 'TEE Attestation Timeout', severity: 'high', description: 'Trusted Execution Environment attestation takes too long' },
+    { id: 'prob-003', title: 'Memory Leak in Agent', severity: 'medium', description: 'Memory usage increases without proper cleanup' },
+    { id: 'prob-004', title: 'Network Disconnection', severity: 'high', description: 'Unexpected network connectivity loss' },
+    { id: 'prob-005', title: 'Consensus Divergence', severity: 'critical', description: 'Nodes disagree on validation results' },
+  ];
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex">
       {/* Backdrop */}
       <div 
-        className="flex-1 bg-black/20 backdrop-blur-sm transition-all duration-300"
+        className="flex-1 bg-black/20 backdrop-blur-sm transition-all duration-300 z-40"
         onClick={onClose}
       />
       
-      {/* Modal Panel */}
-      <div className="w-full max-w-4xl bg-background border-l shadow-2xl transform transition-all duration-300 ease-in-out">
+      {/* Modal Panel - FOUNDATION FOR NESTING */}
+      <div className="relative w-full max-w-4xl bg-background border-l shadow-2xl transform transition-all duration-300 ease-in-out">
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b">
@@ -233,7 +292,123 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
               </TabsContent>
 
               <TabsContent value="tools" className="px-6 pb-6 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Console Tool */}
+                  <Card className="knirv-card-gradient">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center space-x-2 text-sm">
+                        <Terminal className="w-4 h-4" />
+                        <span>Console</span>
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Real-time failure feed & logs
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button 
+                        variant={showConsole ? "default" : "outline"}
+                        size="sm" 
+                        className="w-full"
+                        onClick={() => setShowConsole(!showConsole)}
+                      >
+                        {showConsole ? 'Hide' : 'Show'}
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  {/* Policy Tool */}
+                  <Card className="knirv-card-gradient">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center space-x-2 text-sm">
+                        <Shield className="w-4 h-4" />
+                        <span>Policy</span>
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Security configuration editor
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button 
+                        variant={showPolicy ? "default" : "outline"}
+                        size="sm" 
+                        className="w-full"
+                        onClick={() => setShowPolicy(!showPolicy)}
+                      >
+                        {showPolicy ? 'Hide' : 'Show'}
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  {/* Connections Tool */}
+                  <Card className="knirv-card-gradient">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center space-x-2 text-sm">
+                        <Radio className="w-4 h-4" />
+                        <span>Connections</span>
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Connected NRV nodes list
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button 
+                        variant={showConnections ? "default" : "outline"}
+                        size="sm" 
+                        className="w-full"
+                        onClick={() => setShowConnections(!showConnections)}
+                      >
+                        {showConnections ? 'Hide' : 'Show'}
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  {/* Monitor Tool */}
+                  <Card className="knirv-card-gradient">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center space-x-2 text-sm">
+                        <BarChart3 className="w-4 h-4" />
+                        <span>Monitor</span>
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Resolution tracking dashboard
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button 
+                        variant={showMonitor ? "default" : "outline"}
+                        size="sm" 
+                        className="w-full"
+                        onClick={() => setShowMonitor(!showMonitor)}
+                      >
+                        {showMonitor ? 'Hide' : 'Show'}
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  {/* DVE Solver Tool */}
+                  <Card className="knirv-card-gradient">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center space-x-2 text-sm">
+                        <Zap className="w-4 h-4" />
+                        <span>DVE Solver</span>
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Distributed validation engine
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button 
+                        variant={showDVESolver ? "default" : "outline"}
+                        size="sm" 
+                        className="w-full"
+                        onClick={() => setShowDVESolver(!showDVESolver)}
+                      >
+                        <Zap className="w-3 h-3 mr-1" />
+                        {showDVESolver ? 'Hide' : 'Open'}
+                      </Button>
+                    </CardContent>
+                  </Card>
+
                   {/* KNIRVENGINE Tool */}
                   <Card className="knirv-card-gradient border-primary/50">
                     <CardHeader className="pb-2">
@@ -242,7 +417,7 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
                         <span>KNIRVENGINE</span>
                       </CardTitle>
                       <CardDescription className="text-xs">
-                        Access the KNIRV AI Engine interface
+                        AI Engine interface
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -252,13 +427,13 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
                         className="w-full"
                         onClick={onOpenKNIRVEngine}
                       >
-                        <Zap className="w-3 h-3 mr-1" />
-                        Open KNIRVENGINE
+                        <Cpu className="w-3 h-3 mr-1" />
+                        Open
                       </Button>
                     </CardContent>
                   </Card>
 
-                  {/* Other Tools */}
+                  {/* Code Editor Tool */}
                   <Card className="knirv-card-gradient">
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center space-x-2 text-sm">
@@ -266,77 +441,294 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
                         <span>Code Editor</span>
                       </CardTitle>
                       <CardDescription className="text-xs">
-                        Web-based code editor with syntax highlighting
+                        Web-based development IDE
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <Button variant="outline" size="sm" className="w-full">
                         <Code className="w-3 h-3 mr-1" />
-                        Open Editor
-                      </Button>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="knirv-card-gradient">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center space-x-2 text-sm">
-                        <Database className="w-4 h-4" />
-                        <span>Database Console</span>
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        Query and manage node databases
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button variant="outline" size="sm" className="w-full">
-                        <Database className="w-3 h-3 mr-1" />
-                        Open Console
-                      </Button>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="knirv-card-gradient">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center space-x-2 text-sm">
-                        <FileText className="w-4 h-4" />
-                        <span>Log Viewer</span>
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        Real-time log monitoring and analysis
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button variant="outline" size="sm" className="w-full">
-                        <FileText className="w-3 h-3 mr-1" />
-                        View Logs
-                      </Button>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="knirv-card-gradient">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center space-x-2 text-sm">
-                        <Download className="w-4 h-4" />
-                        <span>Reports</span>
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        Generate and download node reports
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-1">
-                      <Button variant="outline" size="sm" className="w-full">
-                        <Download className="w-3 h-3 mr-1" />
-                        Download
-                      </Button>
-                      <Button variant="outline" size="sm" className="w-full">
-                        <Share2 className="w-3 h-3 mr-1" />
-                        Share
+                        Open
                       </Button>
                     </CardContent>
                   </Card>
                 </div>
               </TabsContent>
             </Tabs>
+
+            {/* NESTED PANELS - Slide out from CDE modal */}
+            
+            {/* Connections Panel - Fixed on LEFT of viewport */}
+            {showConnections && (
+              <div className="fixed top-0 left-0 bottom-0 w-72 z-[60] pointer-events-auto transform transition-transform duration-300 ease-out translate-x-0">
+                <div className="h-full bg-slate-900 rounded-r-lg border-r border-blue-600/30 shadow-2xl">
+                  <div className="flex items-center justify-between p-4 border-b border-blue-600/30">
+                    <div className="flex items-center space-x-2">
+                      <Radio className="w-4 h-4 text-cyan-400" />
+                      <h3 className="font-semibold text-sm">Connected NRVs</h3>
+                    </div>
+                    <button 
+                      onClick={() => setShowConnections(false)}
+                      className="p-1 hover:bg-slate-800 rounded transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="p-4 space-y-2 overflow-y-auto" style={{maxHeight: 'calc(100% - 60px)'}}>
+                    {[
+                      { id: 'nrv-001', name: 'Primary NRV', status: 'connected' },
+                      { id: 'nrv-002', name: 'Backup NRV', status: 'connected' },
+                      { id: 'nrv-003', name: 'Monitor NRV', status: 'pending' },
+                      { id: 'nrv-004', name: 'Standby NRV', status: 'connected' },
+                      { id: 'nrv-005', name: 'Archive NRV', status: 'pending' },
+                    ].map((nrv) => (
+                      <div key={nrv.id} className="p-2 bg-slate-800/50 rounded border border-blue-600/20 hover:border-blue-600/50 transition-colors cursor-pointer">
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm font-medium">{nrv.name}</div>
+                          <div className={`w-2 h-2 rounded-full ${nrv.status === 'connected' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                        </div>
+                        <div className="text-xs text-slate-400 mt-1">{nrv.id}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Console Panel - Slides out from LEFT */}
+            {showConsole && (
+              <div className="absolute w-80 z-30 pointer-events-auto transform transition-all duration-300 ease-out translate-x-0 -translate-x-[100px]" style={{top: '64px', left: '0'}}>
+                <div className="bg-slate-900 rounded-r-lg border-r border-blue-600/30 shadow-2xl">
+                  <div className="flex items-center justify-between p-4 border-b border-blue-600/30">
+                    <div className="flex items-center space-x-2">
+                      <Terminal className="w-4 h-4 text-cyan-400" />
+                      <h3 className="font-semibold text-sm">Real-Time Console</h3>
+                    </div>
+                    <button 
+                      onClick={() => setShowConsole(false)}
+                      className="p-1 hover:bg-slate-800 rounded transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="p-4 bg-black rounded-b-lg max-h-80 overflow-y-auto font-mono text-xs text-green-400">
+                    <div className="space-y-1">
+                      <div>[10:30:15] Validation task completed successfully</div>
+                      <div>[10:29:42] TEE enclave initialized</div>
+                      <div>[10:28:33] Node heartbeat sent</div>
+                      <div>[10:27:11] Failure detected in model inference</div>
+                      <div className="text-yellow-400">[10:26:45] WARNING: High memory usage detected</div>
+                      <div>[10:25:22] Recovery procedure initiated</div>
+                      <div className="text-cyan-400">$ Ready for input...</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Policy Panel - Slides out from LEFT, below Console */}
+            {showPolicy && (
+              <div className={`absolute z-30 pointer-events-auto transform transition-all duration-300 ease-out translate-x-0 -translate-x-[100px] w-80`} style={{top: showConsole ? '384px' : '64px', left: '0'}}>
+                <div className="bg-slate-900 rounded-r-lg border-r border-blue-600/30 shadow-2xl">
+                  <div className="flex items-center justify-between p-4 border-b border-blue-600/30">
+                    <div className="flex items-center space-x-2">
+                      <Shield className="w-4 h-4 text-cyan-400" />
+                      <h3 className="font-semibold text-sm">Security Policy</h3>
+                    </div>
+                    <button 
+                      onClick={() => setShowPolicy(false)}
+                      className="p-1 hover:bg-slate-800 rounded transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="p-4 space-y-3 max-h-80 overflow-y-auto">
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">TEE Mode</label>
+                      <select className="w-full bg-slate-800 border border-blue-600/30 rounded px-2 py-1 text-sm text-slate-200">
+                        <option>SGX (Intel)</option>
+                        <option>TDX (Intel)</option>
+                        <option>SEV (AMD)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">Max Memory (MB)</label>
+                      <input type="number" defaultValue="4096" className="w-full bg-slate-800 border border-blue-600/30 rounded px-2 py-1 text-sm text-slate-200" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" defaultChecked className="w-4 h-4" />
+                        <span>Enable Attestation</span>
+                      </label>
+                    </div>
+                    <button className="w-full bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-semibold py-2 rounded text-sm transition-colors">
+                      Save Policy
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Monitor Panel - Positioned below tools section */}
+            {showMonitor && (
+              <div className="absolute left-6 right-6 z-30 pointer-events-auto transform transition-transform duration-300 ease-out translate-y-0" style={{top: '540px'}}>
+                <div className="bg-slate-900 rounded-lg border border-blue-600/30 shadow-2xl">
+                  <div className="flex items-center justify-between p-4 border-b border-blue-600/30">
+                    <div className="flex items-center space-x-2">
+                      <BarChart3 className="w-4 h-4 text-cyan-400" />
+                      <h3 className="font-semibold text-sm">Resolution Monitor</h3>
+                    </div>
+                    <button 
+                      onClick={() => setShowMonitor(false)}
+                      className="p-1 hover:bg-slate-800 rounded transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="p-4 space-y-3 max-h-40 overflow-y-auto">
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>CPU Usage</span>
+                        <span className="text-cyan-400 font-semibold">45%</span>
+                      </div>
+                      <div className="w-full bg-slate-700 rounded-full h-2">
+                        <div className="bg-cyan-500 h-2 rounded-full" style={{width: '45%'}}></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>Memory Usage</span>
+                        <span className="text-cyan-400 font-semibold">62%</span>
+                      </div>
+                      <div className="w-full bg-slate-700 rounded-full h-2">
+                        <div className="bg-cyan-500 h-2 rounded-full" style={{width: '62%'}}></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>Validation Tasks</span>
+                        <span className="text-cyan-400 font-semibold">8/10</span>
+                      </div>
+                      <div className="w-full bg-slate-700 rounded-full h-2">
+                        <div className="bg-green-500 h-2 rounded-full" style={{width: '80%'}}></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* DVE Solver Modal - Centered overlay */}
+            {showDVESolver && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-auto">
+                <div className="bg-slate-900 rounded-lg border border-blue-600/30 shadow-2xl w-full max-w-4xl mx-4 transform transition-all duration-300 ease-out scale-100 max-h-[90vh]">
+                  <div className="flex items-center justify-between p-6 border-b border-blue-600/30">
+                    <div className="flex items-center space-x-2">
+                      <Zap className="w-5 h-5 text-cyan-400" />
+                      <h3 className="font-semibold text-lg">DVE Solver - Validation Engine</h3>
+                    </div>
+                    <button 
+                      onClick={() => setShowDVESolver(false)}
+                      className="p-1 hover:bg-slate-800 rounded transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="p-6 space-y-6 overflow-visible">
+                    {!showValidationReport ? (
+                      <>
+                        <div>
+                          <h4 className="text-sm font-semibold text-cyan-400 mb-4 flex items-center space-x-2">
+                            <FileText className="w-4 h-4" />
+                            <span>Select Problem to Validate:</span>
+                          </h4>
+                          <div className="space-y-2">
+                            {problems.map((prob) => (
+                              <button 
+                                key={prob.id} 
+                                onClick={() => setSelectedProblem(prob.id)}
+                                className={`w-full text-left p-4 border rounded-lg transition-all ${selectedProblem === prob.id ? 'bg-blue-600/20 border-blue-600/50' : 'bg-slate-800/50 border-blue-600/20 hover:border-blue-600/50'}`}
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div>
+                                    <div className="text-sm font-medium">{prob.title}</div>
+                                    <div className="text-xs text-slate-400 mt-1">{prob.description}</div>
+                                    <div className="text-xs text-slate-500 mt-1">{prob.id}</div>
+                                  </div>
+                                  <span className={`text-xs px-2 py-1 rounded font-semibold whitespace-nowrap ml-2 ${prob.severity === 'critical' ? 'bg-red-500/20 text-red-400' : prob.severity === 'high' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                                    {prob.severity.toUpperCase()}
+                                  </span>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="pt-4 border-t border-blue-600/20 flex gap-2">
+                          <button 
+                            onClick={runValidation}
+                            disabled={!selectedProblem || isValidating}
+                            className="flex-1 bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-500/50 disabled:cursor-not-allowed text-slate-900 font-semibold py-2 rounded text-sm transition-colors flex items-center justify-center space-x-2"
+                          >
+                            {isValidating ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin"></div>
+                                <span>Running Validation...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Play className="w-4 h-4" />
+                                <span>Run Validation</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                            <span className="text-sm font-semibold text-green-400">Validation Complete</span>
+                          </div>
+                          <div className="text-xs text-slate-400 space-y-1">
+                            <div>Problem: {validationResults?.problemTitle}</div>
+                            <div>Tests Passed: {validationResults?.testsPassed} | Failed: {validationResults?.testsFailed}</div>
+                            <div>Coverage: {validationResults?.coverage}%</div>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h5 className="text-xs font-semibold text-cyan-400 mb-2 flex items-center space-x-2">
+                            <BarChart3 className="w-3 h-3" />
+                            <span>Validation Logs</span>
+                          </h5>
+                          <div className="bg-black rounded p-3 font-mono text-xs text-green-400 space-y-1">
+                            {validationResults?.logs.map((log: string, idx: number) => (
+                              <div key={idx}>{log}</div>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div className="pt-4 border-t border-blue-600/20 flex gap-2">
+                          <button 
+                            onClick={() => setShowValidationReport(false)}
+                            className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 rounded text-sm transition-colors"
+                          >
+                            Run Another
+                          </button>
+                          <button 
+                            onClick={submitToConsensus}
+                            className="flex-1 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-semibold py-2 rounded text-sm transition-colors flex items-center justify-center space-x-2"
+                          >
+                            <Upload className="w-4 h-4" />
+                            <span>Submit to Consensus</span>
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

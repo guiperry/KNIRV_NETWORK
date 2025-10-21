@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import { QrCode, X } from 'lucide-react';

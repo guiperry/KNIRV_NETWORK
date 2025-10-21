@@ -1,3 +1,4 @@
+import React from 'react';
 import { Tabs } from 'expo-router';
 import { Chrome as Home, Wallet, Bot, Settings } from 'lucide-react-native';
 
@@ -26,7 +27,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ size, color }) => (
+          tabBarIcon: ({ size, color }: { size: number; color: string }) => (
             <Home size={size} color={color} strokeWidth={2} />
           ),
         }}
@@ -35,7 +36,7 @@ export default function TabLayout() {
         name="wallet"
         options={{
           title: 'Wallet',
-          tabBarIcon: ({ size, color }) => (
+          tabBarIcon: ({ size, color }: { size: number; color: string }) => (
             <Wallet size={size} color={color} strokeWidth={2} />
           ),
         }}
@@ -44,7 +45,7 @@ export default function TabLayout() {
         name="agents"
         options={{
           title: 'AI Agents',
-          tabBarIcon: ({ size, color }) => (
+          tabBarIcon: ({ size, color }: { size: number; color: string }) => (
             <Bot size={size} color={color} strokeWidth={2} />
           ),
         }}
@@ -53,7 +54,7 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: 'Settings',
-          tabBarIcon: ({ size, color }) => (
+          tabBarIcon: ({ size, color }: { size: number; color: string }) => (
             <Settings size={size} color={color} strokeWidth={2} />
           ),
         }}

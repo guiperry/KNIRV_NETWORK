@@ -1,15 +1,19 @@
 openapi: 3.1.0
 info:
-  title: KNIRV Unified API
+  title: KNIRVORACLE MCP API
   description: |
-    Unified API specification for the KNIRV Network ecosystem, combining:
-    - KNIRVORACLE MCP API: Blockchain operations and Model Context Protocol
-    - Agentify API: Agent configuration and deployment platform
+    Official API specification for KNIRVORACLE blockchain nodes with Model Context Protocol (MCP) support.
 
-    This unified specification serves as the source of truth for all KNIRV SDK implementations
-    and CLI tools. Wallet operations are primarily handled client-side via the SDK.
+    This API provides:
+    - Blockchain operations (chain state, blocks, transactions)
+    - MCP capability management (registration, invocation, updates)
+    - Node management and health monitoring
+    - URI generation for resource discovery
 
-    NOTE: This file now references the unified specification. See unified-openapi.yaml for the complete API.
+    This specification serves as the source of truth for KNIRV SDK implementations
+    that interact with KNIRVORACLE nodes. Wallet operations are primarily handled client-side via the SDK.
+
+    For other KNIRV services (KNIRVNEXUS, KNIRVGATEWAY, etc.), see their respective documentation.
   version: "2.0.0"
   contact:
     name: KNIRV Network Support

@@ -1,3 +1,4 @@
+import React from 'react';
 import { Shield, Key, CheckCircle, AlertTriangle, RefreshCw, Wallet, Clock, Zap} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';

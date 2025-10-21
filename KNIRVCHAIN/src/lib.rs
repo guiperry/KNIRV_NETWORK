@@ -18,8 +18,8 @@ pub mod tendermint_consensus;
 // P2P and DHT
 pub mod dht_manager;
 
-// TEE and skill distribution
-pub mod tee_skill_distributor;
+// LoRA and skill distribution
+pub mod lora_skill_distributor;
 
 // Cloud model integration
 pub mod cloud_models;

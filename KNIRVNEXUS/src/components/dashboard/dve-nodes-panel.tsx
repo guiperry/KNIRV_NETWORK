@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Server, Cpu, HardDrive, Wifi, Shield, MapPin, Clock, AlertCircle, CheckCircle, Activity, CreditCard, Info } from 'lucide-react';
+import { Server, Cpu, HardDrive, Shield, MapPin, Clock, AlertCircle, CheckCircle, Activity, CreditCard, Info, Play, Square, Zap } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,8 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useDVENodes } from '@/hooks/use-dve-nodes';
 import { useAuth } from '@/lib/auth-context';
+import { CDEAccessModal } from '@/components/cde/cde-access-modal';
+import DVECardModal from './dve-card-modal';
 import type { DVENode } from '@/types/api';
 
 interface DVENodesPanelProps {
@@ -29,6 +31,10 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
   } = useDVENodes();
 
   const [filter, setFilter] = useState<string>('all');
+  const [selectedNode, setSelectedNode] = useState<DVENode | null>(null);
+  const [cardModalOpen, setCardModalOpen] = useState(false);
+  const [cdeOpen, setCDEOpen] = useState(false);
+  const [activeNodeId, setActiveNodeId] = useState<{ [key: string]: boolean }>({});
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -251,11 +257,19 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
                       <div className="flex items-center space-x-2">
                         <Badge 
                           variant="secondary" 
-                          className={`${getStatusColor(node.status)} text-white text-xs`}
+                          className={`${
+                            activeNodeId[node.id]
+                              ? 'bg-green-500/80 text-white'
+                              : 'bg-muted text-muted-foreground'
+                          } text-xs`}
                         >
                           <div className="flex items-center space-x-1">
-                            {getStatusIcon(node.status)}
-                            <span>{node.status}</span>
+                            {activeNodeId[node.id] ? (
+                              <CheckCircle className="w-3 h-3" />
+                            ) : (
+                              <AlertCircle className="w-3 h-3" />
+                            )}
+                            <span>{activeNodeId[node.id] ? 'online' : 'offline'}</span>
                           </div>
                         </Badge>
                       </div>
@@ -324,23 +338,60 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
 
                     {/* Actions */}
                     <div className="flex space-x-2 pt-2">
-                      {onNodeConnect && (
+                      {/* Start/Stop Button */}
+                      <Button 
+                        variant="default" 
+                        size="sm" 
+                        className={`flex-1 text-xs font-semibold transition-all ${
+                          activeNodeId[node.id]
+                            ? 'bg-green-600 hover:bg-green-700'
+                            : 'bg-primary hover:bg-primary/90'
+                        }`}
+                        onClick={() => {
+                          setActiveNodeId(prev => ({ ...prev, [node.id]: !prev[node.id] }));
+                        }}
+                      >
+                        {activeNodeId[node.id] ? (
+                          <>
+                            <Square className="w-3 h-3 mr-1" />
+                            Stop
+                          </>
+                        ) : (
+                          <>
+                            <Play className="w-3 h-3 mr-1" />
+                            Start
+                          </>
+                        )}
+                      </Button>
+
+                      {/* Details Button */}
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1 text-xs"
+                        onClick={() => {
+                          setSelectedNode(node);
+                          setCardModalOpen(true);
+                        }}
+                      >
+                        Details
+                      </Button>
+
+                      {/* Access Button - Only shown when active */}
+                      {activeNodeId[node.id] && (
                         <Button 
                           variant="default" 
                           size="sm" 
-                          className="flex-1 text-xs bg-primary hover:bg-primary/90"
-                          onClick={() => onNodeConnect(node.id, node.name)}
+                          className="flex-1 text-xs bg-secondary hover:bg-secondary/90"
+                          onClick={() => {
+                            setSelectedNode(node);
+                            setCDEOpen(true);
+                          }}
                         >
-                          <Wifi className="w-3 h-3 mr-1" />
-                          Connect
+                          <Zap className="w-3 h-3 mr-1" />
+                          Access
                         </Button>
                       )}
-                      <Button variant="outline" size="sm" className="flex-1 text-xs">
-                        Details
-                      </Button>
-                      <Button variant="outline" size="sm" className="flex-1 text-xs">
-                        Monitor
-                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -349,6 +400,26 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
           )}
         </CardContent>
       </Card>
+
+      {/* DVE Card Modal */}
+      {selectedNode && (
+        <DVECardModal
+          isOpen={cardModalOpen}
+          onClose={() => setCardModalOpen(false)}
+          node={selectedNode}
+        />
+      )}
+
+      {/* CDE Access Modal */}
+      {selectedNode && (
+        <CDEAccessModal
+          isOpen={cdeOpen}
+          onClose={() => setCDEOpen(false)}
+          nodeId={selectedNode.id}
+          nodeName={selectedNode.name}
+          onOpenKNIRVEngine={() => {}}
+        />
+      )}
     </div>
   );
 };

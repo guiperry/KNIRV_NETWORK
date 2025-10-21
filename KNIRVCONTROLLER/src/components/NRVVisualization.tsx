@@ -1,4 +1,5 @@
-import * as React from 'react';
+import React from 'react';
+
 import { MapPin, Eye, X, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
 import { NRV } from '../App';
 

@@ -96,12 +96,12 @@ mod unit_tests {
     }
 
     #[tokio::test]
-    async fn test_tee_skill_distributor_creation() {
+    async fn test_lora_skill_distributor_creation() {
         let ipfs_client = Arc::new(ipfs_client::IpfsClient::new_mock());
         let skill_registry = Arc::new(Mutex::new(nrn_token::SkillRegistry::new()));
 
         let _distributor =
-            tee_skill_distributor::TEESkillDistributor::new(skill_registry, ipfs_client);
+            lora_skill_distributor::LoRASkillDistributor::new(skill_registry, ipfs_client);
 
         // Test basic functionality - just verify creation
         assert!(true); // Placeholder test
@@ -132,16 +132,16 @@ mod unit_tests {
     }
 
     #[test]
-    fn test_tee_type_hash_compatibility() {
+    fn test_lora_type_hash_compatibility() {
         use std::collections::HashMap;
 
         let mut map = HashMap::new();
-        map.insert(tee_skill_distributor::TEEType::IntelSGX, "sgx_data");
-        map.insert(tee_skill_distributor::TEEType::AMDTEE, "amd_data");
+        map.insert(lora_skill_distributor::LoRAType::IntelSGX, "sgx_data");
+        map.insert(lora_skill_distributor::LoRAType::AMDLoRA, "amd_data");
 
         assert_eq!(map.len(), 2);
         assert_eq!(
-            map.get(&tee_skill_distributor::TEEType::IntelSGX),
+            map.get(&lora_skill_distributor::LoRAType::IntelSGX),
             Some(&"sgx_data")
         );
     }
