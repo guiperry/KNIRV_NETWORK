@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRV SaaS Platform: DVE Solver & Auditor</title>
+    
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Configure Tailwind with custom brand colors -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'knirv-blue': '#0A2A4E',
+                        'knirv-green': '#00FF9B',
+                        'knirv-red': '#FF4136',
+                        'knirv-gray': '#a0aec0', // Lighter gray for text
+                        'knirv-dark-gray': '#2d3748', // Darker gray for cards
+                        'knirv-light-blue': '#2c7bb6',
+                        'knirv-dark-green': '#2d7336',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Use Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Base styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        /* Custom gradient for the hero section */
+        .hero-gradient {
+            background: linear-gradient(180deg, #0A2A4E 0%, #1a202c 100%);
+        }
+        /* Custom gradient for section titles */
+        .title-gradient {
+            background: linear-gradient(90deg, #00FF9B 0%, #00c9ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        /* Styles for the flowchart */
+        .flow-chart {
+            position: relative;
+            background-color: #1a202c;
+            border-radius: 0.5rem;
+            border: 1px solid #374151;
+            padding: 2rem;
+            font-size: 0.875rem;
+        }
+        .flow-box {
+            color: white;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.375rem;
+            text-align: center;
+            font-weight: 600;
+            border: 1px solid #4b5563;
+            min-width: 200px;
+            z-index: 10;
+            position: relative;
+        }
+        .flow-line {
+            position: absolute;
+            stroke: #4b5563;
+            stroke-width: 2px;
+            z-index: 1;
+        }
+        .arrow-head {
+            fill: #4b5563;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-knirv-gray overflow-x-hidden">
+
+    <!-- Header & Hero Section -->
+    <header class="hero-gradient text-white">
+        <nav class="container mx-auto px-6 py-6 flex justify-between items-center">
+            <div class="text-2xl font-extrabold">
+                KNIRV<span class="text-knirv-green">.</span>
+            </div>
+            <div>
+                <a href="#contact" class="bg-knirv-green text-knirv-blue font-bold py-2 px-5 rounded-lg hover:bg-white transition duration-300">
+                    Schedule Demo
+                </a>
+            </div>
+        </nav>
+
+        <div class="container mx-auto px-6 pt-20 pb-32 text-center">
+            <h1 class="text-4xl md:text-6xl font-extrabold leading-tight mb-6">
+                Beyond the CDE:
+                <span class="block title-gradient">The DVE Solver & Auditor</span>
+            </h1>
+            <p class="text-xl md:text-2xl text-knirv-gray max-w-3xl mx-auto mb-10">
+                Go from writing code to proving solutions. Turn AI failures into verifiable, secure, and profitable assets with our enterprise-grade platform.
+            </p>
+            <a href="#solver-interface" class="bg-knirv-green text-knirv-blue font-bold py-3 px-8 rounded-lg text-lg hover:bg-white transition duration-300">
+                See Features
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+
+        <!-- Two Products Section -->
+        <section id="products" class="py-24 bg-knirv-dark-gray">
+            <div class="container mx-auto px-6">
+                <div class="text-center max-w-3xl mx-auto mb-16">
+                    <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-4">
+                        Two Interfaces. One Verifiable Platform.
+                    </h2>
+                    <p class="text-lg text-knirv-gray">
+                        We provide distinct, powerful interfaces for both the developers building AI solutions and the enterprises monitoring them.
+                    </p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Solver Interface Card -->
+                    <div class="bg-gray-900 p-8 rounded-lg shadow-2xl border-t-4 border-knirv-green">
+                        <svg class="w-12 h-12 text-knirv-green mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 12l4.179 2.25m0 0l5.571 3 5.571-3m0 0l4.179-2.25L12 9.75l-4.179 2.25m11.142 0l-5.571 3-5.571-3" />
+                        </svg>
+                        <h3 class="text-2xl font-bold text-white mb-3">DVE "Solver" Interface</h3>
+                        <p class="mb-4">The problem-oriented IDE for developers (Solvers). Load AI failures, build verifiable "Skills," test them in a forensic sandbox, and deploy them on-chain.</p>
+                        <a href="#solver-interface" class="font-semibold text-knirv-green hover:text-white transition">Learn More &rarr;</a>
+                    </div>
+                    <!-- Auditor Dashboard Card -->
+                    <div class="bg-gray-900 p-8 rounded-lg shadow-2xl border-t-4 border-knirv-light-blue">
+                        <svg class="w-12 h-12 text-knirv-light-blue mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+                        </svg>
+                        <h3 class="text-2xl font-bold text-white mb-3">RTR Auditor Dashboard</h3>
+                        <p class="mb-4">The mission control for enterprises. A real-time dashboard to monitor AI performance, view live resolution logs, and access immutable forensic reports for compliance.</p>
+                        <a href="#auditor-dashboard" class="font-semibold text-knirv-light-blue hover:text-white transition">Learn More &rarr;</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Feature Section 1: Solver Interface -->
+        <section id="solver-interface" class="py-24 bg-gray-900">
+            <div class="container mx-auto px-6">
+                <div class="text-center max-w-3xl mx-auto mb-16">
+                    <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-4">
+                        The DVE "Solver" Interface
+                    </h2>
+                    <p class="text-lg text-knirv-gray">
+                        Your CDE is just an editor. Our DVE Interface is a complete <span class="text-white">problem-solving environment</span>. Load a problem, test your solution, and analyze the validation report—all in one place.
+                    </p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Module 1: Problem Panel -->
+                    <div class="bg-knirv-dark-gray p-8 rounded-lg shadow-xl">
+                        <svg class="w-12 h-12 text-knirv-green mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.75h16.5m-16.5 0a2.25 2.25 0 01-2.25-2.25V5.25A2.25 2.25 0 013.75 3h16.5a2.25 2.25 0 012.25 2.25v2.25A2.25 2.25 0 0120.25 9.75m-16.5 0v11.25c0 1.242 1.008 2.25 2.25 2.25h12c1.242 0 2.25-1.008 2.25-2.25V9.75" />
+                        </svg>
+                        <h3 class="text-xl font-bold text-white mb-3">1. The "Problem" Panel: NRV Context Loader</h3>
+                        <p class="text-sm text-knirv-gray mb-4">A CDE is a blank slate. A DVE is problem-oriented. Load problems from the network to get started.</p>
+                        <ul class="list-disc list-inside space-y-2 text-sm">
+                            <li class="text-white"><span class="text-knirv-gray">NRV Browser:</span> Search & filter all open AI failures (NRVs).</li>
+                            <li class="text-white"><span class="text-knirv-gray">Context Importer:</span> "Load Problem" button populates failure logs & test harnesses.</li>
+                            <li class="text-white"><span class="text-knirv-gray">Skill Manifest:</span> Auto-fills metadata templates for your new solution.</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Module 2: Validation Panel -->
+                    <div class="bg-knirv-blue p-8 rounded-lg shadow-2xl ring-2 ring-knirv-green">
+                        <svg class="w-12 h-12 text-knirv-green mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75A2.25 2.25 0 0015.75 1.5m-7.5 0h3m-3 0V3h3V1.5m-3 0h3m-3 18.75h3m-3 0v-3h3v3m-3 0h3m3-18.75h3m-3 0V3h3V1.5m-3 0h3m-3 18.75h3m-3 0v-3h3v3m-3 0h3" />
+                        </svg>
+                        <h3 class="text-xl font-bold text-white mb-3">2. The "Validation" Panel: Local Forensics</h3>
+                        <p class="text-sm text-knirv-gray mb-4">The "Kali Linux-in-a-box" control panel. Test your Skill in a secure sandbox *before* submission.</p>
+                        <ul class="list-disc list-inside space-y-2 text-sm">
+                            <li class="text-white"><span class="text-knirv-gray">Run Validation:</span> Executes your Skill against the failure context.</li>
+                            <li class="text-white"><span class="text-knirv-gray">Real-Time Log Streams:</span> Live `strace`, `tshark`, and console outputs.</li>
+                            <li class="text-white"><span class="text-knirv-gray">Validation Report Card:</span> Get a Pass/Fail summary of static and dynamic analysis.</li>
+                            <li class="text-white"><span class="text-knirv-gray">Forensic Analysis:</span> Memory snapshots and filesystem integrity checks.</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Module 3: Submission Panel -->
+                    <div class="bg-knirv-dark-gray p-8 rounded-lg shadow-xl">
+                        <svg class="w-12 h-12 text-knirv-green mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.63 2.25c-2.65 0-5.05.99-6.9 2.64v4.8m5.05-7.44a14.98 14.98 0 016.16 12.12A14.98 14.98 0 019.63 21.75c-2.65 0-5.05-.99-6.9-2.64m5.05 7.44a14.98 14.98 0 00-6.16-12.12A14.98 14.98 0 009.63 2.25c2.65 0 5.05.99 6.9 2.64m-5.05 7.44h3.6m-3.6 0V14.8m0 0v-3.6m0 3.6h3.6" />
+                        </svg>
+                        <h3 class="text-xl font-bold text-white mb-3">3. The "Submission" Panel: On-Chain Deployment</h3>
+                        <p class="text-sm text-knirv-gray mb-4">Once your Skill passes local validation, this panel handles the final on-chain submission.</p>
+                        <ul class="list-disc list-inside space-y-2 text-sm">
+                            <li class="text-white"><span class="text-knirv-gray">Skill Signer:</span> Sign the Skill package with your KNIRV-WALLET.</li>
+                            <li class="text-white"><span class="text-knirv-gray">Bond Manager:</span> View your NRN balance and the required bond for submission.</li>
+                            <li class="text-white"><span class="text-knirv-gray">Submit to Consensus:</span> Submit your code, report, and bond as a transaction.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Feature Section 2: Auditor Dashboard -->
+        <section id="auditor-dashboard" class="py-24 bg-knirv-dark-gray">
+            <div class="container mx-auto px-6">
+                <div class="text-center max-w-3xl mx-auto mb-16">
+                    <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-4">
+                        The "Enterprise" RTR Auditor Dashboard
+                    </h2>
+                    <p class="text-lg text-knirv-gray">
+                        This isn't a CDE. This is your <span class="text-white">enterprise mission control</span>. Monitor your private, real-time CLEAN nodes and get the verifiable proof of compliance you need.
+                    </p>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-8 items-center">
+                    <!-- Flowchart -->
+                    <div class="lg:col-span-3">
+                        <div class="flow-chart">
+                            <h4 class="text-white text-lg font-bold text-center mb-10">Enterprise RTR Dashboard</h4>
+                            <div class="relative flex flex-col items-center space-y-6">
+                                
+                                <!-- Diagram SVG Background Lines -->
+                                <svg class="absolute top-0 left-0 w-full h-full" style="z-index: 1;">
+                                    <!-- A -> B -->
+                                    <line x1="50%" y1="90" x2="50%" y2="150" class="flow-line" marker-end="url(#arrow)"></line>
+                                    <!-- B -> C -->
+                                    <line x1="50%" y1="210" x2="50%" y2="270" class="flow-line" marker-end="url(#arrow)"></line>
+                                    <!-- A -> D -->
+                                    <line x1="50%" y1="90" x2="25%" y2="150" class="flow-line" marker-end="url(#arrow)"></line>
+                                    <!-- D -> E -->
+                                    <line x1="25%" y1="210" x2="25%" y2="270" class="flow-line" marker-end="url(#arrow)"></line>
+                                    <!-- F -> B -->
+                                    <line x1="75%" y1="180" x2="50%" y2="180" class="flow-line" marker-end="url(#arrow)"></line>
+                                    
+                                    <defs>
+                                        <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                                            <path d="M 0 0 L 10 5 L 0 10 z" class="arrow-head"></path>
+                                        </marker>
+                                    </defs>
+                                </svg>
+
+                                <!-- Boxes -->
+                                <div class="flow-box bg-knirv-red" style="left: 0;">A [Real-Time Failure Feed]</div>
+                                
+                                <div class="w-full flex justify-between relative" style="height: 60px;">
+                                    <div class="flow-box bg-knirv-dark-gray" style="position: absolute; left: 12.5%; top: 60px;">D [Live Resolution Log]</div>
+                                    <div class="flow-box bg-knirv-dark-gray" style="position: absolute; left: 50%; transform: translateX(-50%); top: 60px;">B (Active CLEAN Nodes)</div>
+                                    <div class="flow-box bg-knirv-dark-green" style="position: absolute; right: 12.5%; top: 60px;">F [Security Policy Editor]</div>
+                                </div>
+                                
+                                <div class="w-full flex justify-between relative" style="height: 60px; margin-top: 5rem;">
+                                    <div class="flow-box bg-knirv-dark-gray" style="position: absolute; left: 12.5%; top: 120px;">E [Forensic Reports]</div>
+                                    <div class="flow-box bg-knirv-dark-gray" style="position: absolute; left: 50%; transform: translateX(-50%); top: 120px;">C {Node Health (CPU/GPU)}</div>
+                                </div>
+                                <div class="h-48"></div> <!-- Spacer for layout -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Features List -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="bg-gray-900 p-6 rounded-lg">
+                            <h4 class="text-lg font-semibold text-white mb-2">Real-Time Failure Feed</h4>
+                            <p class="text-sm">A live log of all `FailureContext` being sent from your company's `cortex.wasm` Shells as they happen.</p>
+                        </div>
+                        <div class="bg-gray-900 p-6 rounded-lg">
+                            <h4 class="text-lg font-semibold text-white mb-2">Live Resolution Log</h4>
+                            <p class="text-sm">See which CLEAN node handled which failure, the strategy used, and the PASS/FAIL status in real-time.</p>
+                        </div>
+                        <div class="bg-gray-900 p-6 rounded-lg">
+                            <h4 class="text-lg font-semibold text-white mb-2">Immutable Forensic Reports</h4>
+                            <p class="text-sm">Your key value prop. The searchable, provable, Kali-based report proving *why* a response was blocked.</p>
+                        </div>
+                        <div class="bg-gray-900 p-6 rounded-lg">
+                            <h4 class="text-lg font-semibold text-white mb-2">Security Policy Editor</h4>
+                            <p class="text-sm">A GUI to tune your DVE rules. Whitelist networks or set validation sensitivity from "Balanced" to "Paranoid".</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- Call to Action -->
+        <section id="contact" class="py-32 hero-gradient">
+            <div class="container mx-auto px-6 text-center">
+                <h2 class="text-4xl md:text-5xl font-extrabold text-white max-w-3xl mx-auto leading-tight mb-8">
+                    Stop Guessing. Start Proving.
+                    <span class="block title-gradient mt-4">Upgrade your enterprise AI to be verifiable.</span>
+                </h2>
+                <a href="https://demo.knirv.com" target="_blank" class="bg-knirv-green text-knirv-blue font-bold py-4 px-10 rounded-lg text-xl hover:bg-white transition duration-300 shadow-2xl">
+                    Schedule Your Enterprise Demo
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-knirv-blue text-knirv-gray py-16">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="text-2xl font-extrabold text-white mb-3">
+                        KNIRV<span class="text-knirv-green">.</span>
+                    </div>
+                    <p class="text-sm">The Enterprise AI Platform That Can Prove It.</p>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold text-white mb-4">Contact</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="mailto:investors@knirv.com" class="hover:text-knirv-green">Investors: investors@knirv.com</a></li>
+                        <li><a href="mailto:enterprise@knirv.com" class="hover:text-knirv-green">Sales: enterprise@knirv.com</a></li>
+                        <li><a href="mailto:partners@knirv.com" class="hover:text-knirv-green">Partners: partners@knirv.com</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold text-white mb-4">Products</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#solver-interface" class="hover:text-knirv-green">DVE Solver Interface</a></li>
+                        <li><a href="#auditor-dashboard" class="hover:text-knirv-green">RTR Auditor Dashboard</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold text-white mb-4">Site</h4>
+                     <a href="httpsStorage: knirv.com" target="_blank" class="hover:text-knirv-green text-sm">knirv.com</a>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-12 pt-8 text-center text-sm">
+                &copy; 2025 KNIRV Corporation. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>
