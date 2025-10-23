@@ -19,6 +19,7 @@ interface DashboardProps {
   setSettingsModalOpen: (open: boolean) => void;
   onConnectApp?: (appData: {url: string, name: string, type: string}) => void;
   modelConfig?: any; // Add model config to show cortex.wasm info
+  onReset?: () => void;
 }
 
 const Dashboard = ({
@@ -29,6 +30,7 @@ const Dashboard = ({
   setSettingsModalOpen,
   onConnectApp,
   modelConfig,
+  onReset,
 }: DashboardProps) => {
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [controllerConnected, setControllerConnected] = useState(false);
@@ -115,13 +117,25 @@ const Dashboard = ({
 
       {connectedApp ? (
         <>
-          <div className="mb-8">
-            <h2 className="text-4xl font-bold text-white mb-4">
-              <span className="knirv-gradient-text">KNIRV</span> Model Deployment Dashboard
-            </h2>
-            <p className="text-xl text-white/70">
-              Manage your {connectedApp.name} <span className="knirv-text-primary">Neural Intelligence Model</span> deployments
-            </p>
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h2 className="text-4xl font-bold text-white mb-4">
+                <span className="knirv-gradient-text">KNIRV</span> Model Deployment Dashboard
+              </h2>
+              <p className="text-xl text-white/70">
+                Manage your {connectedApp.name} <span className="knirv-text-primary">Neural Intelligence Model</span> deployments
+              </p>
+            </div>
+            {onReset && (
+              <Button
+                onClick={onReset}
+                variant="outline"
+                className="border-orange-600/50 text-orange-300 hover:bg-orange-900/20 hover:border-orange-500"
+                title="Clear all progress and return to home"
+              >
+                Reset
+              </Button>
+            )}
           </div>
 
           {/* Cortex.WASM Configuration Display */}

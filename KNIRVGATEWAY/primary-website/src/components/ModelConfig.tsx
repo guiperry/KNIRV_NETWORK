@@ -34,6 +34,7 @@ export interface ModelConfigProps {
   settingsModalOpen: boolean;
   setSettingsModalOpen: (open: boolean) => void;
   goBack?: () => void;
+  onReset?: () => void;
 }
 
 const ModelConfig = ({
@@ -46,7 +47,8 @@ const ModelConfig = ({
   onDownload,
   settingsModalOpen,
   setSettingsModalOpen,
-  goBack
+  goBack,
+  onReset
 }: ModelConfigProps) => {
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
@@ -362,6 +364,16 @@ const ModelConfig = ({
               >
                 ← Back
               </Button>
+              {onReset && (
+                <Button
+                  variant="outline"
+                  onClick={onReset}
+                  className="border-orange-600/50 text-orange-300 hover:bg-orange-900/20 hover:border-orange-500"
+                  title="Clear all progress and return to home"
+                >
+                  Reset
+                </Button>
+              )}
               <Button
                 onClick={handleNext}
                 disabled={!nextButtonEnabled || isConfiguring}

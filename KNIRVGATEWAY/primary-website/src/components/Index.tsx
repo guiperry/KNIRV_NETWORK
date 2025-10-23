@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ModelConfiguration } from "@/lib/cortex-compiler/CortexModelCompiler";
 
 const Index = () => {
-  const { state, updateState, saveProgress } = useOnboarding();
+  const { state, updateState, saveProgress, resetOnboarding } = useOnboarding();
   const { isAuthenticated, user, logout } = useAuth();
   const { toast } = useToast();
   const [loginModalOpen, setLoginModalOpen] = useState(false);
@@ -34,6 +34,11 @@ const Index = () => {
   
   // Debug logging
   console.log('Index component rendering, currentStep:', currentStep, 'connectedApp:', connectedApp, 'modelConfig:', modelConfig);
+
+  const handleReset = () => {
+    resetOnboarding();
+    updateState({ currentStep: 'hero' });
+  };
 
   // Initial loading effect
   useEffect(() => {
@@ -108,7 +113,11 @@ const Index = () => {
           <div className="flex justify-between items-center h-16">
             {/* Left: Logo and left-side buttons */}
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
+              <div 
+                className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={handleReset}
+                title="Return to home screen"
+              >
                 <Network className="h-8 w-8 knirv-text-primary" />
                 <span className="text-2xl font-bold knirv-gradient-text">
                   KNIRV
@@ -194,6 +203,7 @@ const Index = () => {
             settingsModalOpen={settingsModalOpen}
             setSettingsModalOpen={setSettingsModalOpen}
             goBack={goBack}
+            onReset={handleReset}
           />
         )}
         
@@ -203,6 +213,7 @@ const Index = () => {
             modelConfig={modelConfig}
             onDeployed={handleModelDeployed}
             onConnectToTargets={() => updateState({ currentStep: 'dashboard' })}
+            onReset={handleReset}
           />
         )}
         
@@ -219,6 +230,7 @@ const Index = () => {
               });
             }}
             modelConfig={modelConfig}
+            onReset={handleReset}
           />
         )}
       </main>

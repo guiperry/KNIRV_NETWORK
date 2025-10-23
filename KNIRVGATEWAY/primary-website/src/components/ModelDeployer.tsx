@@ -39,9 +39,10 @@ interface ModelDeployerProps {
   onDeployed: () => void;
   onConnectToTargets?: () => void;
   onCompilationSuccess?: () => void;
+  onReset?: () => void;
 }
 
-const ModelDeployer = ({ modelConfig, onDeployed, onConnectToTargets, onCompilationSuccess }: ModelDeployerProps) => {
+const ModelDeployer = ({ modelConfig, onDeployed, onConnectToTargets, onCompilationSuccess, onReset }: ModelDeployerProps) => {
   const { toast } = useToast();
   
   // Debug logging
@@ -222,6 +223,16 @@ const ModelDeployer = ({ modelConfig, onDeployed, onConnectToTargets, onCompilat
                   <Server className="w-4 h-4 mr-2" />
                   Connect to Targets
                 </Button>
+                {onReset && (
+                  <Button
+                    onClick={onReset}
+                    variant="outline"
+                    className="border-orange-600/50 text-orange-300 hover:bg-orange-900/20 hover:border-orange-500"
+                    title="Clear all progress and return to home"
+                  >
+                    Reset
+                  </Button>
+                )}
               </div>
             )}
             {!compilationResult?.success && (
@@ -244,6 +255,16 @@ const ModelDeployer = ({ modelConfig, onDeployed, onConnectToTargets, onCompilat
                     </>
                   )}
                 </Button>
+                {onReset && (
+                  <Button
+                    onClick={onReset}
+                    variant="outline"
+                    className="border-orange-600/50 text-orange-300 hover:bg-orange-900/20 hover:border-orange-500"
+                    title="Clear all progress and return to home"
+                  >
+                    Reset
+                  </Button>
+                )}
               </div>
             )}
           </div>
