@@ -265,7 +265,7 @@ func Load(path string) (*Config, error) {
 			RefreshInterval: 5 * time.Second,
 			WindowSize: WindowSize{
 				Width:  1200,
-				Height: 800,
+				Height: 700,
 			},
 			Charts: ChartsConfig{
 				TimeRange:     1 * time.Hour,

@@ -280,8 +280,7 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
                           variant="outline" 
                           size="sm" 
                           className="w-full"
-                          onClick={() => executeWorkflow(template)}
-                        >
+                          onClick={() => executeWorkflow(template)}>
                           <Play className="w-3 h-3 mr-1" />
                           Execute Workflow
                         </Button>
@@ -309,8 +308,7 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
                         variant={showConsole ? "default" : "outline"}
                         size="sm" 
                         className="w-full"
-                        onClick={() => setShowConsole(!showConsole)}
-                      >
+                        onClick={() => setShowConsole(!showConsole)}>
                         {showConsole ? 'Hide' : 'Show'}
                       </Button>
                     </CardContent>
@@ -468,8 +466,7 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
                     </div>
                     <button 
                       onClick={() => setShowConnections(false)}
-                      className="p-1 hover:bg-slate-800 rounded transition-colors"
-                    >
+                      className="p-1 hover:bg-slate-800 rounded transition-colors">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -505,8 +502,7 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
                     </div>
                     <button 
                       onClick={() => setShowConsole(false)}
-                      className="p-1 hover:bg-slate-800 rounded transition-colors"
-                    >
+                      className="p-1 hover:bg-slate-800 rounded transition-colors">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -536,8 +532,7 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
                     </div>
                     <button 
                       onClick={() => setShowPolicy(false)}
-                      className="p-1 hover:bg-slate-800 rounded transition-colors"
-                    >
+                      className="p-1 hover:bg-slate-800 rounded transition-colors">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -579,8 +574,7 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
                     </div>
                     <button 
                       onClick={() => setShowMonitor(false)}
-                      className="p-1 hover:bg-slate-800 rounded transition-colors"
-                    >
+                      className="p-1 hover:bg-slate-800 rounded transition-colors">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -628,8 +622,7 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
                     </div>
                     <button 
                       onClick={() => setShowDVESolver(false)}
-                      className="p-1 hover:bg-slate-800 rounded transition-colors"
-                    >
+                      className="p-1 hover:bg-slate-800 rounded transition-colors">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -646,8 +639,7 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
                               <button 
                                 key={prob.id} 
                                 onClick={() => setSelectedProblem(prob.id)}
-                                className={`w-full text-left p-4 border rounded-lg transition-all ${selectedProblem === prob.id ? 'bg-blue-600/20 border-blue-600/50' : 'bg-slate-800/50 border-blue-600/20 hover:border-blue-600/50'}`}
-                              >
+                                className={`w-full text-left p-4 border rounded-lg transition-all ${selectedProblem === prob.id ? 'bg-blue-600/20 border-blue-600/50' : 'bg-slate-800/50 border-blue-600/20 hover:border-blue-600/50'}`}>
                                 <div className="flex items-start justify-between">
                                   <div>
                                     <div className="text-sm font-medium">{prob.title}</div>
@@ -666,8 +658,7 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
                           <button 
                             onClick={runValidation}
                             disabled={!selectedProblem || isValidating}
-                            className="flex-1 bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-500/50 disabled:cursor-not-allowed text-slate-900 font-semibold py-2 rounded text-sm transition-colors flex items-center justify-center space-x-2"
-                          >
+                            className="flex-1 bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-500/50 disabled:cursor-not-allowed text-slate-900 font-semibold py-2 rounded text-sm transition-colors flex items-center justify-center space-x-2">
                             {isValidating ? (
                               <>
                                 <div className="w-4 h-4 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin"></div>
@@ -711,14 +702,12 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
                         <div className="pt-4 border-t border-blue-600/20 flex gap-2">
                           <button 
                             onClick={() => setShowValidationReport(false)}
-                            className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 rounded text-sm transition-colors"
-                          >
+                            className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 rounded text-sm transition-colors">
                             Run Another
                           </button>
                           <button 
                             onClick={submitToConsensus}
-                            className="flex-1 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-semibold py-2 rounded text-sm transition-colors flex items-center justify-center space-x-2"
-                          >
+                            className="flex-1 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-semibold py-2 rounded text-sm transition-colors flex items-center justify-center space-x-2">
                             <Upload className="w-4 h-4" />
                             <span>Submit to Consensus</span>
                           </button>
