@@ -209,8 +209,21 @@ func (bm *BuntDBManager) DeleteKey(key string) error {
 // ListKeys returns all keys matching a pattern
 func (bm *BuntDBManager) ListKeys(pattern string) ([]string, error) {
 	var keys []string
+
+	// If pattern is empty, iterate through all keys
+	if pattern == "" {
+		err := bm.db.View(func(tx *buntdb.Tx) error {
+			return tx.Ascend("", func(key, value string) bool {
+				keys = append(keys, key)
+				return true
+			})
+		})
+		return keys, err
+	}
+
+	// Otherwise use the pattern
 	err := bm.db.View(func(tx *buntdb.Tx) error {
-		return tx.Ascend(pattern, func(key, value string) bool {
+		return tx.AscendKeys(pattern, func(key, value string) bool {
 			keys = append(keys, key)
 			return true
 		})

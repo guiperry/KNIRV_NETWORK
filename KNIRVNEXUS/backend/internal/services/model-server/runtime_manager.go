@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"backend_server/internal/models"
+	"backend_server/internal/objects"
 )
 
 // RuntimeManager manages live model runtime hosting
@@ -274,7 +274,7 @@ func NewRuntimeManager(ctx context.Context, modelDir string, maxModels int) (*Ru
 	}
 
 	// Set default resource limits for the WASM runtime
-	defaultLimits := &models.ModelResourceLimits{
+	defaultLimits := &objects.ModelResourceLimits{
 		MaxCPUPercent:    50.0, // 50% CPU limit
 		MaxMemoryMB:      256,  // 256MB memory limit
 		MaxExecutionTime: 30,   // 30 seconds execution time

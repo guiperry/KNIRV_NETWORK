@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -9,7 +10,7 @@ import (
 	"time"
 
 	"backend_server/internal/database"
-	"backend_server/internal/models"
+	"backend_server/internal/objects"
 
 	"github.com/tidwall/buntdb"
 )
@@ -25,7 +26,7 @@ func NewUserService(db *database.BuntDBManager) *UserService {
 }
 
 // CreateUser creates a new user with hashed password
-func (us *UserService) CreateUser(registration *models.UserRegistration) (*models.User, error) {
+func (us *UserService) CreateUser(registration *objects.UserRegistration) (*objects.User, error) {
 	// Validate input
 	if err := us.validateRegistration(registration); err != nil {
 		return nil, fmt.Errorf("validation failed: %w", err)
@@ -45,20 +46,20 @@ func (us *UserService) CreateUser(registration *models.UserRegistration) (*model
 	}
 
 	// Hash password
-	hash, salt, err := models.HashPassword(registration.Password)
+	hash, salt, err := objects.HashPassword(registration.Password)
 	if err != nil {
 		return nil, fmt.Errorf("password hashing failed: %w", err)
 	}
 
 	// Generate verification token
-	verificationToken, err := models.GenerateSecureToken(32)
+	verificationToken, err := objects.GenerateSecureToken(32)
 	if err != nil {
 		return nil, fmt.Errorf("token generation failed: %w", err)
 	}
 
 	// Create user
 	now := time.Now()
-	user := &models.User{
+	user := &objects.User{
 		ID:                     fmt.Sprintf("user_%d", now.UnixNano()),
 		Username:               registration.Username,
 		Email:                  strings.ToLower(registration.Email),
@@ -79,20 +80,22 @@ func (us *UserService) CreateUser(registration *models.UserRegistration) (*model
 	}
 
 	// Store user
+	log.Printf("DEBUG: Storing user with hash: %s, salt: %s", user.PasswordHash, user.Salt)
 	if err := us.db.StoreJSON(fmt.Sprintf("users:profiles:%s", user.ID), user); err != nil {
 		return nil, fmt.Errorf("user storage failed: %w", err)
 	}
+	log.Printf("DEBUG: User stored successfully")
 
 	// Log audit event
-	us.logAuditEvent("", "user_registration", "user", user.ID, "", "", "User registration initiated", true)
+	us.logAuditEvent("", "user_registration", "user", "", "", "", "User registration initiated", true)
 
 	log.Printf("User created: %s (%s)", user.Username, user.ID)
 	return user, nil
 }
 
 // GetUserByID retrieves a user by ID
-func (us *UserService) GetUserByID(userID string) (*models.User, error) {
-	var user models.User
+func (us *UserService) GetUserByID(userID string) (*objects.User, error) {
+	var user objects.User
 	err := us.db.GetJSON(fmt.Sprintf("users:profiles:%s", userID), &user)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
@@ -101,17 +104,17 @@ func (us *UserService) GetUserByID(userID string) (*models.User, error) {
 }
 
 // GetUserByUsername retrieves a user by username
-func (us *UserService) GetUserByUsername(username string) (*models.User, error) {
-	var user models.User
+func (us *UserService) GetUserByUsername(username string) (*objects.User, error) {
+	var user objects.User
 	found := false
 
 	err := us.db.ViewTransaction(func(tx *buntdb.Tx) error {
 		return tx.Ascend("users_by_username", func(key, value string) bool {
-			if strings.Contains(key, username) {
-				if err := us.db.GetJSON(key, &user); err == nil {
-					found = true
-					return false // Stop iteration
-				}
+			var u objects.User
+			if err := us.db.GetJSON(key, &u); err == nil && u.Username == username {
+				user = u
+				found = true
+				return false // Stop iteration
 			}
 			return true // Continue
 		})
@@ -129,17 +132,18 @@ func (us *UserService) GetUserByUsername(username string) (*models.User, error) 
 }
 
 // GetUserByEmail retrieves a user by email
-func (us *UserService) GetUserByEmail(email string) (*models.User, error) {
-	var user models.User
+func (us *UserService) GetUserByEmail(email string) (*objects.User, error) {
+	var user objects.User
 	found := false
+	emailLower := strings.ToLower(email)
 
 	err := us.db.ViewTransaction(func(tx *buntdb.Tx) error {
 		return tx.Ascend("users_by_email", func(key, value string) bool {
-			if strings.Contains(key, strings.ToLower(email)) {
-				if err := us.db.GetJSON(key, &user); err == nil {
-					found = true
-					return false // Stop iteration
-				}
+			var u objects.User
+			if err := us.db.GetJSON(key, &u); err == nil && strings.ToLower(u.Email) == emailLower {
+				user = u
+				found = true
+				return false // Stop iteration
 			}
 			return true // Continue
 		})
@@ -157,7 +161,7 @@ func (us *UserService) GetUserByEmail(email string) (*models.User, error) {
 }
 
 // UpdateUser updates user profile information
-func (us *UserService) UpdateUser(userID string, updates *models.UserUpdate) error {
+func (us *UserService) UpdateUser(userID string, updates *objects.UserUpdate) error {
 	user, err := us.GetUserByID(userID)
 	if err != nil {
 		return fmt.Errorf("user not found: %w", err)
@@ -194,19 +198,19 @@ func (us *UserService) UpdateUser(userID string, updates *models.UserUpdate) err
 }
 
 // ChangePassword changes a user's password
-func (us *UserService) ChangePassword(userID string, change *models.ChangePassword) error {
+func (us *UserService) ChangePassword(userID string, change *objects.ChangePassword) error {
 	user, err := us.GetUserByID(userID)
 	if err != nil {
 		return fmt.Errorf("user not found: %w", err)
 	}
 
 	// Verify current password
-	if !models.VerifyPassword(change.CurrentPassword, user.PasswordHash, user.Salt) {
+	if !objects.VerifyPassword(change.CurrentPassword, user.PasswordHash, user.Salt) {
 		return fmt.Errorf("current password is incorrect")
 	}
 
 	// Hash new password
-	hash, salt, err := models.HashPassword(change.NewPassword)
+	hash, salt, err := objects.HashPassword(change.NewPassword)
 	if err != nil {
 		return fmt.Errorf("password hashing failed: %w", err)
 	}
@@ -227,22 +231,20 @@ func (us *UserService) ChangePassword(userID string, change *models.ChangePasswo
 // VerifyEmail verifies a user's email address
 func (us *UserService) VerifyEmail(token string) error {
 	// Find user by verification token
-	var user models.User
+	var user objects.User
 	found := false
 
 	err := us.db.ViewTransaction(func(tx *buntdb.Tx) error {
-		return tx.Ascend("", func(key, value string) bool {
+		return tx.AscendKeys("*", func(key, value string) bool {
 			if strings.HasPrefix(key, "users:profiles:") {
-				var u models.User
-				if err := us.db.GetJSON(key, &u); err == nil {
-					if u.EmailVerificationToken == token {
-						user = u
-						found = true
-						return false
-					}
+				var u objects.User
+				if err := json.Unmarshal([]byte(value), &u); err == nil && u.EmailVerificationToken == token {
+					user = u
+					found = true
+					return false // Stop iteration
 				}
 			}
-			return true
+			return true // Continue
 		})
 	})
 
@@ -276,7 +278,7 @@ func (us *UserService) InitiatePasswordReset(email string) error {
 	}
 
 	// Generate reset token
-	resetToken, err := models.GenerateSecureToken(32)
+	resetToken, err := objects.GenerateSecureToken(32)
 	if err != nil {
 		return fmt.Errorf("token generation failed: %w", err)
 	}
@@ -298,24 +300,24 @@ func (us *UserService) InitiatePasswordReset(email string) error {
 }
 
 // ResetPassword resets a user's password using a reset token
-func (us *UserService) ResetPassword(reset *models.PasswordReset) error {
+func (us *UserService) ResetPassword(reset *objects.PasswordReset) error {
 	// Find user by reset token
-	var user models.User
+	var user objects.User
 	found := false
 
 	err := us.db.ViewTransaction(func(tx *buntdb.Tx) error {
-		return tx.Ascend("", func(key, value string) bool {
+		return tx.AscendKeys("*", func(key, value string) bool {
 			if strings.HasPrefix(key, "users:profiles:") {
-				var u models.User
-				if err := us.db.GetJSON(key, &u); err == nil {
+				var u objects.User
+				if err := json.Unmarshal([]byte(value), &u); err == nil {
 					if u.PasswordResetToken == reset.Token && u.PasswordResetExpires != nil && time.Now().Before(*u.PasswordResetExpires) {
 						user = u
 						found = true
-						return false
+						return false // Stop iteration
 					}
 				}
 			}
-			return true
+			return true // Continue
 		})
 	})
 
@@ -328,7 +330,7 @@ func (us *UserService) ResetPassword(reset *models.PasswordReset) error {
 	}
 
 	// Hash new password
-	hash, salt, err := models.HashPassword(reset.Password)
+	hash, salt, err := objects.HashPassword(reset.Password)
 	if err != nil {
 		return fmt.Errorf("password hashing failed: %w", err)
 	}
@@ -386,7 +388,7 @@ func (us *UserService) RecordLoginAttempt(username string, ipAddress string, suc
 }
 
 // AuthenticateUser authenticates a user with username/password
-func (us *UserService) AuthenticateUser(username, password, ipAddress, userAgent string) (*models.User, error) {
+func (us *UserService) AuthenticateUser(username, password, ipAddress string) (*objects.User, error) {
 	// Check rate limiting first
 	if locked, err := us.isRateLimited(username, ipAddress); err != nil {
 		return nil, fmt.Errorf("rate limit check failed: %w", err)
@@ -412,7 +414,7 @@ func (us *UserService) AuthenticateUser(username, password, ipAddress, userAgent
 	}
 
 	// Verify password
-	if !models.VerifyPassword(password, user.PasswordHash, user.Salt) {
+	if !objects.VerifyPassword(password, user.PasswordHash, user.Salt) {
 		us.RecordLoginAttempt(username, ipAddress, false)
 		return nil, fmt.Errorf("invalid credentials")
 	}
@@ -421,14 +423,14 @@ func (us *UserService) AuthenticateUser(username, password, ipAddress, userAgent
 	us.RecordLoginAttempt(username, ipAddress, true)
 
 	// Log audit event
-	us.logAuditEvent(user.ID, "login", "user", user.ID, ipAddress, userAgent, "User login successful", true)
+	us.logAuditEvent(user.ID, "login", "user", user.ID, ipAddress, "", "User login successful", true)
 
 	return user, nil
 }
 
 // Private helper methods
 
-func (us *UserService) validateRegistration(reg *models.UserRegistration) error {
+func (us *UserService) validateRegistration(reg *objects.UserRegistration) error {
 	if len(reg.Username) < 3 || len(reg.Username) > 50 {
 		return fmt.Errorf("username must be between 3 and 50 characters")
 	}
@@ -449,19 +451,10 @@ func (us *UserService) validateRegistration(reg *models.UserRegistration) error 
 }
 
 func (us *UserService) usernameExists(username string) (bool, error) {
-	count, err := us.db.CountKeys(fmt.Sprintf("users:profiles:*"))
-	if err != nil {
-		return false, err
-	}
-
-	if count == 0 {
-		return false, nil
-	}
-
 	exists := false
-	err = us.db.ViewTransaction(func(tx *buntdb.Tx) error {
+	err := us.db.ViewTransaction(func(tx *buntdb.Tx) error {
 		return tx.Ascend("users_by_username", func(key, value string) bool {
-			var user models.User
+			var user objects.User
 			if err := us.db.GetJSON(key, &user); err == nil && user.Username == username {
 				exists = true
 				return false
@@ -474,20 +467,11 @@ func (us *UserService) usernameExists(username string) (bool, error) {
 }
 
 func (us *UserService) emailExists(email string) (bool, error) {
-	count, err := us.db.CountKeys(fmt.Sprintf("users:profiles:*"))
-	if err != nil {
-		return false, err
-	}
-
-	if count == 0 {
-		return false, nil
-	}
-
 	exists := false
 	emailLower := strings.ToLower(email)
-	err = us.db.ViewTransaction(func(tx *buntdb.Tx) error {
+	err := us.db.ViewTransaction(func(tx *buntdb.Tx) error {
 		return tx.Ascend("users_by_email", func(key, value string) bool {
-			var user models.User
+			var user objects.User
 			if err := us.db.GetJSON(key, &user); err == nil && strings.ToLower(user.Email) == emailLower {
 				exists = true
 				return false
@@ -504,11 +488,11 @@ func (us *UserService) recordRateLimitAttempt(identifier, ipAddress string, succ
 	keys := []string{fmt.Sprintf("ratelimit:username:%s", identifier), fmt.Sprintf("ratelimit:ip:%s", ipAddress)}
 
 	for _, key := range keys {
-		var rateLimit models.RateLimit
+		var rateLimit objects.RateLimit
 		err := us.db.GetJSON(key, &rateLimit)
 		if err != nil {
 			// Create new rate limit entry
-			rateLimit = models.RateLimit{
+			rateLimit = objects.RateLimit{
 				Key:         key,
 				Attempts:    0,
 				LastAttempt: time.Now(),
@@ -533,7 +517,7 @@ func (us *UserService) isRateLimited(username, ipAddress string) (bool, error) {
 	keys := []string{fmt.Sprintf("ratelimit:username:%s", username), fmt.Sprintf("ratelimit:ip:%s", ipAddress)}
 
 	for _, key := range keys {
-		var rateLimit models.RateLimit
+		var rateLimit objects.RateLimit
 		if err := us.db.GetJSON(key, &rateLimit); err == nil {
 			if rateLimit.IsLocked() {
 				return true, nil
@@ -545,17 +529,15 @@ func (us *UserService) isRateLimited(username, ipAddress string) (bool, error) {
 }
 
 func (us *UserService) logAuditEvent(userID, action, resource, resourceID, ipAddress, userAgent, details string, success bool) {
-	auditLog := &models.AuditLog{
-		ID:         fmt.Sprintf("audit_%d", time.Now().UnixNano()),
-		UserID:     userID,
-		Action:     action,
-		Resource:   resource,
-		ResourceID: resourceID,
-		IPAddress:  ipAddress,
-		UserAgent:  userAgent,
-		Timestamp:  time.Now(),
-		Success:    success,
-		Details:    details,
+	auditLog := &objects.AuditLog{
+		ID:        fmt.Sprintf("audit_%d", time.Now().UnixNano()),
+		UserID:    userID,
+		Action:    action,
+		Resource:  resource,
+		Details:   fmt.Sprintf("%s", details),
+		IPAddress: ipAddress,
+		Success:   success,
+		Timestamp: time.Now(),
 	}
 
 	key := fmt.Sprintf("audit:logs:%s", auditLog.ID)

@@ -230,9 +230,8 @@ func TestMetricsSnapshot_StructFields(t *testing.T) {
 		Type:      "node_metrics",
 		NodeID:    "node-123",
 		Source:    "system-monitor",
+		Data:      map[string]interface{}{"cpu_usage": 45.2, "memory_usage": 67.8},
 	}
-
-	snapshot.Data = map[string]interface{}{"cpu_usage": 45.2, "memory_usage": 67.8}
 
 	if snapshot.ID != "snapshot-123" {
 		t.Errorf("Expected ID 'snapshot-123', got '%s'", snapshot.ID)
@@ -270,12 +269,11 @@ func TestReportData_StructFields(t *testing.T) {
 
 	section := ReportSection{
 		ID:          "section-1",
+		Title:       "System Overview",
 		Type:        "metrics",
 		Data:        map[string]interface{}{"total_nodes": 10},
 		Description: "Overview of system metrics",
 	}
-
-	section.Title = "System Overview"
 
 	if section.ID != "section-1" {
 		t.Errorf("Expected ID 'section-1', got '%s'", section.ID)
@@ -440,6 +438,12 @@ func TestChartData_StructFields(t *testing.T) {
 	if chart.Config["color"] != "green" {
 		t.Errorf("Expected color 'green', got %v", chart.Config["color"])
 	}
+	if timestamps, ok := chart.Data["timestamps"].([]string); !ok || len(timestamps) != 2 || timestamps[0] != "2024-01-01" {
+		t.Errorf("Expected timestamps [2024-01-01 2024-01-02], got %v", chart.Data["timestamps"])
+	}
+	if values, ok := chart.Data["values"].([]float64); !ok || len(values) != 2 || values[0] != 45.2 {
+		t.Errorf("Expected values [45.2 67.8], got %v", chart.Data["values"])
+	}
 }
 
 func TestTableData_StructFields(t *testing.T) {
@@ -456,6 +460,9 @@ func TestTableData_StructFields(t *testing.T) {
 
 	if table.ID != "table-123" {
 		t.Errorf("Expected ID 'table-123', got '%s'", table.ID)
+	}
+	if table.Title != "Node Performance Summary" {
+		t.Errorf("Expected Title 'Node Performance Summary', got '%s'", table.Title)
 	}
 	if len(table.Headers) != 4 {
 		t.Errorf("Expected 4 headers, got %d", len(table.Headers))

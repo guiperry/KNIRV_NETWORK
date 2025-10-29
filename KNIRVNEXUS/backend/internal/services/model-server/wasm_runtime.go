@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"backend_server/internal/models"
+	"backend_server/internal/objects"
 )
 
 // WASMRuntime provides WASM execution capabilities with sandboxing
@@ -21,8 +21,8 @@ type WASMRuntime struct {
 // WASMInstance represents a running WASM model instance
 type WASMInstance struct {
 	ID            string
-	Config        *models.ModelRuntimeInstance
-	ResourceUsage *models.ModelResourceUsage
+	Config        *objects.ModelRuntimeInstance
+	ResourceUsage *objects.ModelResourceUsage
 	StartTime     time.Time
 	LastActivity  time.Time
 	HealthStatus  string
@@ -36,7 +36,7 @@ type WASMConfig struct {
 	MaxInstances     int
 	EnableProfiling  bool
 	EnableDebugging  bool
-	ResourceLimits   *models.ModelResourceLimits
+	ResourceLimits   *objects.ModelResourceLimits
 }
 
 // WASMExecutionResult contains the result of WASM execution
@@ -45,7 +45,7 @@ type WASMExecutionResult struct {
 	Output        []byte
 	Error         string
 	ExecutionTime time.Duration
-	ResourceUsage *models.ModelResourceUsage
+	ResourceUsage *objects.ModelResourceUsage
 }
 
 // NewWASMRuntime creates a new WASM runtime
@@ -93,7 +93,7 @@ type WASMModuleStub struct {
 }
 
 // CreateInstance creates a new WASM instance for a model (stub implementation)
-func (wr *WASMRuntime) CreateInstance(modelID string, module interface{}, config *models.ModelRuntimeInstance) (*WASMInstance, error) {
+func (wr *WASMRuntime) CreateInstance(modelID string, module interface{}, config *objects.ModelRuntimeInstance) (*WASMInstance, error) {
 	wr.mu.Lock()
 	defer wr.mu.Unlock()
 
@@ -105,7 +105,7 @@ func (wr *WASMRuntime) CreateInstance(modelID string, module interface{}, config
 	wasmInstance := &WASMInstance{
 		ID:            modelID,
 		Config:        config,
-		ResourceUsage: &models.ModelResourceUsage{},
+		ResourceUsage: &objects.ModelResourceUsage{},
 		StartTime:     time.Now(),
 		LastActivity:  time.Now(),
 		HealthStatus:  "healthy",
@@ -255,7 +255,7 @@ func (wr *WASMRuntime) validateWASMModule(wasmBytes []byte) error {
 }
 
 // setupResourceLimits configures resource limiting (stub implementation)
-func (wr *WASMRuntime) setupResourceLimits(limits *models.ModelResourceLimits) error {
+func (wr *WASMRuntime) setupResourceLimits(limits *objects.ModelResourceLimits) error {
 	// This would implement actual resource limiting
 	// For now, just log the limits
 	if limits != nil {
@@ -276,7 +276,7 @@ func (wr *WASMRuntime) setupResourceLimits(limits *models.ModelResourceLimits) e
 				// Apply CPU limiting by updating the instance config
 				if limits.MaxCPUPercent > 0 {
 					if instance.Config.ResourceLimits == nil {
-						instance.Config.ResourceLimits = &models.ModelResourceLimits{}
+						instance.Config.ResourceLimits = &objects.ModelResourceLimits{}
 					}
 					instance.Config.ResourceLimits.MaxCPUPercent = limits.MaxCPUPercent
 					log.Printf("Applied CPU limit %.1f%% to instance %s", limits.MaxCPUPercent, instanceID)
@@ -285,7 +285,7 @@ func (wr *WASMRuntime) setupResourceLimits(limits *models.ModelResourceLimits) e
 				// Apply memory limiting by updating the instance config
 				if limits.MaxMemoryMB > 0 {
 					if instance.Config.ResourceLimits == nil {
-						instance.Config.ResourceLimits = &models.ModelResourceLimits{}
+						instance.Config.ResourceLimits = &objects.ModelResourceLimits{}
 					}
 					instance.Config.ResourceLimits.MaxMemoryMB = limits.MaxMemoryMB
 					log.Printf("Applied memory limit %dMB to instance %s", limits.MaxMemoryMB, instanceID)
@@ -294,7 +294,7 @@ func (wr *WASMRuntime) setupResourceLimits(limits *models.ModelResourceLimits) e
 				// Apply execution time limiting by updating the instance config
 				if limits.MaxExecutionTime > 0 {
 					if instance.Config.ResourceLimits == nil {
-						instance.Config.ResourceLimits = &models.ModelResourceLimits{}
+						instance.Config.ResourceLimits = &objects.ModelResourceLimits{}
 					}
 					instance.Config.ResourceLimits.MaxExecutionTime = limits.MaxExecutionTime
 					log.Printf("Applied execution time limit %ds to instance %s", limits.MaxExecutionTime, instanceID)
@@ -314,10 +314,10 @@ func (wr *WASMRuntime) setupResourceLimits(limits *models.ModelResourceLimits) e
 }
 
 // collectResourceUsage collects actual resource usage from WASM execution
-func (wr *WASMRuntime) collectResourceUsage(instance *WASMInstance) *models.ModelResourceUsage {
+func (wr *WASMRuntime) collectResourceUsage(instance *WASMInstance) *objects.ModelResourceUsage {
 	// In a real implementation, this would collect actual metrics
 	// For now, return simulated usage
-	return &models.ModelResourceUsage{
+	return &objects.ModelResourceUsage{
 		MemoryUsageMB:   50.0 + float64(time.Now().Unix()%50),
 		CPUUsagePercent: 15.0 + float64(time.Now().Unix()%30),
 		DiskUsageMB:     10.0 + float64(time.Now().Unix()%20),
@@ -329,7 +329,7 @@ func (wr *WASMRuntime) collectResourceUsage(instance *WASMInstance) *models.Mode
 }
 
 // updateResourceUsage updates the instance's resource usage
-func (wr *WASMRuntime) updateResourceUsage(instance *WASMInstance, usage *models.ModelResourceUsage) {
+func (wr *WASMRuntime) updateResourceUsage(instance *WASMInstance, usage *objects.ModelResourceUsage) {
 	if usage != nil {
 		instance.ResourceUsage = usage
 		instance.LastActivity = time.Now()

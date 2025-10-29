@@ -163,34 +163,37 @@ cleanup_test_env() {
 
 # Build test flags
 build_test_flags() {
+    local coverprofile="$1"
     local flags=""
-    
+
     if [[ "$VERBOSE" == "true" ]]; then
         flags="$flags -v"
     fi
-    
+
     if [[ "$RACE_DETECTION" == "true" ]]; then
         flags="$flags -race"
     fi
-    
+
     if [[ "$PARALLEL_TESTS" == "false" ]]; then
         flags="$flags -p 1"
     fi
-    
+
     flags="$flags -timeout $TEST_TIMEOUT"
-    flags="$flags -coverprofile=coverage/coverage.out"
-    flags="$flags -covermode=atomic"
-    
+    if [[ -n "$coverprofile" ]]; then
+        flags="$flags -coverprofile=$coverprofile"
+        flags="$flags -covermode=atomic"
+    fi
+
     echo "$flags"
 }
 
 # Run unit tests
 run_unit_tests() {
     log_info "Running unit tests..."
-    
+
     local flags
-    flags=$(build_test_flags)
-    
+    flags=$(build_test_flags "coverage/unit.out")
+
     # Run tests with coverage
     if go test $flags ./...; then
         log_success "Unit tests passed"
@@ -204,10 +207,10 @@ run_unit_tests() {
 # Run integration tests
 run_integration_tests() {
     log_info "Running integration tests..."
-    
+
     local flags
-    flags=$(build_test_flags)
-    
+    flags=$(build_test_flags "coverage/integration.out")
+
     # Run integration tests
     if go test $flags -tags=integration ./tests/integration/...; then
         log_success "Integration tests passed"
@@ -221,18 +224,18 @@ run_integration_tests() {
 # Run end-to-end tests
 run_e2e_tests() {
     log_info "Running end-to-end tests..."
-    
+
     local flags
-    flags=$(build_test_flags)
-    
+    flags=$(build_test_flags "coverage/e2e.out")
+
     # Start test server
     log_info "Starting test server..."
     ./bin/backend-server --config config/test.yaml &
     local server_pid=$!
-    
+
     # Wait for server to start
     sleep 5
-    
+
     # Run e2e tests
     local result=0
     if go test $flags -tags=e2e ./tests/e2e/...; then
@@ -241,32 +244,47 @@ run_e2e_tests() {
         log_error "End-to-end tests failed"
         result=1
     fi
-    
+
     # Stop test server
     kill $server_pid || true
     wait $server_pid 2>/dev/null || true
-    
+
     return $result
 }
 
 # Generate coverage report
 generate_coverage_report() {
     log_info "Generating coverage report..."
-    
+
+    # Merge coverage profiles if they exist
+    if [[ -f "coverage/unit.out" ]] || [[ -f "coverage/integration.out" ]] || [[ -f "coverage/e2e.out" ]]; then
+        log_info "Merging coverage profiles..."
+        gocovmerge coverage/unit.out coverage/integration.out coverage/e2e.out > coverage/coverage.out 2>/dev/null || {
+            # If gocovmerge fails, try to use the first available profile
+            if [[ -f "coverage/unit.out" ]]; then
+                cp coverage/unit.out coverage/coverage.out
+            elif [[ -f "coverage/integration.out" ]]; then
+                cp coverage/integration.out coverage/coverage.out
+            elif [[ -f "coverage/e2e.out" ]]; then
+                cp coverage/e2e.out coverage/coverage.out
+            fi
+        }
+    fi
+
     if [[ ! -f "coverage/coverage.out" ]]; then
         log_warning "No coverage data found"
         return 0
     fi
-    
+
     # Generate HTML coverage report
     go tool cover -html=coverage/coverage.out -o coverage/coverage.html
-    
+
     # Calculate coverage percentage
     local coverage_percent
     coverage_percent=$(go tool cover -func=coverage/coverage.out | grep total | awk '{print $3}' | sed 's/%//')
-    
+
     log_info "Coverage: ${coverage_percent}%"
-    
+
     # Check coverage threshold
     if (( $(echo "$coverage_percent >= $COVERAGE_THRESHOLD" | bc -l) )); then
         log_success "Coverage threshold met (${coverage_percent}% >= ${COVERAGE_THRESHOLD}%)"

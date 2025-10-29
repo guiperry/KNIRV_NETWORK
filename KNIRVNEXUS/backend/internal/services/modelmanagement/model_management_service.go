@@ -517,10 +517,18 @@ func (ams *ModelManagementService) deployModelInternal(modelID string, parameter
 
 	// Create deployment with parameters
 	deployment := &objects.ModelDeployment{
+		ID:             fmt.Sprintf("deployment_%d", time.Now().UnixNano()),
 		ModelID:        modelID,
-		Replicas:       int(replicas),
-		ResourceLimits: resourceLimits,
+		Name:           fmt.Sprintf("deployment-%s", modelID),
+		Description:    fmt.Sprintf("Deployment for model %s", model.Name),
+		Status:         "deployed",
 		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+		Config: &objects.ModelDeploymentConfig{
+			ResourceLimits: resourceLimits,
+		},
+		Replicas: int(replicas),
+		Instances: []*objects.ModelRuntimeInstance{},
 	}
 
 	// Store deployment
@@ -535,7 +543,6 @@ func (ams *ModelManagementService) deployModelInternal(modelID string, parameter
 		Description: fmt.Sprintf("Model %s deployed with %d replicas (CPU: %.1f%%, Memory: %dMB)",
 			model.Name, int(replicas), resourceLimits.MaxCPUPercent, resourceLimits.MaxMemoryMB),
 		Timestamp: time.Now(),
-		Metadata:  parameters,
 	})
 
 	log.Printf("Model %s deployed successfully with parameters: %v", modelID, parameters)
@@ -629,20 +636,31 @@ func (ams *ModelManagementService) scaleModelInternal(modelID string, parameters
 
 	if deployment, exists := ams.deployments[modelID]; exists {
 		deployment.Replicas = int(replicas)
-		if deployment.ResourceLimits == nil {
-			deployment.ResourceLimits = &objects.ModelResourceLimits{}
+		if deployment.Config == nil {
+			deployment.Config = &objects.ModelDeploymentConfig{}
 		}
-		deployment.ResourceLimits.MaxCPUPercent = cpuLimit
-		deployment.ResourceLimits.MaxMemoryMB = int(memoryLimit)
+		if deployment.Config.ResourceLimits == nil {
+			deployment.Config.ResourceLimits = &objects.ModelResourceLimits{}
+		}
+		deployment.Config.ResourceLimits.MaxCPUPercent = cpuLimit
+		deployment.Config.ResourceLimits.MaxMemoryMB = int(memoryLimit)
 	} else {
 		// Create new deployment if it doesn't exist
 		ams.deployments[modelID] = &objects.ModelDeployment{
-			ModelID:  modelID,
-			Replicas: int(replicas),
-			ResourceLimits: &objects.ModelResourceLimits{
-				MaxCPUPercent: cpuLimit,
-				MaxMemoryMB:   int(memoryLimit),
+			ID:        fmt.Sprintf("deployment_%d", time.Now().UnixNano()),
+			ModelID:   modelID,
+			Name:      fmt.Sprintf("deployment-%s", modelID),
+			Status:    "deployed",
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+			Config: &objects.ModelDeploymentConfig{
+				ResourceLimits: &objects.ModelResourceLimits{
+					MaxCPUPercent: cpuLimit,
+					MaxMemoryMB:   int(memoryLimit),
+				},
 			},
+			Replicas:  int(replicas),
+			Instances: []*objects.ModelRuntimeInstance{},
 		}
 	}
 

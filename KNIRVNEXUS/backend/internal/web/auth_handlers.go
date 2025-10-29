@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"backend_server/internal/database"
-	"backend_server/internal/models"
+	"backend_server/internal/objects"
 	"backend_server/internal/services/auth"
 	"backend_server/internal/web/middleware"
 )
@@ -105,13 +105,12 @@ func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 
 	// Get client IP for rate limiting and audit logging
 	clientIP := auth.GetClientIP(r)
-	userAgent := r.Header.Get("User-Agent")
 
 	// Create user service
 	userService := auth.NewUserService(h.db)
 
 	// Authenticate user
-	user, err := userService.AuthenticateUser(req.Username, req.Password, clientIP, userAgent)
+	user, err := userService.AuthenticateUser(req.Username, req.Password, clientIP)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -194,7 +193,7 @@ func (h *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	userService := auth.NewUserService(h.db)
 
 	// Create registration data
-	registration := &models.UserRegistration{
+	registration := &objects.UserRegistration{
 		Username:  req.Username,
 		Email:     req.Email,
 		Password:  req.Password,
@@ -277,7 +276,7 @@ func (h *AuthHandlers) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	userService := auth.NewUserService(h.db)
 
 	// Reset password
-	reset := &models.PasswordReset{
+	reset := &objects.PasswordReset{
 		Token:    req.Token,
 		Password: req.Password,
 	}
@@ -309,7 +308,7 @@ func (h *AuthHandlers) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	userService := auth.NewUserService(h.db)
 
 	// Change password
-	change := &models.ChangePassword{
+	change := &objects.ChangePassword{
 		CurrentPassword: req.CurrentPassword,
 		NewPassword:     req.NewPassword,
 	}
@@ -341,7 +340,7 @@ func (h *AuthHandlers) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	userService := auth.NewUserService(h.db)
 
 	// Update profile
-	updates := &models.UserUpdate{
+	updates := &objects.UserUpdate{
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
 		Company:   req.Company,

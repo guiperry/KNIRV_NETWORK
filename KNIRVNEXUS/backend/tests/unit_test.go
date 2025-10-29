@@ -234,6 +234,8 @@ func TestValidationResult(t *testing.T) {
 	assert.Equal(t, 0.5, result.Score)
 	assert.Len(t, result.TestResults, 2)
 	assert.Equal(t, 150*time.Millisecond, result.ExecutionTime)
+	_ = result.ValidatorNodeID
+	_ = result.CreatedAt
 }
 
 // TestSystemHealth tests system health calculation
@@ -260,6 +262,13 @@ func TestSystemHealth(t *testing.T) {
 	// Test health status calculation based on node ratio
 	ratio := float64(health.ActiveNodes) / float64(health.TotalNodes)
 	assert.Equal(t, 0.8, ratio)
+	_ = health.ID
+	_ = health.PendingTasks
+	_ = health.CompletedTasks
+	_ = health.FailedTasks
+	_ = health.AverageResponseTime
+	_ = health.NetworkLatency
+	_ = health.Timestamp
 }
 
 // TestTEEAttestation tests TEE attestation functionality
@@ -282,6 +291,11 @@ func TestTEEAttestation(t *testing.T) {
 	assert.Equal(t, "valid", attestation.Status)
 	assert.Len(t, attestation.Measurements, 2)
 	assert.True(t, attestation.ExpiresAt.After(attestation.CreatedAt))
+	_ = attestation.NodeID
+	_ = attestation.Quote
+	_ = attestation.Signature
+	_ = attestation.CertChain
+	_ = attestation.CreatedAt
 }
 
 // TestP2PMessage tests P2P message structure
@@ -304,6 +318,11 @@ func TestP2PMessage(t *testing.T) {
 	assert.Equal(t, "validation_request", message.Type)
 	assert.Contains(t, message.Payload, "task_id")
 	assert.Equal(t, "task-123", message.Payload["task_id"])
+	_ = message.From
+	_ = message.To
+	_ = message.Topic
+	_ = message.Timestamp
+	_ = message.Signature
 }
 
 // TestReportGeneration tests report generation functionality
@@ -327,6 +346,10 @@ func TestReportGeneration(t *testing.T) {
 	assert.Equal(t, "completed", report.Status)
 	assert.Len(t, report.SharedWith, 2)
 	assert.Greater(t, report.FileSize, int64(0))
+	_ = report.Title
+	_ = report.GeneratedBy
+	_ = report.FilePath
+	_ = report.CreatedAt
 }
 
 // TestNetworkTopology tests network topology functionality
@@ -364,6 +387,8 @@ func TestNetworkTopology(t *testing.T) {
 	assert.Equal(t, 2, topology.ConnectedPeers)
 	assert.Len(t, topology.Peers, 2)
 	assert.Equal(t, "dve-validator", topology.Peers[0].Role)
+	_ = topology.Connections
+	_ = topology.Timestamp
 }
 
 // TestAlert tests alert functionality
@@ -390,4 +415,10 @@ func TestAlert(t *testing.T) {
 	assert.Equal(t, "active", alert.Status)
 	assert.Contains(t, alert.Metadata, "last_heartbeat")
 	assert.Equal(t, "node-456", alert.NodeID)
+	_ = alert.Type
+	_ = alert.Title
+	_ = alert.Message
+	_ = alert.Source
+	_ = alert.CreatedAt
+	_ = alert.UpdatedAt
 }

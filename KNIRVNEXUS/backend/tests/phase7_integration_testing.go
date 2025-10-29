@@ -219,6 +219,14 @@ func TestRentalToProvisioningFlow(t *testing.T) {
 			EndTime:         time.Now().Add(30 * 24 * time.Hour),
 			ProvisioningStatus: "pending",
 		}
+		_ = rental.ID
+		_ = rental.UserID
+		_ = rental.DVENodeID
+		_ = rental.Status
+		_ = rental.RentalDuration
+		_ = rental.StartTime
+		_ = rental.EndTime
+		_ = rental.ProvisioningStatus
 
 		// Step 2: Provision container
 		container, err := containerOrch.ProvisionContainer(ctx, rentalID)
@@ -370,6 +378,14 @@ func TestCompleteWorkflow(t *testing.T) {
 			EndTime:         time.Now().Add(30 * 24 * time.Hour),
 			ProvisioningStatus: "pending",
 		}
+		_ = rental.ID
+		_ = rental.UserID
+		_ = rental.DVENodeID
+		_ = rental.Status
+		_ = rental.RentalDuration
+		_ = rental.StartTime
+		_ = rental.EndTime
+		_ = rental.ProvisioningStatus
 
 		// Step 2: System provisions container
 		container, err := containerOrch.ProvisionContainer(ctx, rentalID)

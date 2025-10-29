@@ -43,9 +43,10 @@ func (h *ModelManagementHandlers) GetModels(w http.ResponseWriter, r *http.Reque
 	if author := r.URL.Query().Get("author"); author != "" {
 		filter.Author = author
 	}
-	if search := r.URL.Query().Get("search"); search != "" {
-		filter.Search = search
-	}
+	// Note: Search field not available in current ModelFilter struct
+	// if search := r.URL.Query().Get("search"); search != "" {
+	//	filter.Search = search
+	// }
 	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
 		if limit, err := strconv.Atoi(limitStr); err == nil {
 			filter.Limit = limit
