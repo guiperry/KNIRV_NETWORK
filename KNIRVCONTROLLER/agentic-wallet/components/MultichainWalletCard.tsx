@@ -4,8 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Image,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -39,7 +37,7 @@ const CHAIN_ICONS: { [key: string]: string } = {
   NRN: '🔥',
 };
 
-const CHAIN_COLORS: { [key: string]: string[] } = {
+const CHAIN_COLORS: { [key: string]: readonly [string, string] } = {
   BTC: ['#F7931A', '#FFB84D'],
   ETH: ['#627EEA', '#8FA2F7'],
   SOL: ['#9945FF', '#14F195'],

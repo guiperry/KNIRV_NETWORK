@@ -5,6 +5,6 @@ interface GlassCardProps {
     style?: ViewStyle;
     variant?: 'primary' | 'secondary' | 'accent';
 }
-export default function GlassCard({ children, style, variant }: GlassCardProps): any;
+export default function GlassCard({ children, style, variant }: GlassCardProps): React.ReactElement;
 export {};
 //# sourceMappingURL=GlassCard.d.ts.map

@@ -2,6 +2,7 @@ package dverental
 
 import (
 	"backend_server/internal/objects"
+	"backend_server/internal/services/blockchain"
 	"os"
 	"path/filepath"
 	"testing"
@@ -11,6 +12,37 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/buntdb"
 )
+
+// MockNRNClient is a mock implementation of the blockchain client for testing
+type MockNRNClient struct {
+	blockchain.NRNClient
+}
+
+func (m *MockNRNClient) VerifyPaymentTransaction(txHash string, expectedAmount int64, expectedRecipient string) (*objects.NRNPayment, error) {
+	// Always return a successful payment for testing
+	return &objects.NRNPayment{
+		ID:            txHash,
+		Amount:        expectedAmount,
+		TxHash:        txHash,
+		Status:        "confirmed",
+		BlockHeight:   12345,
+		Confirmations: 6,
+		CreatedAt:     time.Now(),
+		ConfirmedAt:   &time.Time{},
+	}, nil
+}
+
+func (m *MockNRNClient) GetTransactionPool() ([]*blockchain.Transaction, error) {
+	return nil, nil
+}
+
+func (m *MockNRNClient) SubmitTransaction(tx *blockchain.Transaction) (string, error) {
+	return "mock-tx-hash", nil
+}
+
+func (m *MockNRNClient) GetAccountBalance(address string) (int64, error) {
+	return 1000000, nil
+}
 
 func setupTestDVERentalService(t *testing.T) (*DVERentalService, *buntdb.DB) {
 	// Create temporary database
@@ -86,6 +118,10 @@ func TestDVERentalService_Stop(t *testing.T) {
 
 func TestDVERentalService_CreateRental(t *testing.T) {
 	service, _ := setupTestDVERentalService(t)
+
+	// Set mock blockchain client
+	mockClient := &MockNRNClient{}
+	service.SetBlockchainClient(mockClient)
 
 	err := service.Start()
 	require.NoError(t, err)

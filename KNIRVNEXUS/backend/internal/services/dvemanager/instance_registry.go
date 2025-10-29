@@ -60,6 +60,17 @@ func NewInstanceRegistry(db *buntdb.DB, cfg *config.DVEDiscoveryConfig) (*Instan
 func (ir *InstanceRegistry) Start() error {
 	log.Println("Starting DVE Instance Registry...")
 
+	// Set defaults for config values if not set
+	if ir.config.HealthCheckInterval == 0 {
+		ir.config.HealthCheckInterval = 60 * time.Second
+	}
+	if ir.config.DiscoveryInterval == 0 {
+		ir.config.DiscoveryInterval = 30 * time.Second
+	}
+	if ir.config.ConnectionTimeout == 0 {
+		ir.config.ConnectionTimeout = 5 * time.Second
+	}
+
 	// Initialize bootstrap instances
 	for _, bootstrapURL := range ir.config.BootstrapNodes {
 		if err := ir.addInstance(bootstrapURL); err != nil {
@@ -428,4 +439,3 @@ func (ir *InstanceRegistry) GetAllInstancesStats() map[string]map[string]interfa
 
 	return stats
 }
-

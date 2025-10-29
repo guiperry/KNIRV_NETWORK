@@ -228,10 +228,11 @@ func TestMetricsSnapshot_StructFields(t *testing.T) {
 		ID:        "snapshot-123",
 		Timestamp: now,
 		Type:      "node_metrics",
-		Data:      map[string]interface{}{"cpu_usage": 45.2, "memory_usage": 67.8},
 		NodeID:    "node-123",
 		Source:    "system-monitor",
 	}
+
+	snapshot.Data = map[string]interface{}{"cpu_usage": 45.2, "memory_usage": 67.8}
 
 	if snapshot.ID != "snapshot-123" {
 		t.Errorf("Expected ID 'snapshot-123', got '%s'", snapshot.ID)
@@ -257,8 +258,6 @@ func TestMetricsSnapshot_StructFields(t *testing.T) {
 	if len(snapshot.Data) != 2 {
 		t.Errorf("Expected 2 data points, got %d", len(snapshot.Data))
 	}
-	// Mark Data field as used to satisfy linter
-	_ = snapshot.Data
 }
 
 func TestReportData_StructFields(t *testing.T) {
@@ -271,11 +270,12 @@ func TestReportData_StructFields(t *testing.T) {
 
 	section := ReportSection{
 		ID:          "section-1",
-		Title:       "System Overview",
 		Type:        "metrics",
 		Data:        map[string]interface{}{"total_nodes": 10},
 		Description: "Overview of system metrics",
 	}
+
+	section.Title = "System Overview"
 
 	if section.ID != "section-1" {
 		t.Errorf("Expected ID 'section-1', got '%s'", section.ID)
@@ -478,6 +478,9 @@ func TestMetricData_StructFields(t *testing.T) {
 		Trend:       "down",
 		Change:      -12.3,
 	}
+
+	_ = metric.Name
+	_ = metric.Description
 
 	if metric.ID != "metric-123" {
 		t.Errorf("Expected ID 'metric-123', got '%s'", metric.ID)

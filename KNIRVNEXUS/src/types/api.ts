@@ -358,8 +358,105 @@ export interface DVERental {
     username: string;
     password: string;
   };
+  // ⭐ NEW FIELDS for endpoint access
+  container_id?: string;
+  ssh_username?: string;
+  ssh_port?: number;
+  access_token?: string;
+  validation_session_id?: string;
+  error_res_session_id?: string;
+  provisioned_at?: string; // ISO 8601 timestamp
+  provisioning_status?: "pending" | "provisioned" | "failed";
+  // ⭐ NEW PAYMENT FIELDS
+  payment_method_id?: string;
+  payment_provider?: "stripe" | "paypal";
+  payment_amount?: number; // in cents
+  payment_currency?: string;
+  payment_status?: "pending" | "completed" | "failed";
+  stripe_charge_id?: string;
+  paypal_order_id?: string;
+  paypal_capture_id?: string;
+  receipt_url?: string;
+  invoice_id?: string;
+  refund_requested?: boolean;
+  refunded_amount?: number; // in cents
+  payment_failure_reason?: string;
   created_at: string; // ISO 8601 timestamp
   updated_at: string; // ISO 8601 timestamp
+}
+
+// TEE Endpoint and Session types - NEW
+export interface TEEEndpoint {
+  id: string;
+  rental_id: string;
+  container_id: string;
+  endpoint_type: "ssh" | "validation" | "error-resolution";
+  host: string;
+  port: number;
+  protocol: "ssh" | "http" | "https" | "ws";
+  credentials?: Credentials;
+  status: "active" | "inactive" | "terminated";
+  created_at: string; // ISO 8601 timestamp
+  expires_at: string; // ISO 8601 timestamp
+}
+
+export interface Credentials {
+  username?: string;
+  private_key?: string; // Only in single-use responses
+  token?: string;
+  key_fingerprint?: string;
+}
+
+export interface SSHSession {
+  id: string;
+  rental_id: string;
+  container_id: string;
+  username: string;
+  public_key_hash: string;
+  private_key_url: string;
+  endpoint: string;
+  port: number;
+  command: string;
+  expires_at: string; // ISO 8601 timestamp
+  created_at: string; // ISO 8601 timestamp
+  last_used?: string; // ISO 8601 timestamp
+}
+
+export interface ValidationSession {
+  id: string;
+  rental_id: string;
+  session_token: string;
+  endpoint_url: string;
+  port: number;
+  expires_at: string; // ISO 8601 timestamp
+  created_at: string; // ISO 8601 timestamp
+  validation_type: string;
+}
+
+export interface ErrorResolutionSession {
+  id: string;
+  rental_id: string;
+  session_token: string;
+  endpoint_url: string;
+  port: number;
+  expires_at: string; // ISO 8601 timestamp
+  created_at: string; // ISO 8601 timestamp
+  supported_error_types: string[];
+}
+
+export interface DVEAccessInfo {
+  ssh?: SSHSession;
+  reasoning_validation?: ValidationSession;
+  error_resolution?: ErrorResolutionSession;
+  container_info?: {
+    container_id: string;
+    status: string;
+    allocated_resources: {
+      cpu_cores: number;
+      memory_gb: number;
+      disk_gb: number;
+    };
+  };
 }
 
 export interface DVERentalStats {

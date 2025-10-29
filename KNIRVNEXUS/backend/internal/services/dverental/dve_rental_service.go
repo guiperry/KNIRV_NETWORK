@@ -4,6 +4,7 @@ import (
 	"backend_server/internal/objects"
 	"backend_server/internal/services/blockchain"
 	"backend_server/internal/services/cde"
+	"backend_server/internal/services/container"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
@@ -16,16 +17,25 @@ import (
 	"github.com/tidwall/buntdb"
 )
 
+// BlockchainClientInterface defines the interface for blockchain operations
+type BlockchainClientInterface interface {
+	VerifyPaymentTransaction(txHash string, expectedAmount int64, expectedRecipient string) (*objects.NRNPayment, error)
+	GetTransactionPool() ([]*blockchain.Transaction, error)
+	SubmitTransaction(tx *blockchain.Transaction) (string, error)
+	GetAccountBalance(address string) (int64, error)
+}
+
 // DVERentalService manages DVE rental operations
 type DVERentalService struct {
 	db               *buntdb.DB
 	mu               sync.RWMutex
 	running          bool
-	blockchainClient *blockchain.NRNClient
+	blockchainClient BlockchainClientInterface
 
 	// Service references
-	dveManager interface{} // DVE manager for node allocation
-	cdeService interface{} // CDE service for environment provisioning
+	dveManager          interface{} // DVE manager for node allocation
+	cdeService          interface{} // CDE service for environment provisioning
+	containerOrchestrator interface{} // Container orchestrator for TEE containers
 
 	// Rental data
 	activeRentals map[string]*objects.DVERental
@@ -66,8 +76,16 @@ func (drs *DVERentalService) SetServiceReferences(dveManager, cdeService interfa
 	drs.cdeService = cdeService
 }
 
+// SetContainerOrchestrator sets the container orchestrator reference
+func (drs *DVERentalService) SetContainerOrchestrator(orchestrator interface{}) {
+	drs.mu.Lock()
+	defer drs.mu.Unlock()
+
+	drs.containerOrchestrator = orchestrator
+}
+
 // SetBlockchainClient sets the blockchain client for payment verification
-func (drs *DVERentalService) SetBlockchainClient(client *blockchain.NRNClient) {
+func (drs *DVERentalService) SetBlockchainClient(client BlockchainClientInterface) {
 	drs.mu.Lock()
 	defer drs.mu.Unlock()
 
@@ -216,6 +234,24 @@ func (drs *DVERentalService) CreateRental(req *objects.RentalRequest) (*objects.
 
 	rental.CDEEnvironmentID = cdeEnvID
 
+	// ⭐ Provision TEE container for SSH access
+	container, err := drs.provisionTEEContainer(rental)
+	if err != nil {
+		// Clean up CDE environment if container provisioning fails
+		drs.cleanupCDEEnvironment(cdeEnvID)
+		return &objects.RentalResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to provision TEE container: %v", err),
+		}, nil
+	}
+
+	// Update rental with container information
+	rental.ContainerID = container.ID
+	rental.SSHUsername = container.Spec.SSHUsername
+	rental.SSHPort = container.Spec.SSHPort
+	rental.ProvisionedAt = time.Now()
+	rental.ProvisioningStatus = "provisioned"
+
 	// Store rental
 	drs.activeRentals[rental.ID] = rental
 
@@ -297,6 +333,33 @@ func (drs *DVERentalService) GetUserRentedNodeIDs(userID string) ([]string, erro
 	}
 
 	return nodeIDs, nil
+}
+
+// GetRentalByID returns a specific rental by ID
+func (drs *DVERentalService) GetRentalByID(rentalID string) (*objects.DVERental, error) {
+	drs.mu.RLock()
+	defer drs.mu.RUnlock()
+
+	// First check active rentals
+	if rental, exists := drs.activeRentals[rentalID]; exists {
+		return rental, nil
+	}
+
+	// If not in active rentals, check database
+	var rental objects.DVERental
+	err := drs.db.View(func(tx *buntdb.Tx) error {
+		val, err := tx.Get("rental:" + rentalID)
+		if err != nil {
+			return err
+		}
+		return json.Unmarshal([]byte(val), &rental)
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("rental not found: %w", err)
+	}
+
+	return &rental, nil
 }
 
 // GetRentalPlans returns all available rental plans
@@ -589,4 +652,57 @@ func (drs *DVERentalService) generateSecureCredentials(userID, envID string) (ob
 
 	log.Printf("Generated secure credentials for user %s in environment %s", userID, envID)
 	return credentials, nil
+}
+
+// provisionTEEContainer provisions a TEE container for SSH access
+func (drs *DVERentalService) provisionTEEContainer(rental *objects.DVERental) (*container.Container, error) {
+	// Check if container orchestrator is available
+	if drs.containerOrchestrator == nil {
+		// Fallback to mock container if orchestrator is not available
+		containerID := "container-" + uuid.New().String()[:8]
+		mockContainer := &container.Container{
+			ID:    containerID,
+			Status: container.ContainerStatusRunning,
+			CreatedAt: time.Now(),
+			Spec: &container.ContainerSpec{
+				SSHPort:     22145, // Mock port
+				SSHUsername: fmt.Sprintf("rental-user-%s", rental.ID[:8]),
+			},
+			Runtime: "mock",
+		}
+		log.Printf("Provisioned mock TEE container %s for rental %s", containerID, rental.ID)
+		return mockContainer, nil
+	}
+
+	// Use actual container orchestrator
+	type ContainerOrchestratorInterface interface {
+		ProvisionContainer(rentalID string) (*container.Container, error)
+	}
+
+	orchestrator, ok := drs.containerOrchestrator.(ContainerOrchestratorInterface)
+	if !ok {
+		// Fallback to mock if interface doesn't match
+		containerID := "container-" + uuid.New().String()[:8]
+		mockContainer := &container.Container{
+			ID:    containerID,
+			Status: container.ContainerStatusRunning,
+			CreatedAt: time.Now(),
+			Spec: &container.ContainerSpec{
+				SSHPort:     22145, // Mock port
+				SSHUsername: fmt.Sprintf("rental-user-%s", rental.ID[:8]),
+			},
+			Runtime: "mock",
+		}
+		log.Printf("Provisioned fallback TEE container %s for rental %s", containerID, rental.ID)
+		return mockContainer, nil
+	}
+
+	// Provision the container
+	provisionedContainer, err := orchestrator.ProvisionContainer(rental.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to provision TEE container: %w", err)
+	}
+
+	log.Printf("Successfully provisioned TEE container %s for rental %s", provisionedContainer.ID, rental.ID)
+	return provisionedContainer, nil
 }

@@ -1,7 +1,0 @@
-*3
-$3
-set
-$15
-test:object:123
-$49
-{"id":"test-123","name":"Test Object","value":42}

@@ -245,7 +245,7 @@
                 <div class="alert alert-info" style="margin-bottom: 20px;">
                     <h5><i class="fas fa-info-circle"></i> API Documentation Guide</h5>
                     <p><strong>🌐 Public API:</strong> Complete unified API for external developers (recommended)</p>
-                    <p><strong>⚙️ Admin API:</strong> Internal gateway management (administrators only)</p>
+                    <!--<p><strong>⚙️ Admin API:</strong> Internal gateway management (administrators only)</p>-->
                     <p><strong>⛓️ Individual Service APIs:</strong> Specific service documentation for advanced users</p>
                 </div>
 
@@ -253,7 +253,7 @@
                     <h3><i class="fas fa-server" style="margin-right: 10px;"></i>Select API Documentation</h3>
                     <select id="apiSelector" onchange="loadAPI()">
                         <option value="public">🌐 KNIRV Public API (External Users)</option>
-                        <option value="admin">⚙️ KNIRVGATEWAY Admin API (Internal)</option>
+                        <!--<option value="admin">⚙️ KNIRVGATEWAY Admin API (Internal)</option>-->
                         <option value="oracle">⛓️ KNIRVORACLE MCP API (Blockchain + MCP)</option>
                         <option value="chain">🏗️ KNIRVCHAIN API (Advanced Blockchain)</option>
                         <option value="nexus">🚀 KNIRVNEXUS API (Platform Layer)</option>
@@ -279,16 +279,16 @@
         // API documentation files
         const apiFiles = {
             // Public API (external users)
-            public: '../public-api.yaml',
+            //public: '../public-api.yaml',
 
             // Admin API (internal gateway management)
-            admin: '../api.yaml',
+            //admin: '../api.yaml',
 
             // Individual service APIs
             oracle: '../../KNIRVSDK/openapi.yaml',
             chain: '../../KNIRVCHAIN/api.yaml',
             nexus: '../../KNIRVNEXUS/api.yaml',
-            gateway: '../api.yaml'  // Same as admin
+            gateway: '../public-api.yaml'  // Same as public
         };
 
         // Initialize Swagger UI

@@ -104,7 +104,7 @@ export const CreateWalletModal: React.FC<CreateWalletModalProps> = ({
       
       resetForm();
       onClose();
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('Error', 'Failed to create wallet. Please try again.');
     } finally {
       setIsCreating(false);

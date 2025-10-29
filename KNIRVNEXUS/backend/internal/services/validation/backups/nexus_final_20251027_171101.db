@@ -1,0 +1,14 @@
+*3
+$3
+set
+$55
+validation:results:86278ba3-d2b9-4019-917a-5cfff34da859
+$604
+{"id":"86278ba3-d2b9-4019-917a-5cfff34da859","task_id":"085bc7c6-49ac-49ee-aeda-245d1a897b82","validator_node_id":"local-node","status":"passed","score":1,"results":null,"test_results":[{"test_case_id":"test-case-1","status":"passed","actual_output":"4","score":1,"execution_time":100406016},{"test_case_id":"test-case-2","status":"passed","actual_output":"olleh","score":1,"execution_time":100343680}],"proof":"PROOF_V1:local-node:cf3c018a4c2151d7b9197bad0ce7e571d090ffc19a466275da49f4f8e57a4e50","tee_attestation":"","execution_time":0,"created_at":"2025-10-27T17:11:00.869781603-04:00","signature":""}
+*3
+$3
+set
+$53
+validation:tasks:085bc7c6-49ac-49ee-aeda-245d1a897b82
+$751
+{"id":"085bc7c6-49ac-49ee-aeda-245d1a897b82","type":"skillnode","status":"completed","priority":5,"skill_code":"def calculate(input): return eval(input)","test_cases":[{"id":"test-case-1","name":"Basic arithmetic test","description":"","input":"Calculate 2 + 2","expected":"4","weight":1},{"id":"test-case-2","name":"String manipulation test","description":"","input":"Reverse 'hello'","expected":"olleh","weight":1}],"required_tee_type":"software","requested_by":"test-user","parameters":null,"created_at":"2025-10-27T17:10:55.866109185-04:00","updated_at":"2025-10-27T17:11:01.070922901-04:00","started_at":"2025-10-27T17:11:00.869514945-04:00","completed_at":"2025-10-27T17:11:01.070922501-04:00","timeout_at":"2025-10-27T17:15:55.866109355-04:00"}

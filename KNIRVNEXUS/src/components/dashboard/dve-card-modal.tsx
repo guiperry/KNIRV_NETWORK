@@ -1,10 +1,16 @@
 'use client';
 
-import React from 'react';
-import { X, Shield, MapPin, Activity, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Shield, MapPin, Activity, Clock, Terminal, CheckCircle, Zap, ExternalLink } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import type { DVENode } from '@/types/api';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { useDVENodes } from '@/hooks/use-dve-nodes';
+import { useSSHSession } from '@/hooks/use-ssh-session';
+import { useValidationSession } from '@/hooks/use-validation-session';
+import { useErrorResolutionSession } from '@/hooks/use-error-resolution-session';
+import type { DVENode, TEEEndpoint } from '@/types/api';
 
 interface DVECardModalProps {
   isOpen: boolean;
@@ -13,6 +19,97 @@ interface DVECardModalProps {
 }
 
 const DVECardModal: React.FC<DVECardModalProps> = ({ isOpen, onClose, node }) => {
+  const { toast } = useToast();
+  const { getNodeEndpoints } = useDVENodes();
+  const sshSession = useSSHSession();
+  const validationSession = useValidationSession();
+  const errorResolutionSession = useErrorResolutionSession();
+
+  const [endpoints, setEndpoints] = useState<TEEEndpoint[]>([]);
+  const [loadingEndpoints, setLoadingEndpoints] = useState(false);
+
+  // Load endpoints when modal opens
+  useEffect(() => {
+    if (isOpen && node) {
+      loadEndpoints();
+    }
+  }, [isOpen, node]);
+
+  const loadEndpoints = async () => {
+    setLoadingEndpoints(true);
+    try {
+      const nodeEndpoints = await getNodeEndpoints(node.id);
+      setEndpoints(nodeEndpoints || []);
+    } catch (error) {
+      console.error('Failed to load endpoints:', error);
+      toast({
+        title: "Failed to Load Endpoints",
+        description: "Could not retrieve endpoint information for this node.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingEndpoints(false);
+    }
+  };
+
+  // ⭐ NEW: Handle SSH connection
+  const handleSSHConnect = async () => {
+    try {
+      const session = await sshSession.createSession(node.id);
+      if (session) {
+        // Download private key
+        await sshSession.downloadPrivateKey(session.id);
+
+        // Show connection command
+        const command = `ssh -i dve-ssh-key.pem ${session.username}@${session.endpoint} -p ${session.port}`;
+        navigator.clipboard.writeText(command);
+
+        toast({
+          title: "SSH Session Created",
+          description: "SSH command copied to clipboard. Private key downloaded.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "SSH Connection Failed",
+        description: "Failed to create SSH session. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // ⭐ NEW: Handle validation connection
+  const handleValidationConnect = async () => {
+    try {
+      const session = await validationSession.createSession(node.id);
+      if (session) {
+        validationSession.openValidationInterface(session);
+      }
+    } catch (error) {
+      toast({
+        title: "Validation Connection Failed",
+        description: "Failed to create validation session. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // ⭐ NEW: Handle error resolution connection
+  const handleErrorResolutionConnect = async () => {
+    try {
+      const session = await errorResolutionSession.createSession(node.id);
+      if (session) {
+        errorResolutionSession.openErrorResolutionInterface(session);
+      }
+    } catch (error) {
+      toast({
+        title: "Error Resolution Connection Failed",
+        description: "Failed to create error resolution session. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (!isOpen) return null;
 
   const getTEEIcon = (teeType: string) => {
@@ -126,6 +223,60 @@ const DVECardModal: React.FC<DVECardModalProps> = ({ isOpen, onClose, node }) =>
                   <MapPin className="w-4 h-4 text-blue-400" />
                   <span className="font-semibold text-slate-200">{node.location}</span>
                 </div>
+              </div>
+            )}
+          </div>
+
+          {/* ⭐ NEW: Endpoint Access Section */}
+          <div className="bg-slate-800/50 border border-blue-600/30 rounded-lg p-4">
+            <h3 className="text-lg font-semibold text-blue-300 mb-4">Access Endpoints</h3>
+
+            {loadingEndpoints ? (
+              <div className="flex items-center justify-center py-4">
+                <Activity className="w-5 h-5 animate-spin mr-2" />
+                <span className="text-sm text-slate-400">Loading endpoints...</span>
+              </div>
+            ) : endpoints.length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-sm text-slate-400">No active endpoints available</p>
+                <p className="text-xs text-slate-500 mt-1">Rent this node to access endpoints</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {endpoints.map((endpoint, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      {endpoint.endpoint_type === 'ssh' && <Terminal className="w-4 h-4 text-green-400" />}
+                      {endpoint.endpoint_type === 'validation' && <CheckCircle className="w-4 h-4 text-blue-400" />}
+                      {endpoint.endpoint_type === 'error-resolution' && <Zap className="w-4 h-4 text-orange-400" />}
+                      <div>
+                        <p className="text-sm font-medium text-slate-200 capitalize">
+                          {endpoint.endpoint_type.replace('-', ' ')}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          {endpoint.host}:{endpoint.port} ({endpoint.protocol})
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs"
+                      onClick={() => {
+                        if (endpoint.endpoint_type === 'ssh') {
+                          handleSSHConnect();
+                        } else if (endpoint.endpoint_type === 'validation') {
+                          handleValidationConnect();
+                        } else if (endpoint.endpoint_type === 'error-resolution') {
+                          handleErrorResolutionConnect();
+                        }
+                      }}
+                    >
+                      <ExternalLink className="w-3 h-3 mr-1" />
+                      Connect
+                    </Button>
+                  </div>
+                ))}
               </div>
             )}
           </div>

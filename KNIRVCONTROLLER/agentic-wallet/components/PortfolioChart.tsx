@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Dimensions, Text, ColorValue } from 'react-native';
+import { View, StyleSheet, Dimensions, ColorValue } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
@@ -15,14 +15,6 @@ export default function PortfolioChart({ data, change }: PortfolioChartProps) {
   const maxValue = Math.max(...data);
   const minValue = Math.min(...data);
   const range = maxValue - minValue;
-
-  const pathData = data
-    .map((value, index) => {
-      const x = (index / (data.length - 1)) * chartWidth;
-      const y = chartHeight - ((value - minValue) / range) * chartHeight;
-      return index === 0 ? `M${x},${y}` : `L${x},${y}`;
-    })
-    .join(' ');
 
   const isPositive = change >= 0;
   const gradientColors: readonly [ColorValue, ColorValue] = isPositive

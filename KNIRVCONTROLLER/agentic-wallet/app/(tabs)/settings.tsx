@@ -2,8 +2,18 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { User, Shield, Bell, Smartphone, Globe, CircleHelp as HelpCircle, LogOut, ChevronRight, Fingerprint, Key, TriangleAlert as AlertTriangle } from 'lucide-react-native';
+import { User, Shield, Bell, Smartphone, Globe, CircleHelp as HelpCircle, LogOut, ChevronRight, Fingerprint, Key, TriangleAlert as AlertTriangle, LucideIcon } from 'lucide-react-native';
 import GlassCard from '@/components/GlassCard';
+
+interface SettingItem {
+  icon: LucideIcon;
+  title: string;
+  subtitle: string;
+  toggle?: boolean;
+  value?: boolean;
+  onToggle?: (value: boolean) => void;
+  action?: boolean;
+}
 
 export default function SettingsScreen() {
   const [biometricEnabled, setBiometricEnabled] = React.useState(true);
@@ -73,7 +83,7 @@ export default function SettingsScreen() {
     },
   ];
 
-  const renderSettingItem = (item: any, index: number) => (
+  const renderSettingItem = (item: SettingItem, index: number) => (
     <TouchableOpacity key={index}>
       <GlassCard style={styles.settingCard}>
         <View style={styles.settingContent}>

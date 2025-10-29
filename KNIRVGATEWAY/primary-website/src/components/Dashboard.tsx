@@ -35,6 +35,9 @@ const Dashboard = ({
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [controllerConnected, setControllerConnected] = useState(false);
 
+  // Show deployment content immediately when user reaches dashboard
+  const showDeploymentContent = true;
+
   const handleAppConnected = (appData: {url: string, name: string, type: string}) => {
     if (onConnectApp) {
       onConnectApp(appData);
@@ -216,8 +219,8 @@ const Dashboard = ({
             </Card>
           </div>
 
-          {/* Bottom Section - Hidden until controller connected */}
-          {controllerConnected && (
+          {/* Bottom Section - Always show deployment content */}
+          {showDeploymentContent && (
             <>
               {/* Stats Grid */}
               <div className="grid md:grid-cols-4 gap-6 mb-8">
@@ -419,8 +422,8 @@ const Dashboard = ({
             </>
           )}
 
-          {/* Controller Connection Required Message */}
-          {!controllerConnected && (
+          {/* Controller Connection Optional - Show deployment content instead */}
+          {!showDeploymentContent && (
             <Card className="bg-slate-800/50 border-slate-700">
               <CardContent className="p-8 text-center">
                 <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">

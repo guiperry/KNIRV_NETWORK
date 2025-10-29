@@ -22,6 +22,31 @@ type DVERental struct {
 	RenewalPaymentTxHash string        `json:"renewal_payment_tx_hash,omitempty"` // Transaction hash for renewal payment
 	CreatedAt           time.Time      `json:"created_at"`
 	UpdatedAt           time.Time      `json:"updated_at"`
+
+	// ⭐ NEW CONTAINER AND SESSION FIELDS
+	ContainerID         string         `json:"container_id"`         // ID of provisioned container
+	SSHUsername         string         `json:"ssh_username"`         // SSH username for container access
+	SSHPort             int            `json:"ssh_port"`             // SSH port for container access
+	AccessToken         string         `json:"access_token"`         // JWT access token for API access
+	ValidationSessionID string         `json:"validation_session_id"` // ID of reasoning validation session
+	ErrorResSessionID   string         `json:"error_resolution_session_id"` // ID of error resolution session
+	ProvisionedAt       time.Time      `json:"provisioned_at"`       // When container was provisioned
+	ProvisioningStatus  string         `json:"provisioning_status"`  // "pending", "provisioned", "failed"
+
+	// ⭐ NEW PAYMENT FIELDS
+	PaymentMethodID     string         `json:"payment_method_id"`    // Link to PaymentMethod
+	PaymentProvider     string         `json:"payment_provider"`     // "stripe" or "paypal"
+	PaymentAmount       int64          `json:"payment_amount"`       // Amount in cents
+	PaymentCurrency     string         `json:"payment_currency"`     // "USD", "EUR"
+	PaymentStatus       string         `json:"payment_status"`       // "pending", "completed", "failed"
+	StripeChargeID      string         `json:"stripe_charge_id,omitempty"`
+	PayPalOrderID       string         `json:"paypal_order_id,omitempty"`
+	PayPalCaptureID     string         `json:"paypal_capture_id,omitempty"`
+	ReceiptURL          string         `json:"receipt_url,omitempty"`
+	InvoiceID           string         `json:"invoice_id,omitempty"`
+	RefundRequested     bool           `json:"refund_requested"`
+	RefundedAmount      int64          `json:"refunded_amount"`      // Amount refunded in cents
+	PaymentFailureReason string        `json:"payment_failure_reason,omitempty"`
 }
 
 // ResourceLimits defines the resource limits for a rented DVE
@@ -119,4 +144,101 @@ type CDECredentials struct {
 	Password    string `json:"password"`
 	SSHKey      string `json:"ssh_key,omitempty"`
 	AccessToken string `json:"access_token,omitempty"`
+}
+
+// ⭐ NEW SESSION AND ENDPOINT OBJECTS
+
+// SSHSession represents an SSH session to a DVE container
+type SSHSession struct {
+	ID              string    `json:"id"`
+	RentalID        string    `json:"rental_id"`
+	ContainerID     string    `json:"container_id"`
+	Username        string    `json:"username"`
+	PublicKeyHash   string    `json:"public_key_hash"`
+	PrivateKeyURL   string    `json:"private_key_url"`
+	ExpiresAt       time.Time `json:"expires_at"`
+	CreatedAt       time.Time `json:"created_at"`
+	LastUsed        time.Time `json:"last_used"`
+}
+
+// ValidationSession represents a reasoning validation session
+type ValidationSession struct {
+	ID              string    `json:"id"`
+	RentalID        string    `json:"rental_id"`
+	SessionToken    string    `json:"session_token"`
+	EndpointURL     string    `json:"endpoint_url"`
+	Port            int       `json:"port"`
+	ExpiresAt       time.Time `json:"expires_at"`
+	CreatedAt       time.Time `json:"created_at"`
+	ValidationType  string    `json:"validation_type"`
+}
+
+// ErrorResolutionSession for error resolution access
+type ErrorResolutionSession struct {
+	ID              string    `json:"id"`
+	RentalID        string    `json:"rental_id"`
+	SessionToken    string    `json:"session_token"`
+	EndpointURL     string    `json:"endpoint_url"`
+	Port            int       `json:"port"`
+	ExpiresAt       time.Time `json:"expires_at"`
+	CreatedAt       time.Time `json:"created_at"`
+	SupportedTypes  []string  `json:"supported_error_types"`
+}
+
+// TEEEndpoint represents a TEE endpoint (SSH, validation, error resolution)
+type TEEEndpoint struct {
+	ID              string    `json:"id"`
+	RentalID        string    `json:"rental_id"`
+	ContainerID     string    `json:"container_id"`
+	EndpointType    string    `json:"endpoint_type"` // "ssh", "validation", "error-resolution"
+	Host            string    `json:"host"`
+	Port            int       `json:"port"`
+	Protocol        string    `json:"protocol"` // "ssh", "http", "https", "ws"
+	Credentials     Credentials `json:"credentials"`
+	Status          string    `json:"status"` // "active", "inactive", "terminated"
+	CreatedAt       time.Time `json:"created_at"`
+	ExpiresAt       time.Time `json:"expires_at"`
+}
+
+// Credentials contains authentication details
+type Credentials struct {
+	Username        string    `json:"username,omitempty"`
+	PrivateKey      string    `json:"private_key,omitempty"` // Only in single-use responses
+	Token           string    `json:"token,omitempty"`
+	KeyFingerprint  string    `json:"key_fingerprint,omitempty"`
+}
+
+// ⭐ NEW PAYMENT OBJECTS
+
+// PaymentMethod represents payment configuration and transaction details
+type PaymentMethod struct {
+	ID              string    `json:"id"`
+	RentalID        string    `json:"rental_id"`
+	UserID          string    `json:"user_id"`
+	Provider        string    `json:"provider"` // "stripe" or "paypal"
+	Status          string    `json:"status"` // "pending", "completed", "failed", "refunded"
+	Amount          int64     `json:"amount"` // in cents
+	Currency        string    `json:"currency"` // "USD", "EUR", etc.
+	ProviderRefID   string    `json:"provider_ref_id"` // Stripe charge ID or PayPal transaction ID
+	Description     string    `json:"description"`
+	CreatedAt       time.Time `json:"created_at"`
+	CompletedAt     time.Time `json:"completed_at"`
+	FailureReason   string    `json:"failure_reason,omitempty"`
+}
+
+// PaymentTransaction represents a financial transaction record
+type PaymentTransaction struct {
+	ID              string    `json:"id"`
+	PaymentMethodID string    `json:"payment_method_id"`
+	RentalID        string    `json:"rental_id"`
+	UserID          string    `json:"user_id"`
+	Amount          int64     `json:"amount"` // in cents
+	Currency        string    `json:"currency"`
+	Status          string    `json:"status"` // "initiated", "processing", "completed", "failed"
+	Provider        string    `json:"provider"` // "stripe" or "paypal"
+	ProviderTxID    string    `json:"provider_tx_id"`
+	WebhookReceived bool      `json:"webhook_received"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+	ReceiptURL      string    `json:"receipt_url,omitempty"`
 }

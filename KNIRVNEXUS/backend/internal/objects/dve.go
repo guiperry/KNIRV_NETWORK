@@ -35,6 +35,12 @@ type DVENode struct {
 	LastConnectCheck  time.Time `json:"last_connect_check"`
 	ConnectionError   string    `json:"connection_error,omitempty"`
 	IsRemote          bool      `json:"is_remote"`
+
+	// ⭐ NEW ENDPOINT FIELDS
+	SSHPort         int       `json:"ssh_port"`         // SSH port (default 22)
+	ValidationPort  int       `json:"validation_port"`  // Reasoning validation port
+	ErrorResPort    int       `json:"error_resolution_port"` // Error resolution port
+	SupportedTags   []string  `json:"supported_tags"`   // e.g., ["reasoning", "error-resolution"]
 }
 
 // ValidationTask represents a validation task in the DVE network

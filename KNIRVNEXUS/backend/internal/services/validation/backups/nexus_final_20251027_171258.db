@@ -1,0 +1,14 @@
+*3
+$3
+set
+$55
+validation:results:816ce94d-b425-43d6-840c-0653639a29cf
+$522
+{"id":"816ce94d-b425-43d6-840c-0653639a29cf","task_id":"dd79ae10-2055-49b1-ae6f-9ae353b93f64","validator_node_id":"local-node","status":"failed","score":0,"results":null,"test_results":[{"test_case_id":"timeout-test","status":"failed","actual_output":"Skill output for input: test","score":0,"execution_time":100361802}],"proof":"PROOF_V1:local-node:3ef833e4a47d0f1faf5fe89fa5351c63120b2062498473871d4bb0ab39317d48","tee_attestation":"","execution_time":0,"created_at":"2025-10-27T17:12:53.435723219-04:00","signature":""}
+*3
+$3
+set
+$53
+validation:tasks:dd79ae10-2055-49b1-ae6f-9ae353b93f64
+$580
+{"id":"dd79ae10-2055-49b1-ae6f-9ae353b93f64","type":"skillnode","status":"completed","priority":1,"skill_code":"def test(): return 'test'","test_cases":[{"id":"timeout-test","name":"","description":"","input":"test","expected":"test","weight":1}],"required_tee_type":"software","requested_by":"test-user","parameters":null,"created_at":"2025-10-27T17:12:48.429195403-04:00","updated_at":"2025-10-27T17:12:53.536358525-04:00","started_at":"2025-10-27T17:12:53.435481758-04:00","completed_at":"2025-10-27T17:12:53.536357916-04:00","timeout_at":"2025-10-27T17:12:49.429195635-04:00"}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Bot, TrendingUp, Shield, Activity } from 'lucide-react-native';
+import { Bot, TrendingUp, Shield } from 'lucide-react-native';
 import GlassCard from './GlassCard';
 
 interface AIAgentCardProps {

@@ -31,7 +31,10 @@ import {
   Timer
 } from 'lucide-react';
 import { useDVERental } from '@/hooks/use-dve-rental';
-import type { DVERentalPlan, DVERental, RentalRequest } from '@/types/api';
+import { useSSHSession } from '@/hooks/use-ssh-session';
+import { useValidationSession } from '@/hooks/use-validation-session';
+import { useErrorResolutionSession } from '@/hooks/use-error-resolution-session';
+import type { DVERentalPlan, DVERental, RentalRequest, DVEAccessInfo } from '@/types/api';
 import { useAuth } from '@/lib/auth-context';
 
 interface DVERentalManagementProps {
@@ -46,6 +49,9 @@ export default function DVERentalManagement({ isOpen, onClose }: DVERentalManage
   const [selectedPlan, setSelectedPlan] = useState<DVERentalPlan | null>(null);
   const [paymentTxHash, setPaymentTxHash] = useState('');
   const [rentalDuration, setRentalDuration] = useState(1);
+  const [showAccessModal, setShowAccessModal] = useState(false);
+  const [selectedRental, setSelectedRental] = useState<DVERental | null>(null);
+  const [accessInfo, setAccessInfo] = useState<DVEAccessInfo | null>(null);
 
   // Debug logging
   React.useEffect(() => {
@@ -65,7 +71,8 @@ export default function DVERentalManagement({ isOpen, onClose }: DVERentalManage
     getTotalCost,
     fetchRentals,
     fetchPlans,
-    fetchStats
+    fetchStats,
+    getFullAccessInfo,
   } = useDVERental();
 
   const handleCreateRental = async () => {
@@ -117,6 +124,30 @@ export default function DVERentalManagement({ isOpen, onClose }: DVERentalManage
       toast({
         title: "Rental Cancelled",
         description: "Rental has been cancelled successfully",
+      });
+    }
+  };
+
+  // ⭐ NEW: Handle Access CDE button - fetch and display access information
+  const handleAccessCDE = async (rental: DVERental) => {
+    try {
+      const info = await getFullAccessInfo(rental.id);
+      if (info) {
+        setSelectedRental(rental);
+        setAccessInfo(info);
+        setShowAccessModal(true);
+      } else {
+        toast({
+          title: "Access Information Unavailable",
+          description: "Could not retrieve access information for this rental.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Access Failed",
+        description: "Failed to retrieve access information. Please try again.",
+        variant: "destructive",
       });
     }
   };
@@ -374,7 +405,11 @@ export default function DVERentalManagement({ isOpen, onClose }: DVERentalManage
                                     <Clock className="w-3 h-3 mr-1" />
                                     Extend
                                   </Button>
-                                  <Button variant="outline" size="sm">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleAccessCDE(rental)}
+                                  >
                                     <Eye className="w-3 h-3 mr-1" />
                                     Access CDE
                                   </Button>

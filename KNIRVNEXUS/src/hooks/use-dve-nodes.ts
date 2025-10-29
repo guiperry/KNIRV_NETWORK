@@ -6,7 +6,11 @@ import type {
   DVENodeFilter,
   RegisterNodeRequest,
   APIResponse,
-  DVENodeUpdate
+  DVENodeUpdate,
+  TEEEndpoint,
+  SSHSession,
+  ValidationSession,
+  ErrorResolutionSession
 } from '@/types/api';
 import { apiRequest, API_BASE_URL, buildQueryString } from '@/lib/api';
 import { webSocketService } from '@/lib/websocket-service';
@@ -16,7 +20,7 @@ export const useDVENodes = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [socket, setSocket] = useState<StandardWebSocket | null>(null);
+  const [socket, setSocket] = useState<WebSocket | null>(null);
 
   // Fetch DVE nodes with optional filtering
   const fetchNodes = useCallback(async (filter?: DVENodeFilter) => {
@@ -287,6 +291,102 @@ export const useDVENodes = () => {
     }
   }, []);
 
+  // ⭐ NEW: Get all endpoints for a specific DVE node
+  const getNodeEndpoints = useCallback(async (nodeId: string): Promise<TEEEndpoint[]> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const url = `${API_BASE_URL}/api/dve-nodes/${nodeId}/endpoints`;
+      const response: APIResponse<TEEEndpoint[]> = await apiRequest(url, { method: 'GET' });
+
+      if (response.success && Array.isArray(response.data)) {
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Failed to fetch node endpoints');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(errorMessage);
+      console.error('Failed to fetch node endpoints:', err);
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // ⭐ NEW: Get SSH endpoint for a specific DVE node
+  const getNodeSSHEndpoint = useCallback(async (nodeId: string): Promise<TEEEndpoint | null> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const url = `${API_BASE_URL}/api/dve-nodes/${nodeId}/ssh-endpoint`;
+      const response: APIResponse<TEEEndpoint> = await apiRequest(url, { method: 'GET' });
+
+      if (response.success && response.data && !Array.isArray(response.data)) {
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Failed to fetch SSH endpoint');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(errorMessage);
+      console.error('Failed to fetch SSH endpoint:', err);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // ⭐ NEW: Get validation endpoint for a specific DVE node
+  const getNodeValidationEndpoint = useCallback(async (nodeId: string): Promise<TEEEndpoint | null> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const url = `${API_BASE_URL}/api/dve-nodes/${nodeId}/validation-endpoint`;
+      const response: APIResponse<TEEEndpoint> = await apiRequest(url, { method: 'GET' });
+
+      if (response.success && response.data && !Array.isArray(response.data)) {
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Failed to fetch validation endpoint');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(errorMessage);
+      console.error('Failed to fetch validation endpoint:', err);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // ⭐ NEW: Get error resolution endpoint for a specific DVE node
+  const getNodeErrorResolutionEndpoint = useCallback(async (nodeId: string): Promise<TEEEndpoint | null> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const url = `${API_BASE_URL}/api/dve-nodes/${nodeId}/error-resolution-endpoint`;
+      const response: APIResponse<TEEEndpoint> = await apiRequest(url, { method: 'GET' });
+
+      if (response.success && response.data && !Array.isArray(response.data)) {
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Failed to fetch error resolution endpoint');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(errorMessage);
+      console.error('Failed to fetch error resolution endpoint:', err);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   // Convenience methods for common operations
   const getOnlineNodes = useCallback(() => fetchNodes({ status: 'online' }), [fetchNodes]);
   const getNodesByTEE = useCallback((teeType: string) => fetchNodes({ tee_type: teeType }), [fetchNodes]);
@@ -314,6 +414,11 @@ export const useDVENodes = () => {
     refreshNodes,
     connectWebSocket,
     disconnectWebSocket,
+    // ⭐ NEW endpoint methods
+    getNodeEndpoints,
+    getNodeSSHEndpoint,
+    getNodeValidationEndpoint,
+    getNodeErrorResolutionEndpoint,
   };
 };
 

@@ -8,10 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useDVENodes } from '@/hooks/use-dve-nodes';
+import { useDVERental } from '@/hooks/use-dve-rental';
 import { useAuth } from '@/lib/auth-context';
 import { CDEAccessModal } from '@/components/cde/cde-access-modal';
 import DVECardModal from './dve-card-modal';
-import type { DVENode } from '@/types/api';
+import type { DVENode, DVEAccessInfo } from '@/types/api';
+import { useToast } from '@/hooks/use-toast';
 
 interface DVENodesPanelProps {
   className?: string;
@@ -21,6 +23,7 @@ interface DVENodesPanelProps {
 
 export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentClick, onNodeConnect }) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const {
     nodes,
     isLoading,
@@ -28,13 +31,82 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
     refreshNodes,
     getOnlineNodes,
     getNodesByTEE,
+    getNodeEndpoints,
   } = useDVENodes();
+
+  const {
+    getFullAccessInfo,
+    createSSHSession,
+    createValidationSession,
+    createErrorResolutionSession,
+  } = useDVERental();
 
   const [filter, setFilter] = useState<string>('all');
   const [selectedNode, setSelectedNode] = useState<DVENode | null>(null);
   const [cardModalOpen, setCardModalOpen] = useState(false);
   const [cdeOpen, setCDEOpen] = useState(false);
   const [activeNodeId, setActiveNodeId] = useState<{ [key: string]: boolean }>({});
+  const [provisioningNodes, setProvisioningNodes] = useState<Set<string>>(new Set());
+  const [accessInfo, setAccessInfo] = useState<DVEAccessInfo | null>(null);
+
+  // ⭐ NEW: Handle Start button - provision container for rental
+  const handleStartDVE = async (node: DVENode) => {
+    if (provisioningNodes.has(node.id)) return;
+
+    setProvisioningNodes(prev => new Set(prev).add(node.id));
+
+    try {
+      // For now, redirect to rental modal
+      // In a full implementation, this would provision a container directly
+      if (onRentClick) {
+        onRentClick();
+      } else {
+        toast({
+          title: "Rental Required",
+          description: "Please use the Rent button to create a rental first.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Provisioning Failed",
+        description: "Failed to provision DVE container. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setProvisioningNodes(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(node.id);
+        return newSet;
+      });
+    }
+  };
+
+  // ⭐ NEW: Handle Access button - fetch and display access information
+  const handleAccessDVE = async (node: DVENode) => {
+    try {
+      // For node access, we need to get endpoints for this node
+      // This would typically be for nodes that are already rented
+      const endpoints = await getNodeEndpoints(node.id);
+
+      if (endpoints && endpoints.length > 0) {
+        // Show access modal with endpoint information
+        setSelectedNode(node);
+        setCDEOpen(true);
+      } else {
+        toast({
+          title: "No Access Available",
+          description: "No active endpoints found for this node. Please ensure you have an active rental.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Access Failed",
+        description: "Failed to retrieve access information. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -339,19 +411,23 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
                     {/* Actions */}
                     <div className="flex space-x-2 pt-2">
                       {/* Start/Stop Button */}
-                      <Button 
-                        variant="default" 
-                        size="sm" 
+                      <Button
+                        variant="default"
+                        size="sm"
                         className={`flex-1 text-xs font-semibold transition-all ${
                           activeNodeId[node.id]
                             ? 'bg-green-600 hover:bg-green-700'
                             : 'bg-primary hover:bg-primary/90'
                         }`}
-                        onClick={() => {
-                          setActiveNodeId(prev => ({ ...prev, [node.id]: !prev[node.id] }));
-                        }}
+                        onClick={() => handleStartDVE(node)}
+                        disabled={provisioningNodes.has(node.id)}
                       >
-                        {activeNodeId[node.id] ? (
+                        {provisioningNodes.has(node.id) ? (
+                          <>
+                            <Activity className="w-3 h-3 mr-1 animate-spin" />
+                            Starting...
+                          </>
+                        ) : activeNodeId[node.id] ? (
                           <>
                             <Square className="w-3 h-3 mr-1" />
                             Stop
@@ -379,14 +455,11 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
 
                       {/* Access Button - Only shown when active */}
                       {activeNodeId[node.id] && (
-                        <Button 
-                          variant="default" 
-                          size="sm" 
+                        <Button
+                          variant="default"
+                          size="sm"
                           className="flex-1 text-xs bg-secondary hover:bg-secondary/90"
-                          onClick={() => {
-                            setSelectedNode(node);
-                            setCDEOpen(true);
-                          }}
+                          onClick={() => handleAccessDVE(node)}
                         >
                           <Zap className="w-3 h-3 mr-1" />
                           Access

@@ -7,7 +7,11 @@ import type {
   DVERental,
   DVERentalStats,
   RentalRequest,
-  ExtendRentalRequest
+  ExtendRentalRequest,
+  DVEAccessInfo,
+  SSHSession,
+  ValidationSession,
+  ErrorResolutionSession
 } from '@/types/api';
 import { apiRequest, API_BASE_URL } from '@/lib/api';
 import { webSocketService } from '@/lib/websocket-service';
@@ -246,11 +250,107 @@ export const useDVERental = () => {
     setIsConnected(false);
   }, []);
 
+  // ⭐ NEW: Get full access information for a rental
+  const getFullAccessInfo = useCallback(async (rentalId: string): Promise<DVEAccessInfo | null> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const url = `${API_BASE_URL}/api/dve-rental/rentals/${rentalId}/full-access-info`;
+      const response: APIResponse<DVEAccessInfo> = await apiRequest(url, { method: 'GET' });
+
+      if (response.success && response.data && !Array.isArray(response.data)) {
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Failed to fetch access info');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(errorMessage);
+      console.error('Failed to fetch access info:', err);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // ⭐ NEW: Create SSH session for a rental
+  const createSSHSession = useCallback(async (rentalId: string): Promise<SSHSession | null> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const url = `${API_BASE_URL}/api/dve-rental/rentals/${rentalId}/ssh-session`;
+      const response: APIResponse<SSHSession> = await apiRequest(url, { method: 'POST' });
+
+      if (response.success && response.data && !Array.isArray(response.data)) {
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Failed to create SSH session');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(errorMessage);
+      console.error('Failed to create SSH session:', err);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // ⭐ NEW: Create validation session for a rental
+  const createValidationSession = useCallback(async (rentalId: string): Promise<ValidationSession | null> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const url = `${API_BASE_URL}/api/dve-rental/rentals/${rentalId}/validation-session`;
+      const response: APIResponse<ValidationSession> = await apiRequest(url, { method: 'POST' });
+
+      if (response.success && response.data && !Array.isArray(response.data)) {
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Failed to create validation session');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(errorMessage);
+      console.error('Failed to create validation session:', err);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // ⭐ NEW: Create error resolution session for a rental
+  const createErrorResolutionSession = useCallback(async (rentalId: string): Promise<ErrorResolutionSession | null> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const url = `${API_BASE_URL}/api/dve-rental/rentals/${rentalId}/error-resolution-session`;
+      const response: APIResponse<ErrorResolutionSession> = await apiRequest(url, { method: 'POST' });
+
+      if (response.success && response.data && !Array.isArray(response.data)) {
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Failed to create error resolution session');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(errorMessage);
+      console.error('Failed to create error resolution session:', err);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   // Convenience methods
-  const getActiveRentals = useCallback(() => 
+  const getActiveRentals = useCallback(() =>
     rentals.filter(rental => rental.status === 'active'), [rentals]);
-  
-  const getTotalCost = useCallback(() => 
+
+  const getTotalCost = useCallback(() =>
     rentals.reduce((total, rental) => total + rental.total_cost, 0), [rentals]);
 
   // Initial fetch on mount
@@ -277,6 +377,11 @@ export const useDVERental = () => {
     getTotalCost,
     connectWebSocket,
     disconnectWebSocket,
+    // ⭐ NEW access and session methods
+    getFullAccessInfo,
+    createSSHSession,
+    createValidationSession,
+    createErrorResolutionSession,
   };
 };
 

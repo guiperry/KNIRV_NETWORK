@@ -20,12 +20,16 @@ import (
 	"backend_server/internal/services/blockchain"
 	"backend_server/internal/services/cde"
 	"backend_server/internal/services/cognitiveengine"
+	"backend_server/internal/services/container"
 	"backend_server/internal/services/controllerintegration"
 	"backend_server/internal/services/dns"
 	"backend_server/internal/services/dvemanager"
 	"backend_server/internal/services/dverental"
+	"backend_server/internal/services/endpoints"
 	modelserver "backend_server/internal/services/model-server"
 	"backend_server/internal/services/modelmanagement"
+	"backend_server/internal/services/payment"
+	"backend_server/internal/services/session"
 	"backend_server/internal/services/systemhealth"
 	"backend_server/internal/services/teesecurity"
 	"backend_server/internal/services/validation"
@@ -69,6 +73,11 @@ type Server struct {
 	controllerIntegrationService *controllerintegration.ControllerIntegrationService
 	dveRentalService             *dverental.DVERentalService
 	cognitiveEngine              *cognitiveengine.CognitiveEngine
+	containerOrchestrator        *container.ContainerOrchestrator
+	sessionManager               *session.SessionManager
+	endpointRegistry             *endpoints.EndpointRegistry
+	stripeService                *payment.StripeService
+	paypalService                *payment.PayPalService
 
 	// Context for managing service lifecycle
 	ctx    context.Context
@@ -209,16 +218,57 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		dnsService = nil
 	}
 
+	// Initialize Container Orchestrator
+	containerConfig := &container.ContainerConfig{
+		ContainerRuntime:         "docker",
+		BaseImage:               "ubuntu:20.04",
+		SSHPortRangeStart:       22000,
+		SSHPortRangeEnd:         22999,
+		ValidationPortRangeStart: 23000,
+		ValidationPortRangeEnd:   23999,
+		ErrorResPortRangeStart:   24000,
+		ErrorResPortRangeEnd:     24999,
+		ProvisioningTimeout:      5 * time.Minute,
+		CleanupInterval:          10 * time.Minute,
+	}
+	containerOrchestrator, err := container.NewContainerOrchestrator(containerConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize container orchestrator: %w", err)
+	}
+
 	// Initialize DVE Rental service
 	dveRentalService, err := dverental.NewDVERentalService(dbManager.GetDB())
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize DVE rental service: %w", err)
 	}
 	dveRentalService.SetServiceReferences(dveManager, cdeService)
+	dveRentalService.SetContainerOrchestrator(containerOrchestrator)
 
 	// Initialize NRN blockchain client for payment verification
 	nrnClient := blockchain.NewNRNClient("http://localhost:8082") // TODO: Make configurable
 	dveRentalService.SetBlockchainClient(nrnClient)
+
+	// Initialize Session Manager
+	sessionManager := session.NewSessionManager()
+
+	// Initialize Endpoint Registry
+	endpointRegistry := endpoints.NewEndpointRegistry()
+
+	// Initialize Payment Services
+	stripeService := payment.NewStripeService(
+		"s_k_test_example", // TODO: Load from environment
+		"pk_test_example", // TODO: Load from environment
+		"whsec_example",   // TODO: Load from environment
+		"usd",
+		"2023-10-16",
+	)
+
+	paypalService := payment.NewPayPalService(
+		"client_id_example", // TODO: Load from environment
+		"secret_example",    // TODO: Load from environment
+		"sandbox",           // TODO: Load from environment
+		"USD",
+	)
 
 	// Initialize Cognitive Engine
 	cognitiveEngine := cognitiveengine.NewCognitiveEngine(dbManager.GetDB(), validationCore, inferenceService, modelManagementService)
@@ -245,6 +295,11 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		controllerIntegrationService: controllerIntegrationService,
 		dveRentalService:             dveRentalService,
 		cognitiveEngine:              cognitiveEngine,
+		containerOrchestrator:        containerOrchestrator,
+		sessionManager:               sessionManager,
+		endpointRegistry:             endpointRegistry,
+		stripeService:                stripeService,
+		paypalService:                paypalService,
 		ctx:                          ctx,
 		cancel:                       cancel,
 		running:                      false,
@@ -393,7 +448,7 @@ func (s *Server) setupRoutes() {
 
 	// Register DVE rental service routes
 	if s.dveRentalService != nil {
-		dveRentalHandlers := web.NewDVERentalHandlers(s.dveRentalService)
+		dveRentalHandlers := web.NewDVERentalHandlers(s.dveRentalService, s.containerOrchestrator, s.sessionManager, s.endpointRegistry)
 		dveRentalHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("DVE rental service routes configured")
 	}
@@ -404,6 +459,11 @@ func (s *Server) setupRoutes() {
 		cognitiveEngineHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("Cognitive engine routes configured")
 	}
+
+	// Register payment service routes
+	paymentHandlers := web.NewPaymentHandlers(s.stripeService, s.paypalService)
+	paymentHandlers.RegisterRoutes(s.router, authMiddleware)
+	log.Println("Payment service routes configured")
 
 	// Register system settings routes
 	systemSettingsHandlers := web.NewSystemSettingsHandlers(s.config)

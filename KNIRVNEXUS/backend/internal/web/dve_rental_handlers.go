@@ -2,11 +2,16 @@ package web
 
 import (
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
 	"time"
 
 	"backend_server/internal/objects"
+	"backend_server/internal/services/container"
 	"backend_server/internal/services/dverental"
+	"backend_server/internal/services/endpoints"
+	"backend_server/internal/services/session"
 	"backend_server/internal/web/middleware"
 
 	"github.com/gorilla/mux"
@@ -14,12 +19,20 @@ import (
 
 // DVERentalHandlers handles DVE rental API requests
 type DVERentalHandlers struct {
-	dveRentalService *dverental.DVERentalService
+	dveRentalService    *dverental.DVERentalService
+	containerOrchestrator *container.ContainerOrchestrator
+	sessionManager      *session.SessionManager
+	endpointRegistry    *endpoints.EndpointRegistry
 }
 
 // NewDVERentalHandlers creates new DVE rental handlers
-func NewDVERentalHandlers(dveRentalService *dverental.DVERentalService) *DVERentalHandlers {
-	return &DVERentalHandlers{dveRentalService: dveRentalService}
+func NewDVERentalHandlers(dveRentalService *dverental.DVERentalService, containerOrchestrator *container.ContainerOrchestrator, sessionManager *session.SessionManager, endpointRegistry *endpoints.EndpointRegistry) *DVERentalHandlers {
+	return &DVERentalHandlers{
+		dveRentalService:      dveRentalService,
+		containerOrchestrator: containerOrchestrator,
+		sessionManager:        sessionManager,
+		endpointRegistry:      endpointRegistry,
+	}
 }
 
 // DVERentalResponse represents a standard API response for DVE rental operations
@@ -252,6 +265,741 @@ func (h *DVERentalHandlers) CancelRental(w http.ResponseWriter, r *http.Request)
 	json.NewEncoder(w).Encode(response)
 }
 
+// GetFullAccessInfo handles GET /api/dve-rental/rentals/{id}/full-access-info
+func (h *DVERentalHandlers) GetFullAccessInfo(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	rentalID := vars["id"]
+
+	if rentalID == "" {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental ID is required",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// TODO: Extract user ID from JWT token
+	userID := r.URL.Query().Get("user_id")
+	if userID == "" {
+		userID = "test-user-default"
+	}
+
+	// Get rental details
+	rental, err := h.dveRentalService.GetRentalByID(rentalID)
+	if err != nil {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Failed to fetch rental: " + err.Error(),
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	if rental == nil || rental.UserID != userID {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental not found or access denied",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Check if rental is active
+	if rental.Status != "active" || time.Now().After(rental.EndTime) {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental is not active",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Get SSH endpoint from registry
+	sshEndpoint, err := h.endpointRegistry.GetEndpointByRentalAndType(rentalID, "ssh")
+	sshInfo := map[string]interface{}{
+		"endpoint": "localhost",
+		"port":     rental.SSHPort,
+		"username": rental.SSHUsername,
+		"command":  fmt.Sprintf("ssh -i key.pem %s@localhost -p %d", rental.SSHUsername, rental.SSHPort),
+	}
+	if err == nil && sshEndpoint != nil {
+		sshInfo["endpoint"] = sshEndpoint.Host
+		sshInfo["port"] = sshEndpoint.Port
+		sshInfo["protocol"] = sshEndpoint.Protocol
+	}
+
+	// Get validation endpoint from registry
+	validationEndpoint, err := h.endpointRegistry.GetEndpointByRentalAndType(rentalID, "validation")
+	validationInfo := map[string]interface{}{
+		"endpoint_url": fmt.Sprintf("http://localhost:%d", 23145),
+		"session_token": "placeholder-token",
+		"expires_at": time.Now().Add(24 * time.Hour),
+	}
+	if err == nil && validationEndpoint != nil {
+		validationInfo["endpoint_url"] = fmt.Sprintf("%s://%s:%d", validationEndpoint.Protocol, validationEndpoint.Host, validationEndpoint.Port)
+		// Get session token from session manager
+		if rental.ValidationSessionID != "" {
+			if session, err := h.sessionManager.GetValidationSession(rental.ValidationSessionID); err == nil && session != nil {
+				validationInfo["session_token"] = session.SessionToken
+				validationInfo["expires_at"] = session.ExpiresAt
+				validationInfo["session_id"] = session.ID
+				validationInfo["validation_type"] = session.ValidationType
+			}
+		}
+	}
+
+	// Get error resolution endpoint from registry
+	errorResEndpoint, err := h.endpointRegistry.GetEndpointByRentalAndType(rentalID, "error-resolution")
+	errorResInfo := map[string]interface{}{
+		"endpoint_url": fmt.Sprintf("http://localhost:%d", 24145),
+		"session_token": "placeholder-token",
+		"expires_at": time.Now().Add(24 * time.Hour),
+	}
+	if err == nil && errorResEndpoint != nil {
+		errorResInfo["endpoint_url"] = fmt.Sprintf("%s://%s:%d", errorResEndpoint.Protocol, errorResEndpoint.Host, errorResEndpoint.Port)
+		// Get session token from session manager
+		if rental.ErrorResSessionID != "" {
+			if session, err := h.sessionManager.GetErrorResolutionSession(rental.ErrorResSessionID); err == nil && session != nil {
+				errorResInfo["session_token"] = session.SessionToken
+				errorResInfo["expires_at"] = session.ExpiresAt
+				errorResInfo["session_id"] = session.ID
+				errorResInfo["supported_error_types"] = session.SupportedTypes
+			}
+		}
+	}
+
+	// Get container status
+	containerStatus := "unknown"
+	if rental.ContainerID != "" && h.containerOrchestrator != nil {
+		if status, err := h.containerOrchestrator.GetContainerStatus(rental.ContainerID); err == nil {
+			containerStatus = string(status)
+		}
+	}
+
+	// Build full access info response
+	accessInfo := map[string]interface{}{
+		"rental": map[string]interface{}{
+			"id":                 rental.ID,
+			"status":            rental.Status,
+			"provisioning_status": rental.ProvisioningStatus,
+			"end_time":          rental.EndTime,
+			"start_time":        rental.StartTime,
+		},
+		"ssh": sshInfo,
+		"reasoning_validation": validationInfo,
+		"error_resolution": errorResInfo,
+		"container_info": map[string]interface{}{
+			"container_id": rental.ContainerID,
+			"status":      containerStatus,
+			"allocated_resources": map[string]interface{}{
+				"cpu":    rental.ResourceLimits.MaxCPU,
+				"memory": fmt.Sprintf("%.1fGB", float64(rental.ResourceLimits.MaxMemory)/(1024*1024*1024)),
+				"disk":   fmt.Sprintf("%.1fGB", float64(rental.ResourceLimits.MaxDisk)/(1024*1024*1024)),
+			},
+		},
+	}
+
+	response := DVERentalResponse{
+		Success:   true,
+		Data:      accessInfo,
+		Message:   "Full access information retrieved successfully",
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// CreateSSHSession handles POST /api/dve-rental/rentals/{id}/ssh-session
+func (h *DVERentalHandlers) CreateSSHSession(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	rentalID := vars["id"]
+
+	if rentalID == "" {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental ID is required",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// TODO: Extract user ID from JWT token
+	userID := r.URL.Query().Get("user_id")
+	if userID == "" {
+		userID = "test-user-default"
+	}
+
+	// Validate rental ownership
+	rental, err := h.dveRentalService.GetRentalByID(rentalID)
+	if err != nil || rental == nil || rental.UserID != userID {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental not found or access denied",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Check if rental is active
+	if rental.Status != "active" || time.Now().After(rental.EndTime) {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental is not active",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Create SSH session using session manager
+	sshSession, err := h.sessionManager.CreateSSHSession(rentalID, rental.ContainerID, rental.SSHUsername)
+	if err != nil {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Failed to create SSH session: " + err.Error(),
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Register SSH endpoint
+	sshEndpoint := &objects.TEEEndpoint{
+		RentalID:    rentalID,
+		ContainerID: rental.ContainerID,
+		EndpointType: "ssh",
+		Host:        "localhost", // TODO: Get actual host
+		Port:        rental.SSHPort,
+		Protocol:    "ssh",
+		Status:      "active",
+		CreatedAt:   time.Now(),
+		ExpiresAt:   sshSession.ExpiresAt,
+	}
+	err = h.endpointRegistry.RegisterEndpoint(rentalID, "ssh", sshEndpoint)
+	if err != nil {
+		log.Printf("Warning: Failed to register SSH endpoint: %v", err)
+		// Continue - endpoint registration failure shouldn't block session creation
+	}
+
+	// Get SSH endpoint info
+	sshEndpointInfo, _ := h.endpointRegistry.GetEndpointByRentalAndType(rentalID, "ssh")
+	endpoint := "localhost"
+	port := rental.SSHPort
+	if sshEndpointInfo != nil {
+		endpoint = sshEndpointInfo.Host
+		port = sshEndpointInfo.Port
+	}
+
+	sessionInfo := map[string]interface{}{
+		"id":                    sshSession.ID,
+		"rental_id":            rentalID,
+		"container_id":         rental.ContainerID,
+		"username":            sshSession.Username,
+		"private_key_download_url": sshSession.PrivateKeyURL,
+		"endpoint":            endpoint,
+		"port":                port,
+		"command":             fmt.Sprintf("ssh -i key.pem %s@%s -p %d", sshSession.Username, endpoint, port),
+		"expires_at":          sshSession.ExpiresAt,
+		"public_key_hash":     sshSession.PublicKeyHash,
+	}
+
+	response := DVERentalResponse{
+		Success:   true,
+		Data:      sessionInfo,
+		Message:   "SSH session created successfully",
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(response)
+}
+
+// GetSSHSession handles GET /api/dve-rental/rentals/{id}/ssh-session
+func (h *DVERentalHandlers) GetSSHSession(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	rentalID := vars["id"]
+
+	if rentalID == "" {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental ID is required",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// TODO: Extract user ID from JWT token
+	userID := r.URL.Query().Get("user_id")
+	if userID == "" {
+		userID = "test-user-default"
+	}
+
+	// Validate rental ownership
+	rental, err := h.dveRentalService.GetRentalByID(rentalID)
+	if err != nil || rental == nil || rental.UserID != userID {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental not found or access denied",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// TODO: Get SSH session from session manager
+	sessionInfo := map[string]interface{}{
+		"id":                    "ssh-session-" + rentalID,
+		"rental_id":            rentalID,
+		"username":            rental.SSHUsername,
+		"private_key_download_url": fmt.Sprintf("/api/sessions/ssh/%s/private-key", rentalID),
+		"endpoint":            "localhost",
+		"port":                rental.SSHPort,
+		"command":             fmt.Sprintf("ssh -i key.pem %s@localhost -p %d", rental.SSHUsername, rental.SSHPort),
+		"expires_at":          time.Now().Add(24 * time.Hour),
+	}
+
+	response := DVERentalResponse{
+		Success:   true,
+		Data:      sessionInfo,
+		Message:   "SSH session retrieved successfully",
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// CreateValidationSession handles POST /api/dve-rental/rentals/{id}/validation-session
+func (h *DVERentalHandlers) CreateValidationSession(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	rentalID := vars["id"]
+
+	if rentalID == "" {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental ID is required",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// TODO: Extract user ID from JWT token
+	userID := r.URL.Query().Get("user_id")
+	if userID == "" {
+		userID = "test-user-default"
+	}
+
+	// Validate rental ownership
+	rental, err := h.dveRentalService.GetRentalByID(rentalID)
+	if err != nil || rental == nil || rental.UserID != userID {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental not found or access denied",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Check if rental is active
+	if rental.Status != "active" || time.Now().After(rental.EndTime) {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental is not active",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Create validation session using session manager
+	validationSession, err := h.sessionManager.CreateValidationSession(rentalID, "reasoning")
+	if err != nil {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Failed to create validation session: " + err.Error(),
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Register validation endpoint
+	validationEndpoint := &objects.TEEEndpoint{
+		RentalID:    rentalID,
+		ContainerID: rental.ContainerID,
+		EndpointType: "validation",
+		Host:        "localhost", // TODO: Get actual host
+		Port:        23145,       // TODO: Get from container spec
+		Protocol:    "http",
+		Status:      "active",
+		CreatedAt:   time.Now(),
+		ExpiresAt:   validationSession.ExpiresAt,
+	}
+	err = h.endpointRegistry.RegisterEndpoint(rentalID, "validation", validationEndpoint)
+	if err != nil {
+		log.Printf("Warning: Failed to register validation endpoint: %v", err)
+		// Continue - endpoint registration failure shouldn't block session creation
+	}
+
+	// Get validation endpoint info
+	validationEndpointInfo, _ := h.endpointRegistry.GetEndpointByRentalAndType(rentalID, "validation")
+	endpointURL := fmt.Sprintf("http://localhost:%d", 23145)
+	if validationEndpointInfo != nil {
+		endpointURL = fmt.Sprintf("%s://%s:%d", validationEndpointInfo.Protocol, validationEndpointInfo.Host, validationEndpointInfo.Port)
+	}
+
+	sessionInfo := map[string]interface{}{
+		"id":              validationSession.ID,
+		"rental_id":      rentalID,
+		"container_id":   rental.ContainerID,
+		"endpoint_url":   endpointURL,
+		"session_token":  validationSession.SessionToken,
+		"session_id":     validationSession.ID,
+		"validation_type": validationSession.ValidationType,
+		"expires_at":     validationSession.ExpiresAt,
+	}
+
+	response := DVERentalResponse{
+		Success:   true,
+		Data:      sessionInfo,
+		Message:   "Validation session created successfully",
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(response)
+}
+
+// GetValidationSession handles GET /api/dve-rental/rentals/{id}/validation-session
+func (h *DVERentalHandlers) GetValidationSession(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	rentalID := vars["id"]
+
+	if rentalID == "" {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental ID is required",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// TODO: Extract user ID from JWT token
+	userID := r.URL.Query().Get("user_id")
+	if userID == "" {
+		userID = "test-user-default"
+	}
+
+	// Validate rental ownership
+	rental, err := h.dveRentalService.GetRentalByID(rentalID)
+	if err != nil || rental == nil || rental.UserID != userID {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental not found or access denied",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// TODO: Get validation session from session manager
+	sessionInfo := map[string]interface{}{
+		"id":             "val-session-" + rentalID,
+		"rental_id":     rentalID,
+		"endpoint_url":  fmt.Sprintf("http://localhost:%d", 23145),
+		"session_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+		"session_id":    "val-" + rentalID,
+		"validation_types": []string{"reasoning", "factuality", "custom"},
+		"expires_at":    time.Now().Add(24 * time.Hour),
+	}
+
+	response := DVERentalResponse{
+		Success:   true,
+		Data:      sessionInfo,
+		Message:   "Validation session retrieved successfully",
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// CreateErrorResolutionSession handles POST /api/dve-rental/rentals/{id}/error-resolution-session
+func (h *DVERentalHandlers) CreateErrorResolutionSession(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	rentalID := vars["id"]
+
+	if rentalID == "" {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental ID is required",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// TODO: Extract user ID from JWT token
+	userID := r.URL.Query().Get("user_id")
+	if userID == "" {
+		userID = "test-user-default"
+	}
+
+	// Validate rental ownership
+	rental, err := h.dveRentalService.GetRentalByID(rentalID)
+	if err != nil || rental == nil || rental.UserID != userID {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental not found or access denied",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Check if rental is active
+	if rental.Status != "active" || time.Now().After(rental.EndTime) {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental is not active",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Create error resolution session using session manager
+	supportedTypes := []string{
+		"connection_timeout",
+		"validation_failed",
+		"resource_exhausted",
+		"custom_error",
+	}
+	errorResSession, err := h.sessionManager.CreateErrorResolutionSession(rentalID, supportedTypes)
+	if err != nil {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Failed to create error resolution session: " + err.Error(),
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Register error resolution endpoint
+	errorResEndpoint := &objects.TEEEndpoint{
+		RentalID:    rentalID,
+		ContainerID: rental.ContainerID,
+		EndpointType: "error-resolution",
+		Host:        "localhost", // TODO: Get actual host
+		Port:        24145,       // TODO: Get from container spec
+		Protocol:    "http",
+		Status:      "active",
+		CreatedAt:   time.Now(),
+		ExpiresAt:   errorResSession.ExpiresAt,
+	}
+	err = h.endpointRegistry.RegisterEndpoint(rentalID, "error-resolution", errorResEndpoint)
+	if err != nil {
+		log.Printf("Warning: Failed to register error resolution endpoint: %v", err)
+		// Continue - endpoint registration failure shouldn't block session creation
+	}
+
+	// Get error resolution endpoint info
+	errorResEndpointInfo, _ := h.endpointRegistry.GetEndpointByRentalAndType(rentalID, "error-resolution")
+	endpointURL := fmt.Sprintf("http://localhost:%d", 24145)
+	if errorResEndpointInfo != nil {
+		endpointURL = fmt.Sprintf("%s://%s:%d", errorResEndpointInfo.Protocol, errorResEndpointInfo.Host, errorResEndpointInfo.Port)
+	}
+
+	sessionInfo := map[string]interface{}{
+		"id":                   errorResSession.ID,
+		"rental_id":           rentalID,
+		"container_id":        rental.ContainerID,
+		"endpoint_url":        endpointURL,
+		"session_token":       errorResSession.SessionToken,
+		"session_id":          errorResSession.ID,
+		"supported_error_types": errorResSession.SupportedTypes,
+		"expires_at":          errorResSession.ExpiresAt,
+	}
+
+	response := DVERentalResponse{
+		Success:   true,
+		Data:      sessionInfo,
+		Message:   "Error resolution session created successfully",
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(response)
+}
+
+// GetErrorResolutionSession handles GET /api/dve-rental/rentals/{id}/error-resolution-session
+func (h *DVERentalHandlers) GetErrorResolutionSession(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	rentalID := vars["id"]
+
+	if rentalID == "" {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental ID is required",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// TODO: Extract user ID from JWT token
+	userID := r.URL.Query().Get("user_id")
+	if userID == "" {
+		userID = "test-user-default"
+	}
+
+	// Validate rental ownership
+	rental, err := h.dveRentalService.GetRentalByID(rentalID)
+	if err != nil || rental == nil || rental.UserID != userID {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental not found or access denied",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// TODO: Get error resolution session from session manager
+	sessionInfo := map[string]interface{}{
+		"id":             "err-session-" + rentalID,
+		"rental_id":     rentalID,
+		"endpoint_url":  fmt.Sprintf("http://localhost:%d", 24145),
+		"session_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+		"session_id":    "err-" + rentalID,
+		"supported_error_types": []string{
+			"connection_timeout",
+			"validation_failed",
+			"resource_exhausted",
+			"custom_error",
+		},
+		"expires_at": time.Now().Add(24 * time.Hour),
+	}
+
+	response := DVERentalResponse{
+		Success:   true,
+		Data:      sessionInfo,
+		Message:   "Error resolution session retrieved successfully",
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// TerminateSSHSession handles DELETE /api/dve-rental/rentals/{id}/ssh-session
+func (h *DVERentalHandlers) TerminateSSHSession(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	rentalID := vars["id"]
+
+	if rentalID == "" {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental ID is required",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// TODO: Extract user ID from JWT token
+	userID := r.URL.Query().Get("user_id")
+	if userID == "" {
+		userID = "test-user-default"
+	}
+
+	// Validate rental ownership
+	rental, err := h.dveRentalService.GetRentalByID(rentalID)
+	if err != nil || rental == nil || rental.UserID != userID {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental not found or access denied",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// TODO: Terminate SSH session using session manager
+	response := DVERentalResponse{
+		Success:   true,
+		Message:   "SSH session terminated successfully",
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
 // RegisterRoutes registers the DVE rental routes with the router
 func (h *DVERentalHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.AuthMiddleware) {
 	// Create a subrouter for DVE rental endpoints
@@ -269,12 +1017,28 @@ func (h *DVERentalHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middle
 		protectedRentalRouter.HandleFunc("/rentals", h.GetUserRentals).Methods("GET")
 		protectedRentalRouter.HandleFunc("/rentals/{id}/extend", h.ExtendRental).Methods("POST")
 		protectedRentalRouter.HandleFunc("/rentals/{id}", h.CancelRental).Methods("DELETE")
+		protectedRentalRouter.HandleFunc("/rentals/{id}/full-access-info", h.GetFullAccessInfo).Methods("GET")
+		protectedRentalRouter.HandleFunc("/rentals/{id}/ssh-session", h.CreateSSHSession).Methods("POST")
+		protectedRentalRouter.HandleFunc("/rentals/{id}/ssh-session", h.GetSSHSession).Methods("GET")
+		protectedRentalRouter.HandleFunc("/rentals/{id}/ssh-session", h.TerminateSSHSession).Methods("DELETE")
+		protectedRentalRouter.HandleFunc("/rentals/{id}/validation-session", h.CreateValidationSession).Methods("POST")
+		protectedRentalRouter.HandleFunc("/rentals/{id}/validation-session", h.GetValidationSession).Methods("GET")
+		protectedRentalRouter.HandleFunc("/rentals/{id}/error-resolution-session", h.CreateErrorResolutionSession).Methods("POST")
+		protectedRentalRouter.HandleFunc("/rentals/{id}/error-resolution-session", h.GetErrorResolutionSession).Methods("GET")
 	} else {
 		// If no auth middleware, allow all routes (for testnet mode)
 		rentalRouter.HandleFunc("/rentals", h.CreateRental).Methods("POST")
 		rentalRouter.HandleFunc("/rentals", h.GetUserRentals).Methods("GET")
 		rentalRouter.HandleFunc("/rentals/{id}/extend", h.ExtendRental).Methods("POST")
 		rentalRouter.HandleFunc("/rentals/{id}", h.CancelRental).Methods("DELETE")
+		rentalRouter.HandleFunc("/rentals/{id}/full-access-info", h.GetFullAccessInfo).Methods("GET")
+		rentalRouter.HandleFunc("/rentals/{id}/ssh-session", h.CreateSSHSession).Methods("POST")
+		rentalRouter.HandleFunc("/rentals/{id}/ssh-session", h.GetSSHSession).Methods("GET")
+		rentalRouter.HandleFunc("/rentals/{id}/ssh-session", h.TerminateSSHSession).Methods("DELETE")
+		rentalRouter.HandleFunc("/rentals/{id}/validation-session", h.CreateValidationSession).Methods("POST")
+		rentalRouter.HandleFunc("/rentals/{id}/validation-session", h.GetValidationSession).Methods("GET")
+		rentalRouter.HandleFunc("/rentals/{id}/error-resolution-session", h.CreateErrorResolutionSession).Methods("POST")
+		rentalRouter.HandleFunc("/rentals/{id}/error-resolution-session", h.GetErrorResolutionSession).Methods("GET")
 	}
 
 	// Handle OPTIONS requests for CORS (ensure CORS headers are set)

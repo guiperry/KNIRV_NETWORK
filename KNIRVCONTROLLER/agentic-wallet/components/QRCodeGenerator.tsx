@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   Clipboard,
   Dimensions,
 } from 'react-native';
-import QRCode from 'react-native-qrcode-svg';
+import { default as QRCode } from 'react-native-qrcode-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { QRCodeService } from '../services/QRCodeService';
@@ -21,8 +21,8 @@ interface QRCodeGeneratorProps {
     publicKey?: string;
     chainId?: string;
     sessionId?: string;
-    transactionData?: any;
-    syncData?: any;
+    transactionData?: unknown;
+    syncData?: unknown;
   };
   onClose: () => void;
   title?: string;
@@ -44,11 +44,7 @@ export const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
   const [error, setError] = useState<string>('');
   const qrService = QRCodeService.getInstance();
 
-  useEffect(() => {
-    generateQRCode();
-  }, [type, data]);
-
-  const generateQRCode = async () => {
+  const generateQRCode = useCallback(async () => {
     setIsLoading(true);
     setError('');
 
@@ -73,13 +69,13 @@ export const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
           }
           qrString = await qrService.generateTransactionRequestQR(
             data.sessionId,
-            data.transactionData.from,
-            data.transactionData.to,
-            data.transactionData.amount,
+            (data.transactionData as any).from,
+            (data.transactionData as any).to,
+            (data.transactionData as any).amount,
             {
-              token: data.transactionData.token,
-              memo: data.transactionData.memo,
-              gasLimit: data.transactionData.gasLimit,
+              token: (data.transactionData as any).token,
+              memo: (data.transactionData as any).memo,
+              gasLimit: (data.transactionData as any).gasLimit,
             }
           );
           break;
@@ -90,7 +86,7 @@ export const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
           }
           qrString = await qrService.generateSyncRequestQR(
             data.sessionId,
-            data.syncData
+            data.syncData as any
           );
           break;
 
@@ -100,17 +96,21 @@ export const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
 
       setQrData(qrString);
     } catch (err) {
-      setError(err.message || 'Failed to generate QR code');
+      setError((err as Error).message || 'Failed to generate QR code');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [type, data, qrService]);
+
+  useEffect(() => {
+    generateQRCode();
+  }, [generateQRCode]);
 
   const handleCopyToClipboard = async () => {
     try {
       await Clipboard.setString(qrData);
       Alert.alert('Copied', 'QR code data copied to clipboard');
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('Error', 'Failed to copy to clipboard');
     }
   };
@@ -121,7 +121,7 @@ export const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
         message: qrData,
         title: 'KNIRV Wallet Connection',
       });
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('Error', 'Failed to share QR code');
     }
   };

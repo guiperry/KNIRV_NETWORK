@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -33,7 +33,6 @@ export const CrossPlatformTransactionModal: React.FC<CrossPlatformTransactionMod
   mode,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [pendingTx, setPendingTx] = useState<PendingTransaction | null>(null);
   const [estimatedFee, setEstimatedFee] = useState<{
     gasLimit: string;
     gasPrice: string;
@@ -42,13 +41,7 @@ export const CrossPlatformTransactionModal: React.FC<CrossPlatformTransactionMod
 
   const txService = CrossPlatformTransactionService.getInstance();
 
-  useEffect(() => {
-    if (visible && transactionRequest && mode === 'sign') {
-      estimateTransactionFee();
-    }
-  }, [visible, transactionRequest, mode]);
-
-  const estimateTransactionFee = async () => {
+  const estimateTransactionFee = useCallback(async () => {
     if (!transactionRequest) return;
 
     try {
@@ -57,7 +50,13 @@ export const CrossPlatformTransactionModal: React.FC<CrossPlatformTransactionMod
     } catch (error) {
       console.error('Failed to estimate fee:', error);
     }
-  };
+  }, [transactionRequest, txService]);
+
+  useEffect(() => {
+    if (visible && transactionRequest && mode === 'sign') {
+      estimateTransactionFee();
+    }
+  }, [visible, transactionRequest, mode, estimateTransactionFee]);
 
   const handleSignTransaction = async () => {
     if (!transactionRequest || !sessionId) return;
@@ -92,7 +91,8 @@ export const CrossPlatformTransactionModal: React.FC<CrossPlatformTransactionMod
         ]
       );
     } catch (error) {
-      Alert.alert('Error', `Failed to sign transaction: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert('Error', `Failed to sign transaction: ${message}`);
     } finally {
       setIsLoading(false);
     }
@@ -108,7 +108,8 @@ export const CrossPlatformTransactionModal: React.FC<CrossPlatformTransactionMod
         [{ text: 'OK', onPress: onClose }]
       );
     } catch (error) {
-      Alert.alert('Error', `Failed to broadcast transaction: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert('Error', `Failed to broadcast transaction: ${message}`);
     } finally {
       setIsLoading(false);
     }
@@ -208,36 +209,7 @@ export const CrossPlatformTransactionModal: React.FC<CrossPlatformTransactionMod
     );
   };
 
-  const renderPendingTransactionStatus = () => {
-    if (!pendingTx) return null;
 
-    return (
-      <View style={styles.statusContainer}>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(pendingTx.status) }]}>
-          <Ionicons 
-            name={getStatusIcon(pendingTx.status) as any} 
-            size={16} 
-            color="#fff" 
-          />
-          <Text style={styles.statusText}>{pendingTx.status.toUpperCase()}</Text>
-        </View>
-
-        {pendingTx.hash && (
-          <View style={styles.hashContainer}>
-            <Text style={styles.hashLabel}>Transaction Hash:</Text>
-            <Text style={styles.hashValue}>{formatAddress(pendingTx.hash)}</Text>
-          </View>
-        )}
-
-        {pendingTx.error && (
-          <View style={styles.errorContainer}>
-            <Ionicons name="warning-outline" size={16} color="#EF4444" />
-            <Text style={styles.errorText}>{pendingTx.error}</Text>
-          </View>
-        )}
-      </View>
-    );
-  };
 
   const renderActions = () => {
     if (mode === 'view') {
@@ -321,7 +293,6 @@ export const CrossPlatformTransactionModal: React.FC<CrossPlatformTransactionMod
           </Text>
 
           {renderTransactionDetails()}
-          {renderPendingTransactionStatus()}
 
           <View style={styles.warningContainer}>
             <Ionicons name="shield-checkmark-outline" size={20} color="#10B981" />
