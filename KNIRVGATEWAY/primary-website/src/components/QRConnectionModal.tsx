@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 
 // Dynamic linking system for releases
 const RELEASE_LINKS = {
+  pwa_url: "https://beta-controller.knirv.com/",
   android: "https://releases.knirv.network/knirvcontroller-android-pwa.zip",
   ios: "https://releases.knirv.network/knirvcontroller-ios-pwa.zip"
 };
@@ -208,25 +209,41 @@ const QRConnectionModal = ({ isOpen, onClose, onConnected }: QRConnectionModalPr
             </div>
           </div>
 
-          {/* Mobile Downloads */}
+          {/* PWA Install */}
           <div className="space-y-3">
-            <h4 className="text-white font-medium">Download KNIRV Controller</h4>
+            <h4 className="text-white font-medium">Install KNIRV Controller</h4>
+            <p className="text-sm text-slate-300">
+              Open the live PWA to install directly on your device
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => window.open(RELEASE_LINKS.pwa_url, '_blank')}
+              className="border-slate-600 text-slate-300 hover:bg-slate-700 w-full"
+            >
+              <Smartphone className="w-4 h-4 mr-2" />
+              Open Live PWA - Install with One Click
+            </Button>
+            <div className="text-xs text-slate-400 text-center">
+              Alternative downloads (if PWA install doesn't work):
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => window.open(RELEASE_LINKS.ios, '_blank')}
                 className="border-slate-600 text-slate-300 hover:bg-slate-700"
               >
                 <Download className="w-4 h-4 mr-2" />
-                iOS PWA
+                iOS ZIP
               </Button>
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => window.open(RELEASE_LINKS.android, '_blank')}
                 className="border-slate-600 text-slate-300 hover:bg-slate-700"
               >
                 <Download className="w-4 h-4 mr-2" />
-                Android PWA
+                Android ZIP
               </Button>
             </div>
           </div>

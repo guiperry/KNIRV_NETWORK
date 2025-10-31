@@ -41,9 +41,10 @@ features:
   graphchain_explorer_enabled: false
   support_desk_enabled: true
 
-# Release download links
+# Release download links - PWA direct install
 releases:
   knirvcontroller:
+    pwa_url: "https://beta-controller.knirv.com/"
     android: "https://releases.knirv.network/knirvcontroller-android-pwa.zip"
     ios: "https://releases.knirv.network/knirvcontroller-ios-pwa.zip"
 
