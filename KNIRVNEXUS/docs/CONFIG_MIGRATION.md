@@ -38,12 +38,12 @@ These created folders in the current working directory, cluttering the project r
 
 **New Behavior (XDG Base Directory):**
 ```
-~/.local/share/knirvnexus/backend-server/data/nexus.db
-~/.local/share/knirvnexus/backend-server/logs/nexus.log
-~/.local/share/knirvnexus/backend-server/workspaces/
-~/.local/share/knirvnexus/backend-server/projects/
-~/.local/share/knirvnexus/backend-server/images/
-~/.local/share/knirvnexus/backend-server/reports/
+~/.local/share/knirvnexus/backend_server/data/nexus.db
+~/.local/share/knirvnexus/backend_server/logs/nexus.log
+~/.local/share/knirvnexus/backend_server/workspaces/
+~/.local/share/knirvnexus/backend_server/projects/
+~/.local/share/knirvnexus/backend_server/images/
+~/.local/share/knirvnexus/backend_server/reports/
 ```
 
 All data is now stored in the user's home directory, following Linux standards.
@@ -95,18 +95,18 @@ All code now properly references the config files:
 
    # Use:
    database:
-     path: ~/.local/share/knirvnexus/backend-server/data/nexus.db
+     path: ~/.local/share/knirvnexus/backend_server/data/nexus.db
    ```
 
 3. **Optional** - Migrate existing data:
    ```bash
    # Move old data to new location
-   mkdir -p ~/.local/share/knirvnexus/backend-server
-   mv ./data ~/.local/share/knirvnexus/backend-server/
-   mv ./logs ~/.local/share/knirvnexus/backend-server/
-   mv ./workspaces ~/.local/share/knirvnexus/backend-server/
-   mv ./projects ~/.local/share/knirvnexus/backend-server/
-   mv ./images ~/.local/share/knirvnexus/backend-server/
+   mkdir -p ~/.local/share/knirvnexus/backend_server
+   mv ./data ~/.local/share/knirvnexus/backend_server/
+   mv ./logs ~/.local/share/knirvnexus/backend_server/
+   mv ./workspaces ~/.local/share/knirvnexus/backend_server/
+   mv ./projects ~/.local/share/knirvnexus/backend_server/
+   mv ./images ~/.local/share/knirvnexus/backend_server/
    ```
 
 ### For Developers
@@ -115,7 +115,7 @@ All code now properly references the config files:
    ```go
    // Config is loaded with expanded paths
    cfg, err := config.Load()
-   // cfg.Database.Path is already expanded: /home/user/.local/share/knirvnexus/backend-server/data/nexus.db
+   // cfg.Database.Path is already expanded: /home/user/.local/share/knirvnexus/backend_server/data/nexus.db
    // cfg.CDE.WorkspaceRoot is already expanded and directory created
    ```
 
@@ -136,7 +136,7 @@ All code now properly references the config files:
 After running KNIRV-NEXUS, you'll see:
 
 ```
-~/.local/share/knirvnexus/backend-server/
+~/.local/share/knirvnexus/backend_server/
 ├── data/
 │   ├── nexus.db
 │   └── backups/
@@ -187,8 +187,8 @@ After running KNIRV-NEXUS, you'll see:
 **Solution**:
 ```bash
 # Ensure correct permissions
-mkdir -p ~/.local/share/knirvnexus/backend-server
-chmod 755 ~/.local/share/knirvnexus/backend-server
+mkdir -p ~/.local/share/knirvnexus/backend_server
+chmod 755 ~/.local/share/knirvnexus/backend_server
 ```
 
 ### Custom Config Not Being Used
@@ -196,10 +196,10 @@ chmod 755 ~/.local/share/knirvnexus/backend-server
 **Solution**:
 ```bash
 # Pass config explicitly
-./backend-server --config ./config/knirv-nexus.yaml
+./backend_server --config ./config/knirv-nexus.yaml
 
 # Or set environment variable
-KNIRV_DATABASE_PATH=~/.local/share/custom/nexus.db ./backend-server
+KNIRV_DATABASE_PATH=~/.local/share/custom/nexus.db ./backend_server
 ```
 
 ## Reference

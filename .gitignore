@@ -71,3 +71,4 @@ KNIRVTESTNET/data/knirvgraph/data/
 
 #Ignore vscode AI rules
 .github/instructions/codacy.instructions.md
+KNIRVNEXUS/backend/bin/nexus-server

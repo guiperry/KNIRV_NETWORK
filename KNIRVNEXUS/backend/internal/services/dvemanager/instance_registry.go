@@ -174,7 +174,7 @@ func (ir *InstanceRegistry) GetHealthyInstances() []string {
 
 	var healthy []string
 	for url, instance := range ir.instances {
-		if instance.IsHealthy && time.Now().Before(instance.BackoffUntil) == false {
+		if instance.IsHealthy && !time.Now().Before(instance.BackoffUntil) {
 			healthy = append(healthy, url)
 		}
 	}

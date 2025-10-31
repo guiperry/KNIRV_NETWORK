@@ -83,13 +83,13 @@ frontend-dev: deps-node ## Start frontend development server
 	@echo "$(BLUE)Starting frontend development server...$(NC)"
 	$(NPM_CMD) run dev
 
-# Backend Build (cmd/backend-server only)
+# Backend Build (cmd/backend_server only)
 backend: deps-go ## Build complete Go backend service package
 	@echo "$(BLUE)Building complete backend package binary...$(NC)"
-	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o bin/backend-server ./cmd/backend-server
+	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o bin/backend_server ./cmd/backend_server
 	@echo "$(BLUE)Copying backend binary to root...$(NC)"
 	@mkdir -p bin
-	cp $(BACKEND_DIR)/bin/backend-server bin/
+	cp $(BACKEND_DIR)/bin/backend_server bin/
 	@echo "$(GREEN)Backend build completed$(NC)"
 
 # Unified Binary (Frontend + Unified Backend)

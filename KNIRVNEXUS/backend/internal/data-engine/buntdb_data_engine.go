@@ -245,8 +245,10 @@ func (d *BuntDBDataEngine) handleAlert(alert Alert) {
 		Metadata:    alert.Data,
 	}
 
-	if err := d.db.StoreAlert(alertEntry); err != nil {
-		fmt.Printf("Failed to store alert in BuntDB: %v\n", err)
+	if d.db != nil {
+		if err := d.db.StoreAlert(alertEntry); err != nil {
+			fmt.Printf("Failed to store alert in BuntDB: %v\n", err)
+		}
 	}
 
 	// Send to alert channel
@@ -263,6 +265,10 @@ func (d *BuntDBDataEngine) handleAlert(alert Alert) {
 
 // reportMetrics periodically reports metrics
 func (d *BuntDBDataEngine) reportMetrics() {
+	if d.config.MetricsInterval <= 0 {
+		return // Don't start ticker if interval is not set
+	}
+
 	ticker := time.NewTicker(d.config.MetricsInterval)
 	defer ticker.Stop()
 
@@ -289,15 +295,20 @@ func (d *BuntDBDataEngine) reportMetrics() {
 func (d *BuntDBDataEngine) generateMetricsSnapshot() *MetricsSnapshot {
 	// Get recent metrics from BuntDB
 	since := time.Now().Add(-d.config.MetricsInterval)
-	metrics, err := d.db.GetMetrics("", "", since, 1000)
-	if err != nil {
-		fmt.Printf("Failed to get metrics from BuntDB: %v\n", err)
-		return &MetricsSnapshot{
-			StartTime:        time.Now(),
-			TotalEvents:      0,
-			EventCounts:      make(map[EventType]int64),
-			EventCountsByMin: make(map[string]map[EventType]int64),
-			UptimeSeconds:    0,
+	var metrics []*MetricEntry
+	var err error
+
+	if d.db != nil {
+		metrics, err = d.db.GetMetrics("", "", since, 1000)
+		if err != nil {
+			fmt.Printf("Failed to get metrics from BuntDB: %v\n", err)
+			return &MetricsSnapshot{
+				StartTime:        time.Now(),
+				TotalEvents:      0,
+				EventCounts:      make(map[EventType]int64),
+				EventCountsByMin: make(map[string]map[EventType]int64),
+				UptimeSeconds:    0,
+			}
 		}
 	}
 
@@ -357,6 +368,10 @@ func (d *BuntDBDataEngine) performCleanup() {
 
 // processMetricsBatch processes metrics in batches for better performance
 func (d *BuntDBDataEngine) processMetricsBatch() {
+	if d.config.FlushInterval <= 0 {
+		return // Don't start ticker if interval is not set
+	}
+
 	ticker := time.NewTicker(d.config.FlushInterval)
 	defer ticker.Stop()
 

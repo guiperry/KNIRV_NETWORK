@@ -1,6 +1,6 @@
 # KNIRV-NEXUS Unified Configuration
 # This is the primary configuration file for KNIRV-NEXUS
-# All data directories default to ~/.local/share/knirvnexus/backend-server (XDG Base Directory)
+# All data directories default to ~/.local/share/knirvnexus/backend_server (XDG Base Directory)
 
 # Operational Mode
 mode: headless  # headless | gui
@@ -43,7 +43,7 @@ gui:
 
 # Database Configuration
 database:
-  path: ~/.local/share/knirvnexus/backend-server/data/nexus.db
+  path: ~/.local/share/knirvnexus/backend_server/data/nexus.db
 
 # Security Configuration
 security:
@@ -171,8 +171,8 @@ inference:
 
 # Cloud Development Environment (CDE) Configuration
 cde:
-  base_image_path: "~/.local/share/knirvnexus/backend-server/images"
-  workspace_root: "~/.local/share/knirvnexus/backend-server/workspaces"
+  base_image_path: "~/.local/share/knirvnexus/backend_server/images"
+  workspace_root: "~/.local/share/knirvnexus/backend_server/workspaces"
   max_environments: 50
   default_timeout: "1h"
   max_cpu_per_env: 2.0
@@ -187,11 +187,11 @@ cde:
   session_timeout: "2h"
   max_sessions_per_user: 5
   max_projects_per_user: 20
-  project_storage_path: "~/.local/share/knirvnexus/backend-server/projects"
+  project_storage_path: "~/.local/share/knirvnexus/backend_server/projects"
 
 # Reports Configuration
 reports:
-  storage_path: "~/.local/share/knirvnexus/backend-server/reports"
+  storage_path: "~/.local/share/knirvnexus/backend_server/reports"
   max_file_size: 104857600  # 100MB
   retention_days: 30
   enable_sharing: true
@@ -201,8 +201,8 @@ reports:
 logging:
   level: "info"  # debug | info | warn | error
   format: "json"
-  output: "~/.local/share/knirvnexus/backend-server/logs/nexus.log"
-  file: "~/.local/share/knirvnexus/backend-server/logs/nexus.log"
+  output: "~/.local/share/knirvnexus/backend_server/logs/nexus.log"
+  file: "~/.local/share/knirvnexus/backend_server/logs/nexus.log"
   max_size: 100    # MB
   max_backups: 5
   max_age: 30      # days
@@ -211,7 +211,7 @@ logging:
 log:
   level: "info"
   format: "json"
-  output: "~/.local/share/knirvnexus/backend-server/logs/nexus.log"
+  output: "~/.local/share/knirvnexus/backend_server/logs/nexus.log"
 
 # Monitoring Configuration
 monitoring:

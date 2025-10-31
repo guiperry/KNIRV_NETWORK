@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -16,8 +17,12 @@ import (
 
 // AuthService handles authentication and user management
 type AuthService struct {
-	dataEngine *dataengine.BuntDBDataEngine
-	config     AuthConfig
+	dataEngine      *dataengine.BuntDBDataEngine
+	config          AuthConfig
+	userLocks       map[string]time.Time
+	ipLocks         map[string]time.Time
+	lockoutDuration time.Duration
+	mu              sync.RWMutex
 }
 
 // AuthConfig contains authentication configuration
@@ -73,6 +78,15 @@ func NewAuthService(dataEngine *dataengine.BuntDBDataEngine, config AuthConfig) 
 	if config.PasswordMinLength == 0 {
 		config.PasswordMinLength = 8
 	}
+
+	service := &AuthService{
+		dataEngine:      dataEngine,
+		config:         config,
+		userLocks:      make(map[string]time.Time),
+		ipLocks:        make(map[string]time.Time),
+		lockoutDuration: 15 * time.Minute, // Default lockout duration
+	}
+
 	if config.TokenExpiration == 0 {
 		config.TokenExpiration = 24 * time.Hour
 	}
@@ -89,10 +103,9 @@ func NewAuthService(dataEngine *dataengine.BuntDBDataEngine, config AuthConfig) 
 		config.SessionTimeout = 30 * time.Minute
 	}
 
-	return &AuthService{
-		dataEngine: dataEngine,
-		config:     config,
-	}
+	service.config = config
+
+	return service
 }
 
 // CreateUser creates a new user with password validation
@@ -297,8 +310,37 @@ func (as *AuthService) validatePassword(password string) error {
 
 // isUserLockedOut checks if a user is locked out due to failed login attempts
 func (as *AuthService) isUserLockedOut(username, ipAddress string) bool {
-	// This would need to be implemented with proper storage
-	// For now, return false
+	as.mu.RLock()
+	defer as.mu.RUnlock()
+
+	// Check if there's a lock based on username
+	if lockedTime, exists := as.userLocks[username]; exists {
+		if time.Since(lockedTime) < as.lockoutDuration {
+			// User is still locked out
+			return true
+		}
+		// Need to switch to write lock to remove expired lock
+		as.mu.RUnlock()
+		as.mu.Lock()
+		delete(as.userLocks, username)
+		as.mu.Unlock()
+		as.mu.RLock()
+	}
+
+	// Check if there's a lock based on IP address
+	if lockedTime, exists := as.ipLocks[ipAddress]; exists {
+		if time.Since(lockedTime) < as.lockoutDuration {
+			// IP is still locked out
+			return true
+		}
+		// Need to switch to write lock to remove expired lock
+		as.mu.RUnlock()
+		as.mu.Lock()
+		delete(as.ipLocks, ipAddress)
+		as.mu.Unlock()
+		as.mu.RLock()
+	}
+
 	return false
 }
 

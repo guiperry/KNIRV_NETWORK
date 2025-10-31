@@ -82,6 +82,7 @@ type AlertingState struct {
 	eventCounts     map[EventType]int64
 	eventRates      map[EventType]float64
 	lastEventTimes  map[EventType]time.Time
+	lastEventData   map[EventType]map[string]interface{}
 	errorCounts     map[string]int64
 	customMetrics   map[string]float64
 	windowedMetrics map[string][]float64
@@ -113,6 +114,7 @@ func newAlertingState() *AlertingState {
 		eventCounts:     make(map[EventType]int64),
 		eventRates:      make(map[EventType]float64),
 		lastEventTimes:  make(map[EventType]time.Time),
+		lastEventData:   make(map[EventType]map[string]interface{}),
 		errorCounts:     make(map[string]int64),
 		customMetrics:   make(map[string]float64),
 		windowedMetrics: make(map[string][]float64),

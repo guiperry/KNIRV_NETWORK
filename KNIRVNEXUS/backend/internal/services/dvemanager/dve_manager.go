@@ -71,8 +71,10 @@ func NewDVEManager(db *buntdb.DB, p2pManager *p2p.DVEP2PManager, cfg *config.Con
 	// Note: API routes are registered with the unified server
 
 	// Register P2P message handlers
-	p2pManager.RegisterMessageHandler(p2p.MessageTypeNodeAnnouncement, manager)
-	p2pManager.RegisterMessageHandler(p2p.MessageTypeNodeHeartbeat, manager)
+	if p2pManager != nil {
+		p2pManager.RegisterMessageHandler(p2p.MessageTypeNodeAnnouncement, manager)
+		p2pManager.RegisterMessageHandler(p2p.MessageTypeNodeHeartbeat, manager)
+	}
 
 	return manager, nil
 }
@@ -169,8 +171,10 @@ func (dm *DVEManager) RegisterNode(req *RegisterNodeRequest) (*objects.DVENode, 
 	dm.nodeTracker.AddNode(node)
 
 	// Announce to P2P network
-	if err := dm.p2pManager.AnnounceNode(node); err != nil {
-		log.Printf("Warning: Failed to announce node to P2P network: %v", err)
+	if dm.p2pManager != nil {
+		if err := dm.p2pManager.AnnounceNode(node); err != nil {
+			log.Printf("Warning: Failed to announce node to P2P network: %v", err)
+		}
 	}
 
 	log.Printf("DVE node %s (%s) registered successfully", node.ID, node.Name)

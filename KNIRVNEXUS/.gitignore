@@ -52,3 +52,6 @@ server.log
 docs/*
 
 */tests/*
+
+bin/*
+backend/bin/*

@@ -33,6 +33,7 @@ type Config struct {
 	Reports     ReportsConfig    `mapstructure:"reports"`
 	Log         LogConfig        `mapstructure:"log"`
 	DVE         DVEConfig        `mapstructure:"dve"`
+	Failover    FailoverConfig   `mapstructure:"failover"`
 }
 
 // DatabaseConfig represents database configuration
@@ -201,6 +202,17 @@ type DVEDiscoveryConfig struct {
 	MaxRetries           int           `mapstructure:"max_retries"`
 	RetryBackoffDuration time.Duration `mapstructure:"retry_backoff_duration"`
 	ConnectionPoolSize   int           `mapstructure:"connection_pool_size"`
+}
+
+// FailoverConfig represents failover service configuration
+type FailoverConfig struct {
+	Enabled              bool          `mapstructure:"enabled"`
+	HealthCheckInterval  time.Duration `mapstructure:"health_check_interval"`
+	HealthCheckTimeout   time.Duration `mapstructure:"health_check_timeout"`
+	FailoverThreshold    int           `mapstructure:"failover_threshold"`
+	EnableAutoFailover   bool          `mapstructure:"enable_auto_failover"`
+	RootNodes            []string      `mapstructure:"root_nodes"`
+	Bootnodes            []string      `mapstructure:"bootnodes"`
 }
 
 // Load loads configuration from environment variables and config files
@@ -441,6 +453,15 @@ func setDefaults() {
 	viper.SetDefault("dve.discovery.max_retries", 3)
 	viper.SetDefault("dve.discovery.retry_backoff_duration", "2s")
 	viper.SetDefault("dve.discovery.connection_pool_size", 10)
+
+	// Failover configuration defaults
+	viper.SetDefault("failover.enabled", false)
+	viper.SetDefault("failover.health_check_interval", "30s")
+	viper.SetDefault("failover.health_check_timeout", "5s")
+	viper.SetDefault("failover.failover_threshold", 3)
+	viper.SetDefault("failover.enable_auto_failover", false)
+	viper.SetDefault("failover.root_nodes", []string{})
+	viper.SetDefault("failover.bootnodes", []string{})
 
 	// Legacy defaults for backward compatibility
 	viper.SetDefault("chain_id", "knirv-nexus-mainnet")

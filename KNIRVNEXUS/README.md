@@ -10,7 +10,7 @@ KNIRV-NEXUS implements a **unified architecture** with embedded frontend and bac
 
 - **Main Wrapper** (`main.go`): Embeds both frontend and backend into a single executable
 - **Frontend Embedding**: Next.js build output embedded via `//go:embed all:out`
-- **Backend Embedding**: Unified backend binary embedded via `//go:embed bin/backend-server`
+- **Backend Embedding**: Unified backend binary embedded via `//go:embed bin/backend_server`
 - **API Proxy**: Gin-based proxy routing `/api/*` requests to embedded backend
 - **Static Serving**: Embedded filesystem serving Next.js static assets
 
@@ -99,7 +99,7 @@ KNIRV-NEXUS uses a unified build process that creates a single deployable binary
 ### Build Process Overview
 
 1. **Frontend Build**: Next.js builds static output to `out/` directory
-2. **Backend Build**: Go builds unified backend binary to `bin/backend-server`
+2. **Backend Build**: Go builds unified backend binary to `bin/backend_server`
 3. **Embedding**: Main wrapper embeds both frontend and backend using `go:embed`
 4. **Final Binary**: Single executable containing complete application
 
@@ -109,7 +109,7 @@ KNIRV-NEXUS uses a unified build process that creates a single deployable binary
 # Quick Development Setup
 npm install              # Install frontend dependencies
 npm run build           # Build Next.js frontend
-cd backend && go build -o ../bin/backend-server ./main.go  # Build backend
+cd backend && go build -o ../bin/backend_server ./main.go  # Build backend
 go build -o knirv-nexus main.go  # Build unified binary
 
 # Development Mode
@@ -118,7 +118,7 @@ cd backend && go run main.go --config config/development.yaml  # Backend only
 
 # Production Build
 npm run build           # Build optimized frontend
-cd backend && CGO_ENABLED=1 go build -ldflags="-s -w" -o ../bin/backend-server ./main.go
+cd backend && CGO_ENABLED=1 go build -ldflags="-s -w" -o ../bin/backend_server ./main.go
 go build -ldflags="-s -w -X main.Version=v1.0.0" -o knirv-nexus main.go
 
 # Testing
@@ -241,7 +241,7 @@ npm run build
 # 4. Build backend
 cd backend
 go mod tidy
-go build -o ../bin/backend-server ./main.go
+go build -o ../bin/backend_server ./main.go
 cd ..
 
 # 5. Build unified binary

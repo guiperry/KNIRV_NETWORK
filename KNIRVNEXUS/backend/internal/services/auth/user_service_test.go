@@ -421,8 +421,6 @@ func TestUserService_ChangePassword(t *testing.T) {
 }
 
 func TestUserService_VerifyEmail(t *testing.T) {
-	t.Skip("Skipping due to database iteration issues - needs further debugging")
-
 	db := setupTestDB(t)
 	defer db.Close()
 
@@ -620,16 +618,28 @@ func TestUserService_RecordLoginAttempt(t *testing.T) {
 		FirstName: "Test",
 		LastName:  "User",
 	}
-	_, err := service.CreateUser(registration)
+	user, err := service.CreateUser(registration)
 	require.NoError(t, err)
 
 	// Test successful login
 	err = service.RecordLoginAttempt("testuser", "127.0.0.1", true)
 	assert.NoError(t, err)
 
+	// Verify successful login updates
+	updatedUser, err := service.GetUserByID(user.ID)
+	require.NoError(t, err)
+	assert.NotNil(t, updatedUser.LastLoginAt)
+	assert.Equal(t, 0, updatedUser.LoginAttempts)
+	assert.Nil(t, updatedUser.LockedUntil)
+
 	// Test failed login
 	err = service.RecordLoginAttempt("testuser", "127.0.0.1", false)
 	assert.NoError(t, err)
+
+	// Verify failed login updates
+	updatedUser, err = service.GetUserByID(user.ID)
+	require.NoError(t, err)
+	assert.Equal(t, 1, updatedUser.LoginAttempts)
 
 	// Test login attempt for non-existing user
 	err = service.RecordLoginAttempt("nonexisting", "127.0.0.1", false)
@@ -637,12 +647,25 @@ func TestUserService_RecordLoginAttempt(t *testing.T) {
 }
 
 func TestUserService_AuthenticateUser(t *testing.T) {
-	t.Skip("Skipping authentication tests due to verification issues")
-
 	db := setupTestDB(t)
 	defer db.Close()
 
 	service := NewUserService(db)
+
+	// Create and verify a test user
+	registration := &objects.UserRegistration{
+		Username:  "testuser",
+		Email:     "test@example.com",
+		Password:  "password123",
+		FirstName: "Test",
+		LastName:  "User",
+	}
+	user, err := service.CreateUser(registration)
+	require.NoError(t, err)
+
+	// Verify email to make user active
+	err = service.VerifyEmail(user.EmailVerificationToken)
+	require.NoError(t, err)
 
 	tests := []struct {
 		name        string
@@ -652,6 +675,13 @@ func TestUserService_AuthenticateUser(t *testing.T) {
 		expectError bool
 		errorMsg    string
 	}{
+		{
+			name:        "valid credentials",
+			username:    "testuser",
+			password:    "password123",
+			ipAddress:   "127.0.0.1",
+			expectError: false,
+		},
 		{
 			name:        "invalid username",
 			username:    "invaliduser",
@@ -682,6 +712,8 @@ func TestUserService_AuthenticateUser(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.NotNil(t, authenticatedUser)
+				assert.Equal(t, user.ID, authenticatedUser.ID)
+				assert.Equal(t, user.Username, authenticatedUser.Username)
 			}
 		})
 	}
@@ -738,4 +770,33 @@ func TestGetClientIP(t *testing.T) {
 			assert.Equal(t, tt.expectedIP, ip)
 		})
 	}
+}
+
+func TestUserService_IsRateLimited(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	service := NewUserService(db)
+
+	// Test with no rate limit entries
+	locked, err := service.isRateLimited("testuser", "127.0.0.1")
+	assert.NoError(t, err)
+	assert.False(t, locked)
+
+	// Create a locked rate limit entry
+	lockedUntil := time.Now().Add(15 * time.Minute)
+	rateLimit := objects.RateLimit{
+		Key:         "ratelimit:username:testuser",
+		Attempts:    10,
+		LastAttempt: time.Now(),
+		LockedUntil: &lockedUntil,
+	}
+
+	err = db.StoreJSON("ratelimit:username:testuser", &rateLimit)
+	require.NoError(t, err)
+
+	// Test rate limiting detection
+	locked, err = service.isRateLimited("testuser", "127.0.0.1")
+	assert.NoError(t, err)
+	assert.True(t, locked)
 }

@@ -365,3 +365,265 @@ func TestContainerManager_parseNetworkJSON_Invalid(t *testing.T) {
 	_, err = cm.parseNetworkJSON("invalid json")
 	assert.Error(t, err)
 }
+
+func TestContainerManager_enrichContainerInfo(t *testing.T) {
+	ctx := context.Background()
+	config := &HostConfig{
+		ContainerRuntime: "docker",
+	}
+
+	cm, err := NewContainerManager(ctx, config)
+	if err != nil {
+		t.Skip("Docker not available in test environment")
+		return
+	}
+
+	// Test with a non-existent container ID
+	container := &Container{
+		ID: "nonexistent123",
+	}
+
+	err = cm.enrichContainerInfo(container)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to inspect container")
+}
+
+func TestContainerManager_scanContainers(t *testing.T) {
+	ctx := context.Background()
+	config := &HostConfig{
+		ContainerRuntime: "docker",
+	}
+
+	cm, err := NewContainerManager(ctx, config)
+	if err != nil {
+		t.Skip("Docker not available in test environment")
+		return
+	}
+
+	err = cm.scanContainers()
+	// Should not error even if no containers exist
+	assert.NoError(t, err)
+
+	// Verify lastUpdate was set
+	cm.mu.RLock()
+	assert.True(t, time.Since(cm.lastUpdate) < time.Second)
+	cm.mu.RUnlock()
+}
+
+func TestContainerManager_scanNetworks(t *testing.T) {
+	ctx := context.Background()
+	config := &HostConfig{
+		ContainerRuntime: "docker",
+	}
+
+	cm, err := NewContainerManager(ctx, config)
+	if err != nil {
+		t.Skip("Docker not available in test environment")
+		return
+	}
+
+	err = cm.scanNetworks()
+	// Should not error even if no networks exist
+	assert.NoError(t, err)
+}
+
+func TestContainerManager_setupKNIRVNetworks(t *testing.T) {
+	ctx := context.Background()
+	config := &HostConfig{
+		ContainerRuntime: "docker",
+	}
+
+	cm, err := NewContainerManager(ctx, config)
+	if err != nil {
+		t.Skip("Docker not available in test environment")
+		return
+	}
+
+	// Test when network doesn't exist (would require docker permissions)
+	err = cm.setupKNIRVNetworks()
+	// This might fail due to permissions, but should not panic
+	_ = err // We don't assert since it depends on docker permissions
+}
+
+func TestContainerManager_monitorLoop(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	config := &HostConfig{
+		ContainerRuntime: "docker",
+	}
+
+	cm, err := NewContainerManager(ctx, config)
+	if err != nil {
+		t.Skip("Docker not available in test environment")
+		return
+	}
+
+	// Start monitoring
+	cm.running = true
+	go cm.monitorLoop()
+
+	// Wait for context to timeout
+	time.Sleep(150 * time.Millisecond)
+
+	// Should have stopped
+	assert.False(t, cm.running)
+}
+
+func TestContainerManager_GetContainerList_Empty(t *testing.T) {
+	ctx := context.Background()
+	config := &HostConfig{
+		ContainerRuntime: "docker",
+	}
+
+	cm, err := NewContainerManager(ctx, config)
+	if err != nil {
+		t.Skip("Docker not available in test environment")
+		return
+	}
+
+	containers, err := cm.GetContainerList()
+	require.NoError(t, err)
+	assert.Empty(t, containers)
+}
+
+func TestContainerManager_GetKNIRVContainers_Empty(t *testing.T) {
+	ctx := context.Background()
+	config := &HostConfig{
+		ContainerRuntime: "docker",
+	}
+
+	cm, err := NewContainerManager(ctx, config)
+	if err != nil {
+		t.Skip("Docker not available in test environment")
+		return
+	}
+
+	containers, err := cm.GetKNIRVContainers()
+	require.NoError(t, err)
+	assert.Empty(t, containers)
+}
+
+func TestContainerManager_verifyRuntime_Invalid(t *testing.T) {
+	ctx := context.Background()
+	config := &HostConfig{
+		ContainerRuntime: "invalidruntime",
+	}
+
+	cm, err := NewContainerManager(ctx, config)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "container runtime verification failed")
+
+	// Test that cm is nil when creation fails
+	assert.Nil(t, cm)
+}
+
+func TestContainerManager_identifyKNIRVContainer_EdgeCases(t *testing.T) {
+	ctx := context.Background()
+	config := &HostConfig{
+		ContainerRuntime: "docker",
+	}
+
+	cm, err := NewContainerManager(ctx, config)
+	if err != nil {
+		t.Skip("Docker not available in test environment")
+		return
+	}
+
+	tests := []struct {
+		name             string
+		containerName    string
+		containerImage   string
+		expectedKNIRV    bool
+		expectedService  string
+		expectedP2P      bool
+	}{
+		{"empty name and image", "", "", false, "", false},
+		{"uppercase KNIRV", "KNIRV-NEXUS", "KNIRV/NEXUS:LATEST", true, "knirv-other", false},
+		{"mixed case", "Dve-Manager", "knirv/dve:latest", true, "dve-manager", true},
+		{"partial match", "myknirvapp", "nginx:latest", true, "knirv-other", false},
+		{"no match", "postgres", "postgres:13", false, "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			container := &Container{
+				Name:  tt.containerName,
+				Image: tt.containerImage,
+			}
+
+			cm.identifyKNIRVContainer(container)
+
+			assert.Equal(t, tt.expectedKNIRV, container.IsKNIRVContainer)
+			if tt.expectedKNIRV {
+				assert.Equal(t, tt.expectedService, container.ServiceType)
+				assert.Equal(t, tt.expectedP2P, container.P2PEnabled)
+			}
+		})
+	}
+}
+
+func TestContainerManager_identifyKNIRVNetwork_EdgeCases(t *testing.T) {
+	ctx := context.Background()
+	config := &HostConfig{
+		ContainerRuntime: "docker",
+	}
+
+	cm, err := NewContainerManager(ctx, config)
+	if err != nil {
+		t.Skip("Docker not available in test environment")
+		return
+	}
+
+	tests := []struct {
+		name           string
+		networkName    string
+		expectedKNIRV  bool
+		expectedP2P    bool
+		expectedEnc    bool
+	}{
+		{"empty name", "", false, false, false},
+		{"uppercase KNIRV", "KNIRV-NEXUS", true, false, true},
+		{"partial match", "myknirvnet", true, false, true},
+		{"no match", "bridge", false, false, false},
+		{"p2p network", "knirv-p2p-net", true, true, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			network := &ContainerNetwork{
+				Name: tt.networkName,
+			}
+
+			cm.identifyKNIRVNetwork(network)
+
+			assert.Equal(t, tt.expectedKNIRV, network.IsKNIRVNetwork)
+			if tt.expectedKNIRV {
+				assert.Equal(t, tt.expectedP2P, network.P2PEnabled)
+				assert.Equal(t, tt.expectedEnc, network.Encrypted)
+			}
+		})
+	}
+}
+
+func Test_getString_EdgeCases(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    map[string]interface{}
+		key      string
+		expected string
+	}{
+		{"nil map", nil, "key", ""},
+		{"empty map", map[string]interface{}{}, "key", ""},
+		{"non-string value", map[string]interface{}{"key": 123}, "key", ""},
+		{"nil value", map[string]interface{}{"key": nil}, "key", ""},
+		{"valid string", map[string]interface{}{"key": "value"}, "key", "value"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getString(tt.input, tt.key)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}

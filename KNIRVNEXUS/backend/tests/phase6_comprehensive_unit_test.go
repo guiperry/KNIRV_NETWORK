@@ -339,9 +339,7 @@ func TestServiceLifecycleManagement(t *testing.T) {
 		startupOrder := make([]string, 0, len(services))
 
 		// Simulate startup sequence
-		for _, service := range services {
-			startupOrder = append(startupOrder, service)
-		}
+		startupOrder = append(startupOrder, services...)
 
 		assert.Equal(t, services, startupOrder)
 		assert.Len(t, startupOrder, 4)

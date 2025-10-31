@@ -530,14 +530,16 @@ func (us *UserService) isRateLimited(username, ipAddress string) (bool, error) {
 
 func (us *UserService) logAuditEvent(userID, action, resource, resourceID, ipAddress, userAgent, details string, success bool) {
 	auditLog := &objects.AuditLog{
-		ID:        fmt.Sprintf("audit_%d", time.Now().UnixNano()),
-		UserID:    userID,
-		Action:    action,
-		Resource:  resource,
-		Details:   fmt.Sprintf("%s", details),
-		IPAddress: ipAddress,
-		Success:   success,
-		Timestamp: time.Now(),
+		ID:         fmt.Sprintf("audit_%d", time.Now().UnixNano()),
+		UserID:     userID,
+		Action:     action,
+		Resource:   resource,
+		ResourceID: resourceID,
+		Details:    fmt.Sprintf("%s", details),
+		IPAddress:  ipAddress,
+		UserAgent:  userAgent,
+		Success:    success,
+		Timestamp:  time.Now(),
 	}
 
 	key := fmt.Sprintf("audit:logs:%s", auditLog.ID)

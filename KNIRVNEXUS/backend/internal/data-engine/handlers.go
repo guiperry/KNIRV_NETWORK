@@ -177,7 +177,7 @@ func (h *DataEngineHandlers) HandleWebSocket(w http.ResponseWriter, r *http.Requ
 				"resolved": resolved,
 			})
 			if err != nil {
-				break
+				return
 			}
 
 		case "get_metrics":
@@ -187,7 +187,7 @@ func (h *DataEngineHandlers) HandleWebSocket(w http.ResponseWriter, r *http.Requ
 				"metrics": metrics,
 			})
 			if err != nil {
-				break
+				return
 			}
 
 		case "get_alerts":
@@ -197,7 +197,7 @@ func (h *DataEngineHandlers) HandleWebSocket(w http.ResponseWriter, r *http.Requ
 				"alerts": alerts,
 			})
 			if err != nil {
-				break
+				return
 			}
 		}
 	}
@@ -367,7 +367,7 @@ func (h *BuntDBDataEngineHandlers) HandleWebSocket(w http.ResponseWriter, r *htt
 				"metrics": metrics,
 			})
 			if err != nil {
-				break
+				return
 			}
 		}
 	}

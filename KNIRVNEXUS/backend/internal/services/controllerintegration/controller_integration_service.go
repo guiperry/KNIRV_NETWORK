@@ -568,7 +568,11 @@ func (cis *ControllerIntegrationService) sessionCleanupLoop() {
 	defer ticker.Stop()
 
 	for range ticker.C {
-		if !cis.running {
+		cis.mu.RLock()
+		running := cis.running
+		cis.mu.RUnlock()
+
+		if !running {
 			return
 		}
 
@@ -581,7 +585,11 @@ func (cis *ControllerIntegrationService) qrCodeCleanupLoop() {
 	defer ticker.Stop()
 
 	for range ticker.C {
-		if !cis.running {
+		cis.mu.RLock()
+		running := cis.running
+		cis.mu.RUnlock()
+
+		if !running {
 			return
 		}
 
@@ -594,7 +602,11 @@ func (cis *ControllerIntegrationService) messageProcessingLoop() {
 	defer ticker.Stop()
 
 	for range ticker.C {
-		if !cis.running {
+		cis.mu.RLock()
+		running := cis.running
+		cis.mu.RUnlock()
+
+		if !running {
 			return
 		}
 

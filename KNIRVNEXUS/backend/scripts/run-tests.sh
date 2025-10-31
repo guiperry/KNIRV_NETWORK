@@ -156,7 +156,7 @@ cleanup_test_env() {
     rm -rf /tmp/test-projects
     
     # Kill any remaining test processes
-    pkill -f "backend-server.*test" || true
+    pkill -f "backend_server.*test" || true
     
     log_success "Test environment cleanup complete"
 }
@@ -230,7 +230,7 @@ run_e2e_tests() {
 
     # Start test server
     log_info "Starting test server..."
-    ./bin/backend-server --config config/test.yaml &
+    ./bin/backend_server --config config/test.yaml &
     local server_pid=$!
 
     # Wait for server to start
@@ -358,7 +358,7 @@ main() {
     
     # Build application first
     log_info "Building application..."
-    if ! go build -o bin/nexus-server ./cmd/backend-server; then
+    if ! go build -o bin/nexus-server ./cmd/backend_server; then
         log_error "Build failed"
         exit 1
     fi
