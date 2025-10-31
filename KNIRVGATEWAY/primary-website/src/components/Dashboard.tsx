@@ -118,7 +118,8 @@ const Dashboard = ({
         }}
       />
 
-      {connectedApp ? (
+      {/* Always show the full dashboard - no controller connection required */}
+      {true ? (
         <>
           <div className="mb-8 flex items-center justify-between">
             <div>
@@ -126,7 +127,7 @@ const Dashboard = ({
                 <span className="knirv-gradient-text">KNIRV</span> Model Deployment Dashboard
               </h2>
               <p className="text-xl text-white/70">
-                Manage your {connectedApp.name} <span className="knirv-text-primary">Neural Intelligence Model</span> deployments
+                Manage your {connectedApp?.name || 'Neural Intelligence Model'} <span className="knirv-text-primary">Neural Intelligence Model</span> deployments
               </p>
             </div>
             {onReset && (

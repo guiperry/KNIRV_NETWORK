@@ -72,3 +72,7 @@ KNIRVTESTNET/data/knirvgraph/data/
 #Ignore vscode AI rules
 .github/instructions/codacy.instructions.md
 KNIRVNEXUS/backend/bin/nexus-server
+KNIRVNEXUS/backend/cmd/continer-deployer/golang-app-source/knirv-nexus
+KNIRVNEXUS/backend/bin/nexus-server
+KNIRVNEXUS/dist/knirv-nexus
+/KNIRVNEXUS/dist

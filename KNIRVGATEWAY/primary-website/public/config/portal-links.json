@@ -41,6 +41,12 @@
     "graphchain_explorer_enabled": false,
     "support_desk_enabled": true
   },
+  "releases": {
+    "knirvcontroller": {
+      "android": "https://releases.knirv.network/knirvcontroller-android-pwa.zip",
+      "ios": "https://releases.knirv.network/knirvcontroller-ios-pwa.zip"
+    }
+  },
   "iframes": {
     "documentation": {"url": "documentation/", "title": "KNIRV Documentation", "height": "800px"}
   }

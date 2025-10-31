@@ -8,6 +8,12 @@ import { QrCode, Copy, CheckCircle, RefreshCw, Smartphone, Download } from "luci
 import { QRCodeSVG } from 'qrcode.react';
 import { useToast } from "@/hooks/use-toast";
 
+// Dynamic linking system for releases
+const RELEASE_LINKS = {
+  android: "https://releases.knirv.network/knirvcontroller-android-pwa.zip",
+  ios: "https://releases.knirv.network/knirvcontroller-ios-pwa.zip"
+};
+
 interface QRConnectionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -28,7 +34,7 @@ const QRConnectionModal = ({ isOpen, onClose, onConnected }: QRConnectionModalPr
   const [connectionData, setConnectionData] = useState<ConnectionData | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(300); // 5 minutes
+  const [timeRemaining, setTimeRemaining] = useState(900); // 15 minutes
 
   // Generate connection data
   const generateConnectionData = async () => {
@@ -43,7 +49,7 @@ const QRConnectionModal = ({ isOpen, onClose, onConnected }: QRConnectionModalPr
         sessionToken,
         gatewayUrl: window.location.origin,
         controllerUrl: 'knirvcontroller://connect', // Custom protocol for KNIRVCONTROLLER
-        expiresAt: Date.now() + (5 * 60 * 1000), // 5 minutes from now
+        expiresAt: Date.now() + (15 * 60 * 1000), // 15 minutes from now
       };
 
       setConnectionData(data);
@@ -62,15 +68,11 @@ const QRConnectionModal = ({ isOpen, onClose, onConnected }: QRConnectionModalPr
   // Generate QR code data string
   const getQRCodeData = () => {
     if (!connectionData) return '';
-    
-    return JSON.stringify({
-      type: 'knirv-controller-connection',
-      version: '1.0',
-      connectionId: connectionData.connectionId,
-      sessionToken: connectionData.sessionToken,
-      gatewayUrl: connectionData.gatewayUrl,
-      timestamp: Date.now(),
-    });
+
+    // Create a mobile-friendly URL that can be opened directly on phones
+    const mobileUrl = `${connectionData.gatewayUrl}/connect/${connectionData.connectionId}?token=${connectionData.sessionToken}`;
+
+    return mobileUrl;
   };
 
   // Copy connection URL to clipboard
@@ -109,7 +111,9 @@ const QRConnectionModal = ({ isOpen, onClose, onConnected }: QRConnectionModalPr
       });
 
       // Simulate connection detection (every 10 seconds)
-      if (Math.random() < 0.1) { // 10% chance per check
+      // Only auto-connect if the modal has been open for more than 30 seconds
+      // This gives users time to scan the QR code manually
+      if (timeRemaining < 270 && Math.random() < 0.1) { // 10% chance per check after 30 seconds
         onConnected({
           url: connectionData.gatewayUrl,
           name: 'KNIRV Controller',
@@ -185,7 +189,7 @@ const QRConnectionModal = ({ isOpen, onClose, onConnected }: QRConnectionModalPr
 
             <div className="text-center">
               <p className="text-sm text-slate-400 mb-2">
-                Scan with KNIRV Controller app
+                Scan with any QR code scanner or tap to open on mobile
               </p>
               <Button
                 variant="outline"
@@ -210,7 +214,7 @@ const QRConnectionModal = ({ isOpen, onClose, onConnected }: QRConnectionModalPr
             <div className="grid grid-cols-2 gap-3">
               <Button
                 variant="outline"
-                onClick={() => window.open('https://releases.knirv.network/knirvcontroller-ios-pwa.zip', '_blank')}
+                onClick={() => window.open(RELEASE_LINKS.ios, '_blank')}
                 className="border-slate-600 text-slate-300 hover:bg-slate-700"
               >
                 <Download className="w-4 h-4 mr-2" />
@@ -218,7 +222,7 @@ const QRConnectionModal = ({ isOpen, onClose, onConnected }: QRConnectionModalPr
               </Button>
               <Button
                 variant="outline"
-                onClick={() => window.open('https://releases.knirv.network/knirvcontroller-android-pwa.zip', '_blank')}
+                onClick={() => window.open(RELEASE_LINKS.android, '_blank')}
                 className="border-slate-600 text-slate-300 hover:bg-slate-700"
               >
                 <Download className="w-4 h-4 mr-2" />
