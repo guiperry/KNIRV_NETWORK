@@ -11,13 +11,20 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// CognitiveEngineService interface for testability
+type CognitiveEngineService interface {
+	GetCognitiveMetrics(nodeID string) *cognitiveengine.CognitiveMetrics
+	GetLearningState() *cognitiveengine.LearningState
+	GetAdaptationHistory(limit int) []cognitiveengine.AdaptationEvent
+}
+
 // CognitiveEngineHandlers handles HTTP requests for cognitive engine operations
 type CognitiveEngineHandlers struct {
-	cognitiveEngine *cognitiveengine.CognitiveEngine
+	cognitiveEngine CognitiveEngineService
 }
 
 // NewCognitiveEngineHandlers creates new cognitive engine handlers
-func NewCognitiveEngineHandlers(cognitiveEngine *cognitiveengine.CognitiveEngine) *CognitiveEngineHandlers {
+func NewCognitiveEngineHandlers(cognitiveEngine CognitiveEngineService) *CognitiveEngineHandlers {
 	return &CognitiveEngineHandlers{
 		cognitiveEngine: cognitiveEngine,
 	}

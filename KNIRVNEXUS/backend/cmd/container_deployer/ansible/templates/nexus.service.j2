@@ -9,7 +9,7 @@ Type=simple
 User={{ app_user }}
 Group={{ app_group }}
 WorkingDirectory={{ app_dir }}
-ExecStart={{ app_dir }}/bin/nexus-server --config {{ app_config_dir }}/nexus.yaml
+ExecStart={{ app_dir }}/bin/nexus-server --config {{ app_config_dir }}/production.yaml
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=mixed
 KillSignal=SIGTERM
@@ -33,7 +33,7 @@ LimitNPROC=4096
 Environment=HOME={{ app_dir }}
 Environment=USER={{ app_user }}
 Environment=NEXUS_ENV={{ environment }}
-Environment=NEXUS_CONFIG={{ app_config_dir }}/nexus.yaml
+Environment=NEXUS_CONFIG={{ app_config_dir }}/production.yaml
 
 # Logging
 StandardOutput=journal

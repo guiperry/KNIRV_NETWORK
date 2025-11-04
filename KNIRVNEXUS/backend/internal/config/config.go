@@ -236,7 +236,7 @@ func LoadWithDefaults() (*Config, error) {
 	setDefaults()
 
 	// Set configuration file name and paths
-	viper.SetConfigName("knirv-nexus")
+	viper.SetConfigName("production")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("./config")
 	viper.AddConfigPath(".")

@@ -98,10 +98,10 @@ binary: frontend backend ## Build unified binary with embedded frontend and back
 	@mkdir -p $(DIST_DIR)
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-nexus .
 	@echo "$(GREEN)Unified binary created: $(DIST_DIR)/knirv-nexus$(NC)"
-	@echo "$(BLUE)Copying binary to continer-deployer golang-app-source...$(NC)"
-	@mkdir -p $(ROOT_DIR)/backend/cmd/continer-deployer/golang-app-source
-	cp $(DIST_DIR)/knirv-nexus $(ROOT_DIR)/backend/cmd/continer-deployer/golang-app-source/
-	@echo "$(GREEN)Binary copied to continer-deployer golang-app-source$(NC)"
+	@echo "$(BLUE)Copying binary to container_deployer golang-app-source...$(NC)"
+	@mkdir -p $(ROOT_DIR)/backend/cmd/container_deployer/golang-app-source
+	cp $(DIST_DIR)/knirv-nexus $(ROOT_DIR)/backend/cmd/container_deployer/golang-app-source/
+	@echo "$(GREEN)Binary copied to container_deployer golang-app-source$(NC)"
 
 # Testing
 test: test-go test-frontend test-architecture ## Run all tests

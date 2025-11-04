@@ -328,6 +328,11 @@ func (cde *CDEService) CreateEnvironment(userID, name string, envType Environmen
 		return nil, fmt.Errorf("CDE service is not running")
 	}
 
+	// Check if workspace root is available
+	if cde.config.WorkspaceRoot == "" {
+		return nil, fmt.Errorf("workspace root not configured")
+	}
+
 	// Check environment limit
 	userEnvCount := cde.countUserEnvironments(userID)
 	if userEnvCount >= cde.config.MaxEnvironments {
@@ -557,6 +562,11 @@ func (cde *CDEService) CreateProject(userID, name, description string, projectTy
 
 	if !cde.isRunning {
 		return nil, fmt.Errorf("CDE service is not running")
+	}
+
+	// Check if project storage path is available
+	if cde.config.ProjectStoragePath == "" {
+		return nil, fmt.Errorf("project storage path not configured")
 	}
 
 	// Check project limit
@@ -808,10 +818,19 @@ func (cde *CDEService) initializeWorkspaceDirectories() error {
 	dirs := []string{
 		cde.config.WorkspaceRoot,
 		cde.config.ProjectStoragePath,
-		filepath.Join(cde.config.BaseImagePath, "images"),
+	}
+
+	// Add BaseImagePath only if it's not empty
+	if cde.config.BaseImagePath != "" {
+		dirs = append(dirs, filepath.Join(cde.config.BaseImagePath, "images"))
 	}
 
 	for _, dir := range dirs {
+		// Skip empty directory paths
+		if dir == "" {
+			continue
+		}
+		
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)
 		}

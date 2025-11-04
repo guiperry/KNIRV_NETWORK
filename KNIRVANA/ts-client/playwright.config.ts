@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { defineConfig, devices } from '@playwright/test'
 
 /**
@@ -85,8 +86,8 @@ export default defineConfig({
   },
 
   /* Global setup and teardown */
-  globalSetup: require.resolve('./src/test/e2e/global-setup.ts'),
-  globalTeardown: require.resolve('./src/test/e2e/global-teardown.ts'),
+  globalSetup: './src/test/e2e/global-setup.ts',
+  globalTeardown: './src/test/e2e/global-teardown.ts',
 
   /* Test output directory */
   outputDir: 'test-results/',
@@ -95,8 +96,6 @@ export default defineConfig({
   expect: {
     /* Maximum time expect() should wait for the condition to be met. */
     timeout: 5000,
-    /* Threshold for pixel comparisons */
-    threshold: 0.2,
   },
 
   /* Metadata */

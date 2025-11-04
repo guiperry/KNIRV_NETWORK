@@ -95,7 +95,7 @@ USER nexus
 
 # Environment variables
 ENV NEXUS_ENV=production
-ENV NEXUS_CONFIG=/opt/knirv-nexus/config/nexus.yaml
+ENV NEXUS_CONFIG=/opt/knirv-nexus/config/production.yaml
 ENV NEXUS_DATA_DIR=/var/lib/knirv-nexus
 ENV NEXUS_LOG_LEVEL=info
 
@@ -110,7 +110,7 @@ EXPOSE 8080 9090 4001
 VOLUME ["/var/lib/knirv-nexus"]
 
 # Default command
-CMD ["./bin/knirv-nexus", "--config", "/opt/knirv-nexus/config/nexus.yaml"]
+CMD ["./bin/knirv-nexus", "--config", "/opt/knirv-nexus/config/production.yaml"]
 
 # Labels
 LABEL maintainer="KNIRV Team <team@knirv.com>"

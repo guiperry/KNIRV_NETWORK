@@ -886,7 +886,7 @@ func logSecurityValidationReport(report *teesecurity.KaliSecurityValidationRepor
 	log.Printf("  Disk Space: %s KB", report.DiskSpaceKB)
 }
 
-func main() {
+func run() error {
 	// Parse command line flags
 	var configFile = flag.String("config", "", "Path to configuration file")
 	flag.Parse()
@@ -896,18 +896,18 @@ func main() {
 
 	// Validate command line arguments
 	if len(flag.Args()) > 0 {
-		log.Fatalf("Unexpected arguments: %v", flag.Args())
+		return fmt.Errorf("unexpected arguments: %v", flag.Args())
 	}
 
 	// Set config file if provided, otherwise use relative path from backend directory
 	if *configFile != "" {
 		if _, err := os.Stat(*configFile); os.IsNotExist(err) {
-			log.Fatalf("Config file does not exist: %s", *configFile)
+			return fmt.Errorf("config file does not exist: %s", *configFile)
 		}
 		viper.SetConfigFile(*configFile)
 	} else {
 		// Set default config path relative to backend directory
-		configPath := filepath.Join("config", "knirv-nexus.yaml")
+		configPath := filepath.Join("config", "production.yaml")
 		if _, err := os.Stat(configPath); err == nil {
 			viper.SetConfigFile(configPath)
 		} else {
@@ -918,26 +918,26 @@ func main() {
 	// Load configuration
 	config, err := config.Load()
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		return fmt.Errorf("failed to load config: %v", err)
 	}
 
 	// Validate essential configuration
 	if config == nil {
-		log.Fatalf("Configuration is nil")
+		return fmt.Errorf("configuration is nil")
 	}
 	if config.Database.Path == "" {
-		log.Fatalf("Database path is not configured")
+		return fmt.Errorf("database path is not configured")
 	}
 
 	// Create unified server
 	server, err := NewServer(config)
 	if err != nil {
-		log.Fatalf("Failed to create server: %v", err)
+		return fmt.Errorf("failed to create server: %v", err)
 	}
 
 	// Start the server
 	if err := server.Start(); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		return fmt.Errorf("failed to start server: %v", err)
 	}
 
 	// Wait for interrupt signal
@@ -963,7 +963,7 @@ func main() {
 	select {
 	case err := <-shutdownComplete:
 		if err != nil {
-			log.Printf("Error during shutdown: %v", err)
+			return fmt.Errorf("error during shutdown: %v", err)
 		} else {
 			log.Println("Server stopped gracefully")
 		}
@@ -973,5 +973,13 @@ func main() {
 		server.cancel()
 		// Give a brief moment for forced shutdown
 		time.Sleep(1 * time.Second)
+	}
+
+	return nil
+}
+
+func main() {
+	if err := run(); err != nil {
+		log.Fatalf("Error: %v", err)
 	}
 }

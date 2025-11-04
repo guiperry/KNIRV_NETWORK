@@ -133,7 +133,7 @@
     - name: Create application configuration
       template:
         src: nexus.yaml.j2
-        dest: "{{ app_config_dir }}/nexus.yaml"
+        dest: "{{ app_config_dir }}/production.yaml"
         owner: "{{ app_user }}"
         group: "{{ app_group }}"
         mode: '0640'

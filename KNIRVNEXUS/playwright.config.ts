@@ -79,7 +79,7 @@ export default defineConfig({
   /* Web Server Configuration - automatically start/stop the application */
   webServer: [
     {
-      command: './dist/knirv-nexus --config config/knirv-nexus.yaml',
+      command: './dist/knirv-nexus --config config/production.yaml',
       port: 8080,
       timeout: 30000,
       reuseExistingServer: !process.env.CI,

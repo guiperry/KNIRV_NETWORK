@@ -413,8 +413,9 @@ func loadConfig() (*Config, error) {
 		viper.SetConfigFile(*configFile)
 	} else {
 		// Set config file name and paths
-		viper.SetConfigName("nexus")
+		viper.SetConfigName("production")
 		viper.SetConfigType("yaml")
+		viper.AddConfigPath("./backend/config")
 		viper.AddConfigPath("./config")
 		viper.AddConfigPath(".")
 	}
