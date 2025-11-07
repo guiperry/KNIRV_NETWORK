@@ -148,18 +148,18 @@ graph TB
   - User Delegation Certificate (UDC) orchestration
   - Skill invocation and NRN consumption
 
-### 💼 KNIRV-WALLET: The Agent's Treasury
-**Technology**: Multi-platform wallet with XION Meta Accounts
-- **Purpose**: A secure, non-custodial wallet that allows NIMs to autonomously manage user assets and permissions on their behalf. Users will not interact directly with the wallet.
-- **Key Features**:
-  - Multiplatform support: Desktop, Mobile, Web
-  - XION Meta Account integration for seamless asset management
-  - Secure key storage and encryption
-  - User-friendly UI for managing assets and delegating authority to KNIRV-CONTROLLER's Key Features:
-  - Web2-like authentication (email, social, biometrics)
-  - Secure Gasless transactions via XION
-  - NRN management and autonomous agent control
-  - UDC issuance for agent delegation
+  ## 💼 KNIRV-WALLET: The Agent's Treasury
+  **Technology**: Multi-platform wallet with XION Meta Accounts
+  - **Purpose**: A secure, non-custodial wallet that allows NIMs to autonomously manage user assets and permissions on their behalf. Users will not interact directly with the wallet.
+  - **Key Features**:
+    - Multiplatform support: Desktop, Mobile, Web
+    - XION Meta Account integration for seamless asset management
+    - Secure key storage and encryption
+    - User-friendly UI for managing assets and delegating authority to KNIRV-CONTROLLER's Key Features:
+    - Web2-like authentication (email, social, biometrics)
+    - Secure Gasless transactions via XION
+    - NRN management and autonomous agent control
+    - UDC issuance for agent delegation
 
 Clarification: An AI assistant is typically a tool that responds to user commands or queries within a confined scope, performing tasks or providing information based on direct input. In contrast, an AI agent is an autonomous entity that can understand high-level goals and initiate actions to achieve them without constant user intervention. It can proactively manage resources, interact with other systems, and make decisions on behalf of the user, such as a KNIRV Neural Intellegence Model, which will use the KNIRV-WALLET to perform transactions and manage assets autonomously.
 
@@ -370,10 +370,10 @@ cd KNIRVROUTER && go run main.go --port 3478
 ## 📚 Documentation
 
 ### Core Documentation
-- **[D-TEN Whitepaper](docs/whitepapers/KNIRV-D-TEN_Whitepaper.md)**: Complete technical specification
-- **[Implementation Plan](docs/KNIRV_D-TEN_Comprehensive_Implementation_Plan.md)**: Detailed development roadmap
-- **[Component Whitepapers](docs/whitepapers/)**: Individual component specifications
-- **[API Documentation](docs/api/)**: Comprehensive API reference
+- **[D-TEN Whitepaper](wiki/whitepapers/KNIRV-D-TEN_Whitepaper.md)**: Complete technical specification
+- **[Implementation Plan](wiki/KNIRV_D-TEN_Comprehensive_Implementation_Plan.md)**: Detailed development roadmap
+- **[Component Whitepapers](wiki/whitepapers/)**: Individual component specifications
+- **[API Documentation](wiki/api/)**: Comprehensive API reference
 
 ### Developer Resources
 - **[KNIRV Developer Portal](KNIRVGATEWAY/agent-developer-portal/)**: Complete developer experience with tutorials, API docs, and tools
@@ -382,13 +382,12 @@ cd KNIRVROUTER && go run main.go --port 3478
 
 ### Deployment & Operations
 - **[Production Deployment Guide](deployment/README.md)**: Kubernetes and Docker deployment
-- **[Deployment Integration Guide](docs/DEPLOYMENT_TESTING_INTEGRATION.md)**: Testing and monitoring integration
-- **[Month 14-18 Implementation Summary](docs/MONTH_14-18_IMPLEMENTATION_SUMMARY.md)**: Latest production features
-- **[Integration Summary](docs/INTEGRATION_SUMMARY.md)**: Complete integration overview
+- **[Deployment Integration Guide](wiki/DEPLOYMENT_TESTING_INTEGRATION.md)**: Testing and monitoring integration
+- **[Integration Summary](wiki/INTEGRATION_SUMMARY.md)**: Complete integration overview
 
 ### Web Interface
 - **[KNIRV Website](KNIRVGATEWAY/)**: Main website with integrated developer portal
-- **[Netlify Deployment Guide](docs/NETLIFY_DEPLOYMENT.md)**: Web interface deployment
+- **[Netlify Deployment Guide](wiki/NETLIFY_DEPLOYMENT.md)**: Web interface deployment
 
 ## 🧪 Comprehensive Testing Infrastructure
 
@@ -1039,7 +1038,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🔗 Links
 
 - **Website**: [KNIRV Network](https://knirv.network)
-- **Documentation**: [Technical Docs](docs/)
+- **Documentation**: [Technical Docs](wiki/)
 - **Community**: [Discord](https://discord.gg/knirv) | [Telegram](https://t.me/knirvnetwork)
 - **Development**: [GitHub Issues](https://github.com/guiperry/KNIRV_NETWORK/issues)
 
@@ -1061,12 +1060,19 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Research Foundations
 - **HART**: Base Large Language Model
 - **SEAL**: Self-Adapting Language Models methodology
-- **CLEAN**: Cognitive Logistic Execution Adaptability Network
-- **Proof-of-Connectivity**: Novel consensus mechanism
+- ****: Factuality slice methodology
+- **ZKP**: Zero-Knowledge Proof technology for formal verification
+- **Aletheia Cognitive Technologies**: InvThink [https://arxiv.org/pdf/2510.01569]
 
 ## 👥 Team
 
 **KNIRV Network** is developed by a distributed team of blockchain engineers, AI researchers, and systems architects committed to advancing decentralized artificial intelligence.
+
+### Novel Technical Implementations:
+- **CLEAN**: Cognitive Logistic Execution Adaptability Network
+- **Proof-of-Connectivity**: Novel consensus mechanism
+- **PAu-D Protocol**: Authoritative Proof of Ownership protocol
+- **CERL**: Collective Error Resolution Loop
 
 ### Contributing Organizations
 - Cloud Equities Research Division

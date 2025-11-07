@@ -56,15 +56,27 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
     setProvisioningNodes(prev => new Set(prev).add(node.id));
 
     try {
-      // For now, redirect to rental modal
-      // In a full implementation, this would provision a container directly
-      if (onRentClick) {
-        onRentClick();
-      } else {
+      // Check if node is already rented by this user
+      const endpoints = await getNodeEndpoints(node.id);
+
+      if (endpoints && endpoints.length > 0) {
+        // Node is already rented - show access modal
+        setSelectedNode(node);
+        setCDEOpen(true);
         toast({
-          title: "Rental Required",
-          description: "Please use the Rent button to create a rental first.",
+          title: "Node Already Rented",
+          description: "Opening CDE access modal for your rented node.",
         });
+      } else {
+        // Node not rented - redirect to rental modal
+        if (onRentClick) {
+          onRentClick();
+        } else {
+          toast({
+            title: "Rental Required",
+            description: "Please use the Rent button to create a rental first.",
+          });
+        }
       }
     } catch (error) {
       toast({
