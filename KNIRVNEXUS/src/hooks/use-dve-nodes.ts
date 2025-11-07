@@ -298,10 +298,62 @@ export const useDVENodes = () => {
 
     try {
       const url = `${API_BASE_URL}/api/dve-nodes/${nodeId}/endpoints`;
-      const response: APIResponse<TEEEndpoint[]> = await apiRequest(url, { method: 'GET' });
+      const response: APIResponse<any> = await apiRequest(url, { method: 'GET' });
 
-      if (response.success && Array.isArray(response.data)) {
-        return response.data;
+      if (response.success && response.data) {
+        // Backend returns a map object, convert it to array of TEEEndpoint objects
+        const endpointsMap = response.data;
+        const endpoints: TEEEndpoint[] = [];
+        
+        // Convert SSH endpoint
+        if (endpointsMap.ssh && endpointsMap.ssh.host) {
+          endpoints.push({
+            id: `${nodeId}-ssh`,
+            rental_id: '', // Will be populated when node is rented
+            container_id: '', // Will be populated when container is created
+            endpoint_type: 'ssh',
+            host: endpointsMap.ssh.host,
+            port: endpointsMap.ssh.port || 22,
+            protocol: 'ssh',
+            status: 'active',
+            created_at: new Date().toISOString(),
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+          });
+        }
+        
+        // Convert validation endpoint
+        if (endpointsMap.validation && endpointsMap.validation.host) {
+          endpoints.push({
+            id: `${nodeId}-validation`,
+            rental_id: '', // Will be populated when node is rented
+            container_id: '', // Will be populated when container is created
+            endpoint_type: 'validation',
+            host: endpointsMap.validation.host,
+            port: endpointsMap.validation.port || 8080,
+            protocol: 'http',
+            status: 'active',
+            created_at: new Date().toISOString(),
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+          });
+        }
+        
+        // Convert error resolution endpoint
+        if (endpointsMap.error_resolution && endpointsMap.error_resolution.host) {
+          endpoints.push({
+            id: `${nodeId}-error-resolution`,
+            rental_id: '', // Will be populated when node is rented
+            container_id: '', // Will be populated when container is created
+            endpoint_type: 'error-resolution',
+            host: endpointsMap.error_resolution.host,
+            port: endpointsMap.error_resolution.port || 8081,
+            protocol: 'http',
+            status: 'active',
+            created_at: new Date().toISOString(),
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+          });
+        }
+        
+        return endpoints;
       } else {
         throw new Error(response.error || 'Failed to fetch node endpoints');
       }

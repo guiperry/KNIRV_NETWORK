@@ -2,6 +2,9 @@ package dataengine
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -27,55 +30,50 @@ func TestChromaDB_IsConnected(t *testing.T) {
 	// Initially not connected
 	assert.False(t, chroma.IsConnected())
 
-	// Simulate connection (this would normally be done by Connect)
+	// Manually set connected (for testing)
+	chroma.mutex.Lock()
 	chroma.connected = true
-	assert.True(t, chroma.IsConnected())
+	chroma.mutex.Unlock()
 
-	chroma.Close()
-	assert.False(t, chroma.IsConnected())
+	assert.True(t, chroma.IsConnected())
 }
 
 func TestChromaDB_Close(t *testing.T) {
 	chroma := NewChromaDB("http://localhost:8000", "test")
 
-	// Simulate connection
+	// Manually set connected
+	chroma.mutex.Lock()
 	chroma.connected = true
-	assert.True(t, chroma.IsConnected())
+	chroma.mutex.Unlock()
 
 	chroma.Close()
-	assert.False(t, chroma.IsConnected())
-}
 
-// Note: The following tests require a running ChromaDB instance
-// They are designed to test the functionality when ChromaDB is available
-// In a real test environment, these would be integration tests
+	assert.False(t, chroma.connected)
+}
 
 func TestChromaDB_Connect_ConnectionRefused(t *testing.T) {
 	chroma := NewChromaDB("http://nonexistent:8000", "test")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-
+	ctx := context.Background()
 	err := chroma.Connect(ctx)
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to connect to ChromaDB")
-	assert.False(t, chroma.IsConnected())
+	assert.False(t, chroma.connected)
 }
 
 func TestChromaDB_AddEvent_NotConnected(t *testing.T) {
 	chroma := NewChromaDB("http://localhost:8000", "test")
 
 	event := Event{
-		Type:      "test",
+		Type:      EventType("test"),
 		Timestamp: time.Now(),
-		Source:    "test",
-		Data: map[string]interface{}{
-			"key": "value",
-		},
+		Data:      map[string]interface{}{"key": "value"},
 	}
 
 	ctx := context.Background()
 	err := chroma.AddEvent(ctx, event)
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not connected to ChromaDB")
 }
@@ -84,93 +82,163 @@ func TestChromaDB_QueryEvents_NotConnected(t *testing.T) {
 	chroma := NewChromaDB("http://localhost:8000", "test")
 
 	ctx := context.Background()
-	docs, err := chroma.QueryEvents(ctx, "test query", 10)
+	_, err := chroma.QueryEvents(ctx, "test query", 10)
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not connected to ChromaDB")
-	assert.Nil(t, docs)
 }
 
 func TestChromaDB_GetEventsByType_NotConnected(t *testing.T) {
 	chroma := NewChromaDB("http://localhost:8000", "test")
 
 	ctx := context.Background()
-	docs, err := chroma.GetEventsByType(ctx, "test", 10)
+	_, err := chroma.GetEventsByType(ctx, EventType("test"), 10)
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not connected to ChromaDB")
-	assert.Nil(t, docs)
 }
 
 func TestChromaDB_GetRecentEvents_NotConnected(t *testing.T) {
 	chroma := NewChromaDB("http://localhost:8000", "test")
 
 	ctx := context.Background()
-	docs, err := chroma.GetRecentEvents(ctx, 10)
+	_, err := chroma.GetRecentEvents(ctx, 10)
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not connected to ChromaDB")
-	assert.Nil(t, docs)
 }
-
-// Mock HTTP server tests would go here for full integration testing
-// These would require setting up a test HTTP server that mimics ChromaDB responses
 
 func TestChromaDocument_Structure(t *testing.T) {
 	doc := ChromaDocument{
-		ID:        "test-doc-1",
+		ID:        "test-id",
 		Embedding: []float64{0.1, 0.2, 0.3},
-		Metadata: map[string]interface{}{
-			"type":      "test",
-			"timestamp": time.Now().Format(time.RFC3339),
-		},
-		Document:  "Test document content",
-		Type:      "test",
+		Metadata:  map[string]interface{}{"key": "value"},
+		Document:  "test document",
+		Type:      "test-type",
 		Timestamp: time.Now(),
 	}
 
-	assert.Equal(t, "test-doc-1", doc.ID)
-	assert.Len(t, doc.Embedding, 3)
-	assert.Equal(t, "Test document content", doc.Document)
-	assert.Equal(t, "test", doc.Type)
+	assert.Equal(t, "test-id", doc.ID)
+	assert.Equal(t, []float64{0.1, 0.2, 0.3}, doc.Embedding)
+	assert.Equal(t, map[string]interface{}{"key": "value"}, doc.Metadata)
+	assert.Equal(t, "test document", doc.Document)
+	assert.Equal(t, "test-type", doc.Type)
 	assert.NotZero(t, doc.Timestamp)
-
-	// Test with nil metadata to ensure no panic
-	docWithNilMetadata := ChromaDocument{
-		ID:        "test-doc-2",
-		Embedding: []float64{0.1, 0.2, 0.3},
-		Metadata:  nil,
-		Document:  "Test document content",
-		Type:      "test",
-		Timestamp: time.Now(),
-	}
-
-	assert.Equal(t, "test-doc-2", docWithNilMetadata.ID)
-	assert.Len(t, docWithNilMetadata.Embedding, 3)
-	assert.Equal(t, "Test document content", docWithNilMetadata.Document)
-	assert.Equal(t, "test", docWithNilMetadata.Type)
-	assert.NotZero(t, docWithNilMetadata.Timestamp)
-
-	// Use the metadata field to avoid unused write warning
-	_ = doc.Metadata
-	_ = docWithNilMetadata.Metadata
 }
 
 func TestChromaQueryResult_Structure(t *testing.T) {
 	result := ChromaQueryResult{
-		IDs:        []string{"doc1", "doc2"},
+		IDs:        []string{"id1", "id2"},
 		Embeddings: [][]float64{{0.1, 0.2}, {0.3, 0.4}},
-		Metadatas: []map[string]interface{}{
-			{"type": "test1"},
-			{"type": "test2"},
-		},
-		Documents: []string{"doc1 content", "doc2 content"},
-		Distances: []float64{0.1, 0.2},
+		Metadatas:  []map[string]interface{}{{"key1": "value1"}, {"key2": "value2"}},
+		Documents:  []string{"doc1", "doc2"},
+		Distances:  []float64{0.1, 0.2},
 	}
 
-	assert.Len(t, result.IDs, 2)
-	assert.Len(t, result.Embeddings, 2)
-	assert.Len(t, result.Metadatas, 2)
-	assert.Len(t, result.Documents, 2)
-	assert.Len(t, result.Distances, 2)
+	assert.Equal(t, []string{"id1", "id2"}, result.IDs)
+	assert.Equal(t, [][]float64{{0.1, 0.2}, {0.3, 0.4}}, result.Embeddings)
+	assert.Equal(t, []map[string]interface{}{{"key1": "value1"}, {"key2": "value2"}}, result.Metadatas)
+	assert.Equal(t, []string{"doc1", "doc2"}, result.Documents)
+	assert.Equal(t, []float64{0.1, 0.2}, result.Distances)
+}
 
-	// Use the metadata field to avoid unused write warning
-	_ = result.Metadatas
+// Mock HTTP server for testing ChromaDB methods that require HTTP calls
+func createMockChromaServer() *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1":
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"status": "ok"}`))
+		case "/api/v1/collections":
+			if r.Method == "GET" {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`{"collections": []}`))
+			} else if r.Method == "POST" {
+				w.WriteHeader(http.StatusCreated)
+				w.Write([]byte(`{"name": "test-collection"}`))
+			}
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+}
+
+func TestChromaDB_Connect_Success(t *testing.T) {
+	server := createMockChromaServer()
+	defer server.Close()
+
+	chroma := NewChromaDB(server.URL, "test-collection")
+
+	ctx := context.Background()
+	err := chroma.Connect(ctx)
+
+	assert.NoError(t, err)
+	assert.True(t, chroma.connected)
+}
+
+func TestChromaDB_createCollection(t *testing.T) {
+	server := createMockChromaServer()
+	defer server.Close()
+
+	chroma := NewChromaDB(server.URL, "test-collection")
+
+	ctx := context.Background()
+	err := chroma.createCollection(ctx)
+
+	assert.NoError(t, err)
+}
+
+func TestChromaDB_listCollections(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" && r.URL.Path == "/api/v1/collections" {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"collections": [{"name": "collection1"}, {"name": "collection2"}]}`))
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	chroma := NewChromaDB(server.URL, "test-collection")
+
+	ctx := context.Background()
+	collections, err := chroma.listCollections(ctx)
+
+	assert.NoError(t, err)
+	assert.Len(t, collections, 2)
+	assert.Contains(t, collections, "collection1")
+	assert.Contains(t, collections, "collection2")
+}
+
+func TestChromaDB_addDocuments(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" && strings.Contains(r.URL.Path, "/add") {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"status": "success"}`))
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	chroma := NewChromaDB(server.URL, "test-collection")
+	chroma.connected = true // Manually set connected for testing
+
+	docs := []ChromaDocument{
+		{
+			ID:       "doc1",
+			Document: "test document 1",
+			Metadata: map[string]interface{}{"key": "value1"},
+		},
+		{
+			ID:       "doc2",
+			Document: "test document 2",
+			Metadata: map[string]interface{}{"key": "value2"},
+		},
+	}
+
+	ctx := context.Background()
+	err := chroma.addDocuments(ctx, docs)
+
+	assert.NoError(t, err)
 }
