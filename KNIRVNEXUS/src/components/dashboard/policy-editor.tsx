@@ -19,8 +19,9 @@ const PolicyEditor: React.FC<PolicyEditorProps> = ({ isOpen, onClose }) => {
 
   return (
     <div
-      className="fixed left-0 z-30 transition-all duration-300 bg-gradient-to-b from-blue-950 to-slate-900 border-r-2 border-blue-600 shadow-lg overflow-hidden"
+      className="fixed z-30 transition-all duration-300 bg-gradient-to-b from-blue-950 to-slate-900 border-r-2 border-blue-600 shadow-lg overflow-hidden"
       style={{
+        left: '-100px',
         top: '210px',
         width: '100%',
         maxWidth: '500px',

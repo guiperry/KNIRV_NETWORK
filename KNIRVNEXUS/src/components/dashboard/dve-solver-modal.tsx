@@ -83,7 +83,7 @@ const DVESolverModal: React.FC<DVESolverModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-950 rounded-lg border-2 border-blue-600/50 shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-950 rounded-lg border-2 border-blue-600/50 shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto" style={{ marginLeft: '280px' }}>
         {/* Header */}
         <div className="sticky top-0 bg-gradient-to-r from-slate-900 to-blue-950 border-b border-blue-600/30 p-6 flex items-center justify-between">
           <div className="flex items-center space-x-3">

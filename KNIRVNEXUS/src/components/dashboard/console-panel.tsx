@@ -13,8 +13,9 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose }) => {
 
   return (
     <div
-      className="fixed left-0 top-6 z-30 transition-all duration-300 bg-gradient-to-b from-blue-950 to-slate-900 border-r-2 border-blue-600 shadow-lg overflow-hidden"
+      className="fixed top-6 z-30 transition-all duration-300 bg-gradient-to-b from-blue-950 to-slate-900 border-r-2 border-blue-600 shadow-lg overflow-hidden"
       style={{
+        left: '-100px',
         width: '100%',
         maxWidth: '500px',
         height: '200px',

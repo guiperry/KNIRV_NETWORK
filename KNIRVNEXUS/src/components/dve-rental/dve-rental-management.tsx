@@ -197,22 +197,22 @@ export default function DVERentalManagement({ isOpen, onClose }: DVERentalManage
   if (!isOpen) return null;
 
   const modalContent = (
-    <div 
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-8 pt-16 pb-16"
+    <div
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[99999] p-8 pt-16 pb-16"
       onClick={(e) => {
         // Close modal when clicking backdrop
         if (e.target === e.currentTarget) {
           onClose();
         }
       }}
-      style={{ 
-        position: 'fixed', 
-        top: 0, 
-        left: 0, 
-        right: 0, 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
         bottom: 0,
         pointerEvents: 'auto',
-        zIndex: 9999
+        zIndex: 99999
       }}
     >
       <div 
@@ -478,7 +478,7 @@ export default function DVERentalManagement({ isOpen, onClose }: DVERentalManage
 
       {/* Create Rental Modal */}
       {showCreateForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[999999]">
           <Card className="w-full max-w-md">
             <CardHeader>
               <CardTitle>Rent DVE Node</CardTitle>
