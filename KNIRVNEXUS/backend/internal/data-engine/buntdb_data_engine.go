@@ -476,7 +476,7 @@ func (d *BuntDBDataEngine) GetDatabaseStats() (map[string]interface{}, error) {
 	if d.db == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
-	return d.db.GetDatabaseStats()
+	return d.db.GetStats()
 }
 
 // StoreUserReport stores a user-generated report

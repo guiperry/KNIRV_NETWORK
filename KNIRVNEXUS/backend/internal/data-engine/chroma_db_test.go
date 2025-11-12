@@ -150,10 +150,11 @@ func createMockChromaServer() *httptest.Server {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`{"status": "ok"}`))
 		case "/api/v1/collections":
-			if r.Method == "GET" {
+			switch r.Method {
+			case "GET":
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte(`{"collections": []}`))
-			} else if r.Method == "POST" {
+			case "POST":
 				w.WriteHeader(http.StatusCreated)
 				w.Write([]byte(`{"name": "test-collection"}`))
 			}

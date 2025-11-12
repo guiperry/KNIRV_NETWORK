@@ -775,6 +775,7 @@ func TestBuntDBDataEngine_generateMetricsSnapshot(t *testing.T) {
 	snapshot := engine.generateMetricsSnapshot()
 	if snapshot == nil {
 		t.Error("generateMetricsSnapshot() should not return nil")
+		return
 	}
 	if snapshot.StartTime.IsZero() {
 		t.Error("StartTime should be set")

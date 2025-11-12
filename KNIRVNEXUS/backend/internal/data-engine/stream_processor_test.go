@@ -132,6 +132,7 @@ func TestStreamProcessor_GetMetrics(t *testing.T) {
 
 	if metrics == nil {
 		t.Error("Metrics snapshot is nil")
+		return
 	}
 
 	if metrics.EventCounts == nil {

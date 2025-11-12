@@ -17,7 +17,7 @@ async function globalSetup(config: FullConfig) {
     
     while (!apiReady && attempts < maxAttempts) {
       try {
-        const response = await page.request.get('http://localhost:8080/api/dve-nodes');
+        const response = await page.request.get('http://localhost:8090/api/dve-nodes');
         if (response.status() === 200) {
           apiReady = true;
           console.log('✅ Backend API is ready!');
@@ -83,7 +83,7 @@ async function globalSetup(config: FullConfig) {
       
       for (const nodeId of testNodeIds) {
         try {
-          await page.request.delete(`http://localhost:8080/api/dve-nodes/${nodeId}`);
+          await page.request.delete(`http://localhost:8090/api/dve-nodes/${nodeId}`);
         } catch (error) {
           // Node doesn't exist, that's fine
         }

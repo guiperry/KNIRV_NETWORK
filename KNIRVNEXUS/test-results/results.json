@@ -10,13 +10,15 @@
     "grep": {},
     "grepInvert": null,
     "maxFailures": 0,
-    "metadata": {},
+    "metadata": {
+      "actualWorkers": 4
+    },
     "preserveOutput": "always",
     "reporter": [
       [
         "html",
         {
-          "outputFolder": "test-results/playwright-report"
+          "outputFolder": "playwright-report"
         }
       ],
       [
@@ -40,7 +42,9 @@
         "outputDir": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 4
+        },
         "id": "chromium",
         "name": "chromium",
         "testDir": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e",
@@ -54,7 +58,9 @@
         "outputDir": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 4
+        },
         "id": "firefox",
         "name": "firefox",
         "testDir": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e",
@@ -68,7 +74,9 @@
         "outputDir": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 4
+        },
         "id": "webkit",
         "name": "webkit",
         "testDir": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e",
@@ -82,7 +90,9 @@
         "outputDir": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 4
+        },
         "id": "Mobile Chrome",
         "name": "Mobile Chrome",
         "testDir": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e",
@@ -96,7 +106,9 @@
         "outputDir": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 4
+        },
         "id": "Mobile Safari",
         "name": "Mobile Safari",
         "testDir": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e",
@@ -110,7 +122,9 @@
         "outputDir": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 4
+        },
         "id": "Microsoft Edge",
         "name": "Microsoft Edge",
         "testDir": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e",
@@ -124,7 +138,9 @@
         "outputDir": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 4
+        },
         "id": "Google Chrome",
         "name": "Google Chrome",
         "testDir": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e",
@@ -142,19 +158,1976 @@
     "workers": 4,
     "webServer": null
   },
-  "suites": [],
-  "errors": [
+  "suites": [
     {
-      "message": "Error: Process from config.webServer was not able to start. Exit code: 1",
-      "stack": "Error: Process from config.webServer was not able to start. Exit code: 1"
+      "title": "test-positioning.spec.ts",
+      "file": "test-positioning.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "UI Positioning Tests",
+          "file": "test-positioning.spec.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Console panel should be centered on screen",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 17554,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:13:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 13
+                        },
+                        "snippet": "  11 |   test('Console panel should be centered on screen', async ({ page }) => {\n  12 |     // Navigate to Network & Resources tab\n> 13 |     await page.click('button[value=\"system\"]');\n     |                ^\n  14 |\n  15 |     // Click on a DVE node to open CDE modal\n  16 |     await page.click('text=DVE-Node-1');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 13
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n  11 |   test('Console panel should be centered on screen', async ({ page }) => {\n  12 |     // Navigate to Network & Resources tab\n> 13 |     await page.click('button[value=\"system\"]');\n     |                ^\n  14 |\n  15 |     // Click on a DVE node to open CDE modal\n  16 |     await page.click('text=DVE-Node-1');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:13:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:46:00.277Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-cef60-hould-be-centered-on-screen-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-cef60-hould-be-centered-on-screen-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-cef60-hould-be-centered-on-screen-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 13
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-bad4a446b405cc54cbe5",
+              "file": "test-positioning.spec.ts",
+              "line": 11,
+              "column": 3
+            },
+            {
+              "title": "Policy editor should be centered on screen",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 17046,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:42:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 42
+                        },
+                        "snippet": "  40 |   test('Policy editor should be centered on screen', async ({ page }) => {\n  41 |     // Navigate to Network & Resources tab\n> 42 |     await page.click('button[value=\"system\"]');\n     |                ^\n  43 |\n  44 |     // Click on a DVE node to open CDE modal\n  45 |     await page.click('text=DVE-Node-1');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 42
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n  40 |   test('Policy editor should be centered on screen', async ({ page }) => {\n  41 |     // Navigate to Network & Resources tab\n> 42 |     await page.click('button[value=\"system\"]');\n     |                ^\n  43 |\n  44 |     // Click on a DVE node to open CDE modal\n  45 |     await page.click('text=DVE-Node-1');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:42:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:46:00.054Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-595ff-hould-be-centered-on-screen-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-595ff-hould-be-centered-on-screen-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-595ff-hould-be-centered-on-screen-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 42
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-ad83f8f4bdaf567a5ae5",
+              "file": "test-positioning.spec.ts",
+              "line": 40,
+              "column": 3
+            },
+            {
+              "title": "DVE Solver should be centered on screen",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 16786,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:71:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 71
+                        },
+                        "snippet": "  69 |   test('DVE Solver should be centered on screen', async ({ page }) => {\n  70 |     // Navigate to Network & Resources tab\n> 71 |     await page.click('button[value=\"system\"]');\n     |                ^\n  72 |\n  73 |     // Click on a DVE node to open CDE modal\n  74 |     await page.click('text=DVE-Node-1');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 71
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n  69 |   test('DVE Solver should be centered on screen', async ({ page }) => {\n  70 |     // Navigate to Network & Resources tab\n> 71 |     await page.click('button[value=\"system\"]');\n     |                ^\n  72 |\n  73 |     // Click on a DVE node to open CDE modal\n  74 |     await page.click('text=DVE-Node-1');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:71:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:46:00.121Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-f5f73-hould-be-centered-on-screen-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-f5f73-hould-be-centered-on-screen-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-f5f73-hould-be-centered-on-screen-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 71
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-ce6cc4d508e3adf8154c",
+              "file": "test-positioning.spec.ts",
+              "line": 69,
+              "column": 3
+            },
+            {
+              "title": "Rent button modal should be visible from Network & Resources view",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "failed",
+                      "duration": 16997,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:100:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 100
+                        },
+                        "snippet": "   98 |   test('Rent button modal should be visible from Network & Resources view', async ({ page }) => {\n   99 |     // Navigate to Network & Resources tab\n> 100 |     await page.click('button[value=\"system\"]');\n      |                ^\n  101 |     \n  102 |     // Click Rent button in DVE nodes panel\n  103 |     await page.click('button:has-text(\"Rent\")');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 100
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n   98 |   test('Rent button modal should be visible from Network & Resources view', async ({ page }) => {\n   99 |     // Navigate to Network & Resources tab\n> 100 |     await page.click('button[value=\"system\"]');\n      |                ^\n  101 |     \n  102 |     // Click Rent button in DVE nodes panel\n  103 |     await page.click('button:has-text(\"Rent\")');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:100:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:46:00.431Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-8476a-from-Network-Resources-view-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-8476a-from-Network-Resources-view-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-8476a-from-Network-Resources-view-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 100
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-df9f539632ba63479496",
+              "file": "test-positioning.spec.ts",
+              "line": 98,
+              "column": 3
+            },
+            {
+              "title": "Console panel should be centered on screen",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 28756,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:13:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 13
+                        },
+                        "snippet": "  11 |   test('Console panel should be centered on screen', async ({ page }) => {\n  12 |     // Navigate to Network & Resources tab\n> 13 |     await page.click('button[value=\"system\"]');\n     |                ^\n  14 |\n  15 |     // Click on a DVE node to open CDE modal\n  16 |     await page.click('text=DVE-Node-1');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 13
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n  11 |   test('Console panel should be centered on screen', async ({ page }) => {\n  12 |     // Navigate to Network & Resources tab\n> 13 |     await page.click('button[value=\"system\"]');\n     |                ^\n  14 |\n  15 |     // Click on a DVE node to open CDE modal\n  16 |     await page.click('text=DVE-Node-1');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:13:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:46:21.702Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-cef60-hould-be-centered-on-screen-firefox/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-cef60-hould-be-centered-on-screen-firefox/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-cef60-hould-be-centered-on-screen-firefox/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 13
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-58f49a409eb50ed1a438",
+              "file": "test-positioning.spec.ts",
+              "line": 11,
+              "column": 3
+            },
+            {
+              "title": "Policy editor should be centered on screen",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 29316,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:42:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 42
+                        },
+                        "snippet": "  40 |   test('Policy editor should be centered on screen', async ({ page }) => {\n  41 |     // Navigate to Network & Resources tab\n> 42 |     await page.click('button[value=\"system\"]');\n     |                ^\n  43 |\n  44 |     // Click on a DVE node to open CDE modal\n  45 |     await page.click('text=DVE-Node-1');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 42
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n  40 |   test('Policy editor should be centered on screen', async ({ page }) => {\n  41 |     // Navigate to Network & Resources tab\n> 42 |     await page.click('button[value=\"system\"]');\n     |                ^\n  43 |\n  44 |     // Click on a DVE node to open CDE modal\n  45 |     await page.click('text=DVE-Node-1');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:42:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:46:22.044Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-595ff-hould-be-centered-on-screen-firefox/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-595ff-hould-be-centered-on-screen-firefox/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-595ff-hould-be-centered-on-screen-firefox/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 42
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-39c4653109394d7c0112",
+              "file": "test-positioning.spec.ts",
+              "line": 40,
+              "column": 3
+            },
+            {
+              "title": "DVE Solver should be centered on screen",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 3,
+                      "status": "failed",
+                      "duration": 28760,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:71:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 71
+                        },
+                        "snippet": "  69 |   test('DVE Solver should be centered on screen', async ({ page }) => {\n  70 |     // Navigate to Network & Resources tab\n> 71 |     await page.click('button[value=\"system\"]');\n     |                ^\n  72 |\n  73 |     // Click on a DVE node to open CDE modal\n  74 |     await page.click('text=DVE-Node-1');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 71
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n  69 |   test('DVE Solver should be centered on screen', async ({ page }) => {\n  70 |     // Navigate to Network & Resources tab\n> 71 |     await page.click('button[value=\"system\"]');\n     |                ^\n  72 |\n  73 |     // Click on a DVE node to open CDE modal\n  74 |     await page.click('text=DVE-Node-1');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:71:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:46:22.594Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-f5f73-hould-be-centered-on-screen-firefox/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-f5f73-hould-be-centered-on-screen-firefox/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-f5f73-hould-be-centered-on-screen-firefox/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 71
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-a6d49885fd91f17e2aae",
+              "file": "test-positioning.spec.ts",
+              "line": 69,
+              "column": 3
+            },
+            {
+              "title": "Rent button modal should be visible from Network & Resources view",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 29094,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:100:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 100
+                        },
+                        "snippet": "   98 |   test('Rent button modal should be visible from Network & Resources view', async ({ page }) => {\n   99 |     // Navigate to Network & Resources tab\n> 100 |     await page.click('button[value=\"system\"]');\n      |                ^\n  101 |     \n  102 |     // Click Rent button in DVE nodes panel\n  103 |     await page.click('button:has-text(\"Rent\")');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 100
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n   98 |   test('Rent button modal should be visible from Network & Resources view', async ({ page }) => {\n   99 |     // Navigate to Network & Resources tab\n> 100 |     await page.click('button[value=\"system\"]');\n      |                ^\n  101 |     \n  102 |     // Click Rent button in DVE nodes panel\n  103 |     await page.click('button:has-text(\"Rent\")');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:100:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:46:22.616Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-8476a-from-Network-Resources-view-firefox/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-8476a-from-Network-Resources-view-firefox/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-8476a-from-Network-Resources-view-firefox/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 100
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-4865fbfffe4ad7bf092b",
+              "file": "test-positioning.spec.ts",
+              "line": 98,
+              "column": 3
+            },
+            {
+              "title": "Console panel should be centered on screen",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 23730,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:13:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 13
+                        },
+                        "snippet": "  11 |   test('Console panel should be centered on screen', async ({ page }) => {\n  12 |     // Navigate to Network & Resources tab\n> 13 |     await page.click('button[value=\"system\"]');\n     |                ^\n  14 |\n  15 |     // Click on a DVE node to open CDE modal\n  16 |     await page.click('text=DVE-Node-1');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 13
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n  11 |   test('Console panel should be centered on screen', async ({ page }) => {\n  12 |     // Navigate to Network & Resources tab\n> 13 |     await page.click('button[value=\"system\"]');\n     |                ^\n  14 |\n  15 |     // Click on a DVE node to open CDE modal\n  16 |     await page.click('text=DVE-Node-1');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:13:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:47:10.986Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-cef60-hould-be-centered-on-screen-webkit/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-cef60-hould-be-centered-on-screen-webkit/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-cef60-hould-be-centered-on-screen-webkit/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 13
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-78d00163b0df4c157832",
+              "file": "test-positioning.spec.ts",
+              "line": 11,
+              "column": 3
+            },
+            {
+              "title": "Policy editor should be centered on screen",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 9,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 23295,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:42:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 42
+                        },
+                        "snippet": "  40 |   test('Policy editor should be centered on screen', async ({ page }) => {\n  41 |     // Navigate to Network & Resources tab\n> 42 |     await page.click('button[value=\"system\"]');\n     |                ^\n  43 |\n  44 |     // Click on a DVE node to open CDE modal\n  45 |     await page.click('text=DVE-Node-1');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 42
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n  40 |   test('Policy editor should be centered on screen', async ({ page }) => {\n  41 |     // Navigate to Network & Resources tab\n> 42 |     await page.click('button[value=\"system\"]');\n     |                ^\n  43 |\n  44 |     // Click on a DVE node to open CDE modal\n  45 |     await page.click('text=DVE-Node-1');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:42:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:47:10.833Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-595ff-hould-be-centered-on-screen-webkit/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-595ff-hould-be-centered-on-screen-webkit/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-595ff-hould-be-centered-on-screen-webkit/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 42
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-ec116a0d6164cbeeeb10",
+              "file": "test-positioning.spec.ts",
+              "line": 40,
+              "column": 3
+            },
+            {
+              "title": "DVE Solver should be centered on screen",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 10,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 24578,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:71:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 71
+                        },
+                        "snippet": "  69 |   test('DVE Solver should be centered on screen', async ({ page }) => {\n  70 |     // Navigate to Network & Resources tab\n> 71 |     await page.click('button[value=\"system\"]');\n     |                ^\n  72 |\n  73 |     // Click on a DVE node to open CDE modal\n  74 |     await page.click('text=DVE-Node-1');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 71
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n  69 |   test('DVE Solver should be centered on screen', async ({ page }) => {\n  70 |     // Navigate to Network & Resources tab\n> 71 |     await page.click('button[value=\"system\"]');\n     |                ^\n  72 |\n  73 |     // Click on a DVE node to open CDE modal\n  74 |     await page.click('text=DVE-Node-1');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:71:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:47:10.867Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-f5f73-hould-be-centered-on-screen-webkit/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-f5f73-hould-be-centered-on-screen-webkit/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-f5f73-hould-be-centered-on-screen-webkit/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 71
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-b581c952c0c9ff49ba6e",
+              "file": "test-positioning.spec.ts",
+              "line": 69,
+              "column": 3
+            },
+            {
+              "title": "Rent button modal should be visible from Network & Resources view",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 11,
+                      "parallelIndex": 3,
+                      "status": "failed",
+                      "duration": 24609,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:100:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 100
+                        },
+                        "snippet": "   98 |   test('Rent button modal should be visible from Network & Resources view', async ({ page }) => {\n   99 |     // Navigate to Network & Resources tab\n> 100 |     await page.click('button[value=\"system\"]');\n      |                ^\n  101 |     \n  102 |     // Click Rent button in DVE nodes panel\n  103 |     await page.click('button:has-text(\"Rent\")');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 100
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n   98 |   test('Rent button modal should be visible from Network & Resources view', async ({ page }) => {\n   99 |     // Navigate to Network & Resources tab\n> 100 |     await page.click('button[value=\"system\"]');\n      |                ^\n  101 |     \n  102 |     // Click Rent button in DVE nodes panel\n  103 |     await page.click('button:has-text(\"Rent\")');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:100:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:47:11.018Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-8476a-from-Network-Resources-view-webkit/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-8476a-from-Network-Resources-view-webkit/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-8476a-from-Network-Resources-view-webkit/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 100
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-af29c65f24ba1409c9af",
+              "file": "test-positioning.spec.ts",
+              "line": 98,
+              "column": 3
+            },
+            {
+              "title": "Console panel should be centered on screen",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 12,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 14054,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:13:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 13
+                        },
+                        "snippet": "  11 |   test('Console panel should be centered on screen', async ({ page }) => {\n  12 |     // Navigate to Network & Resources tab\n> 13 |     await page.click('button[value=\"system\"]');\n     |                ^\n  14 |\n  15 |     // Click on a DVE node to open CDE modal\n  16 |     await page.click('text=DVE-Node-1');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 13
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n  11 |   test('Console panel should be centered on screen', async ({ page }) => {\n  12 |     // Navigate to Network & Resources tab\n> 13 |     await page.click('button[value=\"system\"]');\n     |                ^\n  14 |\n  15 |     // Click on a DVE node to open CDE modal\n  16 |     await page.click('text=DVE-Node-1');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:13:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:47:41.918Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-cef60-hould-be-centered-on-screen-Mobile-Chrome/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-cef60-hould-be-centered-on-screen-Mobile-Chrome/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-cef60-hould-be-centered-on-screen-Mobile-Chrome/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 13
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-02bed4b4409e38a2831b",
+              "file": "test-positioning.spec.ts",
+              "line": 11,
+              "column": 3
+            },
+            {
+              "title": "Policy editor should be centered on screen",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 13,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 13458,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:42:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 42
+                        },
+                        "snippet": "  40 |   test('Policy editor should be centered on screen', async ({ page }) => {\n  41 |     // Navigate to Network & Resources tab\n> 42 |     await page.click('button[value=\"system\"]');\n     |                ^\n  43 |\n  44 |     // Click on a DVE node to open CDE modal\n  45 |     await page.click('text=DVE-Node-1');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 42
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n  40 |   test('Policy editor should be centered on screen', async ({ page }) => {\n  41 |     // Navigate to Network & Resources tab\n> 42 |     await page.click('button[value=\"system\"]');\n     |                ^\n  43 |\n  44 |     // Click on a DVE node to open CDE modal\n  45 |     await page.click('text=DVE-Node-1');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:42:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:47:42.563Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-595ff-hould-be-centered-on-screen-Mobile-Chrome/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-595ff-hould-be-centered-on-screen-Mobile-Chrome/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-595ff-hould-be-centered-on-screen-Mobile-Chrome/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 42
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-bc7840e5cbd15c8921ea",
+              "file": "test-positioning.spec.ts",
+              "line": 40,
+              "column": 3
+            },
+            {
+              "title": "DVE Solver should be centered on screen",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 14,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 15784,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:71:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 71
+                        },
+                        "snippet": "  69 |   test('DVE Solver should be centered on screen', async ({ page }) => {\n  70 |     // Navigate to Network & Resources tab\n> 71 |     await page.click('button[value=\"system\"]');\n     |                ^\n  72 |\n  73 |     // Click on a DVE node to open CDE modal\n  74 |     await page.click('text=DVE-Node-1');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 71
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n  69 |   test('DVE Solver should be centered on screen', async ({ page }) => {\n  70 |     // Navigate to Network & Resources tab\n> 71 |     await page.click('button[value=\"system\"]');\n     |                ^\n  72 |\n  73 |     // Click on a DVE node to open CDE modal\n  74 |     await page.click('text=DVE-Node-1');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:71:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:47:43.366Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-f5f73-hould-be-centered-on-screen-Mobile-Chrome/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-f5f73-hould-be-centered-on-screen-Mobile-Chrome/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-f5f73-hould-be-centered-on-screen-Mobile-Chrome/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 71
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-d4c0f7b2e3a3cd1ba9f8",
+              "file": "test-positioning.spec.ts",
+              "line": 69,
+              "column": 3
+            },
+            {
+              "title": "Rent button modal should be visible from Network & Resources view",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 15,
+                      "parallelIndex": 3,
+                      "status": "failed",
+                      "duration": 16666,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:100:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 100
+                        },
+                        "snippet": "   98 |   test('Rent button modal should be visible from Network & Resources view', async ({ page }) => {\n   99 |     // Navigate to Network & Resources tab\n> 100 |     await page.click('button[value=\"system\"]');\n      |                ^\n  101 |     \n  102 |     // Click Rent button in DVE nodes panel\n  103 |     await page.click('button:has-text(\"Rent\")');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 100
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n   98 |   test('Rent button modal should be visible from Network & Resources view', async ({ page }) => {\n   99 |     // Navigate to Network & Resources tab\n> 100 |     await page.click('button[value=\"system\"]');\n      |                ^\n  101 |     \n  102 |     // Click Rent button in DVE nodes panel\n  103 |     await page.click('button:has-text(\"Rent\")');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:100:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:47:43.642Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-8476a-from-Network-Resources-view-Mobile-Chrome/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-8476a-from-Network-Resources-view-Mobile-Chrome/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-8476a-from-Network-Resources-view-Mobile-Chrome/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 100
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-847185be05383dcbc921",
+              "file": "test-positioning.spec.ts",
+              "line": 98,
+              "column": 3
+            },
+            {
+              "title": "Console panel should be centered on screen",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [
+                    {
+                      "workerIndex": 16,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 16213,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:13:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 13
+                        },
+                        "snippet": "  11 |   test('Console panel should be centered on screen', async ({ page }) => {\n  12 |     // Navigate to Network & Resources tab\n> 13 |     await page.click('button[value=\"system\"]');\n     |                ^\n  14 |\n  15 |     // Click on a DVE node to open CDE modal\n  16 |     await page.click('text=DVE-Node-1');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 13
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n  11 |   test('Console panel should be centered on screen', async ({ page }) => {\n  12 |     // Navigate to Network & Resources tab\n> 13 |     await page.click('button[value=\"system\"]');\n     |                ^\n  14 |\n  15 |     // Click on a DVE node to open CDE modal\n  16 |     await page.click('text=DVE-Node-1');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:13:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:47:59.613Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-cef60-hould-be-centered-on-screen-Mobile-Safari/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-cef60-hould-be-centered-on-screen-Mobile-Safari/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-cef60-hould-be-centered-on-screen-Mobile-Safari/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 13
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-036b24ac4a9801d6d8b8",
+              "file": "test-positioning.spec.ts",
+              "line": 11,
+              "column": 3
+            },
+            {
+              "title": "Policy editor should be centered on screen",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [
+                    {
+                      "workerIndex": 17,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 15968,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:42:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 42
+                        },
+                        "snippet": "  40 |   test('Policy editor should be centered on screen', async ({ page }) => {\n  41 |     // Navigate to Network & Resources tab\n> 42 |     await page.click('button[value=\"system\"]');\n     |                ^\n  43 |\n  44 |     // Click on a DVE node to open CDE modal\n  45 |     await page.click('text=DVE-Node-1');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 42
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n  40 |   test('Policy editor should be centered on screen', async ({ page }) => {\n  41 |     // Navigate to Network & Resources tab\n> 42 |     await page.click('button[value=\"system\"]');\n     |                ^\n  43 |\n  44 |     // Click on a DVE node to open CDE modal\n  45 |     await page.click('text=DVE-Node-1');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:42:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:47:59.873Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-595ff-hould-be-centered-on-screen-Mobile-Safari/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-595ff-hould-be-centered-on-screen-Mobile-Safari/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-595ff-hould-be-centered-on-screen-Mobile-Safari/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 42
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-a4608f0643d3e95f4f99",
+              "file": "test-positioning.spec.ts",
+              "line": 40,
+              "column": 3
+            },
+            {
+              "title": "DVE Solver should be centered on screen",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [
+                    {
+                      "workerIndex": 18,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 21311,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:71:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 71
+                        },
+                        "snippet": "  69 |   test('DVE Solver should be centered on screen', async ({ page }) => {\n  70 |     // Navigate to Network & Resources tab\n> 71 |     await page.click('button[value=\"system\"]');\n     |                ^\n  72 |\n  73 |     // Click on a DVE node to open CDE modal\n  74 |     await page.click('text=DVE-Node-1');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 71
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n  69 |   test('DVE Solver should be centered on screen', async ({ page }) => {\n  70 |     // Navigate to Network & Resources tab\n> 71 |     await page.click('button[value=\"system\"]');\n     |                ^\n  72 |\n  73 |     // Click on a DVE node to open CDE modal\n  74 |     await page.click('text=DVE-Node-1');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:71:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:48:03.719Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-f5f73-hould-be-centered-on-screen-Mobile-Safari/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-f5f73-hould-be-centered-on-screen-Mobile-Safari/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-f5f73-hould-be-centered-on-screen-Mobile-Safari/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 71
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-583f4ba541524c4c954f",
+              "file": "test-positioning.spec.ts",
+              "line": 69,
+              "column": 3
+            },
+            {
+              "title": "Rent button modal should be visible from Network & Resources view",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [
+                    {
+                      "workerIndex": 19,
+                      "parallelIndex": 3,
+                      "status": "failed",
+                      "duration": 18786,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:100:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 100
+                        },
+                        "snippet": "   98 |   test('Rent button modal should be visible from Network & Resources view', async ({ page }) => {\n   99 |     // Navigate to Network & Resources tab\n> 100 |     await page.click('button[value=\"system\"]');\n      |                ^\n  101 |     \n  102 |     // Click Rent button in DVE nodes panel\n  103 |     await page.click('button:has-text(\"Rent\")');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 100
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n   98 |   test('Rent button modal should be visible from Network & Resources view', async ({ page }) => {\n   99 |     // Navigate to Network & Resources tab\n> 100 |     await page.click('button[value=\"system\"]');\n      |                ^\n  101 |     \n  102 |     // Click Rent button in DVE nodes panel\n  103 |     await page.click('button:has-text(\"Rent\")');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:100:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:48:05.235Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-8476a-from-Network-Resources-view-Mobile-Safari/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-8476a-from-Network-Resources-view-Mobile-Safari/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-8476a-from-Network-Resources-view-Mobile-Safari/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 100
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-9c04bb57079b0b01d29e",
+              "file": "test-positioning.spec.ts",
+              "line": 98,
+              "column": 3
+            },
+            {
+              "title": "Console panel should be centered on screen",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Microsoft Edge",
+                  "projectName": "Microsoft Edge",
+                  "results": [
+                    {
+                      "workerIndex": 20,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 19,
+                      "error": {
+                        "message": "Error: browserType.launch: Chromium distribution 'msedge' is not found at /opt/microsoft/msedge/msedge\nRun \"npx playwright install msedge\"",
+                        "stack": "Error: browserType.launch: Chromium distribution 'msedge' is not found at /opt/microsoft/msedge/msedge\nRun \"npx playwright install msedge\""
+                      },
+                      "errors": [
+                        {
+                          "message": "Error: browserType.launch: Chromium distribution 'msedge' is not found at /opt/microsoft/msedge/msedge\nRun \"npx playwright install msedge\""
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:48:19.343Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-171d4ab20af1551fc650",
+              "file": "test-positioning.spec.ts",
+              "line": 11,
+              "column": 3
+            },
+            {
+              "title": "Policy editor should be centered on screen",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Microsoft Edge",
+                  "projectName": "Microsoft Edge",
+                  "results": [
+                    {
+                      "workerIndex": 21,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 22,
+                      "error": {
+                        "message": "Error: browserType.launch: Chromium distribution 'msedge' is not found at /opt/microsoft/msedge/msedge\nRun \"npx playwright install msedge\"",
+                        "stack": "Error: browserType.launch: Chromium distribution 'msedge' is not found at /opt/microsoft/msedge/msedge\nRun \"npx playwright install msedge\""
+                      },
+                      "errors": [
+                        {
+                          "message": "Error: browserType.launch: Chromium distribution 'msedge' is not found at /opt/microsoft/msedge/msedge\nRun \"npx playwright install msedge\""
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:48:19.626Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-4b7b86a05dcc77569035",
+              "file": "test-positioning.spec.ts",
+              "line": 40,
+              "column": 3
+            },
+            {
+              "title": "DVE Solver should be centered on screen",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Microsoft Edge",
+                  "projectName": "Microsoft Edge",
+                  "results": [
+                    {
+                      "workerIndex": 22,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 37,
+                      "error": {
+                        "message": "Error: browserType.launch: Chromium distribution 'msedge' is not found at /opt/microsoft/msedge/msedge\nRun \"npx playwright install msedge\"",
+                        "stack": "Error: browserType.launch: Chromium distribution 'msedge' is not found at /opt/microsoft/msedge/msedge\nRun \"npx playwright install msedge\""
+                      },
+                      "errors": [
+                        {
+                          "message": "Error: browserType.launch: Chromium distribution 'msedge' is not found at /opt/microsoft/msedge/msedge\nRun \"npx playwright install msedge\""
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:48:23.122Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-fae0ad2d34b6aede85e5",
+              "file": "test-positioning.spec.ts",
+              "line": 69,
+              "column": 3
+            },
+            {
+              "title": "Rent button modal should be visible from Network & Resources view",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Microsoft Edge",
+                  "projectName": "Microsoft Edge",
+                  "results": [
+                    {
+                      "workerIndex": 23,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 68,
+                      "error": {
+                        "message": "Error: browserType.launch: Chromium distribution 'msedge' is not found at /opt/microsoft/msedge/msedge\nRun \"npx playwright install msedge\"",
+                        "stack": "Error: browserType.launch: Chromium distribution 'msedge' is not found at /opt/microsoft/msedge/msedge\nRun \"npx playwright install msedge\""
+                      },
+                      "errors": [
+                        {
+                          "message": "Error: browserType.launch: Chromium distribution 'msedge' is not found at /opt/microsoft/msedge/msedge\nRun \"npx playwright install msedge\""
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:48:22.976Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-23c31fb83829e2f7e16d",
+              "file": "test-positioning.spec.ts",
+              "line": 98,
+              "column": 3
+            },
+            {
+              "title": "Console panel should be centered on screen",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Google Chrome",
+                  "projectName": "Google Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 24,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 17658,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:13:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 13
+                        },
+                        "snippet": "  11 |   test('Console panel should be centered on screen', async ({ page }) => {\n  12 |     // Navigate to Network & Resources tab\n> 13 |     await page.click('button[value=\"system\"]');\n     |                ^\n  14 |\n  15 |     // Click on a DVE node to open CDE modal\n  16 |     await page.click('text=DVE-Node-1');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 13
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n  11 |   test('Console panel should be centered on screen', async ({ page }) => {\n  12 |     // Navigate to Network & Resources tab\n> 13 |     await page.click('button[value=\"system\"]');\n     |                ^\n  14 |\n  15 |     // Click on a DVE node to open CDE modal\n  16 |     await page.click('text=DVE-Node-1');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:13:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:48:28.471Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-cef60-hould-be-centered-on-screen-Google-Chrome/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-cef60-hould-be-centered-on-screen-Google-Chrome/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-cef60-hould-be-centered-on-screen-Google-Chrome/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 13
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-8b05d6d4c1be453e928b",
+              "file": "test-positioning.spec.ts",
+              "line": 11,
+              "column": 3
+            },
+            {
+              "title": "Policy editor should be centered on screen",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Google Chrome",
+                  "projectName": "Google Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 25,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 18002,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:42:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 42
+                        },
+                        "snippet": "  40 |   test('Policy editor should be centered on screen', async ({ page }) => {\n  41 |     // Navigate to Network & Resources tab\n> 42 |     await page.click('button[value=\"system\"]');\n     |                ^\n  43 |\n  44 |     // Click on a DVE node to open CDE modal\n  45 |     await page.click('text=DVE-Node-1');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 42
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n  40 |   test('Policy editor should be centered on screen', async ({ page }) => {\n  41 |     // Navigate to Network & Resources tab\n> 42 |     await page.click('button[value=\"system\"]');\n     |                ^\n  43 |\n  44 |     // Click on a DVE node to open CDE modal\n  45 |     await page.click('text=DVE-Node-1');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:42:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:48:28.301Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-595ff-hould-be-centered-on-screen-Google-Chrome/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-595ff-hould-be-centered-on-screen-Google-Chrome/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-595ff-hould-be-centered-on-screen-Google-Chrome/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 42
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-2ec1539d8fc3e27f6c93",
+              "file": "test-positioning.spec.ts",
+              "line": 40,
+              "column": 3
+            },
+            {
+              "title": "DVE Solver should be centered on screen",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Google Chrome",
+                  "projectName": "Google Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 26,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 16470,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:71:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 71
+                        },
+                        "snippet": "  69 |   test('DVE Solver should be centered on screen', async ({ page }) => {\n  70 |     // Navigate to Network & Resources tab\n> 71 |     await page.click('button[value=\"system\"]');\n     |                ^\n  72 |\n  73 |     // Click on a DVE node to open CDE modal\n  74 |     await page.click('text=DVE-Node-1');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 71
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n  69 |   test('DVE Solver should be centered on screen', async ({ page }) => {\n  70 |     // Navigate to Network & Resources tab\n> 71 |     await page.click('button[value=\"system\"]');\n     |                ^\n  72 |\n  73 |     // Click on a DVE node to open CDE modal\n  74 |     await page.click('text=DVE-Node-1');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:71:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:48:30.446Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-f5f73-hould-be-centered-on-screen-Google-Chrome/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-f5f73-hould-be-centered-on-screen-Google-Chrome/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-f5f73-hould-be-centered-on-screen-Google-Chrome/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 71
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-f00f8684e1edcfe8c247",
+              "file": "test-positioning.spec.ts",
+              "line": 69,
+              "column": 3
+            },
+            {
+              "title": "Rent button modal should be visible from Network & Resources view",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Google Chrome",
+                  "projectName": "Google Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 27,
+                      "parallelIndex": 3,
+                      "status": "failed",
+                      "duration": 15925,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:100:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                          "column": 16,
+                          "line": 100
+                        },
+                        "snippet": "   98 |   test('Rent button modal should be visible from Network & Resources view', async ({ page }) => {\n   99 |     // Navigate to Network & Resources tab\n> 100 |     await page.click('button[value=\"system\"]');\n      |                ^\n  101 |     \n  102 |     // Click Rent button in DVE nodes panel\n  103 |     await page.click('button:has-text(\"Rent\")');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                            "column": 16,
+                            "line": 100
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[value=\"system\"]')\u001b[22m\n\n\n   98 |   test('Rent button modal should be visible from Network & Resources view', async ({ page }) => {\n   99 |     // Navigate to Network & Resources tab\n> 100 |     await page.click('button[value=\"system\"]');\n      |                ^\n  101 |     \n  102 |     // Click Rent button in DVE nodes panel\n  103 |     await page.click('button:has-text(\"Rent\")');\n    at /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts:100:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-11-12T17:48:30.527Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-8476a-from-Network-Resources-view-Google-Chrome/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-8476a-from-Network-Resources-view-Google-Chrome/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/test-results/test-positioning-UI-Positi-8476a-from-Network-Resources-view-Google-Chrome/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/tests/e2e/test-positioning.spec.ts",
+                        "column": 16,
+                        "line": 100
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-bc3ea6744ad8df55869d",
+              "file": "test-positioning.spec.ts",
+              "line": 98,
+              "column": 3
+            }
+          ]
+        }
+      ]
     }
   ],
+  "errors": [],
   "stats": {
-    "startTime": "2025-11-07T17:03:00.450Z",
-    "duration": 70.64699999999993,
+    "startTime": "2025-11-12T17:45:54.883Z",
+    "duration": 174162.424,
     "expected": 0,
     "skipped": 0,
-    "unexpected": 0,
+    "unexpected": 28,
     "flaky": 0
   }
 }

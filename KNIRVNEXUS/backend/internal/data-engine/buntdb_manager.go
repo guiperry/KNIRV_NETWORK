@@ -766,64 +766,63 @@ func (m *BuntDBManager) GetStats() (map[string]interface{}, error) {
 		"dve_nodes": m.countKeysWithPrefix(DVENodesCollection),
 	}
 
+	// Count all keys in each collection
+	collections := map[string]string{
+		"metrics":            MetricsCollection,
+		"alerts":             AlertsCollection,
+		"reports":            ReportsCollection,
+		"user_reports":       UserReportsCollection,
+		"system_reports":     SystemReportsCollection,
+		"objects":            ModelsCollection,
+		"dve_nodes":          DVENodesCollection,
+		"validation_tasks":   ValidationTasksCollection,
+		"validation_results": ValidationResultsCollection,
+		"cde_environments":   CDEEnvironmentsCollection,
+		"cde_sessions":       CDESessionsCollection,
+		"cde_projects":       CDEProjectsCollection,
+		"dve_messages":       DVEMessagesCollection,
+		"dve_routing":        DVERoutingCollection,
+		"dve_registry":       DVERegistryCollection,
+		"model_binaries":     ModelBinariesCollection,
+		"model_runtime":      ModelRuntimeCollection,
+		"config":             ConfigCollection,
+		"auth":               AuthCollection,
+		"sessions":           SessionsCollection,
+	}
+
+	for name, prefix := range collections {
+		count := 0
+		m.db.View(func(tx *buntdb.Tx) error {
+			return tx.Ascend("", func(key, value string) bool {
+				if strings.HasPrefix(key, prefix) {
+					count++
+				}
+				return true
+			})
+		})
+		stats[name+"_count"] = count
+	}
+
+	// The counts are already set in the loop above, no need to duplicate
+
 	return stats, nil
 }
 
 // countKeysWithPrefix counts keys with a specific prefix
 func (m *BuntDBManager) countKeysWithPrefix(prefix string) int {
 	count := 0
-	m.db.View(func(tx *buntdb.Tx) error {
+	err := m.db.View(func(tx *buntdb.Tx) error {
 		return tx.Ascend(prefix+"*", func(key, value string) bool {
 			count++
 			return true
 		})
 	})
+	if err != nil {
+		return 0
+	}
 	return count
 }
 
-// GetDatabaseStats returns database statistics
-func (m *BuntDBManager) GetDatabaseStats() (map[string]interface{}, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	stats := make(map[string]interface{})
-
-	err := m.db.View(func(tx *buntdb.Tx) error {
-		// Count entries in each collection
-		collections := map[string]string{
-			"metrics":          MetricsCollection,
-			"alerts":           AlertsCollection,
-			"reports":          ReportsCollection,
-			"user_reports":     UserReportsCollection,
-			"system_reports":   SystemReportsCollection,
-			"objects":          ModelsCollection,
-			"dve_nodes":        DVENodesCollection,
-			"validation_tasks": ValidationTasksCollection,
-		}
-
-		for name, prefix := range collections {
-			count := 0
-			tx.Ascend("", func(key, value string) bool {
-				if strings.HasPrefix(key, prefix) {
-					count++
-				}
-				return true
-			})
-			stats[name+"_count"] = count
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	// Add database file info
-	stats["db_path"] = m.dbPath
-
-	return stats, nil
-}
 
 // User Management Methods
 

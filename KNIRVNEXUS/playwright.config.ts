@@ -15,7 +15,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
-    ['html', { outputFolder: 'test-results/playwright-report' }],
+    ['html', { outputFolder: 'playwright-report' }],
     ['json', { outputFile: 'test-results/results.json' }],
     ['line']
   ],
@@ -79,8 +79,8 @@ export default defineConfig({
   /* Web Server Configuration - automatically start/stop the application */
   webServer: [
     {
-      command: './dist/knirv-nexus --config config/production.yaml',
-      port: 8080,
+      command: './dist/knirv-nexus --config backend/config/test.yaml',
+      port: 8090,
       timeout: 30000,
       reuseExistingServer: !process.env.CI,
     }

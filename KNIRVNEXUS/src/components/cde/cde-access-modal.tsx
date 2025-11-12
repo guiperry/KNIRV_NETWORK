@@ -455,52 +455,17 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
 
             {/* NESTED PANELS - Slide out from CDE modal */}
             
-            {/* Connections Panel - Fixed on LEFT of viewport */}
-            {showConnections && (
-              <div className="fixed top-0 left-0 bottom-0 w-72 z-[60] pointer-events-auto transform transition-transform duration-300 ease-out translate-x-0">
-                <div className="h-full bg-slate-900 rounded-r-lg border-r border-blue-600/30 shadow-2xl">
-                  <div className="flex items-center justify-between p-4 border-b border-blue-600/30">
-                    <div className="flex items-center space-x-2">
-                      <Radio className="w-4 h-4 text-cyan-400" />
-                      <h3 className="font-semibold text-sm">Connected NRVs</h3>
-                    </div>
-                    <button 
-                      onClick={() => setShowConnections(false)}
-                      className="p-1 hover:bg-slate-800 rounded transition-colors">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="p-4 space-y-2 overflow-y-auto" style={{maxHeight: 'calc(100% - 60px)'}}>
-                    {[
-                      { id: 'nrv-001', name: 'Primary NRV', status: 'connected' },
-                      { id: 'nrv-002', name: 'Backup NRV', status: 'connected' },
-                      { id: 'nrv-003', name: 'Monitor NRV', status: 'pending' },
-                      { id: 'nrv-004', name: 'Standby NRV', status: 'connected' },
-                      { id: 'nrv-005', name: 'Archive NRV', status: 'pending' },
-                    ].map((nrv) => (
-                      <div key={nrv.id} className="p-2 bg-slate-800/50 rounded border border-blue-600/20 hover:border-blue-600/50 transition-colors cursor-pointer">
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm font-medium">{nrv.name}</div>
-                          <div className={`w-2 h-2 rounded-full ${nrv.status === 'connected' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-                        </div>
-                        <div className="text-xs text-slate-400 mt-1">{nrv.id}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
 
-            {/* Console Panel - Slides out from LEFT */}
+            {/* Console Panel - Slides out from left edge of CDE modal */}
             {showConsole && (
-              <div className="absolute w-80 z-30 pointer-events-auto transform transition-all duration-300 ease-out translate-x-0 -translate-x-[100px]" style={{top: '64px', left: '0'}}>
-                <div className="bg-slate-900 rounded-r-lg border-r border-blue-600/30 shadow-2xl">
+              <div className="absolute z-50 pointer-events-auto transform transition-all duration-300 ease-out translate-x-0" style={{top: '100px', right: '896px'}}>
+                <div className="bg-slate-900 rounded-lg border border-blue-600/30 shadow-2xl w-80">
                   <div className="flex items-center justify-between p-4 border-b border-blue-600/30">
                     <div className="flex items-center space-x-2">
                       <Terminal className="w-4 h-4 text-cyan-400" />
                       <h3 className="font-semibold text-sm">Real-Time Console</h3>
                     </div>
-                    <button 
+                    <button
                       onClick={() => setShowConsole(false)}
                       className="p-1 hover:bg-slate-800 rounded transition-colors">
                       <X className="w-4 h-4" />
@@ -521,16 +486,16 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
               </div>
             )}
 
-            {/* Policy Panel - Slides out from LEFT, below Console */}
+            {/* Policy Panel - Slides out from left edge of CDE modal, below Console */}
             {showPolicy && (
-              <div className={`absolute z-30 pointer-events-auto transform transition-all duration-300 ease-out translate-x-0 -translate-x-[100px] w-80`} style={{top: showConsole ? '384px' : '64px', left: '0'}}>
-                <div className="bg-slate-900 rounded-r-lg border-r border-blue-600/30 shadow-2xl">
+              <div className="absolute z-50 pointer-events-auto transform transition-all duration-300 ease-out translate-x-0" style={{top: '420px', right: '896px'}}>
+                <div className="bg-slate-900 rounded-lg border border-blue-600/30 shadow-2xl w-80">
                   <div className="flex items-center justify-between p-4 border-b border-blue-600/30">
                     <div className="flex items-center space-x-2">
                       <Shield className="w-4 h-4 text-cyan-400" />
                       <h3 className="font-semibold text-sm">Security Policy</h3>
                     </div>
-                    <button 
+                    <button
                       onClick={() => setShowPolicy(false)}
                       className="p-1 hover:bg-slate-800 rounded transition-colors">
                       <X className="w-4 h-4" />
@@ -611,42 +576,41 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
               </div>
             )}
 
-            {/* DVE Solver Modal - Centered overlay */}
+            {/* DVE Solver Modal - Replaces Connected NRVs panel on left side */}
             {showDVESolver && (
-              <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-auto">
-                <div className="bg-slate-900 rounded-lg border border-blue-600/30 shadow-2xl w-full max-w-4xl mx-4 transform transition-all duration-300 ease-out scale-100 max-h-[90vh]">
-                  <div className="flex items-center justify-between p-6 border-b border-blue-600/30">
+              <div className="fixed left-0 top-0 bottom-0 z-[60] pointer-events-auto transform transition-all duration-300 ease-out translate-x-0 w-80">
+                <div className="h-full bg-slate-900 rounded-r-lg border-r border-blue-600/30 shadow-2xl">
+                  <div className="flex items-center justify-between p-4 border-b border-blue-600/30">
                     <div className="flex items-center space-x-2">
-                      <Zap className="w-5 h-5 text-cyan-400" />
-                      <h3 className="font-semibold text-lg">DVE Solver - Validation Engine</h3>
+                      <Zap className="w-4 h-4 text-cyan-400" />
+                      <h3 className="font-semibold text-sm">DVE Solver</h3>
                     </div>
-                    <button 
+                    <button
                       onClick={() => setShowDVESolver(false)}
                       className="p-1 hover:bg-slate-800 rounded transition-colors">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
-                  <div className="p-6 space-y-6 overflow-visible">
+                  <div className="p-4 space-y-4 overflow-y-auto" style={{maxHeight: 'calc(100% - 60px)'}}>
                     {!showValidationReport ? (
                       <>
                         <div>
-                          <h4 className="text-sm font-semibold text-cyan-400 mb-4 flex items-center space-x-2">
-                            <FileText className="w-4 h-4" />
-                            <span>Select Problem to Validate:</span>
+                          <h4 className="text-xs font-semibold text-cyan-400 mb-3 flex items-center space-x-2">
+                            <FileText className="w-3 h-3" />
+                            <span>Select Problem:</span>
                           </h4>
                           <div className="space-y-2">
                             {problems.map((prob) => (
-                              <button 
-                                key={prob.id} 
+                              <button
+                                key={prob.id}
                                 onClick={() => setSelectedProblem(prob.id)}
-                                className={`w-full text-left p-4 border rounded-lg transition-all ${selectedProblem === prob.id ? 'bg-blue-600/20 border-blue-600/50' : 'bg-slate-800/50 border-blue-600/20 hover:border-blue-600/50'}`}>
+                                className={`w-full text-left p-3 border rounded transition-all ${selectedProblem === prob.id ? 'bg-blue-600/20 border-blue-600/50' : 'bg-slate-800/50 border-blue-600/20 hover:border-blue-600/50'}`}>
                                 <div className="flex items-start justify-between">
-                                  <div>
-                                    <div className="text-sm font-medium">{prob.title}</div>
+                                  <div className="flex-1">
+                                    <div className="text-xs font-medium">{prob.title}</div>
                                     <div className="text-xs text-slate-400 mt-1">{prob.description}</div>
-                                    <div className="text-xs text-slate-500 mt-1">{prob.id}</div>
                                   </div>
-                                  <span className={`text-xs px-2 py-1 rounded font-semibold whitespace-nowrap ml-2 ${prob.severity === 'critical' ? 'bg-red-500/20 text-red-400' : prob.severity === 'high' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                                  <span className={`text-xs px-1.5 py-0.5 rounded font-semibold whitespace-nowrap ml-2 ${prob.severity === 'critical' ? 'bg-red-500/20 text-red-400' : prob.severity === 'high' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400'}`}>
                                     {prob.severity.toUpperCase()}
                                   </span>
                                 </div>
@@ -654,62 +618,59 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
                             ))}
                           </div>
                         </div>
-                        <div className="pt-4 border-t border-blue-600/20 flex gap-2">
-                          <button 
-                            onClick={runValidation}
-                            disabled={!selectedProblem || isValidating}
-                            className="flex-1 bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-500/50 disabled:cursor-not-allowed text-slate-900 font-semibold py-2 rounded text-sm transition-colors flex items-center justify-center space-x-2">
-                            {isValidating ? (
-                              <>
-                                <div className="w-4 h-4 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin"></div>
-                                <span>Running Validation...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Play className="w-4 h-4" />
-                                <span>Run Validation</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
+                        <button
+                          onClick={runValidation}
+                          disabled={!selectedProblem || isValidating}
+                          className="w-full bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-500/50 disabled:cursor-not-allowed text-slate-900 font-semibold py-2 rounded text-xs transition-colors flex items-center justify-center space-x-1">
+                          {isValidating ? (
+                            <>
+                              <div className="w-3 h-3 border border-slate-900/30 border-t-slate-900 rounded-full animate-spin"></div>
+                              <span>Running...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-3 h-3" />
+                              <span>Run Validation</span>
+                            </>
+                          )}
+                        </button>
                       </>
                     ) : (
                       <>
-                        <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                            <span className="text-sm font-semibold text-green-400">Validation Complete</span>
+                        <div className="bg-green-500/10 border border-green-500/30 rounded p-3">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                            <span className="text-xs font-semibold text-green-400">Complete</span>
                           </div>
-                          <div className="text-xs text-slate-400 space-y-1">
+                          <div className="text-xs text-slate-400 space-y-0.5">
                             <div>Problem: {validationResults?.problemTitle}</div>
-                            <div>Tests Passed: {validationResults?.testsPassed} | Failed: {validationResults?.testsFailed}</div>
-                            <div>Coverage: {validationResults?.coverage}%</div>
+                            <div>Tests: {validationResults?.testsPassed}/{validationResults?.testsPassed + validationResults?.testsFailed}</div>
                           </div>
                         </div>
-                        
+
                         <div>
-                          <h5 className="text-xs font-semibold text-cyan-400 mb-2 flex items-center space-x-2">
-                            <BarChart3 className="w-3 h-3" />
-                            <span>Validation Logs</span>
+                          <h5 className="text-xs font-semibold text-cyan-400 mb-1 flex items-center space-x-1">
+                            <BarChart3 className="w-2.5 h-2.5" />
+                            <span>Logs</span>
                           </h5>
-                          <div className="bg-black rounded p-3 font-mono text-xs text-green-400 space-y-1">
+                          <div className="bg-black rounded p-2 font-mono text-xs text-green-400 space-y-0.5 max-h-32 overflow-y-auto">
                             {validationResults?.logs.map((log: string, idx: number) => (
                               <div key={idx}>{log}</div>
                             ))}
                           </div>
                         </div>
-                        
-                        <div className="pt-4 border-t border-blue-600/20 flex gap-2">
-                          <button 
+
+                        <div className="space-y-1">
+                          <button
                             onClick={() => setShowValidationReport(false)}
-                            className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 rounded text-sm transition-colors">
+                            className="w-full bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-1.5 rounded text-xs transition-colors">
                             Run Another
                           </button>
-                          <button 
+                          <button
                             onClick={submitToConsensus}
-                            className="flex-1 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-semibold py-2 rounded text-sm transition-colors flex items-center justify-center space-x-2">
-                            <Upload className="w-4 h-4" />
-                            <span>Submit to Consensus</span>
+                            className="w-full bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-semibold py-1.5 rounded text-xs transition-colors flex items-center justify-center space-x-1">
+                            <Upload className="w-3 h-3" />
+                            <span>Submit</span>
                           </button>
                         </div>
                       </>
