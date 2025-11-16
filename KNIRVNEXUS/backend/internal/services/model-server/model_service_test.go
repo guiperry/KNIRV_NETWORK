@@ -40,7 +40,7 @@ func TestNewModelServer(t *testing.T) {
 		t.Error("Database not set correctly")
 	}
 
-	if server.modelDir != "./objects" {
+	if server.modelDir != "./models" {
 		t.Error("Model directory not set correctly")
 	}
 
@@ -224,7 +224,7 @@ func TestModelServer_GetServerInfo(t *testing.T) {
 		t.Error("Server version not set correctly")
 	}
 
-	if info.ModelDir != "./objects" {
+	if info.ModelDir != "./models" {
 		t.Error("Model directory not set correctly")
 	}
 }
@@ -339,8 +339,8 @@ func TestModelServer_Configuration(t *testing.T) {
 	}
 
 	// Test default configuration values
-	if server.modelDir != "./objects" {
-		t.Errorf("Expected modelDir './objects', got '%s'", server.modelDir)
+	if server.modelDir != "./models" {
+		t.Errorf("Expected modelDir './models', got '%s'", server.modelDir)
 	}
 
 	if server.maxModels != 10 {

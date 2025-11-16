@@ -34,6 +34,7 @@ type Config struct {
 	Log         LogConfig        `mapstructure:"log"`
 	DVE         DVEConfig        `mapstructure:"dve"`
 	Failover    FailoverConfig   `mapstructure:"failover"`
+	ModelServer ModelServerConfig `mapstructure:"model_server"`
 }
 
 // DatabaseConfig represents database configuration
@@ -215,6 +216,13 @@ type FailoverConfig struct {
 	Bootnodes            []string      `mapstructure:"bootnodes"`
 }
 
+// ModelServerConfig represents model server configuration
+type ModelServerConfig struct {
+	StoragePath string `mapstructure:"storage_path"`
+	MaxModels   int    `mapstructure:"max_models"`
+	EnableCORS  bool   `mapstructure:"enable_cors"`
+}
+
 // Load loads configuration from environment variables and config files
 func Load() (*Config, error) {
 	return LoadWithDefaults()
@@ -371,6 +379,17 @@ func (c *Config) expandPaths() error {
 		}
 	}
 
+	// Expand model server storage path
+	if c.ModelServer.StoragePath != "" {
+		c.ModelServer.StoragePath, err = expandPath(c.ModelServer.StoragePath)
+		if err != nil {
+			return err
+		}
+		if err := os.MkdirAll(c.ModelServer.StoragePath, 0755); err != nil {
+			return fmt.Errorf("failed to create model server storage directory: %v", err)
+		}
+	}
+
 	return nil
 }
 
@@ -462,6 +481,11 @@ func setDefaults() {
 	viper.SetDefault("failover.enable_auto_failover", false)
 	viper.SetDefault("failover.root_nodes", []string{})
 	viper.SetDefault("failover.bootnodes", []string{})
+
+	// Model server configuration defaults - use XDG Base Directory
+	viper.SetDefault("model_server.storage_path", filepath.Join(appDataDir, "models"))
+	viper.SetDefault("model_server.max_models", 10)
+	viper.SetDefault("model_server.enable_cors", true)
 
 	// Legacy defaults for backward compatibility
 	viper.SetDefault("chain_id", "knirv-nexus-mainnet")

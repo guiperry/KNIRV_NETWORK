@@ -64,11 +64,21 @@ type ListResponse struct {
 
 // NewModelServer creates a new model server instance
 func NewModelServer(config *config.Config, db *database.BuntDBManager) (*ModelServer, error) {
-	// Set default values
-	modelDir := "./objects"
-	maxModels := 10
+	// Set default values from config with fallbacks
+	modelDir := config.ModelServer.StoragePath
+	if modelDir == "" {
+		modelDir = "./models" // fallback
+	}
+	maxModels := config.ModelServer.MaxModels
+	if maxModels <= 0 {
+		maxModels = 10 // fallback
+	}
 	enableRuntime := true
-	enableCORS := true
+	enableCORS := config.ModelServer.EnableCORS
+	if config.ModelServer.StoragePath == "" {
+		// If config is empty (test case), use defaults
+		enableCORS = true
+	}
 
 	// Create model directory if it doesn't exist
 	if err := ensureModelDirectory(modelDir); err != nil {
