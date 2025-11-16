@@ -1,390 +1,825 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API Documentation - KNIRV Developer Portal</title>
-    <meta name="description" content="Interactive API documentation for the KNIRV D-TEN network">
-    <link rel="shortcut icon" href="favicon.png">
+openapi: 3.1.0
+info:
+  title: KNIRV Unified API
+  description: |
+    Unified API specification for the KNIRV Network ecosystem.
 
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    This specification serves as the source of truth for all KNIRV SDK implementations
+    and CLI tools. Wallet operations are primarily handled client-side via the SDK.
 
-    <!-- Bootstrap CSS for alerts -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    Note: This file contains the same KNIRVORACLE MCP API as openapi.yaml but with
+    multiple server configurations for different deployment environments.
+  version: "2.0.0"
+  contact:
+    name: KNIRV Network Support
+    email: support@knirv.com
+    url: https://github.com/cloud-equities/KNIRV_NETWORK/tree/main/docs
 
-    <!-- Swagger UI CSS -->
-    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css" />
+servers:
+  - url: http://localhost:5000
+    description: Local KNIRVORACLE development server
+  - url: http://localhost:3000/api
+    description: Local Agentify development server
+  - url: https://api.knirv.com/v1
+    description: Production KNIRV API Gateway
+  - url: https://api-staging.knirv.com/v1
+    description: Staging KNIRV API Gateway
 
-    <!-- Custom CSS with original design system -->
-    <link rel="stylesheet" href="css/portal.css">
+tags:
+  # KNIRVORACLE MCP API Tags
+  - name: blockchain
+    description: Blockchain operations and state management
+  - name: node
+    description: Node information and management
+  - name: uri
+    description: URI generation and management
+  - name: mcp
+    description: Distributed Model Context Protocol operations
+  
 
-    <style>
-        /* Custom Swagger UI styling to match KNIRV theme */
-        .swagger-ui {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        
-        .swagger-ui .topbar {
-            background: linear-gradient(135deg, var(--knirv-purple) 0%, var(--bright-blue) 100%);
-            border-bottom: 1px solid var(--transparent-white-1);
-        }
-        
-        .swagger-ui .topbar .download-url-wrapper {
-            display: none;
-        }
-        
-        .swagger-ui .info {
-            margin: 20px 0;
-        }
-        
-        .swagger-ui .info .title {
-            color: var(--bright-blue);
-            font-size: 2rem;
-            font-weight: 600;
-        }
-        
-        .swagger-ui .scheme-container {
-            background: var(--transparent-white-05);
-            border: 1px solid var(--transparent-white-1);
-            border-radius: 10px;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        
-        .swagger-ui .opblock {
-            border: 1px solid var(--transparent-white-1);
-            border-radius: 10px;
-            margin: 10px 0;
-            background: var(--transparent-white-05);
-        }
-        
-        .swagger-ui .opblock.opblock-get .opblock-summary {
-            border-color: var(--bright-blue);
-        }
-        
-        .swagger-ui .opblock.opblock-post .opblock-summary {
-            border-color: var(--knirv-purple);
-        }
-        
-        .swagger-ui .opblock.opblock-put .opblock-summary {
-            border-color: #f59e0b;
-        }
-        
-        .swagger-ui .opblock.opblock-delete .opblock-summary {
-            border-color: #ef4444;
-        }
-        
-        .swagger-ui .btn.authorize {
-            background: linear-gradient(135deg, var(--knirv-purple) 0%, var(--bright-blue) 100%);
-            border: none;
-            color: white;
-        }
-        
-        .swagger-ui .btn.authorize:hover {
-            background: linear-gradient(135deg, var(--bright-blue) 0%, var(--knirv-purple) 100%);
-        }
-        
-        /* Dark theme adjustments */
-        .swagger-ui {
-            background: var(--dark-bg);
-            color: var(--white);
-        }
-        
-        .swagger-ui .wrapper {
-            background: transparent;
-        }
-        
-        .swagger-ui .info .description {
-            color: var(--transparent-white-7);
-        }
-        
-        .swagger-ui .parameter__name {
-            color: var(--bright-blue);
-        }
-        
-        .swagger-ui .response-col_status {
-            color: var(--knirv-purple);
-        }
-        
-        /* Custom header styling */
-        .api-header {
-            background: linear-gradient(135deg, var(--dark-bg) 0%, rgba(43, 86, 245, 0.1) 100%);
-            padding: 30px 0;
-            margin-bottom: 30px;
-            border-bottom: 1px solid var(--transparent-white-1);
-        }
-        
-        .api-header h1 {
-            color: var(--bright-blue);
-            font-size: 2.5rem;
-            font-weight: 600;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-        
-        .api-header p {
-            color: var(--transparent-white-7);
-            font-size: 1.1rem;
-            text-align: center;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        
-        .api-selector {
-            background: var(--transparent-white-05);
-            border: 1px solid var(--transparent-white-1);
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .api-selector h3 {
-            color: var(--knirv-purple);
-            margin-bottom: 15px;
-        }
-        
-        .api-selector select {
-            background: var(--transparent-white-1);
-            border: 1px solid var(--transparent-white-2);
-            border-radius: 5px;
-            color: var(--white);
-            padding: 10px;
-            width: 100%;
-            font-size: 1rem;
-        }
+paths:
+  # ========================================
+  # KNIRVORACLE MCP API ENDPOINTS
+  # ========================================
+  
+  # Blockchain Server Endpoints
+  /chain:
+    get:
+      tags:
+        - blockchain
+      summary: Get blockchain state
+      description: Retrieves the current state of the blockchain including blocks, transaction pool, and reflections
+      operationId: getChain
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SerializableBlockchain'
+        '500':
+          description: Internal server error
 
-        .api-selector select option {
-            background: var(--white);
-            color: #000000;
-        }
+  /block:
+    post:
+      tags:
+        - blockchain
+      summary: Submit a new block
+      description: Submits a new block to the blockchain
+      operationId: writeBlock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Block'
+      responses:
+        '200':
+          description: Block successfully added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '400':
+          description: Invalid block data
+        '500':
+          description: Internal server error
 
-        .api-selector select:focus {
-            outline: none;
-            border-color: var(--bright-blue);
-        }
-    </style>
-</head>
+  /transaction:
+    post:
+      tags:
+        - blockchain
+        - mcp
+      summary: Submit a Signed Transaction
+      description: |
+        Submits a pre-signed transaction to the blockchain network.
+        This endpoint is used for various transaction types, including
+        standard transfers and MCP operations like capability registration,
+        invocation, or updates.
+      operationId: writeTransaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Transaction'
+      responses:
+        '202':
+          description: Transaction accepted by the node and broadcasted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactionHash:
+                    type: string
+                  message:
+                    type: string
+                    example: "Transaction submitted to mempool"
+        '400':
+          description: Invalid transaction data
+        '500':
+          description: Internal server error
 
-<body>
-    <div class="dashboard-container">
-        <!-- Navigation -->
-        <nav class="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">
-                    <i class="fas fa-brain"></i>
-                    <span>KNIRV Portal</span>
-                </div>
-            </div>
-            <a href="index.html" class="nav-item">
-                <i class="fas fa-home"></i>
-                <span>Dashboard</span>
-            </a>
-            <a href="core-concepts.html" class="nav-item">
-                <i class="fas fa-brain"></i>
-                <span>Core Concepts</span>
-            </a>
-            <a href="getting-started.html" class="nav-item">
-                <i class="fas fa-rocket"></i>
-                <span>Getting Started</span>
-            </a>
-            <a href="agent-management.html" class="nav-item">
-                <i class="fas fa-robot"></i>
-                <span>Agent Management</span>
-            </a>
-            <a href="skill-registry.html" class="nav-item">
-                <i class="fas fa-cogs"></i>
-                <span>Skill Registry</span>
-            </a>
-            <a href="udc-management.html" class="nav-item">
-                <i class="fas fa-certificate"></i>
-                <span>UDC Management</span>
-            </a>
-            <a href="agent-skill-exchange.html" class="nav-item">
-                <i class="fas fa-exchange-alt"></i>
-                <span>Agent/Skill Exchange</span>
-            </a>
-            <a href="error-node-explorer.html" class="nav-item">
-                <i class="fas fa-search"></i>
-                <span>ErrorNode Explorer</span>
-            </a>
-            <a href="api-sdk.html" class="nav-item">
-                <i class="fas fa-code"></i>
-                <span>API & SDK</span>
-            </a>
-            <a href="swagger-ui.html" class="nav-item active">
-                <i class="fas fa-file-code"></i>
-                <span>API Documentation</span>
-            </a>
-            <a href="wallet-management.html" class="nav-item">
-                <i class="fas fa-wallet"></i>
-                <span>KNIRV Wallets</span>
-            </a>
-            <a href="tesnet-sandbox.html" class="nav-item">
-                <i class="fas fa-flask"></i>
-                <span>TESNET & Sandbox</span>
-            </a>
-            <a href="community-support.html" class="nav-item">
-                <i class="fas fa-users"></i>
-                <span>Community & Support</span>
-            </a>
-        </nav>
+  /txn_pool:
+    get:
+      tags:
+        - blockchain
+      summary: Get transaction pool
+      description: Retrieves the current transaction pool
+      operationId: getTransactionPool
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+        '500':
+          description: Internal server error
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Custom Header -->
-            <div class="api-header">
-                <div class="container">
-                    <h1><i class="fas fa-file-code" style="margin-right: 15px;"></i>API Documentation</h1>
-                    <p>Interactive API documentation for the KNIRV D-TEN network. Explore endpoints, test requests, and understand response formats.</p>
-                </div>
-            </div>
+  /info:
+    get:
+      tags:
+        - node
+      summary: Get server information
+      description: Retrieves information about the blockchain node
+      operationId: getServerInfo
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeInfo'
+        '500':
+          description: Internal server error
 
-            <!-- API Documentation Info -->
-            <div class="container">
-                <div class="alert alert-info" style="margin-bottom: 20px;">
-                    <h5><i class="fas fa-info-circle"></i> API Documentation Guide</h5>
-                    <p><strong>🌐 Public API:</strong> Complete unified API for external developers (recommended)</p>
-                    <!--<p><strong>⚙️ Admin API:</strong> Internal gateway management (administrators only)</p>-->
-                    <p><strong>⛓️ Individual Service APIs:</strong> Specific service documentation for advanced users</p>
-                </div>
+  /health:
+    get:
+      tags:
+        - node
+      summary: Check node health
+      description: Checks the health status of the blockchain node
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Node is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+        '500':
+          description: Node is unhealthy
 
-                <div class="api-selector">
-                    <h3><i class="fas fa-server" style="margin-right: 10px;"></i>Select API Documentation</h3>
-                    <select id="apiSelector" onchange="loadAPI()">
-                        <option value="public">🌐 KNIRV Public API (External Users)</option>
-                        <!--<option value="admin">⚙️ KNIRVGATEWAY Admin API (Internal)</option>-->
-                        <option value="oracle">⛓️ KNIRVORACLE MCP API (Blockchain + MCP)</option>
-                        <option value="chain">🏗️ KNIRVCHAIN API (Advanced Blockchain)</option>
-                        <option value="nexus">🚀 KNIRVNEXUS API (Platform Layer)</option>
-                        <option value="gateway">🔗 KNIRVGATEWAY Root API (Gateway Management)</option>
-                    </select>
-                </div>
+  /ping:
+    get:
+      tags:
+        - node
+      summary: Ping node
+      description: Simple ping endpoint to check if the node is responsive
+      operationId: ping
+      responses:
+        '200':
+          description: Pong response
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: pong
 
-                <!-- Swagger UI Container -->
-                <div id="swagger-ui"></div>
-            </div>
-        </main>
-    </div>
+  /devs:
+    get:
+      tags:
+        - node
+      summary: Get connected devs
+      description: Retrieves the list of connected devs
+      operationId: getPeers
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PeerList'
+        '500':
+          description: Internal server error
 
-    <!-- Swagger UI Bundle -->
-    <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-bundle.js"></script>
-    <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-standalone-preset.js"></script>
-    <!-- JS-YAML for parsing YAML files -->
-    <script src="https://unpkg.com/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+  /uriGenerator:
+    post:
+      tags:
+        - uri
+      summary: Generate and announce URI
+      description: Generates a new URI and announces it to the network
+      operationId: generateAndAnnounceURI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/URIGenerationRequest'
+      responses:
+        '200':
+          description: URI successfully generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/URIGenerationResponse'
+        '400':
+          description: Invalid request data
+        '500':
+          description: Internal server error
 
-    <!-- Custom JavaScript -->
-    <script src="js/portal.js"></script>
-    <script>
-        // API documentation files
-        const apiFiles = {
-            // Public API (external users)
-            //public: '../public-api.yaml',
+  # MCP Capability Management
+  /mcp/capability/prepare_registration:
+    post:
+      tags:
+        - mcp
+      summary: Prepare data for capability registration transaction
+      description: |
+        Allows a client to get the necessary data that needs to be signed
+        to register a new MCP capability. The client signs this data locally
+        and then submits the complete, signed transaction via /transaction.
+      operationId: mcpPrepareCapabilityRegistration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPPrepareCapabilityRegistrationRequest'
+      responses:
+        '200':
+          description: Data for signing successfully prepared
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPPrepareCapabilityRegistrationResponse'
+        '400':
+          description: Invalid request data
+        '409':
+          description: Capability already exists or pending
+        '500':
+          description: Internal server error
 
-            // Admin API (internal gateway management)
-            //admin: '../api.yaml',
+  /mcp/capability/invoke:
+    post:
+      tags:
+        - mcp
+      summary: Invoke a Capability
+      description: |
+        Submits a pre-signed transaction to invoke an existing capability.
+        The Transaction.data should contain MCPInvokeCapabilityData.
+      operationId: mcpInvokeCapability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPInvokeCapabilityRequestWrapper'
+      responses:
+        '202':
+          description: Capability invocation transaction accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactionHash:
+                    type: string
+                  contextID:
+                    type: string
+                  message:
+                    type: string
+                    example: "Capability invocation submitted"
+        '400':
+          description: Invalid request data
+        '404':
+          description: Capability not found
+        '500':
+          description: Internal server error
 
-            // Individual service APIs
-            oracle: '../../KNIRVSDK/openapi.yaml',
-            chain: '../../KNIRVCHAIN/api.yaml',
-            nexus: '../../KNIRVNEXUS/api.yaml',
-            gateway: '../public-api.yaml'  // Same as public
-        };
+  /mcp/capability/update:
+    post:
+      tags:
+        - mcp
+      summary: Update a Capability
+      description: |
+        Submits a pre-signed transaction to update an existing capability.
+        The sender must be the owner of the capability.
+      operationId: mcpUpdateCapability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPUpdateCapabilityRequestWrapper'
+      responses:
+        '202':
+          description: Capability update transaction accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactionHash:
+                    type: string
+                  message:
+                    type: string
+                    example: "Capability update submitted"
+        '400':
+          description: Invalid update request
+        '403':
+          description: Forbidden - not capability owner
+        '404':
+          description: Capability not found
+        '500':
+          description: Internal server error
 
-        // Initialize Swagger UI
-        function initSwaggerUI(spec) {
-            SwaggerUIBundle({
-                url: null,
-                spec: spec,
-                dom_id: '#swagger-ui',
-                deepLinking: true,
-                presets: [
-                    SwaggerUIBundle.presets.apis,
-                    SwaggerUIStandalonePreset
-                ],
-                plugins: [
-                    SwaggerUIBundle.plugins.DownloadUrl
-                ],
-                layout: "StandaloneLayout",
-                theme: "dark"
-            });
-        }
+  /mcp/capability/{capability_id}:
+    get:
+      tags:
+        - mcp
+      summary: Get capability
+      description: Retrieves a specific capability by ID
+      operationId: mcpGetCapability
+      parameters:
+        - name: capability_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID of the capability to retrieve
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapabilityDescriptor'
+        '404':
+          description: Capability not found
+        '500':
+          description: Internal server error
 
-        // Load API based on selection
-        async function loadAPI() {
-            const selector = document.getElementById('apiSelector');
-            const selectedAPI = selector.value;
+  /mcp/capabilities:
+    get:
+      tags:
+        - mcp
+      summary: List capabilities
+      description: Lists all registered capabilities
+      operationId: mcpListCapabilities
+      parameters:
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [RESOURCE, TOOL, PROMPT, MEMORY_SERVICE]
+          description: Filter by capability type
+        - name: owner
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by owner address
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CapabilityDescriptor'
+        '500':
+          description: Internal server error
 
-            try {
-                const apiFile = apiFiles[selectedAPI];
-                if (!apiFile) {
-                    throw new Error(`No API file configured for ${selectedAPI}`);
-                }
 
-                console.log(`Loading API specification: ${apiFile}`);
+components:
+  schemas:
+    # Common Error Schema
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        details:
+          type: string
 
-                try {
-                    // Try to fetch and parse the file
-                    const response = await fetch(apiFile);
-                    if (response.ok) {
-                        const fileContent = await response.text();
-                        let apiSpec;
+    # KNIRVORACLE MCP API Schemas (truncated for space)
+    SerializableBlockchain:
+      type: object
+      properties:
+        blocks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Block'
+        transaction_pool:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        chain_address:
+          type: string
+        reflections:
+          type: object
+          additionalProperties:
+            type: boolean
+        chain_id:
+          type: string
 
-                        // Try to parse as YAML first, then as JSON
-                        try {
-                            apiSpec = jsyaml.load(fileContent);
-                        } catch (yamlError) {
-                            console.warn('Failed to parse as YAML, trying JSON:', yamlError);
-                            apiSpec = JSON.parse(fileContent);
-                        }
+    Block:
+      type: object
+      properties:
+        block_number:
+          type: integer
+          format: uint64
+        prevHash:
+          type: string
+          format: byte
+        timestamp:
+          type: integer
+          format: int64
+        nonce:
+          type: integer
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        hash:
+          type: string
+          format: byte
+        proposer_address:
+          type: string
 
-                        initSwaggerUI(apiSpec);
-                    } else {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                } catch (fetchError) {
-                    console.warn(`Failed to fetch ${apiFile}, falling back to URL method:`, fetchError);
-                    // Fallback to URL-based loading
-                    SwaggerUIBundle({
-                        url: apiFile,
-                        dom_id: '#swagger-ui',
-                        deepLinking: true,
-                        presets: [
-                            SwaggerUIBundle.presets.apis,
-                            SwaggerUIStandalonePreset
-                        ],
-                        plugins: [
-                            SwaggerUIBundle.plugins.DownloadUrl
-                        ],
-                        layout: "StandaloneLayout"
-                    });
-                }
-            } catch (error) {
-                console.error('Failed to load API specification:', error);
-                // Show error message in the UI
-                document.getElementById('swagger-ui').innerHTML = `
-                    <div style="padding: 20px; text-align: center; color: #ff6b6b;">
-                        <h3>Failed to load API specification</h3>
-                        <p>Error: ${error.message}</p>
-                        <p>Selected API: ${selectedAPI}</p>
-                        <p>File: ${apiFiles[selectedAPI] || 'Not found'}</p>
-                        <p>Please check the console for more details.</p>
-                    </div>
-                `;
-            }
-        }
+    Transaction:
+      type: object
+      required:
+        - version
+        - id
+        - timestamp
+        - from
+        - fee
+        - type
+        - signature
+        - public_key
+      properties:
+        version:
+          type: integer
+          example: 1
+        id:
+          type: string
+          description: Transaction hash/ID
+        timestamp:
+          type: integer
+          format: int64
+        from:
+          type: string
+          description: Sender address
+        to:
+          type: string
+          nullable: true
+          description: Recipient address
+        value:
+          type: string
+          description: Amount of NRN transferred
+        data:
+          type: object
+          additionalProperties: true
+          description: Transaction payload
+        status:
+          type: string
+          description: Transaction status
+        transaction_hash:
+          type: string
+        public_key:
+          type: string
+        signature:
+          type: string
+          format: byte
+        fee:
+          type: string
+        type:
+          type: string
 
-        // Initialize with default API
-        document.addEventListener('DOMContentLoaded', function() {
-            // Set default to Public API (recommended for external users)
-            document.getElementById('apiSelector').value = 'public';
-            loadAPI();
-        });
-    </script>
 
-    <!-- Additional Scripts -->
-    <script src="js/config-loader.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="../js/universal-footer.js"></script>
-</body>
-</html>
+    # Additional KNIRVORACLE MCP API Schemas
+    NodeInfo:
+      type: object
+      properties:
+        node_id:
+          type: string
+        version:
+          type: string
+        chain_height:
+          type: integer
+        dev_count:
+          type: integer
+        is_mining:
+          type: boolean
+        wallet_address:
+          type: string
+        uptime:
+          type: integer
+          format: int64
+
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+        blockchain:
+          type: boolean
+        network:
+          type: boolean
+        database:
+          type: boolean
+        message:
+          type: string
+
+    PeerInfo:
+      type: object
+      properties:
+        id:
+          type: string
+        address:
+          type: string
+        connected_since:
+          type: integer
+          format: int64
+
+    PeerList:
+      type: array
+      items:
+        $ref: '#/components/schemas/PeerInfo'
+
+    URIGenerationRequest:
+      type: object
+      properties:
+        resource_type:
+          type: string
+        content_hash:
+          type: string
+        owner:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+
+    URIGenerationResponse:
+      type: object
+      properties:
+        uri:
+          type: string
+        resource_id:
+          type: string
+        success:
+          type: boolean
+        message:
+          type: string
+
+    BaseDescriptor:
+      type: object
+      properties:
+        id:
+          type: string
+        capabilityType:
+          type: string
+          enum: [RESOURCE, TOOL, PROMPT, MEMORY_SERVICE]
+        name:
+          type: string
+        owner:
+          type: string
+        version:
+          type: string
+        description:
+          type: string
+        gasFeeNRN:
+          type: integer
+          format: uint64
+        timestamp:
+          type: integer
+          format: int64
+        customMetadata:
+          type: object
+          additionalProperties: true
+
+    ResourceDescriptor:
+      allOf:
+        - $ref: '#/components/schemas/BaseDescriptor'
+        - type: object
+          required:
+            - resourceType
+            - contentHash
+          properties:
+            resourceType:
+              type: string
+              enum: [FILE, API, PLUGIN, GENERATED_DOCUMENT, DATASET, MODEL_ARTIFACT, SERVICE]
+            contentHash:
+              type: string
+            schema:
+              $ref: '#/components/schemas/PluginSchemaDetail'
+
+    PluginSchemaDetail:
+      type: object
+      properties:
+        summary:
+          type: string
+        accessInfo:
+          type: object
+          additionalProperties: true
+        locationHints:
+          type: array
+          items:
+            type: string
+        manifestFile:
+          type: string
+        executableFile:
+          type: string
+        outputDirectoryHint:
+          type: string
+
+    ToolDescriptor:
+      allOf:
+        - $ref: '#/components/schemas/BaseDescriptor'
+        - type: object
+          required:
+            - inputSchemaJSON
+            - executionPointer
+          properties:
+            inputSchemaJSON:
+              type: string
+            outputSchemaJSON:
+              type: string
+            executionPointer:
+              type: string
+
+    PromptDescriptor:
+      allOf:
+        - $ref: '#/components/schemas/BaseDescriptor'
+        - type: object
+          required:
+            - template
+            - parametersSchemaJSON
+          properties:
+            template:
+              type: string
+            parametersSchemaJSON:
+              type: string
+
+    MemoryServiceDescriptor:
+      allOf:
+        - $ref: '#/components/schemas/BaseDescriptor'
+        - type: object
+          required:
+            - graphSchema
+          properties:
+            graphSchema:
+              type: string
+
+    CapabilityDescriptor:
+      oneOf:
+        - $ref: '#/components/schemas/ResourceDescriptor'
+        - $ref: '#/components/schemas/ToolDescriptor'
+        - $ref: '#/components/schemas/PromptDescriptor'
+        - $ref: '#/components/schemas/MemoryServiceDescriptor'
+      discriminator:
+        propertyName: capabilityType
+        mapping:
+          RESOURCE: '#/components/schemas/ResourceDescriptor'
+          TOOL: '#/components/schemas/ToolDescriptor'
+          PROMPT: '#/components/schemas/PromptDescriptor'
+          MEMORY_SERVICE: '#/components/schemas/MemoryServiceDescriptor'
+
+    MCPPrepareCapabilityRegistrationRequest:
+      type: object
+      required:
+        - ownerAddress
+        - capabilityDescriptor
+        - fee
+      properties:
+        ownerAddress:
+          type: string
+        capabilityDescriptor:
+          $ref: '#/components/schemas/CapabilityDescriptor'
+        message:
+          type: string
+        fee:
+          type: integer
+          format: uint64
+
+    MCPPrepareCapabilityRegistrationResponse:
+      type: object
+      required:
+        - pendingTransactionHash
+        - unsignedTransaction
+      properties:
+        pendingTransactionHash:
+          type: string
+        unsignedTransaction:
+          $ref: '#/components/schemas/UnsignedTransactionDetails'
+
+    MCPInvokeCapabilityRequestWrapper:
+      type: object
+      required:
+        - signedTransaction
+      properties:
+        signedTransaction:
+          $ref: '#/components/schemas/Transaction'
+
+    MCPInvokeCapabilityData:
+      type: object
+      required:
+        - contextRecord
+      properties:
+        contextRecord:
+          $ref: '#/components/schemas/ContextRecord'
+
+    MCPUpdateCapabilityRequestWrapper:
+      type: object
+      required:
+        - signedTransaction
+      properties:
+        signedTransaction:
+          $ref: '#/components/schemas/Transaction'
+
+    MCPUpdateCapabilityData:
+      type: object
+      required:
+        - capabilityID
+        - updatedDescriptor
+      properties:
+        capability_id:
+          type: string
+        updatedDescriptor:
+          $ref: '#/components/schemas/CapabilityDescriptor'
+
+    UnsignedTransactionDetails:
+      type: object
+      properties:
+        from:
+          type: string
+        to:
+          type: string
+          nullable: true
+        value:
+          type: string
+          example: "0"
+        data:
+          type: string
+          format: base64
+        timestamp:
+          type: integer
+          format: int64
+        fee:
+          type: string
+        type:
+          type: string
+          example: "MCP_REGISTER_CAPABILITY"
+        unsignedTransactionPayloadHash:
+          type: string
+
+    ContextRecord:
+      type: object
+      properties:
+        id:
+          type: string
+        capabilityID:
+          type: string
+        interactionType:
+          type: string
+          enum: [CAPABILITY_REGISTRATION, CAPABILITY_INVOCATION, CAPABILITY_UPDATE, GENERAL_MESSAGE, TOOL_INVOCATION, PROMPT_USAGE, RESOURCE_ACCESS, PLUGIN_EXECUTION, SAMPLING_REQUEST_SENT, SAMPLING_RESPONSE_RECEIVED, MEMORY_WRITE]
+        initiator:
+          type: string
+        timestamp:
+          type: integer
+          format: int64
+        inputHash:
+          type: string
+        outputHash:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+        signature:
+          type: string
+          format: byte
+        status:
+          type: string
+          enum: [pending, success, failed, processing]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time

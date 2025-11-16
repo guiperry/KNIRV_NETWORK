@@ -1,1335 +1,825 @@
 openapi: 3.1.0
 info:
-  title: Agentify API
+  title: KNIRV Unified API
   description: |
-    API for the Agentify framework - a comprehensive platform for building, configuring, 
-    and deploying Neural Intellegence Models with enhanced developer experience.
-  version: 1.0.0
+    Unified API specification for the KNIRV Network ecosystem.
+
+    This specification serves as the source of truth for all KNIRV SDK implementations
+    and CLI tools. Wallet operations are primarily handled client-side via the SDK.
+
+    Note: This file contains the same KNIRVORACLE MCP API as openapi.yaml but with
+    multiple server configurations for different deployment environments.
+  version: "2.0.0"
   contact:
-    name: Agentify Support
-    url: https://agentify.example.com/support
+    name: KNIRV Network Support
+    email: support@knirv.com
+    url: https://github.com/cloud-equities/KNIRV_NETWORK/tree/main/docs
+
 servers:
-  - url: https://api.agentify.example.com/v1
-    description: Production server
-  - url: https://api-staging.agentify.example.com/v1
-    description: Staging server
+  - url: http://localhost:5000
+    description: Local KNIRVORACLE development server
   - url: http://localhost:3000/api
-    description: Local development server
+    description: Local Agentify development server
+  - url: https://api.knirv.com/v1
+    description: Production KNIRV API Gateway
+  - url: https://api-staging.knirv.com/v1
+    description: Staging KNIRV API Gateway
 
 tags:
-  - name: Agents
-    description: Operations for managing agent configurations
-  - name: Tools
-    description: Operations for managing agent tools
-  - name: Compilation
-    description: Operations for compiling and deploying agents
-  - name: Testing
-    description: Operations for testing agents and tools
-  - name: Credentials
-    description: Operations for managing credentials
-  - name: Subagents
-    description: Operations for managing subagents
+  # KNIRVORACLE MCP API Tags
+  - name: blockchain
+    description: Blockchain operations and state management
+  - name: node
+    description: Node information and management
+  - name: uri
+    description: URI generation and management
+  - name: mcp
+    description: Distributed Model Context Protocol operations
+  
 
 paths:
-  /agents:
+  # ========================================
+  # KNIRVORACLE MCP API ENDPOINTS
+  # ========================================
+  
+  # Blockchain Server Endpoints
+  /chain:
     get:
-      summary: List all agents
-      description: Returns a list of all agent configurations
-      operationId: listAgents
       tags:
-        - Agents
+        - blockchain
+      summary: Get blockchain state
+      description: Retrieves the current state of the blockchain including blocks, transaction pool, and reflections
+      operationId: getChain
       responses:
         '200':
-          description: A list of agent configurations
+          description: Successful operation
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/AgentSummary'
-    post:
-      summary: Create a new agent
-      description: Creates a new agent configuration
-      operationId: createAgent
-      tags:
-        - Agents
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AgentPluginConfig'
-      responses:
-        '201':
-          description: Agent created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AgentPluginConfig'
-        '400':
-          description: Invalid agent configuration
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/SerializableBlockchain'
+        '500':
+          description: Internal server error
 
-  /agents/{agentId}:
-    parameters:
-      - name: agentId
-        in: path
-        required: true
-        schema:
-          type: string
-        description: The ID of the agent
-    get:
-      summary: Get agent details
-      description: Returns the details of a specific agent
-      operationId: getAgent
-      tags:
-        - Agents
-      responses:
-        '200':
-          description: Agent details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AgentPluginConfig'
-        '404':
-          description: Agent not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    put:
-      summary: Update agent
-      description: Updates an existing agent configuration
-      operationId: updateAgent
-      tags:
-        - Agents
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AgentPluginConfig'
-      responses:
-        '200':
-          description: Agent updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AgentPluginConfig'
-        '400':
-          description: Invalid agent configuration
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Agent not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    delete:
-      summary: Delete agent
-      description: Deletes an agent configuration
-      operationId: deleteAgent
-      tags:
-        - Agents
-      responses:
-        '204':
-          description: Agent deleted successfully
-        '404':
-          description: Agent not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /agents/{agentId}/compile:
-    parameters:
-      - name: agentId
-        in: path
-        required: true
-        schema:
-          type: string
-        description: The ID of the agent
+  /block:
     post:
-      summary: Compile agent
-      description: Compiles an agent configuration into a deployable plugin
-      operationId: compileAgent
       tags:
-        - Compilation
+        - blockchain
+      summary: Submit a new block
+      description: Submits a new block to the blockchain
+      operationId: writeBlock
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                buildTarget:
-                  type: string
-                  enum: [wasm, go]
-                  description: The build target for the agent
-                  default: wasm
-                outputFormat:
-                  type: string
-                  enum: [plugin, library, standalone]
-                  description: The output format for the compiled agent
-                  default: plugin
+              $ref: '#/components/schemas/Block'
+      responses:
+        '200':
+          description: Block successfully added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '400':
+          description: Invalid block data
+        '500':
+          description: Internal server error
+
+  /transaction:
+    post:
+      tags:
+        - blockchain
+        - mcp
+      summary: Submit a Signed Transaction
+      description: |
+        Submits a pre-signed transaction to the blockchain network.
+        This endpoint is used for various transaction types, including
+        standard transfers and MCP operations like capability registration,
+        invocation, or updates.
+      operationId: writeTransaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Transaction'
       responses:
         '202':
-          description: Compilation started
+          description: Transaction accepted by the node and broadcasted
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  compilationId:
+                  transactionHash:
                     type: string
-                    description: The ID of the compilation job
-                  status:
+                  message:
                     type: string
-                    enum: [queued, in_progress]
-                    description: The status of the compilation job
+                    example: "Transaction submitted to mempool"
         '400':
-          description: Invalid compilation request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Agent not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          description: Invalid transaction data
+        '500':
+          description: Internal server error
 
-  /agents/{agentId}/compile/{compilationId}:
-    parameters:
-      - name: agentId
-        in: path
-        required: true
-        schema:
-          type: string
-        description: The ID of the agent
-      - name: compilationId
-        in: path
-        required: true
-        schema:
-          type: string
-        description: The ID of the compilation job
+  /txn_pool:
     get:
-      summary: Get compilation status
-      description: Returns the status of a compilation job
-      operationId: getCompilationStatus
       tags:
-        - Compilation
+        - blockchain
+      summary: Get transaction pool
+      description: Retrieves the current transaction pool
+      operationId: getTransactionPool
       responses:
         '200':
-          description: Compilation status
+          description: Successful operation
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  compilationId:
-                    type: string
-                    description: The ID of the compilation job
-                  status:
-                    type: string
-                    enum: [queued, in_progress, completed, failed]
-                    description: The status of the compilation job
-                  progress:
-                    type: number
-                    format: float
-                    minimum: 0
-                    maximum: 1
-                    description: The progress of the compilation job (0-1)
-                  logs:
-                    type: array
-                    items:
-                      type: string
-                    description: Compilation logs
-                  downloadUrl:
-                    type: string
-                    format: uri
-                    description: URL to download the compiled plugin (if completed)
-        '404':
-          description: Compilation job not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+        '500':
+          description: Internal server error
 
-  /agents/{agentId}/download:
-    parameters:
-      - name: agentId
-        in: path
-        required: true
-        schema:
-          type: string
-        description: The ID of the agent
-      - name: platform
-        in: query
-        required: false
-        schema:
-          type: string
-          enum: [windows, mac, linux, all]
-          default: all
-        description: The target platform for the download
+  /info:
     get:
-      summary: Download compiled agent
-      description: Downloads the compiled agent plugin for the specified platform
-      operationId: downloadAgent
       tags:
-        - Compilation
+        - node
+      summary: Get server information
+      description: Retrieves information about the blockchain node
+      operationId: getServerInfo
       responses:
         '200':
-          description: Agent plugin binary
+          description: Successful operation
           content:
-            application/octet-stream:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeInfo'
+        '500':
+          description: Internal server error
+
+  /health:
+    get:
+      tags:
+        - node
+      summary: Check node health
+      description: Checks the health status of the blockchain node
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Node is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+        '500':
+          description: Node is unhealthy
+
+  /ping:
+    get:
+      tags:
+        - node
+      summary: Ping node
+      description: Simple ping endpoint to check if the node is responsive
+      operationId: ping
+      responses:
+        '200':
+          description: Pong response
+          content:
+            text/plain:
               schema:
                 type: string
-                format: binary
-        '404':
-          description: Compiled agent not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+                example: pong
 
-  /agents/{agentId}/tools:
-    parameters:
-      - name: agentId
-        in: path
-        required: true
-        schema:
-          type: string
-        description: The ID of the agent
+  /devs:
     get:
-      summary: List agent tools
-      description: Returns a list of tools configured for the agent
-      operationId: listAgentTools
       tags:
-        - Tools
+        - node
+      summary: Get connected devs
+      description: Retrieves the list of connected devs
+      operationId: getPeers
       responses:
         '200':
-          description: A list of tools
+          description: Successful operation
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ToolConfig'
-        '404':
-          description: Agent not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    post:
-      summary: Add tool to agent
-      description: Adds a new tool to an agent configuration
-      operationId: addAgentTool
-      tags:
-        - Tools
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ToolConfig'
-      responses:
-        '201':
-          description: Tool added successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ToolConfig'
-        '400':
-          description: Invalid tool configuration
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Agent not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/PeerList'
+        '500':
+          description: Internal server error
 
-  /agents/{agentId}/tools/{toolName}:
-    parameters:
-      - name: agentId
-        in: path
-        required: true
-        schema:
-          type: string
-        description: The ID of the agent
-      - name: toolName
-        in: path
-        required: true
-        schema:
-          type: string
-        description: The name of the tool
-    get:
-      summary: Get tool details
-      description: Returns the details of a specific tool
-      operationId: getAgentTool
-      tags:
-        - Tools
-      responses:
-        '200':
-          description: Tool details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ToolConfig'
-        '404':
-          description: Tool or agent not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    put:
-      summary: Update tool
-      description: Updates an existing tool configuration
-      operationId: updateAgentTool
-      tags:
-        - Tools
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ToolConfig'
-      responses:
-        '200':
-          description: Tool updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ToolConfig'
-        '400':
-          description: Invalid tool configuration
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Tool or agent not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    delete:
-      summary: Delete tool
-      description: Deletes a tool from an agent configuration
-      operationId: deleteAgentTool
-      tags:
-        - Tools
-      responses:
-        '204':
-          description: Tool deleted successfully
-        '404':
-          description: Tool or agent not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /agents/{agentId}/tools/{toolName}/test:
-    parameters:
-      - name: agentId
-        in: path
-        required: true
-        schema:
-          type: string
-        description: The ID of the agent
-      - name: toolName
-        in: path
-        required: true
-        schema:
-          type: string
-        description: The name of the tool
+  /uriGenerator:
     post:
-      summary: Test tool
-      description: Tests a tool with the provided parameters
-      operationId: testAgentTool
       tags:
-        - Testing
+        - uri
+      summary: Generate and announce URI
+      description: Generates a new URI and announces it to the network
+      operationId: generateAndAnnounceURI
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: true
-              description: Tool parameters for testing
+              $ref: '#/components/schemas/URIGenerationRequest'
       responses:
         '200':
-          description: Tool test results
+          description: URI successfully generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/URIGenerationResponse'
+        '400':
+          description: Invalid request data
+        '500':
+          description: Internal server error
+
+  # MCP Capability Management
+  /mcp/capability/prepare_registration:
+    post:
+      tags:
+        - mcp
+      summary: Prepare data for capability registration transaction
+      description: |
+        Allows a client to get the necessary data that needs to be signed
+        to register a new MCP capability. The client signs this data locally
+        and then submits the complete, signed transaction via /transaction.
+      operationId: mcpPrepareCapabilityRegistration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPPrepareCapabilityRegistrationRequest'
+      responses:
+        '200':
+          description: Data for signing successfully prepared
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPPrepareCapabilityRegistrationResponse'
+        '400':
+          description: Invalid request data
+        '409':
+          description: Capability already exists or pending
+        '500':
+          description: Internal server error
+
+  /mcp/capability/invoke:
+    post:
+      tags:
+        - mcp
+      summary: Invoke a Capability
+      description: |
+        Submits a pre-signed transaction to invoke an existing capability.
+        The Transaction.data should contain MCPInvokeCapabilityData.
+      operationId: mcpInvokeCapability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPInvokeCapabilityRequestWrapper'
+      responses:
+        '202':
+          description: Capability invocation transaction accepted
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  result:
-                    type: object
-                    description: The result of the tool execution
-                  executionTime:
-                    type: number
-                    format: float
-                    description: The execution time in milliseconds
-                  logs:
-                    type: array
-                    items:
-                      type: string
-                    description: Execution logs
-        '400':
-          description: Invalid test parameters
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Tool or agent not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /agents/{agentId}/subagents:
-    parameters:
-      - name: agentId
-        in: path
-        required: true
-        schema:
-          type: string
-        description: The ID of the agent
-    get:
-      summary: List subagents
-      description: Returns a list of subagents configured for the agent
-      operationId: listSubagents
-      tags:
-        - Subagents
-      responses:
-        '200':
-          description: A list of subagents
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/SubagentConfig'
-        '404':
-          description: Agent not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    post:
-      summary: Add subagent
-      description: Adds a new subagent to an agent configuration
-      operationId: addSubagent
-      tags:
-        - Subagents
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SubagentConfig'
-      responses:
-        '201':
-          description: Subagent added successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SubagentConfig'
-        '400':
-          description: Invalid subagent configuration
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Agent not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /agents/{agentId}/subagents/{subagentId}:
-    parameters:
-      - name: agentId
-        in: path
-        required: true
-        schema:
-          type: string
-        description: The ID of the agent
-      - name: subagentId
-        in: path
-        required: true
-        schema:
-          type: string
-        description: The ID of the subagent
-    get:
-      summary: Get subagent details
-      description: Returns the details of a specific subagent
-      operationId: getSubagent
-      tags:
-        - Subagents
-      responses:
-        '200':
-          description: Subagent details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SubagentConfig'
-        '404':
-          description: Subagent or agent not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    put:
-      summary: Update subagent
-      description: Updates an existing subagent configuration
-      operationId: updateSubagent
-      tags:
-        - Subagents
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SubagentConfig'
-      responses:
-        '200':
-          description: Subagent updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SubagentConfig'
-        '400':
-          description: Invalid subagent configuration
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Subagent or agent not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    delete:
-      summary: Delete subagent
-      description: Deletes a subagent from an agent configuration
-      operationId: deleteSubagent
-      tags:
-        - Subagents
-      responses:
-        '204':
-          description: Subagent deleted successfully
-        '404':
-          description: Subagent or agent not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /credentials:
-    get:
-      summary: List credentials
-      description: Returns a list of all credentials
-      operationId: listCredentials
-      tags:
-        - Credentials
-      responses:
-        '200':
-          description: A list of credentials
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CredentialInfo'
-    post:
-      summary: Add credential
-      description: Adds a new credential
-      operationId: addCredential
-      tags:
-        - Credentials
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Credential'
-      responses:
-        '201':
-          description: Credential added successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CredentialInfo'
-        '400':
-          description: Invalid credential
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /credentials/{credentialName}:
-    parameters:
-      - name: credentialName
-        in: path
-        required: true
-        schema:
-          type: string
-        description: The name of the credential
-    get:
-      summary: Get credential info
-      description: Returns information about a specific credential (without the value)
-      operationId: getCredentialInfo
-      tags:
-        - Credentials
-      responses:
-        '200':
-          description: Credential info
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CredentialInfo'
-        '404':
-          description: Credential not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    put:
-      summary: Update credential
-      description: Updates an existing credential
-      operationId: updateCredential
-      tags:
-        - Credentials
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Credential'
-      responses:
-        '200':
-          description: Credential updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CredentialInfo'
-        '400':
-          description: Invalid credential
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Credential not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    delete:
-      summary: Delete credential
-      description: Deletes a credential
-      operationId: deleteCredential
-      tags:
-        - Credentials
-      responses:
-        '204':
-          description: Credential deleted successfully
-        '404':
-          description: Credential not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /llm/test:
-    post:
-      summary: Test LLM integration
-      description: Tests the LLM integration with the provided configuration
-      operationId: testLLM
-      tags:
-        - Testing
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ModelProviderConfig'
-      responses:
-        '200':
-          description: LLM test results
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  result:
+                  transactionHash:
                     type: string
-                    description: The result of the LLM test
-                  executionTime:
-                    type: number
-                    format: float
-                    description: The execution time in milliseconds
-                  tokenUsage:
-                    type: object
-                    properties:
-                      input:
-                        type: integer
-                        description: Input tokens used
-                      output:
-                        type: integer
-                        description: Output tokens used
-                      total:
-                        type: integer
-                        description: Total tokens used
+                  contextID:
+                    type: string
+                  message:
+                    type: string
+                    example: "Capability invocation submitted"
         '400':
-          description: Invalid LLM configuration
+          description: Invalid request data
+        '404':
+          description: Capability not found
+        '500':
+          description: Internal server error
+
+  /mcp/capability/update:
+    post:
+      tags:
+        - mcp
+      summary: Update a Capability
+      description: |
+        Submits a pre-signed transaction to update an existing capability.
+        The sender must be the owner of the capability.
+      operationId: mcpUpdateCapability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPUpdateCapabilityRequestWrapper'
+      responses:
+        '202':
+          description: Capability update transaction accepted
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                type: object
+                properties:
+                  transactionHash:
+                    type: string
+                  message:
+                    type: string
+                    example: "Capability update submitted"
+        '400':
+          description: Invalid update request
+        '403':
+          description: Forbidden - not capability owner
+        '404':
+          description: Capability not found
+        '500':
+          description: Internal server error
+
+  /mcp/capability/{capability_id}:
+    get:
+      tags:
+        - mcp
+      summary: Get capability
+      description: Retrieves a specific capability by ID
+      operationId: mcpGetCapability
+      parameters:
+        - name: capability_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID of the capability to retrieve
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapabilityDescriptor'
+        '404':
+          description: Capability not found
+        '500':
+          description: Internal server error
+
+  /mcp/capabilities:
+    get:
+      tags:
+        - mcp
+      summary: List capabilities
+      description: Lists all registered capabilities
+      operationId: mcpListCapabilities
+      parameters:
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [RESOURCE, TOOL, PROMPT, MEMORY_SERVICE]
+          description: Filter by capability type
+        - name: owner
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by owner address
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CapabilityDescriptor'
+        '500':
+          description: Internal server error
+
 
 components:
   schemas:
-    AgentSummary:
+    # Common Error Schema
+    Error:
       type: object
-      required:
-        - agent_id
-        - agent_name
-        - agentType
-        - description
-        - version
       properties:
-        agent_id:
-          type: string
-          description: W3C DID Core compliant globally unique decentralized identifier
-        agent_name:
-          type: string
-          description: Human-readable alias encoded as a URN
-        agentType:
-          type: string
-          enum: [llm, sequential, parallel, loop]
-          description: Agent type classification
-        description:
-          type: string
-          description: Human-readable description
-        version:
-          type: string
-          description: Version information
-        created_at:
-          type: string
-          format: date-time
-          description: Creation timestamp
-        updated_at:
-          type: string
-          format: date-time
-          description: Last update timestamp
-
-    AgentPluginConfig:
-      type: object
-      required:
-        - agent_id
-        - agent_name
-        - agentType
-        - description
-        - version
-        - facts_url
-        - ttl
-        - signature
-        - tools
-        - resources
-        - prompts
-        - pythonDependencies
-        - useChromemGo
-        - subAgentCapabilities
-        - trustedExecutionEnvironment
-      properties:
-        agent_id:
-          type: string
-          description: W3C DID Core compliant globally unique decentralized identifier
-        agent_name:
-          type: string
-          description: Human-readable alias encoded as a URN
-        agentType:
-          type: string
-          enum: [llm, sequential, parallel, loop]
-          description: Agent type classification
-        description:
-          type: string
-          description: Human-readable description
-        version:
-          type: string
-          description: Version information
-        facts_url:
-          type: string
-          format: uri
-          description: Reference to the AgentFacts hosted at the agent's domain
-        private_facts_url:
-          type: string
-          format: uri
-          description: Optional privacy-enhanced reference to AgentFacts
-        adaptive_router_url:
-          type: string
-          format: uri
-          description: Optional endpoint for dynamic routing services
-        ttl:
+        code:
           type: integer
-          description: Maximum cache duration before client must re-resolve the record (in seconds)
+          format: int32
+        message:
+          type: string
+        details:
+          type: string
+
+    # KNIRVORACLE MCP API Schemas (truncated for space)
+    SerializableBlockchain:
+      type: object
+      properties:
+        blocks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Block'
+        transaction_pool:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        chain_address:
+          type: string
+        reflections:
+          type: object
+          additionalProperties:
+            type: boolean
+        chain_id:
+          type: string
+
+    Block:
+      type: object
+      properties:
+        block_number:
+          type: integer
+          format: uint64
+        prevHash:
+          type: string
+          format: byte
+        timestamp:
+          type: integer
+          format: int64
+        nonce:
+          type: integer
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        hash:
+          type: string
+          format: byte
+        proposer_address:
+          type: string
+
+    Transaction:
+      type: object
+      required:
+        - version
+        - id
+        - timestamp
+        - from
+        - fee
+        - type
+        - signature
+        - public_key
+      properties:
+        version:
+          type: integer
+          example: 1
+        id:
+          type: string
+          description: Transaction hash/ID
+        timestamp:
+          type: integer
+          format: int64
+        from:
+          type: string
+          description: Sender address
+        to:
+          type: string
+          nullable: true
+          description: Recipient address
+        value:
+          type: string
+          description: Amount of NRN transferred
+        data:
+          type: object
+          additionalProperties: true
+          description: Transaction payload
+        status:
+          type: string
+          description: Transaction status
+        transaction_hash:
+          type: string
+        public_key:
+          type: string
         signature:
           type: string
-          description: Cryptographic signature from registry resolver
-        buildTarget:
+          format: byte
+        fee:
           type: string
-          enum: [wasm, go]
-          description: Build target for compilation
-        tools:
-          type: array
-          items:
-            $ref: '#/components/schemas/ToolConfig'
-          description: Tool configurations
-        resources:
-          type: array
-          items:
-            $ref: '#/components/schemas/ResourceConfig'
-          description: Resource configurations
-        prompts:
-          type: array
-          items:
-            $ref: '#/components/schemas/PromptConfig'
-          description: Prompt configurations
-        pythonDependencies:
-          type: array
-          items:
-            type: string
-          description: Python dependencies
-        useChromemGo:
-          type: boolean
-          description: Whether to use chromem-go for persistence
-        subAgentCapabilities:
-          type: boolean
-          description: Whether the agent can spawn sub-agents
-        trustedExecutionEnvironment:
-          $ref: '#/components/schemas/TEEConfig'
-          description: TEE configuration
-        terminalUI:
-          $ref: '#/components/schemas/TerminalUIConfig'
-          description: Terminal UI configuration
-        modelProvider:
-          $ref: '#/components/schemas/ModelProviderConfig'
-          description: Model provider configuration
-        requiredCredentials:
-          type: array
-          items:
-            $ref: '#/components/schemas/RequiredCredential'
-          description: Required credentials
-        subagents:
-          type: array
-          items:
-            $ref: '#/components/schemas/SubagentConfig'
-          description: Subagent configurations
-        subagentManagement:
-          $ref: '#/components/schemas/SubagentManagementUIConfig'
-          description: Subagent management configuration
-
-    ToolConfig:
-      type: object
-      required:
-        - name
-        - description
-        - parameters
-        - returnType
-        - sourceType
-        - sourceValue
-      properties:
-        name:
-          type: string
-          description: The name of the tool
-        description:
-          type: string
-          description: A description of what the tool does
-        parameters:
-          type: array
-          items:
-            $ref: '#/components/schemas/ParameterConfig'
-          description: The parameters for the tool
-        returnType:
-          type: string
-          description: The return type of the tool
-        sourceType:
-          type: string
-          enum: [inlineBody, filePath]
-          description: The type of source for the tool implementation
-        sourceValue:
-          type: string
-          description: The implementation body or path to file
-
-    ParameterConfig:
-      type: object
-      required:
-        - name
-        - description
-        - type
-        - required
-      properties:
-        name:
-          type: string
-          description: The name of the parameter
-        description:
-          type: string
-          description: A description of the parameter
         type:
           type: string
-          enum: [string, number, boolean, object, array]
-          description: The type of the parameter
-        required:
-          type: boolean
-          description: Whether the parameter is required
-        defaultValue:
-          type: object
-          nullable: true
-          description: The default value for the parameter
-        schema:
-          type: object
-          properties:
-            properties:
-              type: object
-              additionalProperties:
-                $ref: '#/components/schemas/ParameterConfig'
-              description: For object types
-            items:
-              $ref: '#/components/schemas/ParameterConfig'
-              description: For array types
-            enum:
-              type: array
-              items:
-                type: string
-              description: For string types
-            pattern:
-              type: string
-              description: For string types
-            minimum:
-              type: number
-              description: For number types
-            maximum:
-              type: number
-              description: For number types
-          description: Additional schema information for the parameter
 
-    ResourceConfig:
-      type: object
-      required:
-        - name
-        - type
-        - content
-        - isEmbedded
-      properties:
-        name:
-          type: string
-          description: The name of the resource
-        type:
-          type: string
-          enum: [text, binary, json]
-          description: The type of the resource
-        content:
-          type: string
-          description: The content of the resource
-        isEmbedded:
-          type: boolean
-          description: Whether the resource is embedded in the agent
 
-    PromptConfig:
+    # Additional KNIRVORACLE MCP API Schemas
+    NodeInfo:
       type: object
-      required:
-        - name
-        - content
-        - variables
       properties:
-        name:
+        node_id:
           type: string
-          description: The name of the prompt
-        content:
+        version:
           type: string
-          description: The content of the prompt
-        variables:
-          type: array
-          items:
-            type: string
-          description: The variables in the prompt
-
-    TEEConfig:
-      type: object
-      required:
-        - isolationLevel
-        - resourceLimits
-        - networkAccess
-        - fileSystemAccess
-      properties:
-        isolationLevel:
-          type: string
-          enum: [process, container, vm]
-          description: The isolation level for the trusted execution environment
-        resourceLimits:
-          type: object
-          required:
-            - memory
-            - cpu
-            - timeLimit
-          properties:
-            memory:
-              type: integer
-              description: Memory limit in MB
-            cpu:
-              type: number
-              description: CPU limit in cores
-            timeLimit:
-              type: integer
-              description: Time limit in seconds
-          description: Resource limits for the trusted execution environment
-        networkAccess:
-          type: boolean
-          description: Whether the agent has network access
-        fileSystemAccess:
-          type: boolean
-          description: Whether the agent has file system access
-
-    TerminalUIConfig:
-      type: object
-      required:
-        - enabled
-      properties:
-        enabled:
-          type: boolean
-          description: Whether the terminal UI is enabled
-        defaultHeight:
+        chain_height:
           type: integer
-          description: The default height of the terminal UI
-        theme:
-          type: string
-          enum: [light, dark, system]
-          description: The theme for the terminal UI
-        allowCommandHistory:
+        dev_count:
+          type: integer
+        is_mining:
           type: boolean
-          description: Whether to allow command history
-        supportedCommands:
-          type: array
-          items:
-            type: string
-          description: The supported commands for the terminal UI
+        wallet_address:
+          type: string
+        uptime:
+          type: integer
+          format: int64
 
-    ModelProviderConfig:
+    HealthStatus:
       type: object
-      required:
-        - provider
-        - model
       properties:
-        provider:
+        status:
           type: string
-          enum: [openai, anthropic, google, cerebras, custom]
-          description: The LLM provider
-        model:
-          type: string
-          description: The model to use
-        parameters:
-          type: object
-          properties:
-            temperature:
-              type: number
-              minimum: 0
-              maximum: 1
-              description: The temperature parameter for the model
-            topP:
-              type: number
-              minimum: 0
-              maximum: 1
-              description: The top-p parameter for the model
-            maxTokens:
-              type: integer
-              description: The maximum number of tokens to generate
-          additionalProperties: true
-          description: Additional parameters for the model
-
-    RequiredCredential:
-      type: object
-      required:
-        - name
-      properties:
-        name:
-          type: string
-          description: The name of the credential
-        description:
-          type: string
-          description: A description of the credential
-        optional:
+          enum: [healthy, unhealthy]
+        blockchain:
           type: boolean
-          description: Whether the credential is optional
-        envVarName:
+        network:
+          type: boolean
+        database:
+          type: boolean
+        message:
           type: string
-          description: The environment variable name to look for
 
-    SubagentConfig:
+    PeerInfo:
       type: object
-      required:
-        - id
-        - name
-        - description
-        - language
-        - initScript
-        - environmentVariables
-        - tools
       properties:
         id:
           type: string
-          description: The ID of the subagent
+        address:
+          type: string
+        connected_since:
+          type: integer
+          format: int64
+
+    PeerList:
+      type: array
+      items:
+        $ref: '#/components/schemas/PeerInfo'
+
+    URIGenerationRequest:
+      type: object
+      properties:
+        resource_type:
+          type: string
+        content_hash:
+          type: string
+        owner:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+
+    URIGenerationResponse:
+      type: object
+      properties:
+        uri:
+          type: string
+        resource_id:
+          type: string
+        success:
+          type: boolean
+        message:
+          type: string
+
+    BaseDescriptor:
+      type: object
+      properties:
+        id:
+          type: string
+        capabilityType:
+          type: string
+          enum: [RESOURCE, TOOL, PROMPT, MEMORY_SERVICE]
         name:
           type: string
-          description: The name of the subagent
+        owner:
+          type: string
+        version:
+          type: string
         description:
           type: string
-          description: A description of the subagent
-        language:
-          type: string
-          enum: [python, javascript]
-          description: The language of the subagent
-        initScript:
-          type: string
-          description: The initialization script for the subagent
-        environmentVariables:
+        gasFeeNRN:
+          type: integer
+          format: uint64
+        timestamp:
+          type: integer
+          format: int64
+        customMetadata:
           type: object
-          additionalProperties:
-            type: string
-          description: Environment variables for the subagent
-        tools:
+          additionalProperties: true
+
+    ResourceDescriptor:
+      allOf:
+        - $ref: '#/components/schemas/BaseDescriptor'
+        - type: object
+          required:
+            - resourceType
+            - contentHash
+          properties:
+            resourceType:
+              type: string
+              enum: [FILE, API, PLUGIN, GENERATED_DOCUMENT, DATASET, MODEL_ARTIFACT, SERVICE]
+            contentHash:
+              type: string
+            schema:
+              $ref: '#/components/schemas/PluginSchemaDetail'
+
+    PluginSchemaDetail:
+      type: object
+      properties:
+        summary:
+          type: string
+        accessInfo:
+          type: object
+          additionalProperties: true
+        locationHints:
           type: array
           items:
-            $ref: '#/components/schemas/ToolConfig'
-          description: Tools for the subagent
-        modelProvider:
-          $ref: '#/components/schemas/ModelProviderConfig'
-          description: Model provider configuration for the subagent
-        resourceLimits:
-          type: object
-          properties:
-            maxMemoryMB:
-              type: integer
-              description: Maximum memory usage in MB
-            maxCPUPercent:
-              type: number
-              description: Maximum CPU usage as a percentage
-            timeoutSeconds:
-              type: integer
-              description: Timeout in seconds
-          description: Resource limits for the subagent
-
-    SubagentManagementUIConfig:
-      type: object
-      required:
-        - enabled
-      properties:
-        enabled:
-          type: boolean
-          description: Whether subagent management is enabled
-        allowDynamicCreation:
-          type: boolean
-          description: Whether to allow dynamic creation of subagents
-        maxSubagents:
-          type: integer
-          description: The maximum number of subagents
-        resourceLimits:
-          type: object
-          properties:
-            maxMemoryMB:
-              type: integer
-              description: Maximum memory usage in MB
-            maxCPUPercent:
-              type: number
-              description: Maximum CPU usage as a percentage
-            timeoutSeconds:
-              type: integer
-              description: Timeout in seconds
-          description: Resource limits for subagents
-
-    Credential:
-      type: object
-      required:
-        - name
-        - value
-      properties:
-        name:
+            type: string
+        manifestFile:
           type: string
-          description: The name of the credential
+        executableFile:
+          type: string
+        outputDirectoryHint:
+          type: string
+
+    ToolDescriptor:
+      allOf:
+        - $ref: '#/components/schemas/BaseDescriptor'
+        - type: object
+          required:
+            - inputSchemaJSON
+            - executionPointer
+          properties:
+            inputSchemaJSON:
+              type: string
+            outputSchemaJSON:
+              type: string
+            executionPointer:
+              type: string
+
+    PromptDescriptor:
+      allOf:
+        - $ref: '#/components/schemas/BaseDescriptor'
+        - type: object
+          required:
+            - template
+            - parametersSchemaJSON
+          properties:
+            template:
+              type: string
+            parametersSchemaJSON:
+              type: string
+
+    MemoryServiceDescriptor:
+      allOf:
+        - $ref: '#/components/schemas/BaseDescriptor'
+        - type: object
+          required:
+            - graphSchema
+          properties:
+            graphSchema:
+              type: string
+
+    CapabilityDescriptor:
+      oneOf:
+        - $ref: '#/components/schemas/ResourceDescriptor'
+        - $ref: '#/components/schemas/ToolDescriptor'
+        - $ref: '#/components/schemas/PromptDescriptor'
+        - $ref: '#/components/schemas/MemoryServiceDescriptor'
+      discriminator:
+        propertyName: capabilityType
+        mapping:
+          RESOURCE: '#/components/schemas/ResourceDescriptor'
+          TOOL: '#/components/schemas/ToolDescriptor'
+          PROMPT: '#/components/schemas/PromptDescriptor'
+          MEMORY_SERVICE: '#/components/schemas/MemoryServiceDescriptor'
+
+    MCPPrepareCapabilityRegistrationRequest:
+      type: object
+      required:
+        - ownerAddress
+        - capabilityDescriptor
+        - fee
+      properties:
+        ownerAddress:
+          type: string
+        capabilityDescriptor:
+          $ref: '#/components/schemas/CapabilityDescriptor'
+        message:
+          type: string
+        fee:
+          type: integer
+          format: uint64
+
+    MCPPrepareCapabilityRegistrationResponse:
+      type: object
+      required:
+        - pendingTransactionHash
+        - unsignedTransaction
+      properties:
+        pendingTransactionHash:
+          type: string
+        unsignedTransaction:
+          $ref: '#/components/schemas/UnsignedTransactionDetails'
+
+    MCPInvokeCapabilityRequestWrapper:
+      type: object
+      required:
+        - signedTransaction
+      properties:
+        signedTransaction:
+          $ref: '#/components/schemas/Transaction'
+
+    MCPInvokeCapabilityData:
+      type: object
+      required:
+        - contextRecord
+      properties:
+        contextRecord:
+          $ref: '#/components/schemas/ContextRecord'
+
+    MCPUpdateCapabilityRequestWrapper:
+      type: object
+      required:
+        - signedTransaction
+      properties:
+        signedTransaction:
+          $ref: '#/components/schemas/Transaction'
+
+    MCPUpdateCapabilityData:
+      type: object
+      required:
+        - capabilityID
+        - updatedDescriptor
+      properties:
+        capability_id:
+          type: string
+        updatedDescriptor:
+          $ref: '#/components/schemas/CapabilityDescriptor'
+
+    UnsignedTransactionDetails:
+      type: object
+      properties:
+        from:
+          type: string
+        to:
+          type: string
+          nullable: true
         value:
           type: string
-          description: The value of the credential
-        description:
+          example: "0"
+        data:
           type: string
-          description: A description of the credential
+          format: base64
+        timestamp:
+          type: integer
+          format: int64
+        fee:
+          type: string
+        type:
+          type: string
+          example: "MCP_REGISTER_CAPABILITY"
+        unsignedTransactionPayloadHash:
+          type: string
 
-    CredentialInfo:
+    ContextRecord:
       type: object
-      required:
-        - name
-        - createdAt
       properties:
-        name:
+        id:
           type: string
-          description: The name of the credential
-        description:
+        capabilityID:
           type: string
-          description: A description of the credential
+        interactionType:
+          type: string
+          enum: [CAPABILITY_REGISTRATION, CAPABILITY_INVOCATION, CAPABILITY_UPDATE, GENERAL_MESSAGE, TOOL_INVOCATION, PROMPT_USAGE, RESOURCE_ACCESS, PLUGIN_EXECUTION, SAMPLING_REQUEST_SENT, SAMPLING_RESPONSE_RECEIVED, MEMORY_WRITE]
+        initiator:
+          type: string
+        timestamp:
+          type: integer
+          format: int64
+        inputHash:
+          type: string
+        outputHash:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+        signature:
+          type: string
+          format: byte
+        status:
+          type: string
+          enum: [pending, success, failed, processing]
         createdAt:
           type: string
           format: date-time
-          description: When the credential was created
         updatedAt:
           type: string
           format: date-time
-          description: When the credential was last updated
-
-    Error:
-      type: object
-      required:
-        - code
-        - message
-      properties:
-        code:
-          type: string
-          description: Error code
-        message:
-          type: string
-          description: Error message
-        details:
-          type: object
-          description: Additional error details
-
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: JWT token for authentication
-    apiKeyAuth:
-      type: apiKey
-      in: header
-      name: X-API-Key
-      description: API key for authentication
-
-security:
-  - bearerAuth: []
-  - apiKeyAuth: []
