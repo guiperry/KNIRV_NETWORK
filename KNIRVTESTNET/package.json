@@ -35,7 +35,7 @@
     "build:wizened": "bash scripts/build-local-release.sh",
     "build:render": "bash scripts/render-build.sh",
     "build:graphchain": "npm run load-endpoints:testnet && echo 'GraphChain Explorer built for Render'",
-    "build:agent-portal": "echo 'Agent Developer Portal built for Render'",
+    "build:agent-portal": "echo 'Developer Portal built for Render'",
     "load-endpoints": "node scripts/load-endpoints.js",
     "load-endpoints:testnet": "node scripts/load-endpoints.js testnet",
     "load-endpoints:production": "node scripts/load-endpoints.js production",

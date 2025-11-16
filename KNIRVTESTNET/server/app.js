@@ -95,7 +95,7 @@ if (environment.isLocal) {
   app.use('/', express.static(path.join(__dirname, '../data/testnet-gateway')));
   app.use('/nexus-portal', express.static(path.join(__dirname, '../data/knirvnexus/portal')));
   app.use('/graphchain-explorer', express.static(path.join(__dirname, '../graphchain-explorer')));
-  app.use('/agent-developer-portal', express.static(path.join(__dirname, '../agent-developer-portal')));
+  app.use('/developer-portal', express.static(path.join(__dirname, '../developer-portal')));
   app.use('/nanda-ans', express.static(path.join(__dirname, '../nanda_ans/.next')));
 } else {
   // Staging/Production - serve from testnet-gateway with Netlify functions
@@ -336,7 +336,7 @@ app.get('/diagnostics', (req, res) => {
               <h3>Applications:</h3>
               <p><a href="/nexus-portal" style="color: #4CAF50;">/nexus-portal</a> - NEXUS Portal</p>
               <p><a href="/graphchain-explorer" style="color: #4CAF50;">/graphchain-explorer</a> - GraphChain Explorer</p>
-              <p><a href="/agent-developer-portal" style="color: #4CAF50;">/agent-developer-portal</a> - Agent Developer Portal</p>
+              <p><a href="/developer-portal" style="color: #4CAF50;">/developer-portal</a> - Developer Portal</p>
             </div>
           </div>
         </div>
@@ -462,17 +462,17 @@ app.get('/nexus-portal/*', (req, res) => {
   res.redirect('/nexus-portal');
 });
 
-// Agent Developer Portal routes
-app.get('/agent-developer-portal', (req, res) => {
-  res.sendFile(path.join(__dirname, '../agent-developer-portal/index.html'));
+// Developer Portal routes
+app.get('/developer-portal', (req, res) => {
+  res.sendFile(path.join(__dirname, '../developer-portal/index.html'));
 });
 
-app.get('/agent-developer-portal/*', (req, res) => {
-  const filePath = path.join(__dirname, '../agent-developer-portal', req.params[0] || 'index.html');
+app.get('/developer-portal/*', (req, res) => {
+  const filePath = path.join(__dirname, '../developer-portal', req.params[0] || 'index.html');
   if (fs.existsSync(filePath)) {
     res.sendFile(filePath);
   } else {
-    res.sendFile(path.join(__dirname, '../agent-developer-portal/index.html'));
+    res.sendFile(path.join(__dirname, '../developer-portal/index.html'));
   }
 });
 

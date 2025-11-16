@@ -73,7 +73,7 @@ Before making changes, I've analyzed the current codebase to understand the exis
 
 - Removed the Fyne GUI implementation (already not present in the codebase)
 - Repurposed the Next.js implementation as a browser-only Node.js service:
-  - Created `agent-developer-portal` directory with Node.js server implementation
+  - Created `developer-portal` directory with Node.js server implementation
   - Created `server.js` for the Developer Portal Node.js service
   - Created `package.json` for the Developer Portal dependencies
   - Created `setup.sh` script to copy Next.js static files to the Developer Portal

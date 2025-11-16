@@ -53,7 +53,7 @@
   - [Agent Tunnel Registry](./components/agent-tunnel-registry.md)
   - [Agent Bootnode Registry](./components/agent-bootnode-registry.md)
   - [Agent Payment Gateway](./components/agent-payment-gateway.md)
-  - [Agent Developer Portal](./components/agent-developer-portal.md)
+  - [Developer Portal](./components/developer-portal.md)
   - [Alternative GUI](./components/altgui.md)
 - [Guides](./guides/)
   - [Running a Node](./guides/running-a-node.md)

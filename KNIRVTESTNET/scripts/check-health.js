@@ -21,7 +21,7 @@ function checkHealth() {
     'graphchain-explorer',
     'data/testnet-gateway',
     'data/knirvnexus',
-    'agent-developer-portal',
+    'developer-portal',
 
     'server',
     'scripts',

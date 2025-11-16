@@ -1,5 +1,5 @@
 {
-  "name": "agent-developer-portal",
+  "name": "developer-portal",
   "version": "1.0.0",
   "description": "The official developer portal for the KNIRV D-TEN (Decentralized Trusted Execution Network). This comprehensive web application provides developers with all the tools needed to build, test, and deploy autonomous agents on the KNIRV network.",
   "main": "index.js",

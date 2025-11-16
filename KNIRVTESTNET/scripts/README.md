@@ -358,8 +358,8 @@ NANDA-ANS has been successfully migrated from standalone service to embedded ser
 ### ✅ Epic 2.1: testnet-gateway Refactor - COMPLETED
 The testnet-gateway has been successfully optimized for local development use:
 
-- **✅ Agent Developer Portal removed**: Eliminated duplicate agent-developer-portal from testnet-gateway
-- **✅ Production portal links**: Updated all agent-developer-portal links to point to https://knirv.com/agent-developer-portal/
+- **✅ Developer Portal removed**: Eliminated duplicate developer-portal from testnet-gateway
+- **✅ Production portal links**: Updated all developer-portal links to point to https://knirv.com/developer-portal/
 - **✅ Local NEXUS integration**: Nexus portal correctly redirects to local KNIRVNEXUS instance (localhost:8084)
 - **✅ Lightweight optimization**: Reduced package size and dependencies for local development focus
 - **✅ KNIRVTESTNET integration**: Properly integrated with `npm start` from KNIRVTESTNET root directory
@@ -372,7 +372,7 @@ The testnet-gateway has been successfully optimized for local development use:
 - **Integration**: Automatically started via `npm start` from KNIRVTESTNET root
 
 ### ✅ Epic 2.2: KNIRVGATEWAY Content & Page Updates - COMPLETED
-The KNIRVGATEWAY agent-developer-portal core concepts page has been successfully updated:
+The KNIRVGATEWAY developer-portal core concepts page has been successfully updated:
 
 - **✅ Core concepts updated**: Reflected current 12 sovereign layers using whitepapers as source of truth
 - **✅ KNIRV-CORTEX renamed**: Changed title from "KNIRV-CORTEX" to "KNIRV-CONTROLLER" for layer 6
@@ -396,7 +396,7 @@ The KNIRVGATEWAY agent-developer-portal core concepts page has been successfully
 12. KNIRVANA (Immersive 3D RTS game)
 
 ### ✅ Epic 2.3: Swagger UI for Developer Portal - COMPLETED
-Interactive API documentation has been successfully implemented in the agent-developer-portal:
+Interactive API documentation has been successfully implemented in the developer-portal:
 
 - **✅ Swagger UI page created**: New `swagger-ui.html` page with interactive API documentation
 - **✅ Multiple API specifications**: Unified Gateway API and KNIRV-ORACLE API specifications included
@@ -407,7 +407,7 @@ Interactive API documentation has been successfully implemented in the agent-dev
 - **✅ Interactive testing**: Full Swagger UI functionality for testing API endpoints
 
 **Swagger UI Features:**
-- **Location**: `KNIRVGATEWAY/agent-developer-portal/swagger-ui.html`
+- **Location**: `KNIRVGATEWAY/developer-portal/swagger-ui.html`
 - **API Sources**: docs/API_DOCUMENTATION_PHASE7.md and OpenAPI specifications
 - **Supported APIs**: Unified Gateway, KNIRV-ORACLE, KNIRV-ENGINE, KNIRV-CONTROLLER
 - **Theme**: Custom dark theme matching KNIRV design system

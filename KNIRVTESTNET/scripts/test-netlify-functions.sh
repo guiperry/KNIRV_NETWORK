@@ -161,8 +161,8 @@ else
     run_test "NEXUS Frontend" "$BASE_URL/nexus-portal" "200"
 fi
 
-# Test 8: Agent Developer Portal
-run_test "Agent Developer Portal" "$BASE_URL/agent-developer-portal/" "200"
+# Test 8: Developer Portal
+run_test "Developer Portal" "$BASE_URL/developer-portal/" "200"
 
 # Test 9: GraphChain Explorer
 run_test "GraphChain Explorer" "$BASE_URL/graphchain-explorer/" "200"

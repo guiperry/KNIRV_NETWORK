@@ -58,7 +58,7 @@ Disallow: /*.tmp
 # Allow important directories
 Allow: /documentation/
 Allow: /knirvtestnet/
-Allow: /agent-developer-portal/
+Allow: /developer-portal/
 Allow: /presenter/
 Allow: /assets/
 Allow: /images/

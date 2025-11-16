@@ -22,7 +22,7 @@ KNIRVTESTNET now includes unified web application hosting on Render, migrated fr
 ### Applications Hosted
 - **GraphChain Explorer** - `/graphchain-explorer`
 - **Nexus Portal** - `/nexus-portal`
-- **Agent Developer Portal** - `/agent-developer-portal`
+- **Developer Portal** - `/developer-portal`
 
 
 ### Render Configuration

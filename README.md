@@ -376,9 +376,9 @@ cd KNIRVROUTER && go run main.go --port 3478
 - **[API Documentation](wiki/api/)**: Comprehensive API reference
 
 ### Developer Resources
-- **[KNIRV Developer Portal](KNIRVGATEWAY/agent-developer-portal/)**: Complete developer experience with tutorials, API docs, and tools
-- **[Portal Documentation](KNIRVGATEWAY/agent-developer-portal/README.md)**: Developer portal setup and usage guide
-- **[Getting Started Guide](https://knirv.netlify.app/agent-developer-portal/)**: Interactive tutorial for new developers
+- **[KNIRV Developer Portal](KNIRVGATEWAY/developer-portal/)**: Complete developer experience with tutorials, API docs, and tools
+- **[Portal Documentation](KNIRVGATEWAY/developer-portal/README.md)**: Developer portal setup and usage guide
+- **[Getting Started Guide](https://knirv.netlify.app/developer-portal/)**: Interactive tutorial for new developers
 
 ### Deployment & Operations
 - **[Production Deployment Guide](deployment/README.md)**: Kubernetes and Docker deployment

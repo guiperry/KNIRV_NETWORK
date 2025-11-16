@@ -21,7 +21,7 @@ WORKDIR /app
 COPY bin/ ./bin/
 COPY config/ ./config/
 COPY assets/ ./assets/
-COPY agent-developer-portal/ ./agent-developer-portal/
+COPY developer-portal/ ./developer-portal/
 COPY graphchain-explorer/ ./graphchain-explorer/
 COPY index.html ./
 COPY package*.json ./

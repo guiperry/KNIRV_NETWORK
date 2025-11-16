@@ -98,7 +98,7 @@ build/developer-mac:
 
 2. Repurpose Next.js implementation as a Node.js service:
    - Move the Next.js code from embedded resources to a standalone directory structure
-   - Create a new directory `agent-developer-portal` with Node.js service structure
+   - Create a new directory `developer-portal` with Node.js service structure
    - Create a `server.js` entry point for the Node.js service
    - Add configuration for the Developer Portal in the NodeJSServices section of the config
 
@@ -285,7 +285,7 @@ build/developer-mac:
    ```go
    // Set default script path for developer portal if enabled but no path specified
    if cfg.NodeJSServices.DeveloperPortal.Enabled && cfg.NodeJSServices.DeveloperPortal.ScriptPath == "" {
-       cfg.NodeJSServices.DeveloperPortal.ScriptPath = "agent-developer-portal/server.js"
+       cfg.NodeJSServices.DeveloperPortal.ScriptPath = "developer-portal/server.js"
        log.Printf("[%s] Using default script path for developer portal: %s", cfg.ChainID, cfg.NodeJSServices.DeveloperPortal.ScriptPath)
    }
 

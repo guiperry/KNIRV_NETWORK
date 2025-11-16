@@ -56,7 +56,7 @@ const STRUCTURE = {
     'agent-tunnel-registry.md': { title: 'Agent Tunnel Registry', content: '' },
     'agent-bootnode-registry.md': { title: 'Agent Bootnode Registry', content: '' },
     'agent-payment-gateway.md': { title: 'Agent Payment Gateway', content: '' },
-    'agent-developer-portal.md': { title: 'Agent Developer Portal', content: '' },
+    'developer-portal.md': { title: 'Developer Portal', content: '' },
     'altgui.md': { title: 'Alternative GUI', content: '' }
   },
   'guides': {

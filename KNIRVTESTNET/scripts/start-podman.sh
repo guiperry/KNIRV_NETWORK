@@ -104,7 +104,7 @@ echo "==========================================="
 echo "Main Portal:             http://localhost:10000"
 echo "GraphChain Explorer:     http://localhost:10000/graphchain-explorer"
 echo "Nexus Portal:            http://localhost:10000/nexus-portal"
-echo "Agent Developer Portal:  http://localhost:10000/agent-developer-portal"
+echo "Developer Portal:  http://localhost:10000/developer-portal"
 
 echo ""
 print_status "To stop services: podman-compose down"

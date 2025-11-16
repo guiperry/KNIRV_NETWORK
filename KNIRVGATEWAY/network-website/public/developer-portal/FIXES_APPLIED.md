@@ -1,4 +1,4 @@
-# KNIRV Agent Developer Portal - Fixes Applied
+# KNIRV Developer Portal - Fixes Applied
 
 ## Issues Resolved
 

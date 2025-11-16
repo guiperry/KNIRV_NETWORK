@@ -14,7 +14,7 @@ const Footer = () => {
         documentation: '/docs',
         graphchain_explorer: '/graphchain-explorer',
         nanda_ans: '/nanda-ans',
-        developer_portal: '/agent-developer-portal',
+        developer_portal: '/developer-portal',
         agentify: '/agentify'
       },
       footer: {

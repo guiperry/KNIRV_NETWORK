@@ -12,7 +12,7 @@ navigation:
   home: "../documentation/index.html"
   whitepapers: "../documentation/whitepapers/index.html"
   main_site: "../../index.html"
-  developer_portal: "../agent-developer-portal/"
+  developer_portal: "../developer-portal/"
   support: "../support-desk/src/"
 
 # Documentation Categories
@@ -142,7 +142,7 @@ footer:
   
   resource_links:
     main_site: "../../index.html"
-    developer_portal: "../agent-developer-portal/"
+    developer_portal: "../developer-portal/"
     support: "../support-desk/src/"
     blog: "https://blog.knirv.com"
 

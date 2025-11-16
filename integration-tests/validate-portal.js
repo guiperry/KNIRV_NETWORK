@@ -12,7 +12,7 @@ const path = require('path');
 
 class PortalValidator {
     constructor() {
-        this.portalPath = path.join(__dirname, '../KNIRVGATEWAY/agent-developer-portal/static');
+        this.portalPath = path.join(__dirname, '../KNIRVGATEWAY/developer-portal/static');
         this.websitePath = path.join(__dirname, '../KNIRVGATEWAY');
         this.issues = [];
         this.warnings = [];
@@ -178,7 +178,7 @@ class PortalValidator {
 
         const content = fs.readFileSync(indexPath, 'utf8');
         const integrationChecks = [
-            { test: content.includes('agent-developer-portal'), name: 'Portal link' },
+            { test: content.includes('developer-portal'), name: 'Portal link' },
             { test: content.includes('Developer Portal'), name: 'Portal navigation' },
             { test: content.includes('Developer Portal') && content.includes('btn'), name: 'CTA button' }
         ];
@@ -210,7 +210,7 @@ class PortalValidator {
         const configChecks = [
             { test: content.includes('/portal/*'), name: 'Portal redirect' },
             { test: content.includes('/developer/*'), name: 'Developer redirect' },
-            { test: content.includes('agent-developer-portal/static'), name: 'Publish directory' }
+            { test: content.includes('developer-portal/static'), name: 'Publish directory' }
         ];
 
         let validConfigs = 0;
@@ -230,7 +230,7 @@ class PortalValidator {
     validatePackageConfig() {
         this.log('Validating package.json configuration...');
 
-        const packagePath = path.join(__dirname, '../KNIRVGATEWAY/agent-developer-portal/package.json');
+        const packagePath = path.join(__dirname, '../KNIRVGATEWAY/developer-portal/package.json');
         if (!fs.existsSync(packagePath)) {
             this.addIssue('package.json not found');
             return false;
@@ -268,7 +268,7 @@ class PortalValidator {
         this.log('Checking for legacy files...');
 
         const legacyFiles = [
-            path.join(__dirname, '../KNIRVGATEWAY/agent-developer-portal/server.js'),
+            path.join(__dirname, '../KNIRVGATEWAY/developer-portal/server.js'),
             path.join(this.portalPath, 'dashboard.html'),
             path.join(this.portalPath, 'inventory.html'),
             path.join(this.portalPath, 'dex.html'),
@@ -343,7 +343,7 @@ class PortalValidator {
         
         if (success) {
             this.log('\n🚀 Portal is ready for comprehensive integration testing!', 'success');
-            this.log('Run: npm test (from agent-developer-portal directory)', 'info');
+            this.log('Run: npm test (from developer-portal directory)', 'info');
         } else {
             this.log('\n🔧 Please fix the issues above before running integration tests.', 'warning');
         }

@@ -31,7 +31,7 @@ The Developer Portal is configured through the KNIRVORACLE configuration system.
     "enabled": true,
     "developer_portal": {
       "enabled": true,
-      "script_path": "agent-developer-portal/server.js",
+      "script_path": "developer-portal/server.js",
       "http_port": 3005,
       "api_key_secret": "your-api-key"
     }
@@ -63,7 +63,7 @@ For non-Root nodes, a simplified interface is provided that redirects to the Dev
 
 1. Navigate to the Developer Portal directory:
    ```
-   cd agent-developer-portal
+   cd developer-portal
    ```
 
 2. Install dependencies:

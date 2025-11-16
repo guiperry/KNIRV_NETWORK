@@ -126,15 +126,15 @@ This directory contains optimized social media sharing cards for different platf
 
 ---
 
-### agent-developer-portal
+### developer-portal
 
-**Location:** `KNIRVGATEWAY/network-website/public/agent-developer-portal/README.md`
+**Location:** `KNIRVGATEWAY/network-website/public/developer-portal/README.md`
 
 # KNIRV Developer Portal
 
 The official developer portal for the KNIRV D-TEN (Decentralized Trusted Execution Network). This comprehensive web application provides developers with all the tools needed ...
 
-[View Full Documentation](KNIRVGATEWAY/network-website/public/agent-developer-portal/README.md)
+[View Full Documentation](KNIRVGATEWAY/network-website/public/developer-portal/README.md)
 
 ---
 

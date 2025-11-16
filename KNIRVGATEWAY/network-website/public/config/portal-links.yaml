@@ -8,7 +8,7 @@ navigation:
   graphchain_explorer: "graphchain-explorer/"
   nexus_portal: "nexus-portal/"
   support_desk: "support-desk/src/"
-  developer_portal: "agent-developer-portal/"
+  developer_portal: "developer-portal/"
   products: "products.html"
   agentify: "https://agentify.knirv.com"
 
@@ -133,11 +133,11 @@ api:
 
 # API Documentation
 api_documentation:
-  swagger_ui: "/agent-developer-portal/swagger-ui.html"
+  swagger_ui: "/developer-portal/swagger-ui.html"
   openapi_specs:
-    knirvsdk: "/agent-developer-portal/openapi/knirvsdk.yaml"
-    knirvengine: "/agent-developer-portal/openapi/knirvengine.yaml"
-    knirvinference: "/agent-developer-portal/openapi/knirvinference.yaml"
+    knirvsdk: "/developer-portal/openapi/knirvsdk.yaml"
+    knirvengine: "/developer-portal/openapi/knirvengine.yaml"
+    knirvinference: "/developer-portal/openapi/knirvinference.yaml"
 
 # Feature Flags
 features:

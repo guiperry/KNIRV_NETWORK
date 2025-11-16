@@ -153,9 +153,9 @@ documentation/node_modules/
 documentation/dist/
 documentation/.docsify/
 
-# Agent Developer Portal build
-agent-developer-portal/node_modules/
-agent-developer-portal/dist/
+# Developer Portal build
+developer-portal/node_modules/
+developer-portal/dist/
 
 # Backup files
 *.bak

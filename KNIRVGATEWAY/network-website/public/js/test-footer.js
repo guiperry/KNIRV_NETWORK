@@ -214,7 +214,7 @@ class FooterTestSuite {
                 // Test network-website specific paths
                 const networkWebsitePaths = [
                     'graphchain-explorer/',
-                    'agent-developer-portal/',
+                    'developer-portal/',
                     'documentation/static/'
                 ];
 

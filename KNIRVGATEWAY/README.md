@@ -79,7 +79,7 @@ KNIRVGATEWAY/
 ├── index.html                    # Main website entry point
 ├── assets/                       # Static assets (CSS, JS, images)
 ├── images/                       # Website images and branding
-├── agent-developer-portal/       # Developer documentation and tools
+├── developer-portal/       # Developer documentation and tools
 ├── documentation/                # Docsify-based documentation
 ├── knirvtestnet/                 # KNIRVTESTNET frontend integration
 │   ├── index.html               # Testnet dashboard
@@ -465,7 +465,7 @@ SUPABASE_ANON_KEY=your_supabase_anon_key
 - **Tokenomics**: NRN token information
 - **Roadmap**: Development timeline and milestones
 
-### Agent Developer Portal
+### Developer Portal
 - **Getting Started**: Quick start guide for developers
 - **API Documentation**: Comprehensive API reference
 - **SDK & Tools**: Development tools and libraries

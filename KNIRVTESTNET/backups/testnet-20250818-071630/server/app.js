@@ -81,7 +81,7 @@ if (environment.isLocal) {
   app.use('/', express.static(path.join(__dirname, '../data/testnet-gateway')));
   app.use('/nexus-portal', express.static(path.join(__dirname, '../data/knirvnexus/portal')));
   app.use('/graphchain-explorer', express.static(path.join(__dirname, '../graphchain-explorer')));
-  app.use('/agent-developer-portal', express.static(path.join(__dirname, '../agent-developer-portal')));
+  app.use('/developer-portal', express.static(path.join(__dirname, '../developer-portal')));
   app.use('/nanda-ans', express.static(path.join(__dirname, '../nanda_ans/.next')));
 } else {
   // Staging/Production - serve from testnet-gateway with Netlify functions
@@ -174,17 +174,17 @@ app.get('/nexus-portal/*', (req, res) => {
   }
 });
 
-// Agent Developer Portal routes
-app.get('/agent-developer-portal', (req, res) => {
-  res.sendFile(path.join(__dirname, '../agent-developer-portal/index.html'));
+// Developer Portal routes
+app.get('/developer-portal', (req, res) => {
+  res.sendFile(path.join(__dirname, '../developer-portal/index.html'));
 });
 
-app.get('/agent-developer-portal/*', (req, res) => {
-  const filePath = path.join(__dirname, '../agent-developer-portal', req.params[0] || 'index.html');
+app.get('/developer-portal/*', (req, res) => {
+  const filePath = path.join(__dirname, '../developer-portal', req.params[0] || 'index.html');
   if (fs.existsSync(filePath)) {
     res.sendFile(filePath);
   } else {
-    res.sendFile(path.join(__dirname, '../agent-developer-portal/index.html'));
+    res.sendFile(path.join(__dirname, '../developer-portal/index.html'));
   }
 });
 

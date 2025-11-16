@@ -13,7 +13,7 @@ const { execSync } = require('child_process');
 
 class PortalIntegrationTester {
     constructor() {
-        this.portalPath = path.join(__dirname, '../KNIRVGATEWAY/agent-developer-portal/static');
+        this.portalPath = path.join(__dirname, '../KNIRVGATEWAY/developer-portal/static');
         this.websitePath = path.join(__dirname, '../KNIRVGATEWAY');
         this.testResults = [];
         this.errors = [];
@@ -237,7 +237,7 @@ class PortalIntegrationTester {
         const indexContent = fs.readFileSync(indexPath, 'utf8');
 
         // Check for developer portal links
-        if (!indexContent.includes('agent-developer-portal')) {
+        if (!indexContent.includes('developer-portal')) {
             throw new Error('Main website: Missing developer portal link');
         }
 
@@ -269,14 +269,14 @@ class PortalIntegrationTester {
         }
 
         // Check for correct publish directory
-        if (!netlifyContent.includes('agent-developer-portal/static')) {
+        if (!netlifyContent.includes('developer-portal/static')) {
             throw new Error('Netlify config: Incorrect publish directory for portal');
         }
     }
 
     // Test 7: Validate package.json configuration
     async testPackageConfiguration() {
-        const packagePath = path.join(__dirname, '../KNIRVGATEWAY/agent-developer-portal/package.json');
+        const packagePath = path.join(__dirname, '../KNIRVGATEWAY/developer-portal/package.json');
         const packageContent = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
 
         // Check for updated package name

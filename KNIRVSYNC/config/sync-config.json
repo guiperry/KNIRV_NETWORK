@@ -127,8 +127,8 @@
     {
       "name": "swagger_ui_references",
       "pattern": "swagger-ui.html",
-      "source_dirs": ["KNIRVGATEWAY/network-website/public/agent-developer-portal"],
-      "target_dir": "KNIRVGATEWAY/network-website/public/agent-developer-portal",
+      "source_dirs": ["KNIRVGATEWAY/network-website/public/developer-portal"],
+      "target_dir": "KNIRVGATEWAY/network-website/public/developer-portal",
       "central_api_path": "KNIRVGATEWAY/unified-openapi.yaml",
       "enabled": true
     },

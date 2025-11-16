@@ -1436,7 +1436,7 @@ function generateStaticIndexPage(docs) {
                 <h2>🚀 Developer Community</h2>
                 <p>We're building an open source developer community around the KNIRV Network. If you're interested in contributing, please check out our contribution guidelines.</p>
                 <div class="community-buttons">
-                    <a href="../agent-developer-portal/" class="btn-primary">🛠️ Developer Portal</a>
+                    <a href="../developer-portal/" class="btn-primary">🛠️ Developer Portal</a>
                     <a href="docsify/#/legal/CODE_OF_CONDUCT" class="btn-secondary">🤝 Contribute</a>
                 </div>
             </section>

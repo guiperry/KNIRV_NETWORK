@@ -26,7 +26,7 @@
     "build:all": "npm run build:nexus && npm run build:graphchain && npm run build:agent-portal && npm run build:nanda",
     "build:nexus": "cd nexus-portal && npm install && npm run build",
     "build:graphchain": "npm run load-endpoints:testnet && echo 'GraphChain Explorer built for Render'",
-    "build:agent-portal": "echo 'Agent Developer Portal built for Render'",
+    "build:agent-portal": "echo 'Developer Portal built for Render'",
     "build:nanda": "cd nanda_ans && npm install && npm run build",
     "load-endpoints": "node scripts/load-endpoints.js",
     "load-endpoints:testnet": "node scripts/load-endpoints.js testnet",

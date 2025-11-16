@@ -379,7 +379,7 @@ Join us: https://discord.gg/knirv">
                                         <a class="menu-link nav-link menu-toggle" href="#">Platforms & Tools</a>
                                         <ul class="menu-sub menu-drop">
                                             <li class="menu-item"><a class="menu-link nav-link" href="knirvtestnet/">🧪 KNIRV Testnet</a></li>
-                                            <li class="menu-item"><a class="menu-link nav-link" href="agent-developer-portal/">Developer Portal</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="developer-portal/">Developer Portal</a></li>
                                         </ul>
                                     </li>
                                     <li class="menu-item has-sub">
@@ -466,7 +466,7 @@ Join us: https://discord.gg/knirv">
                                             <div class="cpn-btns">
                                                 <ul class="btn-grp animated" data-animate="fadeInUp" data-delay="1.55">
                                                     <li><a href="documentation/static/whitepapers/KNIRV-D-TEN_Whitepaper.html" class="btn btn-md btn-grad btn-round">Explore the D-TEN</a></li>
-                                                    <li><a href="agent-developer-portal/" class="btn btn-md btn-grad btn-grad-alternet btn-round">Developer Portal</a></li>
+                                                    <li><a href="developer-portal/" class="btn btn-md btn-grad btn-grad-alternet btn-round">Developer Portal</a></li>
                                                     <li><a href="documentation/static/" class="btn btn-md btn-outline btn-grad on-bg-theme btn-round">Join the Network</a></li>
                                                 </ul>
                                             </div>
@@ -2208,7 +2208,7 @@ Join us: https://discord.gg/knirv">
                 localStorage.setItem('knirv_auth_token', data.token);
               }
 
-              // Redirect to WebGUI (agent-developer-portal)
+              // Redirect to WebGUI (developer-portal)
               this.redirectToWebGUI();
             } else {
               throw new Error('Invalid credentials');
@@ -2233,7 +2233,7 @@ Join us: https://discord.gg/knirv">
 
           // Redirect after a short delay
           setTimeout(() => {
-            window.location.href = '/agent-developer-portal';
+            window.location.href = '/developer-portal';
           }, 1500);
         }
 

@@ -1,12 +1,12 @@
 /**
- * Tests for Agent Developer Portal Model Selection
+ * Tests for Developer Portal Model Selection
  * Tests the model selection interface and agent registration functionality
  */
 
 // Mock DOM environment for testing
 const { JSDOM } = require('jsdom');
 
-describe('Agent Developer Portal Model Selection', () => {
+describe('Developer Portal Model Selection', () => {
   let dom;
   let document;
   let window;

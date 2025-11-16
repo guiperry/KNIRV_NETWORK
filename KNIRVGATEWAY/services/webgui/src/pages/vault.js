@@ -21,7 +21,7 @@ export default function Vault() {
   };
 
   const openInModal = (type) => {
-    // This would open the respective agent-developer-portal page in a modal
+    // This would open the respective developer-portal page in a modal
     console.log(`Opening ${type} in modal`);
   };
 

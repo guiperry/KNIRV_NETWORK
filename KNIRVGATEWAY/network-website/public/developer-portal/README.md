@@ -34,7 +34,7 @@ The portal is built as a modern static web application using:
 ### File Structure
 
 ```
-agent-developer-portal/
+developer-portal/
 ├── index.html              # Home Dashboard
 ├── core-concepts.html      # D-TEN Architecture Guide
 ├── getting-started.html    # Tutorial & Onboarding
@@ -93,7 +93,7 @@ The portal is automatically deployed via Netlify when changes are pushed to the 
 The portal is configured in the main `netlify.toml` file with:
 
 - **Build Command**: No build needed (static files)
-- **Publish Directory**: `agent-developer-portal/`
+- **Publish Directory**: `developer-portal/`
 - **Redirects**: Configured for `/portal/*`, `/developer/*`, `/dev-portal/*`
 
 ### Manual Deployment

@@ -99,7 +99,7 @@ export default function TutorialsPage() {
             <KnirvLogo />
             <div className="flex items-center space-x-4">
                 <Button variant="outline" className="border-knirv-border-primary text-knirv-text-primary hover:bg-knirv-bg-primary/10">
-                <Link href="https://knirv.network/agent-developer-portal/" data-config-nav="documentation">Documentation</Link>
+                <Link href="https://knirv.network/developer-portal/" data-config-nav="documentation">Documentation</Link>
               </Button>
               <Button variant="outline" className="border-knirv-border-primary text-knirv-text-primary hover:bg-knirv-bg-primary/10">
                 <Link href="/support" data-config-nav="support">Support</Link>

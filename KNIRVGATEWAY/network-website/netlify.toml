@@ -10,10 +10,10 @@
   publish = "public/documentation/docsify/"
   command = "npm install && npm run build"
 
-# Agent Developer Portal build context
+# Developer Portal build context
 [context.portal]
-  base = "public/agent-developer-portal/"
-  publish = "public/agent-developer-portal/"
+  base = "public/developer-portal/"
+  publish = "public/developer-portal/"
   command = "npm install"
 
 # Gateway Functions build context
@@ -133,26 +133,26 @@
   to = "/.netlify/functions/gateway-sse"
   status = 200
 
-# Redirect rules for agent developer portal
+# Redirect rules for Developer Portal
 [[redirects]]
   from = "/portal/*"
-  to = "/agent-developer-portal/:splat"
+  to = "/developer-portal/:splat"
   status = 200
 
 [[redirects]]
   from = "/developer/*"
-  to = "/agent-developer-portal/:splat"
+  to = "/developer-portal/:splat"
   status = 200
 
 [[redirects]]
   from = "/dev-portal/*"
-  to = "/agent-developer-portal/:splat"
+  to = "/developer-portal/:splat"
   status = 200
 
 # Handle SPA routing for developer portal
 [[redirects]]
-  from = "/agent-developer-portal/*"
-  to = "/agent-developer-portal/index.html"
+  from = "/developer-portal/*"
+  to = "/developer-portal/index.html"
   status = 200
 
 # NEXUS Portal redirects - now hosted externally on primary-website
