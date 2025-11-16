@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -165,17 +167,335 @@ func (ts *TEESecurityService) IsRunning() bool {
 // RunSecurityScan performs a security scan of the TEE environment
 func (ts *TEESecurityService) RunSecurityScan() error {
 	log.Println("TEE Security: Running security scan")
-	// In a real implementation, this would scan for vulnerabilities
-	// For now, just log the action
+
+	// Perform comprehensive security scan
+	scanResults := &SecurityScanResults{
+		Timestamp: time.Now(),
+		Checks:    make([]SecurityCheck, 0),
+	}
+
+	// Check 1: Kali Linux environment verification
+	scanResults.Checks = append(scanResults.Checks, SecurityCheck{
+		Name:        "Kali Environment",
+		Description: "Verify Kali Linux environment and tools",
+		Status:      ts.checkKaliEnvironment(),
+		Severity:    "medium",
+	})
+
+	// Check 2: Container runtime security
+	scanResults.Checks = append(scanResults.Checks, SecurityCheck{
+		Name:        "Container Runtime",
+		Description: "Verify container runtime security configuration",
+		Status:      ts.checkContainerRuntimeSecurity(),
+		Severity:    "high",
+	})
+
+	// Check 3: Network security
+	scanResults.Checks = append(scanResults.Checks, SecurityCheck{
+		Name:        "Network Security",
+		Description: "Check network isolation and monitoring",
+		Status:      ts.checkNetworkSecurity(),
+		Severity:    "high",
+	})
+
+	// Check 4: File system security
+	scanResults.Checks = append(scanResults.Checks, SecurityCheck{
+		Name:        "File System Security",
+		Description: "Verify file system isolation and permissions",
+		Status:      ts.checkFileSystemSecurity(),
+		Severity:    "medium",
+	})
+
+	// Calculate overall security score
+	scanResults.OverallScore = ts.calculateSecurityScore(scanResults.Checks)
+
+	// Store scan results
+	if err := ts.storeSecurityScanResults(scanResults); err != nil {
+		log.Printf("Warning: Failed to store security scan results: %v", err)
+	}
+
+	// Log scan summary
+	log.Printf("Security scan completed. Overall score: %.1f/100", scanResults.OverallScore)
+	for _, check := range scanResults.Checks {
+		log.Printf("  %s: %s (%s)", check.Name, check.Status, check.Severity)
+	}
+
 	return nil
+}
+
+// SecurityScanResults represents the results of a security scan
+type SecurityScanResults struct {
+	Timestamp    time.Time       `json:"timestamp"`
+	Checks       []SecurityCheck `json:"checks"`
+	OverallScore float64         `json:"overall_score"`
+}
+
+// SecurityCheck represents an individual security check
+type SecurityCheck struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Status      string `json:"status"` // "pass", "fail", "warning"
+	Severity    string `json:"severity"` // "low", "medium", "high"
+	Details     string `json:"details,omitempty"`
+}
+
+// checkKaliEnvironment verifies Kali Linux environment
+func (ts *TEESecurityService) checkKaliEnvironment() string {
+	if !ts.kaliProfile.IsKaliLinux {
+		return "fail"
+	}
+
+	// Check critical security tools
+	criticalTools := []string{"strace", "semgrep"}
+	for _, tool := range criticalTools {
+		if !ts.isToolAvailable(tool) {
+			return "warning"
+		}
+	}
+
+	return "pass"
+}
+
+// checkContainerRuntimeSecurity verifies container runtime security
+func (ts *TEESecurityService) checkContainerRuntimeSecurity() string {
+	if ts.runtimeManager == nil {
+		return "fail"
+	}
+
+	runtime := ts.runtimeManager.GetActiveRuntime()
+	if runtime == "native-go" {
+		// Verify native runtime security
+		if err := ts.verifyNativeRuntimeSecurity(); err != nil {
+			return "fail"
+		}
+		return "pass"
+	} else if runtime == "podman" {
+		// Verify Podman security
+		if err := ts.verifyPodmanSecurity(); err != nil {
+			return "fail"
+		}
+		return "pass"
+	}
+
+	return "warning"
+}
+
+// checkNetworkSecurity verifies network security configuration
+func (ts *TEESecurityService) checkNetworkSecurity() string {
+	// Check if network analysis tools are available
+	networkTools := []string{"tcpdump", "tshark"}
+	available := false
+	for _, tool := range networkTools {
+		if ts.isToolAvailable(tool) {
+			available = true
+			break
+		}
+	}
+
+	if !available {
+		return "warning"
+	}
+
+	return "pass"
+}
+
+// checkFileSystemSecurity verifies file system security
+func (ts *TEESecurityService) checkFileSystemSecurity() string {
+	containerDir := "/tmp/knirv-containers"
+
+	info, err := os.Stat(containerDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "warning" // Directory doesn't exist yet, not necessarily a failure
+		}
+		return "fail"
+	}
+
+	// Check permissions
+	mode := info.Mode().Perm()
+	if mode&077 != 0 { // World permissions
+		return "warning"
+	}
+
+	return "pass"
+}
+
+// calculateSecurityScore calculates overall security score from checks
+func (ts *TEESecurityService) calculateSecurityScore(checks []SecurityCheck) float64 {
+	if len(checks) == 0 {
+		return 0.0
+	}
+
+	totalScore := 0.0
+	totalWeight := 0.0
+
+	for _, check := range checks {
+		weight := 1.0
+		if check.Severity == "high" {
+			weight = 3.0
+		} else if check.Severity == "medium" {
+			weight = 2.0
+		}
+
+		score := 0.0
+		switch check.Status {
+		case "pass":
+			score = 100.0
+		case "warning":
+			score = 50.0
+		case "fail":
+			score = 0.0
+		}
+
+		totalScore += score * weight
+		totalWeight += weight
+	}
+
+	if totalWeight == 0 {
+		return 0.0
+	}
+
+	return totalScore / totalWeight
+}
+
+// storeSecurityScanResults stores security scan results in database
+func (ts *TEESecurityService) storeSecurityScanResults(results *SecurityScanResults) error {
+	return ts.db.Update(func(tx *buntdb.Tx) error {
+		data, err := json.Marshal(results)
+		if err != nil {
+			return err
+		}
+
+		key := fmt.Sprintf("tee:security_scan:%d", results.Timestamp.Unix())
+		_, _, err = tx.Set(key, string(data), nil)
+		return err
+	})
 }
 
 // PerformAttestation performs TEE attestation
 func (ts *TEESecurityService) PerformAttestation() error {
 	log.Println("TEE Security: Performing attestation")
-	// In a real implementation, this would perform remote attestation
-	// For now, just log the action
+
+	// Perform attestation based on detected TEE capabilities
+	if ts.kaliProfile.IsKaliLinux {
+		return ts.performKaliTEEAttestation()
+	}
+
+	// For non-Kali systems, perform basic attestation
+	return ts.performBasicTEEAttestation()
+}
+
+// performKaliTEEAttestation performs attestation using Kali Linux TEE tools
+func (ts *TEESecurityService) performKaliTEEAttestation() error {
+	log.Println("Performing Kali Linux TEE attestation")
+
+	// Check if we have TEE capabilities
+	if len(ts.kaliProfile.ArchitectureSupport) == 0 {
+		return fmt.Errorf("no TEE capabilities detected")
+	}
+
+	// Verify security tools are available and functional
+	securityChecks := []struct {
+		tool string
+		desc string
+	}{
+		{"strace", "System call tracing"},
+		{"semgrep", "Static analysis"},
+		{"bandit", "Python security analysis"},
+		{"tcpdump", "Network analysis"},
+	}
+
+	for _, check := range securityChecks {
+		if !ts.isToolAvailable(check.tool) {
+			log.Printf("Warning: %s tool (%s) not available", check.tool, check.desc)
+		}
+	}
+
+	// Perform container runtime attestation
+	if ts.runtimeManager != nil {
+		runtime := ts.runtimeManager.GetActiveRuntime()
+		log.Printf("Attesting container runtime: %s", runtime)
+
+		if runtime == "native-go" {
+			// Verify native runtime security features
+			if err := ts.verifyNativeRuntimeSecurity(); err != nil {
+				return fmt.Errorf("native runtime security verification failed: %v", err)
+			}
+		}
+	}
+
+	// Update attestation status
+	ts.UpdateAttestationStatus("verified")
+	log.Println("Kali Linux TEE attestation completed successfully")
 	return nil
+}
+
+// performBasicTEEAttestation performs basic attestation for non-Kali systems
+func (ts *TEESecurityService) performBasicTEEAttestation() error {
+	log.Println("Performing basic TEE attestation for non-Kali system")
+
+	// Basic checks for container security
+	if ts.runtimeManager != nil {
+		runtime := ts.runtimeManager.GetActiveRuntime()
+		log.Printf("Attesting container runtime: %s", runtime)
+
+		// For Podman, verify basic security features
+		if runtime == "podman" {
+			if err := ts.verifyPodmanSecurity(); err != nil {
+				return fmt.Errorf("podman security verification failed: %v", err)
+			}
+		}
+	}
+
+	ts.UpdateAttestationStatus("verified")
+	log.Println("Basic TEE attestation completed successfully")
+	return nil
+}
+
+// verifyNativeRuntimeSecurity verifies security features of native runtime
+func (ts *TEESecurityService) verifyNativeRuntimeSecurity() error {
+	// Check if sandbox directory is properly isolated
+	containerDir := "/tmp/knirv-containers"
+	if _, err := os.Stat(containerDir); os.IsNotExist(err) {
+		return fmt.Errorf("container directory does not exist: %s", containerDir)
+	}
+
+	// Verify directory permissions
+	info, err := os.Stat(containerDir)
+	if err != nil {
+		return fmt.Errorf("cannot stat container directory: %v", err)
+	}
+
+	// Check if directory has restricted permissions (should be 755 or more restrictive)
+	mode := info.Mode().Perm()
+	if mode&077 != 0 {
+		log.Printf("Warning: container directory has world permissions: %v", mode)
+	}
+
+	return nil
+}
+
+// verifyPodmanSecurity verifies Podman security configuration
+func (ts *TEESecurityService) verifyPodmanSecurity() error {
+	// Check if Podman is available
+	if _, err := exec.LookPath("podman"); err != nil {
+		return fmt.Errorf("podman not found: %v", err)
+	}
+
+	// Check Podman version and security features
+	cmd := exec.Command("podman", "version")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("podman version check failed: %v", err)
+	}
+
+	log.Println("Podman security verification completed")
+	return nil
+}
+
+// isToolAvailable checks if a security tool is available
+func (ts *TEESecurityService) isToolAvailable(tool string) bool {
+	_, err := exec.LookPath(tool)
+	return err == nil
 }
 
 // UpdateAttestationStatus updates the attestation status

@@ -8,6 +8,7 @@ import (
 	"backend_server/internal/objects"
 )
 
+
 func TestNewContainerOrchestrator(t *testing.T) {
 	config := &ContainerConfig{
 		ContainerRuntime:          "docker",
@@ -22,7 +23,7 @@ func TestNewContainerOrchestrator(t *testing.T) {
 		CleanupInterval:           10 * time.Minute,
 	}
 
-	co, err := NewContainerOrchestrator(config)
+	co, err := NewContainerOrchestrator(config, nil)
 	if err != nil {
 		t.Fatalf("Failed to create container orchestrator: %v", err)
 	}
@@ -46,7 +47,7 @@ func TestContainerOrchestrator_AllocateEndpoints(t *testing.T) {
 		ErrorResPortRangeEnd:      24010,
 	}
 
-	co, _ := NewContainerOrchestrator(config)
+	co, _ := NewContainerOrchestrator(config, nil)
 
 	endpoints, err := co.AllocateEndpoints("test-rental")
 	if err != nil {
@@ -80,7 +81,7 @@ func TestContainerOrchestrator_ProvisionContainer(t *testing.T) {
 		CleanupInterval:           10 * time.Minute,
 	}
 
-	co, _ := NewContainerOrchestrator(config)
+	co, _ := NewContainerOrchestrator(config, nil)
 
 	container, err := co.ProvisionContainer("test-rental-123")
 	if err != nil {
@@ -121,7 +122,7 @@ func TestContainerOrchestrator_GetContainerStatus(t *testing.T) {
 		ContainerRuntime: "docker",
 	}
 
-	co, _ := NewContainerOrchestrator(config)
+	co, _ := NewContainerOrchestrator(config, nil)
 
 	status, err := co.GetContainerStatus("test-container")
 	if err != nil {
@@ -138,7 +139,7 @@ func TestContainerOrchestrator_TerminateContainer(t *testing.T) {
 		ContainerRuntime: "docker",
 	}
 
-	co, _ := NewContainerOrchestrator(config)
+	co, _ := NewContainerOrchestrator(config, nil)
 
 	err := co.TerminateContainer("test-container")
 	if err != nil {
@@ -151,7 +152,7 @@ func TestContainerOrchestrator_Start(t *testing.T) {
 		CleanupInterval: 1 * time.Minute,
 	}
 
-	co, _ := NewContainerOrchestrator(config)
+	co, _ := NewContainerOrchestrator(config, nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -165,7 +166,7 @@ func TestContainerOrchestrator_Start(t *testing.T) {
 func TestContainerOrchestrator_Stop(t *testing.T) {
 	config := &ContainerConfig{}
 
-	co, _ := NewContainerOrchestrator(config)
+	co, _ := NewContainerOrchestrator(config, nil)
 
 	err := co.Stop()
 	if err != nil {
@@ -178,7 +179,7 @@ func TestContainerOrchestrator_InjectSSHKeys(t *testing.T) {
 		ContainerRuntime: "docker",
 	}
 
-	co, _ := NewContainerOrchestrator(config)
+	co, _ := NewContainerOrchestrator(config, nil)
 
 	err := co.InjectSSHKeys("test-container", "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7vbqajDhS5K3t test@example.com")
 	if err != nil {
@@ -191,7 +192,7 @@ func TestContainerOrchestrator_PerformCleanup(t *testing.T) {
 		CleanupInterval: 1 * time.Hour,
 	}
 
-	co, _ := NewContainerOrchestrator(config)
+	co, _ := NewContainerOrchestrator(config, nil)
 
 	// This method is private, but we can test it indirectly by calling the cleanup routine
 	// For now, just ensure the orchestrator can be created without issues
@@ -211,7 +212,7 @@ func TestContainerOrchestrator_ProvisionPodmanContainer(t *testing.T) {
 		BaseImage:        "ubuntu:20.04",
 	}
 
-	co, _ := NewContainerOrchestrator(config)
+	co, _ := NewContainerOrchestrator(config, nil)
 
 	spec := &ContainerSpec{
 		ID:     "test-container",
@@ -242,7 +243,7 @@ func TestContainerOrchestrator_TerminatePodmanContainer(t *testing.T) {
 		ContainerRuntime: "podman",
 	}
 
-	co, _ := NewContainerOrchestrator(config)
+	co, _ := NewContainerOrchestrator(config, nil)
 
 	// This should not error in the current implementation
 	err := co.terminatePodmanContainer("test-container")
@@ -253,7 +254,7 @@ func TestContainerOrchestrator_TerminatePodmanContainer(t *testing.T) {
 
 func TestContainerOrchestrator_ExtractRentalIDFromContainerID(t *testing.T) {
 	config := &ContainerConfig{}
-	co, _ := NewContainerOrchestrator(config)
+	co, _ := NewContainerOrchestrator(config, nil)
 
 	tests := []struct {
 		containerID string
@@ -286,7 +287,7 @@ func TestContainerOrchestrator_ProvisionContainerTimeout(t *testing.T) {
 		ErrorResPortRangeEnd:      24010,
 	}
 
-	co, _ := NewContainerOrchestrator(config)
+	co, _ := NewContainerOrchestrator(config, nil)
 
 	_, err := co.ProvisionContainer("test-rental")
 	if err == nil {
@@ -299,7 +300,7 @@ func TestContainerOrchestrator_UnsupportedRuntime(t *testing.T) {
 		ContainerRuntime: "unsupported",
 	}
 
-	co, _ := NewContainerOrchestrator(config)
+	co, _ := NewContainerOrchestrator(config, nil)
 
 	_, err := co.ProvisionContainer("test-rental")
 	if err == nil {

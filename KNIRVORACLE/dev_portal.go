@@ -293,7 +293,7 @@ func InitializeDevPortalGUI(bc *BlockchainStruct, db *LevelDB, discoveryMgr *Dis
 
 	// If this is a Root node, launch the Developer Portal
 	if role == config.Root && cfg.NodeJSServices.Enabled && cfg.NodeJSServices.DeveloperPortal.Enabled {
-		// Import the launch function from the agent-developer-portal package
+		// Import the launch function from the developer-portal package
 		if err := LaunchDeveloperPortal(cfg); err != nil {
 			log.Printf("Failed to launch Developer Portal: %v", err)
 		}
@@ -338,7 +338,7 @@ func LaunchDeveloperPortal(cfg *config.Config) error {
 
 	scriptPath := cfg.NodeJSServices.DeveloperPortal.ScriptPath
 	if scriptPath == "" {
-		scriptPath = "agent-developer-portal/server.js"
+		scriptPath = "developer-portal/server.js"
 	}
 
 	// Resolve the script path relative to the executable

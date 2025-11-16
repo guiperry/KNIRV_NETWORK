@@ -218,9 +218,9 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		dnsService = nil
 	}
 
-	// Initialize Container Orchestrator
+	// Initialize Container Orchestrator with Kali-aware runtime selection
 	containerConfig := &container.ContainerConfig{
-		ContainerRuntime:         "docker",
+		ContainerRuntime:         getContainerRuntime(teeSecurityService),
 		BaseImage:               "ubuntu:20.04",
 		SSHPortRangeStart:       22000,
 		SSHPortRangeEnd:         22999,
@@ -231,7 +231,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		ProvisioningTimeout:      5 * time.Minute,
 		CleanupInterval:          10 * time.Minute,
 	}
-	containerOrchestrator, err := container.NewContainerOrchestrator(containerConfig)
+	containerOrchestrator, err := container.NewContainerOrchestrator(containerConfig, teeSecurityService)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize container orchestrator: %w", err)
 	}
@@ -252,7 +252,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	sessionManager := session.NewSessionManager()
 
 	// Initialize Endpoint Registry
-	endpointRegistry := endpoints.NewEndpointRegistry()
+	endpointRegistry := endpoints.NewEndpointRegistry(dbManager.GetDB())
 
 	// Initialize Payment Services
 	stripeService := payment.NewStripeService(
@@ -446,11 +446,16 @@ func (s *Server) setupRoutes() {
 		log.Println("Controller integration service routes configured")
 	}
 
-	// Register DVE rental service routes
+	// Register DVE rental service routes with rate limiting
 	if s.dveRentalService != nil {
 		dveRentalHandlers := web.NewDVERentalHandlers(s.dveRentalService, s.containerOrchestrator, s.sessionManager, s.endpointRegistry)
-		dveRentalHandlers.RegisterRoutes(s.router, authMiddleware)
-		log.Println("DVE rental service routes configured")
+
+		// Create a subrouter for DVE rental routes with rate limiting
+		dveRentalRouter := s.router.PathPrefix("/api/dve-rental").Subrouter()
+		dveRentalRouter.Use(middleware.RateLimitMiddleware(10)) // 10 requests per minute for DVE access
+
+		dveRentalHandlers.RegisterRoutes(dveRentalRouter, authMiddleware)
+		log.Println("DVE rental service routes configured with rate limiting")
 	}
 
 	// Register cognitive engine routes
@@ -855,6 +860,23 @@ func initializeTEEEnvironment(ctx context.Context, db *buntdb.DB) error {
 	}
 
 	return nil
+}
+
+// getContainerRuntime determines the appropriate container runtime based on Kali Linux detection
+func getContainerRuntime(teeService *teesecurity.TEESecurityService) string {
+	if teeService == nil {
+		log.Println("Warning: TEE service not available, defaulting to docker runtime")
+		return "docker"
+	}
+
+	kaliProfile := teeService.GetKaliProfile()
+	if kaliProfile.IsKaliLinux {
+		log.Printf("Kali Linux detected, using native-go container runtime with security tools")
+		return "native-go"
+	}
+
+	log.Printf("Non-Kali system detected (%s), using podman fallback runtime", kaliProfile.OS)
+	return "podman"
 }
 
 // logSecurityValidationReport logs the Kali security validation report

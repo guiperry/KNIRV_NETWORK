@@ -282,50 +282,39 @@ func (h *DVERentalHandlers) GetFullAccessInfo(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// TODO: Extract user ID from JWT token
-	userID := r.URL.Query().Get("user_id")
-	if userID == "" {
-		userID = "test-user-default"
+	// Extract user ID from JWT token (middleware should have validated auth)
+	userID, ok := r.Context().Value("user_id").(string)
+	if !ok || userID == "" {
+		// Fallback to query parameter for development
+		userID = r.URL.Query().Get("user_id")
+		if userID == "" {
+			response := DVERentalResponse{
+				Success:   false,
+				Error:     "Authentication required",
+				Timestamp: time.Now().Format(time.RFC3339),
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(response)
+			return
+		}
 	}
 
-	// Get rental details
-	rental, err := h.dveRentalService.GetRentalByID(rentalID)
-	if err != nil {
+	// Validate rental access with comprehensive checks
+	if err := h.validateRentalAccess(rentalID, userID); err != nil {
 		response := DVERentalResponse{
 			Success:   false,
-			Error:     "Failed to fetch rental: " + err.Error(),
+			Error:     err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusForbidden)
 		json.NewEncoder(w).Encode(response)
 		return
 	}
 
-	if rental == nil || rental.UserID != userID {
-		response := DVERentalResponse{
-			Success:   false,
-			Error:     "Rental not found or access denied",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(response)
-		return
-	}
-
-	// Check if rental is active
-	if rental.Status != "active" || time.Now().After(rental.EndTime) {
-		response := DVERentalResponse{
-			Success:   false,
-			Error:     "Rental is not active",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
-		return
-	}
+	// Get rental details (already validated)
+	rental, _ := h.dveRentalService.GetRentalByID(rentalID)
 
 	// Get SSH endpoint from registry
 	sshEndpoint, err := h.endpointRegistry.GetEndpointByRentalAndType(rentalID, "ssh")
@@ -576,16 +565,77 @@ func (h *DVERentalHandlers) GetSSHSession(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// TODO: Get SSH session from session manager
+	// Get all sessions for this rental and find the most recent SSH session
+	sessions, err := h.sessionManager.GetSessionsByRentalID(rentalID)
+	if err != nil {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Failed to retrieve sessions: " + err.Error(),
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Find the most recent SSH session
+	var latestSSHSession *objects.SSHSession
+	var latestTime time.Time
+
+	for _, session := range sessions {
+		if sshSession, ok := session.(*objects.SSHSession); ok {
+			if sshSession.CreatedAt.After(latestTime) {
+				latestSSHSession = sshSession
+				latestTime = sshSession.CreatedAt
+			}
+		}
+	}
+
+	if latestSSHSession == nil {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "SSH session not found for this rental",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Get SSH endpoint info
+	sshEndpointInfo, _ := h.endpointRegistry.GetEndpointByRentalAndType(rentalID, "ssh")
+	endpoint := "localhost"
+	port := rental.SSHPort
+	if sshEndpointInfo != nil {
+		endpoint = sshEndpointInfo.Host
+		port = sshEndpointInfo.Port
+	}
+
 	sessionInfo := map[string]interface{}{
-		"id":                    "ssh-session-" + rentalID,
+		"id":                    latestSSHSession.ID,
 		"rental_id":            rentalID,
-		"username":            rental.SSHUsername,
-		"private_key_download_url": fmt.Sprintf("/api/sessions/ssh/%s/private-key", rentalID),
-		"endpoint":            "localhost",
-		"port":                rental.SSHPort,
-		"command":             fmt.Sprintf("ssh -i key.pem %s@localhost -p %d", rental.SSHUsername, rental.SSHPort),
-		"expires_at":          time.Now().Add(24 * time.Hour),
+		"container_id":         rental.ContainerID,
+		"username":            latestSSHSession.Username,
+		"private_key_download_url": latestSSHSession.PrivateKeyURL,
+		"endpoint":            endpoint,
+		"port":                port,
+		"command":             fmt.Sprintf("ssh -i key.pem %s@%s -p %d", latestSSHSession.Username, endpoint, port),
+		"expires_at":          latestSSHSession.ExpiresAt,
+		"public_key_hash":     latestSSHSession.PublicKeyHash,
+	}
+
+	if sessionInfo == nil {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "SSH session not found for this rental",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(response)
+		return
 	}
 
 	response := DVERentalResponse{
@@ -748,15 +798,61 @@ func (h *DVERentalHandlers) GetValidationSession(w http.ResponseWriter, r *http.
 		return
 	}
 
-	// TODO: Get validation session from session manager
+	// Get all sessions for this rental and find the most recent validation session
+	sessions, err := h.sessionManager.GetSessionsByRentalID(rentalID)
+	if err != nil {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Failed to retrieve sessions: " + err.Error(),
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Find the most recent validation session
+	var latestValidationSession *objects.ValidationSession
+	var latestTime time.Time
+
+	for _, session := range sessions {
+		if validationSession, ok := session.(*objects.ValidationSession); ok {
+			if validationSession.CreatedAt.After(latestTime) {
+				latestValidationSession = validationSession
+				latestTime = validationSession.CreatedAt
+			}
+		}
+	}
+
+	if latestValidationSession == nil {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Validation session not found for this rental",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Get validation endpoint info
+	validationEndpointInfo, _ := h.endpointRegistry.GetEndpointByRentalAndType(rentalID, "validation")
+	endpointURL := fmt.Sprintf("http://localhost:%d", 23145)
+	if validationEndpointInfo != nil {
+		endpointURL = fmt.Sprintf("%s://%s:%d", validationEndpointInfo.Protocol, validationEndpointInfo.Host, validationEndpointInfo.Port)
+	}
+
 	sessionInfo := map[string]interface{}{
-		"id":             "val-session-" + rentalID,
-		"rental_id":     rentalID,
-		"endpoint_url":  fmt.Sprintf("http://localhost:%d", 23145),
-		"session_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-		"session_id":    "val-" + rentalID,
-		"validation_types": []string{"reasoning", "factuality", "custom"},
-		"expires_at":    time.Now().Add(24 * time.Hour),
+		"id":              latestValidationSession.ID,
+		"rental_id":      rentalID,
+		"container_id":   rental.ContainerID,
+		"endpoint_url":   endpointURL,
+		"session_token":  latestValidationSession.SessionToken,
+		"session_id":     latestValidationSession.ID,
+		"validation_type": latestValidationSession.ValidationType,
+		"expires_at":     latestValidationSession.ExpiresAt,
 	}
 
 	response := DVERentalResponse{
@@ -925,20 +1021,61 @@ func (h *DVERentalHandlers) GetErrorResolutionSession(w http.ResponseWriter, r *
 		return
 	}
 
-	// TODO: Get error resolution session from session manager
+	// Get all sessions for this rental and find the most recent error resolution session
+	sessions, err := h.sessionManager.GetSessionsByRentalID(rentalID)
+	if err != nil {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Failed to retrieve sessions: " + err.Error(),
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Find the most recent error resolution session
+	var latestErrorResSession *objects.ErrorResolutionSession
+	var latestTime time.Time
+
+	for _, session := range sessions {
+		if errorResSession, ok := session.(*objects.ErrorResolutionSession); ok {
+			if errorResSession.CreatedAt.After(latestTime) {
+				latestErrorResSession = errorResSession
+				latestTime = errorResSession.CreatedAt
+			}
+		}
+	}
+
+	if latestErrorResSession == nil {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Error resolution session not found for this rental",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Get error resolution endpoint info
+	errorResEndpointInfo, _ := h.endpointRegistry.GetEndpointByRentalAndType(rentalID, "error-resolution")
+	endpointURL := fmt.Sprintf("http://localhost:%d", 24145)
+	if errorResEndpointInfo != nil {
+		endpointURL = fmt.Sprintf("%s://%s:%d", errorResEndpointInfo.Protocol, errorResEndpointInfo.Host, errorResEndpointInfo.Port)
+	}
+
 	sessionInfo := map[string]interface{}{
-		"id":             "err-session-" + rentalID,
-		"rental_id":     rentalID,
-		"endpoint_url":  fmt.Sprintf("http://localhost:%d", 24145),
-		"session_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-		"session_id":    "err-" + rentalID,
-		"supported_error_types": []string{
-			"connection_timeout",
-			"validation_failed",
-			"resource_exhausted",
-			"custom_error",
-		},
-		"expires_at": time.Now().Add(24 * time.Hour),
+		"id":                   latestErrorResSession.ID,
+		"rental_id":           rentalID,
+		"container_id":        rental.ContainerID,
+		"endpoint_url":        endpointURL,
+		"session_token":       latestErrorResSession.SessionToken,
+		"session_id":          latestErrorResSession.ID,
+		"supported_error_types": latestErrorResSession.SupportedTypes,
+		"expires_at":          latestErrorResSession.ExpiresAt,
 	}
 
 	response := DVERentalResponse{
@@ -1049,4 +1186,58 @@ func (h *DVERentalHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middle
 		w.Header().Set("Access-Control-Max-Age", "86400")
 		w.WriteHeader(http.StatusOK)
 	})
+}
+
+// validateRentalAccess performs comprehensive access validation for DVE rentals
+func (h *DVERentalHandlers) validateRentalAccess(rentalID, userID string) error {
+	if rentalID == "" {
+		return fmt.Errorf("rental ID is required")
+	}
+
+	if userID == "" {
+		return fmt.Errorf("user ID is required")
+	}
+
+	// Get rental details
+	rental, err := h.dveRentalService.GetRentalByID(rentalID)
+	if err != nil {
+		return fmt.Errorf("failed to fetch rental: %w", err)
+	}
+
+	if rental == nil {
+		return fmt.Errorf("rental not found")
+	}
+
+	// Check user ownership
+	if rental.UserID != userID {
+		return fmt.Errorf("access denied: rental belongs to different user")
+	}
+
+	// Check rental status
+	if rental.Status != "active" {
+		return fmt.Errorf("rental is not active (status: %s)", rental.Status)
+	}
+
+	// Check if rental has expired
+	if time.Now().After(rental.EndTime) {
+		return fmt.Errorf("rental has expired")
+	}
+
+	// Check if rental has not started yet
+	if time.Now().Before(rental.StartTime) {
+		return fmt.Errorf("rental has not started yet")
+	}
+
+	// Additional security checks
+	if rental.ContainerID == "" {
+		return fmt.Errorf("rental has no associated container")
+	}
+
+	// Validate resource limits are reasonable
+	if rental.ResourceLimits.MaxCPU > 8.0 || rental.ResourceLimits.MaxMemory > 32*1024*1024*1024 {
+		log.Printf("Warning: Rental %s has high resource limits - CPU: %.1f, Memory: %dGB",
+			rentalID, rental.ResourceLimits.MaxCPU, rental.ResourceLimits.MaxMemory/(1024*1024*1024))
+	}
+
+	return nil
 }

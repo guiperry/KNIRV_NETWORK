@@ -27,6 +27,7 @@ type DVERental struct {
 	ContainerID         string         `json:"container_id"`         // ID of provisioned container
 	SSHUsername         string         `json:"ssh_username"`         // SSH username for container access
 	SSHPort             int            `json:"ssh_port"`             // SSH port for container access
+	SSHSessionID        string         `json:"ssh_session_id"`       // ID of SSH session
 	AccessToken         string         `json:"access_token"`         // JWT access token for API access
 	ValidationSessionID string         `json:"validation_session_id"` // ID of reasoning validation session
 	ErrorResSessionID   string         `json:"error_resolution_session_id"` // ID of error resolution session

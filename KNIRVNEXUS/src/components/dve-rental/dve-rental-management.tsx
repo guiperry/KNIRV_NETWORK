@@ -10,12 +10,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  CreditCard, 
-  Server, 
-  Clock, 
-  DollarSign, 
-  RefreshCw, 
+import {
+  CreditCard,
+  Server,
+  Clock,
+  DollarSign,
+  RefreshCw,
   Play,
   Square,
   Trash2,
@@ -28,7 +28,8 @@ import {
   Network,
   CheckCircle,
   AlertTriangle,
-  Timer
+  Timer,
+  X
 } from 'lucide-react';
 import { useDVERental } from '@/hooks/use-dve-rental';
 import { useSSHSession } from '@/hooks/use-ssh-session';
@@ -36,6 +37,7 @@ import { useValidationSession } from '@/hooks/use-validation-session';
 import { useErrorResolutionSession } from '@/hooks/use-error-resolution-session';
 import type { DVERentalPlan, DVERental, RentalRequest, DVEAccessInfo } from '@/types/api';
 import { useAuth } from '@/lib/auth-context';
+import DVEAccessFlow from './dve-access-flow';
 
 interface DVERentalManagementProps {
   isOpen: boolean;
@@ -475,6 +477,47 @@ export default function DVERentalManagement({ isOpen, onClose }: DVERentalManage
           </div>
         </div>
       </div>
+
+      {/* DVE Access Modal */}
+      {showAccessModal && selectedRental && accessInfo && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[999999] p-4">
+          <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-950 rounded-lg border-2 border-blue-600/50 shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-slate-900 to-blue-950 border-b border-blue-600/30 p-6 flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <Server className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-blue-300">DVE Access Portal</h2>
+                  <p className="text-sm text-slate-400">Access your rented DVE container</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAccessModal(false)}
+                className="bg-slate-700 hover:bg-slate-600 p-2 rounded-lg transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <DVEAccessFlow
+                rentalId={selectedRental.id}
+                accessInfo={accessInfo}
+              />
+            </div>
+
+            {/* Footer */}
+            <div className="sticky bottom-0 bg-gradient-to-r from-slate-900 to-blue-950 border-t border-blue-600/30 p-4 flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowAccessModal(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create Rental Modal */}
       {showCreateForm && (

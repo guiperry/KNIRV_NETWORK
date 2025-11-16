@@ -40,11 +40,26 @@ type ContainerSpec struct {
 	SSHPublicKey    string                      `json:"ssh_public_key"`
 	TEEType         string                      `json:"tee_type"`
 	ResourceLimits  objects.ResourceLimits      `json:"resource_limits"`
+	SecurityProfile *SecurityProfile            `json:"security_profile,omitempty"`
 	Environment     map[string]string           `json:"environment,omitempty"`
 	Volumes         map[string]string           `json:"volumes,omitempty"`
 	NetworkMode     string                      `json:"network_mode,omitempty"`
 	RestartPolicy   string                      `json:"restart_policy,omitempty"`
 	Labels          map[string]string           `json:"labels,omitempty"`
+}
+
+// SecurityProfile defines security settings for container execution
+type SecurityProfile struct {
+	AppArmorProfile    string            `json:"apparmor_profile,omitempty"`
+	SELinuxLabel       string            `json:"selinux_label,omitempty"`
+	SeccompProfile     string            `json:"seccomp_profile,omitempty"`
+	Capabilities       []string          `json:"capabilities,omitempty"`
+	ReadOnlyRootFS     bool              `json:"read_only_rootfs"`
+	NoNewPrivileges    bool              `json:"no_new_privileges"`
+	SecurityOpts       []string          `json:"security_opts,omitempty"`
+	IsolationLevel     string            `json:"isolation_level"` // "strong", "standard", "basic"
+	AllowedSyscalls    []string          `json:"allowed_syscalls,omitempty"`
+	BlockedSyscalls    []string          `json:"blocked_syscalls,omitempty"`
 }
 
 // Endpoints represents the network endpoints allocated for a container
