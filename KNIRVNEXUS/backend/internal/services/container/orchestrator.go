@@ -62,7 +62,7 @@ func (co *ContainerOrchestrator) ProvisionContainer(rentalID string) (*Container
 	log.Printf("Provisioning container for rental %s", rentalID)
 
 	// Step 1: Security pre-check - verify TEE environment
-	if err := co.performSecurityPreCheck(ctx, rentalID); err != nil {
+	if err := co.performSecurityPreCheck(rentalID); err != nil {
 		return nil, fmt.Errorf("security pre-check failed: %w", err)
 	}
 
@@ -119,7 +119,7 @@ func (co *ContainerOrchestrator) ProvisionContainer(rentalID string) (*Container
 	}
 
 	// Post-provisioning security validation
-	if err := co.performPostProvisioningSecurityCheck(ctx, container); err != nil {
+	if err := co.performPostProvisioningSecurityCheck(container); err != nil {
 		co.TerminateContainer(container.ID)
 		co.portAllocator.ReleasePorts(rentalID)
 		return nil, fmt.Errorf("post-provisioning security check failed: %w", err)
@@ -234,7 +234,7 @@ func (co *ContainerOrchestrator) provisionContainer(ctx context.Context, spec *C
 	case "podman":
 		return co.provisionPodmanContainer(ctx, spec)
 	case "native-go":
-		return co.provisionNativeContainer(ctx, spec)
+		return co.provisionNativeContainer(spec)
 	default:
 		return nil, fmt.Errorf("unsupported container runtime: %s", co.config.ContainerRuntime)
 	}
@@ -352,7 +352,7 @@ func (co *ContainerOrchestrator) terminatePodmanContainer(containerID string) er
 }
 
 // provisionNativeContainer provisions a container using native Go runtime with Kali security tools
-func (co *ContainerOrchestrator) provisionNativeContainer(ctx context.Context, spec *ContainerSpec) (*Container, error) {
+func (co *ContainerOrchestrator) provisionNativeContainer(spec *ContainerSpec) (*Container, error) {
 	if co.teeSecurityService == nil {
 		return nil, fmt.Errorf("TEE security service not available for native container runtime")
 	}
@@ -389,7 +389,7 @@ func (co *ContainerOrchestrator) terminateNativeContainer(containerID string) er
 }
 
 // performSecurityPreCheck performs security validation before container provisioning
-func (co *ContainerOrchestrator) performSecurityPreCheck(ctx context.Context, rentalID string) error {
+func (co *ContainerOrchestrator) performSecurityPreCheck(rentalID string) error {
 	if co.teeSecurityService == nil {
 		return fmt.Errorf("TEE security service not available")
 	}
@@ -494,7 +494,7 @@ func (co *ContainerOrchestrator) createSecurityProfile() *SecurityProfile {
 }
 
 // performPostProvisioningSecurityCheck performs security validation after container provisioning
-func (co *ContainerOrchestrator) performPostProvisioningSecurityCheck(ctx context.Context, container *Container) error {
+func (co *ContainerOrchestrator) performPostProvisioningSecurityCheck(container *Container) error {
 	if container == nil {
 		return fmt.Errorf("container is nil")
 	}

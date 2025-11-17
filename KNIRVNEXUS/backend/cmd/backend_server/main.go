@@ -328,7 +328,7 @@ func (s *Server) setupRoutes() {
 	}
 
 	// Initialize WebSocket service after auth middleware is created
-	wsService := websocket.NewWebSocketService(s.inferenceService, s.dveManager, s.validationCore, s.teeSecurityService)
+	wsService := websocket.NewWebSocketService(s.inferenceService, s.dveManager, s.validationCore, s.sessionManager, s.teeSecurityService)
 	if authMiddleware != nil {
 		wsService.SetAuthMiddleware(authMiddleware)
 	}
@@ -448,7 +448,7 @@ func (s *Server) setupRoutes() {
 
 	// Register DVE rental service routes with rate limiting
 	if s.dveRentalService != nil {
-		dveRentalHandlers := web.NewDVERentalHandlers(s.dveRentalService, s.containerOrchestrator, s.sessionManager, s.endpointRegistry)
+		dveRentalHandlers := web.NewDVERentalHandlers(s.dveRentalService, s.containerOrchestrator, s.sessionManager, s.endpointRegistry, s.db.GetDB())
 
 		// Create a subrouter for DVE rental routes with rate limiting
 		dveRentalRouter := s.router.PathPrefix("/api/dve-rental").Subrouter()

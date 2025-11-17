@@ -15,23 +15,26 @@ import (
 	"backend_server/internal/web/middleware"
 
 	"github.com/gorilla/mux"
+	"github.com/tidwall/buntdb"
 )
 
 // DVERentalHandlers handles DVE rental API requests
 type DVERentalHandlers struct {
-	dveRentalService    *dverental.DVERentalService
+	dveRentalService      *dverental.DVERentalService
 	containerOrchestrator *container.ContainerOrchestrator
-	sessionManager      *session.SessionManager
-	endpointRegistry    *endpoints.EndpointRegistry
+	sessionManager        *session.SessionManager
+	endpointRegistry      *endpoints.EndpointRegistry
+	db                    *buntdb.DB
 }
 
 // NewDVERentalHandlers creates new DVE rental handlers
-func NewDVERentalHandlers(dveRentalService *dverental.DVERentalService, containerOrchestrator *container.ContainerOrchestrator, sessionManager *session.SessionManager, endpointRegistry *endpoints.EndpointRegistry) *DVERentalHandlers {
+func NewDVERentalHandlers(dveRentalService *dverental.DVERentalService, containerOrchestrator *container.ContainerOrchestrator, sessionManager *session.SessionManager, endpointRegistry *endpoints.EndpointRegistry, db *buntdb.DB) *DVERentalHandlers {
 	return &DVERentalHandlers{
 		dveRentalService:      dveRentalService,
 		containerOrchestrator: containerOrchestrator,
 		sessionManager:        sessionManager,
 		endpointRegistry:      endpointRegistry,
+		db:                    db,
 	}
 }
 
@@ -333,9 +336,9 @@ func (h *DVERentalHandlers) GetFullAccessInfo(w http.ResponseWriter, r *http.Req
 	// Get validation endpoint from registry
 	validationEndpoint, err := h.endpointRegistry.GetEndpointByRentalAndType(rentalID, "validation")
 	validationInfo := map[string]interface{}{
-		"endpoint_url": fmt.Sprintf("http://localhost:%d", 23145),
+		"endpoint_url":  fmt.Sprintf("http://localhost:%d", 23145),
 		"session_token": "placeholder-token",
-		"expires_at": time.Now().Add(24 * time.Hour),
+		"expires_at":    time.Now().Add(24 * time.Hour),
 	}
 	if err == nil && validationEndpoint != nil {
 		validationInfo["endpoint_url"] = fmt.Sprintf("%s://%s:%d", validationEndpoint.Protocol, validationEndpoint.Host, validationEndpoint.Port)
@@ -353,9 +356,9 @@ func (h *DVERentalHandlers) GetFullAccessInfo(w http.ResponseWriter, r *http.Req
 	// Get error resolution endpoint from registry
 	errorResEndpoint, err := h.endpointRegistry.GetEndpointByRentalAndType(rentalID, "error-resolution")
 	errorResInfo := map[string]interface{}{
-		"endpoint_url": fmt.Sprintf("http://localhost:%d", 24145),
+		"endpoint_url":  fmt.Sprintf("http://localhost:%d", 24145),
 		"session_token": "placeholder-token",
-		"expires_at": time.Now().Add(24 * time.Hour),
+		"expires_at":    time.Now().Add(24 * time.Hour),
 	}
 	if err == nil && errorResEndpoint != nil {
 		errorResInfo["endpoint_url"] = fmt.Sprintf("%s://%s:%d", errorResEndpoint.Protocol, errorResEndpoint.Host, errorResEndpoint.Port)
@@ -381,18 +384,18 @@ func (h *DVERentalHandlers) GetFullAccessInfo(w http.ResponseWriter, r *http.Req
 	// Build full access info response
 	accessInfo := map[string]interface{}{
 		"rental": map[string]interface{}{
-			"id":                 rental.ID,
-			"status":            rental.Status,
+			"id":                  rental.ID,
+			"status":              rental.Status,
 			"provisioning_status": rental.ProvisioningStatus,
-			"end_time":          rental.EndTime,
-			"start_time":        rental.StartTime,
+			"end_time":            rental.EndTime,
+			"start_time":          rental.StartTime,
 		},
-		"ssh": sshInfo,
+		"ssh":                  sshInfo,
 		"reasoning_validation": validationInfo,
-		"error_resolution": errorResInfo,
+		"error_resolution":     errorResInfo,
 		"container_info": map[string]interface{}{
 			"container_id": rental.ContainerID,
-			"status":      containerStatus,
+			"status":       containerStatus,
 			"allocated_resources": map[string]interface{}{
 				"cpu":    rental.ResourceLimits.MaxCPU,
 				"memory": fmt.Sprintf("%.1fGB", float64(rental.ResourceLimits.MaxMemory)/(1024*1024*1024)),
@@ -414,10 +417,44 @@ func (h *DVERentalHandlers) GetFullAccessInfo(w http.ResponseWriter, r *http.Req
 
 // CreateSSHSession handles POST /api/dve-rental/rentals/{id}/ssh-session
 func (h *DVERentalHandlers) CreateSSHSession(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
 	vars := mux.Vars(r)
 	rentalID := vars["id"]
 
+	// Extract user ID from JWT token (middleware should have validated auth)
+	userID, ok := r.Context().Value("user_id").(string)
+	if !ok || userID == "" {
+		// Fallback to query parameter for development
+		userID = r.URL.Query().Get("user_id")
+		if userID == "" {
+			userID = "test-user-default"
+		}
+	}
+
+	// Log access attempt
+	h.logAccessAttempt(&AccessLogEntry{
+		ID:          fmt.Sprintf("ssh_create_%d", time.Now().UnixNano()),
+		UserID:      userID,
+		RentalID:    rentalID,
+		Action:      "create_session",
+		ServiceType: "ssh",
+		IPAddress:   r.RemoteAddr,
+		UserAgent:   r.UserAgent(),
+		Success:     false, // Will be updated
+		Timestamp:   startTime,
+	})
+
 	if rentalID == "" {
+		h.logError(&ErrorLogEntry{
+			ID:       fmt.Sprintf("error_%d", time.Now().UnixNano()),
+			UserID:   userID,
+			RentalID: rentalID,
+			Endpoint: r.URL.Path,
+			Error:    "Rental ID is required",
+			Severity: "low",
+			Timestamp: time.Now(),
+		})
+
 		response := DVERentalResponse{
 			Success:   false,
 			Error:     "Rental ID is required",
@@ -427,12 +464,6 @@ func (h *DVERentalHandlers) CreateSSHSession(w http.ResponseWriter, r *http.Requ
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(response)
 		return
-	}
-
-	// TODO: Extract user ID from JWT token
-	userID := r.URL.Query().Get("user_id")
-	if userID == "" {
-		userID = "test-user-default"
 	}
 
 	// Validate rental ownership
@@ -478,15 +509,15 @@ func (h *DVERentalHandlers) CreateSSHSession(w http.ResponseWriter, r *http.Requ
 
 	// Register SSH endpoint
 	sshEndpoint := &objects.TEEEndpoint{
-		RentalID:    rentalID,
-		ContainerID: rental.ContainerID,
+		RentalID:     rentalID,
+		ContainerID:  rental.ContainerID,
 		EndpointType: "ssh",
-		Host:        "localhost", // TODO: Get actual host
-		Port:        rental.SSHPort,
-		Protocol:    "ssh",
-		Status:      "active",
-		CreatedAt:   time.Now(),
-		ExpiresAt:   sshSession.ExpiresAt,
+		Host:         "localhost", // TODO: Get actual host
+		Port:         rental.SSHPort,
+		Protocol:     "ssh",
+		Status:       "active",
+		CreatedAt:    time.Now(),
+		ExpiresAt:    sshSession.ExpiresAt,
 	}
 	err = h.endpointRegistry.RegisterEndpoint(rentalID, "ssh", sshEndpoint)
 	if err != nil {
@@ -504,16 +535,16 @@ func (h *DVERentalHandlers) CreateSSHSession(w http.ResponseWriter, r *http.Requ
 	}
 
 	sessionInfo := map[string]interface{}{
-		"id":                    sshSession.ID,
-		"rental_id":            rentalID,
-		"container_id":         rental.ContainerID,
-		"username":            sshSession.Username,
+		"id":                       sshSession.ID,
+		"rental_id":                rentalID,
+		"container_id":             rental.ContainerID,
+		"username":                 sshSession.Username,
 		"private_key_download_url": sshSession.PrivateKeyURL,
-		"endpoint":            endpoint,
-		"port":                port,
-		"command":             fmt.Sprintf("ssh -i key.pem %s@%s -p %d", sshSession.Username, endpoint, port),
-		"expires_at":          sshSession.ExpiresAt,
-		"public_key_hash":     sshSession.PublicKeyHash,
+		"endpoint":                 endpoint,
+		"port":                     port,
+		"command":                  fmt.Sprintf("ssh -i key.pem %s@%s -p %d", sshSession.Username, endpoint, port),
+		"expires_at":               sshSession.ExpiresAt,
+		"public_key_hash":          sshSession.PublicKeyHash,
 	}
 
 	response := DVERentalResponse{
@@ -526,6 +557,31 @@ func (h *DVERentalHandlers) CreateSSHSession(w http.ResponseWriter, r *http.Requ
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
+
+	// Log successful access attempt
+	h.logAccessAttempt(&AccessLogEntry{
+		ID:          fmt.Sprintf("ssh_create_success_%d", time.Now().UnixNano()),
+		UserID:      userID,
+		RentalID:    rentalID,
+		Action:      "create_session",
+		ServiceType: "ssh",
+		IPAddress:   r.RemoteAddr,
+		UserAgent:   r.UserAgent(),
+		Success:     true,
+		Timestamp:   startTime,
+		ResponseTime: time.Since(startTime),
+	})
+
+	// Log performance metrics
+	h.logPerformanceMetrics(&DVEPerformanceMetrics{
+		ID:           fmt.Sprintf("perf_ssh_create_%d", time.Now().UnixNano()),
+		Endpoint:     r.URL.Path,
+		Method:       r.Method,
+		ResponseTime: time.Since(startTime),
+		StatusCode:   http.StatusCreated,
+		UserID:       userID,
+		Timestamp:    time.Now(),
+	})
 }
 
 // GetSSHSession handles GET /api/dve-rental/rentals/{id}/ssh-session
@@ -614,28 +670,16 @@ func (h *DVERentalHandlers) GetSSHSession(w http.ResponseWriter, r *http.Request
 	}
 
 	sessionInfo := map[string]interface{}{
-		"id":                    latestSSHSession.ID,
-		"rental_id":            rentalID,
-		"container_id":         rental.ContainerID,
-		"username":            latestSSHSession.Username,
+		"id":                       latestSSHSession.ID,
+		"rental_id":                rentalID,
+		"container_id":             rental.ContainerID,
+		"username":                 latestSSHSession.Username,
 		"private_key_download_url": latestSSHSession.PrivateKeyURL,
-		"endpoint":            endpoint,
-		"port":                port,
-		"command":             fmt.Sprintf("ssh -i key.pem %s@%s -p %d", latestSSHSession.Username, endpoint, port),
-		"expires_at":          latestSSHSession.ExpiresAt,
-		"public_key_hash":     latestSSHSession.PublicKeyHash,
-	}
-
-	if sessionInfo == nil {
-		response := DVERentalResponse{
-			Success:   false,
-			Error:     "SSH session not found for this rental",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(response)
-		return
+		"endpoint":                 endpoint,
+		"port":                     port,
+		"command":                  fmt.Sprintf("ssh -i key.pem %s@%s -p %d", latestSSHSession.Username, endpoint, port),
+		"expires_at":               latestSSHSession.ExpiresAt,
+		"public_key_hash":          latestSSHSession.PublicKeyHash,
 	}
 
 	response := DVERentalResponse{
@@ -715,15 +759,15 @@ func (h *DVERentalHandlers) CreateValidationSession(w http.ResponseWriter, r *ht
 
 	// Register validation endpoint
 	validationEndpoint := &objects.TEEEndpoint{
-		RentalID:    rentalID,
-		ContainerID: rental.ContainerID,
+		RentalID:     rentalID,
+		ContainerID:  rental.ContainerID,
 		EndpointType: "validation",
-		Host:        "localhost", // TODO: Get actual host
-		Port:        23145,       // TODO: Get from container spec
-		Protocol:    "http",
-		Status:      "active",
-		CreatedAt:   time.Now(),
-		ExpiresAt:   validationSession.ExpiresAt,
+		Host:         "localhost", // TODO: Get actual host
+		Port:         23145,       // TODO: Get from container spec
+		Protocol:     "http",
+		Status:       "active",
+		CreatedAt:    time.Now(),
+		ExpiresAt:    validationSession.ExpiresAt,
 	}
 	err = h.endpointRegistry.RegisterEndpoint(rentalID, "validation", validationEndpoint)
 	if err != nil {
@@ -740,13 +784,13 @@ func (h *DVERentalHandlers) CreateValidationSession(w http.ResponseWriter, r *ht
 
 	sessionInfo := map[string]interface{}{
 		"id":              validationSession.ID,
-		"rental_id":      rentalID,
-		"container_id":   rental.ContainerID,
-		"endpoint_url":   endpointURL,
-		"session_token":  validationSession.SessionToken,
-		"session_id":     validationSession.ID,
+		"rental_id":       rentalID,
+		"container_id":    rental.ContainerID,
+		"endpoint_url":    endpointURL,
+		"session_token":   validationSession.SessionToken,
+		"session_id":      validationSession.ID,
 		"validation_type": validationSession.ValidationType,
-		"expires_at":     validationSession.ExpiresAt,
+		"expires_at":      validationSession.ExpiresAt,
 	}
 
 	response := DVERentalResponse{
@@ -846,13 +890,13 @@ func (h *DVERentalHandlers) GetValidationSession(w http.ResponseWriter, r *http.
 
 	sessionInfo := map[string]interface{}{
 		"id":              latestValidationSession.ID,
-		"rental_id":      rentalID,
-		"container_id":   rental.ContainerID,
-		"endpoint_url":   endpointURL,
-		"session_token":  latestValidationSession.SessionToken,
-		"session_id":     latestValidationSession.ID,
+		"rental_id":       rentalID,
+		"container_id":    rental.ContainerID,
+		"endpoint_url":    endpointURL,
+		"session_token":   latestValidationSession.SessionToken,
+		"session_id":      latestValidationSession.ID,
 		"validation_type": latestValidationSession.ValidationType,
-		"expires_at":     latestValidationSession.ExpiresAt,
+		"expires_at":      latestValidationSession.ExpiresAt,
 	}
 
 	response := DVERentalResponse{
@@ -938,15 +982,15 @@ func (h *DVERentalHandlers) CreateErrorResolutionSession(w http.ResponseWriter, 
 
 	// Register error resolution endpoint
 	errorResEndpoint := &objects.TEEEndpoint{
-		RentalID:    rentalID,
-		ContainerID: rental.ContainerID,
+		RentalID:     rentalID,
+		ContainerID:  rental.ContainerID,
 		EndpointType: "error-resolution",
-		Host:        "localhost", // TODO: Get actual host
-		Port:        24145,       // TODO: Get from container spec
-		Protocol:    "http",
-		Status:      "active",
-		CreatedAt:   time.Now(),
-		ExpiresAt:   errorResSession.ExpiresAt,
+		Host:         "localhost", // TODO: Get actual host
+		Port:         24145,       // TODO: Get from container spec
+		Protocol:     "http",
+		Status:       "active",
+		CreatedAt:    time.Now(),
+		ExpiresAt:    errorResSession.ExpiresAt,
 	}
 	err = h.endpointRegistry.RegisterEndpoint(rentalID, "error-resolution", errorResEndpoint)
 	if err != nil {
@@ -962,14 +1006,14 @@ func (h *DVERentalHandlers) CreateErrorResolutionSession(w http.ResponseWriter, 
 	}
 
 	sessionInfo := map[string]interface{}{
-		"id":                   errorResSession.ID,
-		"rental_id":           rentalID,
-		"container_id":        rental.ContainerID,
-		"endpoint_url":        endpointURL,
-		"session_token":       errorResSession.SessionToken,
-		"session_id":          errorResSession.ID,
+		"id":                    errorResSession.ID,
+		"rental_id":             rentalID,
+		"container_id":          rental.ContainerID,
+		"endpoint_url":          endpointURL,
+		"session_token":         errorResSession.SessionToken,
+		"session_id":            errorResSession.ID,
 		"supported_error_types": errorResSession.SupportedTypes,
-		"expires_at":          errorResSession.ExpiresAt,
+		"expires_at":            errorResSession.ExpiresAt,
 	}
 
 	response := DVERentalResponse{
@@ -1068,14 +1112,14 @@ func (h *DVERentalHandlers) GetErrorResolutionSession(w http.ResponseWriter, r *
 	}
 
 	sessionInfo := map[string]interface{}{
-		"id":                   latestErrorResSession.ID,
-		"rental_id":           rentalID,
-		"container_id":        rental.ContainerID,
-		"endpoint_url":        endpointURL,
-		"session_token":       latestErrorResSession.SessionToken,
-		"session_id":          latestErrorResSession.ID,
+		"id":                    latestErrorResSession.ID,
+		"rental_id":             rentalID,
+		"container_id":          rental.ContainerID,
+		"endpoint_url":          endpointURL,
+		"session_token":         latestErrorResSession.SessionToken,
+		"session_id":            latestErrorResSession.ID,
 		"supported_error_types": latestErrorResSession.SupportedTypes,
-		"expires_at":          latestErrorResSession.ExpiresAt,
+		"expires_at":            latestErrorResSession.ExpiresAt,
 	}
 
 	response := DVERentalResponse{
@@ -1240,4 +1284,115 @@ func (h *DVERentalHandlers) validateRentalAccess(rentalID, userID string) error 
 	}
 
 	return nil
+}
+
+// AccessLogEntry represents an access attempt log entry
+type AccessLogEntry struct {
+	ID          string    `json:"id"`
+	UserID      string    `json:"user_id"`
+	RentalID    string    `json:"rental_id"`
+	Action      string    `json:"action"` // "create_session", "access_terminal", "terminate_session", etc.
+	ServiceType string    `json:"service_type"` // "ssh", "validation", "error_resolution"
+	IPAddress   string    `json:"ip_address"`
+	UserAgent   string    `json:"user_agent"`
+	Success     bool      `json:"success"`
+	ErrorMsg    string    `json:"error_msg,omitempty"`
+	Timestamp   time.Time `json:"timestamp"`
+	ResponseTime time.Duration `json:"response_time"`
+}
+
+// logAccessAttempt logs an access attempt to the database
+func (h *DVERentalHandlers) logAccessAttempt(entry *AccessLogEntry) {
+	if h.db == nil {
+		log.Printf("Warning: Database not available for access logging")
+		return
+	}
+
+	err := h.db.Update(func(tx *buntdb.Tx) error {
+		data, err := json.Marshal(entry)
+		if err != nil {
+			return err
+		}
+
+		_, _, err = tx.Set(fmt.Sprintf("access_log:%s", entry.ID), string(data), nil)
+		return err
+	})
+
+	if err != nil {
+		log.Printf("Failed to log access attempt: %v", err)
+	}
+}
+
+// DVEPerformanceMetrics represents performance monitoring data for DVE operations
+type DVEPerformanceMetrics struct {
+	ID              string        `json:"id"`
+	Endpoint        string        `json:"endpoint"`
+	Method          string        `json:"method"`
+	ResponseTime    time.Duration `json:"response_time"`
+	StatusCode      int           `json:"status_code"`
+	RequestSize     int64         `json:"request_size"`
+	ResponseSize    int64         `json:"response_size"`
+	UserID          string        `json:"user_id,omitempty"`
+	Timestamp       time.Time     `json:"timestamp"`
+	MemoryUsage     int64         `json:"memory_usage,omitempty"`
+	CPUUsage        float64       `json:"cpu_usage,omitempty"`
+}
+
+// logPerformanceMetrics logs performance metrics
+func (h *DVERentalHandlers) logPerformanceMetrics(metrics *DVEPerformanceMetrics) {
+	if h.db == nil {
+		return
+	}
+
+	err := h.db.Update(func(tx *buntdb.Tx) error {
+		data, err := json.Marshal(metrics)
+		if err != nil {
+			return err
+		}
+
+		_, _, err = tx.Set(fmt.Sprintf("perf_metrics:%s", metrics.ID), string(data), nil)
+		return err
+	})
+
+	if err != nil {
+		log.Printf("Failed to log performance metrics: %v", err)
+	}
+}
+
+// ErrorLogEntry represents an error log entry
+type ErrorLogEntry struct {
+	ID          string    `json:"id"`
+	UserID      string    `json:"user_id,omitempty"`
+	RentalID    string    `json:"rental_id,omitempty"`
+	Endpoint    string    `json:"endpoint"`
+	Error       string    `json:"error"`
+	StackTrace  string    `json:"stack_trace,omitempty"`
+	Severity    string    `json:"severity"` // "low", "medium", "high", "critical"
+	Timestamp   time.Time `json:"timestamp"`
+	RequestData map[string]interface{} `json:"request_data,omitempty"`
+}
+
+// logError logs an error event
+func (h *DVERentalHandlers) logError(entry *ErrorLogEntry) {
+	if h.db == nil {
+		log.Printf("Error: %s", entry.Error)
+		return
+	}
+
+	err := h.db.Update(func(tx *buntdb.Tx) error {
+		data, err := json.Marshal(entry)
+		if err != nil {
+			return err
+		}
+
+		_, _, err = tx.Set(fmt.Sprintf("error_log:%s", entry.ID), string(data), nil)
+		return err
+	})
+
+	if err != nil {
+		log.Printf("Failed to log error: %v", err)
+	}
+
+	// Also log to standard logger with appropriate level
+	log.Printf("[%s] %s", entry.Severity, entry.Error)
 }

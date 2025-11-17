@@ -10,7 +10,7 @@ GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 # Directories
 ROOT_DIR := $(shell pwd)
 BACKEND_DIR := $(ROOT_DIR)/backend
-FRONTEND_DIR := $(ROOT_DIR)
+FRONTEND_DIR := $(ROOT_DIR)/frontend
 BUILD_DIR := $(ROOT_DIR)/build
 DIST_DIR := $(ROOT_DIR)/dist
 DEPLOYMENT_DIR := $(ROOT_DIR)/deployment
@@ -67,7 +67,7 @@ deps-go: ## Install Go dependencies
 
 deps-node: ## Install Node.js dependencies
 	@echo "$(BLUE)Installing Node.js dependencies...$(NC)"
-	$(NPM_CMD) install
+	cd $(FRONTEND_DIR) && $(NPM_CMD) install
 
 deps-ansible: ## Install Ansible dependencies
 	@echo "$(BLUE)Installing Ansible dependencies...$(NC)"
@@ -76,12 +76,12 @@ deps-ansible: ## Install Ansible dependencies
 # Frontend Build
 frontend: deps-node ## Build Next.js frontend
 	@echo "$(BLUE)Building Next.js frontend...$(NC)"
-	$(NPM_CMD) run build
+	cd $(FRONTEND_DIR) && $(NPM_CMD) run build
 	@echo "$(GREEN)Frontend build completed$(NC)"
 
 frontend-dev: deps-node ## Start frontend development server
 	@echo "$(BLUE)Starting frontend development server...$(NC)"
-	$(NPM_CMD) run dev
+	cd $(FRONTEND_DIR) && $(NPM_CMD) run dev
 
 # Backend Build (cmd/backend_server only)
 backend: deps-go ## Build complete Go backend service package
@@ -113,7 +113,7 @@ test-go: deps-go ## Run Go unit tests
 
 test-frontend: deps-node ## Run frontend tests
 	@echo "$(BLUE)Running frontend tests...$(NC)"
-	$(NPM_CMD) test
+	cd $(FRONTEND_DIR) && $(NPM_CMD) test
 
 test-integration: binary ## Run integration tests
 	@echo "$(BLUE)Running integration tests...$(NC)"
@@ -137,7 +137,7 @@ lint-go: ## Run Go linters
 
 lint-frontend: ## Run frontend linters
 	@echo "$(BLUE)Running frontend linters...$(NC)"
-	$(NPM_CMD) run lint
+	cd $(FRONTEND_DIR) && $(NPM_CMD) run lint
 
 format: format-go format-frontend ## Format all code
 
@@ -148,7 +148,7 @@ format-go: ## Format Go code
 
 format-frontend: ## Format frontend code
 	@echo "$(BLUE)Formatting frontend code...$(NC)"
-	$(NPM_CMD) run format
+	cd $(FRONTEND_DIR) && $(NPM_CMD) run format
 
 # Development
 dev: ## Start development environment
@@ -160,7 +160,7 @@ dev-backend: backend ## Start unified backend development server
 	cd $(BACKEND_DIR) && ./bin/nexus-server --config config/development.yaml
 
 dev-frontend: ## Start frontend development server
-	$(MAKE) frontend-dev
+	cd $(FRONTEND_DIR) && $(NPM_CMD) run dev
 
 # Docker
 docker: ## Build Docker image
@@ -225,11 +225,15 @@ clean: ## Clean build artifacts
 	rm -rf bin
 	rm -rf .next
 	rm -rf out
+	rm -rf $(FRONTEND_DIR)/.next
+	rm -rf $(FRONTEND_DIR)/out
+	rm -rf $(FRONTEND_DIR)/node_modules
 	rm -rf node_modules/.cache
 
 clean-all: clean ## Clean everything including dependencies
 	@echo "$(BLUE)Cleaning all artifacts and dependencies...$(NC)"
 	rm -rf node_modules
+	rm -rf $(FRONTEND_DIR)/node_modules
 	cd $(BACKEND_DIR) && go clean -modcache
 
 install: binary ## Install binary to system

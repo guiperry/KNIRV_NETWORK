@@ -23,7 +23,7 @@ import (
 
 // Embed the Next.js build output
 //
-//go:embed all:out
+//go:embed all:frontend/out/*
 var embeddedFiles embed.FS
 
 // Embed the unified backend binary
@@ -54,14 +54,8 @@ type EmbeddedFS struct {
 
 // NewEmbeddedFS creates a new embedded filesystem
 func NewEmbeddedFS() (*EmbeddedFS, error) {
-	// Get the subdirectory containing the actual files
-	files, err := fs.Sub(embeddedFiles, "out")
-	if err != nil {
-		return nil, err
-	}
-
 	return &EmbeddedFS{
-		files: files,
+		files: embeddedFiles,
 	}, nil
 }
 
@@ -73,15 +67,18 @@ func (efs *EmbeddedFS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		path = "index.html"
 	}
 
+	// Prepend the embedded path prefix
+	fullPath := "frontend/out/" + path
+
 	// Try to open the file
-	file, err := efs.files.Open(path)
+	file, err := efs.files.Open(fullPath)
 	if err != nil {
 		// If file not found, try with .html extension
 		if !strings.Contains(path, ".") {
-			htmlPath := path + ".html"
+			htmlPath := "frontend/out/" + path + ".html"
 			if file, err = efs.files.Open(htmlPath); err != nil {
 				// If still not found, serve index.html for SPA routing
-				if file, err = efs.files.Open("index.html"); err != nil {
+				if file, err = efs.files.Open("frontend/out/index.html"); err != nil {
 					http.NotFound(w, r)
 					return
 				}
@@ -217,6 +214,22 @@ func (app *NexusApp) setupRoutes() error {
 	embeddedFS, err := NewEmbeddedFS()
 	if err != nil {
 		return fmt.Errorf("failed to create embedded filesystem: %w", err)
+	}
+
+	// Debug: List embedded files
+	log.Println("DEBUG: Listing embedded files:")
+	if rdf, ok := embeddedFS.files.(fs.ReadDirFS); ok {
+		entries, err := rdf.ReadDir(".")
+		if err != nil {
+			log.Printf("DEBUG: Error reading embedded dir: %v", err)
+		} else {
+			log.Printf("DEBUG: Found %d embedded entries", len(entries))
+			for _, entry := range entries {
+				log.Printf("DEBUG: Embedded file: %s (dir: %v)", entry.Name(), entry.IsDir())
+			}
+		}
+	} else {
+		log.Println("DEBUG: Embedded FS does not support ReadDir")
 	}
 
 	// Health check endpoint

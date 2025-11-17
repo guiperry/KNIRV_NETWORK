@@ -1,0 +1,20 @@
+{
+  "components/dve-rental/web-terminal.tsx -> @xterm/addon-fit": {
+    "id": 4326,
+    "files": [
+      "static/chunks/326.cc0512fb62fcd8b9.js"
+    ]
+  },
+  "components/dve-rental/web-terminal.tsx -> @xterm/addon-web-links": {
+    "id": 3478,
+    "files": [
+      "static/chunks/478.9fa34d3c389fae6b.js"
+    ]
+  },
+  "components/dve-rental/web-terminal.tsx -> @xterm/xterm": {
+    "id": 5318,
+    "files": [
+      "static/chunks/ba16dcd3.ef138f7e9f5ec022.js"
+    ]
+  }
+}

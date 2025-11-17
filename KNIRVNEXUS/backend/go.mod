@@ -25,6 +25,7 @@ require (
 	github.com/tidwall/buntdb v1.3.0
 	github.com/wk8/go-ordered-map/v2 v2.1.8
 	golang.org/x/crypto v0.36.0
+	golang.org/x/term v0.30.0
 )
 
 require (
@@ -165,7 +166,7 @@ require (
 	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
 	gonum.org/v1/gonum v0.13.0 // indirect
-	google.golang.org/protobuf v1.34.2 // indirect
+	google.golang.org/protobuf v1.34.2
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect

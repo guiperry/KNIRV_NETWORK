@@ -234,7 +234,7 @@ type SecurityScanResults struct {
 type SecurityCheck struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	Status      string `json:"status"` // "pass", "fail", "warning"
+	Status      string `json:"status"`   // "pass", "fail", "warning"
 	Severity    string `json:"severity"` // "low", "medium", "high"
 	Details     string `json:"details,omitempty"`
 }
@@ -263,21 +263,22 @@ func (ts *TEESecurityService) checkContainerRuntimeSecurity() string {
 	}
 
 	runtime := ts.runtimeManager.GetActiveRuntime()
-	if runtime == "native-go" {
+	switch runtime {
+	case "native-go":
 		// Verify native runtime security
 		if err := ts.verifyNativeRuntimeSecurity(); err != nil {
 			return "fail"
 		}
 		return "pass"
-	} else if runtime == "podman" {
+	case "podman":
 		// Verify Podman security
 		if err := ts.verifyPodmanSecurity(); err != nil {
 			return "fail"
 		}
 		return "pass"
+	default:
+		return "warning"
 	}
-
-	return "warning"
 }
 
 // checkNetworkSecurity verifies network security configuration
@@ -331,9 +332,10 @@ func (ts *TEESecurityService) calculateSecurityScore(checks []SecurityCheck) flo
 
 	for _, check := range checks {
 		weight := 1.0
-		if check.Severity == "high" {
+		switch check.Severity {
+		case "high":
 			weight = 3.0
-		} else if check.Severity == "medium" {
+		case "medium":
 			weight = 2.0
 		}
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	inference "backend_server/internal/inference_engine"
 	"backend_server/internal/objects"
 	"backend_server/internal/services/dvemanager"
+	"backend_server/internal/services/session"
 	"backend_server/internal/services/validation"
 	"backend_server/internal/web/middleware"
 
@@ -53,6 +55,7 @@ type WebSocketService struct {
 	inferenceService   *inference.InferenceService
 	dveManager         *dvemanager.DVEManager
 	validationCore     *validation.ValidationCore
+	sessionManager     *session.SessionManager
 	teeSecurityService interface {
 		IsRunning() bool
 		GetSecurityStatus() *objects.TEESecurityStatus
@@ -156,7 +159,7 @@ type RoomMessage struct {
 }
 
 // NewWebSocketService creates a new WebSocket service
-func NewWebSocketService(inferenceService *inference.InferenceService, dveManager *dvemanager.DVEManager, validationCore *validation.ValidationCore, teeSecurityService interface {
+func NewWebSocketService(inferenceService *inference.InferenceService, dveManager *dvemanager.DVEManager, validationCore *validation.ValidationCore, sessionManager *session.SessionManager, teeSecurityService interface {
 	IsRunning() bool
 	GetSecurityStatus() *objects.TEESecurityStatus
 }) *WebSocketService {
@@ -195,6 +198,7 @@ func NewWebSocketService(inferenceService *inference.InferenceService, dveManage
 		inferenceService:   inferenceService,
 		dveManager:         dveManager,
 		validationCore:     validationCore,
+		sessionManager:     sessionManager,
 		teeSecurityService: teeSecurityService,
 	}
 }
@@ -256,6 +260,7 @@ func (ws *WebSocketService) Stop() error {
 // RegisterRoutes registers WebSocket routes with the router
 func (ws *WebSocketService) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/ws", ws.handleWebSocket).Methods("GET")
+	router.HandleFunc("/ws/ssh/{sessionId}", ws.handleSSHWebSocket).Methods("GET")
 	log.Println("WebSocket routes registered")
 }
 
@@ -886,6 +891,178 @@ func (ws *WebSocketService) handleBroadcast() {
 			}
 			ws.clientsMutex.RUnlock()
 
+		case <-ws.ctx.Done():
+			return
+		}
+	}
+}
+
+// handleSSHWebSocket handles SSH WebSocket connections for web-based terminal
+func (ws *WebSocketService) handleSSHWebSocket(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	sessionID := vars["sessionId"]
+
+	if sessionID == "" {
+		http.Error(w, "Session ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Validate SSH session exists
+	sshSession, err := ws.sessionManager.GetSSHSession(sessionID)
+	if err != nil || sshSession == nil {
+		http.Error(w, "Invalid SSH session", http.StatusUnauthorized)
+		return
+	}
+
+	// Check if session is expired
+	if time.Now().After(sshSession.ExpiresAt) {
+		http.Error(w, "SSH session expired", http.StatusUnauthorized)
+		return
+	}
+
+	// Upgrade to WebSocket
+	conn, err := ws.upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Printf("SSH WebSocket upgrade failed: %v", err)
+		return
+	}
+	defer conn.Close()
+
+	log.Printf("SSH WebSocket client connected for session: %s", sessionID)
+
+	// Set up connection parameters
+	conn.SetReadLimit(1024)
+	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		return nil
+	})
+
+	// Start ping/pong handler
+	ticker := time.NewTicker(54 * time.Second)
+	defer ticker.Stop()
+
+	// Channel for incoming messages
+	inputChan := make(chan string, 100)
+	defer close(inputChan)
+
+	// Handle incoming WebSocket messages
+	go func() {
+		for {
+			var msg map[string]interface{}
+			err := conn.ReadJSON(&msg)
+			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					log.Printf("SSH WebSocket error: %v", err)
+				}
+				return
+			}
+
+			if msgType, ok := msg["type"].(string); ok && msgType == "input" {
+				if data, ok := msg["data"].(string); ok {
+					select {
+					case inputChan <- data:
+					default:
+						log.Printf("SSH input channel full, dropping input")
+					}
+				}
+			}
+		}
+	}()
+
+	// Simulate SSH connection (in production, this would connect to actual container)
+	// For now, we'll simulate a basic shell interaction
+	go func() {
+		// Send welcome message
+		welcomeMsg := map[string]interface{}{
+			"type": "output",
+			"data": "\r\n\x1b[32mWelcome to KNIRV-NEXUS DVE Terminal\x1b[0m\r\n\x1b[33mType 'help' for available commands\x1b[0m\r\n\r\n$ ",
+		}
+		conn.WriteJSON(welcomeMsg)
+
+		buffer := ""
+		prompt := "$ "
+
+		for {
+			select {
+			case input := <-inputChan:
+				// Handle special characters
+				if input == "\r" || input == "\n" {
+					// Process command
+					command := strings.TrimSpace(buffer)
+					buffer = ""
+
+					var output string
+					switch command {
+					case "help":
+						output = "\r\nAvailable commands:\r\n  help    - Show this help\r\n  ls      - List directory contents\r\n  pwd     - Print working directory\r\n  whoami  - Print current user\r\n  date    - Show current date/time\r\n  echo    - Echo text\r\n  clear   - Clear terminal\r\n  exit    - Exit terminal\r\n\r\n"
+					case "ls":
+						output = "\r\nbin/  lib/  usr/  etc/  home/  var/\r\n"
+					case "pwd":
+						output = "\r\n/home/dve-user\r\n"
+					case "whoami":
+						output = "\r\n" + sshSession.Username + "\r\n"
+					case "date":
+						output = "\r\n" + time.Now().Format("Mon Jan 2 15:04:05 MST 2006") + "\r\n"
+					case "clear":
+						output = "\x1b[2J\x1b[H" // Clear screen and move cursor to top
+					case "exit", "quit":
+						conn.WriteJSON(map[string]interface{}{
+							"type": "output",
+							"data": "\r\nGoodbye!\r\n",
+						})
+						conn.Close()
+						return
+					default:
+						if strings.HasPrefix(command, "echo ") {
+							output = "\r\n" + strings.TrimPrefix(command, "echo ") + "\r\n"
+						} else if command != "" {
+							output = "\r\n\x1b[31mCommand not found: " + command + "\x1b[0m\r\n"
+						}
+					}
+
+					// Send output
+					conn.WriteJSON(map[string]interface{}{
+						"type": "output",
+						"data": output + prompt,
+					})
+
+				} else if input == "\x7f" { // Backspace
+					if len(buffer) > 0 {
+						buffer = buffer[:len(buffer)-1]
+						conn.WriteJSON(map[string]interface{}{
+							"type": "output",
+							"data": "\b \b", // Move back, print space, move back
+						})
+					}
+				} else {
+					buffer += input
+					conn.WriteJSON(map[string]interface{}{
+						"type": "output",
+						"data": input,
+					})
+				}
+
+			case <-ticker.C:
+				conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+				if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+					return
+				}
+
+			case <-ws.ctx.Done():
+				return
+			}
+		}
+	}()
+
+	// Keep connection alive
+	for {
+		select {
+		case <-ticker.C:
+			conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
 		case <-ws.ctx.Done():
 			return
 		}
