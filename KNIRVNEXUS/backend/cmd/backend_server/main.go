@@ -321,11 +321,20 @@ func (s *Server) setupRoutes() {
 	s.router.HandleFunc("/api/health", s.handleHealth).Methods("GET")
 
 	// Create auth middleware
-	authMiddleware, err := middleware.NewAuthMiddleware(s.db, s.config.Security.JWTSecret)
-	if err != nil {
-		log.Printf("Warning: Failed to create auth middleware: %v", err)
+	var authMiddleware *middleware.AuthMiddleware
+	log.Printf("DEBUG: Auth required: %v, JWT secret length: %d", s.config.Security.AuthRequired, len(s.config.Security.JWTSecret))
+	if s.config.Security.AuthRequired {
+		var err error
+		authMiddleware, err = middleware.NewAuthMiddleware(s.db, s.config.Security.JWTSecret)
+		if err != nil {
+			log.Printf("Warning: Failed to create auth middleware: %v", err)
+			authMiddleware = nil
+		}
+	} else {
+		log.Println("Auth disabled for testnet mode")
 		authMiddleware = nil
 	}
+	log.Printf("DEBUG: authMiddleware is nil: %v", authMiddleware == nil)
 
 	// Initialize WebSocket service after auth middleware is created
 	wsService := websocket.NewWebSocketService(s.inferenceService, s.dveManager, s.validationCore, s.sessionManager, s.teeSecurityService)
@@ -446,16 +455,16 @@ func (s *Server) setupRoutes() {
 		log.Println("Controller integration service routes configured")
 	}
 
-	// Register DVE rental service routes with rate limiting
+	// Register DVE rental service routes
 	if s.dveRentalService != nil {
 		dveRentalHandlers := web.NewDVERentalHandlers(s.dveRentalService, s.containerOrchestrator, s.sessionManager, s.endpointRegistry, s.db.GetDB())
 
-		// Create a subrouter for DVE rental routes with rate limiting
+		// Create a subrouter for DVE rental routes
 		dveRentalRouter := s.router.PathPrefix("/api/dve-rental").Subrouter()
-		dveRentalRouter.Use(middleware.RateLimitMiddleware(10)) // 10 requests per minute for DVE access
+		// dveRentalRouter.Use(middleware.RateLimitMiddleware(10)) // Temporarily disabled for debugging
 
 		dveRentalHandlers.RegisterRoutes(dveRentalRouter, authMiddleware)
-		log.Println("DVE rental service routes configured with rate limiting")
+		log.Println("DVE rental service routes configured")
 	}
 
 	// Register cognitive engine routes
@@ -497,6 +506,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 			"websocket_service": s.websocketService != nil,
 			"cde_service":       s.cdeService != nil,
 			"dns_service":       s.dnsService != nil,
+			"dve_rental_service": s.dveRentalService != nil,
 		},
 	}
 

@@ -48,6 +48,7 @@ type DVERentalService struct {
 
 // NewDVERentalService creates a new DVE rental service
 func NewDVERentalService(db *buntdb.DB) (*DVERentalService, error) {
+	log.Printf("[DVE Rental] Creating new DVE rental service")
 	service := &DVERentalService{
 		db:              db,
 		activeRentals:   make(map[string]*objects.DVERental),
@@ -56,6 +57,8 @@ func NewDVERentalService(db *buntdb.DB) (*DVERentalService, error) {
 		defaultPlans:    createDefaultRentalPlans(),
 	}
 
+	log.Printf("[DVE Rental] Created %d default plans", len(service.defaultPlans))
+
 	// Load existing data from database
 	if err := service.loadFromDatabase(); err != nil {
 		log.Printf("Warning: Failed to load rental data from database: %v", err)
@@ -63,6 +66,7 @@ func NewDVERentalService(db *buntdb.DB) (*DVERentalService, error) {
 
 	// Initialize default rental plans
 	service.initializeDefaultPlans()
+	log.Printf("[DVE Rental] Initialized %d rental plans", len(service.rentalPlans))
 
 	return service, nil
 }

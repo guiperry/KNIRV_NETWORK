@@ -49,8 +49,10 @@ type DVERentalResponse struct {
 
 // GetRentalPlans handles GET /api/dve-rental/plans
 func (h *DVERentalHandlers) GetRentalPlans(w http.ResponseWriter, r *http.Request) {
+	log.Printf("[DVE Rental] GetRentalPlans called")
 	plans, err := h.dveRentalService.GetRentalPlans()
 	if err != nil {
+		log.Printf("[DVE Rental] Error fetching plans: %v", err)
 		response := DVERentalResponse{
 			Success:   false,
 			Error:     "Failed to fetch rental plans: " + err.Error(),
@@ -62,6 +64,7 @@ func (h *DVERentalHandlers) GetRentalPlans(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	log.Printf("[DVE Rental] Retrieved %d plans: %+v", len(plans), plans)
 	response := DVERentalResponse{
 		Success:   true,
 		Data:      plans,

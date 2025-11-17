@@ -137,13 +137,19 @@ func createDefaultRentalPlans() []*objects.RentalPlan {
 
 // initializeDefaultPlans initializes the default rental plans
 func (drs *DVERentalService) initializeDefaultPlans() {
+	log.Printf("[DVE Rental] Initializing default plans, count: %d", len(drs.defaultPlans))
 	for _, plan := range drs.defaultPlans {
+		log.Printf("[DVE Rental] Adding plan: %s - %s", plan.ID, plan.Name)
 		drs.rentalPlans[plan.ID] = plan
 	}
+
+	log.Printf("[DVE Rental] Total plans after initialization: %d", len(drs.rentalPlans))
 
 	// Save to database
 	if err := drs.saveToDatabase(); err != nil {
 		log.Printf("Warning: Failed to save default rental plans to database: %v", err)
+	} else {
+		log.Printf("[DVE Rental] Successfully saved default plans to database")
 	}
 }
 

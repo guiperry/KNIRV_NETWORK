@@ -28,12 +28,15 @@ export const useDVERental = () => {
   const fetchPlans = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const url = `${API_BASE_URL}/api/dve-rental/plans`;
+      console.log('[DVE Rental] Fetching plans from:', url);
       const response: APIResponse<DVERentalPlan[]> = await apiRequest(url, { method: 'GET' });
-      
+      console.log('[DVE Rental] Plans response:', response);
+
       if (response.success && Array.isArray(response.data)) {
+        console.log('[DVE Rental] Loaded plans:', response.data.length, response.data);
         setPlans(response.data);
       } else {
         throw new Error(response.error || 'Failed to fetch rental plans');
