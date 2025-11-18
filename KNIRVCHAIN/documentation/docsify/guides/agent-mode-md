@@ -1,0 +1,113 @@
+# Agent Mode
+
+Agent mode is a special operating mode for KNIRVCHAIN that enables both the inference engine and data engine to work together, sharing data metrics resources with the DHT (Distributed Hash Table).
+
+## Usage
+
+To run KNIRVCHAIN in agent mode, use the `-agent` flag:
+
+```bash
+./KNIRVCHAIN -agent
+```
+
+## What Agent Mode Enables
+
+When agent mode is activated:
+
+1. **Inference Engine**: Initializes the inference engine with support for agent plugins
+2. **Data Engine**: Ensures the data engine is enabled for metrics collection
+3. **DHT Integration**: Enables sharing of inference metrics through the DHT network
+4. **Plugin Support**: Sets up the plugins directory for agent plugins
+
+## Configuration
+
+Agent mode can be configured through the configuration file:
+
+```json
+{
+  "agent_mode": {
+    "enabled": true
+  },
+  "inference_engine": {
+    "enabled": true,
+    "plugins_dir": "plugins",
+    "default_agent_id": "default",
+    "default_version": "latest",
+    "share_dht_metrics": true,
+    "api_port": 9080
+  },
+  "data_engine": {
+    "enabled": true,
+    "enable_websocket": true,
+    "enable_restapi": true,
+    "websocket_port": 8080,
+    "restapi_port": 7080,
+    "window_size": "5m",
+    "metrics_interval": "10s"
+  }
+}
+```
+
+## Features
+
+### Inference Engine
+- Supports agent plugins through the agentify framework
+- Provides LLM inference capabilities
+- Integrates with the blockchain database for persistent storage
+
+### Data Engine
+- Collects and processes metrics from various sources
+- Provides WebSocket and REST API endpoints
+- Supports Kafka and ChromaDB integration (optional)
+
+### DHT Metrics Sharing
+- Automatically shares inference metrics with other nodes in the network
+- Metrics include node information, inference status, and plugin configuration
+- Updates are shared every 30 seconds
+
+## Example Usage
+
+1. **Start in agent mode:**
+   ```bash
+   ./KNIRVCHAIN -agent
+   ```
+
+2. **Start with specific configuration:**
+   ```bash
+   ./KNIRVCHAIN -agent -config config/agent_config.json
+   ```
+
+3. **Start with custom role:**
+   ```bash
+   ./KNIRVCHAIN -agent -role peer
+   ```
+
+## Plugin Development
+
+Agent mode supports plugins through the agentify framework. Plugins should be placed in the configured plugins directory (default: `plugins/`).
+
+For more information on plugin development, see the [Agent Inferencer Usage Guide](../inference/agentify/agent_inferencer_usage.md).
+
+## Monitoring
+
+When agent mode is active, you can monitor the system through:
+
+- **Data Engine REST API**: `http://localhost:7080` (default)
+- **Data Engine WebSocket**: `ws://localhost:8080` (default)
+- **Inference API**: `http://localhost:9080` (default)
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Plugin directory not found**: Ensure the plugins directory exists or is properly configured
+2. **Database connection issues**: Verify the database path is accessible and writable
+3. **Port conflicts**: Check that the configured ports are not in use by other services
+
+### Logs
+
+Agent mode activities are logged with prefixes:
+- `[AGENT]` for general agent mode operations
+- `[INFERENCE]` for inference engine operations
+- `[DATA_ENGINE]` for data engine operations
+- `[DHT]` for DHT integration operations

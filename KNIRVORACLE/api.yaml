@@ -1,0 +1,282 @@
+openapi: 3.1.0
+info:
+  title: KNIRVORACLE API
+  description: |
+    KNIRVORACLE - Advanced blockchain for AI model and skill management with Rust backend.
+
+    This API provides:
+    - Blockchain operations (blocks, transactions, mining)
+    - NRN token management (minting, transfers, balances)
+    - Smart contract execution for LLM and skill registration
+    - Model registry and performance management
+    - Governance and consensus mechanisms
+    - LoRA (Trusted Execution Environment) integration
+    - IPFS integration for decentralized storage
+  version: "1.0.0"
+  contact:
+    name: KNIRV Network Support
+    email: support@knirv.com
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+tags:
+  - name: blockchain
+    description: Core blockchain operations
+  - name: tokens
+    description: NRN token management
+  - name: models
+    description: AI model management
+  - name: skills
+    description: Skill management
+  - name: governance
+    description: Governance and consensus
+  - name: tee
+    description: Trusted Execution Environment
+
+paths:
+  # Blockchain Operations
+  /blocks:
+    get:
+      tags:
+        - blockchain
+      summary: Get blockchain blocks
+      description: Retrieve all blocks in the blockchain
+      responses:
+        '200':
+          description: List of blocks
+
+  /send_txn:
+    post:
+      tags:
+        - blockchain
+      summary: Send transaction
+      description: Submit a new transaction to the blockchain
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Transaction submitted successfully
+
+  # Token Management
+  /nrn/mint:
+    post:
+      tags:
+        - tokens
+      summary: Mint NRN tokens
+      description: Mint new NRN tokens to an address
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - to
+                - from
+                - amount
+              properties:
+                to:
+                  type: string
+                from:
+                  type: string
+                amount:
+                  type: string
+      responses:
+        '201':
+          description: Tokens minted successfully
+
+  /nrn/transfer:
+    post:
+      tags:
+        - tokens
+      summary: Transfer NRN tokens
+      description: Transfer NRN tokens between addresses
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - to
+                - from
+                - amount
+              properties:
+                to:
+                  type: string
+                from:
+                  type: string
+                amount:
+                  type: string
+      responses:
+        '200':
+          description: Transfer completed successfully
+
+  /nrn/balance:
+    post:
+      tags:
+        - tokens
+      summary: Get NRN balance
+      description: Get NRN token balance for an address
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - address
+              properties:
+                address:
+                  type: string
+      responses:
+        '200':
+          description: Balance retrieved successfully
+
+  /nrn/info:
+    get:
+      tags:
+        - tokens
+      summary: Get NRN token info
+      description: Get NRN token information (total supply, owner, etc.)
+      responses:
+        '200':
+          description: Token information
+
+  # Model Management
+  /llm/register:
+    post:
+      tags:
+        - models
+      summary: Register LLM
+      description: Register a new Large Language Model
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: LLM registered successfully
+
+  /skill/register:
+    post:
+      tags:
+        - skills
+      summary: Register skill
+      description: Register a new skill
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Skill registered successfully
+
+  /skill/invoke:
+    post:
+      tags:
+        - skills
+      summary: Invoke skill
+      description: Invoke a registered skill (requires NRN tokens)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Skill invoked successfully
+
+  # Advanced Features
+  /v3/models/list:
+    get:
+      tags:
+        - models
+      summary: List registered models
+      description: Get list of all registered AI models
+      responses:
+        '200':
+          description: List of models
+
+  /v3/models/switch:
+    post:
+      tags:
+        - models
+      summary: Switch active model
+      description: Switch to a different active model
+      responses:
+        '200':
+          description: Model switched successfully
+
+  /v3/governance/proposals:
+    get:
+      tags:
+        - governance
+      summary: List governance proposals
+      description: Get active governance proposals
+      responses:
+        '200':
+          description: List of proposals
+
+  /v3/tee/prepare:
+    post:
+      tags:
+        - tee
+      summary: Prepare LoRA execution
+      description: Prepare a skill for Trusted Execution Environment
+      responses:
+        '200':
+          description: LoRA preparation completed
+
+components:
+  schemas:
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+        from:
+          type: string
+        to:
+          type: string
+        value:
+          type: string
+        data:
+          type: object
+
+    Block:
+      type: object
+      properties:
+        index:
+          type: integer
+        timestamp:
+          type: integer
+        data:
+          type: string
+        previous_hash:
+          type: string
+        hash:
+          type: string
+
+    ModelInfo:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        version:
+          type: string
+        status:
+          type: string

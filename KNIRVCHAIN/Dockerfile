@@ -1,64 +1,28 @@
-# KNIRVCHAIN Production Dockerfile
-FROM rust:1.75-alpine AS builder
+# Use the official Go image as a builder
+FROM golang:1.21-alpine AS builder
 
-# Install build dependencies
-RUN apk add --no-cache musl-dev pkgconfig openssl-dev
-
-# Set working directory
 WORKDIR /app
 
-# Copy Cargo files
-COPY Cargo.toml Cargo.lock ./
+# Copy go.mod and go.sum to leverage Docker layer caching
+COPY go.mod go.sum ./
+RUN go mod download
 
-# Create src directory and dummy main.rs for dependency caching
-RUN mkdir src && echo "fn main() {}" > src/main.rs
+# Copy the source code for the oracle
+COPY . .
 
-# Build dependencies (this layer will be cached)
-RUN cargo build --release && rm -rf src
+# Build the binary with testnet and no_webview tags for a headless server.
+# CGO_ENABLED=0 creates a static binary.
+RUN CGO_ENABLED=0 go build -tags "testnet,no_webview" -o /knirv-oracle .
 
-# Copy source code
-COPY src ./src
-COPY config ./config
+# --- Final Stage ---
+# Use a minimal base image for the final container
+FROM alpine:latest
 
-# Build the application
-RUN cargo build --release
+# Copy the pre-built binary from the builder stage
+COPY --from=builder /knirv-oracle /usr/local/bin/
 
-# Production stage
-FROM alpine:3.18
+# Expose the port the service runs on
+EXPOSE 1317
 
-# Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata libgcc curl
-
-# Create non-root user
-RUN addgroup -g 1001 -S knirvchain && \
-    adduser -u 1001 -S knirvchain -G knirvchain
-
-# Set working directory
-WORKDIR /app
-
-# Copy binary from builder
-COPY --from=builder /app/target/release/knirvchain .
-
-# Copy configuration
-COPY --from=builder /app/config ./config
-
-# Create data directory
-RUN mkdir -p /app/data && \
-    chown -R knirvchain:knirvchain /app
-
-# Switch to non-root user
-USER knirvchain
-
-# Expose port
-EXPOSE 8080
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
-
-# Set environment variables
-ENV KNIRV_ENV=production
-ENV RUST_LOG=info
-
-# Run the application
-CMD ["./knirvchain"]
+# Command to run the service. Arguments are passed here.
+CMD ["knirv-oracle", "--testnet", "--disable-p2p", "--port", "1317"]

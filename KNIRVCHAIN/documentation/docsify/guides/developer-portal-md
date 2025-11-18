@@ -1,0 +1,117 @@
+# KNIRVCHAIN Developer Portal
+
+The Developer Portal is a browser-based interface for interacting with the KNIRVCHAIN network. It is served by Root nodes and provides a user-friendly way to manage and monitor the blockchain.
+
+## Overview
+
+The Developer Portal is a Node.js service that serves a Next.js-based web application. It replaces the previous WebView-based GUI implementation with a more modern and maintainable approach.
+
+## Features
+
+- View blockchain information
+- Manage NFT capabilities
+- Interact with DAOs
+- Monitor network status
+- Manage settlements
+
+## Architecture
+
+The Developer Portal consists of two main components:
+
+1. **Node.js Server**: A lightweight Express server that serves the static Next.js files and provides API endpoints.
+2. **Next.js Frontend**: A pre-built Next.js application with static HTML, CSS, and JavaScript files.
+
+## Configuration
+
+The Developer Portal is configured through the KNIRVCHAIN configuration system. The following settings are available:
+
+```json
+{
+  "node_js_services": {
+    "enabled": true,
+    "developer_portal": {
+      "enabled": true,
+      "script_path": "agent-developer-portal/server.js",
+      "http_port": 3005,
+      "api_key_secret": "your-api-key"
+    }
+  }
+}
+```
+
+### Configuration Options
+
+- `enabled`: Whether the Developer Portal is enabled.
+- `script_path`: Path to the Developer Portal server script.
+- `http_port`: Port for the Developer Portal HTTP server.
+- `api_key_secret`: API key for protected routes.
+
+## Usage
+
+The Developer Portal is automatically launched when running a Root node with the Developer Portal enabled. It can be accessed by opening a web browser to `http://localhost:3005` (or the configured port).
+
+For non-Root nodes, a simplified interface is provided that redirects to the Developer Portal on a Root node if available.
+
+## Development
+
+### Prerequisites
+
+- Node.js 18 or later
+- npm or yarn
+
+### Setup
+
+1. Navigate to the Developer Portal directory:
+   ```
+   cd agent-developer-portal
+   ```
+
+2. Install dependencies:
+   ```
+   npm install
+   ```
+
+3. Copy the Next.js static files:
+   ```
+   ./setup.sh
+   ```
+
+4. Start the server:
+   ```
+   npm start
+   ```
+
+### Environment Variables
+
+The following environment variables can be used to configure the Developer Portal:
+
+- `HTTP_API_PORT`: The port to run the server on (default: 3005)
+- `API_KEY`: API key for protected routes
+- `NODE_ENV`: Environment mode (development/production)
+- `CHAIN_ID`: The chain ID to connect to
+
+## Integration with KNIRVCHAIN
+
+The Developer Portal is integrated with KNIRVCHAIN through the following components:
+
+1. **Configuration**: The Developer Portal is configured through the KNIRVCHAIN configuration system.
+2. **Launch**: The Developer Portal is launched by the Root node when the node starts.
+3. **API**: The Developer Portal communicates with the KNIRVCHAIN node through API endpoints.
+
+## Security Considerations
+
+- The Developer Portal is only accessible from the local machine by default.
+- Protected routes require an API key.
+- The Developer Portal should be run behind a reverse proxy with HTTPS in production environments.
+
+## Troubleshooting
+
+### Common Issues
+
+- **Portal not starting**: Check the logs for errors and ensure Node.js is installed.
+- **Cannot access portal**: Verify the port is not blocked by a firewall.
+- **API errors**: Ensure the KNIRVCHAIN node is running and accessible.
+
+### Logs
+
+The Developer Portal logs to the standard output and can be viewed in the KNIRVCHAIN logs.

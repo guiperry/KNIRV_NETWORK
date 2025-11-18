@@ -1,0 +1,12 @@
+{
+  "name": "KNIRVCHAIN-documentation",
+  "version": "1.0.0",
+  "description": "KNIRVCHAIN Documentation System",
+  "scripts": {
+    "start": "docsify serve docsify",
+    "build": "node ../scripts/organize_docs.js"
+  },
+  "dependencies": {
+    "docsify-cli": "^4.4.4"
+  }
+}
