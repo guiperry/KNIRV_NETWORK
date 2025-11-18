@@ -76,3 +76,5 @@ KNIRVNEXUS/backend/cmd/continer-deployer/golang-app-source/knirv-nexus
 KNIRVNEXUS/backend/bin/nexus-server
 KNIRVNEXUS/dist/knirv-nexus
 /KNIRVNEXUS/dist
+KNIRVORACLE_NEW/cmd/knirvoracle/knirvoracle
+KNIRVORACLE_NEW/bin/knirv-network-monitor

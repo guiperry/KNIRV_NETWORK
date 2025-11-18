@@ -1,0 +1,409 @@
+## Programmatically Accepting Fiat/Crypto Payments and Disbursing KNIRVORACLE Tokens
+
+This document outlines how to programmatically accept fiat or crypto payments and then disburse your native KNIRVORACLE token.  This process involves a frontend, payment gateway, a backend service (listener/processor), the KNIRVORACLE node, and a disbursement wallet.
+
+**Components:**
+
+*   **Frontend/Payment Interface:** Where the user initiates the purchase (could be a web page, part of your GUI, etc.).
+
+*   **Payment Gateway:** A service that processes the actual fiat (like Stripe, PayPal) or crypto (like Coinbase Commerce, Binance Pay, or directly monitoring a specific crypto address) payment.
+
+*   **Backend Service (Listener/Processor):** A server-side application that:
+    *   Receives confirmation from the Payment Gateway that a payment was successful.
+    *   Calculates the corresponding amount of your native token to disburse.
+    *   Constructs and signs a transaction on your KNIRVORACLE.
+    *   Broadcasts the transaction to your KNIRVORACLE network.
+
+*   **KNIRVORACLE Node:** Your running blockchain node that receives and processes the disbursement transaction.
+
+*   **Disbursement (MASTER) Wallet:** A KNIRVORACLE wallet controlled by your backend service, holding enough native tokens to fulfill the disbursements. Its private key *must* be kept secure.
+
+**Conceptual Go Implementation (Backend Service):**
+
+```go
+package main // Or your relevant package
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"math/big" // Use big.Int for token amounts to avoid precision issues
+	"net/http"
+	"os"
+	"strings"
+	"time"
+
+	// --- KNIRVORACLE Specific Imports ---
+	// These depend on your project structure. You'll need access to:
+	// 1. Wallet creation/loading functionality
+	// 2. Transaction creation structures/methods
+	// 3. Transaction signing methods
+	"KNIRVORACLE_GO_PROD/wallet"      // Assuming you have wallet functions here
+	"KNIRVORACLE_GO_PROD/transaction" // Assuming transaction structure/funcs are here
+	// You might need other blockchain-related packages too
+
+	// --- Payment Gateway SDKs (Examples) ---
+	// "github.com/stripe/stripe-go/v76" // Example for Stripe
+	// "github.com/coinbase/coinbase-commerce-go" // Example for Coinbase Commerce
+)
+
+// Configuration for the payment processor service
+type PaymentProcessorConfig struct {
+	KNIRVORACLENodeRPC string // URL of your KNIRVORACLE node (e.g., "http://127.0.0.1:5000")
+	DisbursementPK    string // PRIVATE KEY of the wallet holding tokens for disbursement (LOAD SECURELY!)
+	TokenSymbol       string // e.g., "agent"
+	TokenDecimals     int    // How many decimal places your token uses (like 18 for ETH)
+
+	// --- Exchange Rates ---
+	// Simplistic example: Fixed rate. Real-world might need dynamic rates from oracles/APIs.
+	USDPerToken float64
+	ETHPerToken float64
+	// Add other supported currencies/cryptos
+
+	// --- Payment Gateway API Keys (LOAD SECURELY!) ---
+	StripeSecretKey string
+	StripeWebhookSecret string
+	CoinbaseAPIKey    string
+	CoinbaseWebhookSecret string
+}
+
+// Represents the core logic
+type PaymentProcessor struct {
+	config           PaymentProcessorConfig
+	disbursementWallet *wallet.Wallet // The loaded wallet for sending tokens
+	httpClient       *http.Client
+	// Add clients for specific payment gateway SDKs if used
+}
+
+// Function to create a new processor instance
+func NewPaymentProcessor(cfg PaymentProcessorConfig) (*PaymentProcessor, error) {
+	// *** SECURITY WARNING: Load the private key securely! ***
+	// Never hardcode it. Use environment variables, secret managers, etc.
+	if cfg.DisbursementPK == "" {
+		return nil, fmt.Errorf("disbursement private key is required")
+	}
+
+	w, err := wallet.LoadWalletFromPrivateKey(cfg.DisbursementPK) // Assumes such a function exists
+	if err != nil {
+		return nil, fmt.Errorf("failed to load disbursement wallet: %w", err)
+	}
+	log.Printf("Loaded disbursement wallet: %s", w.GetAddress()) // Log address, NOT private key
+
+	// Initialize payment gateway SDKs here if needed
+	// stripe.Key = cfg.StripeSecretKey
+	// ...
+
+	return &PaymentProcessor{
+		config:           cfg,
+		disbursementWallet: w,
+		httpClient:       &http.Client{Timeout: 10 * time.Second},
+	}, nil
+}
+
+// --- Core Disbursement Logic ---
+
+// calculateTokenAmount determines how many native tokens to send based on payment.
+// amountReceived: The amount of fiat/crypto received.
+// currency: The symbol of the currency received (e.g., "usd", "eth").
+// Returns the amount in the smallest unit of your token (like Wei for ETH).
+func (pp *PaymentProcessor) calculateTokenAmount(amountReceived float64, currency string) (*big.Int, error) {
+	var rate float64
+	currencyLower := strings.ToLower(currency)
+
+	switch currencyLower {
+	case "usd":
+		if pp.config.USDPerToken <= 0 {
+			return nil, fmt.Errorf("USD exchange rate not configured or invalid")
+		}
+		rate = 1.0 / pp.config.USDPerToken // Tokens per USD
+	case "eth":
+		if pp.config.ETHPerToken <= 0 {
+			return nil, fmt.Errorf("ETH exchange rate not configured or invalid")
+		}
+		rate = 1.0 / pp.config.ETHPerToken // Tokens per ETH
+	// Add cases for other supported currencies/cryptos
+	default:
+		return nil, fmt.Errorf("unsupported currency: %s", currency)
+	}
+
+	tokenValue := amountReceived * rate
+
+	// Convert to the smallest unit using decimals
+	// Example: If tokenValue is 1.5 agent and decimals is 6, result is 1,500,000
+	multiplier := new(big.Float).SetInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(pp.config.TokenDecimals)), nil))
+	tokenAmountFloat := new(big.Float).Mul(new(big.Float).SetFloat64(tokenValue), multiplier)
+
+	// Convert to big.Int (truncates any fractional part of the smallest unit)
+	tokenAmountInt, _ := tokenAmountFloat.Int(nil) // Use accuracy check if needed
+
+	if tokenAmountInt.Cmp(big.NewInt(0)) <= 0 {
+		return nil, fmt.Errorf("calculated token amount is zero or negative")
+	}
+
+	log.Printf("Calculated: %.2f %s -> %s smallest units of %s", amountReceived, currency, tokenAmountInt.String(), pp.config.TokenSymbol)
+	return tokenAmountInt, nil
+}
+
+// disburseTokens creates, signs, and broadcasts the KNIRVORACLE transaction.
+func (pp *PaymentProcessor) disburseTokens(recipientAddress string, amount *big.Int, paymentID string) (string, error) {
+	// 1. Validate Recipient Address (Add your specific validation logic)
+	if !isValidKNIRVORACLEAddress(recipientAddress) { // Replace with your actual validation
+		return "", fmt.Errorf("invalid recipient address: %s", recipientAddress)
+	}
+
+	// 2. Construct the Transaction
+	// This depends heavily on your transaction.NewTransaction signature
+	// You might need nonce management, gas estimation/fees depending on your chain's design.
+	tx := transaction.NewTransaction(
+		pp.disbursementWallet.GetAddress(),
+		recipientAddress,
+		amount,
+		// Add other necessary fields: nonce, fee, data, etc.
+		// You might add the original paymentID to the transaction data for tracking.
+	)
+	log.Printf("Constructed transaction: From %s To %s Amount %s", tx.SenderAddress, tx.RecipientAddress, tx.Amount.String())
+
+	// 3. Sign the Transaction
+	// This assumes your wallet object has a SignTransaction method
+	signature, err := pp.disbursementWallet.SignTransaction(tx)
+	if err != nil {
+		log.Printf("Error signing transaction for payment %s: %v", paymentID, err)
+		return "", fmt.Errorf("failed to sign transaction: %w", err)
+	}
+	// Assuming your transaction struct has a way to attach the signature
+	tx.SetSignature(signature) // Replace with your actual method
+
+	// 4. Broadcast the Transaction
+	txHash, err := pp.broadcastTransaction(tx)
+	if err != nil {
+		log.Printf("Error broadcasting transaction for payment %s: %v", paymentID, err)
+		return "", fmt.Errorf("failed to broadcast transaction: %w", err)
+	}
+
+	log.Printf("Successfully broadcasted transaction for payment %s. TxHash: %s", paymentID, txHash)
+	return txHash, nil
+}
+
+// broadcastTransaction sends the signed transaction to the KNIRVORACLE node.
+func (pp *PaymentProcessor) broadcastTransaction(tx *transaction.Transaction) (string, error) {
+	// Marshal the transaction to JSON (or your node's expected format)
+	txJSON, err := json.Marshal(tx)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal transaction: %w", err)
+	}
+
+	// Determine the correct API endpoint on your node
+	// This is just an example, adjust to your node's API
+	broadcastURL := pp.config.KNIRVORACLENodeRPC + "/transactions/new"
+
+	req, err := http.NewRequest("POST", broadcastURL, bytes.NewBuffer(txJSON))
+	if err != nil {
+		return "", fmt.Errorf("failed to create broadcast request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := pp.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to send transaction to node %s: %w", broadcastURL, err)
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", fmt.Errorf("node returned error status %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	// Parse the response to get the transaction hash (adjust based on your node's response)
+	var result map[string]interface{}
+	if err := json.Unmarshal(bodyBytes, &result); err != nil {
+		log.Printf("Warning: Failed to parse node response body: %v. Body: %s", err, string(bodyBytes))
+		// Decide if you want to return an error or just the raw body/success indication
+		return fmt.Sprintf("Node response: %s", string(bodyBytes)), nil // Or return error
+	}
+
+	txHash, ok := result["transaction_hash"].(string) // Example key
+	if !ok {
+		log.Printf("Warning: Transaction hash not found in node response. Body: %s", string(bodyBytes))
+		return fmt.Sprintf("Node response: %s", string(bodyBytes)), nil // Or return error
+	}
+
+	return txHash, nil
+}
+
+// --- Webhook Handler Example (Conceptual for Stripe) ---
+
+// handleStripeWebhook processes incoming events from Stripe.
+func (pp *PaymentProcessor) handleStripeWebhook(w http.ResponseWriter, r *http.Request) {
+	// 1. *** SECURITY: Verify the webhook signature ***
+	// Use stripe.Webhook.ConstructEvent using r.Body and the 'Stripe-Signature' header
+	// and your pp.config.StripeWebhookSecret. If verification fails, return 400 Bad Request.
+	// This is CRITICAL to prevent fake requests.
+	// payload, err := io.ReadAll(r.Body)
+	// event, err := webhook.ConstructEvent(payload, r.Header.Get("Stripe-Signature"), pp.config.StripeWebhookSecret)
+	// if err != nil {
+	// 	 log.Printf("Webhook signature verification failed: %v", err)
+	// 	 http.Error(w, "Webhook signature verification failed", http.StatusBadRequest)
+	// 	 return
+	// }
+
+	// For demonstration without SDK verification (NOT FOR PRODUCTION):
+	var event map[string]interface{} // Use proper Stripe event structs with SDK
+	if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
+		http.Error(w, "Cannot parse request body", http.StatusBadRequest)
+		return
+	}
+	eventType := event["type"].(string)
+	log.Printf("Received Stripe event type: %s", eventType)
+
+
+	// 2. Handle the relevant event type (e.g., 'charge.succeeded' or 'checkout.session.completed')
+	if eventType == "charge.succeeded" { // Adjust based on your Stripe integration
+		data := event["data"].(map[string]interface{})
+		object := data["object"].(map[string]interface{})
+
+		chargeID := object["id"].(string)
+		amountReceivedCents := int64(object["amount"].(float64)) // Amount is usually in cents
+		currency := object["currency"].(string)
+		amountReceivedFloat := float64(amountReceivedCents) / 100.0
+
+		// 3. *** IMPORTANT: Get the recipient's KNIRVORACLE address ***
+		// You MUST collect this from the user during checkout and pass it to Stripe,
+		// often via 'metadata' in the PaymentIntent or Checkout Session.
+		metadata, okMeta := object["metadata"].(map[string]interface{})
+		recipientAddress, okAddr := "", false
+		if okMeta {
+			addr, ok := metadata["KNIRVORACLE_address"].(string)
+			if ok && addr != "" {
+				recipientAddress = addr
+				okAddr = true
+			}
+		}
+
+		if !okAddr {
+			log.Printf("ERROR: KNIRVORACLE_address missing in metadata for charge %s", chargeID)
+			// Respond to Stripe but handle internally (e.g., notify admin, maybe refund)
+			fmt.Fprintf(w, "Error: Missing recipient address metadata")
+			return
+		}
+
+		// 4. Check for duplicate processing (Idempotency)
+		// Use the chargeID (or payment_intent ID) to check if you've already processed this payment.
+		// Store processed IDs in a database or cache.
+		// if pp.hasProcessed(chargeID) {
+		//    log.Printf("Duplicate event received for charge %s. Ignoring.", chargeID)
+		//    fmt.Fprintf(w, "Duplicate event")
+		//    return
+		// }
+
+
+		// 5. Calculate token amount
+		tokenAmount, err := pp.calculateTokenAmount(amountReceivedFloat, currency)
+		if err != nil {
+			log.Printf("Error calculating token amount for charge %s: %v", chargeID, err)
+			// Respond to Stripe but handle internally
+			fmt.Fprintf(w, "Error: Cannot calculate token amount")
+			return
+		}
+
+		// 6. Disburse tokens
+		txHash, err := pp.disburseTokens(recipientAddress, tokenAmount, chargeID)
+		if err != nil {
+			log.Printf("CRITICAL ERROR: Failed to disburse tokens for charge %s: %v", chargeID, err)
+			// Respond to Stripe but handle internally (ALERTING/RETRY/REFUND NEEDED)
+			fmt.Fprintf(w, "Error: Token disbursement failed")
+			return
+		}
+
+		// 7. Mark payment as processed (Idempotency)
+		// pp.markAsProcessed(chargeID, txHash)
+
+		log.Printf("Successfully processed Stripe charge %s. Disbursed %s tokens to %s. Tx: %s",
+			chargeID, tokenAmount.String(), recipientAddress, txHash)
+
+		// 8. Acknowledge the webhook successfully
+		fmt.Fprintf(w, "Success")
+
+	} else {
+		// Handle other event types or ignore
+		log.Printf("Ignoring unhandled Stripe event type: %s", eventType)
+		fmt.Fprintf(w, "Unhandled event type")
+	}
+}
+
+// --- Placeholder for address validation ---
+func isValidKNIRVORACLEAddress(addr string) bool {
+	// Implement your specific address validation logic here.
+	// Check length, prefix, checksum, etc.
+	return len(addr) > 10 // Very basic example
+}
+
+// --- Main Function (Example Setup) ---
+func main() {
+	// Load configuration securely (e.g., from env vars, config file)
+	config := PaymentProcessorConfig{
+		KNIRVORACLENodeRPC: os.Getenv("KNIRVORACLE_NODE_RPC"), // e.g., "http://127.0.0.1:5000"
+		DisbursementPK:    os.Getenv("DISBURSEMENT_PRIVATE_KEY"), // !!! LOAD SECURELY !!!
+		TokenSymbol:       "agent",
+		TokenDecimals:     6, // Example: 6 decimal places
+		USDPerToken:       0.10, // Example: $0.10 per agent
+		ETHPerToken:       0.00005, // Example: 0.00005 ETH per agent
+		// Load Stripe/Coinbase keys and webhook secrets securely
+		StripeWebhookSecret: os.Getenv("STRIPE_WEBHOOK_SECRET"),
+	}
+
+	processor, err := NewPaymentProcessor(config)
+	if err != nil {
+		log.Fatalf("Failed to initialize payment processor: %v", err)
+	}
+
+	// Setup HTTP server for webhooks
+	http.HandleFunc("/webhooks/stripe", processor.handleStripeWebhook)
+	// Add handlers for other gateways: /webhooks/coinbase, etc.
+
+	listenAddr := ":8090" // Choose a port for this service
+	log.Printf("Starting Payment Processor Service on %s", listenAddr)
+	log.Printf("Listening for Stripe webhooks at /webhooks/stripe")
+	err = http.ListenAndServe(listenAddr, nil)
+	if err != nil {
+		log.Fatalf("Failed to start HTTP server: %v", err)
+	}
+}
+```
+
+**Explanation and Key Points:**
+
+*   **Configuration (`PaymentProcessorConfig`):** Holds essential settings like the node URL, the *securely loaded* private key of the disbursement wallet, token details, exchange rates, and payment gateway secrets.
+
+*   **Secure Key Management:** The `DisbursementPK` is *highly* sensitive.  **Never hardcode it.**  Use environment variables, a secrets management system (like HashiCorp Vault, AWS Secrets Manager, GCP Secret Manager), or encrypted config files.
+
+*   **Wallet Loading:** `NewPaymentProcessor` loads the disbursement wallet using the private key. Ensure your wallet package has a function like `LoadWalletFromPrivateKey`.
+
+*   **Exchange Rate (`calculateTokenAmount`):** This function converts the received fiat/crypto amount into your native token amount based on configured rates. It uses `math/big` for precision, especially important when dealing with decimals. Real-world scenarios might involve fetching dynamic rates from APIs or oracles.
+
+*   **Token Disbursement (`disburseTokens`):**
+    *   Validates the recipient's address.
+    *   Constructs a transaction using your blockchain's specific transaction structure (`transaction.NewTransaction`). You'll need to adapt this based on required fields (nonce, fees, etc.).
+    *   Signs the transaction using the `disbursementWallet`.
+    *   Broadcasts the signed transaction to your KNIRVORACLE node's API (`broadcastTransaction`).
+
+*   **Broadcasting (`broadcastTransaction`):** Sends the transaction (usually as JSON) via HTTP POST to an endpoint exposed by your KNIRVORACLE node (e.g., `/transactions/new`). It handles the response, expecting a success status and potentially the transaction hash.
+
+*   **Webhook Handler (`handleStripeWebhook`):**
+    *   **SECURITY:** The most critical step is *verifying the webhook signature* using the secret provided by the payment gateway.  This ensures the request is legitimate. The example comments this out but it is *essential* for production.
+    *   Parses the incoming event data.
+    *   Identifies the relevant event (e.g., `charge.succeeded`).
+    *   Extracts payment details (amount, currency, payment ID).
+    *   Crucially, retrieves the recipient's KNIRVORACLE address, which *must* have been collected during checkout and stored (e.g., in Stripe metadata).
+    *   **Idempotency:** Checks if this payment ID has already been processed to prevent double-spending.
+    *   Calls `calculateTokenAmount` and `disburseTokens`.
+    *   Marks the payment as processed.
+    *   Sends a success response (e.g., HTTP 200 OK) back to the payment gateway.
+
+*   **Error Handling & Logging:** Robust logging is vital for debugging. Critical errors (like failing to disburse after payment) need alerting and potentially manual intervention or automated refund/retry logic.
+
+*   **Dependencies:** You'll need to `go get` any payment gateway SDKs you use and ensure your internal `KNIRVORACLE_GO_PROD/wallet` and `KNIRVORACLE_GO_PROD/transaction` packages are correctly imported and provide the necessary functions.
+
+This backend service acts as the bridge between the external payment world and your internal blockchain logic.  Remember to adapt the transaction creation, signing, broadcasting, and address validation parts to the specific implementation details of KNIRVORACLE.

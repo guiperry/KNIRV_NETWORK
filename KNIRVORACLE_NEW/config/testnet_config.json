@@ -1,0 +1,88 @@
+{
+  "node_name": "KNIRV-ORACLE-TESTNET",
+  "port": 1317,
+  "p2p_port": 26656,
+  "wallet_port": 8545,
+  "chain_id": "knirv-testnet-1",
+  "shared_database_path": "./data/testnet/blockchain.db",
+  "searchable_database_path": "./data/testnet/searchable.db",
+  "miners_address": "KNIRVORACLE_Faucet",
+  "no_wallet_server": false,
+  "client_only": false,
+  "use_gui": false,
+  "install_complete": true,
+  "is_root": true,
+  "is_bootnode": false,
+  "is_dev": false,
+  "is_network_mode": false,
+  "testnet": {
+    "enabled": true,
+    "chain_id": "knirv-testnet-1",
+    "api_port": 1317,
+    "rpc_port": 26657,
+    "p2p_port": 26656,
+    "validators": 3,
+    "initial_nrn": 1000000000000,
+    "disable_xion_bridge": true,
+    "simplified_consensus": true,
+    "log_level": "debug"
+  },
+  "experimental_features": {
+    "enabled": true,
+    "debug": true
+  },
+  "payment_processor": {
+    "enabled": true,
+    "node_rpc": "http://localhost:1317",
+    "webhook_port": 8080,
+    "token_symbol": "NRN",
+    "token_decimals": 18,
+    "usd_per_token": 0.01,
+    "eth_per_token": 0.000001
+  },
+  "bootnode_settings": {
+    "enabled": false
+  },
+  "node_js_services": {
+    "enabled": false,
+    "tunnel_registry": {
+      "enabled": false
+    },
+    "payment_gateway": {
+      "enabled": false
+    },
+    "developer_portal": {
+      "enabled": false
+    }
+  },
+  "tunnel_client": {
+    "enabled": false
+  },
+  "reverse_proxy": {
+    "enabled": false
+  },
+  "data_engine": {
+    "enabled": false
+  },
+  "inference_engine": {
+    "enabled": false
+  },
+  "agent_mode": {
+    "enabled": false
+  },
+  "relay": {
+    "enabled": false
+  },
+  "p2p": {
+    "root_node_uri": ""
+  },
+  "poaud": {
+    "enabled": false
+  },
+  "network_monitor": {
+    "enabled": true,
+    "web_mode": true,
+    "port": 8091,
+    "auto_start": true
+  }
+}

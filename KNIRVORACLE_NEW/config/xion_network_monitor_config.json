@@ -1,0 +1,179 @@
+{
+  "xion_payment_gateway": {
+    "enabled": true,
+    "xion_chain_id": "xion-testnet-1",
+    "xion_rpc_endpoint": "https://rpc.xion-testnet-1.burnt.com:443",
+    "xion_rest_endpoint": "https://api.xion-testnet-1.burnt.com",
+    "usdc_contract_addr": "xion1usdc_contract_address_testnet",
+    "nrn_contract_addr": "xion1nrn_contract_address_testnet",
+    "treasury_addr": "xion1treasury_address_testnet",
+    "conversion_rate": "10",
+    "gasless_enabled": true,
+    "max_transaction_amount": "10000000000",
+    "min_transaction_amount": "1000000"
+  },
+  "knirv_integration": {
+    "router": {
+      "enabled": true,
+      "endpoint": "http://localhost:8081",
+      "nrv_minting_endpoint": "/api/nrv/mint",
+      "timeout": "30s"
+    },
+    "oracle": {
+      "enabled": true,
+      "endpoint": "http://localhost:8080",
+      "treasury": {
+        "endpoint": "/api/treasury/mint",
+        "validation_endpoint": "/api/treasury/validate"
+      }
+    },
+    "controller": {
+      "enabled": true,
+      "endpoint": "http://localhost:3000",
+      "wallet_service_endpoint": "/api/wallet"
+    }
+  },
+  "network_monitor": {
+    "enabled": true,
+    "endpoint": "http://localhost:9090",
+    "registration": {
+      "auto_register": true,
+      "service_name": "xion_payment_gateway",
+      "service_type": "payment_gateway",
+      "critical": true,
+      "tags": ["payment", "xion", "usdc", "nrn", "gateway"]
+    },
+    "metrics": {
+      "enabled": true,
+      "collection_interval": "15s",
+      "prometheus_endpoint": "/metrics",
+      "custom_metrics": {
+        "payment_flows": true,
+        "nrv_minting": true,
+        "treasury_operations": true,
+        "quality_assessment": true
+      }
+    },
+    "health_checks": {
+      "enabled": true,
+      "interval": "10s",
+      "endpoint": "/health",
+      "timeout": "5s"
+    },
+    "status_reporting": {
+      "enabled": true,
+      "interval": "30s",
+      "endpoint": "/api/services/xion/status",
+      "include_detailed_metrics": true
+    }
+  },
+  "monitoring": {
+    "enabled": true,
+    "payment_tracking": {
+      "status_check_interval": "5s",
+      "timeout": "10m",
+      "retry_attempts": 3
+    },
+    "nrv_tracking": {
+      "route_validation": true,
+      "quality_assessment": true,
+      "metadata_verification": true
+    },
+    "treasury_tracking": {
+      "mint_validation": true,
+      "balance_monitoring": true
+    }
+  },
+  "security": {
+    "rate_limiting": {
+      "enabled": true,
+      "requests_per_minute": 100,
+      "burst_size": 20
+    },
+    "validation": {
+      "address_verification": true,
+      "signature_verification": true,
+      "amount_limits": true
+    },
+    "encryption": {
+      "enabled": true,
+      "algorithm": "AES-256-GCM"
+    }
+  },
+  "deployment": {
+    "environment": "testnet",
+    "health_checks": {
+      "enabled": true,
+      "port": 8080,
+      "path": "/health"
+    },
+    "metrics": {
+      "enabled": true,
+      "port": 8080,
+      "path": "/metrics"
+    },
+    "logging": {
+      "level": "info",
+      "format": "json",
+      "output": "stdout"
+    }
+  },
+  "alerting": {
+    "enabled": true,
+    "channels": {
+      "slack": {
+        "enabled": false,
+        "webhook_url": "",
+        "channel": "#knirv-alerts"
+      },
+      "email": {
+        "enabled": false,
+        "smtp_server": "",
+        "recipients": []
+      },
+      "webhook": {
+        "enabled": true,
+        "url": "http://localhost:9090/api/alerts/webhook"
+      }
+    },
+    "rules": {
+      "payment_failure_rate": {
+        "enabled": true,
+        "threshold": 0.05,
+        "window": "5m",
+        "severity": "warning"
+      },
+      "high_payment_volume": {
+        "enabled": true,
+        "threshold": 1000,
+        "window": "1h",
+        "severity": "info"
+      },
+      "service_down": {
+        "enabled": true,
+        "threshold": 1,
+        "window": "1m",
+        "severity": "critical"
+      },
+      "treasury_balance_low": {
+        "enabled": true,
+        "threshold": 1000000,
+        "window": "1m",
+        "severity": "warning"
+      }
+    }
+  },
+  "dashboard": {
+    "enabled": true,
+    "grafana": {
+      "enabled": true,
+      "url": "http://localhost:3001",
+      "dashboard_id": "xion-payment-gateway"
+    },
+    "custom_gui": {
+      "enabled": true,
+      "port": 9091,
+      "refresh_interval": "5s"
+    }
+  }
+}

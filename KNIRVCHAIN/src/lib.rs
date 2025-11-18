@@ -4,6 +4,8 @@ pub mod config;
 pub mod nrn_token;
 pub mod smart_contracts;
 pub mod testnet;
+pub mod token_economics;
+pub mod uri_resolver;
 
 // New infrastructure modules
 pub mod governance;

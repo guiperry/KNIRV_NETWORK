@@ -1,0 +1,154 @@
+{
+  "xion_payment_gateway": {
+    "enabled": true,
+    "chain_config": {
+      "chain_id": "xion-testnet-1",
+      "rpc_endpoint": "https://rpc.xion-testnet-1.burnt.com:443",
+      "rest_endpoint": "https://api.xion-testnet-1.burnt.com",
+      "explorer_url": "https://explorer.xion-testnet-1.burnt.com"
+    },
+    "contracts": {
+      "usdc_contract": "xion1usdc_contract_address_placeholder",
+      "nrn_contract": "xion1nrn_contract_address_placeholder",
+      "treasury_contract": "xion1treasury_address_placeholder"
+    },
+    "conversion": {
+      "rate": "10",
+      "rate_type": "fixed",
+      "min_transaction_amount": "1000000",
+      "max_transaction_amount": "10000000000",
+      "fee_percentage": "0.001"
+    },
+    "gasless": {
+      "enabled": true,
+      "treasury_sponsored": true,
+      "max_gas_limit": "200000",
+      "allowed_operations": [
+        "usdc_to_nrn",
+        "nrn_transfer",
+        "skill_invocation"
+      ]
+    },
+    "meta_accounts": {
+      "supported_auth_methods": [
+        "email",
+        "social",
+        "wallet",
+        "passkey"
+      ],
+      "session_duration": "24h",
+      "auto_refresh": true
+    }
+  },
+  "knirv_integration": {
+    "router": {
+      "enabled": true,
+      "endpoint": "http://localhost:8081",
+      "nrv_minting": {
+        "enabled": true,
+        "quality_bonuses": {
+          "A": 1.5,
+          "B": 1.3,
+          "C": 1.1,
+          "D": 1.0,
+          "F": 0.8
+        },
+        "certification_bonuses": {
+          "premium": 1.2,
+          "standard": 1.1,
+          "basic": 1.0
+        }
+      }
+    },
+    "oracle": {
+      "enabled": true,
+      "endpoint": "http://localhost:8080",
+      "treasury": {
+        "enabled": true,
+        "auto_mint": true,
+        "validation_required": true
+      }
+    },
+    "controller": {
+      "enabled": true,
+      "endpoint": "http://localhost:3000",
+      "wallet_integration": {
+        "auto_connect": false,
+        "preferred_auth": "email",
+        "gasless_default": true
+      }
+    }
+  },
+  "monitoring": {
+    "enabled": true,
+    "payment_tracking": {
+      "status_check_interval": "5s",
+      "timeout": "300s",
+      "retry_attempts": 3
+    },
+    "nrv_tracking": {
+      "route_validation": true,
+      "quality_assessment": true,
+      "metadata_verification": true
+    },
+    "treasury_tracking": {
+      "mint_validation": true,
+      "balance_monitoring": true,
+      "transaction_logging": true
+    }
+  },
+  "security": {
+    "rate_limiting": {
+      "enabled": true,
+      "requests_per_minute": 60,
+      "burst_limit": 10
+    },
+    "validation": {
+      "address_verification": true,
+      "amount_limits": true,
+      "signature_required": true
+    },
+    "encryption": {
+      "enabled": true,
+      "algorithm": "AES-256-GCM",
+      "key_rotation": "weekly"
+    }
+  },
+  "testing": {
+    "testnet_mode": true,
+    "mock_transactions": false,
+    "debug_logging": true,
+    "test_accounts": [
+      {
+        "name": "test_user_1",
+        "address": "xion1test1...",
+        "usdc_balance": "1000000000",
+        "nrn_balance": "0"
+      },
+      {
+        "name": "test_user_2",
+        "address": "xion1test2...",
+        "usdc_balance": "500000000",
+        "nrn_balance": "5000000000000000000000"
+      }
+    ]
+  },
+  "deployment": {
+    "environment": "testnet",
+    "auto_start": true,
+    "health_checks": {
+      "enabled": true,
+      "interval": "30s",
+      "endpoints": [
+        "/api/payment/config",
+        "/api/payment/rates",
+        "/health"
+      ]
+    },
+    "backup": {
+      "enabled": true,
+      "interval": "1h",
+      "retention": "7d"
+    }
+  }
+}

@@ -1,36 +1,15 @@
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use reqwest::Client;
-use tokio::time::{Duration, interval};
-use tracing::{info, error, warn};
+use serde::Serialize;
+use std::sync::Arc;
+use num_bigint::BigInt;
+use crate::token_economics::TokenEconomics;
+use tracing::info;
 
 #[derive(Debug, Clone)]
 pub struct EconomicsIntegration {
-    economics_url: String,
-    client: Client,
+    token_economics: Arc<TokenEconomics>,
     enabled: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SkillInvocationRequest {
-    pub user_id: String,
-    pub skill_id: String,
-    pub amount: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct LLMRegistrationRequest {
-    pub user_id: String,
-    pub llm_id: String,
-    pub registration_fee: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct EconomicsResponse {
-    pub success: bool,
-    pub data: Option<serde_json::Value>,
-    pub error: Option<String>,
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SkillExecutionEvent {
@@ -50,97 +29,35 @@ pub struct LLMValidationEvent {
 }
 
 impl EconomicsIntegration {
-    pub fn new(economics_url: String) -> Self {
+    pub fn new(token_economics: Arc<TokenEconomics>) -> Self {
         Self {
-            economics_url,
-            client: Client::new(),
+            token_economics,
             enabled: true,
         }
     }
 
-    pub fn from_env() -> Self {
-        let economics_url = std::env::var("ECONOMICS_SERVICE_URL")
-            .unwrap_or_else(|_| "http://localhost:8090".to_string());
-        
-        Self::new(economics_url)
+    pub fn from_env(token_economics: Arc<TokenEconomics>) -> Self {
+        Self::new(token_economics)
     }
 
-    pub async fn process_skill_invocation(&self, user_id: &str, skill_id: &str, amount: &str) -> Result<String, Box<dyn std::error::Error>> {
+    pub fn process_skill_invocation(&self, user_id: &str, skill_id: &str, amount: &BigInt) -> Result<String, Box<dyn std::error::Error>> {
         if !self.enabled {
             return Ok("economics_disabled".to_string());
         }
 
-        let request = SkillInvocationRequest {
-            user_id: user_id.to_string(),
-            skill_id: skill_id.to_string(),
-            amount: amount.to_string(),
-        };
-
-        let url = format!("{}/economics/skill/invoke", self.economics_url);
-        
-        let response = self.client
-            .post(&url)
-            .json(&request)
-            .timeout(Duration::from_secs(30))
-            .send()
-            .await?;
-
-        if response.status().is_success() {
-            let economics_response: EconomicsResponse = response.json().await?;
-            if economics_response.success {
-                info!("Successfully processed skill invocation for user {} skill {}", user_id, skill_id);
-                Ok(economics_response.data
-                    .and_then(|d| d.get("transaction_id"))
-                    .and_then(|id| id.as_str())
-                    .unwrap_or("unknown")
-                    .to_string())
-            } else {
-                error!("Economics service returned error: {:?}", economics_response.error);
-                Err(economics_response.error.unwrap_or("Unknown error".to_string()).into())
-            }
-        } else {
-            error!("Economics service returned status: {}", response.status());
-            Err(format!("HTTP error: {}", response.status()).into())
-        }
+        let tx = self.token_economics.process_skill_invocation(user_id, skill_id, amount)?;
+        info!("Successfully processed skill invocation for user {} skill {}", user_id, skill_id);
+        Ok(tx.id)
     }
 
-    pub async fn process_llm_registration(&self, user_id: &str, llm_id: &str, registration_fee: &str) -> Result<String, Box<dyn std::error::Error>> {
+    pub fn process_llm_registration(&self, user_id: &str, llm_id: &str, registration_fee: &BigInt) -> Result<String, Box<dyn std::error::Error>> {
         if !self.enabled {
             return Ok("economics_disabled".to_string());
         }
 
-        let request = LLMRegistrationRequest {
-            user_id: user_id.to_string(),
-            llm_id: llm_id.to_string(),
-            registration_fee: registration_fee.to_string(),
-        };
-
-        let url = format!("{}/economics/llm/register", self.economics_url);
-        
-        let response = self.client
-            .post(&url)
-            .json(&request)
-            .timeout(Duration::from_secs(30))
-            .send()
-            .await?;
-
-        if response.status().is_success() {
-            let economics_response: EconomicsResponse = response.json().await?;
-            if economics_response.success {
-                info!("Successfully processed LLM registration for user {} LLM {}", user_id, llm_id);
-                Ok(economics_response.data
-                    .and_then(|d| d.get("transaction_id"))
-                    .and_then(|id| id.as_str())
-                    .unwrap_or("unknown")
-                    .to_string())
-            } else {
-                error!("Economics service returned error: {:?}", economics_response.error);
-                Err(economics_response.error.unwrap_or("Unknown error".to_string()).into())
-            }
-        } else {
-            error!("Economics service returned status: {}", response.status());
-            Err(format!("HTTP error: {}", response.status()).into())
-        }
+        let tx = self.token_economics.process_llm_registration(user_id, llm_id, registration_fee)?;
+        info!("Successfully processed LLM registration for user {} LLM {}", user_id, llm_id);
+        Ok(tx.id)
     }
 
     pub async fn send_skill_execution_event(&self, event: SkillExecutionEvent) -> Result<(), Box<dyn std::error::Error>> {
@@ -165,47 +82,22 @@ impl EconomicsIntegration {
         Ok(())
     }
 
-    pub async fn get_economic_metrics(&self) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    pub fn get_economic_metrics(&self) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         if !self.enabled {
             return Ok(serde_json::json!({"status": "disabled"}));
         }
 
-        let url = format!("{}/economics/metrics", self.economics_url);
-        
-        let response = self.client
-            .get(&url)
-            .timeout(Duration::from_secs(15))
-            .send()
-            .await?;
-
-        if response.status().is_success() {
-            let economics_response: EconomicsResponse = response.json().await?;
-            if economics_response.success {
-                Ok(economics_response.data.unwrap_or(serde_json::json!({})))
-            } else {
-                Err(economics_response.error.unwrap_or("Unknown error".to_string()).into())
-            }
-        } else {
-            Err(format!("HTTP error: {}", response.status()).into())
-        }
+        let metrics = self.token_economics.get_economic_metrics()?;
+        Ok(serde_json::to_value(metrics)?)
     }
 
-    pub async fn health_check(&self) -> bool {
+    pub fn health_check(&self) -> bool {
         if !self.enabled {
             return true; // Consider disabled as healthy
         }
 
-        let url = format!("{}/economics/health", self.economics_url);
-        
-        match self.client
-            .get(&url)
-            .timeout(Duration::from_secs(5))
-            .send()
-            .await
-        {
-            Ok(response) => response.status().is_success(),
-            Err(_) => false,
-        }
+        // For local economics, health check is always true if enabled
+        true
     }
 
     pub fn disable(&mut self) {
@@ -222,55 +114,32 @@ impl EconomicsIntegration {
         self.enabled
     }
 
-    // Start a background task to periodically sync with economics service
+    // Start a background task for local economics (no sync needed)
     pub async fn start_background_sync(&self) {
         if !self.enabled {
             return;
         }
 
-        let economics_integration = self.clone();
-        tokio::spawn(async move {
-            let mut interval = interval(Duration::from_secs(60)); // Sync every minute
-            
-            loop {
-                interval.tick().await;
-                
-                // Perform health check
-                if !economics_integration.health_check().await {
-                    warn!("Economics service health check failed");
-                    continue;
-                }
-
-                // Get and log metrics
-                match economics_integration.get_economic_metrics().await {
-                    Ok(metrics) => {
-                        info!("Economics metrics sync successful");
-                        // In a real implementation, you might store these metrics locally
-                    }
-                    Err(e) => {
-                        error!("Failed to sync economics metrics: {}", e);
-                    }
-                }
-            }
-        });
+        // Local economics doesn't need background sync
+        info!("Local economics integration started");
     }
 }
 
 // Helper functions for integration with existing KNIRVCHAIN code
 
-pub async fn integrate_skill_execution(
+pub fn integrate_skill_execution(
     economics: &EconomicsIntegration,
     user_id: &str,
     skill_id: &str,
-    cost: &str,
+    cost: &BigInt,
     success: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Process the economic transaction
     if success {
-        economics.process_skill_invocation(user_id, skill_id, cost).await?;
+        economics.process_skill_invocation(user_id, skill_id, cost)?;
     }
 
-    // Send event for tracking
+    // Send event for tracking (placeholder)
     let event = SkillExecutionEvent {
         user_id: user_id.to_string(),
         skill_id: skill_id.to_string(),
@@ -282,18 +151,18 @@ pub async fn integrate_skill_execution(
             .as_secs(),
     };
 
-    economics.send_skill_execution_event(event).await?;
+    economics.send_skill_execution_event(event)?;
     Ok(())
 }
 
-pub async fn integrate_llm_registration(
+pub fn integrate_llm_registration(
     economics: &EconomicsIntegration,
     user_id: &str,
     llm_id: &str,
-    registration_fee: &str,
+    registration_fee: &BigInt,
 ) -> Result<String, Box<dyn std::error::Error>> {
     // Process the registration fee
-    let tx_id = economics.process_llm_registration(user_id, llm_id, registration_fee).await?;
+    let tx_id = economics.process_llm_registration(user_id, llm_id, registration_fee)?;
 
     // Send validation event (assuming registration is successful)
     let event = LLMValidationEvent {
@@ -306,6 +175,6 @@ pub async fn integrate_llm_registration(
             .as_secs(),
     };
 
-    economics.send_llm_validation_event(event).await?;
+    economics.send_llm_validation_event(event)?;
     Ok(tx_id)
 }
