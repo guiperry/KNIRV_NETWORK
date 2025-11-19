@@ -19,7 +19,7 @@
 - [Protobuf Issue Resolution](#protobuf-issue-resolution)
 - [Root Payment Processor Implementation](#root-payment-processor-implementation)
 - [agent Tunnel Relay Implementation Plan](#agent-tunnel-relay-implementation-plan)
-- [KNIRVCHAIN Test Organization Improvements](#knirvoracle-test-organization-improvements)
+- [KNIRVCHAIN Test Organization Improvements](#knirvchain-test-organization-improvements)
 - [KNIRV Network Final Test Fixes Report](#knirv-network-final-test-fixes-report)
 
 

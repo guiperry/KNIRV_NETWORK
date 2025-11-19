@@ -24,13 +24,13 @@ import (
 
 	// GUI functionality has been removed
 
-	"KNIRVCHAIN/pkg/dataengine"
-	"KNIRVCHAIN/pkg/enum/StatusType"
-	"KNIRVCHAIN/pkg/errors"
-	"KNIRVCHAIN/pkg/inference"
-	"KNIRVCHAIN/pkg/inference/agentify"
-	"KNIRVCHAIN/pkg/protocol"
-	"KNIRVCHAIN/pkg/services"
+	"KNIRVCHAIN/internal/dataengine"
+	"KNIRVCHAIN/internal/enum/StatusType"
+	"KNIRVCHAIN/internal/errors"
+	"KNIRVCHAIN/internal/inference"
+	"KNIRVCHAIN/internal/inference/agentify"
+	"KNIRVCHAIN/internal/protocol"
+	"KNIRVCHAIN/internal/services"
 
 	"github.com/joho/godotenv"
 	provider "github.com/mouuff/go-rocket-update/pkg/provider"
@@ -39,10 +39,9 @@ import (
 	"KNIRVCHAIN/config" // Use your actual module path
 	// Local package imports for types used in the code
 
-	"KNIRVCHAIN/pkg/services/binary"
-	"KNIRVCHAIN/pkg/services/monitoring"
-	"KNIRVCHAIN/pkg/services/nodejs"
-	"KNIRVCHAIN/pkg/utils"
+	"KNIRVCHAIN/internal/services/monitoring"
+	"KNIRVCHAIN/internal/services/nodejs"
+	"KNIRVCHAIN/internal/utils"
 )
 
 // nodeRole is set by build tags in role-specific files (main_root.go, main_bootnode.go, etc.)
@@ -388,7 +387,7 @@ var AppVersion = "dev" // Default if not set by ldflags
 
 // Constants for go-rocket-update
 const (
-	GitHubRepoOwner = "guiperry"       // Replace with your GitHub username or organization
+	GitHubRepoOwner = "guiperry"   // Replace with your GitHub username or organization
 	GitHubRepoName  = "KNIRVCHAIN" // Replace with your GitHub repository name
 )
 
@@ -1823,41 +1822,6 @@ func startNodeWithComponents(
 			}
 		}
 
-		// 7.3. Embedded binary services (economics, network monitor)
-		var embeddedBinaryManager *binary.EmbeddedBinaryManager
-		var errEmbeddedBinary error
-		embeddedBinaryManager, errEmbeddedBinary = services.InitEmbeddedBinaryServices(&cfg)
-		if errEmbeddedBinary != nil {
-			log.Printf("[%s][%s] ERROR: Failed to initialize embedded binary services: %v", cfg.ChainID, nodeRole.String(), errEmbeddedBinary)
-		}
-		if embeddedBinaryManager != nil {
-			defer func() {
-				log.Printf("[%s][%s] Stopping embedded binary services...", cfg.ChainID, nodeRole.String())
-				embeddedBinaryManager.StopAllServices(context.Background())
-				log.Printf("[%s][%s] Embedded binary services stopped", cfg.ChainID, nodeRole.String())
-			}()
-		}
-
-		// 7.2. Network Monitor (for testnet mode)
-		if cfg.NetworkMonitor.Enabled && cfg.NetworkMonitor.AutoStart {
-			log.Printf("[%s][%s] Initializing Network Monitor...", cfg.ChainID, nodeRole.String())
-			globalNetworkMonitorManager = NewNetworkMonitorManager(&cfg)
-			if err := globalNetworkMonitorManager.Start(); err != nil {
-				log.Printf("[%s][%s] ERROR: Failed to start Network Monitor: %v", cfg.ChainID, nodeRole.String(), err)
-				// Continue execution even if Network Monitor fails to start
-			} else {
-				log.Printf("[%s][%s] Network Monitor started successfully on port %d", cfg.ChainID, nodeRole.String(), globalNetworkMonitorManager.GetPort())
-				defer func() {
-					log.Printf("[%s][%s] Stopping Network Monitor...", cfg.ChainID, nodeRole.String())
-					if err := globalNetworkMonitorManager.Stop(); err != nil {
-						log.Printf("[%s][%s] ERROR: Failed to stop Network Monitor: %v", cfg.ChainID, nodeRole.String(), err)
-					} else {
-						log.Printf("[%s][%s] Network Monitor stopped", cfg.ChainID, nodeRole.String())
-					}
-				}()
-			}
-		}
-
 		// Blockchain HTTP Server
 		blockchainSrv := NewBlockchainServer(uint64(cfg.Port), bc, db, discoveryMgr, int(cfg.P2PPort))
 
@@ -1915,7 +1879,7 @@ func startNodeWithComponents(
 			}
 			log.Printf("[%s] Blockchain HTTP Server stopped.", cfg.ChainID)
 			// --- Update the webgui backend.config file with the actual HTTP port ---
-			webguiEnvPath := filepath.Join("..", "..", "pkg", "embedded", "nodejs", "webgui", "webGUI", "backend.config") // Use filepath.Join for cross-platform compatibility
+			webguiEnvPath := filepath.Join("..", "..", "internal", "embedded", "nodejs", "webgui", "webGUI", "backend.config") // Use filepath.Join for cross-platform compatibility
 
 			var backendURL string
 			if cfg.ReverseProxy.Enabled {
@@ -2192,42 +2156,6 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 				if err := paymentProcessor.Stop(); err != nil {
 					log.Printf("[%s][%s] WARNING: Error stopping payment processor: %v", role.String(), cfg.ChainID, err)
 				}
-			}()
-		}
-
-		// 7.1. Node.js services (LEGACY - DISABLED)
-		// The old Node.js services have been replaced by embedded services
-		// Keeping this section commented for reference
-
-		// 7.2. Embedded Node.js services (new embedded approach)
-		var embeddedNodeJSManager *nodejs.EmbeddedNodeJSManager
-		if (cfg.IsRoot || cfg.IsBootnode) && cfg.NodeJSServices.Enabled {
-			var errEmbeddedNodeJS error
-			embeddedNodeJSManager, errEmbeddedNodeJS = services.InitEmbeddedNodeJSServices(&cfg)
-			if errEmbeddedNodeJS != nil {
-				log.Printf("[%s][%s] ERROR: Failed to initialize embedded Node.js services: %v", role.String(), cfg.ChainID, errEmbeddedNodeJS)
-			}
-			if embeddedNodeJSManager != nil {
-				defer func() {
-					log.Printf("[%s][%s] Stopping embedded Node.js services...", role.String(), cfg.ChainID)
-					embeddedNodeJSManager.StopAllServices(context.Background())
-					log.Printf("[%s][%s] Embedded Node.js services stopped", role.String(), cfg.ChainID)
-				}()
-			}
-		}
-
-		// 7.3. Embedded binary services (economics, network monitor)
-		var embeddedBinaryManager *binary.EmbeddedBinaryManager
-		var errEmbeddedBinary error
-		embeddedBinaryManager, errEmbeddedBinary = services.InitEmbeddedBinaryServices(&cfg)
-		if errEmbeddedBinary != nil {
-			log.Printf("[%s][%s] ERROR: Failed to initialize embedded binary services: %v", role.String(), cfg.ChainID, errEmbeddedBinary)
-		}
-		if embeddedBinaryManager != nil {
-			defer func() {
-				log.Printf("[%s][%s] Stopping embedded binary services...", role.String(), cfg.ChainID)
-				embeddedBinaryManager.StopAllServices(context.Background())
-				log.Printf("[%s][%s] Embedded binary services stopped", role.String(), cfg.ChainID)
 			}()
 		}
 

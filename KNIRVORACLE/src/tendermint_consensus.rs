@@ -516,7 +516,7 @@ impl BlockProposer {
 
         let header = BlockHeader {
             version: "1.0".to_string(),
-            chain_id: "knirvchain-1".to_string(),
+            chain_id: "knirvoracle-1".to_string(),
             height: chain_state.height + 1,
             time: current_time,
             last_block_id: if chain_state.height > 0 {

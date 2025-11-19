@@ -103,13 +103,13 @@ diff
 -62
 +18
 The code change produced by Gemini could not be fully parsed. Can't automatically accept changes.
-	"KNIRVCHAIN/config"
-	"KNIRVCHAIN/utils" // Assuming IsPortAvailable is in this package
+	"AGENTCHAIN/config"
+	"AGENTCHAIN/utils" // Assuming IsPortAvailable is in this package
 
 	"github.com/webview/webview_go"
 )
 
-const altGUIName = "KNIRVCHAIN AltGUI"
+const altGUIName = "AGENTCHAIN AltGUI"
 // const appConfigPath = "/app-config"; // No longer needed if using WebView binding
 
 // Global variables to store the main context cancel function and wait group

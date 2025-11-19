@@ -1,4 +1,4 @@
-**Phase 1: KNIRVCHAIN SDK Tool (Client-Side Go Application)**
+**Phase 1: AGENTCHAIN SDK Tool (Client-Side Go Application)**
 
 This will be a new Go project/module, let's call it `agent-sdk-tool`.
 
@@ -13,7 +13,7 @@ agent-sdk-tool/
 │   └── mcp.go              // MCP commands (register-capability, invoke-capability)
 ├── core/
 │   ├── wallet_manager.go   // Logic for key generation, encryption, storage
-│   ├── api_client.go       // Functions to interact with KNIRVCHAIN HTTP API
+│   ├── api_client.go       // Functions to interact with AGENTCHAIN HTTP API
 │   └── signer.go           // Transaction signing logic
 ├── config/                 // Configuration for the tool (e.g., default node URL)
 └── go.mod
@@ -131,5 +131,5 @@ Remember, the goal here is to create a robust, user-friendly SDK tool that simpl
 
 
 
-This comprehensive plan should guide you through a significant and beneficial refactoring of your KNIRVCHAIN system, making it more secure and developer-friendly. Remember to proceed step-by-step and test thoroughly at each stage.
+This comprehensive plan should guide you through a significant and beneficial refactoring of your AGENTCHAIN system, making it more secure and developer-friendly. Remember to proceed step-by-step and test thoroughly at each stage.
 ```

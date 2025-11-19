@@ -1,7 +1,7 @@
 ```markdown
 ## Protobuf Implementation Plan for Capability Resources
 
-This plan outlines the steps to integrate Protocol Buffers for serializing and deserializing `CapabilityDescriptor` and related data structures within the KNIRVCHAIN application.
+This plan outlines the steps to integrate Protocol Buffers for serializing and deserializing `CapabilityDescriptor` and related data structures within the AGENTCHAIN application.
 
 **Target Areas for Protobuf Integration:**
 
@@ -25,7 +25,7 @@ Create `.proto` files to define the structure of your capability resources.
 ```protobuf
 syntax = "proto3";
 
-package KNIRVCHAIN;
+package AGENTCHAIN;
 
 option go_package = "./;main"; // Adjust go_package to your project structure
 
@@ -121,7 +121,7 @@ message CapabilityDescriptorContainerProto {
 ```protobuf
 syntax = "proto3";
 
-package KNIRVCHAIN;
+package AGENTCHAIN;
 
 option go_package = "./;main"; // Adjust go_package
 
@@ -953,8 +953,8 @@ func (bc *BlockchainStruct) validateBaseDescriptor(descriptor BaseDescriptor) bo
     *   `SaveContextRecord` / `LoadContextRecord`: Similar changes, using `proto.Marshal` and `proto.Unmarshal` with `ContextRecordProto`.
 
 ```diff
---- a/home/gperry/Documents/GitHub/cloud-equities/KNIRVORACLE_GO_ROOT_MCP/leveldb_mcp.go
-+++ b/home/gperry/Documents/GitHub/cloud-equities/KNIRVORACLE_GO_ROOT_MCP/leveldb_mcp.go
+--- a/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN_GO_ROOT_MCP/leveldb_mcp.go
++++ b/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN_GO_ROOT_MCP/leveldb_mcp.go
 @@ -6,6 +6,7 @@
  	"log"
  	"strings"

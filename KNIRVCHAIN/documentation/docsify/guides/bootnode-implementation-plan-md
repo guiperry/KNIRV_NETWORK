@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the implementation plan for adding a bootnode feature to the KNIRVCHAIN application. A bootnode is a specialized node that serves as an entry point for other nodes joining the network. It accepts connections from other nodes without having any devs itself and advertises its presence on the network for discovery.
+This document outlines the implementation plan for adding a bootnode feature to the AGENTCHAIN application. A bootnode is a specialized node that serves as an entry point for other nodes joining the network. It accepts connections from other nodes without having any devs itself and advertises its presence on the network for discovery.
 
 ## Requirements
 
@@ -17,9 +17,9 @@ This document outlines the implementation plan for adding a bootnode feature to 
 
 The bootnode functionality will be integrated with the existing installation process in `install.go`. The current installation process already includes steps for:
 
-1. Connecting to the KNIRVCHAIN Bootnode
+1. Connecting to the AGENTCHAIN Bootnode
 2. Generating a unique chain URI
-3. Registering with the KNIRVCHAIN Node Registry
+3. Registering with the AGENTCHAIN Node Registry
 4. Detecting the host operating system
 5. Registering URI handlers
 6. Setting up a system service (currently a placeholder)
@@ -66,7 +66,7 @@ The implementation provides a unified interface for service installation across 
 Add a new `-bootnode` flag to the application's command-line interface in `main.go`:
 
 ```go
-bootnode := flag.Bool("bootnode", false, "Run as a bootnode for the KNIRVCHAIN network")
+bootnode := flag.Bool("bootnode", false, "Run as a bootnode for the AGENTCHAIN network")
 ```
 
 Also update the Install function in install.go to accept a bootnode parameter:
@@ -288,18 +288,18 @@ For Linux systems using systemd:
 ```go
 func configureLinuxService(configPath string, cfg *config.Config, serviceType string) error {
     // Set default values
-    serviceUser := "KNIRVCHAIN"
-    workingDir := "/var/lib/KNIRVCHAIN"
-    logPath := "/var/log/KNIRVCHAIN.log"
+    serviceUser := "AGENTCHAIN"
+    workingDir := "/var/lib/AGENTCHAIN"
+    logPath := "/var/log/AGENTCHAIN.log"
     
     // Determine service name and command line based on service type
-    serviceName := fmt.Sprintf("KNIRVCHAIN-%s", serviceType)
+    serviceName := fmt.Sprintf("AGENTCHAIN-%s", serviceType)
     var description string
     var execStart string
     
     if serviceType == "bootnode" {
-        description = fmt.Sprintf("KNIRVCHAIN Bootnode Service for chain %s", cfg.ChainID)
-        execStart = fmt.Sprintf("/usr/local/bin/KNIRVCHAIN -bootnode -config %s", configPath)
+        description = fmt.Sprintf("AGENTCHAIN Bootnode Service for chain %s", cfg.ChainID)
+        execStart = fmt.Sprintf("/usr/local/bin/AGENTCHAIN -bootnode -config %s", configPath)
         
         // Use bootnode-specific settings if available
         if cfg.Bootnode.ServiceUser != "" {
@@ -312,8 +312,8 @@ func configureLinuxService(configPath string, cfg *config.Config, serviceType st
             logPath = cfg.Bootnode.ServiceLogPath
         }
     } else {
-        description = fmt.Sprintf("KNIRVCHAIN Peer Node Service for chain %s", cfg.ChainID)
-        execStart = fmt.Sprintf("/usr/local/bin/KNIRVCHAIN -dev -config %s", configPath)
+        description = fmt.Sprintf("AGENTCHAIN Peer Node Service for chain %s", cfg.ChainID)
+        execStart = fmt.Sprintf("/usr/local/bin/AGENTCHAIN -dev -config %s", configPath)
     }
     
     // Create systemd service file
@@ -386,7 +386,7 @@ For Windows systems:
 ```go
 func configureWindowsService(configPath string, cfg *config.Config, serviceType string) error {
     // Determine installation directory
-    installDir := os.Getenv("ProgramFiles") + `\KNIRVCHAIN`
+    installDir := os.Getenv("ProgramFiles") + `\AGENTCHAIN`
     
     // Determine service name and settings based on service type
     var serviceName string
@@ -396,34 +396,34 @@ func configureWindowsService(configPath string, cfg *config.Config, serviceType 
     var logPath string
     
     if serviceType == "bootnode" {
-        serviceName = "KNIRVORACLEBootnode"
+        serviceName = "AGENTCHAINBootnode"
         
         // Use bootnode-specific settings if available
         if cfg.Bootnode.ServiceDisplayName != "" {
             displayName = cfg.Bootnode.ServiceDisplayName
         } else {
-            displayName = fmt.Sprintf("KNIRVCHAIN Bootnode Service (%s)", cfg.ChainID)
+            displayName = fmt.Sprintf("AGENTCHAIN Bootnode Service (%s)", cfg.ChainID)
         }
         
         if cfg.Bootnode.ServiceDescription != "" {
             description = cfg.Bootnode.ServiceDescription
         } else {
-            description = fmt.Sprintf("KNIRVCHAIN network bootnode service for chain %s", cfg.ChainID)
+            description = fmt.Sprintf("AGENTCHAIN network bootnode service for chain %s", cfg.ChainID)
         }
         
         if cfg.Bootnode.ServiceLogPath != "" {
             logPath = cfg.Bootnode.ServiceLogPath
         } else {
-            logPath = os.Getenv("ProgramData") + `\KNIRVCHAIN\logs\bootnode.log`
+            logPath = os.Getenv("ProgramData") + `\AGENTCHAIN\logs\bootnode.log`
         }
         
-        binPath = fmt.Sprintf(`"%s\KNIRVCHAIN.exe" -bootnode -config "%s"`, installDir, configPath)
+        binPath = fmt.Sprintf(`"%s\AGENTCHAIN.exe" -bootnode -config "%s"`, installDir, configPath)
     } else {
-        serviceName = "KNIRVORACLEPeer"
-        displayName = fmt.Sprintf("KNIRVCHAIN Peer Node Service (%s)", cfg.ChainID)
-        description = fmt.Sprintf("KNIRVCHAIN network dev node service for chain %s", cfg.ChainID)
-        logPath = os.Getenv("ProgramData") + `\KNIRVCHAIN\logs\dev.log`
-        binPath = fmt.Sprintf(`"%s\KNIRVCHAIN.exe" -dev -config "%s"`, installDir, configPath)
+        serviceName = "AGENTCHAINPeer"
+        displayName = fmt.Sprintf("AGENTCHAIN Peer Node Service (%s)", cfg.ChainID)
+        description = fmt.Sprintf("AGENTCHAIN network dev node service for chain %s", cfg.ChainID)
+        logPath = os.Getenv("ProgramData") + `\AGENTCHAIN\logs\dev.log`
+        binPath = fmt.Sprintf(`"%s\AGENTCHAIN.exe" -dev -config "%s"`, installDir, configPath)
     }
     
     // Create log directory if it doesn't exist
@@ -508,9 +508,9 @@ func configureMacOSService(configPath string, cfg *config.Config, serviceType st
     var logPath string
     
     if serviceType == "bootnode" {
-        serviceLabel = "com.KNIRVCHAIN.bootnode"
+        serviceLabel = "com.AGENTCHAIN.bootnode"
         programArgs = []string{
-            "/usr/local/bin/KNIRVCHAIN",
+            "/usr/local/bin/AGENTCHAIN",
             "-bootnode",
             "-config",
             configPath,
@@ -526,25 +526,25 @@ func configureMacOSService(configPath string, cfg *config.Config, serviceType st
         if cfg.Bootnode.ServiceWorkingDir != "" {
             workingDir = cfg.Bootnode.ServiceWorkingDir
         } else {
-            workingDir = "/usr/local/var/KNIRVCHAIN"
+            workingDir = "/usr/local/var/AGENTCHAIN"
         }
         
         if cfg.Bootnode.ServiceLogPath != "" {
             logPath = cfg.Bootnode.ServiceLogPath
         } else {
-            logPath = "/Library/Logs/KNIRVCHAIN-bootnode.log"
+            logPath = "/Library/Logs/AGENTCHAIN-bootnode.log"
         }
     } else {
-        serviceLabel = "com.KNIRVCHAIN.dev"
+        serviceLabel = "com.AGENTCHAIN.dev"
         programArgs = []string{
-            "/usr/local/bin/KNIRVCHAIN",
+            "/usr/local/bin/AGENTCHAIN",
             "-dev",
             "-config",
             configPath,
         }
         serviceUser = "root"
-        workingDir = "/usr/local/var/KNIRVCHAIN"
-        logPath = "/Library/Logs/KNIRVCHAIN-dev.log"
+        workingDir = "/usr/local/var/AGENTCHAIN"
+        logPath = "/Library/Logs/AGENTCHAIN-dev.log"
     }
     
     // Ensure working directory exists
@@ -765,7 +765,7 @@ import (
     "sync"
     "time"
     
-    "KNIRVORACLE_GO_ROOT/config"
+    "AGENTCHAIN_GO_ROOT/config"
 )
 
 // BootnodeManager handles bootnode operations
@@ -936,4 +936,4 @@ func (bm *BootnodeManager) Stop() {
 
 ## Conclusion
 
-This implementation plan outlines the steps required to add a bootnode feature to the KNIRVCHAIN application. The bootnode will provide a reliable entry point for nodes joining the network, improving network resilience and connectivity. The implementation will leverage the existing registry service for bootnode discovery, with fallback to DHT discovery if the registry service is unavailable.
+This implementation plan outlines the steps required to add a bootnode feature to the AGENTCHAIN application. The bootnode will provide a reliable entry point for nodes joining the network, improving network resilience and connectivity. The implementation will leverage the existing registry service for bootnode discovery, with fallback to DHT discovery if the registry service is unavailable.

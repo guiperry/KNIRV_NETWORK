@@ -1,4 +1,4 @@
-# KNIRVCHAIN Decentralized Discovery Implementation Plan (DHT)
+# AGENTCHAIN Decentralized Discovery Implementation Plan (DHT)
 
 ## 1. Goal
 
@@ -11,12 +11,12 @@ To replace the current centralized Node.js registry and STUN service with a dece
 
 ## 3. Key Components & Concepts
 
-*   **DHT Integration:** Each participating KNIRVCHAIN node will run a Kademlia DHT client/server instance.
+*   **DHT Integration:** Each participating AGENTCHAIN node will run a Kademlia DHT client/server instance.
 *   **Peer Identity:** Nodes will use their `libp2p` PeerID (derived from cryptographic keys) as their fundamental network identifier.
 *   **Content Routing:** The DHT will be used to map a discoverable identifier (e.g., the `chainID` or the PeerID) to the node's current reachable network address (multiaddr).
 *   **Bootstrap Nodes:** A small set of stable, publicly reachable nodes will serve as initial entry points for new nodes joining the DHT network.
 *   **Multiaddresses:** Standard `libp2p` multiaddrs (e.g., `/ip4/1.2.3.4/tcp/5001`) will represent node connection endpoints.
-*   **Chain Identifier:** For simplicity, we'll assume the `chainID` serves as both the primary identifier for a KNIRVCHAIN instance and the key under which it registers its multiaddress(es) in the DHT.
+*   **Chain Identifier:** For simplicity, we'll assume the `chainID` serves as both the primary identifier for a AGENTCHAIN instance and the key under which it registers its multiaddress(es) in the DHT.
 *   **Node Discovery:** Nodes will periodically refresh their DHT records and query the DHT to discover other nodes.
 *   **Connection Establishment:** After discovering another node's multiaddress through the DHT, establish a direct P2P connection using `libp2p`'s built-in networking capabilities.
 *   **NAT Traversal:** Utilize `libp2p`'s AutoNAT service to assist nodes behind NATs in establishing connections.
@@ -27,15 +27,15 @@ To replace the current centralized Node.js registry and STUN service with a dece
 
 **URI Scheme**:
 
-The URI scheme for KNIRVCHAIN will be updated to reflect the decentralized nature of the network and provide a clear structure resembling familiar domain patterns. The general format will be:
+The URI scheme for AGENTCHAIN will be updated to reflect the decentralized nature of the network and provide a clear structure resembling familiar domain patterns. The general format will be:
 
 ```plaintext
-knirv://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
+agent://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
 ```
 
 Where:
 
-*   **`knirv://`**: Protocol prefix indicating a KNIRVCHAIN-specific URI.
+*   **`agent://`**: Protocol prefix indicating a AGENTCHAIN-specific URI.
 *   **`<ID>.<ResourceType>`**: The authority/host part, combining the unique identifier and the resource type.
     *   **`<ID>`**: Unique identifier for the chain, content, or node (e.g., `chainID`, `contentID`).
     *   **`<ResourceType>`**: Specifies the type of resource, acting like an internal TLD.
@@ -53,18 +53,18 @@ Where:
 
 **Examples:**
 
-*   General info about a specific chain: `knirv://<chainID>.chain/`
-*   Get a specific block by number: `knirv://<chainID>.chain/block?number=<BLOCK_NUMBER>`
-*   Get a specific block by hash: `knirv://<chainID>.chain/block?hash=<BLOCK_HASH>`
-*   Get a specific transaction: `knirv://<chainID>.chain/transaction?hash=<TX_HASH>`
-*   Get account info on a chain: `knirv://<chainID>.chain/account?address=<ADDRESS>`
-*   Get specific NRN content: `knirv://<contentID>.nrn/` or 
-`knirv://<contentID>.nrn/content?version=1.2`
-*   Get chain status: `knirv://<chainID>.chain/status`
-*   Get chain devs: `knirv://<chainID>.chain/devs`
-*   Get specific NRN content: `knirv://<contentID>.nrn/content?version=1.2`
-*   Get devs for a specific NRN content: `knirv://<contentID>.nrn/devs`
-*   Get devs for a specific chain network: `knirv://<chainID>.chain/devs`
+*   General info about a specific chain: `agent://<chainID>.chain/`
+*   Get a specific block by number: `agent://<chainID>.chain/block?number=<BLOCK_NUMBER>`
+*   Get a specific block by hash: `agent://<chainID>.chain/block?hash=<BLOCK_HASH>`
+*   Get a specific transaction: `agent://<chainID>.chain/transaction?hash=<TX_HASH>`
+*   Get account info on a chain: `agent://<chainID>.chain/account?address=<ADDRESS>`
+*   Get specific NRN content: `agent://<contentID>.nrn/` or 
+`agent://<contentID>.nrn/content?version=1.2`
+*   Get chain status: `agent://<chainID>.chain/status`
+*   Get chain devs: `agent://<chainID>.chain/devs`
+*   Get specific NRN content: `agent://<contentID>.nrn/content?version=1.2`
+*   Get devs for a specific NRN content: `agent://<contentID>.nrn/devs`
+*   Get devs for a specific chain network: `agent://<chainID>.chain/devs`
 
 **Note:** The exact structure and usage of the URI scheme may evolve. Flexibility is key, but this structure provides a more standard and extensible foundation compared to previous iterations.
 
@@ -77,7 +77,7 @@ Where:
 
 **Node Identity & libp2p Host:**
 
-1.  Ensure each KNIRVCHAIN node generates or loads a persistent cryptographic key pair (e.g., Ed25519) on startup.
+1.  Ensure each AGENTCHAIN node generates or loads a persistent cryptographic key pair (e.g., Ed25519) on startup.
 2.  Derive the libp2p PeerID from the public key.
 3.  Initialize a libp2p Host instance (`libp2p.New`) configured with the node's identity and listening multiaddrs (e.g., `/ip4/0.0.0.0/tcp/YOUR_P2P_PORT`, `/ip6/::/tcp/YOUR_P2P_PORT`).
 
@@ -102,7 +102,7 @@ Where:
 
 **Peer Discovery (Lookup):**
 
-1.  **Input:** Target URI (e.g., `knirv://<chainID>.chain/block?hash=...`).
+1.  **Input:** Target URI (e.g., `agent://<chainID>.chain/block?hash=...`).
 2.  **Parse URI:** Extract `<ID>`, `<ResourceType>`, `<OptionalSubPath>`, and query parameters.
 3.  **DHT Query:**
     *   **Option A (FindProviders via CID):** Generate the relevant CID (e.g., from `<ID>` or `<ID>.<ResourceType>`). Use `dht.FindProviders` to find PeerIDs associated with that CID.
@@ -117,7 +117,7 @@ Where:
 
 **URI Scheme Adaptation:**
 
-1.  Modify all code that generates, parses, or uses the `knirv://` URI to conform to the new structure (`knirv://<ID>.<ResourceType>/<OptionalSubPath>?...`).
+1.  Modify all code that generates, parses, or uses the `agent://` URI to conform to the new structure (`agent://<ID>.<ResourceType>/<OptionalSubPath>?...`).
 2.  Update internal logic to trigger DHT lookups based on the authority part (`<ID>.<ResourceType>`) of this URI instead of DNS/HTTP lookups.
 
 **Bootstrap Node Setup:**

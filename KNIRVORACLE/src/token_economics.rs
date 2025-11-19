@@ -313,7 +313,7 @@ impl TokenEconomics {
         }
 
         // Update metrics
-        self.update_service_metrics("knirvchain", amount, "spent");
+        self.update_service_metrics("knirvoracle", amount, "spent");
 
         Ok(tx)
     }
@@ -350,7 +350,7 @@ impl TokenEconomics {
         }
 
         // Update metrics
-        self.update_service_metrics("knirvchain", registration_fee, "earned");
+        self.update_service_metrics("knirvoracle", registration_fee, "earned");
 
         Ok(tx)
     }

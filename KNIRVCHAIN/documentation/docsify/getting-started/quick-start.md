@@ -14,10 +14,10 @@
 
 ```bash
 # Navigate to the project root directory
-cd /path/to/KNIRVORACLE_GO_ROOT
+cd /path/to/AGENTCHAIN_GO_ROOT
 
 # Build the executable
-go build -o KNIRVORACLE_node .
+go build -o AGENTCHAIN_node .
 ```
 
 #### Configuration
@@ -25,8 +25,8 @@ go build -o KNIRVORACLE_node .
 The application searches for `config.json` in the following order:
 
 1.  Path specified by the `-config` flag.
-2.  Path specified by the `KNIRVORACLE_CONFIG_PATH` environment variable.
-3.  User config directory (`~/.config/KNIRVCHAIN/config.json` on Linux).
+2.  Path specified by the `AGENTCHAIN_CONFIG_PATH` environment variable.
+3.  User config directory (`~/.config/AGENTCHAIN/config.json` on Linux).
 4.  Directory containing the executable.
 5.  Current working directory.
 
@@ -34,7 +34,7 @@ If not found, a default `config.json` is created (usually in the user config dir
 
 #### Private DHT Setup:
 
-1.  Run the `KNIRVORACLE_node` on your chosen bootstrap machines. Note their full multiaddresses (e.g., `/ip4/x.x.x.x/tcp/4001/p2p/12D3Koo...`).
+1.  Run the `AGENTCHAIN_node` on your chosen bootstrap machines. Note their full multiaddresses (e.g., `/ip4/x.x.x.x/tcp/4001/p2p/12D3Koo...`).
 2.  Update the `bootstrap_devs` list in your `config.json` (or the hardcoded list in `discovery_manager.go`) on *all* nodes (root, devs, bootstrap nodes themselves) to contain *only* the multiaddresses of your dedicated bootstrap nodes.
 
 ### Running
@@ -43,7 +43,7 @@ If not found, a default `config.json` is created (usually in the user config dir
 
     ```bash
     # Ensure config.json has correct root ports and private bootstrap_devs
-    ./KNIRVORACLE_node -network
+    ./AGENTCHAIN_node -network
     # Or using go run
     # go run . -network
     ```
@@ -52,17 +52,17 @@ If not found, a default `config.json` is created (usually in the user config dir
 
     ```bash
     # First-time run (triggers installer if install_complete=false):
-    ./KNIRVORACLE_node -dev
+    ./AGENTCHAIN_node -dev
 
     # Subsequent runs (loads config with dev ports):
-    ./KNIRVORACLE_node -dev
+    ./AGENTCHAIN_node -dev
     ```
 
 3.  **Single Node Mode:** Starts a single node, typically using root configuration unless overridden. Useful for development or specific setups.
 
     ```bash
     # Example: Start a single node on different ports
-    ./KNIRVORACLE_node -port 5005 -p2p.port 4005 -wallet_port 6005 -shared_database_path database_node5005/agent.db -miners_address your_miner_address
+    ./AGENTCHAIN_node -port 5005 -p2p.port 4005 -wallet_port 6005 -shared_database_path database_node5005/agent.db -miners_address your_miner_address
     ```
 
 Press `Ctrl+C` to initiate graceful shutdown.
@@ -93,7 +93,7 @@ Press `Ctrl+C` to initiate graceful shutdown.
 *   `GET /txn_pool`: Returns the transaction pool.
 *   `GET /ping`: Simple health check.
 *   `GET /health`: Detailed health check.
-*   `POST /uriGenerator`: Generates a `knirv://` URI, checks DHT, announces on DHT.
+*   `POST /uriGenerator`: Generates a `agent://` URI, checks DHT, announces on DHT.
 *   `GET /info`: Returns server information.
 *   `GET /devs`: Finds devs for the node's chain via the private DHT.
 *   `POST /test/faucet`: (Test Only) Funds an address.
@@ -117,10 +117,10 @@ Press `Ctrl+C` to initiate graceful shutdown.
 
 ### URI Scheme
 
-KNIRVCHAIN uses a custom URI scheme for resource identification within its private network:
+AGENTCHAIN uses a custom URI scheme for resource identification within its private network:
 
 ```
-knirv://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1
+agent://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1
 ```
 
 *   `<ID>`: Unique identifier (e.g., `agent-root-5000`, `myPeer`).
@@ -128,7 +128,7 @@ knirv://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1
 *   `<OptionalSubPath>`: e.g., `/block`, `/transaction`, `/devs`.
 *   `?params`: Optional query parameters.
 
-Resolution involves parsing the URI, deriving a resource key (e.g., `myPeer.chain`), generating a CID, querying the private KNIRVCHAIN DHT for providers using the CID, connecting to a provider via libp2p, and making the request over a P2P stream.
+Resolution involves parsing the URI, deriving a resource key (e.g., `myPeer.chain`), generating a CID, querying the private AGENTCHAIN DHT for providers using the CID, connecting to a provider via libp2p, and making the request over a P2P stream.
 
 ### Testing
 

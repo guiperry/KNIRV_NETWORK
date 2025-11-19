@@ -2,9 +2,9 @@
 
 ## 1. Overview
 
-This document outlines a plan to integrate RealmDB into the KNIRVCHAIN node software to provide enhanced querying capabilities, particularly for blockchain transactions, context records, and capability descriptors. The primary goal is to create a fast, queryable local data store that complements the existing LevelDB-based blockchain storage.
+This document outlines a plan to integrate RealmDB into the AGENTCHAIN node software to provide enhanced querying capabilities, particularly for blockchain transactions, context records, and capability descriptors. The primary goal is to create a fast, queryable local data store that complements the existing LevelDB-based blockchain storage.
 
-Currently, the KNIRVCHAIN blockchain data is stored in LevelDB, which is excellent for key-value lookups but limited for complex queries. This implementation plan addresses this limitation by introducing RealmDB as a secondary index, enabling advanced search capabilities while maintaining LevelDB as the source of truth.
+Currently, the AGENTCHAIN blockchain data is stored in LevelDB, which is excellent for key-value lookups but limited for complex queries. This implementation plan addresses this limitation by introducing RealmDB as a secondary index, enabling advanced search capabilities while maintaining LevelDB as the source of truth.
 
 ### 1.1 Key Benefits
 
@@ -64,7 +64,7 @@ These methods are efficient for direct lookups but inadequate for complex querie
 
 ## 4. RealmDB Schema Design
 
-The schema design is based on the existing Go structs and Protobuf definitions in the KNIRVCHAIN codebase, with adaptations to optimize for RealmDB's query capabilities. As outlined in the RealmDB_Conversation.md, we'll focus on three primary schema types:
+The schema design is based on the existing Go structs and Protobuf definitions in the AGENTCHAIN codebase, with adaptations to optimize for RealmDB's query capabilities. As outlined in the RealmDB_Conversation.md, we'll focus on three primary schema types:
 
 ### 4.1 Transaction Schema
 
@@ -339,8 +339,8 @@ import (
     "go.mongodb.org/mongo-driver/bson/primitive"
     realm "github.com/realm/realm-go"
 
-    bctypes "github.com/your_org/KNIRVCHAIN/internal/blockchain/structs"
-    mcptypes "github.com/your_org/KNIRVCHAIN/internal/mcp/types"
+    bctypes "github.com/your_org/AGENTCHAIN/internal/blockchain/structs"
+    mcptypes "github.com/your_org/AGENTCHAIN/internal/mcp/types"
 )
 
 // RealmSyncManager handles synchronization between LevelDB and RealmDB
@@ -551,7 +551,7 @@ To integrate the RealmSyncManager with the blockchain core, we need to modify th
 
 // Add to imports
 import (
-    "github.com/your_org/KNIRVCHAIN/internal/realmdb"
+    "github.com/your_org/AGENTCHAIN/internal/realmdb"
 )
 
 // Add to BlockchainStruct
@@ -911,7 +911,7 @@ As highlighted in the RealmDB_Conversation.md, several challenges need careful a
 
 ## 8. Conclusion
 
-Implementing RealmDB as a secondary index will significantly enhance the search and query capabilities of the KNIRVCHAIN blockchain. By maintaining synchronization with LevelDB through event listeners, we can ensure that all blockchain data is properly indexed and searchable without compromising the integrity of the core blockchain.
+Implementing RealmDB as a secondary index will significantly enhance the search and query capabilities of the AGENTCHAIN blockchain. By maintaining synchronization with LevelDB through event listeners, we can ensure that all blockchain data is properly indexed and searchable without compromising the integrity of the core blockchain.
 
 The proposed implementation will enable:
 - Complex SQL-like queries on blockchain data

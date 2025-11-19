@@ -1,6 +1,6 @@
-## Programmatically Accepting Fiat/Crypto Payments and Disbursing KNIRVCHAIN Tokens
+## Programmatically Accepting Fiat/Crypto Payments and Disbursing AGENTCHAIN Tokens
 
-This document outlines how to programmatically accept fiat or crypto payments and then disburse your native KNIRVCHAIN token.  This process involves a frontend, payment gateway, a backend service (listener/processor), the KNIRVCHAIN node, and a disbursement wallet.
+This document outlines how to programmatically accept fiat or crypto payments and then disburse your native AGENTCHAIN token.  This process involves a frontend, payment gateway, a backend service (listener/processor), the AGENTCHAIN node, and a disbursement wallet.
 
 **Components:**
 
@@ -11,12 +11,12 @@ This document outlines how to programmatically accept fiat or crypto payments an
 *   **Backend Service (Listener/Processor):** A server-side application that:
     *   Receives confirmation from the Payment Gateway that a payment was successful.
     *   Calculates the corresponding amount of your native token to disburse.
-    *   Constructs and signs a transaction on your KNIRVCHAIN.
-    *   Broadcasts the transaction to your KNIRVCHAIN network.
+    *   Constructs and signs a transaction on your AGENTCHAIN.
+    *   Broadcasts the transaction to your AGENTCHAIN network.
 
-*   **KNIRVCHAIN Node:** Your running blockchain node that receives and processes the disbursement transaction.
+*   **AGENTCHAIN Node:** Your running blockchain node that receives and processes the disbursement transaction.
 
-*   **Disbursement (MASTER) Wallet:** A KNIRVCHAIN wallet controlled by your backend service, holding enough native tokens to fulfill the disbursements. Its private key *must* be kept secure.
+*   **Disbursement (MASTER) Wallet:** A AGENTCHAIN wallet controlled by your backend service, holding enough native tokens to fulfill the disbursements. Its private key *must* be kept secure.
 
 **Conceptual Go Implementation (Backend Service):**
 
@@ -35,13 +35,13 @@ import (
 	"strings"
 	"time"
 
-	// --- KNIRVCHAIN Specific Imports ---
+	// --- AGENTCHAIN Specific Imports ---
 	// These depend on your project structure. You'll need access to:
 	// 1. Wallet creation/loading functionality
 	// 2. Transaction creation structures/methods
 	// 3. Transaction signing methods
-	"KNIRVORACLE_GO_PROD/wallet"      // Assuming you have wallet functions here
-	"KNIRVORACLE_GO_PROD/transaction" // Assuming transaction structure/funcs are here
+	"AGENTCHAIN_GO_PROD/wallet"      // Assuming you have wallet functions here
+	"AGENTCHAIN_GO_PROD/transaction" // Assuming transaction structure/funcs are here
 	// You might need other blockchain-related packages too
 
 	// --- Payment Gateway SDKs (Examples) ---
@@ -51,7 +51,7 @@ import (
 
 // Configuration for the payment processor service
 type PaymentProcessorConfig struct {
-	KNIRVORACLENodeRPC string // URL of your KNIRVCHAIN node (e.g., "http://127.0.0.1:5000")
+	AGENTCHAINNodeRPC string // URL of your AGENTCHAIN node (e.g., "http://127.0.0.1:5000")
 	DisbursementPK    string // PRIVATE KEY of the wallet holding tokens for disbursement (LOAD SECURELY!)
 	TokenSymbol       string // e.g., "agent"
 	TokenDecimals     int    // How many decimal places your token uses (like 18 for ETH)
@@ -146,10 +146,10 @@ func (pp *PaymentProcessor) calculateTokenAmount(amountReceived float64, currenc
 	return tokenAmountInt, nil
 }
 
-// disburseTokens creates, signs, and broadcasts the KNIRVCHAIN transaction.
+// disburseTokens creates, signs, and broadcasts the AGENTCHAIN transaction.
 func (pp *PaymentProcessor) disburseTokens(recipientAddress string, amount *big.Int, paymentID string) (string, error) {
 	// 1. Validate Recipient Address (Add your specific validation logic)
-	if !isValidKNIRVORACLEAddress(recipientAddress) { // Replace with your actual validation
+	if !isValidAGENTCHAINAddress(recipientAddress) { // Replace with your actual validation
 		return "", fmt.Errorf("invalid recipient address: %s", recipientAddress)
 	}
 
@@ -186,7 +186,7 @@ func (pp *PaymentProcessor) disburseTokens(recipientAddress string, amount *big.
 	return txHash, nil
 }
 
-// broadcastTransaction sends the signed transaction to the KNIRVCHAIN node.
+// broadcastTransaction sends the signed transaction to the AGENTCHAIN node.
 func (pp *PaymentProcessor) broadcastTransaction(tx *transaction.Transaction) (string, error) {
 	// Marshal the transaction to JSON (or your node's expected format)
 	txJSON, err := json.Marshal(tx)
@@ -196,7 +196,7 @@ func (pp *PaymentProcessor) broadcastTransaction(tx *transaction.Transaction) (s
 
 	// Determine the correct API endpoint on your node
 	// This is just an example, adjust to your node's API
-	broadcastURL := pp.config.KNIRVORACLENodeRPC + "/transactions/new"
+	broadcastURL := pp.config.AGENTCHAINNodeRPC + "/transactions/new"
 
 	req, err := http.NewRequest("POST", broadcastURL, bytes.NewBuffer(txJSON))
 	if err != nil {
@@ -269,13 +269,13 @@ func (pp *PaymentProcessor) handleStripeWebhook(w http.ResponseWriter, r *http.R
 		currency := object["currency"].(string)
 		amountReceivedFloat := float64(amountReceivedCents) / 100.0
 
-		// 3. *** IMPORTANT: Get the recipient's KNIRVCHAIN address ***
+		// 3. *** IMPORTANT: Get the recipient's AGENTCHAIN address ***
 		// You MUST collect this from the user during checkout and pass it to Stripe,
 		// often via 'metadata' in the PaymentIntent or Checkout Session.
 		metadata, okMeta := object["metadata"].(map[string]interface{})
 		recipientAddress, okAddr := "", false
 		if okMeta {
-			addr, ok := metadata["KNIRVORACLE_address"].(string)
+			addr, ok := metadata["AGENTCHAIN_address"].(string)
 			if ok && addr != "" {
 				recipientAddress = addr
 				okAddr = true
@@ -283,7 +283,7 @@ func (pp *PaymentProcessor) handleStripeWebhook(w http.ResponseWriter, r *http.R
 		}
 
 		if !okAddr {
-			log.Printf("ERROR: KNIRVORACLE_address missing in metadata for charge %s", chargeID)
+			log.Printf("ERROR: AGENTCHAIN_address missing in metadata for charge %s", chargeID)
 			// Respond to Stripe but handle internally (e.g., notify admin, maybe refund)
 			fmt.Fprintf(w, "Error: Missing recipient address metadata")
 			return
@@ -334,7 +334,7 @@ func (pp *PaymentProcessor) handleStripeWebhook(w http.ResponseWriter, r *http.R
 }
 
 // --- Placeholder for address validation ---
-func isValidKNIRVORACLEAddress(addr string) bool {
+func isValidAGENTCHAINAddress(addr string) bool {
 	// Implement your specific address validation logic here.
 	// Check length, prefix, checksum, etc.
 	return len(addr) > 10 // Very basic example
@@ -344,7 +344,7 @@ func isValidKNIRVORACLEAddress(addr string) bool {
 func main() {
 	// Load configuration securely (e.g., from env vars, config file)
 	config := PaymentProcessorConfig{
-		KNIRVORACLENodeRPC: os.Getenv("KNIRVORACLE_NODE_RPC"), // e.g., "http://127.0.0.1:5000"
+		AGENTCHAINNodeRPC: os.Getenv("AGENTCHAIN_NODE_RPC"), // e.g., "http://127.0.0.1:5000"
 		DisbursementPK:    os.Getenv("DISBURSEMENT_PRIVATE_KEY"), // !!! LOAD SECURELY !!!
 		TokenSymbol:       "agent",
 		TokenDecimals:     6, // Example: 6 decimal places
@@ -387,16 +387,16 @@ func main() {
     *   Validates the recipient's address.
     *   Constructs a transaction using your blockchain's specific transaction structure (`transaction.NewTransaction`). You'll need to adapt this based on required fields (nonce, fees, etc.).
     *   Signs the transaction using the `disbursementWallet`.
-    *   Broadcasts the signed transaction to your KNIRVCHAIN node's API (`broadcastTransaction`).
+    *   Broadcasts the signed transaction to your AGENTCHAIN node's API (`broadcastTransaction`).
 
-*   **Broadcasting (`broadcastTransaction`):** Sends the transaction (usually as JSON) via HTTP POST to an endpoint exposed by your KNIRVCHAIN node (e.g., `/transactions/new`). It handles the response, expecting a success status and potentially the transaction hash.
+*   **Broadcasting (`broadcastTransaction`):** Sends the transaction (usually as JSON) via HTTP POST to an endpoint exposed by your AGENTCHAIN node (e.g., `/transactions/new`). It handles the response, expecting a success status and potentially the transaction hash.
 
 *   **Webhook Handler (`handleStripeWebhook`):**
     *   **SECURITY:** The most critical step is *verifying the webhook signature* using the secret provided by the payment gateway.  This ensures the request is legitimate. The example comments this out but it is *essential* for production.
     *   Parses the incoming event data.
     *   Identifies the relevant event (e.g., `charge.succeeded`).
     *   Extracts payment details (amount, currency, payment ID).
-    *   Crucially, retrieves the recipient's KNIRVCHAIN address, which *must* have been collected during checkout and stored (e.g., in Stripe metadata).
+    *   Crucially, retrieves the recipient's AGENTCHAIN address, which *must* have been collected during checkout and stored (e.g., in Stripe metadata).
     *   **Idempotency:** Checks if this payment ID has already been processed to prevent double-spending.
     *   Calls `calculateTokenAmount` and `disburseTokens`.
     *   Marks the payment as processed.
@@ -404,6 +404,6 @@ func main() {
 
 *   **Error Handling & Logging:** Robust logging is vital for debugging. Critical errors (like failing to disburse after payment) need alerting and potentially manual intervention or automated refund/retry logic.
 
-*   **Dependencies:** You'll need to `go get` any payment gateway SDKs you use and ensure your internal `KNIRVORACLE_GO_PROD/wallet` and `KNIRVORACLE_GO_PROD/transaction` packages are correctly imported and provide the necessary functions.
+*   **Dependencies:** You'll need to `go get` any payment gateway SDKs you use and ensure your internal `AGENTCHAIN_GO_PROD/wallet` and `AGENTCHAIN_GO_PROD/transaction` packages are correctly imported and provide the necessary functions.
 
-This backend service acts as the bridge between the external payment world and your internal blockchain logic.  Remember to adapt the transaction creation, signing, broadcasting, and address validation parts to the specific implementation details of KNIRVCHAIN.
+This backend service acts as the bridge between the external payment world and your internal blockchain logic.  Remember to adapt the transaction creation, signing, broadcasting, and address validation parts to the specific implementation details of AGENTCHAIN.

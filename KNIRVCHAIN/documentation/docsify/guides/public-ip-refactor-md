@@ -1,7 +1,7 @@
 Core Idea:
 
 Early IP Fetch in main.go: After determining the nodeRole and loading the initial configuration (via config.LoadConfigurationViper), we'll fetch the public IP using net_utils.fetchPublicIPFromIPInfo().
-Store in Role's Config: The fetched IP information (full JSON response) will be added to the *config.Config struct and then saved back to the role-specific configuration file (e.g., ~/.config/KNIRVCHAIN/root_data/root_config.json or ~/.config/KNIRVCHAIN/dev_data/dev_config.json). We'll use the existing config.SaveConfigToUserDir which leverages config.SaveMinimalConfig.
+Store in Role's Config: The fetched IP information (full JSON response) will be added to the *config.Config struct and then saved back to the role-specific configuration file (e.g., ~/.config/AGENTCHAIN/root_data/root_config.json or ~/.config/AGENTCHAIN/dev_data/dev_config.json). We'll use the existing config.SaveConfigToUserDir which leverages config.SaveMinimalConfig.
 Eliminate env.local for IP: Remove the logic in install.go and net_utils.go that writes IP-related info to any env.local files.
 ROOTCHAIN_URL Update: For the Root role, ROOTCHAIN_URL in constants.go will be updated using the fetched public IP.
 Frontend Access: altgui will expose an API endpoint that reads the IP information from the *config.Config struct (which now contains the IP info). The Next.js frontend will call this API.
@@ -68,8 +68,8 @@ go
 // In main.go
 
 // ... other imports ...
-// "KNIRVCHAIN/config"
-// "KNIRVCHAIN/net_utils" // Assuming net_utils is in the same package or accessible
+// "AGENTCHAIN/config"
+// "AGENTCHAIN/net_utils" // Assuming net_utils is in the same package or accessible
 
 func fetchAndStorePublicIPInfo(cfg *config.Config, role config.Role) error {
     log.Println("Attempting to fetch and store public IP information...")
@@ -219,7 +219,7 @@ install.go
 +2
 	// If role is Root, many installation steps are skipped or simplified.
 	if role == config.Root {
-		fmt.Println("=== KNIRVCHAIN Root Node Setup ===")
+		fmt.Println("=== AGENTCHAIN Root Node Setup ===")
 		fmt.Println("Root uses hardcoded identity and minimal configuration.")
 		// Proceed with a simplified installation for Root
 
@@ -258,7 +258,7 @@ install.go
 		// env.local creation for HOST_URL is removed. IP info will be fetched and stored in config.
 		// Most steps below will be skipped or no-oped for Root.
 	} else {
-		fmt.Println("=== KNIRVCHAIN Node Installation ===")
+		fmt.Println("=== AGENTCHAIN Node Installation ===")
 Modify constants.go:
 
 Remove the UpdateHostURLFromEnv function.
@@ -283,7 +283,7 @@ var ROOTCHAIN_URL = "http://localhost:5000" // Default value
 
 // Display/logging constants (moved from config.json)
 var (
-	BLOCKCHAIN_NAME   = "KNIRVCHAIN"
+	BLOCKCHAIN_NAME   = "AGENTCHAIN"
 	BLOCKCHAIN_STATUS = "RUNNING"
 	ROOT_IDENTITY_KEY_NAME_IN_FILE    = "blockchain_key"
 	SUCCESS           = "SUCCESS"
@@ -381,7 +381,7 @@ Your Next.js frontend application (in the altgui/out directory, though typically
 Phase 4: Testing and Verification
 
 Startup Logging: Check logs to ensure IP fetching occurs early and ROOTCHAIN_URL (for Root role) is updated.
-Config File: Inspect the relevant [role_string]_config.json file (e.g., ~/.config/KNIRVCHAIN/root_data/root_config.json) to confirm the publicIPInfo field is present and contains the correct data.
+Config File: Inspect the relevant [role_string]_config.json file (e.g., ~/.config/AGENTCHAIN/root_data/root_config.json) to confirm the publicIPInfo field is present and contains the correct data.
 env.local Files: Verify that root-data/env.local (if it existed for other reasons) and altgui/env.local are no longer created or updated with IP information by the Go backend.
 Frontend Display: Launch altgui and ensure it correctly fetches and displays the public IP details.
 Network Functionality: Test P2P connections, discovery, and any other features that might rely on knowing the public IP to ensure they still work correctly using the IP info from the main config.

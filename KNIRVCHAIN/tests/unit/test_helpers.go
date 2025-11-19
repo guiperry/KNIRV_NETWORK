@@ -12,11 +12,11 @@ import (
 	"time"
 
 	"KNIRVCHAIN/config"
-	"KNIRVCHAIN/pkg/agent"
-	"KNIRVCHAIN/pkg/blockchain"
-	"KNIRVCHAIN/pkg/crypto"
-	"KNIRVCHAIN/pkg/p2p"
-	"KNIRVCHAIN/pkg/wallet"
+	"KNIRVCHAIN/internal/agent"
+	"KNIRVCHAIN/internal/blockchain"
+	"KNIRVCHAIN/internal/crypto"
+	"KNIRVCHAIN/internal/p2p"
+	"KNIRVCHAIN/internal/wallet"
 )
 
 // Type aliases for easier use in tests

@@ -27,7 +27,7 @@ Let's dive into specific scenarios based on the MCP primitives:
 *   **ContextRecord Created:**
     *   `CapabilityID`: `"tool-crypto-price-001"`
     *   `InteractionType`: `"TOOL_INVOCATION"`
-    *   `Initiator`: AgentX's KNIRVCHAIN address.
+    *   `Initiator`: AgentX's AGENTCHAIN address.
     *   `Timestamp`: Current time.
     *   `InputHash`: Hash of the input `{"token_symbol": "NRN_TOKEN"}`.
     *   `OutputHash`: Hash of the output `{"price_usd": 0.75}`.
@@ -45,7 +45,7 @@ Let's dive into specific scenarios based on the MCP primitives:
 *   **ContextRecord Created:**
     *   `CapabilityID`: `"prompt-story-gen-v2"`
     *   `InteractionType`: `"PROMPT_USAGE"`
-    *   `Initiator`: The user's (or application's service) KNIRVCHAIN address.
+    *   `Initiator`: The user's (or application's service) AGENTCHAIN address.
     *   `Timestamp`: Current time.
     *   `InputHash`: Hash of the parameters provided to the prompt template (e.g., `{"genre": "sci-fi", "character_name": "Zorp"}`).
     *   `OutputHash`: Hash of the generated story.
@@ -61,7 +61,7 @@ Let's dive into specific scenarios based on the MCP primitives:
 *   **ContextRecord Created:**
     *   `CapabilityID`: `"plugin-skyrim-validator-007"`
     *   `InteractionType`: `"PLUGIN_EXECUTION"` (or `"RESOURCE_ACCESS"`)
-    *   `Initiator`: The agent Client's KNIRVCHAIN address.
+    *   `Initiator`: The agent Client's AGENTCHAIN address.
     *   `Timestamp`: Current time.
     *   `InputHash`: Hash of the mod file that was validated.
     *   `OutputHash`: Hash of the validation report (e.g., the `ValidateAssetOutput` from your example).
@@ -77,7 +77,7 @@ Let's dive into specific scenarios based on the MCP primitives:
 *   **ContextRecord Created:**
     *   `CapabilityID`: `"mem-user-prefs-global"`
     *   `InteractionType`: `"MEMORY_WRITE"`
-    *   `Initiator`: HelperBot's KNIRVCHAIN address.
+    *   `Initiator`: HelperBot's AGENTCHAIN address.
     *   `Timestamp`: Current time.
     *   `InputHash`: Hash of the data being written (e.g., `{"user": "UserA", "preference_type": "reminder_timing", "value": "dislikes_before_9am"}`).
     *   `Details`: `{"operation": "add_preference", "user_id_hash": "hash_of_UserA"}`.
@@ -93,7 +93,7 @@ Later, if HelperBot reads from this memory (`InteractionType`: `"MEMORY_READ"`),
 *   **ContextRecord Created (for `SAMPLING_REQUEST_SENT`):**
     *   `CapabilityID`: Could be the server's own registered ID or a generic "sampling-service" ID.
     *   `InteractionType`: `"SAMPLING_REQUEST_SENT"`
-    *   `Initiator`: The MCP server's KNIRVCHAIN address.
+    *   `Initiator`: The MCP server's AGENTCHAIN address.
     *   `Timestamp`: Current time.
     *   `InputHash`: Hash of the structured prompt/task sent to the client's LLM.
     *   `Details`: `{"target_client_id_hash": "hash_of_client_identifier", "purpose": "marketing_slogan_brainstorm"}`.
@@ -104,7 +104,7 @@ A corresponding `"SAMPLING_RESPONSE_RECEIVED"` record would be logged when the c
 
 **6. Auditing Capability Registrations**
 
-*   **Scenario:** You want to see a chronological log of all new capabilities (Tools, Plugins, etc.) registered on the KNIRVCHAIN network.
+*   **Scenario:** You want to see a chronological log of all new capabilities (Tools, Plugins, etc.) registered on the AGENTCHAIN network.
 *   **Action:** While the `MCPRegisterCapabilityTransaction` itself registers the capability, you could design your system so that a `ContextRecord` is also created to log this event for a unified audit trail of all MCP-related activities.
 *   **ContextRecord Created (Optional, for enhanced auditing):**
     *   `CapabilityID`: The ID of the newly registered capability.

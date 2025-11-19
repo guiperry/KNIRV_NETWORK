@@ -1,8 +1,8 @@
-# Terminal-Based KNIRVCHAIN Interface Implementation Plan
+# Terminal-Based AGENTCHAIN Interface Implementation Plan
 
 ## Overview
 
-This document outlines a comprehensive plan to migrate from the current Fyne GUI to a fully terminal-based solution using Bubbletea for the KNIRVCHAIN blockchain explorer and administrative interface. This approach will replace both the Fyne GUI and the alternative GUI (altgui) implementations with a streamlined, efficient terminal interface built entirely in Go using the Bubbletea TUI framework.
+This document outlines a comprehensive plan to migrate from the current Fyne GUI to a fully terminal-based solution using Bubbletea for the AGENTCHAIN blockchain explorer and administrative interface. This approach will replace both the Fyne GUI and the alternative GUI (altgui) implementations with a streamlined, efficient terminal interface built entirely in Go using the Bubbletea TUI framework.
 
 **IMPORTANT**: This terminal interface implementation will NOT recreate any commands or functionality that are already defined in the CLI_Tool_Development_Plan.md file. The CLI SDK tool handles wallet management, capability registration, and blockchain interaction commands. This terminal interface focuses on node administration, monitoring, and real-time blockchain operations.
 
@@ -621,7 +621,7 @@ The terminal UI will use a consistent color scheme across all components:
 
 ## Conclusion
 
-This implementation plan provides a comprehensive approach to migrating from the current GUI-based interface to a fully terminal-based solution using Bubbletea, enhanced with a robust data engineering architecture. By leveraging the power and flexibility of pure Go terminal interfaces combined with real-time data processing capabilities, we can create a more efficient, lightweight, and powerful interface for interacting with the KNIRVCHAIN blockchain.
+This implementation plan provides a comprehensive approach to migrating from the current GUI-based interface to a fully terminal-based solution using Bubbletea, enhanced with a robust data engineering architecture. By leveraging the power and flexibility of pure Go terminal interfaces combined with real-time data processing capabilities, we can create a more efficient, lightweight, and powerful interface for interacting with the AGENTCHAIN blockchain.
 
 ### Key Benefits:
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines a comprehensive plan to refactor the role-based architecture in the KNIRVCHAIN application. The goal is to improve consistency, maintainability, and functionality by properly implementing the `IsPeer` field and leveraging it throughout the codebase.
+This document outlines a comprehensive plan to refactor the role-based architecture in the AGENTCHAIN application. The goal is to improve consistency, maintainability, and functionality by properly implementing the `IsPeer` field and leveraging it throughout the codebase.
 
 ## Current State Analysis
 
@@ -239,7 +239,7 @@ if cfg.IsRoot {
     roleStr = "Unknown"
 }
 
-log.Printf("Starting KNIRVCHAIN node with role: %s", roleStr)
+log.Printf("Starting AGENTCHAIN node with role: %s", roleStr)
 ```
 
 ### 9. Update Network Mode Configuration
@@ -297,4 +297,4 @@ Total estimated time: 8-13 days
 
 ## Conclusion
 
-This refactoring will significantly improve the consistency, maintainability, and functionality of the KNIRVCHAIN application's role-based architecture. By properly implementing the `IsPeer` field and leveraging it throughout the codebase, we'll eliminate redundant code, simplify role determination, and enable more sophisticated role-based feature toggling.
+This refactoring will significantly improve the consistency, maintainability, and functionality of the AGENTCHAIN application's role-based architecture. By properly implementing the `IsPeer` field and leveraging it throughout the codebase, we'll eliminate redundant code, simplify role determination, and enable more sophisticated role-based feature toggling.

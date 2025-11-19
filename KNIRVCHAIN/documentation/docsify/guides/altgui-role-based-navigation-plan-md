@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the implementation plan for role-based navigation in the Next.js frontend (/altgui) of KNIRVCHAIN. The goal is to ensure that the frontend reflects the type of mode the backend is in depending on the role selected, with different roles having access to different pages in the navigation menu, similar to how it's implemented in the Fyne GUI.
+This document outlines the implementation plan for role-based navigation in the Next.js frontend (/altgui) of AGENTCHAIN. The goal is to ensure that the frontend reflects the type of mode the backend is in depending on the role selected, with different roles having access to different pages in the navigation menu, similar to how it's implemented in the Fyne GUI.
 
 ## Current Architecture Analysis
 
@@ -26,7 +26,7 @@ This document outlines the implementation plan for role-based navigation in the 
        w.Header().Set("Content-Type", "application/json")
        info := map[string]string{
            "version":  "1.0.0",
-           "nodeName": "KNIRVCHAIN Node",
+           "nodeName": "AGENTCHAIN Node",
            "role":     string(g.role),
        }
        json.NewEncoder(w).Encode(info)
@@ -256,7 +256,7 @@ export default function NetworkAdmin() {
   return (
     <Layout activePage="network-admin">
       <Head>
-        <title>Network Administration - KNIRVCHAIN</title>
+        <title>Network Administration - AGENTCHAIN</title>
       </Head>
       
       <div className={styles.container}>
@@ -337,7 +337,7 @@ export default function NetworkAdmin() {
                 </div>
                 <div className={styles.formGroup}>
                   <label>Server Public Host</label>
-                  <input type="text" placeholder="e.g., relay.KNIRVCHAIN.com" />
+                  <input type="text" placeholder="e.g., relay.AGENTCHAIN.com" />
                 </div>
                 <button type="submit" className={styles.button}>Save Changes</button>
               </form>
@@ -351,7 +351,7 @@ export default function NetworkAdmin() {
               <form className={styles.form}>
                 <div className={styles.formGroup}>
                   <label>Chain ID</label>
-                  <input type="text" placeholder="e.g., KNIRVCHAIN" />
+                  <input type="text" placeholder="e.g., AGENTCHAIN" />
                 </div>
                 <div className={styles.formGroup}>
                   <label>Mining Difficulty</label>
@@ -579,7 +579,7 @@ export default function Layout({ children, activePage }) {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <div className={styles.logo}>KNIRVCHAIN</div>
+        <div className={styles.logo}>AGENTCHAIN</div>
         <div className={styles.roleDisplay}>
           Role: <span className={styles.roleBadge}>{role}</span>
         </div>

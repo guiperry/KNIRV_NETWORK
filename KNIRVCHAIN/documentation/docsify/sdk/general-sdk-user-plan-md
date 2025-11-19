@@ -1,8 +1,8 @@
-# KNIRVCHAIN General SDK User Plan
+# AGENTCHAIN General SDK User Plan
 
 ## Overview
 
-This document outlines the development plan for the KNIRVCHAIN SDK CLI tool, focusing on general blockchain operations, network connections, and capability invocation. It provides a comprehensive guide for users who want to interact with the KNIRVCHAIN network without necessarily developing plugins.
+This document outlines the development plan for the AGENTCHAIN SDK CLI tool, focusing on general blockchain operations, network connections, and capability invocation. It provides a comprehensive guide for users who want to interact with the AGENTCHAIN network without necessarily developing plugins.
 
 ## Project Structure
 
@@ -21,7 +21,7 @@ agent-sdk-tool/
 │   └── network/            # Network commands
 │       ├── status.go       # Check network status
 │       └── devs.go        # List devs
-├── pkg/                    # Package code
+├── internal/                    # Package code
 │   ├── wallet/             # Wallet management
 │   │   ├── manager.go      # Wallet operations
 │   │   ├── encryption.go   # Encryption utilities
@@ -217,7 +217,7 @@ agent-sdk-tool/
 1. **API Client Implementation**
    - Create HTTP client with retry and timeout:
      ```go
-     // APIClient represents a client for the KNIRVCHAIN API
+     // APIClient represents a client for the AGENTCHAIN API
      type APIClient struct {
          BaseURL    string
          HTTPClient *http.Client
@@ -269,7 +269,7 @@ agent-sdk-tool/
 2. **Network Status API**
    - Implement network status endpoint:
      ```go
-     // GetNetworkStatus gets the status of the KNIRVCHAIN network
+     // GetNetworkStatus gets the status of the AGENTCHAIN network
      func (c *APIClient) GetNetworkStatus(ctx context.Context) (*NetworkStatus, error) {
          // Create request
          req, err := http.NewRequestWithContext(ctx, "GET", c.BaseURL+"/network/status", nil)
@@ -345,7 +345,7 @@ agent-sdk-tool/
 1. **Transaction Construction**
    - Implement transaction data structures:
      ```go
-     // Transaction represents a KNIRVCHAIN transaction
+     // Transaction represents a AGENTCHAIN transaction
      type Transaction struct {
          From           string `json:"from"`
          To             string `json:"to,omitempty"`
@@ -513,8 +513,8 @@ agent-sdk-tool/
      ```go
      var invokeCapabilityCmd = &cobra.Command{
          Use:   "invoke-capability",
-         Short: "Invoke a capability on the KNIRVCHAIN blockchain",
-         Long: `Invoke a capability (resource, tool, etc.) on the KNIRVCHAIN blockchain.
+         Short: "Invoke a capability on the AGENTCHAIN blockchain",
+         Long: `Invoke a capability (resource, tool, etc.) on the AGENTCHAIN blockchain.
      
      This command prepares a capability invocation request, signs it, and submits it to the blockchain.
      
@@ -532,7 +532,7 @@ agent-sdk-tool/
      ```go
      func init() {
          // Required flags
-         invokeCapabilityCmd.Flags().String("node", "", "URL of the KNIRVCHAIN node")
+         invokeCapabilityCmd.Flags().String("node", "", "URL of the AGENTCHAIN node")
          invokeCapabilityCmd.Flags().String("wallet", "", "Path to wallet file")
          invokeCapabilityCmd.Flags().String("from", "", "Address of the sender")
          invokeCapabilityCmd.Flags().String("capability-id", "", "ID of the capability to invoke")
@@ -639,8 +639,8 @@ agent-sdk-tool/
      ```go
      var queryCapabilityCmd = &cobra.Command{
          Use:   "query-capability",
-         Short: "Query a capability on the KNIRVCHAIN blockchain",
-         Long: `Query a capability (resource, tool, etc.) on the KNIRVCHAIN blockchain.
+         Short: "Query a capability on the AGENTCHAIN blockchain",
+         Long: `Query a capability (resource, tool, etc.) on the AGENTCHAIN blockchain.
      
      This command retrieves information about a capability from the blockchain.
      
@@ -657,7 +657,7 @@ agent-sdk-tool/
      ```go
      func init() {
          // Required flags
-         queryCapabilityCmd.Flags().String("node", "", "URL of the KNIRVCHAIN node")
+         queryCapabilityCmd.Flags().String("node", "", "URL of the AGENTCHAIN node")
          queryCapabilityCmd.Flags().String("capability-id", "", "ID of the capability to query")
          
          // Optional flags
@@ -709,8 +709,8 @@ agent-sdk-tool/
      ```go
      var statusCmd = &cobra.Command{
          Use:   "status",
-         Short: "Check the status of the KNIRVCHAIN network",
-         Long: `Check the status of the KNIRVCHAIN network.
+         Short: "Check the status of the AGENTCHAIN network",
+         Long: `Check the status of the AGENTCHAIN network.
      
      This command retrieves information about the current state of the network.
      
@@ -726,7 +726,7 @@ agent-sdk-tool/
      ```go
      func init() {
          // Required flags
-         statusCmd.Flags().String("node", "", "URL of the KNIRVCHAIN node")
+         statusCmd.Flags().String("node", "", "URL of the AGENTCHAIN node")
          
          // Mark required flags
          statusCmd.MarkFlagRequired("node")
@@ -764,8 +764,8 @@ agent-sdk-tool/
      ```go
      var devsCmd = &cobra.Command{
          Use:   "devs",
-         Short: "List connected devs in the KNIRVCHAIN network",
-         Long: `List connected devs in the KNIRVCHAIN network.
+         Short: "List connected devs in the AGENTCHAIN network",
+         Long: `List connected devs in the AGENTCHAIN network.
      
      This command retrieves information about the devs connected to the node.
      
@@ -781,7 +781,7 @@ agent-sdk-tool/
      ```go
      func init() {
          // Required flags
-         devsCmd.Flags().String("node", "", "URL of the KNIRVCHAIN node")
+         devsCmd.Flags().String("node", "", "URL of the AGENTCHAIN node")
          
          // Optional flags
          devsCmd.Flags().String("format", "table", "Output format (table, json, csv)")
@@ -874,7 +874,7 @@ agent-sdk-tool/
 ### Phase 6: URI Handling and Integration
 
 1. **agent URI Scheme Implementation**
-   - Implement `knirv://` URI scheme parsing:
+   - Implement `agent://` URI scheme parsing:
      ```go
      // agentUri represents a parsed agent URI
      type agentUri struct {
@@ -888,8 +888,8 @@ agent-sdk-tool/
      // ParseagentUri parses a agent URI string into a structured object
      func ParseagentUri(uriString string) (*agentUri, error) {
          // Validate URI format
-         if !strings.HasPrefix(uriString, "knirv://") {
-             return nil, fmt.Errorf("invalid agent URI: must start with 'knirv://'")
+         if !strings.HasPrefix(uriString, "agent://") {
+             return nil, fmt.Errorf("invalid agent URI: must start with 'agent://'")
          }
          
          // Parse URI
@@ -932,7 +932,7 @@ agent-sdk-tool/
      func (uri *agentUri) ToUriString() string {
          // Build base URI
          var builder strings.Builder
-         builder.WriteString("knirv://")
+         builder.WriteString("agent://")
          builder.WriteString(uri.ResourceType)
          builder.WriteString("/")
          builder.WriteString(uri.Identifier)
@@ -970,12 +970,12 @@ agent-sdk-tool/
          Short: "Process a agent URI",
          Long: `Process a agent URI and perform the associated action.
      
-     agent URIs follow the format: knirv://<resource-type>/<identifier>[/<action>][?param1=value1&param2=value2]
+     agent URIs follow the format: agent://<resource-type>/<identifier>[/<action>][?param1=value1&param2=value2]
      
      Examples:
-       knirv://capability/resource_example_1234567890abcdef/invoke?param1=value1
-       knirv://transaction/0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
-       knirv://address/0x1234567890abcdef1234567890abcdef12345678/transfer?amount=100`,
+       agent://capability/resource_example_1234567890abcdef/invoke?param1=value1
+       agent://transaction/0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+       agent://address/0x1234567890abcdef1234567890abcdef12345678/transfer?amount=100`,
          RunE: func(cmd *cobra.Command, args []string) error {
              if len(args) != 1 {
                  return fmt.Errorf("exactly one URI argument is required")
@@ -990,7 +990,7 @@ agent-sdk-tool/
      func init() {
          // Optional flags
          uriCmd.Flags().String("wallet", "", "Path to wallet file (required for actions that need signing)")
-         uriCmd.Flags().String("node", "", "URL of the KNIRVCHAIN node")
+         uriCmd.Flags().String("node", "", "URL of the AGENTCHAIN node")
          uriCmd.Flags().String("password", "", "Wallet password (will prompt if not provided)")
      }
      ```
@@ -1279,7 +1279,7 @@ agent-sdk-tool wallet export --file <path> [--output <output_path>] [--format <f
 ```
 agent-sdk-tool mcp invoke-capability --node <node_url> --wallet <wallet_file_path> --from <from_address> --capability-id <id> --input <json_string_or_file_path> --fee <amount> [--password <pwd>]
 ```
-- **Purpose**: Invokes a capability on the KNIRVCHAIN blockchain.
+- **Purpose**: Invokes a capability on the AGENTCHAIN blockchain.
 - **Implementation Details**:
   - Validates all required parameters
   - Loads and decrypts the wallet
@@ -1288,7 +1288,7 @@ agent-sdk-tool mcp invoke-capability --node <node_url> --wallet <wallet_file_pat
   - Submits the transaction to the blockchain
   - Returns the transaction hash and invocation result
 - **Options**:
-  - `--node <node_url>`: URL of the KNIRVCHAIN node
+  - `--node <node_url>`: URL of the AGENTCHAIN node
   - `--wallet <wallet_file_path>`: Path to the wallet file
   - `--from <from_address>`: Address of the sender (must match the wallet)
   - `--capability-id <id>`: ID of the capability to invoke
@@ -1323,14 +1323,14 @@ agent-sdk-tool mcp invoke-capability --node <node_url> --wallet <wallet_file_pat
 ```
 agent-sdk-tool mcp query-capability --node <node_url> --capability-id <id> [--include-descriptor]
 ```
-- **Purpose**: Queries information about a capability on the KNIRVCHAIN blockchain.
+- **Purpose**: Queries information about a capability on the AGENTCHAIN blockchain.
 - **Implementation Details**:
   - Validates all required parameters
   - Calls the API to retrieve capability information
   - Displays the capability details
   - Optionally includes the full capability descriptor
 - **Options**:
-  - `--node <node_url>`: URL of the KNIRVCHAIN node
+  - `--node <node_url>`: URL of the AGENTCHAIN node
   - `--capability-id <id>`: ID of the capability to query
   - `--include-descriptor`: Include the full capability descriptor in the output
 - **Output**:
@@ -1359,7 +1359,7 @@ agent-sdk-tool mcp query-capability --node <node_url> --capability-id <id> [--in
       ]
     },
     "metadata": {
-      "author": "KNIRVCHAIN Developer",
+      "author": "AGENTCHAIN Developer",
       "license": "MIT",
       "tags": [
         "example",
@@ -1379,13 +1379,13 @@ agent-sdk-tool mcp query-capability --node <node_url> --capability-id <id> [--in
 ```
 agent-sdk-tool network status --node <node_url>
 ```
-- **Purpose**: Checks the status of the KNIRVCHAIN network.
+- **Purpose**: Checks the status of the AGENTCHAIN network.
 - **Implementation Details**:
   - Validates all required parameters
   - Calls the API to retrieve network status
   - Displays the network status details
 - **Options**:
-  - `--node <node_url>`: URL of the KNIRVCHAIN node
+  - `--node <node_url>`: URL of the AGENTCHAIN node
 - **Output**:
   ```
   Network Status:
@@ -1406,13 +1406,13 @@ agent-sdk-tool network status --node <node_url>
 ```
 agent-sdk-tool network devs --node <node_url> [--format <format>]
 ```
-- **Purpose**: Lists the devs connected to the KNIRVCHAIN node.
+- **Purpose**: Lists the devs connected to the AGENTCHAIN node.
 - **Implementation Details**:
   - Validates all required parameters
   - Calls the API to retrieve dev information
   - Displays the dev list in the specified format
 - **Options**:
-  - `--node <node_url>`: URL of the KNIRVCHAIN node
+  - `--node <node_url>`: URL of the AGENTCHAIN node
   - `--format <format>`: Output format (table, json, csv)
 - **Output** (table format):
   ```
@@ -1443,11 +1443,11 @@ agent-sdk-tool uri <agent-uri> [--wallet <wallet_file_path>] [--node <node_url>]
 - **Options**:
   - `<agent-uri>`: The agent URI to process
   - `--wallet <wallet_file_path>`: Path to the wallet file (required for actions that need signing)
-  - `--node <node_url>`: URL of the KNIRVCHAIN node
+  - `--node <node_url>`: URL of the AGENTCHAIN node
   - `--password <pwd>`: Wallet password (will prompt if not provided)
 - **URI Format**:
   ```
-  knirv://<resource>.<resourcetype>/<identifier>[/<action>][?param1=value1&param2=value2]
+  agent://<resource>.<resourcetype>/<identifier>[/<action>][?param1=value1&param2=value2]
   ```
 - **Supported Resource Types**:
   - `capability`: Represents a capability on the blockchain
@@ -1459,9 +1459,9 @@ agent-sdk-tool uri <agent-uri> [--wallet <wallet_file_path>] [--node <node_url>]
   - For `address`: `transfer`, `balance` (default)
 - **Examples**:
   ```
-  knirv://resource_example_1234567890abcdef.capability/invoke?param1=value1&param2=value2
-  knirv://0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890.transaction
-  knirv://0x1234567890abcdef1234567890abcdef12345678.address/transfer?amount=100&to=0xabcdef1234567890abcdef1234567890abcdef
+  agent://resource_example_1234567890abcdef.capability/invoke?param1=value1&param2=value2
+  agent://0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890.transaction
+  agent://0x1234567890abcdef1234567890abcdef12345678.address/transfer?amount=100&to=0xabcdef1234567890abcdef1234567890abcdef
   ```
 - **Output**:
   The output depends on the resource type and action, matching the output of the corresponding command.
@@ -1513,7 +1513,7 @@ agent-sdk-tool uri <agent-uri> [--wallet <wallet_file_path>] [--node <node_url>]
 
 1. **Functionality**
    - All commands function as specified in the detailed command specifications
-   - The tool successfully interacts with the KNIRVCHAIN blockchain
+   - The tool successfully interacts with the AGENTCHAIN blockchain
    - Capability invocation works end-to-end
 
 2. **Usability**

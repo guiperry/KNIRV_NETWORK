@@ -1,4 +1,4 @@
-use knirvchain::*;
+use knirvoracle::*;
 use std::sync::Arc;
 
 #[cfg(test)]

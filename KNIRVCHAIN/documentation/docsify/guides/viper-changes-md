@@ -64,7 +64,7 @@ The code change produced by Gemini could not be fully parsed. Can't automaticall
 // and the determined role for this installation, along with the non-interactive flag.
 // It returns the updated configuration and any error encountered.
 func Run(currentCfg *config.Config, roleToInstall config.Role, nonInteractive bool, cliWalletPath string) (*config.Config, error) {
-	fmt.Println("=== KNIRVCHAIN Node Installation ===")
+	fmt.Println("=== AGENTCHAIN Node Installation ===")
 
 	// Use a deep copy of the current config to modify during installation
 	configToSave := currentCfg.DeepCopy() // Make a copy to avoid modifying the one in main.go directly until success
@@ -147,7 +147,7 @@ func Run(currentCfg *config.Config, roleToInstall config.Role, nonInteractive bo
 	if selectedRole != config.RoleClient {
 		fmt.Println("Setting up system service...")
 	fmt.Println("This node will participate in the network and process transactions.")
-	fmt.Println("Launching the KNIRVCHAIN Node Manager...")
+	fmt.Println("Launching the AGENTCHAIN Node Manager...")
 
 +	return configToSave, nil // Return the modified config
  }

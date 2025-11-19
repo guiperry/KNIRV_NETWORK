@@ -1,12 +1,12 @@
 # Capabilities Protocol
 
-KNIRVCHAIN **Capabilities** are executable software **plugins** registered on the blockchain. They enable developers to offer specific functionalities to client applications (like an "Inference Engine"). These Capabilities are packaged (including an executable and a manifest file), hosted by the registering dev or on decentralized storage, discovered via their on-chain `ResourceDescriptor`, downloaded by the client, and executed locally by the client. Each invocation whose usage is logged on-chain incurs an NRN token fee, paid to the Capability's owner.
+AGENTCHAIN **Capabilities** are executable software **plugins** registered on the blockchain. They enable developers to offer specific functionalities to client applications (like an "Inference Engine"). These Capabilities are packaged (including an executable and a manifest file), hosted by the registering dev or on decentralized storage, discovered via their on-chain `ResourceDescriptor`, downloaded by the client, and executed locally by the client. Each invocation whose usage is logged on-chain incurs an NRN token fee, paid to the Capability's owner.
 
 Here's a breakdown of what that architecture would look like:
 
 **Core Idea:**
 
-Capabilities are self-contained, executable software plugins (e.g., compiled Go plugins, WebAssembly modules) that provide specific functionalities. They are not executed *by* the KNIRVCHAIN nodes themselves as part of blockchain consensus or transaction processing. Instead, KNIRVCHAIN acts as a decentralized registry and marketplace for these Capabilities.
+Capabilities are self-contained, executable software plugins (e.g., compiled Go plugins, WebAssembly modules) that provide specific functionalities. They are not executed *by* the AGENTCHAIN nodes themselves as part of blockchain consensus or transaction processing. Instead, AGENTCHAIN acts as a decentralized registry and marketplace for these Capabilities.
 
 **Components:**
 
@@ -92,7 +92,7 @@ func ValidateAsset(input ValidateAssetInput) ValidateAssetOutput { // This could
 
     *   **Compilation:** Templates are compiled into Go plugin files (`.so` on Linux, `.dylib` on macOS, `.dll` on Windows).
     *   **Loading:** The Inference Engine loads the plugin file at startup or when a new template is registered.
-    *   **Execution:** The Inference Engine calls on the KNIRVCHAIN to process NRN transactions within the capability (e.g., `ValidateAsset`, `ImportAsset`) when parsing functions.
+    *   **Execution:** The Inference Engine calls on the AGENTCHAIN to process NRN transactions within the capability (e.g., `ValidateAsset`, `ImportAsset`) when parsing functions.
 *   **Reflection (Less Preferred):** Use Go's reflection package to inspect and execute code in the templates. This is more flexible but can be slower and more complex.
 *   **Code Generation (Potentially):** Generate Go code from the templates and compile it into the blockchain core. This is the least flexible but can be the most performant.
 
@@ -136,18 +136,18 @@ Clearly define the template interface (input/output parameters).
 4.  **Template Executed:** The Inference Engine calls the `ValidateAsset` function in the template, passing the asset URL as input.
 5.  **Validation Logic Runs:** The `ValidateAsset` function downloads the asset, validates its format, scans it for malicious code, and extracts metadata.
 6.  **Validation Result Returned:** The `ValidateAsset` function returns a `ValidateAssetOutput` struct containing the validation result.
-7.  **Transaction Processed (or Rejected):** If the asset is valid, the Inference Engine sends the transaction to the KNIRVCHAIN for an NRN URI minted. If the asset is invalid, the blockchain core rejects the transaction.
+7.  **Transaction Processed (or Rejected):** If the asset is valid, the Inference Engine sends the transaction to the AGENTCHAIN for an NRN URI minted. If the asset is invalid, the blockchain core rejects the transaction.
 
 ### agent Client (Inference Engine):
 
 An application that enables llm inference within custom capability functionalities.
 
-*   **Discovers capabilities:** Queries the KNIRVCHAIN API.
+*   **Discovers capabilities:** Queries the AGENTCHAIN API.
 *   **Registers capabilities:** Allows developers to upload new capability plugins and registers the capability on the blockchain.
 *   **Invokes capabilities:** Fetches the capability binary/code from the location specified in the capability's `ResourceDescriptor` (e.g., from the hosting dev or IPFS). Verifies integrity using `ContentHash` in exchange for a small NRN token fee.
 *   **Executes capabilities locally:** Loads and runs the capability code in its own environment. This might involve using Go's plugin package for `.so` files, a Wasm runtime, or simply executing a downloaded binary.
-*   **Logs capability usage:** Submits an `MCPInvokeCapabilityTransaction` to the KNIRVCHAIN, including a `ContextRecord` and the NRN fee.
-*   **Capability Hosting Client:** Makes the capability binary/code available for download at the `LocationHints` specified in the `ResourceDescriptor` via the KNIRVCHAIN DHT. Receives NRN token fees when clients log usage of their registered capabilities.
+*   **Logs capability usage:** Submits an `MCPInvokeCapabilityTransaction` to the AGENTCHAIN, including a `ContextRecord` and the NRN fee.
+*   **Capability Hosting Client:** Makes the capability binary/code available for download at the `LocationHints` specified in the `ResourceDescriptor` via the AGENTCHAIN DHT. Receives NRN token fees when clients log usage of their registered capabilities.
 
 ### Capability Lifecycle & Workflow: 
 
@@ -162,16 +162,16 @@ An application that enables llm inference within custom capability functionaliti
     *   `ResourceType`: `ResourceTypeCapability`
     *   `ID`: A unique ID for the capability.
     *   `Name`, `Version`, `Description`.
-    *   `Owner`: The developer's KNIRVCHAIN address.
+    *   `Owner`: The developer's AGENTCHAIN address.
     *   `GasFeeNRN`: The NRN fee required for a client to log usage of this capability.
     *   `ContentHash`: SHA256 hash of the capability binary/package.
     *   `Schema`: JSON Schema defining the capability's expected input and output.
-    *   `LocationHints`: Array of URIs (e.g., `knirv://<dev_id>.chain/capabilities/<capability_id>`, IPFS CID) where the capability binary can be downloaded.
+    *   `LocationHints`: Array of URIs (e.g., `agent://<dev_id>.chain/capabilities/<capability_id>`, IPFS CID) where the capability binary can be downloaded.
 
-    This transaction is submitted to the KNIRVCHAIN network.
+    This transaction is submitted to the AGENTCHAIN network.
 3.  **Discovery (By Client):**
 
-    The agent Client queries the KNIRVCHAIN API (e.g., `GET /mcp/capabilities?resourceType=TOOL&name=AssetValidator`) to find suitable capabilities.
+    The agent Client queries the AGENTCHAIN API (e.g., `GET /mcp/capabilities?resourceType=TOOL&name=AssetValidator`) to find suitable capabilities.
 4.  **Download & Verification (By Client):**
 
     The client selects a capability and retrieves its `ResourceDescriptor`.
@@ -196,14 +196,14 @@ An application that enables llm inference within custom capability functionaliti
 
     *   `CapabilityID`: The ID of the capability that was executed.
     *   `InteractionType`: `PLUGIN_EXECUTION`.
-    *   `Initiator`: The client's KNIRVCHAIN address.
+    *   `Initiator`: The client's AGENTCHAIN address.
     *   `InputHash` (optional): Hash of the input data provided to the capability.
     *   `OutputHash` (optional): Hash of the output data received from the capability.
     *   `Details`: Other relevant metadata (e.g., capability version used, execution duration).
 
     The transaction's `Fee` field is set to the `GasFeeNRN` specified in the capability's `ResourceDescriptor`.
 
-    The client signs and submits this transaction to the KNIRVCHAIN network. The fee is ultimately credited to the capability's `Owner`.
+    The client signs and submits this transaction to the AGENTCHAIN network. The fee is ultimately credited to the capability's `Owner`.
 
 ### Benefits:
 
@@ -227,21 +227,21 @@ An application that enables llm inference within custom capability functionaliti
 This architecture focuses the "capability" concept to a client-side plugin facilitated by the blockchain network availability and persistance.
 
 
-## System Design Document: KNIRVCHAIN MCP Capabilities
+## System Design Document: AGENTCHAIN MCP Capabilities
 
 ### 1. Introduction
 
 #### 1.1. Purpose:
 
-This document outlines the design for a capability system within the KNIRVCHAIN ecosystem, leveraging the Model Context Protocol (MCP).
+This document outlines the design for a capability system within the AGENTCHAIN ecosystem, leveraging the Model Context Protocol (MCP).
 
-Capabilities are plugins registered on the KNIRVCHAIN, hosted and executed by client applications (e.g., "Inference Engines").
+Capabilities are plugins registered on the AGENTCHAIN, hosted and executed by client applications (e.g., "Inference Engines").
 
 #### 1.2. Scope:
 
 This document covers capability registration, discovery, download, client-side execution, and on-chain usage logging with NRN token fees.
 
-It does not cover the internal implementation of the KNIRVCHAIN node or the client application beyond their interaction with capabilities.
+It does not cover the internal implementation of the AGENTCHAIN node or the client application beyond their interaction with capabilities.
 
 #### 1.3. Audience:
 
@@ -252,19 +252,19 @@ It does not cover the internal implementation of the KNIRVCHAIN node or the clie
 
 ### 2. System Overview (Based on MCP\_Implementation.md)
 
-#### 2.1. KNIRVCHAIN Node:
+#### 2.1. AGENTCHAIN Node:
 
 *   Implements MCP, handling `MCPRegisterCapability` and `MCPInvokeCapability` transactions.
 *   Stores `ResourceDescriptor` (for capabilities) and `ContextRecord` (for invocations) on-chain.
 *   Manages NRN token accounts and processes fees.
 *   Exposes HTTP APIs for capability discovery and transaction submission.
 
-#### 2.2. KNIRVCHAIN Hosting Client (Inference Engine):
+#### 2.2. AGENTCHAIN Hosting Client (Inference Engine):
 
-*   Interacts with KNIRVCHAIN nodes to discover and log usage of capabilities.
+*   Interacts with AGENTCHAIN nodes to discover and log usage of capabilities.
 *   Downloads capability binaries from hosting devs or other locations.
 *   Executes capabilities locally in a sandboxed environment.
-*   Registers capabilities on KNIRVCHAIN via `MCPRegisterCapabilityTransaction`.
+*   Registers capabilities on AGENTCHAIN via `MCPRegisterCapabilityTransaction`.
 *   Hosts capability binaries for download.
 *   Sends & Receives NRN fees for capability usage.
 
@@ -285,13 +285,13 @@ It does not cover the internal implementation of the KNIRVCHAIN node or the clie
 
 #### 3.2. Functional Requirements:
 
-*   **Capability Registration:** Developers must be able to register Capabilities on KNIRVCHAIN. The `ResourceDescriptor` must include metadata, `ContentHash` of the Capability package, and NRN usage fee. Its `Schema` field should contain:
+*   **Capability Registration:** Developers must be able to register Capabilities on AGENTCHAIN. The `ResourceDescriptor` must include metadata, `ContentHash` of the Capability package, and NRN usage fee. Its `Schema` field should contain:
     *   `Summary` (string): Brief description.
     *   `LocationHints` (array of strings): URIs for downloading the package.
     *   `ManifestFile` (string): Path to the manifest within the package.
     *   `ExecutableFile` (string): Path to the executable within the package.
     *   `OutputDirectoryHint` (string, optional): Hint for output/config directory.
-*   **Capability Discovery:** Clients must be able to query KNIRVCHAIN to find registered Capabilities.
+*   **Capability Discovery:** Clients must be able to query AGENTCHAIN to find registered Capabilities.
 *   **Capability Package Download:** Clients must be able to download Capability packages.
 *   **Capability Package Verification:** Clients must verify downloaded package integrity using the on-chain `ContentHash`.the integrity of downloaded capabilities using the on-chain content hash.
 *   **Client-Side Execution:** Clients must execute capabilities locally.
@@ -309,7 +309,7 @@ It does not cover the internal implementation of the KNIRVCHAIN node or the clie
 
 ```
 +-----------------------+ +-------------------------+ +-----------------------+
-| agent Client          |----->| KNIRVCHAIN Node         |<-----| Capability Developer/       |
+| agent Client          |----->| AGENTCHAIN Node         |<-----| Capability Developer/       |
 | (Inference Engine)    | | (Blockchain API, MCP)     | |         |
 +-----------------------+ +-------------------------+ +-----------------------+
    |  1. Discover Capability (API GET) |      ^                              |  A. Develops Capability
@@ -334,7 +334,7 @@ It does not cover the internal implementation of the KNIRVCHAIN node or the clie
 
 #### 4.2. Component Description:
 
-*   **KNIRVCHAIN Node:** As described in `MCP_Implementation.md`. Manages Decentralized Model Context Protocol (MCP) transactions and state.
+*   **AGENTCHAIN Node:** As described in `MCP_Implementation.md`. Manages Decentralized Model Context Protocol (MCP) transactions and state.
 *   **agent Client (Inference Engine):** Application that discovers, registers, downloads, hosts, executes, and logs usage of capabilities. Responsible for local security.
 *   **Capability:** A compiled piece of code (e.g., Go `.so`, Wasm, executable) with defined inputs/outputs. Its `ResourceDescriptor` is stored on-chain.
 *   **Capability Developer:** Creates, registers, and hosts the capability binary. Receives NRN fees.
@@ -393,15 +393,15 @@ It does not cover the internal implementation of the KNIRVCHAIN node or the clie
 
 #### 4.6. Interface Design:
 
-*   **KNIRVCHAIN Node API:** As defined in `MCP_Implementation.md` (e.g., `POST /mcp/register_capability`, `POST /mcp/invoke/resource/{resource_id}` (where resource\_id is capability\_id), `GET /mcp/capability/{capability_id}`, `GET /mcp/capabilities`).
+*   **AGENTCHAIN Node API:** As defined in `MCP_Implementation.md` (e.g., `POST /mcp/register_capability`, `POST /mcp/invoke/resource/{resource_id}` (where resource\_id is capability\_id), `GET /mcp/capability/{capability_id}`, `GET /mcp/capabilities`).
 *   **Capability Execution Interface (Client-Capability):** Defined by the capability's `Schema`. For Go capabilities loaded via capability package, this would be exported functions and their signatures.
 
 #### 4.7. Workflow:
 
-1.  **Developer:** Creates capability, hosts it, registers it on KNIRVCHAIN (submits `MCPRegisterCapabilityTransaction`).
+1.  **Developer:** Creates capability, hosts it, registers it on AGENTCHAIN (submits `MCPRegisterCapabilityTransaction`).
 2.  **Client:**
 
-    a. Discovers capability via KNIRVCHAIN API.
+    a. Discovers capability via AGENTCHAIN API.
 
     b. Downloads capability package from `LocationHints`.
 
@@ -411,9 +411,9 @@ It does not cover the internal implementation of the KNIRVCHAIN node or the clie
 
     e. Receives output from capability.
 
-    f. Submits `MCPInvokeCapabilityTransaction` (with `ContextRecord` and NRN fee) to KNIRVCHAIN API.
+    f. Submits `MCPInvokeCapabilityTransaction` (with `ContextRecord` and NRN fee) to AGENTCHAIN API.
 
-3.  **KNIRVCHAIN Node:**
+3.  **AGENTCHAIN Node:**
 
     a. Validates and processes registration and invocation transactions.
 
@@ -428,7 +428,7 @@ It does not cover the internal implementation of the KNIRVCHAIN node or the clie
 *   **5.3. Client-Side Sandboxing (CRITICAL):** The agent Client application must execute downloaded capabilities in a sandboxed environment (e.g., OS-level sandboxing, Wasm runtime sandbox, containerization) to limit potential harm from malicious or buggy capabilities.
 *   **5.4. Client-Side Resource Limits:** The client should impose resource limits (CPU, memory, network access) on executed capabilities.
 *   **5.5. Secure Download:** `LocationHints` should ideally use secure protocols (HTTPS, IPFS with verification).
-*   **5.6. Blockchain Security:** Standard blockchain security practices apply to KNIRVCHAIN nodes and transactions.
+*   **5.6. Blockchain Security:** Standard blockchain security practices apply to AGENTCHAIN nodes and transactions.
 
 ### 6. Error Handling
 
@@ -441,12 +441,12 @@ It does not cover the internal implementation of the KNIRVCHAIN node or the clie
 
 *   **6.2. Blockchain-Side Errors:**
     *   Invalid `MCPRegisterCapability` or `MCPInvokeCapability` transactions (e.g., insufficient NRN fee, malformed data).
-    *   Handled by KNIRVCHAIN node validation logic.
+    *   Handled by AGENTCHAIN node validation logic.
 
 ### 7. Performance Considerations
 
 *   **7.1. Client-Side Performance:** Capability loading and execution time are client-side concerns.
-*   **7.2. Blockchain Performance:** Throughput of registration and invocation transactions depends on KNIRVCHAIN's underlying performance.
+*   **7.2. Blockchain Performance:** Throughput of registration and invocation transactions depends on AGENTCHAIN's underlying performance.
 *   **7.3. Network Performance:** Capability download speed depends on the hosting dev's bandwidth and network conditions.
 
 ### 8. Testing
@@ -455,7 +455,7 @@ It does not cover the internal implementation of the KNIRVCHAIN node or the clie
     *   Write unit tests for the capability system to ensure that it is working correctly.
     *   For individual capabilities (by developers).
     *   For client-side capability loading/execution logic.
-    *   For KNIRVCHAIN node's MCP transaction handling.
+    *   For AGENTCHAIN node's MCP transaction handling.
 *   **8.2. Integration Tests:**
     *   Write integration tests to ensure that the capability system integrates correctly with the blockchain core.
     *   End-to-end flow: capability registration -> client discovery -> download -> execution -> usage logging.
@@ -463,17 +463,17 @@ It does not cover the internal implementation of the KNIRVCHAIN node or the clie
     *   Perform security tests to ensure that the capability system is secure.
     *   Test client-side sandboxing effectiveness.
     *   Test integrity verification.
-    *   Test KNIRVCHAIN API security.
+    *   Test AGENTCHAIN API security.
 
 ### 9. Deployment
 
 *   **9.1. Deployment Process:**
 
-Capability Developer: Compiles capability, makes it available for download, registers it on KNIRVCHAIN.
+Capability Developer: Compiles capability, makes it available for download, registers it on AGENTCHAIN.
 
 agent Client: Deployed independently. Users interact with it to use capabilities.
 
-KNIRVCHAIN Network: Nodes are deployed and run the blockchain.
+AGENTCHAIN Network: Nodes are deployed and run the blockchain.
 
 *   **9.2. Rollback:**
 

@@ -1,10 +1,10 @@
-# KNIRVCHAIN Payment Processor
+# AGENTCHAIN Payment Processor
 
-The KNIRVCHAIN Payment Processor is a component that enables root nodes to accept payments in fiat currencies (USD, EUR, etc.) and cryptocurrencies (ETH, BTC, etc.) and automatically disburse KNIRVCHAIN tokens to customers.
+The AGENTCHAIN Payment Processor is a component that enables root nodes to accept payments in fiat currencies (USD, EUR, etc.) and cryptocurrencies (ETH, BTC, etc.) and automatically disburse AGENTCHAIN tokens to customers.
 
 ## Overview
 
-The payment processor integrates with popular payment gateways like Stripe and Coinbase Commerce to process payments and automatically disburse tokens to customers' KNIRVCHAIN wallets. This enables roots to monetize their content and services using KNIRVCHAIN tokens without having to handle payment processing themselves.
+The payment processor integrates with popular payment gateways like Stripe and Coinbase Commerce to process payments and automatically disburse tokens to customers' AGENTCHAIN wallets. This enables roots to monetize their content and services using AGENTCHAIN tokens without having to handle payment processing themselves.
 
 ## Features
 
@@ -61,10 +61,10 @@ export COINBASE_WEBHOOK_SECRET="your_coinbase_webhook_secret"
 
 ## Usage
 
-To enable the payment processor, start your KNIRVCHAIN node with the `--root` flag:
+To enable the payment processor, start your AGENTCHAIN node with the `--root` flag:
 
 ```bash
-./KNIRVCHAIN --root
+./AGENTCHAIN --root
 ```
 
 This will:
@@ -77,8 +77,8 @@ This will:
 
 To integrate the payment processor with your application, you need to:
 
-1. Configure your payment gateways (Stripe, Coinbase Commerce) to send webhook events to your KNIRVCHAIN node
-2. Include the customer's KNIRVCHAIN wallet address in the payment metadata
+1. Configure your payment gateways (Stripe, Coinbase Commerce) to send webhook events to your AGENTCHAIN node
+2. Include the customer's AGENTCHAIN wallet address in the payment metadata
 3. Create a user interface for customers to purchase tokens
 
 For detailed integration instructions, see the [Payment Gateway Integration Guide](payment_gateway_integration_guide.md).
@@ -128,4 +128,4 @@ Common issues and solutions:
 
 ## License
 
-This component is part of the KNIRVCHAIN project and is subject to the same license terms.
+This component is part of the AGENTCHAIN project and is subject to the same license terms.

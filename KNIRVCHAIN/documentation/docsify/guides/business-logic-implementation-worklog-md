@@ -153,4 +153,4 @@ Implement Context Retrieval API
 
 ### Conclusion:
 
-The Business Logic Implementation Plan has been fully implemented, with all phases completed and tested. The KNIRVCHAIN API now has standardized data formats for registration, enhanced invocation and update flows, and a comprehensive context retrieval API.
+The Business Logic Implementation Plan has been fully implemented, with all phases completed and tested. The AGENTCHAIN API now has standardized data formats for registration, enhanced invocation and update flows, and a comprehensive context retrieval API.

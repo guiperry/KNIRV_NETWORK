@@ -25,19 +25,19 @@ Each entry point can be built and run independently:
 
 ```bash
 # Build the main application
-go build -o knirvoracle main.go
+go build -o knirvchain main.go
 
 # Build the bootnode
-go build -o knirvoracle-bootnode main_bootnode.go
+go build -o knirvchain-bootnode main_bootnode.go
 
 # Build the client
-go build -o knirvoracle-client main_client.go
+go build -o knirvchain-client main_client.go
 
 # Build the developer version
-go build -o knirvoracle-dev main_developer.go
+go build -o knirvchain-dev main_developer.go
 
 # Build the root version
-go build -o knirvoracle-root main_root.go
+go build -o knirvchain-root main_root.go
 ```
 
 ## Configuration
@@ -48,18 +48,18 @@ All entry points use the unified configuration system located in the `config/` d
 
 The entry points import and use the following packages:
 
-- `pkg/services/` - Unified service management
-- `pkg/api/` - Unified API endpoints
-- `pkg/blockchain/` - Blockchain operations
-- `pkg/p2p/` - P2P networking
-- `pkg/agent/` - Agent management
-- `pkg/wallet/` - Wallet operations
-- `pkg/database/` - Database operations
-- `pkg/crypto/` - Cryptographic functions
-- `pkg/mcp/` - Model Context Protocol
-- `pkg/protocol/` - Protocol operations
-- `pkg/network/` - Network utilities
-- `pkg/integrations/` - External integrations
+- `internal/services/` - Unified service management
+- `internal/api/` - Unified API endpoints
+- `internal/blockchain/` - Blockchain operations
+- `internal/p2p/` - P2P networking
+- `internal/agent/` - Agent management
+- `internal/wallet/` - Wallet operations
+- `internal/database/` - Database operations
+- `internal/crypto/` - Cryptographic functions
+- `internal/mcp/` - Model Context Protocol
+- `internal/protocol/` - Protocol operations
+- `internal/network/` - Network utilities
+- `internal/integrations/` - External integrations
 - `config/` - Configuration management
 
 ## Build Tags

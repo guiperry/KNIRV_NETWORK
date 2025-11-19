@@ -21,7 +21,7 @@ pub struct TestnetConfig {
 impl Default for TestnetConfig {
     fn default() -> Self {
         Self {
-            chain_id: "knirvchain-testnet-1".to_string(),
+            chain_id: "knirvoracle-testnet-1".to_string(),
             single_validator: true,
             mock_llm: true,
             simplified_storage: true,
@@ -189,7 +189,7 @@ pub async fn mock_skill_validate(
 pub async fn testnet_status() -> Result<HttpResponse> {
     let status = serde_json::json!({
         "testnet": true,
-        "chain_id": "knirvchain-testnet-1",
+        "chain_id": "knirvoracle-testnet-1",
         "features": {
             "mock_llm": true,
             "simplified_storage": true,

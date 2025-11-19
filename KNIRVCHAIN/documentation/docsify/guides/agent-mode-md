@@ -1,13 +1,13 @@
 # Agent Mode
 
-Agent mode is a special operating mode for KNIRVCHAIN that enables both the inference engine and data engine to work together, sharing data metrics resources with the DHT (Distributed Hash Table).
+Agent mode is a special operating mode for AGENTCHAIN that enables both the inference engine and data engine to work together, sharing data metrics resources with the DHT (Distributed Hash Table).
 
 ## Usage
 
-To run KNIRVCHAIN in agent mode, use the `-agent` flag:
+To run AGENTCHAIN in agent mode, use the `-agent` flag:
 
 ```bash
-./KNIRVCHAIN -agent
+./AGENTCHAIN -agent
 ```
 
 ## What Agent Mode Enables
@@ -69,17 +69,17 @@ Agent mode can be configured through the configuration file:
 
 1. **Start in agent mode:**
    ```bash
-   ./KNIRVCHAIN -agent
+   ./AGENTCHAIN -agent
    ```
 
 2. **Start with specific configuration:**
    ```bash
-   ./KNIRVCHAIN -agent -config config/agent_config.json
+   ./AGENTCHAIN -agent -config config/agent_config.json
    ```
 
 3. **Start with custom role:**
    ```bash
-   ./KNIRVCHAIN -agent -role peer
+   ./AGENTCHAIN -agent -role peer
    ```
 
 ## Plugin Development

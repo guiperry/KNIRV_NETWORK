@@ -3,17 +3,17 @@
 
 **I. Introduction**
 
-This plan outlines the steps to transition your KNIRVCHAIN project to use Protobuf for hashing both blocks and transactions, and to remove the `SmartContract` struct. This will enhance the determinism and robustness of your hashing mechanisms.
+This plan outlines the steps to transition your AGENTCHAIN project to use Protobuf for hashing both blocks and transactions, and to remove the `SmartContract` struct. This will enhance the determinism and robustness of your hashing mechanisms.
 
 **II. Protobuf Definitions (`proto/mcp_descriptors.proto`)**
 
 We will define `BlockProto` and `TransactionProto` within your existing Protobuf file.
 
 ```protobuf
-// /home/gperry/Documents/GitHub/cloud-equities/KNIRVORACLE_GO_ROOT_MCP/proto/mcp_descriptors.proto
+// /home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN_GO_ROOT_MCP/proto/mcp_descriptors.proto
 syntax = "proto3";
 
-package KNIRVCHAIN;
+package AGENTCHAIN;
 
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
@@ -81,7 +81,7 @@ message BlockProto {
 
 After updating your `.proto` file, you'll need to regenerate the Go code:
 
-1.  Navigate to the directory containing your proto folder (likely `/home/gperry/Documents/GitHub/cloud-equities/KNIRVORACLE_GO_ROOT_MCP/`).
+1.  Navigate to the directory containing your proto folder (likely `/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN_GO_ROOT_MCP/`).
 2.  Run the `protoc` command. For example:
 
 ```bash
@@ -95,7 +95,7 @@ This will update `mcp_descriptors.pb.go` and `mcp_context.pb.go` with the new `B
 We'll use the `proto.Marshal` function for canonical byte representation. Your existing `GetCanonicalBytesForHashing` function is perfect for this. Ensure it's accessible (e.g., in `proto_converters.go` or a new `utils.go`).
 
 ```go
-// /home/gperry/Documents/GitHub/cloud-equities/KNIRVORACLE_GO_ROOT_MCP/proto_converters.go
+// /home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN_GO_ROOT_MCP/proto_converters.go
 // (or a new utils.go file)
 
 package main
@@ -438,7 +438,7 @@ Unchanged lines
 
 A.  **`block.go`** The `SmartContract` struct definition and its usage in `Block` struct, `NewBlock`, `Block.Hash` (already handled by switching to proto), and `Block.DeepCopy` are removed. This was covered in the diffs for `block.go` in section V.B.
 
-B.  **Test Files** You'll need to update any test files that call `NewBlock` with a `SmartContract` argument. Example for `/home/gperry/Documents/GitHub/cloud-equities/KNIRVORACLE_GO_ROOT_MCP/mcp_blockchain_test.go`:
+B.  **Test Files** You'll need to update any test files that call `NewBlock` with a `SmartContract` argument. Example for `/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN_GO_ROOT_MCP/mcp_blockchain_test.go`:
 
 ```go
 	}
@@ -496,10 +496,10 @@ Unchanged lines
 	newBlock2.MineBlock()
 ```
 
-Similar changes would be needed in `/home/gperry/Documents/GitHub/cloud-equities/KNIRVORACLE_GO_ROOT_MCP/mcp_api_test.go` and `/home/gperry/Documents/GitHub/cloud-equities/KNIRVORACLE_GO_ROOT_MCP/transaction_test.go` where `NewBlock` is called.
+Similar changes would be needed in `/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN_GO_ROOT_MCP/mcp_api_test.go` and `/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN_GO_ROOT_MCP/transaction_test.go` where `NewBlock` is called.
 
 **X. Database Invalidation**
 
-Reiterate to yourself: After these changes, your existing blockchain database will be incompatible. The genesis block hash will change due to the new hashing mechanism. You must delete the old database files (e.g., `~/.config/KNIRVCHAIN/data/agent.db`) before running the application with these modifications to start a fresh chain.
+Reiterate to yourself: After these changes, your existing blockchain database will be incompatible. The genesis block hash will change due to the new hashing mechanism. You must delete the old database files (e.g., `~/.config/AGENTCHAIN/data/agent.db`) before running the application with these modifications to start a fresh chain.
 
 This plan provides a solid foundation for transitioning to Protobuf-based hashing. It's a significant update that will enhance the robustness and consistency of your blockchain. Take it step-by-step, test thoroughly, and you'll have a much stronger system!

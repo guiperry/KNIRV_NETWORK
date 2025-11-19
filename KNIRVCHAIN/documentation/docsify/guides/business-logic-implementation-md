@@ -1,7 +1,7 @@
 
-# KNIRVCHAIN API Refactoring & SDK Tool Implementation Plan
+# AGENTCHAIN API Refactoring & SDK Tool Implementation Plan
 
-This document outlines the current status and future steps for refactoring the KNIRVCHAIN API, with a focus on standardizing data formats for registration and enhancing the existing invocation and update flows.
+This document outlines the current status and future steps for refactoring the AGENTCHAIN API, with a focus on standardizing data formats for registration and enhancing the existing invocation and update flows.
 
 **The core lifecycle remains:** Register, Invoke, Update, Retrieve Context. The deprecated `/initiate` and `/finalize` endpoints for registration are correctly noted. The `/prepare_registration_capability` followed by submission to `/transaction` is the new registration flow. The `/transaction` endpoint detects transaction types.
 

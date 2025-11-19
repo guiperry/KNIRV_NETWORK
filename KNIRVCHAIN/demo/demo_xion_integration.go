@@ -205,8 +205,8 @@ func showNextSteps() {
 
 	fmt.Println("2️⃣  BUILD KNIRVCHAIN WITH XION:")
 	fmt.Printf("   cd KNIRVCHAIN\n")
-	fmt.Printf("   go build -o knirvoracle .\n")
-	fmt.Printf("   ./knirvoracle\n")
+	fmt.Printf("   go build -o knirvchain .\n")
+	fmt.Printf("   ./knirvchain\n")
 	fmt.Println()
 
 	fmt.Println("3️⃣  ACCESS MONITORING DASHBOARDS:")

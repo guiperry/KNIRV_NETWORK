@@ -1,7 +1,7 @@
 package config
 
 import (
-	"KNIRVCHAIN/pkg/utils"
+	"KNIRVCHAIN/internal/utils"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"

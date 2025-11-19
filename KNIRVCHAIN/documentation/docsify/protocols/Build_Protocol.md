@@ -1,10 +1,10 @@
-# KNIRVCHAIN Build System
+# AGENTCHAIN Build System
 
-This document describes the build system for KNIRVCHAIN, including role-specific builds and cross-compilation.
+This document describes the build system for AGENTCHAIN, including role-specific builds and cross-compilation.
 
 ## Node Roles
 
-KNIRVCHAIN supports multiple node roles, each with specific functionality:
+AGENTCHAIN supports multiple node roles, each with specific functionality:
 
 - **Root**: A root node that initializes a new chain
 - **Bootnode**: A bootnode that helps with dev discovery
@@ -13,11 +13,11 @@ KNIRVCHAIN supports multiple node roles, each with specific functionality:
 
 ## Role-Specific Builds
 
-KNIRVCHAIN now supports role-specific builds using Go build tags. This allows for creating binaries that are optimized for specific roles without requiring runtime configuration.
+AGENTCHAIN now supports role-specific builds using Go build tags. This allows for creating binaries that are optimized for specific roles without requiring runtime configuration.
 
 ### Building for Specific Roles
 
-You can build KNIRVCHAIN for specific roles using the Makefile targets:
+You can build AGENTCHAIN for specific roles using the Makefile targets:
 
 ```bash
 # Build for client role (default)
@@ -38,7 +38,7 @@ make build/all-roles
 
 ### Cross-Compilation
 
-You can cross-compile KNIRVCHAIN for multiple platforms and roles:
+You can cross-compile AGENTCHAIN for multiple platforms and roles:
 
 ```bash
 # Cross-compile for all platforms (client role)
@@ -63,21 +63,21 @@ You can also build manually using Go build tags:
 
 ```bash
 # Build for client role
-go build -tags=client -o KNIRVCHAIN
+go build -tags=client -o AGENTCHAIN
 
 # Build for root role
-go build -tags=root -o KNIRVORACLE_root
+go build -tags=root -o AGENTCHAIN_root
 
 # Build for bootnode role
-go build -tags=bootnode -o KNIRVORACLE_bootnode
+go build -tags=bootnode -o AGENTCHAIN_bootnode
 
 # Build for developer role
-go build -tags=developer -o KNIRVORACLE_developer
+go build -tags=developer -o AGENTCHAIN_developer
 ```
 
 ## User Interfaces
 
-KNIRVCHAIN supports multiple user interfaces:
+AGENTCHAIN supports multiple user interfaces:
 
 - **Terminal UI**: A text-based interface using Bubbletea
 - **Fyne GUI**: A graphical interface using the Fyne toolkit (Windows)
@@ -87,7 +87,7 @@ The terminal UI is enabled by default for all roles but can be disabled with the
 
 ## Command-Line Flags
 
-KNIRVCHAIN supports the following command-line flags:
+AGENTCHAIN supports the following command-line flags:
 
 - `--terminal`: Enable the terminal UI (if not already enabled by default)
 - `--no-terminal`: Disable the terminal UI

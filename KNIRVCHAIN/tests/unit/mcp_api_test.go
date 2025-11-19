@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"KNIRVCHAIN/pkg/types"
+	"KNIRVCHAIN/internal/types"
 
 	"github.com/gin-gonic/gin"
 )

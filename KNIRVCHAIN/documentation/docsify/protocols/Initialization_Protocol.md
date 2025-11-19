@@ -14,7 +14,7 @@ Installation Process:
 
 If cfg.InstallComplete is false and --skip-install is not set, the Install function is called.
 Install guides the user (or uses defaults/non-interactive mode) to set up essential configuration like ChainID, MinersAddress, BlockchainDatabasePath, SearchableDatabasePath, etc.
-Install saves the updated configuration to a role-specific file (e.g., ~/.config/KNIRVCHAIN/dev_data/config.json for a Peer).
+Install saves the updated configuration to a role-specific file (e.g., ~/.config/AGENTCHAIN/dev_data/config.json for a Peer).
 The cfg variable in main is updated with the configuration returned by Install. This is crucial because the rest of main uses this potentially updated cfg.
 Mode-Based Node Configuration (cfg.IsPeer, isNetworkMode):
 

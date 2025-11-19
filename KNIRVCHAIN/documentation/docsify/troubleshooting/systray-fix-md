@@ -62,7 +62,7 @@ func (sm *SystrayManager) onReady() {
 
 	// TODO: Add more items like "Open Wallet", "Network Status", etc.
 
-	mQuit := systray.AddMenuItem("Quit", "Quit KNIRVCHAIN")
+	mQuit := systray.AddMenuItem("Quit", "Quit AGENTCHAIN")
 
 	// Handle clicks in a loop
 	// Goroutine to handle menu item clicks. This is the standard pattern.
@@ -126,7 +126,7 @@ func (sm *SystrayManager) viewLogs() {
 		log.Printf("Systray: Error getting log directory: %v", err)
 		return
 	}
-	logFilePath := filepath.Join(logDir, "KNIRVCHAIN.log")
+	logFilePath := filepath.Join(logDir, "AGENTCHAIN.log")
 	if err := open.Run(logFilePath); err != nil {
 		log.Printf("Systray: Failed to open log file %s: %v", logFilePath, err)
 	}

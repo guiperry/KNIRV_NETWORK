@@ -106,9 +106,9 @@ Implemented the Go code to start and manage the Node.js processes when in root m
 
 ## Phase 5: Client Integration ✅
 
-### 5.1 Go Client for Resolving knirv:// URIs ✅
+### 5.1 Go Client for Resolving agent:// URIs ✅
 
-Implemented the Go client for resolving and connecting to `knirv://` URIs:
+Implemented the Go client for resolving and connecting to `agent://` URIs:
 - Created `uriresolver.go` with methods for parsing, resolving, and connecting to URIs
 - Created `uriresolver_test.go` with unit tests for URI parsing
 - Created `example.go` showing how to use the URI resolver
@@ -127,16 +127,16 @@ Implemented the Node.js client for nodes behind NAT to establish a control conne
 
 ## Phase 6: Alternative Approach - Libp2p Circuit Relay ✅
 
-### 6.1 Configure KNIRVCHAIN-ROOT Node as a Circuit Relay ✅
+### 6.1 Configure AGENTCHAIN-ROOT Node as a Circuit Relay ✅
 
-Implemented the libp2p host configuration in the KNIRVCHAIN-ROOT node to enable it as a circuit relay:
+Implemented the libp2p host configuration in the AGENTCHAIN-ROOT node to enable it as a circuit relay:
 - Created `relay.go` with methods for configuring a host as a circuit relay
 - Implemented relay advertisement in the DHT
 - Added configuration options for relay resources and advertisement interval
 
 ### 6.2 Configure Client Nodes to Use the Circuit Relay ✅
 
-Implemented the libp2p host configuration in client nodes to use the KNIRVCHAIN-ROOT node as a relay:
+Implemented the libp2p host configuration in client nodes to use the AGENTCHAIN-ROOT node as a relay:
 - Added methods for configuring a host as a relay client
 - Implemented relay discovery in the DHT
 - Added helper functions for creating a host with relay client capabilities
@@ -147,7 +147,7 @@ Implemented the libp2p host configuration in client nodes to use the KNIRVCHAIN-
 - [Date: Current] Created directory structure, package.json, and all Node.js files for the tunnel registry service
 - [Date: Current] Created Node.js client for nodes behind NAT
 - [Date: Current] Created Go tunnel client for bootnodes and devs
-- [Date: Current] Created Go client for resolving knirv:// URIs
+- [Date: Current] Created Go client for resolving agent:// URIs
 - [Date: Current] Created Go code to manage Node.js services
 - [Date: Current] Implemented libp2p circuit relay configuration for both relay and client nodes
 - [Date: Current] Updated Go configuration to include NodeJSServices and TunnelClient configurations

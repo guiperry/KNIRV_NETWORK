@@ -17,7 +17,7 @@ Here's a breakdown of the status of these API refactoring tasks for your Blockch
 	"github.com/multiformats/go-multiaddr"
 	"github.com/google/uuid" // For generating capability_id
 
-	pb "KNIRVCHAIN/proto" // Assuming your proto definitions
+	pb "AGENTCHAIN/proto" // Assuming your proto definitions
 	"google.golang.org/protobuf/proto"
 Unchanged lines
 	s.router.HandleFunc("/mcp/capability/{id}/invocations", s.handleGetCapabilityInvocations).Methods("GET")
@@ -306,12 +306,12 @@ And you would need corresponding methods in `blockchain_struct.go`:
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
 
-	pb "KNIRVCHAIN/proto"
+	pb "AGENTCHAIN/proto"
 	"google.golang.org/protobuf/proto"
 
-	"KNIRVCHAIN/config"
-	agenterrors "KNIRVCHAIN/errors"
-	agentlog "KNIRVCHAIN/log"
+	"AGENTCHAIN/config"
+	agenterrors "AGENTCHAIN/errors"
+	agentlog "AGENTCHAIN/log"
 Unchanged lines
 	// For now, return true, assuming the transaction is valid if it reaches this point.
 	return true, nil
@@ -450,5 +450,5 @@ The most pressing issues are:
 3. Removing the deprecated endpoints and cleaning up the `openapi.yaml`.
 4. Ensuring full test coverage, paying particular attention to signature verification and the new registration flow.
 
-By focusing on these areas, you can create a much more robust and consistent API for your KNIRVCHAIN SDK.
+By focusing on these areas, you can create a much more robust and consistent API for your AGENTCHAIN SDK.
 ```

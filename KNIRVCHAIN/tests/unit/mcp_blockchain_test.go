@@ -15,9 +15,9 @@ import (
 	// Removed leveldb import as we no longer use it directly
 
 	"KNIRVCHAIN/config"
-	pb "KNIRVCHAIN/pkg/protocol/proto"
-	"KNIRVCHAIN/pkg/types"
-	"KNIRVCHAIN/pkg/utils"
+	pb "KNIRVCHAIN/internal/protocol/proto"
+	"KNIRVCHAIN/internal/types"
+	"KNIRVCHAIN/internal/utils"
 )
 
 // TestMCPTransactionProcessing tests the processing of MCP transactions

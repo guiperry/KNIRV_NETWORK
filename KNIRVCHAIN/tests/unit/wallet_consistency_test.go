@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"KNIRVCHAIN/config"
-	"KNIRVCHAIN/pkg/utils"
+	"KNIRVCHAIN/internal/utils"
 )
 
 // TestWalletConsistencyChecks tests the wallet consistency checks

@@ -1,4 +1,4 @@
-# KNIRVCHAIN Test Troubleshooting Log
+# AGENTCHAIN Test Troubleshooting Log
 
 ## Updated Analysis (2025-05-21)
 
@@ -29,7 +29,7 @@ Based on the detailed analysis of test_errors.md, the following issues have been
    - Root cause: Transaction verification process is failing or not being triggered properly
 
 5. **TestURIGeneratorHandler_Integration Failure**
-   - Error: `Handler returned wrong status code for conflict: got 201 want 409, body: {"txn_hash":"0xb68ae29cce41415197e593fdda4b0b86ef17f5b16989255c0064f77113a914f3","uri":"knirv://taken-id-456.chain/"}`
+   - Error: `Handler returned wrong status code for conflict: got 201 want 409, body: {"txn_hash":"0xb68ae29cce41415197e593fdda4b0b86ef17f5b16989255c0064f77113a914f3","uri":"agent://taken-id-456.chain/"}`
    - Line: 816-822
    - Root cause: URI Generator is not correctly detecting ID conflicts and returning the appropriate status code
 

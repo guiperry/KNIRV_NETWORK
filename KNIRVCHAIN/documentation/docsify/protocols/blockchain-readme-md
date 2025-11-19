@@ -1,6 +1,6 @@
-# KNIRVCHAIN: A Decentralized Model Context Protocol Network
+# AGENTCHAIN: A Decentralized Model Context Protocol Network
 
-KNIRVCHAIN is a blockchain implementation written in Go. It features dev-to-dev networking using libp2p (including a private DHT and mDNS for discovery), HTTP APIs for interaction, a separate wallet server for key management, proof-of-work mining, and mechanisms for chain synchronization. It utilizes LevelDB for persistent storage and defines a custom `knirv://` URI scheme for identifying chain resources within its private network.
+AGENTCHAIN is a blockchain implementation written in Go. It features dev-to-dev networking using libp2p (including a private DHT and mDNS for discovery), HTTP APIs for interaction, a separate wallet server for key management, proof-of-work mining, and mechanisms for chain synchronization. It utilizes LevelDB for persistent storage and defines a custom `agent://` URI scheme for identifying chain resources within its private network.
 
 ## Features
 
@@ -12,15 +12,15 @@ KNIRVCHAIN is a blockchain implementation written in Go. It features dev-to-dev 
     *   **Private DHT Discovery:** Employs a Kademlia DHT configured with custom bootstrap devs to create an isolated network. Used for discovering devs providing specific chain resources (e.g., `myPeer.chain`) and MCP capabilities.
     *   **mDNS Discovery:** Uses mDNS for discovering devs on the local network.
     *   **NAT Traversal:** Includes AutoRelay, NATPortMap, and Hole Punching support to facilitate connections between nodes behind NATs.
-    *   **P2P Chain Synchronization:** Implements a `/knirv/chain-sync/1.0.0` protocol for nodes to directly exchange status and blocks to synchronize their chain state.
+    *   **P2P Chain Synchronization:** Implements a `/agent/chain-sync/1.0.0` protocol for nodes to directly exchange status and blocks to synchronize their chain state.
 *   **Consensus (Current):** Implements a basic longest-chain consensus rule by polling configured reflection nodes via HTTP (intended for root node coordination). Peer nodes rely on the P2P sync protocol.
 *   **Wallet:** ECDSA key pairs, address generation (using Base58Check encoding for public keys), transaction signing.
-*   **URI Scheme:** Defines and utilizes a `knirv://<ID>.<ResourceType>/...` scheme for identifying resources on the network. Includes URI minting via transactions and announcement on the private DHT.
+*   **URI Scheme:** Defines and utilizes a `agent://<ID>.<ResourceType>/...` scheme for identifying resources on the network. Includes URI minting via transactions and announcement on the private DHT.
 
 
 ### Model Context Protocol (MCP) Layer
-*   **MCP:** A set of standards for defining, discovering, and interacting with AI capabilities. KNIRVCHAIN serves as a decentralized backend for MCP.
-*   **Capabilities:** These are the core building blocks of the MCP ecosystem on KNIRVCHAIN:
+*   **MCP:** A set of standards for defining, discovering, and interacting with AI capabilities. AGENTCHAIN serves as a decentralized backend for MCP.
+*   **Capabilities:** These are the core building blocks of the MCP ecosystem on AGENTCHAIN:
     *   **Resources:** Expose structured or dynamic content. This includes:
         *   **Plugins:** Developer-uploaded executables (e.g., Go `.so`, Wasm) hosted by devs, discovered on-chain, downloaded, and run by clients. (See `docs/plugin_templates.md`)
         *   **Datasets:** References to datasets with on-chain metadata and hashes.
@@ -31,17 +31,17 @@ KNIRVCHAIN is a blockchain implementation written in Go. It features dev-to-dev 
     *   **Memory Services:** Capabilities providing persistent, graph-like memory stores.
 *   **Capability Descriptors:** Metadata structures (e.g., `ResourceDescriptor`, `ToolDescriptor`) registered on the blockchain. These descriptors define the capability's properties, schemas, owner, NRN gas fee, and for resources like plugins, a `ContentHash` and `LocationHints` for off-chain retrieval.
 *   **ContextRecord:** An on-chain record logged for every significant MCP interaction (e.g., capability invocation, registration). It details what happened, when, by whom, and with what references (hashes, fees), forming an immutable audit trail.
-*   **NRN Tokens:** The native utility token of KNIRVCHAIN, used for:
+*   **NRN Tokens:** The native utility token of AGENTCHAIN, used for:
     *   Paying gas fees for registering and invoking MCP capabilities.
     *   Compensating capability owners (e.g., plugin developers).
-*   **agent Client (Inference Engine):** An application that interacts with KNIRVCHAIN to discover, download (for plugins), execute, and log the usage of MCP capabilities.
+*   **agent Client (Inference Engine):** An application that interacts with AGENTCHAIN to discover, download (for plugins), execute, and log the usage of MCP capabilities.
 
 ## Features Summary
 
 *   Core Blockchain (PoW, LevelDB Persistence)
 *   Advanced P2P Networking with Private DHT & NAT Traversal
 *   P2P Chain Synchronization
-*   Custom `knirv://` URI Scheme with DHT-based Discovery
+*   Custom `agent://` URI Scheme with DHT-based Discovery
 
 *   **Startup Modes:**
     *   **Network Mode (`-network`):** Starts two nodes (main and reflection) configured for root network operation.
@@ -63,12 +63,12 @@ KNIRVCHAIN is a blockchain implementation written in Go. It features dev-to-dev 
 *   **`WalletServer` (`wallet_server.go`):** A separate HTTP server dedicated to wallet operations (generation, signing). Communicates with a specified `BlockchainServer`.
 *   **`DiscoveryManager` (`discovery_manager.go`):** Encapsulates libp2p host setup, connection to the private DHT via custom bootstrap devs, resource announcement (`Provide` for chain URIs and potentially MCP capabilities), dev discovery (`FindProviders`), mDNS, and dev connection logic.
 *   **`SelfConsensusManager` (`self_consensus_manager.go`):** Implements the HTTP-based longest-chain polling mechanism used primarily for root/reflection node confirmation & coordination.
-*   **`P2PConsensusManager` (`p2p_consensus.go`):** Implements the `/knirv/chain-sync/1.0.0` protocol for direct dev-to-dev blockchain synchronization, including status exchange, block requests, and validation.
+*   **`P2PConsensusManager` (`p2p_consensus.go`):** Implements the `/agent/chain-sync/1.0.0` protocol for direct dev-to-dev blockchain synchronization, including status exchange, block requests, and validation.
 *   **`BlockchainStruct` (`blockchain_struct.go`):** Represents the blockchain, holding blocks, transaction pool, metadata, and methods for adding blocks/transactions, mining, balance calculation, etc. **It also handles validation and processing of MCP transactions (capability registration, invocation), including NRN fee deductions and state updates for MCP descriptors and context records.**
 *   **`Block` (`block.go`) & `Transaction` (`transaction.go`):** Core data structures with hashing and verification methods.
 *   **`Wallet` (`wallet.go`):** Handles ECDSA key generation, storage, address derivation, and transaction signing.
 *   **MCP Types (`mcp_types.go`):** Defines Go structs for `CapabilityDescriptor` (Base, Resource, Tool, Prompt, MemoryService) and `ContextRecord`.
-*   **URI Handling (`uri_generation.go`,`uri_registration.go`, `uri_parsing.go`):** Defines, registers, parses, and generates the `knirv://` URI scheme.
+*   **URI Handling (`uri_generation.go`,`uri_registration.go`, `uri_parsing.go`):** Defines, registers, parses, and generates the `agent://` URI scheme.
 *   **Installation (`install.go`):** Handles the interactive process for dev nodes to obtain a ChainID from the root, configure ports, and prepare the configuration file.
 *   **Configuration (`config/config.go`):** Defines the configuration structure, loading logic (with search paths), saving, and default values.
 
@@ -89,7 +89,7 @@ KNIRVCHAIN is a blockchain implementation written in Go. It features dev-to-dev 
 
 ## `ContextRecord` Scenarios: The Audit Trail
 
-The `ContextRecord` is central to KNIRVCHAIN's MCP, providing an on-chain, verifiable log for:
+The `ContextRecord` is central to AGENTCHAIN's MCP, providing an on-chain, verifiable log for:
 *   **Tool Invocations:** Logging `InteractionType: "TOOL_INVOCATION"`, `CapabilityID`, `Initiator`, input/output hashes, and NRN fee.
 *   **Prompt Usage:** Logging `InteractionType: "PROMPT_USAGE"`, `CapabilityID`, `Initiator`, and input hash (of prompt parameters).
 *   **Plugin Executions:** Logging `InteractionType: "PLUGIN_EXECUTION"`, `CapabilityID`, `Initiator`, input/output hashes of plugin data.
@@ -110,10 +110,10 @@ These records are queried via endpoints like `GET /mcp/context/{id}` and `GET /m
 
 ```bash
 # Navigate to the project root directory
-cd /path/to/KNIRVORACLE_GO_ROOT
+cd /path/to/AGENTCHAIN_GO_ROOT
 
 # Build the executable
-go build -o KNIRVORACLE_node .
+go build -o AGENTCHAIN_node .
 ```
 
 #### Configuration
@@ -121,8 +121,8 @@ go build -o KNIRVORACLE_node .
 The application searches for `config.json` in the following order:
 
 1.  Path specified by the `-config` flag.
-2.  Path specified by the `KNIRVORACLE_CONFIG_PATH` environment variable.
-3.  User config directory (`~/.config/KNIRVCHAIN/config.json` on Linux).
+2.  Path specified by the `AGENTCHAIN_CONFIG_PATH` environment variable.
+3.  User config directory (`~/.config/AGENTCHAIN/config.json` on Linux).
 4.  Directory containing the executable.
 5.  Current working directory.
 
@@ -130,7 +130,7 @@ If not found, a default `config.json` is created (usually in the user config dir
 
 #### Private DHT Setup:
 
-1.  Run the `KNIRVORACLE_node` on your chosen bootstrap machines. Note their full multiaddresses (e.g., `/ip4/x.x.x.x/tcp/4001/p2p/12D3Koo...`).
+1.  Run the `AGENTCHAIN_node` on your chosen bootstrap machines. Note their full multiaddresses (e.g., `/ip4/x.x.x.x/tcp/4001/p2p/12D3Koo...`).
 2.  Update the `bootstrap_devs` list in your `config.json` (or the hardcoded list in `discovery_manager.go`) on *all* nodes (root, devs, bootstrap nodes themselves) to contain *only* the multiaddresses of your dedicated bootstrap nodes.
 
 ### Running
@@ -139,7 +139,7 @@ If not found, a default `config.json` is created (usually in the user config dir
 
     ```bash
     # Ensure config.json has correct root ports and private bootstrap_devs
-    ./KNIRVORACLE_node -network
+    ./AGENTCHAIN_node -network
     # Or using go run
     # go run . -network
     ```
@@ -148,17 +148,17 @@ If not found, a default `config.json` is created (usually in the user config dir
 
     ```bash
     # First-time run (triggers installer if install_complete=false):
-    ./KNIRVORACLE_node -dev
+    ./AGENTCHAIN_node -dev
 
     # Subsequent runs (loads config with dev ports):
-    ./KNIRVORACLE_node -dev
+    ./AGENTCHAIN_node -dev
     ```
 
 3.  **Single Node Mode:** Starts a single node, typically using root configuration unless overridden. Useful for development or specific setups.
 
     ```bash
     # Example: Start a single node on different ports
-    ./KNIRVORACLE_node -port 5005 -p2p.port 4005 -wallet_port 6005 -shared_database_path database_node5005/agent.db -miners_address your_miner_address
+    ./AGENTCHAIN_node -port 5005 -p2p.port 4005 -wallet_port 6005 -shared_database_path database_node5005/agent.db -miners_address your_miner_address
     ```
 
 Press `Ctrl+C` to initiate graceful shutdown.
@@ -189,7 +189,7 @@ Press `Ctrl+C` to initiate graceful shutdown.
 *   `GET /txn_pool`: Returns the transaction pool.
 *   `GET /ping`: Simple health check.
 *   `GET /health`: Detailed health check.
-*   `POST /uriGenerator`: Generates a `knirv://` URI, checks DHT, announces on DHT.
+*   `POST /uriGenerator`: Generates a `agent://` URI, checks DHT, announces on DHT.
 *   `GET /info`: Returns server information.
 *   `GET /devs`: Finds devs for the node's chain via the private DHT.
 *   `POST /test/faucet`: (Test Only) Funds an address.
@@ -213,10 +213,10 @@ Press `Ctrl+C` to initiate graceful shutdown.
 
 ### URI Scheme
 
-KNIRVCHAIN uses a custom URI scheme for resource identification within its private network:
+AGENTCHAIN uses a custom URI scheme for resource identification within its private network:
 
 ```
-knirv://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1
+agent://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1
 ```
 
 *   `<ID>`: Unique identifier (e.g., `agent-root-5000`, `myPeer`).
@@ -224,7 +224,7 @@ knirv://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1
 *   `<OptionalSubPath>`: e.g., `/block`, `/transaction`, `/devs`.
 *   `?params`: Optional query parameters.
 
-Resolution involves parsing the URI, deriving a resource key (e.g., `myPeer.chain`), generating a CID, querying the private KNIRVCHAIN DHT for providers using the CID, connecting to a provider via libp2p, and making the request over a P2P stream.
+Resolution involves parsing the URI, deriving a resource key (e.g., `myPeer.chain`), generating a CID, querying the private AGENTCHAIN DHT for providers using the CID, connecting to a provider via libp2p, and making the request over a P2P stream.
 
 ### Testing
 

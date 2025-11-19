@@ -2,7 +2,7 @@ package main
 
 import (
 	"KNIRVCHAIN/config"
-	"KNIRVCHAIN/pkg/wallet"
+	"KNIRVCHAIN/internal/wallet"
 
 	"os"
 	"path/filepath"

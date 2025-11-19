@@ -64,7 +64,7 @@ func stringifyMetadataTestHelper(metadata map[string]interface{}) map[string]str
 }
 Now, let's update the specific test files:
 
-1. /home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN/mcp_blockchain_test.go
+1. /home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN/mcp_blockchain_test.go
 This file tests the processing of MCP transactions, capability invocation, and updates. We'll add ChromemDB verification steps.
 
 mcp_blockchain_test.go
@@ -82,7 +82,7 @@ import (
 	"testing"
 	"time"
 
-	"KNIRVCHAIN/utils"
+	"AGENTCHAIN/utils"
 )
 
 // WaitForChromemDBTest is a local helper for this test file.
@@ -346,7 +346,7 @@ func TestMCPCapabilityUpdate(t *testing.T) {
  
  // Helper function to register a test capability with a specific owner
 
-2. /home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN/transaction_test.go
+2. /home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN/transaction_test.go
 This file tests the basic transaction flow. We'll add ChromemDB verification for the transactions.
 
 diff
@@ -360,7 +360,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"KNIRVCHAIN/utils"
+	"AGENTCHAIN/utils"
 )
 
 // WaitForChromemDBTxTest is a local helper for this test file.
@@ -593,7 +593,7 @@ func stringifyMetadataTestHelper(metadata map[string]interface{}) map[string]str
 }
 Now, let's apply these principles to update your test files.
 
-1. /home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN/mcp_blockchain_test.go
+1. /home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN/mcp_blockchain_test.go
 This file is crucial as it tests MCP transaction processing, capability invocation, and updates, all of which should have corresponding ChromemDB entries.
 
 mcp_blockchain_test.go
@@ -610,7 +610,7 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"KNIRVCHAIN/utils"
+	"AGENTCHAIN/utils"
 )
 
 // WaitForChromemDB is a local helper for this test file.
@@ -893,7 +893,7 @@ func TestMCPCapabilityUpdate(t *testing.T) {
  
  // Helper function to register a test capability with a specific owner
 
-2. /home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN/transaction_test.go
+2. /home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN/transaction_test.go
 This file tests the basic transaction flow. We'll add ChromemDB verification for the transactions.
 
 diff
@@ -907,7 +907,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"KNIRVCHAIN/utils"
+	"AGENTCHAIN/utils"
 )
 
 // WaitForChromemDBTxTest is a local helper for this test file.

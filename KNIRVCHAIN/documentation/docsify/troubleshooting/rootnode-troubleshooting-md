@@ -1,4 +1,4 @@
-# KNIRVCHAIN Root Node Troubleshooting Guide
+# AGENTCHAIN Root Node Troubleshooting Guide
 
 ## Issue Analysis
 
@@ -6,7 +6,7 @@ Based on the log file `rootnode_log.md`, the following critical issues were iden
 
 ### 1. Database Initialization Failure
 ```
-[Root][agent-root-9999] FATAL: Failed to initialize database: failed to open leveldb at /home/gperry/.config/KNIRVCHAIN/root_data/agent_root.db: resource temporarily unavailable
+[Root][agent-root-9999] FATAL: Failed to initialize database: failed to open leveldb at /home/gperry/.config/AGENTCHAIN/root_data/agent_root.db: resource temporarily unavailable
 ```
 
 This is the most critical error. The root node cannot initialize its database because the resource is temporarily unavailable. This typically happens when:
@@ -44,30 +44,30 @@ The node found devs via DHT but failed to connect to any of them due to missing 
 **Solutions**:
 
 1. **Check for running instances**:
-   - Ensure no other KNIRVCHAIN instances are running that might be using the database
-   - Use `ps aux | grep KNIRVCHAIN` to identify any running processes
+   - Ensure no other AGENTCHAIN instances are running that might be using the database
+   - Use `ps aux | grep AGENTCHAIN` to identify any running processes
 
 2. **Fix database lock**:
    - If no other instances are running but the database is still locked, remove the lock file:
    ```
-   rm /home/gperry/.config/KNIRVCHAIN/root_data/LOCK
+   rm /home/gperry/.config/AGENTCHAIN/root_data/LOCK
    ```
 
 3. **Check permissions**:
    - Ensure proper ownership and permissions on the database directory:
    ```
-   sudo chown -R $USER:$USER /home/gperry/.config/KNIRVCHAIN/
-   chmod -R 755 /home/gperry/.config/KNIRVCHAIN/
+   sudo chown -R $USER:$USER /home/gperry/.config/AGENTCHAIN/
+   chmod -R 755 /home/gperry/.config/AGENTCHAIN/
    ```
 
 4. **Database backup and reset** (if database is corrupted):
    - Backup the current database:
    ```
-   cp -r /home/gperry/.config/KNIRVCHAIN/root_data /home/gperry/.config/KNIRVCHAIN/root_data_backup_$(date +%Y%m%d)
+   cp -r /home/gperry/.config/AGENTCHAIN/root_data /home/gperry/.config/AGENTCHAIN/root_data_backup_$(date +%Y%m%d)
    ```
    - Remove and reinitialize the database:
    ```
-   rm -rf /home/gperry/.config/KNIRVCHAIN/root_data/agent_root.db
+   rm -rf /home/gperry/.config/AGENTCHAIN/root_data/agent_root.db
    ```
 
 ### 2. Next.js GUI Server Issue

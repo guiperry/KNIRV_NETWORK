@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the Protocol Buffer (Protobuf) implementation strategy for the KNIRVCHAIN system, detailing the current state, rationale, and future directions. The system currently employs a hybrid approach, using Protobuf for certain critical operations while maintaining JSON for others to ensure backward compatibility and interoperability.
+This document outlines the Protocol Buffer (Protobuf) implementation strategy for the AGENTCHAIN system, detailing the current state, rationale, and future directions. The system currently employs a hybrid approach, using Protobuf for certain critical operations while maintaining JSON for others to ensure backward compatibility and interoperability.
 
 ## Current Implementation Status
 

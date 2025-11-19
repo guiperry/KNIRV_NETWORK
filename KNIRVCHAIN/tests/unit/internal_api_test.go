@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"KNIRVCHAIN/pkg/types"
+	"KNIRVCHAIN/internal/types"
 
 	"github.com/gorilla/mux"
 	"github.com/libp2p/go-libp2p/core/peer"

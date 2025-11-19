@@ -621,7 +621,7 @@ impl DHTManager {
             Err(e) => {
                 warn!("Failed to create CID for service ID {}: {}", self.service_id, e);
                 // Fallback to simple key format
-                let service_key = format!("knirvchain-{}", self.chain_id);
+                let service_key = format!("knirvoracle-{}", self.chain_id);
                 let key = Key::new(&service_key);
                 return self.announce_with_key(key).await;
             }

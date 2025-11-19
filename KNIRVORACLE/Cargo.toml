@@ -1,14 +1,14 @@
 [package]
-name = "knirvchain"
+name = "knirvoracle"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "knirvchain"
+name = "knirvoracle"
 path = "src/main.rs"
 
 [lib]
-name = "knirvchain"
+name = "knirvoracle"
 path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the plan to completely remove all terminal UI components (Bubbletea and tview) from the KNIRVCHAIN application while preserving the dataengine functionality. The dataengine has already been moved from the ui folder to the root of the project, which is the first step in this migration.
+This document outlines the plan to completely remove all terminal UI components (Bubbletea and tview) from the AGENTCHAIN application while preserving the dataengine functionality. The dataengine has already been moved from the ui folder to the root of the project, which is the first step in this migration.
 
 ## 1. Current Architecture
 
@@ -160,7 +160,7 @@ import (
     "sync"
     "time"
     
-    "KNIRVCHAIN/messages"
+    "AGENTCHAIN/messages"
 )
 
 // ...
@@ -189,8 +189,8 @@ func (d *DataEngine) ProcessLogMsg(msg messages.LogMsg) error {
 ```go
 // Remove imports
 // Remove: tea "github.com/charmbracelet/bubbletea"
-// Remove: "KNIRVCHAIN/ui"
-// Keep: "KNIRVCHAIN/messages" (already updated)
+// Remove: "AGENTCHAIN/ui"
+// Keep: "AGENTCHAIN/messages" (already updated)
 
 // Remove terminal UI flags
 // Remove: useTerminal := flag.Bool("terminal", false, "Run with Bubbletea terminal interface")
@@ -307,7 +307,7 @@ Total estimated time: 4-7 days
 
 ## 7. Conclusion
 
-This plan provides a structured approach to removing Bubbletea from the KNIRVCHAIN application while preserving the dataengine functionality. By following these steps, we can safely transition away from Bubbletea without disrupting the core functionality of the application.
+This plan provides a structured approach to removing Bubbletea from the AGENTCHAIN application while preserving the dataengine functionality. By following these steps, we can safely transition away from Bubbletea without disrupting the core functionality of the application.
 
 ## 8. Progress Tracking
 
@@ -383,7 +383,7 @@ This plan provides a structured approach to removing Bubbletea from the KNIRVCHA
    - Replace the terminal UI section with a simple signal handler for clean shutdown:
      ```go
      // Wait for SIGINT/SIGTERM
-     log.Println("KNIRVCHAIN is running. Press Ctrl+C to exit")
+     log.Println("AGENTCHAIN is running. Press Ctrl+C to exit")
      sigCh := make(chan os.Signal, 1)
      signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
      <-sigCh

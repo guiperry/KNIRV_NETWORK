@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	pb "KNIRVCHAIN/pkg/protocol/proto"
+	pb "KNIRVCHAIN/internal/protocol/proto"
 
 	"google.golang.org/protobuf/proto"
 )

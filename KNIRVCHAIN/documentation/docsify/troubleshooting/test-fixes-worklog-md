@@ -69,14 +69,14 @@ This document tracks the implementation of fixes for the test failures.
 
 ## 7. TestURIGeneratorHandler_Integration
 
-**Issue:** The test fails with "package KNIRVCHAIN/uri is not a main package" and "Timeout waiting for node at http://localhost:9090 to become healthy".
+**Issue:** The test fails with "package AGENTCHAIN/uri is not a main package" and "Timeout waiting for node at http://localhost:9090 to become healthy".
 
 **Root Cause:**
 - The test is trying to use `go run .` to start the main application, but this doesn't work from a non-main package.
 - The node server never starts, and the health check times out.
 
 **Fix:**
-1. Modified the test to build the main KNIRVCHAIN application executable using `go build -o /tmp/KNIRVORACLE_test_app ../`.
+1. Modified the test to build the main AGENTCHAIN application executable using `go build -o /tmp/AGENTCHAIN_test_app ../`.
 2. Created a test config file with `InstallComplete: true` to prevent the installer from running.
 3. Started the compiled binary using `exec.Command` with appropriate arguments including `--skip-install` and `--config`.
 4. Added proper logging of stdout and stderr from the node process for better debugging.

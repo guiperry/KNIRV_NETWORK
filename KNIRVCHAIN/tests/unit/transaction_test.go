@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"KNIRVCHAIN/config"
-	"KNIRVCHAIN/pkg/p2p"
-	"KNIRVCHAIN/pkg/utils"
+	"KNIRVCHAIN/internal/p2p"
+	"KNIRVCHAIN/internal/utils"
 )
 
 // Use mock P2P ConsensusManager for testing

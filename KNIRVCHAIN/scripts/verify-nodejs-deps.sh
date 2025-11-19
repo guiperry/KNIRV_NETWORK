@@ -9,7 +9,7 @@ KNIRVORACLE_DIR="$(dirname "$SCRIPT_DIR")"
 echo "🔍 Verifying KNIRVCHAIN Node.js dependencies..."
 
 # Check axios.cjs for agent-tunnel-registry
-AXIOS_FILE="$KNIRVORACLE_DIR/pkg/embedded/nodejs/tunnel/agent-tunnel-registry/node_modules/axios/dist/node/axios.cjs"
+AXIOS_FILE="$KNIRVORACLE_DIR/internal/embedded/nodejs/tunnel/agent-tunnel-registry/node_modules/axios/dist/node/axios.cjs"
 echo ""
 echo "📦 Checking axios dependency for agent-tunnel-registry..."
 
@@ -35,7 +35,7 @@ else
 fi
 
 # Check psl.cjs for agent-payment-gateway
-PSL_FILE="$KNIRVORACLE_DIR/pkg/embedded/nodejs/payment/agent-payment-gateway/node_modules/psl/dist/psl.cjs"
+PSL_FILE="$KNIRVORACLE_DIR/internal/embedded/nodejs/payment/agent-payment-gateway/node_modules/psl/dist/psl.cjs"
 echo ""
 echo "📦 Checking psl dependency for agent-payment-gateway..."
 
@@ -67,7 +67,7 @@ echo "🚀 Testing service startup..."
 # Test tunnel registry
 echo ""
 echo "🔧 Testing agent-tunnel-registry..."
-cd "$KNIRVORACLE_DIR/pkg/embedded/nodejs/tunnel/agent-tunnel-registry"
+cd "$KNIRVORACLE_DIR/internal/embedded/nodejs/tunnel/agent-tunnel-registry"
 if timeout 3s node server.js 2>&1 | grep -q "Custom Tunnel & Registry Server started"; then
     echo "✅ agent-tunnel-registry starts successfully"
 else
@@ -77,7 +77,7 @@ fi
 # Test payment gateway
 echo ""
 echo "💳 Testing agent-payment-gateway..."
-cd "$KNIRVORACLE_DIR/pkg/embedded/nodejs/payment/agent-payment-gateway"
+cd "$KNIRVORACLE_DIR/internal/embedded/nodejs/payment/agent-payment-gateway"
 if timeout 3s node server.js 2>&1 | grep -q "Server running on port"; then
     echo "✅ agent-payment-gateway starts successfully"
 else

@@ -1,6 +1,6 @@
-# KNIRVCHAIN Developer Portal
+# AGENTCHAIN Developer Portal
 
-The Developer Portal is a browser-based interface for interacting with the KNIRVCHAIN network. It is served by Root nodes and provides a user-friendly way to manage and monitor the blockchain.
+The Developer Portal is a browser-based interface for interacting with the AGENTCHAIN network. It is served by Root nodes and provides a user-friendly way to manage and monitor the blockchain.
 
 ## Overview
 
@@ -23,7 +23,7 @@ The Developer Portal consists of two main components:
 
 ## Configuration
 
-The Developer Portal is configured through the KNIRVCHAIN configuration system. The following settings are available:
+The Developer Portal is configured through the AGENTCHAIN configuration system. The following settings are available:
 
 ```json
 {
@@ -90,13 +90,13 @@ The following environment variables can be used to configure the Developer Porta
 - `NODE_ENV`: Environment mode (development/production)
 - `CHAIN_ID`: The chain ID to connect to
 
-## Integration with KNIRVCHAIN
+## Integration with AGENTCHAIN
 
-The Developer Portal is integrated with KNIRVCHAIN through the following components:
+The Developer Portal is integrated with AGENTCHAIN through the following components:
 
-1. **Configuration**: The Developer Portal is configured through the KNIRVCHAIN configuration system.
+1. **Configuration**: The Developer Portal is configured through the AGENTCHAIN configuration system.
 2. **Launch**: The Developer Portal is launched by the Root node when the node starts.
-3. **API**: The Developer Portal communicates with the KNIRVCHAIN node through API endpoints.
+3. **API**: The Developer Portal communicates with the AGENTCHAIN node through API endpoints.
 
 ## Security Considerations
 
@@ -110,8 +110,8 @@ The Developer Portal is integrated with KNIRVCHAIN through the following compone
 
 - **Portal not starting**: Check the logs for errors and ensure Node.js is installed.
 - **Cannot access portal**: Verify the port is not blocked by a firewall.
-- **API errors**: Ensure the KNIRVCHAIN node is running and accessible.
+- **API errors**: Ensure the AGENTCHAIN node is running and accessible.
 
 ### Logs
 
-The Developer Portal logs to the standard output and can be viewed in the KNIRVCHAIN logs.
+The Developer Portal logs to the standard output and can be viewed in the AGENTCHAIN logs.

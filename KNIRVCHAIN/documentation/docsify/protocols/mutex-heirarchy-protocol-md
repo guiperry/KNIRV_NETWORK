@@ -1,14 +1,14 @@
-# KNIRVCHAIN Mutex Hierarchy Protocol
+# AGENTCHAIN Mutex Hierarchy Protocol
 
 ## 1. Introduction
 
-This document defines the mutex locking hierarchy for the KNIRVCHAIN application. The purpose of this protocol is to prevent deadlocks by establishing a strict order in which mutexes must be acquired when multiple locks are needed by a single goroutine. Adherence to this protocol is critical for the stability and correctness of the concurrent operations within the system.
+This document defines the mutex locking hierarchy for the AGENTCHAIN application. The purpose of this protocol is to prevent deadlocks by establishing a strict order in which mutexes must be acquired when multiple locks are needed by a single goroutine. Adherence to this protocol is critical for the stability and correctness of the concurrent operations within the system.
 
 **General Rule:** If a goroutine needs to acquire multiple mutexes, it must acquire them in the order specified in this document (from lower numerical order/higher level to higher numerical order/lower level). A goroutine holding a lock `L_i` may acquire lock `L_j` only if `i < j` according to the defined hierarchy. A goroutine must never attempt to acquire a lock `L_k` if it already holds a lock `L_m` where `k < m`.
 
 ## 2. Mutex Definitions and Hierarchy
 
-The following mutexes are identified within the KNIRVCHAIN system. They are listed in the order they should be acquired (i.e., you can acquire `M1` then `M2`, but not `M2` then `M1`).
+The following mutexes are identified within the AGENTCHAIN system. They are listed in the order they should be acquired (i.e., you can acquire `M1` then `M2`, but not `M2` then `M1`).
 
 ---
 
@@ -129,7 +129,7 @@ This is a critical, central lock.
 *   **Transaction Processing (`BlockchainStruct.AddTransactionToTransactionPool`):**
     1.  Acquires `BlockchainStruct.mu` (Level 3) for pool and block checks.
     2.  Releases `BlockchainStruct.mu`.
-    3.  Performs `transaction.VerifyTxn()` (which involves crypto, but no KNIRVCHAIN mutexes).
+    3.  Performs `transaction.VerifyTxn()` (which involves crypto, but no AGENTCHAIN mutexes).
     4.  Performs `bc.validateMCPTransaction()` (reads blockchain state, might need `BlockchainStruct.mu` if not already re-acquired carefully, or if it queries DB directly).
     5.  Performs `bc.simulatedBalanceCheck()` (acquires `BlockchainStruct.mu`).
     6.  Calls `bc.addVerifiedTxnToPoolAndSignal()` (acquires `BlockchainStruct.mu`).
@@ -177,7 +177,7 @@ This is a critical, central lock.
 
 ## 6. Conclusion
 
-By strictly following this Mutex Hierarchy Protocol, KNIRVCHAIN aims to minimize the risk of deadlocks and ensure robust concurrent operation. Developers must be diligent in understanding and applying these rules.
+By strictly following this Mutex Hierarchy Protocol, AGENTCHAIN aims to minimize the risk of deadlocks and ensure robust concurrent operation. Developers must be diligent in understanding and applying these rules.
 
 *   **Key Takeaways and How to Use This Document:**
 

@@ -1,12 +1,12 @@
-## KNIRVCHAIN P2P Chain Synchronization Protocol v1.0.0
+## AGENTCHAIN P2P Chain Synchronization Protocol v1.0.0
 
 **1. Overview**
 
-This document specifies the protocol used by KNIRVCHAIN nodes to synchronize their blockchain state directly with devs over the libp2p network. This mechanism allows nodes to discover longer valid chains from their devs and update their local state accordingly.
+This document specifies the protocol used by AGENTCHAIN nodes to synchronize their blockchain state directly with devs over the libp2p network. This mechanism allows nodes to discover longer valid chains from their devs and update their local state accordingly.
 
 **2. Protocol Details**
 
-*   **Protocol ID:** `/knirv/chain-sync/1.0.0`
+*   **Protocol ID:** `/agent/chain-sync/1.0.0`
 *   **Transport:** Libp2p Streams (`network.Stream`)
 *   **Message Encoding:** JSON (Newline-delimited JSON objects sent over the stream)
 
@@ -98,7 +98,7 @@ Nodes exchange JSON-encoded messages over the stream.
 
 **4. Workflow**
 
-1.  **Peer Discovery:** The Initiator node uses the `DiscoveryManager` (`FindResource`) to identify other KNIRVCHAIN devs for its `ChainID`.
+1.  **Peer Discovery:** The Initiator node uses the `DiscoveryManager` (`FindResource`) to identify other AGENTCHAIN devs for its `ChainID`.
 
 2.  **Stream Initiation:** The Initiator selects a dev and attempts to open a new libp2p stream using the `ChainSyncProtocolID`.
 
@@ -132,7 +132,7 @@ Nodes exchange JSON-encoded messages over the stream.
 
 **5. Validation Rules**
 
-**NEVER TRUST DATA FROM PEERS.** All received blocks and transactions MUST be independently validated according to the KNIRVCHAIN consensus rules before being integrated into the local chain.
+**NEVER TRUST DATA FROM PEERS.** All received blocks and transactions MUST be independently validated according to the AGENTCHAIN consensus rules before being integrated into the local chain.
 
 *   Validate block hashes.
 *   Validate `PrevHash` linkage between consecutive blocks.
@@ -167,13 +167,13 @@ Nodes exchange JSON-encoded messages over the stream.
 
 **How Verifier Peers Use This:**
 
-Your verifier devs simply need to run the same KNIRVCHAIN node software as your root node.
+Your verifier devs simply need to run the same AGENTCHAIN node software as your root node.
 
 *   **Initialization:** When a verifier node starts, `InitP2PConsensusManager` should be called, which creates the `P2PConsensusManager`, sets up the libp2p host via `DiscoveryManager`, joins the PubSub topics, and crucially, registers the `handleSyncStream` handler using `pcm.host.SetStreamHandler(ChainSyncProtocolID, pcm.handleSyncStream)`.
 *   **Discovery:** The `DiscoveryManager` (running in the background via `go discoveryMgr.Run(...)`) will connect to bootstrap devs and use the DHT to find other nodes announcing the same `ChainID`.
 *   **Synchronization:** The `P2PConsensusManager`'s `runForkResolution` goroutine periodically calls `requestChainFromPeers`. This function will:
-    *   Find other KNIRVCHAIN devs via the `DiscoveryManager`.
-    *   Attempt to open streams to those devs using `/knirv/chain-sync/1.0.0`.
+    *   Find other AGENTCHAIN devs via the `DiscoveryManager`.
+    *   Attempt to open streams to those devs using `/agent/chain-sync/1.0.0`.
     *   If a dev responds (because it also has the `handleSyncStream` handler registered), the protocol described above is executed.
 *   The verifier node acts as both an Initiator (when `requestChainFromPeers` runs) and a Responder (when `handleSyncStream` is invoked by another dev).
 

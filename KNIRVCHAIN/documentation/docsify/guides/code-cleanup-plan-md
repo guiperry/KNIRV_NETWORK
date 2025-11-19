@@ -1,6 +1,6 @@
-# KNIRVCHAIN Code Cleanup Plan
+# AGENTCHAIN Code Cleanup Plan
 
-This document outlines the refactoring plan for the KNIRVCHAIN application to improve its architecture, build process, and user interface.
+This document outlines the refactoring plan for the AGENTCHAIN application to improve its architecture, build process, and user interface.
 
 ## 1. Role Determination Refactoring
 
@@ -39,11 +39,11 @@ This document outlines the refactoring plan for the KNIRVCHAIN application to im
 
 ### Proposed Changes
 - Update Makefile to build 5 distinct binaries:
-  1. KNIRVCHAIN-Root (Linux)
-  2. KNIRVCHAIN-Bootnode (Linux)
-  3. KNIRVCHAIN-Developer (Windows)
-  4. KNIRVCHAIN-Developer (Linux)
-  5. KNIRVCHAIN-Developer (Mac)
+  1. AGENTCHAIN-Root (Linux)
+  2. AGENTCHAIN-Bootnode (Linux)
+  3. AGENTCHAIN-Developer (Windows)
+  4. AGENTCHAIN-Developer (Linux)
+  5. AGENTCHAIN-Developer (Mac)
 - Each binary will have its role determined at compile time
 - Remove the Fyne GUI build tag
 
@@ -61,19 +61,19 @@ This document outlines the refactoring plan for the KNIRVCHAIN application to im
 3. Example Makefile targets:
 ```makefile
 build/root-linux:
-	GOOS=linux GOARCH=amd64 go build -tags="root no_webview" -ldflags="-X main.AppVersion=$(VERSION)" -o=${OUTPUT_DIR}/KNIRVCHAIN-Root ${MAIN_PACKAGE_PATH}
+	GOOS=linux GOARCH=amd64 go build -tags="root no_webview" -ldflags="-X main.AppVersion=$(VERSION)" -o=${OUTPUT_DIR}/AGENTCHAIN-Root ${MAIN_PACKAGE_PATH}
 
 build/bootnode-linux:
-	GOOS=linux GOARCH=amd64 go build -tags="bootnode no_webview" -ldflags="-X main.AppVersion=$(VERSION)" -o=${OUTPUT_DIR}/KNIRVCHAIN-Bootnode ${MAIN_PACKAGE_PATH}
+	GOOS=linux GOARCH=amd64 go build -tags="bootnode no_webview" -ldflags="-X main.AppVersion=$(VERSION)" -o=${OUTPUT_DIR}/AGENTCHAIN-Bootnode ${MAIN_PACKAGE_PATH}
 
 build/developer-windows:
-	GOOS=windows GOARCH=amd64 go build -tags="developer no_webview" -ldflags="-X main.AppVersion=$(VERSION)" -o=${OUTPUT_DIR}/KNIRVCHAIN-Developer.exe ${MAIN_PACKAGE_PATH}
+	GOOS=windows GOARCH=amd64 go build -tags="developer no_webview" -ldflags="-X main.AppVersion=$(VERSION)" -o=${OUTPUT_DIR}/AGENTCHAIN-Developer.exe ${MAIN_PACKAGE_PATH}
 
 build/developer-linux:
-	GOOS=linux GOARCH=amd64 go build -tags="developer no_webview" -ldflags="-X main.AppVersion=$(VERSION)" -o=${OUTPUT_DIR}/KNIRVCHAIN-Developer ${MAIN_PACKAGE_PATH}
+	GOOS=linux GOARCH=amd64 go build -tags="developer no_webview" -ldflags="-X main.AppVersion=$(VERSION)" -o=${OUTPUT_DIR}/AGENTCHAIN-Developer ${MAIN_PACKAGE_PATH}
 
 build/developer-mac:
-	GOOS=darwin GOARCH=amd64 go build -tags="developer no_webview" -ldflags="-X main.AppVersion=$(VERSION)" -o=${OUTPUT_DIR}/KNIRVCHAIN-Developer ${MAIN_PACKAGE_PATH}
+	GOOS=darwin GOARCH=amd64 go build -tags="developer no_webview" -ldflags="-X main.AppVersion=$(VERSION)" -o=${OUTPUT_DIR}/AGENTCHAIN-Developer ${MAIN_PACKAGE_PATH}
 ```
 
 ## 3. GUI Implementation Refactoring

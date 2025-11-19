@@ -4,7 +4,7 @@ Each language-specific SDK (Go, Python, JS/TS) will be a separate, self-containe
 **Core Logic (Common to all SDKs, but implemented natively in each):**
 
 *   **URI Parsing Function:** The main function (e.g., `Parse`, `parse_agent_uri`, `parseagentURI`) that takes a string URI as input.
-*   **Scheme Validation:** Checks if the scheme is `knirv://`.
+*   **Scheme Validation:** Checks if the scheme is `agent://`.
 *   **Authority Parsing:**
     *   Splits the authority part (e.g., `mychain-alpha.chain`) into the `<ID>` and `<ResourceType>`.
     *   Validates that the authority contains exactly one `.` separating the `ID` and `ResourceType`.
@@ -21,7 +21,7 @@ Each language-specific SDK (Go, Python, JS/TS) will be a separate, self-containe
     *   Uses Go's built-in `net/url` package for initial URL parsing and query parameter handling.
     *   Defines the `agentURI` struct and custom error types (e.g., `var ErrInvalidURI = errors.New("invalid agent uri")`).
     *   **Hosting/Registration:**
-        *   Hosted as a public Git repository (e.g., on GitHub: `github.com/KNIRVCHAIN/agent-uri-sdk-go`).
+        *   Hosted as a public Git repository (e.g., on GitHub: `github.com/AGENTCHAIN/agent-uri-sdk-go`).
         *   Developers install it using `go get`.
         *   No central "registration" beyond making the repository public and discoverable. You might list it on your project's main website or documentation portal.
 
@@ -45,18 +45,18 @@ Each language-specific SDK (Go, Python, JS/TS) will be a separate, self-containe
 In essence, each SDK is a small, focused library whose primary job is string manipulation and validation according to your URI scheme.
 
 ## Example Usage
-Based on your current KNIRVCHAIN implementation (as detailed in MCP_Implementation.md, URI_Generation_GO.md, Decentralized_Network.md, etc.), you do not necessarily need to create a separate, new REST API specifically for the full connection and fetching functionalities of the agent Client SDK.
+Based on your current AGENTCHAIN implementation (as detailed in MCP_Implementation.md, URI_Generation_GO.md, Decentralized_Network.md, etc.), you do not necessarily need to create a separate, new REST API specifically for the full connection and fetching functionalities of the agent Client SDK.
 
 Here's why and how it would work:
 
 **URI Parsing (Handled by the SDK internally):**
 
-The SDK itself will parse the `knirv://` URI string into its components (`ID`, `ResourceType`, `Path`, and `Query`). This is local logic within the SDK, as outlined in `agent_Client_SDK_Implementation.md`. No external API call is needed for this step.
+The SDK itself will parse the `agent://` URI string into its components (`ID`, `ResourceType`, `Path`, and `Query`). This is local logic within the SDK, as outlined in `agent_Client_SDK_Implementation.md`. No external API call is needed for this step.
 
 **Peer Discovery (DHT Resolution - Handled by the SDK via libp2p):**
 
 *   The SDK (in each language variant) will need to embed or interface with a `libp2p` stack.
-*   Using the parsed `ID` and `ResourceType`, the SDK's `libp2p` component will directly query the KNIRVCHAIN private DHT to find devs advertising that resource.
+*   Using the parsed `ID` and `ResourceType`, the SDK's `libp2p` component will directly query the AGENTCHAIN private DHT to find devs advertising that resource.
 *   This is a direct P2P interaction using the DHT protocol. It does not go through your existing `BlockchainServer` REST API. Your `DiscoveryManager` in the Go nodes already sets up this DHT interaction capability for the nodes themselves. The Client SDK will replicate this client-side.
 
 **Peer Connection (Handled by the SDK via libp2p):**
@@ -67,9 +67,9 @@ The SDK itself will parse the `knirv://` URI string into its components (`ID`, `
 **Resource Fetching/Interaction (Handled by the SDK via custom libp2p stream protocols):**
 
 *   This is the crucial part. Your `URI_Generation_GO.md` (Section 6, Step 5) and `SYNC_Protocol.md` already lay the groundwork for this:
-    *   "Once a connection is established, the client opens a new stream to the provider using a KNIRVCHAIN-specific protocol ID (e.g., `/agent/chain/1.0`, `/agent/nrn/1.0`)."
+    *   "Once a connection is established, the client opens a new stream to the provider using a AGENTCHAIN-specific protocol ID (e.g., `/agent/chain/1.0`, `/agent/nrn/1.0`)."
     *   "The client sends request data over the stream, encoding the target `Path` (e.g., `/block`) and `Query` parameters (e.g., `number=123`)."
-*   Your existing KNIRVCHAIN nodes (acting as devs/servers in this context) will need to have `libp2p` stream handlers registered for these custom protocol IDs.
+*   Your existing AGENTCHAIN nodes (acting as devs/servers in this context) will need to have `libp2p` stream handlers registered for these custom protocol IDs.
 *   When the Client SDK connects to a dev and opens a stream with a specific protocol ID (e.g., `/agent/resource-fetch/1.0.0` as hinted at in `URI_Generation_GO.md`), the dev node's corresponding stream handler will receive the request.
 *   This stream handler on the dev node will then:
     *   Interpret the `Path` and `Query` parameters sent by the Client SDK over the stream.
@@ -78,13 +78,13 @@ The SDK itself will parse the `knirv://` URI string into its components (`ID`, `
 
 No new REST API endpoints are needed on the `BlockchainServer` for this data fetching if you use direct P2P streams. The existing REST API on `BlockchainServer` is more for submitting transactions, general chain info, and its own URI generation/DHT interaction, not primarily for serving arbitrary resource data to other P2P clients via URIs.
 
-**What is implicitly exposed by your current KNIRVCHAIN nodes that the SDK will leverage?**
+**What is implicitly exposed by your current AGENTCHAIN nodes that the SDK will leverage?**
 
 *   **DHT Participation:** Your nodes are already designed to participate in the private DHT (announcing their own resources like `myPeer.chain` and finding others). The Client SDK will act as another DHT client.
 *   **libp2p Host:** Your nodes run a `libp2p` host capable of accepting incoming P2P connections and streams.
 *   **Stream Handling Logic (Needs to be robustly implemented/exposed):**
-    *   While `SYNC_Protocol.md` defines one such stream protocol (`/knirv/chain-sync/1.0.0`), you'll need to define and implement similar stream handlers on your KNIRVCHAIN nodes for serving data based on the `Path` and `Query` of a `knirv://` URI.
-    *   For example, if a Client SDK resolves `knirv://mychain.chain/block?number=123` to PeerA, it will connect to PeerA and open a stream using a protocol like `/agent/resource-fetch/1.0.0`. It will send `Path: /block`, `Query: number=123` over this stream. PeerA's handler for `/agent/resource-fetch/1.0.0` will then look up block 123 and send it back.
+    *   While `SYNC_Protocol.md` defines one such stream protocol (`/agent/chain-sync/1.0.0`), you'll need to define and implement similar stream handlers on your AGENTCHAIN nodes for serving data based on the `Path` and `Query` of a `agent://` URI.
+    *   For example, if a Client SDK resolves `agent://mychain.chain/block?number=123` to PeerA, it will connect to PeerA and open a stream using a protocol like `/agent/resource-fetch/1.0.0`. It will send `Path: /block`, `Query: number=123` over this stream. PeerA's handler for `/agent/resource-fetch/1.0.0` will then look up block 123 and send it back.
 
 **When would you still use the existing REST API?**
 
@@ -102,14 +102,14 @@ The agent Client SDK might also interact with the existing REST APIs on `Blockch
 
 **Conclusion:**
 
-For the core "resolve URI and fetch resource" functionality of the agent Client SDK, you should aim to use direct P2P communication via `libp2p` streams and custom protocols. Your existing KNIRVCHAIN nodes will act as servers for these P2P requests. You don't need a new, separate REST API for this specific purpose.
+For the core "resolve URI and fetch resource" functionality of the agent Client SDK, you should aim to use direct P2P communication via `libp2p` streams and custom protocols. Your existing AGENTCHAIN nodes will act as servers for these P2P requests. You don't need a new, separate REST API for this specific purpose.
 
 You will need to:
 
-*   Ensure your KNIRVCHAIN nodes have robust `libp2p` stream handlers for the application-level protocols that serve data based on the `Path` and `Query` of resolved `knirv://` URIs.
+*   Ensure your AGENTCHAIN nodes have robust `libp2p` stream handlers for the application-level protocols that serve data based on the `Path` and `Query` of resolved `agent://` URIs.
 *   The Client SDK will implement the client side of these P2P stream protocols.
 
-The existing REST APIs remain valuable for transactional operations, broad queries, and administrative tasks, and the Client SDK might use them for those purposes as well, but the resource fetching itself can and should be more decentralized via P2P streams. This aligns better with the P2P nature of KNIRVCHAIN.
+The existing REST APIs remain valuable for transactional operations, broad queries, and administrative tasks, and the Client SDK might use them for those purposes as well, but the resource fetching itself can and should be more decentralized via P2P streams. This aligns better with the P2P nature of AGENTCHAIN.
 ```
 
 Use https://www.stainless.com/

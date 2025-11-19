@@ -19,7 +19,7 @@ fi
 
 # Restore axios.cjs for agent-tunnel-registry
 AXIOS_BACKUP="$BACKUP_DIR/axios.cjs"
-AXIOS_TARGET="$KNIRVORACLE_DIR/pkg/embedded/nodejs/tunnel/agent-tunnel-registry/node_modules/axios/dist/node/axios.cjs"
+AXIOS_TARGET="$KNIRVORACLE_DIR/internal/embedded/nodejs/tunnel/agent-tunnel-registry/node_modules/axios/dist/node/axios.cjs"
 
 if [ -f "$AXIOS_BACKUP" ]; then
     # Create target directory if it doesn't exist
@@ -31,20 +31,20 @@ else
     echo "   Creating from axios.js..."
 
     # Try to create from axios.js if it exists
-    AXIOS_JS="$KNIRVORACLE_DIR/pkg/embedded/nodejs/tunnel/agent-tunnel-registry/node_modules/axios/dist/node/axios.js"
+    AXIOS_JS="$KNIRVORACLE_DIR/internal/embedded/nodejs/tunnel/agent-tunnel-registry/node_modules/axios/dist/node/axios.js"
     if [ -f "$AXIOS_JS" ]; then
         mkdir -p "$(dirname "$AXIOS_TARGET")"
         cp "$AXIOS_JS" "$AXIOS_TARGET"
         echo "✅ Created axios.cjs from axios.js"
     else
         echo "❌ Error: Neither axios.cjs backup nor axios.js source found"
-        echo "   Please install dependencies first: cd pkg/embedded/nodejs/tunnel/agent-tunnel-registry && npm install"
+        echo "   Please install dependencies first: cd internal/embedded/nodejs/tunnel/agent-tunnel-registry && npm install"
     fi
 fi
 
 # Restore psl.cjs for agent-payment-gateway
 PSL_BACKUP="$BACKUP_DIR/psl.cjs"
-PSL_TARGET="$KNIRVORACLE_DIR/pkg/embedded/nodejs/payment/agent-payment-gateway/node_modules/psl/dist/psl.cjs"
+PSL_TARGET="$KNIRVORACLE_DIR/internal/embedded/nodejs/payment/agent-payment-gateway/node_modules/psl/dist/psl.cjs"
 
 if [ -f "$PSL_BACKUP" ]; then
     # Create target directory if it doesn't exist
@@ -56,14 +56,14 @@ else
     echo "   Creating from psl.js..."
 
     # Try to create from psl.js if it exists
-    PSL_JS="$KNIRVORACLE_DIR/pkg/embedded/nodejs/payment/agent-payment-gateway/node_modules/psl/dist/psl.js"
+    PSL_JS="$KNIRVORACLE_DIR/internal/embedded/nodejs/payment/agent-payment-gateway/node_modules/psl/dist/psl.js"
     if [ -f "$PSL_JS" ]; then
         mkdir -p "$(dirname "$PSL_TARGET")"
         cp "$PSL_JS" "$PSL_TARGET"
         echo "✅ Created psl.cjs from psl.js"
     else
         echo "❌ Error: Neither psl.cjs backup nor psl.js source found"
-        echo "   Please install dependencies first: cd pkg/embedded/nodejs/payment/agent-payment-gateway && npm install"
+        echo "   Please install dependencies first: cd internal/embedded/nodejs/payment/agent-payment-gateway && npm install"
     fi
 fi
 

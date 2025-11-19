@@ -55,9 +55,9 @@ if [ -f "pkg/knirvchain_wasm_bg.wasm" ]; then
     echo ""
     echo "📋 Copying WASM to KNIRVROUTER assets..."
     mkdir -p ../KNIRVROUTER/assets/wasm/
-    cp pkg/knirvchain_wasm_bg.wasm ../KNIRVROUTER/assets/wasm/knirvchain.wasm
-    cp pkg/knirvchain_wasm.js ../KNIRVROUTER/assets/wasm/knirvchain.js
-    cp pkg/knirvchain_wasm.d.ts ../KNIRVROUTER/assets/wasm/knirvchain.d.ts
+    cp pkg/knirvchain_wasm_bg.wasm ../KNIRVROUTER/assets/wasm/knirvoracle.wasm
+    cp pkg/knirvchain_wasm.js ../KNIRVROUTER/assets/wasm/knirvoracle.js
+    cp pkg/knirvchain_wasm.d.ts ../KNIRVROUTER/assets/wasm/knirvoracle.d.ts
 
     echo "✅ WASM files copied to KNIRVROUTER/assets/wasm/"
     

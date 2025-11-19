@@ -889,7 +889,7 @@ async fn main() -> std::io::Result<()> {
 
     // Initialize consensus and networking
     let tendermint_consensus = Arc::new(Mutex::new(
-        tendermint_consensus::TendermintConsensus::new(format!("knirvchain-{}", chain_id), None),
+        tendermint_consensus::TendermintConsensus::new(format!("knirvoracle-{}", chain_id), None),
     ));
 
     let ibc_handler = Arc::new(ibc_handler::IBCHandler::new());

@@ -8,20 +8,20 @@ import (
 
 // EconomicsConfig represents economics service component configuration
 type EconomicsConfig struct {
-	Enabled         bool   `json:"enabled" mapstructure:"enabled"`
-	Port            string `json:"port" mapstructure:"port"`
-	NRNContract     string `json:"nrn_contract" mapstructure:"nrn_contract"`
-	XionRPC         string `json:"xion_rpc" mapstructure:"xion_rpc"`
-	LogLevel        string `json:"log_level" mapstructure:"log_level"`
-	KNIRVChainURL   string `json:"knirvchain_url" mapstructure:"knirvchain_url"`
-	KNIRVNexusURL   string `json:"knirvnexus_url" mapstructure:"knirvnexus_url"`
-	KNIRVRootURL    string `json:"knirvoracle_url" mapstructure:"knirvoracle_url"`
-	KNIRVGraphURL   string `json:"knirvgraph_url" mapstructure:"knirvgraph_url"`
-	DatabasePath    string `json:"database_path" mapstructure:"database_path"`
-	TokenSymbol     string `json:"token_symbol" mapstructure:"token_symbol"`
-	TokenDecimals   int    `json:"token_decimals" mapstructure:"token_decimals"`
-	USDPerToken     float64 `json:"usd_per_token" mapstructure:"usd_per_token"`
-	ETHPerToken     float64 `json:"eth_per_token" mapstructure:"eth_per_token"`
+	Enabled       bool    `json:"enabled" mapstructure:"enabled"`
+	Port          string  `json:"port" mapstructure:"port"`
+	NRNContract   string  `json:"nrn_contract" mapstructure:"nrn_contract"`
+	XionRPC       string  `json:"xion_rpc" mapstructure:"xion_rpc"`
+	LogLevel      string  `json:"log_level" mapstructure:"log_level"`
+	KNIRVChainURL string  `json:"knirvchain_url" mapstructure:"knirvchain_url"`
+	KNIRVNexusURL string  `json:"knirvnexus_url" mapstructure:"knirvnexus_url"`
+	KNIRVRootURL  string  `json:"knirvoracle_url" mapstructure:"knirvoracle_url"`
+	KNIRVGraphURL string  `json:"knirvgraph_url" mapstructure:"knirvgraph_url"`
+	DatabasePath  string  `json:"database_path" mapstructure:"database_path"`
+	TokenSymbol   string  `json:"token_symbol" mapstructure:"token_symbol"`
+	TokenDecimals int     `json:"token_decimals" mapstructure:"token_decimals"`
+	USDPerToken   float64 `json:"usd_per_token" mapstructure:"usd_per_token"`
+	ETHPerToken   float64 `json:"eth_per_token" mapstructure:"eth_per_token"`
 }
 
 // GetConfigKey returns the configuration key prefix for economics
@@ -36,27 +36,27 @@ func (c *EconomicsConfig) Validate() error {
 		if c.Port == "" {
 			return fmt.Errorf("economics port cannot be empty when enabled")
 		}
-		
+
 		if port, err := strconv.Atoi(c.Port); err != nil {
 			return fmt.Errorf("invalid economics port format: %s", c.Port)
 		} else if port <= 0 || port > 65535 {
 			return fmt.Errorf("invalid economics port: %d (must be 1-65535)", port)
 		}
-		
+
 		// Validate NRN contract address
 		if c.NRNContract == "" {
 			return fmt.Errorf("economics NRN contract cannot be empty when enabled")
 		}
-		
+
 		// Validate Xion RPC URL
 		if c.XionRPC == "" {
 			return fmt.Errorf("economics Xion RPC URL cannot be empty when enabled")
 		}
-		
+
 		if _, err := url.Parse(c.XionRPC); err != nil {
 			return fmt.Errorf("invalid economics Xion RPC URL: %s", c.XionRPC)
 		}
-		
+
 		// Validate log level
 		validLogLevels := map[string]bool{
 			"debug": true, "info": true, "warn": true, "error": true, "fatal": true,
@@ -64,46 +64,46 @@ func (c *EconomicsConfig) Validate() error {
 		if !validLogLevels[c.LogLevel] {
 			return fmt.Errorf("invalid economics log level: %s (must be debug, info, warn, error, or fatal)", c.LogLevel)
 		}
-		
+
 		// Validate component URLs if provided
 		if c.KNIRVChainURL != "" {
 			if _, err := url.Parse(c.KNIRVChainURL); err != nil {
 				return fmt.Errorf("invalid economics KNIRVChain URL: %s", c.KNIRVChainURL)
 			}
 		}
-		
+
 		if c.KNIRVNexusURL != "" {
 			if _, err := url.Parse(c.KNIRVNexusURL); err != nil {
 				return fmt.Errorf("invalid economics KNIRVNexus URL: %s", c.KNIRVNexusURL)
 			}
 		}
-		
+
 		if c.KNIRVRootURL != "" {
 			if _, err := url.Parse(c.KNIRVRootURL); err != nil {
 				return fmt.Errorf("invalid economics KNIRVRoot URL: %s", c.KNIRVRootURL)
 			}
 		}
-		
+
 		if c.KNIRVGraphURL != "" {
 			if _, err := url.Parse(c.KNIRVGraphURL); err != nil {
 				return fmt.Errorf("invalid economics KNIRVGraph URL: %s", c.KNIRVGraphURL)
 			}
 		}
-		
+
 		// Validate token configuration
 		if c.TokenDecimals < 0 || c.TokenDecimals > 18 {
 			return fmt.Errorf("invalid economics token decimals: %d (must be 0-18)", c.TokenDecimals)
 		}
-		
+
 		if c.USDPerToken < 0 {
 			return fmt.Errorf("economics USD per token cannot be negative: %f", c.USDPerToken)
 		}
-		
+
 		if c.ETHPerToken < 0 {
 			return fmt.Errorf("economics ETH per token cannot be negative: %f", c.ETHPerToken)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -185,7 +185,7 @@ func (c *EconomicsConfig) IsValidContract() bool {
 // GetComponentURLs returns all configured component URLs
 func (c *EconomicsConfig) GetComponentURLs() map[string]string {
 	urls := make(map[string]string)
-	
+
 	if c.KNIRVChainURL != "" {
 		urls["knirvchain"] = c.KNIRVChainURL
 	}
@@ -193,11 +193,11 @@ func (c *EconomicsConfig) GetComponentURLs() map[string]string {
 		urls["knirvnexus"] = c.KNIRVNexusURL
 	}
 	if c.KNIRVRootURL != "" {
-		urls["knirvoracle"] = c.KNIRVRootURL
+		urls["knirvchain"] = c.KNIRVRootURL
 	}
 	if c.KNIRVGraphURL != "" {
 		urls["knirvgraph"] = c.KNIRVGraphURL
 	}
-	
+
 	return urls
 }

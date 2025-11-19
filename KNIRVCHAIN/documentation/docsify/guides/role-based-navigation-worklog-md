@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document details the implementation of role-based navigation in the AltGUI frontend of KNIRVCHAIN. The implementation follows the plan outlined in `altgui_role_based_navigation_plan.md`.
+This document details the implementation of role-based navigation in the AltGUI frontend of AGENTCHAIN. The implementation follows the plan outlined in `altgui_role_based_navigation_plan.md`.
 
 ## Implementation Details
 
@@ -66,4 +66,4 @@ The implementation was tested with the following scenarios:
 
 ## Conclusion
 
-The role-based navigation system has been successfully implemented according to the plan. The frontend now respects the backend role and provides appropriate access to different pages based on the user's role. This implementation enhances security and provides a more tailored user experience based on the node's role in the KNIRVCHAIN network.
+The role-based navigation system has been successfully implemented according to the plan. The frontend now respects the backend role and provides appropriate access to different pages based on the user's role. This implementation enhances security and provides a more tailored user experience based on the node's role in the AGENTCHAIN network.

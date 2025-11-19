@@ -1,5 +1,5 @@
 ```markdown
-## KNIRVCHAIN API Refactoring & SDK Tool Implementation Plan
+## AGENTCHAIN API Refactoring & SDK Tool Implementation Plan
 
 **Phase 1: API Refactoring (Server-Side & OpenAPI Specification)**
 
@@ -65,17 +65,17 @@ This phase focuses on modifying the existing BlockchainServer API to support sec
 
 **C. `openapi.yaml` Update:**
 
-The following diff represents the changes to your `/home/gperry/Documents/GitHub/cloud-equities/KNIRVORACLE_GO_ROOT_MCP/openapi.yaml` file.
+The following diff represents the changes to your `/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN_GO_ROOT_MCP/openapi.yaml` file.
 
 ```yaml
 openapi: 3.0.3
 info:
-  title: KNIRVCHAIN API
+  title: AGENTCHAIN API
   description: |
-    Public API for interacting with KNIRVCHAIN blockchain nodes. Wallet operations are primarily handled client-side via the SDK Tool.
+    Public API for interacting with AGENTCHAIN blockchain nodes. Wallet operations are primarily handled client-side via the SDK Tool.
   version: 1.0.0
   contact:
-    name: KNIRVCHAIN Support
+    name: AGENTCHAIN Support
 Unchanged lines
   - name: mcp
     description: Meta-Capability Protocol operations

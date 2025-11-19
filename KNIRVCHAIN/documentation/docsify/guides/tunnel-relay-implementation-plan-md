@@ -57,7 +57,7 @@ The implementation follows a decentralized network architecture where bootnodes 
 ## 2. Key Processes
 
 ### 2.1 URI Resolution
-**Format**: `knirv://<bootnode_authority>/<identifier>.<type>/`
+**Format**: `agent://<bootnode_authority>/<identifier>.<type>/`
 
 #### Current Implementation
 - The URI resolver in Go (`uri/uri_resolver.go`) can parse and resolve URIs
@@ -103,7 +103,7 @@ The implementation follows a decentralized network architecture where bootnodes 
 3. Node.js service generates unique ID (UUID)
 4. Node.js service calls internal Go API: `http://localhost:<go_internal_api_port>/internal/db/idExists?id=<generated_id>`
 5. If ID is available:
-   - Generate URI using bootnode's public hostname: `knirv://<this_bootnode_public_host>/<generated_id>.<type>/`
+   - Generate URI using bootnode's public hostname: `agent://<this_bootnode_public_host>/<generated_id>.<type>/`
    - Call internal Go API: `http://localhost:<go_internal_api_port>/internal/dht/announceResource`
    - Return generated URI to requesting node
 6. Requesting node registers connectivity details with a bootnode
@@ -427,9 +427,9 @@ router.post('/generate', (req, res) => {
         // Generate and return the URI
         let uri;
         if (nodeInfo.isTunneled) {
-            uri = `knirv://${config.serverPublicHost}/${resourceSpecificId}.${resourceType}${subPath ? '/' + subPath.replace(/^\//, '') : ''}`;
+            uri = `agent://${config.serverPublicHost}/${resourceSpecificId}.${resourceType}${subPath ? '/' + subPath.replace(/^\//, '') : ''}`;
         } else {
-            uri = `knirv://${nodeInfo.publicIp || nodeInfo.devId}/${resourceSpecificId}.${resourceType}${subPath ? '/' + subPath.replace(/^\//, '') : ''}`;
+            uri = `agent://${nodeInfo.publicIp || nodeInfo.devId}/${resourceSpecificId}.${resourceType}${subPath ? '/' + subPath.replace(/^\//, '') : ''}`;
         }
         
         res.json({
@@ -451,7 +451,7 @@ router.get('/resolve', (req, res) => {
     
     try {
         // Parse the URI to extract components
-        // knirv://<bootnode_authority>/<identifier>.<type>/[<subpath>][?<query>]
+        // agent://<bootnode_authority>/<identifier>.<type>/[<subpath>][?<query>]
         const parsedUri = new URL(uri);
         const pathParts = parsedUri.pathname.split('/');
         const identifierWithType = pathParts[1];

@@ -10,12 +10,12 @@ VERSION := $(shell echo $(VERSION) | xargs) # Trim whitespace
 # Define the name of the output binary for local builds
 BINARY_NAME := $(APP_NAME)
 # Define the path to the main package (updated for refactored structure)
-MAIN_PACKAGE_PATH := ./cmd/knirvoracle
+MAIN_PACKAGE_PATH := ./cmd/knirvchain
 
 # Package and Service Configuration
-PKG_DIRS := $(shell find pkg -type d -name "pkg" -prune -o -type d -print | grep -E "pkg/[^/]+$$" | sort)
-# Node.js services are now located in pkg/embedded/nodejs/ subdirectories
-NODEJS_SERVICES_BASE := pkg/embedded/nodejs
+PKG_DIRS := $(shell find internal -type d -name "internal" -prune -o -type d -print | grep -E "internal/[^/]+$$" | sort)
+# Node.js services are now located in internal/embedded/nodejs/ subdirectories
+NODEJS_SERVICES_BASE := internal/embedded/nodejs
 NODEJS_SERVICES := $(NODEJS_SERVICES_BASE)/payment/agent-payment-gateway $(NODEJS_SERVICES_BASE)/tunnel/agent-tunnel-registry $(NODEJS_SERVICES_BASE)/operator/operator-registry $(NODEJS_SERVICES_BASE)/webgui/webGUI $(NODEJS_SERVICES_BASE)/docsify/docsify
 EMBEDDED_SERVICES := network-monitor economics
 TEST_UNIT_DIR := ./tests/unit
@@ -40,7 +40,7 @@ RELEASE_ASSETS_DIR := ./release_assets # Output dir for final archives, sigs, ch
 # Example: export GPG_KEY_ID="Your Name <your.email@example.com>" or your Key ID
 GPG_KEY_ID ?= YOUR_GPG_KEY_ID_HERE
 
-.PHONY: all clean build-binaries package-release upload-release upload-release-public release-public force-release-micro force-release-micro-public force-release-micro-nowebview force-release-micro-nowebview-public help install-nodejs-deps build-nodejs-services build-embedded clean-nodejs test-pkg lint-pkg
+.PHONY: all clean build-binaries package-release upload-release upload-release-public release-public force-release-micro force-release-micro-public force-release-micro-nowebview force-release-micro-nowebview-public help install-nodejs-deps build-nodejs-services build-embedded clean-nodejs test-internal lint-internal
 
 all: package-release
 
@@ -77,8 +77,8 @@ help:
 	@echo "  clean-nodejs       Clean Node.js build artifacts and node_modules."
 	@echo ""
 	@echo "Package Management:"
-	@echo "  test-pkg PKG=<name> Test a specific package in pkg/ directory."
-	@echo "  lint-pkg PKG=<name> Lint a specific package in pkg/ directory."
+	@echo "  test-internal PKG=<name> Test a specific package in internal/ directory."
+	@echo "  lint-internal PKG=<name> Lint a specific package in internal/ directory."
 	@echo "  build-embedded     Build embedded service binaries."
 	@echo ""
 	@echo "Configuration:"
@@ -328,9 +328,9 @@ no-dirty:
 audit: test
 	go mod tidy -diff
 	go mod verify
-	test -z "$(shell gofmt -l ./pkg ./cmd ./tests)"
-	go vet ./pkg/... ./cmd/... $(TEST_UNIT_DIR)/... $(TEST_INTEGRATION_DIR)/...
-	go run honnef.co/go/tools/cmd/staticcheck@latest -checks=all,-ST1000,-U1000 ./pkg/... ./cmd/...
+	test -z "$(shell gofmt -l ./internal ./cmd ./tests)"
+	go vet ./internal/... ./cmd/... $(TEST_UNIT_DIR)/... $(TEST_INTEGRATION_DIR)/...
+	go run honnef.co/go/tools/cmd/staticcheck@latest -checks=all,-ST1000,-U1000 ./internal/... ./cmd/...
 	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
 ## test: run all tests (unit tests + integration tests)
@@ -346,7 +346,7 @@ test-unit:
 	@echo "Running unit tests from $(TEST_UNIT_DIR)..."
 	go test -v -race -buildvcs -coverprofile=test-reports/coverage.out $(TEST_UNIT_DIR)/...
 	@echo "Running package tests..."
-	go test -v -race -buildvcs -coverprofile=test-reports/pkg-coverage.out ./pkg/...
+	go test -v -race -buildvcs -coverprofile=test-reports/internal-coverage.out ./internal/...
 	@echo "Cleaning up test databases after tests..."
 	@./scripts/cleanup-test-artifacts.sh 2>/dev/null || true
 
@@ -364,45 +364,45 @@ test-integration:
 		./scripts/run-integration-tests.sh; \
 	fi
 
-## test-pkg: run tests for a specific package
-.PHONY: test-pkg
-test-pkg:
+## test-internal: run tests for a specific package
+.PHONY: test-internal
+test-internal:
 	@if [ -z "$(PKG)" ]; then \
-		echo "Usage: make test-pkg PKG=<package_name>"; \
+		echo "Usage: make test-internal PKG=<package_name>"; \
 		echo "Available packages:"; \
-		ls -1 pkg/; \
+		ls -1 internal/; \
 		exit 1; \
 	fi
-	@if [ ! -d "pkg/$(PKG)" ]; then \
-		echo "Package pkg/$(PKG) does not exist"; \
+	@if [ ! -d "internal/$(PKG)" ]; then \
+		echo "Package internal/$(PKG) does not exist"; \
 		exit 1; \
 	fi
 	@echo "Running tests for package $(PKG)..."
-	go test -v -race -buildvcs ./pkg/$(PKG)/...
+	go test -v -race -buildvcs ./internal/$(PKG)/...
 
-## lint-pkg: lint a specific package
-.PHONY: lint-pkg
-lint-pkg:
+## lint-internal: lint a specific package
+.PHONY: lint-internal
+lint-internal:
 	@if [ -z "$(PKG)" ]; then \
-		echo "Usage: make lint-pkg PKG=<package_name>"; \
+		echo "Usage: make lint-internal PKG=<package_name>"; \
 		echo "Available packages:"; \
-		ls -1 pkg/; \
+		ls -1 internal/; \
 		exit 1; \
 	fi
-	@if [ ! -d "pkg/$(PKG)" ]; then \
-		echo "Package pkg/$(PKG) does not exist"; \
+	@if [ ! -d "internal/$(PKG)" ]; then \
+		echo "Package internal/$(PKG) does not exist"; \
 		exit 1; \
 	fi
 	@echo "Linting package $(PKG)..."
-	go vet ./pkg/$(PKG)/...
-	go run honnef.co/go/tools/cmd/staticcheck@latest ./pkg/$(PKG)/...
+	go vet ./internal/$(PKG)/...
+	go run honnef.co/go/tools/cmd/staticcheck@latest ./internal/$(PKG)/...
 
 ## test/cover: run all tests and display coverage
 .PHONY: test/cover
 test/cover:
 	@mkdir -p test-reports logs
 	@./scripts/cleanup-test-artifacts.sh 2>/dev/null || true
-	go test -v -race -buildvcs -coverprofile=test-reports/coverage.out $(TEST_UNIT_DIR)/... ./pkg/...
+	go test -v -race -buildvcs -coverprofile=test-reports/coverage.out $(TEST_UNIT_DIR)/... ./internal/...
 	go tool cover -html=test-reports/coverage.out
 	@./scripts/cleanup-test-artifacts.sh 2>/dev/null || true
 

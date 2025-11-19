@@ -1,33 +1,33 @@
-The Stainless tool is typically used for generating SDKs from OpenAPI specifications of REST APIs. While KNIRVCHAIN's core strength lies in its P2P interactions and DHT, the agent_Client_SDK_Implementation.md and other documents clearly state that a client SDK would also interact with the HTTP APIs exposed by the KNIRVCHAIN nodes (and potentially Wallet Servers) for certain operations.
+The Stainless tool is typically used for generating SDKs from OpenAPI specifications of REST APIs. While AGENTCHAIN's core strength lies in its P2P interactions and DHT, the agent_Client_SDK_Implementation.md and other documents clearly state that a client SDK would also interact with the HTTP APIs exposed by the AGENTCHAIN nodes (and potentially Wallet Servers) for certain operations.
 
-This YAML configuration will therefore focus on generating an SDK for the HTTP API of a KNIRVCHAIN node. The P2P/DHT aspects of the full "agent Client SDK" would be custom logic built around or alongside this Stainless-generated HTTP client.
+This YAML configuration will therefore focus on generating an SDK for the HTTP API of a AGENTCHAIN node. The P2P/DHT aspects of the full "agent Client SDK" would be custom logic built around or alongside this Stainless-generated HTTP client.
 
 Here's a tailored YAML file based on your application's documented HTTP endpoints and the Stainless schema. I've made inferences about request/response models where explicit OpenAPI schemas are not provided in your context.
 
 yaml
 # yaml-language-server: $schema=https://app.stainless.com/config.schema.json
 organization:
-  name: KNIRVCHAIN
-  docs: 'https://github.com/gperry/Documents/GitHub/cloud-equities/KNIRVORACLE_GO_ROOT_MCP/tree/main/docs'
-  contact: 'support@KNIRVCHAIN.example.com' # Placeholder
+  name: AGENTCHAIN
+  docs: 'https://github.com/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN_GO_ROOT_MCP/tree/main/docs'
+  contact: 'support@AGENTCHAIN.example.com' # Placeholder
 
 targets:
   go:
-    package_name: KNIRVCHAIN
-    # production_repo: github.com/KNIRVCHAIN/agent-sdk-go # Example if you had one
+    package_name: AGENTCHAIN
+    # production_repo: github.com/AGENTCHAIN/agent-sdk-go # Example if you had one
     options:
       enable_v2: true
   python:
-    package_name: KNIRVCHAIN
-    # production_repo: github.com/KNIRVCHAIN/agent-sdk-py
-    client_class_name: KNIRVCHAIN
+    package_name: AGENTCHAIN
+    # production_repo: github.com/AGENTCHAIN/agent-sdk-py
+    client_class_name: AGENTCHAIN
   typescript:
-    package_name: KNIRVCHAIN
-    # production_repo: github.com/KNIRVCHAIN/agent-sdk-ts
-    npm_name: KNIRVCHAIN-sdk # Example npm package name
+    package_name: AGENTCHAIN
+    # production_repo: github.com/AGENTCHAIN/agent-sdk-ts
+    npm_name: AGENTCHAIN-sdk # Example npm package name
 
 environments:
-  # This would be the base URL for a KNIRVCHAIN node's HTTP API
+  # This would be the base URL for a AGENTCHAIN node's HTTP API
   # For local development, it might be http://localhost:5000 (default root node port)
   # For a deployed scenario, it would be the public address of a node.
   production: http://localhost:5000 # Placeholder, adjust to your primary node API endpoint
@@ -154,13 +154,13 @@ settings:
   disable_mock_tests: true
   license: "GNU General Public License v3.0" # From your main README.md
 
-# client_settings: # KNIRVCHAIN node APIs don't use a simple API key header for auth.
+# client_settings: # AGENTCHAIN node APIs don't use a simple API key header for auth.
 # opts:
 # api_key:
 # type: string
 # auth:
 # security_scheme: api_key # This would be defined in OpenAPI securitySchemes
-# read_env: KNIRVORACLE_API_KEY # Example
+# read_env: AGENTCHAIN_API_KEY # Example
 
 query_settings:
   nested_format: brackets
@@ -181,7 +181,7 @@ readme:
         capabilityType: "TOOL"
         descriptor: {
           # "name": "MyAwesomeTool", # Name might be part of descriptor or from desiredName
-          # "owner": "KNIRVORACLE_address_of_owner",
+          # "owner": "AGENTCHAIN_address_of_owner",
           # "version": "1.0.0",
           # "capabilityType": "TOOL",
           # "description": "A very awesome tool.",
@@ -189,15 +189,15 @@ readme:
           # "inputSchemaJson": "{}",
           # "outputSchemaJson": "{}"
         }
-        from: "KNIRVORACLE_address_of_sender"
+        from: "AGENTCHAIN_address_of_sender"
         fee: 100
 Key Considerations and Assumptions Made:
 
 Target API: This configuration primarily targets the Blockchain Node's HTTP API (e.g., running on port 5000). While the Wallet Server has its own API, Stainless typically generates an SDK for a single API base URL. Combining them would require a more advanced Stainless setup or separate SDKs.
 JSON API: It's assumed that your HTTP API endpoints consume and produce JSON. If they use Protobuf directly over HTTP (application/protobuf), the Stainless configuration and the underlying OpenAPI spec would need to reflect that, which is a different setup.
 Model Definitions: The models entries are placeholders (e.g., ChainState, TransactionProto). In a real Stainless setup, these would refer to schema definitions in an OpenAPI document (e.g., #/components/schemas/ChainState). You would need to define what these JSON structures look like.
-Authentication: The example api_key authentication from the template has been removed as your documented KNIRVCHAIN node APIs don't seem to use a simple API key header for authentication. Transactional security is handled by cryptographic signatures within the transaction data itself.
-P2P Functionality: This YAML does not cover the direct P2P/DHT interactions (URI resolution, resource fetching over libp2p streams) that are central to the knirv:// scheme. The SDK generated by Stainless from this YAML would provide client libraries for the HTTP API calls that your broader agent Client SDK might make (e.g., for submitting transactions, querying MCP data). The libp2p parts of your SDK would be custom Go/Python/JS code.
+Authentication: The example api_key authentication from the template has been removed as your documented AGENTCHAIN node APIs don't seem to use a simple API key header for authentication. Transactional security is handled by cryptographic signatures within the transaction data itself.
+P2P Functionality: This YAML does not cover the direct P2P/DHT interactions (URI resolution, resource fetching over libp2p streams) that are central to the agent:// scheme. The SDK generated by Stainless from this YAML would provide client libraries for the HTTP API calls that your broader agent Client SDK might make (e.g., for submitting transactions, querying MCP data). The libp2p parts of your SDK would be custom Go/Python/JS code.
 Two-Step Registration: I've represented the two-step MCP capability registration (/initiate and /finalize) as separate methods.
 body_param_name: I've omitted body_param_name for most POST requests, assuming the body is a structured JSON object corresponding to a model, rather than a raw array or primitive.
-This YAML file should give Stainless a good starting point to generate an SDK for the HTTP API aspects of your KNIRVCHAIN node. You would then integrate this generated HTTP client into your broader agent Client SDK that also handles the P2P and DHT logic.
+This YAML file should give Stainless a good starting point to generate an SDK for the HTTP API aspects of your AGENTCHAIN node. You would then integrate this generated HTTP client into your broader agent Client SDK that also handles the P2P and DHT logic.

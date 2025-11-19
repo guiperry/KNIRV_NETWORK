@@ -1,10 +1,10 @@
-# KNIRVCHAIN SDK Tool - CLI Development Plan
+# AGENTCHAIN SDK Tool - CLI Development Plan
 
 ## Overview
 
-This document outlines the comprehensive development plan for the KNIRVCHAIN command-line interface (CLI) tool. The tool will enable developers to interact with the KNIRVCHAIN blockchain, manage wallets, and register capabilities through multiple integration routes. It serves as a critical interface between developers and the KNIRVCHAIN ecosystem, allowing for seamless integration of custom plugins, MCP servers, and operational procedures.
+This document outlines the comprehensive development plan for the AGENTCHAIN command-line interface (CLI) tool. The tool will enable developers to interact with the AGENTCHAIN blockchain, manage wallets, and register capabilities through multiple integration routes. It serves as a critical interface between developers and the AGENTCHAIN ecosystem, allowing for seamless integration of custom plugins, MCP servers, and operational procedures.
 
-The CLI tool will be built using Go, the Cobra CLI framework, and the Bubbletea terminal UI library, providing a robust, user-friendly interface with comprehensive documentation and error handling. It will support all core KNIRVCHAIN operations, with a particular focus on secure wallet management and capability registration through both direct plugin implementation and MCP server integration via extrapolation and interpolation routes. The Bubbletea framework will enable rich interactive terminal experiences with customizable themes, responsive layouts, and intuitive navigation.
+The CLI tool will be built using Go, the Cobra CLI framework, and the Bubbletea terminal UI library, providing a robust, user-friendly interface with comprehensive documentation and error handling. It will support all core AGENTCHAIN operations, with a particular focus on secure wallet management and capability registration through both direct plugin implementation and MCP server integration via extrapolation and interpolation routes. The Bubbletea framework will enable rich interactive terminal experiences with customizable themes, responsive layouts, and intuitive navigation.
 
 ## Project Structure
 
@@ -23,7 +23,7 @@ agent-sdk-tool/
 │   └── utils.go                // Utility commands (version, config)
 ├── core/                       // Core functionality
 │   ├── wallet_manager.go       // Wallet generation, encryption, storage
-│   ├── api_client.go           // KNIRVCHAIN HTTP API client
+│   ├── api_client.go           // AGENTCHAIN HTTP API client
 │   ├── signer.go               // Transaction signing and verification
 │   ├── file_manager.go         // Plugin file validation and reference handling
 │   ├── hosting.go              // File hosting and accessibility functions
@@ -161,7 +161,7 @@ The structure follows Go best practices and separates concerns effectively:
      - Build timestamp
      - Git commit hash
    - Add global flags:
-     - `--node-url`: URL of the KNIRVCHAIN node
+     - `--node-url`: URL of the AGENTCHAIN node
      - `--config`: Path to configuration file
      - `--verbose`: Enable verbose logging
      - `--log-level`: Set logging level (debug, info, warn, error)
@@ -183,7 +183,7 @@ The structure follows Go best practices and separates concerns effectively:
 ### Phase 2: Wallet Management Implementation (Week 1-2)
 
 1. **Key Generation and Storage**
-   - Implement ECDSA key pair generation using the secp256k1 curve (compatible with KNIRVCHAIN)
+   - Implement ECDSA key pair generation using the secp256k1 curve (compatible with AGENTCHAIN)
      ```go
      func GenerateKeyPair() (*ecdsa.PrivateKey, error) {
          return crypto.GenerateKey() // Uses the secp256k1 curve
@@ -613,7 +613,7 @@ The structure follows Go best practices and separates concerns effectively:
 1. **Transaction Construction**
    - Implement transaction data structures:
      ```go
-     // Transaction represents a KNIRVCHAIN transaction
+     // Transaction represents a AGENTCHAIN transaction
      type Transaction struct {
          From           string `json:"from"`
          To             string `json:"to,omitempty"`
@@ -875,8 +875,8 @@ The structure follows Go best practices and separates concerns effectively:
      ```go
      var registerCapabilityCmd = &cobra.Command{
          Use:   "register-capability",
-         Short: "Register a new capability on the KNIRVCHAIN blockchain",
-         Long: `Register a new capability (resource, tool, etc.) on the KNIRVCHAIN blockchain.
+         Short: "Register a new capability on the AGENTCHAIN blockchain",
+         Long: `Register a new capability (resource, tool, etc.) on the AGENTCHAIN blockchain.
      
      For plugin resources, this command will validate the plugin .so file and opSchema file,
      create references to these files in the descriptor, and add location hints for dev access.
@@ -895,7 +895,7 @@ The structure follows Go best practices and separates concerns effectively:
      ```go
      func init() {
          // Required flags
-         registerCapabilityCmd.Flags().String("node", "", "URL of the KNIRVCHAIN node")
+         registerCapabilityCmd.Flags().String("node", "", "URL of the AGENTCHAIN node")
          registerCapabilityCmd.Flags().String("wallet", "", "Path to wallet file")
          registerCapabilityCmd.Flags().String("from", "", "Address of the sender")
          registerCapabilityCmd.Flags().String("type", "", "Capability type (RESOURCE, TOOL, etc.)")
@@ -933,8 +933,8 @@ The structure follows Go best practices and separates concerns effectively:
      ```go
      var registerServerCmd = &cobra.Command{
          Use:   "register-server",
-         Short: "Register an MCP server on the KNIRVCHAIN blockchain",
-         Long: `Register an MCP server on the KNIRVCHAIN blockchain using the extrapolation route.
+         Short: "Register an MCP server on the AGENTCHAIN blockchain",
+         Long: `Register an MCP server on the AGENTCHAIN blockchain using the extrapolation route.
      
      This command will register the server and optionally auto-register all capabilities
      provided by the server.
@@ -952,7 +952,7 @@ The structure follows Go best practices and separates concerns effectively:
      ```go
      func init() {
          // Required flags
-         registerServerCmd.Flags().String("node", "", "URL of the KNIRVCHAIN node")
+         registerServerCmd.Flags().String("node", "", "URL of the AGENTCHAIN node")
          registerServerCmd.Flags().String("wallet", "", "Path to wallet file")
          registerServerCmd.Flags().String("from", "", "Address of the sender")
          registerServerCmd.Flags().String("server-schema", "", "Path to server schema file")
@@ -978,8 +978,8 @@ The structure follows Go best practices and separates concerns effectively:
      ```go
      var registerProcedureCmd = &cobra.Command{
          Use:   "register-procedure",
-         Short: "Register an operational procedure on the KNIRVCHAIN blockchain",
-         Long: `Register an operational procedure on the KNIRVCHAIN blockchain using the interpolation route.
+         Short: "Register an operational procedure on the AGENTCHAIN blockchain",
+         Long: `Register an operational procedure on the AGENTCHAIN blockchain using the interpolation route.
      
      This command will register the procedure, deploy any required MCP servers, and register
      the capability on the blockchain.
@@ -997,7 +997,7 @@ The structure follows Go best practices and separates concerns effectively:
      ```go
      func init() {
          // Required flags
-         registerProcedureCmd.Flags().String("node", "", "URL of the KNIRVCHAIN node")
+         registerProcedureCmd.Flags().String("node", "", "URL of the AGENTCHAIN node")
          registerProcedureCmd.Flags().String("wallet", "", "Path to wallet file")
          registerProcedureCmd.Flags().String("from", "", "Address of the sender")
          registerProcedureCmd.Flags().String("opschema", "", "Path to opSchema file")
@@ -1319,9 +1319,9 @@ The structure follows Go best practices and separates concerns effectively:
      ```
    - Example resource plugin prompt template:
      ```
-     # KNIRVCHAIN Resource Plugin Generation
+     # AGENTCHAIN Resource Plugin Generation
 
-     You are an expert Go developer tasked with creating a KNIRVCHAIN resource plugin based on the provided opSchema.
+     You are an expert Go developer tasked with creating a AGENTCHAIN resource plugin based on the provided opSchema.
      
      ## OpSchema Details
      
@@ -1331,10 +1331,10 @@ The structure follows Go best practices and separates concerns effectively:
      
      ## Requirements
      
-     1. Create a Go plugin that implements the KNIRVCHAIN ResourceProvider interface
+     1. Create a Go plugin that implements the AGENTCHAIN ResourceProvider interface
      2. The plugin must handle all operations defined in the opSchema
      3. Implement proper error handling and validation
-     4. Follow Go best practices and KNIRVCHAIN plugin conventions
+     4. Follow Go best practices and AGENTCHAIN plugin conventions
      5. Include comprehensive unit tests
      
      ## ResourceProvider Interface
@@ -1451,7 +1451,7 @@ The structure follows Go best practices and separates concerns effectively:
          generatePluginCmd.Flags().Bool("optimize", true, "Optimize the generated code")
          
          // Registration-related flags (used when --register is true)
-         generatePluginCmd.Flags().String("node", "", "URL of the KNIRVCHAIN node")
+         generatePluginCmd.Flags().String("node", "", "URL of the AGENTCHAIN node")
          generatePluginCmd.Flags().String("wallet", "", "Path to wallet file")
          generatePluginCmd.Flags().String("from", "", "Address of the sender")
          generatePluginCmd.Flags().Uint64("fee", 0, "Transaction fee")
@@ -1624,8 +1624,8 @@ The structure follows Go best practices and separates concerns effectively:
    - Test against actual blockchain node:
      - Set up a local test node:
        ```bash
-       # Start a local KNIRVCHAIN node for testing
-       docker run -d -p 8080:8080 --name agent-test-node KNIRVCHAIN/node:latest
+       # Start a local AGENTCHAIN node for testing
+       docker run -d -p 8080:8080 --name agent-test-node AGENTCHAIN/node:latest
        ```
      - Create test scripts for common operations:
        ```bash
@@ -1672,12 +1672,12 @@ The structure follows Go best practices and separates concerns effectively:
      // Example of comprehensive help text
      var rootCmd = &cobra.Command{
          Use:   "agent-sdk-tool",
-         Short: "KNIRVCHAIN CLI Tool for blockchain interaction",
-         Long: `KNIRVCHAIN CLI Tool is a command-line interface for interacting with the KNIRVCHAIN blockchain.
+         Short: "AGENTCHAIN CLI Tool for blockchain interaction",
+         Long: `AGENTCHAIN CLI Tool is a command-line interface for interacting with the AGENTCHAIN blockchain.
      
      It provides functionality for wallet management, capability registration, and other blockchain operations.
      
-     Complete documentation is available at https://docs.KNIRVCHAIN.io/sdk-tool`,
+     Complete documentation is available at https://docs.AGENTCHAIN.io/sdk-tool`,
          Example: `  # Create a new wallet
        agent-sdk-tool wallet new
      
@@ -1712,13 +1712,13 @@ The structure follows Go best practices and separates concerns effectively:
        {
          "name": "Example Plugin",
          "version": "1.0.0",
-         "description": "An example plugin for KNIRVCHAIN",
-         "author": "KNIRVCHAIN Developer",
+         "description": "An example plugin for AGENTCHAIN",
+         "author": "AGENTCHAIN Developer",
          "license": "MIT",
          "main": "plugin.so",
          "interfaces": ["ResourceProvider"],
          "dependencies": {
-           "KNIRVCHAIN-sdk": "^1.0.0"
+           "AGENTCHAIN-sdk": "^1.0.0"
          },
          "config": {
            "memory_limit_mb": 256,
@@ -1961,7 +1961,7 @@ agent-cli-tool mcp generate-plugin --opschema <opschema_file_path> --output <out
   - `--interactive`: Enable interactive mode for refinement
   - `--run-tests`: Run tests on the generated plugin
   - `--optimize`: Optimize the generated code
-  - `--node <node_url>`: URL of the KNIRVCHAIN node (required if --register is specified)
+  - `--node <node_url>`: URL of the AGENTCHAIN node (required if --register is specified)
   - `--wallet <wallet_file_path>`: Path to the wallet file (required if --register is specified)
   - `--from <from_address>`: Address of the sender (required if --register is specified)
   - `--fee <amount>`: Transaction fee (required if --register is specified)
@@ -2014,7 +2014,7 @@ agent-cli-tool mcp generate-plugin --opschema <opschema_file_path> --output <out
   Capability registered successfully!
   Transaction Hash: 0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
   Capability ID: resource_test-resource_1234567890abcdef
-  Capability URI: knirv://resource/resource_test-resource_1234567890abcdef
+  Capability URI: agent://resource/resource_test-resource_1234567890abcdef
   ```
 - **Error Handling**:
   - Validates the opSchema file
@@ -2028,7 +2028,7 @@ agent-cli-tool mcp generate-plugin --opschema <opschema_file_path> --output <out
 ```
 agent-cli-tool mcp register-capability --node <node_url> --wallet <wallet_file_path> --from <from_address> --type <RESOURCE|TOOL|...> --descriptor <json_string_or_file_path> --plugin <plugin_so_file_path> --opschema <opschema_file_path> --fee <amount> [--password <pwd>] [--location-hint <uri>] [--relative-path-base <path>] [--start-file-server] [--file-server-port <port>]
 ```
-- **Purpose**: Registers a new capability on the KNIRVCHAIN blockchain.
+- **Purpose**: Registers a new capability on the AGENTCHAIN blockchain.
 - **Implementation Details**:
   - Validates all required parameters
   - For plugin resources:
@@ -2041,7 +2041,7 @@ agent-cli-tool mcp register-capability --node <node_url> --wallet <wallet_file_p
   - Submits the transaction to the blockchain
   - Returns the transaction hash and capability URI
 - **Options**:
-  - `--node <node_url>`: URL of the KNIRVCHAIN node
+  - `--node <node_url>`: URL of the AGENTCHAIN node
   - `--wallet <wallet_file_path>`: Path to the wallet file
   - `--from <from_address>`: Address of the sender (must match the wallet)
   - `--type <RESOURCE|TOOL|...>`: Type of capability to register
@@ -2078,7 +2078,7 @@ agent-cli-tool mcp register-capability --node <node_url> --wallet <wallet_file_p
   Capability registered successfully!
   Transaction Hash: 0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
   Capability ID: resource_test-resource_1234567890abcdef
-  Capability URI: knirv://resource/resource_test-resource_1234567890abcdef
+  Capability URI: agent://resource/resource_test-resource_1234567890abcdef
   
   Plugin file accessible at: http://192.168.1.100:8090/plugins/test-plugin.so
   OpSchema file accessible at: http://192.168.1.100:8090/opschemas/test-opschema.yaml
@@ -2096,7 +2096,7 @@ agent-cli-tool mcp register-capability --node <node_url> --wallet <wallet_file_p
 ```
 agent-cli-tool mcp register-server --node <node_url> --wallet <wallet_file_path> --from <from_address> --server-schema <server_schema_file_path> --fee <amount> [--password <pwd>] [--auto-register-capabilities] [--deploy-server] [--deployment-config <config_file_path>]
 ```
-- **Purpose**: Registers an MCP server on the KNIRVCHAIN blockchain using the extrapolation route.
+- **Purpose**: Registers an MCP server on the AGENTCHAIN blockchain using the extrapolation route.
 - **Implementation Details**:
   - Validates the server schema file
   - Optionally deploys the server if it's not already running
@@ -2105,7 +2105,7 @@ agent-cli-tool mcp register-server --node <node_url> --wallet <wallet_file_path>
   - Optionally auto-registers all capabilities provided by the server
   - Returns the transaction hash and server URI
 - **Options**:
-  - `--node <node_url>`: URL of the KNIRVCHAIN node
+  - `--node <node_url>`: URL of the AGENTCHAIN node
   - `--wallet <wallet_file_path>`: Path to the wallet file
   - `--from <from_address>`: Address of the sender (must match the wallet)
   - `--server-schema <server_schema_file_path>`: Path to the server schema file
@@ -2146,7 +2146,7 @@ agent-cli-tool mcp register-server --node <node_url> --wallet <wallet_file_path>
   Server registered successfully!
   Transaction Hash: 0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
   Server ID: mcp-server_example-mcp-server_1234567890abcdef
-  Server URI: knirv://mcp-server/mcp-server_example-mcp-server_1234567890abcdef
+  Server URI: agent://mcp-server/mcp-server_example-mcp-server_1234567890abcdef
   
   Auto-registering capabilities...
   Registering capability: resource-provider...
@@ -2174,7 +2174,7 @@ agent-cli-tool mcp register-server --node <node_url> --wallet <wallet_file_path>
 ```
 agent-cli-tool mcp register-procedure --node <node_url> --wallet <wallet_file_path> --from <from_address> --opschema <opschema_file_path> --fee <amount> [--password <pwd>] [--plugin <plugin_so_file_path>] [--deploy-servers] [--location-hint <uri>] [--validate-servers]
 ```
-- **Purpose**: Registers an operational procedure on the KNIRVCHAIN blockchain using the interpolation route.
+- **Purpose**: Registers an operational procedure on the AGENTCHAIN blockchain using the interpolation route.
 - **Implementation Details**:
   - Validates the opSchema file
   - Validates the plugin file if provided
@@ -2184,7 +2184,7 @@ agent-cli-tool mcp register-procedure --node <node_url> --wallet <wallet_file_pa
   - Registers the capability described in the opSchema
   - Returns the transaction hash and procedure URI
 - **Options**:
-  - `--node <node_url>`: URL of the KNIRVCHAIN node
+  - `--node <node_url>`: URL of the AGENTCHAIN node
   - `--wallet <wallet_file_path>`: Path to the wallet file
   - `--from <from_address>`: Address of the sender (must match the wallet)
   - `--opschema <opschema_file_path>`: Path to the opSchema file
@@ -2228,12 +2228,12 @@ agent-cli-tool mcp register-procedure --node <node_url> --wallet <wallet_file_pa
   Procedure registered successfully!
   Transaction Hash: 0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
   Procedure ID: procedure_skyrim-mod-validator_1234567890abcdef
-  Procedure URI: knirv://procedure/procedure_skyrim-mod-validator_1234567890abcdef
+  Procedure URI: agent://procedure/procedure_skyrim-mod-validator_1234567890abcdef
   
   Registering capability...
   Capability registered successfully!
   Capability ID: resource_skyrim-mod-validator_1234567890abcdef
-  Capability URI: knirv://resource/resource_skyrim-mod-validator_1234567890abcdef
+  Capability URI: agent://resource/resource_skyrim-mod-validator_1234567890abcdef
   
   Plugin file accessible at: http://192.168.1.100:8090/plugins/test-plugin.so
   OpSchema file accessible at: http://192.168.1.100:8090/opschemas/test-opschema.yaml
@@ -2251,7 +2251,7 @@ agent-cli-tool mcp register-procedure --node <node_url> --wallet <wallet_file_pa
 ```
 agent-cli-tool mcp invoke-capability --node <node_url> --wallet <wallet_file_path> --from <from_address> --capability-id <id> --input <json_string_or_file_path> --fee <amount> [--password <pwd>]
 ```
-- **Purpose**: Invokes a capability on the KNIRVCHAIN blockchain.
+- **Purpose**: Invokes a capability on the AGENTCHAIN blockchain.
 - **Implementation Details**:
   - Validates all required parameters
   - Loads and decrypts the wallet
@@ -2260,7 +2260,7 @@ agent-cli-tool mcp invoke-capability --node <node_url> --wallet <wallet_file_pat
   - Submits the transaction to the blockchain
   - Returns the transaction hash and invocation result
 - **Options**:
-  - `--node <node_url>`: URL of the KNIRVCHAIN node
+  - `--node <node_url>`: URL of the AGENTCHAIN node
   - `--wallet <wallet_file_path>`: Path to the wallet file
   - `--from <from_address>`: Address of the sender (must match the wallet)
   - `--capability-id <id>`: ID of the capability to invoke
@@ -2662,7 +2662,7 @@ func CreateFileReferenceStrategy(config FileReferenceConfig) (FileReferenceStrat
 
 ## Implementation Priorities
 
-The development of the KNIRVCHAIN CLI tool will follow these priorities:
+The development of the AGENTCHAIN CLI tool will follow these priorities:
 
 1. **Core Wallet Functionality**
    - Key generation and secure storage
@@ -2721,11 +2721,11 @@ The development of the KNIRVCHAIN CLI tool will follow these priorities:
 
 ## Success Criteria
 
-The KNIRVCHAIN CLI tool will be considered successful when it meets the following criteria:
+The AGENTCHAIN CLI tool will be considered successful when it meets the following criteria:
 
 1. **Functionality**
    - All commands function as specified in the detailed command specifications
-   - The tool successfully interacts with the KNIRVCHAIN blockchain
+   - The tool successfully interacts with the AGENTCHAIN blockchain
    - All capability registration routes work end-to-end with proper file references
    - MCP server deployment and management functions correctly
    - Process execution engine handles complex operational procedures

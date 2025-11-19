@@ -20,7 +20,7 @@ const turnServer = new Turn({
   // authMech: 'long-term',
   // credentials: {
   //   'user1': 'pass1', // Static credentials
-  //   'agent': Turn.generateLongTermCredentials("KNIRVORACLE_secure_password", "agent.com") // Long-term
+  //   'agent': Turn.generateLongTermCredentials("AGENTCHAIN_secure_password", "agent.com") // Long-term
   // },
   // realm: 'agent.com',
   // UDP primary with TCP fallback
@@ -33,7 +33,7 @@ const turnServer = new Turn({
   // relayIps: ['your_server_public_ip1', 'your_server_public_ip2_if_any'],
   // Or let node-turn try to find it (might require specific network setup)
   // By default, it tries to use the first non-internal IPv4 address.
-  software: 'KNIRVCHAIN Registry TURN/STUN Server',
+  software: 'AGENTCHAIN Registry TURN/STUN Server',
 ```
 
 **Solution:** Uncomment and correctly configure `listeningIps` (and `relayIps` if you intend to use TURN relay capabilities) with the actual public IP address(es) of your server. If your server has multiple public IPs or specific network interfaces you want it to use, specify them. node-turn's auto-detection can be unreliable in complex network setups.
@@ -104,7 +104,7 @@ The `udpAddress` and `tcpAddress` fetched from `turnServer.listeningAddresses` i
 //   transportProtocols: ['udp'], // Focus on UDP for STUN
 //   listeningIps: ['your_server_public_ip1'],
 //   disallowRelay: true, // Explicitly disable TURN relay
-//   software: 'KNIRVCHAIN Registry STUN Server (Test)',
+//   software: 'AGENTCHAIN Registry STUN Server (Test)',
 //   verbose: true,
 // });
 ```

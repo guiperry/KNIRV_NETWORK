@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"KNIRVCHAIN/config"
-	"KNIRVCHAIN/pkg/utils"
+	"KNIRVCHAIN/internal/utils"
 
 	"path/filepath"
 	"testing"

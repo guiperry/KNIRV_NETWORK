@@ -1,5 +1,5 @@
 [{
-	"resource": "/home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN/mcp_blockchain_test.go",
+	"resource": "/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN/mcp_blockchain_test.go",
 	"owner": "_generated_diagnostic_collection_name_#8",
 	"code": {
 		"value": "UnusedVar",
@@ -7,7 +7,7 @@
 			"$mid": 1,
 			"path": "/golang.org/x/tools/internal/typesinternal",
 			"scheme": "https",
-			"authority": "pkg.go.dev",
+			"authority": "internal.go.dev",
 			"fragment": "UnusedVar"
 		}
 	},
@@ -22,7 +22,7 @@
 		1
 	]
 },{
-	"resource": "/home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN/mcp_blockchain_test.go",
+	"resource": "/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN/mcp_blockchain_test.go",
 	"owner": "_generated_diagnostic_collection_name_#8",
 	"code": {
 		"value": "UnusedVar",
@@ -30,7 +30,7 @@
 			"$mid": 1,
 			"path": "/golang.org/x/tools/internal/typesinternal",
 			"scheme": "https",
-			"authority": "pkg.go.dev",
+			"authority": "internal.go.dev",
 			"fragment": "UnusedVar"
 		}
 	},
@@ -45,7 +45,7 @@
 		1
 	]
 },{
-	"resource": "/home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN/mcp_blockchain_test.go",
+	"resource": "/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN/mcp_blockchain_test.go",
 	"owner": "_generated_diagnostic_collection_name_#8",
 	"code": {
 		"value": "WrongAssignCount",
@@ -53,7 +53,7 @@
 			"$mid": 1,
 			"path": "/golang.org/x/tools/internal/typesinternal",
 			"scheme": "https",
-			"authority": "pkg.go.dev",
+			"authority": "internal.go.dev",
 			"fragment": "WrongAssignCount"
 		}
 	},
@@ -65,7 +65,7 @@
 	"endLineNumber": 167,
 	"endColumn": 86
 },{
-	"resource": "/home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN/mcp_blockchain_test.go",
+	"resource": "/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN/mcp_blockchain_test.go",
 	"owner": "_generated_diagnostic_collection_name_#8",
 	"code": {
 		"value": "WrongArgCount",
@@ -73,7 +73,7 @@
 			"$mid": 1,
 			"path": "/golang.org/x/tools/internal/typesinternal",
 			"scheme": "https",
-			"authority": "pkg.go.dev",
+			"authority": "internal.go.dev",
 			"fragment": "WrongArgCount"
 		}
 	},
@@ -85,7 +85,7 @@
 	"endLineNumber": 167,
 	"endColumn": 85
 },{
-	"resource": "/home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN/mcp_blockchain_test.go",
+	"resource": "/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN/mcp_blockchain_test.go",
 	"owner": "_generated_diagnostic_collection_name_#8",
 	"code": {
 		"value": "WrongAssignCount",
@@ -93,7 +93,7 @@
 			"$mid": 1,
 			"path": "/golang.org/x/tools/internal/typesinternal",
 			"scheme": "https",
-			"authority": "pkg.go.dev",
+			"authority": "internal.go.dev",
 			"fragment": "WrongAssignCount"
 		}
 	},
@@ -105,7 +105,7 @@
 	"endLineNumber": 184,
 	"endColumn": 79
 },{
-	"resource": "/home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN/mcp_blockchain_test.go",
+	"resource": "/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN/mcp_blockchain_test.go",
 	"owner": "_generated_diagnostic_collection_name_#8",
 	"code": {
 		"value": "WrongArgCount",
@@ -113,7 +113,7 @@
 			"$mid": 1,
 			"path": "/golang.org/x/tools/internal/typesinternal",
 			"scheme": "https",
-			"authority": "pkg.go.dev",
+			"authority": "internal.go.dev",
 			"fragment": "WrongArgCount"
 		}
 	},
@@ -125,7 +125,7 @@
 	"endLineNumber": 184,
 	"endColumn": 78
 },{
-	"resource": "/home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN/mcp_blockchain_test.go",
+	"resource": "/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN/mcp_blockchain_test.go",
 	"owner": "_generated_diagnostic_collection_name_#8",
 	"code": {
 		"value": "UnusedVar",
@@ -133,7 +133,7 @@
 			"$mid": 1,
 			"path": "/golang.org/x/tools/internal/typesinternal",
 			"scheme": "https",
-			"authority": "pkg.go.dev",
+			"authority": "internal.go.dev",
 			"fragment": "UnusedVar"
 		}
 	},
@@ -148,7 +148,7 @@
 		1
 	]
 },{
-	"resource": "/home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN/mcp_blockchain_test.go",
+	"resource": "/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN/mcp_blockchain_test.go",
 	"owner": "_generated_diagnostic_collection_name_#8",
 	"code": {
 		"value": "UnusedVar",
@@ -156,7 +156,7 @@
 			"$mid": 1,
 			"path": "/golang.org/x/tools/internal/typesinternal",
 			"scheme": "https",
-			"authority": "pkg.go.dev",
+			"authority": "internal.go.dev",
 			"fragment": "UnusedVar"
 		}
 	},
@@ -171,7 +171,7 @@
 		1
 	]
 },{
-	"resource": "/home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN/mcp_blockchain_test.go",
+	"resource": "/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN/mcp_blockchain_test.go",
 	"owner": "_generated_diagnostic_collection_name_#8",
 	"code": {
 		"value": "WrongAssignCount",
@@ -179,7 +179,7 @@
 			"$mid": 1,
 			"path": "/golang.org/x/tools/internal/typesinternal",
 			"scheme": "https",
-			"authority": "pkg.go.dev",
+			"authority": "internal.go.dev",
 			"fragment": "WrongAssignCount"
 		}
 	},
@@ -191,7 +191,7 @@
 	"endLineNumber": 457,
 	"endColumn": 79
 },{
-	"resource": "/home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN/mcp_blockchain_test.go",
+	"resource": "/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN/mcp_blockchain_test.go",
 	"owner": "_generated_diagnostic_collection_name_#8",
 	"code": {
 		"value": "WrongArgCount",
@@ -199,7 +199,7 @@
 			"$mid": 1,
 			"path": "/golang.org/x/tools/internal/typesinternal",
 			"scheme": "https",
-			"authority": "pkg.go.dev",
+			"authority": "internal.go.dev",
 			"fragment": "WrongArgCount"
 		}
 	},
@@ -211,7 +211,7 @@
 	"endLineNumber": 457,
 	"endColumn": 78
 },{
-	"resource": "/home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN/mcp_blockchain_test.go",
+	"resource": "/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN/mcp_blockchain_test.go",
 	"owner": "_generated_diagnostic_collection_name_#8",
 	"code": {
 		"value": "UnusedVar",
@@ -219,7 +219,7 @@
 			"$mid": 1,
 			"path": "/golang.org/x/tools/internal/typesinternal",
 			"scheme": "https",
-			"authority": "pkg.go.dev",
+			"authority": "internal.go.dev",
 			"fragment": "UnusedVar"
 		}
 	},
@@ -234,7 +234,7 @@
 		1
 	]
 },{
-	"resource": "/home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN/mcp_blockchain_test.go",
+	"resource": "/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN/mcp_blockchain_test.go",
 	"owner": "_generated_diagnostic_collection_name_#8",
 	"code": {
 		"value": "UnusedVar",
@@ -242,7 +242,7 @@
 			"$mid": 1,
 			"path": "/golang.org/x/tools/internal/typesinternal",
 			"scheme": "https",
-			"authority": "pkg.go.dev",
+			"authority": "internal.go.dev",
 			"fragment": "UnusedVar"
 		}
 	},
@@ -257,7 +257,7 @@
 		1
 	]
 },{
-	"resource": "/home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN/mcp_blockchain_test.go",
+	"resource": "/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN/mcp_blockchain_test.go",
 	"owner": "_generated_diagnostic_collection_name_#8",
 	"code": {
 		"value": "WrongAssignCount",
@@ -265,7 +265,7 @@
 			"$mid": 1,
 			"path": "/golang.org/x/tools/internal/typesinternal",
 			"scheme": "https",
-			"authority": "pkg.go.dev",
+			"authority": "internal.go.dev",
 			"fragment": "WrongAssignCount"
 		}
 	},
@@ -277,7 +277,7 @@
 	"endLineNumber": 661,
 	"endColumn": 75
 },{
-	"resource": "/home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN/mcp_blockchain_test.go",
+	"resource": "/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN/mcp_blockchain_test.go",
 	"owner": "_generated_diagnostic_collection_name_#8",
 	"code": {
 		"value": "WrongArgCount",
@@ -285,7 +285,7 @@
 			"$mid": 1,
 			"path": "/golang.org/x/tools/internal/typesinternal",
 			"scheme": "https",
-			"authority": "pkg.go.dev",
+			"authority": "internal.go.dev",
 			"fragment": "WrongArgCount"
 		}
 	},
@@ -297,7 +297,7 @@
 	"endLineNumber": 661,
 	"endColumn": 74
 },{
-	"resource": "/home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN/mcp_blockchain_test.go",
+	"resource": "/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN/mcp_blockchain_test.go",
 	"owner": "_generated_diagnostic_collection_name_#8",
 	"code": {
 		"value": "WrongAssignCount",
@@ -305,7 +305,7 @@
 			"$mid": 1,
 			"path": "/golang.org/x/tools/internal/typesinternal",
 			"scheme": "https",
-			"authority": "pkg.go.dev",
+			"authority": "internal.go.dev",
 			"fragment": "WrongAssignCount"
 		}
 	},
@@ -317,7 +317,7 @@
 	"endLineNumber": 672,
 	"endColumn": 86
 },{
-	"resource": "/home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN/mcp_blockchain_test.go",
+	"resource": "/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN/mcp_blockchain_test.go",
 	"owner": "_generated_diagnostic_collection_name_#8",
 	"code": {
 		"value": "WrongArgCount",
@@ -325,7 +325,7 @@
 			"$mid": 1,
 			"path": "/golang.org/x/tools/internal/typesinternal",
 			"scheme": "https",
-			"authority": "pkg.go.dev",
+			"authority": "internal.go.dev",
 			"fragment": "WrongArgCount"
 		}
 	},
@@ -337,7 +337,7 @@
 	"endLineNumber": 672,
 	"endColumn": 85
 },{
-	"resource": "/home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN/mcp_blockchain_test.go",
+	"resource": "/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN/mcp_blockchain_test.go",
 	"owner": "_generated_diagnostic_collection_name_#8",
 	"code": {
 		"value": "WrongAssignCount",
@@ -345,7 +345,7 @@
 			"$mid": 1,
 			"path": "/golang.org/x/tools/internal/typesinternal",
 			"scheme": "https",
-			"authority": "pkg.go.dev",
+			"authority": "internal.go.dev",
 			"fragment": "WrongAssignCount"
 		}
 	},
@@ -357,7 +357,7 @@
 	"endLineNumber": 683,
 	"endColumn": 79
 },{
-	"resource": "/home/gperry/Documents/GitHub/cloud-equities/KNIRVCHAIN/mcp_blockchain_test.go",
+	"resource": "/home/gperry/Documents/GitHub/cloud-equities/AGENTCHAIN/mcp_blockchain_test.go",
 	"owner": "_generated_diagnostic_collection_name_#8",
 	"code": {
 		"value": "WrongArgCount",
@@ -365,7 +365,7 @@
 			"$mid": 1,
 			"path": "/golang.org/x/tools/internal/typesinternal",
 			"scheme": "https",
-			"authority": "pkg.go.dev",
+			"authority": "internal.go.dev",
 			"fragment": "WrongArgCount"
 		}
 	},

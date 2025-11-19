@@ -3,8 +3,8 @@
       {
         "type": "lldb",
         "request": "launch",
-        "name": "Launch knirvchain",
-        "program": "${workspaceFolder}/target/debug/knirvchain",
+        "name": "Launch knirvoracle",
+        "program": "${workspaceFolder}/target/debug/knirvoracle",
         "args": [],
         "cwd": "${workspaceFolder}",
         "envFile": "${workspaceFolder}/.env",

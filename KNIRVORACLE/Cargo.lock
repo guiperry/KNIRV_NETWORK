@@ -1840,7 +1840,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "knirvchain"
+name = "knirvoracle"
 version = "0.1.0"
 dependencies = [
  "actix-web",

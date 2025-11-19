@@ -1,15 +1,15 @@
-# KNIRVCHAIN Client SDK
+# AGENTCHAIN Client SDK
 
 ## Overview
 
-The KNIRVCHAIN Client SDK provides a high-level interface for developers to interact with the KNIRVCHAIN network. It simplifies the process of resolving `knirv://` URIs, discovering devs on the private DHT, connecting to them, and fetching the underlying resources or interacting with services.
+The AGENTCHAIN Client SDK provides a high-level interface for developers to interact with the AGENTCHAIN network. It simplifies the process of resolving `agent://` URIs, discovering devs on the private DHT, connecting to them, and fetching the underlying resources or interacting with services.
 
-This SDK abstracts away the complexities of P2P networking and DHT lookups, allowing developers to focus on building applications that leverage KNIRVCHAIN resources. It supports Go, Python, JavaScript, and TypeScript.
+This SDK abstracts away the complexities of P2P networking and DHT lookups, allowing developers to focus on building applications that leverage AGENTCHAIN resources. It supports Go, Python, JavaScript, and TypeScript.
 
-## KNIRVCHAIN URI Structure Recap
+## AGENTCHAIN URI Structure Recap
 
 ```
-knirv://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
+agent://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
 ```
 
 *   **Scheme:** `agent`
@@ -19,16 +19,16 @@ knirv://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
 *   **Path:** `/<OptionalSubPath>` (e.g., `/block`, `/content`, defaults to `/` if omitted).
 *   **Query:** `?param1=value1...` (Standard URL query parameters).
 
-For a detailed specification, please refer to the KNIRVCHAIN URI Scheme Design Document.
+For a detailed specification, please refer to the AGENTCHAIN URI Scheme Design Document.
 
 ## SDK Scope and Functionality
 
-The KNIRVCHAIN Client SDK handles the entire pipeline for a given `knirv://` URI:
+The AGENTCHAIN Client SDK handles the entire pipeline for a given `agent://` URI:
 
 1.  **Parsing:** Deconstructs the URI string into its `ID`, `ResourceType`, `Path`, and `Query` components.
-2.  **Peer Discovery (DHT Resolution):** Uses the `ID` and `ResourceType` to query the KNIRVCHAIN private DHT and find dev(s) advertising the resource.
+2.  **Peer Discovery (DHT Resolution):** Uses the `ID` and `ResourceType` to query the AGENTCHAIN private DHT and find dev(s) advertising the resource.
 3.  **Peer Connection:** Establishes a connection with a suitable dev.
-4.  **Resource Fetching/Interaction:** Uses the `Path` and `Query` parameters to request the specific data or interact with the service on the connected dev, according to KNIRVCHAIN's application-level protocols.
+4.  **Resource Fetching/Interaction:** Uses the `Path` and `Query` parameters to request the specific data or interact with the service on the connected dev, according to AGENTCHAIN's application-level protocols.
 
 The SDK returns the fetched resource data (e.g., as a byte array, string, stream, or structured object) or a handle for further interaction.
 
@@ -40,12 +40,12 @@ Below are instructions and examples for using the SDK in supported languages.
 
 ### 1. GoLang (`agent-uri-sdk-go`)
 
-The Go SDK provides a comprehensive package for resolving and fetching KNIRVCHAIN resources.
+The Go SDK provides a comprehensive package for resolving and fetching AGENTCHAIN resources.
 
 #### Installation
 
 ```bash
-go get github.com/KNIRVCHAIN/agent-uri-sdk-go # Replace with actual repository path
+go get github.com/AGENTCHAIN/agent-uri-sdk-go # Replace with actual repository path
 ```
 
 #### Core Functionality
@@ -86,19 +86,19 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/KNIRVCHAIN/agent-uri-sdk-go/parser"  // Adjust import path
-	agentclient "github.com/KNIRVCHAIN/agent-uri-sdk-go/client" // Adjust import path
+	"github.com/AGENTCHAIN/agent-uri-sdk-go/parser"  // Adjust import path
+	agentclient "github.com/AGENTCHAIN/agent-uri-sdk-go/client" // Adjust import path
 )
 
 func main() {
 	uriStrings := []string{
-		"knirv://mychain-alpha.chain/block?number=123&validator=node1",
-		"knirv://content-xyz-123.nrn/data?version=1.2&format=json",
-		"knirv://another-id.chain/",  // Path defaults to /
-		"knirv://short.nrn",          // Path defaults to /
+		"agent://mychain-alpha.chain/block?number=123&validator=node1",
+		"agent://content-xyz-123.nrn/data?version=1.2&format=json",
+		"agent://another-id.chain/",  // Path defaults to /
+		"agent://short.nrn",          // Path defaults to /
 		"invalid://mychain.chain/",   // Invalid scheme
-		"knirv://mychainchain",       // Invalid authority
-		"knirv://nonexistent.resource", // Valid URI, but resource might not be found
+		"agent://mychainchain",       // Invalid authority
+		"agent://nonexistent.resource", // Valid URI, but resource might not be found
 	}
 
 	// SDK Client Initialization (one-time setup)
@@ -108,7 +108,7 @@ func main() {
 
 	client, err := agentclient.New(config)
 	if err != nil {
-		log.Fatalf("Failed to initialize KNIRVCHAIN client: %v", err)
+		log.Fatalf("Failed to initialize AGENTCHAIN client: %v", err)
 	}
 	defer client.Close() // Assuming the client needs to be closed
 
@@ -147,7 +147,7 @@ func main() {
 
 ### 2. Python (`agent-uri-sdk-py`)
 
-The Python SDK offers a high-level API to resolve and fetch KNIRVCHAIN resources.
+The Python SDK offers a high-level API to resolve and fetch AGENTCHAIN resources.
 
 #### Installation
 
@@ -167,7 +167,7 @@ from typing import Dict, List, Optional, Any, Union
 # import libp2p # Example: if py-libp2p is used
 
 class agentClientError(Exception):
-    """Custom exception for KNIRVCHAIN client errors."""
+    """Custom exception for AGENTCHAIN client errors."""
     pass
 
 class agentClient:
@@ -196,12 +196,12 @@ import asyncio
 from agent_uri_sdk import agentClient, agentClientError  # Adjust import path
 
 uri_strings = [
-    "knirv://mychain-alpha.chain/block?number=123&validator=node1",
-    "knirv://content-xyz-123.nrn/data?version=1.2&format=json",
-    "knirv://another-id.chain/",
-    "knirv://short.nrn",
+    "agent://mychain-alpha.chain/block?number=123&validator=node1",
+    "agent://content-xyz-123.nrn/data?version=1.2&format=json",
+    "agent://another-id.chain/",
+    "agent://short.nrn",
     "invalid://mychain.chain/",
-    "knirv://nonexistent.resource",
+    "agent://nonexistent.resource",
 ]
 
 async def main():
@@ -224,7 +224,7 @@ if __name__ == "__main__":
 
 ### 3. JavaScript / TypeScript (`agent-uri-sdk-js`)
 
-The JavaScript/TypeScript SDK provides a high-level API to resolve and fetch KNIRVCHAIN resources, suitable for both Node.js and browser environments (with appropriate libp2p configurations). It leverages `js-libp2p` and promises for asynchronous operations.
+The JavaScript/TypeScript SDK provides a high-level API to resolve and fetch AGENTCHAIN resources, suitable for both Node.js and browser environments (with appropriate libp2p configurations). It leverages `js-libp2p` and promises for asynchronous operations.
 
 #### Installation
 
@@ -280,12 +280,12 @@ export class agentClient {
 import { agentClient, agentClientConfig, agentClientError } from 'agent-uri-sdk'; // Adjust import path
 
 const uriStrings: string[] = [
-    "knirv://mychain-alpha.chain/block?number=123&validator=node1",
-    "knirv://content-xyz-123.nrn/data?version=1.2&format=json",
-    "knirv://another-id.chain/",
-    "knirv://short.nrn",
+    "agent://mychain-alpha.chain/block?number=123&validator=node1",
+    "agent://content-xyz-123.nrn/data?version=1.2&format=json",
+    "agent://another-id.chain/",
+    "agent://short.nrn",
     "invalid://mychain.chain/",
-    "knirv://nonexistent.resource",
+    "agent://nonexistent.resource",
 ];
 
 (async () => {
@@ -344,6 +344,6 @@ Each SDK version provides a custom error type (e.g., `client.ErrResourceNotFound
 
 ## Contributing
 
-We welcome contributions to the KNIRVCHAIN Client SDKs! Please refer to the respective SDK repositories for contribution guidelines.
+We welcome contributions to the AGENTCHAIN Client SDKs! Please refer to the respective SDK repositories for contribution guidelines.
 
-This documentation should provide a solid starting point for developers looking to integrate KNIRVCHAIN URI parsing into their applications. Remember to replace placeholder repository paths and package names with your actual ones once the SDKs are published.
+This documentation should provide a solid starting point for developers looking to integrate AGENTCHAIN URI parsing into their applications. Remember to replace placeholder repository paths and package names with your actual ones once the SDKs are published.

@@ -1,4 +1,4 @@
-gperry@cloud-eq:~/Documents/GitHub/cloud-equities/KNIRVORACLE_GO_ROOT_MCP_PROTO$ go run . -gui -bootnode
+gperry@cloud-eq:~/Documents/GitHub/cloud-equities/AGENTCHAIN_GO_ROOT_MCP_PROTO$ go run . -gui -bootnode
 2025/05/23 11:41:49 [INFO] Block.Hash: Block #0 being converted to proto. Timestamp: 1678886400, Nonce: 0, NumTx: 0
 2025/05/23 11:41:49 [INFO] ProtoBlock fields for block #0:
 2025/05/23 11:41:49 [INFO] - BlockNumber: 0
@@ -6,40 +6,40 @@ gperry@cloud-eq:~/Documents/GitHub/cloud-equities/KNIRVORACLE_GO_ROOT_MCP_PROTO$
 2025/05/23 11:41:49 [INFO] - Nonce: 0
 2025/05/23 11:41:49 [INFO] - Timestamp: 2023-03-15 13:20:00 +0000 UTC
 2025/05/23 11:41:49 [INFO] - Transactions count: 0
-2025/05/23 11:41:49 [INFO] - ProposerAddress: KNIRVORACLEb53c1e30b8a578c091dd40612bfd1433991b4e09
+2025/05/23 11:41:49 [INFO] - ProposerAddress: AGENTCHAINb53c1e30b8a578c091dd40612bfd1433991b4e09
 2025/05/23 11:41:49 [INFO] Initialized deterministic Genesis Block. Hash: c3a7b1ecbfa373db8a37da060e1f2f8927ed5d09d2e4b1bc11d53797d0bd4d3a
-2025/05/23 11:41:49 ***********STARTING KNIRVCHAIN***********
+2025/05/23 11:41:49 ***********STARTING AGENTCHAIN***********
 2025/05/23 11:41:49 VERSION: dev, OS: linux, Arch: amd64
-2025/05/23 11:41:49 LOGFILE: KNIRVCHAIN.log
+2025/05/23 11:41:49 LOGFILE: AGENTCHAIN.log
 2025/05/23 11:41:49 Determined node role: Bootnode
-2025/05/23 11:41:49 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:41:49 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
 2025/05/23 11:41:49 Viper: Role-specific config file 'bootnode_config.json' not found. Using defaults.
 2025/05/23 11:41:49 Applied default settings for role Bootnode
 2025/05/23 11:41:49 Viper: Applied role-specific defaults from settings matrix for role: Bootnode
-2025/05/23 11:41:49 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:41:49 Viper: Resolved BlockchainDatabasePath for role Bootnode to: /home/gperry/.config/KNIRVCHAIN/bootnode_data/bootnode_KNIRVORACLE.db
-2025/05/23 11:41:49 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:41:49 Viper: Resolved BlockchainDatabasePath for role Bootnode to: /home/gperry/.config/KNIRVCHAIN/bootnode_data/local_KNIRVORACLE.db
+2025/05/23 11:41:49 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:41:49 Viper: Resolved BlockchainDatabasePath for role Bootnode to: /home/gperry/.config/AGENTCHAIN/bootnode_data/bootnode_AGENTCHAIN.db
+2025/05/23 11:41:49 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:41:49 Viper: Resolved BlockchainDatabasePath for role Bootnode to: /home/gperry/.config/AGENTCHAIN/bootnode_data/local_AGENTCHAIN.db
 2025/05/23 11:41:49 No config file found for role Bootnode. Proceeding with default config (installer will run if InstallComplete is false).
-2025/05/23 11:41:49 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:41:49 Wallet path for role Bootnode: /home/gperry/.config/KNIRVCHAIN/bootnode_data/wallet.dat
-2025/05/23 11:41:49 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:41:49 Wallet path for role Bootnode: /home/gperry/.config/KNIRVCHAIN/bootnode_data/wallet.dat
-2025/05/23 11:41:49 Loaded wallet with address 'KNIRVORACLEcbe0d4e61e04d53d48f1a73c289d0458bb11aa20', updating config
-2025/05/23 11:41:49 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:41:49 Saving minimal configuration to: /home/gperry/.config/KNIRVCHAIN/bootnode_data/Bootnode_config.json
-2025/05/23 11:41:49 Saved minimal config to role-specific data dir: /home/gperry/.config/KNIRVCHAIN/bootnode_data/Bootnode_config.json
-2025/05/23 11:41:49 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:41:49 Master wallet path for role Bootnode: /home/gperry/.config/KNIRVCHAIN/bootnode_data/master_wallet.dat
-2025/05/23 11:41:49 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:41:49 Master wallet path for role Bootnode: /home/gperry/.config/KNIRVCHAIN/bootnode_data/master_wallet.dat
-2025/05/23 11:41:49 Loaded master wallet with address 'KNIRVORACLE5703c79cbd7851c799c93af92385fbcb7299b012', updating config
-2025/05/23 11:41:49 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:41:49 Saving minimal configuration to: /home/gperry/.config/KNIRVCHAIN/bootnode_data/Bootnode_config.json
-2025/05/23 11:41:49 Saved minimal config to role-specific data dir: /home/gperry/.config/KNIRVCHAIN/bootnode_data/Bootnode_config.json
+2025/05/23 11:41:49 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:41:49 Wallet path for role Bootnode: /home/gperry/.config/AGENTCHAIN/bootnode_data/wallet.dat
+2025/05/23 11:41:49 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:41:49 Wallet path for role Bootnode: /home/gperry/.config/AGENTCHAIN/bootnode_data/wallet.dat
+2025/05/23 11:41:49 Loaded wallet with address 'AGENTCHAINcbe0d4e61e04d53d48f1a73c289d0458bb11aa20', updating config
+2025/05/23 11:41:49 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:41:49 Saving minimal configuration to: /home/gperry/.config/AGENTCHAIN/bootnode_data/Bootnode_config.json
+2025/05/23 11:41:49 Saved minimal config to role-specific data dir: /home/gperry/.config/AGENTCHAIN/bootnode_data/Bootnode_config.json
+2025/05/23 11:41:49 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:41:49 Master wallet path for role Bootnode: /home/gperry/.config/AGENTCHAIN/bootnode_data/master_wallet.dat
+2025/05/23 11:41:49 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:41:49 Master wallet path for role Bootnode: /home/gperry/.config/AGENTCHAIN/bootnode_data/master_wallet.dat
+2025/05/23 11:41:49 Loaded master wallet with address 'AGENTCHAIN5703c79cbd7851c799c93af92385fbcb7299b012', updating config
+2025/05/23 11:41:49 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:41:49 Saving minimal configuration to: /home/gperry/.config/AGENTCHAIN/bootnode_data/Bootnode_config.json
+2025/05/23 11:41:49 Saved minimal config to role-specific data dir: /home/gperry/.config/AGENTCHAIN/bootnode_data/Bootnode_config.json
 2025/05/23 11:41:49 Running in bootnode mode
-2025/05/23 11:41:49 Final BlockchainDatabasePath after Viper and flag processing: /home/gperry/.config/KNIRVCHAIN/bootnode_data/bootnode_KNIRVORACLE.db
-2025/05/23 11:41:49 Final BlockchainDatabasePath: /home/gperry/.config/KNIRVCHAIN/bootnode_data/bootnode_KNIRVORACLE.db
+2025/05/23 11:41:49 Final BlockchainDatabasePath after Viper and flag processing: /home/gperry/.config/AGENTCHAIN/bootnode_data/bootnode_AGENTCHAIN.db
+2025/05/23 11:41:49 Final BlockchainDatabasePath: /home/gperry/.config/AGENTCHAIN/bootnode_data/bootnode_AGENTCHAIN.db
 2025/05/23 11:41:49 Installation not complete - running installer...
 
 === Node Role Selection ===
@@ -49,25 +49,25 @@ Please select the role for this node:
 3. Peer - A dev node that participates in the network
 4. Client - A client-only node with reduced functionality
 Enter your choice [1-4] (default: 2): 
-2025/05/23 11:41:51 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:41:51 Config path for role Bootnode: /home/gperry/.config/KNIRVCHAIN/bootnode_data/config.json
-2025/05/23 11:41:51 Checking config path: /home/gperry/.config/KNIRVCHAIN/bootnode_data/config.json for role Bootnode
+2025/05/23 11:41:51 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:41:51 Config path for role Bootnode: /home/gperry/.config/AGENTCHAIN/bootnode_data/config.json
+2025/05/23 11:41:51 Checking config path: /home/gperry/.config/AGENTCHAIN/bootnode_data/config.json for role Bootnode
 2025/05/23 11:41:51 No config file found for role Bootnode. Returning default config to trigger installer.
-=== KNIRVCHAIN Node Installation ===
+=== AGENTCHAIN Node Installation ===
 Installing as a Bootnode node
 
 This installer will:
-1. Connect to the KNIRVCHAIN Bootnode
+1. Connect to the AGENTCHAIN Bootnode
 2. Generate a unique chain URI for this node
-3. Register with KNIRVCHAIN Bootnode Registry
+3. Register with AGENTCHAIN Bootnode Registry
 4. Generate dev wallet and master wallet
 5. Detect host operating system
-6. Register URI handler for knirv:// protocol
+6. Register URI handler for agent:// protocol
 7. Find next available ports for node
 8. Update the application configuration
 9. Start the node
 
-Enter the KNIRVCHAIN Root endpoint [default: http://localhost:9999]: 
+Enter the AGENTCHAIN Root endpoint [default: http://localhost:9999]: 
 
 You can request a specific URI (optional).
 This will be used to request a specific URI from the server.
@@ -75,26 +75,26 @@ Leave empty for a randomly generated URI.
 Enter desired URI: 
 Connecting to http://localhost:9999/uriGenerator...
 2025/05/23 11:41:56 Received HTTP status code: 201
-2025/05/23 11:41:56 Raw response body: {"txn_hash":"0xd5e812b4c1371ebf4b0c042a92600286abfe94596a3140390b14cd87a3276aa2","uri":"knirv://be38e056-037d-4c90-a8d5-c824ffdc3c30.chain/"}
-Successfully generated Chain ID: be38e056-037d-4c90-a8d5-c824ffdc3c30 (from URI: knirv://be38e056-037d-4c90-a8d5-c824ffdc3c30.chain/)
+2025/05/23 11:41:56 Raw response body: {"txn_hash":"0xd5e812b4c1371ebf4b0c042a92600286abfe94596a3140390b14cd87a3276aa2","uri":"agent://be38e056-037d-4c90-a8d5-c824ffdc3c30.chain/"}
+Successfully generated Chain ID: be38e056-037d-4c90-a8d5-c824ffdc3c30 (from URI: agent://be38e056-037d-4c90-a8d5-c824ffdc3c30.chain/)
 Transaction Hash ID for URI: 0xd5e812b4c1371ebf4b0c042a92600286abfe94596a3140390b14cd87a3276aa2
 Generating wallet for this node...
-2025/05/23 11:41:56 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:41:56 Wallet path for role Bootnode: /home/gperry/.config/KNIRVCHAIN/bootnode_data/wallet.dat
-2025/05/23 11:41:56 Wallet saved successfully to /home/gperry/.config/KNIRVCHAIN/bootnode_data/wallet.dat
-Generated Wallet Address: KNIRVORACLE6ebb4af9ad621ecd338fe7c3a21d487492497055
-2025/05/23 11:41:56 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:41:56 Wallet path for role Bootnode: /home/gperry/.config/KNIRVCHAIN/bootnode_data/wallet.dat
-IMPORTANT: Securely back up the wallet file: /home/gperry/.config/KNIRVCHAIN/bootnode_data/wallet.dat
+2025/05/23 11:41:56 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:41:56 Wallet path for role Bootnode: /home/gperry/.config/AGENTCHAIN/bootnode_data/wallet.dat
+2025/05/23 11:41:56 Wallet saved successfully to /home/gperry/.config/AGENTCHAIN/bootnode_data/wallet.dat
+Generated Wallet Address: AGENTCHAIN6ebb4af9ad621ecd338fe7c3a21d487492497055
+2025/05/23 11:41:56 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:41:56 Wallet path for role Bootnode: /home/gperry/.config/AGENTCHAIN/bootnode_data/wallet.dat
+IMPORTANT: Securely back up the wallet file: /home/gperry/.config/AGENTCHAIN/bootnode_data/wallet.dat
 
 Generating Bootnode Master wallet...
-2025/05/23 11:41:56 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:41:56 Master wallet path for role Bootnode: /home/gperry/.config/KNIRVCHAIN/bootnode_data/master_wallet.dat
-2025/05/23 11:41:56 Wallet saved successfully to /home/gperry/.config/KNIRVCHAIN/bootnode_data/master_wallet.dat
-Generated Bootnode Master Wallet Address: KNIRVORACLE150220d9f5802276b210f245115f343af5e9f9f4
-2025/05/23 11:41:56 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:41:56 Master wallet path for role Bootnode: /home/gperry/.config/KNIRVCHAIN/bootnode_data/master_wallet.dat
-IMPORTANT: Securely back up the bootnode master wallet file: /home/gperry/.config/KNIRVCHAIN/bootnode_data/master_wallet.dat
+2025/05/23 11:41:56 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:41:56 Master wallet path for role Bootnode: /home/gperry/.config/AGENTCHAIN/bootnode_data/master_wallet.dat
+2025/05/23 11:41:56 Wallet saved successfully to /home/gperry/.config/AGENTCHAIN/bootnode_data/master_wallet.dat
+Generated Bootnode Master Wallet Address: AGENTCHAIN150220d9f5802276b210f245115f343af5e9f9f4
+2025/05/23 11:41:56 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:41:56 Master wallet path for role Bootnode: /home/gperry/.config/AGENTCHAIN/bootnode_data/master_wallet.dat
+IMPORTANT: Securely back up the bootnode master wallet file: /home/gperry/.config/AGENTCHAIN/bootnode_data/master_wallet.dat
 
 Configure ports for this dev node:
 Enter Peer HTTP Port [default: 1000]: 
@@ -103,16 +103,16 @@ Enter Peer P2P (Libp2p) Port [default: 1000]: 1001
 2025/05/23 11:42:04 Successfully fetched public IP from ipinfo.io: 172.58.128.39
 2025/05/23 11:42:09 Determined host IP for installation: 172.58.128.39
 2025/05/23 11:42:09 failed to sufficiently increase receive buffer size (was: 208 kiB, wanted: 7168 kiB, got: 416 kiB). See https://github.com/quic-go/quic-go/wiki/UDP-Buffer-Sizes for details.
-Registering bootnode with KNIRVCHAIN Node Registry...
-Registering node be38e056-037d-4c90-a8d5-c824ffdc3c30 at 172.58.128.39:1001 (PeerID: 12D3KooWJgmrbehabSGgShyuWyBhmPUJw99oiBfy9U46FT2LFpMi) with KNIRVCHAIN Node Registry
-2025/05/23 11:42:09 Registering node be38e056-037d-4c90-a8d5-c824ffdc3c30 (PeerID: 12D3KooWJgmrbehabSGgShyuWyBhmPUJw99oiBfy9U46FT2LFpMi) at 172.58.128.39:1001 with KNIRVCHAIN Node Registry
+Registering bootnode with AGENTCHAIN Node Registry...
+Registering node be38e056-037d-4c90-a8d5-c824ffdc3c30 at 172.58.128.39:1001 (PeerID: 12D3KooWJgmrbehabSGgShyuWyBhmPUJw99oiBfy9U46FT2LFpMi) with AGENTCHAIN Node Registry
+2025/05/23 11:42:09 Registering node be38e056-037d-4c90-a8d5-c824ffdc3c30 (PeerID: 12D3KooWJgmrbehabSGgShyuWyBhmPUJw99oiBfy9U46FT2LFpMi) at 172.58.128.39:1001 with AGENTCHAIN Node Registry
 Registry returned error. Opening registry status page...
 2025/05/23 11:42:15 Warning: Failed to register with node registry: failed to register with node registry: registry returned non-successful status: 405 - {"error":"Method Not Allowed. Use POST to /register for node registration.","hint":"See /status for registry information."}
 You can register manually later using the registry API.
 The registry status page should open in your browser.
 If it doesn't, please visit: https://registry.knirv.com/status
 Detected operating system: linux
-URI scheme 'knirv://' definition files created successfully on Linux.
+URI scheme 'agent://' definition files created successfully on Linux.
 Updating MIME database...
 MIME database updated successfully.
 Updating desktop database...
@@ -120,95 +120,95 @@ Desktop database updated successfully.
 URI handlers registered successfully.
 Setting up system service...
 Configuring as a Bootnode service...
-2025/05/23 11:42:16 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:42:16 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
 
 === Manual Service Installation Instructions ===
-A service file template has been created at: /home/gperry/.config/KNIRVCHAIN/bootnode_data/services/KNIRVCHAIN-bootnode.service
+A service file template has been created at: /home/gperry/.config/AGENTCHAIN/bootnode_data/services/AGENTCHAIN-bootnode.service
 
 To install the service manually, run the following commands as root:
-  sudo cp /home/gperry/.config/KNIRVCHAIN/bootnode_data/services/KNIRVCHAIN-bootnode.service /etc/systemd/system/
+  sudo cp /home/gperry/.config/AGENTCHAIN/bootnode_data/services/AGENTCHAIN-bootnode.service /etc/systemd/system/
   sudo systemctl daemon-reload
-  sudo systemctl enable KNIRVCHAIN-bootnode
-  sudo systemctl start KNIRVCHAIN-bootnode
+  sudo systemctl enable AGENTCHAIN-bootnode
+  sudo systemctl start AGENTCHAIN-bootnode
 
 To check the service status:
-  sudo systemctl status KNIRVCHAIN-bootnode
+  sudo systemctl status AGENTCHAIN-bootnode
 
 2025/05/23 11:42:16 Warning: Failed to set up system service: must run as root to install system service
 You can manually configure the service later.
-2025/05/23 11:42:16 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:42:16 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
 2025/05/23 11:42:16 Saving configuration for Bootnode node with ChainID: be38e056-037d-4c90-a8d5-c824ffdc3c30, InstallComplete: true
 2025/05/23 11:42:16 Installer: Saving configuration for Bootnode role
-2025/05/23 11:42:16 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:42:16 Saving minimal configuration to: /home/gperry/.config/KNIRVCHAIN/bootnode_data/Bootnode_config.json
-2025/05/23 11:42:16 Saved minimal config to role-specific data dir: /home/gperry/.config/KNIRVCHAIN/bootnode_data/Bootnode_config.json
-2025/05/23 11:42:16 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-Configuration updated and saved to /home/gperry/.config/KNIRVCHAIN/bootnode_data/bootnode_config.json
+2025/05/23 11:42:16 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:42:16 Saving minimal configuration to: /home/gperry/.config/AGENTCHAIN/bootnode_data/Bootnode_config.json
+2025/05/23 11:42:16 Saved minimal config to role-specific data dir: /home/gperry/.config/AGENTCHAIN/bootnode_data/Bootnode_config.json
+2025/05/23 11:42:16 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+Configuration updated and saved to /home/gperry/.config/AGENTCHAIN/bootnode_data/bootnode_config.json
 
 === Installation Complete ===
-Your KNIRVCHAIN Bootnode is now configured with a unique chain URI.
+Your AGENTCHAIN Bootnode is now configured with a unique chain URI.
 This node will help with dev discovery and network coordination.
-Finalizing installation and launching KNIRVCHAIN Node...
+Finalizing installation and launching AGENTCHAIN Node...
 2025/05/23 11:42:16 Saving final configuration with InstallComplete=true for Bootnode role
-2025/05/23 11:42:16 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:42:16 Saving minimal configuration to: /home/gperry/.config/KNIRVCHAIN/bootnode_data/Bootnode_config.json
-2025/05/23 11:42:16 Saved minimal config to role-specific data dir: /home/gperry/.config/KNIRVCHAIN/bootnode_data/Bootnode_config.json
+2025/05/23 11:42:16 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:42:16 Saving minimal configuration to: /home/gperry/.config/AGENTCHAIN/bootnode_data/Bootnode_config.json
+2025/05/23 11:42:16 Saved minimal config to role-specific data dir: /home/gperry/.config/AGENTCHAIN/bootnode_data/Bootnode_config.json
 Installation complete. Attempting to restart application...
 2025/05/23 11:42:16 Restart will use args: [-gui -bootnode --skip-install]
-2025/05/23 11:42:16 Attempting restart using executable path: /tmp/go-build1849275415/b001/exe/KNIRVCHAIN
+2025/05/23 11:42:16 Attempting restart using executable path: /tmp/go-build1849275415/b001/exe/AGENTCHAIN
 2025/05/23 11:42:16 Successfully restarted application using executable path
-gperry@cloud-eq:~/Documents/GitHub/cloud-equities/KNIRVORACLE_GO_ROOT_MCP_PROTO$ 2025/05/23 11:42:16 [INFO] Block.Hash: Block #0 being converted to proto. Timestamp: 1678886400, Nonce: 0, NumTx: 0
+gperry@cloud-eq:~/Documents/GitHub/cloud-equities/AGENTCHAIN_GO_ROOT_MCP_PROTO$ 2025/05/23 11:42:16 [INFO] Block.Hash: Block #0 being converted to proto. Timestamp: 1678886400, Nonce: 0, NumTx: 0
 2025/05/23 11:42:16 [INFO] ProtoBlock fields for block #0:
 2025/05/23 11:42:16 [INFO] - BlockNumber: 0
 2025/05/23 11:42:16 [INFO] - PrevHash: 
 2025/05/23 11:42:16 [INFO] - Nonce: 0
 2025/05/23 11:42:16 [INFO] - Timestamp: 2023-03-15 13:20:00 +0000 UTC
 2025/05/23 11:42:16 [INFO] - Transactions count: 0
-2025/05/23 11:42:16 [INFO] - ProposerAddress: KNIRVORACLEb53c1e30b8a578c091dd40612bfd1433991b4e09
+2025/05/23 11:42:16 [INFO] - ProposerAddress: AGENTCHAINb53c1e30b8a578c091dd40612bfd1433991b4e09
 2025/05/23 11:42:16 [INFO] Initialized deterministic Genesis Block. Hash: c3a7b1ecbfa373db8a37da060e1f2f8927ed5d09d2e4b1bc11d53797d0bd4d3a
-2025/05/23 11:42:16 ***********STARTING KNIRVCHAIN***********
+2025/05/23 11:42:16 ***********STARTING AGENTCHAIN***********
 2025/05/23 11:42:16 VERSION: dev, OS: linux, Arch: amd64
-2025/05/23 11:42:16 LOGFILE: KNIRVCHAIN.log
+2025/05/23 11:42:16 LOGFILE: AGENTCHAIN.log
 2025/05/23 11:42:16 Determined node role: Bootnode
-2025/05/23 11:42:16 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:42:16 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
 2025/05/23 11:42:16 Viper: Role-specific config file 'bootnode_config.json' not found. Using defaults.
 2025/05/23 11:42:16 Applied default settings for role Bootnode
 2025/05/23 11:42:16 Viper: Applied role-specific defaults from settings matrix for role: Bootnode
-2025/05/23 11:42:16 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:42:16 Viper: Resolved BlockchainDatabasePath for role Bootnode to: /home/gperry/.config/KNIRVCHAIN/bootnode_data/bootnode_KNIRVORACLE.db
-2025/05/23 11:42:16 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:42:16 Viper: Resolved BlockchainDatabasePath for role Bootnode to: /home/gperry/.config/KNIRVCHAIN/bootnode_data/local_KNIRVORACLE.db
+2025/05/23 11:42:16 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:42:16 Viper: Resolved BlockchainDatabasePath for role Bootnode to: /home/gperry/.config/AGENTCHAIN/bootnode_data/bootnode_AGENTCHAIN.db
+2025/05/23 11:42:16 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:42:16 Viper: Resolved BlockchainDatabasePath for role Bootnode to: /home/gperry/.config/AGENTCHAIN/bootnode_data/local_AGENTCHAIN.db
 2025/05/23 11:42:16 No config file found for role Bootnode. Proceeding with default config (installer will run if InstallComplete is false).
-2025/05/23 11:42:17 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:42:17 Wallet path for role Bootnode: /home/gperry/.config/KNIRVCHAIN/bootnode_data/wallet.dat
-2025/05/23 11:42:17 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:42:17 Wallet path for role Bootnode: /home/gperry/.config/KNIRVCHAIN/bootnode_data/wallet.dat
-2025/05/23 11:42:17 Loaded wallet with address 'KNIRVORACLE6ebb4af9ad621ecd338fe7c3a21d487492497055', updating config
-2025/05/23 11:42:17 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:42:17 Saving minimal configuration to: /home/gperry/.config/KNIRVCHAIN/bootnode_data/Bootnode_config.json
-2025/05/23 11:42:17 Saved minimal config to role-specific data dir: /home/gperry/.config/KNIRVCHAIN/bootnode_data/Bootnode_config.json
-2025/05/23 11:42:17 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:42:17 Master wallet path for role Bootnode: /home/gperry/.config/KNIRVCHAIN/bootnode_data/master_wallet.dat
-2025/05/23 11:42:17 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:42:17 Master wallet path for role Bootnode: /home/gperry/.config/KNIRVCHAIN/bootnode_data/master_wallet.dat
-2025/05/23 11:42:17 Loaded master wallet with address 'KNIRVORACLE150220d9f5802276b210f245115f343af5e9f9f4', updating config
-2025/05/23 11:42:17 Using role-specific data directory: /home/gperry/.config/KNIRVCHAIN/bootnode_data for role Bootnode
-2025/05/23 11:42:17 Saving minimal configuration to: /home/gperry/.config/KNIRVCHAIN/bootnode_data/Bootnode_config.json
-2025/05/23 11:42:17 Saved minimal config to role-specific data dir: /home/gperry/.config/KNIRVCHAIN/bootnode_data/Bootnode_config.json
+2025/05/23 11:42:17 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:42:17 Wallet path for role Bootnode: /home/gperry/.config/AGENTCHAIN/bootnode_data/wallet.dat
+2025/05/23 11:42:17 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:42:17 Wallet path for role Bootnode: /home/gperry/.config/AGENTCHAIN/bootnode_data/wallet.dat
+2025/05/23 11:42:17 Loaded wallet with address 'AGENTCHAIN6ebb4af9ad621ecd338fe7c3a21d487492497055', updating config
+2025/05/23 11:42:17 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:42:17 Saving minimal configuration to: /home/gperry/.config/AGENTCHAIN/bootnode_data/Bootnode_config.json
+2025/05/23 11:42:17 Saved minimal config to role-specific data dir: /home/gperry/.config/AGENTCHAIN/bootnode_data/Bootnode_config.json
+2025/05/23 11:42:17 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:42:17 Master wallet path for role Bootnode: /home/gperry/.config/AGENTCHAIN/bootnode_data/master_wallet.dat
+2025/05/23 11:42:17 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:42:17 Master wallet path for role Bootnode: /home/gperry/.config/AGENTCHAIN/bootnode_data/master_wallet.dat
+2025/05/23 11:42:17 Loaded master wallet with address 'AGENTCHAIN150220d9f5802276b210f245115f343af5e9f9f4', updating config
+2025/05/23 11:42:17 Using role-specific data directory: /home/gperry/.config/AGENTCHAIN/bootnode_data for role Bootnode
+2025/05/23 11:42:17 Saving minimal configuration to: /home/gperry/.config/AGENTCHAIN/bootnode_data/Bootnode_config.json
+2025/05/23 11:42:17 Saved minimal config to role-specific data dir: /home/gperry/.config/AGENTCHAIN/bootnode_data/Bootnode_config.json
 2025/05/23 11:42:17 Running in bootnode mode
-2025/05/23 11:42:17 Final BlockchainDatabasePath after Viper and flag processing: /home/gperry/.config/KNIRVCHAIN/bootnode_data/bootnode_KNIRVORACLE.db
-2025/05/23 11:42:17 Final BlockchainDatabasePath: /home/gperry/.config/KNIRVCHAIN/bootnode_data/bootnode_KNIRVORACLE.db
+2025/05/23 11:42:17 Final BlockchainDatabasePath after Viper and flag processing: /home/gperry/.config/AGENTCHAIN/bootnode_data/bootnode_AGENTCHAIN.db
+2025/05/23 11:42:17 Final BlockchainDatabasePath: /home/gperry/.config/AGENTCHAIN/bootnode_data/bootnode_AGENTCHAIN.db
 2025/05/23 11:42:17 Skipping installation due to --skip-install flag. Continuing with node initialization...
 2025/05/23 11:42:17 Configuring Single-Node Mode...
-2025/05/23 11:42:17 GUI enabled for Main Node (KNIRVCHAIN)
-2025/05/23 11:42:17 [KNIRVCHAIN] Pre-initializing components for GUI node...
-2025/05/23 11:42:17 DEBUG: Attempting to use DB path for GUI node: '/home/gperry/.config/KNIRVCHAIN/bootnode_data/bootnode_KNIRVORACLE.db'
-2025/05/23 11:42:17 [Bootnode][KNIRVCHAIN] Discovery Manager initialized. PeerID: 12D3KooWSfLHPwrE83NtkS9xrvWZUUGyBoG7nfALUFp1L6UHbR7f (ClientOnly: false)
-2025/05/23 11:42:17 [Bootnode][KNIRVCHAIN] Listening on: /ip4/127.0.0.1/tcp/6000/p2p/12D3KooWSfLHPwrE83NtkS9xrvWZUUGyBoG7nfALUFp1L6UHbR7f
-2025/05/23 11:42:17 [Bootnode][KNIRVCHAIN] Listening on: /ip4/192.168.12.122/tcp/6000/p2p/12D3KooWSfLHPwrE83NtkS9xrvWZUUGyBoG7nfALUFp1L6UHbR7f
-2025/05/23 11:42:17 [Bootnode][KNIRVCHAIN] Listening on: /ip6/::1/tcp/6000/p2p/12D3KooWSfLHPwrE83NtkS9xrvWZUUGyBoG7nfALUFp1L6UHbR7f
-2025/05/23 11:42:17 [Bootnode][KNIRVCHAIN] Listening on: /ip6/2607:fb91:2837:4588::126a/tcp/6000/p2p/12D3KooWSfLHPwrE83NtkS9xrvWZUUGyBoG7nfALUFp1L6UHbR7f
-2025/05/23 11:42:17 [INFO] Found existing blockchain data for key 'KNIRVCHAIN'. Attempting to load.
+2025/05/23 11:42:17 GUI enabled for Main Node (AGENTCHAIN)
+2025/05/23 11:42:17 [AGENTCHAIN] Pre-initializing components for GUI node...
+2025/05/23 11:42:17 DEBUG: Attempting to use DB path for GUI node: '/home/gperry/.config/AGENTCHAIN/bootnode_data/bootnode_AGENTCHAIN.db'
+2025/05/23 11:42:17 [Bootnode][AGENTCHAIN] Discovery Manager initialized. PeerID: 12D3KooWSfLHPwrE83NtkS9xrvWZUUGyBoG7nfALUFp1L6UHbR7f (ClientOnly: false)
+2025/05/23 11:42:17 [Bootnode][AGENTCHAIN] Listening on: /ip4/127.0.0.1/tcp/6000/p2p/12D3KooWSfLHPwrE83NtkS9xrvWZUUGyBoG7nfALUFp1L6UHbR7f
+2025/05/23 11:42:17 [Bootnode][AGENTCHAIN] Listening on: /ip4/192.168.12.122/tcp/6000/p2p/12D3KooWSfLHPwrE83NtkS9xrvWZUUGyBoG7nfALUFp1L6UHbR7f
+2025/05/23 11:42:17 [Bootnode][AGENTCHAIN] Listening on: /ip6/::1/tcp/6000/p2p/12D3KooWSfLHPwrE83NtkS9xrvWZUUGyBoG7nfALUFp1L6UHbR7f
+2025/05/23 11:42:17 [Bootnode][AGENTCHAIN] Listening on: /ip6/2607:fb91:2837:4588::126a/tcp/6000/p2p/12D3KooWSfLHPwrE83NtkS9xrvWZUUGyBoG7nfALUFp1L6UHbR7f
+2025/05/23 11:42:17 [INFO] Found existing blockchain data for key 'AGENTCHAIN'. Attempting to load.
 2025/05/23 11:42:17 [INFO] Block.Hash: Block #0 being converted to proto. Timestamp: 1678886400, Nonce: 0, NumTx: 0
 2025/05/23 11:42:17 [INFO] ProtoBlock fields for block #0:
 2025/05/23 11:42:17 [INFO] - BlockNumber: 0
@@ -216,7 +216,7 @@ gperry@cloud-eq:~/Documents/GitHub/cloud-equities/KNIRVORACLE_GO_ROOT_MCP_PROTO$
 2025/05/23 11:42:17 [INFO] - Nonce: 0
 2025/05/23 11:42:17 [INFO] - Timestamp: 2023-03-15 13:20:00 +0000 UTC
 2025/05/23 11:42:17 [INFO] - Transactions count: 0
-2025/05/23 11:42:17 [INFO] - ProposerAddress: KNIRVORACLEb53c1e30b8a578c091dd40612bfd1433991b4e09
+2025/05/23 11:42:17 [INFO] - ProposerAddress: AGENTCHAINb53c1e30b8a578c091dd40612bfd1433991b4e09
 2025/05/23 11:42:17 [INFO] Block.Hash: Block #0 being converted to proto. Timestamp: 1678886400, Nonce: 0, NumTx: 0
 2025/05/23 11:42:17 [INFO] ProtoBlock fields for block #0:
 2025/05/23 11:42:17 [INFO] - BlockNumber: 0
@@ -224,29 +224,29 @@ gperry@cloud-eq:~/Documents/GitHub/cloud-equities/KNIRVORACLE_GO_ROOT_MCP_PROTO$
 2025/05/23 11:42:17 [INFO] - Nonce: 0
 2025/05/23 11:42:17 [INFO] - Timestamp: 2023-03-15 13:20:00 +0000 UTC
 2025/05/23 11:42:17 [INFO] - Transactions count: 0
-2025/05/23 11:42:17 [INFO] - ProposerAddress: KNIRVORACLEb53c1e30b8a578c091dd40612bfd1433991b4e09
-2025/05/23 11:42:17 [INFO] Successfully loaded existing blockchain for key 'KNIRVCHAIN'. Genesis block matches.
-2025/05/23 11:42:17 [KNIRVCHAIN] GUI node components pre-initialized.
+2025/05/23 11:42:17 [INFO] - ProposerAddress: AGENTCHAINb53c1e30b8a578c091dd40612bfd1433991b4e09
+2025/05/23 11:42:17 [INFO] Successfully loaded existing blockchain for key 'AGENTCHAIN'. Genesis block matches.
+2025/05/23 11:42:17 [AGENTCHAIN] GUI node components pre-initialized.
 2025/05/23 11:42:17 Starting in single-node mode...
-2025/05/23 11:42:17 Starting Main Node (HTTP: 5000, P2P: 6000, GUI: true, DB: /home/gperry/.config/KNIRVCHAIN/bootnode_data/bootnode_KNIRVORACLE.db)
-2025/05/23 11:42:17 [KNIRVCHAIN] Waiting for P2P Consensus Manager initialization...
+2025/05/23 11:42:17 Starting Main Node (HTTP: 5000, P2P: 6000, GUI: true, DB: /home/gperry/.config/AGENTCHAIN/bootnode_data/bootnode_AGENTCHAIN.db)
+2025/05/23 11:42:17 [AGENTCHAIN] Waiting for P2P Consensus Manager initialization...
 2025/05/23 11:42:17 mDNS: Found local dev: 12D3KooWDWKQwJZhNNSyoiuq2FgpcdAiemA48wdAHDks6V2EAXtM, attempting connection
-2025/05/23 11:42:17 [Bootnode][KNIRVCHAIN] P2P consensus manager subscribed to topics: KNIRVCHAIN.blocks, KNIRVCHAIN.transactions
-2025/05/23 11:42:17 [Bootnode][KNIRVCHAIN] Registered chain sync handler for protocol /knirv/chain-sync/1.0.0
-2025/05/23 11:42:17 [KNIRVCHAIN] P2P Consensus Manager initialized successfully.
-2025/05/23 11:42:17 [KNIRVCHAIN] Starting GUI on main goroutine...
+2025/05/23 11:42:17 [Bootnode][AGENTCHAIN] P2P consensus manager subscribed to topics: AGENTCHAIN.blocks, AGENTCHAIN.transactions
+2025/05/23 11:42:17 [Bootnode][AGENTCHAIN] Registered chain sync handler for protocol /agent/chain-sync/1.0.0
+2025/05/23 11:42:17 [AGENTCHAIN] P2P Consensus Manager initialized successfully.
+2025/05/23 11:42:17 [AGENTCHAIN] Starting GUI on main goroutine...
 2025/05/23 11:42:17 Warning: Could not get cancel function from main, creating a new one
 2025/05/23 11:42:17 Warning: Could not get wait group from main, creating a new one
 2025/05/23 11:42:17 Starting API and UI server on port 3000
-2025/05/23 11:42:17 [KNIRVCHAIN] Initializing node with pre-initialized components...
-2025/05/23 11:42:17 [Bootnode][KNIRVCHAIN] Starting P2P consensus manager...
-2025/05/23 11:42:17 [Bootnode][KNIRVCHAIN] P2P consensus manager started successfully.
-2025/05/23 11:42:17 [KNIRVCHAIN] Legacy Consensus Manager initialized.
-2025/05/23 11:42:17 BlockchainServer for chain KNIRVCHAIN prepared for port 5000
-2025/05/23 11:42:17 [KNIRVCHAIN] Blockchain Server initialized to listen on :5000.
-2025/05/23 11:42:17 [KNIRVCHAIN] Starting Server on port 5000...
-2025/05/23 11:42:17 Starting HTTP server listener for chain KNIRVCHAIN on port: 5000
-2025/05/23 11:42:17 [KNIRVCHAIN] Starting Wallet Server on port 7000...
+2025/05/23 11:42:17 [AGENTCHAIN] Initializing node with pre-initialized components...
+2025/05/23 11:42:17 [Bootnode][AGENTCHAIN] Starting P2P consensus manager...
+2025/05/23 11:42:17 [Bootnode][AGENTCHAIN] P2P consensus manager started successfully.
+2025/05/23 11:42:17 [AGENTCHAIN] Legacy Consensus Manager initialized.
+2025/05/23 11:42:17 BlockchainServer for chain AGENTCHAIN prepared for port 5000
+2025/05/23 11:42:17 [AGENTCHAIN] Blockchain Server initialized to listen on :5000.
+2025/05/23 11:42:17 [AGENTCHAIN] Starting Server on port 5000...
+2025/05/23 11:42:17 Starting HTTP server listener for chain AGENTCHAIN on port: 5000
+2025/05/23 11:42:17 [AGENTCHAIN] Starting Wallet Server on port 7000...
 2025/05/23 11:42:17 Wallet server will listen on port 7000
 2025/05/23 11:42:17 Health check request from 127.0.0.1:34274
 2025/05/23 11:42:17 Starting wallet server on [::]:7000...
@@ -273,7 +273,7 @@ http://localhost:3000/_next/static/chunks/pages/_app-91d792b99853911c.js:1:32759
 CONSOLE SECURITY ERROR Origin http://localhost:3000 is not allowed by Access-Control-Allow-Origin. Status code: 200
 CONSOLE JS ERROR XMLHttpRequest cannot load http://192.168.12.122:9999/health due to access control checks.
 http://localhost:3000/_next/static/chunks/pages/_app-91d792b99853911c.js:1:32759: CONSOLE ERROR Backend connection error: AxiosError: Network Error
-2025/05/23 11:42:47 [Bootnode][KNIRVCHAIN] Looking for providers of resource: KNIRVCHAIN.chain (CID: bafkreieqpf5rnh5ufpv5bj35w2n45qqvp3lg34set73if65f2stvzjix7a)
+2025/05/23 11:42:47 [Bootnode][AGENTCHAIN] Looking for providers of resource: AGENTCHAIN.chain (CID: bafkreieqpf5rnh5ufpv5bj35w2n45qqvp3lg34set73if65f2stvzjix7a)
 2025/05/23 11:42:47 Health check request from 127.0.0.1:47806
 2025/05/23 11:42:47 Blockchain server detected at port 5000
 CONSOLE SECURITY ERROR Origin http://localhost:3000 is not allowed by Access-Control-Allow-Origin. Status code: 200
@@ -281,8 +281,8 @@ CONSOLE JS ERROR XMLHttpRequest cannot load http://192.168.12.122:9999/health du
 http://localhost:3000/_next/static/chunks/pages/_app-91d792b99853911c.js:1:32759: CONSOLE ERROR Backend connection error: AxiosError: Network Error
 2025/05/23 11:42:57 Health check request from 127.0.0.1:52508
 2025/05/23 11:42:57 Blockchain server detected at port 5000
-2025/05/23 11:42:57 [Bootnode][KNIRVCHAIN] No other KNIRVCHAIN devs found via DHT for chain sync.
-2025/05/23 11:42:57 [Bootnode][KNIRVCHAIN] P2P chain sync check finished.
+2025/05/23 11:42:57 [Bootnode][AGENTCHAIN] No other AGENTCHAIN devs found via DHT for chain sync.
+2025/05/23 11:42:57 [Bootnode][AGENTCHAIN] P2P chain sync check finished.
 CONSOLE SECURITY ERROR Origin http://localhost:3000 is not allowed by Access-Control-Allow-Origin. Status code: 200
 CONSOLE JS ERROR XMLHttpRequest cannot load http://192.168.12.122:9999/health due to access control checks.
 http://localhost:3000/_next/static/chunks/pages/_app-91d792b99853911c.js:1:32759: CONSOLE ERROR Backend connection error: AxiosError: Network Error
@@ -291,14 +291,14 @@ http://localhost:3000/_next/static/chunks/pages/_app-91d792b99853911c.js:1:32759
 CONSOLE SECURITY ERROR Origin http://localhost:3000 is not allowed by Access-Control-Allow-Origin. Status code: 200
 CONSOLE JS ERROR XMLHttpRequest cannot load http://192.168.12.122:9999/health due to access control checks.
 http://localhost:3000/_next/static/chunks/pages/_app-91d792b99853911c.js:1:32759: CONSOLE ERROR Backend connection error: AxiosError: Network Error
-2025/05/23 11:43:17 [Bootnode][KNIRVCHAIN] Looking for providers of resource: KNIRVCHAIN.chain (CID: bafkreieqpf5rnh5ufpv5bj35w2n45qqvp3lg34set73if65f2stvzjix7a)
+2025/05/23 11:43:17 [Bootnode][AGENTCHAIN] Looking for providers of resource: AGENTCHAIN.chain (CID: bafkreieqpf5rnh5ufpv5bj35w2n45qqvp3lg34set73if65f2stvzjix7a)
 2025/05/23 11:43:17 Health check request from 127.0.0.1:46750
 2025/05/23 11:43:17 Blockchain server detected at port 5000
 CONSOLE SECURITY ERROR Origin http://localhost:3000 is not allowed by Access-Control-Allow-Origin. Status code: 200
 CONSOLE JS ERROR XMLHttpRequest cannot load http://192.168.12.122:9999/health due to access control checks.
 http://localhost:3000/_next/static/chunks/pages/_app-91d792b99853911c.js:1:32759: CONSOLE ERROR Backend connection error: AxiosError: Network Error
-2025/05/23 11:43:25 [Bootnode][KNIRVCHAIN] No other KNIRVCHAIN devs found via DHT for chain sync.
-2025/05/23 11:43:25 [Bootnode][KNIRVCHAIN] P2P chain sync check finished.
+2025/05/23 11:43:25 [Bootnode][AGENTCHAIN] No other AGENTCHAIN devs found via DHT for chain sync.
+2025/05/23 11:43:25 [Bootnode][AGENTCHAIN] P2P chain sync check finished.
 2025/05/23 11:43:27 Health check request from 127.0.0.1:53244
 2025/05/23 11:43:27 Blockchain server detected at port 5000
 CONSOLE SECURITY ERROR Origin http://localhost:3000 is not allowed by Access-Control-Allow-Origin. Status code: 200
@@ -312,50 +312,50 @@ http://localhost:3000/_next/static/chunks/pages/_app-91d792b99853911c.js:1:32759
 2025/05/23 11:43:46 SystrayManager: systray.Run onExit callback triggered (systray is quitting).
 2025/05/23 11:43:46 SystrayManager: Calling main context cancelFunc to signal application shutdown.
 2025/05/23 11:43:46 SystrayManager.Run: systray.Run has completed. Systray has exited.
-2025/05/23 11:43:47 [Bootnode][KNIRVCHAIN] Looking for providers of resource: KNIRVCHAIN.chain (CID: bafkreieqpf5rnh5ufpv5bj35w2n45qqvp3lg34set73if65f2stvzjix7a)
+2025/05/23 11:43:47 [Bootnode][AGENTCHAIN] Looking for providers of resource: AGENTCHAIN.chain (CID: bafkreieqpf5rnh5ufpv5bj35w2n45qqvp3lg34set73if65f2stvzjix7a)
 2025/05/23 11:43:47 Health check request from 127.0.0.1:41108
 2025/05/23 11:43:47 Blockchain server detected at port 5000
 2025/05/23 11:43:57 Health check request from 127.0.0.1:43132
 2025/05/23 11:43:57 Blockchain server detected at port 5000
-2025/05/23 11:43:57 [Bootnode][KNIRVCHAIN] No other KNIRVCHAIN devs found via DHT for chain sync.
-2025/05/23 11:43:57 [Bootnode][KNIRVCHAIN] P2P chain sync check finished.
+2025/05/23 11:43:57 [Bootnode][AGENTCHAIN] No other AGENTCHAIN devs found via DHT for chain sync.
+2025/05/23 11:43:57 [Bootnode][AGENTCHAIN] P2P chain sync check finished.
 2025/05/23 11:44:07 Health check request from 127.0.0.1:51182
 2025/05/23 11:44:07 Blockchain server detected at port 5000
-2025/05/23 11:44:17 [Bootnode][KNIRVCHAIN] Looking for providers of resource: KNIRVCHAIN.chain (CID: bafkreieqpf5rnh5ufpv5bj35w2n45qqvp3lg34set73if65f2stvzjix7a)
+2025/05/23 11:44:17 [Bootnode][AGENTCHAIN] Looking for providers of resource: AGENTCHAIN.chain (CID: bafkreieqpf5rnh5ufpv5bj35w2n45qqvp3lg34set73if65f2stvzjix7a)
 2025/05/23 11:44:17 Health check request from 127.0.0.1:42846
 2025/05/23 11:44:17 Blockchain server detected at port 5000
 2025/05/23 11:44:27 Health check request from 127.0.0.1:45030
 2025/05/23 11:44:27 Blockchain server detected at port 5000
 2025/05/23 11:44:37 Health check request from 127.0.0.1:42726
 2025/05/23 11:44:37 Blockchain server detected at port 5000
-2025/05/23 11:44:45 [Bootnode][KNIRVCHAIN] No other KNIRVCHAIN devs found via DHT for chain sync.
-2025/05/23 11:44:45 [Bootnode][KNIRVCHAIN] P2P chain sync check finished.
-2025/05/23 11:44:47 [Bootnode][KNIRVCHAIN] Looking for providers of resource: KNIRVCHAIN.chain (CID: bafkreieqpf5rnh5ufpv5bj35w2n45qqvp3lg34set73if65f2stvzjix7a)
+2025/05/23 11:44:45 [Bootnode][AGENTCHAIN] No other AGENTCHAIN devs found via DHT for chain sync.
+2025/05/23 11:44:45 [Bootnode][AGENTCHAIN] P2P chain sync check finished.
+2025/05/23 11:44:47 [Bootnode][AGENTCHAIN] Looking for providers of resource: AGENTCHAIN.chain (CID: bafkreieqpf5rnh5ufpv5bj35w2n45qqvp3lg34set73if65f2stvzjix7a)
 2025/05/23 11:44:47 Health check request from 127.0.0.1:59956
 2025/05/23 11:44:47 Blockchain server detected at port 5000
 2025/05/23 11:44:57 Health check request from 127.0.0.1:40696
 2025/05/23 11:44:57 Blockchain server detected at port 5000
 ^C
-gperry@cloud-eq:~/Documents/GitHub/cloud-equities/KNIRVORACLE_GO_ROOT_MCP_PROTO$ go run . -gui -bootnode2025/05/23 11:45:07 Health check request from 127.0.0.1:55752
+gperry@cloud-eq:~/Documents/GitHub/cloud-equities/AGENTCHAIN_GO_ROOT_MCP_PROTO$ go run . -gui -bootnode2025/05/23 11:45:07 Health check request from 127.0.0.1:55752
 2025/05/23 11:45:07 Blockchain server detected at port 5000
 ^C
-gperry@cloud-eq:~/Documents/GitHub/cloud-equities/KNIRVORACLE_GO_ROOT_MCP_PROTO$ ^C
-gperry@cloud-eq:~/Documents/GitHub/cloud-equities/KNIRVORACLE_GO_ROOT_MCP_PROTO$ ^C
-gperry@cloud-eq:~/Documents/GitHub/cloud-equities/KNIRVORACLE_GO_ROOT_MCP_PROTO$ 2025/05/23 11:45:14 [Bootnode][KNIRVCHAIN] No other KNIRVCHAIN devs found via DHT for chain sync.
-2025/05/23 11:45:14 [Bootnode][KNIRVCHAIN] P2P chain sync check finished.
-2025/05/23 11:45:17 [Bootnode][KNIRVCHAIN] Looking for providers of resource: KNIRVCHAIN.chain (CID: bafkreieqpf5rnh5ufpv5bj35w2n45qqvp3lg34set73if65f2stvzjix7a)
+gperry@cloud-eq:~/Documents/GitHub/cloud-equities/AGENTCHAIN_GO_ROOT_MCP_PROTO$ ^C
+gperry@cloud-eq:~/Documents/GitHub/cloud-equities/AGENTCHAIN_GO_ROOT_MCP_PROTO$ ^C
+gperry@cloud-eq:~/Documents/GitHub/cloud-equities/AGENTCHAIN_GO_ROOT_MCP_PROTO$ 2025/05/23 11:45:14 [Bootnode][AGENTCHAIN] No other AGENTCHAIN devs found via DHT for chain sync.
+2025/05/23 11:45:14 [Bootnode][AGENTCHAIN] P2P chain sync check finished.
+2025/05/23 11:45:17 [Bootnode][AGENTCHAIN] Looking for providers of resource: AGENTCHAIN.chain (CID: bafkreieqpf5rnh5ufpv5bj35w2n45qqvp3lg34set73if65f2stvzjix7a)
 2025/05/23 11:45:17 Health check request from 127.0.0.1:50518
 2025/05/23 11:45:17 Blockchain server detected at port 5000
 2025/05/23 11:45:27 Health check request from 127.0.0.1:59690
 2025/05/23 11:45:27 Blockchain server detected at port 5000
 2025/05/23 11:45:37 Health check request from 127.0.0.1:54760
 2025/05/23 11:45:37 Blockchain server detected at port 5000
-2025/05/23 11:45:45 [Bootnode][KNIRVCHAIN] No other KNIRVCHAIN devs found via DHT for chain sync.
-2025/05/23 11:45:45 [Bootnode][KNIRVCHAIN] P2P chain sync check finished.
-2025/05/23 11:45:47 [Bootnode][KNIRVCHAIN] Looking for providers of resource: KNIRVCHAIN.chain (CID: bafkreieqpf5rnh5ufpv5bj35w2n45qqvp3lg34set73if65f2stvzjix7a)
+2025/05/23 11:45:45 [Bootnode][AGENTCHAIN] No other AGENTCHAIN devs found via DHT for chain sync.
+2025/05/23 11:45:45 [Bootnode][AGENTCHAIN] P2P chain sync check finished.
+2025/05/23 11:45:47 [Bootnode][AGENTCHAIN] Looking for providers of resource: AGENTCHAIN.chain (CID: bafkreieqpf5rnh5ufpv5bj35w2n45qqvp3lg34set73if65f2stvzjix7a)
 2025/05/23 11:45:47 Health check request from 127.0.0.1:33276
 2025/05/23 11:45:47 Blockchain server detected at port 5000
 2025/05/23 11:45:57 Health check request from 127.0.0.1:52526
 2025/05/23 11:45:57 Blockchain server detected at port 5000
 ^C
-gperry@cloud-eq:~/Documents/GitHub/cloud-equities/KNIRVORACLE_GO_ROOT_MCP_PROTO$ 
+gperry@cloud-eq:~/Documents/GitHub/cloud-equities/AGENTCHAIN_GO_ROOT_MCP_PROTO$ 

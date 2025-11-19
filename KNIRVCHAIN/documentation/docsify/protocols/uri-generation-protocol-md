@@ -1,26 +1,26 @@
-# KNIRVCHAIN URI Scheme Implementation Design
+# AGENTCHAIN URI Scheme Implementation Design
 
 **Version:** 1.0
 **Date:** 2025-04-22
 
 ## 1. Introduction
 
-This document outlines the design, structure, resolution process, and implementation considerations for the `knirv://` Uniform Resource Identifier (URI) scheme used within the KNIRVCHAIN network. This scheme provides a standardized way to locate and interact with various resources, such as specific blockchain instances or tokenized content, in a decentralized manner.
+This document outlines the design, structure, resolution process, and implementation considerations for the `agent://` Uniform Resource Identifier (URI) scheme used within the AGENTCHAIN network. This scheme provides a standardized way to locate and interact with various resources, such as specific blockchain instances or tokenized content, in a decentralized manner.
 
 ## 2. URI Structure
 
-The standard format for a KNIRVCHAIN URI is defined as follows, adhering to common URI patterns:
+The standard format for a AGENTCHAIN URI is defined as follows, adhering to common URI patterns:
 
 ```plaintext
-knirv://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
+agent://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
 ```
 **2.1. Components**
 
 *   **Scheme:** `agent`
-    *   **Description:** The mandatory protocol identifier, indicating that the URI pertains to the KNIRVCHAIN network and its resolution mechanisms.
+    *   **Description:** The mandatory protocol identifier, indicating that the URI pertains to the AGENTCHAIN network and its resolution mechanisms.
 
 *   **Authority:** `<ID>.<ResourceType>`
-    *   **Description:** This part functions similarly to the host/authority in standard URLs. It uniquely identifies the primary resource within the KNIRVCHAIN ecosystem and specifies its general category. This component is critical for discovery via the Distributed Hash Table (DHT).
+    *   **Description:** This part functions similarly to the host/authority in standard URLs. It uniquely identifies the primary resource within the AGENTCHAIN ecosystem and specifies its general category. This component is critical for discovery via the Distributed Hash Table (DHT).
         *   `<ID>`: A unique identifier string assigned to a specific blockchain instance, content item, node, or other network entity. Its format should be compatible with DHT key requirements (e.g., UTF-8 string, potentially case-sensitive depending on DHT implementation).
         *   `<ResourceType>`: Acts as a namespace or category indicator, similar to a top-level domain (TLD). It helps clients determine the expected nature and interaction methods for the resource. See Section 3 for defined types.
 
@@ -38,11 +38,11 @@ knirv://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2
 The `<ResourceType>` defines the category of the resource being addressed.
 
 *   `.chain`
-    *   **Description:** Represents a specific KNIRVCHAIN blockchain instance.
+    *   **Description:** Represents a specific AGENTCHAIN blockchain instance.
     *   **Purpose:** Used for accessing blockchain-specific data and functionalities like blocks, transactions, account states, consensus status, and dev lists for that particular chain network.
 
 *   `.nrn`
-    *   **Description:** Represents tokenized content or data assets managed within the KNIRVCHAIN ecosystem (assuming NRN is the token/content system).
+    *   **Description:** Represents tokenized content or data assets managed within the AGENTCHAIN ecosystem (assuming NRN is the token/content system).
     *   **Purpose:** Used for accessing content metadata, the content data itself (potentially indirectly), version information, provenance, and dev lists related to hosting or accessing that specific content.
 
 *   **Future Types:** The scheme is extensible. Future types like `.node` (for specific node information/management) or `.service` (for decentralized services running on the network) could be defined.
@@ -84,7 +84,7 @@ These parameters refine requests made via the URI.
 
 *   `hash=<hash_string>`: Specifies a block or transaction hash (typically hex-encoded).
 *   `number=<integer>`: Specifies a block number/height.
-*   `address=<agent_address>`: Specifies a KNIRVCHAIN wallet or contract address (Base58Check encoded).
+*   `address=<agent_address>`: Specifies a AGENTCHAIN wallet or contract address (Base58Check encoded).
 *   `version=<version_string>`: Specifies a version for content or APIs (e.g., "1.2", "latest").
 *   `limit=<integer>`: Limits the number of items returned in list-based responses (e.g., `/devs`, `/mempool`).
 *   `offset=<integer>` or `page=<integer>`: Used for paginating through large lists.
@@ -94,22 +94,22 @@ These parameters refine requests made via the URI.
 
 **Examples:**
 
-*   General info about a specific chain: `knirv://<chainID>.chain/`
-*   Get a specific block by number: `knirv://<chainID>.chain/block?number=<BLOCK_NUMBER>`
-*   Get a specific block by hash: `knirv://<chainID>.chain/block?hash=<BLOCK_HASH>`
-*   Get a specific transaction: `knirv://<chainID>.chain/transaction?hash=<TX_HASH>`
-*   Get account info on a chain: `knirv://<chainID>.chain/account?address=<ADDRESS>`
-*   Get specific NRN content: `knirv://<contentID>.nrn/` or 
-`knirv://<contentID>.nrn/content?version=1.2`
-*   Get chain status: `knirv://<chainID>.chain/status`
-*   Get chain devs: `knirv://<chainID>.chain/devs`
-*   Get specific NRN content: `knirv://<contentID>.nrn/content?version=1.2`
-*   Get devs for a specific NRN content: `knirv://<contentID>.nrn/devs`
-*   Get devs for a specific chain network: `knirv://<chainID>.chain/devs`
+*   General info about a specific chain: `agent://<chainID>.chain/`
+*   Get a specific block by number: `agent://<chainID>.chain/block?number=<BLOCK_NUMBER>`
+*   Get a specific block by hash: `agent://<chainID>.chain/block?hash=<BLOCK_HASH>`
+*   Get a specific transaction: `agent://<chainID>.chain/transaction?hash=<TX_HASH>`
+*   Get account info on a chain: `agent://<chainID>.chain/account?address=<ADDRESS>`
+*   Get specific NRN content: `agent://<contentID>.nrn/` or 
+`agent://<contentID>.nrn/content?version=1.2`
+*   Get chain status: `agent://<chainID>.chain/status`
+*   Get chain devs: `agent://<chainID>.chain/devs`
+*   Get specific NRN content: `agent://<contentID>.nrn/content?version=1.2`
+*   Get devs for a specific NRN content: `agent://<contentID>.nrn/devs`
+*   Get devs for a specific chain network: `agent://<chainID>.chain/devs`
 
 **6. URI Resolution Process**
 
-Resolving a `knirv://` URI to interact with the target resource typically involves these steps:
+Resolving a `agent://` URI to interact with the target resource typically involves these steps:
 
 1.  **Parse URI:** A client application (e.g., wallet, browser extension, another node) parses the URI string into its components (Scheme, ID, ResourceType, Path, Query) using standard URL parsing libraries, supplemented with custom logic to split the Authority part.
 
@@ -120,7 +120,7 @@ Resolving a `knirv://` URI to interact with the target resource typically involv
 4.  **Select & Connect:** The client selects one or more suitable providers from the results. It attempts to establish a direct P2P connection using `host.Connect` with the provider's `dev.AddrInfo`. This process leverages libp2p's transport mechanisms and may involve NAT traversal techniques (like hole punching) facilitated by `libp2p.EnableHolePunching()`.
 
 5.  **Make Request (Over P2P Stream):**
-    *   Once a connection is established, the client opens a new stream to the provider using a KNIRVCHAIN-specific protocol ID (e.g., `/agent/chain/1.0`, `/agent/nrn/1.0`).
+    *   Once a connection is established, the client opens a new stream to the provider using a AGENTCHAIN-specific protocol ID (e.g., `/agent/chain/1.0`, `/agent/nrn/1.0`).
     *   The client sends request data over the stream, encoding the target Path (e.g., `/block`) and Query parameters (e.g., `number=123`). The exact encoding format (e.g., JSON, Protobuf, simple string commands) needs to be defined per protocol ID.
     *   The provider dev's stream handler receives the request, parses the Path and Query, performs the requested action (e.g., retrieves the block from its database), and sends the response back over the stream.
 
@@ -130,7 +130,7 @@ Resolving a `knirv://` URI to interact with the target resource typically involv
 
 **7. URI Minting and DHT Interaction**
 
-Creating new, globally unique identifiers and associating them with resources involves the root KNIRVCHAIN network and the DHT.
+Creating new, globally unique identifiers and associating them with resources involves the root AGENTCHAIN network and the DHT.
 
 1.  **Generation Request:** A user requests a new URI via a trusted interface (e.g., a root node's `/uriGenerator` HTTP endpoint). They might suggest a human-readable `<ID>`.
 
@@ -220,5 +220,5 @@ func ParseagentURI(uriString string) (*agentURI, error) {
 
 **10. Conclusion**
 
-The `knirv://<ID>.<ResourceType>/<Path>?<Query>` scheme provides a flexible and decentralized method for addressing resources within the KNIRVCHAIN network. Its resolution relies heavily on the libp2p DHT for discovering providers, followed by P2P stream communication for actual interaction. Proper implementation of minting, announcement, and resolution is key to the system's functionality.
+The `agent://<ID>.<ResourceType>/<Path>?<Query>` scheme provides a flexible and decentralized method for addressing resources within the AGENTCHAIN network. Its resolution relies heavily on the libp2p DHT for discovering providers, followed by P2P stream communication for actual interaction. Proper implementation of minting, announcement, and resolution is key to the system's functionality.
 ```

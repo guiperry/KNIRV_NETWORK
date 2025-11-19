@@ -1,6 +1,6 @@
-# KNIRVCHAIN Terminal Interface User Guide
+# AGENTCHAIN Terminal Interface User Guide
 
-This guide provides comprehensive instructions for using the KNIRVCHAIN Terminal Interface, a powerful command-line interface for interacting with the KNIRVCHAIN blockchain.
+This guide provides comprehensive instructions for using the AGENTCHAIN Terminal Interface, a powerful command-line interface for interacting with the AGENTCHAIN blockchain.
 
 ## Table of Contents
 
@@ -19,23 +19,23 @@ This guide provides comprehensive instructions for using the KNIRVCHAIN Terminal
 
 ### Installation
 
-The KNIRVCHAIN Terminal Interface is included in the main KNIRVCHAIN binary. No additional installation is required.
+The AGENTCHAIN Terminal Interface is included in the main AGENTCHAIN binary. No additional installation is required.
 
 ### Launching the Terminal Interface
 
-To start KNIRVCHAIN with the terminal interface, use the `--terminal` flag:
+To start AGENTCHAIN with the terminal interface, use the `--terminal` flag:
 
 ```bash
-./KNIRVCHAIN --terminal --client-only
-./KNIRVCHAIN --terminal --root
-./KNIRVCHAIN --terminal --bootnode
+./AGENTCHAIN --terminal --client-only
+./AGENTCHAIN --terminal --root
+./AGENTCHAIN --terminal --bootnode
 ```
 
 The interface will adapt based on the node role specified.
 
 ## Interface Overview
 
-The KNIRVCHAIN Terminal Interface is divided into several sections:
+The AGENTCHAIN Terminal Interface is divided into several sections:
 
 1. **Header**: Displays the node role, chain ID, and key metrics
 2. **Navigation**: Shows available views and their keyboard shortcuts
@@ -221,7 +221,7 @@ All visualizations update in real-time to show the current state of the blockcha
 
 #### Database Lock Error
 
-If you see a database lock error, it means another KNIRVCHAIN instance is already using the database. The terminal interface will automatically fall back to monitoring-only mode.
+If you see a database lock error, it means another AGENTCHAIN instance is already using the database. The terminal interface will automatically fall back to monitoring-only mode.
 
 #### Connection Issues
 
@@ -269,6 +269,6 @@ The terminal interface includes a data engineering pipeline for advanced analyti
 
 ## Conclusion
 
-The KNIRVCHAIN Terminal Interface provides a powerful, flexible way to interact with the KNIRVCHAIN blockchain. With its comprehensive views, command-line interface, and advanced features, it offers everything you need to monitor and manage your node.
+The AGENTCHAIN Terminal Interface provides a powerful, flexible way to interact with the AGENTCHAIN blockchain. With its comprehensive views, command-line interface, and advanced features, it offers everything you need to monitor and manage your node.
 
 For more information, refer to the API documentation and other resources in the docs directory.

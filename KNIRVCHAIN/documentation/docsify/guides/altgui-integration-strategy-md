@@ -540,7 +540,7 @@ This document outlines a comprehensive strategy for integrating the Alternative 
      };
 
      if (!isRunning) {
-       return <div className={styles.notRunning}>Backend is not running. Please start the KNIRVCHAIN node.</div>;
+       return <div className={styles.notRunning}>Backend is not running. Please start the AGENTCHAIN node.</div>;
      }
 
      if (isLoading) {
@@ -549,7 +549,7 @@ This document outlines a comprehensive strategy for integrating the Alternative 
 
      return (
        <div className={styles.container}>
-         <h1>KNIRVCHAIN Explorer</h1>
+         <h1>AGENTCHAIN Explorer</h1>
          
          {serverInfo && (
            <div className={styles.serverInfo}>
@@ -709,7 +709,7 @@ This document outlines a comprehensive strategy for integrating the Alternative 
      };
 
      if (!isRunning) {
-       return <div className={styles.notRunning}>Backend is not running. Please start the KNIRVCHAIN node.</div>;
+       return <div className={styles.notRunning}>Backend is not running. Please start the AGENTCHAIN node.</div>;
      }
 
      return (
@@ -876,7 +876,7 @@ This document outlines a comprehensive strategy for integrating the Alternative 
      };
 
      if (!isRunning) {
-       return <div className={styles.notRunning}>Backend is not running. Please start the KNIRVCHAIN node.</div>;
+       return <div className={styles.notRunning}>Backend is not running. Please start the AGENTCHAIN node.</div>;
      }
 
      if (isLoading) {
@@ -1009,7 +1009,7 @@ This document outlines a comprehensive strategy for integrating the Alternative 
      };
 
      if (!isRunning) {
-       return <div className={styles.notRunning}>Backend is not running. Please start the KNIRVCHAIN node.</div>;
+       return <div className={styles.notRunning}>Backend is not running. Please start the AGENTCHAIN node.</div>;
      }
 
      if (isLoading) {
@@ -1210,7 +1210,7 @@ This document outlines a comprehensive strategy for integrating the Alternative 
      };
 
      if (!isRunning) {
-       return <div className={styles.notRunning}>Backend is not running. Please start the KNIRVCHAIN node.</div>;
+       return <div className={styles.notRunning}>Backend is not running. Please start the AGENTCHAIN node.</div>;
      }
 
      if (isLoading) {
@@ -1468,7 +1468,7 @@ This document outlines a comprehensive strategy for integrating the Alternative 
      };
 
      if (!isRunning) {
-       return <div className={styles.notRunning}>Backend is not running. Please start the KNIRVCHAIN node.</div>;
+       return <div className={styles.notRunning}>Backend is not running. Please start the AGENTCHAIN node.</div>;
      }
 
      if (isLoading) {
@@ -1692,7 +1692,7 @@ This document outlines a comprehensive strategy for integrating the Alternative 
        w := webview.New(true)
        defer w.Destroy()
        
-       w.SetTitle("KNIRVCHAIN")
+       w.SetTitle("AGENTCHAIN")
        w.SetSize(1200, 800, webview.HintNone)
        
        w.Navigate("http://localhost:3000")
@@ -1760,7 +1760,7 @@ This document outlines a comprehensive strategy for integrating the Alternative 
 
 ## Conclusion
 
-This integration strategy provides a comprehensive plan for implementing an alternative GUI for the KNIRVCHAIN Go blockchain specifically for macOS systems. The redesigned pages and new features will create a powerful platform for managing capabilities, NFTs, and participating in decentralized trading.
+This integration strategy provides a comprehensive plan for implementing an alternative GUI for the AGENTCHAIN Go blockchain specifically for macOS systems. The redesigned pages and new features will create a powerful platform for managing capabilities, NFTs, and participating in decentralized trading.
 
 Key features of the new implementation include:
 - **Add Capabilities Page**: Allows users to create and register new capabilities on the blockchain
@@ -1784,4 +1784,4 @@ By using WebView to embed the Next.js frontend in a native window, we achieve th
 2. The native application feel and system integration of a desktop application
 3. Direct communication between the frontend and backend through API endpoints
 
-Once implemented, this alternative GUI will provide macOS users with a truly native-feeling interface to interact with the KNIRVCHAIN blockchain, enhancing the overall user experience and expanding the platform's reach to macOS users while offering powerful new features for capability management and NFT trading.
+Once implemented, this alternative GUI will provide macOS users with a truly native-feeling interface to interact with the AGENTCHAIN blockchain, enhancing the overall user experience and expanding the platform's reach to macOS users while offering powerful new features for capability management and NFT trading.

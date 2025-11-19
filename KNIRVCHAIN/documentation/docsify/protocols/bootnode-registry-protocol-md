@@ -1,16 +1,16 @@
-# KNIRVCHAIN Node Registry & STUN Service Documentation
+# AGENTCHAIN Node Registry & STUN Service Documentation
 
 ## Overview
 
-This service provides two key functions for the KNIRVCHAIN network: a **STUN Server** for public IP discovery and an **HTTP Registry API** for bootnode registration and lookup, designed to work with a Wildcard DNS setup.
+This service provides two key functions for the AGENTCHAIN network: a **STUN Server** for public IP discovery and an **HTTP Registry API** for bootnode registration and lookup, designed to work with a Wildcard DNS setup.
 
-Prospective network bootnodes first use the STUN service to discover their public IP address. Then, they register this IP and their listening port with the HTTP Registry API. When new dev nodes need to connect to the KNIRVCHAIN Network, instead of connecting through a centralized relay or bootstrap listing, it queries the Bootnode Registry API for alist of all active bootnodes. Each node then attempts to connect directly to each listed bootnode to retrieve the correct IP address and port, enabling a direct dev-to-dev connection to execute the bootstrapping process.
+Prospective network bootnodes first use the STUN service to discover their public IP address. Then, they register this IP and their listening port with the HTTP Registry API. When new dev nodes need to connect to the AGENTCHAIN Network, instead of connecting through a centralized relay or bootstrap listing, it queries the Bootnode Registry API for alist of all active bootnodes. Each node then attempts to connect directly to each listed bootnode to retrieve the correct IP address and port, enabling a direct dev-to-dev connection to execute the bootstrapping process.
 
 ---
 
 ## STUN Service (IP Discovery)
 
-*   **Purpose:** Allows a KNIRVCHAIN node to discover its public IP address and port as seen by the internet, which is crucial for nodes operating behind NAT (Network Address Translation). Nodes should query this service *before* registering via the HTTP API.
+*   **Purpose:** Allows a AGENTCHAIN node to discover its public IP address and port as seen by the internet, which is crucial for nodes operating behind NAT (Network Address Translation). Nodes should query this service *before* registering via the HTTP API.
 *   **Protocol:** STUN (Session Traversal Utilities for NAT) over UDP.
 *   **Address:** `stun:registry.knirv.com`
 *   **Port:** `3478` (Standard STUN UDP port, often used implicitly by clients if not specified).
@@ -23,7 +23,7 @@ Prospective network bootnodes first use the STUN service to discover their publi
 
 ### 1. Register Bootnode
 
-*   **Purpose:** Allows a KNIRVCHAIN bootnode to register or update its network location (IP address and port) with the registry. Bootnodes should call this endpoint upon startup (after STUN discovery) and potentially periodically to signal they are still active.
+*   **Purpose:** Allows a AGENTCHAIN bootnode to register or update its network location (IP address and port) with the registry. Bootnodes should call this endpoint upon startup (after STUN discovery) and potentially periodically to signal they are still active.
 *   **Method:** `POST`
 *   **Path:** `/register`
 *   **Request Body (JSON):**
@@ -53,7 +53,7 @@ Prospective network bootnodes first use the STUN service to discover their publi
 
 ### 2. Lookup Bootnode
 
-*   **Purpose:** Allows a KNIRVCHAIN node to query the central registry for the current IP address and port of a specific boot node, identified by its `chainID`.
+*   **Purpose:** Allows a AGENTCHAIN node to query the central registry for the current IP address and port of a specific boot node, identified by its `chainID`.
 *   **Method:** `GET`
 *   **Path:** `/lookup/:chainID`
     *   *Replace `:chainID` with the actual unique identifier of the target node (e.g., `/lookup/12c1023a-a324-4d39-bc78-32d26a90ce9b`).*

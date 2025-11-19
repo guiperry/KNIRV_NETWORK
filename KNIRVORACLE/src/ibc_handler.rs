@@ -234,8 +234,8 @@ impl IBCHandler {
         let connection = IBCConnection {
             connection_id: connection_id.clone(),
             client_id: client_id.clone(),
-            counterparty_client_id: "knirvchain-client".to_string(),
-            counterparty_connection_id: "knirvchain-connection".to_string(),
+            counterparty_client_id: "knirvoracle-client".to_string(),
+            counterparty_connection_id: "knirvoracle-connection".to_string(),
             state: ConnectionState::Open,
             delay_period: 0,
         };
@@ -273,8 +273,8 @@ impl IBCHandler {
         let connection = IBCConnection {
             connection_id: connection_id.clone(),
             client_id: client_id.clone(),
-            counterparty_client_id: "knirvchain-client".to_string(),
-            counterparty_connection_id: "knirvchain-connection".to_string(),
+            counterparty_client_id: "knirvoracle-client".to_string(),
+            counterparty_connection_id: "knirvoracle-connection".to_string(),
             state: ConnectionState::Open,
             delay_period: 0,
         };

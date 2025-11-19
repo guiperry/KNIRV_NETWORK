@@ -1,9 +1,9 @@
-KNIRVCHAIN Database Definition Protocol
+AGENTCHAIN Database Definition Protocol
 Version: 1.0 Date: October 26, 2023
 
 1. Overview
 
-This document defines the database architecture for the KNIRVCHAIN platform. The system utilizes a dual-database strategy to ensure data integrity, transactional consistency, and advanced search capabilities:
+This document defines the database architecture for the AGENTCHAIN platform. The system utilizes a dual-database strategy to ensure data integrity, transactional consistency, and advanced search capabilities:
 
 LevelDB: Serves as the primary, persistent datastore for all canonical blockchain data, including blocks, transactions, and account states. It is the source of truth.
 Chromem-go: Functions as a secondary, in-memory (with on-disk persistence) vector database. It provides a searchable cache, enabling semantic search and efficient querying of data derived from the LevelDB blockchain. It uses a custom Cerebras embedding function for generating vector representations of textual data.
@@ -70,7 +70,7 @@ chromem-go documentation indicates that persistence is done synchronously on eac
 3.5. Embedding Function:
 
 A custom embedding function is used, leveraging the Cerebras inference platform.
-The github.com/guiperry/chroma-go_cerebras/pkg/embeddings/cerebras.NewEmbeddingFunction is initialized (e.g., in NewChromemSyncManager and NewChromemManager).
+The github.com/guiperry/chroma-go_cerebras/internal/embeddings/cerebras.NewEmbeddingFunction is initialized (e.g., in NewChromemSyncManager and NewChromemManager).
 Configuration for Cerebras (API key, base URL) is provided via ChromemConfig.CerebrasConfig (defined in sync_manager.go and populated from the main application config, e.g., cfg.Chromem.CerebrasConfig in main.go).
 An adapter function is used to match the chromem.EmbeddingFunc interface:
 go
@@ -115,4 +115,4 @@ Results: Chromem-go returns matching documents, which are then formatted and sen
 LevelDB Path: Defined by cfg.BlockchainDatabasePath in config.Config. Resolved based on node role and environment.
 Chromem-go Path: Defined by cfg.SearchableDatabasePath in config.Config. This path is passed to chromem.NewPersistentDB.
 Cerebras Embedding Function: Configured via cfg.Chromem.CerebrasConfig (containing APIKey and BaseURL), typically loaded from environment variables or a configuration file.
-This protocol should provide a clear understanding of how LevelDB and Chromem-go are utilized within your KNIRVCHAIN application.
+This protocol should provide a clear understanding of how LevelDB and Chromem-go are utilized within your AGENTCHAIN application.

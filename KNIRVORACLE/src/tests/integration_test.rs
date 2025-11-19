@@ -1,5 +1,5 @@
 // tests/integration_test.rs
-use knirvchain::nrn_token::Address; // Import necessary types
+use knirvoracle::nrn_token::Address; // Import necessary types
 use num_bigint::BigInt;
 use reqwest;
 use serde_json::json;
@@ -20,7 +20,7 @@ fn start_blockchain() -> Child {
 async fn test_api_calls() {
     // Set necessary environment variables for the test (if needed).
     //env::set_var("NRN_OWNER_PRIVATE_KEY", "..."); // Set private key here
-    env::set_var("RUST_LOG", "info,knirvchain=debug");
+    env::set_var("RUST_LOG", "info,knirvoracle=debug");
     // Start the blockchain in a separate thread/process
     let mut child = start_blockchain();
 

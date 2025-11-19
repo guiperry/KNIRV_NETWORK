@@ -8,7 +8,7 @@ This system manages manually created Node.js dependency files that are required 
 
 The following files are manually created and must be preserved:
 
-1. **`KNIRVCHAIN/pkg/embedded/nodejs/tunnel/agent-tunnel-registry/node_modules/axios/dist/node/axios.cjs`**
+1. **`KNIRVCHAIN/internal/embedded/nodejs/tunnel/agent-tunnel-registry/node_modules/axios/dist/node/axios.cjs`**
    - **Purpose**: CommonJS wrapper for axios ES module
    - **Issue**: axios v1.x is ES module only, but KNIRVCHAIN requires CommonJS
    - **Solution**: Downgraded to axios v0.27.2 + manual CJS file
@@ -60,7 +60,7 @@ cd KNIRVCHAIN/scripts
 ### 3. Fresh Setup
 ```bash
 # Install dependencies first
-cd KNIRVCHAIN/pkg/embedded/nodejs/tunnel/agent-tunnel-registry && npm install
+cd KNIRVCHAIN/internal/embedded/nodejs/tunnel/agent-tunnel-registry && npm install
 cd ../../payment/agent-payment-gateway && npm install
 
 # Then restore the manual files

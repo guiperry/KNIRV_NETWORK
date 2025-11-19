@@ -2,9 +2,9 @@
 
 ## 1. Overview
 
-This document outlines a plan to integrate ChromemDB into the KNIRVCHAIN node software to provide enhanced querying capabilities, particularly for semantic search across blockchain transactions, context records, and capability descriptors. The primary goal is to create a fast, queryable local data store that complements the existing LevelDB-based blockchain storage by enabling powerful similarity searches and metadata-filtered queries.
+This document outlines a plan to integrate ChromemDB into the AGENTCHAIN node software to provide enhanced querying capabilities, particularly for semantic search across blockchain transactions, context records, and capability descriptors. The primary goal is to create a fast, queryable local data store that complements the existing LevelDB-based blockchain storage by enabling powerful similarity searches and metadata-filtered queries.
 
-Currently, the KNIRVCHAIN blockchain data is stored in LevelDB, which is excellent for key-value lookups but limited for complex and semantic queries. This implementation plan addresses this limitation by introducing ChromemDB as a secondary index, enabling advanced search capabilities while maintaining LevelDB as the source of truth.
+Currently, the AGENTCHAIN blockchain data is stored in LevelDB, which is excellent for key-value lookups but limited for complex and semantic queries. This implementation plan addresses this limitation by introducing ChromemDB as a secondary index, enabling advanced search capabilities while maintaining LevelDB as the source of truth.
 
 ### 1.1 Key Benefits
 
@@ -419,9 +419,9 @@ import (
     "github.com/guiperry/chroma-go_cerebras" // Our forked version with Cerebras embedding support
     "github.com/guiperry/chroma-go_cerebras/collection"
     "github.com/guiperry/chroma-go_cerebras/embeddings"
-    "github.com/guiperry/chroma-go_cerebras/pkg/embeddings/cerebras"
+    "github.com/guiperry/chroma-go_cerebras/internal/embeddings/cerebras"
     // Assuming your Go structs are defined elsewhere
-    // bctypes "github.com/your_org/KNIRVCHAIN/internal/blockchain/structs"
+    // bctypes "github.com/your_org/AGENTCHAIN/internal/blockchain/structs"
 )
 
 // ChromemManager handles ChromemDB operations
@@ -663,10 +663,10 @@ import (
     "github.com/amikos-tech/chroma-go/collection"
     "github.com/amikos-tech/chroma-go/embeddings" // Required for ChromemConfig
 
-    bctypes "github.com/your_org/KNIRVCHAIN/internal/blockchain/structs"
-    mcptypes "github.com/your_org/KNIRVCHAIN/internal/mcp/types"
+    bctypes "github.com/your_org/AGENTCHAIN/internal/blockchain/structs"
+    mcptypes "github.com/your_org/AGENTCHAIN/internal/mcp/types"
     // Assuming your conversion functions are in a 'utils' package or similar
-    // "github.com/your_org/KNIRVCHAIN/internal/chromemdb/utils"
+    // "github.com/your_org/AGENTCHAIN/internal/chromemdb/utils"
 )
 
 
@@ -1126,9 +1126,9 @@ import (
     "net/http"
     "strconv"
     "time"
-    // "github.com/your_org/KNIRVCHAIN/internal/chromemdb" // Your ChromemDB manager/search functions
+    // "github.com/your_org/AGENTCHAIN/internal/chromemdb" // Your ChromemDB manager/search functions
     // Assuming your Transaction struct for API response
-    // "github.com/your_org/KNIRVCHAIN/internal/blockchain/structs"
+    // "github.com/your_org/AGENTCHAIN/internal/blockchain/structs"
 )
 
 // SearchTransactionsRequest defines the request structure for transaction search
@@ -1236,7 +1236,7 @@ import (
     "context"
     "fmt"
     "log"
-    // "github.com/your_org/KNIRVCHAIN/api" // For SearchTransactionsRequest and YourApiTransaction
+    // "github.com/your_org/AGENTCHAIN/api" // For SearchTransactionsRequest and YourApiTransaction
     "github.com/amikos-tech/chroma-go"
     "github.com/amikos-tech/chroma-go/types"
 )
@@ -1518,7 +1518,7 @@ The integration of Cerebras LLM as an embedding function provider offers several
 We've forked the official chroma-go repository to create `github.com/guiperry/chroma-go_cerebras`, which implements the Cerebras embedding function. The fork:
 
 1. **Maintains API Compatibility**: Preserves the original chroma-go API for seamless integration.
-2. **Adds Cerebras Package**: Implements a new package at `pkg/embeddings/cerebras` with the Cerebras embedding function.
+2. **Adds Cerebras Package**: Implements a new package at `internal/embeddings/cerebras` with the Cerebras embedding function.
 3. **Extends Embedding Interface**: The Cerebras embedding function implements the standard `embeddings.EmbeddingFunction` interface.
 
 The Cerebras embedding function uses the LLM's tool-calling capabilities to generate embeddings directly:
@@ -1599,7 +1599,7 @@ By adhering to these standardized data formats, we ensure that:
 
 ## 8. Conclusion
 
-Integrating ChromemDB with Cerebras embedding function will pivot the KNIRVCHAIN node's querying capabilities towards powerful semantic search combined with metadata filtering. This allows for more intuitive and flexible discovery of transactions, context records, and capabilities based on their meaning and content, rather than just exact keyword matches or predefined fields.
+Integrating ChromemDB with Cerebras embedding function will pivot the AGENTCHAIN node's querying capabilities towards powerful semantic search combined with metadata filtering. This allows for more intuitive and flexible discovery of transactions, context records, and capabilities based on their meaning and content, rather than just exact keyword matches or predefined fields.
 
 The proposed implementation will enable:
 

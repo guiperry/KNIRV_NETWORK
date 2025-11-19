@@ -30,24 +30,24 @@ FROM alpine:3.18
 RUN apk add --no-cache ca-certificates tzdata libgcc curl
 
 # Create non-root user
-RUN addgroup -g 1001 -S knirvchain && \
-    adduser -u 1001 -S knirvchain -G knirvchain
+RUN addgroup -g 1001 -S knirvoracle && \
+    adduser -u 1001 -S knirvoracle -G knirvoracle
 
 # Set working directory
 WORKDIR /app
 
 # Copy binary from builder
-COPY --from=builder /app/target/release/knirvchain .
+COPY --from=builder /app/target/release/knirvoracle .
 
 # Copy configuration
 COPY --from=builder /app/config ./config
 
 # Create data directory
 RUN mkdir -p /app/data && \
-    chown -R knirvchain:knirvchain /app
+    chown -R knirvoracle:knirvoracle /app
 
 # Switch to non-root user
-USER knirvchain
+USER knirvoracle
 
 # Expose port
 EXPOSE 8080
@@ -61,4 +61,4 @@ ENV KNIRV_ENV=production
 ENV RUST_LOG=info
 
 # Run the application
-CMD ["./knirvchain"]
+CMD ["./knirvoracle"]

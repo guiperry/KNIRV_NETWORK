@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"KNIRVCHAIN/pkg/database"
-	"KNIRVCHAIN/pkg/types"
-	"KNIRVCHAIN/pkg/utils"
+	"KNIRVCHAIN/internal/database"
+	"KNIRVCHAIN/internal/types"
+	"KNIRVCHAIN/internal/utils"
 )
 
 // TestNetworkAuthorsManagement tests the Network Authors management functionality

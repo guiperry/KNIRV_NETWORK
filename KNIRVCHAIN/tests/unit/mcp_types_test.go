@@ -1,7 +1,7 @@
 package main
 
 import (
-	"KNIRVCHAIN/pkg/types"
+	"KNIRVCHAIN/internal/types"
 	"encoding/json"
 	"testing"
 	"time"
