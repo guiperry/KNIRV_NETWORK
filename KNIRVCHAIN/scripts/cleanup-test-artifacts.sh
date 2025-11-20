@@ -6,11 +6,11 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-KNIRVORACLE_DIR="$(dirname "$SCRIPT_DIR")"
+_DIR="$(dirname "$SCRIPT_DIR")"
 
 echo "Cleaning up test artifacts in KNIRVCHAIN..."
 
-cd "$KNIRVORACLE_DIR"
+cd "$_DIR"
 
 # Clean up test databases from root directory
 echo "Removing test databases from root directory..."

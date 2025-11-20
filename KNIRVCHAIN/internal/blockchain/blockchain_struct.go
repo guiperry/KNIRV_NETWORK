@@ -21,13 +21,14 @@ import (
 	"KNIRVCHAIN/internal/database"
 	agentlog "KNIRVCHAIN/internal/log"
 	"KNIRVCHAIN/internal/p2p"
-	"KNIRVCHAIN/internal/protocol/proto"
+	pb "KNIRVCHAIN/internal/protocol/proto"
 	"KNIRVCHAIN/internal/types"
 	"KNIRVCHAIN/internal/uri"
 	"KNIRVCHAIN/internal/utils"
 
 	chromem "github.com/philippgille/chromem-go"
 	"github.com/syndtr/goleveldb/leveldb"
+	"google.golang.org/protobuf/proto"
 )
 
 // Type definitions (temporarily defined here to avoid circular imports)
@@ -53,10 +54,12 @@ func (mcp *MCPProcessor) ProcessMCPInvokeCapability(tx *Transaction, contextReco
 }
 
 func (mcp *MCPProcessor) ApplyMCPTransactionEffects(tx *Transaction, accounts interface{}) (interface{}, error) {
+	_ = tx // tx is intentionally unused in this placeholder implementation
 	return nil, fmt.Errorf("apply mcp transaction effects not implemented")
 }
 
 func (mcp *MCPProcessor) validateMCPTransaction(tx *Transaction) bool {
+	_ = tx      // tx is intentionally unused in this placeholder implementation
 	return true // Placeholder implementation
 }
 
@@ -79,7 +82,7 @@ type XionBridge struct {
 	// Placeholder for XionBridge
 }
 
-func (xb *XionBridge) IntegrateWithKNIRVORACLE(mux interface{}) {
+func (xb *XionBridge) IntegrateWith(mux interface{}) {
 	// Placeholder implementation
 }
 
@@ -145,6 +148,8 @@ func (nmm *NetworkMonitorManager) GetPort() int {
 var globalNetworkMonitorManager = &NetworkMonitorManager{}
 
 func createDataDescriptionFormatted(data interface{}, format ...string) string {
+	_ = data                            // data is intentionally unused in this placeholder implementation
+	_ = format                          // format is intentionally unused in this placeholder implementation
 	return "formatted data description" // Placeholder
 }
 
@@ -358,10 +363,8 @@ func (cm *ChromemManager) GetContextRecordCollection() *chromem.Collection {
 
 type ChromemSyncManager struct {
 	client                         *chromem.DB
-	transactionCollection          *chromem.Collection
 	contextRecordCollection        *chromem.Collection
 	capabilityDescriptorCollection *chromem.Collection
-	mu                             sync.RWMutex
 }
 
 func NewChromemSyncManager(client *chromem.DB, cerebrasConfig *config.CerebrasConfig, db *database.LevelDB) (*ChromemSyncManager, error) {
@@ -382,7 +385,7 @@ func (csm *ChromemSyncManager) GetContextRecordCollection() *chromem.Collection 
 	return csm.contextRecordCollection
 }
 
-func (csm *ChromemSyncManager) OnNewBlockConfirmed(block *Block, contextRecords ...*proto.ContextRecordProto) error {
+func (csm *ChromemSyncManager) OnNewBlockConfirmed(block *Block, contextRecords ...*pb.ContextRecordProto) error {
 	return fmt.Errorf("on new block confirmed not implemented")
 }
 
@@ -453,7 +456,7 @@ func init() {
 	// In a real network, this might be a well-known address or derived from a master key.
 	// For consistency, let's use a fixed address or generate one deterministically if needed.
 	// For now, using the BLOCKCHAIN_ADDRESS constant as a placeholder.
-	// If BLOCKCHAIN_ADDRESS is "KNIRVORACLE_Faucet", this is fine for a placeholder.
+	// If BLOCKCHAIN_ADDRESS is "_Faucet", this is fine for a placeholder.
 	// If you have a specific master wallet for genesis, use its address.
 
 	// Attempt to load or create a master wallet for the genesis proposer address
@@ -803,7 +806,7 @@ var _ = NewLevelDB // Reference to ensure the function exists
 func initializeTestAccounts(bc *BlockchainStruct) error {
 	// Pre-fund accounts used in tests
 	testAccounts := map[string]uint64{
-		"KNIRVORACLE0ad62e0365cf9b2716bb0d7f7ce6226005d4e33d": 10000000, // 10 million units
+		"0ad62e0365cf9b2716bb0d7f7ce6226005d4e33d": 10000000, // 10 million units
 		// Add other test accounts as needed
 	}
 
@@ -1104,8 +1107,8 @@ func (bc *BlockchainStruct) verifyBlockContext(b *Block) error {
 
 // applyBlockTransactions processes transactions within a block and updates a temporary account state.
 // It assumes the caller holds the necessary lock.
-func (bc *BlockchainStruct) applyBlockTransactions(b *Block, tempBlockAccounts map[string]*big.Int) ([]*proto.ContextRecordProto, error) {
-	var mcpContextRecordsForSync []*proto.ContextRecordProto
+func (bc *BlockchainStruct) applyBlockTransactions(b *Block, tempBlockAccounts map[string]*big.Int) ([]*pb.ContextRecordProto, error) {
+	var mcpContextRecordsForSync []*pb.ContextRecordProto
 
 	// --- Checks Passed - Prepare to Modify State ---
 	agentlog.LogInfo(fmt.Sprintf("Checks passed for block %d. Proceeding to process transactions and update state.", b.BlockNumber))
@@ -1188,7 +1191,7 @@ func (bc *BlockchainStruct) applyBlockTransactions(b *Block, tempBlockAccounts m
 					return nil, err
 				}
 				if contextRecord != nil {
-					if protoRecord, ok := contextRecord.(*proto.ContextRecordProto); ok {
+					if protoRecord, ok := contextRecord.(*pb.ContextRecordProto); ok {
 						mcpContextRecordsForSync = append(mcpContextRecordsForSync, protoRecord)
 					}
 				}
@@ -1307,7 +1310,7 @@ func (bc *BlockchainStruct) AddBlock(b *Block) error {
 	if bc.ChromemDBSyncManager != nil {
 
 		// Run in a goroutine to avoid blocking the main thread
-		go func(b *Block, regCtxRecords []*proto.ContextRecordProto) {
+		go func(b *Block, regCtxRecords []*pb.ContextRecordProto) {
 			defer func() { // Add recover
 				if r := recover(); r != nil {
 					log.Printf("PANIC in ChromemDBSyncManager.OnNewBlockConfirmed goroutine: %v", r)
@@ -1614,6 +1617,80 @@ func (bc *BlockchainStruct) CheckIfIDExistsInTransactionPool(desiredID string) b
 		}
 	}
 	return false // Did not find the ID in any pending transaction data
+}
+
+// GetLLMTransactionByCMU finds the latest LLM rooting transaction for a given CMU
+func (bc *BlockchainStruct) GetLLMTransactionByCMU(cmu string) (*Transaction, error) {
+	bc.Lock()
+	defer bc.Unlock()
+
+	// Search from latest block backwards
+	for i := len(bc.Blocks) - 1; i >= 0; i-- {
+		for _, tx := range bc.Blocks[i].Transactions {
+			if tx.Type == TransactionTypeLLMRooting {
+				var protoData pb.LLMRootingDataProto
+				if err := proto.Unmarshal(tx.Data, &protoData); err == nil && protoData.Cmu == cmu {
+					return tx, nil
+				}
+			}
+		}
+	}
+	return nil, fmt.Errorf("LLM transaction with CMU %s not found", cmu)
+}
+
+// GetLLMTransactionsByModelHash returns all LLM rooting transactions for a model hash
+func (bc *BlockchainStruct) GetLLMTransactionsByModelHash(modelHash string) ([]*Transaction, error) {
+	bc.Lock()
+	defer bc.Unlock()
+
+	var transactions []*Transaction
+	for i := len(bc.Blocks) - 1; i >= 0; i-- {
+		for _, tx := range bc.Blocks[i].Transactions {
+			if tx.Type == TransactionTypeLLMRooting {
+				var protoData pb.LLMRootingDataProto
+				if err := proto.Unmarshal(tx.Data, &protoData); err == nil {
+					// Extract model hash from CMU (format: knirv://network/modelhash)
+					if len(protoData.Cmu) > 10 && protoData.Cmu[len(protoData.Cmu)-64:] == modelHash {
+						transactions = append(transactions, tx)
+					}
+				}
+			}
+		}
+	}
+	return transactions, nil
+}
+
+// ResolveCMU resolves a CMU to its current API endpoint
+func (bc *BlockchainStruct) ResolveCMU(cmu string) (string, error) {
+	tx, err := bc.GetLLMTransactionByCMU(cmu)
+	if err != nil {
+		return "", err
+	}
+
+	var protoData pb.LLMRootingDataProto
+	if err := proto.Unmarshal(tx.Data, &protoData); err != nil {
+		return "", fmt.Errorf("failed to unmarshal LLM data: %w", err)
+	}
+
+	return protoData.ApiEndpoint, nil
+}
+
+// CheckCMUExists checks if a CMU already exists in the blockchain
+func (bc *BlockchainStruct) CheckCMUExists(cmu string) bool {
+	bc.Lock()
+	defer bc.Unlock()
+
+	for _, block := range bc.Blocks {
+		for _, tx := range block.Transactions {
+			if tx.Type == TransactionTypeLLMRooting {
+				var protoData pb.LLMRootingDataProto
+				if err := proto.Unmarshal(tx.Data, &protoData); err == nil && protoData.Cmu == cmu {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 func (bc *BlockchainStruct) ProofOfWorkMining(ctx context.Context, minersAddress string, cm *ConsensusManager) {

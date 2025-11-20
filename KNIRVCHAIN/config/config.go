@@ -4,7 +4,6 @@ import (
 	"KNIRVCHAIN/internal/utils"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -1329,7 +1328,7 @@ func LoadConfig(configPath string, role ...Role) (*Config, string, error) {
 
 	for _, p := range pathsToTry {
 		log.Printf("Checking config path: %s for role %s", p, currentRole)
-		data, errFile := ioutil.ReadFile(p)
+		data, errFile := os.ReadFile(p)
 		if errFile == nil {
 			var cfg Config
 			if err := json.Unmarshal(data, &cfg); err != nil {
@@ -1424,7 +1423,7 @@ func SaveConfigToUserDir(cfg *Config, role Role) {
 
 // BLOCKCHAIN_ADDRESS_CONSTANT_FROM_MAIN_OR_CONFIG is a placeholder.
 // You'll need to access the actual BLOCKCHAIN_ADDRESS from your constants.go.
-const BLOCKCHAIN_ADDRESS_CONSTANT_FROM_MAIN_OR_CONFIG = "KNIRVORACLEb53c1e30b8a578c091dd40612bfd1433991b4e09" // Replace with actual access
+const BLOCKCHAIN_ADDRESS_CONSTANT_FROM_MAIN_OR_CONFIG = "b53c1e30b8a578c091dd40612bfd1433991b4e09" // Replace with actual access
 
 // DefaultTerminalIntegration returns the default terminal integration configuration
 func DefaultTerminalIntegration() *TerminalIntegration {

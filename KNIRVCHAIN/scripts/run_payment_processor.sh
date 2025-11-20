@@ -4,7 +4,7 @@
 
 # Set default values
 PORT=${PORT:-8090}
-KNIRVORACLE_NODE_RPC=${KNIRVORACLE_NODE_RPC:-"http://127.0.0.1:5000"}
+_NODE_RPC=${_NODE_RPC:-"http://127.0.0.1:5000"}
 TOKEN_SYMBOL=${TOKEN_SYMBOL:-"agent"}
 TOKEN_DECIMALS=${TOKEN_DECIMALS:-6}
 USD_PER_TOKEN=${USD_PER_TOKEN:-0.10}
@@ -23,6 +23,6 @@ go build -o payment-processor ./payment_processor/cmd
 
 # Run the payment processor
 echo "Starting payment processor on port $PORT..."
-echo "Using KNIRVCHAIN node at $KNIRVORACLE_NODE_RPC"
+echo "Using KNIRVCHAIN node at $_NODE_RPC"
 
 ./payment-processor

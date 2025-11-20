@@ -246,7 +246,7 @@ func (i *UnifiedConfigIntegration) ValidateAllConfigurations() error {
 		return fmt.Errorf("failed to get Inference config: %w", err)
 	}
 	if err := inferenceConfig.Validate(); err != nil {
-		return fmt.Errorf("Inference config validation failed: %w", err)
+		return fmt.Errorf("inference config validation failed: %w", err)
 	}
 
 	// Validate Economics config
@@ -255,7 +255,7 @@ func (i *UnifiedConfigIntegration) ValidateAllConfigurations() error {
 		return fmt.Errorf("failed to get Economics config: %w", err)
 	}
 	if err := economicsConfig.Validate(); err != nil {
-		return fmt.Errorf("Economics config validation failed: %w", err)
+		return fmt.Errorf("economics config validation failed: %w", err)
 	}
 
 	// Validate Network Monitor config
@@ -264,7 +264,7 @@ func (i *UnifiedConfigIntegration) ValidateAllConfigurations() error {
 		return fmt.Errorf("failed to get Network Monitor config: %w", err)
 	}
 	if err := networkMonitorConfig.Validate(); err != nil {
-		return fmt.Errorf("Network Monitor config validation failed: %w", err)
+		return fmt.Errorf("network Monitor config validation failed: %w", err)
 	}
 
 	log.Println("All component configurations validated successfully")

@@ -31,7 +31,7 @@ type XionBridgeImpl struct {
 	chainID       string
 	nrnContract   string
 	bridgeAccount string
-	KNIRVORACLEDB *leveldb.DB
+	DB            *leveldb.DB
 	httpClient    *http.Client
 }
 
@@ -52,7 +52,7 @@ type TokenBridgeEvent struct {
 	Processed   bool      `json:"processed"`
 }
 
-func NewXionBridge(config BridgeConfig, KNIRVORACLEDB *leveldb.DB) (*XionBridgeImpl, error) {
+func NewXionBridge(config BridgeConfig, DB *leveldb.DB) (*XionBridgeImpl, error) {
 	// Simplified initialization - in production would use cosmos SDK
 	bridgeAddr := "bridge_account_address" // Would be derived from keyring
 
@@ -61,7 +61,7 @@ func NewXionBridge(config BridgeConfig, KNIRVORACLEDB *leveldb.DB) (*XionBridgeI
 		chainID:       config.XionChainID,
 		nrnContract:   config.NRNContract,
 		bridgeAccount: bridgeAddr,
-		KNIRVORACLEDB: KNIRVORACLEDB,
+		DB:            DB,
 		httpClient:    &http.Client{Timeout: 30 * time.Second},
 	}, nil
 }
@@ -70,14 +70,14 @@ func (xb *XionBridgeImpl) StartBridgeService(ctx context.Context) error {
 	log.Println("Starting XION bridge service...")
 
 	// Start event listeners
-	go xb.listenForKNIRVORACLEEvents(ctx)
+	go xb.listenForEvents(ctx)
 	go xb.listenForXionEvents(ctx)
 	go xb.processPendingEvents(ctx)
 
 	return nil
 }
 
-func (xb *XionBridgeImpl) listenForKNIRVORACLEEvents(ctx context.Context) {
+func (xb *XionBridgeImpl) listenForEvents(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
@@ -87,7 +87,7 @@ func (xb *XionBridgeImpl) listenForKNIRVORACLEEvents(ctx context.Context) {
 			return
 		case <-ticker.C:
 			// Check for new burn events in KNIRVCHAIN
-			events, err := xb.getKNIRVORACLEBurnEvents()
+			events, err := xb.getBurnEvents()
 			if err != nil {
 				log.Printf("Error getting KNIRVCHAIN burn events: %v", err)
 				continue
@@ -102,12 +102,12 @@ func (xb *XionBridgeImpl) listenForKNIRVORACLEEvents(ctx context.Context) {
 	}
 }
 
-func (xb *XionBridgeImpl) getKNIRVORACLEBurnEvents() ([]TokenBridgeEvent, error) {
+func (xb *XionBridgeImpl) getBurnEvents() ([]TokenBridgeEvent, error) {
 	// Query KNIRVCHAIN database for unprocessed burn events
 	var events []TokenBridgeEvent
 
 	// This queries the local KNIRVCHAIN database for transactions that burned tokens for cross-chain transfer
-	iter := xb.KNIRVORACLEDB.NewIterator(util.BytesPrefix([]byte("bridge_burn_")), nil)
+	iter := xb.DB.NewIterator(util.BytesPrefix([]byte("bridge_burn_")), nil)
 	defer iter.Release()
 
 	for iter.Next() {
@@ -147,7 +147,7 @@ func (xb *XionBridgeImpl) processBurnEvent(event TokenBridgeEvent) error {
 	eventData, _ := json.Marshal(event)
 	key := fmt.Sprintf("bridge_burn_%s", event.TxHash)
 
-	return xb.KNIRVORACLEDB.Put([]byte(key), eventData, nil)
+	return xb.DB.Put([]byte(key), eventData, nil)
 }
 
 func (xb *XionBridgeImpl) executeContract(contractAddr string, msg interface{}) (string, error) {
@@ -227,7 +227,7 @@ func (xb *XionBridgeImpl) processXionBurnEvent(event TokenBridgeEvent) error {
 		Data:            []byte(fmt.Sprintf("bridge_mint_%s", event.TxHash)),
 		Status:          "pending",
 		Timestamp:       time.Now().Unix(),
-		TransactionHash: fmt.Sprintf("knirvoracle_mint_%d", time.Now().UnixNano()),
+		TransactionHash: fmt.Sprintf("_mint_%d", time.Now().UnixNano()),
 		Fee:             0, // Bridge transactions have no fee
 		Type:            "bridge_mint",
 	}
@@ -236,7 +236,7 @@ func (xb *XionBridgeImpl) processXionBurnEvent(event TokenBridgeEvent) error {
 	txData, _ := json.Marshal(mintTx)
 	key := fmt.Sprintf("bridge_mint_%s", mintTx.TransactionHash)
 
-	return xb.KNIRVORACLEDB.Put([]byte(key), txData, nil)
+	return xb.DB.Put([]byte(key), txData, nil)
 }
 
 func (xb *XionBridgeImpl) processPendingEvents(ctx context.Context) {
@@ -260,7 +260,7 @@ func (xb *XionBridgeImpl) retryFailedEvents() {
 }
 
 // Integration with existing KNIRVCHAIN main.go
-func (xb *XionBridgeImpl) IntegrateWithKNIRVORACLE(mux interface{}) {
+func (xb *XionBridgeImpl) IntegrateWith(mux interface{}) {
 	// Handle both http.ServeMux and gorilla/mux.Router
 	switch router := mux.(type) {
 	case *http.ServeMux:
@@ -382,7 +382,7 @@ func (xb *XionBridgeImpl) initiateBridgeTransfer(targetChain, amount, recipient 
 	eventData, _ := json.Marshal(event)
 	key := fmt.Sprintf("bridge_burn_%s", event.TxHash)
 
-	err := xb.KNIRVORACLEDB.Put([]byte(key), eventData, nil)
+	err := xb.DB.Put([]byte(key), eventData, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to store bridge event: %w", err)
 	}
@@ -394,12 +394,12 @@ func (xb *XionBridgeImpl) initiateBridgeTransfer(targetChain, amount, recipient 
 func (xb *XionBridgeImpl) getBridgeStatus(txHash string) (map[string]interface{}, error) {
 	// Implementation for getting bridge status
 	key := fmt.Sprintf("bridge_burn_%s", txHash)
-	eventData, err := xb.KNIRVORACLEDB.Get([]byte(key), nil)
+	eventData, err := xb.DB.Get([]byte(key), nil)
 	if err != nil {
 		if err == leveldb.ErrNotFound {
 			// Try mint events
 			key = fmt.Sprintf("bridge_mint_%s", txHash)
-			eventData, err = xb.KNIRVORACLEDB.Get([]byte(key), nil)
+			eventData, err = xb.DB.Get([]byte(key), nil)
 			if err != nil {
 				return nil, fmt.Errorf("bridge transaction not found: %s", txHash)
 			}
@@ -434,7 +434,7 @@ func (xb *XionBridgeImpl) getBridgeStats() (map[string]interface{}, error) {
 	var totalBurnAmount, totalMintAmount big.Int
 
 	// Count burn events
-	iter := xb.KNIRVORACLEDB.NewIterator(util.BytesPrefix([]byte("bridge_burn_")), nil)
+	iter := xb.DB.NewIterator(util.BytesPrefix([]byte("bridge_burn_")), nil)
 	defer iter.Release()
 
 	for iter.Next() {
@@ -446,7 +446,7 @@ func (xb *XionBridgeImpl) getBridgeStats() (map[string]interface{}, error) {
 	}
 
 	// Count mint events
-	iter = xb.KNIRVORACLEDB.NewIterator(util.BytesPrefix([]byte("bridge_mint_")), nil)
+	iter = xb.DB.NewIterator(util.BytesPrefix([]byte("bridge_mint_")), nil)
 	defer iter.Release()
 
 	for iter.Next() {
@@ -508,7 +508,7 @@ func (xb *XionBridgeImpl) getPendingTransactionsCount() int64 {
 	var pendingCount int64
 
 	// Check burn events
-	iter := xb.KNIRVORACLEDB.NewIterator(util.BytesPrefix([]byte("bridge_burn_")), nil)
+	iter := xb.DB.NewIterator(util.BytesPrefix([]byte("bridge_burn_")), nil)
 	defer iter.Release()
 
 	for iter.Next() {
@@ -519,7 +519,7 @@ func (xb *XionBridgeImpl) getPendingTransactionsCount() int64 {
 	}
 
 	// Check mint events
-	iter = xb.KNIRVORACLEDB.NewIterator(util.BytesPrefix([]byte("bridge_mint_")), nil)
+	iter = xb.DB.NewIterator(util.BytesPrefix([]byte("bridge_mint_")), nil)
 	defer iter.Release()
 
 	for iter.Next() {
@@ -543,7 +543,7 @@ func (xb *XionBridgeImpl) GetBridgeHealth() map[string]interface{} {
 	checks := health["checks"].(map[string]interface{})
 
 	// Check database connectivity
-	_, err := xb.KNIRVORACLEDB.Get([]byte("health_check"), nil)
+	_, err := xb.DB.Get([]byte("health_check"), nil)
 	if err != nil && err != leveldb.ErrNotFound {
 		checks["database"] = map[string]interface{}{
 			"status": "unhealthy",

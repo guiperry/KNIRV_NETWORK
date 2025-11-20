@@ -10,15 +10,13 @@ import (
 	"os"
 	"sync"
 	"time"
-
-	"KNIRVCHAIN/economics"
 )
 
 // XIONIntegrationService orchestrates the complete XION payment flow
 type XIONIntegrationService struct {
 	config         *XIONIntegrationConfig
 	paymentGateway *XIONPaymentGateway
-	economicsAPI   *economics.EconomicsAPI
+	economicsAPI   interface{} // Economics API moved elsewhere
 	routerClient   *KNIRVRouterClient
 	networkMonitor *XIONNetworkMonitorIntegration
 	httpClient     *http.Client
@@ -225,7 +223,7 @@ type KNIRVRouterClient struct {
 }
 
 // NewXIONIntegrationService creates a new XION integration service
-func NewXIONIntegrationService(configPath string, economicsAPI *economics.EconomicsAPI) (*XIONIntegrationService, error) {
+func NewXIONIntegrationService(configPath string, economicsAPI interface{}) (*XIONIntegrationService, error) {
 	// Load configuration
 	config, err := loadXIONIntegrationConfig(configPath)
 	if err != nil {

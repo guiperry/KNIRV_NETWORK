@@ -404,7 +404,7 @@ func (bcs *BlockchainServer) Prepare() (uint64, error) {
 
 	// Add XION bridge endpoints if bridge is available
 	if bcs.xionBridge != nil {
-		bcs.xionBridge.IntegrateWithKNIRVORACLE(mux)
+		bcs.xionBridge.IntegrateWith(mux)
 	}
 
 	// NANDA-ANS service removed as per refactor plan
@@ -448,8 +448,8 @@ func (bcs *BlockchainServer) Prepare() (uint64, error) {
 	return actualPort, nil
 }
 
-// InitializeXIONPaymentGateway initializes the XION payment gateway with economics integration
-func (bcs *BlockchainServer) InitializeXIONPaymentGateway(economicsAPI *economics.EconomicsAPI) error {
+// InitializeXIONPaymentGateway initializes the XION payment gateway (economics integration moved elsewhere)
+func (bcs *BlockchainServer) InitializeXIONPaymentGateway() error {
 	if bcs.xionPaymentGateway != nil {
 		return nil // Already initialized
 	}
@@ -468,8 +468,8 @@ func (bcs *BlockchainServer) InitializeXIONPaymentGateway(economicsAPI *economic
 		MinTransactionAmount: "1000000",     // 1 USDC (6 decimals)
 	}
 
-	// Create XION payment gateway
-	bcs.xionPaymentGateway = NewXIONPaymentGateway(xionGatewayConfig, economicsAPI)
+	// Create XION payment gateway (without economics API since it's moved)
+	bcs.xionPaymentGateway = NewXIONPaymentGateway(xionGatewayConfig, nil)
 
 	// Start the payment gateway
 	if err := bcs.xionPaymentGateway.Start(); err != nil {

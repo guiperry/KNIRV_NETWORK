@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 	"time"
-
-	"KNIRVCHAIN/economics"
 )
 
 // Stub type definitions for integration tests
@@ -121,11 +119,11 @@ func TestXIONIntegration() {
 	log.Println("✅ XION Integration Test completed successfully!")
 }
 
-// createMockEconomicsAPI creates a mock economics API for testing
-func createMockEconomicsAPI() *economics.EconomicsAPI {
+// createMockEconomicsAPI creates a mock economics API for testing (stub - economics moved elsewhere)
+func createMockEconomicsAPI() interface{} {
 	// In a real implementation, this would initialize the actual economics API
 	// For testing, we'll create a mock
-	log.Println("Creating mock Economics API...")
+	log.Println("Creating mock Economics API (stub - moved elsewhere)...")
 	return nil // Mock implementation
 }
 

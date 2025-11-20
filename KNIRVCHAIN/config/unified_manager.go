@@ -309,7 +309,7 @@ func (m *UnifiedConfigManager) loadConfigurationFiles() error {
 }
 
 // validateConfiguration validates the entire configuration
-func (m *UnifiedConfigManager) validateConfiguration(cfg *Config) error {
+func (m *UnifiedConfigManager) validateConfiguration(_ *Config) error {
 	// Run registered validators
 	for key, validator := range m.validators {
 		value := m.viper.Get(key)

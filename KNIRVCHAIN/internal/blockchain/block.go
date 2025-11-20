@@ -88,7 +88,7 @@ func (b *Block) ToProto() (*BlockProto, error) {
 // GetCanonicalBytesForHashing returns canonical bytes for hashing (placeholder implementation)
 func GetCanonicalBytesForHashing(proto *BlockProto) ([]byte, error) {
 	// Placeholder implementation - use JSON marshaling for now
-	return []byte(fmt.Sprintf("block-hash-placeholder")), nil
+	return []byte("block-hash-placeholder"), nil
 }
 
 func (b *Block) IsValid() bool {

@@ -137,7 +137,7 @@ func (c *EconomicsConfig) GetEnvironmentMappings() map[string]string {
 		"economics.log_level":       "KNIRV_ECONOMICS_LOG_LEVEL",
 		"economics.knirvchain_url":  "KNIRV_ECONOMICS_KNIRVCHAIN_URL",
 		"economics.knirvnexus_url":  "KNIRV_ECONOMICS_KNIRVNEXUS_URL",
-		"economics.knirvoracle_url": "KNIRV_ECONOMICS_KNIRVORACLE_URL",
+		"economics.knirvoracle_url": "KNIRV_ECONOMICS__URL",
 		"economics.knirvgraph_url":  "KNIRV_ECONOMICS_KNIRVGRAPH_URL",
 		"economics.database_path":   "KNIRV_ECONOMICS_DATABASE_PATH",
 		"economics.token_symbol":    "KNIRV_ECONOMICS_TOKEN_SYMBOL",

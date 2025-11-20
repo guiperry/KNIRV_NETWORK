@@ -14,10 +14,9 @@ MAIN_PACKAGE_PATH := ./cmd/knirvchain
 
 # Package and Service Configuration
 PKG_DIRS := $(shell find internal -type d -name "internal" -prune -o -type d -print | grep -E "internal/[^/]+$$" | sort)
-# Node.js services are now located in internal/embedded/nodejs/ subdirectories
-NODEJS_SERVICES_BASE := internal/embedded/nodejs
-NODEJS_SERVICES := $(NODEJS_SERVICES_BASE)/payment/agent-payment-gateway $(NODEJS_SERVICES_BASE)/tunnel/agent-tunnel-registry $(NODEJS_SERVICES_BASE)/operator/operator-registry $(NODEJS_SERVICES_BASE)/webgui/webGUI $(NODEJS_SERVICES_BASE)/docsify/docsify
-EMBEDDED_SERVICES := network-monitor economics
+# Node.js services and embedded services have been removed
+NODEJS_SERVICES :=
+EMBEDDED_SERVICES :=
 TEST_UNIT_DIR := ./tests/unit
 TEST_INTEGRATION_DIR := ./tests/integration
 TEST_E2E_DIR := ./tests/e2e
@@ -40,7 +39,7 @@ RELEASE_ASSETS_DIR := ./release_assets # Output dir for final archives, sigs, ch
 # Example: export GPG_KEY_ID="Your Name <your.email@example.com>" or your Key ID
 GPG_KEY_ID ?= YOUR_GPG_KEY_ID_HERE
 
-.PHONY: all clean build-binaries package-release upload-release upload-release-public release-public force-release-micro force-release-micro-public force-release-micro-nowebview force-release-micro-nowebview-public help install-nodejs-deps build-nodejs-services build-embedded clean-nodejs test-internal lint-internal
+.PHONY: all clean build-binaries package-release upload-release upload-release-public release-public force-release-micro force-release-micro-public force-release-micro-nowebview force-release-micro-nowebview-public help test-internal lint-internal
 
 all: package-release
 
@@ -71,11 +70,6 @@ help:
 	@echo "  build/all/dev      Build the application for all target platforms (developer role)."
 	@echo "  build/all-platforms-all-roles Build the application for all platforms and all roles."
 	@echo ""
-	@echo "Node.js Services:"
-	@echo "  install-nodejs-deps Install Node.js dependencies for all embedded services."
-	@echo "  build-nodejs-services Build all embedded Node.js services."
-	@echo "  clean-nodejs       Clean Node.js build artifacts and node_modules."
-	@echo ""
 	@echo "Package Management:"
 	@echo "  test-internal PKG=<name> Test a specific package in internal/ directory."
 	@echo "  lint-internal PKG=<name> Lint a specific package in internal/ directory."
@@ -91,85 +85,10 @@ help:
 clean:
 	@echo "Cleaning up build artifacts and release assets..."
 	@rm -rf "$(CROSS_COMPILE_OUTPUT_DIR)" "$(RELEASE_ASSETS_DIR)"
-	@$(MAKE) clean-nodejs
 	@echo "Cleanup complete."
 
-# ==================================================================================== #
-# NODE.JS SERVICES MANAGEMENT
-# ==================================================================================== #
-
-## install-nodejs-deps: Install Node.js dependencies for all embedded services
-.PHONY: install-nodejs-deps
-install-nodejs-deps:
-	@echo "Installing Node.js dependencies for embedded services..."
-	@for service in $(NODEJS_SERVICES); do \
-		if [ -d "$$service" ] && [ -f "$$service/package.json" ]; then \
-			echo "Installing dependencies for $$service..."; \
-			(cd "$$service" && npm install); \
-		else \
-			echo "Skipping $$service (no package.json found)"; \
-		fi; \
-	done
-	@echo "Node.js dependencies installation complete."
-
-## build-nodejs-services: Build all embedded Node.js services
-.PHONY: build-nodejs-services
-build-nodejs-services: install-nodejs-deps
-	@echo "Building embedded Node.js services..."
-	@for service in $(NODEJS_SERVICES); do \
-		if [ -d "$$service" ] && [ -f "$$service/package.json" ]; then \
-			echo "Building $$service..."; \
-			(cd "$$service" && npm run build 2>/dev/null || echo "No build script for $$service"); \
-		fi; \
-	done
-	@echo "Node.js services build complete."
-
-## clean-nodejs: Clean Node.js build artifacts and node_modules
-.PHONY: clean-nodejs
-clean-nodejs:
-	@echo "Cleaning Node.js artifacts..."
-	@for service in $(NODEJS_SERVICES); do \
-		if [ -d "$$service" ]; then \
-			echo "Cleaning $$service..."; \
-			rm -rf "$$service/node_modules" "$$service/dist" "$$service/.next" "$$service/build"; \
-		fi; \
-	done
-	@echo "Node.js cleanup complete."
-
-## build-embedded: Build embedded service binaries
-.PHONY: build-embedded
-build-embedded:
-	@echo "Building embedded service binaries..."
-	@for service in $(EMBEDDED_SERVICES); do \
-		if [ -d "$$service" ]; then \
-			echo "Building $$service binary..."; \
-			if [ -f "$$service/Makefile" ]; then \
-				(cd "$$service" && make build); \
-			elif [ -f "$$service/go.mod" ]; then \
-				(cd "$$service" && go build -o bin/$${service} ./cmd/...); \
-			else \
-				echo "No build method found for $$service"; \
-			fi; \
-		fi; \
-	done
-	@echo "Embedded services build complete."
-
-# Target to build network-monitor binary first (optional, fallback to embedded)
-build-network-monitor:
-	@echo "Attempting to build network-monitor binary..."
-	@mkdir -p bin
-	@if [ -d "network-monitor" ] && [ -f "network-monitor/go.mod" ]; then \
-		echo "Building local network-monitor..."; \
-		(cd network-monitor && go build -o ../bin/knirv-network-monitor ./cmd/monitor) && \
-		echo "Network-monitor binary built successfully."; \
-	elif cd ../network-monitor 2>/dev/null && go build -o ../KNIRVCHAIN/bin/knirv-network-monitor ./cmd/monitor 2>/dev/null; then \
-		echo "Network-monitor binary built successfully from parent directory."; \
-	else \
-		echo "Network-monitor binary build failed, will use embedded monitor instead."; \
-	fi
-
 # Target to run the cross-compilation script
-build-binaries: build-embedded build-nodejs-services build-network-monitor
+build-binaries:
 	@echo "Starting cross-compilation for $(APP_NAME) version $(VERSION)..."
 	@echo "NO_WEBVIEW flag is set to: $(NO_WEBVIEW)"
 	@VERSION=$(VERSION) BINARY_NAME=$(APP_NAME) NO_WEBVIEW=$(NO_WEBVIEW) ./scripts/cross-compile.sh
@@ -268,7 +187,7 @@ upload-release-public: package-release
     fi
 	
 	@echo "Setting up public repository..."
-	@PUBLIC_REPO_DIR="/home/gperry/Documents/GitHub/cloud-equities/KNIRVORACLE_PUBLIC"
+	@PUBLIC_REPO_DIR="/home/gperry/Documents/GitHub/KNIRV/_PUBLIC"
 	@mkdir -p "$$PUBLIC_REPO_DIR"
 	
 	@echo "Checking if public repo is a git repository..."
@@ -415,7 +334,7 @@ upgradeable:
 # DEVELOPMENT
 # ==================================================================================== #
 
-OUTPUT_DIR := /tmp/bin
+OUTPUT_DIR := ./bin
 
 ## docs: generate documentation from docs/ folder into documentation/docsify folder
 .PHONY: docs
@@ -453,28 +372,28 @@ cleanup-test:
 
 ## build: build the application (default client role) and generate documentation
 .PHONY: build
-build: docs build-embedded build-nodejs-services build-network-monitor
+build: 
 	@echo "Building $(APP_NAME) for host OS (client role)..."
 	@mkdir -p ${OUTPUT_DIR} # Ensure the output directory exists
 	go build -tags="client testnet no_webview" -o=${OUTPUT_DIR}/${BINARY_NAME} ${MAIN_PACKAGE_PATH}
 
 ## build/root: build the application with root role
 .PHONY: build/root
-build/root: build-embedded build-nodejs-services build-network-monitor
+build/root:
 	@echo "Building $(APP_NAME) for host OS (root role)..."
 	@mkdir -p ${OUTPUT_DIR} # Ensure the output directory exists
 	go build -tags="root testnet no_webview" -o=${OUTPUT_DIR}/${BINARY_NAME}_root ${MAIN_PACKAGE_PATH}
 
 ## build/bootnode: build the application with bootnode role
 .PHONY: build/bootnode
-build/bootnode: build-embedded build-nodejs-services build-network-monitor
+build/bootnode:
 	@echo "Building $(APP_NAME) for host OS (bootnode role)..."
 	@mkdir -p ${OUTPUT_DIR} # Ensure the output directory exists
 	go build -tags=bootnode -o=${OUTPUT_DIR}/${BINARY_NAME}_bootnode ${MAIN_PACKAGE_PATH}
 
 ## build/dev: build the application with developer role
 .PHONY: build/dev
-build/dev: build-embedded build-nodejs-services build-network-monitor
+build/dev:
 	@echo "Building $(APP_NAME) for host OS (developer role)..."
 	@mkdir -p ${OUTPUT_DIR} # Ensure the output directory exists
 	go build -tags=dev -o=${OUTPUT_DIR}/${BINARY_NAME}_dev ${MAIN_PACKAGE_PATH}
@@ -486,7 +405,7 @@ build/all-roles: docs build build/root build/bootnode build/dev
 
 ## build/all: build the application for all target platforms (default client role)
 .PHONY: build/all
-build/all: docs build-embedded build-nodejs-services
+build/all: docs
 	@echo "Building for all target platforms using cross-compile.sh script (client role)..."
 	@echo "Make sees VERSION as: [$(VERSION)]" # This VERSION is the release version
 	@echo "Make sees BINARY_NAME as: [$(BINARY_NAME)]" # This BINARY_NAME is for cross-compile.sh
@@ -495,21 +414,21 @@ build/all: docs build-embedded build-nodejs-services
 
 ## build/all/root: build the application for all target platforms with root role
 .PHONY: build/all/root
-build/all/root: build-embedded build-nodejs-services
+build/all/root:
 	@echo "Building for all target platforms using cross-compile.sh script (root role)..."
 	@VERSION=$(VERSION) BINARY_NAME=$(BINARY_NAME) NODE_ROLE=root bash ./scripts/cross-compile.sh
 	@echo "All builds completed. See ./dist/$(VERSION)/ for output."
 
 ## build/all/bootnode: build the application for all target platforms with bootnode role
 .PHONY: build/all/bootnode
-build/all/bootnode: build-embedded build-nodejs-services
+build/all/bootnode:
 	@echo "Building for all target platforms using cross-compile.sh script (bootnode role)..."
 	@VERSION=$(VERSION) BINARY_NAME=$(BINARY_NAME) NODE_ROLE=bootnode bash ./scripts/cross-compile.sh
 	@echo "All builds completed. See ./dist/$(VERSION)/ for output."
 
 ## build/all/dev: build the application for all target platforms with developer role
 .PHONY: build/all/dev
-build/all/dev: build-embedded build-nodejs-services
+build/all/dev:
 	@echo "Building for all target platforms using cross-compile.sh script (developer role)..."
 	@VERSION=$(VERSION) BINARY_NAME=$(BINARY_NAME) NODE_ROLE=dev bash ./scripts/cross-compile.sh
 	@echo "All builds completed. See ./dist/$(VERSION)/ for output."
@@ -554,7 +473,7 @@ run: build
 .PHONY: run/live
 run/live:
 	go run github.com/cosmtrek/air@v1.43.0 \
-	--build.cmd "make build" --build.bin "/tmp/bin/${BINARY_NAME}" --build.delay "100" \
+	--build.cmd "make build" --build.bin "${OUTPUT_DIR}/${BINARY_NAME}" --build.delay "100" \
 	--build.exclude_dir "" \
 	--build.include_ext "go, tpl, tmpl, html, css, scss, js, ts, sql, jpeg, jpg, gif, png, bmp, svg, webp, ico" \
 	--misc.clean_on_exit "true"
@@ -715,7 +634,7 @@ release-public:
 	@echo "--------------------------------------------------"
 	@echo "Release $(VERSION) has been uploaded to both private and public repositories."
 	@echo "Private repo: $(shell git remote get-url origin)"
-	@echo "Public repo: /home/gperry/Documents/GitHub/cloud-equities/KNIRVORACLE_PUBLIC"
+	@echo "Public repo: /home/gperry/Documents/GitHub/KNIRV/_PUBLIC"
 
 release-micro:
 	$(call RELEASE_WORKFLOW,micro)
@@ -792,7 +711,7 @@ force-release-micro-public:
 	
 	@echo "--------------------------------------------------"
 	@echo "Release $$(_NEW_VERSION) has been built and uploaded to the public repository."
-	@echo "Public repo: /home/gperry/Documents/GitHub/cloud-equities/KNIRVORACLE_PUBLIC"
+	@echo "Public repo: /home/gperry/Documents/GitHub/KNIRV/_PUBLIC"
 
 ## force-release-micro-nowebview: Create a micro release without WebView dependencies
 .PHONY: force-release-micro-nowebview
@@ -859,4 +778,4 @@ force-release-micro-nowebview-public:
 	\
 	echo "--------------------------------------------------"; \
 	echo "Release $$NEW_VERSION (NoWebView) has been built and uploaded to the public repository."; \
-	echo "Public repo: /home/gperry/Documents/GitHub/cloud-equities/KNIRVORACLE_PUBLIC"
+	echo "Public repo: /home/gperry/Documents/GitHub/KNIRV/_PUBLIC"

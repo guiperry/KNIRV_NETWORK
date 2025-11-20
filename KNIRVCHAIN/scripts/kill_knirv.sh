@@ -18,7 +18,7 @@ find_processes() {
     echo -e "${YELLOW}Searching for KNIRVCHAIN processes...${NC}"
 
     # Find by name/command line arguments
-    local pids_name=$(pgrep -f "KNIRVCHAIN|go run \.|KNIRVORACLE_GO_Root") # Added more specific patterns
+    local pids_name=$(pgrep -f "KNIRVCHAIN|go run \.|_GO_Root") # Added more specific patterns
 
     # Find by working directory (assuming script is run from project root)
     local pids_dir=$(pgrep -a -f "go run \." | grep "$(pwd)" | awk '{print $1}')

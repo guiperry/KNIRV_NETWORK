@@ -75,7 +75,7 @@
     - name: Add new instance to host group
       when: ec2_result.instances | length > 0
       ansible.builtin.add_host:
-        name: "KNIRVORACLE_bootnode_host"
+        name: "_bootnode_host"
         ansible_host: "{{ eip_result.public_ip if eip_result.public_ip is defined else ec2_result.instances[0].public_ip_address }}"
         ansible_user: "{{ ansible_ssh_user }}"
         ansible_ssh_private_key_file: "~/.ssh/{{ key_pair_name }}.pem" # Path to your local private key
@@ -93,18 +93,18 @@
         msg: "Bootnode Public IP: {{ eip_result.public_ip if eip_result.public_ip is defined else ec2_result.instances[0].public_ip_address }}"
 
 - name: Configure KNIRVCHAIN Bootnode Software
-  hosts: KNIRVORACLE_bootnode_host # Target the dynamically added host
+  hosts: _bootnode_host # Target the dynamically added host
   become: true # Most tasks require sudo
   vars:
-    KNIRVORACLE_executable_local_path: "/path/to/your/local/KNIRVORACLE_executable" # CHANGE THIS
-    KNIRVORACLE_config_local_path: "/path/to/your/local/bootnode_config.json"     # CHANGE THIS
-    KNIRVORACLE_wallet_local_path: "/path/to/your/local/wallet.dat"           # CHANGE THIS
-    KNIRVORACLE_master_wallet_local_path: "/path/to/your/local/master_wallet.dat" # CHANGE THIS
+    _executable_local_path: "/path/to/your/local/_executable" # CHANGE THIS
+    _config_local_path: "/path/to/your/local/bootnode_config.json"     # CHANGE THIS
+    _wallet_local_path: "/path/to/your/local/wallet.dat"           # CHANGE THIS
+    _master_wallet_local_path: "/path/to/your/local/master_wallet.dat" # CHANGE THIS
 
     remote_user: "{{ ansible_user }}" # e.g., 'ubuntu'
-    remote_KNIRVORACLE_bin_dir: "/opt/KNIRVCHAIN"
-    remote_KNIRVORACLE_app_config_dir: "/home/{{ remote_user }}/.config/KNIRVCHAIN"
-    remote_KNIRVORACLE_data_dir_base: "/home/{{ remote_user }}/.config/KNIRVCHAIN/data" # Base for data, actual path might include ChainID
+    remote__bin_dir: "/opt/KNIRVCHAIN"
+    remote__app_config_dir: "/home/{{ remote_user }}/.config/KNIRVCHAIN"
+    remote__data_dir_base: "/home/{{ remote_user }}/.config/KNIRVCHAIN/data" # Base for data, actual path might include ChainID
     service_name: "KNIRVCHAIN-bootnode"
 
   tasks:
@@ -122,13 +122,13 @@
 
     - name: Create KNIRVCHAIN binary directory
       ansible.builtin.file:
-        path: "{{ remote_KNIRVORACLE_bin_dir }}"
+        path: "{{ remote__bin_dir }}"
         state: directory
         mode: '0755'
 
     - name: Create KNIRVCHAIN application config directory
       ansible.builtin.file:
-        path: "{{ remote_KNIRVORACLE_app_config_dir }}"
+        path: "{{ remote__app_config_dir }}"
         state: directory
         owner: "{{ remote_user }}"
         group: "{{ remote_user }}"
@@ -136,7 +136,7 @@
 
     - name: Create KNIRVCHAIN application data base directory
       ansible.builtin.file:
-        path: "{{ remote_KNIRVORACLE_data_dir_base }}"
+        path: "{{ remote__data_dir_base }}"
         state: directory
         owner: "{{ remote_user }}"
         group: "{{ remote_user }}"
@@ -144,30 +144,30 @@
 
     - name: Copy KNIRVCHAIN executable
       ansible.builtin.copy:
-        src: "{{ KNIRVORACLE_executable_local_path }}"
-        dest: "{{ remote_KNIRVORACLE_bin_dir }}/KNIRVORACLE_executable"
+        src: "{{ _executable_local_path }}"
+        dest: "{{ remote__bin_dir }}/_executable"
         mode: '0755'
 
     - name: Copy KNIRVCHAIN config.json for bootnode
       ansible.builtin.copy:
-        src: "{{ KNIRVORACLE_config_local_path }}"
-        dest: "{{ remote_KNIRVORACLE_app_config_dir }}/config.json"
+        src: "{{ _config_local_path }}"
+        dest: "{{ remote__app_config_dir }}/config.json"
         owner: "{{ remote_user }}"
         group: "{{ remote_user }}"
         mode: '0640'
 
     - name: Copy KNIRVCHAIN wallet.dat
       ansible.builtin.copy:
-        src: "{{ KNIRVORACLE_wallet_local_path }}"
-        dest: "{{ remote_KNIRVORACLE_app_config_dir }}/wallet.dat"
+        src: "{{ _wallet_local_path }}"
+        dest: "{{ remote__app_config_dir }}/wallet.dat"
         owner: "{{ remote_user }}"
         group: "{{ remote_user }}"
         mode: '0600' # Restrict access
 
     - name: Copy KNIRVCHAIN master_wallet.dat
       ansible.builtin.copy:
-        src: "{{ KNIRVORACLE_master_wallet_local_path }}"
-        dest: "{{ remote_KNIRVORACLE_app_config_dir }}/master_wallet.dat"
+        src: "{{ _master_wallet_local_path }}"
+        dest: "{{ remote__app_config_dir }}/master_wallet.dat"
         owner: "{{ remote_user }}"
         group: "{{ remote_user }}"
         mode: '0600' # Restrict access

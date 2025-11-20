@@ -9,8 +9,6 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-
-	"KNIRVCHAIN/economics"
 )
 
 // XIONNetworkMonitorDemo demonstrates integration with existing KNIRV Network Monitor
@@ -130,11 +128,9 @@ func loadNetworkMonitorConfig() (*NetworkMonitorConfig, error) {
 	return &config, nil
 }
 
-// initializeEconomicsAPI initializes the economics API
-func initializeEconomicsAPI() *economics.EconomicsAPI {
-	log.Println("🔧 Initializing Economics API...")
-	// In a real implementation, this would initialize the actual economics API
-	// For demo purposes, we'll return nil
+// initializeEconomicsAPI initializes the economics API (stub - moved elsewhere)
+func initializeEconomicsAPI() interface{} {
+	log.Println("🔧 Economics API moved elsewhere - using stub...")
 	return nil
 }
 
@@ -152,7 +148,7 @@ func initializeXIONPaymentGateway(config *NetworkMonitorConfig) (*XIONPaymentGat
 // initializeXIONIntegrationService initializes the integration service
 func initializeXIONIntegrationService(
 	config *NetworkMonitorConfig,
-	economicsAPI *economics.EconomicsAPI,
+	economicsAPI interface{},
 	paymentGateway *XIONPaymentGateway,
 ) (*XIONIntegrationService, error) {
 	log.Println("🔧 Initializing XION Integration Service...")

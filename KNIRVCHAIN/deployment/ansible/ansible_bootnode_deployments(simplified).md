@@ -12,7 +12,7 @@ The playbook will consist of two plays:
 
 ## Assumptions
 
-*   Your `KNIRVORACLE_executable` has a non-interactive installation mode for setting up a bootnode.  For example: `./KNIRVORACLE_executable install --role bootnode --non-interactive` (The exact command might differ based on your application's CLI).
+*   Your `_executable` has a non-interactive installation mode for setting up a bootnode.  For example: `./_executable install --role bootnode --non-interactive` (The exact command might differ based on your application's CLI).
 *   This installer, when run, correctly:
     *   Creates `~/.config/KNIRVCHAIN/` (or the equivalent path for the user the service will run as).
     *   Generates `config.json` with bootnode-specific settings.
@@ -25,11 +25,11 @@ The playbook will consist of two plays:
 ```yaml
   become: true # Most tasks require sudo
   vars:
-    KNIRVORACLE_executable_local_path: "/path/to/your/local/KNIRVORACLE_executable" # CHANGE THIS
+    _executable_local_path: "/path/to/your/local/_executable" # CHANGE THIS
 
     remote_user: "{{ ansible_user }}" # e.g., 'ubuntu'
-    remote_KNIRVORACLE_bin_dir: "/opt/KNIRVCHAIN"
-    # The installer within KNIRVORACLE_executable is expected to create user-specific config/data dirs
+    remote__bin_dir: "/opt/KNIRVCHAIN"
+    # The installer within _executable is expected to create user-specific config/data dirs
     # e.g., /home/{{ remote_user }}/.config/KNIRVCHAIN
     service_name: "KNIRVCHAIN-bootnode"
 
@@ -39,13 +39,13 @@ The playbook will consist of two plays:
 
     - name: Copy KNIRVCHAIN executable
       ansible.builtin.copy:
-        src: "{{ KNIRVORACLE_executable_local_path }}"
-        dest: "{{ remote_KNIRVORACLE_bin_dir }}/KNIRVORACLE_executable"
+        src: "{{ _executable_local_path }}"
+        dest: "{{ remote__bin_dir }}/_executable"
         mode: '0755'
 
     - name: Run KNIRVCHAIN installer to set up bootnode
       ansible.builtin.command:
-        cmd: "{{ remote_KNIRVORACLE_bin_dir }}/KNIRVORACLE_executable install --role bootnode --non-interactive"
+        cmd: "{{ remote__bin_dir }}/_executable install --role bootnode --non-interactive"
         # Add other necessary flags for your installer if needed
         # e.g., --user {{ remote_user }} if installer needs to know the target user
       args:
@@ -69,8 +69,8 @@ The playbook will consist of two plays:
 
 ### Explanation of Changes:
 
-*   **Removed Vars:** `KNIRVORACLE_config_local_path`, `KNIRVORACLE_wallet_local_path`, `KNIRVORACLE_master_wallet_local_path` are removed as the installer will generate these.
-*   **Removed Directory Creation:** Tasks for creating `remote_KNIRVORACLE_app_config_dir` and `remote_KNIRVORACLE_data_dir_base` are removed, assuming your installer handles this under the user's home directory (e.g., `/home/ubuntu/.config/KNIRVCHAIN`).
+*   **Removed Vars:** `_config_local_path`, `_wallet_local_path`, `_master_wallet_local_path` are removed as the installer will generate these.
+*   **Removed Directory Creation:** Tasks for creating `remote__app_config_dir` and `remote__data_dir_base` are removed, assuming your installer handles this under the user's home directory (e.g., `/home/ubuntu/.config/KNIRVCHAIN`).
 *   **Removed File Copying:** Tasks for copying `config.json`, `wallet.dat`, and `master_wallet.dat` are removed.
 *   **Removed Systemd Template:** The task using `ansible.builtin.template` to create the systemd service file is removed.
 *   **Added Installer Command:** A new task `Run KNIRVCHAIN installer to set up bootnode` is added.
@@ -143,5 +143,5 @@ Payment Processor --(Webhook POST)--> API Gateway --> Lambda Function
                                                             - ansible-playbook deploy_bootnode_aws.yaml --extra-vars "customer_tag=$1"
 ```
 
-This simplified Ansible playbook, combined with a webhook-triggered mechanism, will give you a powerful automated deployment system for your bootnodes. Remember to thoroughly test your `KNIRVORACLE_executable`'s installer to ensure it behaves as expected in a non-interactive, automated context.
+This simplified Ansible playbook, combined with a webhook-triggered mechanism, will give you a powerful automated deployment system for your bootnodes. Remember to thoroughly test your `_executable`'s installer to ensure it behaves as expected in a non-interactive, automated context.
 ```

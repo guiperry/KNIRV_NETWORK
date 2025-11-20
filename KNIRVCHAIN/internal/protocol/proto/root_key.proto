@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package KNIRVCHAIN;
 
-option go_package = "./;proto";
+option go_package = "KNIRVCHAIN/internal/protocol/proto";
 
 message RootKeyFileContentProto {
   string stripe_secret_key = 1;

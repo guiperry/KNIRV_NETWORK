@@ -89,7 +89,7 @@ func StartTestNodeWithDB(port int, minerAddress string, dbPath string, extraArgs
 	}
 
 	// Set the working directory to the project root
-	projectRoot := os.Getenv("KNIRVORACLE_PROJECT_ROOT")
+	projectRoot := os.Getenv("_PROJECT_ROOT")
 	if projectRoot == "" {
 		// Fall back to the current directory if environment variable is not set
 		var err error

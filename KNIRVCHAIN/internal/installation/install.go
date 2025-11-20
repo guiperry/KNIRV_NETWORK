@@ -1511,7 +1511,7 @@ func checkWindowsAdminPrivileges() (bool, error) {
 	}
 
 	// Create a test file in a protected directory
-	testFile := "C:\\Windows\\Temp\\KNIRVORACLE_admin_test.tmp"
+	testFile := "C:\\Windows\\Temp\\_admin_test.tmp"
 	err := os.WriteFile(testFile, []byte("test"), 0644)
 	if err == nil {
 		// Clean up the test file

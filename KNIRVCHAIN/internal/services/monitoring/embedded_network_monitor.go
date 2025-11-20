@@ -68,8 +68,8 @@ func (enm *EmbeddedNetworkMonitor) initializeTestnetServices() {
 
 	// Define testnet services to monitor
 	testnetServices := map[string]string{
-		"knirvchain":  "http://localhost:1317/health",
-		"knirvchain":  "http://localhost:8080/health",
+		"knirvoracle":  "http://localhost:1317/health",
+		"knirvchain": "http://localhost:8080/health",
 		"knirvgraph":  "http://localhost:8081/health",
 		"knirvnexus":  "http://localhost:8082/health",
 		"knirvrouter": "http://localhost:8086/api/connectivity/status",

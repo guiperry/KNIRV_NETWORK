@@ -14,9 +14,4 @@ func init() {
 
 	// Set the node role to Client
 	nodeRole = config.RoleClient
-
-	// Enable terminal UI by default for client nodes
-	useTerminalUI = true
-
-	log.Println("Client mode: Terminal UI enabled by default")
 }

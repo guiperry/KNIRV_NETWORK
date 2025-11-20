@@ -29,8 +29,7 @@ import (
 	"KNIRVCHAIN/internal/errors"
 	"KNIRVCHAIN/internal/inference"
 	"KNIRVCHAIN/internal/inference/agentify"
-	"KNIRVCHAIN/internal/protocol"
-	"KNIRVCHAIN/internal/services"
+	"KNIRVCHAIN/internal/network"
 
 	"github.com/joho/godotenv"
 	provider "github.com/mouuff/go-rocket-update/pkg/provider"
@@ -40,7 +39,6 @@ import (
 	// Local package imports for types used in the code
 
 	"KNIRVCHAIN/internal/services/monitoring"
-	"KNIRVCHAIN/internal/services/nodejs"
 	"KNIRVCHAIN/internal/utils"
 )
 
@@ -54,9 +52,6 @@ var mainChromemManager sync.Map
 // Global variables for agent mode components
 var globalAgentInferencer *agentify.AgentInferencer
 var globalInferenceService *inference.InferenceService
-
-// Global network monitor manager
-var globalNetworkMonitorManager *monitoring.NetworkMonitorManager
 
 // Missing type definitions for main.go
 type LevelDB struct {
@@ -159,7 +154,7 @@ func (wm *WalletManager) SaveMasterWallet(wallet *Wallet, role interface{}) erro
 }
 
 // Missing function definitions
-func fetchAndStorePublicIPInfo(cfg interface{}, role interface{}) error {
+func fetchAndStorePublicIPInfo(_ interface{}, _ interface{}) error {
 	return fmt.Errorf("fetchAndStorePublicIPInfo not implemented")
 }
 
@@ -267,7 +262,7 @@ func NewBlockchain(genesisBlock interface{}, chainID, minersAddress string, db *
 	return &BlockchainStruct{ChainID: chainID}, nil
 }
 
-func initPaymentProcessor(config interface{}, db *LevelDB, role interface{}) (*PaymentProcessor, error) {
+func initPaymentProcessor(_ interface{}, _ *LevelDB, _ interface{}) (*PaymentProcessor, error) {
 	return &PaymentProcessor{}, nil
 }
 
@@ -353,7 +348,7 @@ func (ei *EconomicsIntegration) StopLocalEconomicsService() {
 	// Placeholder
 }
 
-func initEconomicsIntegration(cfg interface{}) (*EconomicsIntegration, error) {
+func initEconomicsIntegration(_ interface{}) (*EconomicsIntegration, error) {
 	return &EconomicsIntegration{}, nil
 }
 
@@ -370,9 +365,9 @@ func getKeys(m map[string]interface{}) []string {
 	return keys
 }
 
-// convertRelayConfig converts config.RelayConfig to protocol.RelayConfig
-func convertRelayConfig(cfg config.RelayConfig) protocol.RelayConfig {
-	return protocol.RelayConfig{
+// convertRelayConfig converts config.RelayConfig to network.RelayConfig
+func convertRelayConfig(cfg config.RelayConfig) network.RelayConfig {
+	return network.RelayConfig{
 		Enabled:            cfg.Enabled,
 		Resources:          cfg.Resources,
 		AdvertiseInterval:  cfg.AdvertiseInterval,
@@ -387,8 +382,8 @@ var AppVersion = "dev" // Default if not set by ldflags
 
 // Constants for go-rocket-update
 const (
-	GitHubRepoOwner = "guiperry"   // Replace with your GitHub username or organization
-	GitHubRepoName  = "KNIRVCHAIN" // Replace with your GitHub repository name
+	GitHubRepoOwner = "KNIRV"      // Replace with your GitHub username or organization
+	GitHubRepoName  = "KNIRV_NETWORK" // Replace with your GitHub repository name
 )
 
 // UpdateManifest structure (example from your server) - This might not be directly used by go-rocket-update if fetching from GitHub releases
@@ -465,7 +460,9 @@ func fetchUpdateManifestFromServer() (*updater.UpdateStatus, error) {
 	canUpdate, err := u.CanUpdate()
 	if err != nil {
 		// Enhanced debugging for GitHub provider
+		log.Printf("Updater: Debug - BackendProvider type: %T", secureProvider.BackendProvider)
 		if ghProvider, ok := secureProvider.BackendProvider.(*provider.Github); ok {
+			log.Printf("Updater: Debug - Cast to *provider.Github successful")
 			// Get raw response
 			resp, errGet := ghProvider.GetLatestVersion()
 			if errGet == nil {
@@ -492,10 +489,16 @@ func fetchUpdateManifestFromServer() (*updater.UpdateStatus, error) {
 						if tags, ok := v["tags"].([]interface{}); ok {
 							log.Printf("Updater: Debug - Found tags array with %d elements", len(tags))
 						}
+						// Check if it's an error response
+						if message, ok := v["message"].(string); ok {
+							log.Printf("Updater: Debug - GitHub API error message: %s", message)
+						}
 					}
 				} else {
 					log.Printf("Updater: Debug - JSON unmarshal error: %v", jsonErr)
 				}
+			} else {
+				log.Printf("Updater: Debug - GetLatestVersion error: %v", errGet)
 			}
 		}
 
@@ -935,7 +938,7 @@ func main() {
 	} else {
 		// For Root role, skip wallet file operations
 
-		if cfg.MinersAddress == utils.BLOCKCHAIN_ADDRESS || cfg.MinersAddress == "KNIRVORACLE_Faucet" {
+		if cfg.MinersAddress == utils.BLOCKCHAIN_ADDRESS || cfg.MinersAddress == "_Faucet" {
 			log.Printf("Root: Configured MinersAddress ('%s') matches predefined blockchain identity. Using hardcoded private key from constants.go.", cfg.MinersAddress)
 			wallet = NewWalletFromPrivateKeyHex(utils.BLOCKCHAIN_PRIVATE_KEY)
 			if wallet.GetAddress() != utils.BLOCKCHAIN_ADDRESS {
@@ -1805,22 +1808,9 @@ func startNodeWithComponents(
 		log.Printf("[DEBUG] TunnelRegistry Enabled: %v, PaymentGateway Enabled: %v", cfg.NodeJSServices.TunnelRegistry.Enabled, cfg.NodeJSServices.PaymentGateway.Enabled)
 		log.Printf("[DEBUG] OperatorRegistry Enabled: %v, WebGUI Enabled: %v", cfg.NodeJSServices.OperatorRegistry.Enabled, cfg.NodeJSServices.WebGUI.Enabled)
 
-		// 7.2. Embedded Node.js services (new embedded approach)
-		var embeddedNodeJSManager *nodejs.EmbeddedNodeJSManager
-		if (cfg.IsRoot || cfg.IsBootnode) && cfg.NodeJSServices.Enabled {
-			var errEmbeddedNodeJS error
-			embeddedNodeJSManager, errEmbeddedNodeJS = services.InitEmbeddedNodeJSServices(&cfg)
-			if errEmbeddedNodeJS != nil {
-				log.Printf("[%s][%s] ERROR: Failed to initialize embedded Node.js services: %v", cfg.ChainID, nodeRole.String(), errEmbeddedNodeJS)
-			}
-			if embeddedNodeJSManager != nil {
-				defer func() {
-					log.Printf("[%s][%s] Stopping embedded Node.js services...", cfg.ChainID, nodeRole.String())
-					embeddedNodeJSManager.StopAllServices(context.Background())
-					log.Printf("[%s][%s] Embedded Node.js services stopped", cfg.ChainID, nodeRole.String())
-				}()
-			}
-		}
+		// 7.2. Embedded Node.js services (new embedded approach) - DISABLED
+		// Node.js services have been moved to separate components
+		log.Printf("[%s][%s] Node.js services moved to separate components - skipping embedded initialization", cfg.ChainID, nodeRole.String())
 
 		// Blockchain HTTP Server
 		blockchainSrv := NewBlockchainServer(uint64(cfg.Port), bc, db, discoveryMgr, int(cfg.P2PPort))

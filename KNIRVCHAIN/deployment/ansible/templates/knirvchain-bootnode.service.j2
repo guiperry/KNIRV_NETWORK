@@ -5,10 +5,10 @@ After=network.target
 [Service]
 User={{ remote_user }}
 Group={{ remote_user }}
-WorkingDirectory=/home/{{ remote_user }} # Or {{ remote_KNIRVORACLE_bin_dir }}
-ExecStart={{ remote_KNIRVORACLE_bin_dir }}/KNIRVORACLE_executable --bootnode
+WorkingDirectory=/home/{{ remote_user }} # Or {{ remote__bin_dir }}
+ExecStart={{ remote__bin_dir }}/_executable --bootnode
 # If your application needs a specific config path when run as a service:
-# ExecStart={{ remote_KNIRVORACLE_bin_dir }}/KNIRVORACLE_executable --bootnode --config {{ remote_KNIRVORACLE_app_config_dir }}/config.json
+# ExecStart={{ remote__bin_dir }}/_executable --bootnode --config {{ remote__app_config_dir }}/config.json
 
 Restart=always
 RestartSec=5

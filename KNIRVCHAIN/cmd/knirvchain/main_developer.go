@@ -14,9 +14,4 @@ func init() {
 
 	// Set the node role to Peer (Developer)
 	nodeRole = config.RolePeer
-
-	// Enable terminal UI by default for developer nodes
-	useTerminalUI = true
-
-	log.Println("Developer mode: Terminal UI enabled by default")
 }

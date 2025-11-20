@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use num_bigint::BigInt;
 use tokio::time::interval;
-use tracing::{info, error, warn};
+use tracing::{info, error};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EconomicRules {
@@ -129,8 +129,8 @@ pub struct ServiceEconomics {
 
 #[derive(Debug)]
 pub struct TokenEconomics {
-    nrn_contract: String,
-    xion_rpc: String,
+    _nrn_contract: String,
+    _xion_rpc: String,
     economic_rules: EconomicRules,
     transaction_pool: Arc<Mutex<TransactionPool>>,
     reward_calculator: Arc<Mutex<RewardCalculator>>,
@@ -141,8 +141,8 @@ pub struct TokenEconomics {
 impl TokenEconomics {
     pub fn new(nrn_contract: String, xion_rpc: String) -> Self {
         Self {
-            nrn_contract,
-            xion_rpc,
+            _nrn_contract: nrn_contract,
+            _xion_rpc: xion_rpc,
             economic_rules: Self::new_default_economic_rules(),
             transaction_pool: Arc::new(Mutex::new(Self::new_transaction_pool())),
             reward_calculator: Arc::new(Mutex::new(Self::new_reward_calculator())),
@@ -361,7 +361,7 @@ impl TokenEconomics {
         }
 
         let base_reward = &self.economic_rules.validation_reward;
-        let final_reward = if let Ok(calc) = self.reward_calculator.lock() {
+        let final_reward = if let Ok(_calc) = self.reward_calculator.lock() {
             self.calculate_reward(validator_id, "validation", base_reward)
         } else {
             base_reward.clone()
@@ -561,7 +561,7 @@ impl TokenEconomics {
         }
     }
 
-    fn calculate_reward(&self, user_id: &str, reward_type: &str, base_amount: &BigInt) -> BigInt {
+    fn calculate_reward(&self, user_id: &str, _reward_type: &str, base_amount: &BigInt) -> BigInt {
         let multiplier = if let Ok(calc) = self.reward_calculator.lock() {
             if let Some(metrics) = calc.performance_data.get(user_id) {
                 let mut mult = 1.0;

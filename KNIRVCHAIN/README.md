@@ -28,6 +28,50 @@
 KNIRVCHAIN is a blockchain-based platform designed to facilitate a transparent, verifiable, and monetizable ecosystem for AI capabilities. It implements the Model Context Protocol (MCP), allowing various AI-related functionalities (Tools, Prompts, Plugins, Memory Services) to be registered, discovered, invoked, and audited on-chain. Each interaction with an MCP capability results in a blockchain transaction, creating an immutable record and potentially involving NRN token fees.
 
 
+## LLM Rooting Feature
+
+KNIRVCHAIN now includes a specialized **LLM Rooting Blockchain (LRBC)** feature that establishes immutable and verifiable records of Large Language Model (LLM) metadata and their associated access URLs. This provides a trustless mechanism for discovering and interacting with LLM APIs.
+
+### Key Components
+
+* **Chain-Minted URLs (CMUs):** Deterministic, human-readable identifiers for LLM resources (format: `knirv://[NetworkID]/[ModelHash]`)
+* **LLM Rooting Transactions:** Blockchain transactions containing model metadata, API endpoints, and ownership information
+* **CMU Resolution:** API endpoints to resolve CMUs to current API endpoints
+* **Immutable Audit Trail:** All LLM registrations and updates are permanently recorded on-chain
+
+### API Endpoints
+
+* `POST /api/v1/root` - Submit new LLM rooting transactions
+* `GET /api/v1/chain/latest` - Retrieve the latest block
+* `GET /api/v1/resolve?cmu=<cmu>` - Resolve a CMU to its API endpoint
+* `GET /api/v1/model/{modelHash}` - Get transaction history for a specific model
+
+### Usage Example
+
+```bash
+# Register a new LLM
+curl -X POST http://localhost:8080/api/v1/root \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model_name": "GPT-4-Turbo",
+    "model_owner": "OpenAI",
+    "api_endpoint": "https://api.openai.com/v1/chat/completions",
+    "metadata_cid": "Qm123456789abcdef",
+    "signature": "owner_signature",
+    "fee": 100
+  }'
+
+# Resolve a CMU
+curl "http://localhost:8080/api/v1/resolve?cmu=knirv://mainnet/a1b2c3d4..."
+```
+
+### Security Features
+
+* **Transaction Integrity:** All transactions are digitally signed
+* **CMU Immutability:** Model hashes are calculated from immutable characteristics
+* **Endpoint Updates:** New transactions can update endpoints while maintaining the same CMU
+* **Ownership Verification:** Only model owners can register or update their models
+
 ## Core Concepts
 
 * **Model Context Protocol (MCP):** A set of standards for defining, discovering, and interacting with AI capabilities. KNIRVCHAIN serves as a decentralized backend for MCP.
@@ -47,7 +91,7 @@ KNIRVCHAIN is a blockchain-based platform designed to facilitate a transparent, 
 * **NRN Tokens:** The native utility token of KNIRVCHAIN, used for paying gas fees for registering and invoking MCP capabilities and compensating capability owners.
 * **KNIRVCHAIN Node:** The core blockchain dev software that maintains the ledger, processes MCP transactions, and exposes an API.
 * **Wallet Server:** A service that helps users create, sign, and submit MCP transactions to the KNIRVCHAIN network.
-* **agent Client (Inference Engine):** An application that interacts with KNIRVCHAIN to discover, download (for plugins), execute, and log the usage of MCP capabilities.
+* **Agent Client (Inference Engine):** An application that interacts with KNIRVCHAIN to discover, download (for plugins), execute, and log the usage of MCP capabilities.
 
 ### Badge System: Skills, Capabilities, and Properties
 
@@ -90,9 +134,7 @@ This three-tier system ensures clear separation between learned skills (competit
     * **Logging Usage:** The client creates an `MCPInvokeCapabilityTransaction` including a `ContextRecord` and NRN `Fee`, submitting it to KNIRVCHAIN.
 
 
-## Phase 7 Testing Infrastructure
-
-### Testing Architecture
+## Testing Architecture
 
 KNIRVCHAIN implements comprehensive testing for the core blockchain and MCP functionality:
 
@@ -113,7 +155,7 @@ go test -v -cover ./...
 #### Integration with Network Tests
 ```bash
 # From project root - run KNIRVCHAIN network integration tests
-cd integration-tests && go test -v -run TestKNIRVORACLE
+cd integration-tests && go test -v -run Test
 
 # Run comprehensive KNIRVCHAIN test suite
 make test-root
@@ -144,6 +186,7 @@ KNIRVCHAIN/
 ## Key Features
 
 * **Decentralized Registry:** Immutable, transparent record of all registered MCP capabilities.
+* **LLM Rooting:** Chain-minted URLs for verifiable LLM API discovery and access.
 * **Verifiable Audit Trail:** `ContextRecord`s provide on-chain proof of all capability interactions.
 * **Monetization:** Capability owners earn NRN tokens for usage.
 * **Plugin Ecosystem:** Allows developers to offer executable functionalities (plugins).
@@ -360,6 +403,13 @@ coordination:
 * **MCP Data Querying:** `GET /mcp/capability/{capability_id}`, `GET /mcp/capabilities`, `GET /mcp/context/{context_id}`, `GET /mcp/capability/{capability_id}/invocations`, `GET /mcp/contexts`
 * **Other Endpoints:** For blockchain status, blocks, NRN balances, etc.
 
+### LLM Rooting Endpoints (`llm_rooting_handlers.go`)
+
+* `POST /api/v1/root` - Submit a new LLM rooting transaction
+* `GET /api/v1/chain/latest` - Retrieve the latest block on the chain
+* `GET /api/v1/resolve?cmu=<cmu>` - Resolve a Chain-Minted URL to its current API endpoint
+* `GET /api/v1/model/{modelHash}` - Retrieve all transaction history for a specific model by its hash
+
 ### Wallet Server (`wallet_server.go`)
 
 * `POST /wallet/mcp/create_register_capability`
@@ -407,8 +457,8 @@ coordination:
 ```bash
 git clone <repository_url>
 cd KNIRVCHAIN
-go build -o KNIRVORACLE_node ./cmd/KNIRVCHAIN/main.go
-./KNIRVORACLE_node --port 8080 --p2p_port 6001
+go build -o _node ./cmd/KNIRVCHAIN/main.go
+./_node --port 8080 --p2p_port 6001
 ```
 
 ```bash

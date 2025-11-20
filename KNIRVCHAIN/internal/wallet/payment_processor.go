@@ -147,7 +147,7 @@ func (pp *PaymentProcessorImpl) calculateTokenAmount(amountReceived float64, cur
 // disburseTokens creates, signs, and broadcasts the KNIRVCHAIN transaction.
 func (pp *PaymentProcessorImpl) disburseTokens(recipientAddress string, amount *big.Int, paymentID string) (string, error) {
 	// 1. Validate Recipient Address
-	if !isValidKNIRVORACLEAddress(recipientAddress) {
+	if !isValidAddress(recipientAddress) {
 		return "", fmt.Errorf("invalid recipient address: %s", recipientAddress)
 	}
 
@@ -309,7 +309,7 @@ func (pp *PaymentProcessorImpl) handleStripeWebhook(w http.ResponseWriter, r *ht
 		metadata, okMeta := object["metadata"].(map[string]interface{})
 		recipientAddress, okAddr := "", false
 		if okMeta {
-			addr, ok := metadata["KNIRVORACLE_address"].(string)
+			addr, ok := metadata["_address"].(string)
 			if ok && addr != "" {
 				recipientAddress = addr
 				okAddr = true
@@ -317,7 +317,7 @@ func (pp *PaymentProcessorImpl) handleStripeWebhook(w http.ResponseWriter, r *ht
 		}
 
 		if !okAddr {
-			log.Printf("ERROR: KNIRVORACLE_address missing in metadata for charge %s", chargeID)
+			log.Printf("ERROR: _address missing in metadata for charge %s", chargeID)
 			// Respond to Stripe but handle internally (e.g., notify admin, maybe refund)
 			fmt.Fprintf(w, "Error: Missing recipient address metadata")
 			return
@@ -386,8 +386,8 @@ func extractPaymentDetails(object map[string]interface{}) (float64, string, erro
 	return amountReceivedFloat, currency, nil
 }
 
-// isValidKNIRVORACLEAddress checks if an address is a valid KNIRVCHAIN address
-func isValidKNIRVORACLEAddress(addr string) bool {
+// isValidAddress checks if an address is a valid KNIRVCHAIN address
+func isValidAddress(addr string) bool {
 	// Implement your specific address validation logic here.
 	// Check length, prefix, checksum, etc.
 	if !strings.HasPrefix(addr, utils.ADDRESS_PREFIX) {
@@ -399,7 +399,7 @@ func isValidKNIRVORACLEAddress(addr string) bool {
 // LoadPaymentProcessorConfig loads the payment processor configuration from environment variables
 func LoadPaymentProcessorConfig(cfg *config.PaymentProcessorConfig) {
 	// Override config with environment variables if provided
-	if nodeRPC := os.Getenv("KNIRVORACLE_NODE_RPC"); nodeRPC != "" {
+	if nodeRPC := os.Getenv("_NODE_RPC"); nodeRPC != "" {
 		cfg.NodeRPC = nodeRPC
 	}
 

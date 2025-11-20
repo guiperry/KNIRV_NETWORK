@@ -171,7 +171,7 @@ echo "Build summary:"
 find "$OUTPUT_DIR/$VERSION" -type f -name "$BINARY_NAME*" | sort
 
 # Clone the dist folder to the external directory
-EXTERNAL_DIR="/home/gperry/Documents/GitHub/cloud-equities/KNIRVORACLE_PUBLIC"
+EXTERNAL_DIR="/home/gperry/Documents/GitHub/cloud-equities/_PUBLIC"
 echo "Copying dist folder to external directory: $EXTERNAL_DIR"
 mkdir -p "$EXTERNAL_DIR"
 rsync -av --delete "$OUTPUT_DIR/" "$EXTERNAL_DIR/build/"

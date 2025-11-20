@@ -10,11 +10,11 @@ const (
 	MINING_REWARD          = 1200 * DECIMAL
 	CURRENCY_NAME          = "NRN"
 	DECIMAL                = 100
-	BLOCKCHAIN_ADDRESS     = "KNIRVORACLEb53c1e30b8a578c091dd40612bfd1433991b4e09"
+	BLOCKCHAIN_ADDRESS     = "b53c1e30b8a578c091dd40612bfd1433991b4e09"
 	BLOCKCHAIN_PRIVATE_KEY = "0x1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a"
 	ADDRESS_PREFIX         = "KNIRVCHAIN"
-	MASTER_WALLET_KEY      = "master_wallet_key"                    // Key for storing/retrieving master wallet
-	WALLET_ENCRYPTION_KEY  = "KNIRVORACLE_wallet_encryption_key_v1" // Key for wallet encryption/decryption
+	MASTER_WALLET_KEY      = "master_wallet_key"         // Key for storing/retrieving master wallet
+	WALLET_ENCRYPTION_KEY  = "_wallet_encryption_key_v1" // Key for wallet encryption/decryption
 	// Timing constants (seconds)
 	PEER_BROADCAST_PAUSE_TIME = 1
 	PEER_PING_PAUSE_TIME      = 60

@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package KNIRVCHAIN;
 
-option go_package = "./;proto"; // Adjust go_package to your project structure
+option go_package = "KNIRVCHAIN/internal/protocol/proto";
 
-import "google/protobuf/struct.proto"; // For map<string, interface{}> equivalent
+import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 
 // Enum for CapabilityType
@@ -37,14 +37,14 @@ message BaseDescriptorProto {
   string version = 5;
   string description = 6;
   uint64 gas_fee_nrn = 7;
-  google.protobuf.Timestamp timestamp = 8; // Using Timestamp for better type safety
-  google.protobuf.Struct custom_metadata = 9; // Maps to map[string]interface{}
+  google.protobuf.Timestamp timestamp = 8;
+  google.protobuf.Struct custom_metadata = 9;
 }
 
 // PluginSchemaDetailProto corresponds to PluginSchemaDetail
 message PluginSchemaDetailProto {
   string summary = 1;
-  google.protobuf.Struct access_info = 2; // Maps to map[string]interface{}
+  google.protobuf.Struct access_info = 2;
   repeated string location_hints = 3;
   string manifest_file = 4;
   string executable_file = 5;
@@ -62,8 +62,8 @@ message ResourceDescriptorProto {
 // ToolDescriptorProto corresponds to ToolDescriptor
 message ToolDescriptorProto {
   BaseDescriptorProto base_descriptor = 1;
-  string input_schema_json = 2;  // Keeping as JSON string as schema can be complex
-  string output_schema_json = 3; // Keeping as JSON string
+  string input_schema_json = 2;
+  string output_schema_json = 3;
   string execution_pointer = 4;
 }
 
@@ -71,13 +71,13 @@ message ToolDescriptorProto {
 message PromptDescriptorProto {
   BaseDescriptorProto base_descriptor = 1;
   string template = 2;
-  string parameters_schema_json = 3; // Keeping as JSON string
+  string parameters_schema_json = 3;
 }
 
 // MemoryServiceDescriptorProto corresponds to MemoryServiceDescriptor
 message MemoryServiceDescriptorProto {
   BaseDescriptorProto base_descriptor = 1;
-  string graph_schema = 2; // Could be a JSON string or a more structured proto
+  string graph_schema = 2;
 }
 
 // Main CapabilityDescriptorProto using oneof
@@ -94,11 +94,9 @@ message CapabilityDescriptorContainerProto {
 message MCPRegisterCapabilityDataProto {
   string capability_id = 1;
   string capability_type = 2;
-  //bytes descriptor_bytes = 3; // Or use the specific CapabilityDescriptorContainerProto
-  CapabilityDescriptorContainerProto capability_descriptor = 3; // If you prefer structured proto
+  CapabilityDescriptorContainerProto capability_descriptor = 3;
   string owner_address = 4;
   uint64 fee = 5;
-  // Add any other fields that are part of this transaction's data
 }
 
 // For transaction data update

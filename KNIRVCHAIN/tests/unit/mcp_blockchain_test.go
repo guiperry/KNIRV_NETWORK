@@ -329,7 +329,7 @@ func TestCapabilityInvocation(t *testing.T) {
 	}
 
 	// Use specific initiator address
-	from := "KNIRVORACLEfdc23d2edefeca228ddaa7efe7a2483db1eef06f"
+	from := "fdc23d2edefeca228ddaa7efe7a2483db1eef06f"
 
 	// Create standard test wallet (address won't match initiator but that's okay)
 	wallet, _ := NewWallet()

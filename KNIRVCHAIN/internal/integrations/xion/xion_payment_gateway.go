@@ -13,8 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"KNIRVCHAIN/economics"
-
 	"github.com/gorilla/mux"
 )
 
@@ -72,13 +70,13 @@ type PaymentRecord struct {
 	ConversionRate  string    `json:"conversion_rate"`
 }
 
-// TreasuryService interface for interacting with KNIRVCHAIN treasury
+// TreasuryService interface for interacting with KNIRVCHAIN treasury (stub - economics moved elsewhere)
 type TreasuryService struct {
-	economicsAPI *economics.EconomicsAPI
+	economicsAPI interface{} // Economics API moved elsewhere
 }
 
 // NewXIONPaymentGateway creates a new XION payment gateway instance
-func NewXIONPaymentGateway(config *XIONGatewayConfig, economicsAPI *economics.EconomicsAPI) *XIONPaymentGateway {
+func NewXIONPaymentGateway(config *XIONGatewayConfig, economicsAPI interface{}) *XIONPaymentGateway {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &XIONPaymentGateway{

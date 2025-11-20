@@ -7,7 +7,7 @@ This Ansible playbook automates the deployment of a KNIRVCHAIN bootnode on Amazo
 
 *   Ansible is installed and configured with AWS credentials (e.g., via environment variables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, or an IAM role).
 *   An existing SSH key pair in AWS is available for accessing the instance.
-*   The KNIRVCHAIN executable (`KNIRVORACLE_executable`) is pre-compiled and available on the Ansible control node.
+*   The KNIRVCHAIN executable (`_executable`) is pre-compiled and available on the Ansible control node.
 *   A `config.json` file specifically configured for a bootnode exists (e.g., `IsBootnode: true`, correct `MinersAddress` and `MasterAddress`).
 *   The corresponding `wallet.dat` and `master_wallet.dat` files for the bootnode exist.
 
@@ -92,7 +92,7 @@ This Ansible playbook automates the deployment of a KNIRVCHAIN bootnode on Amazo
     - name: Add new instance to host group
       when: ec2_result.instances | length > 0
       ansible.builtin.add_host:
-        name: "KNIRVORACLE_bootnode_host"
+        name: "_bootnode_host"
         ansible_host: "{{ eip_result.public_ip if eip_result.public_ip is defined else ec2_result.instances[0].public_ip_address }}"
         ansible_user: "{{ ansible_ssh_user }}"
         ansible_ssh_private_key_file: "~/.ssh/{{ key_pair_name }}.pem" # Path to your local private key
@@ -110,18 +110,18 @@ This Ansible playbook automates the deployment of a KNIRVCHAIN bootnode on Amazo
         msg: "Bootnode Public IP: {{ eip_result.public_ip if eip_result.public_ip is defined else ec2_result.instances[0].public_ip_address }}"
 
 - name: Configure KNIRVCHAIN Bootnode Software
-  hosts: KNIRVORACLE_bootnode_host # Target the dynamically added host
+  hosts: _bootnode_host # Target the dynamically added host
   become: true # Most tasks require sudo
   vars:
-    KNIRVORACLE_executable_local_path: "/path/to/your/local/KNIRVORACLE_executable" # CHANGE THIS
-    KNIRVORACLE_config_local_path: "/path/to/your/local/bootnode_config.json"     # CHANGE THIS
-    KNIRVORACLE_wallet_local_path: "/path/to/your/local/wallet.dat"           # CHANGE THIS
-    KNIRVORACLE_master_wallet_local_path: "/path/to/your/local/master_wallet.dat" # CHANGE THIS
+    _executable_local_path: "/path/to/your/local/_executable" # CHANGE THIS
+    _config_local_path: "/path/to/your/local/bootnode_config.json"     # CHANGE THIS
+    _wallet_local_path: "/path/to/your/local/wallet.dat"           # CHANGE THIS
+    _master_wallet_local_path: "/path/to/your/local/master_wallet.dat" # CHANGE THIS
 
     remote_user: "{{ ansible_ssh_user }}" # e.g., 'ubuntu'
-    remote_KNIRVORACLE_bin_dir: "/opt/KNIRVCHAIN"
-    remote_KNIRVORACLE_app_config_dir: "/home/{{ remote_user }}/.config/KNIRVCHAIN"
-    remote_KNIRVORACLE_data_dir_base: "/home/{{ remote_user }}/.config/KNIRVCHAIN/data" # Base for data, actual path might include ChainID
+    remote__bin_dir: "/opt/KNIRVCHAIN"
+    remote__app_config_dir: "/home/{{ remote_user }}/.config/KNIRVCHAIN"
+    remote__data_dir_base: "/home/{{ remote_user }}/.config/KNIRVCHAIN/data" # Base for data, actual path might include ChainID
     service_name: "KNIRVCHAIN-bootnode"
 
   tasks:
@@ -139,13 +139,13 @@ This Ansible playbook automates the deployment of a KNIRVCHAIN bootnode on Amazo
 
     - name: Create KNIRVCHAIN binary directory
       ansible.builtin.file:
-        path: "{{ remote_KNIRVORACLE_bin_dir }}"
+        path: "{{ remote__bin_dir }}"
         state: directory
         mode: '0755'
 
     - name: Create KNIRVCHAIN application config directory
       ansible.builtin.file:
-        path: "{{ remote_KNIRVORACLE_app_config_dir }}"
+        path: "{{ remote__app_config_dir }}"
         state: directory
         owner: "{{ remote_user }}"
         group: "{{ remote_user }}"
@@ -153,7 +153,7 @@ This Ansible playbook automates the deployment of a KNIRVCHAIN bootnode on Amazo
 
     - name: Create KNIRVCHAIN application data base directory
       ansible.builtin.file:
-        path: "{{ remote_KNIRVORACLE_data_dir_base }}"
+        path: "{{ remote__data_dir_base }}"
         state: directory
         owner: "{{ remote_user }}"
         group: "{{ remote_user }}"
@@ -161,30 +161,30 @@ This Ansible playbook automates the deployment of a KNIRVCHAIN bootnode on Amazo
 
     - name: Copy KNIRVCHAIN executable
       ansible.builtin.copy:
-        src: "{{ KNIRVORACLE_executable_local_path }}"
-        dest: "{{ remote_KNIRVORACLE_bin_dir }}/KNIRVORACLE_executable"
+        src: "{{ _executable_local_path }}"
+        dest: "{{ remote__bin_dir }}/_executable"
         mode: '0755'
 
     - name: Copy KNIRVCHAIN config.json for bootnode
       ansible.builtin.copy:
-        src: "{{ KNIRVORACLE_config_local_path }}"
-        dest: "{{ remote_KNIRVORACLE_app_config_dir }}/config.json"
+        src: "{{ _config_local_path }}"
+        dest: "{{ remote__app_config_dir }}/config.json"
         owner: "{{ remote_user }}"
         group: "{{ remote_user }}"
         mode: '0640'
 
     - name: Copy KNIRVCHAIN wallet.dat
       ansible.builtin.copy:
-        src: "{{ KNIRVORACLE_wallet_local_path }}"
-        dest: "{{ remote_KNIRVORACLE_app_config_dir }}/wallet.dat"
+        src: "{{ _wallet_local_path }}"
+        dest: "{{ remote__app_config_dir }}/wallet.dat"
         owner: "{{ remote_user }}"
         group: "{{ remote_user }}"
         mode: '0600' # Restrict access
 
     - name: Copy KNIRVCHAIN master_wallet.dat
       ansible.builtin.copy:
-        src: "{{ KNIRVORACLE_master_wallet_local_path }}"
-        dest: "{{ remote_KNIRVORACLE_app_config_dir }}/master_wallet.dat"
+        src: "{{ _master_wallet_local_path }}"
+        dest: "{{ remote__app_config_dir }}/master_wallet.dat"
         owner: "{{ remote_user }}"
         group: "{{ remote_user }}"
         mode: '0600' # Restrict access
@@ -234,10 +234,10 @@ After=network.target
 [Service]
 User={{ remote_user }}
 Group={{ remote_user }}
-WorkingDirectory=/home/{{ remote_user }} # Or {{ remote_KNIRVORACLE_bin_dir }}
-ExecStart={{ remote_KNIRVORACLE_bin_dir }}/KNIRVORACLE_executable --bootnode
+WorkingDirectory=/home/{{ remote_user }} # Or {{ remote__bin_dir }}
+ExecStart={{ remote__bin_dir }}/_executable --bootnode
 # If your application needs a specific config path when run as a service:
-# ExecStart={{ remote_KNIRVORACLE_bin_dir }}/KNIRVORACLE_executable --bootnode --config {{ remote_KNIRVORACLE_app_config_dir }}/config.json
+# ExecStart={{ remote__bin_dir }}/_executable --bootnode --config {{ remote__app_config_dir }}/config.json
 
 Restart=always
 RestartSec=5
@@ -256,10 +256,10 @@ WantedBy=multi-user.target
         *   `key_pair_name`
         *   `ami_id` (ensure it's correct for your chosen `aws_region` and desired OS, e.g., Ubuntu 22.04 LTS).
         *   `ansible_ssh_private_key_file` (path to your local `.pem` file).
-        *   `KNIRVORACLE_executable_local_path`
-        *   `KNIRVORACLE_config_local_path`
-        *   `KNIRVORACLE_wallet_local_path`
-        *   `KNIRVORACLE_master_wallet_local_path`
+        *   `_executable_local_path`
+        *   `_config_local_path`
+        *   `_wallet_local_path`
+        *   `_master_wallet_local_path`
 
     *   **In `templates/KNIRVCHAIN-bootnode.service.j2`:**
         *   Review `WorkingDirectory`. The default `WorkingDirectory=/home/{{ remote_user }}` should allow the application to find its config in `~/.config/KNIRVCHAIN/` correctly when run as `{{ remote_user }}`.

@@ -12,18 +12,14 @@ import (
 	"github.com/rs/cors"
 
 	"KNIRVCHAIN/config"
-	"KNIRVCHAIN/internal/services/binary"
-	"KNIRVCHAIN/internal/services/nodejs"
 )
 
 // UnifiedAPI provides a single interface for all Oracle operations
 type UnifiedAPI struct {
-	config        *config.Config
-	server        *http.Server
-	nodeJSManager *nodejs.EmbeddedNodeJSManager
-	binaryManager *binary.EmbeddedBinaryManager
-	router        *mux.Router
-	isRunning     bool
+	config    *config.Config
+	server    *http.Server
+	router    *mux.Router
+	isRunning bool
 }
 
 // ServiceStatus represents the status of a service
@@ -53,13 +49,11 @@ type OracleStatus struct {
 }
 
 // NewUnifiedAPI creates a new unified API instance
-func NewUnifiedAPI(cfg *config.Config, nodeJSMgr *nodejs.EmbeddedNodeJSManager, binaryMgr *binary.EmbeddedBinaryManager) *UnifiedAPI {
+func NewUnifiedAPI(cfg *config.Config) *UnifiedAPI {
 	api := &UnifiedAPI{
-		config:        cfg,
-		nodeJSManager: nodeJSMgr,
-		binaryManager: binaryMgr,
-		router:        mux.NewRouter(),
-		isRunning:     false,
+		config:    cfg,
+		router:    mux.NewRouter(),
+		isRunning: false,
 	}
 
 	api.setupRoutes()
@@ -79,13 +73,8 @@ func (api *UnifiedAPI) setupRoutes() {
 	api.router.HandleFunc("/api/services/{name}/restart", api.handleRestartService).Methods("POST")
 	api.router.HandleFunc("/api/services/{name}/status", api.handleServiceStatus).Methods("GET")
 
-	// Node.js services
-	api.router.HandleFunc("/api/nodejs/services", api.handleNodeJSServices).Methods("GET")
-	api.router.HandleFunc("/api/nodejs/status", api.handleNodeJSStatus).Methods("GET")
-
-	// Binary services
-	api.router.HandleFunc("/api/binary/services", api.handleBinaryServices).Methods("GET")
-	api.router.HandleFunc("/api/binary/status", api.handleBinaryStatus).Methods("GET")
+	// Node.js services (removed - moved elsewhere)
+	// Binary services (removed - moved elsewhere)
 
 	// Tunnel management
 	api.router.HandleFunc("/api/tunnel/status", api.handleTunnelStatus).Methods("GET")
@@ -108,9 +97,7 @@ func (api *UnifiedAPI) setupRoutes() {
 	api.router.HandleFunc("/api/network/status", api.handleNetworkStatus).Methods("GET")
 	api.router.HandleFunc("/api/network/peers", api.handleNetworkPeers).Methods("GET")
 
-	// Economics integration
-	api.router.HandleFunc("/api/economics/status", api.handleEconomicsStatus).Methods("GET")
-	api.router.HandleFunc("/api/economics/metrics", api.handleEconomicsMetrics).Methods("GET")
+	// Economics integration (moved elsewhere)
 
 	// Health check
 	api.router.HandleFunc("/api/health", api.handleHealth).Methods("GET")
@@ -174,44 +161,10 @@ func (api *UnifiedAPI) Stop() error {
 func (api *UnifiedAPI) handleOracleStatus(w http.ResponseWriter, r *http.Request) {
 	var services []ServiceStatus
 
-	// Get Node.js services status
-	if api.nodeJSManager != nil {
-		nodeJSStatuses := api.nodeJSManager.GetServiceStatuses()
-		for _, status := range nodeJSStatuses {
-			services = append(services, ServiceStatus{
-				Name:      status.Name,
-				Type:      "nodejs",
-				Running:   status.Running,
-				Port:      status.Port,
-				PID:       status.PID,
-				StartTime: status.StartTime,
-				Error:     status.Error,
-			})
-		}
-	}
-
-	// Get binary services status
-	if api.binaryManager != nil {
-		binaryStatuses := api.binaryManager.GetServiceStatuses()
-		for _, status := range binaryStatuses {
-			services = append(services, ServiceStatus{
-				Name:      status.Name,
-				Type:      "binary",
-				Running:   status.Running,
-				Port:      status.Port,
-				PID:       status.PID,
-				StartTime: status.StartTime,
-				Error:     status.Error,
-			})
-		}
-	}
+	// Node.js and binary services have been moved elsewhere
+	// Return empty services list
 
 	runningCount := 0
-	for _, service := range services {
-		if service.Running {
-			runningCount++
-		}
-	}
 
 	role := "client"
 	if api.config.IsRoot {
@@ -269,42 +222,14 @@ func (api *UnifiedAPI) handleHealth(w http.ResponseWriter, r *http.Request) {
 func (api *UnifiedAPI) handleListServices(w http.ResponseWriter, r *http.Request) {
 	var services []ServiceStatus
 
-	// Get Node.js services
-	if api.nodeJSManager != nil {
-		nodeJSStatuses := api.nodeJSManager.GetServiceStatuses()
-		for _, status := range nodeJSStatuses {
-			services = append(services, ServiceStatus{
-				Name:      status.Name,
-				Type:      "nodejs",
-				Running:   status.Running,
-				Port:      status.Port,
-				PID:       status.PID,
-				StartTime: status.StartTime,
-				Error:     status.Error,
-			})
-		}
-	}
-
-	// Get binary services
-	if api.binaryManager != nil {
-		binaryStatuses := api.binaryManager.GetServiceStatuses()
-		for _, status := range binaryStatuses {
-			services = append(services, ServiceStatus{
-				Name:      status.Name,
-				Type:      "binary",
-				Running:   status.Running,
-				Port:      status.Port,
-				PID:       status.PID,
-				StartTime: status.StartTime,
-				Error:     status.Error,
-			})
-		}
-	}
+	// Node.js and binary services have been moved elsewhere
+	// Return empty services list
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"services": services,
 		"total":    len(services),
+		"message":  "Services have been moved to separate components",
 	})
 }
 
@@ -313,35 +238,8 @@ func (api *UnifiedAPI) handleStartService(w http.ResponseWriter, r *http.Request
 	vars := mux.Vars(r)
 	serviceName := vars["name"]
 
-	var err error
-
-	// Try Node.js services first
-	if api.nodeJSManager != nil {
-		err = api.nodeJSManager.StartService(serviceName)
-		if err == nil {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{
-				"status":  "success",
-				"message": fmt.Sprintf("Service %s started successfully", serviceName),
-			})
-			return
-		}
-	}
-
-	// Try binary services
-	if api.binaryManager != nil {
-		err = api.binaryManager.StartService(serviceName)
-		if err == nil {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{
-				"status":  "success",
-				"message": fmt.Sprintf("Service %s started successfully", serviceName),
-			})
-			return
-		}
-	}
-
-	http.Error(w, fmt.Sprintf("Failed to start service %s: %v", serviceName, err), http.StatusInternalServerError)
+	// Node.js and binary services have been moved elsewhere
+	http.Error(w, fmt.Sprintf("Service %s management has been moved to separate components", serviceName), http.StatusGone)
 }
 
 // handleStopService stops a specific service
@@ -349,35 +247,8 @@ func (api *UnifiedAPI) handleStopService(w http.ResponseWriter, r *http.Request)
 	vars := mux.Vars(r)
 	serviceName := vars["name"]
 
-	var err error
-
-	// Try Node.js services first
-	if api.nodeJSManager != nil {
-		err = api.nodeJSManager.StopService(serviceName)
-		if err == nil {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{
-				"status":  "success",
-				"message": fmt.Sprintf("Service %s stopped successfully", serviceName),
-			})
-			return
-		}
-	}
-
-	// Try binary services
-	if api.binaryManager != nil {
-		err = api.binaryManager.StopService(serviceName)
-		if err == nil {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{
-				"status":  "success",
-				"message": fmt.Sprintf("Service %s stopped successfully", serviceName),
-			})
-			return
-		}
-	}
-
-	http.Error(w, fmt.Sprintf("Failed to stop service %s: %v", serviceName, err), http.StatusInternalServerError)
+	// Node.js and binary services have been moved elsewhere
+	http.Error(w, fmt.Sprintf("Service %s management has been moved to separate components", serviceName), http.StatusGone)
 }
 
 // handleRestartService restarts a specific service
@@ -385,35 +256,6 @@ func (api *UnifiedAPI) handleRestartService(w http.ResponseWriter, r *http.Reque
 	vars := mux.Vars(r)
 	serviceName := vars["name"]
 
-	var err error
-
-	// Try binary services first (they have restart capability)
-	if api.binaryManager != nil {
-		err = api.binaryManager.RestartService(serviceName)
-		if err == nil {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{
-				"status":  "success",
-				"message": fmt.Sprintf("Service %s restarted successfully", serviceName),
-			})
-			return
-		}
-	}
-
-	// For Node.js services, do stop then start
-	if api.nodeJSManager != nil {
-		if stopErr := api.nodeJSManager.StopService(serviceName); stopErr == nil {
-			time.Sleep(2 * time.Second) // Wait before restart
-			if startErr := api.nodeJSManager.StartService(serviceName); startErr == nil {
-				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(map[string]string{
-					"status":  "success",
-					"message": fmt.Sprintf("Service %s restarted successfully", serviceName),
-				})
-				return
-			}
-		}
-	}
-
-	http.Error(w, fmt.Sprintf("Failed to restart service %s: %v", serviceName, err), http.StatusInternalServerError)
+	// Node.js and binary services have been moved elsewhere
+	http.Error(w, fmt.Sprintf("Service %s management has been moved to separate components", serviceName), http.StatusGone)
 }

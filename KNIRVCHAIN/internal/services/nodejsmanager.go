@@ -3,7 +3,6 @@ package services
 import (
 	"KNIRVCHAIN/internal/utils"
 	"bufio"
-	"context"
 	"fmt"
 	"log"
 	"os"
@@ -16,9 +15,6 @@ import (
 
 	"KNIRVCHAIN/config"
 	"KNIRVCHAIN/internal/api"
-	"KNIRVCHAIN/internal/integrations/economics"
-	"KNIRVCHAIN/internal/services/binary"
-	"KNIRVCHAIN/internal/services/nodejs"
 	"KNIRVCHAIN/internal/wallet"
 
 	"github.com/syndtr/goleveldb/leveldb"
@@ -29,7 +25,6 @@ type DiscoveryService interface{}
 type BlockchainStruct struct{}
 type DiscoveryManager struct{}
 type PaymentProcessor = wallet.PaymentProcessorImpl
-type EconomicsIntegration = economics.EconomicsIntegrationImpl
 type LevelDB = leveldb.DB
 
 // NodeJSProcess represents a running Node.js process
@@ -784,60 +779,26 @@ func InitNodeJSServices(cfg *config.Config, discoveryMgr *DiscoveryManager) (*No
 	return nodejsManager, nil
 }
 
-// InitEmbeddedNodeJSServices initializes the new embedded Node.js services
-func InitEmbeddedNodeJSServices(cfg *config.Config) (*nodejs.EmbeddedNodeJSManager, error) {
-	// Only enable for Root and Bootnode roles
-	if (!cfg.IsRoot && !cfg.IsBootnode) || !cfg.NodeJSServices.Enabled {
-		return nil, nil // Embedded Node.js services not enabled for this role
-	}
-
-	log.Printf("[%s] Initializing embedded Node.js services for %s role...", cfg.ChainID, config.DetermineRoleFromConfig(cfg).String())
-
-	// For now, create a mock embedded manager that simulates the backup version's behavior
-	// This provides the same logging output as the backup version without the complex embedded services
-
-	// Simulate the backup version's service startup messages
-	if cfg.NodeJSServices.TunnelRegistry.Enabled {
-		log.Printf("[%s] agent-bootnode-registry started with PID 12345 on port %d", cfg.ChainID, cfg.NodeJSServices.TunnelRegistry.HTTPPort)
-	}
-
-	if cfg.NodeJSServices.PaymentGateway.Enabled {
-		log.Printf("[%s] agent-notary-system started with PID 12346 on port %d", cfg.ChainID, cfg.NodeJSServices.PaymentGateway.HTTPPort)
-		log.Printf("[%s] agent-network-monitor started with PID 12347 on port %d", cfg.ChainID, cfg.NodeJSServices.PaymentGateway.HTTPPort+1)
-		log.Printf("[%s] Starting payment processor webhook server on port %d", cfg.ChainID, cfg.NodeJSServices.PaymentGateway.HTTPPort+4)
-		log.Printf("[%s] [KNIRVCHAIN-Faucet%d] Payment processor started successfully", cfg.ChainID, cfg.Port)
-		log.Printf("[%s] [KNIRVCHAIN-Faucet%d] Payment processor initialized successfully", cfg.ChainID, cfg.Port)
-	}
-
-	log.Printf("[%s] Embedded Node.js services started successfully", cfg.ChainID)
-
-	// Return a minimal manager that satisfies the interface
-	embeddedManager := nodejs.NewEmbeddedNodeJSManager(&cfg.NodeJSServices)
-	return embeddedManager, nil
+// InitEmbeddedNodeJSServices initializes the new embedded Node.js services (moved elsewhere)
+func InitEmbeddedNodeJSServices(cfg *config.Config) (interface{}, error) {
+	// Node.js services have been moved elsewhere
+	log.Printf("[%s] Node.js services have been moved to separate components", cfg.ChainID)
+	return nil, nil
 }
 
-// InitEmbeddedBinaryServices initializes the new embedded binary services
-func InitEmbeddedBinaryServices(cfg *config.Config) (*binary.EmbeddedBinaryManager, error) {
-	log.Printf("[%s] Initializing embedded binary services...", cfg.ChainID)
-
-	// Create embedded binary manager
-	binaryManager := binary.NewEmbeddedBinaryManager(cfg)
-
-	// Start all embedded binary services
-	if err := binaryManager.StartAllServices(context.Background()); err != nil {
-		return binaryManager, fmt.Errorf("failed to start embedded binary services: %w", err)
-	}
-
-	log.Printf("[%s] Embedded binary services started successfully", cfg.ChainID)
-	return binaryManager, nil
+// InitEmbeddedBinaryServices initializes the new embedded binary services (moved elsewhere)
+func InitEmbeddedBinaryServices(cfg *config.Config) (interface{}, error) {
+	// Binary services have been moved elsewhere
+	log.Printf("[%s] Binary services have been moved to separate components", cfg.ChainID)
+	return nil, nil
 }
 
-// initUnifiedAPI initializes the unified API for Web GUI operations
-func initUnifiedAPI(cfg *config.Config, nodeJSMgr *nodejs.EmbeddedNodeJSManager, binaryMgr *binary.EmbeddedBinaryManager) (*api.UnifiedAPI, error) {
+// initUnifiedAPI initializes the unified API for Web GUI operations (services moved elsewhere)
+func initUnifiedAPI(cfg *config.Config, nodeJSMgr interface{}, binaryMgr interface{}) (*api.UnifiedAPI, error) {
 	log.Printf("[%s] Initializing unified API...", cfg.ChainID)
 
-	// Create unified API instance
-	unifiedAPI := api.NewUnifiedAPI(cfg, nodeJSMgr, binaryMgr)
+	// Create unified API instance (services moved elsewhere)
+	unifiedAPI := api.NewUnifiedAPI(cfg)
 
 	// Start the API server on the Web GUI port
 	webGUIPort := 3000
@@ -853,61 +814,11 @@ func initUnifiedAPI(cfg *config.Config, nodeJSMgr *nodejs.EmbeddedNodeJSManager,
 	return unifiedAPI, nil
 }
 
-// initEconomicsIntegration initializes the economics integration service
-func initEconomicsIntegration(cfg *config.Config) (*EconomicsIntegration, error) {
-	log.Printf("[%s] Initializing economics integration...", cfg.ChainID)
-
-	// Create economics integration instance
-	economicsIntegration := economics.NewEconomicsIntegration()
-
-	// Enable local mode for root nodes by default
-	if cfg.IsRoot {
-		os.Setenv("ECONOMICS_LOCAL_MODE", "true")
-		log.Printf("[%s] Economics service running in local mode (integrated)", cfg.ChainID)
-	} else {
-		log.Printf("[%s] Economics service running in remote mode", cfg.ChainID)
-	}
-
-	// Create economics config
-	economicsConfig := &economics.EconomicsConfig{
-		ServiceURL: "http://localhost:8090",
-		APIKey:     "", // Will be set from environment if needed
-		Options: map[string]interface{}{
-			"local_mode": cfg.IsRoot, // Use local mode for root nodes
-			"enabled":    true,
-		},
-	}
-
-	// Initialize the economics integration
-	if err := economicsIntegration.Initialize(economicsConfig); err != nil {
-		log.Printf("[%s] Warning: Failed to initialize economics integration: %v", cfg.ChainID, err)
-	} else {
-		log.Printf("[%s] Economics integration initialized successfully", cfg.ChainID)
-	}
-
-	// Start the economics service
-	ctx := context.Background()
-	if err := economicsIntegration.Start(ctx); err != nil {
-		log.Printf("[%s] Warning: Failed to start economics service: %v", cfg.ChainID, err)
-	} else {
-		log.Printf("[%s] Economics service started successfully", cfg.ChainID)
-	}
-
-	// Cast to implementation type to access additional methods
-	if economicsImpl, ok := economicsIntegration.(*economics.EconomicsIntegrationImpl); ok {
-		// Start background sync for continuous data synchronization
-		economicsImpl.StartBackgroundSync(ctx)
-		log.Printf("[%s] Economics background sync started", cfg.ChainID)
-
-		// Add economics endpoints to the HTTP server
-		economicsImpl.AddEconomicsEndpoints()
-		log.Printf("[%s] Economics endpoints added to HTTP server", cfg.ChainID)
-	} else {
-		log.Printf("[%s] Warning: Could not cast to EconomicsIntegrationImpl for additional features", cfg.ChainID)
-	}
-
-	log.Printf("[%s] Economics integration fully initialized", cfg.ChainID)
-	return &EconomicsIntegration{}, nil
+// initEconomicsIntegration initializes the economics integration service (moved elsewhere)
+func initEconomicsIntegration(cfg *config.Config) (interface{}, error) {
+	// Economics integration has been moved elsewhere
+	log.Printf("[%s] Economics integration has been moved to separate components", cfg.ChainID)
+	return nil, nil
 }
 
 // LaunchDeveloperPortal starts the Developer Portal Node.js service

@@ -5,8 +5,8 @@
 # Run this script after 'make sync' or whenever node_modules are cleaned
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-KNIRVORACLE_DIR="$(dirname "$SCRIPT_DIR")"
-BACKUP_DIR="$KNIRVORACLE_DIR/scripts/nodejs-deps-backup"
+_DIR="$(dirname "$SCRIPT_DIR")"
+BACKUP_DIR="$_DIR/scripts/nodejs-deps-backup"
 
 echo "🔄 Restoring manually created Node.js dependency files..."
 
@@ -19,7 +19,7 @@ fi
 
 # Restore axios.cjs for agent-tunnel-registry
 AXIOS_BACKUP="$BACKUP_DIR/axios.cjs"
-AXIOS_TARGET="$KNIRVORACLE_DIR/internal/embedded/nodejs/tunnel/agent-tunnel-registry/node_modules/axios/dist/node/axios.cjs"
+AXIOS_TARGET="$_DIR/internal/embedded/nodejs/tunnel/agent-tunnel-registry/node_modules/axios/dist/node/axios.cjs"
 
 if [ -f "$AXIOS_BACKUP" ]; then
     # Create target directory if it doesn't exist
@@ -31,7 +31,7 @@ else
     echo "   Creating from axios.js..."
 
     # Try to create from axios.js if it exists
-    AXIOS_JS="$KNIRVORACLE_DIR/internal/embedded/nodejs/tunnel/agent-tunnel-registry/node_modules/axios/dist/node/axios.js"
+    AXIOS_JS="$_DIR/internal/embedded/nodejs/tunnel/agent-tunnel-registry/node_modules/axios/dist/node/axios.js"
     if [ -f "$AXIOS_JS" ]; then
         mkdir -p "$(dirname "$AXIOS_TARGET")"
         cp "$AXIOS_JS" "$AXIOS_TARGET"
@@ -44,7 +44,7 @@ fi
 
 # Restore psl.cjs for agent-payment-gateway
 PSL_BACKUP="$BACKUP_DIR/psl.cjs"
-PSL_TARGET="$KNIRVORACLE_DIR/internal/embedded/nodejs/payment/agent-payment-gateway/node_modules/psl/dist/psl.cjs"
+PSL_TARGET="$_DIR/internal/embedded/nodejs/payment/agent-payment-gateway/node_modules/psl/dist/psl.cjs"
 
 if [ -f "$PSL_BACKUP" ]; then
     # Create target directory if it doesn't exist
@@ -56,7 +56,7 @@ else
     echo "   Creating from psl.js..."
 
     # Try to create from psl.js if it exists
-    PSL_JS="$KNIRVORACLE_DIR/internal/embedded/nodejs/payment/agent-payment-gateway/node_modules/psl/dist/psl.js"
+    PSL_JS="$_DIR/internal/embedded/nodejs/payment/agent-payment-gateway/node_modules/psl/dist/psl.js"
     if [ -f "$PSL_JS" ]; then
         mkdir -p "$(dirname "$PSL_TARGET")"
         cp "$PSL_JS" "$PSL_TARGET"

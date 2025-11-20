@@ -30,7 +30,7 @@ func TestURIGeneratorHandler_Integration(t *testing.T) {
 	nodeURL := fmt.Sprintf("http://localhost:%d", nodePort)
 
 	// Build the main executable
-	tempBinPath := filepath.Join(tempDir, "KNIRVORACLE_test_app")
+	tempBinPath := filepath.Join(tempDir, "_test_app")
 	buildCmd := exec.Command("go", "build", "-o", tempBinPath, "../")
 	buildOutput, err := buildCmd.CombinedOutput()
 	if err != nil {

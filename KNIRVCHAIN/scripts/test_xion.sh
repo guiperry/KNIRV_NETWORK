@@ -121,13 +121,13 @@ test_build() {
     # Build KNIRVCHAIN with XION integration
     cd "$TEST_DIR"
     
-    if ! go build -o test_knirvoracle .; then
+    if ! go build -o test_ .; then
         error "Failed to build KNIRVCHAIN"
         return 1
     fi
     
     # Clean up build artifacts
-    rm -f test_knirvoracle
+    rm -f test_
     
     success "Build process"
     return 0

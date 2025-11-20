@@ -17,6 +17,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // Placeholder proto type for Transaction
@@ -112,6 +114,52 @@ func NewTransaction(from, to string, value uint64, data []byte, optionalTimestam
 	transaction.TransactionHash = utils.HEX_PREFIX + fmt.Sprintf("%x", hash[:])
 
 	return transaction
+}
+
+// NewLLMRootingTransaction creates a new LLM rooting transaction
+func NewLLMRootingTransaction(from string, llmData LLMRootingData, fee uint64, optionalTimestamp ...int64) (*Transaction, error) {
+	// Generate CMU
+	llmData.CMU = GenerateCMU(llmData, "mainnet")
+
+	// Convert to protobuf
+	protoData := &pb.LLMRootingDataProto{
+		ModelName:   llmData.ModelName,
+		ModelOwner:  llmData.ModelOwner,
+		ApiEndpoint: llmData.APIEndpoint,
+		MetadataCid: llmData.MetadataCID,
+		Cmu:         llmData.CMU,
+	}
+
+	// Serialize the data using protobuf
+	data, err := proto.Marshal(protoData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal LLM rooting data: %w", err)
+	}
+
+	// Use provided timestamp if available, otherwise use current time
+	var timestamp int64
+	if len(optionalTimestamp) > 0 && optionalTimestamp[0] != 0 {
+		timestamp = optionalTimestamp[0]
+	} else {
+		timestamp = time.Now().Unix()
+	}
+
+	// Create transaction
+	tx := &Transaction{
+		From:      from,
+		To:        "", // No recipient for rooting transactions
+		Value:     0,  // No value transfer
+		Data:      data,
+		Timestamp: timestamp,
+		Fee:       fee,
+		Type:      TransactionTypeLLMRooting,
+		Status:    utils.PENDING,
+	}
+
+	// Calculate hash
+	tx.TransactionHash = tx.Hash()
+
+	return tx, nil
 }
 
 // NewMCPTransaction creates a new transaction with MCP-specific fields
@@ -250,9 +298,41 @@ func (t Transaction) VerifyTxn() bool {
 			}
 			// Fall through to signature verification
 
+		case TransactionTypeLLMRooting:
+			var protoData pb.LLMRootingDataProto
+			if err := proto.Unmarshal(t.Data, &protoData); err != nil {
+				log.Printf("[ERROR] VerifyTxn: failed to unmarshal LLMRootingDataProto: %v", err)
+				return false
+			}
+			llmData := LLMRootingData{
+				ModelName:   protoData.ModelName,
+				ModelOwner:  protoData.ModelOwner,
+				APIEndpoint: protoData.ApiEndpoint,
+				MetadataCID: protoData.MetadataCid,
+				CMU:         protoData.Cmu,
+			}
+			// Validate required fields
+			if llmData.ModelName == "" || llmData.ModelOwner == "" ||
+				llmData.APIEndpoint == "" || llmData.MetadataCID == "" {
+				log.Printf("[ERROR] VerifyTxn: missing required fields in LLM rooting data")
+				return false
+			}
+			// Verify CMU is correctly generated
+			expectedCMU := GenerateCMU(llmData, "mainnet")
+			if llmData.CMU != expectedCMU {
+				log.Printf("[ERROR] VerifyTxn: invalid CMU. Expected: %s, Got: %s", expectedCMU, llmData.CMU)
+				return false
+			}
+			// Verify transaction sender matches model owner
+			if t.From != llmData.ModelOwner {
+				log.Printf("[ERROR] VerifyTxn: transaction sender (%s) does not match model owner (%s)", t.From, llmData.ModelOwner)
+				return false
+			}
+			// Fall through to signature verification
+
 		default:
-			// Invalid MCP transaction type
-			log.Printf("[ERROR] VerifyTxn: unknown MCP transaction type: %s", t.Type)
+			// Invalid transaction type
+			log.Printf("[ERROR] VerifyTxn: unknown transaction type: %s", t.Type)
 			return false
 		}
 	}
@@ -632,18 +712,6 @@ func getBaseDescriptorFromInterface(capDescInterface interface{}) (types.BaseDes
 	return types.BaseDescriptor{}, fmt.Errorf("field 'BaseDescriptor' is not of type BaseDescriptor in %T", capDescInterface)
 }
 
-// getCapabilityIDFromDescriptor extracts the ID from various capability types.
-func getCapabilityIDFromDescriptor(capDescInterface interface{}) string {
-	// Similar to GetBaseDescriptorFromInterface, but extracts the ID.
-	// For simplicity, assuming ID is directly in BaseDescriptor.
-	baseDesc, err := getBaseDescriptorFromInterface(capDescInterface)
-	if err != nil {
-		log.Printf("[WARN] getCapabilityIDFromDescriptor: error getting base descriptor: %v", err)
-		return ""
-	}
-	return baseDesc.ID
-}
-
 // protoToBaseDescriptor converts a proto BaseDescriptor to domain BaseDescriptor
 func protoToBaseDescriptor(protoBase *pb.BaseDescriptorProto) types.BaseDescriptor {
 	if protoBase == nil {
@@ -687,6 +755,7 @@ func protoToBaseDescriptor(protoBase *pb.BaseDescriptorProto) types.BaseDescript
 const (
 	// ... existing transaction types ...
 	TransactionTypeNFTCapabilityAttachment = "NFT_CAPABILITY_ATTACHMENT"
+	TransactionTypeLLMRooting              = "llm_rooting"
 )
 
 // NFTCapabilityAttachmentData represents the data for an NFT capability attachment transaction
@@ -694,4 +763,23 @@ type NFTCapabilityAttachmentData struct {
 	NFTID        string                 `json:"nft_id"`
 	CapabilityID string                 `json:"capability_id"`
 	Params       map[string]interface{} `json:"params,omitempty"`
+}
+
+// LLMRootingData contains the core metadata for an LLM model rooting transaction
+type LLMRootingData struct {
+	ModelName   string `json:"model_name"`   // e.g., "OpenAI-GPT4-Turbo"
+	ModelOwner  string `json:"model_owner"`  // Public key or verified entity ID
+	APIEndpoint string `json:"api_endpoint"` // The actual chat completion URL
+	MetadataCID string `json:"metadata_cid"` // Content Identifier for off-chain metadata
+	CMU         string `json:"cmu"`          // The Chain Minted URL
+}
+
+// GenerateCMU generates a Chain Minted URL for LLM rooting data
+func GenerateCMU(data LLMRootingData, networkID string) string {
+	// ModelHash is SHA256 of ModelName + ModelOwner + MetadataCID
+	// APIEndpoint is excluded to allow updates
+	modelHashData := data.ModelName + data.ModelOwner + data.MetadataCID
+	modelHash := sha256.Sum256([]byte(modelHashData))
+
+	return fmt.Sprintf("knirv://%s/%s", networkID, hex.EncodeToString(modelHash[:]))
 }

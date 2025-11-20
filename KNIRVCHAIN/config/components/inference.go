@@ -177,7 +177,7 @@ func (c *InferenceConfig) validateGeminiConfig() error {
 }
 
 // validateModelConfig validates a specific model configuration
-func (c *InferenceConfig) validateModelConfig(name string, config ModelConfig) error {
+func (c *InferenceConfig) validateModelConfig(_ string, config ModelConfig) error {
 	if config.Name == "" {
 		return fmt.Errorf("model name cannot be empty")
 	}

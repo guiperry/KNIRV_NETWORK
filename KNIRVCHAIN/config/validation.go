@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"net"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -466,21 +465,6 @@ func convertToFloat(value interface{}) (float64, error) {
 	default:
 		return 0, fmt.Errorf("cannot convert %T to float64", value)
 	}
-}
-
-// isValidHost checks if a host is valid (IP address or hostname)
-func isValidHost(host string) bool {
-	// Check if it's a valid IP address
-	if net.ParseIP(host) != nil {
-		return true
-	}
-
-	// Check if it's a valid hostname
-	if matched, _ := regexp.MatchString(`^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$`, host); matched {
-		return true
-	}
-
-	return false
 }
 
 // PrintValidationResult prints a formatted validation result

@@ -1,6 +1,6 @@
 # Regenerate your Go Protobuf files
 
-cd /home/gperry/Documents/GitHub/cloud-equities/KNIRVORACLE_GO_ROOT_MCP
+cd /home/gperry/Documents/GitHub/cloud-equities/_GO_ROOT_MCP
 
 # Remove old generated files first (good practice)
 

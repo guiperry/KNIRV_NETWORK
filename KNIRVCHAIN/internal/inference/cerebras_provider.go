@@ -444,29 +444,27 @@ func (p *CerebrasProvider) PrepareRequest(prompt string, options map[string]inte
 	}
 
 	// Handle Response Format (JSON Schema)
-	if schemaVal, ok := options["_schema_internal"].(interface{}); ok {
-		if schemaPtr, ok := schemaVal.(*jsonschema.Schema); ok {
-			req.ResponseFormat = &struct {
-				Type       string `json:"type"`
-				JSONSchema *struct {
-					Name   string             `json:"name"`
-					Schema *jsonschema.Schema `json:"schema"`
-					Strict bool               `json:"strict,omitempty"`
-				} `json:"json_schema,omitempty"`
+	if schemaPtr, ok := options["_schema_internal"].(*jsonschema.Schema); ok {
+		req.ResponseFormat = &struct {
+			Type       string `json:"type"`
+			JSONSchema *struct {
+				Name   string             `json:"name"`
+				Schema *jsonschema.Schema `json:"schema"`
+				Strict bool               `json:"strict,omitempty"`
+			} `json:"json_schema,omitempty"`
+		}{
+			Type: "json_schema",
+			JSONSchema: &struct {
+				Name   string             `json:"name"`
+				Schema *jsonschema.Schema `json:"schema"`
+				Strict bool               `json:"strict,omitempty"`
 			}{
-				Type: "json_schema",
-				JSONSchema: &struct {
-					Name   string             `json:"name"`
-					Schema *jsonschema.Schema `json:"schema"`
-					Strict bool               `json:"strict,omitempty"`
-				}{
-					Name:   "structured_output",
-					Schema: schemaPtr,
-				},
-			}
-		} else {
-			p.logger.Error("Schema provided in options is not *jsonschema.Schema", "type", fmt.Sprintf("%T", schemaVal))
+				Name:   "structured_output",
+				Schema: schemaPtr,
+			},
 		}
+	} else if _, exists := options["_schema_internal"]; exists {
+		p.logger.Error("Schema provided in options is not *jsonschema.Schema", "type", fmt.Sprintf("%T", options["_schema_internal"]))
 	}
 
 	p.logger.Debug("Preparing request", "provider", p.Name(), "model", req.Model, "streaming", req.Stream, "has_tools", len(req.Tools) > 0)
@@ -586,29 +584,27 @@ func (p *CerebrasProvider) PrepareRequestWithMessages(messages []gollm_types.Mem
 	}
 
 	// Handle Response Format (JSON Schema)
-	if schemaVal, ok := options["_schema_internal"].(interface{}); ok {
-		if schemaPtr, ok := schemaVal.(*jsonschema.Schema); ok {
-			req.ResponseFormat = &struct {
-				Type       string `json:"type"`
-				JSONSchema *struct {
-					Name   string             `json:"name"`
-					Schema *jsonschema.Schema `json:"schema"`
-					Strict bool               `json:"strict,omitempty"`
-				} `json:"json_schema,omitempty"`
+	if schemaPtr, ok := options["_schema_internal"].(*jsonschema.Schema); ok {
+		req.ResponseFormat = &struct {
+			Type       string `json:"type"`
+			JSONSchema *struct {
+				Name   string             `json:"name"`
+				Schema *jsonschema.Schema `json:"schema"`
+				Strict bool               `json:"strict,omitempty"`
+			} `json:"json_schema,omitempty"`
+		}{
+			Type: "json_schema",
+			JSONSchema: &struct {
+				Name   string             `json:"name"`
+				Schema *jsonschema.Schema `json:"schema"`
+				Strict bool               `json:"strict,omitempty"`
 			}{
-				Type: "json_schema",
-				JSONSchema: &struct {
-					Name   string             `json:"name"`
-					Schema *jsonschema.Schema `json:"schema"`
-					Strict bool               `json:"strict,omitempty"`
-				}{
-					Name:   "structured_output",
-					Schema: schemaPtr,
-				},
-			}
-		} else {
-			p.logger.Error("Schema provided in options is not *jsonschema.Schema", "type", fmt.Sprintf("%T", schemaVal))
+				Name:   "structured_output",
+				Schema: schemaPtr,
+			},
 		}
+	} else if _, exists := options["_schema_internal"]; exists {
+		p.logger.Error("Schema provided in options is not *jsonschema.Schema", "type", fmt.Sprintf("%T", options["_schema_internal"]))
 	}
 
 	p.logger.Debug("Preparing request with messages", "provider", p.Name(), "model", req.Model, "streaming", req.Stream, "num_msgs", len(req.Messages), "has_tools", len(req.Tools) > 0)
