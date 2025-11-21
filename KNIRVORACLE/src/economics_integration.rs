@@ -2,6 +2,7 @@ use serde::Serialize;
 use std::sync::Arc;
 use num_bigint::BigInt;
 use crate::token_economics::TokenEconomics;
+use crate::registry_listener::{RegistryEventListener, LLMRegistrationEvent, SkillInvocationEvent};
 use tracing::info;
 
 #[derive(Debug, Clone)]
@@ -122,6 +123,44 @@ impl EconomicsIntegration {
 
         // Local economics doesn't need background sync
         info!("Local economics integration started");
+    }
+
+    /// Handle LLM registration event from KNIRVCHAIN
+    pub async fn handle_llm_registration_event(&self, event: LLMRegistrationEvent) -> Result<(), Box<dyn std::error::Error>> {
+        if !self.enabled {
+            return Ok(());
+        }
+
+        // Process the registration fee that was already collected via IBC
+        info!("Processing LLM registration event: {} for user {} with fee {}",
+              event.model_hash, event.owner, event.registration_fee);
+
+        // Update economics metrics for LLM registration
+        // In a real implementation, this would update metrics and potentially distribute rewards
+        Ok(())
+    }
+
+    /// Handle skill invocation event from KNIRVCHAIN
+    pub async fn handle_skill_invocation_event(&self, event: SkillInvocationEvent) -> Result<(), Box<dyn std::error::Error>> {
+        if !self.enabled {
+            return Ok(());
+        }
+
+        // Process the skill invocation fee that was already collected via IBC
+        info!("Processing skill invocation event: {} for user {} with fee {} (success: {})",
+              event.skill_id, event.user, event.amount_burned, event.success);
+
+        // Update economics metrics for skill invocation
+        // In a real implementation, this would update metrics and distribute creator rewards
+        Ok(())
+    }
+
+    /// Integrate with RegistryEventListener to receive events from KNIRVCHAIN
+    pub async fn setup_registry_event_listener(&self, registry_listener: Arc<RegistryEventListener>) -> Result<(), Box<dyn std::error::Error>> {
+        // In a real implementation, this would register callbacks with the registry listener
+        // For now, we just log that we're setting up the integration
+        info!("Setting up economics integration with registry event listener");
+        Ok(())
     }
 }
 

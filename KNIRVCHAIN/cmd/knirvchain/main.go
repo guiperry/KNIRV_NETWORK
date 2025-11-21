@@ -1463,6 +1463,7 @@ func main() {
 				log.Printf("Updater goroutine panicked: %v. Update check aborted.", r)
 			}
 		}()
+		log.Println("Updater: Starting update check goroutine...")
 		time.Sleep(15 * time.Second) // Delay update check slightly
 		log.Println("Updater: Checking for application updates...")
 
@@ -1475,14 +1476,24 @@ func main() {
 		var updateInfo *updater.UpdateStatus
 		var errUpdater error
 
+		log.Println("Updater: Starting update check with timeout...")
 		go func() {
 			defer close(updateDone)
+			log.Println("Updater: Executing fetchUpdateManifestFromServer...")
 			updateInfo, errUpdater = fetchUpdateManifestFromServer()
+			if errUpdater != nil {
+				log.Printf("Updater: fetchUpdateManifestFromServer returned error: %v", errUpdater)
+			} else if updateInfo != nil {
+				log.Printf("Updater: fetchUpdateManifestFromServer returned update info: %v", updateInfo)
+			} else {
+				log.Println("Updater: fetchUpdateManifestFromServer returned no update info")
+			}
 		}()
 
 		// Wait for either completion or timeout
 		select {
 		case <-updateDone:
+			log.Println("Updater: Update check completed successfully")
 			if errUpdater != nil {
 				log.Printf("Updater: Error checking for updates: %v", errUpdater)
 				return

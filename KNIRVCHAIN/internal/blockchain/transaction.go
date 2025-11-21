@@ -756,6 +756,30 @@ const (
 	// ... existing transaction types ...
 	TransactionTypeNFTCapabilityAttachment = "NFT_CAPABILITY_ATTACHMENT"
 	TransactionTypeLLMRooting              = "llm_rooting"
+
+	// KNIRVCHAIN ErrorNode → SkillNode Mining Flow
+	TransactionTypeErrorNodeSubmit      = "error_node_submit"
+	TransactionTypeSkillMiningProposal  = "skill_mining_proposal"
+	TransactionTypeSkillValidation      = "skill_validation"
+	TransactionTypeSkillConfirmation    = "skill_confirmation"
+
+	// KNIRVCHAIN ContextNode → CapabilityNode Minting Flow
+	TransactionTypeContextNodeCreate       = "context_node_create"
+	TransactionTypeCapabilityMintProposal  = "capability_mint_proposal"
+	TransactionTypeCapabilityValidation    = "capability_validation"
+	TransactionTypeCapabilityMint          = "capability_mint"
+
+	// KNIRVCHAIN IdeaNode → PropertyNode Making Flow
+	TransactionTypeIdeaNodeSubmit       = "idea_node_submit"
+	TransactionTypeNoveltyAssessment    = "novelty_assessment"
+	TransactionTypePropertyMint         = "property_mint"
+	TransactionTypePropertyTransfer     = "property_transfer"
+	TransactionTypeRoyaltyDistribution  = "royalty_distribution"
+)
+const (
+	// ... existing transaction types ...
+	TransactionTypeNFTCapabilityAttachment = "NFT_CAPABILITY_ATTACHMENT"
+	TransactionTypeLLMRooting              = "llm_rooting"
 )
 
 // NFTCapabilityAttachmentData represents the data for an NFT capability attachment transaction

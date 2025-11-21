@@ -47,5 +47,27 @@ var agentError = AppError{Message: "agent error"}
 // Blockchain specific errors
 var ErrBlockNotFound = AppError{Message: "block not found"}
 var ErrInvalidSignature = AppError{Message: "invalid signature"}
+// ValidationError represents a validation error
+type ValidationError struct {
+	Message string
+	Field   string
+}
+
+func (e ValidationError) Error() string {
+	if e.Field != "" {
+		return fmt.Sprintf("validation error on field '%s': %s", e.Field, e.Message)
+	}
+	return fmt.Sprintf("validation error: %s", e.Message)
+}
+
+// NewValidationError creates a new validation error
+func NewValidationError(message string) ValidationError {
+	return ValidationError{Message: message}
+}
+
+// NewFieldValidationError creates a new validation error for a specific field
+func NewFieldValidationError(field, message string) ValidationError {
+	return ValidationError{Field: field, Message: message}
+}
 var ErrInvalidBlock = AppError{Message: "invalid block"}
 var ErrInvalidTransaction = AppError{Message: "invalid transaction"}

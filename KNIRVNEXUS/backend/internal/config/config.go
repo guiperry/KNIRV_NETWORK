@@ -12,6 +12,37 @@ import (
 	"github.com/subosito/gotenv"
 )
 
+// PaymentProcessorConfig defines payment processor configuration
+type PaymentProcessorConfig struct {
+	Enabled            bool    `mapstructure:"enabled"`
+	NodeRPC            string  `mapstructure:"node_rpc"`
+	WebhookPort        int     `mapstructure:"webhook_port"`
+	TokenSymbol        string  `mapstructure:"token_symbol"`
+	TokenDecimals      int     `mapstructure:"token_decimals"`
+	USDPerToken        float64 `mapstructure:"usd_per_token"`
+	ETHPerToken        float64 `mapstructure:"eth_per_token"`
+}
+
+// BootnodeConfig defines bootnode configuration
+type BootnodeConfig struct {
+	Enabled bool `mapstructure:"enabled"`
+}
+
+// TunnelClientConfig defines tunnel client configuration
+type TunnelClientConfig struct {
+	Enabled        bool   `mapstructure:"enabled"`
+	ServerAddress  string `mapstructure:"server_address"`
+	ControlPort    uint   `mapstructure:"control_port"`
+	PingInterval   uint   `mapstructure:"ping_interval"`
+	ReconnectDelay uint   `mapstructure:"reconnect_delay"`
+}
+
+// ReverseProxyConfig defines reverse proxy configuration
+type ReverseProxyConfig struct {
+	Enabled    bool   `mapstructure:"enabled"`
+	ListenAddr string `mapstructure:"listen_addr"`
+}
+
 // Config represents the application configuration
 type Config struct {
 	Environment string           `mapstructure:"environment"`
@@ -35,6 +66,23 @@ type Config struct {
 	DVE         DVEConfig        `mapstructure:"dve"`
 	Failover    FailoverConfig   `mapstructure:"failover"`
 	ModelServer ModelServerConfig `mapstructure:"model_server"`
+	IsRoot      bool             `json:"is_root" mapstructure:"is_root,IsRoot"`
+	IsBootnode  bool             `json:"is_bootnode" mapstructure:"is_bootnode,IsBootnode"`                                          // General bootnode flag
+	IsPeer      bool             `json:"is_dev" mapstructure:"is_dev,IsPeer"`
+	ClientOnly  bool             `json:"client_only" mapstructure:"client_only,clientOnly"`
+
+	// Additional fields for role-based settings
+	PaymentProcessor PaymentProcessorConfig `mapstructure:"payment_processor"`
+	Bootnode         BootnodeConfig         `mapstructure:"bootnode"`
+	TunnelClient     TunnelClientConfig     `mapstructure:"tunnel_client"`
+	ReverseProxy     ReverseProxyConfig     `mapstructure:"reverse_proxy"`
+
+	// Legacy fields
+	Port        uint64 `mapstructure:"port"`
+	P2PPort     uint64 `mapstructure:"p2p_port"`
+	WalletPort  uint64 `mapstructure:"wallet_port"`
+	NoWalletServer bool `mapstructure:"no_wallet_server"`
+	UseGUI      bool   `mapstructure:"use_gui"`
 }
 
 // DatabaseConfig represents database configuration
@@ -393,6 +441,50 @@ func (c *Config) expandPaths() error {
 	return nil
 }
 
+// Role type (if not already defined elsewhere, or import if it is)
+type Role string
+
+const (
+	Root           Role = "Root"
+	RoleBootnode   Role = "Bootnode"
+	RoleReflection Role = "Reflection"
+	RolePeer       Role = "Peer"
+	RoleClient     Role = "Client"
+	// Add other roles if any
+)
+
+func (r Role) String() string {
+	return string(r)
+}
+
+// DetermineRole determines the node's role based on flags.
+// This function can be used both with command-line flags and with Config struct fields
+func DetermineRole(IsRoot, IsBootnode, IsPeer, IsClientOnly bool) Role {
+	if IsRoot {
+		return Root
+	}
+	if IsBootnode {
+		return RoleBootnode
+	}
+	if IsPeer {
+		return RolePeer
+	}
+	if IsClientOnly {
+		return RoleClient
+	}
+	return RoleClient // Default to Client if no specific role flag is set
+}
+
+// DetermineRoleFromConfig determines the node's role based on build flags first, then Config struct fields
+func DetermineRoleFromConfig(cfg *Config) Role {
+	// Check for build flags first (these will be set at compile time)
+	// The actual build flag checking is done in the role-specific entry point files
+
+	// If no build flags are set, fall back to config values
+	return DetermineRole(cfg.IsRoot, cfg.IsBootnode, cfg.IsPeer, cfg.ClientOnly)
+}
+
+
 // setDefaults sets default configuration values
 func setDefaults() {
 	appDataDir, err := getAppDataDir()
@@ -493,6 +585,54 @@ func setDefaults() {
 	viper.SetDefault("p2p.port", 4001)
 	viper.SetDefault("p2p.dht_enabled", false) // DHT disabled by default to reduce noise
 	viper.SetDefault("auth.jwt_secret", "")
+}
+
+// GetConfigDir returns the base configuration directory (e.g., ~/.config/knirv-nexus)
+func GetConfigDir() (string, error) {
+	userConfigDir, err := os.UserConfigDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get user config directory: %w", err)
+	}
+	appConfigDir := filepath.Join(userConfigDir, "knirv-nexus")
+	if err := os.MkdirAll(appConfigDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create app config directory %s: %w", appConfigDir, err)
+	}
+	return appConfigDir, nil
+}
+
+// GetDataDir returns the data directory path based on role
+func GetDataDir(role ...Role) (string, error) {
+	currentRole := RoleClient // Default
+	if len(role) > 0 {
+		currentRole = role[0]
+	}
+
+	baseDir, err := GetConfigDir()
+	if err != nil {
+		return "", err
+	}
+
+	// Determine role-specific data directory name
+	var dataDirName string
+	switch currentRole {
+	case Root:
+		dataDirName = "root_data"
+	case RoleBootnode:
+		dataDirName = "bootnode_data"
+	case RolePeer:
+		dataDirName = "peer_data"
+	case RoleClient:
+		dataDirName = "client_data"
+	default:
+		dataDirName = "data" // Fallback
+	}
+
+	dataDirPath := filepath.Join(baseDir, dataDirName)
+	if err := os.MkdirAll(dataDirPath, 0755); err != nil {
+		return "", fmt.Errorf("failed to create %s directory %s: %w", currentRole, dataDirPath, err)
+	}
+
+	return dataDirPath, nil
 }
 
 // validateConfig validates the loaded configuration

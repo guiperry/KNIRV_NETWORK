@@ -93,6 +93,41 @@ curl "http://localhost:8080/api/v1/resolve?cmu=knirv://mainnet/a1b2c3d4..."
 * **Wallet Server:** A service that helps users create, sign, and submit MCP transactions to the KNIRVCHAIN network.
 * **Agent Client (Inference Engine):** An application that interacts with KNIRVCHAIN to discover, download (for plugins), execute, and log the usage of MCP capabilities.
 
+## Node Transformation Flows
+
+KNIRVCHAIN implements three core mining/minting processes that transform network activity into valuable artifacts:
+
+### 1. ErrorNode → SkillNode Mining (Result: LoRA Adapter Pointer)
+
+When NIMs encounter errors, they create ErrorNodes. Miners propose SkillNodes containing LoRA adapters that resolve these errors. KNIRVNEXUS DVE validates the solution, and successful miners earn NRN rewards.
+
+**Transaction Types:**
+- `TransactionTypeErrorNodeSubmit` - Submit new error to graph
+- `TransactionTypeSkillMiningProposal` - Propose solution with LoRA
+- `TransactionTypeSkillValidation` - Submit DVE validation proof
+- `TransactionTypeSkillConfirmation` - Finalize skill in registry
+
+### 2. ContextNode → CapabilityNode Minting (Result: MCP Server Pointer)
+
+Execution patterns become reusable MCP capabilities. When context patterns reach frequency thresholds, developers can mint CapabilityNodes wrapping them as MCP servers.
+
+**Transaction Types:**
+- `TransactionTypeContextNodeCreate` - Record new context pattern
+- `TransactionTypeCapabilityMintProposal` - Propose MCP capability
+- `TransactionTypeCapabilityMint` - Mint to registry
+
+### 3. IdeaNode → PropertyNode Making (Result: Inference NFT Pointer)
+
+Novel inferences become tradeable intellectual property NFTs. The network assesses novelty, tracks provenance, and mints NFTs with royalty structures.
+
+**Transaction Types:**
+- `TransactionTypeIdeaNodeSubmit` - Submit new idea
+- `TransactionTypeNoveltyAssessment` - Run novelty check
+- `TransactionTypePropertyMint` - Mint NFT and PropertyNode
+- `TransactionTypeRoyaltyDistribution` - Distribute usage royalties
+
+See `KNIRVCHAIN_Implementation.md` in the project root for detailed implementation specifications.
+
 ### Badge System: Skills, Capabilities, and Properties
 
 KNIRVCHAIN implements a comprehensive Badge system that distinguishes between three fundamental types of agent attachments:

@@ -1289,39 +1289,55 @@ func (bc *BlockchainStruct) AddBlock(b *Block) error {
 	agentlog.LogInfo(fmt.Sprintf("Successfully added block number %d to the blockchain and DB. New total blocks: %d", blockNum, len(bc.Blocks)))
 
 	// Notify ChromemDB managers about the new confirmed block
+	agentlog.LogInfo(fmt.Sprintf("Starting ChromemDB update notifications for block %d", blockNum))
+
 	// First, notify the general ChromemDBManager for basic transaction indexing
 	if bc.ChromemDBManager != nil {
+		agentlog.LogInfo(fmt.Sprintf("Notifying ChromemDBManager for block %d", blockNum))
 		// Notify ChromemDB managers about the new block with collected context records
 
 		// Run in a goroutine to avoid blocking the main thread
 		go func(b *Block) {
 			defer func() { // Add recover
 				if r := recover(); r != nil {
-					log.Printf("PANIC in ChromemDBManager.OnNewBlockConfirmed goroutine: %v", r)
+					log.Printf("PANIC in ChromemDBManager.OnNewBlockConfirmed goroutine for block %d: %v", b.BlockNumber, r)
 				}
 			}() // Pass mcpContextRecords if ChromemDBManager needs them
+			agentlog.LogInfo(fmt.Sprintf("ChromemDBManager update starting for block %d", b.BlockNumber))
 			if err := bc.ChromemDBManager.OnNewBlockConfirmed(b); err != nil {
 				agentlog.LogError(fmt.Sprintf("Error processing block %d for ChromemDBManager: %v", b.BlockNumber, err), err)
+			} else {
+				agentlog.LogInfo(fmt.Sprintf("ChromemDBManager update completed successfully for block %d", b.BlockNumber))
 			}
 		}(b)
+	} else {
+		agentlog.LogInfo("ChromemDBManager is nil, skipping notification")
 	}
 
 	// Then, notify the ChromemDBSyncManager for detailed processing of MCP transactions
 	if bc.ChromemDBSyncManager != nil {
+		agentlog.LogInfo(fmt.Sprintf("Notifying ChromemDBSyncManager for block %d with %d context records", blockNum, len(mcpContextRecordsForSync)))
 
 		// Run in a goroutine to avoid blocking the main thread
 		go func(b *Block, regCtxRecords []*pb.ContextRecordProto) {
 			defer func() { // Add recover
 				if r := recover(); r != nil {
-					log.Printf("PANIC in ChromemDBSyncManager.OnNewBlockConfirmed goroutine: %v", r)
+					log.Printf("PANIC in ChromemDBSyncManager.OnNewBlockConfirmed goroutine for block %d: %v", b.BlockNumber, r)
 				}
 			}() // Pass the collected context records
+			agentlog.LogInfo(fmt.Sprintf("ChromemDBSyncManager update starting for block %d", b.BlockNumber))
 			if err := bc.ChromemDBSyncManager.OnNewBlockConfirmed(b, regCtxRecords...); err != nil {
 				agentlog.LogError(fmt.Sprintf("Error processing block %d for ChromemDBSyncManager: %v", b.BlockNumber, err), err)
 				// TODO: Add more robust error handling (e.g., retry queue) if needed
+			} else {
+				agentlog.LogInfo(fmt.Sprintf("ChromemDBSyncManager update completed successfully for block %d", b.BlockNumber))
 			}
 		}(b, mcpContextRecordsForSync)
+	} else {
+		agentlog.LogInfo("ChromemDBSyncManager is nil, skipping notification")
 	}
+
+	agentlog.LogInfo(fmt.Sprintf("ChromemDB update notifications initiated for block %d", blockNum))
 
 	return nil
 }

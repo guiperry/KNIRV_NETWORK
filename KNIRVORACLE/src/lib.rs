@@ -13,6 +13,12 @@ pub mod ipfs_client;
 pub mod model_registry;
 pub mod multi_model_engine;
 
+// Cross-chain transfer modules
+pub mod cross_chain;
+
+// Registry event listener
+pub mod registry_listener;
+
 // Consensus and networking
 pub mod ibc_handler;
 pub mod tendermint_consensus;

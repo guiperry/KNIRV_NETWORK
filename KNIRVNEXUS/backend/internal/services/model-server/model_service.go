@@ -9,6 +9,7 @@ import (
 
 	"backend_server/internal/config"
 	"backend_server/internal/database"
+	"github.com/spf13/viper"
 )
 
 // ModelServer represents the model server service
@@ -65,7 +66,7 @@ type ListResponse struct {
 // NewModelServer creates a new model server instance
 func NewModelServer(config *config.Config, db *database.BuntDBManager) (*ModelServer, error) {
 	// Set default values from config with fallbacks
-	modelDir := config.ModelServer.StoragePath
+	modelDir := viper.GetString("model_server.storage_path")
 	if modelDir == "" {
 		modelDir = "./models" // fallback
 	}

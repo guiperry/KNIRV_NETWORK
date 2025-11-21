@@ -41,6 +41,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
 	"github.com/tidwall/buntdb"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // Version information (set by build flags)
@@ -57,6 +59,7 @@ type Server struct {
 	router     *mux.Router
 	httpServer *http.Server
 	p2pManager *p2p.DVEP2PManager
+	logger     *zap.Logger
 
 	// All services are held here
 	dveManager                   *dvemanager.DVEManager
@@ -87,11 +90,131 @@ type Server struct {
 	running bool
 }
 
+// initLogging initializes the logging system based on configuration
+func initLogging(cfg *config.Config) (*zap.Logger, error) {
+	// Determine log level
+	var level zapcore.Level
+	switch cfg.Log.Level {
+	case "debug":
+		level = zapcore.DebugLevel
+	case "info":
+		level = zapcore.InfoLevel
+	case "warn":
+		level = zapcore.WarnLevel
+	case "error":
+		level = zapcore.ErrorLevel
+	default:
+		level = zapcore.InfoLevel
+	}
+
+	// Create encoder config
+	encoderConfig := zapcore.EncoderConfig{
+		TimeKey:        "timestamp",
+		LevelKey:       "level",
+		NameKey:        "logger",
+		CallerKey:      "caller",
+		FunctionKey:    zapcore.OmitKey,
+		MessageKey:     "message",
+		StacktraceKey:  "stacktrace",
+		LineEnding:      zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.LowercaseLevelEncoder,
+		EncodeTime:     zapcore.ISO8601TimeEncoder,
+		EncodeDuration: zapcore.SecondsDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
+	}
+
+	// Determine log file path
+	logFilePath := cfg.Log.Output
+	if logFilePath == "" {
+		// Use OS-specific application data directory
+		appDataDir, err := getOSAppDataDir()
+		if err != nil {
+			// Fallback to relative path
+			logFilePath = "logs/server.log"
+		} else {
+			logFilePath = filepath.Join(appDataDir, "logs", "server.log")
+		}
+	}
+
+	// Ensure the log directory exists
+	logDir := filepath.Dir(logFilePath)
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create log directory: %w", err)
+	}
+
+	// Create file writer
+	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open log file: %w", err)
+	}
+
+	// Create cores for both file and stdout
+	fileCore := zapcore.NewCore(
+		zapcore.NewJSONEncoder(encoderConfig),
+		zapcore.AddSync(file),
+		level,
+	)
+
+	stdoutCore := zapcore.NewCore(
+		zapcore.NewJSONEncoder(encoderConfig),
+		zapcore.AddSync(os.Stdout),
+		level,
+	)
+
+	// Combine cores
+	core := zapcore.NewTee(fileCore, stdoutCore)
+
+	// Create logger
+	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
+
+	// Also redirect standard log output to file for compatibility
+	log.SetOutput(file)
+
+	return logger, nil
+}
+
+// getOSAppDataDir returns the OS-specific application data directory
+func getOSAppDataDir() (string, error) {
+	var appDataDir string
+	var err error
+
+	// Try to get user config directory (XDG Base Directory on Linux)
+	if userConfigDir, configErr := os.UserConfigDir(); configErr == nil {
+		appDataDir = filepath.Join(userConfigDir, "knirvnexus")
+	} else {
+		// Fallback to home directory
+		if homeDir, homeErr := os.UserHomeDir(); homeErr == nil {
+			// Use XDG_DATA_HOME or fallback to ~/.local/share
+			if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
+				appDataDir = filepath.Join(xdgDataHome, "knirvnexus")
+			} else {
+				appDataDir = filepath.Join(homeDir, ".local", "share", "knirvnexus")
+			}
+		} else {
+			return "", fmt.Errorf("could not determine application data directory")
+		}
+	}
+
+	// Ensure directory exists
+	if err = os.MkdirAll(appDataDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create application data directory: %w", err)
+	}
+
+	return appDataDir, nil
+}
+
 // NewServer creates a new KNIRV-NEXUS backend server instance
 func NewServer(cfg *config.Config) (*Server, error) {
+	// Initialize logging
+	logger, err := initLogging(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize logging: %w", err)
+	}
+
 	// Initialize database
 	dbManager, err := database.NewBuntDB(cfg.Database.Path)
 	if err != nil {
+		logger.Error("Failed to initialize database", zap.Error(err))
 		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
 
@@ -281,6 +404,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		db:                           dbManager,
 		router:                       router,
 		p2pManager:                   p2pManager,
+		logger:                       logger,
 		dveManager:                   dveManager,
 		validationCore:               validationCore,
 		cdeService:                   cdeService,

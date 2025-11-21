@@ -85,30 +85,31 @@ graph TB
 
 ## 🔧 Core Components
 
-### 🏛️ KNIRV-ORACLE: The Economic Orchestrator
-**Technology**: GoLang-based Layer 1 blockchain with PoAu-D consensus and XION bridge
-- **Purpose**: Canonical NRN token ledger, network oracle, and cross-chain bridge
-- **Key Features**:
-  - **PoAu-D Consensus**: Proof of Authority using Delegation for efficient MCP transaction processing
-  - **Hybrid Mining**: PoAu-D with PoW fallback for maximum reliability
-  - **Network Authors (NAP)**: Authorized peers for block proposal and network governance
-  - **Plugin Author Peers (PAP)**: Capability owners with delegated transaction processing
-  - NRN minting/burning orchestration with economic metrics
-  - XION bridge for cross-chain asset transfers with real-time monitoring
-  - USDC Faucet management via XION Meta Accounts integration
-  - Global state synchronization across all layers
-  - Model and Tunnel Relay registries
-  - Production monitoring with health checks and bridge metrics
-  - Automated alerting for stuck transactions and bridge issues
-
 ### ⛓️ KNIRVCHAIN: The Living Intelligence
-**Technology**: Rust-based Layer 1 blockchain with Tendermint consensus
-- **Purpose**: Immutable Base LLM ledger and canonical SkillRegistry
+**Technology**: GoLang-based Layer 1 blockchain with MCP integration
+- **Purpose**: Skill/LLM registry, MCP capabilities, and node transformation mining
 - **Key Features**:
-  - HART Base LLM evolution tracking
-  - Skill certification and invocation
-  - NRN consumption enforcement
-  - Continuous model improvement through validated Skills
+  - LLM Rooting with Chain-Minted URLs (CMUs)
+  - MCP capability registration and discovery
+  - Node transformation flows:
+    - ErrorNode → SkillNode mining (LoRA Adapter pointers)
+    - ContextNode → CapabilityNode minting (MCP Server pointers)
+    - IdeaNode → PropertyNode making (Inference NFT pointers)
+  - Badge system for Skills, Capabilities, and Properties
+  - Autonomous failover protocol with 99.9% uptime
+
+### 🏛️ KNIRV-ORACLE: The Governance & Cross-Chain Hub
+**Technology**: Rust-based Layer 1 with Tendermint consensus and IBC
+- **Purpose**: Network governance authority, cross-chain transfers, and token economics
+- **Key Features**:
+  - **Cross-Chain Transfers**: IBC-based transfers to KNIRVCHAIN, KNIRVNEXUS, XION, and Cosmos chains
+  - **Network Governance**: Sole authority for proposals, voting, parameter changes, emergency actions
+  - **Token Economics**: NRN minting rules, staking, rewards, and burn tracking
+  - **Bridge Support**: Native XION bridge, multi-chain asset transfers
+  - **LoRA Skill Distribution**: Multi-TEE support (SGX, AMD, ARM, RISC-V)
+  - Fee collection and reward distribution across all KNIRV chains
+
+> **Note**: LLM and Skill registries have been moved to KNIRVCHAIN
 
 ### 🕸️ KNIRVGRAPH: The Knowledge Fabric
 **Technology**: GoLang-based Graphchain with Tendermint consensus

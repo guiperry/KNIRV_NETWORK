@@ -5,6 +5,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use num_bigint::BigInt;
 use tokio::time::interval;
 use tracing::{info, error};
+use crate::cross_chain::transfer::{ChainId, TransferError};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EconomicRules {
@@ -581,5 +582,192 @@ impl TokenEconomics {
 
         let final_amount = base_amount * BigInt::from((multiplier * 1000.0) as i64) / BigInt::from(1000);
         final_amount
+    }
+
+    // Cross-chain economics enhancements
+
+    /// Process fee from any KNIRV chain via IBC
+    pub async fn collect_cross_chain_fee(
+        &self,
+        source_chain: ChainId,
+        fee_type: &str,
+        amount: &BigInt,
+        payer: &str,
+    ) -> Result<EconomicTransaction, TransferError> {
+        info!("Collecting cross-chain fee: {} from {} on {:?} for {}", amount, payer, source_chain, fee_type);
+
+        let tx_id = format!("cross_chain_fee_{}_{}_{}", fee_type, payer, SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos());
+        let tx = EconomicTransaction {
+            id: tx_id.clone(),
+            tx_type: "cross_chain_fee".to_string(),
+            from: payer.to_string(),
+            to: "knirvoracle_treasury".to_string(),
+            amount: amount.clone(),
+            purpose: format!("cross_chain_fee_{}", fee_type),
+            metadata: {
+                let mut meta = HashMap::new();
+                meta.insert("source_chain".to_string(), serde_json::json!(source_chain));
+                meta.insert("fee_type".to_string(), serde_json::json!(fee_type));
+                meta
+            },
+            status: "collected".to_string(),
+            timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs(),
+            confirmed_at: Some(SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()),
+            block_height: None,
+            gas_used: None,
+        };
+
+        // Add to confirmed transactions
+        if let Ok(mut pool) = self.transaction_pool.lock() {
+            pool.confirmed_txs.insert(tx_id, tx.clone());
+        }
+
+        // Update cross-chain metrics
+        self.update_cross_chain_metrics(&source_chain, amount, fee_type);
+
+        Ok(tx)
+    }
+
+    /// Distribute rewards across chains via IBC
+    pub async fn distribute_cross_chain_rewards(
+        &self,
+        recipients: Vec<(ChainId, String, BigInt)>,
+    ) -> Result<Vec<EconomicTransaction>, TransferError> {
+        let mut transactions = Vec::new();
+
+        for (chain_id, recipient, amount) in recipients {
+            info!("Distributing cross-chain reward: {} to {} on {:?}", amount, recipient, chain_id);
+
+            let tx_id = format!("cross_chain_reward_{}_{}_{}", recipient, chain_id.to_string(), SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos());
+            let tx = EconomicTransaction {
+                id: tx_id.clone(),
+                tx_type: "cross_chain_reward".to_string(),
+                from: "knirvoracle_reward_pool".to_string(),
+                to: recipient.clone(),
+                amount: amount.clone(),
+                purpose: "cross_chain_reward".to_string(),
+                metadata: {
+                    let mut meta = HashMap::new();
+                    meta.insert("destination_chain".to_string(), serde_json::json!(chain_id));
+                    meta.insert("recipient".to_string(), serde_json::json!(recipient));
+                    meta
+                },
+                status: "distributed".to_string(),
+                timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs(),
+                confirmed_at: Some(SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()),
+                block_height: None,
+                gas_used: None,
+            };
+
+            // Add to confirmed transactions
+            if let Ok(mut pool) = self.transaction_pool.lock() {
+                pool.confirmed_txs.insert(tx_id, tx.clone());
+            }
+
+            transactions.push(tx);
+
+            // Update cross-chain metrics
+            self.update_cross_chain_metrics(&chain_id, &amount, "reward");
+        }
+
+        Ok(transactions)
+    }
+
+    /// Update metrics for multi-chain operations
+    fn update_cross_chain_metrics(&self, chain_id: &ChainId, amount: &BigInt, operation_type: &str) {
+        if let Ok(mut metrics) = self.metrics.lock() {
+            let chain_key = format!("chain_{}", chain_id.to_string());
+
+            let service_metrics = metrics.service_metrics.entry(chain_key).or_insert(ServiceEconomics {
+                revenue: BigInt::from(0),
+                costs: BigInt::from(0),
+                profit: BigInt::from(0),
+                tokens_earned: BigInt::from(0),
+                tokens_spent: BigInt::from(0),
+                user_count: 0,
+                transaction_count: 0,
+                last_updated: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
+            });
+
+            match operation_type {
+                "fee" | "cross_chain_fee" => {
+                    service_metrics.revenue += amount;
+                    service_metrics.tokens_earned += amount;
+                }
+                "reward" | "cross_chain_reward" => {
+                    service_metrics.costs += amount;
+                    service_metrics.tokens_spent += amount;
+                }
+                _ => {}
+            }
+
+            service_metrics.profit = &service_metrics.revenue - &service_metrics.costs;
+            service_metrics.transaction_count += 1;
+            service_metrics.last_updated = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+
+            // Update overall network metrics
+            metrics.transaction_volume += amount;
+            metrics.last_updated = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+        }
+    }
+
+    /// Get cross-chain economic metrics
+    pub fn get_cross_chain_metrics(&self) -> Result<HashMap<String, ServiceEconomics>, Box<dyn std::error::Error>> {
+        if let Ok(metrics) = self.metrics.lock() {
+            let cross_chain_metrics: HashMap<String, ServiceEconomics> = metrics
+                .service_metrics
+                .iter()
+                .filter(|(key, _)| key.starts_with("chain_"))
+                .map(|(key, value)| (key.clone(), value.clone()))
+                .collect();
+            Ok(cross_chain_metrics)
+        } else {
+            Err("Failed to acquire metrics lock".into())
+        }
+    }
+
+    /// Optimize performance for high-throughput cross-chain operations
+    pub async fn optimize_for_cross_chain(&self) -> Result<(), Box<dyn std::error::Error>> {
+        // Increase transaction pool size for cross-chain operations
+        if let Ok(mut pool) = self.transaction_pool.lock() {
+            pool.max_pool_size = 50000; // Increased from 10000
+        }
+
+        // Reduce cleanup interval for faster processing
+        if let Ok(mut pool) = self.transaction_pool.lock() {
+            pool.cleanup_interval = Duration::from_secs(1800); // 30 minutes instead of 1 hour
+        }
+
+        info!("Optimized economics engine for cross-chain operations");
+        Ok(())
+    }
+
+    /// Batch process cross-chain transactions for efficiency
+    pub async fn batch_process_cross_chain_transactions(&self, transactions: Vec<EconomicTransaction>) -> Result<(), Box<dyn std::error::Error>> {
+        let mut processed = 0;
+        let mut failed = 0;
+
+        for tx in transactions {
+            match Self::process_transaction(&tx).await {
+                Ok(_) => {
+                    processed += 1;
+                    if let Ok(mut pool) = self.transaction_pool.lock() {
+                        pool.confirmed_txs.insert(tx.id.clone(), tx);
+                    }
+                }
+                Err(e) => {
+                    error!("Failed to process cross-chain transaction {}: {}", tx.id, e);
+                    failed += 1;
+                    if let Ok(mut pool) = self.transaction_pool.lock() {
+                        let mut failed_tx = tx;
+                        failed_tx.status = "failed".to_string();
+                        pool.pending_txs.insert(failed_tx.id.clone(), failed_tx);
+                    }
+                }
+            }
+        }
+
+        info!("Batch processed {} cross-chain transactions ({} successful, {} failed)", processed + failed, processed, failed);
+        Ok(())
     }
 }

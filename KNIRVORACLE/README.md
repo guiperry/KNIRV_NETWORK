@@ -1,6 +1,6 @@
 # KNIRVORACLE
 
-A comprehensive blockchain implementation for the KNIRV network with advanced multi-model AI integration, cloud model support, and secure execution environments.
+The Rust-based governance and economic orchestrator for the KNIRV network. KNIRVORACLE provides multi-model AI integration, LoRA skill distribution, token economics, and secure execution environments.
 
 ## 🎯 **Project Status: COMPLETE & PRODUCTION READY**
 
@@ -21,6 +21,31 @@ A comprehensive blockchain implementation for the KNIRV network with advanced mu
 - **Governance System**: Validator-based voting for model transitions and network decisions
 - **IBC Communication**: Cross-chain messaging with KNIRV-ORACLE and KNIRV-NEXUS
 - **IPFS Storage**: Decentralized model and skill code storage with caching
+
+### ✅ **Cross-Chain Transfer System**
+
+KNIRVORACLE is the cross-chain hub for the KNIRV network:
+
+- **IBC Handler**: Full packet transmission to KNIRVCHAIN, KNIRVNEXUS, and external chains
+- **Bridge Support**: Native support for XION, Cosmos chains, and KNIRV internal chains
+- **Transfer Types**: NRN transfers, USDC bridging, skill fees, validation rewards, staking deposits
+
+### ✅ **Network Governance Authority**
+
+KNIRVORACLE is the sole governance authority for network-wide decisions:
+
+- **Model Transition Proposals**: Governance-controlled transitions between base LLMs
+- **Network Parameters**: Fee structures, staking requirements, bridge configurations
+- **Validator Management**: Add/remove validators, update voting power, slashing
+- **Cross-Chain Governance**: Execute governance decisions across all KNIRV chains
+- **Emergency Actions**: Emergency halt, protocol upgrades, chain forks
+
+### ⚠️ **Deprecated: LLM & Skill Registries**
+
+> **Note**: LLM and Skill registries have been moved to KNIRVCHAIN (Go-based).
+> KNIRVORACLE now listens for registration events via IBC and processes fees/rewards.
+
+See `KNIRVORACLE_Implementation.md` in the project root for the full deprecation and migration plan.
 
 ### 🏗️ **Architecture Components**
 

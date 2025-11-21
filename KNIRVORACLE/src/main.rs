@@ -25,12 +25,16 @@ mod config;
 mod nrn_token;
 mod smart_contracts;
 mod testnet;
+mod token_economics;
 
 // New infrastructure modules
 mod governance;
 mod ipfs_client;
 mod model_registry;
 mod multi_model_engine;
+
+// Cross-chain transfer modules
+mod cross_chain;
 
 // Consensus and networking
 mod ibc_handler;
@@ -612,58 +616,40 @@ async fn invoke_skill(
 // Enhanced LLM registration using blockchain adapter
 #[post("/v2/llm/register")]
 async fn register_llm_v2(
-    state: web::Data<Arc<SharedState>>,
-    llm_request: web::Json<LLMRegistrationRequest>,
+    _state: web::Data<Arc<SharedState>>,
+    _llm_request: web::Json<LLMRegistrationRequest>,
 ) -> Result<impl Responder, Error> {
-    match state
-        .blockchain_adapter
-        .register_llm(llm_request.into_inner())
-        .await
-    {
-        Ok(result) => Ok(HttpResponse::Ok().json(result)),
-        Err(e) => Ok(HttpResponse::BadRequest().json(serde_json::json!({
-            "success": false,
-            "error": e.to_string()
-        }))),
-    }
+    // LLM registration has been moved to KNIRVCHAIN
+    Ok(HttpResponse::BadRequest().json(serde_json::json!({
+        "success": false,
+        "error": "LLM registration has been moved to KNIRVCHAIN"
+    })))
 }
 
 // Enhanced skill registration using blockchain adapter
 #[post("/v2/skill/register")]
 async fn register_skill_v2(
-    state: web::Data<Arc<SharedState>>,
-    skill_request: web::Json<SkillRegistrationRequest>,
+    _state: web::Data<Arc<SharedState>>,
+    _skill_request: web::Json<SkillRegistrationRequest>,
 ) -> Result<impl Responder, Error> {
-    match state
-        .blockchain_adapter
-        .register_skill(skill_request.into_inner())
-        .await
-    {
-        Ok(result) => Ok(HttpResponse::Ok().json(result)),
-        Err(e) => Ok(HttpResponse::BadRequest().json(serde_json::json!({
-            "success": false,
-            "error": e.to_string()
-        }))),
-    }
+    // Skill registration has been moved to KNIRVCHAIN
+    Ok(HttpResponse::BadRequest().json(serde_json::json!({
+        "success": false,
+        "error": "Skill registration has been moved to KNIRVCHAIN"
+    })))
 }
 
 // Enhanced skill invocation using blockchain adapter
 #[post("/v2/skill/invoke")]
 async fn invoke_skill_v2(
-    state: web::Data<Arc<SharedState>>,
-    invoke_request: web::Json<SkillInvocationRequest>,
+    _state: web::Data<Arc<SharedState>>,
+    _invoke_request: web::Json<SkillInvocationRequest>,
 ) -> Result<impl Responder, Error> {
-    match state
-        .blockchain_adapter
-        .invoke_skill(invoke_request.into_inner())
-        .await
-    {
-        Ok(result) => Ok(HttpResponse::Ok().json(result)),
-        Err(e) => Ok(HttpResponse::BadRequest().json(serde_json::json!({
-            "success": false,
-            "error": e.to_string()
-        }))),
-    }
+    // Skill invocation fees are now collected via IBC from KNIRVCHAIN
+    Ok(HttpResponse::BadRequest().json(serde_json::json!({
+        "success": false,
+        "error": "Skill invocation fees are now collected via IBC from KNIRVCHAIN"
+    })))
 }
 
 // New API handlers for enhanced functionality
@@ -895,9 +881,7 @@ async fn main() -> std::io::Result<()> {
     let ibc_handler = Arc::new(ibc_handler::IBCHandler::new());
 
     // Initialize LoRA skill distributor
-    let skill_registry_arc = Arc::new(Mutex::new(SkillRegistry::new()));
     let lora_skill_distributor = Arc::new(lora_skill_distributor::LoRASkillDistributor::new(
-        skill_registry_arc,
         ipfs_client.clone(),
     ));
 

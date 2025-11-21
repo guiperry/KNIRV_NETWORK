@@ -11,16 +11,31 @@ use crate::ibc_handler::{ExecutionMetadata, IsolationLevel, SecurityRequirements
 use crate::ipfs_client::IpfsClient;
 #[cfg(test)]
 use crate::nrn_token::Address;
-use crate::nrn_token::{SkillMetadata, SkillRegistry};
+// Registry functionality moved to KNIRVCHAIN
+
+/// Skill metadata received from KNIRVCHAIN
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SkillMetadata {
+    pub name: String,
+    pub skill_type: String,
+    pub capabilities: Vec<String>,
+    pub requirements: HashMap<String, String>,
+    pub owner: String, // Address as string
+    pub usage_fee: String, // BigInt as string
+    pub validation_status: String,
+    pub registered_at: u64,
+}
 
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct LoRASkillDistributor {
-    skill_registry: Arc<Mutex<SkillRegistry>>,
+    // Skill registry moved to KNIRVCHAIN - skills received via IBC events
     ipfs_client: Arc<IpfsClient>,
     lora_compatibility_checker: LoRACompatibilityChecker,
     execution_packages: Arc<Mutex<HashMap<String, SkillExecutionPackage>>>,
     active_distributions: Arc<Mutex<HashMap<String, DistributionSession>>>,
+    // Cache of skill metadata received from KNIRVCHAIN
+    skill_cache: Arc<Mutex<HashMap<String, SkillMetadata>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -155,13 +170,13 @@ pub struct SecurityPolicies {
 
 #[allow(dead_code)]
 impl LoRASkillDistributor {
-    pub fn new(skill_registry: Arc<Mutex<SkillRegistry>>, ipfs_client: Arc<IpfsClient>) -> Self {
+    pub fn new(ipfs_client: Arc<IpfsClient>) -> Self {
         Self {
-            skill_registry,
             ipfs_client,
             lora_compatibility_checker: LoRACompatibilityChecker::new(),
             execution_packages: Arc::new(Mutex::new(HashMap::new())),
             active_distributions: Arc::new(Mutex::new(HashMap::new())),
+            skill_cache: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -176,11 +191,11 @@ impl LoRASkillDistributor {
             skill_id, requestor_lora_info.lora_type
         );
 
-        // Get skill metadata
-        let skill_registry = self.skill_registry.lock().await;
-        let skill = skill_registry
-            .get_skill(skill_id)
-            .ok_or_else(|| anyhow!("Skill not found: {}", skill_id))?;
+        // Get skill metadata from cache (received from KNIRVCHAIN)
+        let skill_cache = self.skill_cache.lock().await;
+        let skill = skill_cache
+            .get(skill_id)
+            .ok_or_else(|| anyhow!("Skill not found in cache: {}. Skills are managed by KNIRVCHAIN.", skill_id))?;
 
         // Verify LoRA compatibility
         self.lora_compatibility_checker
@@ -499,7 +514,6 @@ impl LoRACompatibilityChecker {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::nrn_token::{PerformanceMetrics, SkillMetadata, ValidationStatus};
 
     #[tokio::test]
     async fn test_lora_compatibility() {
@@ -523,15 +537,9 @@ mod tests {
             skill_type: "computation".to_string(),
             capabilities: vec!["math".to_string()],
             requirements: HashMap::new(),
-            owner: Address([0u8; 20]),
-            usage_fee: num_bigint::BigInt::from(100),
-            validation_status: ValidationStatus::Validated,
-            performance_metrics: PerformanceMetrics {
-                success_rate: 1.0,
-                average_latency: 100.0,
-                total_invocations: 0,
-                last_updated: 0,
-            },
+            owner: "0x0000000000000000000000000000000000000000".to_string(),
+            usage_fee: "100".to_string(),
+            validation_status: "Validated".to_string(),
             registered_at: 0,
         };
 

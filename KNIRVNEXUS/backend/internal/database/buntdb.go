@@ -7,12 +7,26 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/user"
 	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/tidwall/buntdb"
 )
+
+// getAppDataDir returns the OS-specific application data directory for KNIRV-NEXUS
+func getAppDataDir() (string, error) {
+	usr, err := user.Current()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current user: %v", err)
+	}
+	appDataDir := filepath.Join(usr.HomeDir, ".local", "share", "knirvnexus", "backend_server")
+	if err := os.MkdirAll(appDataDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create app data directory: %v", err)
+	}
+	return appDataDir, nil
+}
 
 // BuntDBManager manages BuntDB operations with custom indexes and corruption prevention
 type BuntDBManager struct {
@@ -52,10 +66,22 @@ func NewBuntDB(path string) (*BuntDBManager, error) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
+	// Use OS application data directory for backups
+	appDataDir, err := getAppDataDir()
+	var backupDir string
+	if err != nil {
+		log.Printf("Warning: Failed to get app data directory, falling back to relative path: %v", err)
+		backupDir = filepath.Dir(filepath.Dir(path)) + "/backups"
+	} else {
+		backupDir = filepath.Join(appDataDir, "backups")
+	}
+
+	log.Printf("Database backup directory set to: %s (for db path: %s)", backupDir, path)
+
 	manager := &BuntDBManager{
 		db:              db,
 		dbPath:          path,
-		backupDir:       filepath.Dir(path) + "/backups",
+		backupDir:       backupDir,
 		autoBackup:      true,
 		backupInterval:  30 * time.Minute,
 		maxBackups:      10,
@@ -469,8 +495,16 @@ func validateDatabaseFile(path string) error {
 func recoverDatabase(path string) error {
 	log.Printf("Attempting to recover database: %s", path)
 
-	// Look for backup files
-	backupDir := filepath.Dir(path) + "/backups"
+	// Use same backup directory logic as NewBuntDB
+	appDataDir, err := getAppDataDir()
+	var backupDir string
+	if err != nil {
+		log.Printf("Warning: Failed to get app data directory for recovery, falling back to relative path: %v", err)
+		backupDir = filepath.Dir(filepath.Dir(path)) + "/backups"
+	} else {
+		backupDir = filepath.Join(appDataDir, "backups")
+	}
+
 	backupPattern := filepath.Join(backupDir, "nexus_*.db")
 
 	backups, err := filepath.Glob(backupPattern)
