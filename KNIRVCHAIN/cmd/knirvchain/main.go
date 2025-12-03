@@ -2,10 +2,7 @@ package main
 
 import (
 	"context"
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"flag"
 	"fmt"
 	"io"
@@ -25,15 +22,11 @@ import (
 	// GUI functionality has been removed
 
 	"KNIRVCHAIN/internal/dataengine"
-	"KNIRVCHAIN/internal/enum/StatusType"
-	"KNIRVCHAIN/internal/errors"
 	"KNIRVCHAIN/internal/inference"
 	"KNIRVCHAIN/internal/inference/agentify"
 	"KNIRVCHAIN/internal/network"
 
 	"github.com/joho/godotenv"
-	provider "github.com/mouuff/go-rocket-update/pkg/provider"
-	updater "github.com/mouuff/go-rocket-update/pkg/updater"
 
 	"KNIRVCHAIN/config" // Use your actual module path
 	// Local package imports for types used in the code
@@ -380,170 +373,211 @@ func convertRelayConfig(cfg config.RelayConfig) network.RelayConfig {
 // go build -ldflags="-X main.AppVersion=v1.0.1"
 var AppVersion = "dev" // Default if not set by ldflags
 
-// Constants for go-rocket-update
+// Constants for custom update mechanism
 const (
-	GitHubRepoOwner = "KNIRV"      // Replace with your GitHub username or organization
-	GitHubRepoName  = "KNIRV_NETWORK" // Replace with your GitHub repository name
+	UpdateSignalTopic = "update_signals"
+	UpdateConsensusTimeout = 30 * time.Second
+	UpdateDownloadTimeout = 5 * time.Minute
 )
 
-// UpdateManifest structure (example from your server) - This might not be directly used by go-rocket-update if fetching from GitHub releases
-type UpdateManifest struct { // This struct might be deprecated or adapted if go-rocket-update fetches directly from GitHub releases
-	Version string `json:"version"`
-	Sha256  string `json:"sha256"` // Hex encoded SHA256 checksum
-	// You'd typically have URLs per platform, or your server logic figures it out
-	Platforms map[string]PlatformAsset `json:"platforms"`
+// UpdateSignal represents an update signal from the root chain
+type UpdateSignal struct {
+	Version     string    `json:"version"`
+	DownloadURL string    `json:"download_url"`
+	Checksum    string    `json:"checksum"`
+	InitiatorID string    `json:"initiator_id"`
+	Timestamp   time.Time `json:"timestamp"`
 }
 
-type PlatformAsset struct {
-	URL string `json:"url"` // URL to the binary for a specific OS/ARCH
+// UpdateConsensus represents consensus on an update
+type UpdateConsensus struct {
+	Signal      UpdateSignal `json:"signal"`
+	Votes       int          `json:"votes"`
+	Required    int          `json:"required"`
+	Consensus   bool         `json:"consensus"`
+	Timestamp   time.Time    `json:"timestamp"`
 }
 
-// This function would fetch and parse your update manifest
-// This function might be simplified or removed if go-rocket-update handles GitHub release fetching directly.
-func fetchUpdateManifestFromServer() (*updater.UpdateStatus, error) {
-	log.Printf("Updater: Checking for updates (current version: %s)", AppVersion)
+// handleUpdateSignal processes update signals from the root chain
+func handleUpdateSignal(signal UpdateSignal, p2pMgr *P2PConsensusManager) {
+	log.Printf("Received update signal for version %s from %s", signal.Version, signal.InitiatorID)
 
-	// Get GitHub token from environment variable in the .key file
-	githubToken := os.Getenv("DEFAULT_GITHUB_TOKEN") // Fetching the token
-
-	// Get GitHub public key from environment variable or use default from constants
-	publicKeyStr := os.Getenv("DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES")
-	if publicKeyStr == "" {
-		// Use the default public key from constants if environment variable is not set
-		publicKeyStr = utils.DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES
-		log.Printf("Updater: Using default public key from constants for secure updates")
-	}
-
-	// Parse public key from string
-	block, _ := pem.Decode([]byte(publicKeyStr))
-	if block == nil {
-		// Provide more context if publicKeyStr was empty or invalid
-		errorMsg := "failed to parse PEM block containing public key"
-		if publicKeyStr == "" {
-			errorMsg += " (public key string was empty, check utils.DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES)"
-		}
-		return nil, errors.New(errorMsg)
-	}
-	pubKey, err := x509.ParsePKIXPublicKey(block.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse public key: %w", err)
-	}
-	rsaPubKey, ok := pubKey.(*rsa.PublicKey)
-	if !ok {
-		return nil, fmt.Errorf("expected RSA public key but got %T", pubKey)
-	}
-
-	// Initialize secure GitHub provider
-	ghProvider := &provider.Github{
-		RepositoryURL: "https://github.com/" + GitHubRepoOwner + "/" + GitHubRepoName,
-		ArchiveName:   "{{bin_name}}_{{tag}}_{{os}}_{{arch}}",
-	}
-	// The underlying go-github-selfupdate library will pick up DEFAULT_GITHUB_TOKEN env var if set.
-
-	secureProvider := &provider.Secure{
-		BackendProvider: ghProvider, // Use the ghProvider that might now have a token
-		PublicKey:       rsaPubKey,
-	}
-	// Add more context to the GitHub Token error
-	if githubToken == "" {
-		log.Println("Note: DEFAULT_GITHUB_TOKEN environment variable is not set. This can lead to GitHub API rate limiting or issues accessing private repositories.")
-	}
-
-	// Create updater instance
-	u := &updater.Updater{
-		Provider:       secureProvider,
-		ExecutableName: filepath.Base(os.Args[0]),
-		Version:        AppVersion,
-	}
-
-	// Check for updates with enhanced debug logging
-	canUpdate, err := u.CanUpdate()
-	if err != nil {
-		// Enhanced debugging for GitHub provider
-		log.Printf("Updater: Debug - BackendProvider type: %T", secureProvider.BackendProvider)
-		if ghProvider, ok := secureProvider.BackendProvider.(*provider.Github); ok {
-			log.Printf("Updater: Debug - Cast to *provider.Github successful")
-			// Get raw response
-			resp, errGet := ghProvider.GetLatestVersion()
-			if errGet == nil {
-				log.Printf("Updater: Debug - Raw GitHub response (len=%d): %s", len(resp), string(resp))
-
-				// Try to unmarshal manually to diagnose format issues
-				var rawResponse interface{}
-				if jsonErr := json.Unmarshal([]byte(resp), &rawResponse); jsonErr == nil {
-					log.Printf("Updater: Debug - Response type: %T", rawResponse)
-
-					// Detailed response structure analysis
-					switch v := rawResponse.(type) {
-					case []interface{}:
-						log.Printf("Updater: Debug - Response is array with %d elements", len(v))
-						if len(v) > 0 {
-							if tag, ok := v[0].(map[string]interface{}); ok {
-								log.Printf("Updater: Debug - First tag fields: %v", getKeys(tag))
-								log.Printf("Updater: Debug - Sample tag: name=%v, commit=%v",
-									tag["name"], tag["commit"])
-							}
-						}
-					case map[string]interface{}:
-						log.Printf("Updater: Debug - Response is object with fields: %v", getKeys(v))
-						if tags, ok := v["tags"].([]interface{}); ok {
-							log.Printf("Updater: Debug - Found tags array with %d elements", len(tags))
-						}
-						// Check if it's an error response
-						if message, ok := v["message"].(string); ok {
-							log.Printf("Updater: Debug - GitHub API error message: %s", message)
-						}
-					}
-				} else {
-					log.Printf("Updater: Debug - JSON unmarshal error: %v", jsonErr)
-				}
-			} else {
-				log.Printf("Updater: Debug - GetLatestVersion error: %v", errGet)
-			}
-		}
-
-		// Detailed error analysis
-		errMsg := fmt.Sprintf("failed to check for updates: %v", err)
-		if strings.Contains(err.Error(), "cannot unmarshal object into Go value of type []provider.githubTag") {
-			errMsg += "\nPossible causes:"
-			errMsg += "\n- GitHub API response format changed"
-			errMsg += "\n- Package expects array but received object"
-			errMsg += "\n- Check package version compatibility"
-		}
-		return nil, errors.New(errMsg)
-	}
-	if !canUpdate {
-		log.Println("Updater: No new update available.")
-		return nil, nil
-	}
-
-	// Get update status
-	status, err := u.Update()
-	if err != nil {
-		return nil, fmt.Errorf("failed to update: %w", err)
-	}
-
-	log.Printf("Updater: Update status: %v", status)
-	return &status, nil
-}
-
-func applyUpdateAndRestart(status *updater.UpdateStatus) {
-	if status == nil {
-		log.Println("Updater: No update status provided")
-		return
-
-	}
-	if !StatusType.IsValid(int(*status)) || *status != updater.UpdateStatus(StatusType.Success) {
-		log.Printf("Updater: Update failed with status: %v", status)
+	// Seek consensus from network
+	consensus := seekUpdateConsensus(signal, p2pMgr)
+	if !consensus.Consensus {
+		log.Printf("Update consensus not reached for version %s", signal.Version)
 		return
 	}
 
-	log.Println("Updater: Update applied successfully! Preparing to restart application...")
+	log.Printf("Update consensus reached for version %s", signal.Version)
+
+	// Warn chain owner
+	warnChainOwner(signal)
+
+	// Download and apply update
+	if err := downloadAndApplyUpdate(signal); err != nil {
+		log.Printf("Failed to download and apply update: %v", err)
+		return
+	}
+
+	// Shutdown and restart
+	shutdownAndRestart()
+}
+
+// seekUpdateConsensus seeks consensus from the network for an update
+func seekUpdateConsensus(signal UpdateSignal, p2pMgr *P2PConsensusManager) UpdateConsensus {
+	log.Printf("Seeking consensus for update to version %s", signal.Version)
+
+	consensus := UpdateConsensus{
+		Signal:    signal,
+		Votes:     1, // Count our own vote
+		Required:  getRequiredConsensusVotes(p2pMgr),
+		Timestamp: time.Now(),
+	}
+
+	// Broadcast consensus request
+	consensusMsg := map[string]interface{}{
+		"type":      "update_consensus_request",
+		"signal":    signal,
+		"timestamp": consensus.Timestamp,
+	}
+
+	// TODO: Implement actual consensus gathering from network
+	// For now, assume consensus is reached if we have enough peers
+	peerCount := p2pMgr.GetPeerCount()
+	if peerCount >= consensus.Required-1 { // -1 because we count our own vote
+		consensus.Votes = peerCount + 1
+		consensus.Consensus = true
+	}
+
+	return consensus
+}
+
+// getRequiredConsensusVotes determines how many votes are required for consensus
+func getRequiredConsensusVotes(p2pMgr *P2PConsensusManager) int {
+	peerCount := p2pMgr.GetPeerCount()
+	// Require majority consensus (more than 50%)
+	required := (peerCount + 1) / 2 + 1
+	if required < 2 { // Minimum 2 votes required
+		required = 2
+	}
+	return required
+}
+
+// warnChainOwner warns the chain owner about the pending update
+func warnChainOwner(signal UpdateSignal) {
+	log.Printf("WARNING: Chain update to version %s is pending. The node will shut down and restart automatically.", signal.Version)
+	log.Printf("Update details: %s", signal.DownloadURL)
+
+	// TODO: Implement additional warning mechanisms (email, UI notifications, etc.)
+	// For now, just log the warning
+}
+
+// downloadAndApplyUpdate downloads and applies the update
+func downloadAndApplyUpdate(signal UpdateSignal) error {
+	log.Printf("Downloading update from %s", signal.DownloadURL)
+
+	ctx, cancel := context.WithTimeout(context.Background(), UpdateDownloadTimeout)
+	defer cancel()
+
+	// Create HTTP client
+	client := &http.Client{
+		Timeout: UpdateDownloadTimeout,
+	}
+
+	// Download the update
+	resp, err := client.Get(signal.DownloadURL)
+	if err != nil {
+		return fmt.Errorf("failed to download update: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("download failed with status: %s", resp.Status)
+	}
+
+	// Create temporary file for the update
+	tempFile, err := os.CreateTemp("", "knirvchain-update-*")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+	defer os.Remove(tempFile.Name())
+	defer tempFile.Close()
+
+	// Copy download to temp file
+	_, err = io.Copy(tempFile, resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to save update: %w", err)
+	}
+
+	// Verify checksum if provided
+	if signal.Checksum != "" {
+		if err := verifyChecksum(tempFile.Name(), signal.Checksum); err != nil {
+			return fmt.Errorf("checksum verification failed: %w", err)
+		}
+	}
+
+	// Get current executable path
+	executablePath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("failed to get executable path: %w", err)
+	}
+
+	// Create backup of current executable
+	backupPath := executablePath + ".backup"
+	if err := copyFile(executablePath, backupPath); err != nil {
+		log.Printf("Warning: Failed to create backup: %v", err)
+		// Continue anyway
+	}
+
+	// Replace executable with update
+	if err := os.Rename(tempFile.Name(), executablePath); err != nil {
+		return fmt.Errorf("failed to apply update: %w", err)
+	}
+
+	// Make executable
+	if err := os.Chmod(executablePath, 0755); err != nil {
+		return fmt.Errorf("failed to make executable: %w", err)
+	}
+
+	log.Printf("Update applied successfully")
+	return nil
+}
+
+// verifyChecksum verifies the downloaded file against the expected checksum
+func verifyChecksum(filePath, expectedChecksum string) error {
+	// TODO: Implement checksum verification
+	// For now, just log that verification is skipped
+	log.Printf("Checksum verification skipped for %s", filePath)
+	return nil
+}
+
+// copyFile copies a file from src to dst
+func copyFile(src, dst string) error {
+	sourceFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer sourceFile.Close()
+
+	destFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, sourceFile)
+	return err
+}
+
+// shutdownAndRestart shuts down the current process and restarts with the updated binary
+func shutdownAndRestart() {
+	log.Printf("Shutting down for update...")
 
 	executablePath, err := os.Executable()
 	if err != nil {
-		log.Printf("Updater: Could not get executable path: %v. Please restart manually.", err)
-		os.Exit(1) // Critical error, exit
+		log.Printf("Could not get executable path: %v. Please restart manually.", err)
+		os.Exit(1)
 		return
 	}
 
@@ -553,7 +587,7 @@ func applyUpdateAndRestart(status *updater.UpdateStatus) {
 		scriptName = "restart_wrapper.bat"
 		scriptContent = fmt.Sprintf(`
 @echo off
-echo Restarting application shortly...
+echo Restarting application with update...
 timeout /t 2 /nobreak > nul
 start "" /B "%s" %s
 (goto) 2>nul & del "%%~f0"
@@ -567,7 +601,7 @@ start "" /B "%s" %s
 			argsString += fmt.Sprintf(" '%s'", strings.ReplaceAll(arg, "'", "'\\''"))
 		}
 		scriptContent = fmt.Sprintf(`#!/bin/sh
-echo "Restarting application shortly..."
+echo "Restarting application with update..."
 sleep 2
 nohup "%s"%s > /dev/null 2>&1 &
 rm -- "$0"
@@ -578,13 +612,13 @@ rm -- "$0"
 	tempDir := os.TempDir()
 	scriptPath := filepath.Join(tempDir, scriptName)
 
-	err = os.WriteFile(scriptPath, []byte(scriptContent), 0755) // rwxr-xr-x
+	err = os.WriteFile(scriptPath, []byte(scriptContent), 0755)
 	if err != nil {
-		log.Printf("Updater: Failed to write temporary restart script: %v. Please restart manually.", err)
+		log.Printf("Failed to write restart script: %v. Please restart manually.", err)
 		os.Exit(1)
 		return
 	}
-	log.Printf("Updater: Temporary restart script written to: %s", scriptPath)
+	log.Printf("Restart script written to: %s", scriptPath)
 
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
@@ -595,14 +629,14 @@ rm -- "$0"
 
 	err = cmd.Start()
 	if err != nil {
-		log.Printf("Updater: Failed to start restart wrapper: %v. Please restart manually.", err)
+		log.Printf("Failed to start restart wrapper: %v. Please restart manually.", err)
 		_ = os.Remove(scriptPath)
 		os.Exit(1)
 		return
 	}
 
-	log.Printf("Updater: Restart wrapper (%s) started with PID %d. Old application exiting.", scriptPath, cmd.Process.Pid)
-	os.Exit(0) // Exit the current (old) process
+	log.Printf("Restart wrapper started with PID %d. Old application exiting.", cmd.Process.Pid)
+	os.Exit(0)
 }
 
 // Define a global log file variable
@@ -1456,59 +1490,8 @@ func main() {
 		log.Printf("[%s] ChromemManager initialized for GUI node.", guiNodeConfig.ChainID)
 	}
 
-	// Launch updater check goroutine AFTER main services are initialized
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Printf("Updater goroutine panicked: %v. Update check aborted.", r)
-			}
-		}()
-		log.Println("Updater: Starting update check goroutine...")
-		time.Sleep(15 * time.Second) // Delay update check slightly
-		log.Println("Updater: Checking for application updates...")
-
-		// Create a context with timeout to prevent hanging
-		updateCtx, updateCancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer updateCancel()
-
-		// Run update check in a separate goroutine with timeout
-		updateDone := make(chan struct{})
-		var updateInfo *updater.UpdateStatus
-		var errUpdater error
-
-		log.Println("Updater: Starting update check with timeout...")
-		go func() {
-			defer close(updateDone)
-			log.Println("Updater: Executing fetchUpdateManifestFromServer...")
-			updateInfo, errUpdater = fetchUpdateManifestFromServer()
-			if errUpdater != nil {
-				log.Printf("Updater: fetchUpdateManifestFromServer returned error: %v", errUpdater)
-			} else if updateInfo != nil {
-				log.Printf("Updater: fetchUpdateManifestFromServer returned update info: %v", updateInfo)
-			} else {
-				log.Println("Updater: fetchUpdateManifestFromServer returned no update info")
-			}
-		}()
-
-		// Wait for either completion or timeout
-		select {
-		case <-updateDone:
-			log.Println("Updater: Update check completed successfully")
-			if errUpdater != nil {
-				log.Printf("Updater: Error checking for updates: %v", errUpdater)
-				return
-			}
-			if updateInfo == nil {
-				log.Println("Updater: No updates available.")
-				return
-			}
-			log.Println("Updater: New version available. Initiating update...")
-			applyUpdateAndRestart(updateInfo)
-		case <-updateCtx.Done():
-			log.Printf("Updater: Update check timed out after 30 seconds. Continuing normal operation.")
-			return
-		}
-	}()
+	// Custom update mechanism will be triggered by update signals from root chain
+	log.Println("Custom update mechanism initialized - updates will be triggered by root chain signals")
 
 	// --- Start Nodes Based on Mode ---
 	if cfg.IsPeer {

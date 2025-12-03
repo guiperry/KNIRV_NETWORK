@@ -1,2 +1,0 @@
-# Agent Payment Gateway
-
