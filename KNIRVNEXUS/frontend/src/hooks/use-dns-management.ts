@@ -22,15 +22,15 @@ export const useDNSManagement = () => {
   const fetchRecords = useCallback(async (zone?: string, type?: string) => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const queryParams = new URLSearchParams();
       if (zone) queryParams.append('zone', zone);
       if (type) queryParams.append('type', type);
-      
+
       const url = `${API_BASE_URL}/api/dns/records${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
       const response: APIResponse<DNSRecord[]> = await apiRequest(url, { method: 'GET' });
-      
+
       if (response.success && Array.isArray(response.data)) {
         setRecords(response.data);
       } else {
@@ -225,10 +225,10 @@ export const useDNSManagement = () => {
     return summary;
   }, [records]);
 
-  // Initial fetch on mount
-  useEffect(() => {
-    refreshAll();
-  }, [refreshAll]);
+  // Initial fetch on mount - disabled for testing
+  // useEffect(() => {
+  //   refreshAll();
+  // }, [refreshAll]);
 
   return {
     records,

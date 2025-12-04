@@ -773,6 +773,7 @@ func (m *BuntDBManager) GetStats() (map[string]interface{}, error) {
 		"reports":            ReportsCollection,
 		"user_reports":       UserReportsCollection,
 		"system_reports":     SystemReportsCollection,
+		"users":              UsersCollection,
 		"objects":            ModelsCollection,
 		"dve_nodes":          DVENodesCollection,
 		"validation_tasks":   ValidationTasksCollection,
@@ -790,9 +791,14 @@ func (m *BuntDBManager) GetStats() (map[string]interface{}, error) {
 		"sessions":           SessionsCollection,
 	}
 
+	// Initialize all counts to 0
+	for name := range collections {
+		stats[name+"_count"] = 0
+	}
+
 	for name, prefix := range collections {
 		count := 0
-		m.db.View(func(tx *buntdb.Tx) error {
+		err := m.db.View(func(tx *buntdb.Tx) error {
 			return tx.Ascend("", func(key, value string) bool {
 				if strings.HasPrefix(key, prefix) {
 					count++
@@ -800,6 +806,10 @@ func (m *BuntDBManager) GetStats() (map[string]interface{}, error) {
 				return true
 			})
 		})
+		if err != nil {
+			// If there's an error, keep count as 0
+			continue
+		}
 		stats[name+"_count"] = count
 	}
 
@@ -822,7 +832,6 @@ func (m *BuntDBManager) countKeysWithPrefix(prefix string) int {
 	}
 	return count
 }
-
 
 // User Management Methods
 

@@ -55,6 +55,10 @@ jest.mock('lucide-react', () => ({
   FileText: () => <div data-testid="file-text-icon" />,
   Download: () => <div data-testid="download-icon" />,
   Share2: () => <div data-testid="share2-icon" />,
+  Radio: () => <div data-testid="radio-icon" />,
+  Shield: () => <div data-testid="shield-icon" />,
+  BarChart3: () => <div data-testid="bar-chart3-icon" />,
+  Upload: () => <div data-testid="upload-icon" />,
 }));
 
 describe('CDEAccessModal', () => {
@@ -126,7 +130,7 @@ describe('CDEAccessModal', () => {
 
     render(<CDEAccessModal {...defaultProps} />);
 
-    const engineButton = screen.getByText(/open knirvengine/i);
+    const engineButton = screen.getByText('Open');
     await user.click(engineButton);
 
     expect(mockOnOpenKNIRVEngine).toHaveBeenCalled();

@@ -126,10 +126,9 @@ const mockDVERentalPlans: DVERentalPlan[] = [
     name: 'Basic Plan',
     description: 'Basic DVE rental plan',
     price_per_hour: 10,
-    max_duration_hours: 24,
     cpu_cores: 2,
     memory_gb: 4,
-    storage_gb: 50,
+    disk_gb: 50,
     bandwidth_mbps: 100,
     features: ['Basic support', 'Standard performance'],
     created_at: '2024-01-01T00:00:00Z',
@@ -140,10 +139,9 @@ const mockDVERentalPlans: DVERentalPlan[] = [
     name: 'Premium Plan',
     description: 'Premium DVE rental plan',
     price_per_hour: 25,
-    max_duration_hours: 72,
     cpu_cores: 8,
     memory_gb: 16,
-    storage_gb: 200,
+    disk_gb: 200,
     bandwidth_mbps: 1000,
     features: ['Priority support', 'High performance', 'SSD storage'],
     created_at: '2024-01-01T00:00:00Z',
@@ -360,19 +358,20 @@ describe('DVERentalManagement Component', () => {
       total_spent: 2500,
       average_duration: 18.5
     };
-    
+
     const mockHook = {
       ...mockUseDVERental,
       stats: mockStats,
+      getTotalCost: jest.fn().mockReturnValue(2500),
     };
-    
+
     jest.mocked(require('@/hooks/use-dve-rental').useDVERental).mockReturnValue(mockHook);
-    
+
     render(<DVERentalManagement {...defaultProps} />);
-    
+
     expect(screen.getByText('15')).toBeInTheDocument(); // Total rentals
     expect(screen.getByText('3')).toBeInTheDocument();  // Active rentals
-    expect(screen.getByText('2500')).toBeInTheDocument(); // Total spent
+    expect(screen.getByText('2,500 NRN')).toBeInTheDocument(); // Total spent
   });
 
   it('displays correct status badges', () => {
@@ -380,13 +379,13 @@ describe('DVERentalManagement Component', () => {
       ...mockUseDVERental,
       rentals: mockDVERentals,
     };
-    
+
     jest.mocked(require('@/hooks/use-dve-rental').useDVERental).mockReturnValue(mockHook);
-    
+
     render(<DVERentalManagement {...defaultProps} />);
-    
+
     expect(screen.getByText('Active')).toBeInTheDocument();
-    expect(screen.getByText('Completed')).toBeInTheDocument();
+    expect(screen.getByText('completed')).toBeInTheDocument();
   });
 
   it('calculates total cost correctly', () => {
@@ -451,15 +450,15 @@ describe('DVERentalManagement Component', () => {
       ...mockUseDVERental,
       plans: mockDVERentalPlans,
     };
-    
+
     jest.mocked(require('@/hooks/use-dve-rental').useDVERental).mockReturnValue(mockHook);
-    
+
     render(<DVERentalManagement {...defaultProps} />);
-    
-    expect(screen.getByText('2 CPU cores')).toBeInTheDocument();
-    expect(screen.getByText('4 GB RAM')).toBeInTheDocument();
-    expect(screen.getByText('8 CPU cores')).toBeInTheDocument();
-    expect(screen.getByText('16 GB RAM')).toBeInTheDocument();
+
+    expect(screen.getByText('2 CPU Cores')).toBeInTheDocument();
+    expect(screen.getByText('4GB RAM, 50GB Storage')).toBeInTheDocument();
+    expect(screen.getByText('8 CPU Cores')).toBeInTheDocument();
+    expect(screen.getByText('16GB RAM, 200GB Storage')).toBeInTheDocument();
   });
 
   it('calls onClose when close button is clicked', () => {

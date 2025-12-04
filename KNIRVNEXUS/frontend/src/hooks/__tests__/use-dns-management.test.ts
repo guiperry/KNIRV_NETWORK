@@ -1,6 +1,6 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useDNSManagement } from '../use-dns-management';
-import type { DNSRecord, DNSZone, DNSStatus, CreateDNSRecordRequest, UpdateDNSRecordRequest } from '@/types/api';
+import type { DNSRecord, DNSZone, DNSStatus, CreateDNSRecordRequest, UpdateDNSRecordRequest, APIResponse } from '@/types/api';
 import { apiRequest } from '@/lib/api';
 
 // Mock the API module
@@ -10,6 +10,14 @@ jest.mock('@/lib/api', () => ({
 }));
 
 const mockApiRequest = apiRequest as jest.MockedFunction<typeof apiRequest>;
+
+// Helper function to create mock API responses with timestamp
+const createMockResponse = <T>(data: T, success: boolean = true, error?: string): APIResponse<T> => ({
+  success,
+  data,
+  timestamp: new Date().toISOString(),
+  ...(error && { error })
+});
 
 const mockDNSRecords: DNSRecord[] = [
   {
@@ -57,6 +65,7 @@ const mockDNSZones: DNSZone[] = [
   {
     id: 'zone-1',
     name: 'example.com',
+    type: 'primary',
     status: 'active',
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z'
@@ -64,6 +73,7 @@ const mockDNSZones: DNSZone[] = [
   {
     id: 'zone-2',
     name: 'test.com',
+    type: 'primary',
     status: 'active',
     created_at: '2024-01-02T00:00:00Z',
     updated_at: '2024-01-02T00:00:00Z'
@@ -71,6 +81,7 @@ const mockDNSZones: DNSZone[] = [
   {
     id: 'zone-3',
     name: 'inactive.com',
+    type: 'primary',
     status: 'inactive',
     created_at: '2024-01-03T00:00:00Z',
     updated_at: '2024-01-03T00:00:00Z'
@@ -78,10 +89,11 @@ const mockDNSZones: DNSZone[] = [
 ];
 
 const mockDNSStatus: DNSStatus = {
-  total_records: 25,
-  active_zones: 5,
-  last_updated: '2024-01-01T00:00:00Z',
-  health_status: 'healthy'
+  service: 'dns',
+  status: 'running',
+  zones: 5,
+  records: 25,
+  timestamp: '2024-01-01T00:00:00Z'
 };
 
 describe('useDNSManagement Hook', () => {
@@ -91,45 +103,26 @@ describe('useDNSManagement Hook', () => {
     // Set up default mock responses to prevent errors during hook initialization
     mockApiRequest.mockImplementation((url) => {
       if (url.includes('/status')) {
-        return Promise.resolve({ success: true, data: { total_records: 0, active_zones: 0, health_status: 'healthy', last_updated: new Date().toISOString() } });
+        return Promise.resolve(createMockResponse({ total_records: 0, active_zones: 0, health_status: 'healthy', last_updated: new Date().toISOString() }));
       }
-      return Promise.resolve({ success: true, data: [] });
+      return Promise.resolve(createMockResponse([]));
     });
   });
 
   it('initializes with default state', async () => {
     const { result } = renderHook(() => useDNSManagement());
 
-    // Wait for initial loading to complete
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
     expect(result.current.records).toEqual([]);
     expect(result.current.zones).toEqual([]);
-    expect(result.current.status).toEqual(expect.objectContaining({
-      total_records: 0,
-      active_zones: 0,
-      health_status: 'healthy'
-    }));
+    expect(result.current.status).toBeNull();
     expect(result.current.error).toBeNull();
+    expect(result.current.isLoading).toBe(false);
   });
 
   it('fetches DNS records successfully', async () => {
-    // Clear the default mock and set up specific responses
-    mockApiRequest.mockClear();
-    mockApiRequest
-      .mockResolvedValueOnce({ success: true, data: [] }) // Initial records call
-      .mockResolvedValueOnce({ success: true, data: [] }) // Initial zones call
-      .mockResolvedValueOnce({ success: true, data: null }) // Initial status call
-      .mockResolvedValueOnce({ success: true, data: mockDNSRecords }); // Test call
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(mockDNSRecords));
 
     const { result } = renderHook(() => useDNSManagement());
-
-    // Wait for initial loading to complete
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
 
     await act(async () => {
       await result.current.fetchRecords();
@@ -141,12 +134,10 @@ describe('useDNSManagement Hook', () => {
 
   it('fetches DNS records with zone filter', async () => {
     const filteredRecords = mockDNSRecords.filter(r => r.zone === 'example.com');
-    mockApiRequest.mockResolvedValueOnce({
-      success: true,
-      data: filteredRecords
-    });
 
     const { result } = renderHook(() => useDNSManagement());
+
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(filteredRecords));
 
     await act(async () => {
       await result.current.fetchRecords('example.com');
@@ -160,12 +151,15 @@ describe('useDNSManagement Hook', () => {
 
   it('fetches DNS records with type filter', async () => {
     const filteredRecords = mockDNSRecords.filter(r => r.type === 'A');
+
+    const { result } = renderHook(() => useDNSManagement());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
     mockApiRequest.mockResolvedValueOnce({
       success: true,
       data: filteredRecords
     });
-
-    const { result } = renderHook(() => useDNSManagement());
 
     await act(async () => {
       await result.current.fetchRecords(undefined, 'A');

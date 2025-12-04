@@ -204,7 +204,8 @@ describe('useModelManagement Hook', () => {
   });
 
   it('fetches models successfully', async () => {
-    // Override the default mock for this specific test
+    // Clear the default mock and set up specific mock before renderHook
+    mockApiRequest.mockClear();
     mockApiRequest.mockImplementation((url) => {
       if (url.includes('/summary')) {
         return Promise.resolve({ success: true, data: null });
