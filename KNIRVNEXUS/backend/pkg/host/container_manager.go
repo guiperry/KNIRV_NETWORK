@@ -109,13 +109,12 @@ func NewContainerManager(ctx context.Context, config *HostConfig) (*ContainerMan
 // Start begins container monitoring
 func (cm *ContainerManager) Start() error {
 	cm.mu.Lock()
-	defer cm.mu.Unlock()
-
 	if cm.running {
+		cm.mu.Unlock()
 		return fmt.Errorf("container manager is already running")
 	}
-
 	cm.running = true
+	cm.mu.Unlock()
 
 	// Initial container scan
 	if err := cm.scanContainers(); err != nil {
