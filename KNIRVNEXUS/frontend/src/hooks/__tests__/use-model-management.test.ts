@@ -1,6 +1,6 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useModelManagement } from '../use-model-management';
-import type { Model, ModelSummary, ModelMetrics, ModelLog, ModelEvent, ModelTemplate } from '@/types/api';
+import type { Model, ModelSummary, ModelMetrics, ModelLog, ModelEvent, ModelTemplate, APIResponse, ModelResourceLimits } from '@/types/api';
 import { apiRequest } from '@/lib/api';
 
 // Mock the API module
@@ -10,6 +10,14 @@ jest.mock('@/lib/api', () => ({
 }));
 
 const mockApiRequest = apiRequest as jest.MockedFunction<typeof apiRequest>;
+
+// Helper function to create mock API responses with timestamp
+const createMockResponse = <T>(data: T, success: boolean = true, error?: string): APIResponse<T> => ({
+  success,
+  data,
+  timestamp: new Date().toISOString(),
+  ...(error && { error })
+});
 
 // Mock WebSocket service
 jest.mock('@/lib/websocket-service', () => ({
@@ -26,7 +34,7 @@ jest.mock('@/lib/websocket-service', () => ({
 }));
 
 import { webSocketService } from '@/lib/websocket-service';
-const mockWebSocketService = webSocketService as jest.Mocked<typeof webSocketService>;
+const mockWebSocketService = webSocketService as any;
 
 const mockModels: Model[] = [
   {
@@ -82,15 +90,16 @@ const mockSummary: ModelSummary = {
 
 const mockMetrics: ModelMetrics = {
   model_id: 'model-1',
-  cpu_usage: 45.2,
-  memory_usage: 256,
-  disk_usage: 512,
-  network_in: 1024000,
-  network_out: 2048000,
-  requests_per_minute: 100,
-  errors_per_minute: 2,
-  uptime_seconds: 3600,
-  last_updated: '2024-01-01T00:00:00Z'
+  timestamp: '2024-01-01T00:00:00Z',
+  cpu_usage_percent: 45.2,
+  memory_usage_mb: 256,
+  network_in_mbps: 1024,
+  network_out_mbps: 2048,
+  disk_read_mbps: 512,
+  disk_write_mbps: 256,
+  requests_per_second: 100,
+  errors_per_second: 2,
+  response_time_ms: 150,
 };
 
 const mockLogs: ModelLog[] = [
@@ -100,7 +109,8 @@ const mockLogs: ModelLog[] = [
     level: 'info',
     message: 'Model started successfully',
     timestamp: '2024-01-01T00:00:00Z',
-    source: 'runtime'
+    source: 'runtime',
+    metadata: {}
   },
   {
     id: 'log-2',
@@ -108,7 +118,8 @@ const mockLogs: ModelLog[] = [
     level: 'error',
     message: 'Connection timeout',
     timestamp: '2024-01-01T00:01:00Z',
-    source: 'network'
+    source: 'network',
+    metadata: {}
   }
 ];
 
@@ -117,8 +128,7 @@ const mockEvents: ModelEvent[] = [
     id: 'event-1',
     model_id: 'model-1',
     type: 'deployment',
-    status: 'success',
-    message: 'Model deployed successfully',
+    description: 'Model deployed successfully',
     timestamp: '2024-01-01T00:00:00Z',
     metadata: { deployment_id: 'deploy-1' }
   },
@@ -126,12 +136,21 @@ const mockEvents: ModelEvent[] = [
     id: 'event-2',
     model_id: 'model-1',
     type: 'execution',
-    status: 'completed',
-    message: 'Task completed',
+    description: 'Task completed',
     timestamp: '2024-01-01T00:02:00Z',
     metadata: { task_id: 'task-1', duration: 120 }
   }
 ];
+
+const mockResourceLimits: ModelResourceLimits = {
+  max_memory_mb: 512,
+  max_cpu_percent: 100,
+  max_execution_time_seconds: 300,
+  max_concurrency: 10,
+  max_disk_mb: 1024,
+  network_access: true,
+  file_system_access: false,
+};
 
 const mockTemplates: ModelTemplate[] = [
   {
@@ -139,15 +158,14 @@ const mockTemplates: ModelTemplate[] = [
     name: 'Basic WASM Template',
     description: 'A basic WASM model template',
     type: 'WASM',
-    version: '1.0.0',
-    author: 'KNIRV Team',
-    config: {
+    default_configuration: {
       memory_limit: 512,
       cpu_limit: 1.0,
       timeout: 30000
     },
+    default_resource_limits: mockResourceLimits,
     created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z'
+    created_by: 'KNIRV Team'
   }
 ];
 
@@ -164,15 +182,15 @@ describe('useModelManagement Hook', () => {
     // Set up default mock responses for initial API calls that happen on mount
     mockApiRequest.mockImplementation((url) => {
       if (url.includes('/summary')) {
-        return Promise.resolve({ success: true, data: null });
+        return Promise.resolve(createMockResponse(null));
       }
       if (url.includes('/models') && !url.includes('/actions') && !url.includes('/metrics') && !url.includes('/logs') && !url.includes('/events')) {
-        return Promise.resolve({ success: true, data: [] });
+        return Promise.resolve(createMockResponse([]));
       }
       if (url.includes('/templates')) {
-        return Promise.resolve({ success: true, data: [] });
+        return Promise.resolve(createMockResponse([]));
       }
-      return Promise.resolve({ success: true, data: [] });
+      return Promise.resolve(createMockResponse([]));
     });
   });
 
@@ -180,9 +198,9 @@ describe('useModelManagement Hook', () => {
     // Set up specific mock responses for initial API calls
     mockApiRequest.mockImplementation((url) => {
       if (url.includes('/summary')) {
-        return Promise.resolve({ success: true, data: null });
+        return Promise.resolve(createMockResponse(null));
       }
-      return Promise.resolve({ success: true, data: [] });
+      return Promise.resolve(createMockResponse([]));
     });
 
     const { result } = renderHook(() => useModelManagement());
@@ -208,15 +226,15 @@ describe('useModelManagement Hook', () => {
     mockApiRequest.mockClear();
     mockApiRequest.mockImplementation((url) => {
       if (url.includes('/summary')) {
-        return Promise.resolve({ success: true, data: null });
+        return Promise.resolve(createMockResponse(null));
       }
       if (url.includes('/models') && !url.includes('/actions') && !url.includes('/metrics') && !url.includes('/logs') && !url.includes('/events')) {
-        return Promise.resolve({ success: true, data: mockModels });
+        return Promise.resolve(createMockResponse(mockModels));
       }
       if (url.includes('/templates')) {
-        return Promise.resolve({ success: true, data: [] });
+        return Promise.resolve(createMockResponse([]));
       }
-      return Promise.resolve({ success: true, data: [] });
+      return Promise.resolve(createMockResponse([]));
     });
 
     const { result } = renderHook(() => useModelManagement());
@@ -246,10 +264,7 @@ describe('useModelManagement Hook', () => {
   });
 
   it('fetches single model successfully', async () => {
-    mockApiRequest.mockResolvedValueOnce({
-      success: true,
-      data: mockModels[0]
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(mockModels[0]));
 
     const { result } = renderHook(() => useModelManagement());
 
@@ -270,15 +285,12 @@ describe('useModelManagement Hook', () => {
     });
 
     const newModel = { ...mockModels[0], id: 'model-3', name: 'New Model' };
-    mockApiRequest.mockResolvedValueOnce({
-      success: true,
-      data: newModel
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(newModel));
 
     const modelData = {
       name: 'New Model',
       description: 'A new test model',
-      type: 'WASM',
+      type: 'WASM' as const,
       file: new File(['test'], 'test.wasm'),
       config: {}
     };
@@ -297,10 +309,7 @@ describe('useModelManagement Hook', () => {
 
   it('updates model successfully', async () => {
     const updatedModel = { ...mockModels[0], name: 'Updated Model' };
-    mockApiRequest.mockResolvedValueOnce({
-      success: true,
-      data: updatedModel
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(updatedModel));
 
     const { result } = renderHook(() => useModelManagement());
 
@@ -319,9 +328,7 @@ describe('useModelManagement Hook', () => {
   });
 
   it('deletes model successfully', async () => {
-    mockApiRequest.mockResolvedValueOnce({
-      success: true
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(null));
 
     const { result } = renderHook(() => useModelManagement());
 
@@ -337,10 +344,7 @@ describe('useModelManagement Hook', () => {
   });
 
   it('executes model action successfully', async () => {
-    mockApiRequest.mockResolvedValueOnce({
-      success: true,
-      data: { action_id: 'action-1', status: 'completed' }
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse({ action_id: 'action-1', status: 'completed' }));
 
     const { result } = renderHook(() => useModelManagement());
 
@@ -362,10 +366,7 @@ describe('useModelManagement Hook', () => {
   });
 
   it('deploys model successfully', async () => {
-    mockApiRequest.mockResolvedValueOnce({
-      success: true,
-      data: { deployment_id: 'deploy-1' }
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse({ deployment_id: 'deploy-1' }));
 
     const { result } = renderHook(() => useModelManagement());
 
@@ -387,9 +388,7 @@ describe('useModelManagement Hook', () => {
   });
 
   it('starts model successfully', async () => {
-    mockApiRequest.mockResolvedValueOnce({
-      success: true
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(null));
 
     const { result } = renderHook(() => useModelManagement());
 
@@ -406,9 +405,7 @@ describe('useModelManagement Hook', () => {
   });
 
   it('stops model successfully', async () => {
-    mockApiRequest.mockResolvedValueOnce({
-      success: true
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(null));
 
     const { result } = renderHook(() => useModelManagement());
 
@@ -425,9 +422,7 @@ describe('useModelManagement Hook', () => {
   });
 
   it('restarts model successfully', async () => {
-    mockApiRequest.mockResolvedValueOnce({
-      success: true
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(null));
 
     const { result } = renderHook(() => useModelManagement());
 
@@ -444,10 +439,7 @@ describe('useModelManagement Hook', () => {
   });
 
   it('fetches model metrics successfully', async () => {
-    mockApiRequest.mockResolvedValueOnce({
-      success: true,
-      data: mockMetrics
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(mockMetrics));
 
     const { result } = renderHook(() => useModelManagement());
 
@@ -460,10 +452,7 @@ describe('useModelManagement Hook', () => {
   });
 
   it('fetches model logs successfully', async () => {
-    mockApiRequest.mockResolvedValueOnce({
-      success: true,
-      data: mockLogs
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(mockLogs));
 
     const { result } = renderHook(() => useModelManagement());
 
@@ -476,10 +465,7 @@ describe('useModelManagement Hook', () => {
   });
 
   it('fetches model events successfully', async () => {
-    mockApiRequest.mockResolvedValueOnce({
-      success: true,
-      data: mockEvents
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(mockEvents));
 
     const { result } = renderHook(() => useModelManagement());
 
@@ -492,10 +478,7 @@ describe('useModelManagement Hook', () => {
   });
 
   it('fetches templates successfully', async () => {
-    mockApiRequest.mockResolvedValueOnce({
-      success: true,
-      data: mockTemplates
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(mockTemplates));
 
     const { result } = renderHook(() => useModelManagement());
 
@@ -509,21 +492,18 @@ describe('useModelManagement Hook', () => {
 
   it('creates template successfully', async () => {
     const newTemplate = { ...mockTemplates[0], id: 'template-2', name: 'New Template' };
-    mockApiRequest.mockResolvedValueOnce({
-      success: true,
-      data: newTemplate
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(newTemplate));
 
     const { result } = renderHook(() => useModelManagement());
 
     const templateData = {
       name: 'New Template',
       description: 'A new template',
-      type: 'WASM',
+      type: 'WASM' as const,
       config: {}
     };
 
-    let created: boolean = false;
+    let created: ModelTemplate | null = null;
     await act(async () => {
       created = await result.current.createTemplate(templateData);
     });
@@ -532,14 +512,11 @@ describe('useModelManagement Hook', () => {
       method: 'POST',
       body: JSON.stringify(templateData)
     });
-    expect(created).toBe(true);
+    expect(created).toEqual(newTemplate);
   });
 
   it('fetches summary successfully', async () => {
-    mockApiRequest.mockResolvedValueOnce({
-      success: true,
-      data: mockSummary
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(mockSummary));
 
     const { result } = renderHook(() => useModelManagement());
 
@@ -553,8 +530,8 @@ describe('useModelManagement Hook', () => {
 
   it('refreshes all data successfully', async () => {
     mockApiRequest
-      .mockResolvedValueOnce({ success: true, data: mockModels })
-      .mockResolvedValueOnce({ success: true, data: mockSummary });
+      .mockResolvedValueOnce(createMockResponse(mockModels))
+      .mockResolvedValueOnce(createMockResponse(mockSummary));
 
     const { result } = renderHook(() => useModelManagement());
 
@@ -605,8 +582,8 @@ describe('useModelManagement Hook', () => {
   });
 
   it('handles loading states correctly', async () => {
-    let resolvePromise: (value: any) => void;
-    const promise = new Promise((resolve) => {
+    let resolvePromise: (value: APIResponse<Model[]>) => void;
+    const promise = new Promise<APIResponse<Model[]>>((resolve) => {
       resolvePromise = resolve;
     });
     mockApiRequest.mockReturnValueOnce(promise);
@@ -623,7 +600,7 @@ describe('useModelManagement Hook', () => {
 
     // Resolve the promise
     await act(async () => {
-      resolvePromise!({ success: true, data: mockModels });
+      resolvePromise!(createMockResponse(mockModels));
       await promise;
     });
 

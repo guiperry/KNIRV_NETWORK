@@ -156,10 +156,7 @@ describe('useDNSManagement Hook', () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    mockApiRequest.mockResolvedValueOnce({
-      success: true,
-      data: filteredRecords
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(filteredRecords));
 
     await act(async () => {
       await result.current.fetchRecords(undefined, 'A');
@@ -173,10 +170,7 @@ describe('useDNSManagement Hook', () => {
 
   it('fetches DNS records with both zone and type filters', async () => {
     const filteredRecords = mockDNSRecords.filter(r => r.zone === 'example.com' && r.type === 'A');
-    mockApiRequest.mockResolvedValueOnce({
-      success: true,
-      data: filteredRecords
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(filteredRecords));
 
     const { result } = renderHook(() => useDNSManagement());
 
@@ -205,10 +199,7 @@ describe('useDNSManagement Hook', () => {
   });
 
   it('fetches DNS zones successfully', async () => {
-    mockApiRequest.mockResolvedValueOnce({
-      success: true,
-      data: mockDNSZones
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(mockDNSZones));
 
     const { result } = renderHook(() => useDNSManagement());
 
@@ -223,10 +214,7 @@ describe('useDNSManagement Hook', () => {
   });
 
   it('fetches DNS status successfully', async () => {
-    mockApiRequest.mockResolvedValueOnce({
-      success: true,
-      data: mockDNSStatus
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(mockDNSStatus));
 
     const { result } = renderHook(() => useDNSManagement());
 
@@ -242,10 +230,7 @@ describe('useDNSManagement Hook', () => {
 
   it('creates DNS record successfully', async () => {
     const newRecord = { ...mockDNSRecords[0], id: 'record-new', name: 'new.example.com' };
-    mockApiRequest.mockResolvedValueOnce({
-      success: true,
-      data: newRecord
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(newRecord));
 
     const { result } = renderHook(() => useDNSManagement());
 
@@ -274,10 +259,7 @@ describe('useDNSManagement Hook', () => {
 
   it('updates DNS record successfully', async () => {
     const updatedRecord = { ...mockDNSRecords[0], value: '192.168.1.3' };
-    mockApiRequest.mockResolvedValueOnce({
-      success: true,
-      data: updatedRecord
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(updatedRecord));
 
     const { result } = renderHook(() => useDNSManagement());
 
@@ -286,7 +268,7 @@ describe('useDNSManagement Hook', () => {
       ttl: 600
     };
 
-    let updated: boolean = false;
+    let updated: DNSRecord | null = null;
     await act(async () => {
       updated = await result.current.updateRecord('record-1', updateRequest);
     });
@@ -295,13 +277,11 @@ describe('useDNSManagement Hook', () => {
       method: 'PUT',
       body: JSON.stringify(updateRequest)
     });
-    expect(updated).toBe(true);
+    expect(updated).toEqual(updatedRecord);
   });
 
   it('deletes DNS record successfully', async () => {
-    mockApiRequest.mockResolvedValueOnce({
-      success: true
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(null));
 
     const { result } = renderHook(() => useDNSManagement());
 
@@ -318,9 +298,9 @@ describe('useDNSManagement Hook', () => {
 
   it('refreshes all data successfully', async () => {
     mockApiRequest
-      .mockResolvedValueOnce({ success: true, data: mockDNSRecords })
-      .mockResolvedValueOnce({ success: true, data: mockDNSZones })
-      .mockResolvedValueOnce({ success: true, data: mockDNSStatus });
+      .mockResolvedValueOnce(createMockResponse(mockDNSRecords))
+      .mockResolvedValueOnce(createMockResponse(mockDNSZones))
+      .mockResolvedValueOnce(createMockResponse(mockDNSStatus));
 
     const { result } = renderHook(() => useDNSManagement());
 
@@ -396,7 +376,7 @@ describe('useDNSManagement Hook', () => {
     const promise = new Promise((resolve) => {
       resolvePromise = resolve;
     });
-    mockApiRequest.mockReturnValueOnce(promise);
+    mockApiRequest.mockReturnValueOnce(promise as Promise<APIResponse<unknown>>);
 
     const { result } = renderHook(() => useDNSManagement());
 
@@ -410,7 +390,7 @@ describe('useDNSManagement Hook', () => {
 
     // Resolve the promise
     await act(async () => {
-      resolvePromise!({ success: true, data: mockDNSRecords });
+      resolvePromise!(createMockResponse(mockDNSRecords));
       await promise;
     });
 
@@ -419,10 +399,7 @@ describe('useDNSManagement Hook', () => {
   });
 
   it('handles API response errors', async () => {
-    mockApiRequest.mockResolvedValueOnce({
-      success: false,
-      error: 'DNS service unavailable'
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(null, false, 'DNS service unavailable'));
 
     const { result } = renderHook(() => useDNSManagement());
 
@@ -435,10 +412,7 @@ describe('useDNSManagement Hook', () => {
   });
 
   it('handles non-array response data', async () => {
-    mockApiRequest.mockResolvedValueOnce({
-      success: true,
-      data: null
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(null));
 
     const { result } = renderHook(() => useDNSManagement());
 
@@ -476,10 +450,7 @@ describe('useDNSManagement Hook', () => {
   });
 
   it('handles update record failure', async () => {
-    mockApiRequest.mockResolvedValueOnce({
-      success: false,
-      error: 'Record not found'
-    });
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(null, false, 'Record not found'));
 
     const { result } = renderHook(() => useDNSManagement());
 
@@ -487,12 +458,12 @@ describe('useDNSManagement Hook', () => {
       value: '192.168.1.3'
     };
 
-    let updated: boolean = false;
+    let updated: DNSRecord | null = null;
     await act(async () => {
       updated = await result.current.updateRecord('nonexistent', updateRequest);
     });
 
-    expect(updated).toBe(false);
+    expect(updated).toBeNull();
     expect(result.current.error).toBe('Record not found');
   });
 
