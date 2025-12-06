@@ -253,7 +253,7 @@
 				
 				<option value="file98">backend_server/internal/services/validation/validation_core.go (38.9%)</option>
 				
-				<option value="file99">backend_server/internal/services/validation/validation_executor.go (13.1%)</option>
+				<option value="file99">backend_server/internal/services/validation/validation_executor.go (14.8%)</option>
 				
 				<option value="file100">backend_server/internal/services/validation/validators.go (9.7%)</option>
 				
@@ -307,7 +307,7 @@
 				
 				<option value="file125">backend_server/pkg/host/system_info.go (85.6%)</option>
 				
-				<option value="file126">backend_server/pkg/p2p/dve_p2p_manager.go (45.1%)</option>
+				<option value="file126">backend_server/pkg/p2p/dve_p2p_manager.go (44.9%)</option>
 				
 				<option value="file127">backend_server/pkg/sse/sse_manager.go (75.2%)</option>
 				
@@ -3082,15 +3082,15 @@ func (a *AlertingSystem) updateState(event Event) <span class="cov7" title="72">
         }
 
         // Update event rates
-        <span class="cov7" title="72">for eventType, count := range a.state.eventCounts </span><span class="cov9" title="258">{
+        <span class="cov7" title="72">for eventType, count := range a.state.eventCounts </span><span class="cov9" title="262">{
                 lastTime, ok := a.state.lastEventTimes[eventType]
                 if !ok </span><span class="cov0" title="0">{
                         continue</span>
                 }
 
                 // Calculate rate over the last minute
-                <span class="cov9" title="258">duration := time.Since(lastTime).Seconds()
-                if duration &gt; 0 </span><span class="cov9" title="258">{
+                <span class="cov9" title="262">duration := time.Since(lastTime).Seconds()
+                if duration &gt; 0 </span><span class="cov9" title="262">{
                         a.state.eventRates[eventType] = float64(count) / duration
                 }</span>
         }
@@ -3710,11 +3710,11 @@ func (d *BuntDBDataEngine) processMetricsBatch() <span class="cov9" title="19">{
         <span class="cov4" title="3">ticker := time.NewTicker(d.config.FlushInterval)
         defer ticker.Stop()
 
-        for </span><span class="cov4" title="3">{
+        for </span><span class="cov5" title="4">{
                 select </span>{
                 case &lt;-d.ctx.Done():<span class="cov3" title="2">
                         return</span>
-                case &lt;-ticker.C:<span class="cov0" title="0"></span>
+                case &lt;-ticker.C:<span class="cov1" title="1"></span>
                         // This would implement batch processing logic
                         // For now, just a placeholder
                 }
@@ -9312,7 +9312,7 @@ func (bm *BuntDBManager) createBackup(suffix string) error <span class="cov5" ti
 
                 // Copy all data to temp database
                 err = tempDB.Update(func(tempTx *buntdb.Tx) error </span><span class="cov5" title="14">{
-                        return tx.Ascend("", func(key, value string) bool </span><span class="cov6" title="19">{
+                        return tx.Ascend("", func(key, value string) bool </span><span class="cov5" title="19">{
                                 tempTx.Set(key, value, nil)
                                 return true
                         }</span>)
@@ -9346,19 +9346,19 @@ func (bm *BuntDBManager) cleanupOldBackups() <span class="cov5" title="15">{
                 return
         }</span>
 
-        <span class="cov5" title="15">if len(files) &lt;= bm.maxBackups </span><span class="cov5" title="11">{
+        <span class="cov5" title="15">if len(files) &lt;= bm.maxBackups </span><span class="cov4" title="9">{
                 return
         }</span>
 
         // Sort files by modification time and remove oldest
-        <span class="cov3" title="4">type fileInfo struct {
+        <span class="cov3" title="6">type fileInfo struct {
                 path    string
                 modTime time.Time
         }
 
         var fileInfos []fileInfo
-        for _, file := range files </span><span class="cov7" title="39">{
-                if stat, err := os.Stat(file); err == nil </span><span class="cov7" title="39">{
+        for _, file := range files </span><span class="cov7" title="60">{
+                if stat, err := os.Stat(file); err == nil </span><span class="cov7" title="60">{
                         fileInfos = append(fileInfos, fileInfo{
                                 path:    file,
                                 modTime: stat.ModTime(),
@@ -9367,20 +9367,20 @@ func (bm *BuntDBManager) cleanupOldBackups() <span class="cov5" title="15">{
         }
 
         // Sort by modification time (oldest first)
-        <span class="cov3" title="4">for i := 0; i &lt; len(fileInfos)-1; i++ </span><span class="cov7" title="35">{
-                for j := i + 1; j &lt; len(fileInfos); j++ </span><span class="cov10" title="186">{
-                        if fileInfos[i].modTime.After(fileInfos[j].modTime) </span><span class="cov6" title="26">{
+        <span class="cov3" title="6">for i := 0; i &lt; len(fileInfos)-1; i++ </span><span class="cov7" title="54">{
+                for j := i + 1; j &lt; len(fileInfos); j++ </span><span class="cov10" title="285">{
+                        if fileInfos[i].modTime.After(fileInfos[j].modTime) </span><span class="cov4" title="11">{
                                 fileInfos[i], fileInfos[j] = fileInfos[j], fileInfos[i]
                         }</span>
                 }
         }
 
         // Remove oldest files
-        <span class="cov3" title="4">toRemove := len(fileInfos) - bm.maxBackups
-        for i := 0; i &lt; toRemove; i++ </span><span class="cov4" title="7">{
+        <span class="cov3" title="6">toRemove := len(fileInfos) - bm.maxBackups
+        for i := 0; i &lt; toRemove; i++ </span><span class="cov4" title="8">{
                 if err := os.Remove(fileInfos[i].path); err != nil </span><span class="cov0" title="0">{
                         log.Printf("Failed to remove old backup %s: %v", fileInfos[i].path, err)
-                }</span> else<span class="cov4" title="7"> {
+                }</span> else<span class="cov4" title="8"> {
                         log.Printf("Removed old backup: %s", fileInfos[i].path)
                 }</span>
         }
@@ -9450,9 +9450,9 @@ func recoverDatabase(path string) error <span class="cov1" title="1">{
         <span class="cov1" title="1">var latestBackup string
         var latestTime time.Time
 
-        for _, backup := range backups </span><span class="cov4" title="10">{
-                if stat, err := os.Stat(backup); err == nil </span><span class="cov4" title="10">{
-                        if stat.ModTime().After(latestTime) </span><span class="cov1" title="1">{
+        for _, backup := range backups </span><span class="cov4" title="11">{
+                if stat, err := os.Stat(backup); err == nil </span><span class="cov4" title="11">{
+                        if stat.ModTime().After(latestTime) </span><span class="cov3" title="5">{
                                 latestTime = stat.ModTime()
                                 latestBackup = backup
                         }</span>
@@ -27280,7 +27280,7 @@ func (er *EndpointRegistry) generateEndpointID() string <span class="cov10" titl
 }</span>
 
 // cleanupExpiredEndpoints periodically cleans up expired endpoints
-func (er *EndpointRegistry) cleanupExpiredEndpoints() <span class="cov9" title="19">{
+func (er *EndpointRegistry) cleanupExpiredEndpoints() <span class="cov9" title="21">{
         ticker := time.NewTicker(15 * time.Minute)
         defer ticker.Stop()
 
@@ -39154,7 +39154,7 @@ func (ve *ValidationExecutor) CancelAll() <span class="cov7" title="4">{
         ve.mu.Lock()
         defer ve.mu.Unlock()
 
-        for taskID, execution := range ve.running </span><span class="cov0" title="0">{
+        for taskID, execution := range ve.running </span><span class="cov1" title="1">{
                 execution.Cancel()
                 delete(ve.running, taskID)
         }</span>
@@ -52238,9 +52238,9 @@ func (dpm *DVEP2PManager) bootstrapToNetwork() error <span class="cov2" title="2
                         continue</span> // Skip ourselves
                 }
 
-                <span class="cov5" title="5">if err := dpm.host.Connect(connectCtx, peerInfo); err != nil </span><span class="cov3" title="3">{
+                <span class="cov5" title="5">if err := dpm.host.Connect(connectCtx, peerInfo); err != nil </span><span class="cov0" title="0">{
                         log.Printf("[DVE][%s] Failed to connect to bootstrap peer %s: %v", dpm.nodeRole, peerInfo.ID, err)
-                }</span> else<span class="cov2" title="2"> {
+                }</span> else<span class="cov5" title="5"> {
                         log.Printf("[DVE][%s] Connected to bootstrap peer: %s", dpm.nodeRole, peerInfo.ID)
                         connectedCount++
                 }</span>

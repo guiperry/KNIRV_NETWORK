@@ -302,8 +302,11 @@ export default function DNSManagement({ isOpen, onClose }: DNSManagementProps) {
                               <p className="font-medium">{record.name}</p>
                               <p className="text-sm text-muted-foreground">{record.zone}</p>
                             </div>
-                            <div>
+                            <div className="flex items-center gap-2">
                               {getRecordTypeBadge(record.type)}
+                              {record.proxied && (
+                                <Badge className="bg-green-500">Proxied</Badge>
+                              )}
                             </div>
                             <div>
                               <p className="font-mono text-sm">{record.value}</p>

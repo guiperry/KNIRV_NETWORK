@@ -130,7 +130,9 @@ describe('CDEAccessModal', () => {
 
     render(<CDEAccessModal {...defaultProps} />);
 
-    const engineButton = screen.getByText('Open');
+    // Find the KNIRVENGINE button (second Open button)
+    const openButtons = screen.getAllByText('Open');
+    const engineButton = openButtons[1]; // KNIRVENGINE is the second Open button
     await user.click(engineButton);
 
     expect(mockOnOpenKNIRVEngine).toHaveBeenCalled();

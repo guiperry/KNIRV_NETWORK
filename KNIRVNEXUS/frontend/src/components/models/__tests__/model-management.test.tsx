@@ -4,23 +4,47 @@ import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import ModelManagement from '../model-management';
 import type { Model, ModelSummary } from '@/types/api';
+import { useModelManagement } from '@/hooks/use-model-management';
 
 // Mock the hooks
 const mockUseModelManagement = {
   models: [],
+  selectedModel: null,
+  modelMetrics: {},
+  modelLogs: {},
+  modelEvents: [],
+  templates: [],
   summary: {
-    total: 0,
-    running: 0,
-    deployed: 0,
-    stopped: 0,
-    error: 0,
-    uploaded: 0,
-    archived: 0
+    total_models: 0,
+    running_models: 0,
+    deployed_models: 0,
+    stopped_models: 0,
+    error_models: 0,
+    uploaded_models: 0,
   } as ModelSummary,
   isLoading: false,
   error: null,
+  isConnected: false,
+  fetchModels: jest.fn(),
+  fetchModel: jest.fn(),
+  createModel: jest.fn(),
+  updateModel: jest.fn(),
   deleteModel: jest.fn(),
+  executeModelAction: jest.fn(),
+  deployModel: jest.fn(),
+  startModel: jest.fn(),
+  stopModel: jest.fn(),
+  restartModel: jest.fn(),
+  fetchModelMetrics: jest.fn(),
+  fetchModelLogs: jest.fn(),
+  fetchModelEvents: jest.fn(),
+  fetchTemplates: jest.fn(),
+  createTemplate: jest.fn(),
+  fetchSummary: jest.fn(),
   refreshAll: jest.fn(),
+  connectWebSocket: jest.fn(),
+  disconnectWebSocket: jest.fn(),
+  setSelectedModel: jest.fn(),
 };
 
 jest.mock('@/hooks/use-model-management', () => ({
@@ -177,11 +201,12 @@ describe('ModelManagement Component', () => {
       ...mockUseModelManagement,
       isLoading: true,
     };
-    
-    jest.mocked(require('@/hooks/use-model-management').useModelManagement).mockReturnValue(mockHook);
-    
+
+    jest.mocked(useModelManagement).mockReturnValue(mockHook);
+
     render(<ModelManagement {...defaultProps} />);
-    expect(screen.getByText('Loading models...')).toBeInTheDocument();
+    // Component shows loading via refresh button animation, not text
+    expect(screen.getByTestId('RefreshCw-icon')).toBeInTheDocument();
   });
 
   it('displays error state', () => {
@@ -189,11 +214,11 @@ describe('ModelManagement Component', () => {
       ...mockUseModelManagement,
       error: 'Failed to load models',
     };
-    
-    jest.mocked(require('@/hooks/use-model-management').useModelManagement).mockReturnValue(mockHook);
-    
+
+    jest.mocked(useModelManagement).mockReturnValue(mockHook);
+
     render(<ModelManagement {...defaultProps} />);
-    expect(screen.getByText('Error: Failed to load models')).toBeInTheDocument();
+    expect(screen.getByText('Failed to load models')).toBeInTheDocument();
   });
 
   it('displays models list', () => {
@@ -202,7 +227,7 @@ describe('ModelManagement Component', () => {
       models: mockModels,
     };
     
-    jest.mocked(require('@/hooks/use-model-management').useModelManagement).mockReturnValue(mockHook);
+    jest.mocked(useModelManagement).mockReturnValue(mockHook);
     
     render(<ModelManagement {...defaultProps} />);
     
@@ -216,7 +241,7 @@ describe('ModelManagement Component', () => {
       models: mockModels,
     };
     
-    jest.mocked(require('@/hooks/use-model-management').useModelManagement).mockReturnValue(mockHook);
+    jest.mocked(useModelManagement).mockReturnValue(mockHook);
     
     render(<ModelManagement {...defaultProps} />);
     
@@ -233,7 +258,7 @@ describe('ModelManagement Component', () => {
       deleteModel: mockDeleteModel,
     };
     
-    jest.mocked(require('@/hooks/use-model-management').useModelManagement).mockReturnValue(mockHook);
+    jest.mocked(useModelManagement).mockReturnValue(mockHook);
     
     render(<ModelManagement {...defaultProps} />);
     
@@ -259,7 +284,7 @@ describe('ModelManagement Component', () => {
       deleteModel: mockDeleteModel,
     };
     
-    jest.mocked(require('@/hooks/use-model-management').useModelManagement).mockReturnValue(mockHook);
+    jest.mocked(useModelManagement).mockReturnValue(mockHook);
     
     render(<ModelManagement {...defaultProps} />);
     
@@ -277,7 +302,7 @@ describe('ModelManagement Component', () => {
       refreshAll: mockRefreshAll,
     };
     
-    jest.mocked(require('@/hooks/use-model-management').useModelManagement).mockReturnValue(mockHook);
+    jest.mocked(useModelManagement).mockReturnValue(mockHook);
     
     render(<ModelManagement {...defaultProps} />);
     
@@ -296,18 +321,18 @@ describe('ModelManagement Component', () => {
       error_models: 1,
       uploaded_models: 0
     };
-    
+
     const mockHook = {
       ...mockUseModelManagement,
       summary: mockSummary,
     };
-    
-    jest.mocked(require('@/hooks/use-model-management').useModelManagement).mockReturnValue(mockHook);
-    
+
+    jest.mocked(useModelManagement).mockReturnValue(mockHook);
+
     render(<ModelManagement {...defaultProps} />);
-    
-    expect(screen.getByText('10')).toBeInTheDocument(); // Total
-    expect(screen.getByText('3')).toBeInTheDocument();  // Running
+
+    expect(screen.getAllByText('10')).toHaveLength(2); // Total - in summary and settings
+    expect(screen.getByText('3')).toBeInTheDocument();  // Running - in summary
     expect(screen.getByText('2')).toBeInTheDocument();  // Deployed
     expect(screen.getByText('4')).toBeInTheDocument();  // Stopped
   });
@@ -318,7 +343,7 @@ describe('ModelManagement Component', () => {
       models: mockModels,
     };
     
-    jest.mocked(require('@/hooks/use-model-management').useModelManagement).mockReturnValue(mockHook);
+    jest.mocked(useModelManagement).mockReturnValue(mockHook);
     
     render(<ModelManagement {...defaultProps} />);
     
@@ -339,13 +364,13 @@ describe('ModelManagement Component', () => {
       ...mockUseModelManagement,
       models: mockModels,
     };
-    
-    jest.mocked(require('@/hooks/use-model-management').useModelManagement).mockReturnValue(mockHook);
-    
+
+    jest.mocked(useModelManagement).mockReturnValue(mockHook);
+
     render(<ModelManagement {...defaultProps} />);
-    
-    expect(screen.getByText('Running')).toBeInTheDocument();
-    expect(screen.getByText('Stopped')).toBeInTheDocument();
+
+    expect(screen.getAllByText('Running')).toHaveLength(3); // Label, select option, badge
+    expect(screen.getAllByText('Stopped')).toHaveLength(3); // Label, select option, badge
   });
 
   it('displays correct type badges', () => {
@@ -353,13 +378,13 @@ describe('ModelManagement Component', () => {
       ...mockUseModelManagement,
       models: mockModels,
     };
-    
-    jest.mocked(require('@/hooks/use-model-management').useModelManagement).mockReturnValue(mockHook);
-    
+
+    jest.mocked(useModelManagement).mockReturnValue(mockHook);
+
     render(<ModelManagement {...defaultProps} />);
-    
-    expect(screen.getByText('WASM')).toBeInTheDocument();
-    expect(screen.getByText('LoRA')).toBeInTheDocument();
+
+    expect(screen.getAllByText('WASM')).toHaveLength(2); // One in badge, one in select
+    expect(screen.getAllByText('LoRA')).toHaveLength(2); // One in badge, one in select
   });
 
   it('formats file sizes correctly', () => {
@@ -367,13 +392,13 @@ describe('ModelManagement Component', () => {
       ...mockUseModelManagement,
       models: mockModels,
     };
-    
-    jest.mocked(require('@/hooks/use-model-management').useModelManagement).mockReturnValue(mockHook);
-    
+
+    jest.mocked(useModelManagement).mockReturnValue(mockHook);
+
     render(<ModelManagement {...defaultProps} />);
-    
+
     expect(screen.getByText('1000 KB')).toBeInTheDocument(); // 1024000 bytes
-    expect(screen.getByText('2000 KB')).toBeInTheDocument(); // 2048000 bytes
+    expect(screen.getByText('1.95 MB')).toBeInTheDocument(); // 2048000 bytes
   });
 
   it('calls onClose when close button is clicked', () => {

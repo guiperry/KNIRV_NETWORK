@@ -369,7 +369,7 @@ describe('DVERentalManagement Component', () => {
 
     expect(screen.getByText('15')).toBeInTheDocument(); // Total rentals
     expect(screen.getByText('3')).toBeInTheDocument();  // Active rentals
-    expect(screen.getByText('2,500 NRN')).toBeInTheDocument(); // Total spent
+    expect(screen.getAllByText('2,500 NRN')).toHaveLength(2); // Total spent - appears in overview and analytics
   });
 
   it('displays correct status badges', () => {

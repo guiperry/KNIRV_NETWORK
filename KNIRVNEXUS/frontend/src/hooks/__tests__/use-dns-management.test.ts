@@ -278,6 +278,7 @@ describe('useDNSManagement Hook', () => {
       body: JSON.stringify(updateRequest)
     });
     expect(updated).toEqual(updatedRecord);
+    expect(updated).not.toBeNull();
   });
 
   it('deletes DNS record successfully', async () => {
@@ -317,12 +318,14 @@ describe('useDNSManagement Hook', () => {
     expect(result.current.status).toEqual(mockDNSStatus);
   });
 
-  it('gets records by zone', () => {
+  it('gets records by zone', async () => {
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(mockDNSRecords));
+
     const { result } = renderHook(() => useDNSManagement());
 
-    // Set initial data
-    act(() => {
-      result.current.records = mockDNSRecords;
+    // Fetch records to set state
+    await act(async () => {
+      await result.current.fetchRecords();
     });
 
     const exampleRecords = result.current.getRecordsByZone('example.com');
@@ -334,12 +337,14 @@ describe('useDNSManagement Hook', () => {
     expect(testRecords[0].zone).toBe('test.com');
   });
 
-  it('gets records by type', () => {
+  it('gets records by type', async () => {
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(mockDNSRecords));
+
     const { result } = renderHook(() => useDNSManagement());
 
-    // Set initial data
-    act(() => {
-      result.current.records = mockDNSRecords;
+    // Fetch records to set state
+    await act(async () => {
+      await result.current.fetchRecords();
     });
 
     const aRecords = result.current.getRecordsByType('A');
@@ -354,12 +359,14 @@ describe('useDNSManagement Hook', () => {
     expect(cnameRecords[0].type).toBe('CNAME');
   });
 
-  it('gets record types summary', () => {
+  it('gets record types summary', async () => {
+    mockApiRequest.mockResolvedValueOnce(createMockResponse(mockDNSRecords));
+
     const { result } = renderHook(() => useDNSManagement());
 
-    // Set initial data
-    act(() => {
-      result.current.records = mockDNSRecords;
+    // Fetch records to set state
+    await act(async () => {
+      await result.current.fetchRecords();
     });
 
     const summary = result.current.getRecordTypesSummary();
