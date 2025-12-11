@@ -226,8 +226,8 @@ func DefaultBridgeConfigs() []*BridgeConfig {
 			ConnectionID:   "connection-0",
 			ClientID:       "07-tendermint-0",
 			TrustLevel:     0.66,
-			FeeBasisPoints: 10,  // 0.1% fee
-			MinTransfer:    100, // Minimum 100 units
+			FeeBasisPoints: 10,         // 0.1% fee
+			MinTransfer:    100,        // Minimum 100 units
 			MaxTransfer:    1000000000, // Maximum 1B units
 			Enabled:        true,
 		},
@@ -278,8 +278,8 @@ func DefaultBridgeConfigs() []*BridgeConfig {
 			ConnectionID:   "connection-xion",
 			ClientID:       "07-tendermint-xion",
 			TrustLevel:     0.66,
-			FeeBasisPoints: 25,  // 0.25% fee for external chain
-			MinTransfer:    1000, // Higher minimum for external
+			FeeBasisPoints: 25,        // 0.25% fee for external chain
+			MinTransfer:    1000,      // Higher minimum for external
 			MaxTransfer:    100000000, // Lower maximum for external
 			Enabled:        true,
 		},

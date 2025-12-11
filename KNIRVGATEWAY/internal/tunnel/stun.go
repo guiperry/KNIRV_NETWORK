@@ -70,10 +70,10 @@ func (s *STUNServer) handleConnections() {
 
 		// Create a simple response with the client's address information
 		response := map[string]interface{}{
-			"type":         "stun-response",
+			"type":          "stun-response",
 			"remoteAddress": remoteAddr.IP.String(),
-			"remotePort":   remoteAddr.Port,
-			"timestamp":    time.Now().Unix(),
+			"remotePort":    remoteAddr.Port,
+			"timestamp":     time.Now().Unix(),
 		}
 
 		responseBytes, err := json.Marshal(response)

@@ -46,13 +46,13 @@ type Stake struct {
 
 // StakingManager manages staking operations
 type StakingManager struct {
-	nrnToken           *token.NRN
-	stakes             map[types.Address]*Stake
-	totalStaked        *big.Int
-	minStake           *big.Int
-	unbondingPeriod    uint64 // in blocks
-	logger             *zap.Logger
-	mu                 sync.RWMutex
+	nrnToken        *token.NRN
+	stakes          map[types.Address]*Stake
+	totalStaked     *big.Int
+	minStake        *big.Int
+	unbondingPeriod uint64 // in blocks
+	logger          *zap.Logger
+	mu              sync.RWMutex
 }
 
 // NewStakingManager creates a new staking manager

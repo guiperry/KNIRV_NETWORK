@@ -171,12 +171,12 @@ func (tr *TallyResult) ParticipationRate(totalStake *big.Int) float64 {
 
 // Vote represents a validator's vote on a proposal
 type Vote struct {
-	ProposalID string         `json:"proposal_id"`
-	Voter      types.Address  `json:"voter"`
-	Option     VoteOption     `json:"option"`
-	Weight     *big.Int       `json:"weight"`
-	Timestamp  time.Time      `json:"timestamp"`
-	Signature  []byte         `json:"signature"`
+	ProposalID string        `json:"proposal_id"`
+	Voter      types.Address `json:"voter"`
+	Option     VoteOption    `json:"option"`
+	Weight     *big.Int      `json:"weight"`
+	Timestamp  time.Time     `json:"timestamp"`
+	Signature  []byte        `json:"signature"`
 }
 
 // Validator represents a network validator
@@ -196,40 +196,40 @@ type Validator struct {
 // NetworkParameters represents adjustable network parameters
 type NetworkParameters struct {
 	// Governance parameters
-	ProposalDeposit    *big.Int `json:"proposal_deposit"`
-	VotingPeriod       uint64   `json:"voting_period"`        // in blocks
-	QuorumThreshold    float64  `json:"quorum_threshold"`     // 0-1
-	PassThreshold      float64  `json:"pass_threshold"`       // 0-1
-	VetoThreshold      float64  `json:"veto_threshold"`       // 0-1
+	ProposalDeposit *big.Int `json:"proposal_deposit"`
+	VotingPeriod    uint64   `json:"voting_period"`    // in blocks
+	QuorumThreshold float64  `json:"quorum_threshold"` // 0-1
+	PassThreshold   float64  `json:"pass_threshold"`   // 0-1
+	VetoThreshold   float64  `json:"veto_threshold"`   // 0-1
 
 	// Validator parameters
 	MinValidatorStake  *big.Int `json:"min_validator_stake"`
 	MaxValidators      uint32   `json:"max_validators"`
-	UnbondingPeriod    uint64   `json:"unbonding_period"`     // in blocks
-	SlashingPercentage float64  `json:"slashing_percentage"`  // 0-1
+	UnbondingPeriod    uint64   `json:"unbonding_period"`    // in blocks
+	SlashingPercentage float64  `json:"slashing_percentage"` // 0-1
 
 	// Economic parameters
-	BaseFeeRate        float64  `json:"base_fee_rate"`        // 0-1
-	BurnRate           float64  `json:"burn_rate"`            // 0-1
-	RewardRate         float64  `json:"reward_rate"`          // 0-1
+	BaseFeeRate float64 `json:"base_fee_rate"` // 0-1
+	BurnRate    float64 `json:"burn_rate"`     // 0-1
+	RewardRate  float64 `json:"reward_rate"`   // 0-1
 
 	// Cross-chain parameters
-	IBCTimeoutBlocks   uint64   `json:"ibc_timeout_blocks"`
-	MinTransferAmount  *big.Int `json:"min_transfer_amount"`
-	MaxTransferAmount  *big.Int `json:"max_transfer_amount"`
+	IBCTimeoutBlocks  uint64   `json:"ibc_timeout_blocks"`
+	MinTransferAmount *big.Int `json:"min_transfer_amount"`
+	MaxTransferAmount *big.Int `json:"max_transfer_amount"`
 }
 
 // DefaultNetworkParameters returns the default network parameters
 func DefaultNetworkParameters() *NetworkParameters {
 	return &NetworkParameters{
 		ProposalDeposit:    big.NewInt(100000000), // 100 NRN
-		VotingPeriod:       50400,                  // ~7 days at 5s/block
+		VotingPeriod:       50400,                 // ~7 days at 5s/block
 		QuorumThreshold:    0.33,
 		PassThreshold:      0.5,
 		VetoThreshold:      0.33,
 		MinValidatorStake:  big.NewInt(1000000000), // 1000 NRN
 		MaxValidators:      100,
-		UnbondingPeriod:    201600,                 // ~28 days
+		UnbondingPeriod:    201600, // ~28 days
 		SlashingPercentage: 0.05,
 		BaseFeeRate:        0.001,
 		BurnRate:           0.5,

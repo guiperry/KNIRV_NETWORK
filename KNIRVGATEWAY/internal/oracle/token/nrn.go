@@ -24,12 +24,12 @@ type NRN struct {
 
 // TokenInfo contains basic token information
 type TokenInfo struct {
-	Name         string   `json:"name"`
-	Symbol       string   `json:"symbol"`
-	Decimals     uint8    `json:"decimals"`
-	TotalSupply  string   `json:"total_supply"`
-	MaxSupply    string   `json:"max_supply"`
-	Owner        string   `json:"owner"`
+	Name        string `json:"name"`
+	Symbol      string `json:"symbol"`
+	Decimals    uint8  `json:"decimals"`
+	TotalSupply string `json:"total_supply"`
+	MaxSupply   string `json:"max_supply"`
+	Owner       string `json:"owner"`
 }
 
 // NewNRN creates a new NRN token instance

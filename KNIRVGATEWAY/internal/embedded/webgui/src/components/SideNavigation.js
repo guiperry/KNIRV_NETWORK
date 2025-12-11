@@ -279,14 +279,10 @@ const SideNavigation = ({ activePage }) => {
 
   const handleItemClick = async (id, hasChildren) => {
     if (hasChildren) return toggleSection(id);
-    // Open selected items in modal
-    if (id === 'operator-registry') return openModal('Operator Registry', '/operator-registry');
-    if (id === 'tunnel-registry') return openModal('Tunnel Registry', '/tunnel-registry');
 
-    // Payment gateway opens proxied service in a new tab
-    if (id === 'payment-gateway') {
-      window.open('/payment', '_blank', 'noopener');
-      return;
+    // Navigate to integrated pages for migrated services
+    if (id === 'payment-gateway' || id === 'operator-registry' || id === 'tunnel-registry') {
+      return handleNavigation(id);
     }
 
     // My API Endpoints -> open user's controller or route to QR Connect

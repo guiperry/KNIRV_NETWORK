@@ -9,10 +9,10 @@ import (
 
 // TransferQueue manages a queue of pending transfers
 type TransferQueue struct {
-	queue    *list.List
-	items    map[string]*list.Element
-	maxSize  int
-	mu       sync.RWMutex
+	queue   *list.List
+	items   map[string]*list.Element
+	maxSize int
+	mu      sync.RWMutex
 }
 
 // QueueItem represents an item in the transfer queue
@@ -211,6 +211,6 @@ type QueueStats struct {
 
 // Custom errors
 var (
-	ErrQueueFull         = fmt.Errorf("transfer queue is full")
-	ErrTransferNotFound  = fmt.Errorf("transfer not found in queue")
+	ErrQueueFull        = fmt.Errorf("transfer queue is full")
+	ErrTransferNotFound = fmt.Errorf("transfer not found in queue")
 )

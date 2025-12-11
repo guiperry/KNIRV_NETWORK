@@ -36,24 +36,24 @@ func (scs SkillConfirmationStatus) String() string {
 
 // SkillConfirmation represents a skill confirmation request/response
 type SkillConfirmation struct {
-	SkillID       string                     `json:"skill_id"`
-	NodeID        string                     `json:"node_id"`
-	Status        SkillConfirmationStatus    `json:"status"`
-	Confirmations map[PeerID]bool            `json:"confirmations"`
-	CreatedAt     time.Time                  `json:"created_at"`
-	ExpiresAt     time.Time                  `json:"expires_at"`
-	Metadata      map[string]interface{}     `json:"metadata"`
+	SkillID       string                  `json:"skill_id"`
+	NodeID        string                  `json:"node_id"`
+	Status        SkillConfirmationStatus `json:"status"`
+	Confirmations map[PeerID]bool         `json:"confirmations"`
+	CreatedAt     time.Time               `json:"created_at"`
+	ExpiresAt     time.Time               `json:"expires_at"`
+	Metadata      map[string]interface{}  `json:"metadata"`
 }
 
 // SkillConfirmationProtocol manages skill confirmation via GossipSub
 type SkillConfirmationProtocol struct {
-	gossip         *GossipManager
-	confirmations  map[string]*SkillConfirmation
-	topicName      string
-	expiryDuration time.Duration
+	gossip                *GossipManager
+	confirmations         map[string]*SkillConfirmation
+	topicName             string
+	expiryDuration        time.Duration
 	requiredConfirmations int
-	logger         *zap.Logger
-	mu             sync.RWMutex
+	logger                *zap.Logger
+	mu                    sync.RWMutex
 }
 
 // NewSkillConfirmationProtocol creates a new skill confirmation protocol

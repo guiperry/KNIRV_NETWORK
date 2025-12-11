@@ -46,23 +46,23 @@ func (s TransferStatus) String() string {
 
 // CrossChainTransfer represents a cross-chain transfer request
 type CrossChainTransfer struct {
-	TransferID       string            `json:"transfer_id"`
-	SourceChain      types.ChainID     `json:"source_chain"`
-	DestChain        types.ChainID     `json:"dest_chain"`
-	Sender           string            `json:"sender"`
-	Recipient        string            `json:"recipient"`
-	Amount           uint64            `json:"amount"`
-	Denom            string            `json:"denom"`
-	TimeoutHeight    uint64            `json:"timeout_height"`
-	TimeoutTimestamp uint64            `json:"timeout_timestamp"`
-	Memo             string            `json:"memo,omitempty"`
-	Status           TransferStatus    `json:"status"`
-	FeeAmount        uint64            `json:"fee_amount"`
-	FeeDenom         string            `json:"fee_denom"`
-	CreatedAt        int64             `json:"created_at"`
-	CompletedAt      *int64            `json:"completed_at,omitempty"`
-	Error            string            `json:"error,omitempty"`
-	Proof            *TransferProof    `json:"proof,omitempty"`
+	TransferID       string         `json:"transfer_id"`
+	SourceChain      types.ChainID  `json:"source_chain"`
+	DestChain        types.ChainID  `json:"dest_chain"`
+	Sender           string         `json:"sender"`
+	Recipient        string         `json:"recipient"`
+	Amount           uint64         `json:"amount"`
+	Denom            string         `json:"denom"`
+	TimeoutHeight    uint64         `json:"timeout_height"`
+	TimeoutTimestamp uint64         `json:"timeout_timestamp"`
+	Memo             string         `json:"memo,omitempty"`
+	Status           TransferStatus `json:"status"`
+	FeeAmount        uint64         `json:"fee_amount"`
+	FeeDenom         string         `json:"fee_denom"`
+	CreatedAt        int64          `json:"created_at"`
+	CompletedAt      *int64         `json:"completed_at,omitempty"`
+	Error            string         `json:"error,omitempty"`
+	Proof            *TransferProof `json:"proof,omitempty"`
 }
 
 // TransferRequest represents a transfer initiation request
@@ -80,24 +80,24 @@ type TransferRequest struct {
 
 // TransferReceipt represents a transfer receipt
 type TransferReceipt struct {
-	TransferID       string        `json:"transfer_id"`
-	SourceChain      types.ChainID `json:"source_chain"`
-	DestChain        types.ChainID `json:"dest_chain"`
-	Status           string        `json:"status"`
-	FeeAmount        uint64        `json:"fee_amount"`
-	FeeDenom         string        `json:"fee_denom"`
-	TransactionHash  string        `json:"transaction_hash"`
-	Timestamp        int64         `json:"timestamp"`
+	TransferID      string        `json:"transfer_id"`
+	SourceChain     types.ChainID `json:"source_chain"`
+	DestChain       types.ChainID `json:"dest_chain"`
+	Status          string        `json:"status"`
+	FeeAmount       uint64        `json:"fee_amount"`
+	FeeDenom        string        `json:"fee_denom"`
+	TransactionHash string        `json:"transaction_hash"`
+	Timestamp       int64         `json:"timestamp"`
 }
 
 // TransferProof represents proof of a cross-chain transfer
 type TransferProof struct {
-	MerkleRoot       string              `json:"merkle_root"`
-	MerkleProof      []string            `json:"merkle_proof"`
-	ValidatorSigs    []ValidatorSignature `json:"validator_signatures"`
-	BlockHeight      uint64              `json:"block_height"`
-	BlockHash        string              `json:"block_hash"`
-	Timestamp        int64               `json:"timestamp"`
+	MerkleRoot    string               `json:"merkle_root"`
+	MerkleProof   []string             `json:"merkle_proof"`
+	ValidatorSigs []ValidatorSignature `json:"validator_signatures"`
+	BlockHeight   uint64               `json:"block_height"`
+	BlockHash     string               `json:"block_hash"`
+	Timestamp     int64                `json:"timestamp"`
 }
 
 // ValidatorSignature represents a validator's signature on a transfer
@@ -109,11 +109,11 @@ type ValidatorSignature struct {
 
 // TransferEvent represents an event in the transfer lifecycle
 type TransferEvent struct {
-	TransferID  string         `json:"transfer_id"`
-	EventType   TransferEventType `json:"event_type"`
-	Status      TransferStatus `json:"status"`
-	Message     string         `json:"message,omitempty"`
-	Timestamp   time.Time      `json:"timestamp"`
+	TransferID string            `json:"transfer_id"`
+	EventType  TransferEventType `json:"event_type"`
+	Status     TransferStatus    `json:"status"`
+	Message    string            `json:"message,omitempty"`
+	Timestamp  time.Time         `json:"timestamp"`
 }
 
 // TransferEventType represents the type of transfer event

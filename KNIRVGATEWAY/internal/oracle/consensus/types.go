@@ -68,7 +68,7 @@ func (rs RoundStep) String() string {
 
 // BlockID uniquely identifies a block
 type BlockID struct {
-	Hash          []byte `json:"hash"`
+	Hash          []byte        `json:"hash"`
 	PartSetHeader PartSetHeader `json:"part_set_header"`
 }
 
@@ -80,10 +80,10 @@ type PartSetHeader struct {
 
 // Block represents a blockchain block
 type Block struct {
-	Header     BlockHeader      `json:"header"`
-	Data       BlockData        `json:"data"`
-	Evidence   EvidenceData     `json:"evidence"`
-	LastCommit *Commit          `json:"last_commit,omitempty"`
+	Header     BlockHeader  `json:"header"`
+	Data       BlockData    `json:"data"`
+	Evidence   EvidenceData `json:"evidence"`
+	LastCommit *Commit      `json:"last_commit,omitempty"`
 }
 
 // BlockHeader contains block metadata
@@ -130,10 +130,10 @@ type Evidence interface {
 
 // Commit represents a commit for a block
 type Commit struct {
-	Height     BlockHeight      `json:"height"`
-	Round      int32            `json:"round"`
-	BlockID    BlockID          `json:"block_id"`
-	Signatures []CommitSig      `json:"signatures"`
+	Height     BlockHeight `json:"height"`
+	Round      int32       `json:"round"`
+	BlockID    BlockID     `json:"block_id"`
+	Signatures []CommitSig `json:"signatures"`
 }
 
 // CommitSig represents a validator's signature on a commit
@@ -178,10 +178,10 @@ type Proposal struct {
 
 // ConsensusValidator represents a validator in the consensus
 type ConsensusValidator struct {
-	Address     types.Address `json:"address"`
-	PubKey      []byte        `json:"pub_key"`
-	VotingPower *big.Int      `json:"voting_power"`
-	ProposerPriority *big.Int   `json:"proposer_priority"`
+	Address          types.Address `json:"address"`
+	PubKey           []byte        `json:"pub_key"`
+	VotingPower      *big.Int      `json:"voting_power"`
+	ProposerPriority *big.Int      `json:"proposer_priority"`
 }
 
 // ValidatorSet represents a set of validators
@@ -193,24 +193,24 @@ type ValidatorSet struct {
 
 // RoundState represents the current state of consensus
 type RoundState struct {
-	Height             BlockHeight       `json:"height"`
-	Round              int32             `json:"round"`
-	Step               RoundStep         `json:"step"`
-	StartTime          time.Time         `json:"start_time"`
-	CommitTime         time.Time         `json:"commit_time"`
-	Validators         *ValidatorSet     `json:"validators"`
-	Proposal           *Proposal         `json:"proposal,omitempty"`
-	ProposalBlock      *Block            `json:"proposal_block,omitempty"`
-	ProposalBlockParts interface{}       `json:"proposal_block_parts,omitempty"`
-	LockedRound        int32             `json:"locked_round"`
-	LockedBlock        *Block            `json:"locked_block,omitempty"`
-	ValidRound         int32             `json:"valid_round"`
-	ValidBlock         *Block            `json:"valid_block,omitempty"`
-	Votes              interface{}       `json:"votes,omitempty"`
-	CommitRound        int32             `json:"commit_round"`
-	LastCommit         *Commit           `json:"last_commit,omitempty"`
-	LastValidators     *ValidatorSet     `json:"last_validators,omitempty"`
-	TriggeredTimeoutPrecommit bool       `json:"triggered_timeout_precommit"`
+	Height                    BlockHeight   `json:"height"`
+	Round                     int32         `json:"round"`
+	Step                      RoundStep     `json:"step"`
+	StartTime                 time.Time     `json:"start_time"`
+	CommitTime                time.Time     `json:"commit_time"`
+	Validators                *ValidatorSet `json:"validators"`
+	Proposal                  *Proposal     `json:"proposal,omitempty"`
+	ProposalBlock             *Block        `json:"proposal_block,omitempty"`
+	ProposalBlockParts        interface{}   `json:"proposal_block_parts,omitempty"`
+	LockedRound               int32         `json:"locked_round"`
+	LockedBlock               *Block        `json:"locked_block,omitempty"`
+	ValidRound                int32         `json:"valid_round"`
+	ValidBlock                *Block        `json:"valid_block,omitempty"`
+	Votes                     interface{}   `json:"votes,omitempty"`
+	CommitRound               int32         `json:"commit_round"`
+	LastCommit                *Commit       `json:"last_commit,omitempty"`
+	LastValidators            *ValidatorSet `json:"last_validators,omitempty"`
+	TriggeredTimeoutPrecommit bool          `json:"triggered_timeout_precommit"`
 }
 
 // ConsensusParams represents consensus parameters

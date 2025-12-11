@@ -15,10 +15,10 @@ import (
 type FeeType string
 
 const (
-	FeeTypeTransfer       FeeType = "transfer"
-	FeeTypeCrossChain     FeeType = "cross_chain"
-	FeeTypeProposal       FeeType = "proposal"
-	FeeTypeSkillInvoke    FeeType = "skill_invoke"
+	FeeTypeTransfer        FeeType = "transfer"
+	FeeTypeCrossChain      FeeType = "cross_chain"
+	FeeTypeProposal        FeeType = "proposal"
+	FeeTypeSkillInvoke     FeeType = "skill_invoke"
 	FeeTypeModelTransition FeeType = "model_transition"
 	FeeTypeValidatorReward FeeType = "validator_reward"
 )
@@ -78,35 +78,35 @@ func NewFeeCollector(nrnToken *token.NRN, logger *zap.Logger) *FeeCollector {
 // setDefaultFeeConfigs sets default fee configurations
 func (fc *FeeCollector) setDefaultFeeConfigs() {
 	fc.feeConfigs[FeeTypeTransfer] = &FeeConfig{
-		BaseFee:       big.NewInt(100),        // 0.0001 NRN
-		FeePercentage: 0.001,                   // 0.1%
+		BaseFee:       big.NewInt(100), // 0.0001 NRN
+		FeePercentage: 0.001,           // 0.1%
 		MinFee:        big.NewInt(10),
 		MaxFee:        big.NewInt(1000000),
 	}
 
 	fc.feeConfigs[FeeTypeCrossChain] = &FeeConfig{
-		BaseFee:       big.NewInt(1000),       // 0.001 NRN
-		FeePercentage: 0.0025,                  // 0.25%
+		BaseFee:       big.NewInt(1000), // 0.001 NRN
+		FeePercentage: 0.0025,           // 0.25%
 		MinFee:        big.NewInt(100),
 		MaxFee:        big.NewInt(10000000),
 	}
 
 	fc.feeConfigs[FeeTypeProposal] = &FeeConfig{
-		BaseFee:       big.NewInt(100000000),  // 100 NRN
+		BaseFee:       big.NewInt(100000000), // 100 NRN
 		FeePercentage: 0,
 		MinFee:        big.NewInt(100000000),
 		MaxFee:        big.NewInt(100000000),
 	}
 
 	fc.feeConfigs[FeeTypeSkillInvoke] = &FeeConfig{
-		BaseFee:       big.NewInt(1000000),    // 1 NRN
+		BaseFee:       big.NewInt(1000000), // 1 NRN
 		FeePercentage: 0,
 		MinFee:        big.NewInt(100000),
 		MaxFee:        big.NewInt(10000000),
 	}
 
 	fc.feeConfigs[FeeTypeModelTransition] = &FeeConfig{
-		BaseFee:       big.NewInt(5000000),    // 5 NRN
+		BaseFee:       big.NewInt(5000000), // 5 NRN
 		FeePercentage: 0,
 		MinFee:        big.NewInt(1000000),
 		MaxFee:        big.NewInt(50000000),
@@ -114,7 +114,7 @@ func (fc *FeeCollector) setDefaultFeeConfigs() {
 
 	fc.feeConfigs[FeeTypeValidatorReward] = &FeeConfig{
 		BaseFee:       big.NewInt(0),
-		FeePercentage: 0.05,                    // 5% commission
+		FeePercentage: 0.05, // 5% commission
 		MinFee:        big.NewInt(0),
 		MaxFee:        big.NewInt(1000000000),
 	}

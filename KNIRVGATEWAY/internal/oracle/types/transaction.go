@@ -16,13 +16,13 @@ type Transaction struct {
 
 // TransactionReceipt represents a transaction receipt
 type TransactionReceipt struct {
-	TransactionHash string  `json:"transaction_hash"`
-	BlockHeight     uint64  `json:"block_height"`
-	BlockHash       string  `json:"block_hash"`
+	TransactionHash string   `json:"transaction_hash"`
+	BlockHeight     uint64   `json:"block_height"`
+	BlockHash       string   `json:"block_hash"`
 	Status          TxStatus `json:"status"`
-	GasUsed         uint64  `json:"gas_used"`
-	Timestamp       int64   `json:"timestamp"`
-	Error           string  `json:"error,omitempty"`
+	GasUsed         uint64   `json:"gas_used"`
+	Timestamp       int64    `json:"timestamp"`
+	Error           string   `json:"error,omitempty"`
 }
 
 // TxStatus represents transaction status

@@ -1,7 +1,7 @@
 # KNIRVGATEWAY Go Build Makefile
 # This Makefile contains targets for building the Go version of KNIRVGATEWAY
 
-.PHONY: build run test clean install fmt vet lint
+.PHONY: build run test clean install fmt vet lint webgui-build
 
 # Go binary output
 BINARY_NAME=knirvgateway
@@ -18,6 +18,9 @@ GO_MOD=$(GO_CMD) mod
 # Build flags
 LDFLAGS=-ldflags "-s -w"
 BUILD_DIR=./cmd/gateway
+
+# WebGUI build
+WEBGUI_DIR=internal/embedded/webgui
 
 # Default target
 all: build
@@ -43,15 +46,22 @@ vet:
 	@echo "Vetting Go code..."
 	$(GO_VET) ./...
 
+# Build the WebGUI
+webgui-build:
+	@echo "Building WebGUI..."
+	@cd $(WEBGUI_DIR) && npm install --legacy-peer-deps
+	@cd $(WEBGUI_DIR) && npm run build
+	@echo "WebGUI build complete"
+
 # Build the Go application
-build: fmt vet
+build: webgui-build fmt vet
 	@echo "Building Go application..."
 	@mkdir -p $(BINARY_DIR)
 	$(GO_BUILD) $(LDFLAGS) -o $(BINARY_DIR)/$(BINARY_NAME) $(BUILD_DIR)
 	@echo "Build complete: $(BINARY_DIR)/$(BINARY_NAME)"
 
 # Build for multiple platforms
-build-all:
+build-all: webgui-build
 	@echo "Building for multiple platforms..."
 	@mkdir -p $(BINARY_DIR)
 	GOOS=linux GOARCH=amd64 $(GO_BUILD) $(LDFLAGS) -o $(BINARY_DIR)/$(BINARY_NAME)-linux-amd64 $(BUILD_DIR)
@@ -105,7 +115,7 @@ setup: check-go install
 	@echo "Go setup complete"
 
 # Production build
-build-prod:
+build-prod: webgui-build
 	@echo "Building production binary..."
 	@mkdir -p $(BINARY_DIR)
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO_BUILD) -a -installsuffix cgo $(LDFLAGS) -o $(BINARY_DIR)/$(BINARY_NAME) $(BUILD_DIR)
@@ -126,7 +136,8 @@ help:
 	@echo "KNIRVGATEWAY Go Build Targets:"
 	@echo "  init          - Initialize Go modules"
 	@echo "  install       - Install dependencies"
-	@echo "  build         - Build the Go application"
+	@echo "  webgui-build  - Build the WebGUI frontend"
+	@echo "  build         - Build WebGUI and Go application"
 	@echo "  build-all     - Build for multiple platforms"
 	@echo "  build-prod    - Build production binary"
 	@echo "  run           - Build and run the application"

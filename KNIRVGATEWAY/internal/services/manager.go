@@ -16,13 +16,13 @@ import (
 
 // Service represents a Node.js service process
 type Service struct {
-	Name       string
-	Dir        string
-	Port       int
-	Cmd        *exec.Cmd
-	mu         sync.RWMutex
-	Running    bool
-	StartTime  time.Time
+	Name         string
+	Dir          string
+	Port         int
+	Cmd          *exec.Cmd
+	mu           sync.RWMutex
+	Running      bool
+	StartTime    time.Time
 	restartCount int
 }
 

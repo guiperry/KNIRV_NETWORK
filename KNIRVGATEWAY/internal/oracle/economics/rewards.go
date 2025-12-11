@@ -37,12 +37,12 @@ type Staker struct {
 
 // RewardManager manages reward distribution
 type RewardManager struct {
-	nrnToken          *token.NRN
-	rewardPool        *big.Int
-	totalDistributed  *big.Int
-	rewardHistory     []Reward
-	logger            *zap.Logger
-	mu                sync.RWMutex
+	nrnToken         *token.NRN
+	rewardPool       *big.Int
+	totalDistributed *big.Int
+	rewardHistory    []Reward
+	logger           *zap.Logger
+	mu               sync.RWMutex
 }
 
 // NewRewardManager creates a new reward manager

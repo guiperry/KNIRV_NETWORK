@@ -323,10 +323,10 @@ func (h *Handler) handleIntegrationStatus(w http.ResponseWriter, r *http.Request
 	status := map[string]interface{}{
 		"status": "operational",
 		"services": map[string]interface{}{
-			"stripe":      "configured",
-			"coinbase":    "configured",
-			"economics":   "active",
-			"blockchain":  "connected",
+			"stripe":     "configured",
+			"coinbase":   "configured",
+			"economics":  "active",
+			"blockchain": "connected",
 		},
 		"timestamp": "current",
 	}

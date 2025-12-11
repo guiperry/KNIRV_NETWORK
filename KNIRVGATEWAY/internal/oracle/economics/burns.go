@@ -13,11 +13,11 @@ import (
 type BurnReason string
 
 const (
-	BurnReasonFee              BurnReason = "fee"
-	BurnReasonSkillInvocation  BurnReason = "skill_invocation"
-	BurnReasonModelTransition  BurnReason = "model_transition"
-	BurnReasonGovernance       BurnReason = "governance"
-	BurnReasonSlashing         BurnReason = "slashing"
+	BurnReasonFee             BurnReason = "fee"
+	BurnReasonSkillInvocation BurnReason = "skill_invocation"
+	BurnReasonModelTransition BurnReason = "model_transition"
+	BurnReasonGovernance      BurnReason = "governance"
+	BurnReasonSlashing        BurnReason = "slashing"
 )
 
 // BurnEvent represents a token burn event

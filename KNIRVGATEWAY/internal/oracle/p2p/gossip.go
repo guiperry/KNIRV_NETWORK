@@ -22,10 +22,10 @@ type GossipMessage struct {
 // GossipManager manages GossipSub protocol
 // In production, this would use github.com/libp2p/go-libp2p-pubsub
 type GossipManager struct {
-	topics     map[string][]MessageHandler
-	messages   []GossipMessage
-	logger     *zap.Logger
-	mu         sync.RWMutex
+	topics   map[string][]MessageHandler
+	messages []GossipMessage
+	logger   *zap.Logger
+	mu       sync.RWMutex
 }
 
 // NewGossipManager creates a new gossip manager

@@ -23,7 +23,7 @@ type Peer struct {
 // P2PManager manages peer-to-peer networking
 // In production, this would use github.com/libp2p/go-libp2p
 type P2PManager struct {
-	listenAddr    string
+	listenAddr     string
 	bootstrapPeers []string
 	peers          map[PeerID]*Peer
 	dht            *DHTManager

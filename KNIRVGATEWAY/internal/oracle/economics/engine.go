@@ -13,17 +13,17 @@ import (
 
 // EconomicsEngine manages the token economics of the network
 type EconomicsEngine struct {
-	nrnToken       *token.NRN
-	feeCollector   *FeeCollector
-	rewardManager  *RewardManager
-	stakingManager *StakingManager
-	burnTracker    *BurnTracker
+	nrnToken         *token.NRN
+	feeCollector     *FeeCollector
+	rewardManager    *RewardManager
+	stakingManager   *StakingManager
+	burnTracker      *BurnTracker
 	metricsCollector *MetricsCollector
 
-	logger         *zap.Logger
-	ctx            context.Context
-	cancel         context.CancelFunc
-	mu             sync.RWMutex
+	logger *zap.Logger
+	ctx    context.Context
+	cancel context.CancelFunc
+	mu     sync.RWMutex
 }
 
 // NewEconomicsEngine creates a new economics engine
@@ -150,12 +150,12 @@ func (ee *EconomicsEngine) GetEconomicSnapshot() map[string]interface{} {
 	burnStats := ee.burnTracker.GetBurnStats()
 
 	return map[string]interface{}{
-		"timestamp":     time.Now().Unix(),
-		"metrics":       metrics,
-		"fees":          feeStats,
-		"rewards":       rewardStats,
-		"staking":       stakingStats,
-		"burns":         burnStats,
+		"timestamp": time.Now().Unix(),
+		"metrics":   metrics,
+		"fees":      feeStats,
+		"rewards":   rewardStats,
+		"staking":   stakingStats,
+		"burns":     burnStats,
 	}
 }
 

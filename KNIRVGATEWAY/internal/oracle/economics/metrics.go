@@ -25,11 +25,11 @@ type EconomicMetrics struct {
 
 // MetricsCollector collects and stores economic metrics
 type MetricsCollector struct {
-	currentMetrics  *EconomicMetrics
-	metricsHistory  []EconomicMetrics
-	maxHistorySize  int
-	logger          *zap.Logger
-	mu              sync.RWMutex
+	currentMetrics *EconomicMetrics
+	metricsHistory []EconomicMetrics
+	maxHistorySize int
+	logger         *zap.Logger
+	mu             sync.RWMutex
 }
 
 // NewMetricsCollector creates a new metrics collector

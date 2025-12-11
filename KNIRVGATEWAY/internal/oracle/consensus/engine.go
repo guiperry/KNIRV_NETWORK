@@ -267,11 +267,11 @@ func (ce *ConsensusEngine) GetInfo() map[string]interface{} {
 	state := ce.currentState
 
 	return map[string]interface{}{
-		"chain_id":      ce.chainID,
-		"height":        state.Height,
-		"round":         state.Round,
-		"step":          state.Step.String(),
-		"validators":    state.Validators.Size(),
-		"app_info":      appInfo,
+		"chain_id":   ce.chainID,
+		"height":     state.Height,
+		"round":      state.Round,
+		"step":       state.Step.String(),
+		"validators": state.Validators.Size(),
+		"app_info":   appInfo,
 	}
 }

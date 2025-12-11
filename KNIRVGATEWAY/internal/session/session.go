@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	SessionName     = "knirv_session"
+	SessionName      = "knirv_session"
 	ControllerURLKey = "controller_url"
 )
 

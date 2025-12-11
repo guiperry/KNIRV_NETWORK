@@ -156,17 +156,17 @@ func (s ClientState) String() string {
 
 // IBCClient represents a light client
 type IBCClient struct {
-	ClientID        string      `json:"client_id"`
-	ClientType      string      `json:"client_type"` // "07-tendermint", "08-wasm", etc.
+	ClientID        string        `json:"client_id"`
+	ClientType      string        `json:"client_type"` // "07-tendermint", "08-wasm", etc.
 	ChainID         types.ChainID `json:"chain_id"`
-	State           ClientState `json:"state"`
-	LatestHeight    uint64      `json:"latest_height"`
-	TrustingPeriod  uint64      `json:"trusting_period"`  // seconds
-	UnbondingPeriod uint64      `json:"unbonding_period"` // seconds
-	MaxClockDrift   uint64      `json:"max_clock_drift"`  // seconds
-	FrozenHeight    uint64      `json:"frozen_height,omitempty"`
-	CreatedAt       time.Time   `json:"created_at"`
-	UpdatedAt       time.Time   `json:"updated_at"`
+	State           ClientState   `json:"state"`
+	LatestHeight    uint64        `json:"latest_height"`
+	TrustingPeriod  uint64        `json:"trusting_period"`  // seconds
+	UnbondingPeriod uint64        `json:"unbonding_period"` // seconds
+	MaxClockDrift   uint64        `json:"max_clock_drift"`  // seconds
+	FrozenHeight    uint64        `json:"frozen_height,omitempty"`
+	CreatedAt       time.Time     `json:"created_at"`
+	UpdatedAt       time.Time     `json:"updated_at"`
 }
 
 // IBCMessage represents different types of IBC messages

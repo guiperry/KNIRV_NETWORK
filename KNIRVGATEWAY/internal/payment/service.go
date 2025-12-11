@@ -26,11 +26,11 @@ type Service struct {
 
 // Config represents the payment service configuration
 type Config struct {
-	StripeSecretKey      string
-	CoinbaseAPIKey       string
-	FaucetCooldownHours  int
-	DefaultNetwork       string
-	EconomicsEnabled     bool
+	StripeSecretKey     string
+	CoinbaseAPIKey      string
+	FaucetCooldownHours int
+	DefaultNetwork      string
+	EconomicsEnabled    bool
 }
 
 // NewService creates a new payment service
@@ -128,8 +128,8 @@ func (s *Service) GetNetworkStatus(network string) map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"network": network,
-		"config":  config,
+		"network":   network,
+		"config":    config,
 		"timestamp": time.Now().Unix(),
 	}
 }
@@ -290,10 +290,10 @@ func (s *Service) CalculateNetworkFees(req *FeeCalculationRequest) *FeeCalculati
 		totalFee := new(big.Int).Mul(gasPrice, big.NewInt(req.GasUsed))
 
 		return &FeeCalculationResponse{
-			GasUsed:   req.GasUsed,
-			Priority:  req.Priority,
-			TotalFee:  totalFee.String(),
-			GasPrice:  gasPrice.String(),
+			GasUsed:  req.GasUsed,
+			Priority: req.Priority,
+			TotalFee: totalFee.String(),
+			GasPrice: gasPrice.String(),
 		}
 	}
 

@@ -20,14 +20,14 @@ import (
 // It integrates token, governance, economics, consensus, IBC, cross-chain, and P2P
 type Oracle struct {
 	// Core components
-	nrnToken          *token.NRN
-	governanceSystem  *governance.GovernanceSystem
-	economicsEngine   *economics.EconomicsEngine
-	consensusEngine   *consensus.ConsensusEngine
-	ibcHandler        *ibc.Handler
-	crossChainRouter  *crosschain.Router
-	p2pManager        *p2p.P2PManager
-	bridgeManager     *crosschain.BridgeManager
+	nrnToken         *token.NRN
+	governanceSystem *governance.GovernanceSystem
+	economicsEngine  *economics.EconomicsEngine
+	consensusEngine  *consensus.ConsensusEngine
+	ibcHandler       *ibc.Handler
+	crossChainRouter *crosschain.Router
+	p2pManager       *p2p.P2PManager
+	bridgeManager    *crosschain.BridgeManager
 
 	// Configuration
 	config *OracleConfig
@@ -41,39 +41,39 @@ type Oracle struct {
 // OracleConfig contains configuration for the oracle
 type OracleConfig struct {
 	// Chain configuration
-	ChainID       string        `json:"chain_id"`
-	NetworkID     string        `json:"network_id"`
-	BlockTime     time.Duration `json:"block_time"`
+	ChainID   string        `json:"chain_id"`
+	NetworkID string        `json:"network_id"`
+	BlockTime time.Duration `json:"block_time"`
 
 	// Token configuration
-	TokenName          string   `json:"token_name"`
-	TokenSymbol        string   `json:"token_symbol"`
-	InitialSupply      *big.Int `json:"initial_supply"`
-	MaxSupply          *big.Int `json:"max_supply"`
-	OwnerPrivateKey    string   `json:"owner_private_key"`
-	ContractAddress    string   `json:"contract_address,omitempty"`
-	XionRPC            string   `json:"xion_rpc,omitempty"`
+	TokenName       string   `json:"token_name"`
+	TokenSymbol     string   `json:"token_symbol"`
+	InitialSupply   *big.Int `json:"initial_supply"`
+	MaxSupply       *big.Int `json:"max_supply"`
+	OwnerPrivateKey string   `json:"owner_private_key"`
+	ContractAddress string   `json:"contract_address,omitempty"`
+	XionRPC         string   `json:"xion_rpc,omitempty"`
 
 	// P2P configuration
-	P2PListenAddr      string   `json:"p2p_listen_addr"`
-	BootstrapPeers     []string `json:"bootstrap_peers"`
-	DHTEnabled         bool     `json:"dht_enabled"`
-	GossipSubEnabled   bool     `json:"gossipsub_enabled"`
+	P2PListenAddr    string   `json:"p2p_listen_addr"`
+	BootstrapPeers   []string `json:"bootstrap_peers"`
+	DHTEnabled       bool     `json:"dht_enabled"`
+	GossipSubEnabled bool     `json:"gossipsub_enabled"`
 
 	// Validator configuration
-	ValidatorMode      bool   `json:"validator_mode"`
-	ValidatorKey       string `json:"validator_key,omitempty"`
+	ValidatorMode bool   `json:"validator_mode"`
+	ValidatorKey  string `json:"validator_key,omitempty"`
 
 	// IBC configuration
-	IBCEnabled         bool `json:"ibc_enabled"`
+	IBCEnabled bool `json:"ibc_enabled"`
 
 	// RPC & API
-	RPCAddr            string `json:"rpc_addr"`
-	APIAddr            string `json:"api_addr"`
+	RPCAddr string `json:"rpc_addr"`
+	APIAddr string `json:"api_addr"`
 
 	// Storage configuration
-	DataDir            string `json:"data_dir"`
-	DBBackend          string `json:"db_backend"`
+	DataDir   string `json:"data_dir"`
+	DBBackend string `json:"db_backend"`
 }
 
 // DefaultOracleConfig returns default configuration

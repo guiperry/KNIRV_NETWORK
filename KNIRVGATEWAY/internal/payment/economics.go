@@ -13,13 +13,13 @@ import (
 
 // EconomicsEngine handles token economics operations
 type EconomicsEngine struct {
-	rules         *EconomicRules
-	transactions  []*EconomicTransaction
-	burnEvents    []*BurnEvent
-	metrics       *EconomicMetrics
-	logger        *zap.Logger
-	isRunning     bool
-	mu            sync.RWMutex
+	rules        *EconomicRules
+	transactions []*EconomicTransaction
+	burnEvents   []*BurnEvent
+	metrics      *EconomicMetrics
+	logger       *zap.Logger
+	isRunning    bool
+	mu           sync.RWMutex
 }
 
 // NewEconomicsEngine creates a new economics engine
@@ -45,11 +45,11 @@ func NewEconomicsEngine(logger *zap.Logger) *EconomicsEngine {
 		transactions: make([]*EconomicTransaction, 0),
 		burnEvents:   make([]*BurnEvent, 0),
 		metrics: &EconomicMetrics{
-			TotalBurned:         big.NewInt(0),
-			TransactionVolume:   big.NewInt(0),
-			TotalSupply:         totalSupply,
-			ServiceMetrics:      make(map[string]*ServiceMetrics),
-			TotalBurnedStr:      "0",
+			TotalBurned:          big.NewInt(0),
+			TransactionVolume:    big.NewInt(0),
+			TotalSupply:          totalSupply,
+			ServiceMetrics:       make(map[string]*ServiceMetrics),
+			TotalBurnedStr:       "0",
 			TransactionVolumeStr: "0",
 			TotalSupplyStr:       "1000000000000000000000000",
 		},
@@ -237,10 +237,10 @@ func (ee *EconomicsEngine) CalculateNetworkFees(req *FeeCalculationRequest) *Fee
 	totalFee := new(big.Int).Mul(gasPrice, big.NewInt(req.GasUsed))
 
 	return &FeeCalculationResponse{
-		GasUsed:   req.GasUsed,
-		Priority:  req.Priority,
-		TotalFee:  totalFee.String(),
-		GasPrice:  gasPrice.String(),
+		GasUsed:  req.GasUsed,
+		Priority: req.Priority,
+		TotalFee: totalFee.String(),
+		GasPrice: gasPrice.String(),
 	}
 }
 
@@ -353,14 +353,14 @@ func (ee *EconomicsEngine) updateServiceMetrics(serviceName string, amount *big.
 	metrics, exists := ee.metrics.ServiceMetrics[serviceName]
 	if !exists {
 		metrics = &ServiceMetrics{
-			Revenue:      big.NewInt(0),
-			Costs:        big.NewInt(0),
-			Profit:       big.NewInt(0),
-			TokensEarned: big.NewInt(0),
-			TokensSpent:  big.NewInt(0),
-			UserCount:    0,
+			Revenue:          big.NewInt(0),
+			Costs:            big.NewInt(0),
+			Profit:           big.NewInt(0),
+			TokensEarned:     big.NewInt(0),
+			TokensSpent:      big.NewInt(0),
+			UserCount:        0,
 			TransactionCount: 0,
-			LastUpdated:  time.Now(),
+			LastUpdated:      time.Now(),
 		}
 		ee.metrics.ServiceMetrics[serviceName] = metrics
 	}
