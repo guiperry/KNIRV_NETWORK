@@ -269,7 +269,7 @@
 				
 				<option value="file106">backend_server/internal/web/controller_integration_handlers.go (0.0%)</option>
 				
-				<option value="file107">backend_server/internal/web/dve_handlers.go (0.0%)</option>
+				<option value="file107">backend_server/internal/web/dve_handlers.go (41.5%)</option>
 				
 				<option value="file108">backend_server/internal/web/dve_rental_handlers.go (0.0%)</option>
 				
@@ -8979,7 +8979,7 @@ type BuntDBManager struct {
 }
 
 // NewBuntDB creates a new BuntDB instance with custom indexes and corruption prevention
-func NewBuntDB(path string) (*BuntDBManager, error) <span class="cov5" title="13">{
+func NewBuntDB(path string) (*BuntDBManager, error) <span class="cov4" title="13">{
         // Validate database file before opening
         if err := validateDatabaseFile(path); err != nil </span><span class="cov0" title="0">{
                 log.Printf("Database validation failed, attempting recovery: %v", err)
@@ -8988,12 +8988,12 @@ func NewBuntDB(path string) (*BuntDBManager, error) <span class="cov5" title="13
                 }</span>
         }
 
-        <span class="cov5" title="13">db, err := buntdb.Open(path)
+        <span class="cov4" title="13">db, err := buntdb.Open(path)
         if err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("failed to open BuntDB: %w", err)
         }</span>
 
-        <span class="cov5" title="13">ctx, cancel := context.WithCancel(context.Background())
+        <span class="cov4" title="13">ctx, cancel := context.WithCancel(context.Background())
 
         // Use OS application data directory for backups
         appDataDir, err := getAppDataDir()
@@ -9001,11 +9001,11 @@ func NewBuntDB(path string) (*BuntDBManager, error) <span class="cov5" title="13
         if err != nil </span><span class="cov0" title="0">{
                 log.Printf("Warning: Failed to get app data directory, falling back to relative path: %v", err)
                 backupDir = filepath.Dir(filepath.Dir(path)) + "/backups"
-        }</span> else<span class="cov5" title="13"> {
+        }</span> else<span class="cov4" title="13"> {
                 backupDir = filepath.Join(appDataDir, "backups")
         }</span>
 
-        <span class="cov5" title="13">log.Printf("Database backup directory set to: %s (for db path: %s)", backupDir, path)
+        <span class="cov4" title="13">log.Printf("Database backup directory set to: %s (for db path: %s)", backupDir, path)
 
         manager := &amp;BuntDBManager{
                 db:              db,
@@ -9027,21 +9027,21 @@ func NewBuntDB(path string) (*BuntDBManager, error) <span class="cov5" title="13
         }</span>
 
         // Create custom indexes
-        <span class="cov5" title="13">if err := manager.createIndexes(); err != nil </span><span class="cov0" title="0">{
+        <span class="cov4" title="13">if err := manager.createIndexes(); err != nil </span><span class="cov0" title="0">{
                 db.Close()
                 cancel()
                 return nil, fmt.Errorf("failed to create indexes: %w", err)
         }</span>
 
         // Start background health monitoring and backup
-        <span class="cov5" title="13">go manager.backgroundMaintenance()
+        <span class="cov4" title="13">go manager.backgroundMaintenance()
 
         return manager, nil</span>
 }
 
 // createIndexes creates all necessary indexes for DVE operations
-func (bm *BuntDBManager) createIndexes() error <span class="cov5" title="13">{
-        return bm.db.Update(func(tx *buntdb.Tx) error </span><span class="cov5" title="13">{
+func (bm *BuntDBManager) createIndexes() error <span class="cov4" title="13">{
+        return bm.db.Update(func(tx *buntdb.Tx) error </span><span class="cov4" title="13">{
                 // DVE Node indexes
                 tx.CreateIndex("nodes_by_status", "dve:nodes:*", buntdb.IndexJSON("status"))
                 tx.CreateIndex("nodes_by_tee_type", "dve:nodes:*", buntdb.IndexJSON("tee_type"))
@@ -9106,24 +9106,24 @@ func (bm *BuntDBManager) GetDB() *buntdb.DB <span class="cov1" title="1">{
 }</span>
 
 // Close closes the database connection with graceful shutdown
-func (bm *BuntDBManager) Close() error <span class="cov5" title="13">{
+func (bm *BuntDBManager) Close() error <span class="cov4" title="13">{
         bm.mu.Lock()
         defer bm.mu.Unlock()
 
         // Cancel background operations
-        if bm.cancel != nil </span><span class="cov5" title="13">{
+        if bm.cancel != nil </span><span class="cov4" title="13">{
                 bm.cancel()
         }</span>
 
         // Create final backup before closing
-        <span class="cov5" title="13">if bm.autoBackup &amp;&amp; bm.isHealthy </span><span class="cov5" title="13">{
+        <span class="cov4" title="13">if bm.autoBackup &amp;&amp; bm.isHealthy </span><span class="cov4" title="13">{
                 if err := bm.createBackup("final"); err != nil </span><span class="cov0" title="0">{
                         log.Printf("Warning: Failed to create final backup: %v", err)
                 }</span>
         }
 
         // Close database
-        <span class="cov5" title="13">if bm.db != nil </span><span class="cov5" title="13">{
+        <span class="cov4" title="13">if bm.db != nil </span><span class="cov4" title="13">{
                 return bm.db.Close()
         }</span>
 
@@ -9240,15 +9240,15 @@ func (bm *BuntDBManager) SetValue(key, value string) error <span class="cov5" ti
 }
 
 // backgroundMaintenance runs periodic health checks and backups
-func (bm *BuntDBManager) backgroundMaintenance() <span class="cov5" title="13">{
+func (bm *BuntDBManager) backgroundMaintenance() <span class="cov4" title="13">{
         healthTicker := time.NewTicker(5 * time.Minute)
         backupTicker := time.NewTicker(bm.backupInterval)
         defer healthTicker.Stop()
         defer backupTicker.Stop()
 
-        for </span><span class="cov5" title="13">{
+        for </span><span class="cov4" title="13">{
                 select </span>{
-                case &lt;-bm.ctx.Done():<span class="cov5" title="13">
+                case &lt;-bm.ctx.Done():<span class="cov4" title="13">
                         return</span>
                 case &lt;-healthTicker.C:<span class="cov0" title="0">
                         bm.performHealthCheck()</span>
@@ -9346,19 +9346,19 @@ func (bm *BuntDBManager) cleanupOldBackups() <span class="cov5" title="15">{
                 return
         }</span>
 
-        <span class="cov5" title="15">if len(files) &lt;= bm.maxBackups </span><span class="cov4" title="9">{
+        <span class="cov5" title="15">if len(files) &lt;= bm.maxBackups </span><span class="cov4" title="8">{
                 return
         }</span>
 
         // Sort files by modification time and remove oldest
-        <span class="cov3" title="6">type fileInfo struct {
+        <span class="cov4" title="7">type fileInfo struct {
                 path    string
                 modTime time.Time
         }
 
         var fileInfos []fileInfo
-        for _, file := range files </span><span class="cov7" title="60">{
-                if stat, err := os.Stat(file); err == nil </span><span class="cov7" title="60">{
+        for _, file := range files </span><span class="cov7" title="71">{
+                if stat, err := os.Stat(file); err == nil </span><span class="cov7" title="71">{
                         fileInfos = append(fileInfos, fileInfo{
                                 path:    file,
                                 modTime: stat.ModTime(),
@@ -9367,20 +9367,20 @@ func (bm *BuntDBManager) cleanupOldBackups() <span class="cov5" title="15">{
         }
 
         // Sort by modification time (oldest first)
-        <span class="cov3" title="6">for i := 0; i &lt; len(fileInfos)-1; i++ </span><span class="cov7" title="54">{
-                for j := i + 1; j &lt; len(fileInfos); j++ </span><span class="cov10" title="285">{
-                        if fileInfos[i].modTime.After(fileInfos[j].modTime) </span><span class="cov4" title="11">{
+        <span class="cov4" title="7">for i := 0; i &lt; len(fileInfos)-1; i++ </span><span class="cov7" title="64">{
+                for j := i + 1; j &lt; len(fileInfos); j++ </span><span class="cov10" title="340">{
+                        if fileInfos[i].modTime.After(fileInfos[j].modTime) </span><span class="cov5" title="17">{
                                 fileInfos[i], fileInfos[j] = fileInfos[j], fileInfos[i]
                         }</span>
                 }
         }
 
         // Remove oldest files
-        <span class="cov3" title="6">toRemove := len(fileInfos) - bm.maxBackups
-        for i := 0; i &lt; toRemove; i++ </span><span class="cov4" title="8">{
+        <span class="cov4" title="7">toRemove := len(fileInfos) - bm.maxBackups
+        for i := 0; i &lt; toRemove; i++ </span><span class="cov4" title="9">{
                 if err := os.Remove(fileInfos[i].path); err != nil </span><span class="cov0" title="0">{
                         log.Printf("Failed to remove old backup %s: %v", fileInfos[i].path, err)
-                }</span> else<span class="cov4" title="8"> {
+                }</span> else<span class="cov4" title="9"> {
                         log.Printf("Removed old backup: %s", fileInfos[i].path)
                 }</span>
         }
@@ -9450,9 +9450,9 @@ func recoverDatabase(path string) error <span class="cov1" title="1">{
         <span class="cov1" title="1">var latestBackup string
         var latestTime time.Time
 
-        for _, backup := range backups </span><span class="cov4" title="11">{
-                if stat, err := os.Stat(backup); err == nil </span><span class="cov4" title="11">{
-                        if stat.ModTime().After(latestTime) </span><span class="cov3" title="5">{
+        for _, backup := range backups </span><span class="cov4" title="10">{
+                if stat, err := os.Stat(backup); err == nil </span><span class="cov4" title="10">{
+                        if stat.ModTime().After(latestTime) </span><span class="cov1" title="1">{
                                 latestTime = stat.ModTime()
                                 latestBackup = backup
                         }</span>
@@ -40638,9 +40638,9 @@ func (ws *WebSocketService) handleClientMessage(client *Client, msg map[string]i
 
 // Enhanced broadcast with backpressure and persistence
 func (ws *WebSocketService) handleBroadcast() <span class="cov7" title="4">{
-        for </span><span class="cov9" title="5">{
+        for </span><span class="cov10" title="6">{
                 select </span>{
-                case message := &lt;-ws.broadcast:<span class="cov1" title="1">
+                case message := &lt;-ws.broadcast:<span class="cov4" title="2">
                         ws.clientsMutex.RLock()
                         for _, client := range ws.clients </span><span class="cov0" title="0">{
                                 // Check if client is subscribed to this message type
@@ -40662,7 +40662,7 @@ func (ws *WebSocketService) handleBroadcast() <span class="cov7" title="4">{
                                         }
                                 }
                         }
-                        <span class="cov1" title="1">ws.clientsMutex.RUnlock()</span>
+                        <span class="cov4" title="2">ws.clientsMutex.RUnlock()</span>
 
                 case &lt;-ws.ctx.Done():<span class="cov7" title="4">
                         return</span>
@@ -42267,7 +42267,7 @@ type DVEHandlers struct {
         dveRentalService *dverental.DVERentalService
 }
 
-func NewDVEHandlers(dveManager *dvemanager.DVEManager, dveRentalService *dverental.DVERentalService) *DVEHandlers <span class="cov0" title="0">{
+func NewDVEHandlers(dveManager *dvemanager.DVEManager, dveRentalService *dverental.DVERentalService) *DVEHandlers <span class="cov10" title="13">{
         return &amp;DVEHandlers{
                 dveManager:       dveManager,
                 dveRentalService: dveRentalService,
@@ -42275,7 +42275,7 @@ func NewDVEHandlers(dveManager *dvemanager.DVEManager, dveRentalService *dverent
 }</span>
 
 // getCurrentTimestamp returns the current timestamp in RFC3339 format
-func getCurrentTimestamp() string <span class="cov0" title="0">{
+func getCurrentTimestamp() string <span class="cov9" title="12">{
         return time.Now().Format(time.RFC3339)
 }</span>
 
@@ -42389,9 +42389,9 @@ func (h *DVEHandlers) GetDVENodes(w http.ResponseWriter, r *http.Request) <span 
 }
 
 // PostDVENodes handles POST /api/dve-nodes (node registration)
-func (h *DVEHandlers) PostDVENodes(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *DVEHandlers) PostDVENodes(w http.ResponseWriter, r *http.Request) <span class="cov4" title="3">{
         var req dvemanager.RegisterNodeRequest
-        if err := json.NewDecoder(r.Body).Decode(&amp;req); err != nil </span><span class="cov0" title="0">{
+        if err := json.NewDecoder(r.Body).Decode(&amp;req); err != nil </span><span class="cov1" title="1">{
                 response := DVENodeResponse{
                         Success:   false,
                         Error:     "Invalid request body",
@@ -42404,7 +42404,7 @@ func (h *DVEHandlers) PostDVENodes(w http.ResponseWriter, r *http.Request) <span
         }</span>
 
         // Validate required fields
-        <span class="cov0" title="0">if req.Name == "" </span><span class="cov0" title="0">{
+        <span class="cov3" title="2">if req.Name == "" </span><span class="cov1" title="1">{
                 response := DVENodeResponse{
                         Success:   false,
                         Error:     "Node name is required",
@@ -42416,7 +42416,7 @@ func (h *DVEHandlers) PostDVENodes(w http.ResponseWriter, r *http.Request) <span
                 return
         }</span>
 
-        <span class="cov0" title="0">if req.TEEType == "" </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if req.TEEType == "" </span><span class="cov1" title="1">{
                 response := DVENodeResponse{
                         Success:   false,
                         Error:     "TEE type is required",
@@ -42454,11 +42454,11 @@ func (h *DVEHandlers) PostDVENodes(w http.ResponseWriter, r *http.Request) <span
 }
 
 // GetDVENode handles GET /api/dve-nodes/{id}
-func (h *DVEHandlers) GetDVENode(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *DVEHandlers) GetDVENode(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
         vars := mux.Vars(r)
         nodeID := vars["id"]
 
-        if nodeID == "" </span><span class="cov0" title="0">{
+        if nodeID == "" </span><span class="cov1" title="1">{
                 response := DVENodeResponse{
                         Success:   false,
                         Error:     "Node ID is required",
@@ -42506,11 +42506,11 @@ func (h *DVEHandlers) GetDVENode(w http.ResponseWriter, r *http.Request) <span c
 }
 
 // UpdateDVENode handles PUT /api/dve-nodes/{id}
-func (h *DVEHandlers) UpdateDVENode(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *DVEHandlers) UpdateDVENode(w http.ResponseWriter, r *http.Request) <span class="cov3" title="2">{
         vars := mux.Vars(r)
         nodeID := vars["id"]
 
-        if nodeID == "" </span><span class="cov0" title="0">{
+        if nodeID == "" </span><span class="cov1" title="1">{
                 response := DVENodeResponse{
                         Success:   false,
                         Error:     "Node ID is required",
@@ -42522,8 +42522,8 @@ func (h *DVEHandlers) UpdateDVENode(w http.ResponseWriter, r *http.Request) <spa
                 return
         }</span>
 
-        <span class="cov0" title="0">var updateReq map[string]interface{}
-        if err := json.NewDecoder(r.Body).Decode(&amp;updateReq); err != nil </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">var updateReq map[string]interface{}
+        if err := json.NewDecoder(r.Body).Decode(&amp;updateReq); err != nil </span><span class="cov1" title="1">{
                 response := DVENodeResponse{
                         Success:   false,
                         Error:     "Invalid request body",
@@ -42560,11 +42560,11 @@ func (h *DVEHandlers) UpdateDVENode(w http.ResponseWriter, r *http.Request) <spa
 }
 
 // DeleteDVENode handles DELETE /api/dve-nodes/{id}
-func (h *DVEHandlers) DeleteDVENode(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *DVEHandlers) DeleteDVENode(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
         vars := mux.Vars(r)
         nodeID := vars["id"]
 
-        if nodeID == "" </span><span class="cov0" title="0">{
+        if nodeID == "" </span><span class="cov1" title="1">{
                 response := DVENodeResponse{
                         Success:   false,
                         Error:     "Node ID is required",
@@ -42600,11 +42600,11 @@ func (h *DVEHandlers) DeleteDVENode(w http.ResponseWriter, r *http.Request) <spa
 }
 
 // GetDVENodeEndpoints handles GET /api/dve-nodes/{id}/endpoints
-func (h *DVEHandlers) GetDVENodeEndpoints(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *DVEHandlers) GetDVENodeEndpoints(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
         vars := mux.Vars(r)
         nodeID := vars["id"]
 
-        if nodeID == "" </span><span class="cov0" title="0">{
+        if nodeID == "" </span><span class="cov1" title="1">{
                 response := DVENodeResponse{
                         Success:   false,
                         Error:     "Node ID is required",
@@ -42671,11 +42671,11 @@ func (h *DVEHandlers) GetDVENodeEndpoints(w http.ResponseWriter, r *http.Request
 }
 
 // GetDVENodeSSHEndpoint handles GET /api/dve-nodes/{id}/ssh-endpoint
-func (h *DVEHandlers) GetDVENodeSSHEndpoint(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *DVEHandlers) GetDVENodeSSHEndpoint(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
         vars := mux.Vars(r)
         nodeID := vars["id"]
 
-        if nodeID == "" </span><span class="cov0" title="0">{
+        if nodeID == "" </span><span class="cov1" title="1">{
                 response := DVENodeResponse{
                         Success:   false,
                         Error:     "Node ID is required",
@@ -42730,11 +42730,11 @@ func (h *DVEHandlers) GetDVENodeSSHEndpoint(w http.ResponseWriter, r *http.Reque
 }
 
 // GetDVENodeValidationEndpoint handles GET /api/dve-nodes/{id}/validation-endpoint
-func (h *DVEHandlers) GetDVENodeValidationEndpoint(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *DVEHandlers) GetDVENodeValidationEndpoint(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
         vars := mux.Vars(r)
         nodeID := vars["id"]
 
-        if nodeID == "" </span><span class="cov0" title="0">{
+        if nodeID == "" </span><span class="cov1" title="1">{
                 response := DVENodeResponse{
                         Success:   false,
                         Error:     "Node ID is required",
@@ -42790,11 +42790,11 @@ func (h *DVEHandlers) GetDVENodeValidationEndpoint(w http.ResponseWriter, r *htt
 }
 
 // GetDVENodeErrorResolutionEndpoint handles GET /api/dve-nodes/{id}/error-resolution-endpoint
-func (h *DVEHandlers) GetDVENodeErrorResolutionEndpoint(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *DVEHandlers) GetDVENodeErrorResolutionEndpoint(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
         vars := mux.Vars(r)
         nodeID := vars["id"]
 
-        if nodeID == "" </span><span class="cov0" title="0">{
+        if nodeID == "" </span><span class="cov1" title="1">{
                 response := DVENodeResponse{
                         Success:   false,
                         Error:     "Node ID is required",
@@ -42850,12 +42850,12 @@ func (h *DVEHandlers) GetDVENodeErrorResolutionEndpoint(w http.ResponseWriter, r
 }
 
 // RegisterRoutes registers the DVE routes with the router
-func (h *DVEHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.AuthMiddleware) <span class="cov0" title="0">{
+func (h *DVEHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.AuthMiddleware) <span class="cov3" title="2">{
         // Create a subrouter for DVE endpoints
         dveRouter := r.PathPrefix("/api/dve-nodes").Subrouter()
 
         // Routes with optional auth (for role-based filtering)
-        if authMiddleware != nil </span><span class="cov0" title="0">{
+        if authMiddleware != nil </span><span class="cov1" title="1">{
                 optionalAuthRouter := dveRouter.PathPrefix("").Subrouter()
                 optionalAuthRouter.Use(authMiddleware.OptionalAuth)
                 optionalAuthRouter.HandleFunc("", h.GetDVENodes).Methods("GET")
@@ -42864,7 +42864,7 @@ func (h *DVEHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.A
                 optionalAuthRouter.HandleFunc("/{id}/ssh-endpoint", h.GetDVENodeSSHEndpoint).Methods("GET")
                 optionalAuthRouter.HandleFunc("/{id}/validation-endpoint", h.GetDVENodeValidationEndpoint).Methods("GET")
                 optionalAuthRouter.HandleFunc("/{id}/error-resolution-endpoint", h.GetDVENodeErrorResolutionEndpoint).Methods("GET")
-        }</span> else<span class="cov0" title="0"> {
+        }</span> else<span class="cov1" title="1"> {
                 // If no auth middleware, allow public access
                 dveRouter.HandleFunc("", h.GetDVENodes).Methods("GET")
                 dveRouter.HandleFunc("/{id}", h.GetDVENode).Methods("GET")
@@ -42875,13 +42875,13 @@ func (h *DVEHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.A
         }</span>
 
         // Protected routes for management
-        <span class="cov0" title="0">if authMiddleware != nil </span><span class="cov0" title="0">{
+        <span class="cov3" title="2">if authMiddleware != nil </span><span class="cov1" title="1">{
                 protectedDVERouter := dveRouter.PathPrefix("").Subrouter()
                 protectedDVERouter.Use(authMiddleware.RequireAuth)
                 protectedDVERouter.HandleFunc("", h.PostDVENodes).Methods("POST")
                 protectedDVERouter.HandleFunc("/{id}", h.UpdateDVENode).Methods("PUT")
                 protectedDVERouter.HandleFunc("/{id}", h.DeleteDVENode).Methods("DELETE")
-        }</span> else<span class="cov0" title="0"> {
+        }</span> else<span class="cov1" title="1"> {
                 // If no auth middleware, allow all routes (for testnet mode)
                 dveRouter.HandleFunc("", h.PostDVENodes).Methods("POST")
                 dveRouter.HandleFunc("/{id}", h.UpdateDVENode).Methods("PUT")
@@ -42889,7 +42889,7 @@ func (h *DVEHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.A
         }</span>
 
         // Handle OPTIONS requests for CORS
-        <span class="cov0" title="0">dveRouter.Methods("OPTIONS").HandlerFunc(func(w http.ResponseWriter, r *http.Request) </span><span class="cov0" title="0">{
+        <span class="cov3" title="2">dveRouter.Methods("OPTIONS").HandlerFunc(func(w http.ResponseWriter, r *http.Request) </span><span class="cov0" title="0">{
                 w.WriteHeader(http.StatusOK)
         }</span>)
 }

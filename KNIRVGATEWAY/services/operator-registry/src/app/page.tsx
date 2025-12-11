@@ -3,9 +3,9 @@
 "use client"; // For client-side search filtering
 
 import { useState, useEffect, useMemo } from 'react';
-import type { Agent as Operator } from '@/lib/types';
-import { getAllOperators } from '@/lib/agent-service'; // Updated import
-import AgentCard from '@/components/agents/AgentCard';
+import type { Operator } from '@/lib/types';
+import { getAllOperators } from '@/lib/operator-service';
+import OperatorCard from '@/components/agents/OperatorCard';
 import AgentSearchForm from '@/components/agents/AgentSearchForm';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -36,11 +36,11 @@ export default function DiscoverOperatorsPage() {
 
   const filteredAgents = useMemo(() => {
     if (!searchTerm) return allAgents;
-    return allAgents.filter(agent =>
-      agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      agent.capability.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (agent.provider && agent.provider.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (agent.description && agent.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    return allAgents.filter(operator =>
+      operator.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      operator.capability.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (operator.provider && operator.provider.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (operator.description && operator.description.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [searchTerm, allAgents]);
 
@@ -86,8 +86,8 @@ export default function DiscoverOperatorsPage() {
         </div>
   ) : filteredAgents.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredAgents.map(agent => (
-            <AgentCard key={agent.id} agent={agent} />
+          {filteredAgents.map(operator => (
+            <OperatorCard key={operator.id} operator={operator} />
           ))}
         </div>
       ) : (

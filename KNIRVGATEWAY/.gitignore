@@ -230,3 +230,45 @@ deployment-logs/
 deploy-config.local.json
 
 agentify
+
+
+# Go build artifacts
+bin/
+tmp/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go workspace file
+go.work
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Test coverage
+coverage.out
+coverage.html
+
+# Air (hot-reload)
+tmp/
+.air.toml.local
+
+# Environment
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db

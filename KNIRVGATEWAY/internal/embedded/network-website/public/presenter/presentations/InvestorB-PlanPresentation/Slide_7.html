@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRV Network: Leadership Team</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: 'Montserrat', sans-serif;
+            color: #ffffff;
+            overflow: hidden;
+            background-color: #0a192f;
+            margin: 0;
+            padding: 0;
+        }
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, rgba(10, 25, 47, 0.95), rgba(10, 25, 47, 0.9));
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+
+        /* Ensure proper scaling for different screen sizes */
+        @media (max-aspect-ratio: 16/9) {
+            .slide {
+                width: calc(100vh * 16/9);
+                height: 100vh;
+                margin: 0 auto;
+                max-width: 100vw;
+            }
+        }
+
+        @media (min-aspect-ratio: 16/9) {
+            .slide {
+                width: 100vw;
+                height: calc(100vw * 9/16);
+                margin: auto 0;
+                min-height: calc(100vw * 9/16);
+            }
+        }
+        
+            .slide {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, rgba(10, 25, 47, 0.95), rgba(10, 25, 47, 0.9));
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+        }
+
+        @media (min-aspect-ratio: 16/9) {
+            .slide {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, rgba(10, 25, 47, 0.95), rgba(10, 25, 47, 0.9));
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+        }
+        .header {
+            padding: 2vh 5vw 1vh;
+            flex-shrink: 0;
+        }
+        .title {
+            font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 10px;
+            position: relative;
+            letter-spacing: -1px;
+        }
+        .title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 80px;
+            height: 4px;
+            background-color: #7c3aed;
+        }
+        .content {
+            flex: 1;
+            display: flex;
+            padding: 1vh 5vw 2vh;
+            min-height: 0;
+            overflow: hidden;
+        }
+        .left-section {
+            width: 55%;
+            padding-right: 30px;
+            display: flex;
+            flex-direction: column;
+        }
+        .right-section {
+            width: 45%;
+            display: flex;
+            flex-direction: column;
+        }
+        .team-box {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: clamp(15px, 2vh, 20px);
+            backdrop-filter: blur(5px);
+            flex-grow: 1;
+            border-left: 4px solid #7c3aed;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .team-box:hover {
+            background-color: rgba(124, 58, 237, 0.1);
+            transform: translateY(-3px);
+        }
+        .section-title {
+            font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+            font-weight: 700;
+            color: #7c3aed;
+            margin-bottom: clamp(0.5rem, 1vh, 1rem);
+            display: flex;
+            align-items: center;
+        }
+        .section-title i {
+            margin-right: 12px;
+            font-size: 28px;
+        }
+        .team-members {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            flex-grow: 1;
+        }
+        .team-member {
+            display: flex;
+            align-items: center;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+        .team-member:hover {
+            background-color: rgba(124, 58, 237, 0.15);
+            transform: translateX(5px);
+        }
+        .member-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: rgba(124, 58, 237, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+        .member-avatar i {
+            font-size: 36px;
+            color: #7c3aed;
+        }
+        .member-info {
+            flex-grow: 1;
+        }
+        .member-name {
+            font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .member-title {
+            font-size: clamp(0.9rem, 1.8vw, 1.3rem);
+            color: #7c3aed;
+            margin-bottom: 8px;
+        }
+        .member-desc {
+            font-size: 16px;
+            color: #e0e0e0;
+            line-height: 1.4;
+        }
+        .expertise-box {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: clamp(15px, 2vh, 20px);
+            backdrop-filter: blur(5px);
+            margin-bottom: clamp(0.5rem, 1vh, 1rem);
+            border-left: 4px solid #7c3aed;
+            transition: all 0.3s ease;
+        }
+        .expertise-box:hover {
+            background-color: rgba(124, 58, 237, 0.1);
+            transform: translateY(-3px);
+        }
+        .expertise-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .expertise-item {
+            display: flex;
+            align-items: center;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+        .expertise-item:hover {
+            background-color: rgba(124, 58, 237, 0.15);
+            transform: translateY(-3px);
+        }
+        .expertise-icon {
+            background-color: rgba(124, 58, 237, 0.2);
+            color: #7c3aed;
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 15px;
+            flex-shrink: 0;
+            font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+        }
+        .expertise-text {
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            font-weight: 600;
+        }
+        .hiring-box {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: clamp(15px, 2vh, 20px);
+            backdrop-filter: blur(5px);
+            flex-grow: 1;
+            border-left: 4px solid #7c3aed;
+            transition: all 0.3s ease;
+        }
+        .hiring-box:hover {
+            background-color: rgba(124, 58, 237, 0.1);
+            transform: translateY(-3px);
+        }
+        .hiring-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .hiring-bar {
+            display: flex;
+            align-items: center;
+        }
+        .hiring-year {
+            width: 80px;
+            font-size: clamp(0.9rem, 1.8vw, 1.3rem);
+            font-weight: 600;
+            margin-right: 15px;
+        }
+        .hiring-bar-container {
+            flex-grow: 1;
+            height: 30px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+        .hiring-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #7c3aed, #6d28d9);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 15px;
+            font-weight: 600;
+            color: #ffffff;
+            transition: width 1s ease-in-out;
+        }
+        .logo-placeholder {
+            position: absolute;
+            top: 30px;
+            right: 70px;
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            font-weight: 700;
+            color: #7c3aed;
+            display: flex;
+            align-items: center;
+        }
+        .logo-placeholder i {
+            margin-right: 8px;
+        }
+        .keyword {
+            display: inline-block;
+            background-color: rgba(124, 58, 237, 0.15);
+            padding: 3px 8px;
+            border-radius: 6px;
+            margin: 2px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        .accent-circle {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, rgba(124, 58, 237, 0) 70%);
+            z-index: 0;
+        }
+        .accent-circle-1 {
+            width: 400px;
+            height: 400px;
+            top: -150px;
+            right: -100px;
+        }
+        .accent-circle-2 {
+            width: 300px;
+            height: 300px;
+            bottom: -100px;
+            left: -100px;
+        }
+        /* Mobile responsive breakpoints */
+        @media (max-width: 768px) {
+            .slide {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, rgba(10, 25, 47, 0.95), rgba(10, 25, 47, 0.9));
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+            .content {
+            flex: 1;
+            display: flex;
+            padding: 1vh 5vw 2vh;
+            min-height: 0;
+            overflow: hidden;
+        }
+        }
+
+        @media (max-width: 480px) {
+            .slide {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, rgba(10, 25, 47, 0.95), rgba(10, 25, 47, 0.9));
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+            .title {
+            font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 10px;
+            position: relative;
+            letter-spacing: -1px;
+        }
+        }
+        /* Mobile responsive breakpoints */
+        @media (max-width: 768px) {
+            .slide {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, rgba(10, 25, 47, 0.95), rgba(10, 25, 47, 0.9));
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+            .left-content, .right-content {
+                width: 100% !important;
+            }
+            .slide {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, rgba(10, 25, 47, 0.95), rgba(10, 25, 47, 0.9));
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+            .header {
+            padding: 2vh 5vw 1vh;
+            flex-shrink: 0;
+        }
+        }
+
+        @media (max-width: 480px) {
+            .slide {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, rgba(10, 25, 47, 0.95), rgba(10, 25, 47, 0.9));
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+            .header {
+            padding: 2vh 5vw 1vh;
+            flex-shrink: 0;
+        }
+        }
+    
+        /* Mobile Responsive Design */
+        @media (max-width: 768px) {
+            .slide {
+                width: 100vw !important;
+                height: 100vh !important;
+                margin: 0 !important;
+                padding: 2vh 4vw !important;
+                aspect-ratio: unset !important;
+            }
+            
+            .header {
+                padding: 2vh 4vw 1vh !important;
+                text-align: center;
+            }
+            
+            .title {
+                font-size: clamp(2rem, 8vw, 3rem) !important;
+                text-align: center;
+                margin-bottom: 1vh !important;
+            }
+            
+            .content {
+                flex-direction: column !important;
+                padding: 1vh 4vw 2vh !important;
+                gap: 2vh !important;
+                overflow-y: auto !important;
+                overflow-x: hidden !important;
+            }
+            
+            .left-section, .right-section {
+                width: 100% !important;
+                padding-right: 0 !important;
+                margin-bottom: 2vh !important;
+            }
+            
+            .section-title {
+                font-size: clamp(1.5rem, 6vw, 2rem) !important;
+                text-align: center;
+                margin-bottom: 1vh !important;
+            }
+            
+            .section-content {
+                font-size: clamp(1rem, 4vw, 1.3rem) !important;
+                text-align: center;
+                line-height: 1.4 !important;
+            }
+            
+            .vision-box, .mission-box, .description-box, .features-box, .value-props, .diagram-container {
+                padding: 2vh 3vw !important;
+                margin-bottom: 2vh !important;
+            }
+            
+            .feature-grid {
+                grid-template-columns: 1fr !important;
+                gap: 1.5vh !important;
+            }
+            
+            .feature-item {
+                padding: 2vh 3vw !important;
+                text-align: center;
+            }
+            
+            .feature-title {
+                font-size: clamp(1.2rem, 5vw, 1.5rem) !important;
+            }
+            
+            .feature-desc {
+                font-size: clamp(1rem, 4vw, 1.2rem) !important;
+            }
+            
+            .value-prop-item {
+                flex-direction: column !important;
+                text-align: center !important;
+                padding: 1.5vh 2vw !important;
+                margin-bottom: 1.5vh !important;
+            }
+            
+            .value-prop-icon {
+                margin-right: 0 !important;
+                margin-bottom: 1vh !important;
+                width: clamp(3rem, 8vw, 4rem) !important;
+                height: clamp(3rem, 8vw, 4rem) !important;
+                font-size: clamp(1.5rem, 4vw, 2rem) !important;
+            }
+            
+            .value-prop-text {
+                font-size: clamp(1rem, 4vw, 1.3rem) !important;
+            }
+            
+            .diagram-layers {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 1vh !important;
+            }
+            
+            .diagram-layer {
+                width: 100% !important;
+                min-width: unset !important;
+                padding: 1.5vh 2vw !important;
+            }
+            
+            .layer-title {
+                font-size: clamp(1rem, 4vw, 1.2rem) !important;
+            }
+            
+            .layer-desc {
+                font-size: clamp(0.9rem, 3.5vw, 1rem) !important;
+            }
+            
+            .keyword {
+                font-size: clamp(0.8rem, 3vw, 1rem) !important;
+                padding: 2px 6px !important;
+                margin: 1px !important;
+            }
+            
+            .logo-placeholder {
+                top: 1vh !important;
+                right: 4vw !important;
+                font-size: clamp(0.8rem, 3vw, 1rem) !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .slide {
+                padding: 1vh 3vw !important;
+            }
+            
+            .header {
+                padding: 1vh 3vw 0.5vh !important;
+            }
+            
+            .title {
+                font-size: clamp(1.5rem, 7vw, 2.5rem) !important;
+            }
+            
+            .content {
+                padding: 0.5vh 3vw 1vh !important;
+                gap: 1.5vh !important;
+            }
+            
+            .section-title {
+                font-size: clamp(1.2rem, 5vw, 1.8rem) !important;
+            }
+            
+            .section-content {
+                font-size: clamp(0.9rem, 3.5vw, 1.1rem) !important;
+            }
+            
+            .vision-box, .mission-box, .description-box, .features-box, .value-props, .diagram-container {
+                padding: 1.5vh 2vw !important;
+                margin-bottom: 1.5vh !important;
+            }
+            
+            .diagram-layers {
+                grid-template-columns: 1fr !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="slide">
+        <div class="accent-circle accent-circle-1"></div>
+        <div class="accent-circle accent-circle-2"></div>
+        
+        <div class="logo-placeholder">
+            <i class="fas fa-cube"></i>
+            KNIRV
+        </div>
+        
+        <div class="header">
+            <h1 class="title">Leadership Team</h1>
+        </div>
+        
+        <div class="content">
+            <div class="left-section">
+                <div class="team-box">
+                    <div class="section-title">
+                        <i class="fas fa-users"></i>
+                        Key Team Members
+                    </div>
+                    <div class="team-members">
+                        <div class="team-member">
+                            <div class="member-avatar">
+                                <i class="fas fa-user-tie"></i>
+                            </div>
+                            <div class="member-info">
+                                <div class="member-name">Guillermo Perry</div>
+                                <div class="member-title">Chief Solutions Architect / Founder</div>
+                                <div class="member-desc">
+                                    <span class="keyword">Technical vision</span>
+                                    <span class="keyword">architecture</span>
+                                    <span class="keyword">decentralized systems</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="team-member">
+                            <div class="member-avatar">
+                                <i class="fas fa-code"></i>
+                            </div>
+                            <div class="member-info">
+                                <div class="member-name">Herman Duquerronette</div>
+                                <div class="member-title">Sr. Software Developer</div>
+                                <div class="member-desc">
+                                    <span class="keyword">Distributed systems</span>
+                                    <span class="keyword">blockchain</span>
+                                    <span class="keyword">high-performance</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="team-member">
+                            <div class="member-avatar">
+                                <i class="fas fa-tasks"></i>
+                            </div>
+                            <div class="member-info">
+                                <div class="member-name">Kareem Bullard</div>
+                                <div class="member-title">Project Manager</div>
+                                <div class="member-desc">
+                                    <span class="keyword">Coordination</span>
+                                    <span class="keyword">agile</span>
+                                    <span class="keyword">complex timelines</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="right-section">
+                <div class="expertise-box">
+                    <div class="section-title">
+                        <i class="fas fa-brain"></i>
+                        Team Expertise
+                    </div>
+                    <div class="expertise-grid">
+                        <div class="expertise-item">
+                            <div class="expertise-icon">
+                                <i class="fab fa-bitcoin"></i>
+                            </div>
+                            <div class="expertise-text">Blockchain Technology</div>
+                        </div>
+                        <div class="expertise-item">
+                            <div class="expertise-icon">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div class="expertise-text">AI & Machine Learning</div>
+                        </div>
+                        <div class="expertise-item">
+                            <div class="expertise-icon">
+                                <i class="fas fa-network-wired"></i>
+                            </div>
+                            <div class="expertise-text">Decentralized Systems</div>
+                        </div>
+                        <div class="expertise-item">
+                            <div class="expertise-icon">
+                                <i class="fas fa-building"></i>
+                            </div>
+                            <div class="expertise-text">Enterprise Software</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="hiring-box">
+                    <div class="section-title">
+                        <i class="fas fa-chart-line"></i>
+                        Hiring Plan
+                    </div>
+                    <div class="hiring-chart">
+                        <div class="hiring-bar">
+                            <div class="hiring-year">Year 1</div>
+                            <div class="hiring-bar-container">
+                                <div class="hiring-bar-fill" style="width: 6%;">25</div>
+                            </div>
+                        </div>
+                        <div class="hiring-bar">
+                            <div class="hiring-year">Year 2</div>
+                            <div class="hiring-bar-container">
+                                <div class="hiring-bar-fill" style="width: 19%;">75</div>
+                            </div>
+                        </div>
+                        <div class="hiring-bar">
+                            <div class="hiring-year">Year 3</div>
+                            <div class="hiring-bar-container">
+                                <div class="hiring-bar-fill" style="width: 38%;">150</div>
+                            </div>
+                        </div>
+                        <div class="hiring-bar">
+                            <div class="hiring-year">Year 4</div>
+                            <div class="hiring-bar-container">
+                                <div class="hiring-bar-fill" style="width: 63%;">250</div>
+                            </div>
+                        </div>
+                        <div class="hiring-bar">
+                            <div class="hiring-year">Year 5</div>
+                            <div class="hiring-bar-container">
+                                <div class="hiring-bar-fill" style="width: 100%;">400</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

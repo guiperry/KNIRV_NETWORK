@@ -1,0 +1,17 @@
+[package]
+name = "knirv-cortex-shared-types"
+version = "0.1.0"
+edition = "2021"
+description = "Shared ProtoBuf types for KNIRV-CORTEX"
+
+[dependencies]
+prost = "0.12"
+prost-types = "0.12"
+serde = { version = "1.0", features = ["derive"] }
+
+[build-dependencies]
+prost-build = "0.12"
+
+[lib]
+name = "shared_types"
+path = "src/lib.rs"

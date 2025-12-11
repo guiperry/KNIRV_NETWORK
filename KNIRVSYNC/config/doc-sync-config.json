@@ -1,0 +1,111 @@
+{
+  "services": [
+    {
+      "name": "KNIRVCHAIN",
+      "path": "KNIRVCHAIN",
+      "has_api": true,
+      "api_spec_path": "api.yaml",
+      "enabled": true
+    },
+    {
+      "name": "KNIRVORACLE",
+      "path": "KNIRVORACLE",
+      "has_api": true,
+      "api_spec_path": "api.yaml",
+      "enabled": true
+    },
+    {
+      "name": "KNIRVGRAPH",
+      "path": "KNIRVGRAPH",
+      "has_api": true,
+      "api_spec_path": "api.yaml",
+      "enabled": true
+    },
+    {
+      "name": "KNIRVNEXUS",
+      "path": "KNIRVNEXUS",
+      "has_api": true,
+      "api_spec_path": "api.yaml",
+      "enabled": true
+    },
+    {
+      "name": "KNIRVGATEWAY",
+      "path": "KNIRVGATEWAY",
+      "has_api": true,
+      "api_spec_path": "api.yaml",
+      "enabled": true
+    },
+    {
+      "name": "KNIRVROUTER",
+      "path": "KNIRVROUTER",
+      "has_api": false,
+      "enabled": true
+    },
+    {
+      "name": "KNIRVCONTROLLER",
+      "path": "KNIRVCONTROLLER",
+      "has_api": false,
+      "enabled": true
+    },
+    {
+      "name": "KNIRVCORTEX",
+      "path": "KNIRVCORTEX",
+      "has_api": false,
+      "enabled": true
+    },
+    {
+      "name": "KNIRVWALLET",
+      "path": "KNIRVWALLET",
+      "has_api": false,
+      "enabled": true
+    },
+    {
+      "name": "KNIRVRAMP",
+      "path": "KNIRVRAMP",
+      "has_api": false,
+      "enabled": true
+    },
+    {
+      "name": "KNIRVSDK",
+      "path": "KNIRVSDK",
+      "has_api": false,
+      "enabled": true
+    },
+    {
+      "name": "KNIRVCLI",
+      "path": "KNIRVCLI",
+      "has_api": false,
+      "enabled": true
+    },
+    {
+      "name": "KNIRVANA",
+      "path": "KNIRVANA",
+      "has_api": false,
+      "enabled": true
+    },
+    {
+      "name": "KNIRVHEART",
+      "path": "KNIRVHEART",
+      "has_api": false,
+      "enabled": true
+    },
+    {
+      "name": "KNIRVTESTNET",
+      "path": "KNIRVTESTNET",
+      "has_api": false,
+      "enabled": true
+    }
+  ],
+  "central_doc_paths": [
+    "KNIRVGATEWAY/network-website/public/documentation",
+    "KNIRVRAMP/src/app/documentation"
+  ],
+  "api_doc_paths": [
+    "KNIRVRAMP/src/app/api-docs",
+    "KNIRVGATEWAY/network-website/public/api-specs"
+  ],
+  "unified_api_path": "KNIRVGATEWAY/config/unified-openapi.yaml",
+  "sync_readmes": true,
+  "sync_api_specs": true,
+  "generate_unified_api": true
+}

@@ -54,6 +54,8 @@ help: ## Show this help message
 	@echo "  make testnet-tests           # Start KNIRVTESTNET and run tests"
 	@echo "  make test-quick              # Run quick tests only"
 	@echo "  make test-coverage           # Generate coverage reports"
+	@echo "  make doc-scan                # Scan for documentation gaps"
+	@echo "  make doc-sync                # Sync all documentation"
 	@echo "  make deploy-infrastructure ENVIRONMENT=production"
 	@echo "  make deploy-full ENVIRONMENT=development CLOUD_PROVIDER=aws"
 	@echo "  make deploy-controller-pwa ENVIRONMENT=production"
@@ -136,6 +138,52 @@ docs-clean: ## Clean generated documentation
 	@echo "$(BLUE)Cleaning generated documentation...$(NC)"
 	@rm -rf $(DOCS_DIR)/docsify
 	@echo "$(GREEN)✓ Documentation cleaned$(NC)"
+
+# =============================================================================
+# DOCUMENTATION SYNCHRONIZATION (KNIRVSYNC)
+# =============================================================================
+
+.PHONY: doc-sync-build
+doc-sync-build: ## Build the documentation sync tool
+	@echo "$(BLUE)Building documentation sync tool...$(NC)"
+	@cd KNIRVSYNC && make build
+	@echo "$(GREEN)✓ Documentation sync tool built$(NC)"
+
+.PHONY: doc-scan
+doc-scan: doc-sync-build ## Scan for documentation gaps across all services
+	@echo "$(BLUE)Scanning for documentation gaps...$(NC)"
+	@cd KNIRVSYNC && make scan
+	@echo "$(GREEN)✓ Gap scan complete. Check KNIRVSYNC/reports/doc-gaps-report.md$(NC)"
+
+.PHONY: doc-sync
+doc-sync: doc-sync-build ## Sync all documentation (README + API specs + unified API)
+	@echo "$(BLUE)Synchronizing all documentation...$(NC)"
+	@cd KNIRVSYNC && make sync-all
+	@echo "$(GREEN)✓ Documentation synchronized$(NC)"
+
+.PHONY: doc-sync-readme
+doc-sync-readme: doc-sync-build ## Sync README files to central documentation
+	@echo "$(BLUE)Synchronizing README files...$(NC)"
+	@cd KNIRVSYNC && make sync-readme
+	@echo "$(GREEN)✓ README files synchronized$(NC)"
+
+.PHONY: doc-sync-api
+doc-sync-api: doc-sync-build ## Sync API specifications to central locations
+	@echo "$(BLUE)Synchronizing API specifications...$(NC)"
+	@cd KNIRVSYNC && make sync-api
+	@echo "$(GREEN)✓ API specifications synchronized$(NC)"
+
+.PHONY: doc-sync-unified
+doc-sync-unified: doc-sync-build ## Generate unified OpenAPI specification
+	@echo "$(BLUE)Generating unified OpenAPI specification...$(NC)"
+	@cd KNIRVSYNC && make sync-unified
+	@echo "$(GREEN)✓ Unified API specification generated: KNIRVGATEWAY/config/unified-openapi.yaml$(NC)"
+
+.PHONY: doc-sync-clean
+doc-sync-clean: ## Clean documentation sync build artifacts
+	@echo "$(BLUE)Cleaning documentation sync artifacts...$(NC)"
+	@cd KNIRVSYNC && make clean
+	@echo "$(GREEN)✓ Documentation sync artifacts cleaned$(NC)"
 
 # =============================================================================
 # INFRASTRUCTURE DEPLOYMENT

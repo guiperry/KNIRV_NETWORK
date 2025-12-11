@@ -1,7 +1,7 @@
 
 // src/app/agents/[id]/page.tsx
 import { notFound } from 'next/navigation';
-import { getOperatorById } from '@/lib/agent-service'; // Updated import
+import { getOperatorById } from '@/lib/operator-service'; // Updated import
 import AgentProfileDetails from '@/components/agents/AgentProfileDetails';
 import { generateAgentSummary } from '@/ai/flows/agent-summary'; // GenAI import
 import type { AgentSummaryInput, AgentSummaryOutput } from '@/ai/flows/agent-summary';

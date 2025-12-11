@@ -23,11 +23,17 @@ const SideNavigation = ({ activePage }) => {
   
   // New navigation structure
   const navItems = [
+    // Home
+    {
+      id: 'index',
+      label: 'Home',
+      icon: '🏠',
+    },
     // Dashboard
     {
       id: 'dashboard',
       label: 'Dashboard',
-      icon: '🏠',
+      icon: '📊',
     },
     // Quick Access
     {
@@ -78,9 +84,19 @@ const SideNavigation = ({ activePage }) => {
           icon: '⛓️',
         },
         {
+          id: 'chain-explorer-new',
+          label: 'Chain Explorer New',
+          icon: '⛓️',
+        },
+        {
           id: 'oracle-explorer',
           label: 'Oracle Explorer',
           icon: '🔮',
+        },
+        {
+          id: 'peers',
+          label: 'Peers',
+          icon: '👥',
         },
         {
           id: 'operator-registry',
@@ -106,6 +122,11 @@ const SideNavigation = ({ activePage }) => {
       icon: '🤖',
       children: [
         {
+          id: 'models',
+          label: 'Models Overview',
+          icon: '🤖',
+        },
+        {
           id: 'codex-builder',
           label: 'Codex Builder',
           icon: '🛠️',
@@ -114,21 +135,47 @@ const SideNavigation = ({ activePage }) => {
           id: 'models-dex',
           label: 'Models DEX',
           icon: '💱',
-        },
+        }
+      ]
+    },
+    // Governance section
+    {
+      id: 'governance',
+      label: 'Governance',
+      icon: '🏛️',
+      children: [
         {
-          id: 'knirvinference-dao',
-          label: 'KNIRVINFERENCE DAO',
-          icon: '🏛️',
-        },
-        {
-          id: 'bootnode-election',
-          label: 'Bootnode Election Governance',
+          id: 'bootnode-dao',
+          label: 'Bootnode DAO',
           icon: '🗳️',
         },
         {
-          id: 'model-governance',
-          label: 'Network Inference Model Governance',
+          id: 'network-inference-dao',
+          label: 'Network Inference DAO',
           icon: '📜',
+        }
+      ]
+    },
+    // GraphChain section
+    {
+      id: 'graphchain',
+      label: 'GraphChain',
+      icon: '🔗',
+      children: [
+        {
+          id: 'graphchain-dashboard',
+          label: 'GraphChain Dashboard',
+          icon: '📊',
+        },
+        {
+          id: 'graphchain-errors',
+          label: 'GraphChain Errors',
+          icon: '🚨',
+        },
+        {
+          id: 'graphchain-skills',
+          label: 'GraphChain Skills',
+          icon: '⚡',
         }
       ]
     },
@@ -190,6 +237,29 @@ const SideNavigation = ({ activePage }) => {
           id: 'my-properties',
           label: 'My Properties',
           icon: '🏷️',
+        },
+        {
+          id: 'nft-property-explorer',
+          label: 'NFT Property Explorer',
+          icon: '🎨',
+        }
+      ]
+    },
+    // Tools section
+    {
+      id: 'tools',
+      label: 'Tools',
+      icon: '🛠️',
+      children: [
+        {
+          id: 'basic',
+          label: 'Basic Tools',
+          icon: '🔧',
+        },
+        {
+          id: 'advanced',
+          label: 'Advanced Tools',
+          icon: '⚙️',
         }
       ]
     },
@@ -243,7 +313,7 @@ const SideNavigation = ({ activePage }) => {
     }
 
     // Vault items now always navigate to dedicated WebGUI pages (no legacy modals)
-    if (['my-models','my-wallets','my-skills','my-capabilities','my-properties'].includes(id)) {
+    if (['my-models','my-wallets','my-skills','my-capabilities','my-properties','nft-property-explorer'].includes(id)) {
       return handleNavigation(id);
     }
 

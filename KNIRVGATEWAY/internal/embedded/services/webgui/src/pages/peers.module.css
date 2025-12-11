@@ -1,0 +1,190 @@
+/* devs.module.css */
+
+.container {
+  padding: 20px;
+  color: white;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.notRunning {
+  background-color: var(--transparent-white-05);
+  backdrop-filter: blur(8px);
+  border-radius: 15px;
+  border: 1px solid var(--transparent-white-1);
+  padding: 20px;
+  text-align: center;
+  margin: 20px;
+}
+
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: var(--bright-blue);
+}
+
+.error {
+  background-color: var(--error-bg);
+  color: var(--error-text);
+  padding: 10px 15px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+}
+
+.controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.filterButtons {
+  display: flex;
+  gap: 10px;
+}
+
+.filterButton {
+  background-color: var(--transparent-white-05);
+  color: white;
+  border: 1px solid var(--transparent-white-1);
+  border-radius: 5px;
+  padding: 8px 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filterButton:hover {
+  background-color: var(--transparent-white-1);
+}
+
+.filterButton.active {
+  background-color: var(--bright-blue);
+  border-color: var(--bright-blue);
+}
+
+.refreshButton {
+  background-color: var(--bright-blue);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.refreshButton:hover {
+  opacity: 0.9;
+}
+
+.devsLayout {
+  display: flex;
+  gap: 20px;
+}
+
+.devsList {
+  flex: 1;
+  background-color: var(--transparent-white-05);
+  backdrop-filter: blur(8px);
+  border-radius: 15px;
+  border: 1px solid var(--transparent-white-1);
+  padding: 20px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.devDetails {
+  flex: 1;
+  background-color: var(--transparent-white-05);
+  backdrop-filter: blur(8px);
+  border-radius: 15px;
+  border: 1px solid var(--transparent-white-1);
+  padding: 20px;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 20px;
+  color: var(--transparent-white-7);
+}
+
+.devItem {
+  background-color: var(--transparent-white-05);
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.devItem:hover {
+  background-color: var(--transparent-white-1);
+}
+
+.devItem.selected {
+  background-color: var(--bright-blue);
+  color: white;
+}
+
+.devType {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.devName {
+  font-size: 1.1em;
+  margin-bottom: 5px;
+}
+
+.devId {
+  font-size: 0.9em;
+  opacity: 0.8;
+  margin-bottom: 5px;
+}
+
+.devStatus {
+  font-size: 0.9em;
+}
+
+.connected {
+  color: var(--success-text);
+}
+
+.disconnected {
+  color: var(--error-text);
+}
+
+.detailItem {
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--transparent-white-1);
+}
+
+.detailItem:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.actionsSection {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.connectButton {
+  background-color: var(--success-bg);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 15px;
+  cursor: pointer;
+}
+
+.disconnectButton {
+  background-color: var(--error-bg);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 15px;
+  cursor: pointer;
+}

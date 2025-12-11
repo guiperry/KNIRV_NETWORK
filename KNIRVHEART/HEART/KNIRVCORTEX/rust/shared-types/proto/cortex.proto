@@ -1,0 +1,332 @@
+syntax = "proto3";
+
+package knirv.cortex.v1;
+
+option go_package = "github.com/guiperry/KNIRV_NETWORK/pkg/gen/knirv/cortex/v1;cortexv1";
+
+// Core inference messages
+message InferenceInput {
+  string prompt = 1;
+  string context = 2;
+  optional Config config = 3;
+  optional MemoryPolicy memory_policy = 4;
+}
+
+message InferenceOutput {
+  string response = 1;
+  float confidence = 2;
+  float processing_time_ms = 3;
+  repeated string debug_info = 4;
+}
+
+// Error handling
+message CortexError {
+  uint32 code = 1;
+  string message = 2;
+  optional string details = 3;
+}
+
+// Envelope for all responses
+message Envelope {
+  EnvelopeKind kind = 1;
+  bytes payload = 2;
+  optional string trace_id = 3;
+  uint64 timestamp = 4;
+}
+
+enum EnvelopeKind {
+  ENVELOPE_KIND_UNSPECIFIED = 0;
+  ENVELOPE_KIND_OK = 1;
+  ENVELOPE_KIND_ERROR = 2;
+}
+
+// Configuration
+message Config {
+  string version = 1;
+  uint32 max_tokens = 2;
+  float temperature = 3;
+  bool deterministic = 4;
+  optional string model_id = 5;
+  repeated string features = 6;
+}
+
+// Memory and context management
+message Context {
+  string short_term = 1;
+  repeated EpisodicItem episodic_items = 2;
+  repeated SemanticTriple semantic_triples = 3;
+  repeated Tool available_tools = 4;
+}
+
+message MemoryPolicy {
+  uint32 short_term_window_size = 1;
+  uint32 episodic_top_k = 2;
+  uint32 semantic_top_k = 3;
+  uint32 procedural_top_k = 4;
+  float relevance_threshold = 5;
+}
+
+message EpisodicItem {
+  string id = 1;
+  string content = 2;
+  uint64 timestamp = 3;
+  float relevance_score = 4;
+  repeated string tags = 5;
+}
+
+message SemanticTriple {
+  string subject = 1;
+  string predicate = 2;
+  string object = 3;
+  float confidence = 4;
+  repeated float embedding = 5;
+}
+
+// Tool system
+message Tool {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  ToolSchema schema = 4;
+  float relevance_score = 5;
+}
+
+message ToolList {
+  repeated Tool tools = 1;
+  uint32 max_concurrent = 2;
+}
+
+message ToolSchema {
+  string type = 1;
+  map<string, ParameterSpec> parameters = 2;
+  repeated string required = 3;
+}
+
+message ParameterSpec {
+  string type = 1;
+  string description = 2;
+  optional string default_value = 3;
+  repeated string enum_values = 4;
+}
+
+// Model forge messages
+message ForgeManifest {
+  string model_id = 1;
+  string source_url = 2;
+  string license = 3;
+  string model_family = 4;
+  ModelDimensions dimensions = 5;
+  TokenizerInfo tokenizer = 6;
+  string checksum = 7;
+  uint64 size_bytes = 8;
+  repeated string capabilities = 9;
+}
+
+message ModelDimensions {
+  uint64 parameters = 1;
+  uint32 hidden_size = 2;
+  uint32 num_layers = 3;
+  uint32 vocab_size = 4;
+  uint32 max_sequence_length = 5;
+}
+
+message TokenizerInfo {
+  string type = 1;
+  string vocab_file = 2;
+  map<string, string> special_tokens = 3;
+}
+
+// Runtime binding messages
+message RuntimeConfig {
+  string runtime_type = 1; // "tract-onnx", "candle", "burn"
+  map<string, string> options = 2;
+  bool quantized = 3;
+  string precision = 4; // "f32", "f16", "int8"
+}
+
+message ValidationResult {
+  bool passed = 1;
+  repeated string errors = 2;
+  repeated string warnings = 3;
+  float performance_score = 4;
+}
+
+// Host interface messages
+message HostMessage {
+  string id = 1;
+  string message_type = 2;
+  bytes payload = 3;
+  uint64 timestamp = 4;
+  uint32 priority = 5;
+}
+
+message HostCapabilities {
+  repeated string supported_features = 1;
+  uint64 max_memory_bytes = 2;
+  uint32 max_concurrent_tasks = 3;
+  string host_version = 4;
+}
+
+// LoRA Adapter Engine messages (for backward compatibility)
+message LoRAAdapter {
+  string skill_id = 1;
+  string skill_name = 2;
+  string description = 3;
+  string base_model_compatibility = 4;
+  uint32 version = 5;
+  uint32 rank = 6;
+  float alpha = 7;
+  repeated float weights_a = 8;
+  repeated float weights_b = 9;
+  map<string, string> additional_metadata = 10;
+}
+
+message SkillCompilationRequest {
+  SkillData skill_data = 1;
+  SkillMetadata metadata = 2;
+}
+
+message SkillData {
+  repeated Solution solutions = 1;
+  repeated ErrorContext errors = 2;
+}
+
+message Solution {
+  string error_id = 1;
+  string solution = 2;
+  float confidence = 3;
+}
+
+message ErrorContext {
+  string error_id = 1;
+  string description = 2;
+  string context = 3;
+}
+
+message SkillMetadata {
+  string skill_name = 1;
+  string description = 2;
+  string base_model = 3;
+  optional uint32 rank = 4;
+  optional float alpha = 5;
+}
+
+message SkillInvocationRequest {
+  string skill_id = 1;
+  map<string, string> parameters = 2;
+}
+
+message SkillInvocationResponse {
+  string invocation_id = 1;
+  SkillInvocationStatus status = 2;
+  optional string error_message = 3;
+  optional LoRAAdapter skill = 4;
+}
+
+enum SkillInvocationStatus {
+  SKILL_SUCCESS = 0;
+  SKILL_FAILURE = 1;
+  SKILL_NOT_FOUND = 2;
+}
+
+message SkillChain {
+  string chain_id = 1;
+  repeated LoRAAdapter skills = 2;
+  LoRAAdapter merged_adapter = 3;
+  float consensus_score = 4;
+  uint64 last_updated = 5;
+}
+
+// Capability invocation messages
+message CapabilityMetadata {
+  string capability_name = 1;
+  string description = 2;
+  string capability_type = 3; // "mcp_server", "api_endpoint", "tool"
+  map<string, string> schema = 4;
+  repeated string location_hints = 5;
+  optional uint64 gas_fee_nrn = 6;
+}
+
+message CapabilityInvocationRequest {
+  string capability_id = 1;
+  map<string, string> parameters = 2;
+  string agent_core_id = 3;
+  string invocation_id = 4;
+}
+
+message CapabilityInvocationResponse {
+  string invocation_id = 1;
+  CapabilityInvocationStatus status = 2;
+  optional string error_message = 3;
+  optional bytes result_data = 4;
+  optional CapabilityMetadata capability = 5;
+}
+
+enum CapabilityInvocationStatus {
+  CAPABILITY_SUCCESS = 0;
+  CAPABILITY_FAILURE = 1;
+  CAPABILITY_NOT_FOUND = 2;
+  CAPABILITY_ACCESS_DENIED = 3;
+  CAPABILITY_TIMEOUT = 4;
+}
+
+// Property invocation messages
+message PropertyMetadata {
+  string property_name = 1;
+  string description = 2;
+  string property_type = 3; // "asset", "characteristic", "attribute"
+  string value_type = 4; // "string", "number", "boolean", "object"
+  map<string, string> constraints = 5;
+  bool immutable = 6;
+  optional string category = 7;
+}
+
+message PropertyInvocationRequest {
+  string property_id = 1;
+  map<string, string> parameters = 2;
+  string agent_core_id = 3;
+  string invocation_id = 4;
+  string operation = 5; // "read", "validate", "transfer", "query"
+}
+
+message PropertyInvocationResponse {
+  string invocation_id = 1;
+  PropertyInvocationStatus status = 2;
+  optional string error_message = 3;
+  optional bytes property_data = 4;
+  optional PropertyMetadata property = 5;
+}
+
+enum PropertyInvocationStatus {
+  PROPERTY_SUCCESS = 0;
+  PROPERTY_FAILURE = 1;
+  PROPERTY_NOT_FOUND = 2;
+  PROPERTY_ACCESS_DENIED = 3;
+  PROPERTY_IMMUTABLE = 4;
+  PROPERTY_INVALID_OPERATION = 5;
+}
+
+// Agent compilation messages (for backward compatibility)
+message AgentCompilationRequest {
+  string agent_name = 1;
+  string agent_description = 2;
+  repeated LoRAAdapter adapters = 3;
+  AgentConfig config = 4;
+  bytes cortex_wasm = 5; // Pre-compiled cortex.wasm from Rust
+}
+
+message AgentConfig {
+  string target_platform = 1; // "typescript", "golang", "rust"
+  bool enable_lora = 2;
+  uint32 max_memory_mb = 3;
+  repeated string capabilities = 4;
+  map<string, string> environment = 5;
+}
+
+message AgentCompilationResult {
+  string agent_id = 1;
+  bytes agent_wasm = 2;
+  uint64 size_bytes = 3;
+  string checksum = 4;
+  repeated string validation_errors = 5;
+}

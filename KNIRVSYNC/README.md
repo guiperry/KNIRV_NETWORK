@@ -17,16 +17,29 @@
 
 ## Overview
 
-The KNIRV Synchronization Manager automates synchronization between KNIRVTESTNET and Production Network components, focusing on scripts and testing patterns while maintaining environment-specific configurations.  This document details the manager's features, configuration, usage, and troubleshooting.  A comprehensive analysis of synchronization strategies is also included.
+The KNIRV Synchronization Manager provides two key synchronization capabilities:
+
+1. **Environment Synchronization**: Automates synchronization between KNIRVTESTNET and Production Network components, focusing on scripts and testing patterns while maintaining environment-specific configurations.
+
+2. **Documentation Synchronization**: Maintains consistency across all KNIRV service documentation, API specifications, and generates unified API documentation for the entire network.
+
+This document details both synchronization systems, their features, configuration, usage, and troubleshooting.
 
 
 ## Features
 
-### Automated Synchronization Mechanisms
+### Environment Synchronization
 - Script Pattern Synchronization: Automated sync of build and test scripts
 - Environment-Specific Transformations: Testnet-specific modifications during sync
 - Selective Component Sync: Configurable component-based synchronization
 - Retry Logic: Robust retry mechanisms with exponential backoff
+
+### Documentation Synchronization (NEW)
+- Documentation Gap Detection: Automatically scans for missing or outdated documentation
+- README Synchronization: Syncs service READMEs to central documentation locations
+- API Specification Sync: Distributes api.yaml files to documentation portals
+- Unified API Generation: Creates a single unified OpenAPI specification from all services
+- Functional Gap Analysis: Detects discrepancies between code and documentation
 
 ### Monitoring and Validation
 - Real-time Metrics: Sync duration, files processed, success rates, error counts
@@ -44,21 +57,30 @@ The KNIRV Synchronization Manager automates synchronization between KNIRVTESTNET
 ## Architecture
 
 ```
-sync/
-├── sync-manager.go          # Core synchronization manager
-├── monitor.go              # Monitoring and metrics collection
-├── rollback.go             # Rollback and recovery mechanisms
-├── orchestrator.go         # Sync orchestration and coordination
-├── sync-config.json        # Synchronization configuration
+KNIRVSYNC/
+├── cmd/
+│   └── doc-sync/           # Documentation sync command
+│       └── main.go
+├── internal/               # Internal packages
+│   ├── sync-manager.go     # Environment sync manager
+│   ├── doc-scanner.go      # Documentation gap scanner
+│   ├── doc-sync.go         # Documentation sync manager
+│   ├── monitor.go          # Monitoring and metrics
+│   ├── rollback.go         # Rollback mechanisms
+│   └── orchestrator.go     # Sync orchestration
+├── config/                 # Configuration files
+│   ├── sync-config.json    # Environment sync config
+│   └── doc-sync-config.json # Documentation sync config
 ├── scripts/                # Automation scripts
 │   ├── auto-sync.sh        # Automated sync execution
 │   ├── rollback.sh         # Rollback script
 │   ├── sync-integration.sh # Integration testing
-│   └── validate-sync.sh    # Sync validation
-├── patterns/               # Sync pattern definitions
+│   ├── validate-sync.sh    # Sync validation
+│   └── doc-sync.sh         # Documentation sync wrapper
 ├── reports/                # Sync reports and logs
 ├── backups/                # Backup storage
-└── bin/                    # Compiled binaries
+├── bin/                    # Compiled binaries
+└── Makefile               # Build and sync commands
 ```
 
 
@@ -118,6 +140,207 @@ go build -o bin/sync-manager .
 # Rollback to latest backup
 ./scripts/rollback.sh latest
 ```
+
+## Documentation Synchronization
+
+### Overview
+
+The documentation synchronization system ensures that all KNIRV service documentation stays synchronized across the monorepo. It maintains consistency between:
+
+- Individual service README.md files (source of truth for each service)
+- Individual service api.yaml files (source of truth for each service API)
+- Central documentation at `KNIRVGATEWAY/network-website/public/documentation/`
+- KNIRVRAMP documentation at `KNIRVRAMP/src/app/documentation/`
+- API documentation at `KNIRVRAMP/src/app/api-docs/`
+- Unified OpenAPI specification at `KNIRVGATEWAY/config/unified-openapi.yaml`
+
+### Documentation Sync Quick Start
+
+```bash
+cd KNIRVSYNC
+
+# Build the documentation sync tool
+make build
+
+# Scan for documentation gaps
+make scan
+
+# Sync all documentation
+make sync-all
+
+# Sync only README files
+make sync-readme
+
+# Sync only API specifications
+make sync-api
+
+# Generate unified OpenAPI spec
+make sync-unified
+```
+
+### Using the Shell Script
+
+```bash
+cd KNIRVSYNC
+
+# Build the binary
+./scripts/doc-sync.sh build
+
+# Scan for gaps
+./scripts/doc-sync.sh scan
+
+# Sync everything
+./scripts/doc-sync.sh all
+
+# Sync only READMEs
+./scripts/doc-sync.sh readme
+
+# Sync only API specs
+./scripts/doc-sync.sh api
+
+# Generate unified API
+./scripts/doc-sync.sh unified
+```
+
+### Documentation Gap Detection
+
+The scanner detects the following types of gaps:
+
+1. **Missing API Endpoints**: Endpoints defined in code but not documented in api.yaml
+2. **Undocumented Functions**: Exported functions not mentioned in README.md
+3. **Missing API Specifications**: Services with API endpoints but no api.yaml file
+4. **Outdated Documentation**: Discrepancies between code and documentation
+
+Example scan output:
+
+```bash
+$ make scan
+
+[DOC-SYNC] Scanning for documentation gaps...
+[DOC-SYNC] Scanning service: KNIRVCHAIN
+[DOC-SYNC] Found 3 documentation gaps in KNIRVCHAIN
+[DOC-SYNC] Scanning service: KNIRVNEXUS
+[DOC-SYNC] Found 1 documentation gaps in KNIRVNEXUS
+...
+[DOC-SYNC] Gap report generated: reports/doc-gaps-report.md
+```
+
+### Synchronization Targets
+
+**README Synchronization**:
+- Source: `KNIRV*/README.md` (each service)
+- Targets:
+  - `KNIRVGATEWAY/network-website/public/documentation/[service-name].md`
+  - `KNIRVRAMP/src/app/documentation/[service-name].md`
+
+**API Specification Synchronization**:
+- Source: `KNIRV*/api.yaml` (each service)
+- Targets:
+  - `KNIRVRAMP/src/app/api-docs/[service-name]-api.yaml`
+  - `KNIRVGATEWAY/network-website/public/api-specs/[service-name]-api.yaml`
+
+**Unified API Generation**:
+- Sources: All service `api.yaml` files
+- Target: `KNIRVGATEWAY/config/unified-openapi.yaml`
+- Consolidates all service APIs into single OpenAPI 3.1.0 specification
+
+### Configuration
+
+Documentation sync is configured via `config/doc-sync-config.json`:
+
+```json
+{
+  "services": [
+    {
+      "name": "KNIRVCHAIN",
+      "path": "KNIRVCHAIN",
+      "has_api": true,
+      "api_spec_path": "api.yaml",
+      "enabled": true
+    }
+    // ... more services
+  ],
+  "central_doc_paths": [
+    "KNIRVGATEWAY/network-website/public/documentation",
+    "KNIRVRAMP/src/app/documentation"
+  ],
+  "api_doc_paths": [
+    "KNIRVRAMP/src/app/api-docs",
+    "KNIRVGATEWAY/network-website/public/api-specs"
+  ],
+  "unified_api_path": "KNIRVGATEWAY/config/unified-openapi.yaml",
+  "sync_readmes": true,
+  "sync_api_specs": true,
+  "generate_unified_api": true
+}
+```
+
+### Sync Reports
+
+After each sync operation, detailed reports are generated:
+
+- **Gap Report**: `reports/doc-gaps-report.md` - Markdown report of all documentation gaps
+- **Sync Report**: `reports/doc-sync-report.json` - JSON report of sync operations
+
+Example sync report structure:
+
+```json
+[
+  {
+    "service": "KNIRVCHAIN",
+    "sync_type": "readme",
+    "source_path": "KNIRVCHAIN/README.md",
+    "target_paths": [
+      "KNIRVGATEWAY/network-website/public/documentation/knirvchain.md",
+      "KNIRVRAMP/src/app/documentation/knirvchain.md"
+    ],
+    "files_updated": 2,
+    "errors": [],
+    "timestamp": "2025-12-08T...",
+    "success": true
+  }
+]
+```
+
+### Automation
+
+Add documentation sync to your CI/CD pipeline:
+
+```bash
+# In your CI script
+cd KNIRVSYNC
+make build
+make scan              # Detect gaps
+make sync-all          # Sync all documentation
+
+# Check for failures
+if [ $? -ne 0 ]; then
+  echo "Documentation sync failed"
+  exit 1
+fi
+```
+
+### Best Practices
+
+1. **Source of Truth**: Always update service README.md and api.yaml files directly, not the synced copies
+2. **Run Scans Regularly**: Schedule periodic gap scans to catch documentation drift
+3. **Review Gap Reports**: Address documentation gaps before they accumulate
+4. **Sync After Updates**: Run documentation sync after updating any service documentation
+5. **Version Control**: Commit both source documentation and synced copies to git
+
+### Troubleshooting Documentation Sync
+
+**Issue**: Gap scanner reports false positives
+- **Solution**: Update exclusion patterns in config or use proper Go export conventions
+
+**Issue**: Unified API generation fails
+- **Solution**: Ensure all api.yaml files are valid OpenAPI 3.1.0 specifications
+
+**Issue**: Sync targets don't exist
+- **Solution**: Directories are created automatically; check file permissions
+
+**Issue**: README sync overwrites manual edits
+- **Solution**: Always edit source README.md files, not synced copies
 
 
 ## Testing

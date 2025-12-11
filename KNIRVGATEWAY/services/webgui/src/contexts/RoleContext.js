@@ -51,11 +51,11 @@ export const RoleProvider = ({ children }) => {
       setRole(normalizeRole(serverInfo.role));
       setIsAuthenticated(true);
     } else if (localStorage.getItem('knirv_demo_mode') === 'true') {
-      // Demo mode - allow access with General role
-      setRole('General');
+      // Demo mode - allow access with Root role for full access
+      setRole('Root');
       setNetwork('demo');
       setIsAuthenticated(true);
-      console.log('[RoleContext] Demo mode enabled');
+      console.log('[RoleContext] Demo mode enabled with Root access');
     }
   }, [serverInfo]);
 
@@ -77,22 +77,54 @@ export const RoleProvider = ({ children }) => {
   // Define page access by role
   const pageAccess = {
     Root: [
-      'dashboard', 'inventory', 'vault', 'blockchain', 'dex', 'daos',
+      'index', 'dashboard', 'controller-status', 'qr-connect', 'my-endpoints', 'payment-gateway',
+      'network-monitor', 'local-analytics', 'graph-explorer', 'chain-explorer', 'chain-explorer-new',
+      'oracle-explorer', 'peers', 'operator-registry', 'tunnel-registry', 'error-explorer',
+      'models', 'codex-builder', 'models-dex', 'governance', 'bootnode-dao', 'network-inference-dao',
+      'graphchain-dashboard', 'graphchain-errors', 'graphchain-skills',
+      'skills', 'capabilities', 'properties', 'settlement',
+      'my-models', 'my-wallets', 'my-skills', 'my-capabilities', 'my-properties', 'nft-property-explorer',
+      'basic', 'advanced',
+      'settings', 'inventory', 'vault', 'blockchain', 'dex', 'daos',
       'nft-vault', 'nft-capability-manager', 'add-capability',
-      'settlement', 'network-admin', 'peers', 'explorer', 'capabilities', 'auth-test'
+      'network-admin', 'auth-test'
     ],
     Bootnode: [
-      'dashboard', 'inventory', 'vault', 'blockchain', 'dex', 'daos',
+      'index', 'dashboard', 'controller-status', 'qr-connect', 'my-endpoints', 'payment-gateway',
+      'network-monitor', 'local-analytics', 'graph-explorer', 'chain-explorer', 'chain-explorer-new',
+      'oracle-explorer', 'peers', 'operator-registry', 'tunnel-registry', 'error-explorer',
+      'models', 'codex-builder', 'models-dex', 'governance', 'bootnode-dao', 'network-inference-dao',
+      'graphchain-dashboard', 'graphchain-errors', 'graphchain-skills',
+      'skills', 'capabilities', 'properties', 'settlement',
+      'my-models', 'my-wallets', 'my-skills', 'my-capabilities', 'my-properties', 'nft-property-explorer',
+      'basic', 'advanced',
+      'settings', 'inventory', 'vault', 'blockchain', 'dex', 'daos',
       'nft-vault', 'nft-capability-manager', 'add-capability',
-      'settlement', 'peers', 'explorer', 'capabilities', 'auth-test'
+      'auth-test'
     ],
     Dev: [
-      'dashboard', 'inventory', 'vault', 'blockchain', 'dex',
+      'index', 'dashboard', 'controller-status', 'qr-connect', 'my-endpoints', 'payment-gateway',
+      'network-monitor', 'local-analytics', 'graph-explorer', 'chain-explorer', 'chain-explorer-new',
+      'oracle-explorer', 'peers', 'operator-registry', 'tunnel-registry', 'error-explorer',
+      'models', 'codex-builder', 'models-dex', 'governance', 'bootnode-dao', 'network-inference-dao',
+      'graphchain-dashboard', 'graphchain-errors', 'graphchain-skills',
+      'skills', 'capabilities', 'properties', 'settlement',
+      'my-models', 'my-wallets', 'my-skills', 'my-capabilities', 'my-properties', 'nft-property-explorer',
+      'basic', 'advanced',
+      'settings', 'inventory', 'vault', 'blockchain', 'dex',
       'nft-vault', 'nft-capability-manager', 'add-capability',
       'explorer', 'capabilities', 'auth-test'
     ],
     General: [
-      'dashboard', 'inventory', 'dex', 'nft-capability-manager', 'capabilities', 'auth-test'
+      'index', 'dashboard', 'controller-status', 'qr-connect', 'my-endpoints', 'payment-gateway',
+      'network-monitor', 'local-analytics', 'graph-explorer', 'chain-explorer', 'chain-explorer-new',
+      'oracle-explorer', 'peers', 'operator-registry', 'tunnel-registry', 'error-explorer',
+      'models', 'codex-builder', 'models-dex', 'governance', 'bootnode-dao', 'network-inference-dao',
+      'graphchain-dashboard', 'graphchain-errors', 'graphchain-skills',
+      'skills', 'capabilities', 'properties', 'settlement',
+      'my-models', 'my-wallets', 'my-skills', 'my-capabilities', 'my-properties', 'nft-property-explorer',
+      'basic', 'advanced',
+      'settings', 'inventory', 'dex', 'nft-capability-manager', 'capabilities', 'auth-test'
     ]
   };
   

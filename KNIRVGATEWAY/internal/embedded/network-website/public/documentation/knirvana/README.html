@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRVANA - The Experiential Gateway - KNIRV Network Documentation</title>
+    <link rel="stylesheet" href="../styles.css">
+    <script src="../config/portal-links.yaml" type="text/yaml" id="portal-config"></script>
+    <script src="../js/config-loader.js"></script>
+    <script src="../js/universal-footer.js"></script>
+    <script>
+        // Override footer links for documentation site
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.knirvConfig && window.knirvConfig.config) {
+                // Update legal links to use documentation-specific paths
+                if (window.knirvConfig.config.footer && window.knirvConfig.config.footer.legal) {
+                    window.knirvConfig.config.footer.legal.terms = "../legal/TERMS_AND_CONDITIONS.html";
+                    window.knirvConfig.config.footer.legal.privacy = "../legal/PRIVACY_POLICY.html";
+                    window.knirvConfig.config.footer.legal.contribution = "../legal/CODE_OF_CONDUCT.html";
+                }
+            }
+        });
+    </script>
+</head>
+<body>
+    <header class="doc-header">
+        <div class="container">
+            <nav class="doc-nav">
+                <a href="../index.html">← Back to Documentation</a>
+            </nav>
+            <h1>KNIRVANA - The Experiential Gateway</h1>
+            <p class="doc-description">User guide for KNIRVANA</p>
+        </div>
+    </header>
+
+    <main class="doc-main">
+        <div class="container">
+            <article class="doc-content">
+                <p><h1>KNIRVANA - The Experiential Gateway</h1></p><p><div align="center"></p><p>!<a href="https://img.shields.io/badge/KNIRVANA-Gaming%20Gateway-blue?style=for-the-badge">KNIRVANA Logo</a>
+<a href="https://img.shields.io/badge/Rust-Native%20Client-orange?style=flat-square&logo=rust">![Rust</a>](rust-client/)
+<a href="https://img.shields.io/badge/TypeScript-Web%20Client-blue?style=flat-square&logo=typescript">![TypeScript</a>](ts-client/)
+<a href="https://img.shields.io/badge/KNIRV-D--TEN%20Ecosystem-purple?style=flat-square">![KNIRV Ecosystem</a>](https://knirv.network)</p><p><em>A high-performance, cross-platform Real-Time Strategy game serving as the experiential gateway to the KNIRV Decentralized Trusted Execution Network (D-TEN)</em></p><p></div></p><p><h2>🎮 Overview</h2></p><p>KNIRVANA is a revolutionary 3D TRON-style Real-Time Strategy (RTS) game where players command AI agents to competitively resolve ErrorNodes within the living KNIRVGRAPH. As the primary experiential interface for the KNIRV D-TEN ecosystem, KNIRVANA transforms complex AI network operations into an engaging strategy experience.</p><p><h3>Key Concepts</h3></p><p>- <strong>ErrorNodes</strong>: Problems within the KNIRVGRAPH that need resolution
+- <strong>AI Agents</strong>: Autonomous units controlled by players to solve ErrorNodes
+- <strong>SkillNodes</strong>: Capabilities that agents can learn and execute
+- <strong>NRN Tokens</strong>: The native currency earned through successful problem resolution
+- <strong>KNIRVGRAPH</strong>: The decentralized knowledge fabric underlying the game world</p><p><h2>🏗️ Architecture</h2></p><p>KNIRVANA offers two complementary client implementations:</p><p><h3>🦀 Rust Client (Native/Mobile)</h3>
+High-performance, cross-platform game client built with Bevy engine.</p><p><strong>Platforms</strong>: Desktop (Windows, macOS, Linux), Android, iOS  
+<strong>Engine</strong>: Bevy 0.12 with ECS architecture  
+<strong>Features</strong>: Native performance, mobile optimizations, offline capabilities</p><p><a href="rust-client/">📖 Rust Client Documentation →</a></p><p><h3>🌐 TypeScript Client (Web)</h3>
+Full-stack web application with immersive 3D graphics and real-time multiplayer.</p><p><strong>Platform</strong>: Web browsers (Desktop & Mobile)  
+<strong>Stack</strong>: React + Three.js + Express.js  
+<strong>Features</strong>: WebGL rendering, real-time collaboration, cross-device sync</p><p><a href="ts-client/">📖 TypeScript Client Documentation →</a></p><p><h2>🚀 Quick Start</h2></p><p><h3>Choose Your Client</h3></p><p><h4>For Native Performance & Mobile</h4>
+<code></code>`bash
+cd rust-client
+cargo run --release
+<code></code>`</p><p><h4>For Web & Cross-Platform Access</h4>
+<code></code>`bash
+cd ts-client
+npm install
+npm run dev
+<code></code>`</p><p><h2>🎯 Game Mechanics</h2></p><p><h3>Core Gameplay Loop</h3></p><p>1. <strong>Explore</strong> the KNIRVGRAPH to discover ErrorNodes
+2. <strong>Deploy</strong> AI agents to investigate and resolve errors
+3. <strong>Invoke Skills</strong> using NRN tokens to enhance agent capabilities
+4. <strong>Compete</strong> with other players in real-time resolution challenges
+5. <strong>Earn Rewards</strong> through successful ErrorNode resolution</p><p><h3>Strategic Elements</h3></p><p>- <strong>Resource Management</strong>: Balance NRN token spending with skill acquisition
+- <strong>Agent Optimization</strong>: Train and specialize agents for different error types
+- <strong>Competitive Resolution</strong>: Race against other players to solve high-value ErrorNodes
+- <strong>Collective Intelligence</strong>: Contribute solutions to the broader KNIRV knowledge base</p><p><h2>🔗 KNIRV Ecosystem Integration</h2></p><p>KNIRVANA seamlessly integrates with the entire KNIRV D-TEN ecosystem:</p><p><h3>Blockchain Components</h3>
+- <strong>KNIRV-ORACLE</strong>: NRN token ledger and network oracle
+- <strong>KNIRVCHAIN</strong>: Smart contracts and SkillRegistry
+- <strong>XION Integration</strong>: Gasless transactions and user experience</p><p><h3>Network Services</h3>
+- <strong>KNIRVGRAPH</strong>: Decentralized knowledge fabric
+- <strong>KNIRV-NEXUS</strong>: Validation environments for skill execution
+- <strong>KNIRV-ROUTER</strong>: P2P networking and connectivity proofs
+- <strong>KNIRVGATEWAY</strong>: API gateway and service orchestration</p><p><h3>Development Tools</h3>
+- <strong>KNIRV-SDK</strong>: Integration libraries for both clients
+- <strong>KNIRV-CLI</strong>: AI-powered development interface
+- <strong>KNIRV-INFERENCE</strong>: Agent management and "The Fabric" algorithm</p><p><h2>🛠️ Development</h2></p><p><h3>Prerequisites</h3></p><p><strong>For Rust Client:</strong>
+- Rust 1.70+
+- Platform-specific tools (Android NDK, Xcode)</p><p><strong>For TypeScript Client:</strong>
+- Node.js 18+
+- Modern web browser with WebGL support</p><p><h3>Testing</h3></p><p>KNIRVANA includes a comprehensive test suite for both implementations:</p><p><code></code>`bash
+<h1>Run all tests</h1>
+make test</p><p><h1>Run implementation-specific tests</h1>
+make test-rust    # Rust client tests
+make test-ts      # TypeScript client tests</p><p><h1>Run specific test categories</h1>
+make test-unit           # Unit tests
+make test-integration    # Integration tests
+make test-performance    # Performance tests
+make test-e2e           # End-to-end tests
+<code></code>`</p><p><a href="testing.md">📖 Complete Testing Guide →</a></p><p><h3>Project Structure</h3></p><p><code></code>`
+KNIRVANA/
+├── rust-client/          # Native Bevy-based client
+│   ├── src/             # Rust source code
+│   ├── assets/          # Game assets
+│   ├── config/          # Configuration files
+│   └── examples/        # Example implementations
+├── ts-client/           # Web-based client
+│   ├── client/          # React frontend
+│   ├── server/          # Express.js backend
+│   └── shared/          # Shared types and schemas
+└── README.md           # This file
+<code></code>`</p><p><h3>Building Both Clients</h3></p><p><code></code>`bash
+<h1>Build Rust client</h1>
+cd rust-client && cargo build --release</p><p><h1>Build TypeScript client</h1>
+cd ts-client && npm run build
+<code></code>`</p><p><h2>🎨 Visual Design</h2></p><p>KNIRVANA features a distinctive TRON-style aesthetic with:</p><p>- <strong>Neon Grid Environments</strong>: Glowing wireframe landscapes
+- <strong>Particle Effects</strong>: Dynamic visual feedback for agent actions
+- <strong>Holographic UI</strong>: Immersive interface elements
+- <strong>Adaptive Lighting</strong>: Dynamic lighting based on game state
+- <strong>Cross-Platform Consistency</strong>: Unified visual experience across clients</p><p><h2>🌐 Multiplayer & Networking</h2></p><p><h3>Real-Time Strategy Features</h3>
+- <strong>Synchronized Gameplay</strong>: Real-time competition across all platforms
+- <strong>Decentralized Architecture</strong>: P2P networking via KNIRV-ROUTER
+- <strong>Cross-Client Compatibility</strong>: Rust and TypeScript clients can play together
+- <strong>Persistent World State</strong>: Shared KNIRVGRAPH updates across sessions</p><p><h2>📊 Economics & Tokenomics</h2></p><p><h3>NRN Token Integration</h3>
+- <strong>Skill Invocation</strong>: Spend NRN to execute complex agent skills
+- <strong>Reward Distribution</strong>: Earn NRN through successful ErrorNode resolution
+- <strong>Staking Mechanisms</strong>: Stake NRN for enhanced agent capabilities
+- <strong>Governance Participation</strong>: Use NRN for ecosystem governance voting</p><p><h2>🤝 Contributing</h2></p><p>We welcome contributions to both client implementations!</p><p><h3>Getting Started</h3>
+1. Fork the repository
+2. Choose your preferred client (Rust or TypeScript)
+3. Follow the client-specific development guides
+4. Submit pull requests with comprehensive tests</p><p><h3>Development Guidelines</h3>
+- Follow the established code style for each client
+- Add tests for new features
+- Update documentation for API changes
+- Ensure cross-platform compatibility</p><p><h2>📄 License</h2></p><p>This project is part of the KNIRV Network ecosystem. See individual client directories for specific licensing information.</p><p><h2>🔗 Links</h2></p><p>- <a href="https://knirv.network">KNIRV Network</a>
+- <a href="https://docs.knirv.network">KNIRV Documentation</a>
+- <a href="https://gateway.knirv.network">KNIRV Gateway</a>
+- <a href="https://discord.gg/knirv">Community Discord</a></p><p>---</p><p><div align="center"></p><p><strong>Experience the future of decentralized AI through gaming</strong></p><p><a href="ts-client/">🎮 Start Playing</a> • <a href="rust-client/">📱 Download Mobile</a> • <a href="https://docs.knirv.network">🛠️ Developer Docs</a></p><p></div>
+</p>
+            </article>
+        </div>
+    </main>
+
+    <script src="../scripts.js"></script>
+
+    <!-- Footer will be automatically generated by universal-footer.js -->
+</body>
+</html>

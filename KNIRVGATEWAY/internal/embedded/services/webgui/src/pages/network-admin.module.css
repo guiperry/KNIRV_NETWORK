@@ -1,0 +1,94 @@
+.container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.title {
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  color: #333;
+}
+
+.tabContainer {
+  display: flex;
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 2rem;
+}
+
+.tab {
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.tab:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.activeTab {
+  border-bottom: 3px solid var(--bright-blue);
+  font-weight: bold;
+}
+
+.section {
+  margin-bottom: 2rem;
+}
+
+.section h2 {
+  margin-bottom: 1.5rem;
+  color: var(--bright-blue);
+}
+
+.form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.formGroup label {
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.formGroup input {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.button {
+  grid-column: span 2;
+  background-color: var(--bright-blue);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-top: 1rem;
+}
+
+.button:hover {
+  background-color: var(--dark-blue);
+}
+
+.roleIndicator {
+  margin-bottom: 1.5rem;
+  padding: 0.5rem;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.roleBadge {
+  font-weight: bold;
+  color: var(--bright-blue);
+}

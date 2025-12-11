@@ -1,5 +1,5 @@
 // src/components/agents/AgentProfileDetails.tsx
-import type { Agent as Operator } from '@/lib/types';
+import type { Operator } from '@/lib/types';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

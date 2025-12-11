@@ -81,3 +81,5 @@ KNIRVORACLE_NEW/bin/knirv-network-monitor
 KNIRVCHAIN/bin/KNIRVCHAIN
 KNIRVCHAIN/bin/knirv-network-monitor
 KNIRVNEXUS/backend/backend_server
+KNIRVNEXUS/backend/cmd/container_deployer/golang-app-source/knirv-nexus
+KNIRVHEART/HEART/CERERAS_SDK/sdk-cbcore-202505230211-4-9382352f.sif

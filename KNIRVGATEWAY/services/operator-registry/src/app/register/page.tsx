@@ -20,12 +20,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle }  from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { BotMessageSquare, ShieldPlus, Loader2 } from "lucide-react";
-import { registerNewOperator } from '@/lib/agent-service';
-import type { Agent as Operator, AgentSignature } from '@/lib/types';
+import { registerNewOperator } from '@/lib/operator-service';
+import type { Operator, OperatorSignature } from '@/lib/types';
 import Stepper from '@/components/ui/stepper';
 import { useState } from 'react';
 
-const generateMockSignature = (agentId: string): AgentSignature => {
+const generateMockSignature = (agentId: string): OperatorSignature => {
   const creationDate = new Date().toISOString();
   return {
     type: "RsaSignature2018", // PKI-relevant signature type
@@ -52,7 +52,7 @@ const realisticDefaults = {
   avatarUrl: 'https://placehold.co/100x100.png',
   dataAiHint: 'operator avatar',
   addr_ttl: 3600,
-  signature: undefined as AgentSignature | undefined, // Will be populated in onSubmit or if defaults are used
+  signature: undefined as OperatorSignature | undefined, // Will be populated in onSubmit or if defaults are used
 };
 // Initialize signature with a default mock signature based on the default DID
 realisticDefaults.signature = generateMockSignature(realisticDefaults.agentDID);
@@ -100,7 +100,7 @@ export default function RegisterOperatorPage() {
     try {
       const agentId = data.agentDID?.trim() || realisticDefaults.agentDID;
 
-      const agentData: Partial<Agent> = {
+      const agentData: Partial<Operator> = {
         id: agentId,
         name: data.agentName?.trim() || realisticDefaults.agentName,
         ansName: data.ansName?.trim() || `${data.providerName?.trim() || realisticDefaults.providerName}.${data.capability?.trim() || realisticDefaults.capability}.${agentId.split(':').pop()}`.toLowerCase().replace(/\s+/g, ''),

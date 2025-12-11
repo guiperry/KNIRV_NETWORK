@@ -1,0 +1,11 @@
+/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCORTEX/model-forge/target/release/deps/libxattr-56157d68e5dbd5e6.rmeta: /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xattr-1.5.1/src/lib.rs /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xattr-1.5.1/src/error.rs /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xattr-1.5.1/src/sys/mod.rs /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xattr-1.5.1/src/util.rs /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xattr-1.5.1/src/sys/linux_macos.rs
+
+/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCORTEX/model-forge/target/release/deps/libxattr-56157d68e5dbd5e6.rlib: /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xattr-1.5.1/src/lib.rs /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xattr-1.5.1/src/error.rs /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xattr-1.5.1/src/sys/mod.rs /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xattr-1.5.1/src/util.rs /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xattr-1.5.1/src/sys/linux_macos.rs
+
+/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVCORTEX/model-forge/target/release/deps/xattr-56157d68e5dbd5e6.d: /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xattr-1.5.1/src/lib.rs /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xattr-1.5.1/src/error.rs /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xattr-1.5.1/src/sys/mod.rs /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xattr-1.5.1/src/util.rs /home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xattr-1.5.1/src/sys/linux_macos.rs
+
+/home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xattr-1.5.1/src/lib.rs:
+/home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xattr-1.5.1/src/error.rs:
+/home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xattr-1.5.1/src/sys/mod.rs:
+/home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xattr-1.5.1/src/util.rs:
+/home/gperry/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xattr-1.5.1/src/sys/linux_macos.rs:

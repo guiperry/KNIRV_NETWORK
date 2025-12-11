@@ -1,122 +1,76 @@
-# KNIRVGATEWAY Production Dockerfile
-# Multi-stage build for KNIRV Gateway with Netlify Functions support
-FROM node:20-alpine AS builder
+# Multi-stage Dockerfile for KNIRVGATEWAY Go version
+
+# Stage 1: Build the Go binary
+FROM golang:1.21-alpine AS builder
 
 # Install build dependencies
-RUN apk add --no-cache python3 make g++ git curl
+RUN apk add --no-cache git make
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy go mod files
+COPY go.mod go.sum ./
 
-# Install dependencies
-RUN npm ci --legacy-peer-deps
+# Download dependencies
+RUN go mod download
 
 # Copy source code
 COPY . .
 
-# Load endpoints and build
-RUN npm run load-endpoints && \
-    npm run check-function-deps && \
-    echo 'KNIRV Gateway built with Netlify Functions support'
+# Build the binary
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -a -installsuffix cgo \
+    -ldflags="-s -w" \
+    -o /app/bin/knirvgateway \
+    ./cmd/gateway
 
-# Production stage
-FROM node:20-alpine AS production
+# Stage 2: Create minimal runtime image
+FROM alpine:latest
 
 # Install runtime dependencies
-RUN apk add --no-cache curl nginx
+RUN apk add --no-cache \
+    ca-certificates \
+    nodejs \
+    npm \
+    && rm -rf /var/cache/apk/*
 
 # Create non-root user
-RUN addgroup -g 1001 -S knirvgateway && \
-    adduser -u 1001 -S knirvgateway -G knirvgateway
+RUN addgroup -g 1000 knirvgateway && \
+    adduser -D -u 1000 -G knirvgateway knirvgateway
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files and install production dependencies
-COPY package*.json ./
-RUN npm ci --only=production --legacy-peer-deps && \
-    npm cache clean --force
+# Copy binary from builder
+COPY --from=builder /app/bin/knirvgateway /app/knirvgateway
 
-# Copy built application from builder stage
-COPY --from=builder /app .
+# Copy services directory
+COPY --chown=knirvgateway:knirvgateway services ./services
 
-# Create necessary directories
-RUN mkdir -p /app/logs && \
-    mkdir -p /app/data && \
+# Install Node.js service dependencies
+RUN cd services/payment-gateway && npm install --production && \
+    cd ../tunnel-registry && npm install --production && \
+    cd ../webgui && npm install --production || true
+
+# Create data and logs directories
+RUN mkdir -p /app/data /app/logs && \
     chown -R knirvgateway:knirvgateway /app
-
-# Configure nginx for static file serving
-COPY --chown=knirvgateway:knirvgateway <<EOF /etc/nginx/nginx.conf
-events {
-    worker_connections 1024;
-}
-
-http {
-    include /etc/nginx/mime.types;
-    default_type application/octet-stream;
-    
-    server {
-        listen 80;
-        server_name localhost;
-        root /app;
-        index index.html;
-        
-        # Serve static files
-        location / {
-            try_files \$uri \$uri/ /index.html;
-        }
-        
-        # Proxy API requests to Node.js
-        location /api/ {
-            proxy_pass http://localhost:3000;
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade \$http_upgrade;
-            proxy_set_header Connection 'upgrade';
-            proxy_set_header Host \$host;
-            proxy_cache_bypass \$http_upgrade;
-        }
-        
-        # Health check endpoint
-        location /health {
-            access_log off;
-            return 200 "healthy\n";
-            add_header Content-Type text/plain;
-        }
-    }
-}
-EOF
 
 # Switch to non-root user
 USER knirvgateway
 
-# Expose ports
-EXPOSE 80 3000
+# Expose port
+EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
 # Set environment variables
-ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=8080 \
+    GATEWAY_MODE=persistent \
+    KNIRV_CHAIN_ID=testnet
 
-# Volume for persistent data
-VOLUME ["/app/data", "/app/logs"]
-
-# Start script
-COPY --chown=knirvgateway:knirvgateway <<EOF /app/start.sh
-#!/bin/sh
-# Start nginx in background
-nginx &
-
-# Start Node.js application
-npm start
-EOF
-
-RUN chmod +x /app/start.sh
-
-# Start command
-CMD ["/app/start.sh"]
+# Run the binary
+CMD ["/app/knirvgateway"]

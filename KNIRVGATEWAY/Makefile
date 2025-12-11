@@ -1,192 +1,143 @@
-# KNIRVGATEWAY Makefile
-# Content synchronization and deployment management
+# KNIRVGATEWAY Go Build Makefile
+# This Makefile contains targets for building the Go version of KNIRVGATEWAY
 
-.PHONY: help sync-failover-page update-submodules build deploy-render deploy-netlify deploy-vercel test-provision clean
+.PHONY: build run test clean install fmt vet lint
+
+# Go binary output
+BINARY_NAME=knirvgateway
+BINARY_DIR=bin
+GO_CMD=go
+GO_BUILD=$(GO_CMD) build
+GO_CLEAN=$(GO_CMD) clean
+GO_TEST=$(GO_CMD) test
+GO_GET=$(GO_CMD) get
+GO_FMT=$(GO_CMD) fmt
+GO_VET=$(GO_CMD) vet
+GO_MOD=$(GO_CMD) mod
+
+# Build flags
+LDFLAGS=-ldflags "-s -w"
+BUILD_DIR=./cmd/gateway
 
 # Default target
-help:
-	@echo "KNIRVGATEWAY Makefile"
-	@echo ""
-	@echo "Available targets:"
-	@echo "  sync-failover-page    - Sync content from knirvcom-repo to home.html"
-	@echo "  update-submodules     - Update all git submodules"
-	@echo "  build                 - Build the gateway for deployment"
-	@echo "  deploy-render         - Deploy to Render (via Git)"
-	@echo "  deploy-netlify        - Deploy to Netlify"
-	@echo "  deploy-vercel         - Deploy to Vercel"
-	@echo "  test-provision        - Test the /provision endpoint"
-	@echo "  install-deps          - Install all dependencies"
-	@echo "  clean                 - Clean build artifacts"
+all: build
 
-# Content synchronization target
-sync-failover-page:
-	@echo "🔄 Syncing failover page content..."
-	@if [ -d "knirvcom-repo" ]; then \
-		echo "📁 Found knirvcom-repo submodule"; \
-		cd knirvcom-repo && git pull origin main; \
-		cd ..; \
-		if [ -f "knirvcom-repo/index.html" ]; then \
-			echo "📄 Copying index.html to home.html"; \
-			cp knirvcom-repo/index.html home.html; \
-		else \
-			echo "⚠️  knirvcom-repo/index.html not found"; \
-		fi; \
-		if [ -d "knirvcom-repo/assets" ]; then \
-			echo "📁 Syncing assets directory"; \
-			rsync -av --delete knirvcom-repo/assets/ assets/; \
-		fi; \
-		if [ -d "knirvcom-repo/images" ]; then \
-			echo "🖼️  Syncing images directory"; \
-			rsync -av --delete knirvcom-repo/images/ images/; \
-		fi; \
-		echo "✅ Failover page sync completed"; \
-	else \
-		echo "⚠️  knirvcom-repo submodule not found"; \
-		echo "💡 Run 'make setup-submodules' to initialize"; \
-	fi
-
-# Update git submodules
-update-submodules:
-	@echo "🔄 Updating git submodules..."
-	@git submodule update --init --recursive --remote
-	@echo "✅ Submodules updated"
-
-# Setup submodules (for initial setup)
-setup-submodules:
-	@echo "🔧 Setting up knirvcom-repo submodule..."
-	@if [ ! -d "knirvcom-repo" ]; then \
-		echo "📥 Adding knirvcom-repo as submodule"; \
-		git submodule add https://github.com/KNIRV-NETWORK/knirvcom-repo.git knirvcom-repo; \
-	fi
-	@git submodule update --init --recursive
-	@echo "✅ Submodules setup completed"
-
-# Build target
-build: sync-failover-page
-	@echo "🔨 Building KNIRVGATEWAY..."
-	@npm run build
-	@echo "✅ Build completed"
+# Initialize Go modules
+init:
+	@echo "Initializing Go modules..."
+	$(GO_MOD) tidy
+	$(GO_MOD) download
 
 # Install dependencies
-install-deps:
-	@echo "📦 Installing dependencies..."
-	@npm install
-	@echo "✅ Dependencies installed"
+install: init
+	@echo "Installing Go dependencies..."
+	$(GO_GET) -v ./...
 
-# Deployment targets
-deploy-render:
-	@echo "🚀 Deploying to Render..."
-	@echo "💡 Render deployment is handled via Git integration"
-	@echo "📤 Push your changes to trigger deployment:"
-	@echo "   git add ."
-	@echo "   git commit -m 'Deploy to Render'"
-	@echo "   git push origin main"
+# Format Go code
+fmt:
+	@echo "Formatting Go code..."
+	$(GO_FMT) ./...
 
-deploy-netlify: build
-	@echo "🚀 Deploying to Netlify..."
-	@npm run deploy:netlify
+# Vet Go code
+vet:
+	@echo "Vetting Go code..."
+	$(GO_VET) ./...
 
-deploy-vercel: build
-	@echo "🚀 Deploying to Vercel..."
-	@npm run deploy:vercel
+# Build the Go application
+build: fmt vet
+	@echo "Building Go application..."
+	@mkdir -p $(BINARY_DIR)
+	$(GO_BUILD) $(LDFLAGS) -o $(BINARY_DIR)/$(BINARY_NAME) $(BUILD_DIR)
+	@echo "Build complete: $(BINARY_DIR)/$(BINARY_NAME)"
 
-# Test the provision endpoint
-test-provision:
-	@echo "🧪 Testing /provision endpoint..."
-	@echo "📡 Testing local server (if running)..."
-	@curl -f http://localhost:8080/provision || echo "❌ Local server not available"
-	@echo ""
-	@echo "📡 Testing Netlify function..."
-	@curl -f http://localhost:8888/.netlify/functions/provision || echo "❌ Netlify dev server not available"
+# Build for multiple platforms
+build-all:
+	@echo "Building for multiple platforms..."
+	@mkdir -p $(BINARY_DIR)
+	GOOS=linux GOARCH=amd64 $(GO_BUILD) $(LDFLAGS) -o $(BINARY_DIR)/$(BINARY_NAME)-linux-amd64 $(BUILD_DIR)
+	GOOS=darwin GOARCH=amd64 $(GO_BUILD) $(LDFLAGS) -o $(BINARY_DIR)/$(BINARY_NAME)-darwin-amd64 $(BUILD_DIR)
+	GOOS=darwin GOARCH=arm64 $(GO_BUILD) $(LDFLAGS) -o $(BINARY_DIR)/$(BINARY_NAME)-darwin-arm64 $(BUILD_DIR)
+	GOOS=windows GOARCH=amd64 $(GO_BUILD) $(LDFLAGS) -o $(BINARY_DIR)/$(BINARY_NAME)-windows-amd64.exe $(BUILD_DIR)
+	@echo "Multi-platform build complete"
 
-# Test health endpoints
-test-health:
-	@echo "🏥 Testing health endpoints..."
-	@echo "📡 Testing local server health..."
-	@curl -f http://localhost:8080/health || echo "❌ Local server not available"
-	@echo ""
-	@echo "📡 Testing Netlify health..."
-	@curl -f http://localhost:8888/.netlify/functions/gateway-sse || echo "❌ Netlify dev server not available"
+# Run the Go application
+run: build
+	@echo "Running Go application..."
+	./$(BINARY_DIR)/$(BINARY_NAME)
 
-# Development targets
-dev-render:
-	@echo "🔧 Starting development server in Render mode..."
-	@GATEWAY_MODE=persistent npm run start:render
+# Run without building
+dev:
+	@echo "Running Go application in development mode..."
+	$(GO_CMD) run $(BUILD_DIR)/main.go
 
-dev-netlify:
-	@echo "🔧 Starting development server in Netlify mode..."
-	@npm run dev
+# Run tests
+test:
+	@echo "Running Go tests..."
+	$(GO_TEST) -v ./...
 
-dev-vercel:
-	@echo "🔧 Starting development server in Vercel mode..."
-	@npm run start:vercel
-
-# Generate comprehensive documentation with static HTML
-docs:
-	@echo "📚 Generating comprehensive documentation..."
-	@echo "🔄 Step 1: Running doc_generator.js to consolidate all documentation"
-	@node scripts/doc_generator.js
-	@echo "🔄 Step 2: Installing documentation dependencies"
-	@cd network-website/public/documentation && npm install
-	@echo "🔄 Step 3: Generating static HTML from docsify"
-	@cd network-website && node scripts/simple-static-generator.js
-	@echo "🔄 Step 4: Updating links to point to static version"
-	@cd network-website && node scripts/update-docsify-links.js
-	@echo "✅ Documentation generation completed"
-	@echo "📁 Static documentation available at: network-website/public/documentation/static/"
+# Run tests with coverage
+test-coverage:
+	@echo "Running Go tests with coverage..."
+	$(GO_TEST) -v -coverprofile=coverage.out ./...
+	$(GO_CMD) tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
 
 # Clean build artifacts
 clean:
-	@echo "🧹 Cleaning build artifacts..."
-	@rm -rf node_modules/.cache
-	@rm -rf .netlify
-	@rm -rf .vercel
-	@echo "✅ Clean completed"
+	@echo "Cleaning Go build artifacts..."
+	$(GO_CLEAN)
+	rm -rf $(BINARY_DIR)
+	rm -f coverage.out coverage.html
 
-# Full clean (including node_modules)
-clean-all: clean
-	@echo "🧹 Full clean (including node_modules)..."
-	@rm -rf node_modules
-	@rm -f package-lock.json
-	@echo "✅ Full clean completed"
+# Development mode with auto-reload (requires air)
+watch:
+	@which air > /dev/null || (echo "Installing air..." && go install github.com/cosmtrek/air@latest)
+	@echo "Running with auto-reload..."
+	air
 
-# Lint and format
-lint:
-	@echo "🔍 Linting code..."
-	@npm run lint || echo "⚠️  Linting not configured"
+# Check if Go is installed
+check-go:
+	@which go > /dev/null || (echo "Error: Go is not installed" && exit 1)
+	@echo "Go version: $$(go version)"
 
-# Security audit
-audit:
-	@echo "🔒 Running security audit..."
-	@npm audit
+# Full setup
+setup: check-go install
+	@echo "Go setup complete"
 
-# Complete setup for new environment
-setup: install-deps setup-submodules sync-failover-page
-	@echo "🎉 KNIRVGATEWAY setup completed!"
-	@echo ""
-	@echo "Next steps:"
-	@echo "1. Configure environment variables"
-	@echo "2. Run 'make dev-netlify' for local development"
-	@echo "3. Run 'make test-provision' to test endpoints"
+# Production build
+build-prod:
+	@echo "Building production binary..."
+	@mkdir -p $(BINARY_DIR)
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO_BUILD) -a -installsuffix cgo $(LDFLAGS) -o $(BINARY_DIR)/$(BINARY_NAME) $(BUILD_DIR)
+	@echo "Production build complete"
 
-# CI/CD target
-ci-build: install-deps update-submodules build test-provision
-	@echo "✅ CI/CD build completed"
+# Docker build
+docker-build:
+	@echo "Building Docker image..."
+	docker build -t knirvgateway:latest -f Dockerfile.go .
 
-# Show current configuration
-status:
-	@echo "📊 KNIRVGATEWAY Status"
-	@echo "====================="
-	@echo "Node version: $(shell node --version 2>/dev/null || echo 'Not installed')"
-	@echo "NPM version: $(shell npm --version 2>/dev/null || echo 'Not installed')"
-	@echo "Git status: $(shell git status --porcelain | wc -l) uncommitted changes"
-	@echo "Submodules:"
-	@git submodule status 2>/dev/null || echo "  No submodules configured"
-	@echo ""
-	@echo "Files:"
-	@echo "  index.html: $(shell [ -f index.html ] && echo 'Present' || echo 'Missing')"
-	@echo "  home.html: $(shell [ -f home.html ] && echo 'Present' || echo 'Missing')"
-	@echo "  server.js: $(shell [ -f server.js ] && echo 'Present' || echo 'Missing')"
-	@echo ""
-	@echo "Dependencies:"
-	@echo "  node_modules: $(shell [ -d node_modules ] && echo 'Installed' || echo 'Not installed')"
+# Docker run
+docker-run:
+	@echo "Running Docker container..."
+	docker run -p 8080:8080 --env-file .env knirvgateway:latest
+
+# Help
+help:
+	@echo "KNIRVGATEWAY Go Build Targets:"
+	@echo "  init          - Initialize Go modules"
+	@echo "  install       - Install dependencies"
+	@echo "  build         - Build the Go application"
+	@echo "  build-all     - Build for multiple platforms"
+	@echo "  build-prod    - Build production binary"
+	@echo "  run           - Build and run the application"
+	@echo "  dev           - Run in development mode"
+	@echo "  test          - Run tests"
+	@echo "  test-coverage - Run tests with coverage"
+	@echo "  clean         - Clean build artifacts"
+	@echo "  fmt           - Format code"
+	@echo "  vet           - Vet code"
+	@echo "  watch         - Run with auto-reload (requires air)"
+	@echo "  docker-build  - Build Docker image"
+	@echo "  docker-run    - Run Docker container"
+	@echo "  setup         - Full setup"
+	@echo "  help          - Show this help"

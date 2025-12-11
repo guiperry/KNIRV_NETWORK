@@ -1,4 +1,0 @@
- ./target/debug/knirvoracle
-
-
- cargo test --test integration_test

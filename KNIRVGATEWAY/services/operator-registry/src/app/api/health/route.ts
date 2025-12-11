@@ -21,7 +21,7 @@ export async function GET() {
     endpoints: {
   operator_discovery: "/",
   operator_registration: "/register",
-  operator_search: "/api/agents",
+  operator_search: "/api/operators",
       health_check: "/api/health"
     },
     integration: {

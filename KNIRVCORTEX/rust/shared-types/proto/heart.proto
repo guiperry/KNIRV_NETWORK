@@ -1,0 +1,152 @@
+syntax = "proto3";
+
+package knirv.cortex.v1;
+
+option go_package = "github.com/guiperry/KNIRV_NETWORK/pkg/gen/knirv/cortex/v1;cortexv1";
+
+// HEART Integration Messages
+// Enables KNIRVCORTEX to query HEART transformer for heuristic analysis
+
+// Error inquiry sent from stem.cortex to HEART
+message HEARTErrorInquiry {
+  string error_id = 1;
+  string error_type = 2;
+  string error_message = 3;
+  string error_context = 4;
+  string stack_trace = 5;
+  map<string, string> metadata = 6;
+
+  // Network metrics (if applicable)
+  optional NetworkMetrics network_metrics = 7;
+
+  // Inference context
+  string prompt = 8;
+  string model_response = 9;
+  float confidence_score = 10;
+
+  // Timestamp
+  uint64 timestamp = 11;
+}
+
+// Network metrics for HEART analysis
+message NetworkMetrics {
+  uint32 node_id = 1;
+  uint32 time_slice = 2;
+  repeated float measurement_vec = 3; // Size: 16 (MEASURE_VEC_SIZE)
+
+  // Additional context
+  float traffic_in = 4;
+  float traffic_out = 5;
+  float latency_ms = 6;
+  float error_rate = 7;
+  float cpu_load = 8;
+}
+
+// HEART's heuristic response
+message HEARTHeuristicResponse {
+  string inquiry_id = 1;
+
+  // Heuristic command vector (size: 8)
+  repeated float command_vector = 2;
+
+  // Interpreted commands
+  uint32 alert_level = 3; // 1-5
+  uint32 heuristic_id = 4; // Which analysis method to apply
+  uint32 target_node_id = 5; // Target for action
+  float confidence_score = 6; // 0-1
+  repeated float action_parameters = 7; // Additional action params
+
+  // Human-readable analysis
+  string analysis_summary = 8;
+  repeated string recommended_actions = 9;
+  repeated string debug_insights = 10;
+
+  // Pattern recognition
+  repeated ErrorPattern identified_patterns = 11;
+  repeated SimilarError similar_errors = 12;
+
+  // Performance metrics
+  float processing_time_ms = 13;
+  uint64 timestamp = 14;
+}
+
+// Identified error pattern
+message ErrorPattern {
+  string pattern_id = 1;
+  string pattern_name = 2;
+  string description = 3;
+  float match_confidence = 4;
+  repeated string indicators = 5;
+}
+
+// Similar error from KNIR
+
+VGRAPH
+message SimilarError {
+  string error_id = 1;
+  string error_type = 2;
+  float similarity_score = 3;
+  string resolution = 4;
+  string skill_id = 5; // LoRA adapter that resolved it
+}
+
+// HEART configuration for cortex
+message HEARTConfig {
+  string endpoint = 1; // HEART service endpoint (Cerebras or fallback)
+  uint32 timeout_ms = 2;
+  float min_confidence_threshold = 3;
+  bool enable_pattern_recognition = 4;
+  bool enable_similarity_search = 5;
+  bool fallback_to_local = 6; // Use local heuristics if HEART unavailable
+
+  // Cerebras-specific settings
+  optional CerebrasConfig cerebras = 7;
+}
+
+message CerebrasConfig {
+  string wse_address = 1;
+  string program_path = 2;
+  string weights_path = 3;
+  bool use_simulator = 4;
+}
+
+// HEART batch inquiry for multiple errors
+message HEARTBatchInquiry {
+  repeated HEARTErrorInquiry inquiries = 1;
+  bool parallel_processing = 2;
+  uint32 batch_id = 3;
+}
+
+message HEARTBatchResponse {
+  uint32 batch_id = 1;
+  repeated HEARTHeuristicResponse responses = 2;
+  uint32 successful_count = 3;
+  uint32 failed_count = 4;
+  float avg_processing_time_ms = 5;
+}
+
+// HEART health check
+message HEARTHealthRequest {
+  uint64 timestamp = 1;
+}
+
+message HEARTHealthResponse {
+  bool available = 1;
+  string status = 2; // "online", "degraded", "offline"
+  float avg_latency_ms = 3;
+  uint64 total_queries = 4;
+  float success_rate = 5;
+  optional string cerebras_status = 6;
+}
+
+// HEART statistics
+message HEARTStats {
+  uint64 total_inquiries = 1;
+  uint64 successful_responses = 2;
+  uint64 failed_responses = 3;
+  float avg_response_time_ms = 4;
+  float min_response_time_ms = 5;
+  float max_response_time_ms = 6;
+  map<string, uint64> error_type_counts = 7;
+  map<string, uint64> heuristic_usage = 8;
+}

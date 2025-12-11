@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>KNIRV SDK - KNIRV Network</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #0a0a0a;
+      color: #e0e0e0;
+      line-height: 1.6;
+    }
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 300px;
+      background-color: #1a1a2e;
+      border-right: 1px solid #333;
+      padding: 20px;
+      padding-bottom: 120px;
+      overflow-y: auto;
+      position: fixed;
+      height: 100vh;
+      box-sizing: border-box;
+    }
+    .content {
+      flex: 1;
+      margin-left: 300px;
+      padding: 40px;
+      max-width: 800px;
+    }
+    .sidebar h1, .sidebar h2, .sidebar h3 {
+      color: #4a9eff;
+      margin-top: 30px;
+      margin-bottom: 10px;
+    }
+    .sidebar a {
+      color: #e0e0e0;
+      text-decoration: none;
+      display: block;
+      padding: 5px 0;
+      border-left: 3px solid transparent;
+      padding-left: 10px;
+    }
+    .sidebar a:hover {
+      color: #4a9eff;
+      border-left-color: #4a9eff;
+    }
+    .nav-section {
+      margin-bottom: 20px;
+    }
+    .sidebar-footer {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+    }
+    .sidebar-footer hr {
+      border: 1px solid #333;
+      margin: 20px 0;
+    }
+    .sidebar-footer p {
+      font-size: 0.9em;
+      color: #888;
+      text-align: center;
+      margin: 0;
+    }
+    .sidebar-footer a {
+      color: #4a9eff !important;
+      border: none !important;
+      padding: 0 !important;
+    }
+    .content h1, .content h2, .content h3 {
+      color: #4a9eff;
+    }
+    .content a {
+      color: #4a9eff;
+    }
+    .content a:hover {
+      color: #6fb5ff;
+    }
+    .content code {
+      background-color: #16213e;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Monaco', 'Consolas', monospace;
+    }
+    .content pre {
+      background-color: #16213e;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+    .content pre code {
+      background: none;
+      padding: 0;
+    }
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-300px);
+        transition: transform 0.3s ease;
+      }
+      .content {
+        margin-left: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <h1>KNIRV Network</h1>
+      <div class="nav-section"><h2>KNIRVCHAIN Documentation</h2>
+<a href="../../knirvchain/README.html">KNIRVCHAIN</a>
+<h2>KNIRVGRAPH Documentation</h2>
+<a href="../../knirvgraph/README.html">KNIRVGRAPH - Decentralized Knowledge Graph with Economics</a>
+<h2>KNIRVNEXUS Documentation</h2>
+<a href="../../knirvnexus/README.html">KNIRV-NEXUS: Decentralized Validation Environment</a>
+<h2>KNIRVORACLE Documentation</h2>
+<a href="../../knirvoracle/README.html">KNIRVORACLE: A Decentralized Model Context Protocol Network</a>
+<h2>KNIRVROUTER Documentation</h2>
+<a href="../../knirvrouter/README.html">KNIRVROUTER Verifier Node - Blockchain Implementation in Go</a>
+<h2>KNIRVSDK Documentation</h2>
+<a href="../../knirvsdk/README.html">KNIRV SDK</a>
+<h2>KNIRVCONTROLLER Documentation</h2>
+<a href="../../knirvcontroller/README.html">Consolidated Documentation</a>
+<h2>KNIRVGATEWAY Documentation</h2>
+<a href="../../knirvgateway/README.html">KNIRV GATEWAY</a>
+<h2>KNIRVTESTNET Documentation</h2>
+<a href="../../knirvtestnet/README.html">KNIRV Testnet</a>
+<h2>KNIRVANA Documentation</h2>
+<a href="../../knirvana/README.html">KNIRVANA - The Experiential Gateway</a>
+<h2>📄 Whitepapers</h2>
+<a href="../../whitepapers/index.html">📚 View All Whitepapers</a></div>
+      <div class="sidebar-footer">
+        <hr style="border: 1px solid #333; margin: 20px 0;">
+        <p style="font-size: 0.9em; color: #888; text-align: center;">
+          © 2025 KNIRV Network<br>
+          <a href="https://knirv.network" style="color: #4a9eff;">knirv.network</a>
+        </p>
+      </div>
+    
+    </div>
+    <div class="content">
+      <h1>KNIRV SDK</h1><br><br>Software Development Kits for the KNIRV Network ecosystem, including complete KNIRVGATEWAY integration.<br><br><h2>Available SDKs</h2><br><br><h3>Gateway SDKs ⭐ NEW</h3><br>- <strong><a href="#/go/gateway/README.md">Go Gateway SDK</a></strong> - Complete KNIRVGATEWAY integration for Go<br>- <strong><a href="#/ts/gateway/README.md">TypeScript Gateway SDK</a></strong> - Complete KNIRVGATEWAY integration for TypeScript/JavaScript<br>- <strong><a href="#/py/gateway/README.md">Python Gateway SDK</a><em>* - ✅ *</em>NEW!</strong> Complete KNIRVGATEWAY integration for Python<br><br><h3>Core KNIRV SDKs</h3><br>- <a href="#/go/transaction/README.md">Go Transaction SDK</a> - KNIRVCHAIN transaction management<br>- <a href="#/go/transmission/README.md">Go Transmission SDK</a> - Network transmission and communication<br>- <a href="#/ts/transmission/README.md">TypeScript Transmission SDK</a> - Web transmission libraries<br>- <a href="#/py/transaction/README.md">Python Transaction SDK</a> - KNIRVCHAIN transaction management for Python<br>- <a href="#/py/transmission/README.md">Python Transmission SDK</a> - Network transmission for Python<br><br><h3>Unified SDKs 🚧 In Development</h3><br>- <strong><a href="#/ts/unified/README.md">TypeScript Unified SDK</a></strong> - 🚧 Combined access to all KNIRV services<br>- <strong>Python Unified SDK</strong> - 🚧 <em>Planned</em> - Combined access to all KNIRV services<br>- <strong>Go Unified SDK</strong> - 🚧 <em>Planned</em> - Combined access to all KNIRV services<br><br>> <strong>Note</strong>: See <a href="#/unified_sdk_implementation_plan.md">UNIFIED_SDK_IMPLEMENTATION_PLAN.md</a> for detailed implementation roadmap.<br><br><h2>Gateway SDK Features ⭐ NEW</h2><br><br>The new Gateway SDKs provide complete integration with KNIRVGATEWAY services:<br><br><h3>Economics Service</h3><br>- <strong>Skill Invocation</strong>: Process skill invocations with economic transactions<br>- <strong>LLM Registration</strong>: Handle LLM registration and fees<br>- <strong>Validation Rewards</strong>: Process validation rewards for network participants<br>- <strong>Fee Calculation</strong>: Calculate network fees for transactions<br>- <strong>Metrics & Analytics</strong>: Economic metrics, burn tracking, and network statistics<br>- <strong>Transaction Management</strong>: Economic transaction processing and history<br><br><h3>API Gateway</h3><br>- <strong>Service Routing</strong>: Route requests to appropriate KNIRV components<br>- <strong>Health Monitoring</strong>: Comprehensive service health checks<br>- <strong>Status Management</strong>: Service status and configuration management<br><br><h3>Integration Management</h3><br>- <strong>Component Connectivity</strong>: Test and monitor KNIRV component connections<br>- <strong>Cross-Service Communication</strong>: Manage communication between services<br>- <strong>Real-time Monitoring</strong>: Live system health and performance monitoring<br><br><h3>PoAu-D Consensus Management ⭐ NEW</h3><br>- <strong>Consensus Control</strong>: Enable/disable PoAu-D consensus mechanism<br>- <strong>Network Authors</strong>: Manage Network Author Peers (NAPs) for block proposal<br>- <strong>Plugin Author Peers</strong>: Handle PAP registration and delegation<br>- <strong>Status Monitoring</strong>: Real-time PoAu-D status and delegation statistics<br>- <strong>Transaction Delegation</strong>: Automatic routing of MCP transactions to capability owners<br>- <strong>Hybrid Mining</strong>: PoAu-D with PoW fallback for maximum reliability<br><br><h2>Core SDK Features</h2><br><br>The existing SDKs provide fundamental KNIRV network functionality:<br><br>1. <strong>Transaction Management</strong>: Complete blockchain transaction handling<br>2. <strong>Network Communication</strong>: Transmission protocols and client-server interactions<br>3. <strong>URI Resolution</strong>: Parse and resolve <code>knirv://</code> URIs<br>4. <strong>Peer Discovery</strong>: Find peers on the KNIRVCHAIN DHT<br>5. <strong>Resource Fetching</strong>: Connect to peers and fetch resources<br>6. <strong>Error Handling</strong>: Handle errors and retries gracefully<br><br><h2>KNIRV URI Structure</h2><br><br><pre><code><br>knirv://<ID>.<ResourceType>/<OptionalSubPath>?param1=value1&param2=value2<br></code></pre><br><br>- <strong>Scheme:</strong> <code>knirv</code><br>- <strong>Authority:</strong> <code><ID>.<ResourceType></code> (e.g., <code>mychain.chain</code>, <code>content123.nrn</code>)<br>  - <code><ID></code>: Unique identifier for the chain, content, or node.<br>  - <code><ResourceType></code>: Specifies the type of resource (e.g., <code>chain</code>, <code>nrn</code>).<br>- <strong>Path:</strong> <code>/<OptionalSubPath></code> (e.g., <code>/block</code>, <code>/content</code>, defaults to <code>/</code> if omitted).<br>- <strong>Query:</strong> <code>?param1=value1...</code> (Standard URL query parameters).<br><br>For a detailed specification, please refer to the <a href="#/../docs/URI_Generation_GO.md">KNIRVCHAIN URI Scheme Design Document</a>.<br><br><h2>Quick Start</h2><br><br><h3>KNIRVGATEWAY Integration</h3><br><br>#### Go Gateway SDK<br><pre><code>go<br>import "github.com/cloud-equities/KNIRVGATEWAY/sdk/go/gateway"<br><br>// Create client<br>client := gateway.NewClient()<br><br>// Process skill invocation<br>skillResp, err := client.Economics.Skills.Invoke(ctx, gateway.SkillInvocationRequest{<br>    UserID:  "user123",<br>    SkillID: "skill456",<br>    Amount:  "100000", // 0.1 NRN<br>})<br><br>// Get economic metrics<br>metrics, err := client.Economics.Metrics.Get(ctx)<br><br>// Check health<br>isHealthy, err := client.Health.Check(ctx)<br></code></pre><br><br>#### TypeScript Gateway SDK<br><pre><code>typescript<br>import { KNIRVGatewayClient } from '@knirv/gateway-sdk';<br><br>// Create client<br>const client = new KNIRVGatewayClient();<br><br>// Process skill invocation<br>const skillResp = await client.economics.invokeSkill({<br>  user_id: 'user123',<br>  skill_id: 'skill456',<br>  amount: '100000', // 0.1 NRN<br>});<br><br>// Get economic metrics<br>const metrics = await client.economics.getMetrics();<br><br>// Check health<br>const health = await client.health.checkEconomicsHealth();<br></code></pre><br><br><h3>PoAu-D Consensus Management</h3><br><br>#### Go Example<br><br><pre><code>go<br>package main<br><br>import (<br>    "context"<br>    "fmt"<br>    "log"<br><br>    "github.com/cloud-equities/KNIRVGATEWAY/sdk/go/gateway"<br>)<br><br>func main() {<br>    // Create PoAu-D client<br>    client := gateway.NewPoAuDClient()<br>    ctx := context.Background()<br><br>    // Enable PoAu-D consensus<br>    resp, err := client.EnableConsensus(ctx)<br>    if err != nil {<br>        log.Fatalf("Failed to enable PoAu-D: %v", err)<br>    }<br>    fmt.Printf("PoAu-D enabled: %s\n", resp.Message)<br><br>    // Add Network Author<br>    addResp, err := client.AddNetworkAuthor(ctx, "knirv1abc123def456")<br>    if err != nil {<br>        log.Fatalf("Failed to add network author: %v", err)<br>    }<br>    fmt.Printf("Added Network Author: %s\n", addResp.Message)<br><br>    // Get status<br>    status, err := client.GetConsensusStatus(ctx)<br>    if err != nil {<br>        log.Fatalf("Failed to get status: %v", err)<br>    }<br>    fmt.Printf("PoAu-D Status: enabled=%t, authors=%d\n",<br>        status.Enabled, status.NetworkAuthorsCount)<br>}<br></code></pre><br><br>#### TypeScript Example<br><br><code></code><code>typescript<br>import { PoAuDClient } from '@knirv/gateway-sdk';<br><br>async function main() {<br>    // Create PoAu-D client<br>    const client = new PoAuDClient();<br><br>    // Enable PoAu-D consensus<br>    const resp = await client.enableConsensus();<br>    console.log(</code>PoAu-D enabled: ${resp.message}<code>);<br><br>    // Add Network Author<br>    const addResp = await client.addNetworkAuthor('knirv1abc123def456');<br>    console.log(</code>Added Network Author: ${addResp.message}<code>);<br><br>    // Get status<br>    const status = await client.getConsensusStatus();<br>    console.log(</code>PoAu-D Status: enabled=${status.enabled}, authors=${status.network_authors_count}<code>);<br>}<br><br>main().catch(console.error);<br><pre><code><br><br><h2>Legacy Examples</h2><br><br><h3>Go Transaction SDK</h3><br><br></code></pre>go<br>package main<br><br>import (<br>    "fmt"<br>    "log"<br><br>    "github.com/cloud-equities/KNIRVCHAIN_GO_ROOT_MCP/sdk/go/client"<br>)<br><br>func main() {<br>    // Create a client with default configuration<br>    config := client.DefaultConfig()<br>    knirvClient, err := client.New(config)<br>    if err != nil {<br>        log.Fatalf("Failed to create KNIRV client: %v", err)<br>    }<br>    defer knirvClient.Close()<br>    <br>    // Bootstrap the client<br>    if err := knirvClient.Bootstrap(); err != nil {<br>        log.Fatalf("Failed to bootstrap client: %v", err)<br>    }<br>    <br>    // Fetch a resource<br>    resource, err := knirvClient.FetchResource("knirv://mychain-alpha.chain/block?number=123")<br>    if err != nil {<br>        log.Fatalf("Failed to fetch resource: %v", err)<br>    }<br>    <br>    // Use the resource data<br>    fmt.Println(resource.String())<br>}<br><pre><code><br><br><h3>Python</h3><br><br></code></pre>python<br>import asyncio<br>from knirv_uri_sdk import KnirvClient, KnirvClientError<br><br>async def main():<br>    # Create a client with bootstrap peers<br>    client = KnirvClient(<br>        bootstrap_peers=[<br>            "/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",<br>            # Add your own bootstrap peers here<br>        ],<br>        log_enabled=True<br>    )<br>    <br>    try:<br>        # Bootstrap the client<br>        await client.bootstrap()<br>        <br>        # Fetch a resource<br>        resource = await client.fetch_resource("knirv://mychain-alpha.chain/block?number=123")<br>        <br>        # Use the resource data<br>        print(str(resource))<br>    except KnirvClientError as e:<br>        print(f"Error: {e}")<br>    finally:<br>        # Close the client<br>        await client.close()<br><br><h1>Run the async function</h1><br>asyncio.run(main())<br><pre><code><br><br><h3>JavaScript/TypeScript</h3><br><br></code></pre>typescript<br>import { KnirvClient, KnirvClientError } from 'knirv-uri-sdk';<br><br>async function main() {<br>    // Create a client with bootstrap peers<br>    const client = new KnirvClient({<br>        bootstrapPeers: [<br>            '/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ',<br>            // Add your own bootstrap peers here<br>        ],<br>        logEnabled: true<br>    });<br>    <br>    try {<br>        // Bootstrap the client<br>        await client.bootstrap();<br>        <br>        // Fetch a resource<br>        const resource = await client.fetchResource('knirv://mychain-alpha.chain/block?number=123');<br>        <br>        // Use the resource data<br>        console.log(resource.toString());<br>    } catch (e) {<br>        if (e instanceof KnirvClientError) {<br>            console.error(</code>Client error: ${e.message}<code>);<br>        } else {<br>            console.error(</code>Unexpected error: ${e instanceof Error ? e.message : String(e)}<code>);<br>        }<br>    } finally {<br>        // Close the client<br>        await client.stop();<br>    }<br>}<br><br>main().catch(console.error);<br></code><code></code><br><br><h2>License</h2><br><br><a href="#/license">MIT License</a>
+    </div>
+  </div>
+</body>
+</html>
