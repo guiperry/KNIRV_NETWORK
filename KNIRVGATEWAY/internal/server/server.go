@@ -12,9 +12,9 @@ import (
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/operator"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/payment"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/proxy"
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/services"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/session"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/tunnel"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/webgui"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 	"go.uber.org/zap"
@@ -23,7 +23,6 @@ import (
 // Server represents the HTTP server
 type Server struct {
 	config            *config.Config
-	serviceManager    *services.Manager
 	sessionManager    *session.Manager
 	proxyHandler      *proxy.Handler
 	operatorService   *operator.Service
@@ -32,14 +31,16 @@ type Server struct {
 	tunnelHandler     *tunnel.Handler
 	paymentService    *payment.Service
 	paymentHandler    *payment.Handler
+	webguiHandler     *webgui.Handler
 	logger            *zap.Logger
 	httpServer        *http.Server
 	router            *mux.Router
+	webguiStaticDir   string
 	networkWebsiteDir string
 }
 
 // New creates a new HTTP server
-func New(cfg *config.Config, svcMgr *services.Manager, networkWebsiteDir string, logger *zap.Logger) (*Server, error) {
+func New(cfg *config.Config, webguiStaticDir, networkWebsiteDir string, logger *zap.Logger) (*Server, error) {
 	// Initialize operator service
 	knirvOracleURL := "http://localhost:1317" // Default KNIRV-ORACLE URL
 	if cfg.KnirvOracleURL != "" {
@@ -74,9 +75,11 @@ func New(cfg *config.Config, svcMgr *services.Manager, networkWebsiteDir string,
 	paymentSvc := payment.NewService(paymentConfig, logger)
 	paymentHdlr := payment.NewHandler(paymentSvc, logger)
 
+	// Initialize webgui handler
+	webguiHdlr := webgui.NewHandler(cfg, logger)
+
 	s := &Server{
 		config:            cfg,
-		serviceManager:    svcMgr,
 		sessionManager:    session.NewManager(cfg.SessionSecret),
 		proxyHandler:      proxy.NewHandler(logger),
 		operatorService:   operatorSvc,
@@ -85,7 +88,9 @@ func New(cfg *config.Config, svcMgr *services.Manager, networkWebsiteDir string,
 		tunnelHandler:     tunnelHdlr,
 		paymentService:    paymentSvc,
 		paymentHandler:    paymentHdlr,
+		webguiHandler:     webguiHdlr,
 		logger:            logger,
+		webguiStaticDir:   webguiStaticDir,
 		networkWebsiteDir: networkWebsiteDir,
 	}
 
@@ -106,14 +111,6 @@ func (s *Server) setupRoutes() error {
 
 	// Health and status endpoints
 	r.HandleFunc("/health", s.handleHealth).Methods("GET")
-	r.HandleFunc("/services/status", s.handleServicesStatus).Methods("GET")
-	r.HandleFunc("/services/endpoints", s.handleServicesEndpoints).Methods("GET")
-
-	// Service control endpoints
-	r.HandleFunc("/services/start", s.handleServicesStart).Methods("POST")
-	r.HandleFunc("/services/stop", s.handleServicesStop).Methods("POST")
-	r.HandleFunc("/services/{serviceName}/start", s.handleServiceStart).Methods("POST")
-	r.HandleFunc("/services/{serviceName}/stop", s.handleServiceStop).Methods("POST")
 
 	// DHT/P2P endpoints (placeholder)
 	r.HandleFunc("/provision", s.handleProvision).Methods("GET")
@@ -121,18 +118,6 @@ func (s *Server) setupRoutes() error {
 	r.HandleFunc("/dht/start", s.handleDHTStart).Methods("POST")
 	r.HandleFunc("/dht/stop", s.handleDHTStop).Methods("POST")
 
-	// Service proxies
-	r.PathPrefix("/dashboard").Handler(s.proxyHandler.ServiceProxy(
-		"webgui",
-		s.serviceManager.GetServicePort,
-		map[string]string{"/dashboard": ""},
-	))
-
-	r.PathPrefix("/_next").Handler(s.proxyHandler.ServiceProxy(
-		"webgui",
-		s.serviceManager.GetServicePort,
-		nil,
-	))
 	// Register operator registry routes directly
 	s.operatorHandler.RegisterRoutes(r)
 
@@ -142,11 +127,17 @@ func (s *Server) setupRoutes() error {
 	// Register payment gateway routes directly
 	s.paymentHandler.RegisterRoutes(r)
 
+	// Register webgui API routes directly
+	s.webguiHandler.RegisterRoutes(r)
+
 	// Dynamic controller proxy
 	r.PathPrefix("/controller").Handler(s.handleControllerProxy())
 
-	// Mock API endpoint
+	// Mock API endpoint (fallback for any unmatched /api routes)
 	r.PathPrefix("/api").HandlerFunc(s.handleMockAPI)
+
+	// Serve webgui static files at /dashboard
+	r.PathPrefix("/dashboard").Handler(http.StripPrefix("/dashboard", http.FileServer(http.Dir(s.webguiStaticDir))))
 
 	// Serve network-website at root (this should be last to catch all remaining routes)
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir(s.networkWebsiteDir)))
@@ -278,106 +269,10 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"dht": map[string]interface{}{
 			"status": "not_implemented",
 		},
-		"nodeJSServices": s.serviceManager.GetStatus(),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(status)
-}
-
-func (s *Server) handleServicesStatus(w http.ResponseWriter, r *http.Request) {
-	status := s.serviceManager.GetStatus()
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(status)
-}
-
-func (s *Server) handleServicesEndpoints(w http.ResponseWriter, r *http.Request) {
-	status := s.serviceManager.GetStatus()
-	endpoints := make(map[string]interface{})
-
-	for name, svc := range status {
-		if svc.Running {
-			endpoints[name] = map[string]interface{}{
-				"url":  fmt.Sprintf("http://localhost:%d", svc.Port),
-				"port": svc.Port,
-			}
-		}
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(endpoints)
-}
-
-func (s *Server) handleServicesStart(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	if err := s.serviceManager.StartAll(ctx); err != nil {
-		s.logger.Error("Failed to start services", zap.Error(err))
-		http.Error(w, "Failed to start services", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"message": "Services started",
-	})
-}
-
-func (s *Server) handleServicesStop(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	if err := s.serviceManager.StopAll(ctx); err != nil {
-		s.logger.Error("Failed to stop services", zap.Error(err))
-		http.Error(w, "Failed to stop services", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"message": "Services stopped",
-	})
-}
-
-func (s *Server) handleServiceStart(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	serviceName := vars["serviceName"]
-
-	ctx := r.Context()
-	if err := s.serviceManager.StartService(ctx, serviceName); err != nil {
-		s.logger.Error("Failed to start service",
-			zap.String("service", serviceName),
-			zap.Error(err),
-		)
-		http.Error(w, fmt.Sprintf("Failed to start service: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"message": fmt.Sprintf("Service %s started", serviceName),
-	})
-}
-
-func (s *Server) handleServiceStop(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	serviceName := vars["serviceName"]
-
-	ctx := r.Context()
-	if err := s.serviceManager.StopService(ctx, serviceName); err != nil {
-		s.logger.Error("Failed to stop service",
-			zap.String("service", serviceName),
-			zap.Error(err),
-		)
-		http.Error(w, fmt.Sprintf("Failed to stop service: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"message": fmt.Sprintf("Service %s stopped", serviceName),
-	})
 }
 
 func (s *Server) handleProvision(w http.ResponseWriter, r *http.Request) {

@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -49,6 +51,9 @@ type Config struct {
 	// Session configuration
 	SessionSecret string
 
+	// Browser auto-open configuration
+	AutoOpenBrowser bool
+
 	// KNIRV-ORACLE configuration
 	KnirvOracleURL string
 }
@@ -83,6 +88,7 @@ func Load() (*Config, error) {
 		WebGUIEnabled:             getEnvBool("WEBGUI_ENABLED", true),
 		WebGUIPort:                getEnvInt("WEBGUI_PORT", 3007),
 		SessionSecret:             getEnv("SESSION_SECRET", generateSessionSecret()),
+		AutoOpenBrowser:           getEnvBool("AUTO_OPEN_BROWSER", true),
 		KnirvOracleURL:            getEnv("KNIRV_ORACLE_URL", "http://localhost:1317"),
 	}
 
@@ -130,4 +136,37 @@ func generateSessionSecret() string {
 	// Generate a simple session secret (for development)
 	// In production, this should be set via environment variable
 	return fmt.Sprintf("knirv-gateway-secret-%d", os.Getpid())
+}
+
+// OpenBrowser opens the specified URL in the default browser
+func OpenBrowser(url string) error {
+	var cmd *exec.Cmd
+
+	switch runtime.GOOS {
+	case "linux":
+		if os.Getenv("DISPLAY") != "" {
+			// Try xdg-open first (most common)
+			if _, err := exec.LookPath("xdg-open"); err == nil {
+				cmd = exec.Command("xdg-open", url)
+			} else if _, err := exec.LookPath("sensible-browser"); err == nil {
+				cmd = exec.Command("sensible-browser", url)
+			} else if _, err := exec.LookPath("gnome-open"); err == nil {
+				cmd = exec.Command("gnome-open", url)
+			} else if _, err := exec.LookPath("kde-open"); err == nil {
+				cmd = exec.Command("kde-open", url)
+			} else {
+				return fmt.Errorf("could not find a browser to open URL")
+			}
+		} else {
+			return fmt.Errorf("no display detected for opening browser")
+		}
+	case "windows":
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+	case "darwin":
+		cmd = exec.Command("open", url)
+	default:
+		return fmt.Errorf("unsupported platform for opening browser")
+	}
+
+	return cmd.Start()
 }

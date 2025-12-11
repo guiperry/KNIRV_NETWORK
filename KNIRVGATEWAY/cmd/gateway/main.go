@@ -11,7 +11,6 @@ import (
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/config"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/runtime"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/server"
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/services"
 	"go.uber.org/zap"
 )
 
@@ -55,22 +54,8 @@ func main() {
 		}
 	}()
 
-	// Initialize service manager with extracted services directory
-	serviceManager, err := services.NewManager(cfg, logger, rt.ServicesDir)
-	if err != nil {
-		logger.Fatal("Failed to initialize service manager", zap.Error(err))
-	}
-
-	// Start services if auto-start is enabled
-	if cfg.NodeJSServicesAutoStart {
-		logger.Info("Auto-starting Node.js services")
-		if err := serviceManager.StartAll(context.Background()); err != nil {
-			logger.Warn("Failed to auto-start services", zap.Error(err))
-		}
-	}
-
-	// Initialize HTTP server with network-website directory
-	srv, err := server.New(cfg, serviceManager, rt.GetNetworkWebsitePath(), logger)
+	// Initialize HTTP server with webgui static and network website directories
+	srv, err := server.New(cfg, rt.GetWebGUIStaticPath(), rt.GetNetworkWebsitePath(), logger)
 	if err != nil {
 		logger.Fatal("Failed to initialize server", zap.Error(err))
 	}
@@ -83,6 +68,18 @@ func main() {
 		}
 	}()
 
+	// Wait a moment for server to start, then open browser if enabled
+	if cfg.AutoOpenBrowser {
+		go func() {
+			time.Sleep(2 * time.Second) // Wait for server to be ready
+			url := fmt.Sprintf("http://localhost:%d", cfg.Port)
+			logger.Info("Opening browser to gateway", zap.String("url", url))
+			if err := config.OpenBrowser(url); err != nil {
+				logger.Warn("Failed to open browser", zap.Error(err))
+			}
+		}()
+	}
+
 	// Wait for interrupt signal
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
@@ -93,11 +90,6 @@ func main() {
 	// Graceful shutdown with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-
-	// Stop services
-	if err := serviceManager.StopAll(ctx); err != nil {
-		logger.Error("Error stopping services", zap.Error(err))
-	}
 
 	// Stop HTTP server
 	if err := srv.Stop(ctx); err != nil {

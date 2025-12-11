@@ -89,14 +89,14 @@ func (m *Manager) initializeServices(servicesDir string) error {
 		}
 	}
 
-	// WebGUI
-	if m.config.WebGUIEnabled {
-		m.services["webgui"] = &Service{
-			Name: "webgui",
-			Dir:  filepath.Join(servicesDir, "webgui"),
-			Port: m.config.WebGUIPort,
-		}
-	}
+	// WebGUI - migrated to Go, no longer a Node.js service
+	// if m.config.WebGUIEnabled {
+	// 	m.services["webgui"] = &Service{
+	// 		Name: "webgui",
+	// 		Dir:  filepath.Join(servicesDir, "webgui"),
+	// 		Port: m.config.WebGUIPort,
+	// 	}
+	// }
 
 	m.logger.Info("Initialized services",
 		zap.Int("count", len(m.services)),

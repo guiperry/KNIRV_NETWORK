@@ -35,6 +35,19 @@
     "@cloudflare/workers-types": "^4.20240117.0",
     "typescript": "^5.3.3",
     "wrangler": "^3.22.4",
-    "glob": "^10.3.10"
-  }
+    "glob": "^10.3.10",
+    "netlify-cli": "^17.0.0"
+  },
+   "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "knirv",
+    "api-gateway",
+    "netlify",
+    "serverless",
+    "sse"
+  ],
+  "author": "KNIRV Team",
+  "license": "MIT"
 }

@@ -16,6 +16,7 @@ type Runtime struct {
 	BaseDir           string
 	ServicesDir       string
 	NetworkWebsiteDir string
+	WebGUIStaticDir   string
 	logger            *zap.Logger
 	mu                sync.Mutex
 	extracted         bool
@@ -30,6 +31,7 @@ func NewRuntime(logger *zap.Logger) (*Runtime, error) {
 		BaseDir:           baseDir,
 		ServicesDir:       filepath.Join(baseDir, "services"),
 		NetworkWebsiteDir: filepath.Join(baseDir, "network-website"),
+		WebGUIStaticDir:   filepath.Join(baseDir, "services", "webgui-static"),
 		logger:            logger,
 	}
 
@@ -64,11 +66,7 @@ func (r *Runtime) Setup() error {
 		return fmt.Errorf("failed to extract services: %w", err)
 	}
 
-	// Extract network-website
-	r.logger.Info("Extracting network-website...")
-	if err := embedded.ExtractNetworkWebsite(r.NetworkWebsiteDir, r.logger); err != nil {
-		return fmt.Errorf("failed to extract network-website: %w", err)
-	}
+	// Network-website is now extracted as part of ExtractServices
 
 	// Install npm dependencies for services
 	if err := r.installServiceDependencies(); err != nil {
@@ -150,7 +148,12 @@ func (r *Runtime) GetServicePath(serviceName string) string {
 
 // GetNetworkWebsitePath returns the path to the network-website
 func (r *Runtime) GetNetworkWebsitePath() string {
-	return filepath.Join(r.NetworkWebsiteDir, "public")
+	return filepath.Join(r.ServicesDir, "network-website")
+}
+
+// GetWebGUIStaticPath returns the path to the webgui static files
+func (r *Runtime) GetWebGUIStaticPath() string {
+	return r.WebGUIStaticDir
 }
 
 // IsExtracted returns whether the runtime has been extracted
