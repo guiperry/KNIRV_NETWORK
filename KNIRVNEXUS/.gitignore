@@ -55,3 +55,6 @@ docs/*
 
 bin/*
 backend/bin/*
+dist/
+
+KNIRVNEXUS/backend/cmd/container_deployer/golang-app-source/knirv-nexus
