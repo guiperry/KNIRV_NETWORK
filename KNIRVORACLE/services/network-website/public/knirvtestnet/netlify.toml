@@ -1,0 +1,30 @@
+[build]
+  command = "npm install"
+  functions = "netlify/functions"
+  publish = "."
+
+[dev]
+  port = 8087
+
+[[redirects]]
+  from = "/oracle/*"
+  to = "/.netlify/functions/oracle-sse"
+  status = 200
+
+[[redirects]]
+  from = "/auth/*"
+  to = "/.netlify/functions/oracle-sse"
+  status = 200
+
+[functions]
+  node_bundler = "esbuild"
+
+[context.testnet.environment]
+  TESTNET_MODE = "true"
+  NODE_ENV = "testnet"
+  KNIRVORACLE_URL = "http://localhost:1317"
+  KNIRVCHAIN_URL = "http://localhost:8083"
+  KNIRVGRAPH_URL = "http://localhost:8082"
+  KNIRVNEXUS_DVE_URL = "http://localhost:8084"
+  KNIRVNEXUS_VAL_URL = "http://localhost:8085"
+  KNIRVROUTER_URL = "http://localhost:8086"

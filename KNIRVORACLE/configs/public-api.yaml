@@ -1,0 +1,612 @@
+openapi: 3.1.0
+info:
+  title: KNIRV Network Public API
+  description: |
+    **Unified Public API for the KNIRV Network ecosystem.**
+
+    This is the single entry point for all KNIRV Network services and operations.
+
+    ## Services Included
+
+    ### 💳 Payment Gateway (`/payment/*`)
+    - Testnet faucet for token requests
+    - Mainnet payment processing (Stripe/Coinbase)
+    - Network-specific token management
+
+    ### 🖥️ Operator Registry (`/operator-registry/*`)
+    - Node registration and discovery
+    - Bootnode management
+    - STUN/TURN server coordination
+
+    ### 🔗 Tunnel Registry (`/tunnel-registry/*`)
+    - NAT traversal and tunneling
+    - Connection relay management
+    - Public/private connection handling
+
+    ### 🎛️ WebGUI (`/dashboard/*`)
+    - Administrative dashboard
+    - Network monitoring and management
+    - Service control interface
+
+    ### ⛓️ KNIRVORACLE (`/oracle/*`)
+    - Blockchain operations and state
+    - MCP (Model Context Protocol) capabilities
+    - Smart contract interactions
+
+    ### 🏗️ KNIRVCHAIN (`/chain/*`)
+    - Advanced blockchain operations
+    - AI model and skill management
+    - Governance and consensus
+
+    ### 🚀 KNIRVNEXUS (`/nexus/*`)
+    - Platform and DVE management
+    - Model validation and deployment
+    - Cognitive services
+
+  version: "1.0.0"
+  contact:
+    name: KNIRV Network Support
+    email: support@knirv.com
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://oracle.knirv.network
+    description: Production oracle
+
+tags:
+  - name: payments
+    description: Payment processing and token management
+  - name: operators
+    description: Node operator registration and management
+  - name: tunneling
+    description: Network tunneling and NAT traversal
+  - name: dashboard
+    description: Administrative dashboard and monitoring
+  - name: blockchain
+    description: Blockchain operations and state management
+  - name: mcp
+    description: Model Context Protocol operations
+  - name: models
+    description: AI model management and deployment
+  - name: platform
+    description: Platform and DVE management
+
+paths:
+  # ========================================
+  # PAYMENT GATEWAY ENDPOINTS
+  # ========================================
+
+  /payment/:
+    get:
+      tags:
+        - payments
+      summary: Payment oracle landing page
+      description: Serves the payment oracle interface
+      responses:
+        '200':
+          description: Payment oracle HTML interface
+
+  /payment/health:
+    get:
+      tags:
+        - payments
+      summary: Payment oracle health
+      description: Health status of payment services
+      responses:
+        '200':
+          description: Payment oracle health status
+
+  /payment/api/network-status:
+    get:
+      tags:
+        - payments
+      summary: Network status
+      description: Current network configuration and status
+      responses:
+        '200':
+          description: Network status information
+
+  /payment/api/faucet/request:
+    post:
+      tags:
+        - payments
+      summary: Request testnet tokens
+      description: Request tokens from the testnet faucet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - address
+                - network
+              properties:
+                address:
+                  type: string
+                  example: "knirv1abc123..."
+                network:
+                  type: string
+                  enum: [mainnet, public-testnet, private-testnet]
+      responses:
+        '200':
+          description: Tokens successfully requested
+        '429':
+          description: Rate limit exceeded
+
+  /payment/api/faucet/status/{address}:
+    get:
+      tags:
+        - payments
+      summary: Check faucet status
+      description: Check if address can request from faucet
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Faucet status for address
+
+  /payment/api/create-checkout-session:
+    post:
+      tags:
+        - payments
+      summary: Create payment session
+      description: Create Stripe checkout session for mainnet payments
+      responses:
+        '200':
+          description: Checkout session created
+
+  /payment/api/create-coinbase-charge:
+    post:
+      tags:
+        - payments
+      summary: Create Coinbase charge
+      description: Create Coinbase Commerce charge for mainnet payments
+      responses:
+        '200':
+          description: Coinbase charge created
+
+  # ========================================
+  # OPERATOR REGISTRY ENDPOINTS
+  # ========================================
+
+  /operator-registry/:
+    get:
+      tags:
+        - operators
+      summary: Registry status page
+      description: HTML status page for operator registry
+      responses:
+        '200':
+          description: Registry status HTML
+
+  /operator-registry/status:
+    get:
+      tags:
+        - operators
+      summary: Registry status
+      description: Current status of operator registry (HTML/JSON)
+      responses:
+        '200':
+          description: Registry status information
+
+  /operator-registry/stun:
+    get:
+      tags:
+        - operators
+      summary: STUN server info
+      description: STUN/TURN server connection details
+      responses:
+        '200':
+          description: STUN server information
+
+  /operator-registry/register:
+    post:
+      tags:
+        - operators
+      summary: Register node
+      description: Register a node in the operator registry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - chainID
+                - port
+              properties:
+                chainID:
+                  type: string
+                ip:
+                  type: string
+                port:
+                  type: integer
+                type:
+                  type: string
+                  enum: [client, bootnode]
+                nodeID:
+                  type: string
+      responses:
+        '201':
+          description: Node registered successfully
+
+  /operator-registry/lookup/{chainID}:
+    get:
+      tags:
+        - operators
+      summary: Lookup node by ChainID
+      description: Find node information by chain identifier
+      parameters:
+        - name: chainID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Node information
+        '404':
+          description: Node not found
+
+  /operator-registry/nodes:
+    get:
+      tags:
+        - operators
+      summary: List all nodes
+      description: Get list of all registered nodes
+      responses:
+        '200':
+          description: List of registered nodes
+
+  /operator-registry/bootnodes:
+    get:
+      tags:
+        - operators
+      summary: List bootnodes
+      description: Get list of registered bootnodes
+      responses:
+        '200':
+          description: List of bootnodes
+
+  # ========================================
+  # TUNNEL REGISTRY ENDPOINTS
+  # ========================================
+
+  /tunnel-registry/status:
+    get:
+      tags:
+        - tunneling
+      summary: Tunnel registry status
+      description: Current status of tunnel registry (HTML/JSON)
+      responses:
+        '200':
+          description: Tunnel registry status
+
+  /tunnel-registry/api/registry/register:
+    post:
+      tags:
+        - tunneling
+      summary: Register node via API
+      description: Register a node for tunneling services
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - devId
+                - publicIp
+                - publicP2pPort
+              properties:
+                devId:
+                  type: string
+                chainId:
+                  type: string
+                publicIp:
+                  type: string
+                publicP2pPort:
+                  type: integer
+                type:
+                  type: string
+      responses:
+        '201':
+          description: Node registered successfully
+
+  /tunnel-registry/api/registry/nodes:
+    get:
+      tags:
+        - tunneling
+      summary: List tunnel nodes
+      description: Get all nodes registered for tunneling
+      responses:
+        '200':
+          description: List of tunnel nodes
+
+  /tunnel-registry/api/registry/node/dev/{devId}:
+    get:
+      tags:
+        - tunneling
+      summary: Get node by peer ID
+      description: Find tunnel node by peer identifier
+      parameters:
+        - name: devId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Node information
+        '404':
+          description: Node not found
+
+  /tunnel-registry/api/registry/node/chain/{chainId}:
+    get:
+      tags:
+        - tunneling
+      summary: Get node by chain ID
+      description: Find tunnel node by chain identifier
+      parameters:
+        - name: chainId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Node information
+        '404':
+          description: Node not found
+
+  # ========================================
+  # KNIRVORACLE MCP API ENDPOINTS
+  # ========================================
+
+  /oracle/chain:
+    get:
+      tags:
+        - blockchain
+        - mcp
+      summary: Get blockchain state
+      description: Current blockchain state including blocks and transactions
+      responses:
+        '200':
+          description: Blockchain state
+
+  /oracle/block:
+    post:
+      tags:
+        - blockchain
+      summary: Submit new block
+      description: Add a new block to the blockchain
+      responses:
+        '200':
+          description: Block added successfully
+
+  /oracle/transaction:
+    post:
+      tags:
+        - blockchain
+        - mcp
+      summary: Submit transaction
+      description: Submit a signed transaction
+      responses:
+        '202':
+          description: Transaction accepted
+
+  /oracle/mcp/capability/prepare_registration:
+    post:
+      tags:
+        - mcp
+      summary: Prepare capability registration
+      description: Prepare data for MCP capability registration
+      responses:
+        '200':
+          description: Registration prepared
+
+  /oracle/mcp/capability/invoke:
+    post:
+      tags:
+        - mcp
+      summary: Invoke capability
+      description: Invoke an existing MCP capability
+      responses:
+        '202':
+          description: Capability invocation accepted
+
+  /oracle/mcp/capabilities:
+    get:
+      tags:
+        - mcp
+      summary: List capabilities
+      description: List all registered MCP capabilities
+      responses:
+        '200':
+          description: List of capabilities
+
+  # ========================================
+  # KNIRVCHAIN API ENDPOINTS
+  # ========================================
+
+  /chain/blocks:
+    get:
+      tags:
+        - blockchain
+      summary: Get blockchain blocks
+      description: Retrieve blockchain blocks
+      responses:
+        '200':
+          description: List of blocks
+
+  /chain/send_txn:
+    post:
+      tags:
+        - blockchain
+      summary: Send transaction
+      description: Submit transaction to KNIRVCHAIN
+      responses:
+        '201':
+          description: Transaction submitted
+
+  /chain/nrn/mint:
+    post:
+      tags:
+        - blockchain
+      summary: Mint NRN tokens
+      description: Mint new NRN tokens on KNIRVCHAIN
+      responses:
+        '201':
+          description: Tokens minted
+
+  /chain/llm/register:
+    post:
+      tags:
+        - models
+      summary: Register LLM
+      description: Register a new LLM on KNIRVCHAIN
+      responses:
+        '200':
+          description: LLM registered
+
+  /chain/v3/models/list:
+    get:
+      tags:
+        - models
+      summary: List registered models
+      description: Get all registered AI models
+      responses:
+        '200':
+          description: List of models
+
+  # ========================================
+  # KNIRVNEXUS PLATFORM API ENDPOINTS
+  # ========================================
+
+  /nexus/api/auth/login:
+    post:
+      tags:
+        - platform
+      summary: Platform login
+      description: Authenticate with KNIRVNEXUS platform
+      responses:
+        '200':
+          description: Authentication successful
+
+  /nexus/api/auth/register:
+    post:
+      tags:
+        - platform
+      summary: Platform registration
+      description: Register new user account
+      responses:
+        '201':
+          description: User registered
+
+  /nexus/api/dve/create:
+    post:
+      tags:
+        - platform
+      summary: Create DVE
+      description: Create new Distributed Virtual Environment
+      responses:
+        '201':
+          description: DVE created
+
+  /nexus/api/models/deploy:
+    post:
+      tags:
+        - models
+      summary: Deploy model
+      description: Deploy AI model to platform
+      responses:
+        '201':
+          description: Model deployed
+
+  /nexus/api/health:
+    get:
+      tags:
+        - platform
+      summary: Platform health
+      description: KNIRVNEXUS platform health status
+      responses:
+        '200':
+          description: Platform health
+
+components:
+  schemas:
+    NetworkConfig:
+      type: object
+      properties:
+        name:
+          type: string
+        token:
+          type: string
+        faucetEnabled:
+          type: boolean
+        paymentEnabled:
+          type: boolean
+
+    NodeRegistration:
+      type: object
+      required:
+        - chainID
+        - port
+      properties:
+        chainID:
+          type: string
+        ip:
+          type: string
+        port:
+          type: integer
+        type:
+          type: string
+          enum: [client, bootnode]
+        nodeID:
+          type: string
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+        from:
+          type: string
+        to:
+          type: string
+        value:
+          type: string
+        data:
+          type: object
+
+    CapabilityDescriptor:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        capabilityType:
+          type: string
+          enum: [RESOURCE, TOOL, PROMPT, MEMORY_SERVICE]
+        owner:
+          type: string
+
+    ModelInfo:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        version:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive, deploying, error]

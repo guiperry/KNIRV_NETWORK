@@ -1,0 +1,28 @@
+# Render deployment configuration for KNIRVORACLE
+# This configures the persistent DHT oracle instance
+# Note: Additional environment variables should be set in Render dashboard
+
+services:
+  - type: web
+    name: knirvoracle-persistent
+    runtime: node
+    buildCommand: npm install --include=dev && npm run build:persistent
+    startCommand: npm run start:render
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GATEWAY_MODE
+        value: persistent
+      - key: KNIRV_CHAIN_ID
+        value: testnet
+      - key: PORT
+        value: 8080
+      - key: DHT_PORT
+        value: 4001
+    # Additional environment variables to set in Render dashboard:
+    # - KNIRV_BOOTSTRAP_PEERS (comma-separated list)
+    # - CLOUDFLARE_API_TOKEN
+    # - CLOUDFLARE_ZONE_ID
+    # - CLOUDFLARE_GATEWAY_RECORD_ID
+    # - INTERNAL_API_KEY (for serverless oracles to access)
+    # - INSTANCE_IP (will be auto-detected or set manually)

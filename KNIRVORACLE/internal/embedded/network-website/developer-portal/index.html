@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRV Developer Portal - Home Dashboard</title>
+    <meta name="description" content="KNIRV Developer Portal - Build, deploy, and manage models on the KNIRV D-TEN network">
+    <link rel="shortcut icon" href="favicon.png">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS with original design system -->
+    <link rel="stylesheet" href="css/portal.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="dashboard-title">
+                <h1>KNIRV Developer Portal</h1>
+                <p style="color: var(--transparent-white-7); font-size: 0.9rem;">D-TEN Network</p>
+                <a href="#" data-config="main-site" style="color: var(--bright-blue); font-size: 0.8rem; text-decoration: none; margin-top: 5px; display: block;">
+                    <i class="fas fa-external-link-alt" style="margin-right: 5px;"></i>Back to KNIRV.com
+                </a>
+            </div>
+
+            <!-- Navigation Items -->
+            <a href="index.html" class="nav-item active">
+                <i class="fas fa-home"></i>
+                <span>Home Dashboard</span>
+            </a>
+            <a href="core-concepts.html" class="nav-item">
+                <i class="fas fa-brain"></i>
+                <span>Core Concepts</span>
+            </a>
+            <a href="getting-started.html" class="nav-item">
+                <i class="fas fa-rocket"></i>
+                <span>Getting Started</span>
+            </a>
+            <a href="agent-management.html" class="nav-item">
+                <i class="fas fa-robot"></i>
+                <span>Model Management</span>
+            </a>
+            <a href="skill-registry.html" class="nav-item">
+                <i class="fas fa-cogs"></i>
+                <span>Skill Registry</span>
+            </a>
+            <a href="udc-management.html" class="nav-item">
+                <i class="fas fa-certificate"></i>
+                <span>UDC Management</span>
+            </a>
+            <a href="agent-skill-exchange.html" class="nav-item">
+                <i class="fas fa-exchange-alt"></i>
+                <span>Model/Skill Exchange</span>
+            </a>
+            <a href="#" class="nav-item" onclick="openGraphchainExplorer()">
+                <i class="fas fa-project-diagram"></i>
+                <span>Graphchain Explorer</span>
+            </a>
+            <a href="#" class="nav-item" onclick="openDocumentation()">
+                <i class="fas fa-book"></i>
+                <span>Documentation</span>
+            </a>
+            <a href="api-sdk.html" class="nav-item">
+                <i class="fas fa-code"></i>
+                <span>API & SDK</span>
+            </a>
+            <a href="wallet-management.html" class="nav-item">
+                <i class="fas fa-wallet"></i>
+                <span>KNIRV Wallets</span>
+            </a>
+            <a href="tesnet-sandbox.html" class="nav-item">
+                <i class="fas fa-flask"></i>
+                <span>TESNET & Sandbox</span>
+            </a>
+            <a href="community-support.html" class="nav-item">
+                <i class="fas fa-users"></i>
+                <span>Community & Support</span>
+            </a>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Navigation -->
+            <div class="top-nav">
+                <div>
+                    <h1 class="page-title">Home Dashboard</h1>
+                </div>
+                <div class="user-controls">
+                    <i class="control-icon fas fa-bell" title="Notifications"></i>
+                    <i class="control-icon fas fa-cog" title="Settings"></i>
+                    <i class="control-icon fas fa-user-circle" title="Profile"></i>
+                </div>
+            </div>
+
+            <!-- Welcome Banner -->
+            <div class="glass-card" style="background-color: rgba(0, 192, 250, 0.1); text-align: center; padding: 40px;">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background-color: rgba(0, 192, 250, 0.2); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 2.5em;">
+                    <i class="fas fa-network-wired" style="color: var(--bright-blue);"></i>
+                </div>
+                <h1 style="color: var(--bright-blue); margin-bottom: 10px; font-size: 2rem;">Welcome to KNIRV Developer Portal</h1>
+                <p style="color: var(--transparent-white-7); margin-bottom: 20px; max-width: 600px; margin-left: auto; margin-right: auto;">
+                    Build, deploy, and manage autonomous models on the KNIRV Decentralized Trusted Execution Network (D-TEN).
+                    Transform AI failures into collective intelligence through our revolutionary ecosystem.
+                </p>
+                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                    <a href="getting-started.html" class="btn-primary">
+                        <i class="fas fa-rocket" style="margin-right: 8px;"></i>Get Started
+                    </a>
+                    <a href="core-concepts.html" class="btn-outline">
+                        <i class="fas fa-brain" style="margin-right: 8px;"></i>Learn D-TEN
+                    </a>
+                    <a href="api-sdk.html" class="btn-secondary">
+                        <i class="fas fa-code" style="margin-right: 8px;"></i>API Docs
+                    </a>
+                </div>
+            </div>
+
+            <!-- Network Statistics -->
+            <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-top: 20px; margin-bottom: 20px;">
+                <div class="glass-card" style="flex: 1; min-width: 200px; text-align: center; background-color: var(--transparent-white-08);">
+                    <div style="color: var(--bright-blue); font-size: 2em; margin-bottom: 10px;">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div style="color: var(--bright-blue); font-weight: 600;">Registered Models</div>
+                    <div style="font-size: 1.5em; font-weight: 700; margin: 10px 0;">0</div>
+                    <div style="color: var(--transparent-white-7); font-size: 0.9em;">Ready to deploy</div>
+                </div>
+                <div class="glass-card" style="flex: 1; min-width: 200px; text-align: center; background-color: var(--transparent-white-08);">
+                    <div style="color: var(--bright-blue); font-size: 2em; margin-bottom: 10px;">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <div style="color: var(--bright-blue); font-weight: 600;">Published Skills</div>
+                    <div style="font-size: 1.5em; font-weight: 700; margin: 10px 0;">0</div>
+                    <div style="color: var(--transparent-white-7); font-size: 0.9em;">Available in registry</div>
+                </div>
+                <div class="glass-card" style="flex: 1; min-width: 200px; text-align: center; background-color: var(--transparent-white-08);">
+                    <div style="color: var(--bright-blue); font-size: 2em; margin-bottom: 10px;">
+                        <i class="fas fa-certificate"></i>
+                    </div>
+                    <div style="color: var(--bright-blue); font-weight: 600;">Active UDCs</div>
+                    <div style="font-size: 1.5em; font-weight: 700; margin: 10px 0;">0</div>
+                    <div style="color: var(--transparent-white-7); font-size: 0.9em;">Delegation certificates</div>
+                </div>
+                <div class="glass-card" style="flex: 1; min-width: 200px; text-align: center; background-color: var(--transparent-white-08);">
+                    <div style="color: var(--bright-blue); font-size: 2em; margin-bottom: 10px;">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <div style="color: var(--bright-blue); font-weight: 600;">NRN Balance</div>
+                    <div style="font-size: 1.5em; font-weight: 700; margin: 10px 0;">0.00</div>
+                    <div style="color: var(--transparent-white-7); font-size: 0.9em;">Network Resolution Notices</div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="glass-card">
+                <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">Quick Actions</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <a href="agent-management.html" class="hover-lift" style="display: block; padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; text-decoration: none; color: var(--white); text-align: center;">
+                        <i class="fas fa-robot" style="font-size: 2em; color: var(--bright-blue); margin-bottom: 10px;"></i>
+                        <h4 style="margin-bottom: 5px;">Register Model</h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">Deploy your first autonomous model</p>
+                    </a>
+                    <a href="skill-registry.html" class="hover-lift" style="display: block; padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; text-decoration: none; color: var(--white); text-align: center;">
+                        <i class="fas fa-brain" style="font-size: 2em; color: var(--bright-blue); margin-bottom: 10px;"></i>
+                        <h4 style="margin-bottom: 5px;">Publish Skill</h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">Share your AI capabilities</p>
+                    </a>
+                    <a href="error-node-explorer.html" class="hover-lift" style="display: block; padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; text-decoration: none; color: var(--white); text-align: center;">
+                        <i class="fas fa-search" style="font-size: 2em; color: var(--bright-blue); margin-bottom: 10px;"></i>
+                        <h4 style="margin-bottom: 5px;">Explore ErrorNodes</h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">Find upskilling opportunities</p>
+                    </a>
+                    <a href="wallet-management.html" class="hover-lift" style="display: block; padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; text-decoration: none; color: var(--white); text-align: center;">
+                        <i class="fas fa-wallet" style="font-size: 2em; color: var(--bright-blue); margin-bottom: 10px;"></i>
+                        <h4 style="margin-bottom: 5px;">Manage Wallet</h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">Handle NRN tokens and transactions</p>
+                    </a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- iFrame Modal for Navigation -->
+    <div id="iframeModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 95vw; max-height: 95vh; padding: 0;">
+            <div class="modal-header" style="padding: 20px; border-bottom: 1px solid var(--transparent-white-2);">
+                <h2 id="iframeTitle" style="color: var(--bright-blue); margin: 0;"></h2>
+                <span class="close" onclick="closeIframeModal()">&times;</span>
+            </div>
+            <div style="height: 80vh; overflow: hidden;">
+                <iframe
+                    id="navigationFrame"
+                    style="width: 100%; height: 100%; border: none;"
+                    title="Navigation Frame">
+                </iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="js/config-loader.js"></script>
+    <script src="js/portal.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="../js/universal-footer.js"></script>
+    <script>
+        function openGraphchainExplorer() {
+            openInIframe('Graphchain Explorer', '/graphchain-explorer/');
+        }
+
+        function openDocumentation() {
+            openInIframe('KNIRV Documentation', '/documentation/static/');
+        }
+
+        function openInIframe(title, url) {
+            document.getElementById('iframeTitle').textContent = title;
+            document.getElementById('navigationFrame').src = url;
+            document.getElementById('iframeModal').style.display = 'block';
+        }
+
+        function closeIframeModal() {
+            document.getElementById('iframeModal').style.display = 'none';
+            document.getElementById('navigationFrame').src = '';
+        }
+
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('iframeModal');
+            if (event.target == modal) {
+                closeIframeModal();
+            }
+        }
+
+        // Update add funds button with correct payment oracle
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for config to load, then update payment links
+            setTimeout(() => {
+                if (window.knirvConfig && window.knirvConfig.isLoaded) {
+                    window.knirvConfig.updatePaymentLinks();
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

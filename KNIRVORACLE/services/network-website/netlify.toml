@@ -1,0 +1,430 @@
+[build]
+  # Static site with Netlify Functions - smart build with health monitoring and app initialization
+  publish = "network-website/public"
+  command = "npm run build:netlify-functions && npm run validate-function-names && npm run smart-build-no-recursion"
+  functions = "network-website/netlify/functions"
+
+# Documentation build context
+[context.docs]
+  base = "public/documentation/"
+  publish = "public/documentation/docsify/"
+  command = "npm install && npm run build"
+
+# Developer Portal build context
+[context.portal]
+  base = "public/developer-portal/"
+  publish = "public/developer-portal/"
+  command = "npm install"
+
+# Gateway Functions build context
+[context.oracle-functions]
+  base = "oracle-functions/"
+  publish = "oracle-functions/"
+  command = "npm install"
+
+# GraphChain Explorer build context
+[context.graphchain-explorer]
+  base = "public/graphchain-explorer/"
+  publish = "public/graphchain-explorer/"
+  command = "echo 'Static GraphChain Explorer - no build needed'"
+
+
+# Presenter build context
+[context.presenter]
+  base = "public/presenter/"
+  publish = "public/presenter/"
+  command = "npm install"
+
+# Forum build context
+[context.forum]
+  base = "public/forum/"
+  publish = "public/forum/src/"
+  command = "node ../../../scripts/init_discourse_database.js && echo 'Forum database initialized'"
+
+# Support Desk build context
+[context.support-desk]
+  base = "public/support-desk/"
+  publish = "public/support-desk/src/"
+  command = "node ../../../scripts/init_support_database.js && echo 'Support desk database initialized'"
+
+# Production build settings
+[build.environment]
+  NODE_VERSION = "18"
+
+# Redirect rules for documentation
+[[redirects]]
+  from = "/docs/*"
+  to = "/documentation/docsify/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/documentation/*"
+  to = "/documentation/docsify/:splat"
+  status = 200
+
+# Handle SPA routing for docsify
+[[redirects]]
+  from = "/documentation/docsify/*"
+  to = "/documentation/docsify/index.html"
+  status = 200
+
+# API Gateway redirects
+[[redirects]]
+  from = "/provision"
+  to = "/.netlify/functions/provision"
+  status = 200
+
+[[redirects]]
+  from = "/oracle/*"
+  to = "/.netlify/functions/oracle-sse"
+  status = 200
+
+[[redirects]]
+  from = "/auth/*"
+  to = "/.netlify/functions/oracle-sse"
+  status = 200
+
+[[redirects]]
+  from = "/health-monitor/*"
+  to = "/.netlify/functions/health-monitor"
+  status = 200
+
+# GraphChain Explorer redirects
+[[redirects]]
+  from = "/graphchain-explorer/*"
+  to = "/graphchain-explorer/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/graphchain/*"
+  to = "/graphchain-explorer/:splat"
+  status = 200
+
+# GraphChain API redirects
+[[redirects]]
+  from = "/api/graphchain/events"
+  to = "/.netlify/functions/graphchain-events"
+  status = 200
+
+[[redirects]]
+  from = "/api/graphchain/*"
+  to = "/.netlify/functions/graphchain-events"
+  status = 200
+
+# Presenter API redirects (specific routes first)
+[[redirects]]
+  from = "/api/import-presentation"
+  to = "/.netlify/functions/presenter-import"
+  status = 200
+
+[[redirects]]
+  from = "/api/presentations-with-auth"
+  to = "/.netlify/functions/presenter-presentations"
+  status = 200
+
+[[redirects]]
+  from = "/api/delete-presentation/*"
+  to = "/.netlify/functions/presenter-delete"
+  status = 200
+
+# Service proxy redirects (for KNIRV services)
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/oracle-sse"
+  status = 200
+
+# Redirect rules for Developer Portal
+[[redirects]]
+  from = "/portal/*"
+  to = "/developer-portal/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/developer/*"
+  to = "/developer-portal/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/dev-portal/*"
+  to = "/developer-portal/:splat"
+  status = 200
+
+# Handle SPA routing for developer portal
+[[redirects]]
+  from = "/developer-portal/*"
+  to = "/developer-portal/index.html"
+  status = 200
+
+# NEXUS Portal redirects - now hosted externally on primary-website
+[[redirects]]
+  from = "/nexus/*"
+  to = "https://knirv.com/nexus-portal/:splat"
+  status = 301
+
+[[redirects]]
+  from = "/nexus-portal"
+  to = "https://knirv.com/nexus-portal/"
+  status = 301
+
+[[redirects]]
+  from = "/nexus-portal/"
+  to = "https://knirv.com/nexus-portal/"
+  status = 301
+
+[[redirects]]
+  from = "/nexus-portal/*"
+  to = "https://knirv.com/nexus-portal/:splat"
+  status = 301
+
+# Handle SPA routing for GraphChain Explorer
+[[redirects]]
+  from = "/graphchain-explorer/*"
+  to = "/graphchain-explorer/index.html"
+  status = 200
+
+# Presenter redirects
+[[redirects]]
+  from = "/presentations/*"
+  to = "/presenter/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/presenter/*"
+  to = "/presenter/:splat"
+  status = 200
+
+# Health Monitor redirects
+[[redirects]]
+  from = "/health-monitor"
+  to = "/.netlify/functions/health-monitor"
+  status = 200
+
+[[redirects]]
+  from = "/health-monitor/*"
+  to = "/.netlify/functions/health-monitor"
+  status = 200
+
+# Gateway health endpoints
+[[redirects]]
+  from = "/oracle/health"
+  to = "/.netlify/functions/health-monitor"
+  status = 200
+
+[[redirects]]
+  from = "/api/testnet/oracle/health"
+  to = "/.netlify/functions/health-monitor"
+  status = 200
+
+# SEO files - serve directly
+[[redirects]]
+  from = "/robots.txt"
+  to = "/robots.txt"
+  status = 200
+
+[[redirects]]
+  from = "/sitemap.xml"
+  to = "/sitemap.xml"
+  status = 200
+
+
+# Discourse Forum static assets (CSS, JS, images)
+[[redirects]]
+  from = "/forum/css/*"
+  to = "/forum/src/css/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/forum/js/*"
+  to = "/forum/src/js/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/forum/img/*"
+  to = "/forum/src/img/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/forum/fonts/*"
+  to = "/forum/src/fonts/:splat"
+  status = 200
+
+# Discourse Forum redirects
+[[redirects]]
+  from = "/forum/"
+  to = "/forum/src/"
+  status = 200
+
+[[redirects]]
+  from = "/forum/*"
+  to = "/forum/src/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/discourse/*"
+  to = "/forum/src/:splat"
+  status = 200
+
+# Discourse API redirects
+[[redirects]]
+  from = "/api/discourse/*"
+  to = "/.netlify/functions/discourse-:splat"
+  status = 200
+
+# Discourse SPA routing
+[[redirects]]
+  from = "/forum/src/t/*"
+  to = "/forum/src/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/forum/src/u/*"
+  to = "/forum/src/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/forum/src/c/*"
+  to = "/forum/src/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/forum/src/admin/*"
+  to = "/forum/src/index.html"
+  status = 200
+
+# Support Desk static assets (CSS, JS, images)
+[[redirects]]
+  from = "/support-desk/css/*"
+  to = "/support-desk/src/css/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/support-desk/js/*"
+  to = "/support-desk/src/js/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/support-desk/img/*"
+  to = "/support-desk/src/img/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/support-desk/fonts/*"
+  to = "/support-desk/src/fonts/:splat"
+  status = 200
+
+# Support Desk redirects
+[[redirects]]
+  from = "/support/*"
+  to = "/support-desk/src/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/hesk/*"
+  to = "/support-desk/src/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/support-desk/"
+  to = "/support-desk/src/"
+  status = 200
+
+[[redirects]]
+  from = "/support-desk/*"
+  to = "/support-desk/src/:splat"
+  status = 200
+
+# Support Desk API redirects
+[[redirects]]
+  from = "/api/hesk/*"
+  to = "/.netlify/functions/discourse-:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/support/*"
+  to = "/.netlify/functions/discourse-:splat"
+  status = 200
+
+# Support Desk SPA routing
+[[redirects]]
+  from = "/support-desk/src/*"
+  to = "/support-desk/src/index.html"
+  status = 200
+
+# Default fallback for main site (must be last)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers for security and performance
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# SEO file headers
+[[headers]]
+  for = "/robots.txt"
+  [headers.values]
+    Content-Type = "text/plain"
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/sitemap.xml"
+  [headers.values]
+    Content-Type = "application/xml"
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+
+
+# Testnet redirect rules (auto-generated by migration script)
+[[redirects]]
+  from = "/testnet/*"
+  to = "/knirvtestnet/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/testnet/*"
+  to = "/.netlify/functions/testnet-sse"
+  status = 200
+
+[[headers]]
+  for = "/images/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Form handling (if needed)
+[build.processing]
+  skip_processing = false
+
+[build.processing.css]
+  bundle = false
+  minify = false
+
+[build.processing.js]
+  bundle = false
+  minify = false
+
+[build.processing.html]
+  pretty_urls = true
+
+
+# Testnet configuration (auto-generated by migration script)
+[context.testnet]
+  base = "knirvtestnet/"
+  publish = "knirvtestnet/"
+  command = "echo 'Testnet static files - no build needed'"
+
+  [context.testnet.environment]
+    NODE_ENV = "production"
+    VITE_API_BASE_URL = "/.netlify/functions"
+    VITE_SSE_BASE_URL = "/.netlify/functions/testnet-sse"
+    VITE_TESTNET_MODE = "true"

@@ -52,10 +52,8 @@ KNIRV_PATTERNS=(
     "KNIRVCHAIN"
     "KNIRVNEXUS"
     "KNIRVGRAPH"
-    "KNIRVGATEWAY"
     "KNIRVROUTER"
     "economics"
-    "gateway"
     "knirvnexus"
     "knirvchain"
     "knirvgraph"
@@ -129,6 +127,19 @@ find_processes() {
 
     # Combine and dedupe all found PIDs - only output the final result
     local final_pids=$(echo "$all_pids $children" | tr ' ' '\n' | sort -u | grep -v '^$')
+
+    # Filter out system processes that should not be killed (e.g., dnsmasq)
+    local filtered_pids=""
+    for pid in $final_pids; do
+        # Get the command line for this PID
+        local cmd=$(ps -p $pid -o args= 2>/dev/null)
+        if [[ -n "$cmd" && "$cmd" != *"dnsmasq"* ]]; then
+            filtered_pids+="$pid "
+        else
+            >&2 echo -e "${YELLOW}    Excluding system process $pid: $cmd${NC}"
+        fi
+    done
+    final_pids=$(echo "$filtered_pids" | tr ' ' '\n' | sort -u | grep -v '^$')
 
     echo "$final_pids"
 }
