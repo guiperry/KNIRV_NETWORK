@@ -1,0 +1,1876 @@
+openapi: 3.1.0
+info:
+  title: KNIRV Unified API
+  description: |
+    Unified API specification for the KNIRV Network ecosystem.
+
+    This specification serves as the single source of truth for all KNIRV SDK implementations
+    and CLI tools. It integrates endpoints from KNIRVCHAIN, KNIRVORACLE, KNIRVNEXUS,
+    and related services. Wallet operations are primarily handled client-side via the SDK.
+
+    ## Services Included
+
+    ### 💳 Payment Gateway (`/payment/*`)
+    - Testnet faucet for token requests
+    - Mainnet payment processing (Stripe/Coinbase)
+    - Network-specific token management
+
+    ### 🖥️ Operator Registry (`/operator-registry/*`)
+    - Node registration and discovery
+    - Bootnode management
+    - STUN/TURN server coordination
+
+    ### 🔗 Tunnel Registry (`/tunnel-registry/*`)
+    - NAT traversal and tunneling
+    - Connection relay management
+
+    ### ⛓️ Blockchain & MCP (`/chain/*, /mcp/*`)
+    - Blockchain operations and state
+    - MCP (Model Context Protocol) capabilities
+    - Transaction management
+
+    ### 📊 Knowledge Graph (`/graph/*`)
+    - Graph node queries
+    - Relationship discovery
+    - Error node management
+
+    ### 🚀 KNIRVORACLE (`/oracle/*`)
+    - Advanced blockchain operations
+    - URI generation (moved from KNIRVCHAIN)
+    - Model and skill management
+
+    ### 🏗️ KNIRVNEXUS (`/nexus/*`)
+    - Platform and DVE management
+    - Model validation and deployment
+    - Cognitive services
+
+  version: "2.0.0"
+  contact:
+    name: KNIRV Network Support
+    email: support@knirv.com
+    url: https://github.com/cloud-equities/KNIRV_NETWORK/tree/main/docs
+
+servers:
+  - url: http://localhost:8080
+    description: Local KNIRVORACLE development server
+  - url: http://localhost:5000
+    description: Local KNIRVCHAIN development server
+  - url: http://localhost:8090
+    description: Local KNIRVNEXUS development server
+  - url: http://localhost:3000/api
+    description: Local Agentify development server
+  - url: https://api.knirv.com/v1
+    description: Production KNIRV API Gateway
+  - url: https://api-staging.knirv.com/v1
+    description: Staging KNIRV API Gateway
+
+tags:
+  # Blockchain & MCP
+  - name: blockchain
+    description: Blockchain operations and state management
+  - name: node
+    description: Node information and management
+  - name: mcp
+    description: Distributed Model Context Protocol operations
+  
+  # URI & Oracle (now in KNIRVORACLE)
+  - name: uri
+    description: URI generation and management (KNIRVORACLE)
+  - name: oracle
+    description: KNIRVORACLE advanced operations
+  
+  # Knowledge Graph
+  - name: graph
+    description: Knowledge graph operations and queries
+  
+  # Network & Discovery
+  - name: payments
+    description: Payment processing and token management
+  - name: operators
+    description: Node operator registration and management
+  - name: tunneling
+    description: Network tunneling and NAT traversal
+  - name: discovery
+    description: Server discovery and health monitoring
+  
+  # Platform Services
+  - name: platform
+    description: Platform and DVE management
+  - name: models
+    description: AI model management and deployment
+  - name: auth
+    description: Authentication and user management
+  - name: validation
+    description: AI model validation and testing
+  - name: cognitive
+    description: Advanced AI and cognitive services
+  - name: health
+    description: System health and monitoring
+  
+
+paths:
+  # ========================================
+  # KNIRVCHAIN MCP API ENDPOINTS
+  # ========================================
+  
+  # Blockchain Server Endpoints
+  /chain:
+    get:
+      tags:
+        - blockchain
+      summary: Get blockchain state
+      description: Retrieves the current state of the blockchain including blocks, transaction pool, and reflections
+      operationId: getChain
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SerializableBlockchain'
+        '500':
+          description: Internal server error
+
+  /block:
+    post:
+      tags:
+        - blockchain
+      summary: Submit a new block
+      description: Submits a new block to the blockchain
+      operationId: writeBlock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Block'
+      responses:
+        '200':
+          description: Block successfully added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '400':
+          description: Invalid block data
+        '500':
+          description: Internal server error
+
+  /transaction:
+    post:
+      tags:
+        - blockchain
+        - mcp
+      summary: Submit a Signed Transaction
+      description: |
+        Submits a pre-signed transaction to the blockchain network.
+        This endpoint is used for various transaction types, including
+        standard transfers and MCP operations like capability registration,
+        invocation, or updates.
+      operationId: writeTransaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Transaction'
+      responses:
+        '202':
+          description: Transaction accepted by the node and broadcasted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactionHash:
+                    type: string
+                  message:
+                    type: string
+                    example: "Transaction submitted to mempool"
+        '400':
+          description: Invalid transaction data
+        '500':
+          description: Internal server error
+
+  /txn_pool:
+    get:
+      tags:
+        - blockchain
+      summary: Get transaction pool
+      description: Retrieves the current transaction pool
+      operationId: getTransactionPool
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+        '500':
+          description: Internal server error
+
+  /info:
+    get:
+      tags:
+        - node
+      summary: Get server information
+      description: Retrieves information about the blockchain node
+      operationId: getServerInfo
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeInfo'
+        '500':
+          description: Internal server error
+
+  /health:
+    get:
+      tags:
+        - node
+      summary: Check node health
+      description: Checks the health status of the blockchain node
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Node is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+        '500':
+          description: Node is unhealthy
+
+  /ping:
+    get:
+      tags:
+        - node
+      summary: Ping node
+      description: Simple ping endpoint to check if the node is responsive
+      operationId: ping
+      responses:
+        '200':
+          description: Pong response
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: pong
+
+  /devs:
+    get:
+      tags:
+        - node
+      summary: Get connected devs
+      description: Retrieves the list of connected devs
+      operationId: getPeers
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PeerList'
+        '500':
+          description: Internal server error
+
+  /uriGenerator:
+    post:
+      tags:
+        - uri
+      summary: Generate and announce URI
+      description: Generates a new URI and announces it to the network
+      operationId: generateAndAnnounceURI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/URIGenerationRequest'
+      responses:
+        '200':
+          description: URI successfully generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/URIGenerationResponse'
+        '400':
+          description: Invalid request data
+        '500':
+          description: Internal server error
+
+  # MCP Capability Management
+  /mcp/capability/prepare_registration:
+    post:
+      tags:
+        - mcp
+      summary: Prepare data for capability registration transaction
+      description: |
+        Allows a client to get the necessary data that needs to be signed
+        to register a new MCP capability. The client signs this data locally
+        and then submits the complete, signed transaction via /transaction.
+      operationId: mcpPrepareCapabilityRegistration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPPrepareCapabilityRegistrationRequest'
+      responses:
+        '200':
+          description: Data for signing successfully prepared
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPPrepareCapabilityRegistrationResponse'
+        '400':
+          description: Invalid request data
+        '409':
+          description: Capability already exists or pending
+        '500':
+          description: Internal server error
+
+  /mcp/capability/invoke:
+    post:
+      tags:
+        - mcp
+      summary: Invoke a Capability
+      description: |
+        Submits a pre-signed transaction to invoke an existing capability.
+        The Transaction.data should contain MCPInvokeCapabilityData.
+      operationId: mcpInvokeCapability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPInvokeCapabilityRequestWrapper'
+      responses:
+        '202':
+          description: Capability invocation transaction accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactionHash:
+                    type: string
+                  contextID:
+                    type: string
+                  message:
+                    type: string
+                    example: "Capability invocation submitted"
+        '400':
+          description: Invalid request data
+        '404':
+          description: Capability not found
+        '500':
+          description: Internal server error
+
+  /mcp/capability/update:
+    post:
+      tags:
+        - mcp
+      summary: Update a Capability
+      description: |
+        Submits a pre-signed transaction to update an existing capability.
+        The sender must be the owner of the capability.
+      operationId: mcpUpdateCapability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPUpdateCapabilityRequestWrapper'
+      responses:
+        '202':
+          description: Capability update transaction accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactionHash:
+                    type: string
+                  message:
+                    type: string
+                    example: "Capability update submitted"
+        '400':
+          description: Invalid update request
+        '403':
+          description: Forbidden - not capability owner
+        '404':
+          description: Capability not found
+        '500':
+          description: Internal server error
+
+  /mcp/capability/{capability_id}:
+    get:
+      tags:
+        - mcp
+      summary: Get capability
+      description: Retrieves a specific capability by ID
+      operationId: mcpGetCapability
+      parameters:
+        - name: capability_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID of the capability to retrieve
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapabilityDescriptor'
+        '404':
+          description: Capability not found
+        '500':
+          description: Internal server error
+
+  /mcp/capabilities:
+    get:
+      tags:
+        - mcp
+      summary: List capabilities
+      description: Lists all registered capabilities
+      operationId: mcpListCapabilities
+      parameters:
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [RESOURCE, TOOL, PROMPT, MEMORY_SERVICE]
+          description: Filter by capability type
+        - name: owner
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by owner address
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CapabilityDescriptor'
+        '500':
+          description: Internal server error
+
+  # ========================================
+  # KNOWLEDGE GRAPH ENDPOINTS
+  # ========================================
+
+  /graph/node/{node_id}:
+    get:
+      tags:
+        - graph
+      summary: Get node by ID
+      description: Retrieves a node from the knowledge graph by its ID
+      operationId: getGraphNode
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID of the node to retrieve
+      responses:
+        '200':
+          description: Node retrieved successfully
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ErrorNode'
+                  - $ref: '#/components/schemas/SkillNode'
+                  - $ref: '#/components/schemas/ContextNode'
+                  - $ref: '#/components/schemas/CapabilityNode'
+                  - $ref: '#/components/schemas/IdeaNode'
+                  - $ref: '#/components/schemas/PropertyNode'
+        '404':
+          description: Node not found
+        '500':
+          description: Internal server error
+
+  /graph/nodes:
+    get:
+      tags:
+        - graph
+      summary: Query nodes
+      description: Queries nodes from the knowledge graph with filters
+      operationId: queryGraphNodes
+      parameters:
+        - name: node_type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [error_node, skill_node, context_node, capability_node, idea_node, property_node]
+          description: Filter by node type
+        - name: owner
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by owner address
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Maximum number of results
+      responses:
+        '200':
+          description: Nodes retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  oneOf:
+                    - $ref: '#/components/schemas/ErrorNode'
+                    - $ref: '#/components/schemas/SkillNode'
+                    - $ref: '#/components/schemas/ContextNode'
+                    - $ref: '#/components/schemas/CapabilityNode'
+                    - $ref: '#/components/schemas/IdeaNode'
+                    - $ref: '#/components/schemas/PropertyNode'
+        '500':
+          description: Internal server error
+
+  /graph/relationships:
+    get:
+      tags:
+        - graph
+      summary: Query relationships
+      description: Queries relationships between nodes in the knowledge graph
+      operationId: queryGraphRelationships
+      parameters:
+        - name: from_node
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Source node ID
+        - name: to_node
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Target node ID
+        - name: relationship_type
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Type of relationship
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Maximum number of results
+      responses:
+        '200':
+          description: Relationships retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GraphRelationship'
+        '500':
+          description: Internal server error
+
+  # ========================================
+  # PAYMENT GATEWAY ENDPOINTS
+  # ========================================
+
+  /payment/:
+    get:
+      tags:
+        - payments
+      summary: Payment oracle landing page
+      description: Serves the payment oracle interface
+      responses:
+        '200':
+          description: Payment oracle HTML interface
+
+  /payment/health:
+    get:
+      tags:
+        - payments
+      summary: Payment oracle health
+      description: Health status of payment services
+      responses:
+        '200':
+          description: Payment oracle health status
+
+  /payment/api/network-status:
+    get:
+      tags:
+        - payments
+      summary: Network status
+      description: Current network configuration and status
+      responses:
+        '200':
+          description: Network status information
+
+  /payment/api/faucet/request:
+    post:
+      tags:
+        - payments
+      summary: Request testnet tokens
+      description: Request tokens from the testnet faucet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - address
+                - network
+              properties:
+                address:
+                  type: string
+                  example: "knirv1abc123..."
+                network:
+                  type: string
+                  enum: [mainnet, public-testnet, private-testnet]
+      responses:
+        '200':
+          description: Tokens successfully requested
+        '429':
+          description: Rate limit exceeded
+
+  /payment/api/faucet/status/{address}:
+    get:
+      tags:
+        - payments
+      summary: Check faucet status
+      description: Check if address can request from faucet
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Faucet status for address
+
+  /payment/api/create-checkout-session:
+    post:
+      tags:
+        - payments
+      summary: Create payment session
+      description: Create Stripe checkout session for mainnet payments
+      responses:
+        '200':
+          description: Checkout session created
+
+  /payment/api/create-coinbase-charge:
+    post:
+      tags:
+        - payments
+      summary: Create Coinbase charge
+      description: Create Coinbase Commerce charge for mainnet payments
+      responses:
+        '200':
+          description: Coinbase charge created
+
+  # ========================================
+  # OPERATOR REGISTRY ENDPOINTS
+  # ========================================
+
+  /operator-registry/:
+    get:
+      tags:
+        - operators
+      summary: Registry status page
+      description: HTML status page for operator registry
+      responses:
+        '200':
+          description: Registry status HTML
+
+  /operator-registry/status:
+    get:
+      tags:
+        - operators
+      summary: Registry status
+      description: Current status of operator registry
+      responses:
+        '200':
+          description: Registry status information
+
+  /operator-registry/stun:
+    get:
+      tags:
+        - operators
+      summary: STUN server info
+      description: STUN/TURN server connection details
+      responses:
+        '200':
+          description: STUN server information
+
+  /operator-registry/register:
+    post:
+      tags:
+        - operators
+      summary: Register node
+      description: Register a node in the operator registry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - chainID
+                - port
+              properties:
+                chainID:
+                  type: string
+                ip:
+                  type: string
+                port:
+                  type: integer
+                type:
+                  type: string
+                  enum: [client, bootnode]
+                nodeID:
+                  type: string
+      responses:
+        '201':
+          description: Node registered successfully
+
+  /operator-registry/lookup/{chainID}:
+    get:
+      tags:
+        - operators
+      summary: Lookup node by ChainID
+      description: Find node information by chain identifier
+      parameters:
+        - name: chainID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Node information
+        '404':
+          description: Node not found
+
+  /operator-registry/nodes:
+    get:
+      tags:
+        - operators
+      summary: List all nodes
+      description: Get list of all registered nodes
+      responses:
+        '200':
+          description: List of registered nodes
+
+  /operator-registry/bootnodes:
+    get:
+      tags:
+        - operators
+      summary: List bootnodes
+      description: Get list of registered bootnodes
+      responses:
+        '200':
+          description: List of bootnodes
+
+  # ========================================
+  # TUNNEL REGISTRY ENDPOINTS
+  # ========================================
+
+  /tunnel-registry/status:
+    get:
+      tags:
+        - tunneling
+      summary: Tunnel registry status
+      description: Current status of tunnel registry
+      responses:
+        '200':
+          description: Tunnel registry status
+
+  /tunnel-registry/api/registry/register:
+    post:
+      tags:
+        - tunneling
+      summary: Register node via API
+      description: Register a node for tunneling services
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - devId
+                - publicIp
+                - publicP2pPort
+              properties:
+                devId:
+                  type: string
+                chainId:
+                  type: string
+                publicIp:
+                  type: string
+                publicP2pPort:
+                  type: integer
+                type:
+                  type: string
+      responses:
+        '201':
+          description: Node registered successfully
+
+  /tunnel-registry/api/registry/nodes:
+    get:
+      tags:
+        - tunneling
+      summary: List tunnel nodes
+      description: Get all nodes registered for tunneling
+      responses:
+        '200':
+          description: List of tunnel nodes
+
+  /tunnel-registry/api/registry/node/dev/{devId}:
+    get:
+      tags:
+        - tunneling
+      summary: Get node by peer ID
+      description: Find tunnel node by peer identifier
+      parameters:
+        - name: devId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Node information
+        '404':
+          description: Node not found
+
+  /tunnel-registry/api/registry/node/chain/{chainId}:
+    get:
+      tags:
+        - tunneling
+      summary: Get node by chain ID
+      description: Find tunnel node by chain identifier
+      parameters:
+        - name: chainId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Node information
+        '404':
+          description: Node not found
+
+  # ========================================
+  # KNIRVORACLE ENDPOINTS
+  # ========================================
+
+  /oracle/blocks:
+    get:
+      tags:
+        - oracle
+      summary: Get blockchain blocks
+      description: Retrieve blockchain blocks from KNIRVORACLE
+      responses:
+        '200':
+          description: List of blocks
+
+  /oracle/send_txn:
+    post:
+      tags:
+        - oracle
+      summary: Send transaction
+      description: Submit transaction to KNIRVCHAIN via KNIRVORACLE
+      responses:
+        '201':
+          description: Transaction submitted
+
+  /oracle/nrn/mint:
+    post:
+      tags:
+        - oracle
+      summary: Mint NRN tokens
+      description: Mint new NRN tokens on KNIRVCHAIN via KNIRVORACLE
+      responses:
+        '201':
+          description: Tokens minted
+
+  /oracle/llm/register:
+    post:
+      tags:
+        - models
+      summary: Register LLM
+      description: Register a new LLM on KNIRVCHAIN via KNIRVORACLE
+      responses:
+        '200':
+          description: LLM registered
+
+  /oracle/v3/models/list:
+    get:
+      tags:
+        - models
+      summary: List registered models
+      description: Get all registered AI models
+      responses:
+        '200':
+          description: List of models
+
+  # ========================================
+  # KNIRVNEXUS PLATFORM ENDPOINTS
+  # ========================================
+
+  /nexus/api/auth/login:
+    post:
+      tags:
+        - auth
+      summary: Platform login
+      description: Authenticate with KNIRVNEXUS platform
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Authentication successful
+
+  /nexus/api/auth/register:
+    post:
+      tags:
+        - auth
+      summary: User registration
+      description: Register a new user account on KNIRVNEXUS
+      responses:
+        '201':
+          description: User registered successfully
+
+  /nexus/api/dve/create:
+    post:
+      tags:
+        - platform
+      summary: Create DVE
+      description: Create a new Distributed Virtual Environment
+      responses:
+        '201':
+          description: DVE created successfully
+
+  /nexus/api/dve/list:
+    get:
+      tags:
+        - platform
+      summary: List DVEs
+      description: Get list of all DVEs
+      responses:
+        '200':
+          description: List of DVEs
+
+  /nexus/api/validation/validate:
+    post:
+      tags:
+        - validation
+      summary: Validate model
+      description: Validate an AI model for deployment
+      responses:
+        '200':
+          description: Validation completed
+
+  /nexus/api/models/deploy:
+    post:
+      tags:
+        - models
+      summary: Deploy model
+      description: Deploy an AI model to the network
+      responses:
+        '201':
+          description: Model deployed successfully
+
+  /nexus/api/models/list:
+    get:
+      tags:
+        - models
+      summary: List models
+      description: Get list of deployed models
+      responses:
+        '200':
+          description: List of models
+
+  /nexus/api/tee/status:
+    get:
+      tags:
+        - health
+      summary: TEE status
+      description: Get Trusted Execution Environment status
+      responses:
+        '200':
+          description: TEE status information
+
+  /nexus/api/health:
+    get:
+      tags:
+        - health
+      summary: System health
+      description: Get overall system health status
+      responses:
+        '200':
+          description: Health status
+
+  /nexus/api/metrics:
+    get:
+      tags:
+        - health
+      summary: System metrics
+      description: Get system performance metrics
+      responses:
+        '200':
+          description: Performance metrics
+
+  /nexus/api/cde/environments:
+    get:
+      tags:
+        - platform
+      summary: List CDE environments
+      description: Get available Cloud Development Environments
+      responses:
+        '200':
+          description: List of environments
+
+  /nexus/api/cde/create:
+    post:
+      tags:
+        - platform
+      summary: Create CDE environment
+      description: Create a new Cloud Development Environment
+      responses:
+        '201':
+          description: Environment created
+
+  /nexus/api/cognitive/analyze:
+    post:
+      tags:
+        - cognitive
+      summary: Cognitive analysis
+      description: Perform advanced cognitive analysis using KNIRVNEXUS
+      responses:
+        '200':
+          description: Analysis completed
+
+  # ========================================
+  # DISCOVERY & SERVER DISCOVERY ENDPOINTS
+  # ========================================
+
+  /discovery/server/register:
+    post:
+      tags:
+        - discovery
+      summary: Register MCP server
+      description: Registers an MCP server for discovery
+      operationId: registerServer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - capability_node_id
+              properties:
+                capability_node_id:
+                  type: string
+                  description: ID of the capability node representing the server
+      responses:
+        '200':
+          description: Server registered successfully
+        '400':
+          description: Invalid registration data
+        '500':
+          description: Internal server error
+
+  /discovery/server/list:
+    get:
+      tags:
+        - discovery
+      summary: List MCP servers
+      description: Lists all registered MCP servers
+      operationId: listServers
+      responses:
+        '200':
+          description: List of registered servers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    capability_node_id:
+                      type: string
+                    status:
+                      type: string
+                    registered_at:
+                      type: integer
+                      format: int64
+        '500':
+          description: Internal server error
+
+  # ========================================
+  # ORACLE ADMIN ENDPOINTS
+  # ========================================
+
+  /admin/health:
+    get:
+      tags:
+        - discovery
+      summary: Gateway health check
+      description: Returns the overall health status of the oracle and connected services
+      responses:
+        '200':
+          description: Gateway is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  mode:
+                    type: string
+                    example: "persistent"
+                  timestamp:
+                    type: number
+                    example: 1703123456789
+                  dhtInitialized:
+                    type: boolean
+                    example: true
+
+  /admin/dht/status:
+    get:
+      tags:
+        - discovery
+      summary: DHT status
+      description: Returns the current status of the Distributed Hash Table
+      responses:
+        '200':
+          description: DHT status information
+
+  /admin/dht/start:
+    post:
+      tags:
+        - discovery
+      summary: Start DHT
+      description: Initialize and start the DHT in persistent mode
+      responses:
+        '200':
+          description: DHT started successfully
+
+  /admin/dht/stop:
+    post:
+      tags:
+        - discovery
+      summary: Stop DHT
+      description: Stop the DHT service
+      responses:
+        '200':
+          description: DHT stopped successfully
+
+  /admin/services/status:
+    get:
+      tags:
+        - discovery
+      summary: Node.js services status
+      description: Returns the status of all managed Node.js services
+      responses:
+        '200':
+          description: Services status information
+
+  /admin/services/endpoints:
+    get:
+      tags:
+        - discovery
+      summary: Service endpoints
+      description: Returns the available endpoints for all services
+      responses:
+        '200':
+          description: Service endpoints information
+
+  /admin/services/start:
+    post:
+      tags:
+        - discovery
+      summary: Start all services
+      description: Start all managed Node.js services
+      responses:
+        '200':
+          description: Services start initiated
+
+  /admin/services/stop:
+    post:
+      tags:
+        - discovery
+      summary: Stop all services
+      description: Stop all managed Node.js services
+      responses:
+        '200':
+          description: Services stop initiated
+
+  /admin/session/controller:
+    get:
+      tags:
+        - discovery
+      summary: Get controller URL
+      description: Retrieve the controller URL for the current session
+      responses:
+        '200':
+          description: Session controller information
+
+    post:
+      tags:
+        - discovery
+      summary: Set controller URL
+      description: Set the controller URL for the current session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - controllerUrl
+              properties:
+                controllerUrl:
+                  type: string
+                  example: "https://controller.example.com"
+      responses:
+        '200':
+          description: Controller URL set successfully
+
+
+components:
+  schemas:
+    # Common Error Schema
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        details:
+          type: string
+
+    # KNIRVCHAIN MCP API Schemas (truncated for space)
+    SerializableBlockchain:
+      type: object
+      properties:
+        blocks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Block'
+        transaction_pool:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        chain_address:
+          type: string
+        reflections:
+          type: object
+          additionalProperties:
+            type: boolean
+        chain_id:
+          type: string
+
+    Block:
+      type: object
+      properties:
+        block_number:
+          type: integer
+          format: uint64
+        prevHash:
+          type: string
+          format: byte
+        timestamp:
+          type: integer
+          format: int64
+        nonce:
+          type: integer
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        hash:
+          type: string
+          format: byte
+        proposer_address:
+          type: string
+
+    Transaction:
+      type: object
+      required:
+        - version
+        - id
+        - timestamp
+        - from
+        - fee
+        - type
+        - signature
+        - public_key
+      properties:
+        version:
+          type: integer
+          example: 1
+        id:
+          type: string
+          description: Transaction hash/ID
+        timestamp:
+          type: integer
+          format: int64
+        from:
+          type: string
+          description: Sender address
+        to:
+          type: string
+          nullable: true
+          description: Recipient address
+        value:
+          type: string
+          description: Amount of NRN transferred
+        data:
+          type: object
+          additionalProperties: true
+          description: Transaction payload
+        status:
+          type: string
+          description: Transaction status
+        transaction_hash:
+          type: string
+        public_key:
+          type: string
+        signature:
+          type: string
+          format: byte
+        fee:
+          type: string
+        type:
+          type: string
+
+
+    # Additional KNIRVCHAIN MCP API Schemas
+    NodeInfo:
+      type: object
+      properties:
+        node_id:
+          type: string
+        version:
+          type: string
+        chain_height:
+          type: integer
+        dev_count:
+          type: integer
+        is_mining:
+          type: boolean
+        wallet_address:
+          type: string
+        uptime:
+          type: integer
+          format: int64
+
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+        blockchain:
+          type: boolean
+        network:
+          type: boolean
+        database:
+          type: boolean
+        message:
+          type: string
+
+    PeerInfo:
+      type: object
+      properties:
+        id:
+          type: string
+        address:
+          type: string
+        connected_since:
+          type: integer
+          format: int64
+
+    PeerList:
+      type: array
+      items:
+        $ref: '#/components/schemas/PeerInfo'
+
+    URIGenerationRequest:
+      type: object
+      properties:
+        resource_type:
+          type: string
+        content_hash:
+          type: string
+        owner:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+
+    URIGenerationResponse:
+      type: object
+      properties:
+        uri:
+          type: string
+        resource_id:
+          type: string
+        success:
+          type: boolean
+        message:
+          type: string
+
+    BaseDescriptor:
+      type: object
+      properties:
+        id:
+          type: string
+        capabilityType:
+          type: string
+          enum: [RESOURCE, TOOL, PROMPT, MEMORY_SERVICE]
+        name:
+          type: string
+        owner:
+          type: string
+        version:
+          type: string
+        description:
+          type: string
+        gasFeeNRN:
+          type: integer
+          format: uint64
+        timestamp:
+          type: integer
+          format: int64
+        customMetadata:
+          type: object
+          additionalProperties: true
+
+    ResourceDescriptor:
+      allOf:
+        - $ref: '#/components/schemas/BaseDescriptor'
+        - type: object
+          required:
+            - resourceType
+            - contentHash
+          properties:
+            resourceType:
+              type: string
+              enum: [FILE, API, PLUGIN, GENERATED_DOCUMENT, DATASET, MODEL_ARTIFACT, SERVICE]
+            contentHash:
+              type: string
+            schema:
+              $ref: '#/components/schemas/PluginSchemaDetail'
+
+    PluginSchemaDetail:
+      type: object
+      properties:
+        summary:
+          type: string
+        accessInfo:
+          type: object
+          additionalProperties: true
+        locationHints:
+          type: array
+          items:
+            type: string
+        manifestFile:
+          type: string
+        executableFile:
+          type: string
+        outputDirectoryHint:
+          type: string
+
+    ToolDescriptor:
+      allOf:
+        - $ref: '#/components/schemas/BaseDescriptor'
+        - type: object
+          required:
+            - inputSchemaJSON
+            - executionPointer
+          properties:
+            inputSchemaJSON:
+              type: string
+            outputSchemaJSON:
+              type: string
+            executionPointer:
+              type: string
+
+    PromptDescriptor:
+      allOf:
+        - $ref: '#/components/schemas/BaseDescriptor'
+        - type: object
+          required:
+            - template
+            - parametersSchemaJSON
+          properties:
+            template:
+              type: string
+            parametersSchemaJSON:
+              type: string
+
+    MemoryServiceDescriptor:
+      allOf:
+        - $ref: '#/components/schemas/BaseDescriptor'
+        - type: object
+          required:
+            - graphSchema
+          properties:
+            graphSchema:
+              type: string
+
+    CapabilityDescriptor:
+      oneOf:
+        - $ref: '#/components/schemas/ResourceDescriptor'
+        - $ref: '#/components/schemas/ToolDescriptor'
+        - $ref: '#/components/schemas/PromptDescriptor'
+        - $ref: '#/components/schemas/MemoryServiceDescriptor'
+      discriminator:
+        propertyName: capabilityType
+        mapping:
+          RESOURCE: '#/components/schemas/ResourceDescriptor'
+          TOOL: '#/components/schemas/ToolDescriptor'
+          PROMPT: '#/components/schemas/PromptDescriptor'
+          MEMORY_SERVICE: '#/components/schemas/MemoryServiceDescriptor'
+
+    MCPPrepareCapabilityRegistrationRequest:
+      type: object
+      required:
+        - ownerAddress
+        - capabilityDescriptor
+        - fee
+      properties:
+        ownerAddress:
+          type: string
+        capabilityDescriptor:
+          $ref: '#/components/schemas/CapabilityDescriptor'
+        message:
+          type: string
+        fee:
+          type: integer
+          format: uint64
+
+    MCPPrepareCapabilityRegistrationResponse:
+      type: object
+      required:
+        - pendingTransactionHash
+        - unsignedTransaction
+      properties:
+        pendingTransactionHash:
+          type: string
+        unsignedTransaction:
+          $ref: '#/components/schemas/UnsignedTransactionDetails'
+
+    MCPInvokeCapabilityRequestWrapper:
+      type: object
+      required:
+        - signedTransaction
+      properties:
+        signedTransaction:
+          $ref: '#/components/schemas/Transaction'
+
+    MCPInvokeCapabilityData:
+      type: object
+      required:
+        - contextRecord
+      properties:
+        contextRecord:
+          $ref: '#/components/schemas/ContextRecord'
+
+    MCPUpdateCapabilityRequestWrapper:
+      type: object
+      required:
+        - signedTransaction
+      properties:
+        signedTransaction:
+          $ref: '#/components/schemas/Transaction'
+
+    MCPUpdateCapabilityData:
+      type: object
+      required:
+        - capabilityID
+        - updatedDescriptor
+      properties:
+        capability_id:
+          type: string
+        updatedDescriptor:
+          $ref: '#/components/schemas/CapabilityDescriptor'
+
+    UnsignedTransactionDetails:
+      type: object
+      properties:
+        from:
+          type: string
+        to:
+          type: string
+          nullable: true
+        value:
+          type: string
+          example: "0"
+        data:
+          type: string
+          format: base64
+        timestamp:
+          type: integer
+          format: int64
+        fee:
+          type: string
+        type:
+          type: string
+          example: "MCP_REGISTER_CAPABILITY"
+        unsignedTransactionPayloadHash:
+          type: string
+
+    ContextRecord:
+      type: object
+      properties:
+        id:
+          type: string
+        capabilityID:
+          type: string
+        interactionType:
+          type: string
+          enum: [CAPABILITY_REGISTRATION, CAPABILITY_INVOCATION, CAPABILITY_UPDATE, GENERAL_MESSAGE, TOOL_INVOCATION, PROMPT_USAGE, RESOURCE_ACCESS, PLUGIN_EXECUTION, SAMPLING_REQUEST_SENT, SAMPLING_RESPONSE_RECEIVED, MEMORY_WRITE]
+        initiator:
+          type: string
+        timestamp:
+          type: integer
+          format: int64
+        inputHash:
+          type: string
+        outputHash:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+        signature:
+          type: string
+          format: byte
+        status:
+          type: string
+          enum: [pending, success, failed, processing]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    # ========================================
+    # KNOWLEDGE GRAPH SCHEMAS
+    # ========================================
+
+    BaseGraphNode:
+      type: object
+      required:
+        - id
+        - nodeType
+        - owner
+        - timestamp
+      properties:
+        id:
+          type: string
+          description: Unique node identifier
+        nodeType:
+          type: string
+          description: Type of the node
+        owner:
+          type: string
+          description: Owner address
+        timestamp:
+          type: integer
+          format: int64
+          description: Creation timestamp
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Additional metadata
+
+    ErrorNode:
+      allOf:
+        - $ref: '#/components/schemas/BaseGraphNode'
+        - type: object
+          properties:
+            errorType:
+              type: string
+              description: Type of error
+            errorMessage:
+              type: string
+            stackTrace:
+              type: string
+            context:
+              type: object
+              additionalProperties: true
+
+    SkillNode:
+      allOf:
+        - $ref: '#/components/schemas/BaseGraphNode'
+        - type: object
+          properties:
+            skillName:
+              type: string
+            description:
+              type: string
+            parameters:
+              type: array
+              items:
+                type: object
+            outputFormat:
+              type: object
+              additionalProperties: true
+
+    ContextNode:
+      allOf:
+        - $ref: '#/components/schemas/BaseGraphNode'
+        - type: object
+          properties:
+            contextType:
+              type: string
+            data:
+              type: object
+              additionalProperties: true
+
+    CapabilityNode:
+      allOf:
+        - $ref: '#/components/schemas/BaseGraphNode'
+        - type: object
+          properties:
+            capabilityId:
+              type: string
+            capabilityType:
+              type: string
+              enum: [RESOURCE, TOOL, PROMPT, MEMORY_SERVICE]
+            isActive:
+              type: boolean
+
+    IdeaNode:
+      allOf:
+        - $ref: '#/components/schemas/BaseGraphNode'
+        - type: object
+          properties:
+            ideaTitle:
+              type: string
+            description:
+              type: string
+            relatedConcepts:
+              type: array
+              items:
+                type: string
+
+    PropertyNode:
+      allOf:
+        - $ref: '#/components/schemas/BaseGraphNode'
+        - type: object
+          properties:
+            propertyName:
+              type: string
+            propertyType:
+              type: string
+            value:
+              type: object
+              additionalProperties: true
+
+    GraphRelationship:
+      type: object
+      required:
+        - id
+        - fromNodeId
+        - toNodeId
+        - relationshipType
+      properties:
+        id:
+          type: string
+          description: Unique relationship identifier
+        fromNodeId:
+          type: string
+          description: Source node ID
+        toNodeId:
+          type: string
+          description: Target node ID
+        relationshipType:
+          type: string
+          description: Type of relationship
+        weight:
+          type: number
+          format: double
+          description: Relationship weight/strength
+        properties:
+          type: object
+          additionalProperties: true
+          description: Additional relationship properties
+        timestamp:
+          type: integer
+          format: int64
+          description: Creation timestamp
+
+    # ========================================
+    # COMMON SCHEMAS
+    # ========================================
+
+    ServiceStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [running, stopped, error]
+        port:
+          type: integer
+        uptime:
+          type: number
+        version:
+          type: string

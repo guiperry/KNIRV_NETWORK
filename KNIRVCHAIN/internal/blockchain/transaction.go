@@ -352,6 +352,11 @@ func (t Transaction) VerifyTxn() bool {
 }
 
 func (t *Transaction) VerifySignature() (bool, error) {
+	// Allow transactions from blockchain address to bypass signature verification
+	if t.From == utils.BLOCKCHAIN_ADDRESS {
+		return true, nil
+	}
+
 	// Basic checks
 	if len(t.Signature) == 0 {
 		log.Println("Verification failed: Signature is nil or empty")
@@ -775,11 +780,6 @@ const (
 	TransactionTypePropertyMint         = "property_mint"
 	TransactionTypePropertyTransfer     = "property_transfer"
 	TransactionTypeRoyaltyDistribution  = "royalty_distribution"
-)
-const (
-	// ... existing transaction types ...
-	TransactionTypeNFTCapabilityAttachment = "NFT_CAPABILITY_ATTACHMENT"
-	TransactionTypeLLMRooting              = "llm_rooting"
 )
 
 // NFTCapabilityAttachmentData represents the data for an NFT capability attachment transaction

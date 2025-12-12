@@ -43,7 +43,8 @@ func NewConsensusManager(blockchain *BlockchainStruct, urls []string, selfURL st
 	}
 }
 
-func (cm *ConsensusManager) getUpdateRequired() bool {
+// GetUpdateRequired returns whether the blockchain update flag is set
+func (cm *ConsensusManager) GetUpdateRequired() bool {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 	return cm.UpdateRequired
@@ -459,7 +460,8 @@ func (cm *ConsensusManager) unlockMining() {
 	cm.MiningLocked = false
 }
 
-func (cm *ConsensusManager) getMiningLockState() bool {
+// GetMiningLockState returns whether mining is locked by consensus
+func (cm *ConsensusManager) GetMiningLockState() bool {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 	return cm.MiningLocked

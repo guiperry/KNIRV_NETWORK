@@ -63,7 +63,7 @@ export default function Dashboard() {
   return (
     <PageLayout activePage={activePage} pageTitle="Dashboard" onSearch={handleSearch}>
       <PageHeader
-        title="KNIRV Network Dashboard"
+        title="KNIRV Network Oracle Dashboard"
         subtitle="Monitor your network status, manage endpoints, and track market activity"
         titleColor={brightBlue}
       />

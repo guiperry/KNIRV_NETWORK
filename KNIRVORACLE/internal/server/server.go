@@ -16,6 +16,7 @@ import (
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVORACLE/internal/proxy"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVORACLE/internal/session"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVORACLE/internal/tunnel"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVORACLE/internal/uri"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVORACLE/internal/webgui"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
@@ -34,6 +35,7 @@ type Server struct {
 	tunnelHandler     *tunnel.Handler
 	paymentService    *payment.Service
 	paymentHandler    *payment.Handler
+	uriHandler        *uri.Handler
 	webguiHandler     *webgui.Handler
 	logger            *zap.Logger
 	httpServer        *http.Server
@@ -82,6 +84,9 @@ func New(cfg *config.Config, webguiStaticDir, networkWebsiteDir string, logger *
 	// Initialize auth handler
 	authHdlr := auth.NewHandler(cfg, logger)
 
+	// Initialize URI handler
+	uriHdlr := uri.NewHandler(logger)
+
 	// Initialize webgui handler
 	webguiHdlr := webgui.NewHandler(cfg, logger)
 
@@ -96,6 +101,7 @@ func New(cfg *config.Config, webguiStaticDir, networkWebsiteDir string, logger *
 		tunnelHandler:     tunnelHdlr,
 		paymentService:    paymentSvc,
 		paymentHandler:    paymentHdlr,
+		uriHandler:        uriHdlr,
 		webguiHandler:     webguiHdlr,
 		logger:            logger,
 		webguiStaticDir:   webguiStaticDir,
@@ -140,6 +146,9 @@ func (s *Server) setupRoutes() error {
 	// Register payment oracle routes directly
 	s.paymentHandler.RegisterRoutes(r)
 
+	// Register URI generation routes directly
+	s.uriHandler.RegisterRoutes(r)
+
 	// Register webgui API routes directly
 	s.webguiHandler.RegisterRoutes(r)
 
@@ -178,20 +187,41 @@ func (s *Server) setupRoutes() error {
 		http.ServeFile(w, r, indexPath)
 	})
 
-	// Serve other webgui HTML pages (e.g., /oracle/settings.html -> settings.html)
-	// NOTE: This probably won't work as expected with Next.js SPA, but including for compatibility
+	// Serve other webgui HTML pages at /oracle/ prefix
 	r.PathPrefix("/oracle/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fileName := strings.TrimPrefix(r.URL.Path, "/oracle/")
 		filePath := filepath.Join(s.webguiStaticDir, fileName)
-		s.logger.Debug("Serving webgui file", zap.String("fileName", fileName), zap.String("filePath", filePath))
 		http.ServeFile(w, r, filePath)
 	})
+
+	// Serve other webgui HTML pages at /dashboard/ prefix
 	r.PathPrefix("/dashboard/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fileName := strings.TrimPrefix(r.URL.Path, "/dashboard/")
 		filePath := filepath.Join(s.webguiStaticDir, fileName)
-		s.logger.Debug("Serving webgui file", zap.String("fileName", fileName), zap.String("filePath", filePath))
 		http.ServeFile(w, r, filePath)
 	})
+
+	// Also serve webgui HTML pages at root level for Next.js client-side routing
+	// This allows navigation within the SPA to work with paths like /payment-gateway
+	webguiPages := []string{
+		"payment-gateway", "tunnel-registry", "operator-registry",
+		"marketplace", "models", "models-dex", "skills", "capabilities",
+		"my-models", "my-skills", "my-capabilities", "my-properties", "my-wallets",
+		"settings", "vault", "peers", "settlement", "auth-test",
+		"controller-status", "network-admin", "network-monitor", "network-inference-dao",
+		"chain-explorer", "chain-explorer-new", "graph-explorer", "error-explorer",
+		"oracle-explorer", "graphchain-dashboard", "graphchain-errors", "graphchain-skills",
+		"codex-builder", "nft-property-explorer", "bootnode-dao", "qr-connect",
+		"basic", "advanced",
+	}
+
+	for _, page := range webguiPages {
+		pageName := page
+		r.HandleFunc("/"+pageName, func(w http.ResponseWriter, r *http.Request) {
+			filePath := filepath.Join(s.webguiStaticDir, pageName+".html")
+			http.ServeFile(w, r, filePath)
+		})
+	}
 
 	// Serve network-website at root (this should be last to catch all remaining routes)
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir(s.networkWebsiteDir)))

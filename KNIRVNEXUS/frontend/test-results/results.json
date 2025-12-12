@@ -1,0 +1,3555 @@
+{
+  "config": {
+    "configFile": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/playwright.config.ts",
+    "rootDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/global-setup.ts",
+    "globalTeardown": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        {
+          "outputFolder": "playwright-report"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/results.json"
+        }
+      ],
+      [
+        "line",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "Mobile Chrome",
+        "name": "Mobile Chrome",
+        "testDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "Mobile Safari",
+        "name": "Mobile Safari",
+        "testDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "Microsoft Edge",
+        "name": "Microsoft Edge",
+        "testDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "Google Chrome",
+        "name": "Google Chrome",
+        "testDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.56.1",
+    "workers": 4,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "dve-nodes.spec.ts",
+      "file": "dve-nodes.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "DVE Node Management",
+          "file": "dve-nodes.spec.ts",
+          "line": 15,
+          "column": 6,
+          "specs": [],
+          "suites": [
+            {
+              "title": "API Endpoints",
+              "file": "dve-nodes.spec.ts",
+              "line": 17,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should fetch DVE nodes from API endpoint",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-c0720642466a952b48c1",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 19,
+                  "column": 5
+                },
+                {
+                  "title": "should register a new DVE node via API",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-140071b22abd0259fefb",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 32,
+                  "column": 5
+                },
+                {
+                  "title": "should fetch specific DVE node by ID",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-97f78b92be74a353be1b",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 59,
+                  "column": 5
+                },
+                {
+                  "title": "should update DVE node status",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-ce0b47321445ee069399",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 72,
+                  "column": 5
+                },
+                {
+                  "title": "should delete DVE node",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-a049e2fff004d0d8addb",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 93,
+                  "column": 5
+                },
+                {
+                  "title": "should return 404 for non-existent DVE node",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-ee191b3e5c65d3a64bcc",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 104,
+                  "column": 5
+                },
+                {
+                  "title": "should validate DVE node data structure",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-6da5feb72cd7d2f6cbb1",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 109,
+                  "column": 5
+                },
+                {
+                  "title": "should fetch DVE nodes from API endpoint",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-d6ecb34fd427c7735ea1",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 19,
+                  "column": 5
+                },
+                {
+                  "title": "should register a new DVE node via API",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-dd01082a773233e28d54",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 32,
+                  "column": 5
+                },
+                {
+                  "title": "should fetch specific DVE node by ID",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-c5df8b60d91d523bc23a",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 59,
+                  "column": 5
+                },
+                {
+                  "title": "should update DVE node status",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-0714dcb08581234ffece",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 72,
+                  "column": 5
+                },
+                {
+                  "title": "should delete DVE node",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-be7812fa2828d3cf307f",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 93,
+                  "column": 5
+                },
+                {
+                  "title": "should return 404 for non-existent DVE node",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-c3982e384c17923b84e2",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 104,
+                  "column": 5
+                },
+                {
+                  "title": "should validate DVE node data structure",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-814baabdef433683f113",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 109,
+                  "column": 5
+                },
+                {
+                  "title": "should fetch DVE nodes from API endpoint",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-7ca5b9d53960fb8d8972",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 19,
+                  "column": 5
+                },
+                {
+                  "title": "should register a new DVE node via API",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-18c5ab86be97dc6025ff",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 32,
+                  "column": 5
+                },
+                {
+                  "title": "should fetch specific DVE node by ID",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-6cea37c70a9edd727ff1",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 59,
+                  "column": 5
+                },
+                {
+                  "title": "should update DVE node status",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-ddaa1d67a7feae6d82ac",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 72,
+                  "column": 5
+                },
+                {
+                  "title": "should delete DVE node",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-67907953252d87d3a621",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 93,
+                  "column": 5
+                },
+                {
+                  "title": "should return 404 for non-existent DVE node",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-22a64345a481c0f71bb6",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 104,
+                  "column": 5
+                },
+                {
+                  "title": "should validate DVE node data structure",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-e935cfabf383a779bc0c",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 109,
+                  "column": 5
+                },
+                {
+                  "title": "should fetch DVE nodes from API endpoint",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-fb2fb4298e8da5cefaa0",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 19,
+                  "column": 5
+                },
+                {
+                  "title": "should register a new DVE node via API",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-42f053e28069c9de14fe",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 32,
+                  "column": 5
+                },
+                {
+                  "title": "should fetch specific DVE node by ID",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-d429c77107602ec60350",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 59,
+                  "column": 5
+                },
+                {
+                  "title": "should update DVE node status",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-72d5418b305522691cbe",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 72,
+                  "column": 5
+                },
+                {
+                  "title": "should delete DVE node",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-474a980d22074f2825cf",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 93,
+                  "column": 5
+                },
+                {
+                  "title": "should return 404 for non-existent DVE node",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-b0ff46bf9dc029a05903",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 104,
+                  "column": 5
+                },
+                {
+                  "title": "should validate DVE node data structure",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-8c5e466d50d8c975e538",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 109,
+                  "column": 5
+                },
+                {
+                  "title": "should fetch DVE nodes from API endpoint",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-486c0512614452962e21",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 19,
+                  "column": 5
+                },
+                {
+                  "title": "should register a new DVE node via API",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-1d592de275e7ee3876ec",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 32,
+                  "column": 5
+                },
+                {
+                  "title": "should fetch specific DVE node by ID",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-81b6c40ccdd48634f63b",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 59,
+                  "column": 5
+                },
+                {
+                  "title": "should update DVE node status",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-69ce3debec28bfb4b516",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 72,
+                  "column": 5
+                },
+                {
+                  "title": "should delete DVE node",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-234f3e9b6eca2109b353",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 93,
+                  "column": 5
+                },
+                {
+                  "title": "should return 404 for non-existent DVE node",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-9aee73baa26ac2527ec8",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 104,
+                  "column": 5
+                },
+                {
+                  "title": "should validate DVE node data structure",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-e039e2d23b40696e7f2a",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 109,
+                  "column": 5
+                },
+                {
+                  "title": "should fetch DVE nodes from API endpoint",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Microsoft Edge",
+                      "projectName": "Microsoft Edge",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-77a2f42418d54985b64a",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 19,
+                  "column": 5
+                },
+                {
+                  "title": "should register a new DVE node via API",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Microsoft Edge",
+                      "projectName": "Microsoft Edge",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-da47031fc42336f0dd5c",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 32,
+                  "column": 5
+                },
+                {
+                  "title": "should fetch specific DVE node by ID",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Microsoft Edge",
+                      "projectName": "Microsoft Edge",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-c9edb3e7fa50df883687",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 59,
+                  "column": 5
+                },
+                {
+                  "title": "should update DVE node status",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Microsoft Edge",
+                      "projectName": "Microsoft Edge",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-cae66698114bc49edd16",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 72,
+                  "column": 5
+                },
+                {
+                  "title": "should delete DVE node",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Microsoft Edge",
+                      "projectName": "Microsoft Edge",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-676860bf0edbc3be3965",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 93,
+                  "column": 5
+                },
+                {
+                  "title": "should return 404 for non-existent DVE node",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Microsoft Edge",
+                      "projectName": "Microsoft Edge",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-4c1f2187755bda32cc1b",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 104,
+                  "column": 5
+                },
+                {
+                  "title": "should validate DVE node data structure",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Microsoft Edge",
+                      "projectName": "Microsoft Edge",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-060dd3effffc24060367",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 109,
+                  "column": 5
+                },
+                {
+                  "title": "should fetch DVE nodes from API endpoint",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Google Chrome",
+                      "projectName": "Google Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-7c28521fc6c04fee6bb8",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 19,
+                  "column": 5
+                },
+                {
+                  "title": "should register a new DVE node via API",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Google Chrome",
+                      "projectName": "Google Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-9dfb8ecbbec373b9f25f",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 32,
+                  "column": 5
+                },
+                {
+                  "title": "should fetch specific DVE node by ID",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Google Chrome",
+                      "projectName": "Google Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-e1e2af4c42552e41c04f",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 59,
+                  "column": 5
+                },
+                {
+                  "title": "should update DVE node status",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Google Chrome",
+                      "projectName": "Google Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-c125bfd06b8be8d50a86",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 72,
+                  "column": 5
+                },
+                {
+                  "title": "should delete DVE node",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Google Chrome",
+                      "projectName": "Google Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-62d3adc65cd453fcbe86",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 93,
+                  "column": 5
+                },
+                {
+                  "title": "should return 404 for non-existent DVE node",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Google Chrome",
+                      "projectName": "Google Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-c2dcf2a1fcf854dc72b5",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 104,
+                  "column": 5
+                },
+                {
+                  "title": "should validate DVE node data structure",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Google Chrome",
+                      "projectName": "Google Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-955a0f19dde822141bb3",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 109,
+                  "column": 5
+                }
+              ]
+            },
+            {
+              "title": "Frontend UI Integration",
+              "file": "dve-nodes.spec.ts",
+              "line": 145,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should load KNIRV-NEXUS application",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-03fb563a282e5e9a0d7f",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 147,
+                  "column": 5
+                },
+                {
+                  "title": "should display authentication interface",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-dd21250d758303340de3",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 159,
+                  "column": 5
+                },
+                {
+                  "title": "should handle demo mode properly",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-48f70840b0093c430c15",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 171,
+                  "column": 5
+                },
+                {
+                  "title": "should show appropriate error handling for API failures",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-6248c77855dc0db0fce7",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 189,
+                  "column": 5
+                },
+                {
+                  "title": "should load KNIRV-NEXUS application",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-558494b81b6ce88b6131",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 147,
+                  "column": 5
+                },
+                {
+                  "title": "should display authentication interface",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-3609bb4424b120567d8e",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 159,
+                  "column": 5
+                },
+                {
+                  "title": "should handle demo mode properly",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-b1b6baa5d240bf0a30ff",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 171,
+                  "column": 5
+                },
+                {
+                  "title": "should show appropriate error handling for API failures",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-1dbc680143317d3565e2",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 189,
+                  "column": 5
+                },
+                {
+                  "title": "should load KNIRV-NEXUS application",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-3f8310165f5c22f56d4a",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 147,
+                  "column": 5
+                },
+                {
+                  "title": "should display authentication interface",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-b218c3f3b68b7decce16",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 159,
+                  "column": 5
+                },
+                {
+                  "title": "should handle demo mode properly",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-8d14ff97e1057a605b82",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 171,
+                  "column": 5
+                },
+                {
+                  "title": "should show appropriate error handling for API failures",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-e523de9c22156289ffb7",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 189,
+                  "column": 5
+                },
+                {
+                  "title": "should load KNIRV-NEXUS application",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-ffa55a217a812b8490b3",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 147,
+                  "column": 5
+                },
+                {
+                  "title": "should display authentication interface",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-908602c45564e30244ce",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 159,
+                  "column": 5
+                },
+                {
+                  "title": "should handle demo mode properly",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-5f0952a66d76f7e77a76",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 171,
+                  "column": 5
+                },
+                {
+                  "title": "should show appropriate error handling for API failures",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-7470ef96d5e148de21e5",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 189,
+                  "column": 5
+                },
+                {
+                  "title": "should load KNIRV-NEXUS application",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-2e05ae67937c29fa5b5c",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 147,
+                  "column": 5
+                },
+                {
+                  "title": "should display authentication interface",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-dcab1ae40bbd9a9e16e0",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 159,
+                  "column": 5
+                },
+                {
+                  "title": "should handle demo mode properly",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-087a7023a3c9b7e448c3",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 171,
+                  "column": 5
+                },
+                {
+                  "title": "should show appropriate error handling for API failures",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-968644504c28c8becb26",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 189,
+                  "column": 5
+                },
+                {
+                  "title": "should load KNIRV-NEXUS application",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Microsoft Edge",
+                      "projectName": "Microsoft Edge",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-fee1fc0dcb704d48a400",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 147,
+                  "column": 5
+                },
+                {
+                  "title": "should display authentication interface",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Microsoft Edge",
+                      "projectName": "Microsoft Edge",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-28f59d0c8eb2b2c4cf57",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 159,
+                  "column": 5
+                },
+                {
+                  "title": "should handle demo mode properly",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Microsoft Edge",
+                      "projectName": "Microsoft Edge",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-51ac2378ff61e1d28f43",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 171,
+                  "column": 5
+                },
+                {
+                  "title": "should show appropriate error handling for API failures",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Microsoft Edge",
+                      "projectName": "Microsoft Edge",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-b9811db0723e0cadf50f",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 189,
+                  "column": 5
+                },
+                {
+                  "title": "should load KNIRV-NEXUS application",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Google Chrome",
+                      "projectName": "Google Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-5f1ee5834d659126d6ce",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 147,
+                  "column": 5
+                },
+                {
+                  "title": "should display authentication interface",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Google Chrome",
+                      "projectName": "Google Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-52b34f3382a89bee5910",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 159,
+                  "column": 5
+                },
+                {
+                  "title": "should handle demo mode properly",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Google Chrome",
+                      "projectName": "Google Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-50fab56268231efd8de9",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 171,
+                  "column": 5
+                },
+                {
+                  "title": "should show appropriate error handling for API failures",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Google Chrome",
+                      "projectName": "Google Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-14d89237bae9a12bb181",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 189,
+                  "column": 5
+                }
+              ]
+            },
+            {
+              "title": "DVE Node Scenarios",
+              "file": "dve-nodes.spec.ts",
+              "line": 207,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should handle empty DVE node list gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-1095b2e7b53ae8cd68f1",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 209,
+                  "column": 5
+                },
+                {
+                  "title": "should register multiple DVE nodes and list them",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-34fcdcba514c9ec1f8ca",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 220,
+                  "column": 5
+                },
+                {
+                  "title": "should handle DVE node capability filtering",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-526f39f4514cb36709d4",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 275,
+                  "column": 5
+                },
+                {
+                  "title": "should validate DVE node stake requirements",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-2786141a952dfb49b97a",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 318,
+                  "column": 5
+                },
+                {
+                  "title": "should handle empty DVE node list gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-a45fde10b27e64192543",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 209,
+                  "column": 5
+                },
+                {
+                  "title": "should register multiple DVE nodes and list them",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-c91988dcdecac3744863",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 220,
+                  "column": 5
+                },
+                {
+                  "title": "should handle DVE node capability filtering",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-036d07b84d6ef065826d",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 275,
+                  "column": 5
+                },
+                {
+                  "title": "should validate DVE node stake requirements",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-6189c42ca38e91b44345",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 318,
+                  "column": 5
+                },
+                {
+                  "title": "should handle empty DVE node list gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-0e01f8720877c5bd4601",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 209,
+                  "column": 5
+                },
+                {
+                  "title": "should register multiple DVE nodes and list them",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-38d8b7f3c41313d9cb96",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 220,
+                  "column": 5
+                },
+                {
+                  "title": "should handle DVE node capability filtering",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-8bd8e32b27bc54348756",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 275,
+                  "column": 5
+                },
+                {
+                  "title": "should validate DVE node stake requirements",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-2424c20f22dadf4978e8",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 318,
+                  "column": 5
+                },
+                {
+                  "title": "should handle empty DVE node list gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-73bb91e8a03066a5b99f",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 209,
+                  "column": 5
+                },
+                {
+                  "title": "should register multiple DVE nodes and list them",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-21858d5a7c75afd76490",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 220,
+                  "column": 5
+                },
+                {
+                  "title": "should handle DVE node capability filtering",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-f95781a7cbab5e7737e7",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 275,
+                  "column": 5
+                },
+                {
+                  "title": "should validate DVE node stake requirements",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-1c47933a9ad4e020d88d",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 318,
+                  "column": 5
+                },
+                {
+                  "title": "should handle empty DVE node list gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-dfe58f2a3cc9d9c24c7e",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 209,
+                  "column": 5
+                },
+                {
+                  "title": "should register multiple DVE nodes and list them",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-4f6d1743c73ea5037d13",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 220,
+                  "column": 5
+                },
+                {
+                  "title": "should handle DVE node capability filtering",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-b92b446d3d929b75c2fb",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 275,
+                  "column": 5
+                },
+                {
+                  "title": "should validate DVE node stake requirements",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-5507302464bc2c361cb6",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 318,
+                  "column": 5
+                },
+                {
+                  "title": "should handle empty DVE node list gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Microsoft Edge",
+                      "projectName": "Microsoft Edge",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-1188993d602491948487",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 209,
+                  "column": 5
+                },
+                {
+                  "title": "should register multiple DVE nodes and list them",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Microsoft Edge",
+                      "projectName": "Microsoft Edge",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-f2975a89011f23061b2f",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 220,
+                  "column": 5
+                },
+                {
+                  "title": "should handle DVE node capability filtering",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Microsoft Edge",
+                      "projectName": "Microsoft Edge",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-68e64ecac43d0909a047",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 275,
+                  "column": 5
+                },
+                {
+                  "title": "should validate DVE node stake requirements",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Microsoft Edge",
+                      "projectName": "Microsoft Edge",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-5e7ece874f5677d714dd",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 318,
+                  "column": 5
+                },
+                {
+                  "title": "should handle empty DVE node list gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Google Chrome",
+                      "projectName": "Google Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-706a72dd1bf827fed53d",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 209,
+                  "column": 5
+                },
+                {
+                  "title": "should register multiple DVE nodes and list them",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Google Chrome",
+                      "projectName": "Google Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-10ee2fc361ade0ef5309",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 220,
+                  "column": 5
+                },
+                {
+                  "title": "should handle DVE node capability filtering",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Google Chrome",
+                      "projectName": "Google Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-baed816467401561a029",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 275,
+                  "column": 5
+                },
+                {
+                  "title": "should validate DVE node stake requirements",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Google Chrome",
+                      "projectName": "Google Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-199d76856ef8758ed82d",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 318,
+                  "column": 5
+                }
+              ]
+            },
+            {
+              "title": "Error Handling and Edge Cases",
+              "file": "dve-nodes.spec.ts",
+              "line": 342,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should handle malformed DVE node registration",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-8c749565326652fe01f9",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 344,
+                  "column": 5
+                },
+                {
+                  "title": "should handle duplicate DVE node registration",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-e2deae28f00b86a43846",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 360,
+                  "column": 5
+                },
+                {
+                  "title": "should handle very large payload gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-15afe65166e3db24e1b4",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 388,
+                  "column": 5
+                },
+                {
+                  "title": "should handle malformed DVE node registration",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-353f82aecfa19b1d8205",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 344,
+                  "column": 5
+                },
+                {
+                  "title": "should handle duplicate DVE node registration",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-e4659a5612822e26f801",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 360,
+                  "column": 5
+                },
+                {
+                  "title": "should handle very large payload gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-8a21b370bdfca62b8059",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 388,
+                  "column": 5
+                },
+                {
+                  "title": "should handle malformed DVE node registration",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-bcbe234dfa6f78f617f6",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 344,
+                  "column": 5
+                },
+                {
+                  "title": "should handle duplicate DVE node registration",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-7db7a62ae0ee578a1a77",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 360,
+                  "column": 5
+                },
+                {
+                  "title": "should handle very large payload gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-7911a7400013542f0cce",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 388,
+                  "column": 5
+                },
+                {
+                  "title": "should handle malformed DVE node registration",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-da3d437251bd83070349",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 344,
+                  "column": 5
+                },
+                {
+                  "title": "should handle duplicate DVE node registration",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-3b6a759ff7300ab3b341",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 360,
+                  "column": 5
+                },
+                {
+                  "title": "should handle very large payload gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-175664dd9301afcbca48",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 388,
+                  "column": 5
+                },
+                {
+                  "title": "should handle malformed DVE node registration",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-2d64f1580fe458d80d5b",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 344,
+                  "column": 5
+                },
+                {
+                  "title": "should handle duplicate DVE node registration",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-4bf0f12461f5e0881e0c",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 360,
+                  "column": 5
+                },
+                {
+                  "title": "should handle very large payload gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-ba92637c989da4bfc1f1",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 388,
+                  "column": 5
+                },
+                {
+                  "title": "should handle malformed DVE node registration",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Microsoft Edge",
+                      "projectName": "Microsoft Edge",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-ee732f3e3669e01166b7",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 344,
+                  "column": 5
+                },
+                {
+                  "title": "should handle duplicate DVE node registration",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Microsoft Edge",
+                      "projectName": "Microsoft Edge",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-fb35f16482312f253cf4",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 360,
+                  "column": 5
+                },
+                {
+                  "title": "should handle very large payload gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Microsoft Edge",
+                      "projectName": "Microsoft Edge",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-de8834b3fb1c8520ce67",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 388,
+                  "column": 5
+                },
+                {
+                  "title": "should handle malformed DVE node registration",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Google Chrome",
+                      "projectName": "Google Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-0d27067650aa01072835",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 344,
+                  "column": 5
+                },
+                {
+                  "title": "should handle duplicate DVE node registration",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Google Chrome",
+                      "projectName": "Google Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-72ce4f69347f1022f63d",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 360,
+                  "column": 5
+                },
+                {
+                  "title": "should handle very large payload gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Google Chrome",
+                      "projectName": "Google Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "2f6a5d1292da4a48eb1e-814a6e310fefc38a18e5",
+                  "file": "dve-nodes.spec.ts",
+                  "line": 388,
+                  "column": 5
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "test-positioning.spec.ts",
+      "file": "test-positioning.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "UI Positioning Tests",
+          "file": "test-positioning.spec.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Console panel should slide out from left edge of CDE modal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 11,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-cb7546dd04dfe35e89e0",
+              "file": "test-positioning.spec.ts",
+              "line": 11,
+              "column": 8
+            },
+            {
+              "title": "Policy editor should slide out from right edge of CDE modal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 15,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-4c5f28fc63b553eaecda",
+              "file": "test-positioning.spec.ts",
+              "line": 15,
+              "column": 8
+            },
+            {
+              "title": "DVE Solver should replace Connected NRVs panel on left side",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 19,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-0a5f7b88dc06f3c86bf0",
+              "file": "test-positioning.spec.ts",
+              "line": 19,
+              "column": 8
+            },
+            {
+              "title": "Rent button modal should be visible from Network & Resources view",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 23,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-df9f539632ba63479496",
+              "file": "test-positioning.spec.ts",
+              "line": 23,
+              "column": 8
+            },
+            {
+              "title": "Console panel should slide out from left edge of CDE modal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 11,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-695d0db8625590b8286f",
+              "file": "test-positioning.spec.ts",
+              "line": 11,
+              "column": 8
+            },
+            {
+              "title": "Policy editor should slide out from right edge of CDE modal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 15,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-80f7d8bc78b7268daeb3",
+              "file": "test-positioning.spec.ts",
+              "line": 15,
+              "column": 8
+            },
+            {
+              "title": "DVE Solver should replace Connected NRVs panel on left side",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 19,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-12a34ec0a6084d29768f",
+              "file": "test-positioning.spec.ts",
+              "line": 19,
+              "column": 8
+            },
+            {
+              "title": "Rent button modal should be visible from Network & Resources view",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 23,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-4865fbfffe4ad7bf092b",
+              "file": "test-positioning.spec.ts",
+              "line": 23,
+              "column": 8
+            },
+            {
+              "title": "Console panel should slide out from left edge of CDE modal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 11,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-45d9a8b1a3d73e72ee21",
+              "file": "test-positioning.spec.ts",
+              "line": 11,
+              "column": 8
+            },
+            {
+              "title": "Policy editor should slide out from right edge of CDE modal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 15,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-97a7e252230801a33b3d",
+              "file": "test-positioning.spec.ts",
+              "line": 15,
+              "column": 8
+            },
+            {
+              "title": "DVE Solver should replace Connected NRVs panel on left side",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 19,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-3489d886e3908881c0b3",
+              "file": "test-positioning.spec.ts",
+              "line": 19,
+              "column": 8
+            },
+            {
+              "title": "Rent button modal should be visible from Network & Resources view",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 23,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-af29c65f24ba1409c9af",
+              "file": "test-positioning.spec.ts",
+              "line": 23,
+              "column": 8
+            },
+            {
+              "title": "Console panel should slide out from left edge of CDE modal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 11,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-c8ee9c43e24dad958e1d",
+              "file": "test-positioning.spec.ts",
+              "line": 11,
+              "column": 8
+            },
+            {
+              "title": "Policy editor should slide out from right edge of CDE modal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 15,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-0b91646b65b31fcc2d51",
+              "file": "test-positioning.spec.ts",
+              "line": 15,
+              "column": 8
+            },
+            {
+              "title": "DVE Solver should replace Connected NRVs panel on left side",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 19,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-03046711d9a9d6ebc5ac",
+              "file": "test-positioning.spec.ts",
+              "line": 19,
+              "column": 8
+            },
+            {
+              "title": "Rent button modal should be visible from Network & Resources view",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 23,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-847185be05383dcbc921",
+              "file": "test-positioning.spec.ts",
+              "line": 23,
+              "column": 8
+            },
+            {
+              "title": "Console panel should slide out from left edge of CDE modal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 11,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-dc16c3644b564b8e1453",
+              "file": "test-positioning.spec.ts",
+              "line": 11,
+              "column": 8
+            },
+            {
+              "title": "Policy editor should slide out from right edge of CDE modal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 15,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-d2558912ae0ab659764e",
+              "file": "test-positioning.spec.ts",
+              "line": 15,
+              "column": 8
+            },
+            {
+              "title": "DVE Solver should replace Connected NRVs panel on left side",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 19,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-4200d079932923d8b9b0",
+              "file": "test-positioning.spec.ts",
+              "line": 19,
+              "column": 8
+            },
+            {
+              "title": "Rent button modal should be visible from Network & Resources view",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 23,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-9c04bb57079b0b01d29e",
+              "file": "test-positioning.spec.ts",
+              "line": 23,
+              "column": 8
+            },
+            {
+              "title": "Console panel should slide out from left edge of CDE modal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 11,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "Microsoft Edge",
+                  "projectName": "Microsoft Edge",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-f635293d42a61c9e07e9",
+              "file": "test-positioning.spec.ts",
+              "line": 11,
+              "column": 8
+            },
+            {
+              "title": "Policy editor should slide out from right edge of CDE modal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 15,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "Microsoft Edge",
+                  "projectName": "Microsoft Edge",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-a45fbf7f7185feee5a45",
+              "file": "test-positioning.spec.ts",
+              "line": 15,
+              "column": 8
+            },
+            {
+              "title": "DVE Solver should replace Connected NRVs panel on left side",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 19,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "Microsoft Edge",
+                  "projectName": "Microsoft Edge",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-c95e20b33b705ad57433",
+              "file": "test-positioning.spec.ts",
+              "line": 19,
+              "column": 8
+            },
+            {
+              "title": "Rent button modal should be visible from Network & Resources view",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 23,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "Microsoft Edge",
+                  "projectName": "Microsoft Edge",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-23c31fb83829e2f7e16d",
+              "file": "test-positioning.spec.ts",
+              "line": 23,
+              "column": 8
+            },
+            {
+              "title": "Console panel should slide out from left edge of CDE modal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 11,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "Google Chrome",
+                  "projectName": "Google Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-c36b961a67fe19026606",
+              "file": "test-positioning.spec.ts",
+              "line": 11,
+              "column": 8
+            },
+            {
+              "title": "Policy editor should slide out from right edge of CDE modal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 15,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "Google Chrome",
+                  "projectName": "Google Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-90c02910edd29450fd8d",
+              "file": "test-positioning.spec.ts",
+              "line": 15,
+              "column": 8
+            },
+            {
+              "title": "DVE Solver should replace Connected NRVs panel on left side",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 19,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "Google Chrome",
+                  "projectName": "Google Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-aacf9d10f2dc7d0c60a4",
+              "file": "test-positioning.spec.ts",
+              "line": 19,
+              "column": 8
+            },
+            {
+              "title": "Rent button modal should be visible from Network & Resources view",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend/tests/e2e/test-positioning.spec.ts",
+                        "line": 23,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "Google Chrome",
+                  "projectName": "Google Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1a530b3eca71c91f94d9-bc3ea6744ad8df55869d",
+              "file": "test-positioning.spec.ts",
+              "line": 23,
+              "column": 8
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-12-12T04:17:56.202Z",
+    "duration": 222.51299999999992,
+    "expected": 0,
+    "skipped": 154,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

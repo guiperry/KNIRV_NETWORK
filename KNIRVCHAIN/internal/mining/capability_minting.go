@@ -72,7 +72,7 @@ func (cm *CapabilityMinter) SubmitMintingProposal(contextNodeID, minterAddress s
 	}
 
 	// Verify the context node exists
-	contextNode, err := cm.nodeStore.GetContextNode(contextNodeID)
+	_, err := cm.nodeStore.GetContextNode(contextNodeID)
 	if err != nil {
 		return nil, fmt.Errorf("context node not found: %w", err)
 	}

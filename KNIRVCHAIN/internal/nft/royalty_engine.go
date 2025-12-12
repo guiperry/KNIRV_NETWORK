@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/big"
 	"sync"
 	"time"
 
@@ -118,7 +117,7 @@ func (re *RoyaltyEngine) DistributeRoyalties(distribution *RoyaltyDistribution) 
 
 		err := re.createRoyaltyPayment(recipient, share.Amount, distribution)
 		if err != nil {
-			log.Printf("Failed to distribute royalty to %s: %v", recipient, share.Amount, err)
+			log.Printf("Failed to distribute royalty of %d to %s: %v", share.Amount, recipient, err)
 			// Continue with other distributions even if one fails
 		}
 	}
@@ -146,8 +145,8 @@ func (re *RoyaltyEngine) createRoyaltyPayment(recipient string, amount uint64, d
 		return fmt.Errorf("insufficient balance for royalty payment: %d < %d", payerBalance, amount)
 	}
 
-	// Create royalty payment transaction
-	royaltyData := map[string]interface{}{
+	// Create royalty payment transaction (data structure for future transaction creation)
+	_ = map[string]interface{}{
 		"property_node_id": distribution.PropertyNodeID,
 		"recipient":        recipient,
 		"amount":           amount,

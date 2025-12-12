@@ -54,15 +54,126 @@ func (cm *ChromemManager) GetAgentRelationships(agentID string) ([]*AgentRelatio
 }
 
 func (cm *ChromemManager) StoreBadgeAttachment(attachment *BadgeAttachment) error {
-	return fmt.Errorf("store badge attachment not implemented")
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+
+	if cm.badgeAttachmentCollection == nil {
+		return fmt.Errorf("badgeAttachmentCollection not initialized")
+	}
+
+	// Convert attachment to JSON
+	attachmentJSON, err := json.Marshal(attachment)
+	if err != nil {
+		return fmt.Errorf("failed to marshal badge attachment: %v", err)
+	}
+
+	// Create content and metadata
+	content := fmt.Sprintf("Badge Attachment ID: %s, Agent ID: %s, Badge ID: %s, Status: %s, Attached: %s",
+		attachment.ID, attachment.AgentId, attachment.BadgeId, attachment.Status, attachment.AttachedAt.Format(time.RFC3339))
+
+	metadata := map[string]string{
+		"id":          attachment.ID,
+		"agent_id":    attachment.AgentId,
+		"badge_id":    attachment.BadgeId,
+		"status":      attachment.Status,
+		"attached_at": attachment.AttachedAt.Format(time.RFC3339),
+		"data":        string(attachmentJSON),
+	}
+
+	// Store using collection
+	ctx := context.Background()
+	if err := cm.badgeAttachmentCollection.Add(ctx, []string{attachment.ID}, nil, []map[string]string{metadata}, []string{content}); err != nil {
+		return fmt.Errorf("failed to store badge attachment: %v", err)
+	}
+	return nil
 }
 
 func (cm *ChromemManager) GetBadgeAttachments(agentID string) ([]*BadgeAttachment, error) {
-	return nil, fmt.Errorf("get badge attachments not implemented")
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+
+	if cm.badgeAttachmentCollection == nil {
+		return nil, fmt.Errorf("badgeAttachmentCollection not initialized")
+	}
+
+	ctx := context.Background()
+	includeMap := map[string]string{"documents": "true"}
+	// Query for agent ID - collection implementation may vary
+	results, err := cm.badgeAttachmentCollection.Query(ctx, fmt.Sprintf("Agent ID: %s", agentID), 100, nil, includeMap)
+	if err != nil {
+		return nil, err
+	}
+
+	var attachments []*BadgeAttachment
+	for _, res := range results {
+		// Try metadata first
+		if res.Metadata != nil {
+			if data, ok := res.Metadata["data"]; ok && data != "" {
+				var attachment BadgeAttachment
+				if err := json.Unmarshal([]byte(data), &attachment); err == nil {
+					// Filter by agent ID just in case
+					if attachment.AgentId == agentID {
+						attachments = append(attachments, &attachment)
+						continue
+					}
+				}
+			}
+		}
+
+		// Fallback to content
+		if res.Content != "" {
+			var attachment BadgeAttachment
+			if err := json.Unmarshal([]byte(res.Content), &attachment); err == nil {
+				if attachment.AgentId == agentID {
+					attachments = append(attachments, &attachment)
+				}
+			}
+		}
+	}
+
+	return attachments, nil
 }
 
 func (cm *ChromemManager) GetBadgeAttachment(attachmentID string) (*BadgeAttachment, error) {
-	return nil, fmt.Errorf("get badge attachment not implemented")
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+
+	if cm.badgeAttachmentCollection == nil {
+		return nil, fmt.Errorf("badgeAttachmentCollection not initialized")
+	}
+
+	ctx := context.Background()
+	includeMap := map[string]string{"documents": "true"}
+	results, err := cm.badgeAttachmentCollection.Query(ctx, "Badge Attachment", 50, nil, includeMap)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, res := range results {
+		// Try metadata[data]
+		if res.Metadata != nil {
+			if data, ok := res.Metadata["data"]; ok && data != "" {
+				var attachment BadgeAttachment
+				if err := json.Unmarshal([]byte(data), &attachment); err == nil {
+					if attachment.ID == attachmentID {
+						return &attachment, nil
+					}
+				}
+			}
+		}
+
+		// Fallback to Content
+		if res.Content != "" {
+			var attachment BadgeAttachment
+			if err := json.Unmarshal([]byte(res.Content), &attachment); err == nil {
+				if attachment.ID == attachmentID {
+					return &attachment, nil
+				}
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("badge attachment not found")
 }
 
 func (cm *ChromemManager) StoreBadge(badge *Badge) error {
@@ -98,7 +209,46 @@ func (cm *ChromemManager) GetBadgesByType(badgeType string) ([]*Badge, error) {
 }
 
 func (cm *ChromemManager) GetBadgeAttachmentByAgentAndBadge(agentID, badgeID string) (*BadgeAttachment, error) {
-	return nil, fmt.Errorf("get badge attachment by agent and badge not implemented")
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+
+	if cm.badgeAttachmentCollection == nil {
+		return nil, fmt.Errorf("badgeAttachmentCollection not initialized")
+	}
+
+	ctx := context.Background()
+	includeMap := map[string]string{"documents": "true"}
+	results, err := cm.badgeAttachmentCollection.Query(ctx, "Badge Attachment", 50, nil, includeMap)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, res := range results {
+		// Match on metadata fields
+		if res.Metadata != nil {
+			if res.Metadata["agent_id"] == agentID && res.Metadata["badge_id"] == badgeID {
+				// Check metadata data
+				if data := res.Metadata["data"]; data != "" {
+					var attachment BadgeAttachment
+					if err := json.Unmarshal([]byte(data), &attachment); err == nil {
+						return &attachment, nil
+					}
+				}
+			}
+		}
+
+		// Fallback to content
+		if res.Content != "" {
+			var attachment BadgeAttachment
+			if err := json.Unmarshal([]byte(res.Content), &attachment); err == nil {
+				if attachment.AgentId == agentID && attachment.BadgeId == badgeID {
+					return &attachment, nil
+				}
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("badge attachment not found for agent %s and badge %s", agentID, badgeID)
 }
 
 type Collection struct {
@@ -127,11 +277,47 @@ type MCPProcessor struct {
 }
 
 func (mcp *MCPProcessor) getCapabilityByID(capabilityID string) (*Capability, error) {
-	return nil, fmt.Errorf("get capability by ID not implemented")
+	if capabilityID == "" {
+		return nil, fmt.Errorf("capability ID cannot be empty")
+	}
+
+	// Minimal placeholder implementation: return a capability with the given ID
+	// In a real implementation this would query the on-disk DB or discovery service
+	capability := &Capability{
+		ID:             capabilityID,
+		Name:           fmt.Sprintf("capability-%s", capabilityID),
+		Description:    "placeholder capability",
+		CapabilityType: "unknown",
+		MCPServerURL:   "",
+		Schema:         make(map[string]interface{}),
+		LocationHints:  []string{},
+		Metadata:       make(map[string]interface{}),
+		CreatedAt:      time.Now(),
+		Status:         "active",
+	}
+
+	return capability, nil
 }
 
 func (mcp *MCPProcessor) GetCapabilityDescriptor(capabilityID string) (interface{}, error) {
-	return nil, fmt.Errorf("get capability descriptor not implemented")
+	cap, err := mcp.getCapabilityByID(capabilityID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the schema/descriptor as the capability descriptor
+	if cap.Schema != nil {
+		return cap.Schema, nil
+	}
+
+	// Fallback to a generic descriptor
+	descriptor := map[string]interface{}{
+		"id":              cap.ID,
+		"name":            cap.Name,
+		"capability_type": cap.CapabilityType,
+		"owner":           cap.Metadata["owner"],
+	}
+	return descriptor, nil
 }
 
 // Wallet interface to allow compatibility with different wallet implementations
@@ -248,13 +434,7 @@ func (tpm *TransactionPoolManager) GetPoolStats() map[string]interface{} {
 }
 
 type DiscoveryManager struct {
-	host HostInterface // Placeholder for host
-}
-
-// HostInterface placeholder to avoid import issues
-type HostInterface interface {
-	// Placeholder methods to satisfy host.Host interface
-	Addrs() []interface{}
+	host interface{} // Placeholder for host - can be type asserted to host.Host when needed
 }
 
 func (d *DiscoveryManager) FindGenericResource(address string, resourceType string) ([]interface{}, error) {

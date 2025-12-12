@@ -140,8 +140,7 @@ func DelegateTransaction(tx *Transaction, bc *BlockchainStruct, tpm *Transaction
 	papPeerInfo := peer.AddrInfo{} // Placeholder for now
 	_ = papPeerInfo                // Avoid unused variable error
 
-	// Type assertion to convert HostInterface to host.Host
-	// This is a temporary workaround for the circular import issue
+	// Type assertion to convert host interface to host.Host
 	if hostImpl, ok := discoveryMgr.host.(host.Host); ok {
 		err = SendDelegatedTransaction(tx, papPeerInfo, hostImpl)
 	} else {

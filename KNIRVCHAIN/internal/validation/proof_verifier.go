@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -165,8 +164,8 @@ func (knc *KNIRVNexusClient) ValidateSkill(ctx context.Context, request *Validat
 			Precision:      0.85,
 			Recall:         0.82,
 			F1Score:        0.83,
-			TestCasesRun:   int64(len(request.TestCases)),
-			TestCasesPass:  int64(len(request.TestCases) - 1), // Pass all but one
+			TestCasesRun:   uint64(len(request.TestCases)),
+			TestCasesPass:  uint64(len(request.TestCases) - 1), // Pass all but one
 			AvgResponseTime: 120,
 		},
 		TestResults: []TestResult{
@@ -219,7 +218,7 @@ func (pv *ProofVerifier) verifyValidationResponse(request *ValidationRequest, re
 		}
 	}
 
-	if int64(passedCount) != response.Performance.TestCasesPass {
+	if uint64(passedCount) != response.Performance.TestCasesPass {
 		return fmt.Errorf("test results inconsistency: passed count %d doesn't match performance %d", passedCount, response.Performance.TestCasesPass)
 	}
 

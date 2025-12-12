@@ -42,8 +42,8 @@
 }
 
 .statusValue.dev {
-  background: rgba(155, 89, 182, 0.2);
-  color: #9b59b6;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.2));
+  color: #60a5fa;
 }
 
 .statusValue.general {
@@ -152,8 +152,8 @@
 }
 
 .roleHeader.dev {
-  background: rgba(155, 89, 182, 0.2);
-  color: #9b59b6;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.2));
+  color: #60a5fa;
 }
 
 .roleHeader.general {
@@ -235,8 +235,8 @@
 }
 
 .historyRole.dev {
-  background: rgba(155, 89, 182, 0.2);
-  color: #9b59b6;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.2));
+  color: #60a5fa;
 }
 
 .historyRole.general {

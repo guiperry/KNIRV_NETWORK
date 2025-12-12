@@ -47,8 +47,8 @@
 }
 
 .statusCard {
-  background: linear-gradient(135deg, rgba(142, 68, 173, 0.1), rgba(155, 89, 182, 0.1));
-  border: 1px solid rgba(142, 68, 173, 0.3);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.1));
+  border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .statusGrid {
@@ -64,7 +64,7 @@
 }
 
 .statusValue {
-  color: #8e44ad;
+  color: #60a5fa;
   font-size: 1.3em;
   font-weight: 600;
 }
@@ -83,7 +83,7 @@
 
 .candidateCard:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(142, 68, 173, 0.3);
+  box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
 }
 
 .candidateHeader {
@@ -102,8 +102,8 @@
 }
 
 .providerBadge {
-  background: rgba(142, 68, 173, 0.3);
-  color: #8e44ad;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(37, 99, 235, 0.3));
+  color: #60a5fa;
   padding: 4px 8px;
   border-radius: 12px;
   font-size: 0.8em;
@@ -134,7 +134,7 @@
 
 .statValue {
   display: block;
-  color: #8e44ad;
+  color: #60a5fa;
   font-size: 1em;
   font-weight: 600;
 }
@@ -164,8 +164,8 @@
 }
 
 .featureTag {
-  background: rgba(142, 68, 173, 0.2);
-  color: #8e44ad;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.2));
+  color: #60a5fa;
   padding: 4px 8px;
   border-radius: 12px;
   font-size: 0.8em;
@@ -192,7 +192,7 @@
 
 .progressFill {
   height: 100%;
-  background: linear-gradient(90deg, #8e44ad, #e91e63);
+  background: linear-gradient(90deg, #60a5fa, #3b82f6);
   border-radius: 4px;
   transition: width 0.3s ease;
 }
@@ -206,7 +206,7 @@
 .voteButton {
   width: 100%;
   padding: 12px;
-  background: linear-gradient(135deg, #8e44ad, #7d3c98);
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
   border: none;
   border-radius: 8px;
   color: white;
@@ -216,9 +216,9 @@
 }
 
 .voteButton:hover:not(.disabled) {
-  background: linear-gradient(135deg, #7d3c98, #6c3483);
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(142, 68, 173, 0.4);
+  box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
 }
 
 .voteButton.selected {

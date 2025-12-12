@@ -117,6 +117,11 @@ func (p2p *P2PConsensusManager) Stop() {
 	// Placeholder
 }
 
+func (p2p *P2PConsensusManager) GetPeerCount() int {
+	// Placeholder - return 0 peers
+	return 0
+}
+
 type WalletManager struct {
 	// Placeholder for WalletManager
 }
@@ -435,14 +440,13 @@ func seekUpdateConsensus(signal UpdateSignal, p2pMgr *P2PConsensusManager) Updat
 		Timestamp: time.Now(),
 	}
 
-	// Broadcast consensus request
-	consensusMsg := map[string]interface{}{
+	// TODO: Implement actual consensus gathering from network
+	// Broadcast consensus request (implementation pending)
+	_ = map[string]interface{}{
 		"type":      "update_consensus_request",
 		"signal":    signal,
 		"timestamp": consensus.Timestamp,
 	}
-
-	// TODO: Implement actual consensus gathering from network
 	// For now, assume consensus is reached if we have enough peers
 	peerCount := p2pMgr.GetPeerCount()
 	if peerCount >= consensus.Required-1 { // -1 because we count our own vote
@@ -477,7 +481,7 @@ func warnChainOwner(signal UpdateSignal) {
 func downloadAndApplyUpdate(signal UpdateSignal) error {
 	log.Printf("Downloading update from %s", signal.DownloadURL)
 
-	ctx, cancel := context.WithTimeout(context.Background(), UpdateDownloadTimeout)
+	_, cancel := context.WithTimeout(context.Background(), UpdateDownloadTimeout)
 	defer cancel()
 
 	// Create HTTP client

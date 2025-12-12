@@ -26,7 +26,6 @@ func ExtractWebGUI(targetDir string, logger *zap.Logger) error {
 		return fmt.Errorf("failed to create target directory: %w", err)
 	}
 
-
 	// Extract only webgui files
 	err := fs.WalkDir(ServicesFS, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {

@@ -6,7 +6,7 @@ import GlassyCard from '../components/GlassyCard';
 import styles from './payment-gateway.module.css';
 
 export default function PaymentGateway() {
-  const { activePage } = useNavigation('payment-oracle');
+  const { activePage } = useNavigation('payment-gateway');
   const [amount, setAmount] = useState(10);
   const [walletAddress, setWalletAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('stripe');

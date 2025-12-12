@@ -46,7 +46,7 @@ const SideNavigation = ({ activePage }) => {
       icon: '🔗',
     },
     {
-      id: 'payment-oracle',
+      id: 'payment-gateway',
       label: 'Payment Gateway',
       icon: '💳',
     },
@@ -75,11 +75,6 @@ const SideNavigation = ({ activePage }) => {
         {
           id: 'chain-explorer',
           label: 'Chain Explorer',
-          icon: '⛓️',
-        },
-        {
-          id: 'chain-explorer-new',
-          label: 'Chain Explorer New',
           icon: '⛓️',
         },
         {
@@ -239,24 +234,6 @@ const SideNavigation = ({ activePage }) => {
         }
       ]
     },
-    // Tools section
-    {
-      id: 'tools',
-      label: 'Tools',
-      icon: '🛠️',
-      children: [
-        {
-          id: 'basic',
-          label: 'Basic Tools',
-          icon: '🔧',
-        },
-        {
-          id: 'advanced',
-          label: 'Advanced Tools',
-          icon: '⚙️',
-        }
-      ]
-    },
     // Settings
     {
       id: 'settings',
@@ -281,7 +258,7 @@ const SideNavigation = ({ activePage }) => {
     if (hasChildren) return toggleSection(id);
 
     // Navigate to integrated pages for migrated services
-    if (id === 'payment-oracle' || id === 'operator-registry' || id === 'tunnel-registry') {
+    if (id === 'payment-gateway' || id === 'operator-registry' || id === 'tunnel-registry') {
       return handleNavigation(id);
     }
 

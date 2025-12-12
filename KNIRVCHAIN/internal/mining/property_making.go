@@ -1,7 +1,6 @@
 package mining
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -72,7 +71,7 @@ func (pm *PropertyMaker) SubmitMakingProposal(ideaNodeID, makerAddress string, i
 	}
 
 	// Verify the idea node exists
-	ideaNode, err := pm.nodeStore.GetIdeaNode(ideaNodeID)
+	_, err := pm.nodeStore.GetIdeaNode(ideaNodeID)
 	if err != nil {
 		return nil, fmt.Errorf("idea node not found: %w", err)
 	}

@@ -2,8 +2,6 @@ package validation
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"strings"
@@ -30,12 +28,12 @@ func NewNoveltyChecker(graphQueries *graph.GraphQueries, chromaDB database.Chrom
 
 // NoveltyResult represents the result of a novelty assessment
 type NoveltyResult struct {
-	IsNovel       bool                   `json:"is_novel"`
-	Score         float64                `json:"score"`          // 0.0 to 1.0, higher means more novel
-	SimilarIdeas  []SimilarIdea          `json:"similar_ideas"`
-	AssessmentBy  string                 `json:"assessment_by"`
-	AssessedAt    int64                  `json:"assessed_at"`
-	Reasoning     string                 `json:"reasoning"`
+	IsNovel      bool          `json:"is_novel"`
+	Score        float64       `json:"score"` // 0.0 to 1.0, higher means more novel
+	SimilarIdeas []SimilarIdea `json:"similar_ideas"`
+	AssessmentBy string        `json:"assessment_by"`
+	AssessedAt   int64         `json:"assessed_at"`
+	Reasoning    string        `json:"reasoning"`
 }
 
 // SimilarIdea represents an idea similar to the assessed idea
@@ -111,8 +109,6 @@ func (nc *NoveltyChecker) getAllExistingIdeas() ([]*types.IdeaNode, error) {
 
 // findSimilarIdeas finds ideas similar to the given idea
 func (nc *NoveltyChecker) findSimilarIdeas(targetIdea *types.IdeaNode, existingIdeas []*types.IdeaNode) ([]SimilarIdea, error) {
-	var similarIdeas []SimilarIdea
-
 	// Use ChromaDB for semantic search if available
 	if nc.chromaDB != nil {
 		return nc.findSimilarIdeasSemantic(targetIdea, existingIdeas)
@@ -270,6 +266,18 @@ func (nc *NoveltyChecker) calculateNoveltyScore(idea *types.IdeaNode, similarIde
 
 	// Novelty score is inverse of average similarity
 	noveltyScore := 1.0 - avgSimilarity
+
+	// Adjust novelty based on idea metadata (e.g., dependencies)
+	// Ideas that reference many dependencies are slightly less novel
+	if idea != nil && len(idea.Dependencies) > 0 {
+		deductionPerDependency := 0.05
+		maxDeduction := 0.2
+		deduction := float64(len(idea.Dependencies)) * deductionPerDependency
+		if deduction > maxDeduction {
+			deduction = maxDeduction
+		}
+		noveltyScore = noveltyScore - deduction
+	}
 
 	// Ensure score is between 0 and 1
 	if noveltyScore < 0 {

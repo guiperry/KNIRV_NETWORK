@@ -46,7 +46,7 @@ describe('Dashboard', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('KNIRV Network Dashboard')).toBeInTheDocument();
+      expect(screen.getByText('KNIRV Network Oracle Dashboard')).toBeInTheDocument();
       expect(screen.getByText('Welcome to the KNIRV Network')).toBeInTheDocument();
     });
   });

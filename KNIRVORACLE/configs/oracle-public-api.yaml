@@ -28,12 +28,12 @@ info:
     - Network monitoring and management
     - Service control interface
 
-    ### ⛓️ KNIRVORACLE (`/oracle/*`)
+    ### ⛓️ KNIRVCHAIN (`/chain/*`)
     - Blockchain operations and state
     - MCP (Model Context Protocol) capabilities
     - Smart contract interactions
 
-    ### 🏗️ KNIRVCHAIN (`/chain/*`)
+    ### 🏗️ KNIRVORACLE (`/oracle/*`)
     - Advanced blockchain operations
     - AI model and skill management
     - Governance and consensus
@@ -366,10 +366,10 @@ paths:
           description: Node not found
 
   # ========================================
-  # KNIRVORACLE MCP API ENDPOINTS
+  # KNIRVCHAIN MCP API ENDPOINTS
   # ========================================
 
-  /oracle/chain:
+  /chain/chain:
     get:
       tags:
         - blockchain
@@ -380,7 +380,7 @@ paths:
         '200':
           description: Blockchain state
 
-  /oracle/block:
+  /chain/block:
     post:
       tags:
         - blockchain
@@ -390,7 +390,7 @@ paths:
         '200':
           description: Block added successfully
 
-  /oracle/transaction:
+  /chain/transaction:
     post:
       tags:
         - blockchain
@@ -401,7 +401,7 @@ paths:
         '202':
           description: Transaction accepted
 
-  /oracle/mcp/capability/prepare_registration:
+  /chain/mcp/capability/prepare_registration:
     post:
       tags:
         - mcp
@@ -411,7 +411,7 @@ paths:
         '200':
           description: Registration prepared
 
-  /oracle/mcp/capability/invoke:
+  /chain/mcp/capability/invoke:
     post:
       tags:
         - mcp
@@ -421,7 +421,7 @@ paths:
         '202':
           description: Capability invocation accepted
 
-  /oracle/mcp/capabilities:
+  /chain/mcp/capabilities:
     get:
       tags:
         - mcp
@@ -432,10 +432,10 @@ paths:
           description: List of capabilities
 
   # ========================================
-  # KNIRVCHAIN API ENDPOINTS
+  # KNIRVORACLE API ENDPOINTS
   # ========================================
 
-  /chain/blocks:
+  /oracle/blocks:
     get:
       tags:
         - blockchain
@@ -445,7 +445,7 @@ paths:
         '200':
           description: List of blocks
 
-  /chain/send_txn:
+  /oracle/send_txn:
     post:
       tags:
         - blockchain
@@ -455,7 +455,7 @@ paths:
         '201':
           description: Transaction submitted
 
-  /chain/nrn/mint:
+  /oracle/nrn/mint:
     post:
       tags:
         - blockchain
@@ -465,7 +465,7 @@ paths:
         '201':
           description: Tokens minted
 
-  /chain/llm/register:
+  /oracle/llm/register:
     post:
       tags:
         - models
@@ -475,7 +475,7 @@ paths:
         '200':
           description: LLM registered
 
-  /chain/v3/models/list:
+  /oracle/v3/models/list:
     get:
       tags:
         - models

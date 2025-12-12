@@ -20,7 +20,8 @@ func TestBlockchainLLM_GetLLMTransactionByCMU(t *testing.T) {
 		MetadataCID: "QmTest123",
 	}
 
-	tx, err := NewLLMRootingTransaction(llmData.ModelOwner, llmData, 100)
+	// Use "blockchain" as sender to bypass signature verification in tests
+	tx, err := NewLLMRootingTransaction("blockchain", llmData, 100)
 	require.NoError(t, err)
 
 	// Add transaction to pool

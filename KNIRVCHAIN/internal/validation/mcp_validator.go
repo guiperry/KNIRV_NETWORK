@@ -27,10 +27,10 @@ func NewMCPValidator() *MCPValidator {
 // ValidateMCPServer validates an MCP server implementation
 func (mv *MCPValidator) ValidateMCPServer(ctx context.Context, mcpServer *types.MCPServerPointer) (*MCPValidationResult, error) {
 	result := &MCPValidationResult{
-		ServerID:     mcpServer.ServerID,
-		EndpointURI:  mcpServer.EndpointURI,
+		ServerID:        mcpServer.ServerID,
+		EndpointURI:     mcpServer.EndpointURI,
 		ProtocolVersion: mcpServer.ProtocolVersion,
-		ValidatedAt:  time.Now().Unix(),
+		ValidatedAt:     time.Now().Unix(),
 	}
 
 	// Check endpoint accessibility
@@ -88,6 +88,13 @@ type MCPValidationResult struct {
 
 // checkEndpointAccessibility checks if the MCP endpoint is accessible
 func (mv *MCPValidator) checkEndpointAccessibility(ctx context.Context, endpointURI string) error {
+	// Respect context cancellation
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	// Parse the endpoint URI
 	if !strings.HasPrefix(endpointURI, "ws://") && !strings.HasPrefix(endpointURI, "wss://") {
 		return fmt.Errorf("invalid endpoint URI scheme, expected ws:// or wss://")
@@ -142,6 +149,13 @@ func (mv *MCPValidator) validateCapabilities(capabilities []string) error {
 
 // testMCPHandshake tests the MCP protocol handshake
 func (mv *MCPValidator) testMCPHandshake(ctx context.Context, mcpServer *types.MCPServerPointer) error {
+	// Respect context cancellation
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	// This would perform an actual MCP handshake
 	// For now, simulate the test
 
@@ -223,6 +237,14 @@ func (mv *MCPValidator) ValidateCapabilityInvocation(capabilityNode *types.Capab
 
 // validateToolInvocation validates tool invocation parameters
 func (mv *MCPValidator) validateToolInvocation(capabilityNode *types.CapabilityNode, parameters map[string]interface{}) error {
+	// Ensure the node is of type tool
+	if capabilityNode == nil {
+		return fmt.Errorf("capability node required")
+	}
+	if capabilityNode.CapabilityType != types.CapabilityTypeTool {
+		return fmt.Errorf("capability node is not a tool: %s", capabilityNode.CapabilityType)
+	}
+
 	// Check required parameters for tool invocation
 	if _, exists := parameters["tool_name"]; !exists {
 		return fmt.Errorf("tool_name parameter required")
@@ -239,6 +261,13 @@ func (mv *MCPValidator) validateToolInvocation(capabilityNode *types.CapabilityN
 
 // validateResourceAccess validates resource access parameters
 func (mv *MCPValidator) validateResourceAccess(capabilityNode *types.CapabilityNode, parameters map[string]interface{}) error {
+	if capabilityNode == nil {
+		return fmt.Errorf("capability node required")
+	}
+	if capabilityNode.CapabilityType != types.CapabilityTypeResource {
+		return fmt.Errorf("capability node is not a resource: %s", capabilityNode.CapabilityType)
+	}
+
 	// Check required parameters for resource access
 	if _, exists := parameters["resource_uri"]; !exists {
 		return fmt.Errorf("resource_uri parameter required")
@@ -251,6 +280,13 @@ func (mv *MCPValidator) validateResourceAccess(capabilityNode *types.CapabilityN
 
 // validatePromptUsage validates prompt usage parameters
 func (mv *MCPValidator) validatePromptUsage(capabilityNode *types.CapabilityNode, parameters map[string]interface{}) error {
+	if capabilityNode == nil {
+		return fmt.Errorf("capability node required")
+	}
+	if capabilityNode.CapabilityType != types.CapabilityTypePrompt {
+		return fmt.Errorf("capability node is not a prompt: %s", capabilityNode.CapabilityType)
+	}
+
 	// Check required parameters for prompt usage
 	if _, exists := parameters["prompt_template"]; !exists {
 		return fmt.Errorf("prompt_template parameter required")
@@ -270,10 +306,10 @@ func (mv *MCPValidator) GetMCPComplianceReport(mcpServer *types.MCPServerPointer
 	}
 
 	report := &MCPComplianceReport{
-		ServerID:        validationResult.ServerID,
+		ServerID:         validationResult.ServerID,
 		ValidationResult: *validationResult,
 		Recommendations:  mv.generateRecommendations(validationResult),
-		GeneratedAt:     time.Now().Unix(),
+		GeneratedAt:      time.Now().Unix(),
 	}
 
 	return report, nil
@@ -281,10 +317,10 @@ func (mv *MCPValidator) GetMCPComplianceReport(mcpServer *types.MCPServerPointer
 
 // MCPComplianceReport represents a detailed MCP compliance report
 type MCPComplianceReport struct {
-	ServerID         string             `json:"server_id"`
+	ServerID         string              `json:"server_id"`
 	ValidationResult MCPValidationResult `json:"validation_result"`
-	Recommendations  []string           `json:"recommendations"`
-	GeneratedAt      int64              `json:"generated_at"`
+	Recommendations  []string            `json:"recommendations"`
+	GeneratedAt      int64               `json:"generated_at"`
 }
 
 // generateRecommendations generates recommendations based on validation results
@@ -328,9 +364,9 @@ func (mv *MCPValidator) MonitorMCPServer(ctx context.Context, mcpServer *types.M
 				if err != nil {
 					// Send error result
 					results <- &MCPValidationResult{
-						ServerID: mcpServer.ServerID,
-						IsValid:  false,
-						Errors:   []string{err.Error()},
+						ServerID:    mcpServer.ServerID,
+						IsValid:     false,
+						Errors:      []string{err.Error()},
 						ValidatedAt: time.Now().Unix(),
 					}
 				} else {

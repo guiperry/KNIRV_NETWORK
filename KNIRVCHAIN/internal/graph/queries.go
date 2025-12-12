@@ -25,6 +25,11 @@ func NewGraphQueries(nodeStore *NodeStore, relManager *RelationshipManager, chro
 	}
 }
 
+// GetNodeStore returns the node store
+func (gq *GraphQueries) GetNodeStore() *NodeStore {
+	return gq.nodeStore
+}
+
 // FindErrorNodesByType finds error nodes by error type
 func (gq *GraphQueries) FindErrorNodesByType(errorType string, limit int) ([]*types.ErrorNode, error) {
 	nodeIDs, err := gq.nodeStore.ListNodesByType("error_node")
@@ -75,6 +80,11 @@ func (gq *GraphQueries) FindSkillNodesByMiner(minerAddress string, limit int) ([
 	return skillNodes, nil
 }
 
+// GetCapabilityNode retrieves a single capability node by ID
+func (gq *GraphQueries) GetCapabilityNode(id string) (*types.CapabilityNode, error) {
+	return gq.nodeStore.GetCapabilityNode(id)
+}
+
 // FindCapabilityNodesByType finds capability nodes by capability type
 func (gq *GraphQueries) FindCapabilityNodesByType(capabilityType types.CapabilityType, limit int) ([]*types.CapabilityNode, error) {
 	nodeIDs, err := gq.nodeStore.ListNodesByType("capability_node")
@@ -90,6 +100,31 @@ func (gq *GraphQueries) FindCapabilityNodesByType(capabilityType types.Capabilit
 		}
 
 		if node.CapabilityType == capabilityType {
+			capabilityNodes = append(capabilityNodes, node)
+			if limit > 0 && len(capabilityNodes) >= limit {
+				break
+			}
+		}
+	}
+
+	return capabilityNodes, nil
+}
+
+// FindCapabilityNodesByMinter finds capability nodes by minter address
+func (gq *GraphQueries) FindCapabilityNodesByMinter(minterAddress string, limit int) ([]*types.CapabilityNode, error) {
+	nodeIDs, err := gq.nodeStore.ListNodesByType("capability_node")
+	if err != nil {
+		return nil, fmt.Errorf("failed to list capability nodes: %w", err)
+	}
+
+	var capabilityNodes []*types.CapabilityNode
+	for _, id := range nodeIDs {
+		node, err := gq.nodeStore.GetCapabilityNode(id)
+		if err != nil {
+			continue
+		}
+
+		if node.MinterAddress == minterAddress {
 			capabilityNodes = append(capabilityNodes, node)
 			if limit > 0 && len(capabilityNodes) >= limit {
 				break
@@ -287,7 +322,11 @@ func calculatePropertyValue(node *types.PropertyNode) float64 {
 	// Factor in novelty score from the idea
 	if node.IdeaNodeID != "" {
 		// This would need to be looked up, for now use a placeholder
-		noveltyMultiplier := 1.0 + (node.NFTPointer.MetadataURI != "") // Simple heuristic
+		metadataBonus := 0.0
+		if node.NFTPointer.MetadataURI != "" {
+			metadataBonus = 1.0
+		}
+		noveltyMultiplier := 1.0 + metadataBonus // Simple heuristic
 		baseValue *= noveltyMultiplier
 	}
 

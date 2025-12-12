@@ -26,12 +26,18 @@ type TransactionPoolManager struct {
 
 // NewTransactionPoolManager creates a new transaction pool manager
 func NewTransactionPoolManager(bc *BlockchainStruct) *TransactionPoolManager {
-	return &TransactionPoolManager{
+	tpm := &TransactionPoolManager{
 		blockchain:            bc,
-		mainPoolRef:           &bc.TransactionPool,
 		pluginAuthorSubpool:   make(map[string]*Transaction),
 		delegatedTransactions: make(map[string]time.Time),
 	}
+
+	// Set mainPoolRef only if bc is not nil
+	if bc != nil {
+		tpm.mainPoolRef = &bc.TransactionPool
+	}
+
+	return tpm
 }
 
 // Methods to manage the Plugin Author Subpool

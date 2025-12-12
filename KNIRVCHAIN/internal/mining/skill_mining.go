@@ -1,7 +1,6 @@
 package mining
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -202,8 +201,8 @@ func (sm *SkillMiner) validateWithKNIRVNEXUS(errorNode *types.ErrorNode, loraAda
 		Recall:         0.80 + float64(loraAdapter.Rank%12)*0.01, // 0.80-0.91
 		F1Score:        0.83 + float64(loraAdapter.Rank%9)*0.01,  // 0.83-0.91
 		TestCasesRun:   100,
-		TestCasesPass:  85 + loraAdapter.Rank%10, // 85-94
-		AvgResponseTime: 150 - loraAdapter.Rank%50, // 100-149ms
+		TestCasesPass:  uint64(85 + loraAdapter.Rank%10), // 85-94
+		AvgResponseTime: int64(150 - loraAdapter.Rank%50), // 100-149ms
 	}
 
 	// Validate performance
